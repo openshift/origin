@@ -1,19 +1,47 @@
 #!/bin/bash
 
-os::util::join() {
+os::provision::join() {
   local IFS="$1"
 
   shift
   echo "$*"
 }
 
-os::util::install-cmds() {
+os::provision::build-origin() {
+  local origin_root=$1
+  local skip_build=$2
+
+  # This optimization is intended for devcluster use so hard-coding the
+  # arch in the path should be ok.
+  if [ -f "${origin_root}/_output/local/bin/linux/amd64/oc" ] &&
+     [ "${skip_build}" = "true" ]; then
+    echo "WARNING: Skipping openshift build due to OPENSHIFT_SKIP_BUILD=true"
+  else
+    echo "Building openshift"
+    ${origin_root}/hack/build-go.sh
+  fi
+}
+
+os::provision::build-etcd() {
+  local origin_root=$1
+  local skip_build=$2
+
+  if [ -f "${origin_root}/_tools/etcd/bin/etcd" ] &&
+     [ "${skip_build}" = "true" ]; then
+    echo "WARNING: Skipping etcd build due to OPENSHIFT_SKIP_BUILD=true"
+  else
+    echo "Building etcd"
+    ${origin_root}/hack/install-etcd.sh
+  fi
+}
+
+os::provision::install-cmds() {
   local deployed_root=$1
 
   cp ${deployed_root}/_output/local/bin/linux/amd64/{openshift,oc,osadm} /usr/bin
 }
 
-os::util::add-to-hosts-file() {
+os::provision::add-to-hosts-file() {
   local ip=$1
   local name=$2
   local force=${3:-0}
@@ -25,22 +53,22 @@ os::util::add-to-hosts-file() {
   fi
 }
 
-os::util::setup-hosts-file() {
+os::provision::setup-hosts-file() {
   local master_name=$1
   local master_ip=$2
   local -n node_names=$3
   local -n node_ips=$4
 
   # Setup hosts file to support ping by hostname to master
-  os::util::add-to-hosts-file "${master_ip}" "${master_name}"
+  os::provision::add-to-hosts-file "${master_ip}" "${master_name}"
 
   # Setup hosts file to support ping by hostname to each node in the cluster
   for (( i=0; i < ${#node_names[@]}; i++ )); do
-    os::util::add-to-hosts-file "${node_ips[$i]}" "${node_names[$i]}"
+    os::provision::add-to-hosts-file "${node_ips[$i]}" "${node_names[$i]}"
   done
 }
 
-os::util::init-certs() {
+os::provision::init-certs() {
   local config_root=$1
   local network_plugin=$2
   local master_name=$3
@@ -84,24 +112,54 @@ os::util::init-certs() {
   popd > /dev/null
 }
 
-# Set up the KUBECONFIG environment variable for use by oc
-os::util::set-oc-env() {
-  local config_root=$1
-  local target=$2
+os::provision::set-os-env() {
+  local origin_root=$1
+  local config_root=$2
 
-  if [ "${config_root}" = "/" ]; then
-    config_root=""
+  # Set up the KUBECONFIG environment variable for use by oc.
+  #
+  # Target .bashrc since docker exec doesn't invoke .bash_profile and
+  # .bash_profile loads .bashrc anyway.
+  local file_target=".bashrc"
+
+  local vagrant_target="/home/vagrant/${file_target}"
+  if [ -d $(dirname "${vagrant_target}") ]; then
+    os::provision::set-bash-env "${origin_root}" "${config_root}" \
+"${vagrant_target}"
   fi
+  os::provision::set-bash-env "${origin_root}" "${config_root}" \
+"/root/${file_target}"
+}
 
-  local path="${config_root}/openshift.local.config/master/admin.kubeconfig"
+os::provision::get-admin-config() {
+    local config_root=$1
+
+    echo "${config_root}/openshift.local.config/master/admin.kubeconfig"
+}
+
+os::provision::get-node-config() {
+    local config_root=$1
+    local node_name=$2
+
+    echo "${config_root}/openshift.local.config/node-${node_name}/node-config.yaml"
+}
+
+os::provision::set-bash-env() {
+  local origin_root=$1
+  local config_root=$2
+  local target=$3
+
+  local path=$(os::provision::get-admin-config "${config_root}")
   local config_line="export KUBECONFIG=${path}"
   if ! grep -q "${config_line}" "${target}" &> /dev/null; then
-    echo "export KUBECONFIG=${path}" >> "${target}"
+    echo "${config_line}" >> "${target}"
+    echo "cd ${origin_root}" >> "${target}"
   fi
 }
 
-os::util::get-network-plugin() {
+os::provision::get-network-plugin() {
   local plugin=$1
+  local dind_management_script=${2:-false}
 
   local subnet_plugin="redhat/openshift-ovs-subnet"
   local multitenant_plugin="redhat/openshift-ovs-multitenant"
@@ -109,34 +167,42 @@ os::util::get-network-plugin() {
 
   if [ "${plugin}" != "${subnet_plugin}" ] && \
      [ "${plugin}" != "${multitenant_plugin}" ]; then
-    if [ "${plugin}" != "" ]; then
+    # Disable output when being called from the dind management script
+    # since it may be doing something other than launching a cluster.
+    if [ "${dind_management_script}" = "false" ]; then
+      if [ "${plugin}" != "" ]; then
         >&2 echo "Invalid network plugin: ${plugin}"
+      fi
+      >&2 echo "Using default network plugin: ${default_plugin}"
     fi
-    >&2 echo "Using default network plugin: ${default_plugin}"
     plugin="${default_plugin}"
   fi
   echo "${plugin}"
 }
 
-os::util::install-sdn() {
+os::provision::install-sdn() {
   local deployed_root=$1
+
+  # The subnet plugin is discovered via the kube network plugin path.
+  local kube_osdn_path="/usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet"
+  mkdir -p "${kube_osdn_path}"
 
   # Source scripts from an openshift-sdn repo if present to support
   # openshift-sdn development.
   local sdn_root="${deployed_root}/third-party/openshift-sdn"
   if [ -d "${sdn_root}" ]; then
-    pushd "${sdn_root}" > /dev/null
-    # TODO: Enable these commands once we have a separate binary for openshift-sdn
-    # make
-    # make "install-dev"
+    >&2 echo "Sourcing sdn scripts from ${sdn_root}"
+    pushd "${sdn_root}/pkg/ovssubnet/controller" > /dev/null
+      ln -rsf kube/bin/openshift-ovs-subnet "${kube_osdn_path}/"
+      ln -rsf kube/bin/openshift-sdn-kube-subnet-setup.sh /usr/bin/
+
+      ln -rsf multitenant/bin/openshift-ovs-multitenant /usr/bin/
+      ln -rsf multitenant/bin/openshift-sdn-multitenant-setup.sh /usr/bin/
     popd > /dev/null
   else
     local osdn_base_path="${deployed_root}/Godeps/_workspace/src/github.com/openshift/openshift-sdn"
     local osdn_controller_path="${osdn_base_path}/pkg/ovssubnet/controller"
     pushd "${osdn_controller_path}" > /dev/null
-      # The subnet plugin is discovered via the kube network plugin path.
-      local kube_osdn_path="/usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet"
-      mkdir -p "${kube_osdn_path}"
       cp -f kube/bin/openshift-ovs-subnet "${kube_osdn_path}/"
       cp -f kube/bin/openshift-sdn-kube-subnet-setup.sh /usr/bin/
 
@@ -144,29 +210,115 @@ os::util::install-sdn() {
       # origin multitenant plugin knows how to discover it.
       cp -f multitenant/bin/openshift-ovs-multitenant /usr/bin/
       cp -f multitenant/bin/openshift-sdn-multitenant-setup.sh /usr/bin/
-
-      # subnet and multitenant plugin setup writes docker network options
-      # to /run/openshift-sdn/docker-network, make this file to be exported
-      # as part of docker service start.
-      local system_docker_path="/usr/lib/systemd/system/docker.service.d/"
-      mkdir -p "${system_docker_path}"
-      cat <<EOF > "${system_docker_path}/docker-sdn-ovs.conf"
-[Service]
-EnvironmentFile=-/run/openshift-sdn/docker-network
-EOF
     popd > /dev/null
   fi
 
+  # subnet and multitenant plugin setup writes docker network options
+  # to /run/openshift-sdn/docker-network, make this file to be exported
+  # as part of docker service start.
+  local system_docker_path="/usr/lib/systemd/system/docker.service.d/"
+  mkdir -p "${system_docker_path}"
+  cat <<EOF > "${system_docker_path}/docker-sdn-ovs.conf"
+[Service]
+EnvironmentFile=-/run/openshift-sdn/docker-network
+EOF
+
+  systemctl enable openvswitch
+  systemctl start openvswitch
 }
 
-os::util::wait-for-condition() {
-  local start_msg=$1
-  local error_msg=$2
+os::provision::base-provision() {
+  os::provision::fixup-net-udev
+
+  os::provision::setup-hosts-file "${MASTER_NAME}" "${MASTER_IP}" NODE_NAMES \
+    NODE_IPS
+
+  os::provision::install-pkgs
+}
+
+os::provision::fixup-net-udev() {
+  if [ "${FIXUP_NET_UDEV}" == "true" ]; then
+    NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
+    rm -f ${NETWORK_CONF_PATH}ifcfg-enp*
+    if [[ -f "${NETWORK_CONF_PATH}ifcfg-eth1" ]]; then
+      sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
+      if ! grep -q "NAME=" ${NETWORK_CONF_PATH}ifcfg-eth1; then
+        echo "NAME=openshift" >> ${NETWORK_CONF_PATH}ifcfg-eth1
+      fi
+      nmcli con reload
+      nmcli dev disconnect eth1
+      nmcli con up "openshift"
+    fi
+  fi
+}
+
+os::provision::in-container() {
+  test -f /.dockerinit
+}
+
+os::provision::install-pkgs() {
+  # Only install packages if not deploying to a container.  A
+  # container is expected to have installed packages as part of image
+  # creation.
+  if ! os::provision::in-container; then
+    yum update -y
+    yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils which ethtool
+  fi
+}
+
+os::provision::start-os-service() {
+  local unit_name=$1
+  local description=$2
+  local exec_start=$3
+  local work_dir=${4:-${CONFIG_ROOT}/}
+
+  cat <<EOF > "/usr/lib/systemd/system/${unit_name}.service"
+[Unit]
+Description=${description}
+Requires=network.target
+After=docker.target network.target
+
+[Service]
+ExecStart=${exec_start}
+WorkingDirectory=${work_dir}
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable "${unit_name}.service"
+systemctl start "${unit_name}.service"
+
+}
+
+os::provision::start-node-service() {
+  local config_root=$1
+  local node_name=$2
+
+  # Copy over the certificates directory so that each node has a copy.
+  cp -r "${config_root}/openshift.local.config" /
+  if [ -d /home/vagrant ]; then
+    chown -R vagrant.vagrant /openshift.local.config
+  fi
+
+  cmd="/usr/bin/openshift start node --loglevel=${LOG_LEVEL} \
+--config=$(os::provision::get-node-config ${config_root} ${node_name})"
+  os::provision::start-os-service "openshift-node" "OpenShift Node" "${cmd}" /
+}
+
+OS_WAIT_FOREVER=-1
+os::provision::wait-for-condition() {
+  local msg=$1
   # condition should be a string that can be eval'd.  When eval'd, it
   # should not output anything to stderr or stdout.
-  local condition=$3
-  local timeout=${4:-30}
-  local sleep_interval=${5:-1}
+  local condition=$2
+  local timeout=${3:-30}
+
+  local start_msg="Waiting for ${msg}"
+  local error_msg="[ERROR] Timeout waiting for ${msg}"
 
   local counter=0
   while ! $(${condition}); do
@@ -174,9 +326,12 @@ os::util::wait-for-condition() {
       echo "${start_msg}"
     fi
 
-    if [[ "${counter}" -lt "${timeout}" ]]; then
+    if [[ "${counter}" < "${timeout}" ]] || \
+       [[ "${timeout}" = "${OS_WAIT_FOREVER}" ]]; then
       counter=$((counter + 1))
-      echo -n '.'
+      if [ "${timeout}" != "${OS_WAIT_FOREVER}" ]; then
+        echo -n '.'
+      fi
       sleep 1
     else
       echo -e "\n${error_msg}"
@@ -185,6 +340,40 @@ os::util::wait-for-condition() {
   done
 
   if [ "${counter}" != "0" ]; then
-    echo -e '\nDone'
+    if [ "${timeout}" != "${OS_WAIT_FOREVER}" ]; then
+      echo -e '\nDone'
+    fi
   fi
+}
+
+os::provision::is-sdn-node-registered() {
+  local node_name=$1
+
+  oc get nodes "${node_name}" &> /dev/null
+}
+
+os::provision::disable-sdn-node() {
+  local config_root=$1
+  local node_name=$2
+
+  export KUBECONFIG=$(os::provision::get-admin-config "${config_root}")
+
+  local msg="sdn node to register with the master"
+  local condition="os::provision::is-sdn-node-registered ${node_name}"
+  os::provision::wait-for-condition "${msg}" "${condition}"
+
+  echo "Disabling scheduling for the sdn node"
+  osadm manage-node "${node_name}" --schedulable=false > /dev/null
+}
+
+os::provision::wait-for-node-config() {
+  local config_root=$1
+  local node_name=$2
+
+  local msg="node configuration file"
+  local config_file=$(os::provision::get-node-config "${config_root}" \
+    "${node_name}")
+  local condition="test -f ${config_file}"
+  os::provision::wait-for-condition "${msg}" "${condition}" \
+    "${OS_WAIT_FOREVER}"
 }

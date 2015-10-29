@@ -719,6 +719,10 @@ os::log::warn() {
   os::log::with-severity "${1}" "WARNING"
 }
 
+os::log::error() {
+  os::log::with-severity "${1}" "ERROR"
+}
+
 find_files() {
 	find . -not \( \
 		\( \

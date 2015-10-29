@@ -49,6 +49,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "os"                => "fedora",
     "dev_cluster"       => false,
     "dind_dev_cluster"  => ENV['OPENSHIFT_DIND_DEV_CLUSTER'] || false,
+    "network_plugin"    => ENV['OPENSHIFT_NETWORK_PLUGIN'] || ENV['OPENSHIFT_SDN'] || "",
     "insert_key"        => true,
     "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
     "rebuild_yum_cache" => false,
@@ -112,18 +113,35 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   dev_cluster = vagrant_openshift_config['dev_cluster'] || ENV['OPENSHIFT_DEV_CLUSTER']
   single_vm_cluster = ! (dind_dev_cluster or dev_cluster)
   if dind_dev_cluster
+
+    # /vagrant is used instead of /data because the vm is only the
+    # host for the cluster.  Members of a dind cluster will still use
+    # /data.
+    deployed_root="/vagrant"
+
     config.vm.define "#{VM_NAME_PREFIX}dind-host" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
-      config.vm.provision "shell", inline: "/vagrant/contrib/vagrant/provision-dind.sh"
-      config.vm.provision "shell", inline: "/vagrant/hack/dind-cluster.sh config-host"
-      config.vm.provision "shell", privileged: false, inline: "/vagrant/hack/dind-cluster.sh restart"
+      config.vm.synced_folder ".", "/vagrant", disabled: true
+      config.vm.synced_folder ".", deployed_root, type: vagrant_openshift_config['sync_folders_type']
+      config.vm.provision "shell", inline: "#{deployed_root}/contrib/vagrant/provision-dind.sh"
+      config.vm.provision "shell", inline: "#{deployed_root}/hack/dind-cluster.sh config-host"
+      config.vm.provision "shell", privileged: false, inline: "#{deployed_root}/hack/dind-cluster.sh restart"
       config.vm.hostname = "openshift-dind-host"
-      config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
     end
   elsif dev_cluster
     # Start an OpenShift cluster
     # Currently this only works with the (default) VirtualBox provider.
+
+    # Remove stale configuration before provisioning
+    if ARGV[0] =~ /^up|provision$/i and not ARGV.include?("--no-provision")
+      system('rm -rf ./openshift.local.*')
+    end
+
+    # Use /data instead of /vagrant so that the path to the origin
+    # repo within cluster members is the same across VM and dind
+    # clusters.
+    deployed_root="/data"
 
     instance_prefix = "openshift"
 
@@ -136,16 +154,21 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     minion_ips = num_minion.times.collect { |n| minion_ip_base + "#{n+3}" }
     minion_ips_str = minion_ips.join(",")
 
-    fixup_net_udev = vagrant_openshift_config['fixup_net_udev']
+    fixup_net_udev = ''
+    if vagrant_openshift_config['fixup_net_udev']
+      fixup_net_udev = '-f'
+    end
+    network_plugin = vagrant_openshift_config['network_plugin']
 
     # OpenShift master
     config.vm.define "#{VM_NAME_PREFIX}master" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
-      config.vm.provision "shell", inline: "/vagrant/contrib/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{fixup_net_udev} #{ENV['OPENSHIFT_SDN']}"
+      config.vm.synced_folder ".", "/vagrant", disabled: true
+      config.vm.synced_folder ".", deployed_root, type: vagrant_openshift_config['sync_folders_type']
+      config.vm.provision "shell", inline: "/bin/bash -x #{deployed_root}/contrib/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} -n '#{network_plugin}' #{fixup_net_udev}"
       config.vm.network "private_network", ip: "#{master_ip}"
       config.vm.hostname = "openshift-master"
-      config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
     end
 
     # OpenShift minion
@@ -155,10 +178,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         minion_ip = minion_ips[n]
         minion.vm.box = kube_box[kube_os]["name"]
         minion.vm.box_url = kube_box[kube_os]["box_url"]
-        minion.vm.provision "shell", inline: "/vagrant/contrib/vagrant/provision-minion.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{minion_ip} #{minion_index} #{fixup_net_udev}"
+        config.vm.synced_folder ".", "/vagrant", disabled: true
+        config.vm.synced_folder ".", deployed_root, type: vagrant_openshift_config['sync_folders_type']
+        minion.vm.provision "shell", inline: "/bin/bash -x #{deployed_root}/contrib/vagrant/provision-node.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} -n '#{network_plugin}' -i #{minion_index} #{fixup_net_udev}"
         minion.vm.network "private_network", ip: "#{minion_ip}"
         minion.vm.hostname = "openshift-minion-#{minion_index}"
-        config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
       end
     end
   else # Single VM dev environment
@@ -231,7 +255,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       override.ssh.insert_key = vagrant_openshift_config['insert_key']
       if ! single_vm_cluster
         # Work around https://github.com/pradels/vagrant-libvirt/issues/419
-        override.vm.synced_folder ".", "/vagrant", type: 'nfs'
+        override.vm.synced_folder ".", deployed_root, type: 'nfs'
       end
       libvirt.driver      = 'kvm'
       libvirt.memory      = vagrant_openshift_config['memory'].to_i

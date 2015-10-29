@@ -1,0 +1,15 @@
+[Unit]
+Description=Docker-in-Docker (dind)
+After=network.target
+
+[Service]
+Type=notify
+EnvironmentFile=-/etc/sysconfig/docker-network
+Environment=GOTRACEBACK=crash
+ExecStart=/usr/local/bin/dind docker daemon --host=unix:///var/run/docker.sock \
+  --host=tcp://0.0.0.0:2375 --storage-driver=vfs \
+  --exec-opt native.cgroupdriver=cgroupfs \
+  $DOCKER_NETWORK_OPTIONS
+
+[Install]
+WantedBy=multi-user.target
