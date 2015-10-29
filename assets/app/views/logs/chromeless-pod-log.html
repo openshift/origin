@@ -1,0 +1,15 @@
+<div column flex class="content">
+  <div flex class="log-chromeless">
+    <alerts alerts="alerts"></alerts>
+    <log-viewer
+        kind="pods/log"
+        name="pod.metadata.name"
+        context="logContext"
+        options="logOptions"
+        status="pod.status.phase"
+        start="pod.status.startTime | date : 'short'"
+        chromeless="true"
+        flex>
+    </log-viewer>
+  </div>
+</div>

@@ -21,37 +21,22 @@
                 <ng-include src=" 'views/browse/_build-details.html' "></ng-include>
               </tab>
 
-              <tab active="selectedTab.logs" select="initLogs()">
+              <tab active="selectedTab.logs">
                 <tab-heading>Logs</tab-heading>
                 <log-viewer
-                  logs="logs"
-                  loading="logsLoading"
-                  start="build.status.startTimestamp | date : 'short'"
-                  end="build.status.completionTimestamp | date : 'short'"
-                  links="true"
+                  ng-if="selectedTab.logs"
+                  kind="builds/log"
                   name="build.metadata.name"
-                  download="canShowDownload">
-                  <div row>
-                    <span>Status:&nbsp;&nbsp;</span>
-                    <status-icon status="build.status.phase"></status-icon>
-                    <span flex>&nbsp;&nbsp;{{build.status.phase}}</span>
-                  </div>
+                  context="logContext"
+                  status="build.status.phase"
+                  start="build.status.startTimestamp | date : 'short'"
+                  end="build.status.completionTimestamp | date : 'short'">
                 </log-viewer>
-                <!-- TODO: this should probably get moved up into the directive -->
-                <div ng-if="!logsLoading" class="text-muted">
-                  Log complete
-                </div>
-                <div ng-if="logError" class="text-muted">
-                  Log error
-                  <a href="" ng-click="runLogs()">reconnect?</a>
-                </div>
               </tab>
             </tabset>
-
-
           </div>
         </div>
       </div><!-- /.row -->
-    </div><!-- /build .well -->
+    </div><!-- /build -->
   </project-page>
 </div>

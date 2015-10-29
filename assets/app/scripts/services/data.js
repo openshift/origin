@@ -403,8 +403,9 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
   var makeStream = function() {
      return getNamespace(kind, context, {})
                 .then(function(params) {
+                  var cumulativeBytes = 0;
                   return  $ws({
-                            url: urlForResource(kind, name, null, context, true, _.extend(params, opts, {follow: true})),
+                            url: urlForResource(kind, name, null, context, true, _.extend(params, opts)),
                             auth: {},
                             onopen: function(evt) {
                               _.each(openQueue, function(fn) {
@@ -416,11 +417,20 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
                                 Logger.log('log stream response is not a string', evt.data);
                                 return;
                               }
+
+                              var message;
+                              if(!isRaw) {
+                                message = b64_to_utf8(evt.data);
+                                // Count bytes for log streams, which will stop when limitBytes is reached.
+                                // There's no other way to detect we've reach the limit currently.
+                                cumulativeBytes += message.length;
+                              }
+
                               _.each(messageQueue, function(fn) {
                                 if(isRaw) {
                                   fn(evt.data);
                                 } else {
-                                  fn(b64_to_utf8(evt.data), evt.data);
+                                  fn(message, evt.data, cumulativeBytes);
                                 }
                               });
                             },
