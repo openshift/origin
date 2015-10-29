@@ -64,7 +64,7 @@ oc describe istag/mysql:latest
 [ "$(oc describe istag/mysql:latest | grep "Image Created:")" ]
 [ "$(oc describe istag/mysql:latest | grep "Image Name:")" ]
 name=$(oc get istag/mysql:latest --template='{{ .image.metadata.name }}')
-imagename="isimage/mysql@${name:0:7}"
+imagename="isimage/mysql@${name:0:15}"
 oc describe "${imagename}"
 [ "$(oc describe ${imagename} | grep "Environment:")" ]
 [ "$(oc describe ${imagename} | grep "Image Created:")" ]
@@ -130,8 +130,8 @@ echo "tag: ok"
 os::util::get_object_assert 'is perl' "{{(index .spec.tags 0).name}}" '5.16'
 os::util::get_object_assert 'is perl' "{{(index .status.tags 0).tag}}" '5.16'
 oc delete istag/perl:5.16
-[ ! "$(oc get is/perl --template={{.spec.tags}} | grep '5.16')" ]
-[ ! "$(oc get is/perl --template={{.status.tags}} | grep '5.16')" ]
+[ ! "$(oc get is/perl --template={{.spec.tags}} | grep 'version:5.16')" ]
+[ ! "$(oc get is/perl --template={{.status.tags}} | grep 'version:5.16')" ]
 oc delete all --all
 
 echo "delete istag: ok"
