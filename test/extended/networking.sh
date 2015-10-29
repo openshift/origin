@@ -54,6 +54,21 @@ function copy-container-files() {
   done
 }
 
+function save-container-logs() {
+  local base_dest_dir=$1
+
+  for container_name in "${CONTAINER_NAMES[@]}"; do
+    local dest_dir="${base_dest_dir}/${container_name}"
+    if [ ! -d "${dest_dir}" ]; then
+      mkdir -p "${dest_dir}"
+    fi
+    container_log_file=/tmp/systemd.log.gz
+    sudo docker exec -t "${container_name}" bash -c "journalctl -xe | \
+gzip > ${container_log_file}"
+    sudo docker cp "${container_name}:${container_log_file}" "${dest_dir}"
+  done
+}
+
 function save-artifacts() {
   local name=$1
   local config_root=$2
@@ -108,7 +123,8 @@ function test-osdn-plugin() {
     os::log::error "e2e tests failed for plugin: ${plugin}"
   fi
 
-  # TODO(marun) Need to dump logs from systemd
+  os::log::info "Saving container logs"
+  save-container-logs "${log_dir}"
 
   os::log::info "Shutting down docker-in-docker cluster for the ${name} plugin"
   ${CLUSTER_CMD} stop
