@@ -126,6 +126,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Start an OpenShift cluster
     # Currently this only works with the (default) VirtualBox provider.
 
+    # Tag configuration as stale when provisioning a dev cluster to
+    # ensure that nodes can wait for fresh configuration to be generated.
+    if ARGV[0] =~ /^up|provision$/i and not ARGV.include?("--no-provision")
+      system('test -d ./openshift.local.config && touch ./openshift.local.config/.stale')
+    end
+
     instance_prefix = "openshift"
 
     # The number of minions to provision.

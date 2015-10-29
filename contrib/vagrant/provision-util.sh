@@ -81,6 +81,9 @@ os::provision::init-certs() {
   local volumes_dir="/var/lib/openshift.local.volumes"
   local cert_dir="${server_config_dir}/master"
 
+  # Clear stale configuration
+  rm -rf "${server_config_dir}"
+
   pushd "${config_root}" > /dev/null
 
   # Master certs
@@ -334,7 +337,8 @@ os::provision::wait-for-node-config() {
   local msg="node configuration file"
   local config_file=$(os::provision::get-node-config "${config_root}" \
     "${node_name}")
-  local condition="test -f ${config_file}"
+  local condition="test ! -f ${config_root}/openshift.local.config/.stale -a \
+-f ${config_file}"
   os::provision::wait-for-condition "${msg}" "${condition}" \
     "${OS_WAIT_FOREVER}"
 }
