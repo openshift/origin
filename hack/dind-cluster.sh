@@ -216,31 +216,6 @@ function stop() {
 
 }
 
-function test-net-e2e() {
-  local focus_regex="${NETWORKING_E2E_FOCUS:-}"
-  local skip_regex="${NETWORKING_E2E_SKIP:-}"
-
-  if [ ! -d "${CONFIG_ROOT}" ]; then
-    >&2 echo "Error: dind cluster not found.  To launch a cluster:"
-    >&2 echo ""
-    >&2 echo "    hack/dind-cluster.sh start"
-    >&2 echo ""
-    exit 1
-  fi
-
-  source ${ORIGIN_ROOT}/hack/util.sh
-  source ${ORIGIN_ROOT}/hack/common.sh
-
-  go get github.com/onsi/ginkgo/ginkgo
-
-  os::build::setup_env
-  go test -c ./test/extended/networking -o ${OS_OUTPUT_BINPATH}/networking.test
-
-  os::util::run-net-extended-tests "${CONFIG_ROOT}" "${focus_regex}" \
-    "${skip_regex}"
-}
-
-
 case "${1:-""}" in
   start)
     start
@@ -256,13 +231,10 @@ case "${1:-""}" in
     BUILD_IMAGES=1
     build-images
     ;;
-  test-net-e2e)
-    test-net-e2e
-    ;;
   config-host)
     os::provision::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
     ;;
   *)
-    echo "Usage: $0 {start|stop|restart|build-images|test-net-e2e|config-host}"
+    echo "Usage: $0 {start|stop|restart|build-images|config-host}"
     exit 2
 esac

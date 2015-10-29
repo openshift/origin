@@ -262,30 +262,44 @@ the dind-cluster.sh script.
 
 ==== Testing networking with docker-in-docker
 
-It's possible to run networking tests against a running
-docker-in-docker cluster (i.e. 'hack/dind-cluster.sh start' has
-already been invoked):
+It is possible to run networking tests against a running
+docker-in-docker cluster (i.e. after 'hack/dind-cluster.sh start' has
+been invoked):
 
-        $ hack/dind-cluster.sh test-net-e2e
+        $ test/extended/networking.sh -d
 
 Since a cluster can only be configured with a single network plugin at
 a time, this method of invoking the networking tests will only
-validate the active plugin.  It is possible to target all plugins via
-the following command:
+validate the active plugin.  It is possible to target all plugins by
+invoking the same script in 'ci mode' by not supplying arguments:
 
         $ test/extended/networking.sh
 
-networking.sh creates a new dind cluster for each networking plugin,
-runs the tests against that cluster, and then tears down the cluster.
-The test dind clusters are isolated from any user-created clusters,
-and test output and artifacts of the most recent test run are retained
-in /tmp/openshift-extended-tests/networking.
+In ci mode, for each networking plugin, networking.sh will create a
+new dind cluster, run the tests against that cluster, and tear down
+the cluster.  The test dind clusters are isolated from any
+user-created clusters, and test output and artifacts of the most
+recent test run are retained in
+/tmp/openshift-extended-tests/networking.
 
-Whether using dind-cluster.sh or networking.sh to run tests, it's
-possible to override the default test regexes via the
+It's possible to override the default test regexes via the
 NETWORKING_E2E_FOCUS and NETWORKING_E2E_SKIP environment variables.
 These variables set the '-focus' and '-skip' arguments supplied to the
 https://github.com/onsi/ginkgo[ginkgo] test runner.
+
+==== Running networking tests against any cluster
+
+It's possible to run networking tests against any cluster.  To target
+the default vm dev cluster:
+
+        $ test/extended/networking.sh -e
+
+To target an arbitrary cluster, the config root (parent of
+openshift.local.config) can be supplied instead:
+
+        $ test/extended/networking.sh -c [cluster config root]
+
+See the script's inline documentation for further details.
 
 ==== Running Kubernetes e2e tests
 
