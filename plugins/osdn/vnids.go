@@ -16,7 +16,7 @@ const (
 	AdminVNID = uint(0)
 )
 
-func VnidStartMaster(oc *OvsController) error {
+func (oc *OvsController) VnidStartMaster() error {
 	nets, _, err := oc.Registry.GetNetNamespaces()
 	if err != nil {
 		return err
@@ -171,7 +171,7 @@ func watchNamespaces(oc *OvsController, ready chan<- bool, start <-chan string) 
 	}
 }
 
-func VnidStartNode(oc *OvsController) error {
+func (oc *OvsController) VnidStartNode() error {
 	getNetNamespaces := func(registry *Registry) (interface{}, string, error) {
 		return registry.GetNetNamespaces()
 	}
@@ -191,6 +191,7 @@ func VnidStartNode(oc *OvsController) error {
 	if err != nil {
 		return err
 	}
+
 	services := result.([]api.Service)
 	for _, svc := range services {
 		netid, found := oc.VNIDMap[svc.Namespace]

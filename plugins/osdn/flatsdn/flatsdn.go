@@ -4,45 +4,81 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/plugins/osdn"
+	"github.com/openshift/openshift-sdn/plugins/osdn/api"
+	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+
+	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
+	utilexec "k8s.io/kubernetes/pkg/util/exec"
 )
+
+type flatsdnPlugin struct {
+	osdn.OvsController
+}
 
 func NetworkPluginName() string {
 	return "redhat/openshift-ovs-subnet"
 }
 
-func init() {
-	osdn.RegisterPlugin(NetworkPluginName(), createPlugin)
-}
+func CreatePlugin(registry *osdn.Registry, hostname string, selfIP string, ready chan struct{}) (api.OsdnPlugin, error) {
+	fsp := &flatsdnPlugin{}
 
-func createPlugin(registry *osdn.Registry, hostname string, selfIP string, ready chan struct{}) (*osdn.OvsController, error) {
-	controller, err := osdn.NewBaseController(registry, NewFlowController(), hostname, selfIP, ready)
+	err := fsp.BaseInit(registry, NewFlowController(), fsp, hostname, selfIP, ready)
 	if err != nil {
 		return nil, err
 	}
 
-	controller.AddStartMasterFunc(osdn.SubnetStartMaster)
-	controller.AddStartNodeFunc(osdn.SubnetStartNode)
-	return controller, err
+	return fsp, err
 }
 
-func Master(registry *osdn.Registry, clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) {
-	kc, err := osdn.NewController(NetworkPluginName(), registry, "", "", nil)
-	if err != nil {
-		glog.Fatalf("SDN initialization failed: %v", err)
+func (plugin *flatsdnPlugin) PluginStartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
+	if err := plugin.SubnetStartMaster(clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR); err != nil {
+		return err
 	}
-	err = kc.StartMaster(clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR)
-	if err != nil {
-		glog.Fatalf("SDN initialization failed: %v", err)
-	}
+
+	return nil
 }
 
-func Node(registry *osdn.Registry, hostname string, publicIP string, ready chan struct{}, mtu uint) {
-	kc, err := osdn.NewController(NetworkPluginName(), registry, hostname, publicIP, ready)
-	if err != nil {
-		glog.Fatalf("SDN initialization failed: %v", err)
+func (plugin *flatsdnPlugin) PluginStartNode(mtu uint) (kubernetes.FilteringEndpointsConfigHandler, error) {
+	if err := plugin.SubnetStartNode(mtu); err != nil {
+		return nil, err
 	}
-	err = kc.StartNode(mtu)
-	if err != nil {
-		glog.Fatalf("SDN Node failed: %v", err)
-	}
+
+	return nil, nil
+}
+
+//-----------------------------------------------
+
+const (
+	setUpCmd    = "setup"
+	tearDownCmd = "teardown"
+	statusCmd   = "status"
+)
+
+func (plugin *flatsdnPlugin) getExecutable() string {
+	return "openshift-ovs-subnet"
+}
+
+func (plugin *flatsdnPlugin) Init(host knetwork.Host) error {
+	return nil
+}
+
+func (plugin *flatsdnPlugin) Name() string {
+	return NetworkPluginName()
+}
+
+func (plugin *flatsdnPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
+	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, namespace, name, string(id)).CombinedOutput()
+	glog.V(5).Infof("SetUpPod 'flatsdn' network plugin output: %s, %v", string(out), err)
+	return err
+}
+
+func (plugin *flatsdnPlugin) TearDownPod(namespace string, name string, id kubeletTypes.DockerID) error {
+	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, namespace, name, string(id)).CombinedOutput()
+	glog.V(5).Infof("TearDownPod 'flatsdn' network plugin output: %s, %v", string(out), err)
+	return err
+}
+
+func (plugin *flatsdnPlugin) Status(namespace string, name string, id kubeletTypes.DockerID) (*knetwork.PodNetworkStatus, error) {
+	return nil, nil
 }

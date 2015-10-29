@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
+	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -17,13 +18,13 @@ import (
 	"k8s.io/kubernetes/pkg/util/iptables"
 )
 
-type PluginCtor func(registry *Registry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error)
-
-var pluginCtors map[string]PluginCtor = make(map[string]PluginCtor)
-
-type startFunc func(oc *OvsController) error
+type PluginHooks interface {
+	PluginStartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
+	PluginStartNode(mtu uint) (kubernetes.FilteringEndpointsConfigHandler, error)
+}
 
 type OvsController struct {
+	pluginHooks     PluginHooks
 	Registry        *Registry
 	localIP         string
 	localSubnet     *api.Subnet
@@ -36,10 +37,6 @@ type OvsController struct {
 	netIDManager    *netutils.NetIDAllocator
 	adminNamespaces []string
 	services        map[string]api.Service
-	nodeMtu         uint
-
-	startMasterFuncs []startFunc
-	startNodeFuncs   []startFunc
 }
 
 type FlowController interface {
@@ -54,32 +51,12 @@ type FlowController interface {
 	UpdatePod(namespace, podName, containerID string, netID uint) error
 }
 
-func RegisterPlugin(name string, ctor PluginCtor) {
-	log.Infof("Register SDN network plugin: %v", name)
-	pluginCtors[name] = ctor
-}
-
-// Call by higher layers to create the plugin instance
-func NewController(pluginType string, registry *Registry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
-	pfunc, ok := pluginCtors[strings.ToLower(pluginType)]
-	if !ok {
-		return nil, fmt.Errorf("unknown plugin type: %v", pluginType)
-	}
-
-	p, err := pfunc(registry, hostname, selfIP, ready)
-	if err != nil {
-		return nil, err
-	}
-
-	return p, nil
-}
-
 // Called by plug factory functions to initialize the generic plugin instance
-func NewBaseController(registry *Registry, flowController FlowController, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
+func (oc *OvsController) BaseInit(registry *Registry, flowController FlowController, pluginHooks PluginHooks, hostname string, selfIP string, ready chan struct{}) error {
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		hostname = strings.TrimSpace(string(output))
 	}
@@ -88,33 +65,23 @@ func NewBaseController(registry *Registry, flowController FlowController, hostna
 		var err error
 		selfIP, err = netutils.GetNodeIP(hostname)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 	log.Infof("Self IP: %s.", selfIP)
-	return &OvsController{
-		Registry:         registry,
-		flowController:   flowController,
-		localIP:          selfIP,
-		hostName:         hostname,
-		localSubnet:      nil,
-		subnetAllocator:  nil,
-		VNIDMap:          make(map[string]uint),
-		sig:              make(chan struct{}),
-		ready:            ready,
-		adminNamespaces:  make([]string, 0),
-		services:         make(map[string]api.Service),
-		startMasterFuncs: make([]startFunc, 0),
-		startNodeFuncs:   make([]startFunc, 0),
-	}, nil
-}
 
-func (oc *OvsController) AddStartMasterFunc(f startFunc) {
-	oc.startMasterFuncs = append(oc.startMasterFuncs, f)
-}
+	oc.pluginHooks = pluginHooks
+	oc.Registry = registry
+	oc.flowController = flowController
+	oc.localIP = selfIP
+	oc.hostName = hostname
+	oc.VNIDMap = make(map[string]uint)
+	oc.sig = make(chan struct{})
+	oc.ready = ready
+	oc.adminNamespaces = make([]string, 0)
+	oc.services = make(map[string]api.Service)
 
-func (oc *OvsController) AddStartNodeFunc(f startFunc) {
-	oc.startNodeFuncs = append(oc.startNodeFuncs, f)
+	return nil
 }
 
 func (oc *OvsController) validateClusterNetwork(networkCIDR string, subnetsInUse []string, hostIPNets []*net.IPNet) error {
@@ -217,30 +184,24 @@ func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSu
 		return err
 	}
 
-	// Plugin specific startup
-	for _, f := range oc.startMasterFuncs {
-		if err := f(oc); err != nil {
-			return err
-		}
+	if err := oc.pluginHooks.PluginStartMaster(clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR); err != nil {
+		return fmt.Errorf("Failed to start plugin: %v", err)
 	}
 
 	return nil
 }
 
-func (oc *OvsController) StartNode(mtu uint) error {
-	oc.nodeMtu = mtu
-
+func (oc *OvsController) StartNode(mtu uint) (kubernetes.FilteringEndpointsConfigHandler, error) {
 	// Assume we are working with IPv4
 	clusterNetworkCIDR, err := oc.Registry.GetClusterNetworkCIDR()
 	if err != nil {
 		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
-		return err
+		return nil, err
 	}
 
 	ipt := iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4)
-	err = SetupIptables(ipt, clusterNetworkCIDR)
-	if err != nil {
-		return err
+	if err := SetupIptables(ipt, clusterNetworkCIDR); err != nil {
+		return nil, fmt.Errorf("Failed to set up iptables: %v", err)
 	}
 
 	ipt.AddReloadFunc(func() {
@@ -250,17 +211,16 @@ func (oc *OvsController) StartNode(mtu uint) error {
 		}
 	})
 
-	// Plugin specific startup
-	for _, f := range oc.startNodeFuncs {
-		if err := f(oc); err != nil {
-			return err
-		}
+	endpointFilter, err := oc.pluginHooks.PluginStartNode(mtu)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to start plugin: %v", err)
 	}
 
 	if oc.ready != nil {
 		close(oc.ready)
 	}
-	return nil
+
+	return endpointFilter, nil
 }
 
 func (oc *OvsController) Stop() {

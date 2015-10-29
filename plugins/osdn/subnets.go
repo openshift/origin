@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 )
 
-func SubnetStartMaster(oc *OvsController) error {
+func (oc *OvsController) SubnetStartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
 	subrange := make([]string, 0)
 	subnets, _, err := oc.Registry.GetSubnets()
 	if err != nil {
@@ -22,19 +22,7 @@ func SubnetStartMaster(oc *OvsController) error {
 		subrange = append(subrange, sub.SubnetCIDR)
 	}
 
-	cn, err := oc.Registry.GetClusterNetworkCIDR()
-	if err != nil {
-		log.Errorf("Error re-fetching cluster network CIDR: %v", err)
-		return err
-	}
-
-	hsl, err := oc.Registry.GetHostSubnetLength()
-	if err != nil {
-		log.Errorf("Error re-fetching host subnet length: %v", err)
-		return err
-	}
-
-	oc.subnetAllocator, err = netutils.NewSubnetAllocator(cn, uint(hsl), subrange)
+	oc.subnetAllocator, err = netutils.NewSubnetAllocator(clusterNetworkCIDR, clusterBitsPerSubnet, subrange)
 	if err != nil {
 		return err
 	}
@@ -108,7 +96,7 @@ func (oc *OvsController) deleteNode(nodeName string) error {
 	return oc.Registry.DeleteSubnet(nodeName)
 }
 
-func SubnetStartNode(oc *OvsController) error {
+func (oc *OvsController) SubnetStartNode(mtu uint) error {
 	err := oc.initSelfSubnet()
 	if err != nil {
 		return err
@@ -125,7 +113,7 @@ func SubnetStartNode(oc *OvsController) error {
 		log.Errorf("Failed to obtain ServicesNetwork: %v", err)
 		return err
 	}
-	err = oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR, oc.nodeMtu)
+	err = oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR, mtu)
 	if err != nil {
 		return err
 	}

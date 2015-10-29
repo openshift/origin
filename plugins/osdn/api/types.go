@@ -1,5 +1,10 @@
 package api
 
+import (
+	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+)
+
 type EventType string
 
 const (
@@ -74,4 +79,11 @@ type Pod struct {
 	Name        string
 	Namespace   string
 	ContainerID string
+}
+
+type OsdnPlugin interface {
+	knetwork.NetworkPlugin
+
+	StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
+	StartNode(mtu uint) (kubernetes.FilteringEndpointsConfigHandler, error)
 }
