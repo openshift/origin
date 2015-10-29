@@ -40,11 +40,7 @@ func NewPrintErrorAfter(mapper meta.RESTMapper, errs io.Writer) func(*resource.I
 }
 
 func encodeAndCreate(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
-	data, err := info.Mapping.Codec.Encode(obj)
-	if err != nil {
-		return nil, err
-	}
-	return resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, data)
+	return resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, obj)
 }
 
 // Create attempts to create each item generically, gathering all errors in the
