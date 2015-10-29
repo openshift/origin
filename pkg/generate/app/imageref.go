@@ -144,8 +144,14 @@ type ImageRef struct {
 	// but does not affect the DockerImageReference
 	ObjectName string
 
+	// This should *only* be set if the image stream already exists
 	Stream *imageapi.ImageStream
 	Info   *imageapi.DockerImage
+}
+
+// Exists returns true if the image stream exists
+func (r *ImageRef) Exists() bool {
+	return r.Stream != nil
 }
 
 // ObjectReference returns an object reference from the image reference

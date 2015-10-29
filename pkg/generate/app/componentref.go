@@ -256,10 +256,11 @@ func NewComponentInput(input string) (*ComponentInput, string, error) {
 
 // ComponentInput is the necessary input for creating a component
 type ComponentInput struct {
-	GroupID       int
-	From          string
-	Argument      string
-	Value         string
+	GroupID  int
+	From     string
+	Argument string
+	Value    string
+
 	ExpectToBuild bool
 
 	Uses          *SourceRepository

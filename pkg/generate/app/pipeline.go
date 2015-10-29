@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -241,7 +240,6 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 				}
 			}
 			if len(svc.Spec.Ports) == 0 {
-				glog.Warningf("A service will not be generated for DeploymentConfig %q because no exposed ports were detected. Use 'oc expose dc %q --port=[port]' to create a service.", t.Name, t.Name)
 				continue
 			}
 			svcs = append(svcs, svc)

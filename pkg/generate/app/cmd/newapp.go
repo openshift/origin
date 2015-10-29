@@ -13,7 +13,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
@@ -72,6 +71,7 @@ type AppConfig struct {
 	ExpectToBuild      bool
 	BinaryBuild        bool
 	AllowMissingImages bool
+	Deploy             bool
 
 	SkipGeneration        bool
 	AllowGenerationErrors bool
@@ -81,6 +81,7 @@ type AppConfig struct {
 
 	AsSearch bool
 	AsList   bool
+	DryRun   bool
 
 	Out    io.Writer
 	ErrOut io.Writer
@@ -337,14 +338,6 @@ func (c *AppConfig) validate() (app.ComponentReferences, app.SourceRepositories,
 	c.addReferenceBuilderComponents(b)
 	b.AddGroups(c.Groups)
 	refs, repos, errs := b.Result()
-
-	if len(c.ContextDir) > 0 && len(repos) > 0 {
-		repos[0].SetContextDir(c.ContextDir)
-		if len(repos) > 1 {
-			glog.Warningf("You have specified more than one source repository and a context directory. "+
-				"The context directory will be applied to the first repository: %q", repos[0])
-		}
-	}
 
 	if len(c.Strategy) != 0 && len(repos) == 0 {
 		errs = append(errs, fmt.Errorf("when --strategy is specified you must provide at least one source code location"))
@@ -614,20 +607,24 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 		glog.V(4).Infof("found group: %#v", group)
 		common := app.PipelineGroup{}
 		for _, ref := range group {
+			refInput := ref.Input()
+
 			var pipeline *app.Pipeline
 			var name string
-			if ref.Input().ExpectToBuild {
-				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, ref.Input().Uses)
-				input, err := app.InputImageFromMatch(ref.Input().ResolvedMatch)
+
+			if refInput.ExpectToBuild {
+				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)
+				input, err := app.InputImageFromMatch(refInput.ResolvedMatch)
 				if err != nil {
-					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
+					return nil, fmt.Errorf("can't build %q: %v", refInput, err)
 				}
 				if !input.AsImageStream {
-					glog.Warningf("Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed.", ref.Input().ResolvedMatch.Value)
+					glog.Warningf("Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed.", refInput.ResolvedMatch.Value)
 				}
-				strategy, source, err := app.StrategyAndSourceForRepository(ref.Input().Uses, input)
+
+				strategy, source, err := app.StrategyAndSourceForRepository(refInput.Uses, input)
 				if err != nil {
-					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
+					return nil, fmt.Errorf("can't build %q: %v", refInput, err)
 				}
 
 				// Override resource names from the cli
@@ -646,8 +643,8 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				}
 
 				// Append any exposed ports from Dockerfile to input image
-				if ref.Input().Uses.IsDockerBuild() && ref.Input().Uses.Info() != nil {
-					node := ref.Input().Uses.Info().Dockerfile.AST()
+				if refInput.Uses.IsDockerBuild() && refInput.Uses.Info() != nil {
+					node := refInput.Uses.Info().Dockerfile.AST()
 					ports := dockerfileutil.LastExposedPorts(node)
 					if len(ports) > 0 {
 						if input.Info == nil {
@@ -661,15 +658,15 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 						}
 					}
 				}
-				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, c.GetBuildEnvironment(environment), source); err != nil {
-					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
+				if pipeline, err = app.NewBuildPipeline(refInput.String(), input, c.OutputDocker, strategy, c.GetBuildEnvironment(environment), source); err != nil {
+					return nil, fmt.Errorf("can't build %q: %v", refInput, err)
 				}
 
 			} else {
 				glog.V(4).Infof("will include %q", ref)
-				input, err := app.InputImageFromMatch(ref.Input().ResolvedMatch)
+				input, err := app.InputImageFromMatch(refInput.ResolvedMatch)
 				if err != nil {
-					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
+					return nil, fmt.Errorf("can't include %q: %v", refInput, err)
 				}
 				name = c.Name
 				if len(name) == 0 {
@@ -684,20 +681,25 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					return nil, err
 				}
 				input.ObjectName = name
-				if pipeline, err = app.NewImagePipeline(ref.Input().String(), input); err != nil {
-					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
+				if pipeline, err = app.NewImagePipeline(refInput.String(), input); err != nil {
+					return nil, fmt.Errorf("can't include %q: %v", refInput, err)
 				}
 			}
 
-			if err := pipeline.NeedsDeployment(environment, c.Labels, name); err != nil {
-				return nil, fmt.Errorf("can't set up a deployment for %q: %v", ref.Input(), err)
+			if c.Deploy {
+				if err := pipeline.NeedsDeployment(environment, c.Labels, name); err != nil {
+					return nil, fmt.Errorf("can't set up a deployment for %q: %v", refInput, err)
+				}
 			}
 			common = append(common, pipeline)
+
+			if err := common.Reduce(); err != nil {
+				return nil, fmt.Errorf("can't create a pipeline from %s: %v", common, err)
+			}
+
+			describeBuildPipelineWithImage(c.Out, ref, pipeline, c.originNamespace)
 		}
 
-		if err := common.Reduce(); err != nil {
-			return nil, fmt.Errorf("can't create a pipeline from %s: %v", common, err)
-		}
 		pipelines = append(pipelines, common...)
 	}
 	return pipelines, nil
@@ -732,8 +734,19 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, environme
 			return nil, fmt.Errorf("error processing template %s/%s: %v", c.originNamespace, tpl.Name, errs)
 		}
 		objects = append(objects, result.Objects...)
+
+		describeGeneratedTemplate(c.Out, ref, result, c.originNamespace)
 	}
 	return objects, nil
+}
+
+// fakeSecretAccessor is used during dry runs of installation
+type fakeSecretAccessor struct {
+	token string
+}
+
+func (a *fakeSecretAccessor) Token() (string, error) {
+	return a.token, nil
 }
 
 // installComponents attempts to create pods to run installable images identified by the user. If an image
@@ -777,12 +790,16 @@ func (c *AppConfig) installComponents(components app.ComponentReferences) ([]run
 	imageRef.ObjectName = name
 	glog.V(4).Infof("Proposed installable image %#v", imageRef)
 
+	secretAccessor := c.SecretAccessor
 	generatorInput := input.ResolvedMatch.GeneratorInput
-	if generatorInput.Token != nil && !c.AllowSecretUse || c.SecretAccessor == nil {
-		return nil, "", ErrRequiresExplicitAccess{*input.ResolvedMatch}
+	if generatorInput.Token != nil && !c.AllowSecretUse || secretAccessor == nil {
+		if !c.DryRun {
+			return nil, "", ErrRequiresExplicitAccess{*input.ResolvedMatch}
+		}
+		secretAccessor = &fakeSecretAccessor{token: "FAKE_TOKEN"}
 	}
 
-	pod, secret, err := imageRef.InstallablePod(generatorInput, c.SecretAccessor)
+	pod, secret, err := imageRef.InstallablePod(generatorInput, secretAccessor)
 	if err != nil {
 		return nil, "", err
 	}
@@ -797,70 +814,14 @@ func (c *AppConfig) installComponents(components app.ComponentReferences) ([]run
 		})
 	}
 
+	describeGeneratedJob(c.Out, job, pod, secret, c.originNamespace)
+
 	return objects, name, nil
 }
 
-// RunAll executes the provided config to generate all objects.
-func (c *AppConfig) RunAll() (*AppResult, error) {
+// Run executes the provided config to generate objects.
+func (c *AppConfig) Run() (*AppResult, error) {
 	return c.run(app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew})
-}
-
-// RunBuilds executes the provided config to generate just builds.
-func (c *AppConfig) RunBuilds() (*AppResult, error) {
-	bcAcceptor := app.NewAcceptBuildConfigs(c.typer)
-	result, err := c.run(app.Acceptors{bcAcceptor, app.NewAcceptUnique(c.typer), app.AcceptNew})
-	if err != nil {
-		return nil, err
-	}
-	return filterImageStreams(result), nil
-}
-
-func filterImageStreams(result *AppResult) *AppResult {
-	// 1st pass to get images from all BuildConfigs
-	imageStreams := map[string]bool{}
-	for _, item := range result.List.Items {
-		if bc, ok := item.(*buildapi.BuildConfig); ok {
-			to := bc.Spec.Output.To
-			if to != nil && to.Kind == "ImageStreamTag" {
-				imageStreams[makeImageStreamKey(*to)] = true
-			}
-			switch bc.Spec.Strategy.Type {
-			case buildapi.DockerBuildStrategyType:
-				from := bc.Spec.Strategy.DockerStrategy.From
-				if from != nil && from.Kind == "ImageStreamTag" {
-					imageStreams[makeImageStreamKey(*from)] = true
-				}
-			case buildapi.SourceBuildStrategyType:
-				from := bc.Spec.Strategy.SourceStrategy.From
-				if from.Kind == "ImageStreamTag" {
-					imageStreams[makeImageStreamKey(from)] = true
-				}
-			case buildapi.CustomBuildStrategyType:
-				from := bc.Spec.Strategy.CustomStrategy.From
-				if from.Kind == "ImageStreamTag" {
-					imageStreams[makeImageStreamKey(from)] = true
-				}
-			}
-		}
-	}
-	items := []runtime.Object{}
-	// 2nd pass to remove ImageStreams not used by BuildConfigs
-	for _, item := range result.List.Items {
-		if is, ok := item.(*imageapi.ImageStream); ok {
-			if _, ok := imageStreams[types.NamespacedName{Namespace: is.Namespace, Name: is.Name}.String()]; ok {
-				items = append(items, is)
-			}
-		} else {
-			items = append(items, item)
-		}
-	}
-	result.List.Items = items
-	return result
-}
-
-func makeImageStreamKey(ref kapi.ObjectReference) string {
-	name, _, _ := imageapi.SplitImageStreamTag(ref.Name)
-	return types.NamespacedName{Namespace: ref.Namespace, Name: name}.String()
 }
 
 // RunQuery executes the provided config and returns the result of the resolution.
@@ -1015,18 +976,10 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()
-	warned := make(map[string]struct{})
 	for _, p := range pipelines {
 		accepted, err := p.Objects(accept, acceptors)
 		if err != nil {
 			return nil, fmt.Errorf("can't setup %q: %v", p.From, err)
-		}
-		if p.Image != nil && p.Image.HasEmptyDir {
-			spec := p.Image.PullSpec()
-			if _, ok := warned[spec]; ok {
-				fmt.Fprintf(c.ErrOut, "WARNING: Image %q uses an empty directory volume. Data in these volumes is not persisted across deployments.\n", p.Image.Reference.Name)
-				warned[spec] = struct{}{}
-			}
 		}
 		objects = append(objects, accepted...)
 	}
@@ -1044,6 +997,14 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		for _, pipeline := range pipelines {
 			if pipeline.Deployment != nil {
 				name = pipeline.Deployment.Name
+				break
+			}
+		}
+	}
+	if len(name) == 0 {
+		for _, obj := range objects {
+			if bc, ok := obj.(*buildapi.BuildConfig); ok {
+				name = bc.Name
 				break
 			}
 		}

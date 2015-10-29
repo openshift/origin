@@ -100,7 +100,7 @@ oc create -f test/fixtures/installable-stream.yaml
 project=$(oc project -q)
 oc policy add-role-to-user edit test-user
 oc login -u test-user -p anything
-oc project "${project}"
+tryuntil oc project "${project}"
 
 tryuntil oc get imagestreamtags installable:file
 tryuntil oc get imagestreamtags installable:token

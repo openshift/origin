@@ -220,7 +220,7 @@ function tryuntil {
 	timeout=$(($(date +%s) + 90))
 	echo "++ Retrying until success or timeout: ${@}"
 	while [ 1 ]; do
-		if eval "${@}" 2>&1 >/dev/null; then
+		if eval "${@}" >/dev/null 2>&1; then
 			return 0
 		fi
 		if [[ $(date +%s) -gt $timeout ]]; then

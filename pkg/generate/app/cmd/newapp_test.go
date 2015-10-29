@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -204,6 +205,7 @@ func TestBuildTemplates(t *testing.T) {
 
 	for n, c := range tests {
 		appCfg := AppConfig{}
+		appCfg.Out = &bytes.Buffer{}
 		appCfg.refBuilder = &app.ReferenceBuilder{}
 		appCfg.SetOpenShiftClient(&client.Fake{}, c.namespace)
 		appCfg.templateSearcher = fakeTemplateSearcher()
@@ -852,7 +854,8 @@ func TestRunAll(t *testing.T) {
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
 		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
-		res, err := test.config.RunAll()
+		test.config.Deploy = true
+		res, err := test.config.Run()
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
@@ -1013,8 +1016,10 @@ func TestRunBuilds(t *testing.T) {
 				originNamespace: "default",
 			},
 			expected: map[string][]string{
-				"buildConfig": {"ruby-hello-world"},
-				"imageStream": {"ruby-20-centos7"},
+				// TODO: this test used to silently ignore components that were not builders (i.e. user input)
+				//   That's bad, so the code should either error in this case or be a bit smarter.
+				"buildConfig": {"ruby-hello-world", "ruby-hello-world-1"},
+				"imageStream": {"mongodb-24-centos7", "ruby-20-centos7"},
 			},
 		},
 		{
@@ -1085,7 +1090,8 @@ func TestRunBuilds(t *testing.T) {
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
 		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
-		res, err := test.config.RunBuilds()
+		test.config.ExpectToBuild = true
+		res, err := test.config.Run()
 		if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
@@ -1164,7 +1170,8 @@ func TestNewBuildEnvVars(t *testing.T) {
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
 		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
-		res, err := test.config.RunBuilds()
+		test.config.ExpectToBuild = true
+		res, err := test.config.Run()
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
@@ -1220,7 +1227,8 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
 		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
-		res, err := test.config.RunAll()
+		test.config.Deploy = true
+		res, err := test.config.Run()
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
@@ -1331,6 +1339,7 @@ func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
 	}
 
 	a := AppConfig{}
+	a.Out = &bytes.Buffer{}
 	group, err := a.buildPipelines(refs, app.Environment{})
 	if err != nil {
 		t.Error(err)

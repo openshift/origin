@@ -221,10 +221,7 @@ func (r DockerRegistrySearcher) Search(terms ...string) (ComponentMatches, error
 }
 
 func descriptionFor(image *imageapi.DockerImage, value, from string, tag string) string {
-	shortID := image.ID
-	if len(shortID) > 7 {
-		shortID = shortID[:7]
-	}
+	shortID := imageapi.ShortDockerImageID(image, 7)
 	tagPart := ""
 	if len(tag) > 0 {
 		tagPart = fmt.Sprintf(" (tag %q)", tag)

@@ -113,6 +113,11 @@ func formatRelativeTime(t time.Time) string {
 	return units.HumanDuration(timeNowFn().Sub(t))
 }
 
+// FormatRelativeTime converts a time field into a human readable age string (hours, minutes, days).
+func FormatRelativeTime(t time.Time) string {
+	return formatRelativeTime(t)
+}
+
 func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 	formatString(out, "Name", m.Name)
 	if !m.CreationTimestamp.IsZero() {
