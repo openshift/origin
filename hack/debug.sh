@@ -87,10 +87,10 @@ do_master () {
 
 # Returns a list of pods in the form "minion-1:mypod:namespace:10.1.0.2:e4f1d61b"
 get_pods () {
-    if ! pods=$(oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{if not .spec.hostNetwork}}{{.spec.nodeName}}:{{.metadata.name}}:{{.metadata.namespace}}:{{.status.podIP}}:{{printf "%.21s" (index .status.containerStatuses 0).containerID}} {{end}}{{end}}{{end}}'); then
+    if ! pods=$(oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{if (index .status.containerStatuses 0).ready}}{{if not .spec.hostNetwork}}{{.spec.nodeName}}:{{.metadata.name}}:{{.metadata.namespace}}:{{.status.podIP}}:{{printf "%.21s" (index .status.containerStatuses 0).containerID}} {{end}}{{end}}{{end}}{{end}}'); then
 	die "Could not get list of pods"
     fi
-    echo $pods | sed -e 's/docker:\/\///g'
+    echo ${pods//docker:\/\//}
 }
 
 # Given the name of a variable containing a "podspec" like
