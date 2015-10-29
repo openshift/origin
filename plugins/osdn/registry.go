@@ -23,11 +23,11 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	osdnapi "github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
+	osdnapi "github.com/openshift/openshift-sdn/plugins/osdn/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	"github.com/openshift/origin/pkg/sdn/api"
+	originapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
 type Registry struct {
@@ -84,7 +84,7 @@ func (registry *Registry) DeleteSubnet(nodeName string) error {
 }
 
 func (registry *Registry) CreateSubnet(nodeName string, sub *osdnapi.Subnet) error {
-	hs := &api.HostSubnet{
+	hs := &originapi.HostSubnet{
 		TypeMeta:   unversioned.TypeMeta{Kind: "HostSubnet"},
 		ObjectMeta: kapi.ObjectMeta{Name: nodeName},
 		Host:       nodeName,
@@ -104,7 +104,7 @@ func (registry *Registry) WatchSubnets(receiver chan<- *osdnapi.SubnetEvent, rea
 		if err != nil {
 			return err
 		}
-		hs := obj.(*api.HostSubnet)
+		hs := obj.(*originapi.HostSubnet)
 
 		switch eventType {
 		case watch.Added, watch.Modified:
@@ -277,7 +277,7 @@ func (registry *Registry) WriteNetworkConfig(network string, subnetLength uint, 
 			return fmt.Errorf("A network already exists and does not match the new network's parameters - Existing: (%s, %d, %s); New: (%s, %d, %s) ", cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, network, subnetLength, serviceNetwork)
 		}
 	}
-	cn = &api.ClusterNetwork{
+	cn = &originapi.ClusterNetwork{
 		TypeMeta:         unversioned.TypeMeta{Kind: "ClusterNetwork"},
 		ObjectMeta:       kapi.ObjectMeta{Name: "default"},
 		Network:          network,
@@ -352,7 +352,7 @@ func (registry *Registry) WatchNetNamespaces(receiver chan<- *osdnapi.NetNamespa
 		if err != nil {
 			return err
 		}
-		netns := obj.(*api.NetNamespace)
+		netns := obj.(*originapi.NetNamespace)
 
 		switch eventType {
 		case watch.Added, watch.Modified:
@@ -368,7 +368,7 @@ func (registry *Registry) GetNetNamespaces() ([]osdnapi.NetNamespace, string, er
 	if err != nil {
 		return nil, "", err
 	}
-	// convert api.NetNamespace to osdnapi.NetNamespace
+	// convert originapi.NetNamespace to osdnapi.NetNamespace
 	nsList := make([]osdnapi.NetNamespace, 0, len(netNamespaceList.Items))
 	for _, netns := range netNamespaceList.Items {
 		nsList = append(nsList, osdnapi.NetNamespace{Name: netns.Name, NetID: netns.NetID})
@@ -385,7 +385,7 @@ func (registry *Registry) GetNetNamespace(name string) (osdnapi.NetNamespace, er
 }
 
 func (registry *Registry) WriteNetNamespace(name string, id uint) error {
-	netns := &api.NetNamespace{
+	netns := &originapi.NetNamespace{
 		TypeMeta:   unversioned.TypeMeta{Kind: "NetNamespace"},
 		ObjectMeta: kapi.ObjectMeta{Name: name},
 		NetName:    name,
@@ -476,7 +476,7 @@ func (registry *Registry) runEventQueue(resourceName string) (*oscache.EventQueu
 	var expectedType interface{}
 	switch strings.ToLower(resourceName) {
 	case "hostsubnet":
-		expectedType = &api.HostSubnet{}
+		expectedType = &originapi.HostSubnet{}
 		lw.ListFunc = func() (runtime.Object, error) {
 			return registry.oClient.HostSubnets().List()
 		}
@@ -500,7 +500,7 @@ func (registry *Registry) runEventQueue(resourceName string) (*oscache.EventQueu
 			return registry.kClient.Namespaces().Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		}
 	case "netnamespace":
-		expectedType = &api.NetNamespace{}
+		expectedType = &originapi.NetNamespace{}
 		lw.ListFunc = func() (runtime.Object, error) {
 			return registry.oClient.NetNamespaces().List()
 		}

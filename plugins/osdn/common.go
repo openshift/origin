@@ -1,4 +1,4 @@
-package ovssubnet
+package osdn
 
 import (
 	"fmt"
@@ -9,10 +9,7 @@ import (
 	log "github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	"github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
-	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/kube"
-	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/multitenant"
-	"github.com/openshift/openshift-sdn/plugins/osdn"
+	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -20,10 +17,14 @@ import (
 	"k8s.io/kubernetes/pkg/util/iptables"
 )
 
+type PluginCtor func(registry *Registry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error)
+
+var pluginCtors map[string]PluginCtor = make(map[string]PluginCtor)
+
 type startFunc func(oc *OvsController) error
 
 type OvsController struct {
-	registry        *osdn.Registry
+	registry        *Registry
 	localIP         string
 	localSubnet     *api.Subnet
 	hostName        string
@@ -33,7 +34,7 @@ type OvsController struct {
 	flowController  FlowController
 	VNIDMap         map[string]uint
 	netIDManager    *netutils.NetIDAllocator
-	AdminNamespaces []string
+	adminNamespaces []string
 	services        map[string]api.Service
 	nodeMtu         uint
 
@@ -53,27 +54,28 @@ type FlowController interface {
 	UpdatePod(namespace, podName, containerID string, netID uint) error
 }
 
-func NewKubeController(registry *osdn.Registry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
-	kubeController, err := NewController(registry, hostname, selfIP, ready)
-	if err == nil {
-		kubeController.flowController = kube.NewFlowController()
-		kubeController.startMasterFuncs = []startFunc{subnetStartMaster}
-		kubeController.startNodeFuncs = []startFunc{subnetStartNode}
-	}
-	return kubeController, err
+func RegisterPlugin(name string, ctor PluginCtor) {
+	log.Infof("Register SDN network plugin: %v", name)
+	pluginCtors[name] = ctor
 }
 
-func NewMultitenantController(registry *osdn.Registry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
-	mtController, err := NewController(registry, hostname, selfIP, ready)
-	if err == nil {
-		mtController.flowController = multitenant.NewFlowController()
-		mtController.startMasterFuncs = []startFunc{subnetStartMaster, vnidStartMaster}
-		mtController.startNodeFuncs = []startFunc{subnetStartNode, vnidStartNode}
+// Call by higher layers to create the plugin instance
+func NewController(pluginType string, registry *Registry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
+	pfunc, ok := pluginCtors[strings.ToLower(pluginType)]
+	if !ok {
+		return nil, fmt.Errorf("unknown plugin type: %v", pluginType)
 	}
-	return mtController, err
+
+	p, err := pfunc(registry, hostname, selfIP, ready)
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
 }
 
-func NewController(registry *osdn.Registry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
+// Called by plug factory functions to initialize the generic plugin instance
+func NewBaseController(registry *Registry, flowController FlowController, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
 		if err != nil {
@@ -92,6 +94,7 @@ func NewController(registry *osdn.Registry, hostname string, selfIP string, read
 	log.Infof("Self IP: %s.", selfIP)
 	return &OvsController{
 		registry:         registry,
+		flowController:   flowController,
 		localIP:          selfIP,
 		hostName:         hostname,
 		localSubnet:      nil,
@@ -99,11 +102,19 @@ func NewController(registry *osdn.Registry, hostname string, selfIP string, read
 		VNIDMap:          make(map[string]uint),
 		sig:              make(chan struct{}),
 		ready:            ready,
-		AdminNamespaces:  make([]string, 0),
+		adminNamespaces:  make([]string, 0),
 		services:         make(map[string]api.Service),
 		startMasterFuncs: make([]startFunc, 0),
 		startNodeFuncs:   make([]startFunc, 0),
 	}, nil
+}
+
+func (oc *OvsController) AddStartMasterFunc(f startFunc) {
+	oc.startMasterFuncs = append(oc.startMasterFuncs, f)
+}
+
+func (oc *OvsController) AddStartNodeFunc(f startFunc) {
+	oc.startNodeFuncs = append(oc.startNodeFuncs, f)
 }
 
 func (oc *OvsController) validateClusterNetwork(networkCIDR string, subnetsInUse []string, hostIPNets []*net.IPNet) error {
@@ -270,7 +281,7 @@ func waitForWatchReadiness(ready chan bool, resourceName string) {
 }
 
 type watchWatcher func(oc *OvsController, ready chan<- bool, start <-chan string)
-type watchGetter func(registry *osdn.Registry) (interface{}, string, error)
+type watchGetter func(registry *Registry) (interface{}, string, error)
 
 // watchAndGetResource will fetch current items in etcd and watch for any new
 // changes for the given resource.

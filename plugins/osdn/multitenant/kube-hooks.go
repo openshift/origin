@@ -6,7 +6,8 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/pkg/ovssubnet"
+	"github.com/openshift/openshift-sdn/plugins/osdn"
+
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
@@ -19,7 +20,7 @@ const (
 )
 
 type MultitenantPlugin struct {
-	OvsController *ovssubnet.OvsController
+	OvsController *osdn.OvsController
 }
 
 func GetKubeNetworkPlugin() knetwork.NetworkPlugin {

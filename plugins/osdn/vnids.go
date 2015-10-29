@@ -1,4 +1,4 @@
-package ovssubnet
+package osdn
 
 import (
 	"fmt"
@@ -6,8 +6,7 @@ import (
 	log "github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	"github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
-	"github.com/openshift/openshift-sdn/plugins/osdn"
+	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 )
 
 const (
@@ -17,7 +16,7 @@ const (
 	AdminVNID = uint(0)
 )
 
-func vnidStartMaster(oc *OvsController) error {
+func VnidStartMaster(oc *OvsController) error {
 	nets, _, err := oc.registry.GetNetNamespaces()
 	if err != nil {
 		return err
@@ -36,7 +35,7 @@ func vnidStartMaster(oc *OvsController) error {
 		return err
 	}
 
-	getNamespaces := func(registry *osdn.Registry) (interface{}, string, error) {
+	getNamespaces := func(registry *Registry) (interface{}, string, error) {
 		return registry.GetNamespaces()
 	}
 	result, err := oc.watchAndGetResource("Namespace", watchNamespaces, getNamespaces)
@@ -44,7 +43,8 @@ func vnidStartMaster(oc *OvsController) error {
 		return err
 	}
 
-	oc.AdminNamespaces = append(oc.AdminNamespaces, "default")
+	// 'default' namespace is currently always an admin namespace
+	oc.adminNamespaces = append(oc.adminNamespaces, "default")
 
 	// Handle existing namespaces
 	namespaces := result.([]string)
@@ -73,7 +73,7 @@ func vnidStartMaster(oc *OvsController) error {
 }
 
 func (oc *OvsController) isAdminNamespace(nsName string) bool {
-	for _, name := range oc.AdminNamespaces {
+	for _, name := range oc.adminNamespaces {
 		if name == nsName {
 			return true
 		}
@@ -171,8 +171,8 @@ func watchNamespaces(oc *OvsController, ready chan<- bool, start <-chan string) 
 	}
 }
 
-func vnidStartNode(oc *OvsController) error {
-	getNetNamespaces := func(registry *osdn.Registry) (interface{}, string, error) {
+func VnidStartNode(oc *OvsController) error {
+	getNetNamespaces := func(registry *Registry) (interface{}, string, error) {
 		return registry.GetNetNamespaces()
 	}
 	result, err := oc.watchAndGetResource("NetNamespace", watchNetNamespaces, getNetNamespaces)
@@ -184,7 +184,7 @@ func vnidStartNode(oc *OvsController) error {
 		oc.VNIDMap[ns.Name] = ns.NetID
 	}
 
-	getServices := func(registry *osdn.Registry) (interface{}, string, error) {
+	getServices := func(registry *Registry) (interface{}, string, error) {
 		return registry.GetServices()
 	}
 	result, err = oc.watchAndGetResource("Service", watchServices, getServices)
@@ -203,7 +203,7 @@ func vnidStartNode(oc *OvsController) error {
 		}
 	}
 
-	getPods := func(registry *osdn.Registry) (interface{}, string, error) {
+	getPods := func(registry *Registry) (interface{}, string, error) {
 		return registry.GetPods()
 	}
 	_, err = oc.watchAndGetResource("Pod", watchPods, getPods)

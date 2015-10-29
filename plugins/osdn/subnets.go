@@ -1,4 +1,4 @@
-package ovssubnet
+package osdn
 
 import (
 	"fmt"
@@ -8,11 +8,10 @@ import (
 	log "github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	"github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
-	"github.com/openshift/openshift-sdn/plugins/osdn"
+	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 )
 
-func subnetStartMaster(oc *OvsController) error {
+func SubnetStartMaster(oc *OvsController) error {
 	subrange := make([]string, 0)
 	subnets, _, err := oc.registry.GetSubnets()
 	if err != nil {
@@ -40,7 +39,7 @@ func subnetStartMaster(oc *OvsController) error {
 		return err
 	}
 
-	getNodes := func(registry *osdn.Registry) (interface{}, string, error) {
+	getNodes := func(registry *Registry) (interface{}, string, error) {
 		return registry.GetNodes()
 	}
 	result, err := oc.watchAndGetResource("Node", watchNodes, getNodes)
@@ -109,7 +108,7 @@ func (oc *OvsController) deleteNode(nodeName string) error {
 	return oc.registry.DeleteSubnet(nodeName)
 }
 
-func subnetStartNode(oc *OvsController) error {
+func SubnetStartNode(oc *OvsController) error {
 	err := oc.initSelfSubnet()
 	if err != nil {
 		return err
@@ -131,7 +130,7 @@ func subnetStartNode(oc *OvsController) error {
 		return err
 	}
 
-	getSubnets := func(registry *osdn.Registry) (interface{}, string, error) {
+	getSubnets := func(registry *Registry) (interface{}, string, error) {
 		return registry.GetSubnets()
 	}
 	result, err := oc.watchAndGetResource("HostSubnet", watchSubnets, getSubnets)

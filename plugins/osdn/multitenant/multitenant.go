@@ -5,7 +5,6 @@ import (
 
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 
-	"github.com/openshift/openshift-sdn/pkg/ovssubnet"
 	"github.com/openshift/openshift-sdn/plugins/osdn"
 )
 
@@ -13,8 +12,25 @@ func NetworkPluginName() string {
 	return "redhat/openshift-ovs-multitenant"
 }
 
+func init() {
+	osdn.RegisterPlugin(NetworkPluginName(), createPlugin)
+}
+
+func createPlugin(registry *osdn.Registry, hostname string, selfIP string, ready chan struct{}) (*osdn.OvsController, error) {
+	controller, err := osdn.NewBaseController(registry, NewFlowController(), hostname, selfIP, ready)
+	if err != nil {
+		return nil, err
+	}
+
+	controller.AddStartMasterFunc(osdn.SubnetStartMaster)
+	controller.AddStartMasterFunc(osdn.VnidStartMaster)
+	controller.AddStartNodeFunc(osdn.SubnetStartNode)
+	controller.AddStartNodeFunc(osdn.VnidStartNode)
+	return controller, err
+}
+
 func Master(registry *osdn.Registry, clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) {
-	kc, err := ovssubnet.NewMultitenantController(registry, "", "", nil)
+	kc, err := osdn.NewController(NetworkPluginName(), registry, "", "", nil)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
@@ -29,7 +45,7 @@ func Node(registry *osdn.Registry, hostname string, publicIP string, ready chan 
 	if !ok {
 		glog.Fatalf("Failed to type cast provided plugin to a multitenant type plugin")
 	}
-	kc, err := ovssubnet.NewMultitenantController(registry, hostname, publicIP, ready)
+	kc, err := osdn.NewController(NetworkPluginName(), registry, hostname, publicIP, ready)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
