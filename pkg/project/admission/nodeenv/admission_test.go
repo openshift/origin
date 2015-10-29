@@ -122,3 +122,22 @@ func TestPodAdmission(t *testing.T) {
 		}
 	}
 }
+
+func TestHandles(t *testing.T) {
+	for op, shouldHandle := range map[admission.Operation]bool{
+		admission.Create:  true,
+		admission.Update:  false,
+		admission.Connect: false,
+		admission.Delete:  false,
+	} {
+		n, err := NewPodNodeEnvironment(nil)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+
+		if e, a := shouldHandle, n.Handles(op); e != a {
+			t.Errorf("%v: shouldHandle=%t, handles=%t", op, e, a)
+		}
+	}
+}

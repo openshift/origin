@@ -212,3 +212,29 @@ func TestObjectMetaUpdate(t *testing.T) {
 		}
 	}
 }
+
+func TestPodSpecNodeSelectorUpdateDisallowed(t *testing.T) {
+	oldPod := &kapi.Pod{
+		ObjectMeta: kapi.ObjectMeta{
+			ResourceVersion: "1",
+		},
+		Spec: kapi.PodSpec{
+			NodeSelector: map[string]string{
+				"foo": "bar",
+			},
+		},
+	}
+
+	if errs := validation.ValidatePodUpdate(oldPod, oldPod); len(errs) != 0 {
+		t.Fatal("expected no errors")
+	}
+
+	newPod := *oldPod
+	// use a new map so it doesn't change oldPod's map too
+	newPod.Spec.NodeSelector = map[string]string{"foo": "other"}
+
+	errs := validation.ValidatePodUpdate(&newPod, oldPod)
+	if len(errs) == 0 {
+		t.Fatal("expected at least 1 error")
+	}
+}
