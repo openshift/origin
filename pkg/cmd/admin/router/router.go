@@ -158,6 +158,13 @@ type RouterConfig struct {
 	// This is used by some routers to create access access control
 	// boundaries for users and applications.
 	ExternalHostPartitionPath string
+
+	// ExposeMetrics is a hint on whether to expose metrics.
+	ExposeMetrics bool
+
+	// MetricsImage is the image to run a sidecar container with in the router
+	// pod.
+	MetricsImage string
 }
 
 var errExit = fmt.Errorf("exit")
@@ -213,6 +220,8 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().IntVar(&cfg.StatsPort, "stats-port", cfg.StatsPort, "If the underlying router implementation can provide statistics this is a hint to expose it on this port. Specify 0 if you want to turn off exposing the statistics.")
 	cmd.Flags().StringVar(&cfg.StatsPassword, "stats-password", cfg.StatsPassword, "If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated.")
 	cmd.Flags().StringVar(&cfg.StatsUsername, "stats-user", cfg.StatsUsername, "If the underlying router implementation can provide statistics this is the requested username for auth.")
+	cmd.Flags().BoolVar(&cfg.ExposeMetrics, "expose-metrics", cfg.ExposeMetrics, "This is a hint to run an extra container in the pod to expose metrics - the image will either be set depending on the router implementation or provided with --metrics-image.")
+	cmd.Flags().StringVar(&cfg.MetricsImage, "metrics-image", cfg.MetricsImage, "If --expose-metrics is specified this is the image to use to run a sidecar container in the pod exposing metrics. If not set and --expose-metrics is true the image will depend on router implementation.")
 	cmd.Flags().BoolVar(&cfg.HostNetwork, "host-network", cfg.HostNetwork, "If true (the default), then use host networking rather than using a separate container network stack.")
 	cmd.Flags().StringVar(&cfg.ExternalHost, "external-host", cfg.ExternalHost, "If the underlying router implementation connects with an external host, this is the external host's hostname.")
 	cmd.Flags().StringVar(&cfg.ExternalHostUsername, "external-host-username", cfg.ExternalHostUsername, "If the underlying router implementation connects with an external host, this is the username for authenticating with the external host.")
@@ -334,6 +343,36 @@ func generateLivenessProbeConfig(cfg *RouterConfig,
 	}
 
 	return probe
+}
+
+func generateMetricsExporterContainer(cfg *RouterConfig, env app.Environment) *kapi.Container {
+	containerName := "metrics-exporter"
+	if len(cfg.MetricsImage) > 0 {
+		return &kapi.Container{
+			Name:  containerName,
+			Image: cfg.MetricsImage,
+			Env:   env.List(),
+		}
+	}
+	switch cfg.Type {
+	case "haproxy-router":
+		return &kapi.Container{
+			Name:  containerName,
+			Image: "prom/haproxy-exporter:latest",
+			Env:   env.List(),
+			Args: []string{
+				fmt.Sprintf("-haproxy.scrape-uri=http://$(STATS_USERNAME):$(STATS_PASSWORD)@localhost:$(STATS_PORT)/haproxy?stats;csv"),
+			},
+			Ports: []kapi.ContainerPort{
+				{
+					Name:          "http",
+					ContainerPort: 9101,
+				},
+			},
+		}
+	default:
+		return nil
+	}
 }
 
 // RunCmdRouter contains all the necessary functionality for the
@@ -507,6 +546,25 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 		livenessProbe := generateLivenessProbeConfig(cfg, ports)
 
+		containers := []kapi.Container{
+			{
+				Name:            "router",
+				Image:           image,
+				Ports:           ports,
+				Env:             env.List(),
+				LivenessProbe:   livenessProbe,
+				ImagePullPolicy: kapi.PullIfNotPresent,
+				VolumeMounts:    mounts,
+			},
+		}
+
+		if cfg.StatsPort > 0 && cfg.ExposeMetrics {
+			pc := generateMetricsExporterContainer(cfg, env)
+			if pc != nil {
+				containers = append(containers, *pc)
+			}
+		}
+
 		objects := []runtime.Object{
 			&dapi.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{
@@ -532,18 +590,8 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 								},
 								ServiceAccountName: cfg.ServiceAccount,
 								NodeSelector:       nodeSelector,
-								Containers: []kapi.Container{
-									{
-										Name:            "router",
-										Image:           image,
-										Ports:           ports,
-										Env:             env.List(),
-										LivenessProbe:   livenessProbe,
-										ImagePullPolicy: kapi.PullIfNotPresent,
-										VolumeMounts:    mounts,
-									},
-								},
-								Volumes: volumes,
+								Containers:         containers,
+								Volumes:            volumes,
 							},
 						},
 					},
