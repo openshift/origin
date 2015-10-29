@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/mount"
+	"k8s.io/kubernetes/pkg/util/selinux"
 	"k8s.io/kubernetes/pkg/volume"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 )
@@ -70,10 +71,10 @@ func (plugin *emptyDirPlugin) CanSupport(spec *volume.Spec) bool {
 }
 
 func (plugin *emptyDirPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions) (volume.Builder, error) {
-	return plugin.newBuilderInternal(spec, pod, plugin.host.GetMounter(), &realMountDetector{plugin.host.GetMounter()}, opts, newChconRunner())
+	return plugin.newBuilderInternal(spec, pod, plugin.host.GetMounter(), &realMountDetector{plugin.host.GetMounter()}, opts, selinux.NewChconRunner())
 }
 
-func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod, mounter mount.Interface, mountDetector mountDetector, opts volume.VolumeOptions, chconRunner chconRunner) (volume.Builder, error) {
+func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod, mounter mount.Interface, mountDetector mountDetector, opts volume.VolumeOptions, chconrunner selinux.ChconRunner) (volume.Builder, error) {
 	medium := api.StorageMediumDefault
 	if spec.Volume.EmptyDir != nil { // Support a non-specified source as EmptyDir.
 		medium = spec.Volume.EmptyDir.Medium
@@ -86,7 +87,7 @@ func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod
 		mountDetector: mountDetector,
 		plugin:        plugin,
 		rootContext:   opts.RootContext,
-		chconRunner:   chconRunner,
+		chconRunner:   chconrunner,
 	}, nil
 }
 
@@ -134,7 +135,11 @@ type emptyDir struct {
 	mountDetector mountDetector
 	plugin        *emptyDirPlugin
 	rootContext   string
-	chconRunner   chconRunner
+	chconRunner   selinux.ChconRunner
+}
+
+func (_ *emptyDir) SupportsOwnershipManagement() bool {
+	return true
 }
 
 // SetUp creates new directory.
@@ -187,6 +192,10 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 
 func (ed *emptyDir) IsReadOnly() bool {
 	return false
+}
+
+func (ed *emptyDir) SupportsSELinux() bool {
+	return true
 }
 
 // setupTmpfs creates a tmpfs mount at the specified directory with the

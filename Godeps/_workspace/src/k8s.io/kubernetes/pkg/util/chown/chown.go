@@ -1,7 +1,5 @@
-// +build !linux
-
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,11 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package empty_dir
+package chown
 
-type realChconRunner struct{}
+import (
+	"os"
+)
 
-func (_ *realChconRunner) SetContext(dir, context string) error {
-	// NOP
-	return nil
+// Interface is something that knows how to run the chown system call.
+// It is non-recursive.
+type Interface interface {
+	// Chown changes the owning UID and GID of a file, implementing
+	// the exact same semantics as os.Chown.
+	Chown(path string, uid, gid int) error
+}
+
+func New() Interface {
+	return &chownRunner{}
+}
+
+type chownRunner struct{}
+
+func (_ *chownRunner) Chown(path string, uid, gid int) error {
+	return os.Chown(path, uid, gid)
 }

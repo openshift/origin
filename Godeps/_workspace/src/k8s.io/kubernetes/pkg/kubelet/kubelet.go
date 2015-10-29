@@ -61,15 +61,19 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/probe"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/securitycontext"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/bandwidth"
+	"k8s.io/kubernetes/pkg/util/chmod"
+	"k8s.io/kubernetes/pkg/util/chown"
 	utilErrors "k8s.io/kubernetes/pkg/util/errors"
 	kubeio "k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/util/mount"
 	nodeutil "k8s.io/kubernetes/pkg/util/node"
 	"k8s.io/kubernetes/pkg/util/oom"
 	"k8s.io/kubernetes/pkg/util/procfs"
+	"k8s.io/kubernetes/pkg/util/selinux"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/version"
 	"k8s.io/kubernetes/pkg/volume"
@@ -174,6 +178,8 @@ func NewMainKubelet(
 	rktStage1Image string,
 	mounter mount.Interface,
 	writer kubeio.Writer,
+	chownRunner chown.Interface,
+	chmodRunner chmod.Interface,
 	dockerDaemonContainer string,
 	systemContainer string,
 	configureCBR0 bool,
@@ -286,6 +292,8 @@ func NewMainKubelet(
 		cgroupRoot:                     cgroupRoot,
 		mounter:                        mounter,
 		writer:                         writer,
+		chmodRunner:                    chmodRunner,
+		chownRunner:                    chownRunner,
 		configureCBR0:                  configureCBR0,
 		podCIDR:                        podCIDR,
 		reconcileCIDR:                  reconcileCIDR,
@@ -574,6 +582,10 @@ type Kubelet struct {
 
 	// Mounter to use for volumes.
 	mounter mount.Interface
+	// chown.Interface implementation to use
+	chownRunner chown.Interface
+	// chmod.Interface implementation to use
+	chmodRunner chmod.Interface
 
 	// Writer interface to use for volumes.
 	writer kubeio.Writer
@@ -948,6 +960,42 @@ func (kl *Kubelet) syncNodeStatus() {
 	}
 }
 
+// relabelVolumes relabels SELinux volumes to match the pod's
+// SELinuxOptions specification. This is only needed if the pod uses
+// hostPID or hostIPC. Otherwise relabeling is delegated to docker.
+func (kl *Kubelet) relabelVolumes(pod *api.Pod, volumes kubecontainer.VolumeMap) error {
+	if pod.Spec.SecurityContext.SELinuxOptions == nil {
+		return nil
+	}
+
+	rootDirContext, err := kl.getRootDirContext()
+	if err != nil {
+		return err
+	}
+
+	chconRunner := selinux.NewChconRunner()
+	// Apply the pod's Level to the rootDirContext
+	rootDirSELinuxOptions, err := securitycontext.ParseSELinuxOptions(rootDirContext)
+	if err != nil {
+		return err
+	}
+	rootDirSELinuxOptions.Level = pod.Spec.SecurityContext.SELinuxOptions.Level
+
+	volumeContext := fmt.Sprintf("%s:%s:%s:%s", rootDirSELinuxOptions.User, rootDirSELinuxOptions.Role, rootDirSELinuxOptions.Type, rootDirSELinuxOptions.Level)
+
+	for _, volume := range volumes {
+		if volume.Builder.SupportsSELinux() && !volume.Builder.IsReadOnly() {
+			dir := volume.Builder.GetPath()
+			err = chconRunner.SetContext(dir, volumeContext)
+			if err != nil {
+				return err
+			}
+			volume.SELinuxLabeled = true
+		}
+	}
+	return nil
+}
+
 func makeMounts(container *api.Container, podVolumes kubecontainer.VolumeMap) (mounts []kubecontainer.Mount) {
 	for _, mount := range container.VolumeMounts {
 		vol, ok := podVolumes[mount.Name]
@@ -955,11 +1003,21 @@ func makeMounts(container *api.Container, podVolumes kubecontainer.VolumeMap) (m
 			glog.Warningf("Mount cannot be satisified for container %q, because the volume is missing: %q", container.Name, mount)
 			continue
 		}
+
+		relabelVolume := false
+		// If the volume supports SELinux and it has not been
+		// relabeled already and it is not a read-only volume,
+		// relabel it and mark it as labeled
+		if vol.Builder.SupportsSELinux() && !vol.SELinuxLabeled && !vol.Builder.IsReadOnly() {
+			vol.SELinuxLabeled = true
+			relabelVolume = true
+		}
 		mounts = append(mounts, kubecontainer.Mount{
-			Name:          mount.Name,
-			ContainerPath: mount.MountPath,
-			HostPath:      vol.GetPath(),
-			ReadOnly:      mount.ReadOnly,
+			Name:           mount.Name,
+			ContainerPath:  mount.MountPath,
+			HostPath:       vol.Builder.GetPath(),
+			ReadOnly:       mount.ReadOnly,
+			SELinuxRelabel: relabelVolume,
 		})
 	}
 	return
@@ -1007,6 +1065,16 @@ func (kl *Kubelet) GenerateRunContainerOptions(pod *api.Pod, container *api.Cont
 	}
 
 	opts.PortMappings = makePortMappings(container)
+	// Docker does not relabel volumes if the container is running
+	// in the host pid or ipc namespaces so the kubelet must
+	// relabel the volumes
+	if pod.Spec.SecurityContext != nil && (pod.Spec.SecurityContext.HostIPC || pod.Spec.SecurityContext.HostPID) {
+		err = kl.relabelVolumes(pod, vol)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	opts.Mounts = makeMounts(container, vol)
 	opts.Envs, err = kl.makeEnvironmentVariables(pod, container)
 	if err != nil {

@@ -192,6 +192,10 @@ type rbdBuilder struct {
 
 var _ volume.Builder = &rbdBuilder{}
 
+func (_ *rbdBuilder) SupportsOwnershipManagement() bool {
+	return true
+}
+
 func (b *rbdBuilder) SetUp() error {
 	return b.SetUpAt(b.GetPath())
 }
@@ -213,6 +217,10 @@ var _ volume.Cleaner = &rbdCleaner{}
 
 func (b *rbd) IsReadOnly() bool {
 	return b.ReadOnly
+}
+
+func (b *rbd) SupportsSELinux() bool {
+	return true
 }
 
 // Unmounts the bind mount, and detaches the disk only if the disk

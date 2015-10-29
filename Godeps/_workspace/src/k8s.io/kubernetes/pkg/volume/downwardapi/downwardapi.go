@@ -107,6 +107,10 @@ type downwardAPIVolumeBuilder struct {
 // downwardAPIVolumeBuilder implements volume.Builder interface
 var _ volume.Builder = &downwardAPIVolumeBuilder{}
 
+func (_ *downwardAPIVolumeBuilder) SupportsOwnershipManagement() bool {
+	return false
+}
+
 // SetUp puts in place the volume plugin.
 // This function is not idempotent by design. We want the data to be refreshed periodically.
 // The internal sync interval of kubelet will drive the refresh of data.
@@ -150,6 +154,10 @@ func (b *downwardAPIVolumeBuilder) SetUpAt(dir string) error {
 
 // IsReadOnly func to fulfill volume.Builder interface
 func (d *downwardAPIVolume) IsReadOnly() bool {
+	return true
+}
+
+func (d *downwardAPIVolume) SupportsSELinux() bool {
 	return true
 }
 

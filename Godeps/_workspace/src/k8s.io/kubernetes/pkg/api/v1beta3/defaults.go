@@ -164,6 +164,9 @@ func addDefaultingFuncs() {
 				obj.APIVersion = "v1beta3"
 			}
 		},
+		func(obj *SecurityContextConstraints) {
+			defaultSecurityContextConstraints(obj)
+		},
 	)
 }
 
@@ -213,6 +216,26 @@ func defaultSecurityContext(container *Container) {
 		// definition and not an intentional mismatch
 		if *container.SecurityContext.Privileged && !container.Privileged {
 			container.Privileged = *container.SecurityContext.Privileged
+		}
+	}
+}
+
+// Default SCCs for new fields.  Defaults are based on the RunAsUser type if not explicitly set.
+// If the SCC allows RunAsAny UID then the FSGroup/SupGroups will default to RunAsAny.  Otherwise
+// default to MustRunAs with namespace allocation.
+func defaultSecurityContextConstraints(scc *SecurityContextConstraints) {
+	if len(scc.FSGroup.Type) == 0 {
+		if scc.RunAsUser.Type == RunAsUserStrategyRunAsAny {
+			scc.FSGroup.Type = FSGroupStrategyRunAsAny
+		} else {
+			scc.FSGroup.Type = FSGroupStrategyMustRunAs
+		}
+	}
+	if len(scc.SupplementalGroups.Type) == 0 {
+		if scc.RunAsUser.Type == RunAsUserStrategyRunAsAny {
+			scc.SupplementalGroups.Type = SupplementalGroupsStrategyRunAsAny
+		} else {
+			scc.SupplementalGroups.Type = SupplementalGroupsStrategyMustRunAs
 		}
 	}
 }

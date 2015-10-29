@@ -51,30 +51,30 @@ func (s *mustRunAs) Validate(pod *api.Pod, container *api.Container) fielderrors
 	allErrs := fielderrors.ValidationErrorList{}
 
 	if container.SecurityContext == nil {
-		detail := fmt.Sprintf("unable to validate nil security context for container %s", container.Name)
+		detail := fmt.Sprintf("unable to validate nil security context for %s", container.Name)
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext", container.SecurityContext, detail))
 		return allErrs
 	}
 	if container.SecurityContext.SELinuxOptions == nil {
-		detail := fmt.Sprintf("unable to validate nil seLinuxOptions for container %s", container.Name)
+		detail := fmt.Sprintf("unable to validate nil seLinuxOptions for %s", container.Name)
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("seLinuxOptions", container.SecurityContext.SELinuxOptions, detail))
 		return allErrs
 	}
 	seLinux := container.SecurityContext.SELinuxOptions
 	if seLinux.Level != s.opts.SELinuxOptions.Level {
-		detail := fmt.Sprintf("seLinuxOptions.level on container %s does not match required level.  Found %s, wanted %s", container.Name, seLinux.Level, s.opts.SELinuxOptions.Level)
+		detail := fmt.Sprintf("seLinuxOptions.level on %s does not match required level.  Found %s, wanted %s", container.Name, seLinux.Level, s.opts.SELinuxOptions.Level)
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("seLinuxOptions.level", seLinux.Level, detail))
 	}
 	if seLinux.Role != s.opts.SELinuxOptions.Role {
-		detail := fmt.Sprintf("seLinuxOptions.role on container %s does not match required role.  Found %s, wanted %s", container.Name, seLinux.Role, s.opts.SELinuxOptions.Role)
+		detail := fmt.Sprintf("seLinuxOptions.role on %s does not match required role.  Found %s, wanted %s", container.Name, seLinux.Role, s.opts.SELinuxOptions.Role)
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("seLinuxOptions.role", seLinux.Role, detail))
 	}
 	if seLinux.Type != s.opts.SELinuxOptions.Type {
-		detail := fmt.Sprintf("seLinuxOptions.type on container %s does not match required type.  Found %s, wanted %s", container.Name, seLinux.Type, s.opts.SELinuxOptions.Type)
+		detail := fmt.Sprintf("seLinuxOptions.type on %s does not match required type.  Found %s, wanted %s", container.Name, seLinux.Type, s.opts.SELinuxOptions.Type)
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("seLinuxOptions.type", seLinux.Type, detail))
 	}
 	if seLinux.User != s.opts.SELinuxOptions.User {
-		detail := fmt.Sprintf("seLinuxOptions.user on container %s does not match required user.  Found %s, wanted %s", container.Name, seLinux.User, s.opts.SELinuxOptions.User)
+		detail := fmt.Sprintf("seLinuxOptions.user on %s does not match required user.  Found %s, wanted %s", container.Name, seLinux.User, s.opts.SELinuxOptions.User)
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("seLinuxOptions.user", seLinux.User, detail))
 	}
 
