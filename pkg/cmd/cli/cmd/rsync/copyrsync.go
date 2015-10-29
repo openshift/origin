@@ -1,6 +1,7 @@
 package rsync
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"strings"
@@ -12,10 +13,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-var (
-	testRsyncCommand = []string{"rsync", "--version"}
-)
-
+// rsyncStrategy implements the rsync copy strategy
+// The rsync strategy calls the local rsync command directly and passes the OpenShift
+// CLI rsh command as the remote shell command for rsync. It requires that rsync be
+// present in both the client machine and the remote container.
 type rsyncStrategy struct {
 	Flags          []string
 	RshCommand     string
@@ -64,15 +65,16 @@ func (r *rsyncStrategy) Copy(source, destination *pathSpec, out, errOut io.Write
 	glog.V(3).Infof("Copying files with rsync")
 	cmd := append([]string{"rsync"}, r.Flags...)
 	cmd = append(cmd, "-e", r.RshCommand, source.RsyncPath(), destination.RsyncPath())
-	err := r.LocalExecutor.Execute(cmd, nil, out, errOut)
+	errBuf := &bytes.Buffer{}
+	err := r.LocalExecutor.Execute(cmd, nil, out, errBuf)
 	if isExitError(err) {
 		// Determine whether rsync is present in the pod container
-		testRsyncErr := executeWithLogging(r.RemoteExecutor, testRsyncCommand)
+		testRsyncErr := checkRsync(r.RemoteExecutor)
 		if testRsyncErr != nil {
-			glog.V(4).Infof("error testing whether rsync is available: %v", testRsyncErr)
 			return strategySetupError("rsync not available in container")
 		}
 	}
+	io.Copy(errOut, errBuf)
 	return err
 }
 

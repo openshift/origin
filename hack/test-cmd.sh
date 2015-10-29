@@ -274,6 +274,7 @@ for test in "${tests[@]}"; do
   oc project ${CLUSTER_ADMIN_CONTEXT}
   oc new-project "cmd-${name}"
   ${test}
+  oc project ${CLUSTER_ADMIN_CONTEXT}
   oc delete project "cmd-${name}"
 done
 

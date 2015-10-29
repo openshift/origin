@@ -1,6 +1,7 @@
 package util
 
 import (
+	rflag "flag"
 	"fmt"
 	"os"
 	"path"
@@ -23,19 +24,13 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
+var reportDir string
+
 // init initialize the extended testing suite.
 // You can set these environment variables to configure extended tests:
 // KUBECONFIG - Path to kubeconfig containing embedded authinfo
+// TEST_REPORT_DIR - If set, JUnit output will be written to this directory for each test
 func InitTest() {
-	// Turn on verbose by default to get spec names
-	config.DefaultReporterConfig.Verbose = false
-
-	// Turn on EmitSpecProgress to get spec progress (especially on interrupt)
-	config.GinkgoConfig.EmitSpecProgress = false
-
-	// Randomize specs as well as suites
-	config.GinkgoConfig.RandomizeAllSpecs = false
-
 	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
 	os.MkdirAll(extendedOutputDir, 0777)
 
@@ -45,8 +40,11 @@ func InitTest() {
 	TestContext.KubeConfig = KubeConfigPath()
 	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
 
+	reportDir = os.Getenv("TEST_REPORT_DIR")
+
 	//flag.StringVar(&TestContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, KubeConfigPath(), "Path to kubeconfig containing embedded authinfo.")
 	flag.StringVar(&TestContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
+	rflag.StringVar(&config.GinkgoConfig.FocusString, "focus", "", "DEPRECATED: use --ginkgo.focus")
 
 	// Ensure that Kube tests run privileged (like they do upstream)
 	ginkgo.JustBeforeEach(ensureKubeE2EPrivilegedSA)
@@ -55,7 +53,7 @@ func InitTest() {
 	e2e.SetTestContext(TestContext)
 }
 
-func ExecuteTest(t *testing.T, reportDir string) {
+func ExecuteTest(t *testing.T, suite string) {
 	var r []ginkgo.Reporter
 
 	if reportDir != "" {
@@ -77,7 +75,7 @@ func ExecuteTest(t *testing.T, reportDir string) {
 
 	r = append(r, NewSimpleReporter())
 
-	ginkgo.RunSpecsWithCustomReporters(t, "OpenShift extended tests suite", r)
+	ginkgo.RunSpecsWithCustomReporters(t, suite, r)
 }
 
 // ensureKubeE2EPrivilegedSA ensures that all namespaces prefixed with 'e2e-' have their

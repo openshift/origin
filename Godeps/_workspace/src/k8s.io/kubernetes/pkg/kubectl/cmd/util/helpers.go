@@ -207,7 +207,7 @@ func messageForError(err error) string {
 
 func UsageError(cmd *cobra.Command, format string, args ...interface{}) error {
 	msg := fmt.Sprintf(format, args...)
-	return fmt.Errorf("%s\nsee '%s -h' for help.", msg, cmd.CommandPath())
+	return fmt.Errorf("%s\nSee '%s -h' for help and examples.", msg, cmd.CommandPath())
 }
 
 func getFlag(cmd *cobra.Command, flag string) *pflag.Flag {
@@ -414,12 +414,7 @@ func UpdateObject(info *resource.Info, updateFn func(runtime.Object) error) (run
 		return nil, err
 	}
 
-	data, err := helper.Codec.Encode(info.Object)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := helper.Replace(info.Namespace, info.Name, true, data); err != nil {
+	if _, err := helper.Replace(info.Namespace, info.Name, true, info.Object); err != nil {
 		return nil, err
 	}
 

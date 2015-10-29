@@ -290,20 +290,16 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 
 	failed := false
 	for _, info := range infos {
-		data, err := info.Mapping.Codec.Encode(info.Object)
-		if err != nil {
-			fmt.Fprintf(cmd.Out(), "Error: %v\n", err)
-			failed = true
-			continue
-		}
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, true, data)
+		obj, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, true, info.Object)
 		if err != nil {
 			handlePodUpdateError(cmd.Out(), err, "environment variables")
 			failed = true
 			continue
 		}
 		info.Refresh(obj, true)
-		fmt.Fprintf(out, "%s/%s\n", info.Mapping.Resource, info.Name)
+
+		shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
+		cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "updated")
 	}
 	if failed {
 		return errExit

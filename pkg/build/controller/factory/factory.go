@@ -2,9 +2,8 @@ package factory
 
 import (
 	"fmt"
-	"time"
-
 	"github.com/golang/glog"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
@@ -26,6 +25,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	errors "github.com/openshift/origin/pkg/util/errors"
 )
 
 const maxRetries = 60
@@ -40,7 +40,7 @@ func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.D
 		}
 		build.Status.Phase = buildapi.BuildPhaseFailed
 		build.Status.Reason = buildapi.StatusReasonExceededRetryTimeout
-		build.Status.Message = err.Error()
+		build.Status.Message = errors.ErrorToSentence(err)
 		now := unversioned.Now()
 		build.Status.CompletionTimestamp = &now
 		glog.V(3).Infof("Giving up retrying Build %s/%s: %v", build.Namespace, build.Name, err)
@@ -98,7 +98,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 			err := buildController.HandleBuild(build)
 			if err != nil {
 				// Update the build status message only if it changed.
-				if msg := err.Error(); build.Status.Message != msg {
+				if msg := errors.ErrorToSentence(err); build.Status.Message != msg {
 					// Set default Reason.
 					if len(build.Status.Reason) == 0 {
 						build.Status.Reason = buildapi.StatusReasonError
@@ -107,7 +107,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 					if err := buildController.BuildUpdater.Update(build.Namespace, build); err != nil {
 						glog.V(2).Infof("Failed to update status message of Build %s/%s: %v", build.Namespace, build.Name, err)
 					}
-					buildController.Recorder.Eventf(build, "HandleBuildError", "Build %s/%s has error: %v", build.Namespace, build.Name, err)
+					buildController.Recorder.Eventf(build, "HandleBuildError", "Build has error: %v", err)
 				}
 			}
 			return err

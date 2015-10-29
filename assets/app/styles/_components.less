@@ -235,13 +235,32 @@
   .overview-pods {
     margin-right: 10px;
     min-width: 190px;
+    .clickable {
+      cursor: pointer;
+    }
+    .pod-status-chart {
+      // Give an empty pod donut chart a light gray outline.
+      path.c3-arc-Empty {
+        stroke: #d1d1d1;
+        // Override the style set in JavaScript since you can't click or hover
+        // on the empty chart.
+        cursor: inherit !important;
+      }
+    }
     .scaling-controls {
       font-size: 24px;
       a {
-        color: #d1d1d1;
+        color: #bbbbbb;
         &:hover, &:active {
           color: #72767b;
           text-decoration: none;
+        }
+        &.disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+          &:hover {
+            color: #bbbbbb;
+          }
         }
       }
     }

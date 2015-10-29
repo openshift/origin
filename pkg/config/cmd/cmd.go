@@ -21,21 +21,30 @@ type Bulk struct {
 }
 
 func NewPrintNameOrErrorAfter(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer) func(*resource.Info, error) {
+	return NewPrintNameOrErrorAfterIndent(mapper, short, operation, out, errs, "")
+}
+
+func NewPrintNameOrErrorAfterIndent(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer, indent string) func(*resource.Info, error) {
 	return func(info *resource.Info, err error) {
 		if err == nil {
-			cmdutil.PrintSuccess(mapper, false, out, info.Mapping.Kind, info.Name, operation)
+			fmt.Fprintf(out, indent)
+			cmdutil.PrintSuccess(mapper, short, out, info.Mapping.Kind, info.Name, operation)
 		} else {
+			fmt.Fprintf(errs, "%serror: %v\n", indent, err)
+		}
+	}
+}
+
+func NewPrintErrorAfter(mapper meta.RESTMapper, errs io.Writer) func(*resource.Info, error) {
+	return func(info *resource.Info, err error) {
+		if err != nil {
 			fmt.Fprintf(errs, "error: %v\n", err)
 		}
 	}
 }
 
 func encodeAndCreate(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
-	data, err := info.Mapping.Codec.Encode(obj)
-	if err != nil {
-		return nil, err
-	}
-	return resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, data)
+	return resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, obj)
 }
 
 // Create attempts to create each item generically, gathering all errors in the

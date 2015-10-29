@@ -72,7 +72,9 @@ oc get template ruby-helloworld-sample
 [ "$(oc new-app --search mysql --param=FOO=BAR 2>&1 | grep "can't be used")" ]
 oc delete imageStreams --all
 # check that we can create from the template without errors
-oc new-app ruby-helloworld-sample -l app=helloworld
+[ "$(oc new-app ruby-helloworld-sample -l app=helloworld 2>&1 | grep 'Service "frontend" created')" ]
+oc delete all -l app=helloworld
+[ "$(oc new-app ruby-helloworld-sample -l app=helloworld -o name 2>&1 | grep 'Service/frontend')" ]
 oc delete all -l app=helloworld
 # create from template with code explicitly set is not supported
 [ ! "$(oc new-app ruby-helloworld-sample~git@github.com/mfojtik/sinatra-app-example)" ]
@@ -89,8 +91,26 @@ oc delete all -l app=ruby
 [ "$(oc new-build mysql https://github.com/openshift/ruby-hello-world --binary 2>&1 | grep -F 'specifying binary builds and source repositories at the same time is not allowed')" ]
 
 # do not allow use of non-existent image (should fail)
-[ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml 2>&1 | grep "no image or template matched")" ]
+[ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml 2>&1 | grep "no match for")" ]
 # allow use of non-existent image (should succeed)
 [ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml --allow-missing-images)" ]
+
+oc create -f test/fixtures/installable-stream.yaml
+
+project=$(oc project -q)
+oc policy add-role-to-user edit test-user
+oc login -u test-user -p anything
+tryuntil oc project "${project}"
+
+tryuntil oc get imagestreamtags installable:file
+tryuntil oc get imagestreamtags installable:token
+[ ! "$(oc new-app installable:file)" ]
+[ "$(oc new-app installable:file 2>&1 | grep 'requires that you grant the image access')" ]
+[ "$(oc new-app installable:file --grant-install-rights -o yaml | grep -F '/var/run/openshift.secret.token')" ]
+[ "$(oc new-app installable:file --grant-install-rights -o yaml | grep -F 'activeDeadlineSeconds: 14400')" ]
+[ "$(oc new-app installable:file --grant-install-rights -o yaml | grep -F 'openshift.io/generated-job: "true"')" ]
+[ "$(oc new-app installable:file --grant-install-rights -o yaml | grep -F 'openshift.io/generated-job.for: installable:file')" ]
+[ "$(oc new-app installable:token --grant-install-rights -o yaml | grep -F 'name: TOKEN_ENV')" ]
+[ "$(oc new-app installable:token --grant-install-rights -o yaml | grep -F 'openshift/origin@sha256:')" ]
 
 echo "new-app: ok"

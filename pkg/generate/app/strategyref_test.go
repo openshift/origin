@@ -49,7 +49,7 @@ func TestFromDockerContextAndParent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if strategy.Base.Name != "parentImage" {
+	if strategy.Base.Reference.Name != "parentImage" {
 		t.Fatalf("Unexpected base image: %#v", strategy.Base)
 	}
 	if !strategy.IsDockerBuild {

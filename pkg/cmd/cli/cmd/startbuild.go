@@ -100,6 +100,8 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 
 	cmd.Flags().String("git-post-receive", "", "The contents of the post-receive hook to trigger a build")
 	cmd.Flags().String("git-repository", "", "The path to the git repository for post-receive; defaults to the current directory")
+
+	// cmdutil.AddOutputFlagsForMutation(cmd)
 	return cmd
 }
 
@@ -113,9 +115,6 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 	fromFile := cmdutil.GetFlagString(cmd, "from-file")
 	fromDir := cmdutil.GetFlagString(cmd, "from-dir")
 	fromRepo := cmdutil.GetFlagString(cmd, "from-repo")
-	//shortOutput := false
-
-	//mapper, _ := f.Object()
 
 	switch {
 	case len(webhook) > 0:
@@ -190,8 +189,15 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 		}
 	}
 
-	//cmdutil.PrintSuccess(mapper, shortOutput, out, "Build", newBuild.Name, "started")
 	fmt.Fprintln(out, newBuild.Name)
+	// mapper, typer := f.Object()
+	// resourceMapper := &resource.Mapper{ObjectTyper: typer, RESTMapper: mapper, ClientMapper: f.ClientMapperForCommand()}
+	// info, err := resourceMapper.InfoForObject(newBuild)
+	// if err != nil {
+	// 	return err
+	// }
+	// shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
+	// cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "started")
 
 	var (
 		wg      sync.WaitGroup

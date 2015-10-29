@@ -36,7 +36,7 @@ for the copy.`
   $ %[1]s POD:/remote/dir/ ./local/dir`
 
 	noRsyncUnixWarning    = "rsync command not found in path. Please use your package manager to install it."
-	noRsyncWindowsWarning = "rsync command not found in path. Download cwRsync for windows and add it to your path."
+	noRsyncWindowsWarning = "rsync command not found in path. Download cwRsync for Windows and add it to your PATH."
 )
 
 // copyStrategy

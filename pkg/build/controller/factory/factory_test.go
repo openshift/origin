@@ -41,7 +41,7 @@ func TestLimitedLogAndRetryFinish(t *testing.T) {
 	if updater.Build.Status.Phase != buildapi.BuildPhaseFailed {
 		t.Errorf("Expected status %s, got %s!", buildapi.BuildPhaseFailed, updater.Build.Status.Phase)
 	}
-	if !strings.Contains(updater.Build.Status.Message, err.Error()) {
+	if !strings.Contains(updater.Build.Status.Message, "Funky error.") {
 		t.Errorf("Expected message to contain %v, got %s!", err.Error(), updater.Build.Status.Message)
 	}
 	if updater.Build.Status.CompletionTimestamp == nil {

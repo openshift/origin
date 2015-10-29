@@ -9,5 +9,11 @@ metadata:
 spec: 
   dockerImageRepository: 172.30.181.223:5000/test/test-stream
   tags:
-    - name: latest
+  - name: latest
+  - name: installable
+    from:
+      kind: DockerImage
+      name: openshift/origin:v1.0.6
+    annotations:
+      io.openshift.generate.job: "true"
 status: {}

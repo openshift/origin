@@ -11,6 +11,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	testRsyncCommand = []string{"rsync", "--version"}
+	testTarCommand   = []string{"tar", "--version"}
+)
+
 // executeWithLogging will execute a command and log its output
 func executeWithLogging(e executor, cmd []string) error {
 	w := &bytes.Buffer{}
@@ -61,4 +66,12 @@ func isExitError(err error) bool {
 	}
 	_, exitErr := err.(*exec.ExitError)
 	return exitErr
+}
+
+func checkRsync(e executor) error {
+	return executeWithLogging(e, testRsyncCommand)
+}
+
+func checkTar(e executor) error {
+	return executeWithLogging(e, testTarCommand)
 }

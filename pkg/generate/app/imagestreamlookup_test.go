@@ -327,8 +327,8 @@ func TestInputImageFromMatch(t *testing.T) {
 			continue
 		}
 		expectedRef, _ := imageapi.ParseDockerImageReference(test.expectedRef)
-		if !reflect.DeepEqual(imgRef.DockerImageReference, expectedRef) {
-			t.Errorf("%s: unexpected resulting reference: %#v", test.name, imgRef.DockerImageReference)
+		if !reflect.DeepEqual(imgRef.Reference, expectedRef) {
+			t.Errorf("%s: unexpected resulting reference: %#v", test.name, imgRef.Reference)
 		}
 	}
 

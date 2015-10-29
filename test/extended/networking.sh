@@ -12,6 +12,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -o xtrace
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
@@ -46,7 +47,7 @@ function copy-container-files() {
     if [ ! -d "${dest_dir}" ]; then
       mkdir -p "${dest_dir}"
     fi
-    docker cp "${container_name}:${source_path}" "${dest_dir}"
+    sudo docker cp "${container_name}:${source_path}" "${dest_dir}"
   done
 }
 

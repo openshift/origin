@@ -1,13 +1,19 @@
-<div layout column flex ng-if="links">
-  <div layout row class="log-timestamp" ng-if="start">
-    <span>Current log from {{start}}&nbsp;</span>
-    <span ng-if="end">to {{end}}</span>
+<div column flex ng-if="links">
+  <div row mobile="column" class="log-timestamp" ng-if="start">
+    <span row>
+      <span>Current log from &nbsp;</span>
+      <span flex class="text-right">{{start}}</span>
+    </span>
+    <span row ng-if="end">
+      <span>&nbsp;to&nbsp;</span>
+      <span flex class="text-right">{{end}}</span>
+    </span>
   </div>
-  <div layout sm="column" md="row">
-    <div flex row main-axis="end">
+  <div sm="column" md="row">
+    <div flex row tablet="column" main-axis="end">
       <div ng-transclude flex></div>
-      <div layout row cross-axis="end" class="log-link-external">
-        <a href="" 
+      <div row main-axis="end" cross-axis="end" class="log-link-external">
+        <a href=""
           ng-show="download"
           ng-click="makeDownload(logs)">
           Raw <i class="fa fa-external-link"></i>

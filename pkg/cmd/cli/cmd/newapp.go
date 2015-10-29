@@ -3,19 +3,26 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
+	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -110,6 +117,7 @@ To search templates, image streams, and Docker images that match the arguments p
 // NewCmdNewApplication implements the OpenShift cli new-app command
 func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
+	config.Deploy = true
 
 	cmd := &cobra.Command{
 		Use:        "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
@@ -148,6 +156,9 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd.Flags().BoolVarP(&config.AsList, "list", "L", false, "List all local templates and image streams that can be used to create.")
 	cmd.Flags().BoolVarP(&config.AsSearch, "search", "S", false, "Search all templates, image streams, and Docker images that match the arguments provided.")
 	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
+	cmd.Flags().BoolVar(&config.AllowSecretUse, "grant-install-rights", false, "If true, a component that requires access to your account may use your token to install software into your project. Only grant images you trust the right to run with your token.")
+	cmd.Flags().BoolVar(&config.SkipGeneration, "no-install", false, "Do not attempt to run images that describe themselves as being installable")
+	cmd.Flags().BoolVar(&config.DryRun, "dry-run", false, "If true, do not actually create resources.")
 
 	// TODO AddPrinterFlags disabled so that it doesn't conflict with our own "template" flag.
 	// Need a better solution.
@@ -163,10 +174,15 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 // RunNewApplication contains all the necessary functionality for the OpenShift cli new-app command
 func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 	output := cmdutil.GetFlagString(c, "output")
+	shortOutput := output == "name"
 
 	if err := setupAppConfig(f, out, c, args, config); err != nil {
 		return err
 	}
+	if shortOutput || len(output) != 0 {
+		config.Out = ioutil.Discard
+	}
+
 	if config.Querying() {
 		result, err := config.RunQuery()
 		if err != nil {
@@ -182,9 +198,13 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	if err := setAppConfigLabels(c, config); err != nil {
 		return err
 	}
-	result, err := config.RunAll()
-	if err != nil {
-		return handleRunError(c, err, fullName)
+	result, err := config.Run()
+	if err := handleRunError(c, err, fullName); err != nil {
+		return err
+	}
+
+	if len(config.Labels) == 0 && len(result.Name) > 0 {
+		config.Labels = map[string]string{"app": result.Name}
 	}
 
 	if err := setLabels(config.Labels, result); err != nil {
@@ -195,19 +215,52 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 		return err
 	}
 
-	if len(output) != 0 && output != "name" {
+	indent := "    "
+	switch {
+	case shortOutput:
+		indent = ""
+	case len(output) != 0:
 		return f.Factory.PrintObject(c, result.List, out)
+	case !result.GeneratedJobs:
+		if len(config.Labels) > 0 {
+			fmt.Fprintf(out, "--> Creating resources with label %s ...\n", labels.SelectorFromSet(config.Labels).String())
+		} else {
+			fmt.Fprintf(out, "--> Creating resources ...\n")
+		}
 	}
-	if err := createObjects(f, out, output == "name", result); err != nil {
+	if config.DryRun {
+		return nil
+	}
+
+	mapper, _ := f.Object()
+	var afterFn func(*resource.Info, error)
+	switch {
+	// only print success if we don't have installables
+	case !result.GeneratedJobs:
+		afterFn = configcmd.NewPrintNameOrErrorAfterIndent(mapper, shortOutput, "created", out, c.Out(), indent)
+	default:
+		afterFn = configcmd.NewPrintErrorAfter(mapper, c.Out())
+	}
+
+	if err := createObjects(f, afterFn, result); err != nil {
 		return err
 	}
 
+	if !shortOutput && !result.GeneratedJobs {
+		fmt.Fprintf(out, "--> Success\n")
+	}
+
 	hasMissingRepo := false
+	installing := []*kapi.Pod{}
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
+		case *kapi.Pod:
+			if t.Annotations[newcmd.GeneratedForJob] == "true" {
+				installing = append(installing, t)
+			}
 		case *buildapi.BuildConfig:
 			if len(t.Spec.Triggers) > 0 {
-				fmt.Fprintf(c.Out(), "Build scheduled for %q - use the build-logs command to track its progress.\n", t.Name)
+				fmt.Fprintf(out, "%sBuild scheduled for %q - use the build-logs command to track its progress.\n", indent, t.Name)
 			}
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
@@ -215,15 +268,120 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 					continue
 				}
 				hasMissingRepo = true
-				fmt.Fprint(c.Out(), "WARNING: No Docker registry has been configured with the server. Automatic builds and deployments may not function.\n")
+				fmt.Fprintf(out, "%sWARNING: No Docker registry has been configured with the server. Automatic builds and deployments may not function.\n", indent)
 			}
 		}
 	}
-	if len(result.List.Items) > 0 {
-		fmt.Fprintf(c.Out(), "Run '%s %s' to view your app.\n", fullName, StatusRecommendedName)
+
+	if shortOutput {
+		return nil
+	}
+
+	switch {
+	case len(installing) == 1:
+		// TODO: should get this set on the config or up above
+		_, kclient, err := f.Clients()
+		if err != nil {
+			return err
+		}
+		jobInput := installing[0].Annotations[newcmd.GeneratedForJobFor]
+		return followInstallation(f, jobInput, installing[0], kclient, out)
+	case len(installing) > 1:
+		for i := range installing {
+			fmt.Fprintf(out, "%sTrack installation of %s with '%s logs %s'.\n", indent, installing[i].Name, fullName, installing[i].Name)
+		}
+	case len(result.List.Items) > 0:
+		fmt.Fprintf(out, "%sRun '%s %s' to view your app.\n", indent, fullName, StatusRecommendedName)
+	}
+	return nil
+}
+
+func followInstallation(f *clientcmd.Factory, input string, pod *kapi.Pod, kclient kclient.Interface, out io.Writer) error {
+	fmt.Fprintf(out, "--> Installing ...\n")
+
+	// we cannot retrieve logs until the pod is out of pending
+	// TODO: move this to the server side
+	podClient := kclient.Pods(pod.Namespace)
+	if err := wait.PollImmediate(500*time.Millisecond, 60*time.Second, installationStarted(podClient, pod.Name, kclient.Secrets(pod.Namespace))); err != nil {
+		return err
+	}
+
+	mapper, typer := f.Object()
+	opts := &kcmd.LogsOptions{
+		Namespace:   pod.Namespace,
+		ResourceArg: pod.Name,
+		Options: &kapi.PodLogOptions{
+			Follow:    true,
+			Container: pod.Spec.Containers[0].Name,
+		},
+		Mapper:        mapper,
+		Typer:         typer,
+		ClientMapper:  f.ClientMapperForCommand(),
+		LogsForObject: f.LogsForObject,
+		Out:           out,
+	}
+	_, logErr := opts.RunLog()
+
+	// status of the pod may take tens of seconds to propagate
+	if err := wait.PollImmediate(500*time.Millisecond, 30*time.Second, installationComplete(podClient, pod.Name, out)); err != nil {
+		if err == wait.ErrWaitTimeout {
+			if logErr != nil {
+				// output the log error if one occurred
+				err = logErr
+			} else {
+				err = fmt.Errorf("installation may not have completed, see logs for %q for more information", pod.Name)
+			}
+		}
+		return err
 	}
 
 	return nil
+}
+
+func installationStarted(c kclient.PodInterface, name string, s kclient.SecretsInterface) wait.ConditionFunc {
+	return func() (bool, error) {
+		pod, err := c.Get(name)
+		if err != nil {
+			return false, err
+		}
+		if pod.Status.Phase == kapi.PodPending {
+			return false, nil
+		}
+		// delete a secret named the same as the pod if it exists
+		if secret, err := s.Get(name); err == nil {
+			if secret.Annotations[newcmd.GeneratedForJob] == "true" &&
+				secret.Annotations[newcmd.GeneratedForJobFor] == pod.Annotations[newcmd.GeneratedForJobFor] {
+				if err := s.Delete(name); err != nil {
+					glog.V(4).Infof("Failed to delete install secret %s: %v", name, err)
+				}
+			}
+		}
+		return true, nil
+	}
+}
+
+func installationComplete(c kclient.PodInterface, name string, out io.Writer) wait.ConditionFunc {
+	return func() (bool, error) {
+		pod, err := c.Get(name)
+		if err != nil {
+			if kapierrors.IsNotFound(err) {
+				return false, fmt.Errorf("installation pod was deleted; unable to determine whether it completed successfully")
+			}
+			return false, nil
+		}
+		switch pod.Status.Phase {
+		case kapi.PodSucceeded:
+			fmt.Fprintf(out, "--> Success\n")
+			if err := c.Delete(name, nil); err != nil {
+				glog.V(4).Infof("Failed to delete install pod %s: %v", name, err)
+			}
+			return true, nil
+		case kapi.PodFailed:
+			return true, fmt.Errorf("installation of %q did not complete successfully", name)
+		default:
+			return false, nil
+		}
+	}
 }
 
 func setAppConfigLabels(c *cobra.Command, config *newcmd.AppConfig) error {
@@ -264,6 +422,14 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 	config.Out = out
 	config.ErrOut = c.Out()
 
+	if config.AllowSecretUse {
+		cfg, err := f.OpenShiftClientConfig.ClientConfig()
+		if err != nil {
+			return err
+		}
+		config.SecretAccessor = newConfigSecretRetriever(cfg)
+	}
+
 	unknown := config.AddArguments(args)
 	if len(unknown) != 0 {
 		return cmdutil.UsageError(c, "Did not recognize the following arguments: %v", unknown)
@@ -286,11 +452,6 @@ func setAnnotations(annotations map[string]string, result *newcmd.AppResult) err
 }
 
 func setLabels(labels map[string]string, result *newcmd.AppResult) error {
-	if len(labels) == 0 {
-		if len(result.Name) > 0 {
-			labels = map[string]string{"app": result.Name}
-		}
-	}
 	for _, object := range result.List.Items {
 		err := util.AddObjectLabels(object, labels)
 		if err != nil {
@@ -341,13 +502,14 @@ func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 	return nil
 }
 
-func createObjects(f *clientcmd.Factory, out io.Writer, shortOutput bool, result *newcmd.AppResult) error {
+func createObjects(f *clientcmd.Factory, after func(*resource.Info, error), result *newcmd.AppResult) error {
 	mapper, typer := f.Factory.Object()
 	bulk := configcmd.Bulk{
 		Mapper:            mapper,
 		Typer:             typer,
 		RESTClientFactory: f.Factory.RESTClient,
-		After:             configcmd.NewPrintNameOrErrorAfter(mapper, shortOutput, "created", out, os.Stderr),
+
+		After: after,
 		// Retry is used to support previous versions of the API server that will
 		// consider the presence of an unknown trigger type to be an error.
 		Retry: retryBuildConfig,
@@ -355,7 +517,6 @@ func createObjects(f *clientcmd.Factory, out io.Writer, shortOutput bool, result
 	if errs := bulk.Create(result.List, result.Namespace); len(errs) != 0 {
 		return errExit
 	}
-
 	return nil
 }
 
@@ -368,11 +529,39 @@ func handleRunError(c *cobra.Command, err error, fullName string) error {
 			err = errs.Errors()[0]
 		}
 	}
-	if err == newcmd.ErrNoInputs {
+	switch t := err.(type) {
+	case newcmd.ErrRequiresExplicitAccess:
+		return fmt.Errorf(`installing %q requires that you grant the image access to run with your credentials
+
+You can see more information about the image by adding the --dry-run flag.
+If you trust the provided image, include the flag --grant-install-rights.`, t.Match.Value)
+	case newapp.ErrNoMatch:
+		return fmt.Errorf(`%[1]v
+
+The '%[2]s' command will match arguments to the following types:
+
+  1. Images tagged into image streams in the current project or the 'openshift' project
+     - if you don't specify a tag, we'll add ':latest'
+  2. Images in the Docker Hub, on remote registries, or on the local Docker engine
+  3. Templates in the current project or the 'openshift' project
+  4. Git repository URLs or local paths that point to Git repositories
+
+--allow-missing-images can be used to point to an image that does not exist yet
+or is only on the local system.
+
+See '%[2]s' for examples.
+`, t, c.Name())
+	}
+	switch err {
+	case errNoTokenAvailable:
+		// TODO: improve by allowing token generation
+		return fmt.Errorf("to install components you must be logged in with an OAuth token (instead of only a certificate)")
+	case newcmd.ErrNoInputs:
 		// TODO: suggest things to the user
 		return cmdutil.UsageError(c, newAppNoInput, fullName)
+	default:
+		return err
 	}
-	return err
 }
 
 func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullName string) error {
@@ -427,7 +616,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullNam
 				for tag := range imageStream.Status.Tags {
 					set.Insert(tag)
 				}
-				tags = strings.Join(set.List(), ",")
+				tags = strings.Join(set.List(), ", ")
 			}
 
 			fmt.Fprintln(out, imageStream.Name)
@@ -467,4 +656,21 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullNam
 	}
 
 	return nil
+}
+
+type configSecretRetriever struct {
+	config *kclient.Config
+}
+
+func newConfigSecretRetriever(config *kclient.Config) newapp.SecretAccessor {
+	return &configSecretRetriever{config}
+}
+
+var errNoTokenAvailable = fmt.Errorf("you are not logged in with a token - unable to provide a secret to the installable component")
+
+func (r *configSecretRetriever) Token() (string, error) {
+	if len(r.config.BearerToken) > 0 {
+		return r.config.BearerToken, nil
+	}
+	return "", errNoTokenAvailable
 }
