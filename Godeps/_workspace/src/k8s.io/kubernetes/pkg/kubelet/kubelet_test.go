@@ -501,6 +501,26 @@ func (f *stubVolume) GetPath() string {
 	return f.path
 }
 
+func (f *stubVolume) IsReadOnly() bool {
+	return false
+}
+
+func (f *stubVolume) SetUp() error {
+	return nil
+}
+
+func (f *stubVolume) SetUpAt(dir string) error {
+	return nil
+}
+
+func (f *stubVolume) SupportsSELinux() bool {
+	return false
+}
+
+func (f *stubVolume) SupportsOwnershipManagement() bool {
+	return false
+}
+
 func TestMakeVolumeMounts(t *testing.T) {
 	container := api.Container{
 		VolumeMounts: []api.VolumeMount{
@@ -528,9 +548,9 @@ func TestMakeVolumeMounts(t *testing.T) {
 	}
 
 	podVolumes := kubecontainer.VolumeMap{
-		"disk":  &stubVolume{"/mnt/disk"},
-		"disk4": &stubVolume{"/mnt/host"},
-		"disk5": &stubVolume{"/var/lib/kubelet/podID/volumes/empty/disk5"},
+		"disk":  kubecontainer.VolumeInfo{Builder: &stubVolume{"/mnt/disk"}},
+		"disk4": kubecontainer.VolumeInfo{Builder: &stubVolume{"/mnt/host"}},
+		"disk5": kubecontainer.VolumeInfo{Builder: &stubVolume{"/var/lib/kubelet/podID/volumes/empty/disk5"}},
 	}
 
 	mounts := makeMounts(&container, podVolumes)
@@ -541,23 +561,27 @@ func TestMakeVolumeMounts(t *testing.T) {
 			"/mnt/path",
 			"/mnt/disk",
 			false,
+			false,
 		},
 		{
 			"disk",
 			"/mnt/path3",
 			"/mnt/disk",
 			true,
+			false,
 		},
 		{
 			"disk4",
 			"/mnt/path4",
 			"/mnt/host",
 			false,
+			false,
 		},
 		{
 			"disk5",
 			"/mnt/path5",
 			"/var/lib/kubelet/podID/volumes/empty/disk5",
+			false,
 			false,
 		},
 	}

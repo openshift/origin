@@ -153,6 +153,10 @@ func detachDiskLogError(cd *cinderVolume) {
 	}
 }
 
+func (_ *cinderVolumeBuilder) SupportsOwnershipManagement() bool {
+	return true
+}
+
 func (b *cinderVolumeBuilder) SetUp() error {
 	return b.SetUpAt(b.GetPath())
 }
@@ -219,6 +223,10 @@ func (b *cinderVolumeBuilder) SetUpAt(dir string) error {
 
 func (b *cinderVolumeBuilder) IsReadOnly() bool {
 	return b.readOnly
+}
+
+func (b *cinderVolumeBuilder) SupportsSELinux() bool {
+	return true
 }
 
 func makeGlobalPDName(host volume.VolumeHost, devName string) string {

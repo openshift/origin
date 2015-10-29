@@ -24,10 +24,14 @@ import (
 // SecurityContextConstraintsProvider provides the implementation to generate a new security
 // context based on constraints or validate an existing security context against constraints.
 type SecurityContextConstraintsProvider interface {
-	// Create a SecurityContext based on the given constraints
-	CreateSecurityContext(pod *api.Pod, container *api.Container) (*api.SecurityContext, error)
+	// Create a PodSecurityContext based on the given constraints.
+	CreatePodSecurityContext(pod *api.Pod) (*api.PodSecurityContext, error)
+	// Create a container SecurityContext based on the given constraints
+	CreateContainerSecurityContext(pod *api.Pod, container *api.Container) (*api.SecurityContext, error)
+	// Ensure a pod's SecurityContext is in compliance with the given constraints.
+	ValidatePodSecurityContext(pod *api.Pod) fielderrors.ValidationErrorList
 	// Ensure a container's SecurityContext is in compliance with the given constraints
-	ValidateSecurityContext(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList
+	ValidateContainerSecurityContext(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList
 	// Get the name of the SCC that this provider was initialized with.
 	GetSCCName() string
 }

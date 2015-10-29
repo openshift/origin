@@ -164,6 +164,10 @@ type fcDiskBuilder struct {
 
 var _ volume.Builder = &fcDiskBuilder{}
 
+func (_ *fcDiskBuilder) SupportsOwnershipManagement() bool {
+	return true
+}
+
 func (b *fcDiskBuilder) SetUp() error {
 	return b.SetUpAt(b.GetPath())
 }
@@ -185,6 +189,10 @@ var _ volume.Cleaner = &fcDiskCleaner{}
 
 func (b *fcDiskBuilder) IsReadOnly() bool {
 	return b.readOnly
+}
+
+func (b *fcDiskBuilder) SupportsSELinux() bool {
+	return true
 }
 
 // Unmounts the bind mount, and detaches the disk only if the disk

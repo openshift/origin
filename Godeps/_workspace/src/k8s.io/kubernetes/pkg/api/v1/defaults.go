@@ -254,6 +254,9 @@ func addDefaultingFuncs() {
 				}
 			}
 		},
+		func(obj *SecurityContextConstraints) {
+			defaultSecurityContextConstraints(obj)
+		},
 	)
 }
 
@@ -264,6 +267,26 @@ func defaultHostNetworkPorts(containers *[]Container) {
 			if (*containers)[i].Ports[j].HostPort == 0 {
 				(*containers)[i].Ports[j].HostPort = (*containers)[i].Ports[j].ContainerPort
 			}
+		}
+	}
+}
+
+// Default SCCs for new fields.  Defaults are based on the RunAsUser type if not explicitly set.
+// If the SCC allows RunAsAny UID then the FSGroup/SupGroups will default to RunAsAny.  Otherwise
+// default to MustRunAs with namespace allocation.
+func defaultSecurityContextConstraints(scc *SecurityContextConstraints) {
+	if len(scc.FSGroup.Type) == 0 {
+		if scc.RunAsUser.Type == RunAsUserStrategyRunAsAny {
+			scc.FSGroup.Type = FSGroupStrategyRunAsAny
+		} else {
+			scc.FSGroup.Type = FSGroupStrategyMustRunAs
+		}
+	}
+	if len(scc.SupplementalGroups.Type) == 0 {
+		if scc.RunAsUser.Type == RunAsUserStrategyRunAsAny {
+			scc.SupplementalGroups.Type = SupplementalGroupsStrategyRunAsAny
+		} else {
+			scc.SupplementalGroups.Type = SupplementalGroupsStrategyMustRunAs
 		}
 	}
 }

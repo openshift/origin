@@ -220,6 +220,16 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		func(j *deploy.DeploymentConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}
+			if forVersion == "v1beta3" {
+				// v1beta3 does not contain the PodSecurityContext type.  For this API version, only fuzz
+				// the host namespace fields.  The fields set to nil here are the other fields of the
+				// PodSecurityContext that will not roundtrip correctly from internal->v1beta3->internal.
+				j.Template.ControllerTemplate.Template.Spec.SecurityContext.SELinuxOptions = nil
+				j.Template.ControllerTemplate.Template.Spec.SecurityContext.RunAsUser = nil
+				j.Template.ControllerTemplate.Template.Spec.SecurityContext.RunAsNonRoot = nil
+				j.Template.ControllerTemplate.Template.Spec.SecurityContext.SupplementalGroups = nil
+				j.Template.ControllerTemplate.Template.Spec.SecurityContext.FSGroup = nil
+			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
@@ -385,7 +395,7 @@ func TestSpecificKind(t *testing.T) {
 	api.Scheme.Log(t)
 	defer api.Scheme.Log(nil)
 
-	kind := "ImageStreamTag"
+	kind := "DeploymentConfig"
 	item, err := api.Scheme.New("", kind)
 	if err != nil {
 		t.Errorf("Couldn't make a %v? %v", kind, err)

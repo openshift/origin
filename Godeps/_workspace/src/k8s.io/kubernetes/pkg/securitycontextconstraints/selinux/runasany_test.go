@@ -66,6 +66,6 @@ func TestRunAsAnyValidate(t *testing.T) {
 	}
 	errs = s.Validate(nil, nil)
 	if len(errs) != 0 {
-		t.Errorf("unexpected errors validating with ")
+		t.Errorf("unexpected errors validating %v", errs)
 	}
 }
