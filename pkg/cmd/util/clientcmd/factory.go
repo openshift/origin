@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/spf13/pflag"
 	"k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
@@ -26,6 +28,7 @@ import (
 	deploygen "github.com/openshift/origin/pkg/deploy/generator"
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
 	deployscaler "github.com/openshift/origin/pkg/deploy/scaler"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 )
 
@@ -216,6 +219,50 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return nil
 		}
 		return kCanBeExposed(kind)
+	}
+	kAttachablePodForObjectFunc := w.Factory.AttachablePodForObject
+	w.AttachablePodForObject = func(object runtime.Object) (*api.Pod, error) {
+		oc, kc, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			var err error
+			var pods *api.PodList
+			for pods == nil || len(pods.Items) == 0 {
+				if t.LatestVersion == 0 {
+					time.Sleep(2 * time.Second)
+				}
+				if t, err = oc.DeploymentConfigs(t.Namespace).Get(t.Name); err != nil {
+					return nil, err
+				}
+				latestDeploymentName := deployutil.LatestDeploymentNameForConfig(t)
+				deployment, err := kc.ReplicationControllers(t.Namespace).Get(latestDeploymentName)
+				if err != nil {
+					if kerrors.IsNotFound(err) {
+						continue
+					}
+					return nil, err
+				}
+				pods, err = kc.Pods(deployment.Namespace).List(labels.SelectorFromSet(deployment.Spec.Selector), fields.Everything())
+				if err != nil {
+					return nil, err
+				}
+				if len(pods.Items) == 0 {
+					time.Sleep(2 * time.Second)
+				}
+			}
+			var oldestPod *api.Pod
+			for _, pod := range pods.Items {
+				if oldestPod == nil || pod.CreationTimestamp.Before(oldestPod.CreationTimestamp) {
+					oldestPod = &pod
+				}
+			}
+			return oldestPod, nil
+		default:
+			return kAttachablePodForObjectFunc(object)
+		}
 	}
 
 	return w
