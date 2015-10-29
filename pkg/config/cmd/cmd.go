@@ -30,6 +30,14 @@ func NewPrintNameOrErrorAfter(mapper meta.RESTMapper, short bool, operation stri
 	}
 }
 
+func NewPrintErrorAfter(mapper meta.RESTMapper, errs io.Writer) func(*resource.Info, error) {
+	return func(info *resource.Info, err error) {
+		if err != nil {
+			fmt.Fprintf(errs, "error: %v\n", err)
+		}
+	}
+}
+
 func encodeAndCreate(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
 	data, err := info.Mapping.Codec.Encode(obj)
 	if err != nil {

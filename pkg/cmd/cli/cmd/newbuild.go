@@ -130,7 +130,7 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 	if len(output) != 0 && output != "name" {
 		return f.Factory.PrintObject(c, result.List, out)
 	}
-	if err := createObjects(f, out, output == "name", result); err != nil {
+	if err := createObjects(f, out, c.Out(), output == "name", true, result); err != nil {
 		return err
 	}
 

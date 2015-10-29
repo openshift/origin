@@ -47,7 +47,7 @@ func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy 
 	}
 
 	output := &ImageRef{
-		DockerImageReference: image.DockerImageReference{
+		Reference: image.DockerImageReference{
 			Name: name,
 			Tag:  image.DefaultImageTag,
 		},
