@@ -118,7 +118,7 @@ func addConversionFuncs() {
 	err = api.Scheme.AddFieldLabelConversionFunc("v1", "Namespace",
 		func(label, value string) (string, string, error) {
 			switch label {
-			case "status.phase":
+			case "name", "metadata.name", "status.phase":
 				return label, value, nil
 			default:
 				return "", "", fmt.Errorf("field label not supported: %s", label)

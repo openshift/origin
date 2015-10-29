@@ -18,10 +18,13 @@ package api_test
 
 import (
 	"io/ioutil"
+	"strings"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/registry/namespace"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 func BenchmarkPodConversion(b *testing.B) {
@@ -105,5 +108,61 @@ func BenchmarkReplicationControllerConversion(b *testing.B) {
 	}
 	if !api.Semantic.DeepDerivative(replicationController, *result) {
 		b.Fatalf("Incorrect conversion: expected %v, got %v", replicationController, *result)
+	}
+}
+
+func TestNamespaceFieldLabelConversion(t *testing.T) {
+	ns := &api.Namespace{
+		ObjectMeta: api.ObjectMeta{
+			Name: "ns",
+		},
+		Status: api.NamespaceStatus{
+			Phase: api.NamespaceActive,
+		},
+	}
+
+	testCases := []struct {
+		label      string
+		value      string
+		shouldFail bool
+	}{
+		// good cases
+		{"metadata.name", "ns", false},
+		{"name", "ns", false},
+		{"status.phase", string(api.NamespaceActive), false},
+		// bad cases
+		{".name", "", true},
+		{"metadata", "", true},
+		{"phase", "", true},
+		{"status", "", true},
+	}
+
+	labels := namespace.NamespaceToSelectableFields(ns)
+	lSet := sets.NewString()
+	for l := range labels {
+		lSet.Insert(l)
+	}
+
+	for _, apiVersion := range []string{"v1", "v1beta3"} {
+		for _, ts := range testCases {
+			newLabel, newValue, err := api.Scheme.ConvertFieldLabel(apiVersion, "Namespace", ts.label, ts.value)
+			if ts.shouldFail && err == nil {
+				t.Errorf("%s %s: got unexpected non-error", apiVersion, ts.label)
+			} else if !ts.shouldFail && err != nil {
+				t.Errorf("%s %s: got unexpected error: %v", apiVersion, ts.label, err)
+			} else if !ts.shouldFail {
+				if newLabel != ts.label {
+					t.Errorf("%s %s: got unexpected label name %q", apiVersion, ts.label, newLabel)
+				}
+				if newValue != ts.value {
+					t.Errorf("%s %s: got unexpected new value (%q != %q)", apiVersion, ts.label, newValue, ts.value)
+				}
+			}
+			lSet.Delete(ts.label)
+		}
+
+		if len(lSet) > 0 {
+			t.Errorf("%s untested fields: %s", apiVersion, strings.Join(lSet.List(), ", "))
+		}
 	}
 }
