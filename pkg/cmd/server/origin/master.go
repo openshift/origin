@@ -556,8 +556,9 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 		Convertor: kapi.Scheme,
 		Linker:    latest.SelfLinker,
 
-		Admit:   c.AdmissionControl,
-		Context: c.getRequestContextMapper(),
+		Admit:                   c.AdmissionControl,
+		Context:                 c.getRequestContextMapper(),
+		NonDefaultGroupVersions: map[string]string{},
 	}
 }
 
