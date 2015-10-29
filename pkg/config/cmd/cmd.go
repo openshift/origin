@@ -21,12 +21,16 @@ type Bulk struct {
 }
 
 func NewPrintNameOrErrorAfter(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer) func(*resource.Info, error) {
+	return NewPrintNameOrErrorAfterIndent(mapper, short, operation, out, errs, "")
+}
+
+func NewPrintNameOrErrorAfterIndent(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer, indent string) func(*resource.Info, error) {
 	return func(info *resource.Info, err error) {
 		if err == nil {
-			//cmdutil.PrintSuccess(mapper, short, out, info.Mapping.Resource, info.Name, operation)
+			fmt.Fprintf(out, indent)
 			cmdutil.PrintSuccess(mapper, short, out, info.Mapping.Kind, info.Name, operation)
 		} else {
-			fmt.Fprintf(errs, "error: %v\n", err)
+			fmt.Fprintf(errs, "%serror: %v\n", indent, err)
 		}
 	}
 }

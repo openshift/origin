@@ -12,8 +12,10 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newapp "github.com/openshift/origin/pkg/generate/app"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
 const (
@@ -104,6 +106,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all generated resources.")
 	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
 	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
+	cmd.Flags().BoolVar(&config.DryRun, "dry-run", false, "If true, do not actually create resources.")
 	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd
@@ -112,6 +115,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 // RunNewBuild contains all the necessary functionality for the OpenShift cli new-build command
 func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Reader, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 	output := cmdutil.GetFlagString(c, "output")
+	shortOutput := output == "name"
 
 	if config.Dockerfile == "-" {
 		data, err := ioutil.ReadAll(in)
@@ -128,31 +132,57 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 	if err := setAppConfigLabels(c, config); err != nil {
 		return err
 	}
-	result, err := config.RunBuilds()
+	result, err := config.Run()
 	if err != nil {
 		return handleBuildError(c, err, fullName)
 	}
+
+	if len(config.Labels) == 0 && len(result.Name) > 0 {
+		config.Labels = map[string]string{"build": result.Name}
+	}
+
 	if err := setLabels(config.Labels, result); err != nil {
 		return err
 	}
 	if err := setAnnotations(map[string]string{newcmd.GeneratedByNamespace: newcmd.GeneratedByNewBuild}, result); err != nil {
 		return err
 	}
-	if len(output) != 0 && output != "name" {
+
+	indent := "    "
+	switch {
+	case shortOutput:
+		indent = ""
+	case len(output) != 0:
 		return f.Factory.PrintObject(c, result.List, out)
+	default:
+		if len(config.Labels) > 0 {
+			fmt.Fprintf(out, "--> Creating resources with label %s ...\n", labels.SelectorFromSet(config.Labels).String())
+		} else {
+			fmt.Fprintf(out, "--> Creating resources ...\n")
+		}
 	}
-	if err := createObjects(f, out, c.Out(), output == "name", true, result); err != nil {
+	if config.DryRun {
+		return nil
+	}
+
+	mapper, _ := f.Object()
+	if err := createObjects(f, configcmd.NewPrintNameOrErrorAfterIndent(mapper, shortOutput, "created", out, c.Out(), indent), result); err != nil {
 		return err
 	}
 
+	if shortOutput {
+		return nil
+	}
+
+	fmt.Fprintf(out, "--> Success\n")
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *buildapi.BuildConfig:
-			fmt.Fprintf(c.Out(), "Build configuration %q created and build triggered.\n", t.Name)
+			fmt.Fprintf(out, "%sBuild configuration %q created and build triggered.\n", indent, t.Name)
 		}
 	}
 	if len(result.List.Items) > 0 {
-		fmt.Fprintf(c.Out(), "Run '%s %s' to check the progress.\n", fullName, StatusRecommendedName)
+		fmt.Fprintf(out, "%sRun '%s %s' to check the progress.\n", indent, fullName, StatusRecommendedName)
 	}
 
 	return nil

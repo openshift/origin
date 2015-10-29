@@ -444,3 +444,15 @@ func ResolveImageID(stream *ImageStream, imageID string) sets.String {
 	}
 	return set
 }
+
+// ShortDockerImageID returns a short form of the provided DockerImage ID for display
+func ShortDockerImageID(image *DockerImage, length int) string {
+	id := image.ID
+	if s, err := digest.ParseDigest(id); err == nil {
+		id = s.Hex()
+	}
+	if len(id) > length {
+		id = id[:length]
+	}
+	return id
+}

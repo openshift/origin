@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -115,6 +117,7 @@ To search templates, image streams, and Docker images that match the arguments p
 // NewCmdNewApplication implements the OpenShift cli new-app command
 func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
+	config.Deploy = true
 
 	cmd := &cobra.Command{
 		Use:        "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
@@ -155,6 +158,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
 	cmd.Flags().BoolVar(&config.AllowSecretUse, "grant-install-rights", false, "If true, a component that requires access to your account may use your token to install software into your project. Only grant images you trust the right to run with your token.")
 	cmd.Flags().BoolVar(&config.SkipGeneration, "no-install", false, "Do not attempt to run images that describe themselves as being installable")
+	cmd.Flags().BoolVar(&config.DryRun, "dry-run", false, "If true, do not actually create resources.")
 
 	// TODO AddPrinterFlags disabled so that it doesn't conflict with our own "template" flag.
 	// Need a better solution.
@@ -170,10 +174,15 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 // RunNewApplication contains all the necessary functionality for the OpenShift cli new-app command
 func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 	output := cmdutil.GetFlagString(c, "output")
+	shortOutput := output == "name"
 
 	if err := setupAppConfig(f, out, c, args, config); err != nil {
 		return err
 	}
+	if shortOutput || len(output) != 0 {
+		config.Out = ioutil.Discard
+	}
+
 	if config.Querying() {
 		result, err := config.RunQuery()
 		if err != nil {
@@ -189,9 +198,13 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	if err := setAppConfigLabels(c, config); err != nil {
 		return err
 	}
-	result, err := config.RunAll()
+	result, err := config.Run()
 	if err := handleRunError(c, err, fullName); err != nil {
 		return err
+	}
+
+	if len(config.Labels) == 0 && len(result.Name) > 0 {
+		config.Labels = map[string]string{"app": result.Name}
 	}
 
 	if err := setLabels(config.Labels, result); err != nil {
@@ -202,13 +215,39 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 		return err
 	}
 
-	if len(output) != 0 && output != "name" {
+	indent := "    "
+	switch {
+	case shortOutput:
+		indent = ""
+	case len(output) != 0:
 		return f.Factory.PrintObject(c, result.List, out)
+	case !result.GeneratedJobs:
+		if len(config.Labels) > 0 {
+			fmt.Fprintf(out, "--> Creating resources with label %s ...\n", labels.SelectorFromSet(config.Labels).String())
+		} else {
+			fmt.Fprintf(out, "--> Creating resources ...\n")
+		}
+	}
+	if config.DryRun {
+		return nil
 	}
 
+	mapper, _ := f.Object()
+	var afterFn func(*resource.Info, error)
+	switch {
 	// only print success if we don't have installables
-	if err := createObjects(f, out, c.Out(), output == "name", !result.GeneratedJobs, result); err != nil {
+	case !result.GeneratedJobs:
+		afterFn = configcmd.NewPrintNameOrErrorAfterIndent(mapper, shortOutput, "created", out, c.Out(), indent)
+	default:
+		afterFn = configcmd.NewPrintErrorAfter(mapper, c.Out())
+	}
+
+	if err := createObjects(f, afterFn, result); err != nil {
 		return err
+	}
+
+	if !shortOutput && !result.GeneratedJobs {
+		fmt.Fprintf(out, "--> Success\n")
 	}
 
 	hasMissingRepo := false
@@ -221,7 +260,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			}
 		case *buildapi.BuildConfig:
 			if len(t.Spec.Triggers) > 0 {
-				fmt.Fprintf(c.Out(), "Build scheduled for %q - use the build-logs command to track its progress.\n", t.Name)
+				fmt.Fprintf(out, "%sBuild scheduled for %q - use the build-logs command to track its progress.\n", indent, t.Name)
 			}
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
@@ -229,10 +268,15 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 					continue
 				}
 				hasMissingRepo = true
-				fmt.Fprint(c.Out(), "WARNING: No Docker registry has been configured with the server. Automatic builds and deployments may not function.\n")
+				fmt.Fprintf(out, "%sWARNING: No Docker registry has been configured with the server. Automatic builds and deployments may not function.\n", indent)
 			}
 		}
 	}
+
+	if shortOutput {
+		return nil
+	}
+
 	switch {
 	case len(installing) == 1:
 		// TODO: should get this set on the config or up above
@@ -244,16 +288,16 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 		return followInstallation(f, jobInput, installing[0], kclient, out)
 	case len(installing) > 1:
 		for i := range installing {
-			fmt.Fprintf(c.Out(), "Track installation of %s with '%s logs %s'.\n", installing[i].Name, fullName, installing[i].Name)
+			fmt.Fprintf(out, "%sTrack installation of %s with '%s logs %s'.\n", indent, installing[i].Name, fullName, installing[i].Name)
 		}
 	case len(result.List.Items) > 0:
-		fmt.Fprintf(c.Out(), "Run '%s %s' to view your app.\n", fullName, StatusRecommendedName)
+		fmt.Fprintf(out, "%sRun '%s %s' to view your app.\n", indent, fullName, StatusRecommendedName)
 	}
 	return nil
 }
 
 func followInstallation(f *clientcmd.Factory, input string, pod *kapi.Pod, kclient kclient.Interface, out io.Writer) error {
-	fmt.Fprintf(out, "Installing %q with pod %q ...\n", input, pod.Name)
+	fmt.Fprintf(out, "--> Installing ...\n")
 
 	// we cannot retrieve logs until the pod is out of pending
 	// TODO: move this to the server side
@@ -307,7 +351,9 @@ func installationStarted(c kclient.PodInterface, name string, s kclient.SecretsI
 		if secret, err := s.Get(name); err == nil {
 			if secret.Annotations[newcmd.GeneratedForJob] == "true" &&
 				secret.Annotations[newcmd.GeneratedForJobFor] == pod.Annotations[newcmd.GeneratedForJobFor] {
-				s.Delete(name)
+				if err := s.Delete(name); err != nil {
+					glog.V(4).Infof("Failed to delete install secret %s: %v", name, err)
+				}
 			}
 		}
 		return true, nil
@@ -325,8 +371,10 @@ func installationComplete(c kclient.PodInterface, name string, out io.Writer) wa
 		}
 		switch pod.Status.Phase {
 		case kapi.PodSucceeded:
-			fmt.Fprintf(out, "Installation complete\n")
-			c.Delete(name, nil)
+			fmt.Fprintf(out, "--> Success\n")
+			if err := c.Delete(name, nil); err != nil {
+				glog.V(4).Infof("Failed to delete install pod %s: %v", name, err)
+			}
 			return true, nil
 		case kapi.PodFailed:
 			return true, fmt.Errorf("installation of %q did not complete successfully", name)
@@ -404,11 +452,6 @@ func setAnnotations(annotations map[string]string, result *newcmd.AppResult) err
 }
 
 func setLabels(labels map[string]string, result *newcmd.AppResult) error {
-	if len(labels) == 0 {
-		if len(result.Name) > 0 {
-			labels = map[string]string{"app": result.Name}
-		}
-	}
 	for _, object := range result.List.Items {
 		err := util.AddObjectLabels(object, labels)
 		if err != nil {
@@ -459,21 +502,17 @@ func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 	return nil
 }
 
-func createObjects(f *clientcmd.Factory, out, errout io.Writer, shortOutput, includeSuccess bool, result *newcmd.AppResult) error {
+func createObjects(f *clientcmd.Factory, after func(*resource.Info, error), result *newcmd.AppResult) error {
 	mapper, typer := f.Factory.Object()
 	bulk := configcmd.Bulk{
 		Mapper:            mapper,
 		Typer:             typer,
 		RESTClientFactory: f.Factory.RESTClient,
+
+		After: after,
 		// Retry is used to support previous versions of the API server that will
 		// consider the presence of an unknown trigger type to be an error.
 		Retry: retryBuildConfig,
-	}
-	switch {
-	case includeSuccess:
-		bulk.After = configcmd.NewPrintNameOrErrorAfter(mapper, shortOutput, "created", out, errout)
-	default:
-		bulk.After = configcmd.NewPrintErrorAfter(mapper, errout)
 	}
 	if errs := bulk.Create(result.List, result.Namespace); len(errs) != 0 {
 		return errExit
@@ -492,7 +531,10 @@ func handleRunError(c *cobra.Command, err error, fullName string) error {
 	}
 	switch t := err.(type) {
 	case newcmd.ErrRequiresExplicitAccess:
-		return fmt.Errorf("installing %q requires that you grant the image access to run with your credentials; if you trust the provided image, include the flag --grant-install-rights", t.Match.Value)
+		return fmt.Errorf(`installing %q requires that you grant the image access to run with your credentials
+
+You can see more information about the image by adding the --dry-run flag.
+If you trust the provided image, include the flag --grant-install-rights.`, t.Match.Value)
 	case newapp.ErrNoMatch:
 		return fmt.Errorf(`%[1]v
 
