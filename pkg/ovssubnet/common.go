@@ -264,7 +264,7 @@ func (oc *OvsController) assignVNID(namespaceName string) error {
 	if err != nil {
 		e := oc.netIDManager.ReleaseNetID(netid)
 		if e != nil {
-			log.Error("Error while releasing Net ID: %v", e)
+			log.Errorf("Error while releasing Net ID: %v", e)
 		}
 		return err
 	}
@@ -317,13 +317,13 @@ func (oc *OvsController) watchNetworks(ready chan<- bool, start <-chan string) {
 			case api.Added:
 				err := oc.assignVNID(ev.Name)
 				if err != nil {
-					log.Error("Error assigning Net ID: %v", err)
+					log.Errorf("Error assigning Net ID: %v", err)
 					continue
 				}
 			case api.Deleted:
 				err := oc.revokeVNID(ev.Name)
 				if err != nil {
-					log.Error("Error revoking Net ID: %v", err)
+					log.Errorf("Error revoking Net ID: %v", err)
 					continue
 				}
 			}
@@ -501,7 +501,7 @@ func (oc *OvsController) watchVnids(ready chan<- bool, start <-chan string) {
 		case ev := <-netNsEvent:
 			oldNetID, found := oc.VNIDMap[ev.Name]
 			if !found {
-				log.Error("Error fetching Net ID for namespace: %s, skipped netNsEvent: %v", ev.Name, ev)
+				log.Errorf("Error fetching Net ID for namespace: %s, skipped netNsEvent: %v", ev.Name, ev)
 			}
 			switch ev.Type {
 			case api.Added:
@@ -512,12 +512,12 @@ func (oc *OvsController) watchVnids(ready chan<- bool, start <-chan string) {
 				oc.VNIDMap[ev.Name] = ev.NetID
 				err := oc.updatePodNetwork(ev.Name, ev.NetID, oldNetID)
 				if err != nil {
-					log.Error("Failed to update pod network for namespace '%s', error: %s", ev.Name, err)
+					log.Errorf("Failed to update pod network for namespace '%s', error: %s", ev.Name, err)
 				}
 			case api.Deleted:
 				err := oc.updatePodNetwork(ev.Name, AdminVNID, oldNetID)
 				if err != nil {
-					log.Error("Failed to update pod network for namespace '%s', error: %s", ev.Name, err)
+					log.Errorf("Failed to update pod network for namespace '%s', error: %s", ev.Name, err)
 				}
 				delete(oc.VNIDMap, ev.Name)
 			}
@@ -593,7 +593,7 @@ func (oc *OvsController) watchServices(ready chan<- bool, start <-chan string) {
 		case ev := <-svcevent:
 			netid, found := oc.VNIDMap[ev.Service.Namespace]
 			if !found {
-				log.Error("Error fetching Net ID for namespace: %s, skipped serviceEvent: %v", ev.Service.Namespace, ev)
+				log.Errorf("Error fetching Net ID for namespace: %s, skipped serviceEvent: %v", ev.Service.Namespace, ev)
 			}
 			switch ev.Type {
 			case api.Added:
