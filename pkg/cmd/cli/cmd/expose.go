@@ -100,14 +100,15 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			if len(cmdutil.GetFlagString(cmd, "protocol")) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
 			}
-			return validateFlags(cmd, "service/v1")
+			return validateFlags(cmd, generator)
 		case "":
 			// Default exposing services as a route
-			cmd.Flags().Set("generator", "route/v1")
+			generator = "route/v1"
+			cmd.Flags().Set("generator", generator)
 			fallthrough
 		case "route/v1":
 			// We need to validate services exposed as routes
-			if err := validateFlags(cmd, "route/v1"); err != nil {
+			if err := validateFlags(cmd, generator); err != nil {
 				return err
 			}
 			svc, err := kc.Services(info.Namespace).Get(info.Name)
@@ -118,12 +119,14 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			supportsTCP := false
 			for _, port := range svc.Spec.Ports {
 				if port.Protocol == kapi.ProtocolTCP {
+					// Pass service target port as the route port
+					cmd.Flags().Set("port", port.TargetPort.String())
 					supportsTCP = true
 					break
 				}
 			}
 			if !supportsTCP {
-				return fmt.Errorf("service %s doesn't support TCP", info.Name)
+				return fmt.Errorf("service %q doesn't support TCP", info.Name)
 			}
 		}
 
@@ -133,14 +136,15 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			return fmt.Errorf("cannot expose a %s as a route", mapping.Kind)
 		case "":
 			// Default exposing everything except services as a service
-			cmd.Flags().Set("generator", "service/v1")
+			generator = "service/v2"
+			cmd.Flags().Set("generator", generator)
 			fallthrough
 		case "service/v1", "service/v2":
 			// Set default protocol back for generating services
 			if len(cmdutil.GetFlagString(cmd, "protocol")) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
 			}
-			return validateFlags(cmd, "service/v1")
+			return validateFlags(cmd, generator)
 		}
 	}
 
@@ -178,6 +182,12 @@ func validateFlags(cmd *cobra.Command, generator string) error {
 		}
 		if len(cmdutil.GetFlagString(cmd, "port")) != 0 {
 			invalidFlags = append(invalidFlags, "--port")
+		}
+		if len(cmdutil.GetFlagString(cmd, "load-balancer-ip")) != 0 {
+			invalidFlags = append(invalidFlags, "--load-balancer-ip")
+		}
+		if len(cmdutil.GetFlagString(cmd, "session-affinity")) != 0 {
+			invalidFlags = append(invalidFlags, "--session-affinity")
 		}
 		if cmdutil.GetFlagBool(cmd, "create-external-load-balancer") {
 			invalidFlags = append(invalidFlags, "--create-external-load-balancer")
