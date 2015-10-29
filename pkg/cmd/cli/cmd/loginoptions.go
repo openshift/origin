@@ -337,14 +337,13 @@ func (o *LoginOptions) gatherProjectInfo() error {
 			}
 		}
 
-		if current, err := oClient.Projects().Get(namespace); err == nil {
-			o.Project = current.Name
-			fmt.Fprintf(o.Out, "Using project %q.\n", o.Project)
-		} else if !kerrors.IsNotFound(err) && !clientcmd.IsForbidden(err) {
+		current, err := oClient.Projects().Get(namespace)
+		if err != nil && !kerrors.IsNotFound(err) && !clientcmd.IsForbidden(err) {
 			return err
 		}
+		o.Project = current.Name
 
-		fmt.Fprintf(o.Out, "\nYou have access to the following projects and can switch between them with 'oc project <projectname>':\n\n")
+		fmt.Fprintf(o.Out, "You have access to the following projects and can switch between them with 'oc project <projectname>':\n\n")
 		for _, p := range projects.List() {
 			if o.Project == p {
 				fmt.Fprintf(o.Out, "  * %s (current)\n", p)
@@ -353,6 +352,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 			}
 		}
 		fmt.Fprintln(o.Out)
+		fmt.Fprintf(o.Out, "Using project %q.\n", o.Project)
 	}
 
 	return nil
