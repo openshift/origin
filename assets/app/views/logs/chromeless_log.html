@@ -2,6 +2,8 @@
   <div flex class="log-chromeless">
     <alerts alerts="alerts"></alerts>
     <log-viewer
+      ng-if="loaded"
+      ng-init="initLogs()"
       logs="logs"
       loading="logsLoading"
       flex></log-viewer>
