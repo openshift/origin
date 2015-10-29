@@ -49,18 +49,20 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 			for i := range streams.Items {
 				stream := &streams.Items[i]
 				score, scored := imageStreamScorer(*stream, ref.Name)
-				if scored {
+				if !scored {
+					glog.V(2).Infof("unscored %s: %v", stream.Name, score)
+				} else {
 					imageref, _ := imageapi.ParseDockerImageReference(term)
 					imageref.Name = stream.Name
 
 					latest := imageapi.LatestTaggedImage(stream, searchTag)
-					if latest == nil {
+					if latest == nil || len(latest.Image) == 0 {
 						glog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, searchTag)
 						componentMatches = append(componentMatches, &ComponentMatch{
-							Value:       imageref.String(),
-							Argument:    fmt.Sprintf("--image-stream=%q", imageref.String()),
+							Value:       imageref.Exact(),
+							Argument:    fmt.Sprintf("--image-stream=%q", imageref.Exact()),
 							Name:        imageref.Name,
-							Description: fmt.Sprintf("Image stream %s in project %s, tracks %q", stream.Name, stream.Namespace, stream.Status.DockerImageRepository),
+							Description: fmt.Sprintf("Image stream %s in project %s", stream.Name, stream.Namespace),
 							Score:       0.5 + score,
 							ImageStream: stream,
 							ImageTag:    searchTag,
@@ -81,11 +83,10 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 
 					imageref.Registry = ""
 					componentMatches = append(componentMatches, &ComponentMatch{
-						Value:       imageref.String(),
-						Argument:    fmt.Sprintf("--image-stream=%q", imageref.String()),
+						Value:       imageref.Exact(),
+						Argument:    fmt.Sprintf("--image-stream=%q", imageref.Exact()),
 						Name:        imageref.Name,
-						Description: fmt.Sprintf("Image stream %q (tag %q) in project %q, tracks %q", stream.Name, searchTag, stream.Namespace, stream.Status.DockerImageRepository),
-						Builder:     IsBuilderImage(&imageData.DockerImageMetadata),
+						Description: fmt.Sprintf("Image stream %q (tag %q) in project %q", stream.Name, searchTag, stream.Namespace),
 						Score:       score,
 						ImageStream: stream,
 						Image:       &imageData.DockerImageMetadata,
@@ -224,13 +225,12 @@ func (r *ImageStreamByAnnotationSearcher) annotationMatches(stream *imageapi.Ima
 			Value:       value,
 			Name:        stream.Name,
 			Argument:    fmt.Sprintf("--image-stream=%q", value),
-			Description: fmt.Sprintf("Image stream %s in project %s, tracks %q", stream.Name, stream.Namespace, stream.Status.DockerImageRepository),
-			Builder:     IsBuilderImage(&imageData.DockerImageMetadata),
+			Description: fmt.Sprintf("Image stream %s in project %s", stream.Name, stream.Namespace),
 			Score:       score,
 
 			ImageStream: stream,
 			Image:       &imageData.DockerImageMetadata,
-			ImageTag:    imageapi.DefaultImageTag,
+			ImageTag:    tag,
 		}
 		matches = append(matches, match)
 	}

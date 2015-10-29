@@ -1,11 +1,228 @@
 package app
 
 import (
+	"net/url"
 	"os"
 	"testing"
 
-	image "github.com/openshift/origin/pkg/image/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+
+	buildapi "github.com/openshift/origin/pkg/build/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
+
+func TestBuildConfigOutput(t *testing.T) {
+	url, err := url.Parse("https://github.com/openshift/origin.git")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	output := &ImageRef{
+		Reference: imageapi.DockerImageReference{
+			Registry:  "myregistry",
+			Namespace: "openshift",
+			Name:      "origin",
+		},
+	}
+	base := &ImageRef{
+		Reference: imageapi.DockerImageReference{
+			Namespace: "openshift",
+			Name:      "ruby",
+		},
+		Info:          testImageInfo(),
+		AsImageStream: true,
+	}
+	tests := []struct {
+		asImageStream bool
+		expectedKind  string
+	}{
+		{true, "ImageStreamTag"},
+		{false, "DockerImage"},
+	}
+	for i, test := range tests {
+		output.AsImageStream = test.asImageStream
+		source := &SourceRef{URL: url}
+		strategy := &BuildStrategyRef{IsDockerBuild: false, Base: base}
+		build := &BuildRef{Source: source, Output: output, Strategy: strategy}
+		config, err := build.BuildConfig()
+		if err != nil {
+			t.Fatalf("(%d) unexpected error: %v", i, err)
+		}
+		if config.Name != "origin" {
+			t.Errorf("(%d) unexpected name: %s", i, config.Name)
+		}
+		if config.Spec.Output.To.Name != "origin:latest" || config.Spec.Output.To.Kind != test.expectedKind {
+			t.Errorf("(%d) unexpected output image: %s/%s", i, config.Spec.Output.To.Kind, config.Spec.Output.To.Name)
+		}
+		if len(config.Spec.Triggers) != 4 {
+			t.Errorf("(%d) unexpected number of triggers %d: %#v\n", i, len(config.Spec.Triggers), config.Spec.Triggers)
+		}
+		imageChangeTrigger := false
+		for _, trigger := range config.Spec.Triggers {
+			if trigger.Type == buildapi.ImageChangeBuildTriggerType {
+				imageChangeTrigger = true
+				if trigger.ImageChange == nil {
+					t.Errorf("(%d) invalid image change trigger found: %#v", i, trigger)
+				}
+			}
+		}
+		if !imageChangeTrigger {
+			t.Errorf("expecting image change trigger in build config")
+		}
+	}
+}
+
+func TestSimpleDeploymentConfig(t *testing.T) {
+	image := &ImageRef{
+		Reference: imageapi.DockerImageReference{
+			Registry:  "myregistry",
+			Namespace: "openshift",
+			Name:      "origin",
+		},
+		Info:          testImageInfo(),
+		AsImageStream: true,
+	}
+	deploy := &DeploymentConfigRef{Images: []*ImageRef{image}}
+	config, err := deploy.DeploymentConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if config.Name != "origin" || len(config.Triggers) != 2 || config.Template.ControllerTemplate.Template.Spec.Containers[0].Image != image.Reference.String() {
+		t.Errorf("unexpected value: %#v", config)
+	}
+	for _, trigger := range config.Triggers {
+		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
+			from := trigger.ImageChangeParams.From
+			if from.Kind != "ImageStream" {
+				t.Errorf("unexpected from kind in image change trigger")
+			}
+			if from.Name != "origin" && from.Namespace != "openshift" {
+				t.Errorf("unexpected  from name and namespace in image change trigger: %s, %s", from.Name, from.Namespace)
+			}
+		}
+	}
+}
+
+func TestImageRefDeployableContainerPorts(t *testing.T) {
+	tests := []struct {
+		name          string
+		inputPorts    map[string]struct{}
+		expectedPorts map[int]string
+		expectError   bool
+		noConfig      bool
+	}{
+		{
+			name: "tcp implied, individual ports",
+			inputPorts: map[string]struct{}{
+				"123": {},
+				"456": {},
+			},
+			expectedPorts: map[int]string{
+				123: "TCP",
+				456: "TCP",
+			},
+			expectError: false,
+		},
+		{
+			name: "tcp implied, multiple ports",
+			inputPorts: map[string]struct{}{
+				"123 456":  {},
+				"678 1123": {},
+			},
+			expectedPorts: map[int]string{
+				123:  "TCP",
+				678:  "TCP",
+				456:  "TCP",
+				1123: "TCP",
+			},
+			expectError: false,
+		},
+		{
+			name: "tcp and udp, individual ports",
+			inputPorts: map[string]struct{}{
+				"123/tcp": {},
+				"456/udp": {},
+			},
+			expectedPorts: map[int]string{
+				123: "TCP",
+				456: "UDP",
+			},
+			expectError: false,
+		},
+		{
+			name: "tcp implied, multiple ports",
+			inputPorts: map[string]struct{}{
+				"123/tcp 456/udp":  {},
+				"678/udp 1123/tcp": {},
+			},
+			expectedPorts: map[int]string{
+				123:  "TCP",
+				456:  "UDP",
+				678:  "UDP",
+				1123: "TCP",
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid format",
+			inputPorts: map[string]struct{}{
+				"123/tcp abc": {},
+			},
+			expectedPorts: map[int]string{},
+			expectError:   true,
+		},
+		{
+			name:          "no image config",
+			expectedPorts: map[int]string{},
+			expectError:   false,
+			noConfig:      true,
+		},
+	}
+	for _, test := range tests {
+		imageRef := &ImageRef{
+			Reference: imageapi.DockerImageReference{
+				Namespace: "test",
+				Name:      "image",
+				Tag:       imageapi.DefaultImageTag,
+			},
+			Info: &imageapi.DockerImage{
+				Config: &imageapi.DockerConfig{
+					ExposedPorts: test.inputPorts,
+				},
+			},
+		}
+		if test.noConfig {
+			imageRef.Info.Config = nil
+		}
+		container, _, err := imageRef.DeployableContainer()
+		if err != nil && !test.expectError {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+			continue
+		}
+		if err == nil && test.expectError {
+			t.Errorf("%s: got no error and expected an error", test.name)
+			continue
+		}
+		if test.expectError {
+			continue
+		}
+		remaining := test.expectedPorts
+		for _, port := range container.Ports {
+			proto, ok := remaining[port.ContainerPort]
+			if !ok {
+				t.Errorf("%s: got unexpected port: %v", test.name, port)
+				continue
+			}
+			if kapi.Protocol(proto) != port.Protocol {
+				t.Errorf("%s: got unexpected protocol %s for port %v", test.name, port.Protocol, port)
+			}
+			delete(remaining, port.ContainerPort)
+		}
+		if len(remaining) > 0 {
+			t.Errorf("%s: did not find expected ports: %#v", test.name, remaining)
+		}
+	}
+}
 
 func TestFromName(t *testing.T) {
 	g := NewImageRefGenerator()
@@ -13,24 +230,25 @@ func TestFromName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if imageRef.Registry != "some.registry.com:1234" {
-		t.Fatalf("Unexpected registry: %s", imageRef.Registry)
+	ref := imageRef.Reference
+	if ref.Registry != "some.registry.com:1234" {
+		t.Fatalf("Unexpected registry: %s", ref.Registry)
 	}
-	if imageRef.Namespace != "namespace1" {
-		t.Fatalf("Unexpected namespace: %s", imageRef.Namespace)
+	if ref.Namespace != "namespace1" {
+		t.Fatalf("Unexpected namespace: %s", ref.Namespace)
 	}
-	if imageRef.Name != "name" {
-		t.Fatalf("Unexpected name: %s", imageRef.Name)
+	if ref.Name != "name" {
+		t.Fatalf("Unexpected name: %s", ref.Name)
 	}
-	if imageRef.Tag != "tag1234" {
-		t.Fatalf("Unexpected tag: %s", imageRef.Tag)
+	if ref.Tag != "tag1234" {
+		t.Fatalf("Unexpected tag: %s", ref.Tag)
 	}
 }
 
 func TestFromStream(t *testing.T) {
 	g := NewImageRefGenerator()
-	repo := image.ImageStream{
-		Status: image.ImageStreamStatus{
+	repo := imageapi.ImageStream{
+		Status: imageapi.ImageStreamStatus{
 			DockerImageRepository: "my.registry:5000/test/image",
 		},
 	}
@@ -38,14 +256,15 @@ func TestFromStream(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if imageRef.Registry != "my.registry:5000" {
-		t.Fatalf("Unexpected registry: %s", imageRef.Registry)
+	ref := imageRef.Reference
+	if ref.Registry != "my.registry:5000" {
+		t.Fatalf("Unexpected registry: %s", ref.Registry)
 	}
-	if imageRef.Namespace != "test" {
-		t.Fatalf("Unexpected namespace: %s", imageRef.Namespace)
+	if ref.Namespace != "test" {
+		t.Fatalf("Unexpected namespace: %s", ref.Namespace)
 	}
-	if imageRef.Name != "image" {
-		t.Fatalf("Unexpected name: %s", imageRef.Name)
+	if ref.Name != "image" {
+		t.Fatalf("Unexpected name: %s", ref.Name)
 	}
 }
 
@@ -56,17 +275,18 @@ func TestFromNameAndPorts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if imageRef.Registry != "some.registry.com:1234" {
-		t.Fatalf("Unexpected registry: %s", imageRef.Registry)
+	ref := imageRef.Reference
+	if ref.Registry != "some.registry.com:1234" {
+		t.Fatalf("Unexpected registry: %s", ref.Registry)
 	}
-	if imageRef.Namespace != "namespace1" {
-		t.Fatalf("Unexpected namespace: %s", imageRef.Namespace)
+	if ref.Namespace != "namespace1" {
+		t.Fatalf("Unexpected namespace: %s", ref.Namespace)
 	}
-	if imageRef.Name != "name" {
-		t.Fatalf("Unexpected name: %s", imageRef.Name)
+	if ref.Name != "name" {
+		t.Fatalf("Unexpected name: %s", ref.Name)
 	}
-	if imageRef.Tag != "tag1234" {
-		t.Fatalf("Unexpected tag: %s", imageRef.Tag)
+	if ref.Tag != "tag1234" {
+		t.Fatalf("Unexpected tag: %s", ref.Tag)
 	}
 	if _, ok := imageRef.Info.Config.ExposedPorts[ports[0]]; !ok {
 		t.Fatalf("Expected port %s not found", ports[0])
@@ -96,17 +316,18 @@ func TestFromDockerfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if imageRef.Registry != "some.registry.com:1234" {
-		t.Fatalf("Unexpected registry: %s", imageRef.Registry)
+	ref := imageRef.Reference
+	if ref.Registry != "some.registry.com:1234" {
+		t.Fatalf("Unexpected registry: %s", ref.Registry)
 	}
-	if imageRef.Namespace != "namespace1" {
-		t.Fatalf("Unexpected namespace: %s", imageRef.Namespace)
+	if ref.Namespace != "namespace1" {
+		t.Fatalf("Unexpected namespace: %s", ref.Namespace)
 	}
-	if imageRef.Name != "name" {
-		t.Fatalf("Unexpected name: %s", imageRef.Name)
+	if ref.Name != "name" {
+		t.Fatalf("Unexpected name: %s", ref.Name)
 	}
-	if imageRef.Tag != "tag1234" {
-		t.Fatalf("Unexpected tag: %s", imageRef.Tag)
+	if ref.Tag != "tag1234" {
+		t.Fatalf("Unexpected tag: %s", ref.Tag)
 	}
 	expectedPort := "443"
 	if _, ok := imageRef.Info.Config.ExposedPorts[expectedPort]; !ok {

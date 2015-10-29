@@ -14,9 +14,9 @@
         Go to end of log
       </a>
     </div>
-    <div layout flex column class="log-view-output">
+    <div flex column class="log-view-output">
       <div
-        layout row
+        row
         class="log-line"
         ng-repeat="logLine in logs  | filter:logSearch"
         ng-class-odd="'odd'"
@@ -27,22 +27,20 @@
         <!-- not supporting click to line # yet
         <a class="log-line-number"
           ng-click="scrollTo('line_'+($index+1), $event)">
-          <span layout flex main-axis="end">
+          <div flex main-axis="end">
           {{:: $index+1 }}
-          </span>
+          </div>
         </a>
         -->
-        <span class="log-line-number">
-          <span layout flex main-axis="end">
+        <div class="log-line-number">
+          <div row flex main-axis="end">
           {{:: $index+1 }}
-          </span>
-        </span>
+          </div>
+        </div>
 
-        <span flex class="log-line-text">
-        {{::logLine.text}}
-        </span>
+        <div flex class="log-line-text">{{::logLine.text}}</div>
       </div>
-      <div layout row main-axis="center">
+      <div row main-axis="center">
         <ellipsis-loader ng-show="loading"></ellipsis-loader>
       </div>
     </div>

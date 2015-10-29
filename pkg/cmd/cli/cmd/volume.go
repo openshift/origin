@@ -439,17 +439,11 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 
 	failed := false
 	for _, info := range updateInfos {
-		data, err := info.Mapping.Codec.Encode(info.Object)
-		if err != nil {
-			fmt.Fprintf(v.Err, "error: %v\n", err)
-			failed = true
-			continue
-		}
 		var obj runtime.Object
 		if len(info.ResourceVersion) == 0 {
-			obj, err = resource.NewHelper(info.Client, info.Mapping).Create(info.Namespace, false, data)
+			obj, err = resource.NewHelper(info.Client, info.Mapping).Create(info.Namespace, false, info.Object)
 		} else {
-			obj, err = resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, true, data)
+			obj, err = resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, true, info.Object)
 		}
 		if err != nil {
 			handlePodUpdateError(v.Err, err, "volume")

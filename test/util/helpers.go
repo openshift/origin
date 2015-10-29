@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/latest"
+	kyaml "k8s.io/kubernetes/pkg/util/yaml"
+
+	buildapi "github.com/openshift/origin/pkg/build/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 // CreateSampleImageStream creates an ImageStream in given namespace
@@ -57,4 +60,20 @@ func GetSecretFixture(filename string) *kapi.Secret {
 	}
 	latest.CodecForLegacyGroup().DecodeInto(jsonData, &secret)
 	return &secret
+}
+
+func GetTemplateFixture(filename string) (*templateapi.Template, error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	jsonData, err := kyaml.ToJSON(data)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := latest.CodecForLegacyGroup().Decode(jsonData)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*templateapi.Template), nil
 }

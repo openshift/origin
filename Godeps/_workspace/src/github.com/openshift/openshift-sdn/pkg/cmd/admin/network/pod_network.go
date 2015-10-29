@@ -28,7 +28,7 @@ func NewCmdPodNetwork(name, fullName string, f *clientcmd.Factory, out io.Writer
 	}
 
 	cmds.AddCommand(NewCmdJoinProjectsNetwork(JoinProjectsNetworkCommandName, fullName+" "+JoinProjectsNetworkCommandName, f, out))
-	cmds.AddCommand(NewCmdUnIsolateProjectsNetwork(UnIsolateProjectsNetworkCommandName, fullName+" "+UnIsolateProjectsNetworkCommandName, f, out))
+	cmds.AddCommand(NewCmdMakeGlobalProjectsNetwork(MakeGlobalProjectsNetworkCommandName, fullName+" "+MakeGlobalProjectsNetworkCommandName, f, out))
 
 	// TODO: Enable isolate-projects subcommand once we move VNID allocation to REST layer
 	//cmds.AddCommand(NewCmdIsolateProjectsNetwork(IsolateProjectsNetworkCommandName, fullName+" "+IsolateProjectsNetworkCommandName, f, out))

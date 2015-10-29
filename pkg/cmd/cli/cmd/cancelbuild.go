@@ -47,6 +47,7 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *co
 
 	cmd.Flags().Bool("dump-logs", false, "Specify if the build logs for the cancelled build should be shown.")
 	cmd.Flags().Bool("restart", false, "Specify if a new build should be created after the current build is cancelled.")
+	//cmdutil.AddOutputFlagsForMutation(cmd)
 	return cmd
 }
 
@@ -107,6 +108,10 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 	}
 	glog.V(2).Infof("Build %s was cancelled.", buildName)
 
+	// mapper, typer := f.Object()
+	// resourceMapper := &resource.Mapper{ObjectTyper: typer, RESTMapper: mapper, ClientMapper: f.ClientMapperForCommand()}
+	// shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
+
 	// Create a new build with the same configuration.
 	if cmdutil.GetFlagBool(cmd, "restart") {
 		request := &buildapi.BuildRequest{
@@ -118,8 +123,19 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 		}
 		glog.V(2).Infof("Restarted build %s.", buildName)
 		fmt.Fprintf(out, "%s\n", newBuild.Name)
+		// fmt.Fprintf(out, "%s\n", newBuild.Name)
+		// info, err := resourceMapper.InfoForObject(newBuild)
+		// if err != nil {
+		// 	return err
+		// }
+		//cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "restarted")
 	} else {
 		fmt.Fprintf(out, "%s\n", build.Name)
+		// info, err := resourceMapper.InfoForObject(build)
+		// if err != nil {
+		// 	return err
+		// }
+		// cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "cancelled")
 	}
 	return nil
 }

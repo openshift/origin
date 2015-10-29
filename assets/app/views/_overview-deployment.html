@@ -33,6 +33,7 @@
             title="The deployment config this deployment was created from no longer exists." class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
         <span ng-if="deploymentConfigDifferentService" data-toggle="tooltip" data-placement="right"
             title="The deployment config this deployment was created from has changed. New deployments will not be included in this list." class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
+        <span ng-if="rc | deploymentIsInProgress">&mdash; <i class="fa fa-refresh" aria-hidden="true"></i> In progress</span>
       </div>
     </div>
 
@@ -76,8 +77,9 @@
         <div column>
           <pod-status-chart
               pods="pods"
-              desired="desiredReplicas || rc.spec.replicas || 1"
-              ng-click="viewPodsForDeployment(rc)">
+              desired="getDesiredReplicas()"
+              ng-click="viewPodsForDeployment(rc)"
+              ng-class="{ clickable: (pods | hashSize) > 0 }">
           </pod-status-chart>
         </div>
 
@@ -92,7 +94,11 @@
               </a>
             </div>
             <div>
-              <a href="" ng-click="scaleDown()" title="Scale down">
+              <!-- Remove the title when disabled because the not-allowed styled cursor overlaps the tooltip on some browsers. -->
+              <a href=""
+                 ng-click="scaleDown()"
+                 ng-class="{ disabled: getDesiredReplicas() === 0 }"
+                 ng-attr-title="{{(getDesiredReplicas() === 0) ? undefined : 'Scale down'}}">
                 <i class="fa fa-chevron-down"></i>
                 <span class="sr-only">Scale down</span>
               </a>

@@ -19,7 +19,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
-	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -132,11 +131,13 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	template := projectrequeststorage.DefaultTemplate()
+	template, err := testutil.GetTemplateFixture("fixtures/project-request-template-with-quota.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	template.Name = templateName
 	template.Namespace = namespace
 
-	template.Objects[0].(*projectapi.Project).Annotations["extra"] = "here"
 	_, err = clusterAdminClient.Templates(namespace).Create(template)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -94,7 +94,10 @@ os::util::set-oc-env() {
   fi
 
   local path="${config_root}/openshift.local.config/master/admin.kubeconfig"
-  echo "export KUBECONFIG=${path}" >> "${target}"
+  local config_line="export KUBECONFIG=${path}"
+  if ! grep -q "${config_line}" "${target}" &> /dev/null; then
+    echo "export KUBECONFIG=${path}" >> "${target}"
+  fi
 }
 
 os::util::get-network-plugin() {
@@ -154,4 +157,34 @@ EOF
     popd > /dev/null
   fi
 
+}
+
+os::util::wait-for-condition() {
+  local start_msg=$1
+  local error_msg=$2
+  # condition should be a string that can be eval'd.  When eval'd, it
+  # should not output anything to stderr or stdout.
+  local condition=$3
+  local timeout=${4:-30}
+  local sleep_interval=${5:-1}
+
+  local counter=0
+  while ! $(${condition}); do
+    if [ "${counter}" = "0" ]; then
+      echo "${start_msg}"
+    fi
+
+    if [[ "${counter}" -lt "${timeout}" ]]; then
+      counter=$((counter + 1))
+      echo -n '.'
+      sleep 1
+    else
+      echo -e "\n${error_msg}"
+      return 1
+    fi
+  done
+
+  if [ "${counter}" != "0" ]; then
+    echo -e '\nDone'
+  fi
 }

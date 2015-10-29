@@ -735,4 +735,17 @@ angular.module('openshiftConsole')
     return function(deployment) {
       return (annotationFilter(deployment, 'deploymentConfig')) ? true : false;
     };
+  })
+  .filter('isRecentDeployment', function(deploymentIsLatestFilter, deploymentIsInProgressFilter) {
+    return function(deployment, deploymentConfig) {
+      if (deploymentIsLatestFilter(deployment, deploymentConfig)) {
+        return true;
+      }
+
+      if (deploymentIsInProgressFilter(deployment)) {
+        return true;
+      }
+
+      return false;
+    };
   });

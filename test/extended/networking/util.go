@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -188,7 +189,7 @@ func launchWebserverPod(f *e2e.Framework, podName string, nodeName string) (ip s
 func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout int) error {
 	contName := fmt.Sprintf("%s-container", podName)
 	pod := &api.Pod{
-		TypeMeta: api.TypeMeta{
+		TypeMeta: unversioned.TypeMeta{
 			Kind: "Pod",
 		},
 		ObjectMeta: api.ObjectMeta{

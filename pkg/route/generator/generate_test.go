@@ -39,8 +39,8 @@ func TestGenerateRoute(t *testing.T) {
 					},
 					Port: &routeapi.RoutePort{
 						TargetPort: util.IntOrString{
-							Kind:   util.IntstrInt,
-							IntVal: 80,
+							Kind:   util.IntstrString,
+							StrVal: "80",
 						},
 					},
 				},
@@ -68,8 +68,8 @@ func TestGenerateRoute(t *testing.T) {
 					},
 					Port: &routeapi.RoutePort{
 						TargetPort: util.IntOrString{
-							Kind:   util.IntstrInt,
-							IntVal: 80,
+							Kind:   util.IntstrString,
+							StrVal: "80",
 						},
 					},
 				},

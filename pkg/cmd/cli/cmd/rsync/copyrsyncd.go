@@ -44,6 +44,16 @@ var (
 	random = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 )
 
+// rsyncDaemonStrategy implements the rsync-daemon strategy.
+// The rsync-daemon strategy uses the rsync command on the container to
+// to start rsync in daemon mode. It listens on a randomly selected port.
+// The container's port is then forwarded to the client machine so it's
+// accessible by the local rsync command. The local rsync command is invoked
+// to copy to (or from) an rsync URL using the local port. Once the copy
+// is finished, the port-forward is terminated, and the daemon on the
+// container is killed. This strategy requires thar rsync be present in
+// both the remote container and the local machine. It also requires that
+// the container allow executing a shell 'sh', cat, printf, and kill commands.
 type rsyncDaemonStrategy struct {
 	Flags          []string
 	RemoteExecutor executor
@@ -146,6 +156,10 @@ func (s *rsyncDaemonStrategy) startRemoteDaemon() error {
 	err = s.RemoteExecutor.Execute([]string{"sh"}, cmdIn, cmdOut, cmdErr)
 	if err != nil {
 		glog.V(1).Infof("Error starting rsync daemon: %v. Out: %s, Err: %s\n", err, cmdOut.String(), cmdErr.String())
+		// Determine whether rsync is present in the container
+		if checkRsync(s.RemoteExecutor) != nil {
+			return strategySetupError("rsync not available in container")
+		}
 		return err
 	}
 	s.daemonPort = port
@@ -210,18 +224,16 @@ func (s *rsyncDaemonStrategy) Copy(source, destination *pathSpec, out, errOut io
 	if err != nil {
 		if isExitError(err) {
 			return strategySetupError(fmt.Sprintf("cannot start remote rsync daemon: %v", err))
-		} else {
-			return err
 		}
+		return err
 	}
 	defer s.killRemoteDaemon()
 	err = s.startPortForward()
 	if err != nil {
 		if isExitError(err) {
 			return strategySetupError(fmt.Sprintf("cannot start port-forward: %v", err))
-		} else {
-			return err
 		}
+		return err
 	}
 	defer s.stopPortForward()
 

@@ -220,7 +220,7 @@ function tryuntil {
 	timeout=$(($(date +%s) + 90))
 	echo "++ Retrying until success or timeout: ${@}"
 	while [ 1 ]; do
-		if eval "${@}" 2>&1 >/dev/null; then
+		if eval "${@}" >/dev/null 2>&1; then
 			return 0
 		fi
 		if [[ $(date +%s) -gt $timeout ]]; then
@@ -618,15 +618,15 @@ SELINUX_DISABLED=0
 function enable-selinux {
   if [ "${SELINUX_DISABLED}" = "1" ]; then
     os::log::info "Re-enabling selinux enforcement"
-    setenforce 1
+    sudo setenforce 1
     SELINUX_DISABLED=0
   fi
 }
 
 function disable-selinux {
-  if selinuxenabled; then
+  if selinuxenabled && [ "$(getenforce)" = "Enforcing" ]; then
     os::log::info "Temporarily disabling selinux enforcement"
-    setenforce 0
+    sudo setenforce 0
     SELINUX_DISABLED=1
   fi
 }
@@ -736,14 +736,17 @@ find_files() {
 os::util::run-extended-tests() {
   local config_root=$1
   local focus_regex=$2
-  local skip_regex=${3:-}
-  local log_path=${4:-}
+  local binary_name=${3:-extended.test}
+  local skip_regex=${4:-}
+  local log_path=${5:-}
 
   export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
   export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
-  local test_cmd="ginkgo -progress -stream -v -focus=\"${focus_regex}\" \
--skip=\"${skip_regex}\" ${OS_OUTPUT_BINPATH}/extended.test"
+  local ginkgo_cmd="${OS_ROOT}/_output/local/go/bin/ginkgo"
+  local test_cmd="${ginkgo_cmd} -progress -stream -v \
+-focus=\"${focus_regex}\" -skip=\"${skip_regex}\" \
+${OS_OUTPUT_BINPATH}/${binary_name}"
   if [ "${log_path}" != "" ]; then
     test_cmd="${test_cmd} | tee ${log_path}"
   fi
@@ -764,15 +767,16 @@ os::util::run-net-extended-tests() {
   if [ -z "${skip_regex}" ]; then
       # The intra-pod test is currently broken for origin.
       skip_regex='Networking.*intra-pod'
+      local conf_path="${config_root}/openshift.local.config"
       # Only the multitenant plugin can pass the isolation test
       if ! grep -q 'redhat/openshift-ovs-multitenant' \
-           $(find "${config_root}" -name 'node-config.yaml' | head -n 1); then
+           $(find "${conf_path}" -name 'node-config.yaml' | head -n 1); then
         skip_regex="(${skip_regex}|networking: isolation)"
       fi
   fi
 
   os::util::run-extended-tests "${config_root}" "${focus_regex}" \
-    "${skip_regex}" "${log_path}"
+    networking.test "${skip_regex}" "${log_path}"
 }
 
 # Asks golang what it thinks the host platform is.  The go tool chain does some

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -13,7 +14,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
@@ -27,15 +27,25 @@ import (
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/template"
+	outil "github.com/openshift/origin/pkg/util"
 	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
 const (
 	GeneratedByNamespace = "openshift.io/generated-by"
+	GeneratedForJob      = "openshift.io/generated-job"
+	GeneratedForJobFor   = "openshift.io/generated-job.for"
 	GeneratedByNewApp    = "OpenShiftNewApp"
 	GeneratedByNewBuild  = "OpenShiftNewBuild"
 )
+
+// ErrNoDockerfileDetected is the error returned when the requested build strategy is Docker
+// and no Dockerfile is detected in the repository.
+var ErrNoDockerfileDetected = fmt.Errorf("No Dockerfile was found in the repository and the requested build strategy is 'docker'")
+
+// the opposite of kvalidation.DNS1123LabelFmt
+var invalidNameCharactersRegexp = regexp.MustCompile("[^-a-z0-9]")
 
 // AppConfig contains all the necessary configuration for an application
 type AppConfig struct {
@@ -65,9 +75,17 @@ type AppConfig struct {
 	ExpectToBuild      bool
 	BinaryBuild        bool
 	AllowMissingImages bool
+	Deploy             bool
+
+	SkipGeneration        bool
+	AllowGenerationErrors bool
+
+	AllowSecretUse bool
+	SecretAccessor app.SecretAccessor
 
 	AsSearch bool
 	AsList   bool
+	DryRun   bool
 
 	Out    io.Writer
 	ErrOut io.Writer
@@ -98,6 +116,34 @@ type UsageError interface {
 // TODO: replace with upstream converting [1]error to error
 type errlist interface {
 	Errors() []error
+}
+
+type ErrRequiresExplicitAccess struct {
+	Match app.ComponentMatch
+}
+
+func (e ErrRequiresExplicitAccess) Error() string {
+	return fmt.Sprintf("the component %q is requesting access to run with your security credentials and install components - you must explicitly grant that access to continue", e.Match.String())
+}
+
+// ErrNoInputs is returned when no inputs are specified
+var ErrNoInputs = fmt.Errorf("no inputs provided")
+
+// AppResult contains the results of an application
+type AppResult struct {
+	List *kapi.List
+
+	Name      string
+	HasSource bool
+	Namespace string
+
+	GeneratedJobs bool
+}
+
+// QueryResult contains the results of a query (search or list)
+type QueryResult struct {
+	Matches app.ComponentMatches
+	List    *kapi.List
 }
 
 // NewAppConfig returns a new AppConfig, but you must set your typer, mapper, and clientMapper after the command has been run
@@ -297,14 +343,6 @@ func (c *AppConfig) validate() (app.ComponentReferences, app.SourceRepositories,
 	b.AddGroups(c.Groups)
 	refs, repos, errs := b.Result()
 
-	if len(c.ContextDir) > 0 && len(repos) > 0 {
-		repos[0].SetContextDir(c.ContextDir)
-		if len(repos) > 1 {
-			glog.Warningf("You have specified more than one source repository and a context directory. "+
-				"The context directory will be applied to the first repository: %q", repos[0])
-		}
-	}
-
 	if len(c.Strategy) != 0 && len(repos) == 0 {
 		errs = append(errs, fmt.Errorf("when --strategy is specified you must provide at least one source code location"))
 	}
@@ -423,6 +461,16 @@ func (c *AppConfig) inferBuildTypes(components app.ComponentReferences) error {
 	errs := []error{}
 	for _, ref := range components {
 		input := ref.Input()
+
+		// identify whether the input is a builder and whether generation is requested
+		input.ResolvedMatch.Builder = app.IsBuilderMatch(input.ResolvedMatch)
+		generatorInput, err := app.GeneratorInputFromMatch(input.ResolvedMatch)
+		if err != nil && !c.AllowGenerationErrors {
+			errs = append(errs, err)
+			continue
+		}
+		input.ResolvedMatch.GeneratorInput = generatorInput
+
 		// if the strategy is explicitly Docker, all repos should assume docker
 		if c.Strategy == "docker" && input.Uses != nil {
 			input.Uses.BuildWithDocker()
@@ -503,7 +551,6 @@ func (c *AppConfig) ensureHasSource(components app.ComponentReferences, reposito
 				}
 			}
 		}
-		glog.V(4).Infof("ensureHasSource: %#v", components[0])
 	}
 	return nil
 }
@@ -514,7 +561,11 @@ func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
 	for _, repo := range repositories {
 		err := repo.Detect(c.detector)
 		if err != nil {
-			errs = append(errs, err)
+			if c.Strategy == "docker" && err == app.ErrNoLanguageDetected {
+				errs = append(errs, ErrNoDockerfileDetected)
+			} else {
+				errs = append(errs, err)
+			}
 			continue
 		}
 	}
@@ -533,13 +584,20 @@ func ensureValidUniqueName(names map[string]int, name string) (string, error) {
 	if len(name) < 2 {
 		return "", fmt.Errorf("invalid name: %s", name)
 	}
+
+	// Make all names lowercase
+	name = strings.ToLower(name)
+
+	// Remove everything except [-0-9a-z]
+	name = invalidNameCharactersRegexp.ReplaceAllString(name, "")
+
+	// Remove leading hyphen(s) that may be introduced by the previous step
+	name = strings.TrimLeft(name, "-")
+
 	if len(name) > kvalidation.DNS1123SubdomainMaxLength {
 		glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, kvalidation.DNS1123SubdomainMaxLength)
 		name = name[:kvalidation.DNS1123SubdomainMaxLength]
 	}
-
-	// Make all names lowercase
-	name = strings.ToLower(name)
 
 	count, existing := names[name]
 	if !existing {
@@ -560,20 +618,24 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 		glog.V(4).Infof("found group: %#v", group)
 		common := app.PipelineGroup{}
 		for _, ref := range group {
+			refInput := ref.Input()
+
 			var pipeline *app.Pipeline
 			var name string
-			if ref.Input().ExpectToBuild {
-				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, ref.Input().Uses)
-				input, err := app.InputImageFromMatch(ref.Input().ResolvedMatch)
+
+			if refInput.ExpectToBuild {
+				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)
+				input, err := app.InputImageFromMatch(refInput.ResolvedMatch)
 				if err != nil {
-					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
+					return nil, fmt.Errorf("can't build %q: %v", refInput, err)
 				}
 				if !input.AsImageStream {
-					glog.Warningf("Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed.", ref.Input().ResolvedMatch.Value)
+					glog.Warningf("Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed.", refInput.ResolvedMatch.Value)
 				}
-				strategy, source, err := app.StrategyAndSourceForRepository(ref.Input().Uses, input)
+
+				strategy, source, err := app.StrategyAndSourceForRepository(refInput.Uses, input)
 				if err != nil {
-					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
+					return nil, fmt.Errorf("can't build %q: %v", refInput, err)
 				}
 
 				// Override resource names from the cli
@@ -592,8 +654,8 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				}
 
 				// Append any exposed ports from Dockerfile to input image
-				if ref.Input().Uses.IsDockerBuild() && ref.Input().Uses.Info() != nil {
-					node := ref.Input().Uses.Info().Dockerfile.AST()
+				if refInput.Uses.IsDockerBuild() && refInput.Uses.Info() != nil {
+					node := refInput.Uses.Info().Dockerfile.AST()
 					ports := dockerfileutil.LastExposedPorts(node)
 					if len(ports) > 0 {
 						if input.Info == nil {
@@ -607,15 +669,15 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 						}
 					}
 				}
-				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, c.GetBuildEnvironment(environment), source); err != nil {
-					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
+				if pipeline, err = app.NewBuildPipeline(refInput.String(), input, c.OutputDocker, strategy, c.GetBuildEnvironment(environment), source); err != nil {
+					return nil, fmt.Errorf("can't build %q: %v", refInput, err)
 				}
 
 			} else {
 				glog.V(4).Infof("will include %q", ref)
-				input, err := app.InputImageFromMatch(ref.Input().ResolvedMatch)
+				input, err := app.InputImageFromMatch(refInput.ResolvedMatch)
 				if err != nil {
-					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
+					return nil, fmt.Errorf("can't include %q: %v", refInput, err)
 				}
 				name = c.Name
 				if len(name) == 0 {
@@ -630,20 +692,25 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					return nil, err
 				}
 				input.ObjectName = name
-				if pipeline, err = app.NewImagePipeline(ref.Input().String(), input); err != nil {
-					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
+				if pipeline, err = app.NewImagePipeline(refInput.String(), input); err != nil {
+					return nil, fmt.Errorf("can't include %q: %v", refInput, err)
 				}
 			}
 
-			if err := pipeline.NeedsDeployment(environment, c.Labels, name); err != nil {
-				return nil, fmt.Errorf("can't set up a deployment for %q: %v", ref.Input(), err)
+			if c.Deploy {
+				if err := pipeline.NeedsDeployment(environment, c.Labels, name); err != nil {
+					return nil, fmt.Errorf("can't set up a deployment for %q: %v", refInput, err)
+				}
 			}
 			common = append(common, pipeline)
+
+			if err := common.Reduce(); err != nil {
+				return nil, fmt.Errorf("can't create a pipeline from %s: %v", common, err)
+			}
+
+			describeBuildPipelineWithImage(c.Out, ref, pipeline, c.originNamespace)
 		}
 
-		if err := common.Reduce(); err != nil {
-			return nil, fmt.Errorf("can't create a pipeline from %s: %v", common, err)
-		}
 		pipelines = append(pipelines, common...)
 	}
 	return pipelines, nil
@@ -678,90 +745,94 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, environme
 			return nil, fmt.Errorf("error processing template %s/%s: %v", c.originNamespace, tpl.Name, errs)
 		}
 		objects = append(objects, result.Objects...)
+
+		describeGeneratedTemplate(c.Out, ref, result, c.originNamespace)
 	}
 	return objects, nil
 }
 
-// ErrNoInputs is returned when no inputs are specified
-var ErrNoInputs = fmt.Errorf("no inputs provided")
-
-// AppResult contains the results of an application
-type AppResult struct {
-	List *kapi.List
-
-	Name       string
-	BuildNames []string
-	HasSource  bool
-	Namespace  string
+// fakeSecretAccessor is used during dry runs of installation
+type fakeSecretAccessor struct {
+	token string
 }
 
-// QueryResult contains the results of a query (search or list)
-type QueryResult struct {
-	Matches app.ComponentMatches
-	List    *kapi.List
+func (a *fakeSecretAccessor) Token() (string, error) {
+	return a.token, nil
 }
 
-// RunAll executes the provided config to generate all objects.
-func (c *AppConfig) RunAll() (*AppResult, error) {
-	return c.run(app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew})
-}
+// installComponents attempts to create pods to run installable images identified by the user. If an image
+// is installable, we check whether it requires access to the user token. If so, the caller must have
+// explicitly granted that access (because the token may be the user's).
+func (c *AppConfig) installComponents(components app.ComponentReferences) ([]runtime.Object, string, error) {
+	if c.SkipGeneration {
+		return nil, "", nil
+	}
 
-// RunBuilds executes the provided config to generate just builds.
-func (c *AppConfig) RunBuilds() (*AppResult, error) {
-	bcAcceptor := app.NewAcceptBuildConfigs(c.typer)
-	result, err := c.run(app.Acceptors{bcAcceptor, app.NewAcceptUnique(c.typer), app.AcceptNew})
+	jobs := components.InstallableComponentRefs()
+	switch {
+	case len(jobs) > 1:
+		return nil, "", fmt.Errorf("only one installable component may be provided: %s", jobs.HumanString(", "))
+	case len(jobs) == 0:
+		return nil, "", nil
+	}
+
+	job := jobs[0]
+	if len(components) > 1 {
+		return nil, "", fmt.Errorf("%q is installable and may not be specified with other components", job.Input().Value)
+	}
+	input := job.Input()
+
+	imageRef, err := app.InputImageFromMatch(input.ResolvedMatch)
 	if err != nil {
-		return nil, err
+		return nil, "", fmt.Errorf("can't include %q: %v", input, err)
 	}
-	return filterImageStreams(result), nil
-}
+	glog.V(4).Infof("Resolved match for installer %#v", input.ResolvedMatch)
 
-func filterImageStreams(result *AppResult) *AppResult {
-	// 1st pass to get images from all BuildConfigs
-	imageStreams := map[string]bool{}
-	for _, item := range result.List.Items {
-		if bc, ok := item.(*buildapi.BuildConfig); ok {
-			to := bc.Spec.Output.To
-			if to != nil && to.Kind == "ImageStreamTag" {
-				imageStreams[makeImageStreamKey(*to)] = true
-			}
-			switch bc.Spec.Strategy.Type {
-			case buildapi.DockerBuildStrategyType:
-				from := bc.Spec.Strategy.DockerStrategy.From
-				if from != nil && from.Kind == "ImageStreamTag" {
-					imageStreams[makeImageStreamKey(*from)] = true
-				}
-			case buildapi.SourceBuildStrategyType:
-				from := bc.Spec.Strategy.SourceStrategy.From
-				if from.Kind == "ImageStreamTag" {
-					imageStreams[makeImageStreamKey(from)] = true
-				}
-			case buildapi.CustomBuildStrategyType:
-				from := bc.Spec.Strategy.CustomStrategy.From
-				if from.Kind == "ImageStreamTag" {
-					imageStreams[makeImageStreamKey(from)] = true
-				}
-			}
+	imageRef.AsImageStream = false
+	imageRef.AsResolvedImage = true
+	name := c.Name
+	if len(name) == 0 {
+		var ok bool
+		name, ok = imageRef.SuggestName()
+		if !ok {
+			return nil, "", fmt.Errorf("can't suggest a valid name, please specify a name with --name")
 		}
 	}
-	items := []runtime.Object{}
-	// 2nd pass to remove ImageStreams not used by BuildConfigs
-	for _, item := range result.List.Items {
-		if is, ok := item.(*imageapi.ImageStream); ok {
-			if _, ok := imageStreams[types.NamespacedName{Namespace: is.Namespace, Name: is.Name}.String()]; ok {
-				items = append(items, is)
-			}
-		} else {
-			items = append(items, item)
+	imageRef.ObjectName = name
+	glog.V(4).Infof("Proposed installable image %#v", imageRef)
+
+	secretAccessor := c.SecretAccessor
+	generatorInput := input.ResolvedMatch.GeneratorInput
+	if generatorInput.Token != nil && !c.AllowSecretUse || secretAccessor == nil {
+		if !c.DryRun {
+			return nil, "", ErrRequiresExplicitAccess{*input.ResolvedMatch}
 		}
+		secretAccessor = &fakeSecretAccessor{token: "FAKE_TOKEN"}
 	}
-	result.List.Items = items
-	return result
+
+	pod, secret, err := imageRef.InstallablePod(generatorInput, secretAccessor)
+	if err != nil {
+		return nil, "", err
+	}
+	objects := []runtime.Object{pod}
+	if secret != nil {
+		objects = append(objects, secret)
+	}
+	for i := range objects {
+		outil.AddObjectAnnotations(objects[i], map[string]string{
+			GeneratedForJob:    "true",
+			GeneratedForJobFor: input.String(),
+		})
+	}
+
+	describeGeneratedJob(c.Out, job, pod, secret, c.originNamespace)
+
+	return objects, name, nil
 }
 
-func makeImageStreamKey(ref kapi.ObjectReference) string {
-	name, _, _ := imageapi.SplitImageStreamTag(ref.Name)
-	return types.NamespacedName{Namespace: ref.Namespace, Name: name}.String()
+// Run executes the provided config to generate objects.
+func (c *AppConfig) Run() (*AppResult, error) {
+	return c.run(app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew})
 }
 
 // RunQuery executes the provided config and returns the result of the resolution.
@@ -889,28 +960,37 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		}
 	}
 
-	if len(components.ImageComponentRefs()) > 1 && len(c.Name) > 0 {
+	imageRefs := components.ImageComponentRefs()
+	if len(imageRefs) > 1 && len(c.Name) > 0 {
 		return nil, fmt.Errorf("only one component or source repository can be used when specifying a name")
 	}
 
-	pipelines, err := c.buildPipelines(components.ImageComponentRefs(), app.Environment(environment))
+	// identify if there are installable components in the input provided by the user
+	installables, name, err := c.installComponents(components)
+	if err != nil {
+		return nil, err
+	}
+	if len(installables) > 0 {
+		return &AppResult{
+			List:      &kapi.List{Items: installables},
+			Name:      name,
+			Namespace: c.originNamespace,
+
+			GeneratedJobs: true,
+		}, nil
+	}
+
+	pipelines, err := c.buildPipelines(imageRefs, app.Environment(environment))
 	if err != nil {
 		return nil, err
 	}
 
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()
-	warned := make(map[string]struct{})
 	for _, p := range pipelines {
 		accepted, err := p.Objects(accept, acceptors)
 		if err != nil {
 			return nil, fmt.Errorf("can't setup %q: %v", p.From, err)
-		}
-		if p.Image != nil && p.Image.HasEmptyDir {
-			if _, ok := warned[p.Image.Name]; !ok {
-				fmt.Fprintf(c.ErrOut, "WARNING: Image %q uses an EmptyDir volume. Data in EmptyDir volumes is not persisted across deployments.\n", p.Image.Name)
-				warned[p.Image.Name] = struct{}{}
-			}
 		}
 		objects = append(objects, accepted...)
 	}
@@ -923,15 +1003,7 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	}
 	objects = append(objects, templateObjects...)
 
-	buildNames := []string{}
-	for _, obj := range objects {
-		switch t := obj.(type) {
-		case *buildapi.BuildConfig:
-			buildNames = append(buildNames, t.Name)
-		}
-	}
-
-	name := c.Name
+	name = c.Name
 	if len(name) == 0 {
 		for _, pipeline := range pipelines {
 			if pipeline.Deployment != nil {
@@ -940,13 +1012,20 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 			}
 		}
 	}
+	if len(name) == 0 {
+		for _, obj := range objects {
+			if bc, ok := obj.(*buildapi.BuildConfig); ok {
+				name = bc.Name
+				break
+			}
+		}
+	}
 
 	return &AppResult{
-		List:       &kapi.List{Items: objects},
-		Name:       name,
-		BuildNames: buildNames,
-		HasSource:  len(repositories) != 0,
-		Namespace:  c.originNamespace,
+		List:      &kapi.List{Items: objects},
+		Name:      name,
+		HasSource: len(repositories) != 0,
+		Namespace: c.originNamespace,
 	}, nil
 }
 

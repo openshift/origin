@@ -11,7 +11,7 @@ import (
 )
 
 // copyStrategies is an ordered list of copyStrategy objects that behaves as a single
-// strategy.
+// strategy. If a strategy fails with a setup error, it continues on to the next strategy.
 type copyStrategies []copyStrategy
 
 // ensure copyStrategies implements the copyStrategy interface

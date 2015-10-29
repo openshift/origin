@@ -14,13 +14,12 @@ source "${OS_ROOT}/hack/common.sh"
 os::log::install_errexit
 cd "${OS_ROOT}"
 
-ensure_ginkgo_or_die
-ensure_iptables_or_die
+# ensure_ginkgo_or_die
 
 os::build::setup_env
-if [[ -z ${TEST_ONLY+x} ]]; then
-  go test -c ./test/extended -o ${OS_OUTPUT_BINPATH}/extended.test
-fi
+#if [[ -z ${TEST_ONLY+x} ]]; then
+#  go test -c ./test/extended -o ${OS_OUTPUT_BINPATH}/extended.test
+#fi
 
 export TMPDIR="${TMPDIR:-"/tmp"}"
 export BASETMPDIR="${TMPDIR}/openshift-extended-tests/core"
@@ -81,6 +80,8 @@ DEFAULT_SKIP=$(join '|' "${SKIP_TESTS[@]}")
 SKIP="${SKIP:-$DEFAULT_SKIP}"
 
 if [[ -z ${TEST_ONLY+x} ]]; then
+  ensure_iptables_or_die
+
   function cleanup()
   {
     out=$?
@@ -119,4 +120,4 @@ fi
 echo "[INFO] Running extended tests"
 
 # Run the tests
-TMPDIR=${BASETMPDIR} ginkgo "-skip=${SKIP}" "$@" ${OS_OUTPUT_BINPATH}/extended.test
+TMPDIR=${BASETMPDIR} go test -timeout 6h ./test/extended/ --test.v "--ginkgo.skip=${SKIP}" "$@"

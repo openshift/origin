@@ -15,12 +15,18 @@ type ComponentMatch struct {
 	Insecure    bool
 	LocalOnly   bool
 
-	Builder     bool
+	// The source of the match. Generally only a single source is
+	// available.
 	Image       *imageapi.DockerImage
 	ImageStream *imageapi.ImageStream
 	ImageTag    string
 	Template    *templateapi.Template
 
+	// Input to generators extracted from the source
+	Builder        bool
+	GeneratorInput GeneratorInput
+
+	// TODO: remove me
 	Meta map[string]string
 }
 

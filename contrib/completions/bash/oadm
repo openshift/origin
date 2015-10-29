@@ -1072,9 +1072,9 @@ _oadm_pod-network_join-projects()
     must_have_one_noun=()
 }
 
-_oadm_pod-network_unisolate-projects()
+_oadm_pod-network_make-projects-global()
 {
-    last_command="oadm_pod-network_unisolate-projects"
+    last_command="oadm_pod-network_make-projects-global"
     commands=()
 
     flags=()
@@ -1093,7 +1093,7 @@ _oadm_pod-network()
     last_command="oadm_pod-network"
     commands=()
     commands+=("join-projects")
-    commands+=("unisolate-projects")
+    commands+=("make-projects-global")
 
     flags=()
     two_word_flags=()
