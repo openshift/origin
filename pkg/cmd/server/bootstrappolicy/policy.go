@@ -262,6 +262,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     sets.NewString("get", "list", "watch", "create"),
 					Resources: sets.NewString("pods"),
 				},
+				{
+					// RecreateDeploymentStrategy.hookExecutor
+					// RollingDeploymentStrategy.hookExecutor
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("pods/log"),
+				},
 			},
 		},
 		{

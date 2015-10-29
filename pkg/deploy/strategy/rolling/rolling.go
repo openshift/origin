@@ -2,6 +2,7 @@ package rolling
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang/glog"
@@ -86,16 +87,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, co
 			updater := kubectl.NewRollingUpdater(namespace, client)
 			return updater.Update(config)
 		},
-		hookExecutor: &stratsupport.HookExecutor{
-			PodClient: &stratsupport.HookExecutorPodClientImpl{
-				CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-					return client.Pods(namespace).Create(pod)
-				},
-				PodWatchFunc: func(namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
-					return stratsupport.NewPodWatch(client, namespace, name, resourceVersion, stopChannel)
-				},
-			},
-		},
+		hookExecutor: stratsupport.NewHookExecutor(client, os.Stdout),
 		getUpdateAcceptor: func(timeout time.Duration) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptNewlyObservedReadyPods(client, timeout, AcceptorInterval)
 		},
