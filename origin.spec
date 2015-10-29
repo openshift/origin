@@ -17,12 +17,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 496e4f8c4b3c78ea99daad0692f996641df7e59c
+%global commit 509c39c4d7af70529084e9af9b1a8b17f26c7d41
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.902-98-g496e4f8 -X github.com/openshift/origin/pkg/version.commitFromGit 496e4f8 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.1-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.903-188-g509c39c -X github.com/openshift/origin/pkg/version.commitFromGit 509c39c -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.1-1107-g4c8e6f4
 }
 
 %if "%{dist}" == ".el7aos"
@@ -36,7 +36,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.0.2.903
+Version:        3.0.2.904
 Release:        0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -394,6 +394,147 @@ fi
 
 
 %changelog
+* Thu Oct 29 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.904
+- Based on origin v1.0.7
+- Provide informational output in new-app and new-build (ccoleman@redhat.com)
+- Revert 'Retry ISM save upon conflicting IS error' commit upon retry mechanism
+  introduced in ISM create method (maszulik@redhat.com)
+- Bug 1275003: expose: Set route port based on service target port
+  (mkargaki@redhat.com)
+- Improve generation of name based on a git repo url to make it valid.
+  (vsemushi@redhat.com)
+- UPSTREAM: 16080: Convert from old mirror pods (1.0 to 1.1)
+  (ccoleman@redhat.com)
+- UPSTREAM: 15983: Store mirror pod hash in annotation (ccoleman@redhat.com)
+- Slightly better output order in the CLI for login (ccoleman@redhat.com)
+- Attempt to find merged parent (ccoleman@redhat.com)
+- Fix extended tests for --from-* binary (ccoleman@redhat.com)
+- Completions (ffranz@redhat.com)
+- UPSTREAM: 16482: stdin is not a file extension for bash completions
+  (ffranz@redhat.com)
+- Bump angular-pattern to version 2.3.4 (spadgett@redhat.com)
+- Use cmdutil.PrintSuccess to print objects (ffranz@redhat.com)
+- Improve the error messages when something isn't found (ccoleman@redhat.com)
+- UPSTREAM: 16445: Capitalize and expand UsageError message
+  (ccoleman@redhat.com)
+- Updates to address several issues (sgoodwin@redhat.com)
+- Refactor to use ExponentialBackoff (ironcladlou@gmail.com)
+- bump(github.com/openshift/openshift-sdn)
+  c08ebda0774795eec624b5ce9063662b19959cf3 (rpenta@redhat.com)
+- Auto-generated docs/bash-completions for 'oadm pod-network make-projects-
+  global' (rpenta@redhat.com)
+- Show empty deployments on overview if latest (spadgett@redhat.com)
+- Support retrying mapping creation on conflict (ironcladlou@gmail.com)
+- Support installation via containers in new-app (ccoleman@redhat.com)
+- Disable create form inputs and submit button while the API request is
+  happening (jforrest@redhat.com)
+- fix project request with quota (deads@redhat.com)
+- UPSTREAM: 16441: Pass runtime.Object to Helper.Create/Replace
+  (deads@redhat.com)
+- Slim down the extended tests (ccoleman@redhat.com)
+- upper case first letter of status message (bparees@redhat.com)
+- Rsync fixes (cewong@redhat.com)
+- better error message for missing dockerfile (bparees@redhat.com)
+- add verbose logging to new-app flake and remove extraneous tryuntil logging
+  (bparees@redhat.com)
+- Support --binary on new-build (ccoleman@redhat.com)
+- Fix text-overflow issue on Safari (sgoodwin@redhat.com)
+- bump(github.com/openshift/source-to-image)
+  9728b53c11218598acb2cc1b9c8cc762c36f44bc (cewong@redhat.com)
+- Include name of port in pod template, switch to port/protocol format
+  (jforrest@redhat.com)
+- Various logs fixes: (admin@benjaminapetersen.me)
+- add --context-dir flag to new-build (bparees@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  22b9a4176435ac4453c30c53799338979ef79050 (rpenta@redhat.com)
+- Adding border above builds without a service so that they look more
+  connected. (sgoodwin@redhat.com)
+- Updates to the log-view so that it's more inline with pod terminal. And
+  switch to more subtle ellipsis loader. (sgoodwin@redhat.com)
+- Expose all container ports creating from source in the UI
+  (spadgett@redhat.com)
+- Fail if timeout is reached (ccoleman@redhat.com)
+- UPSTREAM: 15975: Validate names in BeforeCreate (jliggitt@redhat.com)
+- Bug 1275234 - fixes --resource-version error in scale (ffranz@redhat.com)
+- skip project validation when creating a new-project (deads@redhat.com)
+- Show route target port in the routes table if its set (jforrest@redhat.com)
+- Allow users to click monopod donut charts on overview (spadgett@redhat.com)
+- Add verbose output to test execution (marun@redhat.com)
+- Show warning popup when builds have a status message (jforrest@redhat.com)
+- UPSTREAM: 16241: Deflake wsstream stream_test.go (ccoleman@redhat.com)
+- Read kubernetes remote from git repository. (maszulik@redhat.com)
+- Fix dind vagrant provisioning and test execution (marun@redhat.com)
+- Bug 1261548 - oc run --attach support for DeploymentConfig
+  (ffranz@redhat.com)
+- Use server time for end time in metrics requests (spadgett@redhat.com)
+- Fix typo (jliggitt@redhat.com)
+- Update angular-patternfly to version 2.3.3 (spadgett@redhat.com)
+- UPSTREAM: 16109: expose attachable pod discovery in factory
+  (ffranz@redhat.com)
+- libvirt use nfs for dev cluster synced folder (marun@redhat.com)
+- report a warning and do not continue on a partial match (bparees@redhat.com)
+- Move the cgroup regex to package level. (roque@juniper.net)
+- UPSTREAM: 16286: Avoid CPU hotloop on client-closed websocket
+  (jliggitt@redhat.com)
+- Increase vagrant memory default by 512mb (marun@redhat.com)
+- Source dind script from the docker repo (marun@redhat.com)
+- dind: Fix disabling of sdn node scheduling (marun@redhat.com)
+- Switch dind image to use fedora 21 (marun@redhat.com)
+- Only run provision-full.sh for single-vm clusters (marun@redhat.com)
+- Fix extended network test invocation (marun@redhat.com)
+- Invoke docker with sudo when archiving test logs (marun@redhat.com)
+- Enhance dind vagrant deployment (marun@redhat.com)
+- Add dind detail to the contribution doc (marun@redhat.com)
+- Enhance dind-cluster.sh documentation (marun@redhat.com)
+- bump(github.com/openshift/openshift-sdn):
+  1e4edc9abb6bb8ac7e5cd946ddec4c10cc714d67 (danw@redhat.com)
+- Add rsync daemon copy strategy for windows support (cewong@redhat.com)
+- UPSTREAM: 11694: http proxy support for exec/pf (agoldste@redhat.com)
+- hack/cherry-pick.sh: fix typo (agoldste@redhat.com)
+- hack/cherry-pick.sh: support binary files in diffs (agoldste@redhat.com)
+- Added job policy (maszulik@redhat.com)
+- platformmanagement_public_514 - Allow importing tags from ImageStreams
+  pointing to external registries. (maszulik@redhat.com)
+- Minor fix for nfs readme (liangxia@users.noreply.github.com)
+- delete: Remove both image stream spec and status tags (mkargaki@redhat.com)
+- move newapp commands that need docker into extended tests
+  (bparees@redhat.com)
+- Only watch pod statuses for overview donut chart (spadgett@redhat.com)
+- Vagrantfile should allow multiple sync folders (ccoleman@redhat.com)
+- Fix context dir for STI (ccoleman@redhat.com)
+- Fixing typos (dmcphers@redhat.com)
+- Deflake test/cmd/newapp.sh (ccoleman@redhat.com)
+- Review comments (ccoleman@redhat.com)
+- Docs (ccoleman@redhat.com)
+- Completions (ccoleman@redhat.com)
+- Generated conversions (ccoleman@redhat.com)
+- Docker and STI builder images support binary extraction (ccoleman@redhat.com)
+- Enable binary build endpoint and CLI via start-build (ccoleman@redhat.com)
+- UPSTREAM: 15053<carry>: Conversions for v1beta3 (ccoleman@redhat.com)
+- UPSTREAM: 15053: Support stdinOnce and fix attach (ccoleman@redhat.com)
+- Disable all e2e portforward tests (ccoleman@redhat.com)
+- Fixes infinite loop on login and forces auth when password were provided
+  (ffranz@redhat.com)
+- increase timeout for helper pods (bparees@redhat.com)
+- bump(github.com/openshift/source-to-image)
+  84e4633329181926ec8d746e189769522b1ff6a7 (roque@juniper.net)
+- When running as a pod, pass the network context to source-to-image.
+  (roque@juniper.net)
+- allow dockersearcher to be setup after config is parsed (bparees@redhat.com)
+- UPSTREAM: <carry>: Back n forth downward/metadata conversions
+  (maszulik@redhat.com)
+- Ensure no overlap between SDN cluster network and service/portal network
+  (rpenta@redhat.com)
+- [RPMS] expand obsoletes to include OSE versions (sdodson@redhat.com)
+- [RPMS] bump docker requirement to 1.8.2 (sdodson@redhat.com)
+- UPSTREAM: 15194: Avoid spurious "Hairpin setup failed..." errors
+  (danw@gnome.org)
+- Change to healthz as per @liggit comments. (smitram@gmail.com)
+- Add a monitoring uri to the stats port. This allows us to not affect hosted
+  backends but rather use the listener on the stats port to service health
+  check requests. Of course the side effect here is that if you turn off stats,
+  then the monitoring uri will not be available. (smitram@gmail.com)
+
 * Fri Oct 23 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.903
 - Revert "bump(github.com/openshift/openshift-sdn):
   699716b85d1ac5b2f3e48969bbdbbb2a1266e9d0" (sdodson@redhat.com)
