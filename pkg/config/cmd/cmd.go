@@ -23,7 +23,8 @@ type Bulk struct {
 func NewPrintNameOrErrorAfter(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer) func(*resource.Info, error) {
 	return func(info *resource.Info, err error) {
 		if err == nil {
-			cmdutil.PrintSuccess(mapper, false, out, info.Mapping.Kind, info.Name, operation)
+			//cmdutil.PrintSuccess(mapper, short, out, info.Mapping.Resource, info.Name, operation)
+			cmdutil.PrintSuccess(mapper, short, out, info.Mapping.Kind, info.Name, operation)
 		} else {
 			fmt.Fprintf(errs, "error: %v\n", err)
 		}

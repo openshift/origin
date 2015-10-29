@@ -55,6 +55,6 @@ echo "start-build: ok"
 oc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
 
-oc delete is/ruby-20-centos7-buildcli
-oc delete bc/ruby-sample-build-validtag
-oc delete bc/ruby-sample-build-invalidtag
+[ "$(oc delete is/ruby-20-centos7-buildcli | grep 'imagestream "ruby-20-centos7-buildcli" deleted')" ]
+[ "$(oc delete bc/ruby-sample-build-validtag -o name | grep 'buildconfig/ruby-sample-build-validtag')" ]
+[ "$(oc delete bc/ruby-sample-build-invalidtag | grep 'buildconfig "ruby-sample-build-invalidtag" deleted')" ]

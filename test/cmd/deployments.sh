@@ -14,6 +14,7 @@ oc get deploymentConfigs
 oc get dc
 oc create -f test/integration/fixtures/test-deployment-config.json
 oc describe deploymentConfigs test-deployment-config
+[ "$(oc get dc -o name | grep 'deploymentconfig/test-deployment-config')" ]
 [ "$(oc describe dc test-deployment-config | grep 'deploymentconfig=test-deployment-config')" ]
 [ "$(oc env dc/test-deployment-config --list | grep TEST=value)" ]
 [ ! "$(oc env dc/test-deployment-config TEST- --list | grep TEST=value)" ]
