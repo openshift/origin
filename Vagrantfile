@@ -133,6 +133,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Start an OpenShift cluster
     # Currently this only works with the (default) VirtualBox provider.
 
+    # Remove stale configuration before provisioning
+    if ARGV[0] =~ /^up|provision$/i and not ARGV.include?("--no-provision")
+      system('rm -rf ./openshift.local.*')
+    end
+
     # Use /data instead of /vagrant so that the path to the origin
     # repo within cluster members is the same across VM and dind
     # clusters.

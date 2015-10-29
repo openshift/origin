@@ -2,9 +2,6 @@
 
 source $(dirname $0)/provision-config.sh
 
-echo "Clearing stale configuration (if present)"
-rm -rf ${CONFIG_ROOT}/openshift.local.*
-
 os::provision::base-provision
 
 echo "Building and installing openshift"
