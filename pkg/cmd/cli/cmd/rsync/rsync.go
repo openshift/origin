@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -21,22 +20,22 @@ Copy local files to or from a pod container
 
 This command will copy local files to or from a remote container.
 It only copies the changed files using the rsync command from your OS.
-To ensure optimum performance, install rsync locally. In UNIX systems, 
-use your package manager. In Windows, install cwRsync from 
+To ensure optimum performance, install rsync locally. In UNIX systems,
+use your package manager. In Windows, install cwRsync from
 https://www.itefix.net/cwrsync.
 
-If no container is specified, the first container of the pod is used 
+If no container is specified, the first container of the pod is used
 for the copy.`
 
 	rsyncExample = `
   # Synchronize a local directory with a pod directory
   $ %[1]s ./local/dir/ POD:/remote/dir
-  
+
   # Synchronize a pod directory with a local directory
   $ %[1]s POD:/remote/dir/ ./local/dir`
 
-	noRsyncUnixWarning    = "rsync command not found in path. Please use your package manager to install it."
-	noRsyncWindowsWarning = "rsync command not found in path. Download cwRsync for Windows and add it to your PATH."
+	noRsyncUnixWarning    = "WARNING: rsync command not found in path. Please use your package manager to install it."
+	noRsyncWindowsWarning = "WARNING: rsync command not found in path. Download cwRsync for Windows and add it to your PATH."
 )
 
 // copyStrategy
@@ -98,12 +97,12 @@ func NewCmdRsync(name, parent string, f *clientcmd.Factory, out, errOut io.Write
 	return cmd
 }
 
-func warnNoRsync() {
+func warnNoRsync(out io.Writer) {
 	if isWindows() {
-		glog.Warningf(noRsyncWindowsWarning)
+		fmt.Fprintf(out, noRsyncWindowsWarning)
 		return
 	}
-	glog.Warningf(noRsyncUnixWarning)
+	fmt.Fprintf(out, noRsyncUnixWarning)
 }
 
 func (o *RsyncOptions) determineStrategy(f *clientcmd.Factory, cmd *cobra.Command, name string) (copyStrategy, error) {
@@ -126,7 +125,7 @@ func (o *RsyncOptions) determineStrategy(f *clientcmd.Factory, cmd *cobra.Comman
 				strategies = append(strategies, strategy)
 			}
 		} else {
-			warnNoRsync()
+			warnNoRsync(o.Out)
 		}
 		strategy, err := newTarStrategy(f, cmd, o)
 		if err != nil {
