@@ -316,7 +316,7 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		return fmt.Errorf("could not determine LDAP client configuration: %v", err)
 	}
 
-	syncBuilder, err := buildSyncBuilder(clientConfig, o.Config.RFC2307Config, o.Config.ActiveDirectoryConfig, o.Config.AugmentedActiveDirectoryConfig)
+	syncBuilder, err := buildSyncBuilder(clientConfig, o.Config)
 	if err != nil {
 		return err
 	}
@@ -383,14 +383,14 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 	return kerrs.NewAggregate(syncErrors)
 }
 
-func buildSyncBuilder(clientConfig ldapclient.Config, rfc2307 *api.RFC2307Config, ad *api.ActiveDirectoryConfig, augmentedAD *api.AugmentedActiveDirectoryConfig) (SyncBuilder, error) {
+func buildSyncBuilder(clientConfig ldapclient.Config, syncConfig *api.LDAPSyncConfig) (SyncBuilder, error) {
 	switch {
-	case rfc2307 != nil:
-		return &RFC2307Builder{ClientConfig: clientConfig, Config: rfc2307}, nil
-	case ad != nil:
-		return &ADBuilder{ClientConfig: clientConfig, Config: ad}, nil
-	case augmentedAD != nil:
-		return &AugmentedADBuilder{ClientConfig: clientConfig, Config: augmentedAD}, nil
+	case syncConfig.RFC2307Config != nil:
+		return &RFC2307Builder{ClientConfig: clientConfig, Config: syncConfig.RFC2307Config}, nil
+	case syncConfig.ActiveDirectoryConfig != nil:
+		return &ADBuilder{ClientConfig: clientConfig, Config: syncConfig.ActiveDirectoryConfig}, nil
+	case syncConfig.AugmentedActiveDirectoryConfig != nil:
+		return &AugmentedADBuilder{ClientConfig: clientConfig, Config: syncConfig.AugmentedActiveDirectoryConfig}, nil
 	default:
 		return nil, errors.New("invalid sync config type")
 	}

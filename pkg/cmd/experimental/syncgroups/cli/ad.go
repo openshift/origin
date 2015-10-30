@@ -10,6 +10,7 @@ import (
 )
 
 var _ SyncBuilder = &ADBuilder{}
+var _ PruneBuilder = &ADBuilder{}
 
 type ADBuilder struct {
 	ClientConfig ldapclient.Config
@@ -45,4 +46,8 @@ func (b *ADBuilder) getADLDAPInterface() (*ad.ADLDAPInterface, error) {
 	}
 	return ad.NewADLDAPInterface(b.ClientConfig,
 		userQuery, b.Config.GroupMembershipAttributes, b.Config.UserNameAttributes), nil
+}
+
+func (b *ADBuilder) GetGroupDetector() (interfaces.LDAPGroupDetector, error) {
+	return b.getADLDAPInterface()
 }
