@@ -29,7 +29,7 @@
     "kubernetes-label-selector": "0.0.16",
     "kubernetes-topology-graph": "0.0.19",
     "kubernetes-container-terminal": "0.0.7",
-    "openshift-object-describer": "1.1.0",
+    "openshift-object-describer": "1.1.1",
     "layout.attrs": "1.1.2",
     "bootstrap-hover-dropdown": "~2.1.3"
   },
