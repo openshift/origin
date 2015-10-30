@@ -160,16 +160,6 @@ func TestSelectableFieldLabelConversions(t *testing.T) {
 		{testapi.Extensions.Version(), "ThirdPartyResourceData", true, thirdpartyresourcedata.SelectableFields(&extensions.ThirdPartyResourceData{}), nil},
 	}
 
-	// re-test all v1 kinds with v1beta3 conversion functions
-	kindFieldsLen := len(kindFields)
-	for i := 0; i < kindFieldsLen; i++ {
-		if kindFields[i].apiVersion == testapi.Default.Version() {
-			kfs := kindFields[i]
-			kfs.apiVersion = "v1beta3"
-			kindFields = append(kindFields, kfs)
-		}
-	}
-
 	badFieldLabels := []string{
 		".name",
 		"bad",
