@@ -14,7 +14,7 @@ LimitNOFILE=65536
 LimitCORE=infinity
 WorkingDirectory=/var/lib/origin/
 SyslogIdentifier=origin-node
-Restart=Always
+Restart=always
 OOMScoreAdjust=-999
 
 [Install]
