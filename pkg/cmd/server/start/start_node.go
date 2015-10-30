@@ -204,6 +204,11 @@ func (o NodeOptions) CreateNodeConfig() error {
 		return err
 	}
 
+	hostnames, err := o.NodeArgs.GetServerCertHostnames()
+	if err != nil {
+		return err
+	}
+
 	nodeConfigDir := o.NodeArgs.ConfigDir.Value()
 	createNodeConfigOptions := admin.CreateNodeConfigOptions{
 		SignerCertOptions: getSignerOptions,
@@ -211,7 +216,7 @@ func (o NodeOptions) CreateNodeConfig() error {
 		NodeConfigDir: nodeConfigDir,
 
 		NodeName:            o.NodeArgs.NodeName,
-		Hostnames:           []string{o.NodeArgs.NodeName},
+		Hostnames:           hostnames.List(),
 		VolumeDir:           o.NodeArgs.VolumeDir,
 		ImageTemplate:       o.NodeArgs.ImageFormatArgs.ImageTemplate,
 		AllowDisabledDocker: o.NodeArgs.AllowDisabledDocker,
