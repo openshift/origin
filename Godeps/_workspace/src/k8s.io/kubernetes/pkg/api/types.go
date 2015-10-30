@@ -2136,6 +2136,11 @@ type SecurityContextConstraints struct {
 	unversioned.TypeMeta
 	ObjectMeta
 
+	// Priority influences the sort order of SCCs when evaluating which SCCs to try first for
+	// a given pod request based on access in the Users and Groups fields.  The higher the int, the
+	// higher priority.  If scores for multiple SCCs are equal they will be sorted by name.
+	Priority *int
+
 	// AllowPrivilegedContainer determines if a container can request to be run as privileged.
 	AllowPrivilegedContainer bool
 	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.

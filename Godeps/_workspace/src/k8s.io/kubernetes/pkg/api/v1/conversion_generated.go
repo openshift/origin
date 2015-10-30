@@ -2728,6 +2728,12 @@ func convert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints(in 
 	if err := convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
+	if in.Priority != nil {
+		out.Priority = new(int)
+		*out.Priority = *in.Priority
+	} else {
+		out.Priority = nil
+	}
 	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
 	if in.AllowedCapabilities != nil {
 		out.AllowedCapabilities = make([]Capability, len(in.AllowedCapabilities))
@@ -5729,6 +5735,12 @@ func convert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints(in 
 	}
 	if err := convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
+	}
+	if in.Priority != nil {
+		out.Priority = new(int)
+		*out.Priority = *in.Priority
+	} else {
+		out.Priority = nil
 	}
 	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
 	if in.AllowedCapabilities != nil {

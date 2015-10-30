@@ -2038,6 +2038,12 @@ func ValidateSecurityContextConstraints(scc *api.SecurityContextConstraints) err
 	allErrs := errs.ValidationErrorList{}
 	allErrs = append(allErrs, ValidateObjectMeta(&scc.ObjectMeta, false, ValidateSecurityContextConstraintsName).Prefix("metadata")...)
 
+	if scc.Priority != nil {
+		if *scc.Priority < 0 {
+			allErrs = append(allErrs, errs.NewFieldInvalid("priority", *scc.Priority, "priority cannot be negative"))
+		}
+	}
+
 	// ensure the user strat has a valid type
 	switch scc.RunAsUser.Type {
 	case api.RunAsUserStrategyMustRunAs, api.RunAsUserStrategyMustRunAsNonRoot, api.RunAsUserStrategyRunAsAny, api.RunAsUserStrategyMustRunAsRange:
