@@ -49,6 +49,19 @@ func ok(t testing.TB, err error) {
 	}
 }
 
+func waitProcess(p *libcontainer.Process, t *testing.T) {
+	_, file, line, _ := runtime.Caller(1)
+	status, err := p.Wait()
+
+	if err != nil {
+		t.Fatalf("%s:%d: unexpected error: %s\n\n", filepath.Base(file), line, err.Error())
+	}
+
+	if !status.Success() {
+		t.Fatalf("%s:%d: unexpected status: %s\n\n", filepath.Base(file), line, status.String())
+	}
+}
+
 // newRootfs creates a new tmp directory and copies the busybox root filesystem
 func newRootfs() (string, error) {
 	dir, err := ioutil.TempDir("", "")
@@ -79,19 +92,13 @@ func copyBusybox(dest string) error {
 }
 
 func newContainer(config *configs.Config) (libcontainer.Container, error) {
-	cgm := libcontainer.Cgroupfs
+	f := factory
+
 	if config.Cgroups != nil && config.Cgroups.Slice == "system.slice" {
-		cgm = libcontainer.SystemdCgroups
+		f = systemdFactory
 	}
 
-	factory, err := libcontainer.New(".",
-		libcontainer.InitArgs(os.Args[0], "init", "--"),
-		cgm,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return factory.Create("testCT", config)
+	return f.Create("testCT", config)
 }
 
 // runContainer runs the container with the specific config and arguments
@@ -115,11 +122,11 @@ func runContainer(config *configs.Config, console string, args ...string) (buffe
 
 	err = container.Start(process)
 	if err != nil {
-		return nil, -1, err
+		return buffers, -1, err
 	}
 	ps, err := process.Wait()
 	if err != nil {
-		return nil, -1, err
+		return buffers, -1, err
 	}
 	status := ps.Sys().(syscall.WaitStatus)
 	if status.Exited() {
@@ -127,7 +134,7 @@ func runContainer(config *configs.Config, console string, args ...string) (buffe
 	} else if status.Signaled() {
 		exitCode = -int(status.Signal())
 	} else {
-		return nil, -1, err
+		return buffers, -1, err
 	}
 	return
 }
