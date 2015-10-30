@@ -85,19 +85,6 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 		return nil, false, nil
 	}
 
-	// Make the connection and bind to it if a bind DN and password were given
-	l, err := a.options.ClientConfig.Connect()
-	if err != nil {
-		return nil, false, err
-	}
-	defer l.Close()
-
-	if bindDN, bindPassword := a.options.ClientConfig.GetBindCredentials(); len(bindDN) > 0 {
-		if err := l.Bind(bindDN, bindPassword); err != nil {
-			return nil, false, err
-		}
-	}
-
 	// & together the filter specified in the LDAP options with the user-specific filter
 	filter := fmt.Sprintf("(&%s(%s=%s))",
 		a.options.URL.Filter,
@@ -122,27 +109,20 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 		nil,          // controls
 	)
 
-	glog.V(4).Infof("searching for %s", filter)
-	results, err := l.Search(searchRequest)
+	entry, err := ldaputil.QueryForUniqueEntry(a.options.ClientConfig, searchRequest)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if len(results.Entries) == 0 {
-		// 0 results means a missing username, not an error
-		glog.V(4).Infof("no entries matching %s", filter)
-		return nil, false, nil
+	// Make the connection and bind to it if a bind DN and password were given
+	connection, err := a.options.ClientConfig.Connect()
+	if err != nil {
+		return nil, false, err
 	}
-	if len(results.Entries) > 1 {
-		// More than 1 result means a misconfigured server filter or query parameter
-		return nil, false, fmt.Errorf("multiple entries found matching %q", username)
-	}
-
-	entry := results.Entries[0]
-	glog.V(4).Infof("found dn=%q for %s", entry.DN, filter)
+	defer connection.Close()
 
 	// Bind with given username and password to attempt to authenticate
-	if err := l.Bind(entry.DN, password); err != nil {
+	if err := connection.Bind(entry.DN, password); err != nil {
 		glog.V(4).Infof("error binding password for %q: %v", entry.DN, err)
 		if err, ok := err.(*ldap.Error); ok {
 			switch err.ResultCode {
