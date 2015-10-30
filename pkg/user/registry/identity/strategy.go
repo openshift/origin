@@ -59,25 +59,14 @@ func (identityStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object
 	return validation.ValidateIdentityUpdate(obj.(*api.Identity), old.(*api.Identity))
 }
 
-// MatchIdentity returns a generic matcher for a given label and field selector.
-func MatchIdentity(label labels.Selector, field fields.Selector) generic.Matcher {
+// Matcher returns a generic matcher for a given label and field selector.
+func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
 		identityObj, ok := obj.(*api.Identity)
 		if !ok {
 			return false, fmt.Errorf("not an identity")
 		}
-		fields := IdentityToSelectableFields(identityObj)
+		fields := api.IdentityToSelectableFields(identityObj)
 		return label.Matches(labels.Set(identityObj.Labels)) && field.Matches(fields), nil
 	})
-}
-
-// IdentityToSelectableFields returns a label set that represents the object
-func IdentityToSelectableFields(identity *api.Identity) labels.Set {
-	return labels.Set{
-		"name":             identity.Name,
-		"providerName":     identity.ProviderName,
-		"providerUserName": identity.ProviderName,
-		"user.name":        identity.User.Name,
-		"user.uid":         string(identity.User.UID),
-	}
 }

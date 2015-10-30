@@ -87,16 +87,8 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 			if !ok {
 				return nil, nil, fmt.Errorf("not a policyBinding")
 			}
-			return labels.Set(policyBinding.ObjectMeta.Labels), SelectableFields(policyBinding), nil
+			return labels.Set(policyBinding.ObjectMeta.Labels), authorizationapi.PolicyBindingToSelectableFields(policyBinding), nil
 		},
-	}
-}
-
-// SelectableFields returns a label set that represents the object
-func SelectableFields(policyBinding *authorizationapi.PolicyBinding) fields.Set {
-	return fields.Set{
-		"name":                policyBinding.Name,
-		"policyRef.namespace": policyBinding.PolicyRef.Namespace,
 	}
 }
 

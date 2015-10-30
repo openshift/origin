@@ -140,7 +140,7 @@ func (e importError) Error() string {
 }
 
 func waitForImport(imageStreamClient client.ImageStreamInterface, name, resourceVersion string) (*imageapi.ImageStream, error) {
-	streamWatch, err := imageStreamClient.Watch(labels.Everything(), fields.SelectorFromSet(fields.Set{"name": name}), resourceVersion)
+	streamWatch, err := imageStreamClient.Watch(labels.Everything(), fields.OneTermEqualSelector("metadata.name", name), resourceVersion)
 	if err != nil {
 		return nil, err
 	}

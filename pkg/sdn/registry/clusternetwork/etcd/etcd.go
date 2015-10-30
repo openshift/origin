@@ -29,13 +29,13 @@ func NewREST(s storage.Interface) *REST {
 			return etcdPrefix
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return (etcdPrefix + "/" + name), nil
+			return etcdgeneric.NoNamespaceKeyFunc(ctx, etcdPrefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.ClusterNetwork).Name, nil
 		},
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
-			return clusternetwork.MatchClusterNetwork(label, field)
+			return clusternetwork.Matcher(label, field)
 		},
 		EndpointName: "clusternetwork",
 

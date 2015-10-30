@@ -72,14 +72,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 			if !ok {
 				return nil, nil, fmt.Errorf("not a role")
 			}
-			return labels.Set(role.ObjectMeta.Labels), SelectableFields(role), nil
+			return labels.Set(role.ObjectMeta.Labels), authorizationapi.RoleToSelectableFields(role), nil
 		},
-	}
-}
-
-// SelectableFields returns a label set that represents the object
-func SelectableFields(role *authorizationapi.Role) fields.Set {
-	return fields.Set{
-		"name": role.Name,
 	}
 }

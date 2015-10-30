@@ -9,6 +9,7 @@ import (
 
 	_ "github.com/openshift/origin/pkg/api/latest"
 	newer "github.com/openshift/origin/pkg/image/api"
+	testutil "github.com/openshift/origin/test/util/api"
 )
 
 var Convert = kapi.Scheme.Convert
@@ -43,4 +44,17 @@ func TestRoundTripVersionedObject(t *testing.T) {
 	if !reflect.DeepEqual(i, image) {
 		t.Errorf("unable to round trip object: %s", util.ObjectDiff(i, image))
 	}
+}
+
+func TestFieldSelectors(t *testing.T) {
+	testutil.CheckFieldLabelConversions(t, "v1", "Image",
+		// Ensure all currently returned labels are supported
+		newer.ImageToSelectableFields(&newer.Image{}),
+	)
+	testutil.CheckFieldLabelConversions(t, "v1", "ImageStream",
+		// Ensure all currently returned labels are supported
+		newer.ImageStreamToSelectableFields(&newer.ImageStream{}),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		"name", "spec.dockerImageRepository", "status.dockerImageRepository",
+	)
 }

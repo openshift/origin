@@ -68,14 +68,9 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 			if !ok {
 				return nil, nil, fmt.Errorf("not a BuildConfig")
 			}
-			return labels.Set(buildConfig.ObjectMeta.Labels), SelectableFields(buildConfig), nil
+			return labels.Set(buildConfig.ObjectMeta.Labels), api.BuildConfigToSelectableFields(buildConfig), nil
 		},
 	}
-}
-
-// SelectableFields returns a label set that represents the object
-func SelectableFields(buildConfig *api.BuildConfig) fields.Set {
-	return fields.Set{}
 }
 
 // CheckGracefulDelete allows a build config to be gracefully deleted.

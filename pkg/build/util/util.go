@@ -6,19 +6,17 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/util/namer"
 )
 
 const (
-	// BuildPodSuffix is the suffix used to append to a build pod name given a build name
-	BuildPodSuffix = "build"
 	// NoBuildLogsMessage reports that no build logs are available
 	NoBuildLogsMessage = "No logs are available."
 )
 
 // GetBuildPodName returns name of the build pod.
+// TODO: remove in favor of the one in the api package
 func GetBuildPodName(build *buildapi.Build) string {
-	return namer.GetPodName(build.Name, BuildPodSuffix)
+	return buildapi.GetBuildPodName(build)
 }
 
 // GetBuildName returns name of the build pod.

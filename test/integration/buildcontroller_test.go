@@ -66,7 +66,7 @@ func TestConcurrentBuildControllers(t *testing.T) {
 	checkErr(t, err)
 
 	// Start watching builds for New -> Pending transition
-	buildWatch, err := osClient.Builds(ns).Watch(labels.Everything(), fields.OneTermEqualSelector("name", b.Name), b.ResourceVersion)
+	buildWatch, err := osClient.Builds(ns).Watch(labels.Everything(), fields.OneTermEqualSelector("metadata.name", b.Name), b.ResourceVersion)
 	checkErr(t, err)
 	defer buildWatch.Stop()
 	buildModifiedCount := int32(0)
@@ -222,7 +222,7 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 			_, err = kClient.Pods(ns).UpdateStatus(pod)
 			checkErr(t, err)
 
-			buildWatch, err := osClient.Builds(ns).Watch(labels.Everything(), fields.OneTermEqualSelector("name", b.Name), b.ResourceVersion)
+			buildWatch, err := osClient.Builds(ns).Watch(labels.Everything(), fields.OneTermEqualSelector("metadata.name", b.Name), b.ResourceVersion)
 			checkErr(t, err)
 			defer buildWatch.Stop()
 			go func() {
@@ -404,7 +404,7 @@ func runImageChangeTriggerTest(t *testing.T, clusterAdminClient *client.Client, 
 		}
 	}
 	// Wait for an update on the specific build that was added
-	watch3, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.OneTermEqualSelector("name", newBuild.Name), newBuild.ResourceVersion)
+	watch3, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.OneTermEqualSelector("metadata.name", newBuild.Name), newBuild.ResourceVersion)
 	defer watch3.Stop()
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
@@ -498,7 +498,7 @@ WaitLoop2:
 	}
 
 	// Listen to events on specific  build
-	watch4, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.OneTermEqualSelector("name", newBuild.Name), newBuild.ResourceVersion)
+	watch4, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.OneTermEqualSelector("metadata.name", newBuild.Name), newBuild.ResourceVersion)
 	defer watch4.Stop()
 
 	event = waitForWatch(t, "update on second build", watch4)
