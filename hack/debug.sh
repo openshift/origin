@@ -82,29 +82,29 @@ do_master () {
 	try_eval ping -c1 -W2 $node
     done
 
-    oc get nodes --template '{{range .items}}{{$name := .metadata.name}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{$name}}:{{.address}} {{end}}{{end}}{{end}}' | tr ' :' '\012 ' > $logmaster/node-ips
+    oc get nodes --template '{{range .items}}{{$name := .metadata.name}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{$name}} {{.address}}{{"\n"}}{{end}}{{end}}{{end}}' > $logmaster/node-ips
 }
 
 # Returns a list of pods in the form "minion-1:mypod:namespace:10.1.0.2:e4f1d61b"
 get_pods () {
-    if ! pods=$(oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{if not .spec.hostNetwork}}{{.spec.nodeName}}:{{.metadata.name}}:{{.metadata.namespace}}:{{.status.podIP}}:{{printf "%.21s" (index .status.containerStatuses 0).containerID}} {{end}}{{end}}{{end}}'); then
+    if ! pods=$(oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{if (index .status.containerStatuses 0).ready}}{{if not .spec.hostNetwork}}{{.spec.nodeName}}:{{.metadata.name}}:{{.metadata.namespace}}:{{.status.podIP}}:{{printf "%.21s" (index .status.containerStatuses 0).containerID}} {{end}}{{end}}{{end}}{{end}}'); then
 	die "Could not get list of pods"
     fi
-    echo $pods | sed -e 's/docker:\/\///g'
+    echo ${pods//docker:\/\//}
 }
 
 # Given the name of a variable containing a "podspec" like
 # "minion-1:mypod:namespace:10.1.0.2:e4f1d61b", split into pieces
 split_podspec () {
     prefix=$1
-    spec=$(eval echo \${$prefix})
+    spec=${!prefix}
 
     array=(${spec//:/ })
-    eval ${prefix}_node=${array[0]}
-    eval ${prefix}_name=${array[1]}
-    eval ${prefix}_ns=${array[2]}
-    eval ${prefix}_addr=${array[3]}
-    eval ${prefix}_id=${array[4]}
+    eval ${prefix}_node="${array[0]}"
+    eval ${prefix}_name="${array[1]}"
+    eval ${prefix}_ns="${array[2]}"
+    eval ${prefix}_addr="${array[3]}"
+    eval ${prefix}_id="${array[4]}"
 }
 
 # Returns a list of services in the form "myservice:namespace:172.30.0.99:tcp:5454"
@@ -116,14 +116,14 @@ get_services () {
 # "myservice:namespace:172.30.0.99:tcp:5454", split into pieces
 split_servicespec () {
     prefix=$1
-    spec=$(eval echo \${$prefix})
+    spec=${!prefix}
 
     array=(${spec//:/ })
-    eval ${prefix}_name=${array[0]}
-    eval ${prefix}_ns=${array[1]}
-    eval ${prefix}_addr=${array[2]}
-    eval ${prefix}_proto=${array[3]}
-    eval ${prefix}_port=${array[4]}
+    eval ${prefix}_name="${array[0]}"
+    eval ${prefix}_ns="${array[1]}"
+    eval ${prefix}_addr="${array[2]}"
+    eval ${prefix}_proto="${array[3]}"
+    eval ${prefix}_port="${array[4]}"
 }
 
 get_port_for_addr () {
