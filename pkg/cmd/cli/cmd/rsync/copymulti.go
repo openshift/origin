@@ -26,7 +26,7 @@ func (ss copyStrategies) Copy(source, destination *pathSpec, out, errOut io.Writ
 		err = s.Copy(source, destination, out, errBuf)
 		if _, isSetupError := err.(strategySetupError); isSetupError {
 			glog.V(4).Infof("Error output:\n%s", errBuf.String())
-			fmt.Fprintf(out, "WARNING: cannot use %s: %v", s.String(), err.Error())
+			fmt.Fprintf(errOut, "WARNING: cannot use %s: %v", s.String(), err.Error())
 			continue
 		}
 		io.Copy(errOut, errBuf)

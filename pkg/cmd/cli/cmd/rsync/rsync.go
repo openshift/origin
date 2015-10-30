@@ -125,7 +125,7 @@ func (o *RsyncOptions) determineStrategy(f *clientcmd.Factory, cmd *cobra.Comman
 				strategies = append(strategies, strategy)
 			}
 		} else {
-			warnNoRsync(o.Out)
+			warnNoRsync(o.ErrOut)
 		}
 		strategy, err := newTarStrategy(f, cmd, o)
 		if err != nil {
