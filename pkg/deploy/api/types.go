@@ -310,6 +310,8 @@ type DeploymentDetails struct {
 	Message string
 	// Causes are extended data associated with all the causes for creating a new deployment
 	Causes []*DeploymentCause
+	// LastMessageUpdatedTime is the last time the message was updated.
+	LastMessageUpdatedTime unversioned.Time
 }
 
 // DeploymentCause captures information about a particular cause of a deployment.

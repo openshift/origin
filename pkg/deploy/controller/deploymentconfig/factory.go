@@ -6,7 +6,6 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -14,6 +13,7 @@ import (
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
 
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -41,11 +41,19 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		},
 	}
+	buildConfigLW := &deployutil.ListWatcherImpl{
+		ListFunc: func() (runtime.Object, error) {
+			return factory.Client.BuildConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+		},
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+			return factory.Client.BuildConfigs(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+		},
+	}
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue, 2*time.Minute).Run()
 
-	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
+	buildConfigStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
+	cache.NewReflector(buildConfigLW, &buildapi.BuildConfig{}, buildConfigStore, 2*time.Minute).Run()
 
 	configController := &DeploymentConfigController{
 		deploymentClient: &deploymentClientImpl{
@@ -68,6 +76,9 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
 			return deployutil.MakeDeployment(config, factory.Codec)
 		},
+		buildConfigs:        buildConfigStore,
+		messageUpdatePeriod: DefaultMessageUpdatePeriod,
+		now:                 defaultNow,
 	}
 
 	return &controller.RetryController{

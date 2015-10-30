@@ -6,9 +6,12 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/cache"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -41,11 +44,12 @@ func TestHandle_initialOk(t *testing.T) {
 				return nil, nil
 			},
 		},
-		osClient: testclient.NewSimpleFake(deploytest.OkDeploymentConfig(0)),
+		osClient:     testclient.NewSimpleFake(deploytest.OkDeploymentConfig(0)),
+		buildConfigs: cache.NewStore(cache.MetaNamespaceKeyFunc),
+		now:          defaultNow,
 	}
 
 	err := controller.Handle(deploytest.OkDeploymentConfig(0))
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -55,32 +59,6 @@ func TestHandle_initialOk(t *testing.T) {
 // a new deployment with the appropriate replica count based on a variety of
 // existing prior deployments.
 func TestHandle_updateOk(t *testing.T) {
-	var (
-		config              *deployapi.DeploymentConfig
-		deployed            *kapi.ReplicationController
-		existingDeployments *kapi.ReplicationControllerList
-	)
-
-	controller := &DeploymentConfigController{
-		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
-			return deployutil.MakeDeployment(config, api.Codec)
-		},
-		deploymentClient: &deploymentClientImpl{
-			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				deployed = deployment
-				return deployment, nil
-			},
-			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				return existingDeployments, nil
-			},
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				t.Fatalf("unexpected update call with deployment %v", deployment)
-				return nil, nil
-			},
-		},
-		osClient: testclient.NewSimpleFake(),
-	}
-
 	type existing struct {
 		version  int
 		replicas int
@@ -120,10 +98,10 @@ func TestHandle_updateOk(t *testing.T) {
 	}
 
 	for _, scenario := range scenarios {
-		deployed = nil
-		config = deploytest.OkDeploymentConfig(scenario.version)
+		var deployed *kapi.ReplicationController
+		config := deploytest.OkDeploymentConfig(scenario.version)
 		config.Triggers = []deployapi.DeploymentTriggerPolicy{}
-		existingDeployments = &kapi.ReplicationControllerList{}
+		existingDeployments := &kapi.ReplicationControllerList{}
 		for _, e := range scenario.existing {
 			d, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(e.version), api.Codec)
 			d.Spec.Replicas = e.replicas
@@ -131,14 +109,34 @@ func TestHandle_updateOk(t *testing.T) {
 			existingDeployments.Items = append(existingDeployments.Items, *d)
 		}
 
-		err := controller.Handle(config)
-
-		if deployed == nil {
-			t.Fatalf("expected a deployment")
+		controller := &DeploymentConfigController{
+			makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
+				return deployutil.MakeDeployment(config, api.Codec)
+			},
+			deploymentClient: &deploymentClientImpl{
+				createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+					deployed = deployment
+					return deployment, nil
+				},
+				listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+					return existingDeployments, nil
+				},
+				updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+					t.Fatalf("unexpected update call with deployment %v", deployment)
+					return nil, nil
+				},
+			},
+			osClient:     testclient.NewSimpleFake(config),
+			buildConfigs: cache.NewStore(cache.MetaNamespaceKeyFunc),
+			now:          defaultNow,
 		}
 
+		err := controller.Handle(config)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
+		}
+		if deployed == nil {
+			t.Fatalf("expected a deployment")
 		}
 
 		desired, hasDesired := deployutil.DeploymentDesiredReplicas(deployed)
@@ -171,7 +169,9 @@ func TestHandle_nonfatalLookupError(t *testing.T) {
 				return nil, nil
 			},
 		},
-		osClient: testclient.NewSimpleFake(),
+		osClient:     testclient.NewSimpleFake(),
+		buildConfigs: cache.NewStore(cache.MetaNamespaceKeyFunc),
+		now:          defaultNow,
 	}
 
 	err := configController.Handle(deploytest.OkDeploymentConfig(1))
@@ -209,7 +209,9 @@ func TestHandle_configAlreadyDeployed(t *testing.T) {
 				return nil, nil
 			},
 		},
-		osClient: testclient.NewSimpleFake(deploymentConfig),
+		osClient:     testclient.NewSimpleFake(deploymentConfig),
+		buildConfigs: cache.NewStore(cache.MetaNamespaceKeyFunc),
+		now:          defaultNow,
 	}
 
 	err := controller.Handle(deploymentConfig)
@@ -238,7 +240,9 @@ func TestHandle_nonfatalCreateError(t *testing.T) {
 				return nil, nil
 			},
 		},
-		osClient: testclient.NewSimpleFake(),
+		osClient:     testclient.NewSimpleFake(),
+		buildConfigs: cache.NewStore(cache.MetaNamespaceKeyFunc),
+		now:          defaultNow,
 	}
 
 	err := configController.Handle(deploytest.OkDeploymentConfig(1))
@@ -270,7 +274,9 @@ func TestHandle_fatalError(t *testing.T) {
 				return nil, nil
 			},
 		},
-		osClient: testclient.NewSimpleFake(deploytest.OkDeploymentConfig(1)),
+		osClient:     testclient.NewSimpleFake(deploytest.OkDeploymentConfig(1)),
+		buildConfigs: cache.NewStore(cache.MetaNamespaceKeyFunc),
+		now:          defaultNow,
 	}
 
 	err := configController.Handle(deploytest.OkDeploymentConfig(1))
@@ -310,7 +316,9 @@ func TestHandle_existingDeployments(t *testing.T) {
 				return deployment, nil
 			},
 		},
-		osClient: testclient.NewSimpleFake(),
+		osClient:     testclient.NewSimpleFake(),
+		buildConfigs: cache.NewStore(cache.MetaNamespaceKeyFunc),
+		now:          defaultNow,
 	}
 
 	type existing struct {
@@ -412,16 +420,6 @@ func TestHandle_existingDeployments(t *testing.T) {
 }
 
 func TestFindDetails(t *testing.T) {
-	existingDeployments := &kapi.ReplicationControllerList{}
-	controller := &DeploymentConfigController{
-		deploymentClient: &deploymentClientImpl{
-			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				return existingDeployments, nil
-			},
-		},
-		osClient: testclient.NewSimpleFake(),
-	}
-
 	type reaction struct {
 		verb, resource string
 		fn             ktestclient.ReactionFunc
@@ -429,35 +427,19 @@ func TestFindDetails(t *testing.T) {
 
 	tests := []struct {
 		name              string
-		controller        *DeploymentConfigController
 		version           int
 		hasDeployments    bool
 		hasNoImageChange  bool
 		hasMultipleErrors bool
 		status            deployapi.DeploymentStatus
 		reactions         []reaction
+		buildConfigs      []*buildapi.BuildConfig
 		expectedDetails   string
 		expectedLatest    bool
 		expectedErr       bool
 	}{
 		{
-			name: "cannot get existing deployments",
-			controller: &DeploymentConfigController{
-				deploymentClient: &deploymentClientImpl{
-					listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-						return nil, errors.New("cannot return these deployments")
-					},
-				},
-			},
-			version:         0,
-			hasDeployments:  false,
-			expectedDetails: "",
-			expectedLatest:  false,
-			expectedErr:     true,
-		},
-		{
 			name:            "complete latest",
-			controller:      controller,
 			version:         1,
 			hasDeployments:  true,
 			status:          deployapi.DeploymentStatusComplete,
@@ -467,7 +449,6 @@ func TestFindDetails(t *testing.T) {
 		},
 		{
 			name:             "no image change triggers",
-			controller:       controller,
 			version:          1,
 			hasDeployments:   true,
 			hasNoImageChange: true,
@@ -478,7 +459,6 @@ func TestFindDetails(t *testing.T) {
 		},
 		{
 			name:           "cannot retrieve istag",
-			controller:     controller,
 			version:        1,
 			hasDeployments: true,
 			status:         deployapi.DeploymentStatusFailed,
@@ -493,11 +473,10 @@ func TestFindDetails(t *testing.T) {
 			},
 			expectedDetails: "",
 			expectedLatest:  true,
-			expectedErr:     false,
+			expectedErr:     true,
 		},
 		{
 			name:           "found istag",
-			controller:     controller,
 			version:        1,
 			hasDeployments: true,
 			status:         deployapi.DeploymentStatusFailed,
@@ -516,7 +495,6 @@ func TestFindDetails(t *testing.T) {
 		},
 		{
 			name:           "not found istag",
-			controller:     controller,
 			version:        1,
 			hasDeployments: true,
 			status:         deployapi.DeploymentStatusFailed,
@@ -526,13 +504,6 @@ func TestFindDetails(t *testing.T) {
 					resource: "imagestreamtags",
 					fn: func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 						return true, nil, kerrors.NewNotFound("imagestreamtag", "test-image-stream:latest")
-					},
-				},
-				{
-					verb:     "list",
-					resource: "buildconfigs",
-					fn: func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-						return true, &buildapi.BuildConfigList{}, nil
 					},
 				},
 				{
@@ -549,7 +520,6 @@ func TestFindDetails(t *testing.T) {
 		},
 		{
 			name:           "synthetic istag",
-			controller:     controller,
 			version:        1,
 			hasDeployments: true,
 			status:         deployapi.DeploymentStatusFailed,
@@ -562,13 +532,6 @@ func TestFindDetails(t *testing.T) {
 					},
 				},
 				{
-					verb:     "list",
-					resource: "buildconfigs",
-					fn: func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-						return true, mkBuildConfigList(), nil
-					},
-				},
-				{
 					verb:     "get",
 					resource: "imagestreams",
 					fn: func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
@@ -576,13 +539,13 @@ func TestFindDetails(t *testing.T) {
 					},
 				},
 			},
+			buildConfigs:    mkBuildConfigList(),
 			expectedDetails: "The image trigger for image stream tag \"test-image-stream:latest\" will have no effect because image stream tag \"test-image-stream:latest\" does not exist.\n\tIf image stream tag \"test-image-stream:latest\" is expected, check build config \"mybc\" which produces image stream tag \"test-image-stream:latest\".",
 			expectedLatest:  true,
 			expectedErr:     false,
 		},
 		{
 			name:           "not found image stream",
-			controller:     controller,
 			version:        1,
 			hasDeployments: true,
 			status:         deployapi.DeploymentStatusFailed,
@@ -607,23 +570,15 @@ func TestFindDetails(t *testing.T) {
 			expectedErr:     false,
 		},
 		{
-			name:       "no deployments - not found istag",
-			controller: controller,
-			version:    0,
-			status:     deployapi.DeploymentStatusFailed,
+			name:    "no deployments - not found istag",
+			version: 0,
+			status:  deployapi.DeploymentStatusFailed,
 			reactions: []reaction{
 				{
 					verb:     "get",
 					resource: "imagestreamtags",
 					fn: func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 						return true, nil, kerrors.NewNotFound("imagestreamtag", "test-image-stream:latest")
-					},
-				},
-				{
-					verb:     "list",
-					resource: "buildconfigs",
-					fn: func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-						return true, &buildapi.BuildConfigList{}, nil
 					},
 				},
 				{
@@ -638,23 +593,15 @@ func TestFindDetails(t *testing.T) {
 			expectedErr:     false,
 		},
 		{
-			name:       "no deployments - synthetic istag",
-			controller: controller,
-			version:    0,
-			status:     deployapi.DeploymentStatusFailed,
+			name:    "no deployments - synthetic istag",
+			version: 0,
+			status:  deployapi.DeploymentStatusFailed,
 			reactions: []reaction{
 				{
 					verb:     "get",
 					resource: "imagestreamtags",
 					fn: func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 						return true, nil, kerrors.NewNotFound("imagestreamtag", "test-image-stream:"+imageapi.DefaultImageTag)
-					},
-				},
-				{
-					verb:     "list",
-					resource: "buildconfigs",
-					fn: func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-						return true, mkBuildConfigList(), nil
 					},
 				},
 				{
@@ -665,12 +612,12 @@ func TestFindDetails(t *testing.T) {
 					},
 				},
 			},
+			buildConfigs:    mkBuildConfigList(),
 			expectedDetails: "The image trigger for image stream tag \"test-image-stream:latest\" will have no effect because image stream tag \"test-image-stream:latest\" does not exist.\n\tIf image stream tag \"test-image-stream:latest\" is expected, check build config \"mybc\" which produces image stream tag \"test-image-stream:latest\".",
 			expectedErr:     false,
 		},
 		{
 			name:           "no deployments - not found image stream",
-			controller:     controller,
 			version:        1,
 			hasDeployments: true,
 			status:         deployapi.DeploymentStatusFailed,
@@ -703,7 +650,6 @@ func TestFindDetails(t *testing.T) {
 		},
 		{
 			name:              "multiple errors",
-			controller:        controller,
 			version:           0,
 			hasMultipleErrors: true,
 			status:            deployapi.DeploymentStatusFailed,
@@ -723,13 +669,6 @@ func TestFindDetails(t *testing.T) {
 					},
 				},
 				{
-					verb:     "list",
-					resource: "buildconfigs",
-					fn: func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-						return true, &buildapi.BuildConfigList{}, nil
-					},
-				},
-				{
 					verb:     "get",
 					resource: "imagestreams",
 					fn: func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
@@ -743,6 +682,7 @@ func TestFindDetails(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		t.Logf("evaluating test %s", test.name)
 		// Need to setup a couple of things before passing the config in findDetails
 		// Namely, initalize the config, its triggers and its deployments
 		config := deploytest.OkDeploymentConfig(test.version)
@@ -765,6 +705,7 @@ func TestFindDetails(t *testing.T) {
 			})
 		}
 
+		existingDeployments := &kapi.ReplicationControllerList{}
 		if test.hasDeployments {
 			existingDeployments.Items = []kapi.ReplicationController{}
 			d := mkdeployment(test.version)
@@ -772,11 +713,27 @@ func TestFindDetails(t *testing.T) {
 			existingDeployments.Items = append(mkDeploymentList(test.version-1).Items, d)
 		}
 		// We also have to setup fake client reactions for imagestreamtags and buildconfigs
+		fakeOsClient := testclient.NewSimpleFake()
 		for _, act := range test.reactions {
-			test.controller.osClient.(*testclient.Fake).PrependReactor(act.verb, act.resource, act.fn)
+			fakeOsClient.PrependReactor(act.verb, act.resource, act.fn)
 		}
 
-		details, _, latest, err := test.controller.findDetails(config)
+		buildConfigStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
+		for _, bc := range test.buildConfigs {
+			buildConfigStore.Add(bc)
+		}
+
+		controller := &DeploymentConfigController{
+			deploymentClient: &deploymentClientImpl{
+				listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+					return existingDeployments, nil
+				},
+			},
+			osClient:     fakeOsClient,
+			buildConfigs: buildConfigStore,
+			now:          defaultNow,
+		}
+		details, err := controller.findDetails(config, existingDeployments)
 		// Check errors
 		if err != nil && !test.expectedErr {
 			t.Errorf("%s: didn't expect an error but got %v", test.name, err)
@@ -786,17 +743,107 @@ func TestFindDetails(t *testing.T) {
 			t.Errorf("%s: expected an error but got none", test.name)
 			continue
 		}
-
 		// Check details
 		if details != test.expectedDetails {
 			t.Errorf("%s: details mismatch!\nExpected:\n%s\ngot:\n%s\n\n", test.name, test.expectedDetails, details)
 			continue
 		}
+	}
+}
 
-		// Check latest
-		if latest != test.expectedLatest {
-			t.Errorf("%s: latest mismatch! Expected %t but got %t", test.name, test.expectedLatest, latest)
-			continue
+func TestHandle_detailsNoopCheck(t *testing.T) {
+	tests := []struct {
+		label          string
+		setup          func() (*deployapi.DeploymentDetails, time.Time)
+		updateExpected bool
+	}{
+		{
+			label: "nil details should be updated",
+			setup: func() (*deployapi.DeploymentDetails, time.Time) {
+				return nil, time.Now()
+			},
+			updateExpected: true,
+		},
+		{
+			label: "stale message should be updated",
+			setup: func() (*deployapi.DeploymentDetails, time.Time) {
+				now := time.Now()
+				details := &deployapi.DeploymentDetails{
+					Message:                "stale",
+					LastMessageUpdatedTime: unversioned.NewTime(now),
+				}
+				later := now.Add(DefaultMessageUpdatePeriod * 2)
+				return details, later
+			},
+			updateExpected: true,
+		},
+		{
+			label: "zero-time message should be updated",
+			setup: func() (*deployapi.DeploymentDetails, time.Time) {
+				now := time.Time{}
+				details := &deployapi.DeploymentDetails{
+					Message:                "stale",
+					LastMessageUpdatedTime: unversioned.NewTime(now),
+				}
+				later := time.Now()
+				return details, later
+			},
+			updateExpected: true,
+		},
+		{
+			label: "fresh message should not be updated",
+			setup: func() (*deployapi.DeploymentDetails, time.Time) {
+				now := time.Now()
+				details := &deployapi.DeploymentDetails{
+					Message:                "fresh",
+					LastMessageUpdatedTime: unversioned.NewTime(now),
+				}
+				later := now.Add(DefaultMessageUpdatePeriod / 2)
+				return details, later
+			},
+			updateExpected: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Logf("expectation: %s", test.label)
+		config := deploytest.OkDeploymentConfig(0)
+		details, now := test.setup()
+
+		config.Details = details
+
+		fake := &testclient.Fake{}
+		updated := false
+		fake.AddReactor("update", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			updated = true
+			return true, config, nil
+		})
+		fake.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			return true, config, nil
+		})
+
+		controller := &DeploymentConfigController{
+			deploymentClient: &deploymentClientImpl{
+				listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+					return new(kapi.ReplicationControllerList), nil
+				},
+			},
+			osClient:            fake,
+			buildConfigs:        cache.NewStore(cache.MetaNamespaceKeyFunc),
+			messageUpdatePeriod: DefaultMessageUpdatePeriod,
+			now: func() time.Time {
+				return now
+			},
+		}
+		err := controller.Handle(config)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if test.updateExpected && !updated {
+			t.Errorf("expected details to be updated")
+		}
+		if updated && !test.updateExpected {
+			t.Errorf("unexpected details update")
 		}
 	}
 }
@@ -814,18 +861,16 @@ func mkDeploymentList(versions int) *kapi.ReplicationControllerList {
 	return list
 }
 
-func mkBuildConfigList() *buildapi.BuildConfigList {
-	return &buildapi.BuildConfigList{
-		Items: []buildapi.BuildConfig{
-			{
-				ObjectMeta: kapi.ObjectMeta{Name: "mybc"},
-				Spec: buildapi.BuildConfigSpec{
-					BuildSpec: buildapi.BuildSpec{
-						Output: buildapi.BuildOutput{
-							To: &kapi.ObjectReference{
-								Name: "test-image-stream:" + imageapi.DefaultImageTag,
-								Kind: "ImageStreamTag",
-							},
+func mkBuildConfigList() []*buildapi.BuildConfig {
+	return []*buildapi.BuildConfig{
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: "mybc"},
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Name: "test-image-stream:" + imageapi.DefaultImageTag,
+							Kind: "ImageStreamTag",
 						},
 					},
 				},
