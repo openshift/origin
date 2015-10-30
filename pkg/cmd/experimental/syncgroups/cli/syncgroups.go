@@ -18,6 +18,7 @@ import (
 	kyaml "k8s.io/kubernetes/pkg/util/yaml"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
@@ -78,7 +79,7 @@ type SyncGroupsOptions struct {
 	Source GroupSyncSource
 
 	// Config is the LDAP sync config read from file
-	Config api.LDAPSyncConfig
+	Config *api.LDAPSyncConfig
 
 	// Whitelist are the names of OpenShift group or LDAP group UIDs to use for syncing
 	Whitelist []string
@@ -156,82 +157,81 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 	return cmd
 }
 
-type SyncBuilder interface {
-	GetGroupLister() (interfaces.LDAPGroupLister, error)
-	GetGroupNameMapper() (interfaces.LDAPGroupNameMapper, error)
-	GetUserNameMapper() (interfaces.LDAPUserNameMapper, error)
-	GetGroupMemberExtractor() (interfaces.LDAPMemberExtractor, error)
-}
-
 func (o *SyncGroupsOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile string, args []string, f *clientcmd.Factory) error {
 	switch typeArg {
 	case string(GroupSyncSourceLDAP):
 		o.Source = GroupSyncSourceLDAP
 	case string(GroupSyncSourceOpenShift):
 		o.Source = GroupSyncSourceOpenShift
-
 	default:
 		return fmt.Errorf("unrecognized --type %q; allowed types %v", typeArg, strings.Join(AllowedSourceTypes, ","))
 	}
 
-	// if args are given, they are OpenShift Group names forming a whitelist
-	if len(args) > 0 {
-		o.Whitelist = append(o.Whitelist, args...)
-	}
-
-	// unpack whitelist file from source
-	if len(whitelistFile) != 0 {
-		whitelistData, err := readLines(whitelistFile)
-		if err != nil {
-			return err
-		}
-		o.Whitelist = append(o.Whitelist, whitelistData...)
-
-		if o.Source == GroupSyncSourceOpenShift {
-			o.Whitelist, err = openshiftGroupNamesOnlyList(o.Whitelist)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	// unpack blacklist file from source
-	if len(blacklistFile) != 0 {
-		blacklistData, err := readLines(blacklistFile)
-		if err != nil {
-			return err
-		}
-		o.Blacklist = append(o.Blacklist, blacklistData...)
-
-		if o.Source == GroupSyncSourceOpenShift {
-			o.Blacklist, err = openshiftGroupNamesOnlyList(o.Blacklist)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	yamlConfig, err := ioutil.ReadFile(configFile)
+	var err error
+	o.Whitelist, err = buildNameList(o.Source, args, whitelistFile)
 	if err != nil {
-		return fmt.Errorf("could not read file %s: %v", configFile, err)
+		return err
 	}
-	jsonConfig, err := kyaml.ToJSON(yamlConfig)
+	o.Blacklist, err = buildNameList(o.Source, []string{}, blacklistFile)
 	if err != nil {
-		return fmt.Errorf("could not parse file %s: %v", configFile, err)
-	}
-	if err := configapilatest.Codec.DecodeInto(jsonConfig, &o.Config); err != nil {
 		return err
 	}
 
-	if f != nil {
-		osClient, _, err := f.Clients()
-		if err != nil {
-			return err
-		}
-		o.GroupInterface = osClient.Groups()
+	o.Config, err = decodeSyncConfigFromFile(configFile)
+	if err != nil {
+		return err
 	}
 
+	osClient, _, err := f.Clients()
+	if err != nil {
+		return err
+	}
+	o.GroupInterface = osClient.Groups()
+
 	return nil
+}
+
+// buildNameLists builds a list from file and args
+func buildNameList(source GroupSyncSource, args []string, file string) ([]string, error) {
+	var list []string
+	if len(args) > 0 {
+		list = append(list, args...)
+	}
+
+	// unpack file from source
+	if len(file) != 0 {
+		listData, err := readLines(file)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, listData...)
+	}
+
+	if source == GroupSyncSourceOpenShift {
+		cleanedList, err := openshiftGroupNamesOnlyList(list)
+		if err != nil {
+			return nil, err
+		}
+		list = cleanedList
+	}
+
+	return list, nil
+}
+
+func decodeSyncConfigFromFile(configFile string) (*api.LDAPSyncConfig, error) {
+	var config api.LDAPSyncConfig
+	yamlConfig, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file %s: %v", configFile, err)
+	}
+	jsonConfig, err := kyaml.ToJSON(yamlConfig)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse file %s: %v", configFile, err)
+	}
+	if err := configapilatest.Codec.DecodeInto(jsonConfig, &config); err != nil {
+		return nil, fmt.Errorf("couldg not decode file into config: %v", err)
+	}
+	return &config, nil
 }
 
 // openshiftGroupNamesOnlyBlacklist returns back a list that contains only the names of the groups.
@@ -285,6 +285,9 @@ func (o *SyncGroupsOptions) Validate() error {
 	}
 
 	results := validation.ValidateLDAPSyncConfig(o.Config)
+	if o.GroupInterface == nil {
+		results.Errors = append(results.Errors, fmt.Errorf("an OpenShift group client is required"))
+	}
 	// TODO(skuznets): pretty-print validation results
 	if len(results.Errors) > 0 {
 		return fmt.Errorf("validation of LDAP sync config failed: %v", kerrs.NewAggregate([]error(results.Errors)))
@@ -300,19 +303,9 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		return fmt.Errorf("could not determine LDAP client configuration: %v", err)
 	}
 
-	var syncBuilder SyncBuilder
-	switch {
-	case o.Config.RFC2307Config != nil:
-		syncBuilder = &RFC2307SyncBuilder{ClientConfig: clientConfig, Config: o.Config.RFC2307Config}
-
-	case o.Config.ActiveDirectoryConfig != nil:
-		syncBuilder = &ADSyncBuilder{ClientConfig: clientConfig, Config: o.Config.ActiveDirectoryConfig}
-
-	case o.Config.AugmentedActiveDirectoryConfig != nil:
-		syncBuilder = &AugmentedADSyncBuilder{ClientConfig: clientConfig, Config: o.Config.AugmentedActiveDirectoryConfig}
-
-	default:
-		return fmt.Errorf("invalid sync config type: %v", o.Config)
+	syncBuilder, err := buildSyncBuilder(clientConfig, o.Config.RFC2307Config, o.Config.ActiveDirectoryConfig, o.Config.AugmentedActiveDirectoryConfig)
+	if err != nil {
+		return err
 	}
 
 	// populate schema-independent syncer fields
@@ -329,7 +322,7 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 	case GroupSyncSourceOpenShift:
 		// when your source of ldapGroupUIDs is from an openshift group, the mapping of ldapGroupUID to openshift group name is logically
 		// pinned by the existing mapping.
-		listerMapper, err := o.GetOpenShiftGroupListerMapper(clientConfig.Host())
+		listerMapper, err := getOpenShiftGroupListerMapper(clientConfig.Host(), o)
 		if err != nil {
 			return err
 		}
@@ -337,11 +330,11 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		syncer.GroupNameMapper = listerMapper
 
 	case GroupSyncSourceLDAP:
-		syncer.GroupLister, err = o.GetLDAPGroupLister(syncBuilder)
+		syncer.GroupLister, err = getLDAPGroupLister(syncBuilder, o)
 		if err != nil {
 			return err
 		}
-		syncer.GroupNameMapper, err = o.GetGroupNameMapper(syncBuilder)
+		syncer.GroupNameMapper, err = getGroupNameMapper(syncBuilder, o)
 		if err != nil {
 			return err
 		}
@@ -375,61 +368,80 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 	}
 
 	return kerrs.NewAggregate(syncErrors)
-
 }
 
-func (o *SyncGroupsOptions) GetOpenShiftGroupListerMapper(host string) (interfaces.LDAPGroupListerNameMapper, error) {
-	if o.Source != GroupSyncSourceOpenShift {
-		return nil, errors.New("openshift is not a valid group source for this config")
+func buildSyncBuilder(clientConfig ldapclient.Config, rfc2307 *api.RFC2307Config, ad *api.ActiveDirectoryConfig, augmentedAD *api.AugmentedActiveDirectoryConfig) (SyncBuilder, error) {
+	switch {
+	case rfc2307 != nil:
+		return &RFC2307Builder{ClientConfig: clientConfig, Config: rfc2307}, nil
+	case ad != nil:
+		return &ADBuilder{ClientConfig: clientConfig, Config: ad}, nil
+	case augmentedAD != nil:
+		return &AugmentedADBuilder{ClientConfig: clientConfig, Config: augmentedAD}, nil
+	default:
+		return nil, errors.New("invalid sync config type")
 	}
-
-	if len(o.Whitelist) != 0 {
-		return syncgroups.NewOpenShiftGroupLister(o.Whitelist, o.Blacklist, host, o.GroupInterface), nil
-	}
-
-	return syncgroups.NewAllOpenShiftGroupLister(o.Blacklist, host, o.GroupInterface), nil
 }
 
-func (o *SyncGroupsOptions) GetLDAPGroupLister(syncBuilder SyncBuilder) (interfaces.LDAPGroupLister, error) {
-	if o.Source != GroupSyncSourceLDAP {
-		return nil, errors.New("ldap is not a valid group source for this config")
+func getOpenShiftGroupListerMapper(host string, info OpenShiftGroupNameRestrictions) (interfaces.LDAPGroupListerNameMapper, error) {
+	if len(info.GetWhitelist()) != 0 {
+		return syncgroups.NewOpenShiftGroupLister(info.GetWhitelist(), info.GetBlacklist(), host, info.GetClient()), nil
+	} else {
+		return syncgroups.NewAllOpenShiftGroupLister(info.GetBlacklist(), host, info.GetClient()), nil
 	}
+}
 
-	if len(o.Whitelist) != 0 {
-		ldapWhitelist := syncgroups.NewLDAPWhitelistGroupLister(o.Whitelist)
-		if len(o.Blacklist) == 0 {
+func getLDAPGroupLister(syncBuilder SyncBuilder, info GroupNameRestrictions) (interfaces.LDAPGroupLister, error) {
+	if len(info.GetWhitelist()) != 0 {
+		ldapWhitelist := syncgroups.NewLDAPWhitelistGroupLister(info.GetWhitelist())
+		if len(info.GetBlacklist()) == 0 {
 			return ldapWhitelist, nil
 		}
-		return syncgroups.NewLDAPBlacklistGroupLister(o.Blacklist, ldapWhitelist), nil
+		return syncgroups.NewLDAPBlacklistGroupLister(info.GetBlacklist(), ldapWhitelist), nil
 	}
 
 	syncLister, err := syncBuilder.GetGroupLister()
 	if err != nil {
 		return nil, err
 	}
-	if len(o.Blacklist) == 0 {
+	if len(info.GetBlacklist()) == 0 {
 		return syncLister, nil
 	}
 
-	return syncgroups.NewLDAPBlacklistGroupLister(o.Blacklist, syncLister), nil
+	return syncgroups.NewLDAPBlacklistGroupLister(info.GetBlacklist(), syncLister), nil
 }
 
-func (o *SyncGroupsOptions) GetGroupNameMapper(syncBuilder SyncBuilder) (interfaces.LDAPGroupNameMapper, error) {
+func getGroupNameMapper(syncBuilder SyncBuilder, info MappedNameRestrictions) (interfaces.LDAPGroupNameMapper, error) {
 	syncNameMapper, err := syncBuilder.GetGroupNameMapper()
 	if err != nil {
 		return nil, err
 	}
 
 	// if the mapping is specified, union the specified mapping with the default mapping.  The specified mapping is checked first
-	if len(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping) > 0 {
-		userDefinedMapper := syncgroups.NewUserDefinedGroupNameMapper(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
-
+	if len(info.GetGroupNameMappings()) > 0 {
+		userDefinedMapper := syncgroups.NewUserDefinedGroupNameMapper(info.GetGroupNameMappings())
 		if syncNameMapper == nil {
 			return userDefinedMapper, nil
 		}
-
 		return &syncgroups.UnionGroupNameMapper{GroupNameMappers: []interfaces.LDAPGroupNameMapper{userDefinedMapper, syncNameMapper}}, nil
 	}
-
 	return syncNameMapper, nil
+}
+
+// The following getters ensure that SyncGroupsOptions satisfies the name restriction interfaces
+
+func (o *SyncGroupsOptions) GetWhitelist() []string {
+	return o.Whitelist
+}
+
+func (o *SyncGroupsOptions) GetBlacklist() []string {
+	return o.Blacklist
+}
+
+func (o *SyncGroupsOptions) GetClient() osclient.GroupInterface {
+	return o.GroupInterface
+}
+
+func (o *SyncGroupsOptions) GetGroupNameMappings() map[string]string {
+	return o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping
 }
