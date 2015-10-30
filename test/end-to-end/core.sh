@@ -44,6 +44,13 @@ function wait_for_app() {
   wait_for_command '[[ "$(curl -s http://${FRONTEND_IP}:5432/keys/foo)" = "1337" ]]'
 }
 
+# service dns entry is visible via master service
+# find the IP of the master service by asking the API_HOST to verify DNS is running there
+MASTER_SERVICE_IP="$(dig @${API_HOST} "kubernetes.default.svc.cluster.local." +short A | head -n 1)"
+# find the IP of the master service again by asking the IP of the master service, to verify port 53 tcp/udp is routed by the service
+[ "$(dig +tcp @${MASTER_SERVICE_IP} "kubernetes.default.svc.cluster.local." +short A | head -n 1)" == "${MASTER_SERVICE_IP}" ]
+[ "$(dig +notcp @${MASTER_SERVICE_IP} "kubernetes.default.svc.cluster.local." +short A | head -n 1)" == "${MASTER_SERVICE_IP}" ]
+
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
 openshift admin policy add-role-to-user view e2e-user --namespace=default
 
