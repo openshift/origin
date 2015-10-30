@@ -22,8 +22,11 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/record"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/prober/results"
+	"k8s.io/kubernetes/pkg/kubelet/status"
 	"k8s.io/kubernetes/pkg/probe"
 )
 
@@ -95,13 +98,26 @@ func TestDoProbe(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		w := newTestWorker(test.probe)
-		if test.podStatus != nil {
-			m.statusManager.SetPodStatus(w.pod, *test.podStatus)
-		}
-		if c := doProbe(m, w); c != test.expectContinue {
-			t.Errorf("[%d] Expected continue to be %v but got %v", i, test.expectContinue, c)
+	for _, probeType := range [...]probeType{liveness, readiness} {
+		for i, test := range tests {
+			w := newTestWorker(m, probeType, test.probe)
+			if test.podStatus != nil {
+				m.statusManager.SetPodStatus(w.pod, *test.podStatus)
+			}
+			if c := w.doProbe(); c != test.expectContinue {
+				t.Errorf("[%s-%d] Expected continue to be %v but got %v", probeType, i, test.expectContinue, c)
+			}
+			result, ok := resultsManager(m, probeType).Get(containerID)
+			if ok != test.expectSet {
+				t.Errorf("[%s-%d] Expected to have result: %v but got %v", probeType, i, test.expectSet, ok)
+			}
+			if result != test.expectedResult {
+				t.Errorf("[%s-%d] Expected result: %v but got %v", probeType, i, test.expectedResult, result)
+			}
+
+			// Clean up.
+			m.statusManager = status.NewManager(&testclient.Fake{})
+			resultsManager(m, probeType).Remove(containerID)
 		}
 		ready, ok := m.readinessCache.Get(containerID)
 		if ok != test.expectReadySet {
