@@ -14194,6 +14194,81 @@
     ]
    },
    {
+    "path": "/oapi/v1/users/{name}/projects",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.ProjectList",
+      "method": "GET",
+      "summary": "read projects of the specified ProjectList",
+      "nickname": "readNamespacedProjectListProjects",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the ProjectList",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ProjectList"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1",
     "description": "OpenShift REST API, version v1",
     "operations": [

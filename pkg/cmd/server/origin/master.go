@@ -63,12 +63,14 @@ import (
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
+	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
+	userretriever "github.com/openshift/origin/pkg/user/retriever"
 
 	"github.com/openshift/origin/pkg/build/registry/buildclone"
 	"github.com/openshift/origin/pkg/build/registry/buildconfiginstantiate"
@@ -348,6 +350,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	identityRegistry := identityregistry.NewRegistry(identityStorage)
 	userIdentityMappingStorage := useridentitymapping.NewREST(userRegistry, identityRegistry)
 
+	userRetriever := userretriever.NewRegistryRetriever(userRegistry, usercache.GroupNameRetriever{c.GroupCache}, true, true)
+
 	policyStorage := policyetcd.NewStorage(c.EtcdHelper)
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
 	policyBindingStorage := policybindingetcd.NewStorage(c.EtcdHelper)
@@ -410,7 +414,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		GRFn: deployRollback.GenerateRollback,
 	}
 
-	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache)
+	projectStorage, projectUserStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache, userRetriever)
 
 	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectConfig.ProjectRequestTemplate)
 	if err != nil {
@@ -456,6 +460,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterNetworks": clusterNetworkStorage,
 
 		"users":                userStorage,
+		"users/projects":       projectUserStorage,
 		"groups":               groupetcd.NewREST(c.EtcdHelper),
 		"identities":           identityStorage,
 		"userIdentityMappings": userIdentityMappingStorage,

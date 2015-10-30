@@ -87,7 +87,7 @@ var (
 		// TODO remove once we have eliminated the namespace scoped resource.
 		PermissionGrantingGroupName: {"roles", "rolebindings", "resourceaccessreviews" /* cluster scoped*/, "subjectaccessreviews" /* cluster scoped*/, "localresourceaccessreviews", "localsubjectaccessreviews"},
 		OpenshiftExposedGroupName:   {BuildGroupName, ImageGroupName, DeploymentGroupName, TemplateGroupName, "routes"},
-		OpenshiftAllGroupName: {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, SDNGroupName, PermissionGrantingGroupName, OpenshiftStatusGroupName, "projects",
+		OpenshiftAllGroupName: {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, SDNGroupName, PermissionGrantingGroupName, OpenshiftStatusGroupName, "projects", "users/projects",
 			"clusterroles", "clusterrolebindings", "clusterpolicies", "clusterpolicybindings", "images" /* cluster scoped*/, "projectrequests"},
 		OpenshiftStatusGroupName: {"imagestreams/status", "routes/status"},
 

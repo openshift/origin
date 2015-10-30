@@ -17,6 +17,7 @@ type ProjectInterface interface {
 	Delete(name string) error
 	Get(name string) (*projectapi.Project, error)
 	List(label labels.Selector, field fields.Selector) (*projectapi.ProjectList, error)
+	ListForUser(username string, label labels.Selector, field fields.Selector) (*projectapi.ProjectList, error)
 }
 
 type projects struct {
@@ -42,6 +43,20 @@ func (c *projects) List(label labels.Selector, field fields.Selector) (result *p
 	result = &projectapi.ProjectList{}
 	err = c.r.Get().
 		Resource("projects").
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
+		Do().
+		Into(result)
+	return
+}
+
+// ListForUser returns all projects for the provided user
+func (c *projects) ListForUser(username string, label labels.Selector, field fields.Selector) (result *projectapi.ProjectList, err error) {
+	result = &projectapi.ProjectList{}
+	err = c.r.Get().
+		Resource("users").
+		Name(username).
+		SubResource("projects").
 		LabelsSelectorParam(label).
 		FieldsSelectorParam(field).
 		Do().
