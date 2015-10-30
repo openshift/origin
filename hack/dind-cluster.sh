@@ -123,11 +123,13 @@ function start() {
   # docker-in-docker's use of volumes is not compatible with SELinux
   check-selinux
 
+  echo "Configured network plugin: ${NETWORK_PLUGIN}"
+
   # TODO(marun) - perform these operations in a container for boot2docker compat
   echo "Ensuring compatible host configuration"
   sudo modprobe openvswitch
-  sudo modprobe br_netfilter || true
-  sudo sysctl -w net.bridge.bridge-nf-call-iptables=0
+  sudo modprobe br_netfilter 2> /dev/null || true
+  sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
   mkdir -p "${CONFIG_ROOT}"
 
   if [ "${SKIP_BUILD}" = "true" ]; then
@@ -157,7 +159,6 @@ function start() {
   node_ips=$(os::provision::join , ${node_ips[@]})
 
   ## Provision containers
-  echo "Configured network plugin: ${NETWORK_PLUGIN}"
   local args="${master_ip} ${NODE_COUNT} ${node_ips} ${INSTANCE_PREFIX} \
 -n '${NETWORK_PLUGIN}'"
   if [ "${SKIP_BUILD}" = "true" ]; then

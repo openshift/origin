@@ -81,8 +81,6 @@ os::provision::init-certs() {
   local volumes_dir="/var/lib/openshift.local.volumes"
   local cert_dir="${server_config_dir}/master"
 
-  echo "Generating certs"
-
   pushd "${config_root}" > /dev/null
 
   # Master certs
@@ -245,8 +243,8 @@ RestartSec=10s
 WantedBy=multi-user.target
 EOF
 
-  systemctl daemon-reload
-  systemctl enable "${unit_name}.service"
+  systemctl daemon-reload > /dev/null
+  systemctl enable "${unit_name}.service" &> /dev/null
   systemctl start "${unit_name}.service"
 }
 
