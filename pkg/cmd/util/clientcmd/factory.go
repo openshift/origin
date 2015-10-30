@@ -196,7 +196,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if !ok {
 				return nil, errors.New("provided options object is not a BuildLogOptions")
 			}
-			buildsForBCSelector := labels.SelectorFromSet(map[string]string{buildapi.BuildConfigLabel: t.Name})
+			buildsForBCSelector := labels.SelectorFromSet(map[string]string{buildapi.DeprecatedBuildConfigLabel: t.Name})
 			builds, err := oc.Builds(t.Namespace).List(buildsForBCSelector, fields.Everything())
 			if err != nil {
 				return nil, err
