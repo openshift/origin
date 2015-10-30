@@ -280,10 +280,10 @@ os::provision::wait-for-condition() {
       echo "${start_msg}"
     fi
 
-    if [[ "${counter}" < "${timeout}" ]] || \
+    if [[ "${counter}" -lt "${timeout}" ]] || \
        [[ "${timeout}" = "${OS_WAIT_FOREVER}" ]]; then
       counter=$((counter + 1))
-      if [ "${timeout}" != "${OS_WAIT_FOREVER}" ]; then
+      if [[ "${timeout}" != "${OS_WAIT_FOREVER}" ]]; then
         echo -n '.'
       fi
       sleep 1
