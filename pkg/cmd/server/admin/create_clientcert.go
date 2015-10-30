@@ -10,10 +10,11 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
 )
 
 type CreateClientCertOptions struct {
-	SignerCertOptions *SignerCertOptions
+	SignerCertOptions *configutil.SignerCertOptions
 
 	CertFile string
 	KeyFile  string

@@ -8,16 +8,16 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
 	"k8s.io/kubernetes/pkg/util"
 )
 
 const CreateClientCommandName = "create-api-client-config"
 
 type CreateClientOptions struct {
-	SignerCertOptions *SignerCertOptions
+	SignerCertOptions *configutil.SignerCertOptions
 
 	ClientDir string
 	BaseName  string
@@ -40,7 +40,7 @@ master as the provided user.
 `
 
 func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateClientOptions{SignerCertOptions: NewDefaultSignerCertOptions(), Output: out}
+	options := &CreateClientOptions{SignerCertOptions: configutil.NewDefaultSignerCertOptions(), Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -59,7 +59,7 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 
 	flags := cmd.Flags()
 
-	BindSignerCertOptions(options.SignerCertOptions, flags, "")
+	configutil.BindSignerCertOptions(options.SignerCertOptions, flags, "")
 
 	flags.StringVar(&options.ClientDir, "client-dir", "", "The client data directory.")
 	flags.StringVar(&options.BaseName, "basename", "", "The base filename to use for the .crt, .key, and .kubeconfig files. Defaults to the username.")
@@ -112,10 +112,10 @@ func (o CreateClientOptions) CreateClientFolder() error {
 	if len(baseName) == 0 {
 		baseName = o.User
 	}
-	clientCertFile := DefaultCertFilename(o.ClientDir, baseName)
-	clientKeyFile := DefaultKeyFilename(o.ClientDir, baseName)
-	clientCopyOfCAFile := DefaultCAFilename(o.ClientDir, "ca")
-	kubeConfigFile := DefaultKubeConfigFilename(o.ClientDir, baseName)
+	clientCertFile := configutil.DefaultCertFilename(o.ClientDir, baseName)
+	clientKeyFile := configutil.DefaultKeyFilename(o.ClientDir, baseName)
+	clientCopyOfCAFile := configutil.DefaultCAFilename(o.ClientDir, "ca")
+	kubeConfigFile := configutil.DefaultKubeConfigFilename(o.ClientDir, baseName)
 
 	createClientCertOptions := CreateClientCertOptions{
 		SignerCertOptions: o.SignerCertOptions,

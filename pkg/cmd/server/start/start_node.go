@@ -22,12 +22,13 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/version"
 )
 
 type NodeOptions struct {
-	NodeArgs *NodeArgs
+	NodeArgs *configutil.NodeArgs
 
 	ConfigFile string
 	Output     io.Writer
@@ -82,12 +83,12 @@ func NewCommandStartNode(basename string, out io.Writer) (*cobra.Command, *NodeO
 
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the node configuration file to run from. When running from a configuration file, all other command-line arguments are ignored.")
 
-	options.NodeArgs = NewDefaultNodeArgs()
+	options.NodeArgs = configutil.NewDefaultNodeArgs()
 
-	BindNodeArgs(options.NodeArgs, flags, "")
-	BindListenArg(options.NodeArgs.ListenArg, flags, "")
-	BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
-	BindKubeConnectionArgs(options.NodeArgs.KubeConnectionArgs, flags, "")
+	configutil.BindNodeArgs(options.NodeArgs, flags, "")
+	configutil.BindListenArg(options.NodeArgs.ListenArg, flags, "")
+	configutil.BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
+	configutil.BindKubeConnectionArgs(options.NodeArgs.KubeConnectionArgs, flags, "")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("config", "yaml", "yml")
@@ -188,10 +189,10 @@ func (o NodeOptions) RunNode() error {
 }
 
 func (o NodeOptions) CreateNodeConfig() error {
-	getSignerOptions := &admin.SignerCertOptions{
-		CertFile:   admin.DefaultCertFilename(o.NodeArgs.MasterCertDir, "ca"),
-		KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.MasterCertDir, "ca"),
-		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.MasterCertDir, "ca"),
+	getSignerOptions := &configutil.SignerCertOptions{
+		CertFile:   configutil.DefaultCertFilename(o.NodeArgs.MasterCertDir, "ca"),
+		KeyFile:    configutil.DefaultKeyFilename(o.NodeArgs.MasterCertDir, "ca"),
+		SerialFile: configutil.DefaultSerialFilename(o.NodeArgs.MasterCertDir, "ca"),
 	}
 
 	var dnsIP string

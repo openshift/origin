@@ -23,6 +23,8 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
+
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -34,7 +36,7 @@ import (
 )
 
 type MasterOptions struct {
-	MasterArgs *MasterArgs
+	MasterArgs *configutil.MasterArgs
 
 	CreateCertificates bool
 	ConfigFile         string
@@ -103,7 +105,7 @@ func NewCommandStartMaster(basename string, out io.Writer) (*cobra.Command, *Mas
 		},
 	}
 
-	options.MasterArgs = NewDefaultMasterArgs()
+	options.MasterArgs = configutil.NewDefaultMasterArgs()
 	options.MasterArgs.StartAPI = true
 	options.MasterArgs.StartControllers = true
 	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
@@ -122,11 +124,11 @@ func NewCommandStartMaster(basename string, out io.Writer) (*cobra.Command, *Mas
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from. When running from a configuration file, all other command-line arguments are ignored.")
 	flags.BoolVar(&options.CreateCertificates, "create-certs", true, "Indicates whether missing certs should be created")
 
-	BindMasterArgs(options.MasterArgs, flags, "")
-	BindListenArg(options.MasterArgs.ListenArg, flags, "")
-	BindImageFormatArgs(options.MasterArgs.ImageFormatArgs, flags, "")
-	BindKubeConnectionArgs(options.MasterArgs.KubeConnectionArgs, flags, "")
-	BindNetworkArgs(options.MasterArgs.NetworkArgs, flags, "")
+	configutil.BindMasterArgs(options.MasterArgs, flags, "")
+	configutil.BindListenArg(options.MasterArgs.ListenArg, flags, "")
+	configutil.BindImageFormatArgs(options.MasterArgs.ImageFormatArgs, flags, "")
+	configutil.BindKubeConnectionArgs(options.MasterArgs.KubeConnectionArgs, flags, "")
+	configutil.BindNetworkArgs(options.MasterArgs.NetworkArgs, flags, "")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("write-config")
@@ -313,7 +315,7 @@ func (o MasterOptions) CreateCerts() error {
 		return err
 	}
 
-	signerName := admin.DefaultSignerName()
+	signerName := configutil.DefaultSignerName()
 	hostnames, err := o.MasterArgs.GetServerCertHostnames()
 	if err != nil {
 		return err

@@ -20,7 +20,8 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/cmd/server/admin"
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
+
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
@@ -28,7 +29,7 @@ import (
 type AllInOneOptions struct {
 	MasterOptions *MasterOptions
 
-	NodeArgs *NodeArgs
+	NodeArgs *configutil.NodeArgs
 
 	ConfigDir          util.StringFlag
 	NodeConfigFile     string
@@ -101,17 +102,17 @@ func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *A
 	flags.StringVar(&options.NodeConfigFile, "node-config", "", "Location of the node configuration file to run from. When running from configuration files, all other command-line arguments are ignored.")
 	flags.BoolVar(&options.MasterOptions.CreateCertificates, "create-certs", true, "Indicates whether missing certs should be created.")
 	flags.BoolVar(&options.PrintIP, "print-ip", false, "Print the IP that would be used if no master IP is specified and exit.")
-	flags.StringVar(&options.ServiceNetworkCIDR, "portal-net", NewDefaultNetworkArgs().ServiceNetworkCIDR, "The CIDR string representing the network that portal/service IPs will be assigned from. This must not overlap with any IP ranges assigned to nodes for pods.")
+	flags.StringVar(&options.ServiceNetworkCIDR, "portal-net", configutil.NewDefaultNetworkArgs().ServiceNetworkCIDR, "The CIDR string representing the network that portal/service IPs will be assigned from. This must not overlap with any IP ranges assigned to nodes for pods.")
 
 	masterArgs, nodeArgs, listenArg, imageFormatArgs, _ := GetAllInOneArgs()
 	options.MasterOptions.MasterArgs, options.NodeArgs = masterArgs, nodeArgs
 	// by default, all-in-ones all disabled docker.  Set it here so that if we allow it to be bound later, bindings take precedence
 	options.NodeArgs.AllowDisabledDocker = true
 
-	BindMasterArgs(masterArgs, flags, "")
-	BindNodeArgs(nodeArgs, flags, "")
-	BindListenArg(listenArg, flags, "")
-	BindImageFormatArgs(imageFormatArgs, flags, "")
+	configutil.BindMasterArgs(masterArgs, flags, "")
+	configutil.BindNodeArgs(nodeArgs, flags, "")
+	configutil.BindListenArg(listenArg, flags, "")
+	configutil.BindImageFormatArgs(imageFormatArgs, flags, "")
 
 	startMaster, _ := NewCommandStartMaster(basename, out)
 	startNode, _ := NewCommandStartNode(basename, out)
@@ -130,21 +131,21 @@ func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *A
 }
 
 // GetAllInOneArgs makes sure that the node and master args that should be shared, are shared
-func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *ListenArg, *ImageFormatArgs, *KubeConnectionArgs) {
-	masterArgs := NewDefaultMasterArgs()
+func GetAllInOneArgs() (*configutil.MasterArgs, *configutil.NodeArgs, *configutil.ListenArg, *configutil.ImageFormatArgs, *configutil.KubeConnectionArgs) {
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.StartAPI = true
 	masterArgs.StartControllers = true
-	nodeArgs := NewDefaultNodeArgs()
+	nodeArgs := configutil.NewDefaultNodeArgs()
 
-	listenArg := NewDefaultListenArg()
+	listenArg := configutil.NewDefaultListenArg()
 	masterArgs.ListenArg = listenArg
 	nodeArgs.ListenArg = listenArg
 
-	imageFormatArgs := NewDefaultImageFormatArgs()
+	imageFormatArgs := configutil.NewDefaultImageFormatArgs()
 	masterArgs.ImageFormatArgs = imageFormatArgs
 	nodeArgs.ImageFormatArgs = imageFormatArgs
 
-	kubeConnectionArgs := NewDefaultKubeConnectionArgs()
+	kubeConnectionArgs := configutil.NewDefaultKubeConnectionArgs()
 	masterArgs.KubeConnectionArgs = kubeConnectionArgs
 	nodeArgs.KubeConnectionArgs = kubeConnectionArgs
 
@@ -190,11 +191,11 @@ func (o AllInOneOptions) Validate(args []string) error {
 func (o *AllInOneOptions) Complete() error {
 	if o.ConfigDir.Provided() {
 		o.MasterOptions.MasterArgs.ConfigDir.Set(path.Join(o.ConfigDir.Value(), "master"))
-		o.NodeArgs.ConfigDir.Set(path.Join(o.ConfigDir.Value(), admin.DefaultNodeDir(o.NodeArgs.NodeName)))
+		o.NodeArgs.ConfigDir.Set(path.Join(o.ConfigDir.Value(), configutil.DefaultNodeDir(o.NodeArgs.NodeName)))
 	} else {
 		o.ConfigDir.Default("openshift.local.config")
 		o.MasterOptions.MasterArgs.ConfigDir.Default(path.Join(o.ConfigDir.Value(), "master"))
-		o.NodeArgs.ConfigDir.Default(path.Join(o.ConfigDir.Value(), admin.DefaultNodeDir(o.NodeArgs.NodeName)))
+		o.NodeArgs.ConfigDir.Default(path.Join(o.ConfigDir.Value(), configutil.DefaultNodeDir(o.NodeArgs.NodeName)))
 	}
 
 	nodeList := sets.NewString(strings.ToLower(o.NodeArgs.NodeName))
