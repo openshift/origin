@@ -6,7 +6,14 @@
 set -o errexit
 set -o nounset
 set -o pipefail
-set -o xtrace
+
+if [[ "${OPENSHIFT_QUIET_OUTPUT:-false}" != "true" ]]; then
+  set -o xtrace
+  export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+fi
+
+# Ensure that subshells inherit bash settings (specifically xtrace)
+export SHELLOPTS
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
@@ -17,7 +24,7 @@ os::log::install_errexit
 NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 
-CLUSTER_CMD="bash -x ${OS_ROOT}/hack/dind-cluster.sh"
+CLUSTER_CMD="${OS_ROOT}/hack/dind-cluster.sh"
 
 # Control variable to limit unnecessary cleanup
 DIND_CLEANUP_REQUIRED=0

@@ -64,6 +64,13 @@ DIND_MANAGEMENT_SCRIPT=true
 
 source $(dirname "${BASH_SOURCE}")/../contrib/vagrant/provision-config.sh
 
+# Enable xtrace for container script invocations if it is enabled
+# for this script.
+BASH_CMD=
+if [ "$(set | grep xtrace)" ]; then
+    BASH_CMD="bash -x"
+fi
+
 DOCKER_CMD=${DOCKER_CMD:-"sudo docker"}
 
 # Override the default CONFIG_ROOT path with one that is
@@ -121,6 +128,13 @@ function get-docker-ip() {
   ${DOCKER_CMD} inspect --format '{{ .NetworkSettings.IPAddress }}' "${cid}"
 }
 
+function docker-exec-script() {
+    local cid=$1
+    local cmd=$2
+
+    ${DOCKER_CMD} exec -t "${cid}" ${BASH_CMD} ${cmd}
+}
+
 function start() {
   # docker-in-docker's use of volumes is not compatible with SELinux
   check-selinux
@@ -168,8 +182,10 @@ function start() {
   fi
 
   echo "Provisioning ${MASTER_NAME}"
-  ${DOCKER_CMD} exec -t "${master_cid}" bash -c \
-    "${SCRIPT_ROOT}/provision-master.sh ${args} -c ${DEPLOYED_CONFIG_ROOT}"
+  local cmd="${SCRIPT_ROOT}/provision-master.sh ${args} -c \
+${DEPLOYED_CONFIG_ROOT}"
+  docker-exec-script "${master_cid}" "${cmd}"
+
   if [ "${DEPLOY_SSH}" = "true" ]; then
     ${DOCKER_CMD} exec -t "${master_cid}" ssh-keygen -N '' -q -f /root/.ssh/id_rsa
     cmd="cat /root/.ssh/id_rsa.pub"
@@ -191,9 +207,10 @@ function start() {
     local cid="${node_cids[$i]}"
     local name="${NODE_NAMES[$i]}"
     echo "Provisioning ${name}"
-    ${DOCKER_CMD} exec "${cid}" bash -c \
-      "${SCRIPT_ROOT}/provision-node.sh ${args} -i ${node_index} -c \
+    cmd="${SCRIPT_ROOT}/provision-node.sh ${args} -i ${node_index} -c \
 ${DEPLOYED_CONFIG_ROOT}"
+    docker-exec-script "${cid}" "${cmd}"
+
     if [ "${DEPLOY_SSH}" = "true" ]; then
       ${DOCKER_CMD} exec -t "${cid}" mkdir -p /root/.ssh
       cmd="echo ${public_key} > /root/.ssh/authorized_keys"

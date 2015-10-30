@@ -4,6 +4,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# Set a useful format for xtrace output
+# export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+
 ORIGIN_ROOT=$(
   unset CDPATH
   origin_root=$(dirname "${BASH_SOURCE}")/../..
