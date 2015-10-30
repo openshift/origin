@@ -95,17 +95,18 @@ type TLSConfig struct {
 	// termination this file should be provided in order to have routers use it for health checks on the secure connection
 	DestinationCACertificate string `json:"destinationCACertificate,omitempty" description:"provides the contents of the ca certificate of the final destination.  When using re-encrypt termination this file should be provided in order to have routers use it for health checks on the secure connection"`
 
-	// Insecure indicates the desired behavior for insecure connections
-	// to an edge-terminated route: expose, redirect or disable.
-	Insecure TLSInsecureType `json:"insecure,omitempty" description:"indicates desired behavior for insecure connections to an edge-terminated route.  If not set, insecure connections will not be allowed"`
+	// InsecureEdgeTerminationPolicy indicates the desired behavior for
+	// insecure connections to an edge-terminated route:
+	//   disable, allow or redirect
+	InsecureEdgeTerminationPolicy InsecureEdgeTerminationPolicyType `json:"insecureEdgeTerminationPolicy,omitempty" description:"indicates desired behavior for insecure connections to an edge-terminated route.  If not set, insecure connections will not be allowed"`
 }
 
 // TLSTerminationType dictates where the secure communication will stop
 type TLSTerminationType string
 
-// TLSInsecureType dictates the behavior of insecure connections to an
-// edge-terminated route.
-type TLSInsecureType string
+// InsecureEdgeTerminationPolicyType dictates the behavior of insecure
+// connections to an edge-terminated route.
+type InsecureEdgeTerminationPolicyType string
 
 const (
 	// TLSTerminationEdge terminate encryption at the edge router.
@@ -115,10 +116,12 @@ const (
 	// TLSTerminationReencrypt terminate encryption at the edge router and re-encrypt it with a new certificate supplied by the destination
 	TLSTerminationReencrypt TLSTerminationType = "reencrypt"
 
-	// TLSInsecureDisable disables insecure connections for an edge-terminated route.
-	TLSInsecureDisable TLSInsecureType = "disable"
-	// TLSInsecureExpose allows insecure connections for an edge-terminated route.
-	TLSInsecureExpose TLSInsecureType = "expose"
-	// TLSInsecureRedirect redirects insecure connections for an edge-terminated route.
-	TLSInsecureRedirect TLSInsecureType = "redirect"
+	// InsecureEdgeTerminationPolicyNone disables insecure connections for an edge-terminated route.
+	InsecureEdgeTerminationPolicyNone InsecureEdgeTerminationPolicyType = "none"
+	// InsecureEdgeTerminationPolicyAllow allows insecure connections for an edge-terminated route.
+	InsecureEdgeTerminationPolicyAllow InsecureEdgeTerminationPolicyType = "allow"
+	// InsecureEdgeTerminationPolicyRedirect redirects insecure connections for an edge-terminated route.
+	// As an example, for routers that support HTTP and HTTPS, the
+	// insecure HTTP connections will be redirected to use HTTPS.
+	InsecureEdgeTerminationPolicyRedirect InsecureEdgeTerminationPolicyType = "redirect"
 )
