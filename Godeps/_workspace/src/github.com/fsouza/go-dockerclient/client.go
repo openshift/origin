@@ -572,12 +572,6 @@ func (c *Client) hijack(method, path string, hijackOptions hijackOptions) error 
 		params = bytes.NewBuffer(buf)
 	}
 
-	if hijackOptions.stdout == nil {
-		hijackOptions.stdout = ioutil.Discard
-	}
-	if hijackOptions.stderr == nil {
-		hijackOptions.stderr = ioutil.Discard
-	}
 	req, err := http.NewRequest(method, c.getURL(path), params)
 	if err != nil {
 		return err
@@ -622,6 +616,16 @@ func (c *Client) hijack(method, path string, hijackOptions hijackOptions) error 
 				}
 			}
 		}()
+
+		if hijackOptions.stdout == nil && hijackOptions.stderr == nil {
+			// only copy if hijackOptions.stdout and/or hijackOptions.stderr is actually set,
+			// otherwise, if the only stream you care about is stdin, your attach session
+			// will "hang" until the container terminates, even though you're not reading
+			// stdout/stderr
+			errChanOut <- nil
+			return
+		}
+
 		var err error
 		if hijackOptions.setRawTerminal {
 			_, err = io.Copy(hijackOptions.stdout, br)
