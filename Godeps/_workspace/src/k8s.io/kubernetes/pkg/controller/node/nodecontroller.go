@@ -329,7 +329,8 @@ func (nc *NodeController) maybeDeleteTerminatingPod(obj interface{}) {
 	// guarantee backwards compatibility of master API to kubelets with
 	// versions less than 1.1.0
 	node := nodeObj.(*api.Node)
-	if strings.HasPrefix(node.Status.NodeInfo.KubeletVersion, "v1.0") {
+	if strings.HasPrefix(node.Status.NodeInfo.KubeletVersion, "v1.0") ||
+		strings.HasPrefix(node.Status.NodeInfo.KubeletVersion, "v1.1.0-alpha") {
 		nc.forcefullyDeletePod(pod)
 		return
 	}
