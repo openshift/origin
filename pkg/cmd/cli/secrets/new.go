@@ -62,6 +62,8 @@ type CreateSecretOptions struct {
 
 	// Controls whether to output warnings
 	Quiet bool
+
+	AllowUnknownTypes bool
 }
 
 func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -96,6 +98,7 @@ func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writ
 	}
 
 	cmd.Flags().BoolVarP(&options.Quiet, "quiet", "q", options.Quiet, "Suppress warnings")
+	cmd.Flags().BoolVar(&options.AllowUnknownTypes, "confirm", options.AllowUnknownTypes, "Allow unknown secret types.")
 	cmd.Flags().StringVar(&options.SecretTypeName, "type", "", "The type of secret")
 	cmdutil.AddPrinterFlags(cmd)
 
@@ -143,18 +146,22 @@ func (o *CreateSecretOptions) Validate() error {
 		return errors.New("at least one source file or directory must be specified")
 	}
 
-nameCheck:
-	switch o.SecretTypeName {
-	case string(kapi.SecretTypeOpaque), "":
-		// this is ok
-	default:
-		// TODO this probably isn't a good idea.  It limits the power of this command.  Maybe allow unknown names with a force?
-		for _, secretType := range KnownSecretTypes {
-			if o.SecretTypeName == string(secretType.Type) {
-				break nameCheck
+	if !o.AllowUnknownTypes {
+		switch o.SecretTypeName {
+		case string(kapi.SecretTypeOpaque), "":
+			// this is ok
+		default:
+			found := false
+			for _, secretType := range KnownSecretTypes {
+				if o.SecretTypeName == string(secretType.Type) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return fmt.Errorf("unknown secret type %q; use --confirm to use it anyway", o.SecretTypeName)
 			}
 		}
-		return fmt.Errorf("unknown secret type: %v", o.SecretTypeName)
 	}
 
 	return nil
