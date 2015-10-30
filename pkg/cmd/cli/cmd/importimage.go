@@ -83,22 +83,12 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 			Spec:       imageapi.ImageStreamSpec{DockerImageRepository: from},
 		}
 	} else {
-		if len(stream.Spec.DockerImageRepository) == 0 {
-			if len(from) == 0 {
-				return fmt.Errorf("only image streams with spec.dockerImageRepository set may have images imported")
-			}
-			if !confirm {
-				return fmt.Errorf("the image stream already has an import repository set, pass --confirm to update")
-			}
-			stream.Spec.DockerImageRepository = from
-		} else {
-			if len(from) != 0 {
-				if from != stream.Spec.DockerImageRepository {
-					if !confirm {
-						return fmt.Errorf("the image stream has a different import spec %q, pass --confirm to update", stream.Spec.DockerImageRepository)
-					}
-					stream.Spec.DockerImageRepository = from
+		if len(from) != 0 {
+			if from != stream.Spec.DockerImageRepository {
+				if !confirm {
+					return fmt.Errorf("the image stream has a different import spec %q, pass --confirm to update", stream.Spec.DockerImageRepository)
 				}
+				stream.Spec.DockerImageRepository = from
 			}
 		}
 	}
