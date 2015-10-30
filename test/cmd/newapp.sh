@@ -18,8 +18,12 @@ oc create -f examples/image-streams/image-streams-centos7.json
 [ "$(oc new-app mongo -o yaml | grep library/mongo)" ]
 # the local image repository takes precedence over the Docker Hub "mysql" image
 tryuntil oc get imagestreamtags mysql:latest
+tryuntil oc get imagestreamtags mysql:5.5
+tryuntil oc get imagestreamtags mysql:5.6
 [ "$(oc new-app mysql -o yaml | grep mysql)" ]
 tryuntil oc get imagestreamtags php:latest
+tryuntil oc get imagestreamtags php:5.5
+tryuntil oc get imagestreamtags php:5.6
 
 # check label creation
 oc new-app php mysql -l no-source=php-mysql
@@ -38,14 +42,14 @@ oc get template ruby-helloworld-sample
 [ "$(oc new-app ruby-helloworld-sample -o yaml | grep ADMIN_PASSWORD)" ]
 
 # check search
-[ "$(oc new-app --search mysql | grep mysql-55-centos7)" ]
+[ "$(oc new-app --search mysql | grep -E "Tags:\s+5.5, 5.6, latest")" ]
 [ "$(oc new-app --search ruby-helloworld-sample | grep ruby-helloworld-sample)" ]
 # check search - partial matches
 [ "$(oc new-app --search ruby-hellow | grep ruby-helloworld-sample)" ]
 [ "$(oc new-app --search --template=ruby-hel | grep ruby-helloworld-sample)" ]
 [ "$(oc new-app --search --template=ruby-helloworld-sam -o yaml | grep ruby-helloworld-sample)" ]
-[ "$(oc new-app --search rub | grep openshift/ruby-20-centos7)" ]
-[ "$(oc new-app --search --image-stream=rub | grep openshift/ruby-20-centos7)" ]
+[ "$(oc new-app --search rub | grep -E "Tags:\s+2.0, 2.2, latest")" ]
+[ "$(oc new-app --search --image-stream=rub | grep -E "Tags:\s+2.0, 2.2, latest")" ]
 # check search - check correct usage of filters
 [ ! "$(oc new-app --search --image-stream=ruby-heloworld-sample | grep application-template-stibuild)" ]
 [ ! "$(oc new-app --search --template=mongodb)" ]
@@ -53,15 +57,15 @@ oc get template ruby-helloworld-sample
 [ ! "$(oc new-app -S --template=nodejs)" ]
 [ ! "$(oc new-app -S --template=perl)" ]
 # check search - filtered, exact matches
-[ "$(oc new-app --search --image-stream=mongodb | grep openshift/mongodb-24-centos7)" ]
-[ "$(oc new-app --search --image-stream=mysql | grep openshift/mysql-55-centos7)" ]
-[ "$(oc new-app --search --image-stream=nodejs | grep openshift/nodejs-010-centos7)" ]
-[ "$(oc new-app --search --image-stream=perl | grep openshift/perl-516-centos7)" ]
-[ "$(oc new-app --search --image-stream=php | grep openshift/php-55-centos7)" ]
-[ "$(oc new-app --search --image-stream=postgresql | grep openshift/postgresql-92-centos7)" ]
-[ "$(oc new-app -S --image-stream=python | grep openshift/python-33-centos7)" ]
-[ "$(oc new-app -S --image-stream=ruby | grep openshift/ruby-20-centos7)" ]
-[ "$(oc new-app -S --image-stream=wildfly | grep openshift/wildfly-81-centos7)" ]
+[ "$(oc new-app --search --image-stream=mongodb | grep -E "Tags:\s+2.4, 2.6, latest")" ]
+[ "$(oc new-app --search --image-stream=mysql | grep -E "Tags:\s+5.5, 5.6, latest")" ]
+[ "$(oc new-app --search --image-stream=nodejs | grep -E "Tags:\s+0.10, latest")" ]
+[ "$(oc new-app --search --image-stream=perl | grep -E "Tags:\s+5.16, 5.20, latest")" ]
+[ "$(oc new-app --search --image-stream=php | grep -E "Tags:\s+5.5, 5.6, latest")" ]
+[ "$(oc new-app --search --image-stream=postgresql | grep -E "Tags:\s+9.2, 9.4, latest")" ]
+[ "$(oc new-app -S --image-stream=python | grep -E "Tags:\s+2.7, 3.3, 3.4, latest")" ]
+[ "$(oc new-app -S --image-stream=ruby | grep -E "Tags:\s+2.0, 2.2, latest")" ]
+[ "$(oc new-app -S --image-stream=wildfly | grep -E "Tags:\s+8.1, latest")" ]
 [ "$(oc new-app --search --template=ruby-helloworld-sample | grep ruby-helloworld-sample)" ]
 # check search - no matches
 [ "$(oc new-app -S foo-the-bar 2>&1 | grep 'no matches found')" ]

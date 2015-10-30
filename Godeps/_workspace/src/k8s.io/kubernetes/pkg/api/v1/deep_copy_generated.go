@@ -1525,6 +1525,40 @@ func deepCopy_v1_PodProxyOptions(in PodProxyOptions, out *PodProxyOptions, c *co
 }
 
 func deepCopy_v1_PodSecurityContext(in PodSecurityContext, out *PodSecurityContext, c *conversion.Cloner) error {
+	if in.SELinuxOptions != nil {
+		out.SELinuxOptions = new(SELinuxOptions)
+		if err := deepCopy_v1_SELinuxOptions(*in.SELinuxOptions, out.SELinuxOptions, c); err != nil {
+			return err
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	if in.RunAsUser != nil {
+		out.RunAsUser = new(int64)
+		*out.RunAsUser = *in.RunAsUser
+	} else {
+		out.RunAsUser = nil
+	}
+	if in.RunAsNonRoot != nil {
+		out.RunAsNonRoot = new(bool)
+		*out.RunAsNonRoot = *in.RunAsNonRoot
+	} else {
+		out.RunAsNonRoot = nil
+	}
+	if in.SupplementalGroups != nil {
+		out.SupplementalGroups = make([]int64, len(in.SupplementalGroups))
+		for i := range in.SupplementalGroups {
+			out.SupplementalGroups[i] = in.SupplementalGroups[i]
+		}
+	} else {
+		out.SupplementalGroups = nil
+	}
+	if in.FSGroup != nil {
+		out.FSGroup = new(int64)
+		*out.FSGroup = *in.FSGroup
+	} else {
+		out.FSGroup = nil
+	}
 	return nil
 }
 
@@ -2080,7 +2114,12 @@ func deepCopy_v1_SecurityContext(in SecurityContext, out *SecurityContext, c *co
 	} else {
 		out.RunAsUser = nil
 	}
-	out.RunAsNonRoot = in.RunAsNonRoot
+	if in.RunAsNonRoot != nil {
+		out.RunAsNonRoot = new(bool)
+		*out.RunAsNonRoot = *in.RunAsNonRoot
+	} else {
+		out.RunAsNonRoot = nil
+	}
 	return nil
 }
 

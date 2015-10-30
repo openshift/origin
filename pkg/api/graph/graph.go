@@ -28,7 +28,7 @@ func (n Node) DOTAttributes() []dot.Attribute {
 // The graph needs something in that location to track the information we have about the node, but the
 // backing object doesn't exist.
 type ExistenceChecker interface {
-	// Found returns true if the node represents an object that we don't have the backing object for
+	// Found returns false if the node represents an object that we don't have the backing object for
 	Found() bool
 }
 

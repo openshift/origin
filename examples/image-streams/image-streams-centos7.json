@@ -11,10 +11,13 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/ruby-20-centos7",
         "tags": [
           {
-            "name": "latest"
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "2.0"
+            }
           },
           {
             "name": "2.0",
@@ -27,8 +30,23 @@
               "sampleRepo": "https://github.com/openshift/ruby-ex.git"
             },
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "latest"
+              "Kind": "DockerImage",
+              "Name": "openshift/ruby-20-centos7:latest"
+            }
+          },
+          {
+            "name": "2.2",
+            "annotations": {
+              "description": "Build and run Ruby 2.2 applications",
+              "iconClass": "icon-ruby",
+              "tags": "builder,ruby",
+              "supports": "ruby:2.2,ruby",
+              "version": "2.2",
+              "sampleRepo": "https://github.com/openshift/ruby-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "centos/ruby-22-centos7:latest"
             }
           }
         ]
@@ -42,10 +60,13 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/nodejs-010-centos7",
         "tags": [
           {
-            "name": "latest"
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "0.10"
+            }
           },
           {
             "name": "0.10",
@@ -58,8 +79,8 @@
               "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
             },
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "latest"
+              "Kind": "DockerImage",
+              "Name": "openshift/nodejs-010-centos7:latest"
             }
           }
         ]
@@ -73,10 +94,13 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/perl-516-centos7",
         "tags": [
           {
-            "name": "latest"
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "5.16"
+            }
           },
           {
             "name": "5.16",
@@ -89,9 +113,25 @@
               "sampleRepo": "https://github.com/openshift/dancer-ex.git"
             },
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "latest"
+              "Kind": "DockerImage",
+              "Name": "openshift/perl-516-centos7:latest"
             }
+          },
+          {
+            "name": "5.20",
+            "annotations": {
+              "description": "Build and run Perl 5.20 applications",
+              "iconClass": "icon-perl",
+              "tags": "builder,perl",
+              "supports":"perl:5.20,perl",
+              "version": "5.20",
+              "sampleRepo": "https://github.com/openshift/dancer-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "centos/perl-520-centos7:latest"
+            }
+
           }
         ]
       }
@@ -104,10 +144,13 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/php-55-centos7",
         "tags": [
           {
-            "name": "latest"
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "5.5"
+            }
           },
           {
             "name": "5.5",
@@ -120,8 +163,23 @@
               "sampleRepo": "https://github.com/openshift/cakephp-ex.git"
             },
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "latest"
+              "Kind": "DockerImage",
+              "Name": "openshift/php-55-centos7:latest"
+            }
+          },
+          {
+            "name": "5.6",
+            "annotations": {
+              "description": "Build and run PHP 5.6 applications",
+              "iconClass": "icon-php",
+              "tags": "builder,php",
+              "supports":"php:5.6,php",
+              "version": "5.6",
+              "sampleRepo": "https://github.com/openshift/cakephp-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "centos/php-56-centos7:latest"
             }
           }
         ]
@@ -135,10 +193,13 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/python-33-centos7",
         "tags": [
           {
-            "name": "latest"
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "3.3"
+            }
           },
           {
             "name": "3.3",
@@ -151,8 +212,38 @@
               "sampleRepo": "https://github.com/openshift/django-ex.git"
             },
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "latest"
+              "Kind": "DockerImage",
+              "Name": "openshift/python-33-centos7:latest"
+            }
+          },
+          {
+            "name": "2.7",
+            "annotations": {
+              "description": "Build and run Python 2.7 applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python:2.7,python",
+              "version": "2.7",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "centos/python-27-centos7:latest"
+            }
+          },
+          {
+            "name": "3.4",
+            "annotations": {
+              "description": "Build and run Python 3.4 applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python:3.4,python",
+              "version": "3.4",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "centos/python-34-centos7:latest"
             }
           }
         ]
@@ -166,10 +257,13 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/wildfly-81-centos7",
         "tags": [
           {
-            "name": "latest"
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "8.1"
+            }
           },
           {
             "name": "8.1",
@@ -182,8 +276,8 @@
               "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
             },
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "latest"
+              "Kind": "DockerImage",
+              "Name": "openshift/wildfly-81-centos7:latest"
             }
           }
         ]
@@ -197,16 +291,26 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/mysql-55-centos7",
         "tags": [
           {
-            "name": "latest"
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "5.5"
+            }
           },
           {
             "name": "5.5",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "latest"
+              "Kind": "DockerImage",
+              "Name": "openshift/mysql-55-centos7:latest"
+            }
+          },
+          {
+            "name": "5.6",
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "centos/mysql-56-centos7:latest"
             }
           }
         ]
@@ -220,16 +324,26 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/postgresql-92-centos7",
         "tags": [
           {
-            "name": "latest"
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "9.2"
+            }
           },
           {
             "name": "9.2",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "latest"
+              "Kind": "DockerImage",
+              "Name": "openshift/postgresql-92-centos7:latest"
+            }
+          },
+          {
+            "name": "9.4",
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "centos/postgresql-94-centos7:latest"
             }
           }
         ]
@@ -243,16 +357,26 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/mongodb-24-centos7",
         "tags": [
           {
-            "name": "latest"
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "2.4"
+            }
           },
           {
             "name": "2.4",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "latest"
+              "Kind": "DockerImage",
+              "Name": "openshift/mongodb-24-centos7:latest"
+            }
+          },
+          {
+            "name": "2.6",
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "centos/mongodb-26-centos7:latest"
             }
           }
         ]
@@ -266,16 +390,19 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/jenkins-1-centos7",
         "tags": [
           {
-            "name": "latest"
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "1"
+            }
           },
           {
             "name": "1",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "latest"
+              "Kind": "DockerImage",
+              "Name": "openshift/jenkins-1-centos7:latest"
             }
           }
         ]

@@ -663,6 +663,9 @@ Process a template into list of resources
   # Convert stored template into resource list
   $ openshift cli process foo
 
+  # Convert template stored in different namespace into a resource list
+  $ openshift cli process openshift//foo
+
   # Convert template.json into resource list
   $ cat template.json | openshift cli process -f -
 

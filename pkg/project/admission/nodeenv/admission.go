@@ -21,17 +21,18 @@ func init() {
 
 // podNodeEnvironment is an implementation of admission.Interface.
 type podNodeEnvironment struct {
+	*admission.Handler
 	client client.Interface
 }
 
 // Admit enforces that pod and its project node label selectors matches at least a node in the cluster.
 func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
-	// ignore anything except create or update of pods
-	if !(a.GetOperation() == admission.Create || a.GetOperation() == admission.Update) {
-		return nil
-	}
 	resource := a.GetResource()
 	if resource != "pods" {
+		return nil
+	}
+	if a.GetSubresource() != "" {
+		// only run the checks below on pods proper and not subresources
 		return nil
 	}
 
@@ -66,12 +67,9 @@ func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
 	return nil
 }
 
-func (p *podNodeEnvironment) Handles(operation admission.Operation) bool {
-	return operation == admission.Create || operation == admission.Update
-}
-
 func NewPodNodeEnvironment(client client.Interface) (admission.Interface, error) {
 	return &podNodeEnvironment{
-		client: client,
+		Handler: admission.NewHandler(admission.Create),
+		client:  client,
 	}, nil
 }

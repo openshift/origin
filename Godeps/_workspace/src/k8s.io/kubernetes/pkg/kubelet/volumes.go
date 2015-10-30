@@ -114,6 +114,12 @@ func (kl *Kubelet) mountExternalVolumes(pod *api.Pod) (kubecontainer.VolumeMap, 
 	podVolumes := make(kubecontainer.VolumeMap)
 	for i := range pod.Spec.Volumes {
 		volSpec := &pod.Spec.Volumes[i]
+		hasFSGroup := false
+		var fsGroup int64 = 0
+		if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.FSGroup != nil {
+			hasFSGroup = true
+			fsGroup = *pod.Spec.SecurityContext.FSGroup
+		}
 
 		rootContext, err := kl.getRootDirContext()
 		if err != nil {
@@ -134,7 +140,13 @@ func (kl *Kubelet) mountExternalVolumes(pod *api.Pod) (kubecontainer.VolumeMap, 
 		if err != nil {
 			return nil, err
 		}
-		podVolumes[volSpec.Name] = builder
+		if hasFSGroup && builder.SupportsOwnershipManagement() && !builder.IsReadOnly() {
+			err := kl.manageVolumeOwnership(pod, internal, builder, fsGroup)
+			if err != nil {
+				return nil, err
+			}
+		}
+		podVolumes[volSpec.Name] = kubecontainer.VolumeInfo{Builder: builder}
 	}
 	return podVolumes, nil
 }

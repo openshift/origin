@@ -25,12 +25,6 @@ import (
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
-const (
-	// noOutputDefaultTag is used as the tag name for docker built images that will
-	// not be pushed because no Output value was defined in the BuildConfig
-	noOutputDefaultTag = "no_repo/no_output_default_tag"
-)
-
 // DockerBuilder builds Docker images given a git repository URL
 type DockerBuilder struct {
 	dockerClient DockerClient
@@ -53,6 +47,8 @@ func NewDockerBuilder(dockerClient DockerClient, build *api.Build) *DockerBuilde
 
 // Build executes a Docker build
 func (d *DockerBuilder) Build() error {
+	var push bool
+
 	buildDir, err := ioutil.TempDir("", "docker-build")
 	if err != nil {
 		return err
@@ -64,16 +60,10 @@ func (d *DockerBuilder) Build() error {
 		return err
 	}
 	glog.V(4).Infof("Starting Docker build from build config %s ...", d.build.Name)
-	var push bool
-
 	// if there is no output target, set one up so the docker build logic
-	// will still work, but we won't push it at the end.
+	// (which requires a tag) will still work, but we won't push it at the end.
 	if d.build.Spec.Output.To == nil || len(d.build.Spec.Output.To.Name) == 0 {
-		d.build.Spec.Output.To = &kapi.ObjectReference{
-			Kind: "DockerImage",
-			Name: noOutputDefaultTag,
-		}
-		push = false
+		d.build.Status.OutputDockerImageReference = d.build.Name
 	} else {
 		push = true
 	}
@@ -82,19 +72,19 @@ func (d *DockerBuilder) Build() error {
 		return err
 	}
 
-	defer removeImage(d.dockerClient, d.build.Spec.Output.To.Name)
+	defer removeImage(d.dockerClient, d.build.Status.OutputDockerImageReference)
 
 	if push {
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
-			d.build.Spec.Output.To.Name,
+			d.build.Status.OutputDockerImageReference,
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
 			glog.V(4).Infof("Authenticating Docker push with user %q", pushAuthConfig.Username)
 		}
-		glog.Infof("Pushing image %s ...", d.build.Spec.Output.To.Name)
-		if err := pushImage(d.dockerClient, d.build.Spec.Output.To.Name, pushAuthConfig); err != nil {
+		glog.Infof("Pushing image %s ...", d.build.Status.OutputDockerImageReference)
+		if err := pushImage(d.dockerClient, d.build.Status.OutputDockerImageReference, pushAuthConfig); err != nil {
 			return fmt.Errorf("Failed to push image: %v", err)
 		}
 		glog.Infof("Push successful")
@@ -222,7 +212,7 @@ func (d *DockerBuilder) dockerBuild(dir string) error {
 	if err != nil {
 		return err
 	}
-	return buildImage(d.dockerClient, dir, noCache, d.build.Spec.Output.To.Name, d.tar, auth, forcePull)
+	return buildImage(d.dockerClient, dir, noCache, d.build.Status.OutputDockerImageReference, d.tar, auth, forcePull)
 }
 
 // replaceLastFrom changes the last FROM instruction of node to point to the

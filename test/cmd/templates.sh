@@ -11,7 +11,7 @@ os::log::install_errexit
 # This test validates template commands
 
 oc get templates
-oc create -f examples/sample-app/application-template-dockerbuild.json
+oc create -f examples/sample-app/application-template-dockerbuild.json 
 oc get templates
 oc get templates ruby-helloworld-sample
 oc get template ruby-helloworld-sample -o json | oc process -f -
@@ -27,3 +27,14 @@ oc process -f test/templates/fixtures/guestbook.json -l app=guestbook | oc creat
 oc status
 [ "$(oc status | grep frontend-service)" ]
 echo "template+config: ok"
+
+oc create -f examples/sample-app/application-template-dockerbuild.json -n openshift
+oc policy add-role-to-user admin test-user
+oc login -u test-user -p password
+oc new-project test-template-project
+oc create -f examples/sample-app/application-template-dockerbuild.json
+oc process template/ruby-helloworld-sample >/dev/null
+oc process templates/ruby-helloworld-sample > /dev/null
+oc process openshift//ruby-helloworld-sample > /dev/null
+oc process openshift/template/ruby-helloworld-sample >/dev/null
+echo "processing templates in different namespace: ok"

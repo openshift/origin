@@ -156,6 +156,10 @@ type iscsiDiskBuilder struct {
 
 var _ volume.Builder = &iscsiDiskBuilder{}
 
+func (_ *iscsiDiskBuilder) SupportsOwnershipManagement() bool {
+	return true
+}
+
 func (b *iscsiDiskBuilder) SetUp() error {
 	return b.SetUpAt(b.GetPath())
 }
@@ -177,6 +181,10 @@ var _ volume.Cleaner = &iscsiDiskCleaner{}
 
 func (b *iscsiDiskBuilder) IsReadOnly() bool {
 	return b.readOnly
+}
+
+func (b *iscsiDiskBuilder) SupportsSELinux() bool {
+	return true
 }
 
 // Unmounts the bind mount, and detaches the disk only if the disk

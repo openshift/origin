@@ -607,11 +607,11 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
         if (item && item.metadata.name === name) {
           self._watchObjectCallbacks(resource, name, context).fire(item, event);
         }
-        else {
-          // Otherwise see if we can find the item we care about in the list
+        else if (!item) {
+          // Otherwise its an initial listing, see if we can find the item we care about in the list
           var itemsByName = items.by("metadata.name");
           if (itemsByName[name]) {
-            self._watchObjectCallbacks(resource, name, context).fire(itemsByName[name], event);
+            self._watchObjectCallbacks(resource, name, context).fire(itemsByName[name]);
           }
         }
       };

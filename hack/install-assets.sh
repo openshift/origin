@@ -58,7 +58,7 @@ pushd ${OS_ROOT}/assets > /dev/null
 
   # In case upstream components change things without incrementing versions
   cmd "bower cache clean --allow-root"
-  cmd "bower install --allow-root"
+  cmd "bower update --allow-root"
 
   cmd "rm -rf openshift-jvm"
   cmd "mkdir -p openshift-jvm"

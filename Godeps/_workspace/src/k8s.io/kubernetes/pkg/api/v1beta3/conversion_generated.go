@@ -1965,7 +1965,12 @@ func convert_api_SecurityContext_To_v1beta3_SecurityContext(in *api.SecurityCont
 	} else {
 		out.RunAsUser = nil
 	}
-	out.RunAsNonRoot = in.RunAsNonRoot
+	if in.RunAsNonRoot != nil {
+		out.RunAsNonRoot = new(bool)
+		*out.RunAsNonRoot = *in.RunAsNonRoot
+	} else {
+		out.RunAsNonRoot = nil
+	}
 	return nil
 }
 
@@ -4185,7 +4190,12 @@ func convert_v1beta3_SecurityContext_To_api_SecurityContext(in *SecurityContext,
 	} else {
 		out.RunAsUser = nil
 	}
-	out.RunAsNonRoot = in.RunAsNonRoot
+	if in.RunAsNonRoot != nil {
+		out.RunAsNonRoot = new(bool)
+		*out.RunAsNonRoot = *in.RunAsNonRoot
+	} else {
+		out.RunAsNonRoot = nil
+	}
 	return nil
 }
 

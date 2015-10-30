@@ -369,8 +369,16 @@ func TestHandleBuild(t *testing.T) {
 		if tc.imageClient != nil {
 			ctrl.ImageStreamClient = tc.imageClient
 		}
+		// create a copy of the build before passing it to HandleBuild
+		// so that we can compare it later to see if it was mutated
+		copy, err := kapi.Scheme.Copy(build)
 
-		err := ctrl.HandleBuild(build)
+		if err != nil {
+			t.Errorf("(%d) Failed to copy build: %#v with err: %#v", i, build, err)
+			continue
+		}
+		originalBuild := copy.(*buildapi.Build)
+		err = ctrl.HandleBuild(build)
 
 		// ensure we return an error for cases where expected output is an error.
 		// these will be retried by the retrycontroller
@@ -390,11 +398,18 @@ func TestHandleBuild(t *testing.T) {
 		if tc.inStatus != buildapi.BuildPhaseError && build.Status.Phase == buildapi.BuildPhaseError && len(build.Status.Message) == 0 {
 			t.Errorf("(%d) errored build should set message: %#v", i, build)
 		}
+
+		if !reflect.DeepEqual(build.Spec, originalBuild.Spec) {
+			t.Errorf("(%d) build.Spec mutated: expected %#v, got %#v", i, originalBuild.Spec, build.Spec)
+		}
+
 		if len(tc.outputSpec) != 0 {
 			build := ctrl.BuildStrategy.(*okStrategy).build
+
 			if build.Spec.Output.To.Name != tc.outputSpec {
 				t.Errorf("(%d) expected build sent to strategy to have docker spec %s, got %s", i, tc.outputSpec, build.Spec.Output.To.Name)
 			}
+
 			if build.Status.OutputDockerImageReference != tc.outputSpec {
 				t.Errorf("(%d) expected build status to have OutputDockerImageReference %s, got %s", i, tc.outputSpec, build.Status.OutputDockerImageReference)
 			}
