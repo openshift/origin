@@ -1262,7 +1262,35 @@ func autoconvert_api_BuildLogOptions_To_v1_BuildLogOptions(in *buildapi.BuildLog
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
 	}
+	out.Container = in.Container
 	out.Follow = in.Follow
+	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		if err := s.Convert(&in.SinceTime, &out.SinceTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	out.NoWait = in.NoWait
 	return nil
 }
@@ -1947,7 +1975,35 @@ func autoconvert_v1_BuildLogOptions_To_api_BuildLogOptions(in *apiv1.BuildLogOpt
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
 	}
+	out.Container = in.Container
 	out.Follow = in.Follow
+	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		if err := s.Convert(&in.SinceTime, &out.SinceTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	out.NoWait = in.NoWait
 	return nil
 }
@@ -2539,7 +2595,35 @@ func autoconvert_api_DeploymentLogOptions_To_v1_DeploymentLogOptions(in *deploya
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
 	}
+	out.Container = in.Container
 	out.Follow = in.Follow
+	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		if err := s.Convert(&in.SinceTime, &out.SinceTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	out.NoWait = in.NoWait
 	if in.Version != nil {
 		out.Version = new(int)
@@ -2652,7 +2736,35 @@ func autoconvert_v1_DeploymentLogOptions_To_api_DeploymentLogOptions(in *deploya
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
 	}
+	out.Container = in.Container
 	out.Follow = in.Follow
+	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		if err := s.Convert(&in.SinceTime, &out.SinceTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	out.NoWait = in.NoWait
 	if in.Version != nil {
 		out.Version = new(int)

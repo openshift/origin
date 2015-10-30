@@ -43,6 +43,7 @@ func init() {
 	Validator.Register(&buildapi.Build{}, buildvalidation.ValidateBuild, buildvalidation.ValidateBuildUpdate)
 	Validator.Register(&buildapi.BuildConfig{}, buildvalidation.ValidateBuildConfig, buildvalidation.ValidateBuildConfigUpdate)
 	Validator.Register(&buildapi.BuildRequest{}, buildvalidation.ValidateBuildRequest, nil)
+	Validator.Register(&buildapi.BuildLogOptions{}, buildvalidation.ValidateBuildLogOptions, nil)
 
 	Validator.Register(&deployapi.DeploymentConfig{}, deployvalidation.ValidateDeploymentConfig, deployvalidation.ValidateDeploymentConfigUpdate)
 	Validator.Register(&deployapi.DeploymentConfigRollback{}, deployvalidation.ValidateDeploymentConfigRollback, nil)

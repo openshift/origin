@@ -81,7 +81,6 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 	if cmdutil.GetFlagBool(cmd, "dump-logs") {
 		opts := buildapi.BuildLogOptions{
 			NoWait: true,
-			Follow: false,
 		}
 		response, err := client.BuildLogs(namespace).Get(buildName, opts).Do().Raw()
 		if err != nil {

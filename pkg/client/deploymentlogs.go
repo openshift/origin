@@ -1,8 +1,7 @@
 package client
 
 import (
-	"fmt"
-
+	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"github.com/openshift/origin/pkg/deploy/api"
@@ -34,15 +33,5 @@ func newDeploymentLogs(c *Client, namespace string) *deploymentLogs {
 
 // Get gets the deploymentlogs and return a deploymentLog request
 func (c *deploymentLogs) Get(name string, opts api.DeploymentLogOptions) *kclient.Request {
-	req := c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).SubResource("log")
-	if opts.NoWait {
-		req.Param("nowait", "true")
-	}
-	if opts.Follow {
-		req.Param("follow", "true")
-	}
-	if opts.Version != nil {
-		req.Param("version", fmt.Sprintf("%d", *opts.Version))
-	}
-	return req
+	return c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).SubResource("log").VersionedParams(&opts, kapi.Scheme)
 }

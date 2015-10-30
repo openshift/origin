@@ -338,11 +338,13 @@ func IsValidPercent(percent string) bool {
 const isNegativeErrorMsg string = `must be non-negative`
 
 func ValidateDeploymentLogOptions(opts *deployapi.DeploymentLogOptions) fielderrors.ValidationErrorList {
-	errs := fielderrors.ValidationErrorList{}
+	allErrs := fielderrors.ValidationErrorList{}
 
-	if opts.Version != nil && *opts.Version <= 0 {
-		errs = append(errs, fielderrors.NewFieldInvalid("version", *opts.Version, "deployment version must be greater than 0"))
+	// TODO: Replace by validating PodLogOptions via DeploymentLogOptions once it's bundled in
+	popts := deployapi.DeploymentToPodLogOptions(opts)
+	if errs := validation.ValidatePodLogOptions(popts); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
 	}
 
-	return errs
+	return allErrs
 }
