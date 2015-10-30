@@ -1,15 +1,9 @@
 <div column flex ng-if="links">
-  <div row mobile="column" class="log-timestamp" ng-if="start">
-    <span row>
-      <span>Current log from &nbsp;</span>
-      <span flex class="text-right">{{start}}</span>
-    </span>
-    <span row ng-if="end">
-      <span>&nbsp;to&nbsp;</span>
-      <span flex class="text-right">{{end}}</span>
-    </span>
+  <div row class="log-timestamp" ng-if="start">
+    <span>Current log from {{start}}&nbsp;</span>
+    <span ng-if="end">to {{end}}</span>
   </div>
-  <div sm="column" md="row">
+  <div row flex sm="column">
     <div flex row tablet="column" main-axis="end">
       <div ng-transclude flex></div>
       <div row main-axis="end" cross-axis="end" class="log-link-external">
