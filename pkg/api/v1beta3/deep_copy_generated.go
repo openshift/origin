@@ -1888,6 +1888,30 @@ func deepCopy_v1beta3_ImageStreamTag(in imageapiv1beta3.ImageStreamTag, out *ima
 	return nil
 }
 
+func deepCopy_v1beta3_ImageStreamTagList(in imageapiv1beta3.ImageStreamTagList, out *imageapiv1beta3.ImageStreamTagList, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
+		return err
+	} else {
+		out.ListMeta = newVal.(unversioned.ListMeta)
+	}
+	if in.Items != nil {
+		out.Items = make([]imageapiv1beta3.ImageStreamTag, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_v1beta3_ImageStreamTag(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func deepCopy_v1beta3_NamedTagEventList(in imageapiv1beta3.NamedTagEventList, out *imageapiv1beta3.NamedTagEventList, c *conversion.Cloner) error {
 	out.Tag = in.Tag
 	if in.Items != nil {
@@ -2774,6 +2798,7 @@ func init() {
 		deepCopy_v1beta3_ImageStreamSpec,
 		deepCopy_v1beta3_ImageStreamStatus,
 		deepCopy_v1beta3_ImageStreamTag,
+		deepCopy_v1beta3_ImageStreamTagList,
 		deepCopy_v1beta3_NamedTagEventList,
 		deepCopy_v1beta3_NamedTagReference,
 		deepCopy_v1beta3_TagEvent,

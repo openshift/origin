@@ -47,6 +47,11 @@ oc create -f examples/image-streams/image-streams-centos7.json
 # verify the image repository had its tags populated
 tryuntil oc get imagestreamtags wildfly:latest
 [ -n "$(oc get imageStreams wildfly --template="{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
+oc get istag | grep -q "wildfly"
+oc annotate istag/wildfly:latest foo=bar
+oc get istag/wildfly:latest -o jsonpath={.metadata.annotations.foo} | grep -q "bar"
+oc annotate istag/wildfly:latest foo-
+[ ! "$(oc get istag/wildfly:latest -o jsonpath={.metadata.annotations} | grep -q 'bar')" ]
 oc delete imageStreams ruby
 oc delete imageStreams nodejs
 oc delete imageStreams wildfly

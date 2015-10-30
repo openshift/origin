@@ -164,11 +164,13 @@ func TestGetImageStreamTag(t *testing.T) {
 			},
 		},
 		"image = ''": {
-			repo: &api.ImageStream{Status: api.ImageStreamStatus{
-				Tags: map[string]api.TagEventList{
-					"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: ""}}},
-				},
-			}},
+			repo: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "test"},
+				Status: api.ImageStreamStatus{
+					Tags: map[string]api.TagEventList{
+						"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: ""}}},
+					},
+				}},
 			expectError:     true,
 			errorTargetKind: "imageStreamTag",
 			errorTargetID:   "test:latest",
@@ -190,11 +192,13 @@ func TestGetImageStreamTag(t *testing.T) {
 		},
 		"missing tag": {
 			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
-			repo: &api.ImageStream{Status: api.ImageStreamStatus{
-				Tags: map[string]api.TagEventList{
-					"other": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
-				},
-			}},
+			repo: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "test"},
+				Status: api.ImageStreamStatus{
+					Tags: map[string]api.TagEventList{
+						"other": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
+					},
+				}},
 			expectError:     true,
 			errorTargetKind: "imageStreamTag",
 			errorTargetID:   "test:latest",
