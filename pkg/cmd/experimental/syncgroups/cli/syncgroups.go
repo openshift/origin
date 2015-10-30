@@ -86,7 +86,7 @@ type SyncGroupsOptions struct {
 	// Blacklist are the names of OpenShift group or LDAP group UIDs to exclude
 	Blacklist []string
 
-	// Confirm determines whether not to write to openshift
+	// Confirm determines whether or not to write to OpenShift
 	Confirm bool
 
 	// GroupsInterface is the interface used to interact with OpenShift Group objects
@@ -144,7 +144,7 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 
 	cmd.Flags().StringVar(&whitelistFile, "whitelist", whitelistFile, "path to the group whitelist file")
 	cmd.Flags().StringVar(&blacklistFile, "blacklist", whitelistFile, "path to the group blacklist file")
-	// TODO enable this we're able to support string slice elements that have commas
+	// TODO(deads): enable this once we're able to support string slice elements that have commas
 	// cmd.Flags().StringSliceVar(&options.Blacklist, "blacklist-group", options.Blacklist, "group to blacklist")
 	cmd.Flags().StringVar(&configFile, "sync-config", configFile, "path to the sync config")
 	cmd.Flags().StringVar(&typeArg, "type", typeArg, "type of group used to locate LDAP group UIDs: "+strings.Join(AllowedSourceTypes, ","))

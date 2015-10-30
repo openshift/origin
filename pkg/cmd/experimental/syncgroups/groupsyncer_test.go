@@ -324,39 +324,53 @@ func newTestSyncer() (*LDAPGroupSyncer, *testclient.Fake) {
 		return true, updateAction.GetObject(), nil
 	})
 
-	testGroupLister := TestGroupLister{
+	return &LDAPGroupSyncer{
+		GroupLister:          newTestLister(),
+		GroupMemberExtractor: newTestMemberExtractor(),
+		UserNameMapper:       newTestUserNameMapper(),
+		GroupNameMapper:      newTestGroupNameMapper(),
+		GroupClient:          tc.Groups(),
+		Host:                 newTestHost(),
+		Out:                  ioutil.Discard,
+		Err:                  ioutil.Discard,
+	}, tc
+
+}
+
+func newTestHost() string {
+	return "test.host:port"
+}
+
+func newTestLister() interfaces.LDAPGroupLister {
+	return &TestGroupLister{
 		GroupUIDs: []string{Group1UID, Group2UID, Group3UID},
 	}
-	testGroupMemberExtractor := TestGroupMemberExtractor{
+}
+
+func newTestMemberExtractor() interfaces.LDAPMemberExtractor {
+	return &TestGroupMemberExtractor{
 		MemberMapping: map[string][]*ldap.Entry{
 			Group1UID: Group1Members,
 			Group2UID: Group2Members,
 			Group3UID: Group3Members,
 		},
 	}
-	testUserNameMapper := TestUserNameMapper{
+}
+
+func newTestUserNameMapper() interfaces.LDAPUserNameMapper {
+	return &TestUserNameMapper{
 		NameAttributes: []string{UserNameAttribute},
 	}
-	testGroupNameMapper := TestGroupNameMapper{
+}
+
+func newTestGroupNameMapper() interfaces.LDAPGroupNameMapper {
+	return &TestGroupNameMapper{
 		NameMapping: map[string]string{
 			Group1UID: "os" + Group1UID,
 			Group2UID: "os" + Group2UID,
 			Group3UID: "os" + Group3UID,
 		},
 	}
-	testHost := "test.host:port"
-
-	return &LDAPGroupSyncer{
-		GroupLister:          &testGroupLister,
-		GroupMemberExtractor: &testGroupMemberExtractor,
-		UserNameMapper:       &testUserNameMapper,
-		GroupNameMapper:      &testGroupNameMapper,
-		GroupClient:          tc.Groups(),
-		Host:                 testHost,
-		Out:                  ioutil.Discard,
-		Err:                  ioutil.Discard,
-	}, tc
-
 }
 
 // The following stub implementations allow us to build a test LDAPGroupSyncer
@@ -397,8 +411,7 @@ type TestUserNameMapper struct {
 func (m *TestUserNameMapper) UserNameFor(user *ldap.Entry) (string, error) {
 	openShiftUserName := ldaputil.GetAttributeValue(user, m.NameAttributes)
 	if len(openShiftUserName) == 0 {
-		return "", fmt.Errorf("the user entry (%v) does not map to a OpenShift User name with the given mapping",
-			user)
+		return "", fmt.Errorf("the user entry (%v) does not map to a OpenShift User name with the given mapping", user)
 	}
 	return openShiftUserName, nil
 }
