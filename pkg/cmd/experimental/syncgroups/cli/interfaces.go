@@ -13,6 +13,13 @@ type SyncBuilder interface {
 	GetGroupMemberExtractor() (interfaces.LDAPMemberExtractor, error)
 }
 
+// PruneBuilder describes an object that can build all the schema-specific parts of an LDAPGroupPruner
+type PruneBuilder interface {
+	GetGroupLister() (interfaces.LDAPGroupLister, error)
+	GetGroupNameMapper() (interfaces.LDAPGroupNameMapper, error)
+	GetGroupDetector() (interfaces.LDAPGroupDetector, error)
+}
+
 // GroupNameRestrictions desribes an object that holds blacklists and whitelists
 type GroupNameRestrictions interface {
 	GetWhitelist() []string

@@ -5264,6 +5264,25 @@ _openshift_ex_sync-groups()
     must_have_one_noun=()
 }
 
+_openshift_ex_prune-groups()
+{
+    last_command="openshift_ex_prune-groups"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--blacklist=")
+    flags+=("--confirm")
+    flags+=("--sync-config=")
+    flags+=("--whitelist=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_ex_options()
 {
     last_command="openshift_ex_options"
@@ -5289,6 +5308,7 @@ _openshift_ex()
     commands+=("build-chain")
     commands+=("diagnostics")
     commands+=("sync-groups")
+    commands+=("prune-groups")
     commands+=("options")
 
     flags=()
