@@ -97,11 +97,16 @@ angular.module('openshiftConsole')
           logs: [],
           logsLoading: true,
           canShowDownload: false,
-          canInitAgain: false,
-          options: {
-            container: $scope.pod.spec.containers[0].name
-          }
+          canInitAgain: false
         });
+
+        if (!$scope.options || !$scope.options.container) {
+          angular.extend($scope, {
+            options: {
+              container: $scope.pod.spec.containers[0].name
+            }
+          });
+        }
 
         // TODO: clean up service / $scope stuff...
         streamer = DataService.createStream('pods/log',$routeParams.pod, $scope, $scope.options);
