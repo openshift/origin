@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
 	"reflect"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -41,6 +42,62 @@ func addConversionFuncs() {
 		convert_api_VolumeSource_To_v1beta1_VolumeSource,
 		convert_v1beta1_VolumeSource_To_api_VolumeSource,
 	)
+	if err != nil {
+		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
+	}
+
+	err = api.Scheme.AddFieldLabelConversionFunc("v1beta1", "DaemonSet",
+		func(label, value string) (string, string, error) {
+			switch label {
+			case "metadata.name", "metadata.namespace":
+				return label, value, nil
+			default:
+				return "", "", fmt.Errorf("field label not supported: %s", label)
+			}
+		})
+	if err != nil {
+		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
+	}
+
+	err = api.Scheme.AddFieldLabelConversionFunc("v1beta1", "Deployment",
+		func(label, value string) (string, string, error) {
+			switch label {
+			case "metadata.name", "metadata.namespace":
+				return label, value, nil
+			default:
+				return "", "", fmt.Errorf("field label not supported: %s", label)
+			}
+		})
+	if err != nil {
+		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
+	}
+
+	err = api.Scheme.AddFieldLabelConversionFunc("v1beta1", "Ingress",
+		func(label, value string) (string, string, error) {
+			switch label {
+			case "metadata.name", "metadata.namespace":
+				return label, value, nil
+			default:
+				return "", "", fmt.Errorf("field label not supported: %s", label)
+			}
+		})
+	if err != nil {
+		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
+	}
+
+	err = api.Scheme.AddFieldLabelConversionFunc("v1beta1", "Job",
+		func(label, value string) (string, string, error) {
+			switch label {
+			case "metadata.name", "metadata.namespace", "status.successful":
+				return label, value, nil
+			default:
+				return "", "", fmt.Errorf("field label not supported: %s", label)
+			}
+		})
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)

@@ -18,13 +18,30 @@ package api_test
 
 import (
 	"io/ioutil"
-	"strings"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/controller"
+	"k8s.io/kubernetes/pkg/registry/daemonset"
+	"k8s.io/kubernetes/pkg/registry/deployment"
+	"k8s.io/kubernetes/pkg/registry/horizontalpodautoscaler"
+	"k8s.io/kubernetes/pkg/registry/ingress"
+	"k8s.io/kubernetes/pkg/registry/job"
+	"k8s.io/kubernetes/pkg/registry/limitrange"
 	"k8s.io/kubernetes/pkg/registry/namespace"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/registry/node"
+	"k8s.io/kubernetes/pkg/registry/persistentvolume"
+	"k8s.io/kubernetes/pkg/registry/persistentvolumeclaim"
+	"k8s.io/kubernetes/pkg/registry/pod"
+	"k8s.io/kubernetes/pkg/registry/podtemplate"
+	"k8s.io/kubernetes/pkg/registry/resourcequota"
+	"k8s.io/kubernetes/pkg/registry/secret"
+	"k8s.io/kubernetes/pkg/registry/serviceaccount"
+	"k8s.io/kubernetes/pkg/registry/thirdpartyresource"
+	"k8s.io/kubernetes/pkg/registry/thirdpartyresourcedata"
 )
 
 func BenchmarkPodConversion(b *testing.B) {
@@ -111,58 +128,88 @@ func BenchmarkReplicationControllerConversion(b *testing.B) {
 	}
 }
 
-func TestNamespaceFieldLabelConversion(t *testing.T) {
-	ns := &api.Namespace{
-		ObjectMeta: api.ObjectMeta{
-			Name: "ns",
-		},
-		Status: api.NamespaceStatus{
-			Phase: api.NamespaceActive,
-		},
-	}
-
-	testCases := []struct {
-		label      string
-		value      string
-		shouldFail bool
+// TestSelectableFieldLabelConversions verifies that each resource have field
+// label conversion defined for each its selectable field.
+func TestSelectableFieldLabelConversions(t *testing.T) {
+	kindFields := []struct {
+		apiVersion      string
+		kind            string
+		namespaceScoped bool
+		fields          labels.Set
+		// labelMap maps deprecated labels to their canonical names
+		labelMap map[string]string
 	}{
-		// good cases
-		{"metadata.name", "ns", false},
-		{"name", "ns", false},
-		{"status.phase", string(api.NamespaceActive), false},
-		// bad cases
-		{".name", "", true},
-		{"metadata", "", true},
-		{"phase", "", true},
-		{"status", "", true},
+		{testapi.Default.Version(), "LimitRange", true, labels.Set(limitrange.LimitRangeToSelectableFields(&api.LimitRange{})), nil},
+		{testapi.Default.Version(), "Namespace", false, namespace.NamespaceToSelectableFields(&api.Namespace{}), map[string]string{"name": "metadata.name"}},
+		{testapi.Default.Version(), "Node", false, labels.Set(node.NodeToSelectableFields(&api.Node{})), nil},
+		{testapi.Default.Version(), "PersistentVolume", false, persistentvolume.PersistentVolumeToSelectableFields(&api.PersistentVolume{}), map[string]string{"name": "metadata.name"}},
+		{testapi.Default.Version(), "PersistentVolumeClaim", true, persistentvolumeclaim.PersistentVolumeClaimToSelectableFields(&api.PersistentVolumeClaim{}), map[string]string{"name": "metadata.name"}},
+		{testapi.Default.Version(), "Pod", true, labels.Set(pod.PodToSelectableFields(&api.Pod{})), nil},
+		{testapi.Default.Version(), "PodTemplate", true, labels.Set(podtemplate.PodTemplateToSelectableFields(&api.PodTemplate{})), nil},
+		{testapi.Default.Version(), "ReplicationController", true, labels.Set(controller.ControllerToSelectableFields(&api.ReplicationController{})), nil},
+		{testapi.Default.Version(), "ResourceQuota", true, resourcequota.ResourceQuotaToSelectableFields(&api.ResourceQuota{}), nil},
+		{testapi.Default.Version(), "Secret", true, secret.SelectableFields(&api.Secret{}), nil},
+		{testapi.Default.Version(), "ServiceAccount", true, serviceaccount.SelectableFields(&api.ServiceAccount{}), nil},
+
+		{testapi.Extensions.Version(), "Autoscaler", true, labels.Set(horizontalpodautoscaler.AutoscalerToSelectableFields(&extensions.HorizontalPodAutoscaler{})), nil},
+		{testapi.Extensions.Version(), "DaemonSet", true, labels.Set(daemonset.DaemonSetToSelectableFields(&extensions.DaemonSet{})), nil},
+		{testapi.Extensions.Version(), "Deployment", true, labels.Set(deployment.DeploymentToSelectableFields(&extensions.Deployment{})), nil},
+		{testapi.Extensions.Version(), "Ingress", true, labels.Set(ingress.IngressToSelectableFields(&extensions.Ingress{})), nil},
+		{testapi.Extensions.Version(), "Job", true, labels.Set(job.JobToSelectableFields(&extensions.Job{})), nil},
+		{testapi.Extensions.Version(), "ThirdPartyResource", true, thirdpartyresource.SelectableFields(&extensions.ThirdPartyResource{}), nil},
+		{testapi.Extensions.Version(), "ThirdPartyResourceData", true, thirdpartyresourcedata.SelectableFields(&extensions.ThirdPartyResourceData{}), nil},
 	}
 
-	labels := namespace.NamespaceToSelectableFields(ns)
-	lSet := sets.NewString()
-	for l := range labels {
-		lSet.Insert(l)
+	// re-test all v1 kinds with v1beta3 conversion functions
+	kindFieldsLen := len(kindFields)
+	for i := 0; i < kindFieldsLen; i++ {
+		if kindFields[i].apiVersion == testapi.Default.Version() {
+			kfs := kindFields[i]
+			kfs.apiVersion = "v1beta3"
+			kindFields = append(kindFields, kfs)
+		}
 	}
 
-	for _, apiVersion := range []string{"v1", "v1beta3"} {
-		for _, ts := range testCases {
-			newLabel, newValue, err := api.Scheme.ConvertFieldLabel(apiVersion, "Namespace", ts.label, ts.value)
-			if ts.shouldFail && err == nil {
-				t.Errorf("%s %s: got unexpected non-error", apiVersion, ts.label)
-			} else if !ts.shouldFail && err != nil {
-				t.Errorf("%s %s: got unexpected error: %v", apiVersion, ts.label, err)
-			} else if !ts.shouldFail {
-				if newLabel != ts.label {
-					t.Errorf("%s %s: got unexpected label name %q", apiVersion, ts.label, newLabel)
+	badFieldLabels := []string{
+		".name",
+		"bad",
+		"metadata",
+		"foo.bar",
+	}
+
+	value := "value"
+
+	for _, kfs := range kindFields {
+		if len(kfs.fields) == 0 {
+			t.Logf("no selectable fields for kind %q, skipping", kfs.kind)
+		}
+		for label := range kfs.fields {
+			if !kfs.namespaceScoped && label == "metadata.namespace" {
+				// FIXME: SelectableFields() shouldn't return "metadata.namespace" for cluster scoped resources
+				continue
+			}
+			newLabel, newValue, err := api.Scheme.ConvertFieldLabel(kfs.apiVersion, kfs.kind, label, value)
+			if err != nil {
+				t.Errorf("%s kind=%s label=%s: got unexpected error: %v", kfs.apiVersion, kfs.kind, label, err)
+			} else {
+				expectedLabel := label
+				if l, exists := kfs.labelMap[label]; exists {
+					expectedLabel = l
 				}
-				if newValue != ts.value {
-					t.Errorf("%s %s: got unexpected new value (%q != %q)", apiVersion, ts.label, newValue, ts.value)
+				if newLabel != expectedLabel {
+					t.Errorf("%s kind=%s label=%s: got unexpected label name (%q != %q)", kfs.apiVersion, kfs.kind, label, newLabel, expectedLabel)
+				}
+				if newValue != value {
+					t.Errorf("%s kind=%s label=%s: got unexpected new value (%q != %q)", kfs.apiVersion, kfs.kind, label, newValue, value)
 				}
 			}
-			lSet.Delete(ts.label)
 		}
 
-		if len(lSet) > 0 {
-			t.Errorf("%s untested fields: %s", apiVersion, strings.Join(lSet.List(), ", "))
+		for _, label := range badFieldLabels {
+			_, _, err := api.Scheme.ConvertFieldLabel(kfs.apiVersion, kfs.kind, label, "value")
+			if err == nil {
+				t.Errorf("%s kind=%s label=%s: got unexpected non-error", kfs.apiVersion, kfs.kind, label)
+			}
 		}
 	}
 }
