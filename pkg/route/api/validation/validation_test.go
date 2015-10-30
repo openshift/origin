@@ -369,7 +369,7 @@ func TestValidateTLS(t *testing.T) {
 	}
 }
 
-func TestValidateTLSInsecure(t *testing.T) {
+func TestValidateTLSInsecureEdgeTerminationPolicy(t *testing.T) {
 	tests := []struct {
 		name  string
 		route *api.Route
@@ -397,10 +397,10 @@ func TestValidateTLSInsecure(t *testing.T) {
 		},
 	}
 
-	insecureTypes := []api.TLSInsecureType{
-		api.TLSInsecureDisable,
-		api.TLSInsecureExpose,
-		api.TLSInsecureRedirect,
+	insecureTypes := []api.InsecureEdgeTerminationPolicyType{
+		api.InsecureEdgeTerminationPolicyNone,
+		api.InsecureEdgeTerminationPolicyAllow,
+		api.InsecureEdgeTerminationPolicyRedirect,
 		"support HTTPsec",
 		"or maybe HSTS",
 	}
@@ -411,14 +411,14 @@ func TestValidateTLSInsecure(t *testing.T) {
 				tc.name, len(errs), errs)
 		}
 
-		tc.route.Spec.TLS.Insecure = ""
+		tc.route.Spec.TLS.InsecureEdgeTerminationPolicy = ""
 		if errs := validateTLS(tc.route); len(errs) != 0 {
 			t.Errorf("Test case %s got %d errors where none were expected. %v",
 				tc.name, len(errs), errs)
 		}
 
 		for _, val := range insecureTypes {
-			tc.route.Spec.TLS.Insecure = val
+			tc.route.Spec.TLS.InsecureEdgeTerminationPolicy = val
 			if errs := validateTLS(tc.route); len(errs) != 1 {
 				t.Errorf("Test case %s with insecure=%q got %d errors where one was expected. %v",
 					tc.name, val, len(errs), errs)
@@ -427,10 +427,10 @@ func TestValidateTLSInsecure(t *testing.T) {
 	}
 }
 
-func TestValidateTLSEdgeInsecure(t *testing.T) {
+func TestValidateInsecureEdgeTerminationPolicy(t *testing.T) {
 	tests := []struct {
 		name           string
-		insecure       api.TLSInsecureType
+		insecure       api.InsecureEdgeTerminationPolicyType
 		expectedErrors int
 	}{
 		{
@@ -444,22 +444,22 @@ func TestValidateTLSEdgeInsecure(t *testing.T) {
 			expectedErrors: 1,
 		},
 		{
-			name:           "disabled insecure option",
-			insecure:       api.TLSInsecureDisable,
+			name:           "insecure option none",
+			insecure:       api.InsecureEdgeTerminationPolicyNone,
 			expectedErrors: 0,
 		},
 		{
-			name:           "exposed insecure option",
-			insecure:       api.TLSInsecureExpose,
+			name:           "insecure option allow",
+			insecure:       api.InsecureEdgeTerminationPolicyAllow,
 			expectedErrors: 0,
 		},
 		{
-			name:           "redirected insecure option",
-			insecure:       api.TLSInsecureRedirect,
+			name:           "insecure option redirect",
+			insecure:       api.InsecureEdgeTerminationPolicyRedirect,
 			expectedErrors: 0,
 		},
 		{
-			name:           "other insecure option",
+			name:           "insecure option other",
 			insecure:       "something else",
 			expectedErrors: 1,
 		},
@@ -469,8 +469,8 @@ func TestValidateTLSEdgeInsecure(t *testing.T) {
 		route := &api.Route{
 			Spec: api.RouteSpec{
 				TLS: &api.TLSConfig{
-					Termination: api.TLSTerminationEdge,
-					Insecure:    tc.insecure,
+					Termination:                   api.TLSTerminationEdge,
+					InsecureEdgeTerminationPolicy: tc.insecure,
 				},
 			},
 		}
@@ -482,11 +482,11 @@ func TestValidateTLSEdgeInsecure(t *testing.T) {
 	}
 }
 
-func TestValidateTLSNoTerminationInsecure(t *testing.T) {
-	insecureTypes := []api.TLSInsecureType{
-		api.TLSInsecureDisable,
-		api.TLSInsecureExpose,
-		api.TLSInsecureRedirect,
+func TestValidateNoTLSInsecureEdgeTerminationPolicy(t *testing.T) {
+	insecureTypes := []api.InsecureEdgeTerminationPolicyType{
+		api.InsecureEdgeTerminationPolicyNone,
+		api.InsecureEdgeTerminationPolicyAllow,
+		api.InsecureEdgeTerminationPolicyRedirect,
 		"support HTTPsec",
 		"or maybe HSTS",
 	}
@@ -495,8 +495,8 @@ func TestValidateTLSNoTerminationInsecure(t *testing.T) {
 		route := &api.Route{
 			Spec: api.RouteSpec{
 				TLS: &api.TLSConfig{
-					Termination: "",
-					Insecure:    val,
+					Termination:                   "",
+					InsecureEdgeTerminationPolicy: val,
 				},
 			},
 		}

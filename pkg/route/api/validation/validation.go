@@ -113,7 +113,7 @@ func validateTLS(route *routeapi.Route) fielderrors.ValidationErrorList {
 		result = append(result, fielderrors.NewFieldInvalid("termination", tls.Termination, msg))
 	}
 
-	if err := validateTLSInsecure(tls); err != nil {
+	if err := validateInsecureEdgeTerminationPolicy(tls); err != nil {
 		result = append(result, err)
 	}
 
@@ -141,33 +141,31 @@ func validateNoDoubleEscapes(tls *routeapi.TLSConfig) fielderrors.ValidationErro
 	return allErrs
 }
 
-// validateTLSInsecure tests fields for different types of insecure options.
-// Called by validateTLS.
-func validateTLSInsecure(tls *routeapi.TLSConfig) *fielderrors.ValidationError {
+// validateInsecureEdgeTerminationPolicy tests fields for different types of
+// insecure options. Called by validateTLS.
+func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig) *fielderrors.ValidationError {
 	// Check insecure option value if specified (empty is ok).
-	if tls == nil || tls.Insecure == "" {
+	if len(tls.InsecureEdgeTerminationPolicy) == 0 {
 		return nil
 	}
 
 	// Ensure insecure is set only for edge terminated routes.
 	if routeapi.TLSTerminationEdge != tls.Termination {
-		// tls.Insecure option is not supported for a non edge-terminated routes.
-		msg := fmt.Sprintf("invalid value %s for insecure option - insecure is only supported for edge-terminated routes", tls.Insecure)
-		return fielderrors.NewFieldInvalid("insecure", tls.Insecure, msg)
+		// tls.InsecureEdgeTerminationPolicy option is not supported for a non edge-terminated routes.
+		return fielderrors.NewFieldInvalid("InsecureEdgeTerminationPolicy", tls.InsecureEdgeTerminationPolicy, "InsecureEdgeTerminationPolicy is only allowed for edge-terminated routes")
 	}
 
 	// It is an edge-terminated route, check insecure option value is
-	// one of Disable/Expose/Redirect.
-	switch tls.Insecure {
-	case routeapi.TLSInsecureDisable:
-		// disable insecure routes.
-	case routeapi.TLSInsecureExpose:
-		// expose insecure routes.
-	case routeapi.TLSInsecureRedirect:
-		// redirect insecure routes.
-	default:
-		msg := fmt.Sprintf("invalid value for insecure option, acceptable values are %s, %s, %s, or empty", routeapi.TLSInsecureDisable, routeapi.TLSInsecureExpose, routeapi.TLSInsecureRedirect)
-		return fielderrors.NewFieldInvalid("insecure", tls.Insecure, msg)
+	// one of none(or disable), allow or redirect.
+	allowedValues := map[routeapi.InsecureEdgeTerminationPolicyType]bool{
+		routeapi.InsecureEdgeTerminationPolicyNone:     true,
+		routeapi.InsecureEdgeTerminationPolicyAllow:    true,
+		routeapi.InsecureEdgeTerminationPolicyRedirect: true,
+	}
+
+	if _, ok := allowedValues[tls.InsecureEdgeTerminationPolicy]; !ok {
+		msg := fmt.Sprintf("invalid value for InsecureEdgeTerminationPolicy option, acceptable values are %s, %s, %s, or empty", routeapi.InsecureEdgeTerminationPolicyNone, routeapi.InsecureEdgeTerminationPolicyAllow, routeapi.InsecureEdgeTerminationPolicyRedirect)
+		return fielderrors.NewFieldInvalid("InsecureEdgeTerminationPolicy", tls.InsecureEdgeTerminationPolicy, msg)
 	}
 
 	return nil

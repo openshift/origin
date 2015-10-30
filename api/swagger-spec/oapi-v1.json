@@ -17967,7 +17967,7 @@
       "type": "string",
       "description": "provides the contents of the ca certificate of the final destination.  When using re-encrypt termination this file should be provided in order to have routers use it for health checks on the secure connection"
      },
-     "insecure": {
+     "insecureEdgeTerminationPolicy": {
       "type": "string",
       "description": "indicates desired behavior for insecure connections to an edge-terminated route.  If not set, insecure connections will not be allowed"
      }

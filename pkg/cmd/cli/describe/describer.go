@@ -569,13 +569,13 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 		formatString(out, "Service", route.Spec.To.Name)
 
 		tlsTerm := ""
-		tlsInsecure := ""
+		insecurePolicy := ""
 		if route.Spec.TLS != nil {
 			tlsTerm = string(route.Spec.TLS.Termination)
-			tlsInsecure = string(route.Spec.TLS.Insecure)
+			insecurePolicy = string(route.Spec.TLS.InsecureEdgeTerminationPolicy)
 		}
 		formatString(out, "TLS Termination", tlsTerm)
-		formatString(out, "Insecure", tlsInsecure)
+		formatString(out, "Insecure Policy", insecurePolicy)
 		return nil
 	})
 }
