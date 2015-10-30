@@ -112,11 +112,11 @@ const (
 	TLSTerminationReencrypt TLSTerminationType = "reencrypt"
 
 	// InsecureEdgeTerminationPolicyNone disables insecure connections for an edge-terminated route.
-	InsecureEdgeTerminationPolicyNone InsecureEdgeTerminationPolicyType = "none"
+	InsecureEdgeTerminationPolicyNone InsecureEdgeTerminationPolicyType = "None"
 	// InsecureEdgeTerminationPolicyAllow allows insecure connections for an edge-terminated route.
-	InsecureEdgeTerminationPolicyAllow InsecureEdgeTerminationPolicyType = "allow"
+	InsecureEdgeTerminationPolicyAllow InsecureEdgeTerminationPolicyType = "Allow"
 	// InsecureEdgeTerminationPolicyRedirect redirects insecure connections for an edge-terminated route.
 	// As an example, for routers that support HTTP and HTTPS, the
 	// insecure HTTP connections will be redirected to use HTTPS.
-	InsecureEdgeTerminationPolicyRedirect InsecureEdgeTerminationPolicyType = "redirect"
+	InsecureEdgeTerminationPolicyRedirect InsecureEdgeTerminationPolicyType = "Redirect"
 )

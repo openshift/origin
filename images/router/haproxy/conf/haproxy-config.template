@@ -279,7 +279,7 @@ backend be_secure_{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_edge_http_expose.map" }}
 {{   range $id, $serviceUnit := .State }}
 {{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
-{{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "allow"))}}
+{{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "Allow"))}}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
 {{       end }}
 {{     end }}
@@ -294,7 +294,7 @@ backend be_secure_{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_edge_http_redirect.map" }}
 {{   range $id, $serviceUnit := .State }}
 {{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
-{{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "redirect"))}}
+{{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "Redirect"))}}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
 {{       end }}
 {{     end }}
