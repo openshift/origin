@@ -19,7 +19,8 @@ import (
 
 // GroupSyncer runs a Sync job on Groups
 type GroupSyncer interface {
-	Sync() (errors []error)
+	// Sync syncs groups in OpenShift with records from an external source
+	Sync() (groupsAffected []*userapi.Group, errors []error)
 }
 
 // LDAPGroupSyncer sync Groups with records on an external LDAP server
@@ -43,6 +44,8 @@ type LDAPGroupSyncer struct {
 	Out io.Writer
 	Err io.Writer
 }
+
+var _ GroupSyncer = &LDAPGroupSyncer{}
 
 // Sync allows the LDAPGroupSyncer to be a GroupSyncer
 func (s *LDAPGroupSyncer) Sync() ([]*userapi.Group, []error) {
