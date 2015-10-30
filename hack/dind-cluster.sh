@@ -70,6 +70,8 @@ DOCKER_CMD=${DOCKER_CMD:-"sudo docker"}
 # cluster-specific.
 CONFIG_ROOT=${OPENSHIFT_CONFIG_ROOT:-/tmp/openshift-dind-cluster/${INSTANCE_PREFIX}}
 
+DEPLOY_SSH=${OPENSHIFT_DEPLOY_SSH:-true}
+
 DEPLOYED_CONFIG_ROOT="/config"
 
 DEPLOYED_ROOT="/data"
@@ -164,9 +166,18 @@ function start() {
   if [ "${SKIP_BUILD}" = "true" ]; then
       args="${args} -s"
   fi
+
   echo "Provisioning ${MASTER_NAME}"
   ${DOCKER_CMD} exec -t "${master_cid}" bash -c \
     "${SCRIPT_ROOT}/provision-master.sh ${args} -c ${DEPLOYED_CONFIG_ROOT}"
+  if [ "${DEPLOY_SSH}" = "true" ]; then
+    ${DOCKER_CMD} exec -t "${master_cid}" ssh-keygen -N '' -q -f /root/.ssh/id_rsa
+    cmd="cat /root/.ssh/id_rsa.pub"
+    local public_key=$(${DOCKER_CMD} exec -t "${master_cid}" ${cmd})
+    cmd="cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys"
+    ${DOCKER_CMD} exec -t "${master_cid}" ${cmd}
+    ${DOCKER_CMD} exec -t "${master_cid}" systemctl start sshd
+  fi
 
   # Ensure that all users (e.g. outside the container) have read-write
   # access to the openshift configuration.  Security shouldn't be a
@@ -183,6 +194,12 @@ function start() {
     ${DOCKER_CMD} exec "${cid}" bash -c \
       "${SCRIPT_ROOT}/provision-node.sh ${args} -i ${node_index} -c \
 ${DEPLOYED_CONFIG_ROOT}"
+    if [ "${DEPLOY_SSH}" = "true" ]; then
+      ${DOCKER_CMD} exec -t "${cid}" mkdir -p /root/.ssh
+      cmd="echo ${public_key} > /root/.ssh/authorized_keys"
+      ${DOCKER_CMD} exec -t "${cid}" bash -c "${cmd}"
+      ${DOCKER_CMD} exec -t "${cid}" systemctl start sshd
+    fi
   done
 }
 
