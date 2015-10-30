@@ -19,6 +19,7 @@ package v1beta3
 import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/registered"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
@@ -54,7 +55,6 @@ func addKnownTypes() {
 		&Node{},
 		&NodeList{},
 		&Binding{},
-		&Status{},
 		&Event{},
 		&EventList{},
 		&List{},
@@ -74,6 +74,7 @@ func addKnownTypes() {
 		&PersistentVolumeClaimList{},
 		&DeleteOptions{},
 		&ListOptions{},
+		&PodAttachOptions{},
 		&PodLogOptions{},
 		&PodExecOptions{},
 		&PodProxyOptions{},
@@ -87,6 +88,9 @@ func addKnownTypes() {
 	// Legacy names are supported
 	api.Scheme.AddKnownTypeWithName("v1beta3", "Minion", &Node{})
 	api.Scheme.AddKnownTypeWithName("v1beta3", "MinionList", &NodeList{})
+
+	// Add common types
+	api.Scheme.AddKnownTypes("v1beta3", &unversioned.Status{})
 }
 
 func (*Pod) IsAnAPIObject()                            {}
@@ -103,7 +107,6 @@ func (*EndpointsList) IsAnAPIObject()                  {}
 func (*Node) IsAnAPIObject()                           {}
 func (*NodeList) IsAnAPIObject()                       {}
 func (*Binding) IsAnAPIObject()                        {}
-func (*Status) IsAnAPIObject()                         {}
 func (*Event) IsAnAPIObject()                          {}
 func (*EventList) IsAnAPIObject()                      {}
 func (*List) IsAnAPIObject()                           {}
@@ -123,6 +126,7 @@ func (*PersistentVolumeClaim) IsAnAPIObject()          {}
 func (*PersistentVolumeClaimList) IsAnAPIObject()      {}
 func (*DeleteOptions) IsAnAPIObject()                  {}
 func (*ListOptions) IsAnAPIObject()                    {}
+func (*PodAttachOptions) IsAnAPIObject()               {}
 func (*PodLogOptions) IsAnAPIObject()                  {}
 func (*PodExecOptions) IsAnAPIObject()                 {}
 func (*PodProxyOptions) IsAnAPIObject()                {}

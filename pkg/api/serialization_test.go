@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
@@ -415,9 +416,16 @@ func TestSpecificKind(t *testing.T) {
 	}
 }
 
+// Keep this in sync with the respective upstream set
+var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions", "PodExecOptions", "PodAttachOptions")
+
+// TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {
 	for kind, reflectType := range api.Scheme.KnownTypes("") {
-		if !strings.Contains(reflectType.PkgPath(), "/origin/") {
+		if !strings.Contains(reflectType.PkgPath(), "/origin/") && reflectType.PkgPath() != "k8s.io/kubernetes/pkg/api" {
+			continue
+		}
+		if nonInternalRoundTrippableTypes.Has(kind) {
 			continue
 		}
 		// Try a few times, since runTest uses random values.
