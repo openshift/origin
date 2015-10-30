@@ -393,7 +393,6 @@ func (oc *OvsController) DeleteNode(nodeName string) error {
 func (oc *OvsController) StartNode(mtu uint) error {
 	err := oc.initSelfSubnet()
 	if err != nil {
-		log.Errorf("Failed to get subnet for this host: %v", err)
 		return err
 	}
 
@@ -537,17 +536,27 @@ func (oc *OvsController) watchVnids(ready chan<- bool, start <-chan string) {
 }
 
 func (oc *OvsController) initSelfSubnet() error {
-	// get subnet for self
-	for {
-		sub, err := oc.subnetRegistry.GetSubnet(oc.hostName)
-		if err != nil {
-			log.Errorf("Could not find an allocated subnet for node %s: %s. Waiting...", oc.hostName, err)
-			time.Sleep(2 * time.Second)
-			continue
+	// timeout: 10 secs
+	retries := 20
+	retryInterval := 500 * time.Millisecond
+
+	var err error
+	var subnet *api.Subnet
+	// Try every retryInterval and bail-out if it exceeds max retries
+	for i := 0; i < retries; i++ {
+		// Get subnet for current node
+		subnet, err = oc.subnetRegistry.GetSubnet(oc.hostName)
+		if err == nil {
+			break
 		}
-		oc.localSubnet = sub
-		return nil
+		log.Warningf("Could not find an allocated subnet for node: %s, Waiting...", oc.hostName)
+		time.Sleep(retryInterval)
 	}
+	if err != nil {
+		return fmt.Errorf("Failed to get subnet for this host: %s, error: %v", oc.hostName, err)
+	}
+	oc.localSubnet = subnet
+	return nil
 }
 
 func (oc *OvsController) watchNodes(ready chan<- bool, start <-chan string) {
