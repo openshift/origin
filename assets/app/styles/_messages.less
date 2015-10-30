@@ -166,6 +166,7 @@ ul.messenger-theme-flat {
     &:before {
       content: @pficon-var-error-circle-o;
       color: @brand-danger;
+      display: inline-block;
     }
     .messenger-message-inner:before {
       background-color: transparent;
@@ -175,6 +176,7 @@ ul.messenger-theme-flat {
     &:before {
       content: @pficon-var-warning-triangle-o;
       color: @brand-warning;
+      display: inline-block;
       left: 14px;
       margin-top: -11px;
     }
@@ -182,11 +184,13 @@ ul.messenger-theme-flat {
   .messenger-message.alert-success .messenger-message-inner:before {
     color: @brand-success;
     content: @pficon-var-ok;
+    display: inline-block;
     background-color: transparent;
   }
   .messenger-message.alert-info .messenger-message-inner:before {
     color: @brand-info;
     content: @pficon-var-info;
+    display: inline-block;
     background-color: transparent;
   }
 }
