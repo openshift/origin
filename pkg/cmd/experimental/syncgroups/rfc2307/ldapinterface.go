@@ -99,66 +99,30 @@ func (e *LDAPInterface) GroupEntryFor(ldapGroupUID string) (*ldap.Entry, error) 
 		return group, nil
 	}
 
-	group, err := e.queryForGroup(ldapGroupUID)
-	if err != nil {
-		return nil, err
-	}
-	// cache for annotation extraction
-	e.cachedGroups[ldapGroupUID] = group
-	return group, nil
-}
-
-// queryForGroup queries for a specific group identified by a ldapGroupUID with the query config stored
-// in a LDAPInterface
-func (e *LDAPInterface) queryForGroup(ldapGroupUID string) (*ldap.Entry, error) {
-	// create the search request
 	searchRequest, err := e.groupQuery.NewSearchRequest(ldapGroupUID, e.requiredGroupAttributes())
 	if err != nil {
 		return nil, err
 	}
 
-	return ldaputil.QueryForUniqueEntry(e.clientConfig, searchRequest)
-}
-
-// userEntryFor returns an LDAP group entry for the given group UID by searching the internal cache
-// of the LDAPInterface first, then sending an LDAP query if the cache did not contain the entry
-func (e *LDAPInterface) userEntryFor(ldapUserUID string) (user *ldap.Entry, err error) {
-	user, exists := e.cachedUsers[ldapUserUID]
-	if !exists {
-		user, err = e.queryForUser(ldapUserUID)
-		if err != nil {
-			return nil, err
-		}
-		// cache for annotation extraction
-		e.cachedUsers[ldapUserUID] = user
-	}
-	return user, nil
-}
-
-// queryForUser queries for an LDAP user entry identified with an LDAP user UID on an LDAP server
-// determined from a clientConfig by creating a search request from an LDAP query template and
-// determining which attributes to search for with a LDAPuserAttributeDefiner
-func (e *LDAPInterface) queryForUser(ldapUserUID string) (*ldap.Entry, error) {
-	// create the search request
-	searchRequest, err := e.userQuery.NewSearchRequest(ldapUserUID, e.requiredUserAttributes())
+	group, err = ldaputil.QueryForUniqueEntry(e.clientConfig, searchRequest)
 	if err != nil {
 		return nil, err
 	}
-
-	return ldaputil.QueryForUniqueEntry(e.clientConfig, searchRequest)
+	e.cachedGroups[ldapGroupUID] = group
+	return group, nil
 }
 
 // ListGroups queries for all groups as configured with the common group filter and returns their
 // LDAP group UIDs. This also satisfies the LDAPGroupLister interface
 func (e *LDAPInterface) ListGroups() ([]string, error) {
-	groups, err := e.queryForGroups()
+	searchRequest := e.groupQuery.LDAPQuery.NewSearchRequest(e.requiredGroupAttributes())
+	groups, err := ldaputil.QueryForEntries(e.clientConfig, searchRequest)
 	if err != nil {
 		return nil, err
 	}
 
 	ldapGroupUIDs := []string{}
 	for _, group := range groups {
-		// cache groups returned from the server for later
 		ldapGroupUID := ldaputil.GetAttributeValue(group, []string{e.groupQuery.QueryAttribute})
 		if len(ldapGroupUID) == 0 {
 			return nil, fmt.Errorf("unable to find LDAP group UID for %s", group)
@@ -169,20 +133,33 @@ func (e *LDAPInterface) ListGroups() ([]string, error) {
 	return ldapGroupUIDs, nil
 }
 
-// queryForGroups queries for all groups identified by a common filter in the query config stored
-// in a GroupListerDataExtractor
-func (e *LDAPInterface) queryForGroups() ([]*ldap.Entry, error) {
-	// create the search request
-	searchRequest := e.groupQuery.LDAPQuery.NewSearchRequest(e.requiredGroupAttributes())
-	return ldaputil.QueryForEntries(e.clientConfig, searchRequest)
-}
-
 func (e *LDAPInterface) requiredGroupAttributes() []string {
 	allAttributes := sets.NewString(e.groupNameAttributes...) // these attributes will be used for a future openshift group name mapping
 	allAttributes.Insert(e.groupMembershipAttributes...)      // these attribute are used for finding group members
 	allAttributes.Insert(e.groupQuery.QueryAttribute)         // this is used for extracting the group UID (otherwise an entry isn't self-describing)
 
 	return allAttributes.List()
+}
+
+// userEntryFor returns an LDAP group entry for the given group UID by searching the internal cache
+// of the LDAPInterface first, then sending an LDAP query if the cache did not contain the entry
+func (e *LDAPInterface) userEntryFor(ldapUserUID string) (user *ldap.Entry, err error) {
+	user, exists := e.cachedUsers[ldapUserUID]
+	if exists {
+		return user, nil
+	}
+
+	searchRequest, err := e.userQuery.NewSearchRequest(ldapUserUID, e.requiredUserAttributes())
+	if err != nil {
+		return nil, err
+	}
+
+	user, err = ldaputil.QueryForUniqueEntry(e.clientConfig, searchRequest)
+	if err != nil {
+		return nil, err
+	}
+	e.cachedUsers[ldapUserUID] = user
+	return user, nil
 }
 
 func (e *LDAPInterface) requiredUserAttributes() []string {
