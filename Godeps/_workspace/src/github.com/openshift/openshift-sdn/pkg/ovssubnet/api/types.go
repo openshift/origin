@@ -3,8 +3,9 @@ package api
 type EventType string
 
 const (
-	Added   EventType = "ADDED"
-	Deleted EventType = "DELETED"
+	Added    EventType = "ADDED"
+	Deleted  EventType = "DELETED"
+	Modified EventType = "MODIFIED"
 )
 
 type SubnetRegistry interface {
@@ -83,12 +84,17 @@ const (
 	UDP ServiceProtocol = "UDP"
 )
 
+type ServicePort struct {
+	Protocol  ServiceProtocol
+	Port      uint
+}
+
 type Service struct {
 	Name      string
 	Namespace string
+	UID       string
 	IP        string
-	Protocol  ServiceProtocol
-	Port      uint
+	Ports     []ServicePort
 }
 
 type ServiceEvent struct {
