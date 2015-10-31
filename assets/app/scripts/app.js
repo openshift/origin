@@ -119,9 +119,11 @@ angular
       })
       .when('/project/:project/browse/builds/:buildconfig/:build', {
         templateUrl: function(params) {
-          return params.view ?
-                  'views/logs/'+params.view+'_log.html' :
-                  'views/browse/build.html';
+          if (params.view === 'chromeless') {
+            return 'views/logs/chromeless-build-log.html';
+          }
+
+          return 'views/browse/build.html';
         },
         controller: 'BuildController'
       })
@@ -157,9 +159,11 @@ angular
       })
       .when('/project/:project/browse/pods/:pod', {
         templateUrl: function(params) {
-          return params.view ?
-                  'views/logs/'+params.view+'_log.html' :
-                  'views/browse/pod.html';
+          if (params.view === 'chromeless') {
+            return 'views/logs/chromeless-pod-log.html';
+          }
+
+          return 'views/browse/pod.html';
         },
         controller: 'PodController'
       })

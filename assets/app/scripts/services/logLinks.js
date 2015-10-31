@@ -10,33 +10,6 @@ angular.module('openshiftConsole')
     function($anchorScroll, $document, $location, $timeout, $window) {
       // TODO (bpeterse): a lot of these functions are generic and could be moved/renamed to
       // a navigation oriented service.
-      var doc = $document[0];
-
-      var createObjectURL = function() {
-        return (window.URL || window.webkitURL || {}).createObjectURL || _.noop;
-      };
-
-      var revokeObjectURL = function() {
-        return (window.URL || window.webkitURL || {}).revokeObjectURL || _.noop;
-      };
-
-      var canDownload = function() {
-        return !!createObjectURL();
-      };
-
-      var makeDownload = function(obj, filename) {
-        obj = _.isString(obj) ? obj : JSON.stringify(obj);
-        var a = doc.createElement('a');
-        a.href = createObjectURL()(new Blob([obj], {type: 'text/plain'}));
-        a.download = (filename || 'download') + '.txt';
-        doc.body.appendChild(a);
-        a.click();
-        // limit the resource lifespan & destroy
-        $timeout(function() {
-          revokeObjectURL()(a.href);
-          doc.body.removeChild(a);
-        }, 5000);
-      };
 
       var scrollTop = function() {
         $window.scrollTo(null, 0);
@@ -54,9 +27,6 @@ angular.module('openshiftConsole')
         $anchorScroll(anchor);
       };
 
-      var fullPageLink = function() {
-         $location.search('view', 'chromeless');
-      };
       // @params an object or array of objects
       var newTab = function(params) {
         params = _.isArray(params) ?
@@ -70,22 +40,26 @@ angular.module('openshiftConsole')
       };
 
       // new tab: path/to/current?view=chromeless
-      var chromelessLink = function() {
-        newTab({view: 'chromeless'});
+      var chromelessLink = function(options) {
+        var params = {
+          view: 'chromeless'
+        };
+        if (options && options.container) {
+          params.container = options.container;
+        }
+        newTab(params);
       };
 
+      // Not currently used.
       // new tab: path/to/current?view=textonly
       var textOnlyLink = function() {
         newTab({view: 'textonly'});
       };
 
       return {
-        canDownload: canDownload,
-        makeDownload: makeDownload,
         scrollTop: scrollTop,
         scrollBottom: scrollBottom,
         scrollTo: scrollTo,
-        fullPageLink: fullPageLink,
         newTab: newTab,
         chromelessLink: chromelessLink,
         textOnlyLink: textOnlyLink
