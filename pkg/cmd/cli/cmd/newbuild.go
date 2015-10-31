@@ -179,10 +179,8 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 		switch t := item.(type) {
 		case *buildapi.BuildConfig:
 			fmt.Fprintf(out, "%sBuild configuration %q created and build triggered.\n", indent, t.Name)
+			fmt.Fprintf(out, "%sRun '%s logs -f bc/%s' to stream the build progress.\n", indent, fullName, t.Name)
 		}
-	}
-	if len(result.List.Items) > 0 {
-		fmt.Fprintf(out, "%sRun '%s %s' to check the progress.\n", indent, fullName, StatusRecommendedName)
 	}
 
 	return nil

@@ -346,5 +346,9 @@ func ValidateDeploymentLogOptions(opts *deployapi.DeploymentLogOptions) fielderr
 		allErrs = append(allErrs, errs...)
 	}
 
+	if opts.Version != nil && *opts.Version <= 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("version", *opts.Version, "deployment version must be greater than 0"))
+	}
+
 	return allErrs
 }

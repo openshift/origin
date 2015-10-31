@@ -1727,6 +1727,14 @@
         "allowMultiple": false
        },
        {
+        "type": "*int64",
+        "paramType": "query",
+        "name": "version",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -4451,7 +4459,7 @@
         "allowMultiple": false
        },
        {
-        "type": "*int",
+        "type": "*int64",
         "paramType": "query",
         "name": "version",
         "description": "",
