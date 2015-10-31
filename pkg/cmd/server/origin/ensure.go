@@ -159,9 +159,14 @@ func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
 	}
 
 	glog.Infof("No security context constraints detected, adding defaults")
+
+	// add the build user to the privileged SCC access
 	ns := c.Options.PolicyConfig.OpenShiftInfrastructureNamespace
 	buildControllerUsername := serviceaccount.MakeUsername(ns, c.BuildControllerServiceAccount)
-	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(buildControllerUsername) {
+	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess()
+	bootstrapSCCUsers[bootstrappolicy.SecurityContextConstraintPrivileged] = append(bootstrapSCCUsers[bootstrappolicy.SecurityContextConstraintPrivileged], buildControllerUsername)
+
+	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
 		_, err = c.KubeClient().SecurityContextConstraints().Create(&scc)
 		if err != nil {
 			glog.Errorf("Unable to create default security context constraint %s.  Got error: %v", scc.Name, err)
