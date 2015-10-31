@@ -210,6 +210,16 @@ func JoinImageStreamTag(name, tag string) string {
 	return fmt.Sprintf("%s:%s", name, tag)
 }
 
+// NormalizeImageStreamTag normalizes an image stream tag by defaulting to 'latest'
+// if no tag has been specified.
+func NormalizeImageStreamTag(name string) string {
+	if !strings.Contains(name, ":") {
+		// Default to latest
+		return JoinImageStreamTag(name, DefaultImageTag)
+	}
+	return name
+}
+
 // ImageWithMetadata returns a copy of image with the DockerImageMetadata filled in
 // from the raw DockerImageManifest data stored in the image.
 func ImageWithMetadata(image Image) (*Image, error) {

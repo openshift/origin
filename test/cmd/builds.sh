@@ -26,16 +26,16 @@ oc get buildConfigs
 oc get bc
 oc get builds
 
-REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build -t '{{ .spec.output.to.name }}')
+REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}')
 oc patch bc/ruby-sample-build -p '{"spec":{"output":{"to":{"name":"different:tag1"}}}}'
-oc get bc/ruby-sample-build -t '{{ .spec.output.to.name }}' | grep 'different'
+oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}' | grep 'different'
 oc patch bc/ruby-sample-build -p "{\"spec\":{\"output\":{\"to\":{\"name\":\"${REAL_OUTPUT_TO}\"}}}}"
 echo "patchAnonFields: ok"
 
 [ "$(oc describe buildConfigs ruby-sample-build | grep --text "Webhook GitHub" | grep -F "${url}/oapi/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/github")" ]
 [ "$(oc describe buildConfigs ruby-sample-build | grep --text "Webhook Generic" | grep -F "${url}/oapi/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/generic")" ]
 oc start-build --list-webhooks='all' ruby-sample-build
-[ "$(oc start-build --list-webhooks='all' ruby-sample-build | grep --text "generic")" ]
+[ "$(oc start-build --list-webhooks='all' bc/ruby-sample-build | grep --text "generic")" ]
 [ "$(oc start-build --list-webhooks='all' ruby-sample-build | grep --text "github")" ]
 [ "$(oc start-build --list-webhooks='github' ruby-sample-build | grep --text "secret101")" ]
 [ ! "$(oc start-build --list-webhooks='blah')" ]
@@ -50,11 +50,15 @@ oc create -f test/integration/fixtures/test-buildcli.json
 # the build should use the image field as defined in the buildconfig
 started=$(oc start-build ruby-sample-build-invalidtag)
 oc describe build ${started} | grep openshift/ruby-20-centos7$
+frombuild=$(oc start-build --from-build="${started}")
+oc describe build ${frombuild} | grep openshift/ruby-20-centos7$
 echo "start-build: ok"
 
 oc cancel-build "${started}" --dump-logs --restart
+oc delete all --all
+oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -
+tryuntil oc get build/ruby-sample-build-1
+# Uses type/name resource syntax
+oc cancel-build build/ruby-sample-build-1
+oc delete all --all
 echo "cancel-build: ok"
-
-[ "$(oc delete is/ruby-20-centos7-buildcli | grep 'imagestream "ruby-20-centos7-buildcli" deleted')" ]
-[ "$(oc delete bc/ruby-sample-build-validtag -o name | grep 'buildconfig/ruby-sample-build-validtag')" ]
-[ "$(oc delete bc/ruby-sample-build-invalidtag | grep 'buildconfig "ruby-sample-build-invalidtag" deleted')" ]

@@ -24,11 +24,11 @@ oc secrets new from-file .dockercfg=${HOME}/dockerconfig
 
 # attach secrets to service account
 # single secret with prefix
-oc secrets add serviceaccounts/deployer secrets/dockercfg
+oc secrets add deployer dockercfg
 # don't add the same secret twice
-oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file
+oc secrets add serviceaccounts/deployer dockercfg secrets/from-file
 # make sure we can add as as pull secret
-oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file --for=pull
+oc secrets add deployer dockercfg from-file --for=pull
 # make sure we can add as as pull secret and mount secret at once
 oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file --for=pull,mount
 

@@ -162,7 +162,7 @@ func (o AddSecretOptions) Validate() error {
 func (o AddSecretOptions) AddSecrets() error {
 	r := resource.NewBuilder(o.Mapper, o.Typer, o.ClientMapper).
 		NamespaceParam(o.Namespace).
-		ResourceTypeOrNameArgs(false, o.TargetName).
+		ResourceNames("serviceaccounts", o.TargetName).
 		SingleResourceType().
 		Do()
 	if r.Err() != nil {
@@ -223,7 +223,7 @@ func (o AddSecretOptions) addSecretsToServiceAccount(serviceaccount *kapi.Servic
 func (o AddSecretOptions) getSecrets() ([]*kapi.Secret, error) {
 	r := resource.NewBuilder(o.Mapper, o.Typer, o.ClientMapper).
 		NamespaceParam(o.Namespace).
-		ResourceTypeOrNameArgs(false, o.SecretNames...).
+		ResourceNames("secrets", o.SecretNames...).
 		SingleResourceType().
 		Do()
 	if r.Err() != nil {
