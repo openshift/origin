@@ -36,7 +36,7 @@ func NewREST(s storage.Interface) *REST {
 			return obj.(*api.Group).Name, nil
 		},
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
-			return group.MatchGroup(label, field)
+			return group.Matcher(label, field)
 		},
 		EndpointName: "groups",
 

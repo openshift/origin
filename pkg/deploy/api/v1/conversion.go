@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/conversion"
 	kutil "k8s.io/kubernetes/pkg/util"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	newer "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -305,6 +306,12 @@ func init() {
 		convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategyParams,
 	)
 	if err != nil {
+		panic(err)
+	}
+
+	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "DeploymentConfig",
+		oapi.GetFieldLabelConversionFunc(newer.DeploymentConfigToSelectableFields(&newer.DeploymentConfig{}), nil),
+	); err != nil {
 		panic(err)
 	}
 }

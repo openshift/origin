@@ -72,14 +72,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 			if !ok {
 				return nil, nil, fmt.Errorf("not a policy")
 			}
-			return labels.Set(policy.ObjectMeta.Labels), SelectableFields(policy), nil
+			return labels.Set(policy.ObjectMeta.Labels), authorizationapi.PolicyToSelectableFields(policy), nil
 		},
-	}
-}
-
-// SelectableFields returns a label set that represents the object
-func SelectableFields(policy *authorizationapi.Policy) fields.Set {
-	return fields.Set{
-		"name": policy.Name,
 	}
 }

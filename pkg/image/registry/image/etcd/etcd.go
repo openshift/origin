@@ -31,7 +31,7 @@ func NewREST(s storage.Interface) *REST {
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
 			// images are not namespace scoped
-			return prefix + "/" + name, nil
+			return etcdgeneric.NoNamespaceKeyFunc(ctx, prefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Image).Name, nil

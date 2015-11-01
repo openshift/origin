@@ -56,13 +56,13 @@ func (sdnStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fie
 	return validation.ValidateNetNamespaceUpdate(obj.(*api.NetNamespace), old.(*api.NetNamespace))
 }
 
-// MatchNetNamespace returns a generic matcher for a given label and field selector.
-func MatchNetNamespace(label labels.Selector, field fields.Selector) generic.Matcher {
+// Matcher returns a generic matcher for a given label and field selector.
+func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		_, ok := obj.(*api.NetNamespace)
+		ns, ok := obj.(*api.NetNamespace)
 		if !ok {
 			return false, fmt.Errorf("not a NetNamespace")
 		}
-		return true, nil
+		return label.Matches(labels.Set(ns.Labels)) && field.Matches(api.NetNamespaceToSelectableFields(ns)), nil
 	})
 }

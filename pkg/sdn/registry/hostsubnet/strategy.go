@@ -56,13 +56,13 @@ func (sdnStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fie
 	return validation.ValidateHostSubnetUpdate(obj.(*api.HostSubnet), old.(*api.HostSubnet))
 }
 
-// MatchHostSubnet returns a generic matcher for a given label and field selector.
-func MatchHostSubnet(label labels.Selector, field fields.Selector) generic.Matcher {
+// Matcher returns a generic matcher for a given label and field selector.
+func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		_, ok := obj.(*api.HostSubnet)
+		subnet, ok := obj.(*api.HostSubnet)
 		if !ok {
 			return false, fmt.Errorf("not a HostSubnet")
 		}
-		return true, nil
+		return label.Matches(labels.Set(subnet.Labels)) && field.Matches(api.HostSubnetToSelectableFields(subnet)), nil
 	})
 }

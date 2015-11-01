@@ -71,14 +71,7 @@ func MatchImage(label labels.Selector, field fields.Selector) generic.Matcher {
 		if !ok {
 			return false, fmt.Errorf("not an image")
 		}
-		fields := ImageToSelectableFields(image)
+		fields := api.ImageToSelectableFields(image)
 		return label.Matches(labels.Set(image.Labels)) && field.Matches(fields), nil
 	})
-}
-
-// ImageToSelectableFields returns a label set that represents the object.
-func ImageToSelectableFields(image *api.Image) labels.Set {
-	return labels.Set{
-		"name": image.Name,
-	}
 }

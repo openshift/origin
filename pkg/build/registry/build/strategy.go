@@ -15,7 +15,6 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/validation"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // strategy implements behavior for Build objects
@@ -97,16 +96,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 			if !ok {
 				return nil, nil, fmt.Errorf("not a build")
 			}
-			return labels.Set(build.ObjectMeta.Labels), SelectableFields(build), nil
+			return labels.Set(build.ObjectMeta.Labels), api.BuildToSelectableFields(build), nil
 		},
-	}
-}
-
-// SelectableFields returns a label set that represents the object
-func SelectableFields(build *api.Build) fields.Set {
-	return fields.Set{
-		"metadata.name": build.Name,
-		"status":        string(build.Status.Phase),
-		"podName":       buildutil.GetBuildPodName(build),
 	}
 }

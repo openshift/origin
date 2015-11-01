@@ -397,18 +397,9 @@ func MatchImageStream(label labels.Selector, field fields.Selector) generic.Matc
 		if !ok {
 			return false, fmt.Errorf("not an ImageStream")
 		}
-		fields := ImageStreamToSelectableFields(ir)
+		fields := api.ImageStreamToSelectableFields(ir)
 		return label.Matches(labels.Set(ir.Labels)) && field.Matches(fields), nil
 	})
-}
-
-// ImageStreamToSelectableFields returns a label set that represents the object.
-func ImageStreamToSelectableFields(ir *api.ImageStream) labels.Set {
-	return labels.Set{
-		"metadata.name":                ir.Name,
-		"spec.dockerImageRepository":   ir.Spec.DockerImageRepository,
-		"status.dockerImageRepository": ir.Status.DockerImageRepository,
-	}
 }
 
 // DefaultRegistry returns the default Docker registry (host or host:port), or false if it is not available.
