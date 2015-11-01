@@ -35,6 +35,10 @@ import (
 	imageedges "github.com/openshift/origin/pkg/image/graph"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeedges "github.com/openshift/origin/pkg/route/graph"
+	routeanalysis "github.com/openshift/origin/pkg/route/graph/analysis"
+	routegraph "github.com/openshift/origin/pkg/route/graph/nodes"
 	"github.com/openshift/origin/pkg/util/errors"
 	"github.com/openshift/origin/pkg/util/parallel"
 )
@@ -63,6 +67,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		&buildLoader{namespace: namespace, lister: d.C},
 		&isLoader{namespace: namespace, lister: d.C},
 		&dcLoader{namespace: namespace, lister: d.C},
+		&routeLoader{namespace: namespace, lister: d.C},
 	}
 	loadingFuncs := []func() error{}
 	for _, loader := range loaders {
@@ -103,6 +108,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	deployedges.AddAllTriggerEdges(g)
 	deployedges.AddAllDeploymentEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
+	routeedges.AddAllRouteEdges(g)
 
 	return g, forbiddenResources, nil
 }
@@ -138,6 +144,10 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		fmt.Fprintf(out, describeProjectAndServer(project, d.Server))
 
 		for _, service := range services {
+			if !service.Service.Found() {
+				continue
+			}
+
 			fmt.Fprintln(out)
 			printLines(out, indent, 0, describeServiceInServiceGroup(service)...)
 
@@ -164,6 +174,10 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 					}
 				}
 				printLines(out, indent, 1, describePodInServiceGroup(podNode)...)
+			}
+
+			for _, routeNode := range service.ExposingRoutes {
+				printLines(out, indent, 1, describeRouteInServiceGroup(routeNode)...)
 			}
 		}
 
@@ -242,6 +256,7 @@ func getMarkerScanners() []osgraph.MarkerScanner {
 		kubeanalysis.FindMissingSecrets,
 		buildanalysis.FindUnpushableBuildConfigs,
 		buildanalysis.FindCircularBuilds,
+		routeanalysis.FindMissingPortMapping,
 	}
 }
 
@@ -275,7 +290,7 @@ func describeProjectAndServer(project *projectapi.Project, server string) string
 func describeDeploymentInServiceGroup(deploy graphview.DeploymentConfigPipeline) []string {
 	includeLastPass := deploy.ActiveDeployment == nil
 	if len(deploy.Images) == 1 {
-		lines := []string{fmt.Sprintf("dc/%s deploys %s %s", deploy.Deployment.Name, describeImageInPipeline(deploy.Images[0], deploy.Deployment.Namespace), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
+		lines := []string{fmt.Sprintf("%s deploys %s %s", deploy.Deployment.ResourceString(), describeImageInPipeline(deploy.Images[0], deploy.Deployment.Namespace), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 		if len(lines[0]) > 120 && strings.Contains(lines[0], " <- ") {
 			segments := strings.SplitN(lines[0], " <- ", 2)
 			lines[0] = segments[0] + " <-"
@@ -286,7 +301,7 @@ func describeDeploymentInServiceGroup(deploy graphview.DeploymentConfigPipeline)
 		return lines
 	}
 
-	lines := []string{fmt.Sprintf("dc/%s deploys: %s", deploy.Deployment.Name, describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
+	lines := []string{fmt.Sprintf("%s deploys: %s", deploy.Deployment.ResourceString(), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 	for _, image := range deploy.Images {
 		lines = append(lines, describeImageInPipeline(image, deploy.Deployment.Namespace))
 		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)...)
@@ -305,7 +320,7 @@ func describeRCInServiceGroup(rcNode *kubegraph.ReplicationControllerNode) []str
 		images = append(images, container.Image)
 	}
 
-	lines := []string{fmt.Sprintf("rc/%s runs %s", rcNode.ReplicationController.Name, strings.Join(images, ", "))}
+	lines := []string{fmt.Sprintf("%s runs %s", rcNode.ResourceString(), strings.Join(images, ", "))}
 	lines = append(lines, describeRCStatus(rcNode.ReplicationController))
 
 	return lines
@@ -317,8 +332,15 @@ func describePodInServiceGroup(podNode *kubegraph.PodNode) []string {
 		images = append(images, container.Image)
 	}
 
-	lines := []string{fmt.Sprintf("pod/%s runs %s", podNode.Pod.Name, strings.Join(images, ", "))}
+	lines := []string{fmt.Sprintf("%s runs %s", podNode.ResourceString(), strings.Join(images, ", "))}
 	return lines
+}
+
+func describeRouteInServiceGroup(routeNode *routegraph.RouteNode) []string {
+	if routeNode.Spec.Port != nil && len(routeNode.Spec.Port.TargetPort.String()) > 0 {
+		return []string{fmt.Sprintf("exposed by %s on pod port %s", routeNode.ResourceString(), routeNode.Spec.Port.TargetPort.String())}
+	}
+	return []string{fmt.Sprintf("exposed by %s", routeNode.ResourceString())}
 }
 
 func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
@@ -332,7 +354,7 @@ func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
 func describeStandaloneBuildGroup(pipeline graphview.ImagePipeline, namespace string) []string {
 	switch {
 	case pipeline.Build != nil:
-		lines := []string{fmt.Sprintf("bc/%s %s", pipeline.Build.BuildConfig.Name, describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage))}
+		lines := []string{fmt.Sprintf("%s %s", pipeline.Build.ResourceString(), describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage))}
 		if pipeline.Image != nil {
 			lines = append(lines, fmt.Sprintf("pushes to %s", describeImageTagInPipeline(pipeline.Image, namespace)))
 		}
@@ -363,7 +385,7 @@ func describeImageTagInPipeline(image graphview.ImageTagLocation, namespace stri
 		if t.ImageStreamTag.Namespace != namespace {
 			return image.ImageSpec()
 		}
-		return "istag/" + t.ImageStreamTag.Name
+		return t.ResourceString()
 	default:
 		return image.ImageSpec()
 	}
@@ -672,11 +694,11 @@ func describeServiceInServiceGroup(svc graphview.ServiceGroup) []string {
 	port := describeServicePorts(spec)
 	switch {
 	case ip == "None":
-		return []string{fmt.Sprintf("service/%s (headless)%s", svc.Service.Name, port)}
+		return []string{fmt.Sprintf("%s (headless)%s", svc.Service.ResourceString(), port)}
 	case len(ip) == 0:
-		return []string{fmt.Sprintf("service/%s <initializing>%s", svc.Service.Name, port)}
+		return []string{fmt.Sprintf("%s <initializing>%s", svc.Service.ResourceString(), port)}
 	default:
-		return []string{fmt.Sprintf("service/%s - %s%s", svc.Service.Name, ip, port)}
+		return []string{fmt.Sprintf("%s - %s%s", svc.Service.ResourceString(), ip, port)}
 	}
 }
 
@@ -928,6 +950,30 @@ func (l *buildLoader) Load() error {
 func (l *buildLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
 		buildgraph.EnsureBuildNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type routeLoader struct {
+	namespace string
+	lister    client.RoutesNamespacer
+	items     []routeapi.Route
+}
+
+func (l *routeLoader) Load() error {
+	list, err := l.lister.Routes(l.namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *routeLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		routegraph.EnsureRouteNode(g, &l.items[i])
 	}
 
 	return nil

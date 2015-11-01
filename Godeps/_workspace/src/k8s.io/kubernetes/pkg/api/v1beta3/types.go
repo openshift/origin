@@ -864,6 +864,8 @@ const (
 type ContainerStateWaiting struct {
 	// Reason could be pulling image,
 	Reason string `json:"reason,omitempty" description:"(brief) reason the container is not yet running, such as pulling its image"`
+	// Message regarding why the container is not yet running.
+	Message string `json:"message,omitempty"`
 }
 
 type ContainerStateRunning struct {
@@ -940,12 +942,19 @@ const (
 	PodReady PodConditionType = "Ready"
 )
 
-// TODO: add LastTransitionTime, Reason, Message to match NodeCondition api.
 type PodCondition struct {
 	// Type is the type of the condition
 	Type PodConditionType `json:"type" description:"kind of the condition, currently only Ready"`
 	// Status is the status of the condition
 	Status ConditionStatus `json:"status" description:"status of the condition, one of True, False, Unknown"`
+	// Last time we probed the condition.
+	LastProbeTime unversioned.Time `json:"lastProbeTime,omitempty"`
+	// Last time the condition transitioned from one status to another.
+	LastTransitionTime unversioned.Time `json:"lastTransitionTime,omitempty"`
+	// Unique, one-word, CamelCase reason for the condition's last transition.
+	Reason string `json:"reason,omitempty"`
+	// Human-readable message indicating details about last transition.
+	Message string `json:"message,omitempty"`
 }
 
 // RestartPolicy describes how the container should be restarted.
@@ -1010,10 +1019,52 @@ type PodSpec struct {
 	// Use the host's ipc namespace.
 	// Optional: Default to false.
 	HostIPC bool `json:"hostIPC,omitempty" description:"use the host's ipc namespace"`
+	// SecurityContext holds pod-level security attributes and common container settings.
+	// Optional: Defaults to empty.  See type description for default values of each field.
+	SecurityContext *PodSecurityContext `json:"securityContext,omitempty"`
 	// ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec.
 	// If specified, these secrets will be passed to individual puller implementations for them to use.  For example,
 	// in the case of docker, only DockerConfig type secrets are honored.
 	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" description:"list of references to secrets in the same namespace available for pulling the container images"  patchStrategy:"merge" patchMergeKey:"name"`
+}
+
+// PodSecurityContext holds pod-level security attributes and common container settings.
+// Some fields are also present in container.securityContext.  Field values of
+// container.securityContext take precedence over field values of PodSecurityContext.
+type PodSecurityContext struct {
+	// The SELinux context to be applied to all containers.
+	// If unspecified, the container runtime will allocate a random SELinux context for each
+	// container.  May also be set in SecurityContext.  If set in
+	// both SecurityContext and PodSecurityContext, the value specified in SecurityContext
+	// takes precedence for that container.
+	SELinuxOptions *SELinuxOptions `json:"seLinuxOptions,omitempty"`
+	// The UID to run the entrypoint of the container process.
+	// Defaults to user specified in image metadata if unspecified.
+	// May also be set in SecurityContext.  If set in both SecurityContext and
+	// PodSecurityContext, the value specified in SecurityContext takes precedence
+	// for that container.
+	RunAsUser *int64 `json:"runAsUser,omitempty"`
+	// Indicates that the container must run as a non-root user.
+	// If true, the Kubelet will validate the image at runtime to ensure that it
+	// does not run as UID 0 (root) and fail to start the container if it does.
+	// If unset or false, no such validation will be performed.
+	// May also be set in SecurityContext.  If set in both SecurityContext and
+	// PodSecurityContext, the value specified in SecurityContext takes precedence.
+	RunAsNonRoot *bool `json:"runAsNonRoot,omitempty"`
+	// A list of groups applied to the first process run in each container, in addition
+	// to the container's primary GID.  If unspecified, no groups will be added to
+	// any container.
+	SupplementalGroups []int64 `json:"supplementalGroups,omitempty"`
+	// A special supplemental group that applies to all containers in a pod.
+	// Some volume types allow the Kubelet to change the ownership of that volume
+	// to be owned by the pod:
+	//
+	// 1. The owning GID will be the FSGroup
+	// 2. The setgid bit is set (new files created in the volume will be owned by FSGroup)
+	// 3. The permission bits are OR'd with rw-rw----
+	//
+	// If unset, the Kubelet will not modify the ownership and permissions of any volume.
+	FSGroup *int64 `json:"fsGroup,omitempty"`
 }
 
 // PodStatus represents information about the status of a pod. Status may trail the actual
@@ -1226,6 +1277,13 @@ type ServiceSpec struct {
 
 	// Optional: Supports "ClientIP" and "None".  Used to maintain session affinity.
 	SessionAffinity ServiceAffinity `json:"sessionAffinity,omitempty" description:"enable client IP based session affinity; must be ClientIP or None; defaults to None"`
+
+	// Only applies to Service Type: LoadBalancer
+	// LoadBalancer will get created with the IP specified in this field.
+	// This feature depends on whether the underlying cloud-provider supports specifying
+	// the loadBalancerIP when a load balancer is created.
+	// This field will be ignored if the cloud-provider does not support the feature.
+	LoadBalancerIP string `json:"loadBalancerIP,omitempty"`
 }
 
 type ServicePort struct {
@@ -1337,8 +1395,9 @@ type Endpoints struct {
 //     a: [ 10.10.1.1:8675, 10.10.2.2:8675 ],
 //     b: [ 10.10.1.1:309, 10.10.2.2:309 ]
 type EndpointSubset struct {
-	Addresses []EndpointAddress `json:"addresses,omitempty" description:"IP addresses which offer the related ports"`
-	Ports     []EndpointPort    `json:"ports,omitempty" description:"port numbers available on the related IP addresses"`
+	Addresses         []EndpointAddress `json:"addresses,omitempty" description:"IP addresses which offer the related ports"`
+	NotReadyAddresses []EndpointAddress `json:"notReadyAddresses,omitempty" description:"IP addresses which offer the related ports but are not currently marked as ready"`
+	Ports             []EndpointPort    `json:"ports,omitempty" description:"port numbers available on the related IP addresses"`
 }
 
 // EndpointAddress is a tuple that describes single IP address.
@@ -1384,6 +1443,18 @@ type NodeSpec struct {
 	Unschedulable bool `json:"unschedulable,omitempty" description:"disable pod scheduling on the node"`
 }
 
+// DaemonEndpoint contains information about a single Daemon endpoint.
+type DaemonEndpoint struct {
+	// Port number of the given endpoint.
+	Port int `json:port`
+}
+
+// NodeDaemonEndpoints lists ports opened by daemons running on the Node.
+type NodeDaemonEndpoints struct {
+	// Endpoint on which Kubelet is listening.
+	KubeletEndpoint DaemonEndpoint `json:"kubeletEndpoint,omitempty"`
+}
+
 // NodeSystemInfo is a set of ids/uuids to uniquely identify the node.
 type NodeSystemInfo struct {
 	// MachineID is the machine-id reported by the node
@@ -1415,6 +1486,8 @@ type NodeStatus struct {
 	Conditions []NodeCondition `json:"conditions,omitempty" description:"list of node conditions observed" patchStrategy:"merge" patchMergeKey:"type"`
 	// Queried from cloud provider, if available.
 	Addresses []NodeAddress `json:"addresses,omitempty" description:"list of addresses reachable to the node" patchStrategy:"merge" patchMergeKey:"type"`
+	// Endpoints of daemons running on the Node.
+	DaemonEndpoints NodeDaemonEndpoints `json:"daemonEndpoints,omitempty"`
 	// NodeSystemInfo is a set of ids/uuids to uniquely identify the node
 	NodeInfo NodeSystemInfo `json:"nodeInfo,omitempty" description:"set of ids/uuids to uniquely identify the node"`
 }
@@ -1588,18 +1661,68 @@ type ListOptions struct {
 // PodLogOptions is the query options for a Pod's logs REST call
 type PodLogOptions struct {
 	TypeMeta `json:",inline"`
-
 	// Container for which to return logs
 	Container string `json:"container,omitempty" description:"the container for which to stream logs; defaults to only container if there is one container in the pod"`
-
 	// If true, follow the logs for the pod
 	Follow bool `json:"follow,omitempty" description:"follow the log stream of the pod; defaults to false"`
-
 	//  If true, return previous terminated container logs
 	Previous bool `json:"previous,omitempty" description:"return previous terminated container logs; defaults to false"`
+	// A relative time in seconds before the current time from which to show logs. If this value
+	// precedes the time a pod was started, only logs since the pod start will be returned.
+	// If this value is in the future, no logs will be returned.
+	// Only one of sinceSeconds or sinceTime may be specified.
+	SinceSeconds *int64 `json:"sinceSeconds,omitempty"`
+	// An RFC3339 timestamp from which to show logs. If this value
+	// preceeds the time a pod was started, only logs since the pod start will be returned.
+	// If this value is in the future, no logs will be returned.
+	// Only one of sinceSeconds or sinceTime may be specified.
+	SinceTime *unversioned.Time `json:"sinceTime,omitempty"`
+	// If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line
+	// of log output. Defaults to false.
+	Timestamps bool `json:"timestamps,omitempty"`
+	// If set, the number of lines from the end of the logs to show. If not specified,
+	// logs are shown from the creation of the container or sinceSeconds or sinceTime
+	TailLines *int64 `json:"tailLines,omitempty"`
+	// If set, the number of bytes to read from the server before terminating the
+	// log output. This may not display a complete final line of logging, and may return
+	// slightly more or slightly less than the specified limit.
+	LimitBytes *int64 `json:"limitBytes,omitempty"`
+}
+
+// PodAttachOptions is the query options to a Pod's remote attach call.
+// ---
+// TODO: merge w/ PodExecOptions below for stdin, stdout, etc
+// and also when we cut V2, we should export a "StreamOptions" or somesuch that contains Stdin, Stdout, Stder and TTY
+type PodAttachOptions struct {
+	TypeMeta `json:",inline"`
+
+	// Stdin if true, redirects the standard input stream of the pod for this call.
+	// Defaults to false.
+	Stdin bool `json:"stdin,omitempty"`
+
+	// Stdout if true indicates that stdout is to be redirected for the attach call.
+	// Defaults to true.
+	Stdout bool `json:"stdout,omitempty"`
+
+	// Stderr if true indicates that stderr is to be redirected for the attach call.
+	// Defaults to true.
+	Stderr bool `json:"stderr,omitempty"`
+
+	// TTY if true indicates that a tty will be allocated for the attach call.
+	// This is passed through the container runtime so the tty
+	// is allocated on the worker node by the container runtime.
+	// Defaults to false.
+	TTY bool `json:"tty,omitempty"`
+
+	// The container in which to execute the command.
+	// Defaults to only container if there is only one container in the pod.
+	Container string `json:"container,omitempty"`
 }
 
 // PodExecOptions is the query options to a Pod's remote exec call
+// ---
+// TODO: This is largely identical to PodAttachOptions above, make sure they stay in sync and see about merging
+// and also when we cut V2, we should export a "StreamOptions" or somesuch that contains Stdin, Stdout, Stder and TTY
 type PodExecOptions struct {
 	TypeMeta `json:",inline"`
 
@@ -1629,160 +1752,6 @@ type PodProxyOptions struct {
 	// Path is the URL path to use for the current proxy request
 	Path string `json:"path,omitempty" description:"URL path to use in proxy request to pod"`
 }
-
-// Status is a return value for calls that don't return other objects.
-type Status struct {
-	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#metadata"`
-
-	// One of: "Success" or "Failure"
-	Status string `json:"status,omitempty" description:"status of the operation; either Success, or Failure"`
-	// A human-readable description of the status of this operation.
-	Message string `json:"message,omitempty" description:"human-readable description of the status of this operation"`
-	// A machine-readable description of why this operation is in the
-	// "Failure" status. If this value is empty there
-	// is no information available. A Reason clarifies an HTTP status
-	// code but does not override it.
-	Reason StatusReason `json:"reason,omitempty" description:"machine-readable description of why this operation is in the 'Failure' status; if this value is empty there is no information available; a reason clarifies an HTTP status code but does not override it"`
-	// Extended data associated with the reason.  Each reason may define its
-	// own extended details. This field is optional and the data returned
-	// is not guaranteed to conform to any schema except that defined by
-	// the reason type.
-	Details *StatusDetails `json:"details,omitempty" description:"extended data associated with the reason; each reason may define its own extended details; this field is optional and the data returned is not guaranteed to conform to any schema except that defined by the reason type"`
-	// Suggested HTTP return code for this status, 0 if not set.
-	Code int `json:"code,omitempty" description:"suggested HTTP return code for this status; 0 if not set"`
-}
-
-// StatusDetails is a set of additional properties that MAY be set by the
-// server to provide additional information about a response. The Reason
-// field of a Status object defines what attributes will be set. Clients
-// must ignore fields that do not match the defined type of each attribute,
-// and should assume that any attribute may be empty, invalid, or under
-// defined.
-type StatusDetails struct {
-	// The ID attribute of the resource associated with the status StatusReason
-	// (when there is a single ID which can be described).
-	ID string `json:"id,omitempty" description:"the ID attribute of the resource associated with the status StatusReason (when there is a single ID which can be described)"`
-	// The kind attribute of the resource associated with the status StatusReason.
-	// On some operations may differ from the requested resource Kind.
-	Kind string `json:"kind,omitempty" description:"the kind attribute of the resource associated with the status StatusReason; on some operations may differ from the requested resource Kind"`
-	// The Causes array includes more details associated with the StatusReason
-	// failure. Not all StatusReasons may provide detailed causes.
-	Causes []StatusCause `json:"causes,omitempty" description:"the Causes array includes more details associated with the StatusReason failure; not all StatusReasons may provide detailed causes"`
-	// If specified, the time in seconds before the operation should be retried.
-	RetryAfterSeconds int `json:"retryAfterSeconds,omitempty" description:"the number of seconds before the client should attempt to retry this operation"`
-}
-
-// Values of Status.Status
-const (
-	StatusSuccess = "Success"
-	StatusFailure = "Failure"
-)
-
-// StatusReason is an enumeration of possible failure causes.  Each StatusReason
-// must map to a single HTTP status code, but multiple reasons may map
-// to the same HTTP status code.
-// TODO: move to apiserver
-type StatusReason string
-
-const (
-	// StatusReasonUnknown means the server has declined to indicate a specific reason.
-	// The details field may contain other information about this error.
-	// Status code 500.
-	StatusReasonUnknown StatusReason = ""
-
-	// StatusReasonNotFound means one or more resources required for this operation
-	// could not be found.
-	// Details (optional):
-	//   "kind" string - the kind attribute of the missing resource
-	//                   on some operations may differ from the requested
-	//                   resource.
-	//   "id"   string - the identifier of the missing resource
-	// Status code 404
-	StatusReasonNotFound StatusReason = "NotFound"
-
-	// StatusReasonAlreadyExists means the resource you are creating already exists.
-	// Details (optional):
-	//   "kind" string - the kind attribute of the conflicting resource
-	//   "id"   string - the identifier of the conflicting resource
-	// Status code 409
-	StatusReasonAlreadyExists StatusReason = "AlreadyExists"
-
-	// StatusReasonConflict means the requested update operation cannot be completed
-	// due to a conflict in the operation. The client may need to alter the request.
-	// Each resource may define custom details that indicate the nature of the
-	// conflict.
-	// Status code 409
-	StatusReasonConflict StatusReason = "Conflict"
-
-	// StatusReasonInvalid means the requested create or update operation cannot be
-	// completed due to invalid data provided as part of the request. The client may
-	// need to alter the request. When set, the client may use the StatusDetails
-	// message field as a summary of the issues encountered.
-	// Details (optional):
-	//   "kind" string - the kind attribute of the invalid resource
-	//   "id"   string - the identifier of the invalid resource
-	//   "causes"      - one or more StatusCause entries indicating the data in the
-	//                   provided resource that was invalid.  The code, message, and
-	//                   field attributes will be set.
-	// Status code 422
-	StatusReasonInvalid StatusReason = "Invalid"
-
-	// StatusReasonServerTimeout means the server can be reached and understood the request,
-	// but cannot complete the action in a reasonable time. The client should retry the request.
-	// This is may be due to temporary server load or a transient communication issue with
-	// another server. Status code 500 is used because the HTTP spec provides no suitable
-	// server-requested client retry and the 5xx class represents actionable errors.
-	// Details (optional):
-	//   "kind" string - the kind attribute of the resource being acted on.
-	//   "id"   string - the operation that is being attempted.
-	// Status code 500
-	StatusReasonServerTimeout StatusReason = "ServerTimeout"
-)
-
-// StatusCause provides more information about an api.Status failure, including
-// cases when multiple errors are encountered.
-type StatusCause struct {
-	// A machine-readable description of the cause of the error. If this value is
-	// empty there is no information available.
-	Type CauseType `json:"reason,omitempty" description:"machine-readable description of the cause of the error; if this value is empty there is no information available"`
-	// A human-readable description of the cause of the error.  This field may be
-	// presented as-is to a reader.
-	Message string `json:"message,omitempty" description:"human-readable description of the cause of the error; this field may be presented as-is to a reader"`
-	// The field of the resource that has caused this error, as named by its JSON
-	// serialization. May include dot and postfix notation for nested attributes.
-	// Arrays are zero-indexed.  Fields may appear more than once in an array of
-	// causes due to fields having multiple errors.
-	// Optional.
-	//
-	// Examples:
-	//   "name" - the field "name" on the current resource
-	//   "items[0].name" - the field "name" on the first array entry in "items"
-	Field string `json:"field,omitempty" description:"field of the resource that has caused this error, as named by its JSON serialization; may include dot and postfix notation for nested attributes; arrays are zero-indexed; fields may appear more than once in an array of causes due to fields having multiple errors"`
-}
-
-// CauseType is a machine readable value providing more detail about what
-// occured in a status response. An operation may have multiple causes for a
-// status (whether Failure or Success).
-type CauseType string
-
-const (
-	// CauseTypeFieldValueNotFound is used to report failure to find a requested value
-	// (e.g. looking up an ID).
-	CauseTypeFieldValueNotFound CauseType = "FieldValueNotFound"
-	// CauseTypeFieldValueRequired is used to report required values that are not
-	// provided (e.g. empty strings, null values, or empty arrays).
-	CauseTypeFieldValueRequired CauseType = "FieldValueRequired"
-	// CauseTypeFieldValueDuplicate is used to report collisions of values that must be
-	// unique (e.g. unique IDs).
-	CauseTypeFieldValueDuplicate CauseType = "FieldValueDuplicate"
-	// CauseTypeFieldValueInvalid is used to report malformed values (e.g. failed regex
-	// match).
-	CauseTypeFieldValueInvalid CauseType = "FieldValueInvalid"
-	// CauseTypeFieldValueNotSupported is used to report valid (as per formatting rules)
-	// values that can not be handled (e.g. an enumerated string).
-	CauseTypeFieldValueNotSupported CauseType = "FieldValueNotSupported"
-)
 
 // ObjectReference contains enough information to let you inspect or modify the referred object.
 type ObjectReference struct {
@@ -2083,7 +2052,7 @@ type SecurityContext struct {
 	// RunAsNonRoot indicates that the container should be run as a non-root user.  If the RunAsUser
 	// field is not explicitly set then the kubelet may check the image for a specified user or
 	// perform defaulting to specify a user.
-	RunAsNonRoot bool `json:"runAsNonRoot,omitempty" description:"indicates the container be must run as a non-root user either by specifying the runAsUser or in the image specification"`
+	RunAsNonRoot *bool `json:"runAsNonRoot,omitempty" description:"indicates the container be must run as a non-root user either by specifying the runAsUser or in the image specification"`
 }
 
 // SELinuxOptions are the labels to be applied to the container.
@@ -2232,7 +2201,7 @@ const (
 	// container must run as a particular gid.
 	SupplementalGroupsStrategyMustRunAs SupplementalGroupsStrategyType = "MustRunAs"
 	// container may make requests for any gid.
-	SupplementalGroupsrStrategyRunAsAny SupplementalGroupsStrategyType = "RunAsAny"
+	SupplementalGroupsStrategyRunAsAny SupplementalGroupsStrategyType = "RunAsAny"
 )
 
 // SecurityContextConstraintsList is a list of SecurityContextConstraints objects

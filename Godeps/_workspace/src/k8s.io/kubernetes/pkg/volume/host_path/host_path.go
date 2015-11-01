@@ -167,6 +167,10 @@ type hostPathBuilder struct {
 
 var _ volume.Builder = &hostPathBuilder{}
 
+func (_ *hostPathBuilder) SupportsOwnershipManagement() bool {
+	return false
+}
+
 // SetUp does nothing.
 func (b *hostPathBuilder) SetUp() error {
 	return nil
@@ -179,6 +183,10 @@ func (b *hostPathBuilder) SetUpAt(dir string) error {
 
 func (b *hostPathBuilder) IsReadOnly() bool {
 	return b.readOnly
+}
+
+func (b *hostPathBuilder) SupportsSELinux() bool {
+	return false
 }
 
 func (b *hostPathBuilder) GetPath() string {

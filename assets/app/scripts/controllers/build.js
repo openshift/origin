@@ -41,10 +41,15 @@ angular.module('openshiftConsole')
     var watches = [];
 
     project.get($routeParams.project).then(function(resp) {
-      angular.extend($scope, {
+      var context = {
         project: resp[0],
         projectPromise: resp[1].projectPromise
-      });
+      };
+      angular.extend($scope, context);
+      // FIXME: DataService.createStream() requires a scope with a
+      // projectPromise rather than just a namespace, so we have to pass the
+      // context into the log-viewer directive.
+      $scope.logContext = context;
       DataService.get("builds", $routeParams.build, $scope).then(
         // success
         function(build) {
@@ -109,49 +114,6 @@ angular.module('openshiftConsole')
           }
         }
       }));
-
-
-      var runLogs = function() {
-        angular.extend($scope, {
-          logs: [],
-          logsLoading: true,
-          canShowDownload: false,
-          canInitAgain: false
-        });
-
-        var streamer = DataService.createStream('builds/log',$routeParams.build, $scope);
-        streamer.onMessage(function(msg) {
-          $scope.$apply(function() {
-            $scope.logs.push({text: msg});
-            $scope.canShowDownload = true;
-          });
-        });
-        streamer.onClose(function() {
-          $scope.$apply(function() {
-            $scope.logsLoading = false;
-          });
-        });
-        streamer.onError(function() {
-          $scope.$apply(function() {
-            angular.extend($scope, {
-              logsLoading: false,
-              logError: true
-            });
-          });
-        });
-
-        streamer.start();
-        $scope.$on('$destroy', function() {
-          streamer.stop();
-        });
-      };
-
-      angular.extend($scope, {
-        initLogs: _.once(runLogs),
-        runLogs: runLogs
-      });
-
-
     });
 
     $scope.startBuild = function(buildConfigName) {

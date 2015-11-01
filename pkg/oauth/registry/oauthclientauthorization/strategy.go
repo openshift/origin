@@ -69,17 +69,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 		if !ok {
 			return false, fmt.Errorf("not a client authorization")
 		}
-		fields := SelectableFields(clientObj)
+		fields := api.OAuthClientAuthorizationToSelectableFields(clientObj)
 		return label.Matches(labels.Set(clientObj.Labels)) && field.Matches(fields), nil
 	})
-}
-
-// SelectableFields returns a label set that represents the object
-func SelectableFields(obj *api.OAuthClientAuthorization) labels.Set {
-	return labels.Set{
-		"name":       obj.Name,
-		"clientName": obj.ClientName,
-		"userName":   obj.UserName,
-		"userUID":    obj.UserUID,
-	}
 }

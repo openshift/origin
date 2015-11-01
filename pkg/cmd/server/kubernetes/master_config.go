@@ -216,6 +216,25 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		},
 	}
 
+	if options.DNSConfig != nil {
+		_, dnsPortStr, err := net.SplitHostPort(options.DNSConfig.BindAddress)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse DNS bind address %s: %v", options.DNSConfig.BindAddress, err)
+		}
+		dnsPort, err := strconv.Atoi(dnsPortStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid DNS port: %v", err)
+		}
+		m.ExtraServicePorts = append(m.ExtraServicePorts,
+			kapi.ServicePort{Name: "dns", Port: dnsPort, Protocol: kapi.ProtocolUDP, TargetPort: util.NewIntOrStringFromInt(dnsPort)},
+			kapi.ServicePort{Name: "dns-tcp", Port: dnsPort, Protocol: kapi.ProtocolTCP, TargetPort: util.NewIntOrStringFromInt(dnsPort)},
+		)
+		m.ExtraEndpointPorts = append(m.ExtraEndpointPorts,
+			kapi.EndpointPort{Name: "dns", Port: dnsPort, Protocol: kapi.ProtocolUDP},
+			kapi.EndpointPort{Name: "dns-tcp", Port: dnsPort, Protocol: kapi.ProtocolTCP},
+		)
+	}
+
 	kmaster := &MasterConfig{
 		Options:    *options.KubernetesMasterConfig,
 		KubeClient: kubeClient,

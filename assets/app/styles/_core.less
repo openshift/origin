@@ -335,6 +335,7 @@ label.checkbox {
 
 .create-from-template,
 .create-from-image {
+  margin-bottom: 100px; // needed space for hover help text near bottom
   .template-name {
     text-align: right;
     span.fa {
@@ -548,6 +549,10 @@ pre {
     border: none;
     border-left: 2px solid rgb(204, 204, 204);
   }
+}
+
+[data-toggle="tooltip"] {
+  cursor: pointer; // so tooltips get correct cursor
 }
 
 // Fix to override the Firefox 40+ behavior to add text-decoration

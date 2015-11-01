@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -68,11 +69,20 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 		return err
 	}
 	buildClient := client.Builds(namespace)
-	build, err := buildClient.Get(buildName)
+
+	mapper, typer := f.Object()
+	obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+		NamespaceParam(namespace).
+		ResourceNames("builds", buildName).
+		SingleResourceType().
+		Do().Object()
 	if err != nil {
 		return err
 	}
-
+	build, ok := obj.(*buildapi.Build)
+	if !ok {
+		return fmt.Errorf("%q is not a valid build", buildName)
+	}
 	if !isBuildCancellable(build) {
 		return nil
 	}
@@ -81,7 +91,6 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 	if cmdutil.GetFlagBool(cmd, "dump-logs") {
 		opts := buildapi.BuildLogOptions{
 			NoWait: true,
-			Follow: false,
 		}
 		response, err := client.BuildLogs(namespace).Get(buildName, opts).Do().Raw()
 		if err != nil {

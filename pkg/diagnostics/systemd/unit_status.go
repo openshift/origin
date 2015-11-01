@@ -30,10 +30,10 @@ func (d UnitStatus) CanRun() (bool, error) {
 func (d UnitStatus) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(UnitStatusName)
 
-	unitRequiresUnit(r, d.SystemdUnits["openshift-node"], d.SystemdUnits["iptables"], nodeRequiresIPTables)
-	unitRequiresUnit(r, d.SystemdUnits["openshift-node"], d.SystemdUnits["docker"], `Nodes use Docker to run containers.`)
-	unitRequiresUnit(r, d.SystemdUnits["openshift-node"], d.SystemdUnits["openvswitch"], sdUnitSDNreqOVS)
-	unitRequiresUnit(r, d.SystemdUnits["openshift-master"], d.SystemdUnits["openvswitch"], `Masters use openvswitch for access to cluster SDN networking`)
+	unitRequiresUnit(r, d.SystemdUnits["atomic-openshift-node"], d.SystemdUnits["iptables"], nodeRequiresIPTables)
+	unitRequiresUnit(r, d.SystemdUnits["atomic-openshift-node"], d.SystemdUnits["docker"], `Nodes use Docker to run containers.`)
+	unitRequiresUnit(r, d.SystemdUnits["atomic-openshift-node"], d.SystemdUnits["openvswitch"], sdUnitSDNreqOVS)
+	unitRequiresUnit(r, d.SystemdUnits["atomic-openshift-master"], d.SystemdUnits["openvswitch"], `Masters use openvswitch for access to cluster SDN networking`)
 	// all-in-one networking *could* be simpler, so fewer checks
 	unitRequiresUnit(r, d.SystemdUnits["openshift"], d.SystemdUnits["docker"], `Nodes use Docker to run containers.`)
 
@@ -65,8 +65,8 @@ iptables is used by nodes for container networking.
 Connections to a container will fail without it.`
 
 	sdUnitSDNreqOVS = `
-systemd unit openshift-node is running but openvswitch is not.
-Normally openshift-node starts openvswitch once initialized.
+systemd unit atomic-openshift-node is running but openvswitch is not.
+Normally atomic-openshift-node starts openvswitch once initialized.
 It is likely that openvswitch has crashed or been stopped.
 
 The software-defined network (SDN) enables networking between

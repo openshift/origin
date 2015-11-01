@@ -13,8 +13,6 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
@@ -117,20 +115,14 @@ func (s *STIBuilder) Build() error {
 		contextDir: contextDir,
 		tmpDir:     tmpDir,
 	}
-
 	// if there is no output target, set one up so the docker build logic
 	// (which requires a tag) will still work, but we won't push it at the end.
 	if s.build.Spec.Output.To == nil || len(s.build.Spec.Output.To.Name) == 0 {
-		s.build.Spec.Output.To = &kapi.ObjectReference{
-			Kind: "DockerImage",
-			Name: noOutputDefaultTag,
-		}
-		push = false
+		s.build.Status.OutputDockerImageReference = s.build.Name
 	} else {
 		push = true
 	}
-
-	tag := s.build.Spec.Output.To.Name
+	tag := s.build.Status.OutputDockerImageReference
 	git := s.build.Spec.Source.Git
 
 	var ref string

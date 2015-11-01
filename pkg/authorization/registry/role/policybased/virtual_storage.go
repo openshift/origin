@@ -37,7 +37,6 @@ func (m *VirtualStorage) NewList() runtime.Object {
 	return &authorizationapi.RoleList{}
 }
 
-// TODO either add selector for fields ot eliminate the option
 func (m *VirtualStorage) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
 	policyList, err := m.PolicyStorage.ListPolicies(ctx, labels.Everything(), fields.Everything())
 	if err != nil {
@@ -48,7 +47,7 @@ func (m *VirtualStorage) List(ctx kapi.Context, label labels.Selector, field fie
 
 	for _, policy := range policyList.Items {
 		for _, role := range policy.Roles {
-			if label.Matches(labels.Set(role.Labels)) {
+			if label.Matches(labels.Set(role.Labels)) && field.Matches(authorizationapi.RoleToSelectableFields(role)) {
 				roleList.Items = append(roleList.Items, *role)
 			}
 		}

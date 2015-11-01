@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	newer "github.com/openshift/origin/pkg/authorization/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -424,6 +425,42 @@ func init() {
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
+	}
+
+	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "ClusterPolicy",
+		oapi.GetFieldLabelConversionFunc(newer.ClusterPolicyToSelectableFields(&newer.ClusterPolicy{}), nil),
+	); err != nil {
+		panic(err)
+	}
+
+	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "ClusterPolicyBinding",
+		oapi.GetFieldLabelConversionFunc(newer.ClusterPolicyBindingToSelectableFields(&newer.ClusterPolicyBinding{}), nil),
+	); err != nil {
+		panic(err)
+	}
+
+	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "Policy",
+		oapi.GetFieldLabelConversionFunc(newer.PolicyToSelectableFields(&newer.Policy{}), nil),
+	); err != nil {
+		panic(err)
+	}
+
+	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "PolicyBinding",
+		oapi.GetFieldLabelConversionFunc(newer.PolicyBindingToSelectableFields(&newer.PolicyBinding{}), nil),
+	); err != nil {
+		panic(err)
+	}
+
+	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "Role",
+		oapi.GetFieldLabelConversionFunc(newer.RoleToSelectableFields(&newer.Role{}), nil),
+	); err != nil {
+		panic(err)
+	}
+
+	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "RoleBinding",
+		oapi.GetFieldLabelConversionFunc(newer.RoleBindingToSelectableFields(&newer.RoleBinding{}), nil),
+	); err != nil {
 		panic(err)
 	}
 }

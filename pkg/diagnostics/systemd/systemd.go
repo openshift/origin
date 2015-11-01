@@ -60,7 +60,7 @@ var tlsClientErrorSeen map[string]bool
 // Specify what units we can check and what to look for and say about it
 var unitLogSpecs = []*unitSpec{
 	{
-		Name:       "openshift-master",
+		Name:       "atomic-openshift-master",
 		StartMatch: regexp.MustCompile("Starting \\w+ Master"),
 		LogMatchers: []logMatcher{
 			badImageTemplate,
@@ -76,7 +76,7 @@ var unitLogSpecs = []*unitSpec{
 				Level:  log.WarnLevel,
 				Interpret: func(entry *logEntry, matches []string, r types.DiagnosticResult) bool {
 					client := matches[1]
-					prelude := fmt.Sprintf("Found 'openshift-master' journald log message:\n  %s\n", entry.Message)
+					prelude := fmt.Sprintf("Found 'atomic-openshift-master' journald log message:\n  %s\n", entry.Message)
 					if tlsClientErrorSeen == nil { // first time this message was seen
 						tlsClientErrorSeen = map[string]bool{client: true}
 						// TODO: too generic, adjust message depending on subnet of the "from" address
@@ -108,7 +108,7 @@ log message:
   component. Check pod logs and recreate it with the correct CA cert.
   Routers and registries won't work properly with the wrong CA.
 * If it is from a node IP, the client is likely a node. Check the
-  openshift-node logs and reconfigure with the correct CA cert.
+  atomic-openshift-node logs and reconfigure with the correct CA cert.
   Nodes will be unable to create pods until this is corrected.
 * If it is from an external IP, it is likely from a user (CLI, browser,
   etc.). Command line clients should be configured with the correct
@@ -129,7 +129,7 @@ log message:
 		},
 	},
 	{
-		Name:       "openshift-node",
+		Name:       "atomic-openshift-node",
 		StartMatch: regexp.MustCompile("Starting \\w+ Node"), //systemd puts this out; could change
 		LogMatchers: []logMatcher{
 			badImageTemplate,
@@ -138,7 +138,7 @@ log message:
 				Level:  log.ErrorLevel,
 				Id:     "DS2004",
 				Interpretation: `
-openshift-node could not register with the master API because it lacks
+atomic-openshift-node could not register with the master API because it lacks
 the proper credentials. Nodes should specify a client certificate in
 order to identify themselves to the master. This message typically means
 that either no client key/cert was supplied, or it is not validated
@@ -154,12 +154,12 @@ scheduled for this node will remain in pending or unknown state forever.`,
 				Level:  log.WarnLevel,
 				Id:     "DS2005",
 				Interpretation: `
-This warning occurs when openshift-node is trying to request the
+This warning occurs when the node is trying to request the
 SDN subnet it should be configured with according to the master,
 but either can't connect to it or has not yet been assigned a subnet.
 
 This can occur before the master becomes fully available and defines a
-record for the node to use; openshift-node will wait until that occurs,
+record for the node to use; the node will wait until that occurs,
 so the presence of this message in the node log isn't necessarily a
 problem as long as the SDN is actually working, but this message may
 help indicate the problem if it is not working.

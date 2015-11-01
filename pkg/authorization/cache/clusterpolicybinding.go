@@ -76,7 +76,7 @@ func (c *readOnlyClusterPolicyBindingCache) List(label labels.Selector, field fi
 		if !castOK {
 			return clusterPolicyBindingList, errors.NewInvalid("ClusterPolicyBinding", "clusterPolicyBinding", []error{})
 		}
-		if label.Matches(labels.Set(clusterPolicyBinding.Labels)) && field.Matches(ClusterPolicyBindingToSelectableFields(clusterPolicyBinding)) {
+		if label.Matches(labels.Set(clusterPolicyBinding.Labels)) && field.Matches(authorizationapi.ClusterPolicyBindingToSelectableFields(clusterPolicyBinding)) {
 			clusterPolicyBindingList.Items = append(clusterPolicyBindingList.Items, *clusterPolicyBinding)
 		}
 	}

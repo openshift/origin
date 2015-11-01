@@ -40,7 +40,7 @@ func NewREST(s storage.Interface, allocator route.RouteAllocator) RouteStorage {
 			return obj.(*api.Route).Name, nil
 		},
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
-			return rest.MatchRoute(label, field)
+			return rest.Matcher(label, field)
 		},
 		EndpointName: "routes",
 

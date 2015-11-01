@@ -5,8 +5,11 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -31,6 +34,11 @@ func (r *REST) New() runtime.Object {
 	return &api.ImageStreamTag{}
 }
 
+// NewList returns a new list object
+func (r *REST) NewList() runtime.Object {
+	return &api.ImageStreamTagList{}
+}
+
 // nameAndTag splits a string into its name component and tag component, and returns an error
 // if the string is not in the right form.
 func nameAndTag(id string) (name string, tag string, err error) {
@@ -40,63 +48,104 @@ func nameAndTag(id string) (name string, tag string, err error) {
 		name = segments[0]
 		tag = segments[1]
 		if len(name) == 0 || len(tag) == 0 {
-			err = errors.NewBadRequest("ImageStreamTags must be retrieved with <name>:<tag>")
+			err = kapierrors.NewBadRequest("ImageStreamTags must be retrieved with <name>:<tag>")
 		}
 	default:
-		err = errors.NewBadRequest("ImageStreamTags must be retrieved with <name>:<tag>")
+		err = kapierrors.NewBadRequest("ImageStreamTags must be retrieved with <name>:<tag>")
 	}
 	return
 }
 
-// Get retrieves an image that has been tagged by stream and tag. `id` is of the format
-// <stream name>:<tag>.
+func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
+	imageStreams, err := r.imageStreamRegistry.ListImageStreams(ctx, labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	matcher := MatchImageStreamTag(label, field)
+
+	list := &api.ImageStreamTagList{}
+	for _, currIS := range imageStreams.Items {
+		for currTag := range currIS.Status.Tags {
+			istag, err := newISTag(currTag, &currIS, nil)
+			if err != nil {
+				return nil, err
+			}
+			matches, err := matcher.Matches(istag)
+			if err != nil {
+				return nil, err
+			}
+
+			if matches {
+				list.Items = append(list.Items, *istag)
+			}
+		}
+	}
+
+	return list, nil
+}
+
+// Get retrieves an image that has been tagged by stream and tag. `id` is of the format <stream name>:<tag>.
 func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	name, tag, err := nameAndTag(id)
 	if err != nil {
 		return nil, err
 	}
 
-	stream, err := r.imageStreamRegistry.GetImageStream(ctx, name)
+	imageStream, err := r.imageStreamRegistry.GetImageStream(ctx, name)
 	if err != nil {
 		return nil, err
 	}
 
-	event := api.LatestTaggedImage(stream, tag)
-	if event == nil || len(event.Image) == 0 {
-		return nil, errors.NewNotFound("imageStreamTag", id)
-	}
-
-	image, err := r.imageRegistry.GetImage(ctx, event.Image)
+	image, err := r.imageFor(ctx, tag, imageStream)
 	if err != nil {
 		return nil, err
 	}
 
-	// if the stream has Spec.Tags[tag].Annotations[k] = v, copy it to the image's annotations
-	if stream.Spec.Tags != nil {
-		if tagRef, ok := stream.Spec.Tags[tag]; ok {
-			if image.Annotations == nil {
-				image.Annotations = make(map[string]string)
-			}
-			for k, v := range tagRef.Annotations {
-				image.Annotations[k] = v
-			}
-		}
+	return newISTag(tag, imageStream, image)
+}
+
+func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	istag, ok := obj.(*api.ImageStreamTag)
+	if !ok {
+		return nil, false, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamTag: %#v", obj))
 	}
 
-	imageWithMetadata, err := api.ImageWithMetadata(*image)
+	old, err := r.Get(ctx, istag.Name)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	ist := api.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{
-			Namespace:         kapi.NamespaceValue(ctx),
-			Name:              id,
-			CreationTimestamp: event.Created,
-		},
-		Image: *imageWithMetadata,
+	if err := rest.BeforeUpdate(Strategy, ctx, obj, old); err != nil {
+		return nil, false, err
 	}
-	return &ist, nil
+
+	// we only allow updates of annotations, so lets find the correct image stream and update it.
+	name, tag, err := nameAndTag(istag.Name)
+	if err != nil {
+		return nil, false, err
+	}
+
+	imageStream, err := r.imageStreamRegistry.GetImageStream(ctx, name)
+	if imageStream.Spec.Tags == nil {
+		imageStream.Spec.Tags = map[string]api.TagReference{}
+	}
+	tagRef := imageStream.Spec.Tags[tag]
+	tagRef.Annotations = istag.Annotations
+	imageStream.Spec.Tags[tag] = tagRef
+
+	newImageStream, err := r.imageStreamRegistry.UpdateImageStream(ctx, imageStream)
+	if err != nil {
+		return nil, false, err
+	}
+
+	image, err := r.imageFor(ctx, tag, newImageStream)
+	if err != nil {
+		return nil, false, err
+	}
+
+	newISTag, err := newISTag(tag, newImageStream, image)
+	return newISTag, false, err
 }
 
 // Delete removes a tag from a stream. `id` is of the format <stream name>:<tag>.
@@ -128,7 +177,7 @@ func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
 	}
 
 	if notFound {
-		return nil, errors.NewNotFound("imageStreamTag", tag)
+		return nil, kapierrors.NewNotFound("imageStreamTag", tag)
 	}
 
 	if _, err = r.imageStreamRegistry.UpdateImageStream(ctx, stream); err != nil {
@@ -136,4 +185,64 @@ func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
 	}
 
 	return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
+}
+
+// imageFor retrieves the most recent image for a tag in a given imageStreem.
+func (r *REST) imageFor(ctx kapi.Context, tag string, imageStream *api.ImageStream) (*api.Image, error) {
+	event := api.LatestTaggedImage(imageStream, tag)
+	if event == nil || len(event.Image) == 0 {
+		return nil, kapierrors.NewNotFound("imageStreamTag", api.JoinImageStreamTag(imageStream.Name, tag))
+	}
+
+	return r.imageRegistry.GetImage(ctx, event.Image)
+}
+
+func newISTag(tag string, imageStream *api.ImageStream, image *api.Image) (*api.ImageStreamTag, error) {
+	istagName := api.JoinImageStreamTag(imageStream.Name, tag)
+
+	event := api.LatestTaggedImage(imageStream, tag)
+	if event == nil || len(event.Image) == 0 {
+		return nil, kapierrors.NewNotFound("imageStreamTag", istagName)
+	}
+
+	ist := &api.ImageStreamTag{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace:         imageStream.Namespace,
+			Name:              istagName,
+			CreationTimestamp: event.Created,
+			Annotations:       map[string]string{},
+			ResourceVersion:   imageStream.ResourceVersion,
+		},
+	}
+
+	// if the imageStream has Spec.Tags[tag].Annotations[k] = v, copy it to the image's annotations
+	// and add them to the istag's annotations
+	if imageStream.Spec.Tags != nil {
+		if tagRef, ok := imageStream.Spec.Tags[tag]; ok {
+			if image != nil && image.Annotations == nil {
+				image.Annotations = make(map[string]string)
+			}
+			for k, v := range tagRef.Annotations {
+				ist.Annotations[k] = v
+				if image != nil {
+					image.Annotations[k] = v
+				}
+			}
+		}
+	}
+
+	if image != nil {
+		imageWithMetadata, err := api.ImageWithMetadata(*image)
+		if err != nil {
+			return nil, err
+		}
+
+		ist.Image = *imageWithMetadata
+	} else {
+		ist.Image = api.Image{}
+		ist.Image.DockerImageReference = event.DockerImageReference
+		ist.Image.Name = event.Image
+	}
+
+	return ist, nil
 }

@@ -45,8 +45,12 @@ func run(builderFactory factoryFunc) {
 				glog.Fatalf("Cannot parse build URL: %s", build.Spec.Source.Git.URI)
 			}
 			scmAuths := auths(sourceURL)
-			if err := setupSourceSecret(build.Spec.Source.SourceSecret.Name, scmAuths); err != nil {
+			sourceURL, err = setupSourceSecret(build.Spec.Source.SourceSecret.Name, scmAuths)
+			if err != nil {
 				glog.Fatalf("Cannot setup secret file for accessing private repository: %v", err)
+			}
+			if sourceURL != nil {
+				build.Spec.Source.Git.URI = sourceURL.String()
 			}
 		}
 	}
@@ -86,12 +90,12 @@ func fixSecretPermissions() error {
 	return nil
 }
 
-func setupSourceSecret(sourceSecretName string, scmAuths []scmauth.SCMAuth) error {
+func setupSourceSecret(sourceSecretName string, scmAuths []scmauth.SCMAuth) (*url.URL, error) {
 	fixSecretPermissions()
 	sourceSecretDir := os.Getenv("SOURCE_SECRET_PATH")
 	files, err := ioutil.ReadDir(sourceSecretDir)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Filter the list of SCMAuths based on the secret files that are present
@@ -107,19 +111,29 @@ func setupSourceSecret(sourceSecretName string, scmAuths []scmauth.SCMAuth) erro
 	}
 
 	if len(scmAuthsPresent) == 0 {
-		return fmt.Errorf("no auth handler was found for the provided secret %q",
+		return nil, fmt.Errorf("no auth handler was found for the provided secret %q",
 			sourceSecretName)
 	}
 
+	var urlOverride *url.URL = nil
 	for name, auth := range scmAuthsPresent {
 		glog.V(3).Infof("Setting up SCMAuth %q", name)
-		if err := auth.Setup(sourceSecretDir); err != nil {
+		u, err := auth.Setup(sourceSecretDir)
+		if err != nil {
 			// If an error occurs during setup, fail the build
-			return fmt.Errorf("cannot set up source authentication method %q: %v", name, err)
+			return nil, fmt.Errorf("cannot set up source authentication method %q: %v", name, err)
+		}
+
+		if u != nil {
+			if urlOverride == nil {
+				urlOverride = u
+			} else if urlOverride.String() != u.String() {
+				return nil, fmt.Errorf("secret handler %s set a conflicting override URL %q (conflicts with earlier override URL %q)", auth.Name(), u.String(), urlOverride.String())
+			}
 		}
 	}
 
-	return nil
+	return urlOverride, nil
 }
 
 func auths(sourceURL *url.URL) []scmauth.SCMAuth {

@@ -111,6 +111,14 @@ type ImageStreamTag struct {
 	ImageName string `json:"imageName"`
 }
 
+// ImageStreamTagList is a list of ImageStreamTag objects.
+type ImageStreamTagList struct {
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+
+	Items []ImageStreamTag `json:"items"`
+}
+
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 type ImageStreamImage struct {
 	Image     `json:",inline"`

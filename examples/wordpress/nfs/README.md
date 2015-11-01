@@ -14,17 +14,13 @@ Create two NFS exports, each of which will become a Persistent Volume in the clu
 mkdir -p /home/data/pv0001
 mkdir -p /home/data/pv0002
 
-# data written to NFS by a pod gets squashed by NFS and is owned by 'nfsnobody'
-# we'll make our export directories owned by the same user
-chown -R nfsnobody:nfsnobody /home/data
-
 # security needs to be permissive currently, but the export will soon be restricted 
 # to the same UID/GID that wrote the data
 chmod -R 777 /home/data/
 
 # Add to /etc/exports
-/home/data/pv0001 *(rw,sync,no_root_squash)
-/home/data/pv0002 *(rw,sync,no_root_squash)
+/home/data/pv0001 *(rw,sync)
+/home/data/pv0002 *(rw,sync)
 
 # Enable the new exports without bouncing the NFS service
 exportfs -a

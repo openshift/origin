@@ -1,24 +1,24 @@
-<div column flex ng-if="links">
-  <div row mobile="column" class="log-timestamp" ng-if="start">
-    <span row>
-      <span>Current log from &nbsp;</span>
-      <span flex class="text-right">{{start}}</span>
-    </span>
-    <span row ng-if="end">
-      <span>&nbsp;to&nbsp;</span>
-      <span flex class="text-right">{{end}}</span>
-    </span>
+<div column flex>
+  <div row class="log-timestamp" ng-if="!chromeless && start">
+    <span>Current log from {{start}}&nbsp;</span>
+    <span ng-if="end">to {{end}}</span>
   </div>
-  <div sm="column" md="row">
-    <div flex row tablet="column" main-axis="end">
-      <div ng-transclude flex></div>
+  <div ng-if="largeLog" class="log-size-warning">
+    <span class="pficon pficon-info"></span>
+    Only the previous {{options.tailLines || 1000}} log lines and new log
+    messages will be displayed because of the large log size.
+  </div>
+  <div ng-if="!chromeless" row flex sm="column">
+    <div flex row tablet="column">
+      <div row ng-if="status">
+        <span>Status:&nbsp;&nbsp;</span>
+        <status-icon status="status"></status-icon>
+        <span flex>&nbsp;&nbsp;{{status}}</span>
+      </div>
+      <!-- Spacer -->
+      <div flex></div>
       <div row main-axis="end" cross-axis="end" class="log-link-external">
-        <a href=""
-          ng-show="download"
-          ng-click="makeDownload(logs)">
-          Raw <i class="fa fa-external-link"></i>
-        </a>
-        <a href=""  ng-click="goChromeless()">
+        <a href=""  ng-click="goChromeless(options)">
           Open full view of log<i class="fa fa-external-link"></i>
         </a>
       </div>
@@ -33,4 +33,15 @@
 <ng-include
   src="'views/directives/logs/_log-formatted.html'"></ng-include>
 
-
+<!-- Show a different messsage if the log might have stopped because we reached the byte limit -->
+<div ng-if="limitReached" class="text-muted">
+  The maximum web console log size has been reached. Use the command-line interface or
+  <a href="" ng-click="restartLogs()">reload</a> the log to see new messages.
+</div>
+<div ng-if="!loading && !limitReached && !error" class="text-muted">
+  End of log
+</div>
+<div ng-if="error" class="text-muted">
+  An error occurred.
+  <a href="" ng-click="restartLogs()">Reload</a>
+</div>

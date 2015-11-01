@@ -1262,8 +1262,42 @@ func autoconvert_api_BuildLogOptions_To_v1_BuildLogOptions(in *buildapi.BuildLog
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
 	}
+	out.Container = in.Container
 	out.Follow = in.Follow
+	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		if err := s.Convert(&in.SinceTime, &out.SinceTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	out.NoWait = in.NoWait
+	if in.Version != nil {
+		out.Version = new(int64)
+		*out.Version = *in.Version
+	} else {
+		out.Version = nil
+	}
 	return nil
 }
 
@@ -1947,8 +1981,42 @@ func autoconvert_v1_BuildLogOptions_To_api_BuildLogOptions(in *apiv1.BuildLogOpt
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
 	}
+	out.Container = in.Container
 	out.Follow = in.Follow
+	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		if err := s.Convert(&in.SinceTime, &out.SinceTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	out.NoWait = in.NoWait
+	if in.Version != nil {
+		out.Version = new(int64)
+		*out.Version = *in.Version
+	} else {
+		out.Version = nil
+	}
 	return nil
 }
 
@@ -2539,10 +2607,38 @@ func autoconvert_api_DeploymentLogOptions_To_v1_DeploymentLogOptions(in *deploya
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
 	}
+	out.Container = in.Container
 	out.Follow = in.Follow
+	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		if err := s.Convert(&in.SinceTime, &out.SinceTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	out.NoWait = in.NoWait
 	if in.Version != nil {
-		out.Version = new(int)
+		out.Version = new(int64)
 		*out.Version = *in.Version
 	} else {
 		out.Version = nil
@@ -2652,10 +2748,38 @@ func autoconvert_v1_DeploymentLogOptions_To_api_DeploymentLogOptions(in *deploya
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
 	}
+	out.Container = in.Container
 	out.Follow = in.Follow
+	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		if err := s.Convert(&in.SinceTime, &out.SinceTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	out.NoWait = in.NoWait
 	if in.Version != nil {
-		out.Version = new(int)
+		out.Version = new(int64)
 		*out.Version = *in.Version
 	} else {
 		out.Version = nil
@@ -2843,6 +2967,33 @@ func convert_api_ImageStreamTag_To_v1_ImageStreamTag(in *imageapi.ImageStreamTag
 	return autoconvert_api_ImageStreamTag_To_v1_ImageStreamTag(in, out, s)
 }
 
+func autoconvert_api_ImageStreamTagList_To_v1_ImageStreamTagList(in *imageapi.ImageStreamTagList, out *imageapiv1.ImageStreamTagList, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.ImageStreamTagList))(in)
+	}
+	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.ListMeta, &out.ListMeta, 0); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		out.Items = make([]imageapiv1.ImageStreamTag, len(in.Items))
+		for i := range in.Items {
+			if err := convert_api_ImageStreamTag_To_v1_ImageStreamTag(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func convert_api_ImageStreamTagList_To_v1_ImageStreamTagList(in *imageapi.ImageStreamTagList, out *imageapiv1.ImageStreamTagList, s conversion.Scope) error {
+	return autoconvert_api_ImageStreamTagList_To_v1_ImageStreamTagList(in, out, s)
+}
+
 func autoconvert_v1_Image_To_api_Image(in *imageapiv1.Image, out *imageapi.Image, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*imageapiv1.Image))(in)
@@ -3016,6 +3167,33 @@ func autoconvert_v1_ImageStreamTag_To_api_ImageStreamTag(in *imageapiv1.ImageStr
 
 func convert_v1_ImageStreamTag_To_api_ImageStreamTag(in *imageapiv1.ImageStreamTag, out *imageapi.ImageStreamTag, s conversion.Scope) error {
 	return autoconvert_v1_ImageStreamTag_To_api_ImageStreamTag(in, out, s)
+}
+
+func autoconvert_v1_ImageStreamTagList_To_api_ImageStreamTagList(in *imageapiv1.ImageStreamTagList, out *imageapi.ImageStreamTagList, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.ImageStreamTagList))(in)
+	}
+	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.ListMeta, &out.ListMeta, 0); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		out.Items = make([]imageapi.ImageStreamTag, len(in.Items))
+		for i := range in.Items {
+			if err := convert_v1_ImageStreamTag_To_api_ImageStreamTag(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func convert_v1_ImageStreamTagList_To_api_ImageStreamTagList(in *imageapiv1.ImageStreamTagList, out *imageapi.ImageStreamTagList, s conversion.Scope) error {
+	return autoconvert_v1_ImageStreamTagList_To_api_ImageStreamTagList(in, out, s)
 }
 
 func autoconvert_api_OAuthAccessToken_To_v1_OAuthAccessToken(in *oauthapi.OAuthAccessToken, out *oauthapiv1.OAuthAccessToken, s conversion.Scope) error {
@@ -3786,6 +3964,7 @@ func autoconvert_api_TLSConfig_To_v1_TLSConfig(in *routeapi.TLSConfig, out *rout
 	out.Key = in.Key
 	out.CACertificate = in.CACertificate
 	out.DestinationCACertificate = in.DestinationCACertificate
+	out.InsecureEdgeTerminationPolicy = routeapiv1.InsecureEdgeTerminationPolicyType(in.InsecureEdgeTerminationPolicy)
 	return nil
 }
 
@@ -3909,6 +4088,7 @@ func autoconvert_v1_TLSConfig_To_api_TLSConfig(in *routeapiv1.TLSConfig, out *ro
 	out.Key = in.Key
 	out.CACertificate = in.CACertificate
 	out.DestinationCACertificate = in.DestinationCACertificate
+	out.InsecureEdgeTerminationPolicy = routeapi.InsecureEdgeTerminationPolicyType(in.InsecureEdgeTerminationPolicy)
 	return nil
 }
 
@@ -5123,6 +5303,7 @@ func init() {
 		autoconvert_api_ImageStreamMapping_To_v1_ImageStreamMapping,
 		autoconvert_api_ImageStreamSpec_To_v1_ImageStreamSpec,
 		autoconvert_api_ImageStreamStatus_To_v1_ImageStreamStatus,
+		autoconvert_api_ImageStreamTagList_To_v1_ImageStreamTagList,
 		autoconvert_api_ImageStreamTag_To_v1_ImageStreamTag,
 		autoconvert_api_ImageStream_To_v1_ImageStream,
 		autoconvert_api_Image_To_v1_Image,
@@ -5231,6 +5412,7 @@ func init() {
 		autoconvert_v1_ImageStreamMapping_To_api_ImageStreamMapping,
 		autoconvert_v1_ImageStreamSpec_To_api_ImageStreamSpec,
 		autoconvert_v1_ImageStreamStatus_To_api_ImageStreamStatus,
+		autoconvert_v1_ImageStreamTagList_To_api_ImageStreamTagList,
 		autoconvert_v1_ImageStreamTag_To_api_ImageStreamTag,
 		autoconvert_v1_ImageStream_To_api_ImageStream,
 		autoconvert_v1_Image_To_api_Image,

@@ -14,6 +14,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -73,7 +74,7 @@ func NewDefaultNodeArgs() *NodeArgs {
 	config := &NodeArgs{
 		NodeName: hostname,
 
-		MasterCertDir: "openshift.local.config/master/certificates",
+		MasterCertDir: "openshift.local.config/master",
 
 		ClusterDomain: cmdutil.Env("OPENSHIFT_DNS_DOMAIN", "cluster.local"),
 		ClusterDNS:    dnsIP,
@@ -146,6 +147,35 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 	}
 
 	return internal.(*configapi.NodeConfig), nil
+}
+
+// GetServerCertHostnames returns the set of hostnames and IP addresses a serving certificate for node on this host might need to be valid for.
+func (args NodeArgs) GetServerCertHostnames() (sets.String, error) {
+	allHostnames := sets.NewString(args.NodeName)
+
+	listenIP := net.ParseIP(args.ListenArg.ListenAddr.Host)
+	// add the IPs that might be used based on the ListenAddr.
+	if listenIP != nil && listenIP.IsUnspecified() {
+		allAddresses, _ := cmdutil.AllLocalIP4()
+		for _, ip := range allAddresses {
+			allHostnames.Insert(ip.String())
+		}
+	} else {
+		allHostnames.Insert(args.ListenArg.ListenAddr.Host)
+	}
+
+	certHostnames := sets.String{}
+	for hostname := range allHostnames {
+		if host, _, err := net.SplitHostPort(hostname); err == nil {
+			// add the hostname without the port
+			certHostnames.Insert(host)
+		} else {
+			// add the originally specified hostname
+			certHostnames.Insert(hostname)
+		}
+	}
+
+	return certHostnames, nil
 }
 
 // defaultHostname returns the default hostname for this system.

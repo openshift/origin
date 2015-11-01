@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
@@ -99,7 +101,6 @@ type binaryInstantiateHandler struct {
 	ctx       kapi.Context
 	name      string
 	options   *buildapi.BinaryBuildRequestOptions
-	err       error
 }
 
 var _ http.Handler = &binaryInstantiateHandler{}
@@ -115,7 +116,9 @@ func (h *binaryInstantiateHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
+	h.options.Name = h.name
 	if err := rest.BeforeCreate(BinaryStrategy, h.ctx, h.options); err != nil {
+		glog.Infof("failed to validate binary: %#v", h.options)
 		return nil, err
 	}
 
@@ -143,6 +146,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	}
 	build, err := h.r.Generator.Instantiate(h.ctx, request)
 	if err != nil {
+		glog.Infof("failed to instantiate: %#v", request)
 		return nil, err
 	}
 
@@ -188,10 +192,6 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 		return nil, errors.NewInternalError(err)
 	}
 	return latest, nil
-}
-
-func (h *binaryInstantiateHandler) RequestError() error {
-	return h.err
 }
 
 type podGetter struct {

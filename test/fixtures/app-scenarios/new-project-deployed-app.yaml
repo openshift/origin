@@ -470,6 +470,24 @@ items:
     type: ClusterIP
   status:
     loadBalancer: {}
+- apiVersion: v1beta3
+  kind: Route
+  metadata:
+    annotations:
+      openshift.io/host.generated: "true"
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
+    name: frontend
+    namespace: example
+    resourceVersion: "393"
+  spec:
+    host: frontend-example.router.default.svc.cluster.local
+    port:
+      targetPort: 8080
+    to:
+      kind: Service
+      name: frontend
 kind: List
 metadata:
   resourceVersion: "592"

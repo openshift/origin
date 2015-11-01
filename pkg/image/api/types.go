@@ -123,12 +123,21 @@ type ImageStreamMapping struct {
 	Tag string
 }
 
+// ImageStreamTag has a .Name in the format <stream name>:<tag>.
 type ImageStreamTag struct {
 	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// The Image associated with the ImageStream and tag.
 	Image Image
+}
+
+// ImageStreamTagList is a list of ImageStreamTag objects.
+type ImageStreamTagList struct {
+	unversioned.TypeMeta
+	unversioned.ListMeta
+
+	Items []ImageStreamTag
 }
 
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.

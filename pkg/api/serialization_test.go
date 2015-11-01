@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
@@ -220,6 +221,16 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		func(j *deploy.DeploymentConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}
+			if forVersion == "v1beta3" {
+				// v1beta3 does not contain the PodSecurityContext type.  For this API version, only fuzz
+				// the host namespace fields.  The fields set to nil here are the other fields of the
+				// PodSecurityContext that will not roundtrip correctly from internal->v1beta3->internal.
+				j.Template.ControllerTemplate.Template.Spec.SecurityContext.SELinuxOptions = nil
+				j.Template.ControllerTemplate.Template.Spec.SecurityContext.RunAsUser = nil
+				j.Template.ControllerTemplate.Template.Spec.SecurityContext.RunAsNonRoot = nil
+				j.Template.ControllerTemplate.Template.Spec.SecurityContext.SupplementalGroups = nil
+				j.Template.ControllerTemplate.Template.Spec.SecurityContext.FSGroup = nil
+			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
@@ -385,7 +396,7 @@ func TestSpecificKind(t *testing.T) {
 	api.Scheme.Log(t)
 	defer api.Scheme.Log(nil)
 
-	kind := "ImageStreamTag"
+	kind := "DeploymentConfig"
 	item, err := api.Scheme.New("", kind)
 	if err != nil {
 		t.Errorf("Couldn't make a %v? %v", kind, err)
@@ -405,9 +416,16 @@ func TestSpecificKind(t *testing.T) {
 	}
 }
 
+// Keep this in sync with the respective upstream set
+var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions", "PodExecOptions", "PodAttachOptions")
+
+// TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {
 	for kind, reflectType := range api.Scheme.KnownTypes("") {
-		if !strings.Contains(reflectType.PkgPath(), "/origin/") {
+		if !strings.Contains(reflectType.PkgPath(), "/origin/") && reflectType.PkgPath() != "k8s.io/kubernetes/pkg/api" {
+			continue
+		}
+		if nonInternalRoundTrippableTypes.Has(kind) {
 			continue
 		}
 		// Try a few times, since runTest uses random values.

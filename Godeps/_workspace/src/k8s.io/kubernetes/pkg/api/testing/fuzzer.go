@@ -101,8 +101,10 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			}
 			s.TerminationGracePeriodSeconds = &ttl
 
+			c.Fuzz(s.SecurityContext)
+
 			if s.SecurityContext == nil {
-				s.SecurityContext = &api.PodSecurityContext{}
+				s.SecurityContext = new(api.PodSecurityContext)
 			}
 		},
 		func(j *api.PodPhase, c fuzz.Continue) {
@@ -297,14 +299,19 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 		},
 		func(sc *api.SecurityContext, c fuzz.Continue) {
 			c.FuzzNoCustom(sc) // fuzz self without calling this function again
-			priv := c.RandBool()
-			sc.Privileged = &priv
-			sc.Capabilities = &api.Capabilities{
-				Add:  make([]api.Capability, 0),
-				Drop: make([]api.Capability, 0),
+			if c.RandBool() || version == "v1beta3" {
+				priv := c.RandBool()
+				sc.Privileged = &priv
 			}
-			c.Fuzz(&sc.Capabilities.Add)
-			c.Fuzz(&sc.Capabilities.Drop)
+
+			if c.RandBool() || version == "v1beta3" {
+				sc.Capabilities = &api.Capabilities{
+					Add:  make([]api.Capability, 0),
+					Drop: make([]api.Capability, 0),
+				}
+				c.Fuzz(&sc.Capabilities.Add)
+				c.Fuzz(&sc.Capabilities.Drop)
+			}
 		},
 		func(e *api.Event, c fuzz.Continue) {
 			c.FuzzNoCustom(e) // fuzz self without calling this function again
@@ -374,7 +381,7 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			scc.RunAsUser.Type = userTypes[c.Rand.Intn(len(userTypes))]
 			seLinuxTypes := []api.SELinuxContextStrategyType{api.SELinuxStrategyRunAsAny, api.SELinuxStrategyMustRunAs}
 			scc.SELinuxContext.Type = seLinuxTypes[c.Rand.Intn(len(seLinuxTypes))]
-			supGroupTypes := []api.SupplementalGroupsStrategyType{api.SupplementalGroupsStrategyMustRunAs, api.SupplementalGroupsStrategyMustRunAs}
+			supGroupTypes := []api.SupplementalGroupsStrategyType{api.SupplementalGroupsStrategyMustRunAs, api.SupplementalGroupsStrategyRunAsAny}
 			scc.SupplementalGroups.Type = supGroupTypes[c.Rand.Intn(len(supGroupTypes))]
 			fsGroupTypes := []api.FSGroupStrategyType{api.FSGroupStrategyMustRunAs, api.FSGroupStrategyRunAsAny}
 			scc.FSGroup.Type = fsGroupTypes[c.Rand.Intn(len(fsGroupTypes))]

@@ -377,7 +377,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	buildList, err := d.Builds(namespace).List(labels.SelectorFromSet(labels.Set{buildapi.BuildConfigLabel: name}), fields.Everything())
+	buildList, err := d.Builds(namespace).List(labels.SelectorFromSet(labels.Set{buildapi.DeprecatedBuildConfigLabel: name}), fields.Everything())
 	if err != nil {
 		return "", err
 	}
@@ -569,10 +569,13 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 		formatString(out, "Service", route.Spec.To.Name)
 
 		tlsTerm := ""
+		insecurePolicy := ""
 		if route.Spec.TLS != nil {
 			tlsTerm = string(route.Spec.TLS.Termination)
+			insecurePolicy = string(route.Spec.TLS.InsecureEdgeTerminationPolicy)
 		}
 		formatString(out, "TLS Termination", tlsTerm)
+		formatString(out, "Insecure Policy", insecurePolicy)
 		return nil
 	})
 }

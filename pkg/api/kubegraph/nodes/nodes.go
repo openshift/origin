@@ -37,7 +37,17 @@ func EnsureServiceNode(g osgraph.MutableUniqueGraph, svc *kapi.Service) *Service
 	return osgraph.EnsureUnique(g,
 		ServiceNodeName(svc),
 		func(node osgraph.Node) graph.Node {
-			return &ServiceNode{node, svc}
+			return &ServiceNode{node, svc, true}
+		},
+	).(*ServiceNode)
+}
+
+// FindOrCreateSyntheticServiceNode returns the existing service node or creates a synthetic node in its place
+func FindOrCreateSyntheticServiceNode(g osgraph.MutableUniqueGraph, svc *kapi.Service) *ServiceNode {
+	return osgraph.EnsureUnique(g,
+		ServiceNodeName(svc),
+		func(node osgraph.Node) graph.Node {
+			return &ServiceNode{node, svc, false}
 		},
 	).(*ServiceNode)
 }

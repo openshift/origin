@@ -14,6 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	osutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
@@ -43,7 +44,6 @@ const BuildChainRecommendedCommandName = "build-chain"
 // BuildChainOptions contains all the options needed for build-chain
 type BuildChainOptions struct {
 	name string
-	tag  string
 
 	defaultNamespace string
 	namespaces       sets.String
@@ -62,7 +62,7 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 		namespaces: sets.NewString(),
 	}
 	cmd := &cobra.Command{
-		Use:     "build-chain [IMAGESTREAM:TAG]",
+		Use:     "build-chain IMAGESTREAMTAG",
 		Short:   "Output the inputs and dependencies of your builds",
 		Long:    buildChainLong,
 		Example: fmt.Sprintf(buildChainExample, fullName),
@@ -84,7 +84,7 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 // Complete completes the required options for build-chain
 func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) != 1 {
-		return cmdutil.UsageError(cmd, "Must pass an image stream name and optionally a tag. In case of an empty tag, 'latest' will be used.")
+		return cmdutil.UsageError(cmd, "Must pass an image stream tag. If only an image stream name is specified, 'latest' will be used for the tag.")
 	}
 
 	// Setup client
@@ -94,12 +94,20 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	}
 	o.c, o.t = oc, oc
 
-	// Parse user input
-	o.name, o.tag, err = buildChainInput(args[0])
+	resource := ""
+	mapper, _ := f.Object()
+	resource, o.name, err = osutil.ResolveResource("imagestreamtags", args[0], mapper)
 	if err != nil {
-		return cmdutil.UsageError(cmd, err.Error())
+		return err
 	}
-	glog.V(4).Infof("Using '%s:%s' as the image stream tag to look dependencies for", o.name, o.tag)
+
+	switch resource {
+	case "imagestreamtags":
+		o.name = imageapi.NormalizeImageStreamTag(o.name)
+		glog.V(4).Infof("Using %q as the image stream tag to look dependencies for", o.name)
+	default:
+		return fmt.Errorf("invalid resource provided: %s", resource)
+	}
 
 	// Setup namespace
 	if o.allNamespaces {
@@ -120,7 +128,7 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	}
 
 	o.defaultNamespace = namespace
-	glog.V(4).Infof("Using %q as the namespace for '%s:%s'", o.defaultNamespace, o.name, o.tag)
+	glog.V(4).Infof("Using %q as the namespace for %q", o.defaultNamespace, o.name)
 	o.namespaces.Insert(namespace)
 	glog.V(4).Infof("Will look for deps in %s", strings.Join(o.namespaces.List(), ","))
 
@@ -130,10 +138,7 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 // Validate returns validation errors regarding build-chain
 func (o *BuildChainOptions) Validate() error {
 	if len(o.name) == 0 {
-		return fmt.Errorf("image stream name cannot be empty")
-	}
-	if len(o.tag) == 0 {
-		o.tag = imageapi.DefaultImageTag
+		return fmt.Errorf("image stream tag cannot be empty")
 	}
 	if len(o.defaultNamespace) == 0 {
 		return fmt.Errorf("default namespace cannot be empty")
@@ -153,15 +158,17 @@ func (o *BuildChainOptions) Validate() error {
 // RunBuildChain contains all the necessary functionality for the OpenShift
 // experimental build-chain command
 func (o *BuildChainOptions) RunBuildChain() error {
-	ist := imagegraph.MakeImageStreamTagObjectMeta(o.defaultNamespace, o.name, o.tag)
+	ist := imagegraph.MakeImageStreamTagObjectMeta2(o.defaultNamespace, o.name)
+
 	desc, err := describe.NewChainDescriber(o.c, o.namespaces, o.output).Describe(ist, !o.triggerOnly)
 	if err != nil {
 		if _, isNotFoundErr := err.(describe.NotFoundErr); isNotFoundErr {
+			name, tag, _ := imageapi.SplitImageStreamTag(o.name)
 			// Try to get the imageStreamTag via a direct GET
-			if _, getErr := o.t.ImageStreamTags(o.defaultNamespace).Get(o.name, o.tag); getErr != nil {
+			if _, getErr := o.t.ImageStreamTags(o.defaultNamespace).Get(name, tag); getErr != nil {
 				return getErr
 			}
-			fmt.Printf("Image stream tag '%s:%s' in %q doesn't have any dependencies.\n", o.name, o.tag, o.defaultNamespace)
+			fmt.Printf("Image stream tag %q in %q doesn't have any dependencies.\n", o.name, o.defaultNamespace)
 			return nil
 		}
 		return err
@@ -170,27 +177,4 @@ func (o *BuildChainOptions) RunBuildChain() error {
 	fmt.Println(desc)
 
 	return nil
-}
-
-// buildChainInput parses user input and returns a stream name, a tag
-// and an error if any
-func buildChainInput(input string) (string, string, error) {
-	// Split name and tag
-	name, tag, _ := imageapi.SplitImageStreamTag(input)
-
-	// Support resource type/name syntax
-	// TODO: Use the RESTMapper to resolve this
-	resource := strings.Split(name, "/")
-	switch len(resource) {
-	case 1:
-	case 2:
-		resourceType := resource[0]
-		if resourceType != "istag" && resourceType != "imagestreamtag" {
-			return "", "", fmt.Errorf("invalid resource type %q", resourceType)
-		}
-	default:
-		return "", "", fmt.Errorf("invalid image stream name %q", name)
-	}
-
-	return name, tag, nil
 }

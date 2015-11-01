@@ -91,11 +91,11 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 	switch {
 	case deployLogOpts.Version == nil:
 		// Latest
-	case *deployLogOpts.Version <= 0 || *deployLogOpts.Version > config.LatestVersion:
+	case *deployLogOpts.Version <= 0 || int(*deployLogOpts.Version) > config.LatestVersion:
 		// Invalid version
 		return nil, errors.NewBadRequest(fmt.Sprintf("invalid version for deploymentConfig %q: %d", config.Name, *deployLogOpts.Version))
 	default:
-		desiredVersion = *deployLogOpts.Version
+		desiredVersion = int(*deployLogOpts.Version)
 	}
 
 	// Get desired deployment
@@ -137,9 +137,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 
 	// Setup url of the deployer pod
 	deployPodName := deployutil.DeployerPodNameForDeployment(target.Name)
-	logOpts := &kapi.PodLogOptions{
-		Follow: deployLogOpts.Follow,
-	}
+	logOpts := deployapi.DeploymentToPodLogOptions(deployLogOpts)
 	location, transport, err := pod.LogLocation(r.PodGetter, r.ConnectionInfo, ctx, deployPodName, logOpts)
 	if err != nil {
 		return nil, errors.NewBadRequest(err.Error())

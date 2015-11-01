@@ -90,10 +90,19 @@ type TLSConfig struct {
 	// DestinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt
 	// termination this file should be provided in order to have routers use it for health checks on the secure connection
 	DestinationCACertificate string `json:"destinationCACertificate,omitempty"`
+
+	// InsecureEdgeTerminationPolicy indicates the desired behavior for
+	// insecure connections to an edge-terminated route:
+	//   disable, allow or redirect
+	InsecureEdgeTerminationPolicy InsecureEdgeTerminationPolicyType `json:"insecureEdgeTerminationPolicy,omitempty"`
 }
 
 // TLSTerminationType dictates where the secure communication will stop
 type TLSTerminationType string
+
+// InsecureEdgeTerminationPolicyType dictates the behavior of insecure
+// connections to an edge-terminated route.
+type InsecureEdgeTerminationPolicyType string
 
 const (
 	// TLSTerminationEdge terminate encryption at the edge router.

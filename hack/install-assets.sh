@@ -13,14 +13,17 @@ LOG_DIR="${LOG_DIR:-$(mktemp -d ${TMPDIR}/openshift.assets.logs.XXXX)}"
 
 function cmd() {
   local cmd="$1"
+  local tries="${2:-1}"
   local log_file=$(mktemp ${LOG_DIR}/install-assets.XXXX)
   echo "[install-assets] ${cmd}"
   rc="0"
-  $cmd &> ${log_file} || rc=$?
-  if [ "$rc" != "0" ]; then
-    echo "[ERROR] Command '${cmd}' failed with ${rc}, logs:" && cat ${log_file}
-    exit $rc
-  fi
+  while [[ "$tries" -gt 0 ]]; do
+    $cmd &>> ${log_file} || rc=$?
+    [[ "$rc" == "0" ]] && return 0
+    ((tries--))
+  done
+  echo "[ERROR] Command '${cmd}' failed with rc ${rc}, logs:" && cat ${log_file}
+  exit $rc
 }
 
 # If we are running inside of Travis then do not run the rest of this
@@ -58,7 +61,7 @@ pushd ${OS_ROOT}/assets > /dev/null
 
   # In case upstream components change things without incrementing versions
   cmd "bower cache clean --allow-root"
-  cmd "bower install --allow-root"
+  cmd "bower update --allow-root" 3
 
   cmd "rm -rf openshift-jvm"
   cmd "mkdir -p openshift-jvm"

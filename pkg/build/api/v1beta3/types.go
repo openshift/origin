@@ -340,10 +340,6 @@ type BuildOutput struct {
 	PushSecret *kapi.LocalObjectReference `json:"pushSecret,omitempty" description:"supported type: dockercfg"`
 }
 
-// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
-// on which the Build is based.
-const BuildConfigLabel = "buildconfig"
-
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
 	unversioned.TypeMeta `json:",inline"`
@@ -512,13 +508,40 @@ type BinaryBuildRequestOptions struct {
 type BuildLogOptions struct {
 	unversioned.TypeMeta
 
+	// The container for which to stream logs. Defaults to only container if there is one container in the pod.
+	Container string `json:"container,omitempty" description:"the container for which to stream logs; defaults to only container if there is one container in the pod"`
 	// Follow if true indicates that the build log should be streamed until
 	// the build terminates.
 	Follow bool `json:"follow,omitempty" description:"if true indicates that the log should be streamed; defaults to false"`
+	// Return previous terminated container logs. Defaults to false.
+	Previous bool `json:"previous,omitempty" description:"return previous terminated container logs; defaults to false."`
+	// A relative time in seconds before the current time from which to show logs. If this value
+	// precedes the time a pod was started, only logs since the pod start will be returned.
+	// If this value is in the future, no logs will be returned.
+	// Only one of sinceSeconds or sinceTime may be specified.
+	SinceSeconds *int64 `json:"sinceSeconds,omitempty" description:"relative time in seconds before the current time from which to show logs"`
+	// An RFC3339 timestamp from which to show logs. If this value
+	// preceeds the time a pod was started, only logs since the pod start will be returned.
+	// If this value is in the future, no logs will be returned.
+	// Only one of sinceSeconds or sinceTime may be specified.
+	SinceTime *unversioned.Time `json:"sinceTime,omitempty" description:"relative time in seconds before the current time from which to show logs"`
+	// If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line
+	// of log output. Defaults to false.
+	Timestamps bool `json:"timestamps,omitempty" description:"add an RFC3339 or RFC3339Nano timestamp at the beginning of every line of log output"`
+	// If set, the number of lines from the end of the logs to show. If not specified,
+	// logs are shown from the creation of the container or sinceSeconds or sinceTime
+	TailLines *int64 `json:"tailLines,omitempty" description:"the number of lines from the end of the logs to show"`
+	// If set, the number of bytes to read from the server before terminating the
+	// log output. This may not display a complete final line of logging, and may return
+	// slightly more or slightly less than the specified limit.
+	LimitBytes *int64 `json:"limitBytes,omitempty" description:"the number of bytes to read from the server before terminating the log output"`
 
 	// NoWait if true causes the call to return immediately even if the build
 	// is not available yet. Otherwise the server will wait until the build has started.
 	NoWait bool `json:"nowait,omitempty" description:"if true indicates that the server should not wait for a log to be available before returning; defaults to false"`
+
+	// Version of the build for which to view logs.
+	Version *int64 `json:"version,omitempty" description:"the version of the build for which to view logs"`
 }
 
 // SecretSpec specifies a secret to be included in a build pod and its corresponding mount point

@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 
 	newer "github.com/openshift/origin/pkg/deploy/api"
+	testutil "github.com/openshift/origin/test/util/api"
 )
 
 func TestTriggerRoundTrip(t *testing.T) {
@@ -190,4 +191,11 @@ func newInt(val int) *int {
 
 func newIntOrString(ios util.IntOrString) *util.IntOrString {
 	return &ios
+}
+
+func TestFieldSelectors(t *testing.T) {
+	testutil.CheckFieldLabelConversions(t, "v1", "DeploymentConfig",
+		// Ensure all currently returned labels are supported
+		newer.DeploymentConfigToSelectableFields(&newer.DeploymentConfig{}),
+	)
 }

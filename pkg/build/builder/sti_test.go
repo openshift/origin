@@ -107,6 +107,9 @@ func makeBuild() *api.Build {
 				},
 			},
 		},
+		Status: api.BuildStatus{
+			OutputDockerImageReference: "test/test-result:latest",
+		},
 	}
 }
 

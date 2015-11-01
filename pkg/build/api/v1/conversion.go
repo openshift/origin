@@ -1,11 +1,10 @@
 package v1
 
 import (
-	"fmt"
-
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	newer "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -162,35 +161,15 @@ func init() {
 		convert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy,
 	)
 
-	// Add field conversion funcs.
-	err = kapi.Scheme.AddFieldLabelConversionFunc("v1", "Build",
-		func(label, value string) (string, string, error) {
-			switch label {
-			case "name":
-				return "metadata.name", value, nil
-			case "status":
-				return "status", value, nil
-			case "podName":
-				return "podName", value, nil
-			default:
-				return "", "", fmt.Errorf("field label not supported: %s", label)
-			}
-		})
-	if err != nil {
-		// If one of the conversion functions is malformed, detect it immediately.
+	if err := kapi.Scheme.AddFieldLabelConversionFunc("v1", "Build",
+		oapi.GetFieldLabelConversionFunc(newer.BuildToSelectableFields(&newer.Build{}), map[string]string{"name": "metadata.name"}),
+	); err != nil {
 		panic(err)
 	}
-	err = kapi.Scheme.AddFieldLabelConversionFunc("v1", "BuildConfig",
-		func(label, value string) (string, string, error) {
-			switch label {
-			case "name":
-				return "metadata.name", value, nil
-			default:
-				return "", "", fmt.Errorf("field label not supported: %s", label)
-			}
-		})
-	if err != nil {
-		// If one of the conversion functions is malformed, detect it immediately.
+
+	if err := kapi.Scheme.AddFieldLabelConversionFunc("v1", "BuildConfig",
+		oapi.GetFieldLabelConversionFunc(newer.BuildConfigToSelectableFields(&newer.BuildConfig{}), map[string]string{"name": "metadata.name"}),
+	); err != nil {
 		panic(err)
 	}
 }

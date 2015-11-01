@@ -85,7 +85,7 @@ func (c *readOnlyPolicyCache) List(label labels.Selector, field fields.Selector,
 		if !castOK {
 			return policyList, errors.NewInvalid("PolicyList", "policyList", []error{})
 		}
-		if label.Matches(labels.Set(policy.Labels)) && field.Matches(PolicyToSelectableFields(policy)) {
+		if label.Matches(labels.Set(policy.Labels)) && field.Matches(authorizationapi.PolicyToSelectableFields(policy)) {
 			policyList.Items = append(policyList.Items, *policy)
 		}
 	}

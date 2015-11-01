@@ -17,12 +17,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 509c39c4d7af70529084e9af9b1a8b17f26c7d41
+%global commit cbebb2516e2c8abe4df2613363589cebfabd8162
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.903-188-g509c39c -X github.com/openshift/origin/pkg/version.commitFromGit 509c39c -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.1-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.904-112-gcbebb25 -X github.com/openshift/origin/pkg/version.commitFromGit cbebb25 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.1-1107-g4c8e6f4
 }
 
 %if "%{dist}" == ".el7aos"
@@ -36,7 +36,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.0.2.904
+Version:        3.0.2.905
 Release:        0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -394,6 +394,97 @@ fi
 
 
 %changelog
+* Sun Nov 01 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.905
+- Add and test field label conversions (jliggitt@redhat.com)
+- logs: View logs from older deployments/builds with --version
+  (mkargaki@redhat.com)
+- UPSTREAM: 15733: Disable keepalive on liveness probes (ccoleman@redhat.com)
+- UPSTREAM: 15845: Add service locator in service rest storage
+  (ccoleman@redhat.com)
+- install-assets: retry bower update (lmeyer@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  1f449c7f0d3cd41314a895ef119f9d25a15b54de (rpenta@redhat.com)
+- Improve UI performance when displaying large logs (spadgett@redhat.com)
+- fixes as per @smarterclayton review comments. (smitram@gmail.com)
+- new SCCs (pweil@redhat.com)
+- UPSTREAM: 16068: Increase annotation size significantly (ccoleman@redhat.com)
+- UPSTREAM(go-dockerclient): 408: fix stdin-only attach (agoldste@redhat.com)
+- stop creating roles with resourcegroups (deads@redhat.com)
+- Fixes as per @smarterclayton and @liggit review comments. (smitram@gmail.com)
+- Various style/positioning fixes (sgoodwin@redhat.com)
+- Add missing kube resources to bootstrap policy (jliggitt@redhat.com)
+- UPSTREAM: <carry>: OpenShift 3.0.2 nodes report v1.1.0-alpha
+  (ccoleman@redhat.com)
+- UPSTREAM: 16137: Release node port correctly (ccoleman@redhat.com)
+- Run serialization tests for upstream types (mkargaki@redhat.com)
+- UPSTREAM: <carry>: Update v1beta3 (mkargaki@redhat.com)
+- UPSTREAM: 15930: Deletion of pods managed by old kubelets
+  (ccoleman@redhat.com)
+- UPSTREAM: 15900: Delete succeeded and failed pods immediately
+  (ccoleman@redhat.com)
+- add istag list, update (deads@redhat.com)
+- diagnostics: default server conf paths changed (lmeyer@redhat.com)
+- diagnostics: systemd unit name changes (lmeyer@redhat.com)
+- Handle passwords with colon in basic auth (pep@redhat.com)
+- Bug 1275564 - Removed the requirement for spec.dockerImageRepository from
+  import-image command. (maszulik@redhat.com)
+- bump(github.com/openshift/source-to-image)
+  65d46436ab599633b76e570311a05f46a818389b (mfojtik@redhat.com)
+- Add openshift.io/build-config.name label to builds. (vsemushi@redhat.com)
+- oc: Use default resources where it makes sense (mkargaki@redhat.com)
+- logs: Support all flags for builds and deployments (mkargaki@redhat.com)
+- UPSTREAM: <carry>: Update v1beta3 PodLogOptions (mkargaki@redhat.com)
+- UPSTREAM: 16494: Remove dead pods upon stopping a job (maszulik@redhat.com)
+- Add local IP addresses to node certificate (jliggitt@redhat.com)
+- Rest validation of binary builds is more aggressive (ccoleman@redhat.com)
+-   o Add support to expose/redirect/disable insecure schemes (http) for
+  edge secured routes.   o Add changes to template, haproxy and f5 router
+  implementations.   o Add generated* files. (smitram@gmail.com)
+- removed unneeded squash and chown from nfs doc (mturansk@redhat.com)
+- Only run pod nodeenv admission on create (agoldste@redhat.com)
+- fix up latest tags and add new scl image versions (bparees@redhat.com)
+- UPSTREAM: 16532: Allow log tail and log follow to be specified together
+  (ccoleman@redhat.com)
+- Need to be doing a bower update instead of install so dependencies will
+  update without conflict (jforrest@redhat.com)
+- Update swagger spec (pmorie@gmail.com)
+- UPSTREAM: 15799: Fix PodPhase issue caused by backoff (mkargaki@redhat.com)
+- watchObject in console triggers callbacks for events of items of the same
+  kind (jforrest@redhat.com)
+- status: Report routes that have no route port specified (mkargaki@redhat.com)
+- Add special casing for v1beta3 DeploymentConfig in serialization_test
+  (pmorie@gmail.com)
+- UPSTREAM: <carry>: respect fuzzing defaults for v1beta3 SecurityContext
+  (pmorie@gmail.com)
+- OS integration for PSC (pweil@redhat.com)
+- UPSTREAM: <carry>: v1beta3 scc integration for PSC (pweil@redhat.com)
+- UPSTREAM: <carry>: scc integration for PSC (pweil@redhat.com)
+- UPSTREAM: <carry>: Workaround for cadvisor/libcontainer config schema
+  mismatch (pmorie@gmail.com)
+- UPSTREAM: 15323: Support volume relabling for pods which specify an SELinux
+  label (pmorie@gmail.com)
+- Update completions (jimmidyson@gmail.com)
+- Test scm password auth (jliggitt@redhat.com)
+- Add prometheus exporter to haproxy router (jimmidyson@gmail.com)
+- UPSTREAM: 16332: Remove invalid blank line when printing jobs
+  (maszulik@redhat.com)
+- UPSTREAM: 16234: Fix jobs unittest flakes (maszulik@redhat.com)
+- UPSTREAM: 16196: Fix e2e test flakes (maszulik@redhat.com)
+- UPSTREAM: 15791: Update master service ports and type via controller.
+  (abutcher@redhat.com)
+- Add dns ports to the master service (abutcher@redhat.com)
+- UPSTREAM: 15352: FSGroup implementation (pmorie@gmail.com)
+- UPSTREAM: 14705: Inline some SecurityContext fields into PodSecurityContext
+  (pmorie@gmail.com)
+- UPSTREAM: 14991: Add Support for supplemental groups (pmorie@gmail.com)
+- Allow processing template from different namespace (mfojtik@redhat.com)
+- changed build for sti and docker to use OutputDockerImageReference, fixed
+  tests (ipalade@redhat.com)
+- Bug 1270728 - username in the secret don't override the username in the
+  source URL (jhadvig@redhat.com)
+- UPSTREAM: 15520: Move job to generalized label selector (maszulik@redhat.com)
+- Update openshift-object-describer to 1.1.1 (jforrest@redhat.com)
+
 * Thu Oct 29 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.904
 - Based on origin v1.0.7
 - Provide informational output in new-app and new-build (ccoleman@redhat.com)

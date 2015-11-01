@@ -461,3 +461,19 @@ func isValidURL(uri string) bool {
 	_, err := url.Parse(uri)
 	return err == nil
 }
+
+func ValidateBuildLogOptions(opts *buildapi.BuildLogOptions) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	// TODO: Replace by validating PodLogOptions via BuildLogOptions once it's bundled in
+	popts := buildapi.BuildToPodLogOptions(opts)
+	if errs := validation.ValidatePodLogOptions(popts); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+
+	if opts.Version != nil && *opts.Version <= 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("version", *opts.Version, "build version must be greater than 0"))
+	}
+
+	return allErrs
+}

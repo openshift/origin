@@ -53,8 +53,8 @@ func getBasicAuthInfo(r *http.Request) (string, string, bool, error) {
 		return "", "", false, errors.New("No valid base64 data in basic auth scheme found")
 	}
 
-	cred := strings.Split(string(str), ":")
-	if len(cred) != 2 {
+	cred := strings.SplitN(string(str), ":", 2)
+	if len(cred) < 2 {
 		return "", "", false, errors.New("Invalid Authorization header")
 	}
 

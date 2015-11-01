@@ -61,6 +61,14 @@ frontend public
   tcp-request inspect-delay 5s
   tcp-request content accept if HTTP
 
+  # check if we need to redirect/force using https.
+  acl secure_redirect base,map_beg(/var/lib/haproxy/conf/os_edge_http_redirect.map) -m found
+  redirect scheme https if secure_redirect
+
+  # Check if it is an edge route exposed insecurely.
+  acl edge_http_expose base,map_beg(/var/lib/haproxy/conf/os_edge_http_expose.map) -m found
+  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_expose.map)] if edge_http_expose
+
   # map to http backend
   # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
@@ -262,6 +270,36 @@ backend be_secure_{{$cfgIdx}}
 {{     end }}
 {{   end }}
 {{ end }}{{/* end edge http host map template */}}
+
+{{/*
+    os_edge_http_expose.map: contains a mapping of www.example.com -> <service name>.
+    Map is used to also expose edge terminated routes via an insecure scheme
+    (http) if acls match for routes with insecure option set to expose.
+*/}}
+{{ define "/var/lib/haproxy/conf/os_edge_http_expose.map" }}
+{{   range $id, $serviceUnit := .State }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "Allow"))}}
+{{$cfg.Host}}{{$cfg.Path}} {{$idx}}
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end edge insecure expose http host map template */}}
+
+{{/*
+    os_edge_http_redirect.map: contains a mapping of www.example.com -> <service name>.
+    Map is used to redirect insecure traffic to use a secure scheme (https)
+    if acls match for routes that have the insecure option set to redirect.
+*/}}
+{{ define "/var/lib/haproxy/conf/os_edge_http_redirect.map" }}
+{{   range $id, $serviceUnit := .State }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "Redirect"))}}
+{{$cfg.Host}}{{$cfg.Path}} {{$idx}}
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end edge insecure redirect http host map template */}}
 
 
 {{/*

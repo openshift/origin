@@ -349,3 +349,48 @@ func TestValidateImageStream(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateISTUpdate(t *testing.T) {
+	old := &api.ImageStreamTag{
+		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
+	}
+
+	errs := ValidateImageStreamTagUpdate(
+		&api.ImageStreamTag{
+			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two", "three": "four"}},
+		},
+		old,
+	)
+	if len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
+	}
+
+	errorCases := map[string]struct {
+		A api.ImageStreamTag
+		T fielderrors.ValidationErrorType
+		F string
+	}{
+		"changedLabel": {
+			A: api.ImageStreamTag{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}, Labels: map[string]string{"a": "b"}},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "metadata",
+		},
+	}
+	for k, v := range errorCases {
+		errs := ValidateImageStreamTagUpdate(&v.A, old)
+		if len(errs) == 0 {
+			t.Errorf("expected failure %s for %v", k, v.A)
+			continue
+		}
+		for i := range errs {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
+				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			}
+		}
+	}
+}

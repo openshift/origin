@@ -27,6 +27,8 @@ func ServiceNodeName(o *kapi.Service) osgraph.UniqueName {
 type ServiceNode struct {
 	osgraph.Node
 	*kapi.Service
+
+	IsFound bool
 }
 
 func (n ServiceNode) Object() interface{} {
@@ -43,6 +45,10 @@ func (n ServiceNode) ResourceString() string {
 
 func (*ServiceNode) Kind() string {
 	return ServiceNodeKind
+}
+
+func (n ServiceNode) Found() bool {
+	return n.IsFound
 }
 
 func PodNodeName(o *kapi.Pod) osgraph.UniqueName {

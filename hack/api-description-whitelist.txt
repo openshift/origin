@@ -105,6 +105,7 @@ v1.imagestreammapping
 v1.imagestreamspec
 v1.imagestreamstatus
 v1.imagestreamtag
+v1.imagestreamtaglist
 v1.iscsivolumesource
 v1.lifecycle
 v1.lifecyclehook
