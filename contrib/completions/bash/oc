@@ -398,25 +398,6 @@ _oc_start-build()
     must_have_one_noun=()
 }
 
-_oc_build-logs()
-{
-    last_command="oc_build-logs"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--follow")
-    flags+=("-f")
-    flags+=("--nowait")
-    flags+=("-w")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
 _oc_deploy()
 {
     last_command="oc_deploy"
@@ -2020,7 +2001,6 @@ _oc()
     commands+=("status")
     commands+=("project")
     commands+=("start-build")
-    commands+=("build-logs")
     commands+=("deploy")
     commands+=("rollback")
     commands+=("new-build")

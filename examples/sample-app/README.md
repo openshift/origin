@@ -271,7 +271,7 @@ This section covers how to perform all the steps of building, deploying, and upd
      command below (substituting your build name from the "oc get builds"
      output).
 
-         $ oc build-logs ruby-sample-build-1 -n test
+         $ oc logs build/ruby-sample-build-1 -n test
 
     The creation of the new image in the Docker registry will
     automatically trigger a deployment of the application, creating a
