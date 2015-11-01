@@ -59,18 +59,18 @@ func NormalizeServerURL(s string) (string, error) {
 
 	addr, err := url.Parse(s)
 	if err != nil {
-		return "", fmt.Errorf("Not a valid URL: %v.", err)
+		return "", fmt.Errorf("not a valid URL: %v.", err)
 	}
 
 	// normalize host:port
 	if strings.Contains(addr.Host, ":") {
 		_, port, err := net.SplitHostPort(addr.Host)
 		if err != nil {
-			return "", fmt.Errorf("Not a valid host:port: %v.", err)
+			return "", fmt.Errorf("not a valid host:port: %v.", err)
 		}
 		_, err = strconv.ParseUint(port, 10, 16)
 		if err != nil {
-			return "", fmt.Errorf("Not a valid port: %v. Port numbers must be between 0 and 65535.", port)
+			return "", fmt.Errorf("not a valid port: %v. Port numbers must be between 0 and 65535.", port)
 		}
 	} else {
 		port := 0
@@ -80,7 +80,7 @@ func NormalizeServerURL(s string) (string, error) {
 		case "https":
 			port = 443
 		default:
-			return "", fmt.Errorf("No port specified.")
+			return "", fmt.Errorf("no port specified.")
 		}
 		addr.Host = net.JoinHostPort(addr.Host, strconv.FormatInt(int64(port), 10))
 	}

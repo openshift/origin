@@ -44,7 +44,7 @@ func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.R
 	// Retry failures are treated the same as Abort.
 	switch hook.FailurePolicy {
 	case deployapi.LifecycleHookFailurePolicyAbort, deployapi.LifecycleHookFailurePolicyRetry:
-		return fmt.Errorf("Hook failed, aborting: %s", err)
+		return fmt.Errorf("hook failed, aborting: %s", err)
 	case deployapi.LifecycleHookFailurePolicyIgnore:
 		glog.Infof("Hook failed, ignoring: %s", err)
 		return nil

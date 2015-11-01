@@ -38,7 +38,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	identity.Extra["token"] = token.AccessToken
 	user, err := a.mapper.UserFor(identity)
 	if err != nil {
-		return nil, false, fmt.Errorf("Error creating or updating mapping for: %#v due to %v", identity, err)
+		return nil, false, fmt.Errorf("error creating or updating mapping for: %#v due to %v", identity, err)
 	}
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 

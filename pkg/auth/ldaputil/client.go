@@ -14,7 +14,7 @@ import (
 func NewLDAPClientConfig(URL, bindDN, bindPassword, CA string, insecure bool) (*LDAPClientConfig, error) {
 	url, err := ParseURL(URL)
 	if err != nil {
-		return nil, fmt.Errorf("Error parsing URL: %v", err)
+		return nil, fmt.Errorf("error parsing URL: %v", err)
 	}
 
 	tlsConfig := &tls.Config{}

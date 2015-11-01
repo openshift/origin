@@ -53,12 +53,12 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 	pod, err := bc.PodManager.GetPod(build.Namespace, buildutil.GetBuildPodName(build))
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			return fmt.Errorf("Failed to get pod for build %s/%s: %v", build.Namespace, build.Name, err)
+			return fmt.Errorf("failed to get pod for build %s/%s: %v", build.Namespace, build.Name, err)
 		}
 	} else {
 		err := bc.PodManager.DeletePod(build.Namespace, pod)
 		if err != nil && !errors.IsNotFound(err) {
-			return fmt.Errorf("Couldn't delete build pod %s/%s: %v", build.Namespace, pod.Name, err)
+			return fmt.Errorf("couldn't delete build pod %s/%s: %v", build.Namespace, pod.Name, err)
 		}
 	}
 
@@ -68,7 +68,7 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 	now := unversioned.Now()
 	build.Status.CompletionTimestamp = &now
 	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
-		return fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err)
+		return fmt.Errorf("failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 	}
 
 	glog.V(4).Infof("Build %s/%s was successfully cancelled.", build.Namespace, build.Name)
@@ -84,7 +84,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	if build.Status.Cancelled && build.Status.Phase != buildapi.BuildPhaseCancelled {
 		if err := bc.CancelBuild(build); err != nil {
 			build.Status.Reason = buildapi.StatusReasonCancelBuildFailed
-			return fmt.Errorf("Failed to cancel build %s/%s: %v, will retry", build.Namespace, build.Name, err)
+			return fmt.Errorf("failed to cancel build %s/%s: %v, will retry", build.Namespace, build.Name, err)
 		}
 	}
 
@@ -334,7 +334,7 @@ func (bc *BuildPodDeleteController) HandleBuildPodDeletion(pod *kapi.Pod) error 
 		now := unversioned.Now()
 		build.Status.CompletionTimestamp = &now
 		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
-			return fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err)
+			return fmt.Errorf("failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 		}
 	}
 	return nil

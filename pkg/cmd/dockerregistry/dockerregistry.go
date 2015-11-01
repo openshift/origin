@@ -114,7 +114,7 @@ func Execute(configFile io.Reader) {
 				}
 
 				if ok := pool.AppendCertsFromPEM(caPem); !ok {
-					context.GetLogger(app).Fatalln(fmt.Errorf("Could not add CA to pool"))
+					context.GetLogger(app).Fatalln(fmt.Errorf("could not add CA to pool"))
 				}
 			}
 

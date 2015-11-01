@@ -150,7 +150,7 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 
 func (o LoginOptions) Validate(args []string, serverFlag string) error {
 	if len(args) > 1 {
-		return errors.New("Only the server URL may be specified as an argument")
+		return errors.New("only the server URL may be specified as an argument")
 	}
 
 	if (len(serverFlag) > 0) && (len(args) == 1) {
@@ -158,7 +158,7 @@ func (o LoginOptions) Validate(args []string, serverFlag string) error {
 	}
 
 	if (len(o.Server) == 0) && !cmdutil.IsTerminal(o.Reader) {
-		return errors.New("A server URL must be specified")
+		return errors.New("a server URL must be specified")
 	}
 
 	if len(o.Username) > 0 && len(o.Token) > 0 {
@@ -166,7 +166,7 @@ func (o LoginOptions) Validate(args []string, serverFlag string) error {
 	}
 
 	if o.StartingKubeConfig == nil {
-		return errors.New("Must have a config file already created")
+		return errors.New("must have a config file already created")
 	}
 
 	return nil

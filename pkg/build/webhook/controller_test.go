@@ -50,19 +50,19 @@ func (*okBuildConfigInstantiator) Instantiate(namespace string, request *api.Bui
 type errorBuildConfigInstantiator struct{}
 
 func (*errorBuildConfigInstantiator) Instantiate(namespace string, request *api.BuildRequest) (*api.Build, error) {
-	return nil, errors.New("Build error!")
+	return nil, errors.New("build error!")
 }
 
 type errorBuildConfigGetter struct{}
 
 func (*errorBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error) {
-	return &api.BuildConfig{}, errors.New("BuildConfig error!")
+	return &api.BuildConfig{}, errors.New("buildConfig error!")
 }
 
 type errorBuildConfigUpdater struct{}
 
 func (*errorBuildConfigUpdater) Update(buildConfig *api.BuildConfig) error {
-	return errors.New("BuildConfig error!")
+	return errors.New("buildConfig error!")
 }
 
 type pathPlugin struct {
@@ -77,7 +77,7 @@ func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req
 type errPlugin struct{}
 
 func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, bool, error) {
-	return nil, true, errors.New("Plugin error!")
+	return nil, true, errors.New("plugin error!")
 }
 
 func TestParseUrlError(t *testing.T) {

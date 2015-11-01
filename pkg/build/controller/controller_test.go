@@ -25,7 +25,7 @@ func (okc *okBuildUpdater) Update(namespace string, build *buildapi.Build) error
 type errBuildUpdater struct{}
 
 func (ec *errBuildUpdater) Update(namespace string, build *buildapi.Build) error {
-	return errors.New("UpdateBuild error!")
+	return errors.New("updateBuild error!")
 }
 
 type okStrategy struct {
@@ -40,7 +40,7 @@ func (os *okStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 type errStrategy struct{}
 
 func (es *errStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
-	return nil, errors.New("CreateBuildPod error!")
+	return nil, errors.New("createBuildPod error!")
 }
 
 type okPodManager struct{}
@@ -60,15 +60,15 @@ func (*okPodManager) GetPod(namespace, name string) (*kapi.Pod, error) {
 type errPodManager struct{}
 
 func (*errPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-	return &kapi.Pod{}, errors.New("CreatePod error!")
+	return &kapi.Pod{}, errors.New("createPod error!")
 }
 
 func (*errPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
-	return errors.New("DeletePod error!")
+	return errors.New("deletePod error!")
 }
 
 func (*errPodManager) GetPod(namespace, name string) (*kapi.Pod, error) {
-	return nil, errors.New("GetPod error!")
+	return nil, errors.New("getPod error!")
 }
 
 type errExistsPodManager struct{}
@@ -99,7 +99,7 @@ func (*okImageStreamClient) GetImageStream(namespace, name string) (*imageapi.Im
 type errImageStreamClient struct{}
 
 func (*errImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
-	return nil, errors.New("GetImageStream error!")
+	return nil, errors.New("getImageStream error!")
 }
 
 type errNotFoundImageStreamClient struct{}

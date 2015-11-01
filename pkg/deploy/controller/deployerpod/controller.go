@@ -136,7 +136,7 @@ func (c *DeployerPodController) cleanupFailedDeployment(deployment *kapi.Replica
 		// if desired replicas could not be found, then log the error
 		// and update the failed deployment
 		// this cannot be treated as a transient error
-		kutil.HandleError(fmt.Errorf("Could not determine desired replicas from %s to reset replicas for last completed deployment", deployutil.LabelForDeployment(deployment)))
+		kutil.HandleError(fmt.Errorf("could not determine desired replicas from %s to reset replicas for last completed deployment", deployutil.LabelForDeployment(deployment)))
 	}
 
 	if ok && len(existingDeployments.Items) > 0 {

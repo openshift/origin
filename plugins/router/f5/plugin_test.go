@@ -206,7 +206,7 @@ func newTestRouterWithState(state mockF5State, partitionPath string) (*F5Plugin,
 	url, err := url.Parse(server.URL)
 	if err != nil {
 		return nil, nil,
-			fmt.Errorf("Failed to parse URL of mock F5 host; URL: %s, error: %v",
+			fmt.Errorf("failed to parse URL of mock F5 host; URL: %s, error: %v",
 				url, err)
 	}
 
@@ -222,7 +222,7 @@ func newTestRouterWithState(state mockF5State, partitionPath string) (*F5Plugin,
 	}
 	router, err := NewF5Plugin(f5PluginTestCfg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to create new F5 router: %v", err)
+		return nil, nil, fmt.Errorf("failed to create new F5 router: %v", err)
 	}
 
 	mockF5 := &mockF5{state: state, server: server}
@@ -1461,11 +1461,11 @@ func TestHandleEndpoints(t *testing.T) {
 
 				poolExists, err := router.F5Client.PoolExists(poolName)
 				if err != nil {
-					return fmt.Errorf("PoolExists(%s) failed: %v", poolName, err)
+					return fmt.Errorf("poolExists(%s) failed: %v", poolName, err)
 				}
 
 				if poolExists != true {
-					return fmt.Errorf("PoolExists(%s) returned %v instead of true",
+					return fmt.Errorf("poolExists(%s) returned %v instead of true",
 						poolName, poolExists)
 				}
 
@@ -1473,12 +1473,12 @@ func TestHandleEndpoints(t *testing.T) {
 
 				poolHasMember, err := router.F5Client.PoolHasMember(poolName, memberName)
 				if err != nil {
-					return fmt.Errorf("PoolHasMember(%s, %s) failed: %v",
+					return fmt.Errorf("poolHasMember(%s, %s) failed: %v",
 						poolName, memberName, err)
 				}
 
 				if poolHasMember != true {
-					return fmt.Errorf("PoolHasMember(%s, %s) returned %v instead of true",
+					return fmt.Errorf("poolHasMember(%s, %s) returned %v instead of true",
 						poolName, memberName, poolHasMember)
 				}
 
@@ -1503,11 +1503,11 @@ func TestHandleEndpoints(t *testing.T) {
 
 				poolExists, err := router.F5Client.PoolExists(poolName)
 				if err != nil {
-					return fmt.Errorf("PoolExists(%s) failed: %v", poolName, err)
+					return fmt.Errorf("poolExists(%s) failed: %v", poolName, err)
 				}
 
 				if poolExists != true {
-					return fmt.Errorf("PoolExists(%s) returned %v instead of true",
+					return fmt.Errorf("poolExists(%s) returned %v instead of true",
 						poolName, poolExists)
 				}
 
@@ -1515,12 +1515,12 @@ func TestHandleEndpoints(t *testing.T) {
 
 				poolHasMember, err := router.F5Client.PoolHasMember(poolName, memberName)
 				if err != nil {
-					return fmt.Errorf("PoolHasMember(%s, %s) failed: %v",
+					return fmt.Errorf("poolHasMember(%s, %s) failed: %v",
 						poolName, memberName, err)
 				}
 
 				if poolHasMember != true {
-					return fmt.Errorf("PoolHasMember(%s, %s) returned %v instead of true",
+					return fmt.Errorf("poolHasMember(%s, %s) returned %v instead of true",
 						poolName, memberName, poolHasMember)
 				}
 
@@ -1542,11 +1542,11 @@ func TestHandleEndpoints(t *testing.T) {
 
 				poolExists, err := router.F5Client.PoolExists(poolName)
 				if err != nil {
-					return fmt.Errorf("PoolExists(%s) failed: %v", poolName, err)
+					return fmt.Errorf("poolExists(%s) failed: %v", poolName, err)
 				}
 
 				if poolExists != false {
-					return fmt.Errorf("PoolExists(%s) returned %v instead of false",
+					return fmt.Errorf("poolExists(%s) returned %v instead of false",
 						poolName, poolExists)
 				}
 
@@ -1613,14 +1613,14 @@ func TestHandleRoute(t *testing.T) {
 
 				rule, ok := mockF5.state.policies[insecureRoutesPolicyName][rulename]
 				if !ok {
-					return fmt.Errorf("Policy %s should have rule %s,"+
+					return fmt.Errorf("policy %s should have rule %s,"+
 						" but no rule was found: %v",
 						insecureRoutesPolicyName, rulename,
 						mockF5.state.policies[insecureRoutesPolicyName])
 				}
 
 				if len(rule.conditions) != 1 {
-					return fmt.Errorf("Insecure route should have rule with 1 condition,"+
+					return fmt.Errorf("insecure route should have rule with 1 condition,"+
 						" but rule has %d conditions: %v",
 						len(rule.conditions), rule.conditions)
 				}
@@ -1629,17 +1629,17 @@ func TestHandleRoute(t *testing.T) {
 
 				if !(condition.HttpHost && condition.Host && !condition.HttpUri &&
 					!condition.PathSegment) {
-					return fmt.Errorf("Insecure route should have rule that matches on"+
+					return fmt.Errorf("insecure route should have rule that matches on"+
 						" hostname but found this instead: %v", rule.conditions)
 				}
 
 				if len(condition.Values) != 1 {
-					return fmt.Errorf("Insecure route rule condition should have 1 value"+
+					return fmt.Errorf("insecure route rule condition should have 1 value"+
 						" but has %d values: %v", len(condition.Values), condition)
 				}
 
 				if condition.Values[0] != tc.route.Spec.Host {
-					return fmt.Errorf("Insecure route rule condition should match on"+
+					return fmt.Errorf("insecure route rule condition should match on"+
 						" hostname %s, but it has a different value: %v",
 						tc.route.Spec.Host, condition)
 				}
@@ -1668,13 +1668,13 @@ func TestHandleRoute(t *testing.T) {
 
 				rule, ok := mockF5.state.policies[insecureRoutesPolicyName][rulename]
 				if !ok {
-					return fmt.Errorf("Policy %s should have rule %s,"+
+					return fmt.Errorf("policy %s should have rule %s,"+
 						" but no rule was found: %v",
 						insecureRoutesPolicyName, rulename,
 						mockF5.state.policies[insecureRoutesPolicyName])
 				}
 				if len(rule.conditions) != 3 {
-					return fmt.Errorf("Insecure route with pathname should have rule"+
+					return fmt.Errorf("insecure route with pathname should have rule"+
 						" with 3 conditions, but rule has %d conditions: %v",
 						len(rule.conditions), rule.conditions)
 				}
@@ -1690,7 +1690,7 @@ func TestHandleRoute(t *testing.T) {
 					foundValue := condition.Values[0]
 
 					if foundValue != expectedValue {
-						return fmt.Errorf("Rule condition with index %d for insecure route"+
+						return fmt.Errorf("rule condition with index %d for insecure route"+
 							" with pathname %s should have value \"%s\" but has value"+
 							" \"%s\": %v",
 							condition.Index, tc.route.Spec.Path, expectedValue, foundValue, rule)
@@ -1720,7 +1720,7 @@ func TestHandleRoute(t *testing.T) {
 
 				_, found := mockF5.state.policies[secureRoutesPolicyName][rulename]
 				if found {
-					return fmt.Errorf("Rule %s should have been deleted from policy %s"+
+					return fmt.Errorf("rule %s should have been deleted from policy %s"+
 						" when the corresponding route was deleted, but it remains yet: %v",
 						rulename, secureRoutesPolicyName,
 						mockF5.state.policies[secureRoutesPolicyName])
@@ -1754,7 +1754,7 @@ func TestHandleRoute(t *testing.T) {
 
 				_, found := mockF5.state.policies[secureRoutesPolicyName][rulename]
 				if !found {
-					return fmt.Errorf("Policy %s should have rule %s,"+
+					return fmt.Errorf("policy %s should have rule %s,"+
 						" but no such rule was found: %v",
 						secureRoutesPolicyName, rulename,
 						mockF5.state.policies[secureRoutesPolicyName])
@@ -1763,7 +1763,7 @@ func TestHandleRoute(t *testing.T) {
 				certfname := fmt.Sprintf("%s-https-cert.crt", rulename)
 				_, found = mockF5.state.certs[certfname]
 				if !found {
-					return fmt.Errorf("Certificate file %s should have been created but"+
+					return fmt.Errorf("certificate file %s should have been created but"+
 						" does not exist: %v",
 						certfname, mockF5.state.certs)
 				}
@@ -1771,7 +1771,7 @@ func TestHandleRoute(t *testing.T) {
 				keyfname := fmt.Sprintf("%s-https-key.key", rulename)
 				_, found = mockF5.state.keys[keyfname]
 				if !found {
-					return fmt.Errorf("Key file %s should have been created but"+
+					return fmt.Errorf("key file %s should have been created but"+
 						" does not exist: %v",
 						keyfname, mockF5.state.keys)
 				}
@@ -1820,7 +1820,7 @@ func TestHandleRoute(t *testing.T) {
 
 				_, found := mockF5.state.policies[secureRoutesPolicyName][rulename]
 				if found {
-					return fmt.Errorf("Rule %s should have been deleted from policy %s"+
+					return fmt.Errorf("rule %s should have been deleted from policy %s"+
 						" when the corresponding route was deleted, but it remains yet: %v",
 						rulename, secureRoutesPolicyName,
 						mockF5.state.policies[secureRoutesPolicyName])
@@ -1829,7 +1829,7 @@ func TestHandleRoute(t *testing.T) {
 				certfname := fmt.Sprintf("%s-https-cert.crt", rulename)
 				_, found = mockF5.state.certs[certfname]
 				if found {
-					return fmt.Errorf("Certificate file %s should have been deleted with"+
+					return fmt.Errorf("certificate file %s should have been deleted with"+
 						" the route but remains yet: %v",
 						certfname, mockF5.state.certs)
 				}
@@ -1837,7 +1837,7 @@ func TestHandleRoute(t *testing.T) {
 				keyfname := fmt.Sprintf("%s-https-key.key", rulename)
 				_, found = mockF5.state.keys[keyfname]
 				if found {
-					return fmt.Errorf("Key file %s should have been deleted with the"+
+					return fmt.Errorf("key file %s should have been deleted with the"+
 						" route but remains yet: %v",
 						keyfname, mockF5.state.keys)
 				}
@@ -1882,7 +1882,7 @@ func TestHandleRoute(t *testing.T) {
 			validate: func(tc testCase) error {
 				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Spec.Host]
 				if !found {
-					return fmt.Errorf("Datagroup entry for %s should have been created"+
+					return fmt.Errorf("datagroup entry for %s should have been created"+
 						" in the %s datagroup for the passthrough route but cannot be"+
 						" found: %v",
 						tc.route.Spec.Host, passthroughIRuleDatagroupName,
@@ -1915,7 +1915,7 @@ func TestHandleRoute(t *testing.T) {
 			validate: func(tc testCase) error {
 				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Spec.Host]
 				if !found {
-					return fmt.Errorf("Datagroup entry for %s should still exist"+
+					return fmt.Errorf("datagroup entry for %s should still exist"+
 						" in the %s datagroup after a secure route with the same hostname"+
 						" was created, but the datagroup entry cannot be found: %v",
 						tc.route.Spec.Host, passthroughIRuleDatagroupName,
@@ -1943,7 +1943,7 @@ func TestHandleRoute(t *testing.T) {
 			validate: func(tc testCase) error {
 				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Spec.Host]
 				if !found {
-					return fmt.Errorf("Datagroup entry for %s should still exist"+
+					return fmt.Errorf("datagroup entry for %s should still exist"+
 						" in the %s datagroup after a secure route with the same hostname"+
 						" was updated, but the datagroup entry cannot be found: %v",
 						tc.route.Spec.Host, passthroughIRuleDatagroupName,
@@ -1971,7 +1971,7 @@ func TestHandleRoute(t *testing.T) {
 			validate: func(tc testCase) error {
 				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Spec.Host]
 				if !found {
-					return fmt.Errorf("Datagroup entry for %s should still exist"+
+					return fmt.Errorf("datagroup entry for %s should still exist"+
 						" in the %s datagroup after a secure route with the same hostname"+
 						" was deleted, but the datagroup entry cannot be found: %v",
 						tc.route.Spec.Host, passthroughIRuleDatagroupName,
@@ -2002,7 +2002,7 @@ func TestHandleRoute(t *testing.T) {
 			validate: func(tc testCase) error {
 				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Spec.Host]
 				if found {
-					return fmt.Errorf("Datagroup entry for %s should have been deleted"+
+					return fmt.Errorf("datagroup entry for %s should have been deleted"+
 						" from the %s datagroup for the passthrough route but remains"+
 						" yet: %v",
 						tc.route.Spec.Host, passthroughIRuleDatagroupName,
@@ -2039,7 +2039,7 @@ func TestHandleRoute(t *testing.T) {
 
 				_, found := mockF5.state.policies[secureRoutesPolicyName][rulename]
 				if !found {
-					return fmt.Errorf("Policy %s should have rule %s for secure route,"+
+					return fmt.Errorf("policy %s should have rule %s for secure route,"+
 						" but no rule was found: %v",
 						secureRoutesPolicyName, rulename,
 						mockF5.state.policies[secureRoutesPolicyName])
@@ -2048,7 +2048,7 @@ func TestHandleRoute(t *testing.T) {
 				certcafname := fmt.Sprintf("%s-https-chain.crt", rulename)
 				_, found = mockF5.state.certs[certcafname]
 				if !found {
-					return fmt.Errorf("Certificate chain file %s should have been"+
+					return fmt.Errorf("certificate chain file %s should have been"+
 						" created but does not exist: %v",
 						certcafname, mockF5.state.certs)
 				}
@@ -2056,7 +2056,7 @@ func TestHandleRoute(t *testing.T) {
 				keyfname := fmt.Sprintf("%s-https-key.key", rulename)
 				_, found = mockF5.state.keys[keyfname]
 				if !found {
-					return fmt.Errorf("Key file %s should have been created but"+
+					return fmt.Errorf("key file %s should have been created but"+
 						" does not exist: %v",
 						keyfname, mockF5.state.keys)
 				}
@@ -2123,7 +2123,7 @@ func TestHandleRoute(t *testing.T) {
 
 				_, found := mockF5.state.policies[secureRoutesPolicyName][rulename]
 				if found {
-					return fmt.Errorf("Rule %s should have been deleted from policy %s"+
+					return fmt.Errorf("rule %s should have been deleted from policy %s"+
 						" when the corresponding route was deleted, but it remains yet: %v",
 						rulename, secureRoutesPolicyName,
 						mockF5.state.policies[secureRoutesPolicyName])
@@ -2132,7 +2132,7 @@ func TestHandleRoute(t *testing.T) {
 				certcafname := fmt.Sprintf("%s-https-chain.crt", rulename)
 				_, found = mockF5.state.certs[certcafname]
 				if found {
-					return fmt.Errorf("Certificate chain file %s should have been"+
+					return fmt.Errorf("certificate chain file %s should have been"+
 						" deleted with the route but remains yet: %v",
 						certcafname, mockF5.state.certs)
 				}
@@ -2140,7 +2140,7 @@ func TestHandleRoute(t *testing.T) {
 				keyfname := fmt.Sprintf("%s-https-key.key", rulename)
 				_, found = mockF5.state.keys[keyfname]
 				if found {
-					return fmt.Errorf("Key file %s should have been deleted with the"+
+					return fmt.Errorf("key file %s should have been deleted with the"+
 						" route but remains yet: %v",
 						keyfname, mockF5.state.keys)
 				}

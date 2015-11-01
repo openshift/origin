@@ -18,18 +18,18 @@ type ValidateFunc func(string) error
 func VerifyImage(stream *imageapi.ImageStream, tag, ns string, validator ValidateFunc) error {
 	pod := CreatePodFromImage(stream, tag, ns)
 	if pod == nil {
-		return fmt.Errorf("Unable to create Pod for %+v", stream.Status.DockerImageRepository)
+		return fmt.Errorf("unable to create Pod for %+v", stream.Status.DockerImageRepository)
 	}
 	service := CreateServiceForPod(pod, ns)
 	if service == nil {
-		return fmt.Errorf("Unable to create Service for %+v", service)
+		return fmt.Errorf("unable to create Service for %+v", service)
 	}
 
 	defer CleanupServiceAndPod(pod, service, ns)
 
 	address, err := WaitForAddress(pod, service, ns)
 	if err != nil {
-		return fmt.Errorf("Failed to obtain address: %v", err)
+		return fmt.Errorf("failed to obtain address: %v", err)
 	}
 
 	return validator(address)
@@ -44,13 +44,13 @@ func WaitForAddress(pod *kapi.Pod, service *kapi.Service, ns string) (string, er
 	}
 	watcher, err := client.Endpoints(ns).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
-		return "", fmt.Errorf("Unexpected error: %v", err)
+		return "", fmt.Errorf("unexpected error: %v", err)
 	}
 	defer watcher.Stop()
 	for event := range watcher.ResultChan() {
 		eventEndpoint, ok := event.Object.(*kapi.Endpoints)
 		if !ok {
-			return "", fmt.Errorf("Unable to convert object %+v to Endpoints", eventEndpoint)
+			return "", fmt.Errorf("unable to convert object %+v to Endpoints", eventEndpoint)
 		}
 		if eventEndpoint.Name != service.Name {
 			continue
@@ -69,7 +69,7 @@ func WaitForAddress(pod *kapi.Pod, service *kapi.Service, ns string) (string, er
 			}
 		}
 	}
-	return "", fmt.Errorf("Service does not get any endpoints")
+	return "", fmt.Errorf("service does not get any endpoints")
 }
 
 // CreatePodFromImage creates a Pod from the latest image available in the Image

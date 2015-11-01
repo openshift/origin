@@ -527,7 +527,7 @@ func (args MasterArgs) GetMasterAddress() (*url.URL, error) {
 	} else if err == cmdutil.ErrorNoDefaultIP {
 		addr = "127.0.0.1"
 	} else if err != nil {
-		return nil, fmt.Errorf("Unable to find a public IP address: %v", err)
+		return nil, fmt.Errorf("unable to find a public IP address: %v", err)
 	}
 
 	masterAddr := scheme + "://" + net.JoinHostPort(addr, strconv.Itoa(port))

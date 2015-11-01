@@ -93,7 +93,7 @@ func TestFind(t *testing.T) {
 }
 
 func TestFindError(t *testing.T) {
-	err := fmt.Errorf("File error")
+	err := fmt.Errorf("file error")
 	files := []file{
 		{
 			name:  "test",

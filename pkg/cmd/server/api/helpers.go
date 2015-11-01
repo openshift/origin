@@ -407,7 +407,7 @@ func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 				}
 				certs, err := cmdutil.CertificatesFromFile(caFile)
 				if err != nil {
-					return nil, fmt.Errorf("Error reading %s: %s", caFile, err)
+					return nil, fmt.Errorf("error reading %s: %s", caFile, err)
 				}
 				allCerts = append(allCerts, certs...)
 			}

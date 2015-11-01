@@ -105,12 +105,12 @@ func (c *NodeConfig) EnsureVolumeDir() {
 func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (string, error) {
 	rootDirectory, err := filepath.Abs(path)
 	if err != nil {
-		return "", fmt.Errorf("Error converting volume directory to an absolute path: %v", err)
+		return "", fmt.Errorf("error converting volume directory to an absolute path: %v", err)
 	}
 
 	if _, err := os.Stat(rootDirectory); os.IsNotExist(err) {
 		if err := os.MkdirAll(rootDirectory, 0750); err != nil {
-			return "", fmt.Errorf("Couldn't create kubelet volume root directory '%s': %s", rootDirectory, err)
+			return "", fmt.Errorf("couldn't create kubelet volume root directory '%s': %s", rootDirectory, err)
 		}
 	}
 	// always try to chcon, in case the volume dir existed prior to the node starting

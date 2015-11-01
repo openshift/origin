@@ -67,7 +67,7 @@ func NewLogger(setLevel int, setFormat string, out io.Writer) (*Logger, error) {
 	case DebugLevel.Level:
 		// Debug, also default for invalid numbers below
 	default:
-		err = errors.New("Invalid diagnostic level; must be 0-4")
+		err = errors.New("invalid diagnostic level; must be 0-4")
 	}
 
 	return &Logger{

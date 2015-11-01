@@ -58,7 +58,7 @@ func NewCmdNewGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) 
 
 func (o *NewGroupOptions) Complete(f *clientcmd.Factory, args []string) error {
 	if len(args) < 1 {
-		return errors.New("You must specify at least one argument: GROUP [USER ...]")
+		return errors.New("you must specify at least one argument: GROUP [USER ...]")
 	}
 
 	o.Group = args[0]

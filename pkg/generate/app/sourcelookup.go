@@ -314,7 +314,7 @@ type SourceRepositoryEnumerator struct {
 
 // ErrNoLanguageDetected is the error returned when no language can be detected by all
 // source code detectors.
-var ErrNoLanguageDetected = fmt.Errorf("No language matched the source repository")
+var ErrNoLanguageDetected = fmt.Errorf("no language matched the source repository")
 
 // Detect extracts source code information about the provided source repository
 func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, error) {

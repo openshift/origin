@@ -51,7 +51,7 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 	}
 	method := getEvent(req.Header)
 	if method != "ping" && method != "push" {
-		err = fmt.Errorf("Unknown X-GitHub-Event or X-Gogs-Event %s", method)
+		err = fmt.Errorf("unknown X-GitHub-Event or X-Gogs-Event %s", method)
 		return
 	}
 	if method == "ping" {
@@ -86,13 +86,13 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 
 func verifyRequest(req *http.Request) error {
 	if method := req.Method; method != "POST" {
-		return fmt.Errorf("Unsupported HTTP method %s", method)
+		return fmt.Errorf("unsupported HTTP method %s", method)
 	}
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
-		return fmt.Errorf("Unsupported Content-Type %s", contentType)
+		return fmt.Errorf("unsupported Content-Type %s", contentType)
 	}
 	if len(getEvent(req.Header)) == 0 {
-		return errors.New("Missing X-GitHub-Event or X-Gogs-Event")
+		return errors.New("missing X-GitHub-Event or X-Gogs-Event")
 	}
 	return nil
 }

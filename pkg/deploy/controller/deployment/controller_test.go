@@ -180,7 +180,7 @@ func TestHandle_createPodFail(t *testing.T) {
 		},
 		podClient: &podClientImpl{
 			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				return nil, fmt.Errorf("Failed to create pod %s", pod.Name)
+				return nil, fmt.Errorf("failed to create pod %s", pod.Name)
 			},
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {

@@ -165,11 +165,11 @@ func (d ConfigContext) Description() string {
 func (d ConfigContext) CanRun() (bool, error) {
 	if d.RawConfig == nil {
 		// TODO make prettier?
-		return false, errors.New("There is no client config file")
+		return false, errors.New("there is no client config file")
 	}
 
 	if len(d.ContextName) == 0 {
-		return false, errors.New("There is no current context")
+		return false, errors.New("there is no current context")
 	}
 
 	return true, nil

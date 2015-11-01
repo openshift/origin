@@ -81,5 +81,5 @@ UserSearch:
 		}
 	}
 
-	return nil, errors.New("Could not create user, max attempts exceeded")
+	return nil, errors.New("could not create user, max attempts exceeded")
 }

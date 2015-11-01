@@ -940,7 +940,7 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 		return string(msg), nil
 	}
 
-	return "", errors.New("Unrecognized protocol in getRoute")
+	return "", errors.New("unrecognized protocol in getRoute")
 }
 
 // eventString marshals the event into a string
@@ -1052,7 +1052,7 @@ func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp stri
 	}
 
 	if !running {
-		return "", errors.New("Container did not start after 3 tries!")
+		return "", errors.New("container did not start after 3 tries!")
 	}
 
 	return container.ID, nil

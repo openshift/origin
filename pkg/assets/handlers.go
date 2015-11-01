@@ -216,7 +216,7 @@ func GeneratedConfigHandler(config WebConsoleConfig) (http.Handler, error) {
 		w.Header().Add("Content-Type", "application/javascript")
 		_, err := w.Write(content)
 		if err != nil {
-			util.HandleError(fmt.Errorf("Error serving Web Console configuration: %v", err))
+			util.HandleError(fmt.Errorf("error serving Web Console configuration: %v", err))
 		}
 	}), nil
 }

@@ -93,7 +93,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, false, fmt.Errorf("An error occurred while authenticating (%d)", resp.StatusCode)
+		return nil, false, fmt.Errorf("an error occurred while authenticating (%d)", resp.StatusCode)
 	}
 
 	remoteUserData := RemoteUserData{}
@@ -103,7 +103,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	}
 
 	if len(remoteUserData.Subject) == 0 {
-		return nil, false, errors.New("Could not retrieve user data")
+		return nil, false, errors.New("could not retrieve user data")
 	}
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, remoteUserData.Subject)
 
@@ -119,7 +119,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 
 	user, err := a.mapper.UserFor(identity)
 	if err != nil {
-		return nil, false, fmt.Errorf("Error creating or updating mapping for: %#v due to %v", identity, err)
+		return nil, false, fmt.Errorf("error creating or updating mapping for: %#v due to %v", identity, err)
 	}
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 

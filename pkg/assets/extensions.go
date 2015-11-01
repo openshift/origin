@@ -30,7 +30,7 @@ func concatHandler(files []string, developmentMode bool, mediaType, separator st
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			bytes, err := concatAll(files, separator)
 			if err != nil {
-				util.HandleError(fmt.Errorf("Error serving extension content: %v", err))
+				util.HandleError(fmt.Errorf("error serving extension content: %v", err))
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 			}
 			serve(w, r, bytes, mediaType, "")
@@ -117,7 +117,7 @@ func serve(w http.ResponseWriter, r *http.Request, bytes []byte, mediaType, hash
 	w.Header().Set("Content-Type", mediaType)
 	_, err := w.Write(bytes)
 	if err != nil {
-		util.HandleError(fmt.Errorf("Error serving extension content: %v", err))
+		util.HandleError(fmt.Errorf("error serving extension content: %v", err))
 	}
 }
 
@@ -175,7 +175,7 @@ func serveExtensionFile(w http.ResponseWriter, r *http.Request, sourceDir, conte
 				return
 			}
 
-			util.HandleError(fmt.Errorf("Error serving extension file: %v", err))
+			util.HandleError(fmt.Errorf("error serving extension file: %v", err))
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}

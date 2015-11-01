@@ -96,7 +96,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ok, err := h.state.Check(authData.State, req)
 	if !ok {
 		glog.V(4).Infof("State is invalid")
-		err := errors.New("State is invalid")
+		err := errors.New("state is invalid")
 		h.handleError(err, w, req)
 		return
 	}
@@ -125,7 +125,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	if !ok {
 		glog.V(4).Infof("Could not get userIdentityInfo info from access token")
-		err := errors.New("Could not get userIdentityInfo info from access token")
+		err := errors.New("could not get userIdentityInfo info from access token")
 		h.handleError(err, w, req)
 		return
 	}
@@ -174,7 +174,7 @@ func CSRFRedirectingState(csrf csrf.CSRF) RedirectorState {
 func (d *defaultState) Generate(w http.ResponseWriter, req *http.Request) (string, error) {
 	then := req.URL.String()
 	if len(then) == 0 {
-		return "", errors.New("Cannot generate state: request has no URL")
+		return "", errors.New("cannot generate state: request has no URL")
 	}
 
 	csrfToken, err := d.csrf.Generate(w, req)
@@ -201,12 +201,12 @@ func (d *defaultState) Check(state string, req *http.Request) (bool, error) {
 		return false, err
 	}
 	if !ok {
-		return false, fmt.Errorf("State did not contain a valid CSRF token")
+		return false, fmt.Errorf("state did not contain a valid CSRF token")
 	}
 
 	then := values.Get("then")
 	if then == "" {
-		return false, errors.New("State did not contain a redirect")
+		return false, errors.New("state did not contain a redirect")
 	}
 
 	return true, nil
@@ -220,7 +220,7 @@ func (d *defaultState) AuthenticationSucceeded(user user.Info, state string, w h
 
 	then := values.Get("then")
 	if len(then) == 0 {
-		return false, errors.New("No redirect given")
+		return false, errors.New("no redirect given")
 	}
 
 	http.Redirect(w, req, then, http.StatusFound)

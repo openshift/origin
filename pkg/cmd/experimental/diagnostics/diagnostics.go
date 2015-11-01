@@ -143,9 +143,9 @@ func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 	} else if common := intersection(sets.NewString(o.RequestedDiagnostics...), AvailableDiagnostics); len(common) == 0 {
 		o.Logger.Error("CED3012", log.EvalTemplate("CED3012", "None of the requested diagnostics are available:\n  {{.requested}}\nPlease try from the following:\n  {{.available}}",
 			log.Hash{"requested": o.RequestedDiagnostics, "available": AvailableDiagnostics.List()}))
-		return false, fmt.Errorf("No requested diagnostics available"), 0, 1
+		return false, fmt.Errorf("no requested diagnostics available"), 0, 1
 	} else if len(common) < len(o.RequestedDiagnostics) {
-		errors = append(errors, fmt.Errorf("Not all requested diagnostics are available"))
+		errors = append(errors, fmt.Errorf("not all requested diagnostics are available"))
 		o.Logger.Error("CED3013", log.EvalTemplate("CED3013", `
 Of the requested diagnostics:
     {{.requested}}
@@ -174,7 +174,7 @@ The list of all possible is:
 			if r := recover(); r != nil {
 				failed = true
 				stack := debug.Stack()
-				errors = append(errors, fmt.Errorf("While building the diagnostics, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%v\n%s", r, stack))
+				errors = append(errors, fmt.Errorf("while building the diagnostics, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%v\n%s", r, stack))
 			}
 		}()
 		detected, detectWarnings, detectErrors := o.detectClientConfig() // may log and return problems

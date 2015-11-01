@@ -103,7 +103,7 @@ func (g *BuildGenerator) FetchServiceAccountSecrets(namespace, serviceAccount st
 	var result []kapi.Secret
 	sa, err := g.ServiceAccounts.ServiceAccounts(namespace).Get(serviceAccount)
 	if err != nil {
-		return result, fmt.Errorf("Error getting push/pull secrets for service account %s/%s: %v", namespace, serviceAccount, err)
+		return result, fmt.Errorf("error getting push/pull secrets for service account %s/%s: %v", namespace, serviceAccount, err)
 	}
 	for _, ref := range sa.Secrets {
 		secret, err := g.Secrets.Secrets(namespace).Get(ref.Name)
@@ -287,7 +287,7 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 // createBuild is responsible for validating build object and saving it and returning newly created object
 func (g *BuildGenerator) createBuild(ctx kapi.Context, build *buildapi.Build) (*buildapi.Build, error) {
 	if !kapi.ValidNamespace(ctx, &build.ObjectMeta) {
-		return nil, errors.NewConflict("build", build.Namespace, fmt.Errorf("Build.Namespace does not match the provided context"))
+		return nil, errors.NewConflict("build", build.Namespace, fmt.Errorf("build.Namespace does not match the provided context"))
 	}
 	kapi.FillObjectMetaSystemFields(ctx, &build.ObjectMeta)
 
@@ -462,7 +462,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from kapi
 	case "DockerImage":
 		return from.Name, nil
 	default:
-		return "", fatalError{fmt.Errorf("Unknown From Kind %s", from.Kind)}
+		return "", fatalError{fmt.Errorf("unknown From Kind %s", from.Kind)}
 	}
 }
 
@@ -508,7 +508,7 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx kapi.Context, fr
 	case "DockerImage":
 		return from.Name, nil
 	default:
-		return "", fatalError{fmt.Errorf("Unknown From Kind %s", from.Kind)}
+		return "", fatalError{fmt.Errorf("unknown From Kind %s", from.Kind)}
 	}
 }
 

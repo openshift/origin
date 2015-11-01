@@ -193,7 +193,7 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 		}
 	}
 	if commonResources.Len() > 0 {
-		return fmt.Errorf("Resources for kubernetes and origin types intersect: %v", commonResources.List())
+		return fmt.Errorf("resources for kubernetes and origin types intersect: %v", commonResources.List())
 	}
 
 	// Generated web console config

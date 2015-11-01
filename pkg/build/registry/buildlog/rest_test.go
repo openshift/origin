@@ -219,7 +219,7 @@ func resourceLocationHelper(BuildPhase api.BuildPhase, podPhase string, ctx kapi
 	}
 	streamer, ok := obj.(*genericrest.LocationStreamer)
 	if !ok {
-		return "", fmt.Errorf("Result of get not LocationStreamer")
+		return "", fmt.Errorf("result of get not LocationStreamer")
 	}
 	if streamer.Location != nil {
 		return streamer.Location.String(), nil

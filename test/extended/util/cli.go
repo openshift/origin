@@ -52,7 +52,7 @@ func NewCLI(project, adminConfigPath string) *CLI {
 	client.username = "admin"
 	client.execPath = "oc"
 	if len(adminConfigPath) == 0 {
-		FatalErr(fmt.Errorf("You must set the KUBECONFIG variable to admin kubeconfig."))
+		FatalErr(fmt.Errorf("you must set the KUBECONFIG variable to admin kubeconfig."))
 	}
 	client.adminConfigPath = adminConfigPath
 	return client

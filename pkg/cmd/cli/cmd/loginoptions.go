@@ -364,7 +364,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 // succeed if all required info is present.
 func (o *LoginOptions) SaveConfig() (bool, error) {
 	if len(o.Username) == 0 {
-		return false, fmt.Errorf("Insufficient data to merge configuration.")
+		return false, fmt.Errorf("insufficient data to merge configuration.")
 	}
 
 	globalExistedBefore := true

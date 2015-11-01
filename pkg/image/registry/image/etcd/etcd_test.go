@@ -399,7 +399,7 @@ func TestDeleteNotFound(t *testing.T) {
 
 func TestDeleteImageError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	fakeEtcdClient.Err = fmt.Errorf("Some error")
+	fakeEtcdClient.Err = fmt.Errorf("some error")
 	storage := NewREST(helper)
 	_, err := storage.Delete(kapi.NewDefaultContext(), "foo", nil)
 	if err == nil {

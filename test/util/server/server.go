@@ -60,7 +60,7 @@ func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
 		return l.Addr().String(), nil
 	}
 
-	return "", fmt.Errorf("Could not find available port in the range %d-%d", lowPort, highPort)
+	return "", fmt.Errorf("could not find available port in the range %d-%d", lowPort, highPort)
 }
 
 func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, *start.ImageFormatArgs, *start.KubeConnectionArgs) {

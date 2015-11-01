@@ -26,7 +26,7 @@ type DefaultLDAPUserIdentityFactory struct {
 func (f *DefaultLDAPUserIdentityFactory) IdentityFor(user *ldap.Entry) (identity authapi.UserIdentityInfo, err error) {
 	uid := f.Definer.ID(user)
 	if uid == "" {
-		err = fmt.Errorf("Could not retrieve a non-empty value for ID attributes for dn=%q", user.DN)
+		err = fmt.Errorf("could not retrieve a non-empty value for ID attributes for dn=%q", user.DN)
 		return
 	}
 	id := authapi.NewDefaultUserIdentityInfo(f.ProviderName, uid)

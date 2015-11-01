@@ -140,7 +140,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 	etcdHelper, err := NewEtcdStorage(client, options.EtcdStorageConfig.OpenShiftStorageVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
-		return nil, fmt.Errorf("Error setting up server storage: %v", err)
+		return nil, fmt.Errorf("error setting up server storage: %v", err)
 	}
 
 	clientCAs, err := configapi.GetClientCertCAPool(options)
@@ -262,7 +262,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client *etcdcl
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
 		ketcdHelper, err := master.NewEtcdStorage(client, kapilatest.InterfacesForLegacyGroup, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
 		if err != nil {
-			return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
+			return nil, fmt.Errorf("error setting up Kubernetes server storage: %v", err)
 		}
 		tokenGetter = serviceaccount.NewGetterFromStorageInterface(ketcdHelper)
 	}
@@ -535,7 +535,7 @@ func NewEtcdStorage(client *etcdclient.Client, version, prefix string) (oshelper
 // named service account in the infra namespace
 func (c *MasterConfig) GetServiceAccountClients(name string) (*osclient.Client, *kclient.Client, error) {
 	if len(name) == 0 {
-		return nil, nil, errors.New("No service account name specified")
+		return nil, nil, errors.New("no service account name specified")
 	}
 	return serviceaccounts.Clients(
 		c.PrivilegedLoopbackClientConfig,

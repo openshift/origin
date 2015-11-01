@@ -14,7 +14,7 @@ func JoinAssetFuncs(funcs ...AssetFunc) AssetFunc {
 				return data, nil
 			}
 		}
-		return nil, fmt.Errorf("Asset %s not found", name)
+		return nil, fmt.Errorf("asset %s not found", name)
 	}
 }
 
@@ -38,6 +38,6 @@ func JoinAssetDirFuncs(funcs ...AssetDirFunc) AssetDirFunc {
 				return dirs, nil
 			}
 		}
-		return nil, fmt.Errorf("Asset %s not found", name)
+		return nil, fmt.Errorf("asset %s not found", name)
 	}
 }

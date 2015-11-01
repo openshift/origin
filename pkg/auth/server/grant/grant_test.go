@@ -113,7 +113,7 @@ func TestGrant(t *testing.T) {
 
 		"Auth error with redirect": {
 			CSRF: &csrf.FakeCSRF{Token: "test"},
-			Auth: badAuth(errors.New("Auth error")),
+			Auth: badAuth(errors.New("auth error")),
 			Path: "/grant?then=/authorize",
 
 			ExpectStatusCode: 302,
@@ -122,7 +122,7 @@ func TestGrant(t *testing.T) {
 
 		"Auth error without redirect": {
 			CSRF: &csrf.FakeCSRF{Token: "test"},
-			Auth: badAuth(errors.New("Auth error")),
+			Auth: badAuth(errors.New("auth error")),
 			Path: "/grant",
 
 			ExpectStatusCode: 200,

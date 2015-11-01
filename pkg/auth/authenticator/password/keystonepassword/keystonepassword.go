@@ -39,7 +39,7 @@ func New(providerName string, url string, transport http.RoundTripper, domainNam
 func (a keystonePasswordAuthenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
 	defer func() {
 		if e := recover(); e != nil {
-			util.HandleError(fmt.Errorf("Recovered panic: %v, %s", e, debug.Stack()))
+			util.HandleError(fmt.Errorf("recovered panic: %v, %s", e, debug.Stack()))
 		}
 	}()
 
@@ -78,7 +78,7 @@ func (a keystonePasswordAuthenticator) AuthenticatePassword(username, password s
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 	user, err := a.identityMapper.UserFor(identity)
 	if err != nil {
-		return nil, false, fmt.Errorf("Error creating or updating mapping for: %#v due to %v", identity, err)
+		return nil, false, fmt.Errorf("error creating or updating mapping for: %#v due to %v", identity, err)
 	}
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 

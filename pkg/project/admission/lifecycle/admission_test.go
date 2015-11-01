@@ -38,7 +38,7 @@ func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
 func TestAdmissionExists(t *testing.T) {
 	mockClient := &testclient.Fake{}
 	mockClient.AddReactor("*", "*", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.Namespace{}, fmt.Errorf("DOES NOT EXIST")
+		return true, &kapi.Namespace{}, fmt.Errorf("does not exist")
 	})
 
 	projectcache.FakeProjectCache(mockClient, cache.NewStore(cache.MetaNamespaceKeyFunc), "")

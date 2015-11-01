@@ -11,7 +11,7 @@ import (
 func ValidateIPAddress(ip string) error {
 	ipaddr := strings.TrimSpace(ip)
 	if net.ParseIP(ipaddr) == nil {
-		return fmt.Errorf("Invalid IP address: %s", ip)
+		return fmt.Errorf("invalid IP address: %s", ip)
 	}
 
 	return nil
@@ -84,7 +84,7 @@ func ValidateCmdOptions(options *IPFailoverConfigCmdOptions, c *Configurator) er
 
 	//  If creating deployment, check deployment config doesn't exist.
 	if options.Create && dc != nil {
-		return fmt.Errorf("IP Failover config %q exists\n", c.Name)
+		return fmt.Errorf("ip failover config %q exists\n", c.Name)
 	}
 
 	return ValidateVirtualIPs(options.VirtualIPs)

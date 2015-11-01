@@ -22,7 +22,7 @@ type testNewIdentityGetter struct {
 func (t *testNewIdentityGetter) UserForNewIdentity(ctx kapi.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
 	t.called++
 	if len(t.responses) < t.called {
-		return nil, fmt.Errorf("Called at least %d times, only %d responses registered", t.called, len(t.responses))
+		return nil, fmt.Errorf("called at least %d times, only %d responses registered", t.called, len(t.responses))
 	}
 	switch response := t.responses[t.called-1].(type) {
 	case error:
@@ -30,7 +30,7 @@ func (t *testNewIdentityGetter) UserForNewIdentity(ctx kapi.Context, preferredUs
 	case *userapi.User:
 		return response, nil
 	default:
-		return nil, fmt.Errorf("Invalid response type registered: %#v", response)
+		return nil, fmt.Errorf("invalid response type registered: %#v", response)
 	}
 }
 

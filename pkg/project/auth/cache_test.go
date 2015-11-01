@@ -151,7 +151,7 @@ type mockReviewer struct {
 func (mr *mockReviewer) Review(name string) (Review, error) {
 	review := mr.expectedResults[name]
 	if review == nil {
-		return nil, fmt.Errorf("Item %s does not exist", name)
+		return nil, fmt.Errorf("item %s does not exist", name)
 	}
 	return review, nil
 }

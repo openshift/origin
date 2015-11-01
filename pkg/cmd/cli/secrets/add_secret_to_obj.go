@@ -144,16 +144,16 @@ func (o AddSecretOptions) Validate() error {
 		return errors.New("for must be present")
 	}
 	if o.Mapper == nil {
-		return errors.New("Mapper must be present")
+		return errors.New("mapper must be present")
 	}
 	if o.Typer == nil {
-		return errors.New("Typer must be present")
+		return errors.New("typer must be present")
 	}
 	if o.ClientMapper == nil {
-		return errors.New("ClientMapper must be present")
+		return errors.New("clientMapper must be present")
 	}
 	if o.ClientInterface == nil {
-		return errors.New("ClientInterface must be present")
+		return errors.New("clientInterface must be present")
 	}
 
 	return nil

@@ -21,22 +21,22 @@ const libModulesPath = "/lib/modules"
 //  connecting to the master.
 func getClientConfig(path string) (*kclient.Config, error) {
 	if 0 == len(path) {
-		return nil, fmt.Errorf("You must specify a .kubeconfig file path containing credentials for connecting to the master with --credentials")
+		return nil, fmt.Errorf("you must specify a .kubeconfig file path containing credentials for connecting to the master with --credentials")
 	}
 
 	rules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: path, Precedence: []string{}}
 	credentials, err := rules.Load()
 	if err != nil {
-		return nil, fmt.Errorf("Could not load credentials from %q: %v", path, err)
+		return nil, fmt.Errorf("could not load credentials from %q: %v", path, err)
 	}
 
 	config, err := kclientcmd.NewDefaultClientConfig(*credentials, &kclientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
-		return nil, fmt.Errorf("Credentials %q error: %v", path, err)
+		return nil, fmt.Errorf("credentials %q error: %v", path, err)
 	}
 
 	if err := kclient.LoadTLSFiles(config); err != nil {
-		return nil, fmt.Errorf("Unable to load certificate info using credentials from %q: %v", path, err)
+		return nil, fmt.Errorf("unable to load certificate info using credentials from %q: %v", path, err)
 	}
 
 	return config, nil

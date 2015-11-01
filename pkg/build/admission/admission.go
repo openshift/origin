@@ -57,7 +57,7 @@ func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	case *buildapi.BuildRequest:
 		return a.checkBuildRequestAuthorization(obj, attr)
 	default:
-		return admission.NewForbidden(attr, fmt.Errorf("Unrecognized request object %#v", obj))
+		return admission.NewForbidden(attr, fmt.Errorf("unrecognized request object %#v", obj))
 	}
 }
 
@@ -127,7 +127,7 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 		}
 		return a.checkBuildConfigAuthorization(build, attr)
 	default:
-		return admission.NewForbidden(attr, fmt.Errorf("Unknown resource type %s for BuildRequest", attr.GetResource()))
+		return admission.NewForbidden(attr, fmt.Errorf("unknown resource type %s for BuildRequest", attr.GetResource()))
 	}
 }
 

@@ -114,7 +114,7 @@ func makeBuild() *api.Build {
 }
 
 func TestDockerBuildError(t *testing.T) {
-	expErr := errors.New("Artificial exception: Error building")
+	expErr := errors.New("artificial exception: Error building")
 	s2iBuilder := makeStiBuilder(expErr, nil, nil, make([]validation.ValidationError, 0))
 	err := s2iBuilder.Build()
 	if err == nil {
@@ -127,7 +127,7 @@ func TestDockerBuildError(t *testing.T) {
 }
 
 func TestPushError(t *testing.T) {
-	expErr := errors.New("Artificial exception: Error pushing image")
+	expErr := errors.New("artificial exception: Error pushing image")
 	s2iBuilder := makeStiBuilder(nil, nil, expErr, make([]validation.ValidationError, 0))
 	err := s2iBuilder.Build()
 	if err == nil {
@@ -141,7 +141,7 @@ func TestPushError(t *testing.T) {
 
 // Test error creating s2i builder
 func TestGetStrategyError(t *testing.T) {
-	expErr := errors.New("Artificial exception: config error")
+	expErr := errors.New("artificial exception: config error")
 	s2iBuilder := makeStiBuilder(nil, expErr, nil, make([]validation.ValidationError, 0))
 	err := s2iBuilder.Build()
 	if err == nil {

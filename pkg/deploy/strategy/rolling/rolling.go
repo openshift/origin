@@ -121,7 +121,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 		if params.Pre != nil {
 			err := s.hookExecutor.Execute(params.Pre, to, "prehook")
 			if err != nil {
-				return fmt.Errorf("Pre hook failed: %s", err)
+				return fmt.Errorf("pre hook failed: %s", err)
 			}
 			glog.Infof("Pre hook finished")
 		}
@@ -224,7 +224,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	if params.Post != nil {
 		err := s.hookExecutor.Execute(params.Post, to, "posthook")
 		if err != nil {
-			util.HandleError(fmt.Errorf("Post hook failed: %s", err))
+			util.HandleError(fmt.Errorf("post hook failed: %s", err))
 		} else {
 			glog.Info("Post hook finished")
 		}

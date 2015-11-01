@@ -34,7 +34,7 @@ func (r *RouteRegistry) GetRoute(ctx kapi.Context, id string) (*routeapi.Route, 
 			}
 		}
 	}
-	return nil, errors.New("Route " + id + " not found")
+	return nil, errors.New("route " + id + " not found")
 }
 
 func (r *RouteRegistry) CreateRoute(ctx kapi.Context, route *routeapi.Route) error {
@@ -65,7 +65,7 @@ func (r *RouteRegistry) UpdateRoute(ctx kapi.Context, route *routeapi.Route) err
 		}
 	}
 	if !found {
-		return errors.New("Route " + route.Name + " not found")
+		return errors.New("route " + route.Name + " not found")
 	}
 	newList = append(newList, *route)
 	r.Routes.Items = newList
