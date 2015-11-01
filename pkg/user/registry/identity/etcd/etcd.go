@@ -36,7 +36,7 @@ func NewREST(s storage.Interface) *REST {
 			return obj.(*api.Identity).Name, nil
 		},
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
-			return identity.MatchIdentity(label, field)
+			return identity.Matcher(label, field)
 		},
 		EndpointName: "identities",
 

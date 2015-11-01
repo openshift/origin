@@ -34,7 +34,7 @@ var (
 	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
-	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS", "TLS TERMINATION"}
+	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS", "INSECURE POLICY", "TLS TERMINATION"}
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
 	deploymentConfigColumns = []string{"NAME", "TRIGGERS", "LATEST"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
@@ -71,6 +71,7 @@ func NewHumanReadablePrinter(noHeaders, withNamespace, wide bool, showAll bool, 
 	p.Handler(buildConfigColumns, printBuildConfigList)
 	p.Handler(imageColumns, printImage)
 	p.Handler(imageStreamTagColumns, printImageStreamTag)
+	p.Handler(imageStreamTagColumns, printImageStreamTagList)
 	p.Handler(imageStreamImageColumns, printImageStreamImage)
 	p.Handler(imageColumns, printImageList)
 	p.Handler(imageStreamColumns, printImageStream)
@@ -317,6 +318,15 @@ func printImageStreamTag(ist *imageapi.ImageStreamTag, w io.Writer, withNamespac
 	return err
 }
 
+func printImageStreamTagList(list *imageapi.ImageStreamTagList, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
+	for _, ist := range list.Items {
+		if err := printImageStreamTag(&ist, w, withNamespace, wide, showAll, columnLabels); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func printImageStreamImage(isi *imageapi.ImageStreamImage, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
 	created := fmt.Sprintf("%s ago", formatRelativeTime(isi.CreationTimestamp.Time))
 	if withNamespace {
@@ -417,15 +427,18 @@ func printProjectList(projects *projectapi.ProjectList, w io.Writer, withNamespa
 
 func printRoute(route *routeapi.Route, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
 	tlsTerm := ""
+	insecurePolicy := ""
 	if route.Spec.TLS != nil {
 		tlsTerm = string(route.Spec.TLS.Termination)
+		insecurePolicy = string(route.Spec.TLS.InsecureEdgeTerminationPolicy)
 	}
 	if withNamespace {
 		if _, err := fmt.Fprintf(w, "%s\t", route.Namespace); err != nil {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", route.Name, route.Spec.Host, route.Spec.Path, route.Spec.To.Name, labels.Set(route.Labels), tlsTerm)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		route.Name, route.Spec.Host, route.Spec.Path, route.Spec.To.Name, labels.Set(route.Labels), insecurePolicy, tlsTerm)
 	return err
 }
 

@@ -1142,6 +1142,7 @@ _oc_logs()
     flags+=("--since-time=")
     flags+=("--tail=")
     flags+=("--timestamps")
+    flags+=("--version=")
 
     must_have_one_flag=()
     must_have_one_noun=()

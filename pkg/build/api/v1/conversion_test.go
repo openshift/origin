@@ -9,9 +9,26 @@ import (
 
 	newer "github.com/openshift/origin/pkg/build/api"
 	older "github.com/openshift/origin/pkg/build/api/v1"
+	testutil "github.com/openshift/origin/test/util/api"
 )
 
 var Convert = knewer.Scheme.Convert
+
+func TestFieldSelectorConversions(t *testing.T) {
+	testutil.CheckFieldLabelConversions(t, "v1", "Build",
+		// Ensure all currently returned labels are supported
+		newer.BuildToSelectableFields(&newer.Build{}),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		"name", "status", "podName",
+	)
+
+	testutil.CheckFieldLabelConversions(t, "v1", "BuildConfig",
+		// Ensure all currently returned labels are supported
+		newer.BuildConfigToSelectableFields(&newer.BuildConfig{}),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		"name",
+	)
+}
 
 func TestBinaryBuildRequestOptions(t *testing.T) {
 	r := &newer.BinaryBuildRequestOptions{

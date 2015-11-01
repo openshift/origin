@@ -56,13 +56,14 @@ func (sdnStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fie
 	return validation.ValidateClusterNetworkUpdate(obj.(*api.ClusterNetwork), old.(*api.ClusterNetwork))
 }
 
-// MatchClusterNetwork returns a generic matcher for a given label and field selector.
-func MatchClusterNetwork(label labels.Selector, field fields.Selector) generic.Matcher {
+// Matcher returns a generic matcher for a given label and field selector.
+func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		_, ok := obj.(*api.ClusterNetwork)
+		network, ok := obj.(*api.ClusterNetwork)
 		if !ok {
 			return false, fmt.Errorf("not a ClusterNetwork")
 		}
-		return true, nil
+		fields := api.ClusterNetworkToSelectableFields(network)
+		return label.Matches(labels.Set(network.Labels)) && field.Matches(fields), nil
 	})
 }

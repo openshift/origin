@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -93,7 +94,7 @@ func waitForProject(t *testing.T, client client.Interface, projectName string, d
 	t.Errorf("expected project %v not found", projectName)
 }
 
-func TestAuthorizationOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
+func TestAuthorizationResolution(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -131,6 +132,44 @@ func TestAuthorizationOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 	// try to add Valerie to a non-existent role
 	if err := addValerie.AddRole(); !kapierror.IsNotFound(err) {
 		t.Fatalf("unexpected error: %v", err)
+	}
+
+	roleWithGroup := &authorizationapi.ClusterRole{}
+	roleWithGroup.Name = "with-group"
+	roleWithGroup.Rules = append(roleWithGroup.Rules, authorizationapi.PolicyRule{
+		Verbs:     sets.NewString("list"),
+		Resources: sets.NewString(authorizationapi.BuildGroupName),
+	})
+	if _, err := clusterAdminClient.ClusterRoles().Create(roleWithGroup); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	addBuildLister := &policy.RoleModificationOptions{
+		RoleNamespace:       "",
+		RoleName:            "with-group",
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		Users:               []string{"build-lister"},
+	}
+	if err := addBuildLister.AddRole(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	buildListerClient, _, _, err := testutil.GetClientForUser(*clusterAdminConfig, "build-lister")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, err := buildListerClient.Builds(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, err := buildListerClient.DeploymentConfigs(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); !kapierror.IsForbidden(err) {
+		t.Errorf("expected forbidden, got %v", err)
 	}
 
 }

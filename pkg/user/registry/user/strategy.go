@@ -56,21 +56,14 @@ func (userStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fi
 	return validation.ValidateUserUpdate(obj.(*api.User), old.(*api.User))
 }
 
-// MatchUser returns a generic matcher for a given label and field selector.
-func MatchUser(label labels.Selector, field fields.Selector) generic.Matcher {
+// Matcher returns a generic matcher for a given label and field selector.
+func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
 		userObj, ok := obj.(*api.User)
 		if !ok {
 			return false, fmt.Errorf("not a user")
 		}
-		fields := UserToSelectableFields(userObj)
+		fields := api.UserToSelectableFields(userObj)
 		return label.Matches(labels.Set(userObj.Labels)) && field.Matches(fields), nil
 	})
-}
-
-// UserToSelectableFields returns a label set that represents the object
-func UserToSelectableFields(user *api.User) labels.Set {
-	return labels.Set{
-		"name": user.Name,
-	}
 }

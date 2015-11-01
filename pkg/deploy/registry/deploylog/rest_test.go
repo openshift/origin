@@ -160,6 +160,6 @@ func TestRESTGet(t *testing.T) {
 
 // TODO: These kind of functions seem to be used in lots of places
 // We should move it in a common location
-func intp(num int) *int {
+func intp(num int64) *int64 {
 	return &num
 }

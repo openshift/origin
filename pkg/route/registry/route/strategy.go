@@ -100,22 +100,12 @@ func (routeStatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Obj
 	return validation.ValidateRouteStatusUpdate(obj.(*api.Route), old.(*api.Route))
 }
 
-// MatchRoute returns a matcher for a route
-func MatchRoute(label labels.Selector, field fields.Selector) generic.Matcher {
+// Matcher returns a matcher for a route
+func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 	return &generic.SelectionPredicate{Label: label, Field: field, GetAttrs: getAttrs}
 }
 
 func getAttrs(obj runtime.Object) (objLabels labels.Set, objFields fields.Set, err error) {
 	route := obj.(*api.Route)
-	return labels.Set(route.Labels), RouteToSelectableFields(route), nil
-}
-
-// RouteToSelectableFields returns a label set that represents the object
-func RouteToSelectableFields(route *api.Route) fields.Set {
-	return fields.Set{
-		"metadata.name": route.Name,
-		"spec.path":     route.Spec.Path,
-		"spec.host":     route.Spec.Host,
-		"spec.to.name":  route.Spec.To.Name,
-	}
+	return labels.Set(route.Labels), api.RouteToSelectableFields(route), nil
 }

@@ -73,14 +73,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 			if !ok {
 				return nil, nil, fmt.Errorf("not a rolebinding")
 			}
-			return labels.Set(roleBinding.ObjectMeta.Labels), SelectableFields(roleBinding), nil
+			return labels.Set(roleBinding.ObjectMeta.Labels), authorizationapi.RoleBindingToSelectableFields(roleBinding), nil
 		},
-	}
-}
-
-// SelectableFields returns a label set that represents the object
-func SelectableFields(roleBinding *authorizationapi.RoleBinding) fields.Set {
-	return fields.Set{
-		"name": roleBinding.Name,
 	}
 }

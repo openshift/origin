@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/kubernetes/pkg/api/meta"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
@@ -30,4 +32,31 @@ func GetDisplayFilename(filename string) string {
 	}
 
 	return filename
+}
+
+// ResolveResource returns the resource type and name of the resourceString.
+// If the resource string has no specified type, defaultResource will be returned.
+func ResolveResource(defaultResource, resourceString string, mapper meta.RESTMapper) (string, string, error) {
+	if mapper == nil {
+		return "", "", errors.New("mapper cannot be nil")
+	}
+
+	var name string
+	parts := strings.Split(resourceString, "/")
+	switch len(parts) {
+	case 1:
+		name = parts[0]
+	case 2:
+		_, kind, err := mapper.VersionAndKindForResource(parts[0])
+		if err != nil {
+			return "", "", err
+		}
+		name = parts[1]
+		resource, _ := meta.KindToResource(kind, false)
+		return resource, name, nil
+	default:
+		return "", "", fmt.Errorf("invalid resource format: %s", resourceString)
+	}
+
+	return defaultResource, name, nil
 }

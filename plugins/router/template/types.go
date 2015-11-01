@@ -33,6 +33,10 @@ type ServiceAliasConfig struct {
 	Status ServiceAliasConfigStatus
 	// Indicates the port the user wishes to expose. If empty, a port will be selected for the service.
 	PreferPort string
+	// InsecureEdgeTerminationPolicy indicates desired behavior for
+	// insecure connections to an edge-terminated route:
+	//   none (or disable), allow or redirect
+	InsecureEdgeTerminationPolicy routeapi.InsecureEdgeTerminationPolicyType
 }
 
 type ServiceAliasConfigStatus string

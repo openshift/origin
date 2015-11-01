@@ -31,6 +31,7 @@ oc describe deploymentConfigs test-deployment-config
 [ "$(oc env dc/test-deployment-config TEST=bar OTHER=baz BAR-)" ]
 
 oc deploy test-deployment-config
+oc deploy dc/test-deployment-config
 oc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
 

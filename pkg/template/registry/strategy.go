@@ -55,13 +55,13 @@ func (templateStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object
 	return validation.ValidateTemplateUpdate(obj.(*api.Template), old.(*api.Template))
 }
 
-// MatchTemplate returns a generic matcher for a given label and field selector.
-func MatchTemplate(label labels.Selector, field fields.Selector) generic.Matcher {
+// Matcher returns a generic matcher for a given label and field selector.
+func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
 		o, ok := obj.(*api.Template)
 		if !ok {
 			return false, fmt.Errorf("not a pod")
 		}
-		return label.Matches(labels.Set(o.Labels)), nil
+		return label.Matches(labels.Set(o.Labels)) && field.Matches(api.TemplateToSelectableFields(o)), nil
 	})
 }

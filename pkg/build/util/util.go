@@ -1,24 +1,23 @@
 package util
 
 import (
+	"fmt"
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/util/namer"
 )
 
 const (
-	// BuildPodSuffix is the suffix used to append to a build pod name given a build name
-	BuildPodSuffix = "build"
 	// NoBuildLogsMessage reports that no build logs are available
 	NoBuildLogsMessage = "No logs are available."
 )
 
 // GetBuildPodName returns name of the build pod.
+// TODO: remove in favor of the one in the api package
 func GetBuildPodName(build *buildapi.Build) string {
-	return namer.GetPodName(build.Name, BuildPodSuffix)
+	return buildapi.GetBuildPodName(build)
 }
 
 // GetBuildName returns name of the build pod.
@@ -73,4 +72,10 @@ func NameFromImageStream(namespace string, ref *kapi.ObjectReference, tag string
 // IsBuildComplete returns whether the provided build is complete or not
 func IsBuildComplete(build *buildapi.Build) bool {
 	return build.Status.Phase != buildapi.BuildPhaseRunning && build.Status.Phase != buildapi.BuildPhasePending && build.Status.Phase != buildapi.BuildPhaseNew
+}
+
+// BuildNameForConfigVersion returns the name of the version-th build
+// for the config that has the provided name
+func BuildNameForConfigVersion(name string, version int) string {
+	return fmt.Sprintf("%s-%d", name, version)
 }

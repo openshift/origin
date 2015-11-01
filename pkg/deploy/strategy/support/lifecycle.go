@@ -208,7 +208,7 @@ func (i *HookExecutorPodClientImpl) PodWatch(namespace, name, resourceVersion st
 // A stop channel to close the watch's reflector is also returned.
 // It is the caller's responsibility to defer closing the stop channel to prevent leaking resources.
 func NewPodWatch(client kclient.Interface, namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
-	fieldSelector, _ := fields.ParseSelector("metadata.name=" + name)
+	fieldSelector := fields.OneTermEqualSelector("metadata.name", name)
 	podLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
 			return client.Pods(namespace).List(labels.Everything(), fieldSelector)

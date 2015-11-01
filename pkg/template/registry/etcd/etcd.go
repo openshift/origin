@@ -4,10 +4,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/registry"
@@ -34,6 +34,9 @@ func NewREST(s storage.Interface) *REST {
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Template).Name, nil
 		},
+		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
+			return registry.Matcher(label, field)
+		},
 		EndpointName: "templates",
 
 		CreateStrategy: registry.Strategy,
@@ -44,24 +47,4 @@ func NewREST(s storage.Interface) *REST {
 		Storage: s,
 	}
 	return &REST{store}
-}
-
-// New returns a new object
-func (r *REST) New() runtime.Object {
-	return r.NewFunc()
-}
-
-// NewList returns a new list object
-func (r *REST) NewList() runtime.Object {
-	return r.NewListFunc()
-}
-
-// List obtains a list of templates with labels that match selector.
-func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	return r.Etcd.ListPredicate(ctx, registry.MatchTemplate(label, field))
-}
-
-// Watch begins watching for new, changed, or deleted templates.
-func (r *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return r.WatchPredicate(ctx, registry.MatchTemplate(label, field), resourceVersion)
 }

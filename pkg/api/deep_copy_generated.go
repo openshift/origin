@@ -814,8 +814,44 @@ func deepCopy_api_BuildLogOptions(in buildapi.BuildLogOptions, out *buildapi.Bui
 	} else {
 		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
+	out.Container = in.Container
 	out.Follow = in.Follow
+	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		if newVal, err := c.DeepCopy(in.SinceTime); err != nil {
+			return err
+		} else {
+			out.SinceTime = newVal.(*unversioned.Time)
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	out.NoWait = in.NoWait
+	if in.Version != nil {
+		out.Version = new(int64)
+		*out.Version = *in.Version
+	} else {
+		out.Version = nil
+	}
 	return nil
 }
 
@@ -1402,10 +1438,40 @@ func deepCopy_api_DeploymentLogOptions(in deployapi.DeploymentLogOptions, out *d
 	} else {
 		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
+	out.Container = in.Container
 	out.Follow = in.Follow
+	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		if newVal, err := c.DeepCopy(in.SinceTime); err != nil {
+			return err
+		} else {
+			out.SinceTime = newVal.(*unversioned.Time)
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	out.NoWait = in.NoWait
 	if in.Version != nil {
-		out.Version = new(int)
+		out.Version = new(int64)
 		*out.Version = *in.Version
 	} else {
 		out.Version = nil
@@ -1930,6 +1996,30 @@ func deepCopy_api_ImageStreamTag(in imageapi.ImageStreamTag, out *imageapi.Image
 	return nil
 }
 
+func deepCopy_api_ImageStreamTagList(in imageapi.ImageStreamTagList, out *imageapi.ImageStreamTagList, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
+		return err
+	} else {
+		out.ListMeta = newVal.(unversioned.ListMeta)
+	}
+	if in.Items != nil {
+		out.Items = make([]imageapi.ImageStreamTag, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_api_ImageStreamTag(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func deepCopy_api_TagEvent(in imageapi.TagEvent, out *imageapi.TagEvent, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.Created); err != nil {
 		return err
@@ -2346,6 +2436,7 @@ func deepCopy_api_TLSConfig(in routeapi.TLSConfig, out *routeapi.TLSConfig, c *c
 	out.Key = in.Key
 	out.CACertificate = in.CACertificate
 	out.DestinationCACertificate = in.DestinationCACertificate
+	out.InsecureEdgeTerminationPolicy = in.InsecureEdgeTerminationPolicy
 	return nil
 }
 
@@ -2813,6 +2904,7 @@ func init() {
 		deepCopy_api_ImageStreamSpec,
 		deepCopy_api_ImageStreamStatus,
 		deepCopy_api_ImageStreamTag,
+		deepCopy_api_ImageStreamTagList,
 		deepCopy_api_TagEvent,
 		deepCopy_api_TagEventList,
 		deepCopy_api_TagReference,

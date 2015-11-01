@@ -74,14 +74,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 			if !ok {
 				return nil, nil, fmt.Errorf("not a DeploymentConfig")
 			}
-			return labels.Set(deploymentConfig.ObjectMeta.Labels), SelectableFields(deploymentConfig), nil
+			return labels.Set(deploymentConfig.ObjectMeta.Labels), api.DeploymentConfigToSelectableFields(deploymentConfig), nil
 		},
-	}
-}
-
-// SelectableFields returns a label set that represents the object
-func SelectableFields(deploymentConfig *api.DeploymentConfig) fields.Set {
-	return fields.Set{
-		"metadata.name": deploymentConfig.Name,
 	}
 }

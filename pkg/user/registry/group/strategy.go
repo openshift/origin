@@ -56,21 +56,14 @@ func (groupStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) f
 	return validation.ValidateGroupUpdate(obj.(*api.Group), old.(*api.Group))
 }
 
-// MatchGroup returns a generic matcher for a given label and field selector.
-func MatchGroup(label labels.Selector, field fields.Selector) generic.Matcher {
+// Matcher returns a generic matcher for a given label and field selector.
+func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
 		groupObj, ok := obj.(*api.Group)
 		if !ok {
 			return false, fmt.Errorf("not a group")
 		}
-		fields := GroupToSelectableFields(groupObj)
+		fields := api.GroupToSelectableFields(groupObj)
 		return label.Matches(labels.Set(groupObj.Labels)) && field.Matches(fields), nil
 	})
-}
-
-// GroupToSelectableFields returns a label set that represents the object
-func GroupToSelectableFields(group *api.Group) labels.Set {
-	return labels.Set{
-		"name": group.Name,
-	}
 }

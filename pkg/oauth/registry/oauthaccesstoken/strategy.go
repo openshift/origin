@@ -58,18 +58,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 		if !ok {
 			return false, fmt.Errorf("not a token")
 		}
-		fields := SelectableFields(tokenObj)
+		fields := api.OAuthAccessTokenToSelectableFields(tokenObj)
 		return label.Matches(labels.Set(tokenObj.Labels)) && field.Matches(fields), nil
 	})
-}
-
-// SelectableFields returns a label set that represents the object
-func SelectableFields(obj *api.OAuthAccessToken) labels.Set {
-	return labels.Set{
-		"name":           obj.Name,
-		"clientName":     obj.ClientName,
-		"userName":       obj.UserName,
-		"userUID":        obj.UserUID,
-		"authorizeToken": obj.AuthorizeToken,
-	}
 }

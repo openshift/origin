@@ -101,9 +101,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 	}
 	// The container should be the default build container, so setting it to blank
 	buildPodName := buildutil.GetBuildPodName(build)
-	logOpts := &kapi.PodLogOptions{
-		Follow: buildLogOpts.Follow,
-	}
+	logOpts := api.BuildToPodLogOptions(buildLogOpts)
 	location, transport, err := pod.LogLocation(r.PodGetter, r.ConnectionInfo, ctx, buildPodName, logOpts)
 	if err != nil {
 		if errors.IsNotFound(err) {

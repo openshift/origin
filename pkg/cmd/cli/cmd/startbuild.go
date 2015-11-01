@@ -27,6 +27,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
+	osutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/source-to-image/pkg/tar"
@@ -129,23 +130,40 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 		return cmdutil.UsageError(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag")
 	}
 
-	name := buildName
-	isBuild := true
-	if len(name) == 0 {
-		name = args[0]
-		isBuild = false
-	}
-
-	if webhooks.Provided() {
-		return RunListBuildWebHooks(f, out, cmd.Out(), name, isBuild, webhooks.String())
-	}
-
-	client, _, err := f.Clients()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
 
-	namespace, _, err := f.DefaultNamespace()
+	var (
+		name     = buildName
+		resource = "builds"
+	)
+
+	if len(name) == 0 && len(args) > 0 && len(args[0]) > 0 {
+		mapper, _ := f.Object()
+		resource, name, err = osutil.ResolveResource("buildconfigs", args[0], mapper)
+		if err != nil {
+			return err
+		}
+		switch resource {
+		case "buildconfigs":
+			// no special handling required
+		case "builds":
+			return fmt.Errorf("use --from-build to rerun your builds")
+		default:
+			return fmt.Errorf("invalid resource provided: %s", resource)
+		}
+	}
+	if len(name) == 0 {
+		return fmt.Errorf("a resource name is required either as an argument or by using --from-build")
+	}
+
+	if webhooks.Provided() {
+		return RunListBuildWebHooks(f, out, cmd.Out(), name, resource, webhooks.String())
+	}
+
+	client, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -166,7 +184,7 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 
 	var newBuild *buildapi.Build
 	switch {
-	case !isBuild && (len(fromFile) > 0 || len(fromDir) > 0 || len(fromRepo) > 0):
+	case len(args) > 0 && (len(fromFile) > 0 || len(fromDir) > 0 || len(fromRepo) > 0):
 		request := &buildapi.BinaryBuildRequestOptions{
 			ObjectMeta: kapi.ObjectMeta{
 				Name:      name,
@@ -177,16 +195,16 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 		if newBuild, err = streamPathToBuild(git, in, cmd.Out(), client.BuildConfigs(namespace), fromDir, fromFile, fromRepo, request); err != nil {
 			return err
 		}
-
-	case isBuild:
+	case resource == "builds":
 		if newBuild, err = client.Builds(namespace).Clone(request); err != nil {
 			return err
 		}
-
-	default:
+	case resource == "buildconfigs":
 		if newBuild, err = client.BuildConfigs(namespace).Instantiate(request); err != nil {
 			return err
 		}
+	default:
+		return fmt.Errorf("invalid resource provided: %s", resource)
 	}
 
 	fmt.Fprintln(out, newBuild.Name)
@@ -240,7 +258,7 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 }
 
 // RunListBuildWebHooks prints the webhooks for the provided build config.
-func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name string, isBuild bool, webhookFilter string) error {
+func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name, resource, webhookFilter string) error {
 	generic, github := false, false
 	prefix := false
 	switch webhookFilter {
@@ -263,7 +281,10 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name stri
 		return err
 	}
 
-	if isBuild {
+	switch resource {
+	case "buildconfigs":
+		// no special handling required
+	case "builds":
 		build, err := client.Builds(namespace).Get(name)
 		if err != nil {
 			return err
@@ -276,7 +297,10 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name stri
 			namespace = ref.Namespace
 		}
 		name = ref.Name
+	default:
+		return fmt.Errorf("invalid resource provided: %s", resource)
 	}
+
 	config, err := client.BuildConfigs(namespace).Get(name)
 	if err != nil {
 		return err

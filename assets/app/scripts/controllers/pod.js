@@ -16,6 +16,7 @@ angular.module('openshiftConsole')
     $scope.alerts = {};
     $scope.renderOptions = $scope.renderOptions || {};
     $scope.renderOptions.hideFilterWidget = true;
+    $scope.logOptions = {};
     $scope.terminalTabWasSelected = false;
     $scope.breadcrumbs = [
       {
@@ -41,15 +42,21 @@ angular.module('openshiftConsole')
     });
 
     project.get($routeParams.project).then(function(resp) {
-      angular.extend($scope, {
+      var context = {
         project: resp[0],
         projectPromise: resp[1].projectPromise
-      });
+      };
+      angular.extend($scope, context);
+      // FIXME: DataService.createStream() requires a scope with a
+      // projectPromise rather than just a namespace, so we have to pass the
+      // context into the log-viewer directive.
+      $scope.logContext = context;
       DataService.get("pods", $routeParams.pod, $scope).then(
         // success
         function(pod) {
           $scope.loaded = true;
           $scope.pod = pod;
+          $scope.logOptions.container = $routeParams.container || pod.spec.containers[0].name;
           var pods = {};
           pods[pod.metadata.name] = pod;
           ImageStreamResolver.fetchReferencedImageStreamImages(pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
@@ -88,63 +95,6 @@ angular.module('openshiftConsole')
         $scope.builds = builds.by("metadata.name");
         Logger.log("builds (subscribe)", $scope.builds);
       }));
-
-      // maintaining one streamer reference & ensuring its closed before we open a new,
-      // since the user can (potentially) swap between multiple containers
-      var streamer;
-      var runLogs = function() {
-        angular.extend($scope, {
-          logs: [],
-          logsLoading: true,
-          canShowDownload: false,
-          canInitAgain: false,
-          options: {
-            container: $scope.pod.spec.containers[0].name
-          }
-        });
-
-        // TODO: clean up service / $scope stuff...
-        streamer = DataService.createStream('pods/log',$routeParams.pod, $scope, $scope.options);
-
-        streamer.onMessage(function(msg) {
-          $scope.$apply(function() {
-            $scope.logs.push({text: msg});
-            $scope.canShowDownload = true;
-          });
-        });
-        streamer.onClose(function() {
-          $scope.$apply(function() {
-            $scope.logsLoading = false;
-          });
-        });
-        streamer.onError(function() {
-          $scope.$apply(function() {
-            angular.extend($scope, {
-              logsLoading: false,
-              logError: true
-            });
-          });
-        });
-
-        streamer.start();
-        $scope.$on('$destroy', function() {
-          streamer.stop();
-        });
-      };
-
-      angular.extend($scope, {
-        initLogs: _.once(runLogs),
-        restartLogs: _.flow(function() {
-          streamer.stop();
-        }, runLogs)
-      });
-
-      $scope.selectContainer = function(container) {
-        $scope.options.container = container.name;
-        $scope.restartLogs();
-      };
-
-
     });
 
     $scope.containersRunning = function(containerStatuses) {
