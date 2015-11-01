@@ -3964,6 +3964,7 @@ func autoconvert_api_TLSConfig_To_v1_TLSConfig(in *routeapi.TLSConfig, out *rout
 	out.Key = in.Key
 	out.CACertificate = in.CACertificate
 	out.DestinationCACertificate = in.DestinationCACertificate
+	out.InsecureEdgeTerminationPolicy = routeapiv1.InsecureEdgeTerminationPolicyType(in.InsecureEdgeTerminationPolicy)
 	return nil
 }
 
@@ -4087,6 +4088,7 @@ func autoconvert_v1_TLSConfig_To_api_TLSConfig(in *routeapiv1.TLSConfig, out *ro
 	out.Key = in.Key
 	out.CACertificate = in.CACertificate
 	out.DestinationCACertificate = in.DestinationCACertificate
+	out.InsecureEdgeTerminationPolicy = routeapi.InsecureEdgeTerminationPolicyType(in.InsecureEdgeTerminationPolicy)
 	return nil
 }
 

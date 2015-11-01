@@ -1,6 +1,7 @@
 package templaterouter
 
 import (
+	"fmt"
 	"testing"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -624,5 +625,87 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 	_, ok = route.ServiceAliasConfigs[routeWithGoodServiceCfgKey]
 	if !ok {
 		t.Fatalf("unable to find service alias config %s after adding route %s", routeWithGoodServiceCfgKey, routeWithGoodServiceKey)
+	}
+}
+
+// TestAddRouteEdgeTerminationInsecurePolicy tests adding an insecure edge
+// terminated routes to a service unit
+func TestAddRouteEdgeTerminationInsecurePolicy(t *testing.T) {
+	router := newFakeTemplateRouter()
+
+	testCases := []struct {
+		Name           string
+		InsecurePolicy routeapi.InsecureEdgeTerminationPolicyType
+	}{
+		{
+			Name:           "none",
+			InsecurePolicy: routeapi.InsecureEdgeTerminationPolicyNone,
+		},
+		{
+			Name:           "allow",
+			InsecurePolicy: routeapi.InsecureEdgeTerminationPolicyAllow,
+		},
+		{
+			Name:           "redirect",
+			InsecurePolicy: routeapi.InsecureEdgeTerminationPolicyRedirect,
+		},
+		{
+			Name:           "httpsec",
+			InsecurePolicy: routeapi.InsecureEdgeTerminationPolicyType("httpsec"),
+		},
+		{
+			Name:           "hsts",
+			InsecurePolicy: routeapi.InsecureEdgeTerminationPolicyType("hsts"),
+		},
+	}
+
+	for _, tc := range testCases {
+		route := &routeapi.Route{
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace: "foo",
+				Name:      tc.Name,
+			},
+			Spec: routeapi.RouteSpec{
+				Host: fmt.Sprintf("%s-host", tc.Name),
+				Path: "path",
+				TLS: &routeapi.TLSConfig{
+					Termination:                   routeapi.TLSTerminationEdge,
+					Certificate:                   "abc",
+					Key:                           "def",
+					CACertificate:                 "ghi",
+					DestinationCACertificate:      "jkl",
+					InsecureEdgeTerminationPolicy: tc.InsecurePolicy,
+				},
+			},
+		}
+
+		suKey := fmt.Sprintf("%s-test", tc.Name)
+		router.CreateServiceUnit(suKey)
+
+		// add route always returns true
+		added := router.AddRoute(suKey, route, route.Spec.Host)
+		if !added {
+			t.Fatalf("InsecureEdgeTerminationPolicy test %s: expected AddRoute to return true but got false", tc.Name)
+		}
+
+		su, ok := router.FindServiceUnit(suKey)
+
+		if !ok {
+			t.Errorf("InsecureEdgeTerminationPolicy test %s: unable to find created service unit %s",
+				tc.Name, suKey)
+		} else {
+			routeKey := router.routeKey(route)
+			saCfg, ok := su.ServiceAliasConfigs[routeKey]
+
+			if !ok {
+				t.Errorf("InsecureEdgeTerminationPolicy test %s: unable to find created service alias config for route %s",
+					tc.Name, routeKey)
+			} else {
+				if saCfg.Host != route.Spec.Host || saCfg.Path != route.Spec.Path || !compareTLS(route, saCfg, t) || saCfg.InsecureEdgeTerminationPolicy != tc.InsecurePolicy {
+					t.Errorf("InsecureEdgeTerminationPolicy test %s: route %v did not match serivce alias config %v",
+						tc.Name, route, saCfg)
+				}
+			}
+		}
 	}
 }
