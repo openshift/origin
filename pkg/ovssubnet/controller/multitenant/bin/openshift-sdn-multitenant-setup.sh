@@ -180,7 +180,7 @@ function setup() {
     echo "export OPENSHIFT_CLUSTER_SUBNET=${cluster_network_cidr}" >> "/etc/openshift-sdn/config.env"
 
     # delete unnecessary routes
-    delete_local_subnet_route lbr0
+    delete_local_subnet_route lbr0 || true
     delete_local_subnet_route ${TUN} || true
 }
 
