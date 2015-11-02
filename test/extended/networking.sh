@@ -21,7 +21,7 @@ source "${OS_ROOT}/hack/common.sh"
 os::log::install_errexit
 
 # These strings filter the available tests.
-NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-}"
+NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-.etworking[:]*}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 
 CLUSTER_CMD="${OS_ROOT}/hack/dind-cluster.sh"
@@ -100,8 +100,7 @@ function test-osdn-plugin() {
   # plugin.
   set +e
 
-  run-extended-tests "${OPENSHIFT_CONFIG_ROOT}" "${NETWORKING_E2E_FOCUS}" \
-    "${NETWORKING_E2E_SKIP}" "${log_dir}/test.log"
+  run-extended-tests "${OPENSHIFT_CONFIG_ROOT}" "${log_dir}/test.log"
   local exit_status=$?
 
   set -e
@@ -122,9 +121,10 @@ function test-osdn-plugin() {
 
 function run-extended-tests() {
   local config_root=$1
-  local focus_regex=${2:-.etworking[:]*}
-  local skip_regex=${3:-}
-  local log_path=${4:-}
+  local log_path=${2:-}
+
+  local focus_regex="${NETWORKING_E2E_FOCUS}"
+  local skip_regex="${NETWORKING_E2E_SKIP}"
 
   if [ -z "${skip_regex}" ]; then
       # The intra-pod test is currently broken for origin.
@@ -137,52 +137,50 @@ function run-extended-tests() {
       fi
   fi
 
-  os::util::run-extended-tests "${config_root}" "${focus_regex}" \
-    networking.test "${skip_regex}" "${log_path}"
+  export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
+  export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended/networking"
+
+  local test_cmd="${TEST_BINARY} --test.v '--ginkgo.skip=${skip_regex}' \
+'--ginkgo.focus=${focus_regex}' '${TEST_EXTRA_ARGS}'"
+  if [ "${log_path}" != "" ]; then
+    test_cmd="${test_cmd} | tee ${log_path}"
+  fi
+
+  pushd "${EXTENDED_TEST_PATH}" > /dev/null
+    eval "${test_cmd}; "'exit_status=${PIPESTATUS[0]}'
+  popd > /dev/null
+
+  return ${exit_status}
 }
 
-CONFIG_ROOT=
-# Parse optional arguments to set CONFIG_ROOT
-while getopts ":c:de" opt; do
-  case $opt in
-    c)
-      CONFIG_ROOT="${OPTARG}"
-      ;;
-    d)
-      CONFIG_ROOT="/tmp/openshift-dind-cluster/\
+CONFIG_ROOT="${OPENSHIFT_CONFIG_ROOT:-}"
+case "${CONFIG_ROOT}" in
+  dev)
+    CONFIG_ROOT="${OS_ROOT}"
+    ;;
+  dind)
+    CONFIG_ROOT="/tmp/openshift-dind-cluster/\
 ${OPENSHIFT_INSTANCE_PREFIX:-openshift}"
-      if [ ! -d "${CONFIG_ROOT}" ]; then
-        os::log::error "dind cluster not found"
-        os::log::info  "To launch a cluster: hack/dind-cluster.sh start"
+    if [ ! -d "${CONFIG_ROOT}" ]; then
+      os::log::error "OPENSHIFT_CONFIG_ROOT=dind but dind cluster not found"
+      os::log::info  "To launch a cluster: hack/dind-cluster.sh start"
+      exit 1
+    fi
+    ;;
+  *)
+    if [ "${CONFIG_ROOT}" != "" ]; then
+      CONFIG_FILE="${CONFIG_ROOT}/openshift.local.config/master/admin.kubeconfig"
+      if [ ! -f "${CONFIG_FILE}" ]; then
+        os::log::error "${CONFIG_FILE} not found"
         exit 1
       fi
-      ;;
-    e)
-      CONFIG_ROOT="${OS_ROOT}"
-      ;;
-    \?)
-      echo "Invalid option: -${OPTARG}" >&2
-      exit 1
-      ;;
-    :)
-      echo "Option -${OPTARG} requires an argument." >&2
-      exit 1
-      ;;
-  esac
-done
+    fi
+    ;;
+esac
 
-if [ "${CONFIG_ROOT}" != "" ]; then
-  CONFIG_FILE="${CONFIG_ROOT}/openshift.local.config/master/admin.kubeconfig"
-  if [ ! -f "${CONFIG_FILE}" ]; then
-    os::log::error "${CONFIG_FILE} not found"
-    exit 1
-  fi
-fi
+TEST_EXTRA_ARGS="$@"
 
 os::build::setup_env
-
-os::log::info "Installing ginkgo"
-go get github.com/onsi/ginkgo/ginkgo
 
 os::log::info "Building networking test binary"
 TEST_BINARY="${OS_OUTPUT_BINPATH}/networking.test"
@@ -197,8 +195,7 @@ os::log::info "Starting 'networking' extended tests"
 if [ "${CONFIG_ROOT}" != "" ]; then
   os::log::info "CONFIG_ROOT=${CONFIG_ROOT}"
   # Run tests against an existing cluster
-  run-extended-tests "${CONFIG_ROOT}" "${NETWORKING_E2E_FOCUS}" \
-    "${NETWORKING_E2E_SKIP}"
+  run-extended-tests "${CONFIG_ROOT}"
 else
   # For each plugin, run tests against a test-managed cluster
 

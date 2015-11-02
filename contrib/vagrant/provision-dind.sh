@@ -31,7 +31,7 @@ function set_env {
     echo "export GOPATH=${OUTPUT_PATH}/go" >> ${TARGET}
     # Binpath for origin binaries
     echo "export PATH=${OUTPUT_PATH}/bin/linux/amd64:\$PATH" >> ${TARGET}
-    # Binpath for go-getted binaries (e.g. ginkgo)
+    # Binpath for go-getted binaries
     echo "export PATH=${OUTPUT_PATH}/go/bin:\$PATH" >> ${TARGET}
     echo "cd ${ORIGIN_ROOT}" >> ${TARGET}
   else
@@ -41,6 +41,3 @@ function set_env {
 
 set_env "/home/${USERNAME}"
 set_env /root
-
-# Ensure ginkgo is available for running e2e tests
-su - "${USERNAME}" -c 'go get github.com/onsi/ginkgo/ginkgo'

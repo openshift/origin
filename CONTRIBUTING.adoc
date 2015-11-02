@@ -289,12 +289,12 @@ It is possible to run networking tests against a running
 docker-in-docker cluster (i.e. after 'hack/dind-cluster.sh start' has
 been invoked):
 
-        $ test/extended/networking.sh -d
+        $ OPENSHIFT_CONFIG_ROOT=dind test/extended/networking.sh
 
 Since a cluster can only be configured with a single network plugin at
 a time, this method of invoking the networking tests will only
 validate the active plugin.  It is possible to target all plugins by
-invoking the same script in 'ci mode' by not supplying arguments:
+invoking the same script in 'ci mode' by not setting a config root:
 
         $ test/extended/networking.sh
 
@@ -315,12 +315,12 @@ https://github.com/onsi/ginkgo[ginkgo] test runner.
 It's possible to run networking tests against any cluster.  To target
 the default vm dev cluster:
 
-        $ test/extended/networking.sh -e
+        $ OPENSHIFT_CONFIG_ROOT=dev test/extended/networking.sh
 
 To target an arbitrary cluster, the config root (parent of
 openshift.local.config) can be supplied instead:
 
-        $ test/extended/networking.sh -c [cluster config root]
+        $ OPENSHIFT_CONFIG_ROOT=[cluster config root] test/extended/networking.sh
 
 See the script's inline documentation for further details.
 
