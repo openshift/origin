@@ -4,7 +4,7 @@
     <span ng-if="end">to {{end}}</span>
   </div>
   <div ng-if="largeLog" class="log-size-warning">
-    <span class="pficon pficon-info"></span>
+    <span class="pficon pficon-info" aria-hidden="true"></span>
     Only the previous {{options.tailLines || 1000}} log lines and new log
     messages will be displayed because of the large log size.
   </div>
