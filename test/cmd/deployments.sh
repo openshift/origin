@@ -48,8 +48,10 @@ tryuntil oc get rc/test-deployment-config-1
 
 # scale rc via deployment configuration
 oc scale dc test-deployment-config --replicas=1
+oc scale dc test-deployment-config --replicas=2 --timeout=10m
 # scale directly
-oc scale rc test-deployment-config-1 --replicas=5
+oc scale rc test-deployment-config-1 --replicas=4
+oc scale rc test-deployment-config-1 --replicas=5 --timeout=10m
 oc delete all --all
 echo "scale: ok"
 
