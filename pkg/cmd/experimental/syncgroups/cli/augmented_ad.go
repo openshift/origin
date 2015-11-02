@@ -2,6 +2,7 @@ package cli
 
 import (
 	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/ad"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
@@ -11,7 +12,7 @@ import (
 var _ SyncBuilder = &AugmentedADSyncBuilder{}
 
 type AugmentedADSyncBuilder struct {
-	ClientConfig *ldaputil.LDAPClientConfig
+	ClientConfig ldapclient.Config
 	Config       *api.AugmentedActiveDirectoryConfig
 
 	augmentedADLDAPInterface *ad.AugmentedADLDAPInterface

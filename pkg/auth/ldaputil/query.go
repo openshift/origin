@@ -7,6 +7,7 @@ import (
 	"github.com/go-ldap/ldap"
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
@@ -151,7 +152,7 @@ func (o *LDAPQueryOnAttribute) buildAttributeQuery(attributeValue string,
 
 // QueryForUniqueEntry queries for an LDAP entry with the given searchRequest. The query is expected
 // to return one unqiue result. If this is not the case, errors are raised
-func QueryForUniqueEntry(clientConfig *LDAPClientConfig, query *ldap.SearchRequest) (*ldap.Entry, error) {
+func QueryForUniqueEntry(clientConfig ldapclient.Config, query *ldap.SearchRequest) (*ldap.Entry, error) {
 	result, err := QueryForEntries(clientConfig, query)
 	if err != nil {
 		return nil, err
@@ -186,18 +187,20 @@ func formatResult(results []*ldap.Entry) string {
 }
 
 // QueryForEntries queries for LDAP with the given searchRequest
-func QueryForEntries(clientConfig *LDAPClientConfig, query *ldap.SearchRequest) ([]*ldap.Entry, error) {
+func QueryForEntries(clientConfig ldapclient.Config, query *ldap.SearchRequest) ([]*ldap.Entry, error) {
 	connection, err := clientConfig.Connect()
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to the LDAP server: %v", err)
 	}
 	defer connection.Close()
 
-	if _, err := clientConfig.Bind(connection); err != nil {
-		return nil, fmt.Errorf("could not bind to the LDAP server: %v", err)
+	if bindDN, bindPassword := clientConfig.GetBindCredentials(); len(bindDN) > 0 {
+		if err := connection.Bind(bindDN, bindPassword); err != nil {
+			return nil, fmt.Errorf("could not bind to the LDAP server: %v", err)
+		}
 	}
 
-	glog.V(4).Infof("searching LDAP server %v://%v at dn=%q with scope %v for %s requesting %v", clientConfig.Scheme, clientConfig.Host, query.BaseDN, query.Scope, query.Filter, query.Attributes)
+	glog.V(4).Infof("searching LDAP server with config %v with dn=%q and scope %v for %s requesting %v", clientConfig, query.BaseDN, query.Scope, query.Filter, query.Attributes)
 	searchResult, err := connection.Search(query)
 	if err != nil {
 		if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {

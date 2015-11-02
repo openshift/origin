@@ -9,10 +9,11 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	ldapinterfaces "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 )
 
 // NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
-func NewLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
+func NewLDAPInterface(clientConfig ldapclient.Config,
 	groupQuery ldaputil.LDAPQueryOnAttribute,
 	groupNameAttributes []string,
 	groupMembershipAttributes []string,
@@ -39,7 +40,7 @@ func NewLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
 // - LDAPGroupLister
 type LDAPInterface struct {
 	// clientConfig holds LDAP connection information
-	clientConfig *ldaputil.LDAPClientConfig
+	clientConfig ldapclient.Config
 
 	// groupQuery holds the information necessary to make an LDAP query for a specific
 	// first-class group entry on the LDAP server

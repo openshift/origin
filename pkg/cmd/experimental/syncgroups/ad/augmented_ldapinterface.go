@@ -7,10 +7,11 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	ldapinterfaces "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 )
 
 // NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
-func NewAugmentedADLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
+func NewAugmentedADLDAPInterface(clientConfig ldapclient.Config,
 	userQuery ldaputil.LDAPQuery,
 	groupMembershipAttributes []string,
 	userNameAttributes []string,
