@@ -27,7 +27,7 @@ func NewForbiddenMessageResolver(projectRequestForbiddenTemplate string) *Forbid
 		defaultForbiddenMessageMaker:                      newTemplateForbiddenMessageMaker(`User "{{.User.GetName}}" cannot "{{.Attributes.GetVerb}}" "{{.Attributes.GetResource}}" with name "{{.Attributes.GetResourceName}}" in project "{{.Namespace}}"`),
 	}
 
-	apiGroupIfNotEmpty := "{{if len .Attributes.GetAPIGroup }}{{.Attributes.GetAPIGroup}}/{{end}}"
+	apiGroupIfNotEmpty := "{{if len .Attributes.GetAPIGroup }}{{.Attributes.GetAPIGroup}}.{{end}}"
 
 	// general messages
 	messageResolver.addNamespacedForbiddenMessageMaker("create", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.User.GetName}}" cannot create `+apiGroupIfNotEmpty+`{{.Attributes.GetResource}} in project "{{.Namespace}}"`))
