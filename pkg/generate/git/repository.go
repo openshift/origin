@@ -28,6 +28,7 @@ type Repository interface {
 	AddRemote(dir string, name, url string) error
 	AddLocalConfig(dir, name, value string) error
 	ShowFormat(dir, commit, format string) (string, error)
+	ListRemote(url string) error
 }
 
 // execGitFunc is a function that executes a Git command
@@ -144,6 +145,12 @@ func (r *repository) AddLocalConfig(location, name, value string) error {
 // Clone clones a remote git repository to a local directory
 func (r *repository) Clone(location string, url string) error {
 	_, _, err := r.git(nil, "", "clone", "--recursive", url, location)
+	return err
+}
+
+// LsRemote lists references in a remote repository
+func (r *repository) ListRemote(url string) error {
+	_, _, err := r.git(nil, "", "ls-remote", url)
 	return err
 }
 

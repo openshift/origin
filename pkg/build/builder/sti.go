@@ -149,7 +149,6 @@ func (s *STIBuilder) Build() error {
 
 		BuilderImage: s.build.Spec.Strategy.SourceStrategy.From.Name,
 		Incremental:  s.build.Spec.Strategy.SourceStrategy.Incremental,
-		ForcePull:    s.build.Spec.Strategy.SourceStrategy.ForcePull,
 
 		Environment:       buildEnvVars(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
@@ -157,6 +156,16 @@ func (s *STIBuilder) Build() error {
 		Source:     sourceURI.String(),
 		Tag:        tag,
 		ContextDir: s.build.Spec.Source.ContextDir,
+	}
+
+	if s.build.Spec.Strategy.SourceStrategy.ForcePull {
+		glog.V(4).Infof("With force pull true, setting policies to %s", s2iapi.PullAlways)
+		config.PreviousImagePullPolicy = s2iapi.PullAlways
+		config.BuilderPullPolicy = s2iapi.PullAlways
+	} else {
+		glog.V(4).Infof("With force pull false, setting policies to %s", s2iapi.PullIfNotPresent)
+		config.PreviousImagePullPolicy = s2iapi.PullIfNotPresent
+		config.BuilderPullPolicy = s2iapi.PullIfNotPresent
 	}
 
 	allowedUIDs := os.Getenv("ALLOWED_UIDS")
