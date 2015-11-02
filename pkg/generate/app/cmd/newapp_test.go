@@ -255,6 +255,9 @@ func TestBuildTemplates(t *testing.T) {
 }
 
 func TestEnsureHasSource(t *testing.T) {
+	gitLocalDir := createLocalGitDirectory(t)
+	defer os.RemoveAll(gitLocalDir)
+
 	tests := []struct {
 		name              string
 		cfg               AppConfig
@@ -270,7 +273,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: MockSourceRepositories(t),
+			repositories: MockSourceRepositories(t, gitLocalDir),
 			expectedErr:  "there are multiple code locations provided - use one of the following suggestions",
 		},
 		{
@@ -283,7 +286,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: MockSourceRepositories(t),
+			repositories: MockSourceRepositories(t, gitLocalDir),
 			expectedErr:  "Use '[image]~[repo]' to declare which code goes with which image",
 		},
 		{
@@ -318,7 +321,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: false,
 				}),
 			},
-			repositories: MockSourceRepositories(t)[:1],
+			repositories: MockSourceRepositories(t, gitLocalDir)[:1],
 			expectedErr:  "",
 		},
 		{
@@ -328,7 +331,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: false,
 				}),
 			},
-			repositories: MockSourceRepositories(t),
+			repositories: MockSourceRepositories(t, gitLocalDir),
 			expectedErr:  "",
 		},
 	}
@@ -420,10 +423,13 @@ func TestResolve(t *testing.T) {
 
 func TestDetectSource(t *testing.T) {
 	skipExternalGit(t)
+	gitLocalDir := createLocalGitDirectory(t)
+	defer os.RemoveAll(gitLocalDir)
+
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
-	mocks := MockSourceRepositories(t)
+	mocks := MockSourceRepositories(t, gitLocalDir)
 	tests := []struct {
 		name         string
 		cfg          *AppConfig
@@ -1502,14 +1508,23 @@ func fakeSimpleDockerSearcher() app.Searcher {
 	}
 }
 
+func createLocalGitDirectory(t *testing.T) string {
+	dir, err := ioutil.TempDir(os.TempDir(), "s2i-test")
+	if err != nil {
+		t.Error(err)
+	}
+	os.Mkdir(filepath.Join(dir, ".git"), 0600)
+	return dir
+}
+
 // MockSourceRepositories is a set of mocked source repositories used for
 // testing
-func MockSourceRepositories(t *testing.T) []*app.SourceRepository {
+func MockSourceRepositories(t *testing.T, file string) []*app.SourceRepository {
 	var b []*app.SourceRepository
 	for _, location := range []string{
-		"some/location.git",
+		file,
 		"https://github.com/openshift/ruby-hello-world.git",
-		"another/location.git",
+		file,
 	} {
 		s, err := app.NewSourceRepository(location)
 		if err != nil {

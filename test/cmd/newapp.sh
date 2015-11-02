@@ -81,7 +81,7 @@ oc delete all -l app=helloworld
 [ "$(oc new-app ruby-helloworld-sample -l app=helloworld -o name 2>&1 | grep 'Service/frontend')" ]
 oc delete all -l app=helloworld
 # create from template with code explicitly set is not supported
-[ ! "$(oc new-app ruby-helloworld-sample~git@github.com/mfojtik/sinatra-app-example)" ]
+[ ! "$(oc new-app ruby-helloworld-sample~git@github.com:mfojtik/sinatra-app-example)" ]
 oc delete template ruby-helloworld-sample
 # override component names
 [ "$(oc new-app mysql --name=db | grep db)" ]

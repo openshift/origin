@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/url"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/docker/docker/builder/parser"
@@ -13,11 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/generate/source"
-)
-
-var (
-	argumentGit         = regexp.MustCompile("^(http://|https://|git@|git://).*(?:#([a-zA-Z0-9]*))?$")
-	argumentGitProtocol = regexp.MustCompile("^(git@|git://)")
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 type Dockerfile interface {
@@ -67,7 +62,7 @@ func IsPossibleSourceRepository(s string) bool {
 
 // IsRemoteRepository checks whether the provided string is a remote repository or not
 func IsRemoteRepository(s string) bool {
-	return argumentGit.MatchString(s) || argumentGitProtocol.MatchString(s)
+	return s2igit.New().ValidCloneSpecRemoteOnly(s)
 }
 
 // SourceRepository represents a code repository that may be the target of a build.
