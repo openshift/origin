@@ -122,7 +122,7 @@ __custom_func() {
    * events (aka 'ev')
    * projects
    * secrets
-   * imagestraams (aka 'is')
+   * imagestreams (aka 'is')
    * imagestreamtags (aka 'istag')
    * imagestreamimages (aka 'isimage')
    * persistentvolumes (aka 'pv')
