@@ -10,43 +10,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-// errEntryNotFound is an error that occurs when trying to find a specific entry fails.
-type errEntryNotFound struct {
-}
-
-// Error returns the error string for the out-of-bounds query
-func (e *errEntryNotFound) Error() string {
-	return "search for entry did not return any results"
-}
-
-func IsEntryNotFoundError(err error) bool {
-	if err == nil {
-		return false
 	}
 
-	_, ok := err.(*errEntryNotFound)
-	return ok
-}
-
-// errQueryOutOfBounds is an error that occurs when trying to search by DN for an entry that exists
-// outside of the tree specified with the BaseDN for search.
-type errQueryOutOfBounds struct {
-	BaseDN  string
-	QueryDN string
-}
-
-// Error returns the error string for the out-of-bounds query
-func (q *errQueryOutOfBounds) Error() string {
-	return fmt.Sprintf("search for entry with dn=%q would search outside of the base dn specified (dn=%q)", q.QueryDN, q.BaseDN)
-}
-
-func IsQueryOutOfBoundsError(err error) bool {
-	if err == nil {
-		return false
 	}
 
-	_, ok := err.(*errQueryOutOfBounds)
-	return ok
 }
 
 // LDAPQuery encodes an LDAP query
@@ -135,11 +102,11 @@ func NewLDAPQueryOnAttribute(config api.LDAPQuery, attribute string) (LDAPQueryO
 // the attribute to be filtered as well as any attributes that need to be recovered
 func (o *LDAPQueryOnAttribute) NewSearchRequest(attributeValue string, attributes []string) (*ldap.SearchRequest, error) {
 	if strings.EqualFold(o.QueryAttribute, "dn") {
-		if !strings.Contains(attributeValue, o.BaseDN) {
-			return nil, &errQueryOutOfBounds{QueryDN: attributeValue, BaseDN: o.BaseDN}
-		}
 		if _, err := ldap.ParseDN(attributeValue); err != nil {
 			return nil, fmt.Errorf("could not search by dn, invalid dn value: %v", err)
+		}
+		if !strings.Contains(attributeValue, o.BaseDN) {
+			return nil, NewQueryOutOfBoundsError(attributeValue, o.BaseDN)
 		}
 		return o.buildDNQuery(attributeValue, attributes), nil
 
@@ -197,7 +164,7 @@ func QueryForUniqueEntry(clientConfig *LDAPClientConfig, query *ldap.SearchReque
 	}
 
 	if len(result) == 0 {
-		return nil, &errEntryNotFound{}
+		return nil, NewEntryNotFoundError(query.BaseDN, query.Filter)
 	}
 
 	if len(result) > 1 {
@@ -239,6 +206,9 @@ func QueryForEntries(clientConfig *LDAPClientConfig, query *ldap.SearchRequest) 
 	glog.V(4).Infof("searching LDAP server %v://%v at dn=%q with scope %v for %s requesting %v", clientConfig.Scheme, clientConfig.Host, query.BaseDN, query.Scope, query.Filter, query.Attributes)
 	searchResult, err := connection.Search(query)
 	if err != nil {
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+			return nil, NewNoSuchObjectError(query.BaseDN)
+		}
 		return nil, err
 	}
 
