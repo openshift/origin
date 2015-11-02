@@ -8,11 +8,12 @@ import (
 	"gopkg.in/ldap.v2"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	ldapinterfaces "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 )
 
 // NewADLDAPInterface builds a new ADLDAPInterface using a schema-appropriate config
-func NewADLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
+func NewADLDAPInterface(clientConfig ldapclient.Config,
 	userQuery ldaputil.LDAPQuery,
 	groupMembershipAttributes []string,
 	userNameAttributes []string) *ADLDAPInterface {
@@ -33,7 +34,7 @@ func NewADLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
 // - LDAPGroupLister
 type ADLDAPInterface struct {
 	// clientConfig holds LDAP connection information
-	clientConfig *ldaputil.LDAPClientConfig
+	clientConfig ldapclient.Config
 
 	// userQuery holds the information necessary to make an LDAP query for all first-class user entries on the LDAP server
 	userQuery ldaputil.LDAPQuery

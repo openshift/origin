@@ -317,7 +317,7 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 
 	// populate schema-independent syncer fields
 	syncer := &syncgroups.LDAPGroupSyncer{
-		Host:        clientConfig.Host,
+		Host:        clientConfig.Host(),
 		GroupClient: o.GroupInterface,
 		DryRun:      !o.Confirm,
 
@@ -329,7 +329,7 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 	case GroupSyncSourceOpenShift:
 		// when your source of ldapGroupUIDs is from an openshift group, the mapping of ldapGroupUID to openshift group name is logically
 		// pinned by the existing mapping.
-		listerMapper, err := o.GetOpenShiftGroupListerMapper(syncBuilder, clientConfig)
+		listerMapper, err := o.GetOpenShiftGroupListerMapper(clientConfig.Host())
 		if err != nil {
 			return err
 		}
@@ -378,16 +378,16 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 
 }
 
-func (o *SyncGroupsOptions) GetOpenShiftGroupListerMapper(syncBuilder SyncBuilder, clientConfig *ldaputil.LDAPClientConfig) (interfaces.LDAPGroupListerNameMapper, error) {
+func (o *SyncGroupsOptions) GetOpenShiftGroupListerMapper(host string) (interfaces.LDAPGroupListerNameMapper, error) {
 	if o.Source != GroupSyncSourceOpenShift {
 		return nil, errors.New("openshift is not a valid group source for this config")
 	}
 
 	if len(o.Whitelist) != 0 {
-		return syncgroups.NewOpenShiftGroupLister(o.Whitelist, o.Blacklist, clientConfig.Host, o.GroupInterface), nil
+		return syncgroups.NewOpenShiftGroupLister(o.Whitelist, o.Blacklist, host, o.GroupInterface), nil
 	}
 
-	return syncgroups.NewAllOpenShiftGroupLister(o.Blacklist, clientConfig.Host, o.GroupInterface), nil
+	return syncgroups.NewAllOpenShiftGroupLister(o.Blacklist, host, o.GroupInterface), nil
 }
 
 func (o *SyncGroupsOptions) GetLDAPGroupLister(syncBuilder SyncBuilder) (interfaces.LDAPGroupLister, error) {

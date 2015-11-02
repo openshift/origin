@@ -2,6 +2,7 @@ package cli
 
 import (
 	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/rfc2307"
@@ -11,7 +12,7 @@ import (
 var _ SyncBuilder = &RFC2307SyncBuilder{}
 
 type RFC2307SyncBuilder struct {
-	ClientConfig *ldaputil.LDAPClientConfig
+	ClientConfig ldapclient.Config
 	Config       *api.RFC2307Config
 
 	rfc2307LDAPInterface *rfc2307.LDAPInterface

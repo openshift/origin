@@ -1,6 +1,10 @@
 package ldaputil
 
-import "fmt"
+import (
+	"fmt"
+
+	"gopkg.in/ldap.v2"
+)
 
 func NewNoSuchObjectError(baseDN string) error {
 	return &errNoSuchObject{baseDN: baseDN}
@@ -16,13 +20,15 @@ func (e *errNoSuchObject) Error() string {
 	return fmt.Sprintf("search for entry with base dn=%q refers to a non-existent entry", e.baseDN)
 }
 
+// IsNoSuchObjectError determines if the error is a NoSuchObjectError or if it is the upstream version of the error
+// If this returns true, you are *not* safe to cast the error to a NoSuchObjectError
 func IsNoSuchObjectError(err error) bool {
 	if err == nil {
 		return false
 	}
 
 	_, ok := err.(*errNoSuchObject)
-	return ok
+	return ok || ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject)
 }
 
 func NewEntryNotFoundError(baseDN, filter string) error {
