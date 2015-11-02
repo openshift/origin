@@ -37,6 +37,9 @@ type Config struct {
 	// bind mounts are writtable.
 	Readonlyfs bool `json:"readonlyfs"`
 
+	// Privatefs will mount the container's rootfs as private where mount points from the parent will not propogate
+	Privatefs bool `json:"privatefs"`
+
 	// Mounts specify additional source and destination paths that will be mounted inside the container's
 	// rootfs and mount namespace if specified
 	Mounts []*Mount `json:"mounts"`
@@ -81,7 +84,7 @@ type Config struct {
 
 	// AdditionalGroups specifies the gids that should be added to supplementary groups
 	// in addition to those that the user belongs to.
-	AdditionalGroups []string `json:"additional_groups"`
+	AdditionalGroups []int `json:"additional_groups"`
 
 	// UidMappings is an array of User ID mappings for User Namespaces
 	UidMappings []IDMap `json:"uid_mappings"`
@@ -96,6 +99,10 @@ type Config struct {
 	// ReadonlyPaths specifies paths within the container's rootfs to remount as read-only
 	// so that these files prevent any writes.
 	ReadonlyPaths []string `json:"readonly_paths"`
+
+	// SystemProperties is a map of properties and their values. It is the equivalent of using
+	// sysctl -w my.property.name value in Linux.
+	SystemProperties map[string]string `json:"system_properties"`
 }
 
 // Gets the root uid for the process on host which could be non-zero
