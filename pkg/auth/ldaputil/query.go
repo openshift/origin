@@ -10,10 +10,25 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
+// NewLDAPQuery converts a user-provided LDAPQuery into a version we can use
+func NewLDAPQuery(config api.LDAPQuery) (LDAPQuery, error) {
+	scope, err := DetermineLDAPScope(config.Scope)
+	if err != nil {
+		return LDAPQuery{}, err
 	}
 
+	derefAliases, err := DetermineDerefAliasesBehavior(config.DerefAliases)
+	if err != nil {
+		return LDAPQuery{}, err
 	}
 
+	return LDAPQuery{
+		BaseDN:       config.BaseDN,
+		Scope:        scope,
+		DerefAliases: derefAliases,
+		TimeLimit:    config.TimeLimit,
+		Filter:       config.Filter,
+	}, nil
 }
 
 // LDAPQuery encodes an LDAP query
@@ -51,39 +66,6 @@ func (q *LDAPQuery) NewSearchRequest(additionalAttributes []string) *ldap.Search
 	)
 }
 
-// LDAPQueryOnAttribute encodes an LDAP query that conjoins two filters to extract a specific LDAP entry
-// This query is not self-sufficient and needs the value of the QueryAttribute to construct the final filter
-type LDAPQueryOnAttribute struct {
-	// Query retrieves entries from an LDAP server
-	LDAPQuery
-
-	// QueryAttribute is the attribute for a specific filter that, when conjoined with the common filter,
-	// retrieves the specific LDAP entry from the LDAP server. (e.g. "cn", when formatted with "aGroupName"
-	// and conjoined with "objectClass=groupOfNames", becomes (&(objectClass=groupOfNames)(cn=aGroupName))")
-	QueryAttribute string
-}
-
-// NewLDAPQuery converts a user-provided LDAPQuery into a version we can use
-func NewLDAPQuery(config api.LDAPQuery) (LDAPQuery, error) {
-	scope, err := DetermineLDAPScope(config.Scope)
-	if err != nil {
-		return LDAPQuery{}, err
-	}
-
-	derefAliases, err := DetermineDerefAliasesBehavior(config.DerefAliases)
-	if err != nil {
-		return LDAPQuery{}, err
-	}
-
-	return LDAPQuery{
-		BaseDN:       config.BaseDN,
-		Scope:        scope,
-		DerefAliases: derefAliases,
-		TimeLimit:    config.TimeLimit,
-		Filter:       config.Filter,
-	}, nil
-}
-
 // NewLDAPQueryOnAttribute converts a user-provided LDAPQuery into a version we can use by parsing
 // the input and combining it with a set of name attributes
 func NewLDAPQueryOnAttribute(config api.LDAPQuery, attribute string) (LDAPQueryOnAttribute, error) {
@@ -96,6 +78,18 @@ func NewLDAPQueryOnAttribute(config api.LDAPQuery, attribute string) (LDAPQueryO
 		LDAPQuery:      ldapQuery,
 		QueryAttribute: attribute,
 	}, nil
+}
+
+// LDAPQueryOnAttribute encodes an LDAP query that conjoins two filters to extract a specific LDAP entry
+// This query is not self-sufficient and needs the value of the QueryAttribute to construct the final filter
+type LDAPQueryOnAttribute struct {
+	// Query retrieves entries from an LDAP server
+	LDAPQuery
+
+	// QueryAttribute is the attribute for a specific filter that, when conjoined with the common filter,
+	// retrieves the specific LDAP entry from the LDAP server. (e.g. "cn", when formatted with "aGroupName"
+	// and conjoined with "objectClass=groupOfNames", becomes (&(objectClass=groupOfNames)(cn=aGroupName))")
+	QueryAttribute string
 }
 
 // NewSearchRequest creates a new search request from the identifying query by internalizing the value of
