@@ -2,7 +2,11 @@ package dns
 
 import (
 	"fmt"
+	"hash/fnv"
+	"net"
 	"strings"
+
+	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
@@ -48,23 +52,27 @@ func NewServiceResolver(config *server.Config, accessor ServiceAccessor, endpoin
 // Records implements the SkyDNS Backend interface and returns standard records for
 // a name.
 //
-// The standard pattern is <prefix>.<service_name>.<namespace>.(svc|endpoints).<base>
+// The standard pattern is <prefix>.<service_name>.<namespace>.(svc|endpoints|pod).<base>
 //
 // * prefix may be any series of prefix values
+//   * _endpoints is a special prefix that returns the same as <service_name>.<namespace>.svc.<base>
 // * service_name and namespace must locate a real service
+//   * unless a fallback is defined, in which case the fallback name will be looked up
 // * svc indicates standard service rules apply (portalIP or endpoints as A records)
 //   * reverse lookup of IP is only possible for portalIP
 //   * SRV records are returned for each host+port combination as:
 //     _<port_name>._<port_protocol>.<dns>
 //     _<port_name>.<endpoint_id>.<dns>
-//   * endpoint_id is "portal" when portalIP is set
 // * endpoints always returns each individual endpoint as A records
+//   * SRV records for endpoints are similar to SVC, but are prefixed with a single label
+//     that is a hash of the endpoint IP
+// * pods is of the form <IP_with_dashes>.<namespace>.pod.<base> and resolves to <IP>
 //
-func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error) {
-	if !strings.HasSuffix(name, b.base) {
+func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, error) {
+	if !strings.HasSuffix(dnsName, b.base) {
 		return nil, nil
 	}
-	prefix := strings.Trim(strings.TrimSuffix(name, b.base), ".")
+	prefix := strings.Trim(strings.TrimSuffix(dnsName, b.base), ".")
 	segments := strings.Split(prefix, ".")
 	for i, j := 0, len(segments)-1; i < j; i, j = i+1, j-1 {
 		segments[i], segments[j] = segments[j], segments[i]
@@ -72,8 +80,30 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 	if len(segments) == 0 {
 		return nil, nil
 	}
+	glog.V(4).Infof("Answering query %s:%t", dnsName, exact)
+	switch base := segments[0]; base {
+	case "pod":
+		if len(segments) != 3 {
+			return nil, nil
+		}
+		namespace, encodedIP := segments[1], segments[2]
+		ip := convertDashIPToIP(encodedIP)
+		if net.ParseIP(ip) == nil {
+			return nil, nil
+		}
+		return []msg.Service{
+			{
+				Host: ip,
+				Port: 0,
 
-	switch segments[0] {
+				Priority: 10,
+				Weight:   10,
+				Ttl:      30,
+
+				Key: msg.Path(buildDNSName(b.base, "pod", namespace, getHash(ip))),
+			},
+		}, nil
+
 	case "svc", "endpoints":
 		if len(segments) < 3 {
 			return nil, nil
@@ -94,56 +124,64 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 			return nil, nil
 		}
 
-		retrieveEndpoints := segments[0] == "endpoints" || (len(segments) > 3 && segments[3] == "_endpoints")
+		subdomain := buildDNSName(b.base, base, namespace, name)
+		endpointPrefix := base == "endpoints"
+		retrieveEndpoints := endpointPrefix || (len(segments) > 3 && segments[3] == "_endpoints")
 
 		// if has a portal IP and looking at svc
 		if svc.Spec.ClusterIP != kapi.ClusterIPNone && !retrieveEndpoints {
+			defaultService := msg.Service{
+				Host: svc.Spec.ClusterIP,
+				Port: 0,
+
+				Priority: 10,
+				Weight:   10,
+				Ttl:      30,
+			}
+			defaultHash := getHash(defaultService.Host)
+			defaultName := buildDNSName(subdomain, defaultHash)
+			defaultService.Key = msg.Path(defaultName)
+
 			if len(svc.Spec.Ports) == 0 {
-				return nil, nil
+				return []msg.Service{defaultService}, nil
 			}
+
 			services := []msg.Service{}
-			for _, p := range svc.Spec.Ports {
-				port := p.Port
-				if port == 0 {
-					port = p.TargetPort.IntVal
-				}
-				if port == 0 {
-					continue
-				}
-				if len(p.Protocol) == 0 {
-					p.Protocol = kapi.ProtocolTCP
-				}
-				portName := p.Name
-				if len(portName) == 0 {
-					portName = fmt.Sprintf("unknown-port-%d", port)
-				}
-				srvName := fmt.Sprintf("%s.portal.%s", portName, name)
-				keyName := fmt.Sprintf("_%s._%s.%s", portName, p.Protocol, name)
-				services = append(services,
-					msg.Service{
-						Host: svc.Spec.ClusterIP,
-						Port: port,
+			if len(segments) == 3 {
+				for _, p := range svc.Spec.Ports {
+					port := p.Port
+					if port == 0 {
+						port = p.TargetPort.IntVal
+					}
+					if port == 0 {
+						continue
+					}
+					if len(p.Protocol) == 0 {
+						p.Protocol = kapi.ProtocolTCP
+					}
+					portName := p.Name
+					if len(portName) == 0 {
+						portName = fmt.Sprintf("unknown-port-%d", port)
+					}
+					keyName := buildDNSName(subdomain, "_"+strings.ToLower(string(p.Protocol)), "_"+portName)
+					services = append(services,
+						msg.Service{
+							Host: svc.Spec.ClusterIP,
+							Port: port,
 
-						Priority: 10,
-						Weight:   10,
-						Ttl:      30,
+							Priority: 10,
+							Weight:   10,
+							Ttl:      30,
 
-						Text: "",
-						Key:  msg.Path(srvName),
-					},
-					msg.Service{
-						Host: srvName,
-						Port: port,
-
-						Priority: 10,
-						Weight:   10,
-						Ttl:      30,
-
-						Text: "",
-						Key:  msg.Path(keyName),
-					},
-				)
+							Key: msg.Path(keyName),
+						},
+					)
+				}
 			}
+			if len(services) == 0 {
+				services = append(services, defaultService)
+			}
+			glog.V(4).Infof("Answered %s:%t with %#v", dnsName, exact, services)
 			return services, nil
 		}
 
@@ -152,32 +190,27 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 		if err != nil {
 			return nil, err
 		}
-		targets := make(map[string]int)
+
 		services := make([]msg.Service, 0, len(endpoints.Subsets)*4)
-		count := 1
 		for _, s := range endpoints.Subsets {
 			for _, a := range s.Addresses {
-				shortName := ""
-				if a.TargetRef != nil {
-					name := fmt.Sprintf("%s-%s", a.TargetRef.Name, a.TargetRef.Namespace)
-					if c, ok := targets[name]; ok {
-						shortName = fmt.Sprintf("e%d", c)
-					} else {
-						shortName = fmt.Sprintf("e%d", count)
-						targets[name] = count
-						count++
-					}
-				} else {
-					shortName = fmt.Sprintf("e%d", count)
-					count++
+				defaultService := msg.Service{
+					Host: a.IP,
+					Port: 0,
+
+					Priority: 10,
+					Weight:   10,
+					Ttl:      30,
 				}
-				hadPort := false
+				defaultHash := getHash(defaultService.Host)
+				defaultName := buildDNSName(subdomain, defaultHash)
+				defaultService.Key = msg.Path(defaultName)
+
 				for _, p := range s.Ports {
 					port := p.Port
 					if port == 0 {
 						continue
 					}
-					hadPort = true
 					if len(p.Protocol) == 0 {
 						p.Protocol = kapi.ProtocolTCP
 					}
@@ -185,7 +218,8 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 					if len(portName) == 0 {
 						portName = fmt.Sprintf("unknown-port-%d", port)
 					}
-					srvName := fmt.Sprintf("%s.%s.%s", portName, shortName, name)
+
+					keyName := buildDNSName(subdomain, "_"+strings.ToLower(string(p.Protocol)), "_"+portName, defaultHash)
 					services = append(services, msg.Service{
 						Host: a.IP,
 						Port: port,
@@ -194,37 +228,15 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 						Weight:   10,
 						Ttl:      30,
 
-						Text: "",
-						Key:  msg.Path(srvName),
-					})
-					keyName := fmt.Sprintf("_%s._%s.%s", portName, p.Protocol, name)
-					services = append(services, msg.Service{
-						Host: srvName,
-						Port: port,
-
-						Priority: 10,
-						Weight:   10,
-						Ttl:      30,
-
-						Text: "",
-						Key:  msg.Path(keyName),
+						Key: msg.Path(keyName),
 					})
 				}
-
-				if !hadPort {
-					services = append(services, msg.Service{
-						Host: a.IP,
-
-						Priority: 10,
-						Weight:   10,
-						Ttl:      30,
-
-						Text: "",
-						Key:  msg.Path(name),
-					})
+				if len(services) == 0 {
+					services = append(services, defaultService)
 				}
 			}
 		}
+		glog.V(4).Infof("Answered %s:%t with %#v", dnsName, exact, services)
 		return services, nil
 	}
 	return nil, nil
@@ -246,16 +258,16 @@ func (b *ServiceResolver) ReverseRecord(name string) (*msg.Service, error) {
 	if len(svc.Spec.Ports) > 0 {
 		port = svc.Spec.Ports[0].Port
 	}
+	hostName := buildDNSName(b.base, "svc", svc.Namespace, svc.Name)
 	return &msg.Service{
-		Host: fmt.Sprintf("%s.%s.svc.%s", svc.Name, svc.Namespace, b.base),
+		Host: hostName,
 		Port: port,
 
 		Priority: 10,
 		Weight:   10,
 		Ttl:      30,
 
-		Text: "",
-		Key:  msg.Path(name),
+		Key: msg.Path(name),
 	}, nil
 }
 
@@ -277,4 +289,30 @@ func extractIP(reverseName string) (string, bool) {
 		segments[i], segments[j] = segments[j], segments[i]
 	}
 	return strings.Join(segments, "."), true
+}
+
+// buildDNSName reverses the labels order and joins them with dots.
+func buildDNSName(labels ...string) string {
+	var res string
+	for _, label := range labels {
+		if len(res) == 0 {
+			res = label
+		} else {
+			res = fmt.Sprintf("%s.%s", label, res)
+		}
+	}
+	return res
+}
+
+// return a hash for the key name
+func getHash(text string) string {
+	h := fnv.New32a()
+	h.Write([]byte(text))
+	return fmt.Sprintf("%x", h.Sum32())
+}
+
+// convertDashIPToIP takes an encoded IP (with dashes) and replaces them with
+// dots.
+func convertDashIPToIP(ip string) string {
+	return strings.Join(strings.Split(ip, "-"), ".")
 }
