@@ -132,16 +132,6 @@ func (e *Entry) GetRawAttributeValue(attribute string) []byte {
 	return values[0]
 }
 
-func (e *Entry) String() string {
-	dn := "DN: " + e.DN
-	attrs := ""
-	for _, attr := range e.Attributes {
-		attrs += "Attr[" + attr.Name + "]: " + strings.Join(attr.Values, " ") + " "
-	}
-
-	return "{" + dn + " " + attrs + "}"
-}
-
 func (e *Entry) Print() {
 	fmt.Printf("DN: %s\n", e.DN)
 	for _, attr := range e.Attributes {
