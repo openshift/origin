@@ -8,8 +8,8 @@ import (
 	"github.com/go-ldap/ldap"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
-	ldapinterfaces "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
+	ldapinterfaces "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 )
 
 // NewADLDAPInterface builds a new ADLDAPInterface using a schema-appropriate config
