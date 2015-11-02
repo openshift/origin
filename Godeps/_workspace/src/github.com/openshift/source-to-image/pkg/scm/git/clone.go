@@ -22,7 +22,7 @@ func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 	var info *api.SourceInfo
 	cloneConfig := api.CloneConfig{Quiet: true, Recursive: !config.DisableRecursive}
 
-	if c.ValidCloneSpec(config.Source) {
+	if c.ValidCloneSpecRemoteOnly(config.Source) {
 		if len(config.ContextDir) > 0 {
 			targetSourceDir = filepath.Join(config.WorkingDir, api.ContextTmp)
 		}

@@ -18,18 +18,6 @@ func createLocalGitDirectory(t *testing.T) string {
 	return dir
 }
 
-func TestIsLocalGitRepository(t *testing.T) {
-	d := createLocalGitDirectory(t)
-	defer os.RemoveAll(d)
-	if isLocalGitRepository(d) == false {
-		t.Errorf("The %q directory is git repository", d)
-	}
-	os.RemoveAll(filepath.Join(d, ".git"))
-	if isLocalGitRepository(d) == true {
-		t.Errorf("The %q directory is not git repository", d)
-	}
-}
-
 func TestDownloaderForSource(t *testing.T) {
 	gitLocalDir := createLocalGitDirectory(t)
 	defer os.RemoveAll(gitLocalDir)
