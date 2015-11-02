@@ -11,11 +11,11 @@
       offset-top="445"
       offset-bottom="90">
       <a ng-if="loading" href="" ng-click="toggleAutoScroll()">
-        <span ng-if="!autoScroll">Follow log</span>
+        <span ng-if="!autoScroll">Follow</span>
         <span ng-if="autoScroll">Stop following</span>
       </a>
       <a ng-if="!loading" href="" ng-click="scrollBottom()">
-        Go to end of log
+        Go to end
       </a>
     </div>
     <div flex column class="log-view-output">
@@ -27,7 +27,7 @@
     <div
       ng-show="showScrollLinks"
       class="log-scroll log-scroll-bottom">
-      <a href="" ng-click="scrollTop()">Go to start of log</a>
+      <a href="" ng-click="scrollTop()">Go to top</a>
     </div>
   </div>
   <a
