@@ -39,6 +39,14 @@ const (
 // for system bootstrapping.  This method takes additional users and groups that should be added
 // to the strategies.  Use GetBoostrapSCCAccess to produce the default set of mappings.
 func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string][]string, sccNameToAdditionalUsers map[string][]string) []kapi.SecurityContextConstraints {
+	// define priorities here and reference them below so it is easy to see, at a glance
+	// what we're setting
+	var (
+		// this is set to 10 to allow wiggle room for admins to set other priorities without
+		// having to adjust anyUID.
+		securityContextConstraintsAnyUIDPriority = 10
+	)
+
 	constraints := []kapi.SecurityContextConstraints{
 		// SecurityContextConstraintPrivileged allows all access for every field
 		{
@@ -246,6 +254,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
 				Type: kapi.SupplementalGroupsStrategyRunAsAny,
 			},
+			// prefer the anyuid SCC over ones that force a uid
+			Priority: &securityContextConstraintsAnyUIDPriority,
 		},
 	}
 
