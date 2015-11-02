@@ -13,6 +13,8 @@ os::log::install_errexit
   set +e
   oc delete project/example project/ui-test-project project/recreated-project
   oc delete sa/router -n default
+  oc delete node/fake-node
+  oc delete groups/group1
   oadm policy reconcile-cluster-roles --confirm
   oadm policy reconcile-cluster-role-bindings --confirm
 ) 2>/dev/null 1>&2
@@ -80,13 +82,13 @@ oadm policy remove-cluster-role-from-user cluster-admin system:no-user
 oadm policy add-scc-to-user privileged fake-user
 oc get scc/privileged -o yaml | grep fake-user
 oadm policy add-scc-to-user privileged -z fake-sa
-oc get scc/privileged -o yaml | grep "system:serviceaccount:cmd-admin:fake-sa"
+oc get scc/privileged -o yaml | grep "system:serviceaccount:$(oc project -q):fake-sa"
 oadm policy add-scc-to-group privileged fake-group
 oc get scc/privileged -o yaml | grep fake-group
 oadm policy remove-scc-from-user privileged fake-user
 [ ! "$(oc get scc/privileged -o yaml | grep fake-user)" ]
 oadm policy remove-scc-from-user privileged -z fake-sa
-[ ! "$(oc get scc/privileged -o yaml | grep 'system:serviceaccount:cmd-admin:fake-sa')" ]
+[ ! "$(oc get scc/privileged -o yaml | grep 'system:serviceaccount:$(oc project -q):fake-sa')" ]
 oadm policy remove-scc-from-group privileged fake-group
 [ ! "$(oadm policy add-scc-to-group privileged fake-group)" ]
 
