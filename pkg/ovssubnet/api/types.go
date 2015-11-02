@@ -85,8 +85,8 @@ const (
 )
 
 type ServicePort struct {
-	Protocol  ServiceProtocol
-	Port      uint
+	Protocol ServiceProtocol
+	Port     uint
 }
 
 type Service struct {
