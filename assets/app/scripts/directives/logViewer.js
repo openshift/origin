@@ -155,8 +155,8 @@ angular.module('openshiftConsole')
 
                 addLine(lastLineNumber, msg);
 
-                // Show the start and end links if the log is more than 25 lines.
-                if (!$scope.showScrollLinks && lastLineNumber > 25) {
+                // Show the start and end links once we have at least 1 line
+                if (!$scope.showScrollLinks && lastLineNumber > 1) {
                   $scope.$evalAsync(function() {
                     $scope.showScrollLinks = true;
                   });
