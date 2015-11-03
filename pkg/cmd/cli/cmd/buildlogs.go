@@ -37,7 +37,7 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 		Short:      "Show logs from a build",
 		Long:       buildLogsLong,
 		Example:    fmt.Sprintf(buildLogsExample, fullName),
-		SuggestFor: []string{"builds"},
+		Deprecated: fmt.Sprintf("use %q instead.", LogsRecommendedName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunBuildLogs(fullName, f, out, cmd, opts, args)
 

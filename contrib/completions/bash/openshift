@@ -2208,25 +2208,6 @@ _openshift_cli_start-build()
     must_have_one_noun=()
 }
 
-_openshift_cli_build-logs()
-{
-    last_command="openshift_cli_build-logs"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--follow")
-    flags+=("-f")
-    flags+=("--nowait")
-    flags+=("-w")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
 _openshift_cli_deploy()
 {
     last_command="openshift_cli_deploy"
@@ -3830,7 +3811,6 @@ _openshift_cli()
     commands+=("status")
     commands+=("project")
     commands+=("start-build")
-    commands+=("build-logs")
     commands+=("deploy")
     commands+=("rollback")
     commands+=("new-build")

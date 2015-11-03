@@ -19,28 +19,35 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
+// LogsRecommendedName is the recommended command name
+// TODO: Probably move this pattern upstream?
+const LogsRecommendedName = "logs"
+
 const (
 	logsLong = `
 Print the logs for a resource.
 
-If the pod has only one container, the container name is optional.`
+Supported resources are builds, build configs (bc), deployment configs (dc), and pods.
+When a pod is specified and has more than one container, the container name should be
+specified via -c. When a build config or deployment config is specified, you can view
+the logs for a particular version of it via --version.`
 
-	logsExample = `  # Returns snapshot of ruby-container logs from pod backend.
-  $ %[1]s logs backend -c ruby-container
+	logsExample = `  # Start streaming the logs of the most recent build of the openldap build config.
+  $ %[1]s -f bc/openldap
 
-  # Starts streaming of ruby-container logs from pod backend.
-  $ %[1]s logs -f pod/backend -c ruby-container
-
-  # Starts streaming the logs of the most recent build of the openldap build config.
-  $ %[1]s logs -f bc/openldap
-
-  # Starts streaming the logs of the latest deployment of the mysql deployment config.
-  $ %[1]s logs -f dc/mysql
+  # Start streaming the logs of the latest deployment of the mysql deployment config.
+  $ %[1]s -f dc/mysql
 
   # Get the logs of the first deployment for the mysql deployment config. Note that logs
   # from older deployments may not exist either because the deployment was successful
   # or due to deployment pruning or manual deletion of the deployment.
-  $ %[1]s logs --version=1 dc/mysql`
+  $ %[1]s --version=1 dc/mysql
+
+  # Return a snapshot of ruby-container logs from pod backend.
+  $ %[1]s backend -c ruby-container
+
+  # Start streaming of ruby-container logs from pod backend.
+  $ %[1]s -f pod/backend -c ruby-container`
 )
 
 // OpenShiftLogsOptions holds all the necessary options for running oc logs.
@@ -53,14 +60,15 @@ type OpenShiftLogsOptions struct {
 }
 
 // NewCmdLogs creates a new logs command that supports OpenShift resources.
-func NewCmdLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdLogs(name, parent string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	o := OpenShiftLogsOptions{
 		KubeLogOptions: &kcmd.LogsOptions{},
 	}
 	cmd := kcmd.NewCmdLog(f.Factory, out)
 	cmd.Short = "Print the logs for a resource."
 	cmd.Long = logsLong
-	cmd.Example = fmt.Sprintf(logsExample, fullName)
+	cmd.Example = fmt.Sprintf(logsExample, name+" "+parent)
+	cmd.SuggestFor = []string{"builds", "deployments"}
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		cmdutil.CheckErr(o.Complete(f, out, cmd, args))
 		if err := o.Validate(); err != nil {

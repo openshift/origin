@@ -120,7 +120,7 @@ A few examples:
 
 ----
 cancel-build BUILD
-build-logs BUILD
+deploy DEPLOYMENTCONFIG
 login [URL]
 edit (RESOURCE/NAME | -f FILENAME)
 new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)
