@@ -153,7 +153,7 @@ echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
 #oc start-build -n test ruby-sample-build --follow
 os::build:wait_for_start "test"
 # Ensure that the build pod doesn't allow exec
-[ "$(oc rsh ${BUILD_ID}-build 2>&1 | grep 'forbidden')" ]
+[ "$(oc rsh ${BUILD_ID}-build 2>&1 | grep -i 'forbidden')" ]
 os::build:wait_for_end "test"
 wait_for_app "test"
 
