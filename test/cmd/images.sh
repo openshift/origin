@@ -124,6 +124,8 @@ oc tag mysql:latest tagtest3:latest tagtest4:latest --alias
 [ "$(oc get is/tagtest3 --template='{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
 [ "$(oc get is/tagtest4 --template='{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
 oc delete is/tagtest is/tagtest2 is/tagtest3 is/tagtest4
+[ "$(oc tag mysql:latest tagtest:new1 --alias | grep "Tag tagtest:new1 set up to track mysql:latest.")" ]
+[ "$(oc tag mysql:latest tagtest:new1 | grep "Tag tagtest:new1 set to mysql@sha256:")" ]
 
 # test deleting a spec tag using oc tag
 oc create -f test/fixtures/test-stream.yaml
