@@ -88,6 +88,10 @@ os::cmd::expect_success_and_text 'openshift kubectl get --help' 'Display one or 
 os::cmd::expect_success_and_text 'openshift start --help' 'Start an all-in-one server'
 os::cmd::expect_success_and_text 'openshift start master --help' 'Start a master'
 os::cmd::expect_success_and_text 'openshift start node --help' 'Start a node'
+os::cmd::expect_success_and_text 'oc project --help' 'Switch to another project'
+os::cmd::expect_success_and_text 'oc projects --help' 'Switch to another project'
+os::cmd::expect_success_and_text 'openshift cli project --help' 'Switch to another project'
+os::cmd::expect_success_and_text 'openshift cli projects --help' 'Switch to another project'
 os::cmd::expect_success_and_text 'oc get --help' 'oc'
 
 # help for given command through help command must be consistent
@@ -97,10 +101,14 @@ os::cmd::expect_success_and_text 'openshift help kubectl get' 'Display one or ma
 os::cmd::expect_success_and_text 'openshift help start' 'Start an all-in-one server'
 os::cmd::expect_success_and_text 'openshift help start master' 'Start a master'
 os::cmd::expect_success_and_text 'openshift help start node' 'Start a node'
+os::cmd::expect_success_and_text 'oc help project' 'Switch to another project'
+os::cmd::expect_success_and_text 'oc help projects' 'Switch to another project'
 # TODO: fix these tests
 # os::cmd::expect_success_and_text 'openshift cli help update' 'Update a resource'
 # os::cmd::expect_success_and_text 'openshift cli help replace' 'Replace a resource'
 # os::cmd::expect_success_and_text 'openshift cli help patch' 'Update field\(s\) of a resource'
+# os::cmd::expect_success_and_text 'openshift cli help project' 'Switch to another project'
+# os::cmd::expect_success_and_text 'openshift cli help projects' 'Switch to another project'
 
 # runnable commands with required flags must error consistently
 os::cmd::expect_failure_and_text 'oc get' 'Required resource not specified'

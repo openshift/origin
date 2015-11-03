@@ -60,4 +60,12 @@ os::cmd::expect_success 'oc secrets add serviceaccounts/deployer secrets/basicau
 # make sure we can add as as pull secret and mount secret at once
 os::cmd::expect_success 'oc secrets add serviceaccounts/deployer secrets/basicauth secrets/sshauth --for=pull,mount'
 
+# command alias
+os::cmd::expect_success 'oc secret --help'
+os::cmd::expect_success 'oc secret new --help'
+os::cmd::expect_success 'oc secret new-dockercfg --help'
+os::cmd::expect_success 'oc secret new-basicauth --help'
+os::cmd::expect_success 'oc secret new-sshauth --help'
+os::cmd::expect_success 'oc secret add --help'
+
 echo "secrets: ok"

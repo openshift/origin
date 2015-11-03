@@ -35,5 +35,9 @@ os::cmd::expect_success 'oc volume dc/test-deployment-config --add --mount-path=
 os::cmd::expect_success 'oc volume dc/test-deployment-config --add --mount-path=/second --type=pvc --claim-size=1G --claim-mode=rwo'
 os::cmd::expect_success_and_text 'oc get pvc --no-headers | wc -l' '2'
 
+# command alias
+os::cmd::expect_success 'oc volumes --help'
+os::cmd::expect_success 'oc volumes dc/test-deployment-config --list'
+
 os::cmd::expect_success 'oc delete dc/test-deployment-config'
 echo "volumes: ok"

@@ -1031,7 +1031,7 @@ An introduction to concepts and types
 ====
 
 
-== oc volume
+== oc volumes
 Update volume on a resource with a pod template
 
 ====

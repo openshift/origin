@@ -1759,9 +1759,9 @@ _oc_env()
     must_have_one_noun=()
 }
 
-_oc_volume()
+_oc_volumes()
 {
-    last_command="oc_volume"
+    last_command="oc_volumes"
     commands=()
 
     flags=()
@@ -5358,7 +5358,7 @@ _oc()
     commands+=("describe")
     commands+=("edit")
     commands+=("env")
-    commands+=("volume")
+    commands+=("volumes")
     commands+=("label")
     commands+=("annotate")
     commands+=("expose")
