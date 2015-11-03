@@ -18,7 +18,8 @@ function cmd() {
   echo "[install-assets] ${cmd}"
   rc="0"
   while [[ "$tries" -gt 0 ]]; do
-    $cmd &>> ${log_file} || rc=$?
+    $cmd &> ${log_file}
+    rc=$?
     [[ "$rc" == "0" ]] && return 0
     ((tries--))
   done
