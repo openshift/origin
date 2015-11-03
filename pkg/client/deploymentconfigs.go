@@ -1,6 +1,8 @@
 package client
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
@@ -23,6 +25,8 @@ type DeploymentConfigInterface interface {
 	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 	Generate(name string) (*deployapi.DeploymentConfig, error)
 	Rollback(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
+	GetScale(name string) (*extensions.Scale, error)
+	UpdateScale(scale *extensions.Scale) (*extensions.Scale, error)
 }
 
 // deploymentConfigs implements DeploymentConfigsNamespacer interface
@@ -105,5 +109,26 @@ func (c *deploymentConfigs) Rollback(config *deployapi.DeploymentConfigRollback)
 		Body(config).
 		Do().
 		Into(result)
+	return
+}
+
+// Get returns information about a particular deploymentConfig
+func (c *deploymentConfigs) GetScale(name string) (result *extensions.Scale, err error) {
+	result = &extensions.Scale{}
+	err = c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).SubResource("scale").Do().Into(result)
+	return
+}
+
+// Update updates an existing deploymentConfig
+func (c *deploymentConfigs) UpdateScale(scale *extensions.Scale) (result *extensions.Scale, err error) {
+	result = &extensions.Scale{}
+
+	// TODO fix by making the client understand how to encode using different codecs for different resources
+	encodedBytes, err := kapi.Scheme.EncodeToVersion(scale, "extensions/v1beta1")
+	if err != nil {
+		return result, err
+	}
+
+	err = c.r.Put().Namespace(c.ns).Resource("deploymentConfigs").Name(scale.Name).SubResource("scale").Body(encodedBytes).Do().Into(result)
 	return
 }

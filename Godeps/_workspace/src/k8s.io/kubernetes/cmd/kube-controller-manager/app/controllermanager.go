@@ -296,7 +296,7 @@ func (s *CMServer) Run(_ []string) error {
 		go job.NewJobController(kubeClient, s.ResyncPeriod).
 			Run(s.ConcurrentJobSyncs, util.NeverStop)
 
-		podautoscaler.NewHorizontalController(kubeClient, metrics.NewHeapsterMetricsClient(kubeClient)).
+		podautoscaler.NewHorizontalController(kubeClient, kubeClient, kubeClient, metrics.NewHeapsterMetricsClient(kubeClient, "kube-system", "heapster")).
 			Run(s.HorizontalPodAutoscalerSyncPeriod)
 
 		deployment.New(kubeClient).

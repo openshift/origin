@@ -79,6 +79,12 @@ type Mux interface {
 type APIGroupVersion struct {
 	Storage map[string]rest.Storage
 
+	// NonDefaultGroupVersions is a map of resource[/subresource] to group/version to use for serialization
+	// of the rest.Storage kind.  Missing entries simply preserve existing behavior (uses .Version).
+	// This allows a single rest.Storage to be registed in multiple APIGroupVersions with different
+	// serializations in each one.
+	NonDefaultGroupVersions map[string]string
+
 	Root string
 	// TODO: caesarxuchao: Version actually contains "group/version", refactor it to avoid confusion.
 	Version string
