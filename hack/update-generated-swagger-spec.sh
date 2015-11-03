@@ -18,7 +18,7 @@ function cleanup()
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Generate Failed !!!!"
         echo
-        cat "${TEMP_DIR}/openshift.log"
+        tail -100 "${LOG_DIR}/openshift.log"
         echo
         echo -------------------------------------
         echo
@@ -42,7 +42,7 @@ export ETCD_PORT=34001
 export ETCD_PEER_PORT=37001
 export SUDO=''
 setup_env_vars
-reset_tmp_dir 
+reset_tmp_dir
 configure_os_server
 
 

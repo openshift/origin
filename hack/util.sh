@@ -146,7 +146,7 @@ function start_os_server {
 	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
 	 --loglevel=4 \
-	&> "${LOG_DIR}/openshift.log" &
+	&>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
 
 	echo "[INFO] OpenShift server start at: "
@@ -181,7 +181,7 @@ function start_os_master {
 	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \
 	 --config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --loglevel=4 \
-	&> "${LOG_DIR}/openshift.log" &
+	&>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
 
 	echo "[INFO] OpenShift server start at: "

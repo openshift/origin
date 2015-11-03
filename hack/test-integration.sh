@@ -36,10 +36,15 @@ set -e
 
 
 function cleanup() {
+	out=$?
 	set +e
+	if [[ $out -ne 0 && -f "${etcdlog}" ]]; then
+		cat "${etcdlog}"
+	fi
 	kill "${ETCD_PID}" 1>&2 2>/dev/null
 	echo
 	echo "Complete"
+	exit $out
 }
 
 
@@ -59,33 +64,33 @@ echo "Test ${package} -tags='${tags}' ..."
 echo
 
 # setup the test dirs
+export ETCD_DIR=${BASETMPDIR}/etcd
+etcdlog="${ETCD_DIR}/etcd.log"
 testdir="${OS_ROOT}/_output/testbin/${package}"
 name="$(basename ${testdir})"
 testexec="${testdir}/${name}.test"
 mkdir -p "${testdir}"
+mkdir -p "${ETCD_DIR}"
 
 # build the test executable (cgo must be disabled to have the symbol table available)
-pushd "${testdir}" 2>&1 >/dev/null
+pushd "${testdir}" &>/dev/null
 CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
-popd 2>&1 >/dev/null
+popd &>/dev/null
 
 
 # Start etcd
-export ETCD_DIR=${BASETMPDIR}/etcd
 etcd -name test -data-dir ${ETCD_DIR} \
  --listen-peer-urls http://${ETCD_HOST}:${ETCD_PEER_PORT} \
  --listen-client-urls http://${ETCD_HOST}:${ETCD_PORT} \
  --initial-advertise-peer-urls http://${ETCD_HOST}:${ETCD_PEER_PORT} \
  --initial-cluster test=http://${ETCD_HOST}:${ETCD_PEER_PORT} \
  --advertise-client-urls http://${ETCD_HOST}:${ETCD_PORT} \
- >/dev/null 2>/dev/null &
+ &>"${etcdlog}" &
 export ETCD_PID=$!
 
-wait_for_url "http://${ETCD_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 80
+wait_for_url "http://${ETCD_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160
 curl -X PUT	"http://${ETCD_HOST}:${ETCD_PORT}/v2/keys/_test"
 echo
-
-
 
 trap cleanup EXIT SIGINT
 
@@ -132,10 +137,10 @@ export childargs
 # hack/test-integration.sh "(WatchBuilds|Template)"
 
 # run each test as its own process
-pushd "./${package}" 2>&1 >/dev/null
+pushd "./${package}" &>/dev/null
 time go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testdir}" \
 	| grep --color=never -E "${1-Test}" \
 	| xargs -I {} -n 1 bash -c "exectest {} ${@:2}" # "${testexec}" -test.run="^{}$" "${@:2}"
-popd 2>&1 >/dev/null
+popd &>/dev/null
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

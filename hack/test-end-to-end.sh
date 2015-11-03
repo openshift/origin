@@ -41,7 +41,7 @@ trap "cleanup" EXIT
 TMPDIR="${TMPDIR:-"/tmp"}"
 BASETMPDIR="${TMPDIR}/openshift-e2e"
 setup_env_vars
-reset_tmp_dir 
+reset_tmp_dir
 configure_os_server
 start_os_server
 
