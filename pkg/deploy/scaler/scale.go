@@ -55,7 +55,11 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 		return err
 	}
 	if waitForReplicas != nil {
-		rc, err := scaler.rcClient.ReplicationControllers(namespace).Get(name)
+		dc, err := scaler.dcClient.DeploymentConfigs(namespace).Get(name)
+		if err != nil {
+			return err
+		}
+		rc, err := scaler.rcClient.ReplicationControllers(namespace).Get(util.LatestDeploymentNameForConfig(dc))
 		if err != nil {
 			return err
 		}

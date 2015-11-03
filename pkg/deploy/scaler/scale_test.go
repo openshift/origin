@@ -66,6 +66,7 @@ func TestScale(t *testing.T) {
 			kc:              ktestclient.NewSimpleFake(mkDeploymentList(1)),
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
+				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
 			},
 			kexpected: []ktestclient.Action{
 				ktestclient.NewGetAction("replicationcontrollers", "default", "config-1"),
