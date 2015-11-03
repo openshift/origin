@@ -20,6 +20,7 @@ func TestUnpushableBuild(t *testing.T) {
 
 	buildedges.AddAllInputOutputEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
 
 	markers := FindUnpushableBuildConfigs(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {
@@ -49,13 +50,14 @@ func TestUnpushableBuild(t *testing.T) {
 	}
 	buildedges.AddAllInputOutputEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
 
 	markers = FindUnpushableBuildConfigs(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 
-	if got, expected := markers[0].Key, MissingImageStreamErr; got != expected {
+	if got, expected := markers[0].Key, MissingOutputImageStreamErr; got != expected {
 		t.Fatalf("expected marker key %q, got %q", expected, got)
 	}
 }
@@ -68,10 +70,63 @@ func TestPushableBuild(t *testing.T) {
 
 	buildedges.AddAllInputOutputEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
 
 	if e, a := 0, len(FindUnpushableBuildConfigs(g, osgraph.DefaultNamer)); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
+}
+
+func TestImageStreamPresent(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/prereq-image-present.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	buildedges.AddAllInputOutputEdges(g)
+	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
+
+	if e, a := 0, len(FindMissingInputImageStreams(g, osgraph.DefaultNamer)); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
+func TestImageStreamTagMissing(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/prereq-image-present-notag.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	buildedges.AddAllInputOutputEdges(g)
+	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
+
+	markers := FindMissingInputImageStreams(g, osgraph.DefaultNamer)
+	if e, a := 4, len(markers); e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+
+	for _, marker := range markers {
+		if got, expected1, expected2 := marker.Key, MissingImageStreamImageWarning, MissingImageStreamTagWarning; got != expected1 && got != expected2 {
+			t.Fatalf("expected marker key %q or %q, got %q", expected1, expected2, got)
+		}
+	}
+}
+
+func TestImageStreamMissing(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/prereq-image-not-present.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	buildedges.AddAllInputOutputEdges(g)
+	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
+
+	markers := FindMissingInputImageStreams(g, osgraph.DefaultNamer)
+	if e, a := 3, len(markers); e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+
 }
 
 func TestBuildConfigNoOutput(t *testing.T) {
@@ -114,6 +169,7 @@ func TestPendingImageStreamTag(t *testing.T) {
 	buildedges.AddAllInputOutputEdges(g)
 	buildedges.AddAllBuildEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
 
 	// Drop the build to showcase a TagNotAvailable warning (should happen when no
 	// build is new, pending, or running currently)
@@ -139,6 +195,7 @@ func TestLatestBuildFailed(t *testing.T) {
 	buildedges.AddAllInputOutputEdges(g)
 	buildedges.AddAllBuildEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
 
 	markers := FindPendingTags(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {
