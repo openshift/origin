@@ -16,8 +16,8 @@ function cmd() {
   local tries="${2:-1}"
   local log_file=$(mktemp ${LOG_DIR}/install-assets.XXXX)
   echo "[install-assets] ${cmd}"
-  rc="0"
   while [[ "$tries" -gt 0 ]]; do
+    rc="0"
     $cmd &>> ${log_file} || rc=$?
     [[ "$rc" == "0" ]] && return 0
     ((tries--))
