@@ -49,7 +49,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "os"                => "fedora",
     "dev_cluster"       => false,
     "dind_dev_cluster"  => ENV['OPENSHIFT_DIND_DEV_CLUSTER'] || false,
-    "network_plugin"    => ENV['OPENSHIFT_NETWORK_PLUGIN'] || ENV['OPENSHIFT_SDN'] || "",
+    "network_plugin"    => ENV['OPENSHIFT_NETWORK_PLUGIN'] || "",
     "insert_key"        => true,
     "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
     "rebuild_yum_cache" => false,

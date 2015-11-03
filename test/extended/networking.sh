@@ -81,7 +81,7 @@ function test-osdn-plugin() {
 
   os::log::info "Targeting ${name} plugin: ${plugin}"
   os::log::info "Launching a docker-in-docker cluster for the ${name} plugin"
-  export OPENSHIFT_SDN="${plugin}"
+  export OPENSHIFT_NETWORK_PLUGIN="${plugin}"
   export OPENSHIFT_CONFIG_ROOT="${BASETMPDIR}/${name}"
   # Images have already been built
   export OS_DIND_BUILD_IMAGES=0
