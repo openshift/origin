@@ -14,6 +14,12 @@ os::log::install_errexit
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 TEST_ASSETS="${TEST_ASSETS:-false}"
 
+oc version
+openshift version
+which oc
+which openshift
+curl -k ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/version
+exit 1
 
 function wait_for_app() {
   echo "[INFO] Waiting for app in namespace $1"
@@ -226,7 +232,7 @@ oc login -u e2e-default-admin -p pass
 set +e
 output=$(oc exec -n default -tip ${router_pod} ls 2>&1)
 set -e
-echo "${output}" | grep -q "unable to validate against any security context constraint"
+echo "${output}" | grep -i "forbidden"
 # system:admin should be able to exec into it
 oc project ${CLUSTER_ADMIN_CONTEXT}
 oc exec -n default -tip ${router_pod} ls
