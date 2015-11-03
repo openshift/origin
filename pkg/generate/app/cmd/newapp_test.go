@@ -33,6 +33,12 @@ import (
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
+func skipExternalGit(t *testing.T) {
+	if len(os.Getenv("TEST_ASSETS_HEADLESS")) > 0 || len(os.Getenv("SKIP_EXTERNAL_GIT")) > 0 {
+		t.Skip("external Git tests are disabled")
+	}
+}
+
 func TestAddArguments(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "test-newapp")
 	if err != nil {
@@ -413,6 +419,7 @@ func TestResolve(t *testing.T) {
 }
 
 func TestDetectSource(t *testing.T) {
+	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
@@ -491,6 +498,7 @@ func (r *ExactMatchDockerSearcher) Search(terms ...string) (app.ComponentMatches
 }
 
 func TestRunAll(t *testing.T) {
+	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
@@ -973,6 +981,7 @@ func TestRunAll(t *testing.T) {
 }
 
 func TestRunBuilds(t *testing.T) {
+	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
@@ -1132,6 +1141,7 @@ func TestRunBuilds(t *testing.T) {
 }
 
 func TestNewBuildEnvVars(t *testing.T) {
+	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
@@ -1193,6 +1203,7 @@ func TestNewBuildEnvVars(t *testing.T) {
 }
 
 func TestNewAppBuildConfigEnvVars(t *testing.T) {
+	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
