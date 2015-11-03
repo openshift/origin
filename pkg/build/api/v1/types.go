@@ -594,8 +594,8 @@ type BuildLogOptions struct {
 	// Follow if true indicates that the build log should be streamed until
 	// the build terminates.
 	Follow bool `json:"follow,omitempty" description:"if true indicates that the log should be streamed; defaults to false"`
-	// Return previous terminated container logs. Defaults to false.
-	Previous bool `json:"previous,omitempty" description:"return previous terminated container logs; defaults to false."`
+	// Return previous build logs. Defaults to false.
+	Previous bool `json:"previous,omitempty" description:"return previous build logs; defaults to false."`
 	// A relative time in seconds before the current time from which to show logs. If this value
 	// precedes the time a pod was started, only logs since the pod start will be returned.
 	// If this value is in the future, no logs will be returned.
