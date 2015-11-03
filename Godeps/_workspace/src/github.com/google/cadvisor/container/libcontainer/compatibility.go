@@ -16,7 +16,6 @@ package libcontainer
 
 import (
 	"encoding/json"
-	"github.com/golang/glog"
 	"io/ioutil"
 	"path"
 
@@ -160,7 +159,6 @@ func ReadConfig(dockerRoot, dockerRun, containerID string) (*configs.Config, err
 		var state libcontainer.State
 		err = json.Unmarshal(out, &state)
 		if err != nil {
-			glog.Errorf("Unmarshal failure for: \n\n%v\n", string(out))
 			return nil, err
 		}
 		return &state.Config, nil
@@ -170,7 +168,6 @@ func ReadConfig(dockerRoot, dockerRun, containerID string) (*configs.Config, err
 	oldConfigPath := oldConfigPath(dockerRoot, containerID)
 	out, err := ioutil.ReadFile(oldConfigPath)
 	if err != nil {
-		glog.Errorf("Unmarshal failure for: \n\n%v\n", string(out))
 		return nil, err
 	}
 
