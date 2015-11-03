@@ -46,7 +46,7 @@ func ProbeVolumePlugins(volumeConfig volume.VolumeConfig) []volume.VolumePlugin 
 }
 
 type nfsPlugin struct {
-	host volume.VolumeHost
+	host            volume.VolumeHost
 	// decouple creating recyclers by deferring to a function.  Allows for easier testing.
 	newRecyclerFunc func(spec *volume.Spec, host volume.VolumeHost, volumeConfig volume.VolumeConfig) (volume.Recycler, error)
 	config          volume.VolumeConfig
@@ -86,9 +86,17 @@ func hasNFSMount() bool {
 }
 
 func (plugin *nfsPlugin) CanSupport(spec *volume.Spec) bool {
+	return (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.NFS != nil) ||
+	(spec.Volume != nil && spec.Volume.NFS != nil)
 	if (spec.Volume != nil && spec.Volume.NFS == nil) || (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.NFS == nil) {
 		return false
 	}
+
+	// PV Controller running in master may not have the required binaries.
+	if spec.BypassBinaryChecks {
+		return true
+	}
+
 	// see if /sbin/mount.nfs* is there
 	return hasNFSMount()
 }
@@ -147,10 +155,10 @@ func (plugin *nfsPlugin) NewRecycler(spec *volume.Spec) (volume.Recycler, error)
 
 // NFS volumes represent a bare host file or directory mount of an NFS export.
 type nfs struct {
-	volName string
-	pod     *api.Pod
-	mounter mount.Interface
-	plugin  *nfsPlugin
+	volName         string
+	pod             *api.Pod
+	mounter         mount.Interface
+	plugin          *nfsPlugin
 	// decouple creating recyclers by deferring to a function.  Allows for easier testing.
 	newRecyclerFunc func(spec *volume.Spec, host volume.VolumeHost, volumeConfig volume.VolumeConfig) (volume.Recycler, error)
 }
