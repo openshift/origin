@@ -56,6 +56,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		},
 		Spec: kapi.PodSpec{
 			ServiceAccountName: build.Spec.ServiceAccount,
+			NodeSelector:       build.Spec.NodeSelector,
 			Containers: []kapi.Container{
 				{
 					Name:  "custom-build",

@@ -57,6 +57,9 @@ type BuildSpec struct {
 	// Compute resource requirements to execute the build
 	Resources kapi.ResourceRequirements
 
+	// NodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string
+
 	// Optional duration in seconds, counted from the time when a build pod gets
 	// scheduled in the system, that the build may be active on a node before the
 	// system actively tries to terminate the build; value must be positive integer

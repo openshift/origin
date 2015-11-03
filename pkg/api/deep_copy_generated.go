@@ -992,6 +992,14 @@ func deepCopy_api_BuildSpec(in buildapi.BuildSpec, out *buildapi.BuildSpec, c *c
 	} else {
 		out.Resources = newVal.(pkgapi.ResourceRequirements)
 	}
+	if in.NodeSelector != nil {
+		out.NodeSelector = make(map[string]string)
+		for key, val := range in.NodeSelector {
+			out.NodeSelector[key] = val
+		}
+	} else {
+		out.NodeSelector = nil
+	}
 	if in.CompletionDeadlineSeconds != nil {
 		out.CompletionDeadlineSeconds = new(int64)
 		*out.CompletionDeadlineSeconds = *in.CompletionDeadlineSeconds

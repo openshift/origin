@@ -50,6 +50,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		},
 		Spec: kapi.PodSpec{
 			ServiceAccountName: build.Spec.ServiceAccount,
+			NodeSelector:       build.Spec.NodeSelector,
 			Containers: []kapi.Container{
 				{
 					Name:  "docker-build",

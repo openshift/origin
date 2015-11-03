@@ -1451,6 +1451,14 @@ func autoconvert_api_BuildSpec_To_v1_BuildSpec(in *buildapi.BuildSpec, out *apiv
 	if err := convert_api_ResourceRequirements_To_v1_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
 		return err
 	}
+	if in.NodeSelector != nil {
+		out.NodeSelector = make(map[string]string)
+		for key, val := range in.NodeSelector {
+			out.NodeSelector[key] = val
+		}
+	} else {
+		out.NodeSelector = nil
+	}
 	if in.CompletionDeadlineSeconds != nil {
 		out.CompletionDeadlineSeconds = new(int64)
 		*out.CompletionDeadlineSeconds = *in.CompletionDeadlineSeconds
@@ -2169,6 +2177,14 @@ func autoconvert_v1_BuildSpec_To_api_BuildSpec(in *apiv1.BuildSpec, out *buildap
 	}
 	if err := convert_v1_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
 		return err
+	}
+	if in.NodeSelector != nil {
+		out.NodeSelector = make(map[string]string)
+		for key, val := range in.NodeSelector {
+			out.NodeSelector[key] = val
+		}
+	} else {
+		out.NodeSelector = nil
 	}
 	if in.CompletionDeadlineSeconds != nil {
 		out.CompletionDeadlineSeconds = new(int64)
