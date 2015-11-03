@@ -14,6 +14,12 @@ os::log::install_errexit
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 TEST_ASSETS="${TEST_ASSETS:-false}"
 
+oc version
+openshift version
+which oc
+which openshift
+curl -k ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/version
+exit 1
 
 function wait_for_app() {
   echo "[INFO] Waiting for app in namespace $1"
