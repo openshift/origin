@@ -18,7 +18,8 @@ function cmd() {
   echo "[install-assets] ${cmd}"
   rc="0"
   while [[ "$tries" -gt 0 ]]; do
-    $cmd &>> ${log_file} || rc=$?
+    $cmd &> ${log_file}
+    rc=$?
     [[ "$rc" == "0" ]] && return 0
     ((tries--))
   done
@@ -34,7 +35,7 @@ fi
 
 # Lock version of npm to work around https://github.com/npm/npm/issues/6309
 if [[ "${TRAVIS-}" == "true" ]]; then
-  cmd "npm install -g npm@2.1.14" "npm.log"
+  cmd "npm install -g npm@2.1.14"
 fi
 
 # Install bower if needed
