@@ -67,7 +67,7 @@ func NewCmdLogs(name, parent string, f *clientcmd.Factory, out io.Writer) *cobra
 	cmd := kcmd.NewCmdLog(f.Factory, out)
 	cmd.Short = "Print the logs for a resource."
 	cmd.Long = logsLong
-	cmd.Example = fmt.Sprintf(logsExample, name+" "+parent)
+	cmd.Example = fmt.Sprintf(logsExample, parent+" "+name)
 	cmd.SuggestFor = []string{"builds", "deployments"}
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		cmdutil.CheckErr(o.Complete(f, out, cmd, args))
