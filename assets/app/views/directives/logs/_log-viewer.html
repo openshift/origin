@@ -1,5 +1,4 @@
-<div column flex>
-  <div row class="log-timestamp" ng-if="!chromeless && start">
+  <div class="log-timestamp" ng-if="!chromeless && start">
     <span>Current log from {{start}}&nbsp;</span>
     <span ng-if="end">to {{end}}</span>
   </div>
@@ -8,23 +7,20 @@
     Only the previous {{options.tailLines || 1000}} log lines and new log
     messages will be displayed because of the large log size.
   </div>
-  <div ng-if="!chromeless" row flex sm="column">
-    <div flex row tablet="column">
-      <div row ng-if="status">
+  <div ng-if="!chromeless">
+    <div class="row">
+      <div ng-if="status" class="col-md-6 col-sm-12 status">
         <span>Status:&nbsp;&nbsp;</span>
         <status-icon status="status"></status-icon>
-        <span flex>&nbsp;&nbsp;{{status}}</span>
+        <span>&nbsp;&nbsp;{{status}}</span>
       </div>
-      <!-- Spacer -->
-      <div flex></div>
-      <div row main-axis="end" cross-axis="end" class="log-link-external">
+      <div class="log-link-external col-md-6 col-sm-12">
         <a href=""  ng-click="goChromeless(options)">
           Open full view of log<i class="fa fa-external-link"></i>
         </a>
       </div>
     </div>
   </div>
-</div>
 
 <!--
 <ng-include
