@@ -237,6 +237,13 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 									kapi.ResourceMemory: resource.MustParse("10M"),
 								},
 							},
+							VolumeMounts: []kapi.VolumeMount{
+								{
+									Name:      "volume-2",
+									ReadOnly:  true,
+									MountPath: "/mnt/volume-2",
+								},
+							},
 						},
 					},
 				},
@@ -476,6 +483,13 @@ func deployment(name, namespace string) *kapi.ReplicationController {
 									Limits: kapi.ResourceList{
 										kapi.ResourceCPU:    resource.MustParse("10"),
 										kapi.ResourceMemory: resource.MustParse("10M"),
+									},
+								},
+								VolumeMounts: []kapi.VolumeMount{
+									{
+										Name:      "volume-2",
+										ReadOnly:  true,
+										MountPath: "/mnt/volume-2",
 									},
 								},
 							},

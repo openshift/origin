@@ -210,11 +210,24 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 
 	// Transfer any requested volumes to the hook pod.
 	volumes := []kapi.Volume{}
+	volumeNames := sets.NewString()
 	for _, volume := range deployment.Spec.Template.Spec.Volumes {
 		for _, name := range exec.Volumes {
 			if volume.Name == name {
 				volumes = append(volumes, volume)
+				volumeNames.Insert(volume.Name)
 			}
+		}
+	}
+	// Transfer any volume mounts associated with transferred volumes.
+	volumeMounts := []kapi.VolumeMount{}
+	for _, mount := range baseContainer.VolumeMounts {
+		if volumeNames.Has(mount.Name) {
+			volumeMounts = append(volumeMounts, kapi.VolumeMount{
+				Name:      mount.Name,
+				ReadOnly:  mount.ReadOnly,
+				MountPath: mount.MountPath,
+			})
 		}
 	}
 
@@ -231,12 +244,13 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
 				{
-					Name:       HookContainerName,
-					Image:      baseContainer.Image,
-					Command:    exec.Command,
-					WorkingDir: baseContainer.WorkingDir,
-					Env:        mergedEnv,
-					Resources:  resources,
+					Name:         HookContainerName,
+					Image:        baseContainer.Image,
+					Command:      exec.Command,
+					WorkingDir:   baseContainer.WorkingDir,
+					Env:          mergedEnv,
+					Resources:    resources,
+					VolumeMounts: volumeMounts,
 				},
 			},
 			Volumes:               volumes,
