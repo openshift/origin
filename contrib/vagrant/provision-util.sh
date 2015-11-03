@@ -213,6 +213,7 @@ os::provision::install-pkgs() {
   # container is expected to have installed packages as part of image
   # creation.
   if ! os::provision::in-container; then
+    yum install -y deltarpm
     yum update -y
     yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils which ethtool
 

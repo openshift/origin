@@ -4,6 +4,7 @@ set -euo
 USERNAME=vagrant
 ORIGIN_ROOT=${1:-/vagrant}
 
+yum install -y deltarpm
 yum update -y
 yum install -y docker-io go git
 
