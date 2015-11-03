@@ -144,10 +144,11 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 	}
 
 	return &genericrest.LocationStreamer{
-		Location:    location,
-		Transport:   transport,
-		ContentType: "text/plain",
-		Flush:       deployLogOpts.Follow,
+		Location:        location,
+		Transport:       transport,
+		ContentType:     "text/plain",
+		Flush:           deployLogOpts.Follow,
+		ResponseChecker: genericrest.NewGenericHttpResponseChecker("Pod", deployPodName),
 	}, nil
 }
 
