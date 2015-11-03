@@ -366,17 +366,7 @@ angular.module('openshiftConsole')
   })
   .filter('isContainerLooping', function() {
     return function(containerStatus) {
-      if (containerStatus.restartCount < 3 ||
-          !containerStatus.state.running ||
-          !containerStatus.state.running.startedAt) {
-        return false;
-      }
-
-      // Only return true if the container has restarted recently.
-      // If this logic ever changes, update the message in podWarnings
-      var fiveMinutesAgo = moment().subtract(5, 'm');
-      var started = moment(containerStatus.state.running.startedAt);
-      return started.isAfter(fiveMinutesAgo);
+      return containerStatus.state.waiting && containerStatus.state.waiting.reason === 'CrashLoopBackOff';
     };
   })
   .filter('isContainerFailed', function() {
@@ -458,7 +448,7 @@ angular.module('openshiftConsole')
             warnings.push({reason: "Failed", message: "The container " + containerStatus.name + " failed with a non-zero exit code " + containerStatus.state.terminated.exitCode + "."});
           }
           if (isContainerLoopingFilter(containerStatus)) {
-            warnings.push({reason: "Looping", message: "The container " + containerStatus.name + " is restarting frequently, which usually indicates a problem. It has restarted " + containerStatus.restartCount + " times, and has restarted within the last five minutes."});
+            warnings.push({reason: "Looping", message: "The container " + containerStatus.name + " is crashing frequently. It must wait before it will be restarted again."});
           }
           if (isContainerUnpreparedFilter(containerStatus)) {
             warnings.push({reason: "Unprepared", message: "The container " + containerStatus.name + " has been running for more than five minutes and has not passed its readiness check."});
