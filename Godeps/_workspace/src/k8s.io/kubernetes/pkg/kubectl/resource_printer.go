@@ -1391,7 +1391,7 @@ func printHorizontalPodAutoscaler(hpa *extensions.HorizontalPodAutoscaler, w io.
 		hpa.Spec.ScaleRef.Namespace,
 		hpa.Spec.ScaleRef.Name,
 		hpa.Spec.ScaleRef.Subresource)
-	target := "<unknown>"
+	target := "<unset>"
 	if hpa.Spec.CPUUtilization != nil {
 		target = fmt.Sprintf("%d%%", hpa.Spec.CPUUtilization.TargetPercentage)
 	}
@@ -1399,7 +1399,10 @@ func printHorizontalPodAutoscaler(hpa *extensions.HorizontalPodAutoscaler, w io.
 	if hpa.Status.CurrentCPUUtilizationPercentage != nil {
 		current = fmt.Sprintf("%d%%", *hpa.Status.CurrentCPUUtilizationPercentage)
 	}
-	minPods := hpa.Spec.MinReplicas
+	minPods := "<unset>"
+	if hpa.Spec.MinReplicas != nil {
+		minPods = fmt.Sprintf("%d", *hpa.Spec.MinReplicas)
+	}
 	maxPods := hpa.Spec.MaxReplicas
 	if withNamespace {
 		if _, err := fmt.Fprintf(w, "%s\t", namespace); err != nil {
@@ -1407,7 +1410,7 @@ func printHorizontalPodAutoscaler(hpa *extensions.HorizontalPodAutoscaler, w io.
 		}
 	}
 
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%d\t%s",
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d\t%s",
 		name,
 		reference,
 		target,
