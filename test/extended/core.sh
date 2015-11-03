@@ -41,7 +41,6 @@ SKIP_TESTS=(
   kube-ui                 # Not installed by default
   DaemonRestart           # Experimental mode not enabled yet
   "Daemon set"            # Experimental mode not enabled yet
-  Job                     # Not enabled yet
   "deployment should"     # Not enabled yet
   Ingress                 # Not enabled yet
 
