@@ -176,7 +176,7 @@ function start() {
 
   ## Provision containers
   local args="${master_ip} ${NODE_COUNT} ${node_ips} ${INSTANCE_PREFIX} \
--n '${NETWORK_PLUGIN}'"
+-n ${NETWORK_PLUGIN}"
   if [ "${SKIP_BUILD}" = "true" ]; then
       args="${args} -s"
   fi
