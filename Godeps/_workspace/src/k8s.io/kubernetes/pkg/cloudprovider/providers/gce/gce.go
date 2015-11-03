@@ -1468,6 +1468,25 @@ func (gce *GCECloud) DetachDisk(devicePath string) error {
 	return gce.waitForZoneOp(detachOp)
 }
 
+func (gce *GCECloud) CreateDisk(name string, sizeGB int64) error {
+	insertOp, err := gce.service.Disks.Insert(gce.projectID, gce.zone, &compute.Disk{
+		Name:   name,
+		SizeGb: sizeGB,
+	}).Do()
+	if err != nil {
+		return err
+	}
+	return gce.waitForZoneOp(insertOp)
+}
+
+func (gce *GCECloud) DeleteDisk(name string) error {
+	deleteOp, err := gce.service.Disks.Delete(gce.projectID, gce.zone, name).Do()
+	if err != nil {
+		return err
+	}
+	return gce.waitForZoneOp(deleteOp)
+}
+
 func (gce *GCECloud) getDisk(diskName string) (*compute.Disk, error) {
 	return gce.service.Disks.Get(gce.projectID, gce.zone, diskName).Do()
 }

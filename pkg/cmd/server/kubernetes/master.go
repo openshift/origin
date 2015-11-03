@@ -9,6 +9,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
+	"k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
@@ -22,6 +23,9 @@ import (
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/volume"
+	"k8s.io/kubernetes/pkg/volume/aws_ebs"
+	"k8s.io/kubernetes/pkg/volume/cinder"
+	"k8s.io/kubernetes/pkg/volume/gce_pd"
 	"k8s.io/kubernetes/pkg/volume/host_path"
 	"k8s.io/kubernetes/pkg/volume/nfs"
 	"k8s.io/kubernetes/plugin/pkg/scheduler"
@@ -65,39 +69,39 @@ func (c *MasterConfig) RunNamespaceController() {
 	namespaceController := namespacecontroller.NewNamespaceController(c.KubeClient, experimentalMode, c.ControllerManager.NamespaceSyncPeriod)
 	namespaceController.Run()
 }
-
-// RunPersistentVolumeClaimBinder starts the Kubernetes Persistent Volume Claim Binder
-func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
-	binder := volumeclaimbinder.NewPersistentVolumeClaimBinder(c.KubeClient, c.ControllerManager.PVClaimBinderSyncPeriod)
-	binder.Run()
-}
-
-func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string) {
+func (c *MasterConfig) RunPersistentVolumeController(recyclerImageName string) {
 	defaultScrubPod := volume.NewPersistentVolumeRecyclerPodTemplate()
 	defaultScrubPod.Spec.Containers[0].Image = recyclerImageName
 	defaultScrubPod.Spec.Containers[0].Command = []string{"/usr/share/openshift/scripts/volumes/recycler.sh"}
 	defaultScrubPod.Spec.Containers[0].Args = []string{"/scrub"}
 
+	volumeConfig := c.ControllerManager.VolumeConfigFlags
 	hostPathConfig := volume.VolumeConfig{
-		RecyclerMinimumTimeout:   30,
-		RecyclerTimeoutIncrement: 30,
+		RecyclerMinimumTimeout:   volumeConfig.PersistentVolumeRecyclerMinimumTimeoutHostPath,
+		RecyclerTimeoutIncrement: volumeConfig.PersistentVolumeRecyclerIncrementTimeoutHostPath,
 		RecyclerPodTemplate:      defaultScrubPod,
 	}
 	nfsConfig := volume.VolumeConfig{
-		RecyclerMinimumTimeout:   180,
-		RecyclerTimeoutIncrement: 30,
+		RecyclerMinimumTimeout:   volumeConfig.PersistentVolumeRecyclerMinimumTimeoutNFS,
+		RecyclerTimeoutIncrement: volumeConfig.PersistentVolumeRecyclerIncrementTimeoutNFS,
 		RecyclerPodTemplate:      defaultScrubPod,
 	}
 
 	allPlugins := []volume.VolumePlugin{}
 	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(hostPathConfig)...)
 	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins(nfsConfig)...)
+	allPlugins = append(allPlugins, aws_ebs.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, cinder.ProbeVolumePlugins()...)
 
-	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(c.KubeClient, c.ControllerManager.PVClaimBinderSyncPeriod, allPlugins)
+	storageClasses := c.ControllerManager.VolumeConfigFlags.ProvisionerQualityOfServiceClasses
+	client := volumeclaimbinder.NewControllerClient(c.KubeClient)
+	provisioners := app.NewVolumeProvisioners(allPlugins, storageClasses)
+	controller, err := volumeclaimbinder.NewPersistentVolumeController(client, c.ControllerManager.PVClaimBinderSyncPeriod, allPlugins, provisioners, c.CloudProvider)
 	if err != nil {
-		glog.Fatalf("Could not start Persistent Volume Recycler: %+v", err)
+		glog.Fatalf("Could not start Persistent Volume Controller: %+v", err)
 	}
-	recycler.Run()
+	controller.Run()
 }
 
 // RunReplicationController starts the Kubernetes replication controller sync loop

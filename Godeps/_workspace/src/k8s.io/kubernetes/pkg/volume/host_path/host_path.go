@@ -22,7 +22,6 @@ import (
 	"regexp"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/volume"
@@ -68,7 +67,7 @@ var _ volume.VolumePlugin = &hostPathPlugin{}
 var _ volume.PersistentVolumePlugin = &hostPathPlugin{}
 var _ volume.RecyclableVolumePlugin = &hostPathPlugin{}
 var _ volume.DeletableVolumePlugin = &hostPathPlugin{}
-var _ volume.CreatableVolumePlugin = &hostPathPlugin{}
+var _ volume.ProvisionableVolumePlugin = &hostPathPlugin{}
 
 const (
 	hostPathPluginName = "kubernetes.io/host-path"
@@ -248,25 +247,28 @@ type hostPathCreater struct {
 
 // Create for hostPath simply creates a local /tmp/hostpath_pv/%s directory as a new PersistentVolume.
 // This Creater is meant for development and testing only and WILL NOT WORK in a multi-node cluster.
-func (r *hostPathCreater) Create() (*api.PersistentVolume, error) {
-	fullpath := fmt.Sprintf("/tmp/hostpath_pv/%s", util.NewUUID())
-	err := os.MkdirAll(fullpath, 0750)
-	if err != nil {
-		return nil, err
+func (r *hostPathCreater) Provision(pv *api.PersistentVolume) error {
+	if pv.Spec.HostPath == nil {
+		return fmt.Errorf("pv.Spec.HostPath cannot be nil")
 	}
+	return os.MkdirAll(pv.Spec.HostPath.Path, 0750)
+}
 
+func (r *hostPathCreater) NewPersistentVolumeTemplate() (*api.PersistentVolume, error) {
+	fullpath := fmt.Sprintf("/tmp/hostpath_pv/%s", util.NewUUID())
 	return &api.PersistentVolume{
 		ObjectMeta: api.ObjectMeta{
 			GenerateName: "pv-hostpath-",
 			Labels: map[string]string{
-				"createdby": "hostpath dynamic provisioner",
+				"createdby": "hostpath-dynamic-provisioner",
 			},
+			Annotations: map[string]string{},
 		},
 		Spec: api.PersistentVolumeSpec{
 			PersistentVolumeReclaimPolicy: r.options.PersistentVolumeReclaimPolicy,
 			AccessModes:                   r.options.AccessModes,
 			Capacity: api.ResourceList{
-				api.ResourceName(api.ResourceStorage): resource.MustParse(fmt.Sprintf("%dMi", r.options.CapacityMB)),
+				api.ResourceName(api.ResourceStorage): r.options.Capacity,
 			},
 			PersistentVolumeSource: api.PersistentVolumeSource{
 				HostPath: &api.HostPathVolumeSource{

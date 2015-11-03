@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package persistentvolume
+package persistentvolumecontroller
 
 import (
 	"testing"
@@ -545,15 +545,15 @@ func TestFindingPreboundVolumes(t *testing.T) {
 	}
 
 	// pretend the exact match is pre-bound.  should get the next size up.
-	pv1.Annotations[createdForKey] = "some/other/claim"
+	pv1.Annotations[provisionedForKey] = "some/other/claim"
 	volume, _ = index.FindBestMatchForClaim(claim)
 	if volume.Name != pv5.Name {
 		t.Errorf("Expected %s but got volume %s instead", pv5.Name, volume.Name)
 	}
 
 	// pretend the exact match is available but the largest volume is pre-bound to the claim.
-	delete(pv1.Annotations, createdForKey)
-	pv8.Annotations[createdForKey] = "myns/claim01"
+	delete(pv1.Annotations, provisionedForKey)
+	pv8.Annotations[provisionedForKey] = "myns/claim01"
 	volume, _ = index.FindBestMatchForClaim(claim)
 	if volume.Name != pv8.Name {
 		t.Errorf("Expected %s but got volume %s instead", pv8.Name, volume.Name)

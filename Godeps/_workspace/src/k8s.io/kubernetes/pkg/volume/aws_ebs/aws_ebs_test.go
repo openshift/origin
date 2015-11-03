@@ -17,10 +17,12 @@ limitations under the License.
 package aws_ebs
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/types"
@@ -94,6 +96,17 @@ func (fake *fakePDManager) DetachDisk(c *awsElasticBlockStoreCleaner) error {
 	return nil
 }
 
+func (fake *fakePDManager) CreateVolume(c *awsElasticBlockStoreCreater) (string, int, error) {
+	return "test-aws-volume-name", 100 * 1024 * 1024, nil
+}
+
+func (fake *fakePDManager) DeleteVolume(cd *awsElasticBlockStoreDeleter) error {
+	if cd.volumeID != "test-aws-volume-name" {
+		return fmt.Errorf("Deleter got unexpected volume name: %s", cd.volumeID)
+	}
+	return nil
+}
+
 func TestPlugin(t *testing.T) {
 	plugMgr := volume.VolumePluginMgr{}
 	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
@@ -157,6 +170,47 @@ func TestPlugin(t *testing.T) {
 		t.Errorf("TearDown() failed, volume path still exists: %s", path)
 	} else if !os.IsNotExist(err) {
 		t.Errorf("SetUp() failed: %v", err)
+	}
+
+	// Test Creater
+	cap := resource.MustParse("100Mi")
+	options := volume.VolumeOptions{
+		Capacity: cap,
+		AccessModes: []api.PersistentVolumeAccessMode{
+			api.ReadWriteOnce,
+		},
+		PersistentVolumeReclaimPolicy: api.PersistentVolumeReclaimDelete,
+	}
+	creater, err := plug.(*awsElasticBlockStorePlugin).newCreaterInternal(options, &fakePDManager{})
+	persistentSpec, err := creater.NewPersistentVolumeTemplate()
+	if err != nil {
+		t.Errorf("NewPersistentVolumeTemplate() failed: %v", err)
+	}
+
+	// get 2nd Creater - persistent volume controller will do the same
+	provisioner, err := plug.(*awsElasticBlockStorePlugin).newCreaterInternal(options, &fakePDManager{})
+	err = provisioner.Provision(persistentSpec)
+	if err != nil {
+		t.Errorf("Provision() failed: %v", err)
+	}
+
+	if persistentSpec.Spec.PersistentVolumeSource.AWSElasticBlockStore.VolumeID != "test-aws-volume-name" {
+		t.Errorf("Provision() returned unexpected volume ID: %s", persistentSpec.Spec.PersistentVolumeSource.AWSElasticBlockStore.VolumeID)
+	}
+	cap = persistentSpec.Spec.Capacity[api.ResourceStorage]
+	size := cap.Value()
+	if size != 100*1024*1024 {
+		t.Errorf("Provision() returned unexpected volume size: %v", size)
+	}
+
+	// Test Deleter
+	volSpec := &volume.Spec{
+		PersistentVolume: persistentSpec,
+	}
+	deleter, err := plug.(*awsElasticBlockStorePlugin).newDeleterInternal(volSpec, &fakePDManager{})
+	err = deleter.Delete()
+	if err != nil {
+		t.Errorf("Deleter() failed: %v", err)
 	}
 }
 
