@@ -97,13 +97,22 @@ func (oc *OvsController) isMultitenant() bool {
 	return is_mt
 }
 
-func (oc *OvsController) validateClusterNetwork(networkCIDR string, subnetsInUse []string) error {
-	_, clusterIPNet, err := net.ParseCIDR(networkCIDR)
+func (oc *OvsController) validateClusterNetwork(networkCIDR string, subnetsInUse []string, hostIPNets []*net.IPNet) error {
+	clusterIP, clusterIPNet, err := net.ParseCIDR(networkCIDR)
 	if err != nil {
 		return fmt.Errorf("Failed to parse network address: %s", networkCIDR)
 	}
 
 	errList := []error{}
+	for _, ipNet := range hostIPNets {
+		if ipNet.Contains(clusterIP) {
+			errList = append(errList, fmt.Errorf("Error: Cluster IP: %s conflicts with host network: %s", clusterIP.String(), ipNet.String()))
+		}
+		if clusterIPNet.Contains(ipNet.IP) {
+			errList = append(errList, fmt.Errorf("Error: Host network with IP: %s conflicts with cluster network: %s", ipNet.IP.String(), networkCIDR))
+		}
+	}
+
 	for _, netStr := range subnetsInUse {
 		subnetIP, _, err := net.ParseCIDR(netStr)
 		if err != nil {
@@ -117,17 +126,26 @@ func (oc *OvsController) validateClusterNetwork(networkCIDR string, subnetsInUse
 	return kerrors.NewAggregate(errList)
 }
 
-func (oc *OvsController) validateServiceNetwork(networkCIDR string) error {
-	_, serviceIPNet, err := net.ParseCIDR(networkCIDR)
+func (oc *OvsController) validateServiceNetwork(networkCIDR string, hostIPNets []*net.IPNet) error {
+	serviceIP, serviceIPNet, err := net.ParseCIDR(networkCIDR)
 	if err != nil {
 		return fmt.Errorf("Failed to parse network address: %s", networkCIDR)
+	}
+
+	errList := []error{}
+	for _, ipNet := range hostIPNets {
+		if ipNet.Contains(serviceIP) {
+			errList = append(errList, fmt.Errorf("Error: Service IP: %s conflicts with host network: %s", ipNet.String(), networkCIDR))
+		}
+		if serviceIPNet.Contains(ipNet.IP) {
+			errList = append(errList, fmt.Errorf("Error: Host network with IP: %s conflicts with service network: %s", ipNet.IP.String(), networkCIDR))
+		}
 	}
 
 	services, _, err := oc.subnetRegistry.GetServices()
 	if err != nil {
 		return err
 	}
-	errList := []error{}
 	for _, svc := range services {
 		if !serviceIPNet.Contains(net.ParseIP(svc.IP)) {
 			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.IP, networkCIDR))
@@ -137,11 +155,18 @@ func (oc *OvsController) validateServiceNetwork(networkCIDR string) error {
 }
 
 func (oc *OvsController) validateNetworkConfig(clusterNetworkCIDR, serviceNetworkCIDR string, subnetsInUse []string) error {
+	// TODO: Instead of hardcoding 'tun0' and 'lbr0', get it from common place.
+	// This will ensure both the kube/multitenant scripts and master validations use the same name.
+	hostIPNets, err := netutils.GetHostIPNetworks([]string{"tun0", "lbr0"})
+	if err != nil {
+		return err
+	}
+
 	errList := []error{}
-	if err := oc.validateClusterNetwork(clusterNetworkCIDR, subnetsInUse); err != nil {
+	if err := oc.validateClusterNetwork(clusterNetworkCIDR, subnetsInUse, hostIPNets); err != nil {
 		errList = append(errList, err)
 	}
-	if err := oc.validateServiceNetwork(serviceNetworkCIDR); err != nil {
+	if err := oc.validateServiceNetwork(serviceNetworkCIDR, hostIPNets); err != nil {
 		errList = append(errList, err)
 	}
 	return kerrors.NewAggregate(errList)
