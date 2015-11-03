@@ -39,7 +39,7 @@ func ExpandResources(rawResources sets.String) sets.String {
 }
 
 func (r PolicyRule) String() string {
-	return fmt.Sprintf("PolicyRule{Verbs:%v, Resources:%v, ResourceNames:%v, Restrictions:%v}", r.Verbs.List(), r.Resources.List(), r.ResourceNames.List(), r.AttributeRestrictions)
+	return fmt.Sprintf("PolicyRule{Verbs:%v, APIGroups:%v, Resources:%v, ResourceNames:%v, Restrictions:%v}", r.Verbs.List(), r.APIGroups, r.Resources.List(), r.ResourceNames.List(), r.AttributeRestrictions)
 }
 
 func getRoleBindingValues(roleBindingMap map[string]*RoleBinding) []*RoleBinding {

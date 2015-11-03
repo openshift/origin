@@ -270,6 +270,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
+					APIGroups: []string{authorizationapi.APIGroupAll},
 					Verbs:     sets.NewString(authorizationapi.VerbAll),
 					Resources: sets.NewString(authorizationapi.ResourceAll),
 				},
