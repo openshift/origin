@@ -641,7 +641,7 @@ type BuildLogOptions struct {
 	// Follow if true indicates that the build log should be streamed until
 	// the build terminates.
 	Follow bool
-	// If true, return previous terminated container logs
+	// If true, return previous build logs.
 	Previous bool
 	// A relative time in seconds before the current time from which to show logs. If this value
 	// precedes the time a pod was started, only logs since the pod start will be returned.

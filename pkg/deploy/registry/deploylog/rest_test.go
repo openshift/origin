@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
@@ -54,24 +55,36 @@ func (p *deployerPodGetter) Get(ctx kapi.Context, name string) (runtime.Object, 
 
 // mockREST mocks a DeploymentLog REST
 func mockREST(version, desired int, endStatus api.DeploymentStatus) *REST {
+	connectionInfo := &kubeletclient.HTTPKubeletClient{Config: &kubeletclient.KubeletClientConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}}
+
 	// Fake deploymentConfig
 	config := deploytest.OkDeploymentConfig(version)
 	fakeDn := testclient.NewSimpleFake(config)
 	fakeDn.PrependReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 		return true, config, nil
 	})
+
+	// Used for testing various cases prior to getting replication controllers
+	// such as validation errors, wrong usage of -p, etc.
+	if desired > version {
+		return &REST{
+			ConfigGetter:   fakeDn,
+			PodGetter:      &deployerPodGetter{},
+			ConnectionInfo: connectionInfo,
+			Timeout:        defaultTimeout,
+		}
+	}
+
 	// Fake deployments
 	fakeDeployments := makeDeploymentList(version)
 	fakeRn := ktestclient.NewSimpleFake(fakeDeployments)
 	fakeRn.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &fakeDeployments.Items[desired-1], nil
 	})
+
 	// Fake watcher for deployments
 	fakeWatch := watch.NewFake()
 	fakeRn.PrependWatchReactor("replicationcontrollers", ktestclient.DefaultWatchReactor(fakeWatch, nil))
-	// Everything is fake
-	connectionInfo := &kubeletclient.HTTPKubeletClient{Config: &kubeletclient.KubeletClientConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}}
-
 	obj := &fakeDeployments.Items[desired-1]
 	obj.Annotations[api.DeploymentStatusAnnotation] = string(endStatus)
 	go fakeWatch.Add(obj)
@@ -141,12 +154,46 @@ func TestRESTGet(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
+		{
+			testName: "previous deployment",
+			rest:     mockREST(3, 2, api.DeploymentStatusFailed),
+			name:     "config",
+			opts:     &api.DeploymentLogOptions{Follow: false, Previous: true},
+			expected: &genericrest.LocationStreamer{
+				Location: &url.URL{
+					Scheme: "https",
+					Host:   "config-2-deploy-host:12345",
+					Path:   "/containerLogs/default/config-2-deploy/config-2-deploy-container",
+				},
+				Transport:       nil,
+				ContentType:     "text/plain",
+				Flush:           false,
+				ResponseChecker: genericrest.NewGenericHttpResponseChecker("Pod", "config-2-deploy"),
+			},
+			expectedErr: nil,
+		},
+		{
+			testName:    "non-existent previous deployment",
+			rest:        mockREST(1 /* won't be used */, 101, ""),
+			name:        "config",
+			opts:        &api.DeploymentLogOptions{Follow: false, Previous: true},
+			expected:    nil,
+			expectedErr: errors.NewBadRequest("no previous deployment exists for deploymentConfig \"config\""),
+		},
 	}
 
 	for _, test := range tests {
 		got, err := test.rest.Get(ctx, test.name, test.opts)
-		if err != test.expectedErr {
+		if err != nil && test.expectedErr != nil && err.Error() != test.expectedErr.Error() {
 			t.Errorf("%s: error mismatch: expected %v, got %v", test.testName, test.expectedErr, err)
+			continue
+		}
+		if err != nil && test.expectedErr == nil {
+			t.Errorf("%s: error mismatch: expected no error, got %v", test.testName, err)
+			continue
+		}
+		if err == nil && test.expectedErr != nil {
+			t.Errorf("%s: error mismatch: expected %v, got no error", test.testName, test.expectedErr)
 			continue
 		}
 		if !reflect.DeepEqual(got, test.expected) {

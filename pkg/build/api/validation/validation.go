@@ -517,6 +517,8 @@ func ValidateBuildLogOptions(opts *buildapi.BuildLogOptions) field.ErrorList {
 	if opts.Version != nil && *opts.Version <= 0 {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("version"), *opts.Version, "build version must be greater than 0"))
 	}
-
+	if opts.Version != nil && opts.Previous {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("previous"), opts.Previous, "cannot use previous when a version is specified"))
+	}
 	return allErrs
 }

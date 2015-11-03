@@ -20,7 +20,7 @@ func (c *FakeDeploymentLogs) Get(name string, opt api.DeploymentLogOptions) *kcl
 	action.Verb = "get"
 	action.Namespace = c.Namespace
 	action.Resource = "deploymentconfigs"
-	action.Subresource = "logs"
+	action.Subresource = "log"
 	action.Value = opt
 
 	_, _ = c.Fake.Invokes(action, &api.DeploymentConfig{})
