@@ -608,32 +608,37 @@ func (c *Client) hijack(method, path string, hijackOptions hijackOptions) error 
 	defer rwc.Close()
 	errChanOut := make(chan error, 1)
 	errChanIn := make(chan error, 1)
-	go func() {
-		defer func() {
-			if hijackOptions.in != nil {
-				if closer, ok := hijackOptions.in.(io.Closer); ok {
-					closer.Close()
+	if hijackOptions.stdout == nil && hijackOptions.stderr == nil {
+		close(errChanOut)
+	} else {
+		// Only copy if hijackOptions.stdout and/or hijackOptions.stderr is actually set.
+		// Otherwise, if the only stream you care about is stdin, your attach session
+		// will "hang" until the container terminates, even though you're not reading
+		// stdout/stderr
+		if hijackOptions.stdout == nil {
+			hijackOptions.stdout = ioutil.Discard
+		}
+		if hijackOptions.stderr == nil {
+			hijackOptions.stderr = ioutil.Discard
+		}
+
+		go func() {
+			defer func() {
+				if hijackOptions.in != nil {
+					if closer, ok := hijackOptions.in.(io.Closer); ok {
+						closer.Close()
+					}
 				}
+			}()
+			var err error
+			if hijackOptions.setRawTerminal {
+				_, err = io.Copy(hijackOptions.stdout, br)
+			} else {
+				_, err = stdcopy.StdCopy(hijackOptions.stdout, hijackOptions.stderr, br)
 			}
+			errChanOut <- err
 		}()
-
-		if hijackOptions.stdout == nil && hijackOptions.stderr == nil {
-			// only copy if hijackOptions.stdout and/or hijackOptions.stderr is actually set,
-			// otherwise, if the only stream you care about is stdin, your attach session
-			// will "hang" until the container terminates, even though you're not reading
-			// stdout/stderr
-			errChanOut <- nil
-			return
-		}
-
-		var err error
-		if hijackOptions.setRawTerminal {
-			_, err = io.Copy(hijackOptions.stdout, br)
-		} else {
-			_, err = stdcopy.StdCopy(hijackOptions.stdout, hijackOptions.stderr, br)
-		}
-		errChanOut <- err
-	}()
+	}
 	go func() {
 		var err error
 		if hijackOptions.in != nil {
