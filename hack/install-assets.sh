@@ -35,7 +35,7 @@ fi
 
 # Lock version of npm to work around https://github.com/npm/npm/issues/6309
 if [[ "${TRAVIS-}" == "true" ]]; then
-  cmd "npm install -g npm@2.1.14" "npm.log"
+  cmd "npm install -g npm@2.1.14"
 fi
 
 # Install bower if needed
