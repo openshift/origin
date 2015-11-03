@@ -226,7 +226,7 @@ oc login -u e2e-default-admin -p pass
 set +e
 output=$(oc exec -n default -tip ${router_pod} ls 2>&1)
 set -e
-echo "${output}" | grep -q "unable to validate against any security context constraint"
+echo "${output}" | grep -i "forbidden"
 # system:admin should be able to exec into it
 oc project ${CLUSTER_ADMIN_CONTEXT}
 oc exec -n default -tip ${router_pod} ls
