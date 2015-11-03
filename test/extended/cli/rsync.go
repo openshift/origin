@@ -3,6 +3,8 @@ package cli
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 
 	g "github.com/onsi/ginkgo"
@@ -95,6 +97,38 @@ var _ = g.Describe("cli: parallel: oc rsync", func() {
 					}
 				}
 				o.Expect(found).To(o.BeTrue())
+
+				g.By(fmt.Sprintf("Copying files from container to local directory with --delete: oc rsync %s:/tmp/image-streams/ %s --strategy=%s", podName, tempDir, strategy))
+				originalName := "application-template-stibuild.json"
+				modifiedName := "application-template-stirenamed.json"
+				err = os.Rename(filepath.Join(tempDir, originalName), filepath.Join(tempDir, modifiedName))
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				err = oc.Run("rsync").Args(
+					fmt.Sprintf("%s:/tmp/image-streams/", podName),
+					tempDir,
+					"--delete",
+					fmt.Sprintf("--strategy=%s", strategy)).Execute()
+				g.By(fmt.Sprintf("Verifying that the expected files are in the local directory"))
+				o.Expect(err).NotTo(o.HaveOccurred())
+				// After the copy with --delete, the file with 'modifiedName' should have been deleted
+				// and the file with 'originalName' should have been restored.
+				foundOriginal := false
+				foundModified := false
+				files, err = ioutil.ReadDir(tempDir)
+				for _, f := range files {
+					if strings.Contains(f.Name(), originalName) {
+						foundOriginal = true
+					}
+					if strings.Contains(f.Name(), modifiedName) {
+						foundModified = true
+					}
+				}
+				g.By("Verifying original file is in the local directory")
+				o.Expect(foundOriginal).To(o.BeTrue())
+
+				g.By("Verifying renamed file is not in the local directory")
+				o.Expect(foundModified).To(o.BeFalse())
 
 				g.By("Getting an error if copying to a destination directory where there is no write permission")
 				result, err = oc.Run("rsync").Args(

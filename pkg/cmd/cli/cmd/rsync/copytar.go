@@ -51,30 +51,60 @@ func newTarStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (co
 }
 
 func deleteContents(dir string) error {
+	glog.V(4).Infof("Deleting local directory contents: %s", dir)
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
+		glog.V(4).Infof("Could not read directory %s: %v", dir, err)
 		return err
 	}
 	for _, f := range files {
 		if f.IsDir() {
-			err = os.RemoveAll(f.Name())
+			glog.V(5).Infof("Deleting directory: %s", f.Name())
+			err = os.RemoveAll(filepath.Join(dir, f.Name()))
 		} else {
-			err = os.Remove(f.Name())
+			glog.V(5).Infof("Deleting file: %s", f.Name())
+			err = os.Remove(filepath.Join(dir, f.Name()))
 		}
 		if err != nil {
+			glog.V(4).Infof("Error deleting file or directory: %s: %v", f.Name(), err)
 			return err
 		}
 	}
 	return nil
-
 }
 
-func deleteFiles(spec *pathSpec, remoteExecutor executor) error {
-	if spec.Local() {
-		return deleteContents(spec.Path)
+func deleteLocal(source, dest *pathSpec) error {
+	deleteDir := dest.Path
+	// Determine which directory to empty based on source parameter
+	// If the source does not end in a path separator, the directory
+	// being copied over is the directory that needs to be cleaned out
+	// in the destination. This is to replicate the behavior of the
+	// rsync --delete flag
+	if !strings.HasSuffix(source.Path, "/") {
+		deleteDir = filepath.Join(deleteDir, filepath.Base(source.Path))
 	}
-	deleteCmd := []string{"sh", "-c", fmt.Sprintf("rm -rf %s", filepath.Join(spec.Path, "*"))}
-	return executeWithLogging(remoteExecutor, deleteCmd)
+	return deleteContents(deleteDir)
+}
+
+func deleteRemote(source, dest *pathSpec, ex executor) error {
+	// Determine which directory to empty based on source parameter
+	// If the source does not end in a path separator, the directory
+	// being copied over is the directory that needs to be cleaned out
+	// in the destination. This is to replicate the behavior of the
+	// rsync --delete flag
+	deleteDir := dest.Path
+	if !strings.HasSuffix(source.Path, string(filepath.Separator)) {
+		deleteDir = path.Join(deleteDir, path.Base(source.Path))
+	}
+	deleteCmd := []string{"sh", "-c", fmt.Sprintf("shopt -s dotglob && rm -rf %s", path.Join(deleteDir, "*"))}
+	return executeWithLogging(ex, deleteCmd)
+}
+
+func deleteFiles(source, dest *pathSpec, remoteExecutor executor) error {
+	if dest.Local() {
+		return deleteLocal(source, dest)
+	}
+	return deleteRemote(source, dest, remoteExecutor)
 }
 
 func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer) error {
@@ -82,7 +112,7 @@ func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer)
 	glog.V(3).Infof("Copying files with tar")
 	if r.Delete {
 		// Implement the rsync --delete flag as a separate call to first delete directory contents
-		err := deleteFiles(destination, r.RemoteExecutor)
+		err := deleteFiles(source, destination, r.RemoteExecutor)
 		if err != nil {
 			return fmt.Errorf("unable to delete files in destination: %v", err)
 		}
