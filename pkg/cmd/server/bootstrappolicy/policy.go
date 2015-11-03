@@ -50,6 +50,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{
 					Verbs:     sets.NewString(authorizationapi.VerbAll),
 					Resources: sets.NewString(authorizationapi.ResourceAll),
+					APIGroups: []string{authorizationapi.APIGroupAll},
 				},
 				{
 					Verbs:           sets.NewString(authorizationapi.VerbAll),
@@ -65,6 +66,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{
 					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString(authorizationapi.NonEscalatingResourcesGroupName),
+				},
+				{
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale"),
+					APIGroups: []string{authorizationapi.APIGroupExtensions},
 				},
 				{ // permissions to check access.  These creates are non-mutating
 					Verbs:     sets.NewString("create"),
