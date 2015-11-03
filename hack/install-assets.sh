@@ -21,9 +21,9 @@ function cmd() {
     rc="0"
     $cmd &> ${log_file} || rc=$?
     [[ "$rc" == "0" ]] && return 0
+    echo "[ERROR] Command '${cmd}' failed with rc ${rc}, logs:" && cat ${log_file}
     ((tries--))
   done
-  echo "[ERROR] Command '${cmd}' failed with rc ${rc}, logs:" && cat ${log_file}
   exit $rc
 }
 
