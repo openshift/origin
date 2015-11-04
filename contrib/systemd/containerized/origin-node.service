@@ -1,8 +1,9 @@
 [Unit]
-After=docker.service
 Requires=docker.service
 Wants=openvswitch.service
+After=docker.service
 After=origin-master.service
+After=openvswitch.service
 
 [Service]
 EnvironmentFile=/etc/sysconfig/origin-node

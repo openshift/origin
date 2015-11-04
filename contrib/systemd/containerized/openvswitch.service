@@ -1,7 +1,6 @@
 [Unit]
 After=docker.service
 Requires=docker.service
-Before=origin-master.service
 
 [Service]
 EnvironmentFile=/etc/sysconfig/origin-node
