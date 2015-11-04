@@ -2,6 +2,9 @@
 
 set -eu
 
+conf=${CONFIG_FILE:-/etc/origin/node/node-config.yaml}
+opts=${OPTIONS:---loglevel=2}
+
 function quit {
     pkill openshift
     exit 0
@@ -14,6 +17,6 @@ if [ ! -f ${HOST_ETC}/systemd/system/docker.service.d/docker-sdn-ovs.conf ]; the
     cp /usr/lib/systemd/system/docker.service.d/docker-sdn-ovs.conf ${HOST_ETC}/systemd/system/docker.service.d
 fi
 
-/usr/bin/openshift start node --config=${CONFIG_FILE} ${OPTIONS}
+/usr/bin/openshift start node "--config=${conf}" "${opts}"
 
 while true; do sleep 5; done

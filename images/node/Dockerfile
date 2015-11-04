@@ -2,7 +2,7 @@
 # This is an OpenShift Origin node image with integrated OpenvSwitch SDN
 # If you do not require OVS SDN you should just use the origin image
 #
-# The standard name for this image is openshift/origin-node
+# The standard name for this image is openshift/node
 #
 
 FROM openshift/origin
