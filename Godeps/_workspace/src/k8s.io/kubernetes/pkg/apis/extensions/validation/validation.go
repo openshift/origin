@@ -51,37 +51,46 @@ func ValidateHorizontalPodAutoscalerName(name string, prefix bool) (bool, string
 	return apivalidation.ValidateReplicationControllerName(name, prefix)
 }
 
-func validateResourceConsumption(consumption *extensions.ResourceConsumption, fieldName string) errs.ValidationErrorList {
+func validateHorizontalPodAutoscalerSpec(autoscaler extensions.HorizontalPodAutoscalerSpec) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
-	resource := consumption.Resource.String()
-	if resource != string(api.ResourceMemory) && resource != string(api.ResourceCPU) {
-		allErrs = append(allErrs, errs.NewFieldInvalid(fieldName+".resource", resource, "resource not supported by autoscaler"))
+	if autoscaler.MinReplicas != nil && *autoscaler.MinReplicas < 1 {
+		allErrs = append(allErrs, errs.NewFieldInvalid("minReplicas", autoscaler.MinReplicas, `must be bigger or equal to 1`))
 	}
-	quantity := consumption.Quantity.Value()
-	if quantity < 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid(fieldName+".quantity", quantity, "must be non-negative"))
+	if autoscaler.MaxReplicas < 1 {
+		allErrs = append(allErrs, errs.NewFieldInvalid("maxReplicas", autoscaler.MaxReplicas, `must be bigger or equal to 1`))
+	}
+	if autoscaler.MinReplicas != nil && autoscaler.MaxReplicas < *autoscaler.MinReplicas {
+		allErrs = append(allErrs, errs.NewFieldInvalid("maxReplicas", autoscaler.MaxReplicas, `must be bigger or equal to minReplicas`))
+	}
+	if autoscaler.CPUUtilization != nil && autoscaler.CPUUtilization.TargetPercentage < 1 {
+		allErrs = append(allErrs, errs.NewFieldInvalid("cpuUtilization.targetPercentage", autoscaler.CPUUtilization.TargetPercentage, isNegativeErrorMsg))
+	}
+	if refErrs := ValidateSubresourceReference(autoscaler.ScaleRef); len(refErrs) > 0 {
+		allErrs = append(allErrs, refErrs.Prefix("scaleRef")...)
+	} else if autoscaler.ScaleRef.Subresource != "scale" {
+		allErrs = append(allErrs, errs.NewFieldValueNotSupported("scaleRef.subresource", autoscaler.ScaleRef.Subresource, []string{"scale"}))
 	}
 	return allErrs
 }
 
-func validateHorizontalPodAutoscalerSpec(autoscaler extensions.HorizontalPodAutoscalerSpec) errs.ValidationErrorList {
+func ValidateSubresourceReference(ref extensions.SubresourceReference) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
-	if autoscaler.MinReplicas < 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid("minReplicas", autoscaler.MinReplicas, isNegativeErrorMsg))
+	if len(ref.Kind) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("kind"))
+	} else if ok, msg := apivalidation.IsValidPathSegmentName(ref.Kind); !ok {
+		allErrs = append(allErrs, errs.NewFieldInvalid("kind", ref.Kind, msg))
 	}
-	if autoscaler.MaxReplicas < autoscaler.MinReplicas {
-		allErrs = append(allErrs, errs.NewFieldInvalid("maxReplicas", autoscaler.MaxReplicas, `must be bigger or equal to minReplicas`))
+
+	if len(ref.Name) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("name"))
+	} else if ok, msg := apivalidation.IsValidPathSegmentName(ref.Name); !ok {
+		allErrs = append(allErrs, errs.NewFieldInvalid("name", ref.Name, msg))
 	}
-	if autoscaler.ScaleRef == nil {
-		allErrs = append(allErrs, errs.NewFieldRequired("scaleRef"))
-	}
-	resource := autoscaler.Target.Resource.String()
-	if resource != string(api.ResourceMemory) && resource != string(api.ResourceCPU) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("target.resource", resource, "resource not supported by autoscaler"))
-	}
-	quantity := autoscaler.Target.Quantity.Value()
-	if quantity < 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid("target.quantity", quantity, isNegativeErrorMsg))
+
+	if len(ref.Subresource) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("subresource"))
+	} else if ok, msg := apivalidation.IsValidPathSegmentName(ref.Subresource); !ok {
+		allErrs = append(allErrs, errs.NewFieldInvalid("subresource", ref.Subresource, msg))
 	}
 	return allErrs
 }
@@ -107,9 +116,6 @@ func ValidateHorizontalPodAutoscalerStatusUpdate(controller, oldController *exte
 	status := controller.Status
 	allErrs = append(allErrs, apivalidation.ValidatePositiveField(int64(status.CurrentReplicas), "currentReplicas")...)
 	allErrs = append(allErrs, apivalidation.ValidatePositiveField(int64(status.DesiredReplicas), "desiredReplicas")...)
-	if status.CurrentConsumption != nil {
-		allErrs = append(allErrs, validateResourceConsumption(status.CurrentConsumption, "currentConsumption")...)
-	}
 	return allErrs
 }
 
@@ -139,7 +145,7 @@ func ValidateThirdPartyResource(obj *extensions.ThirdPartyResource) errs.Validat
 // ValidateDaemonSet tests if required fields in the DaemonSet are set.
 func ValidateDaemonSet(controller *extensions.DaemonSet) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
-	allErrs = append(allErrs, apivalidation.ValidateObjectMeta(&controller.ObjectMeta, true, apivalidation.ValidateReplicationControllerName).Prefix("metadata")...)
+	allErrs = append(allErrs, apivalidation.ValidateObjectMeta(&controller.ObjectMeta, true, ValidateDaemonSetName).Prefix("metadata")...)
 	allErrs = append(allErrs, ValidateDaemonSetSpec(&controller.Spec).Prefix("spec")...)
 	return allErrs
 }
@@ -591,5 +597,27 @@ func ValidatePodSelectorRequirement(sr extensions.PodSelectorRequirement) errs.V
 		allErrs = append(allErrs, errs.NewFieldInvalid("operator", sr.Operator, "not a valid pod selector operator"))
 	}
 	allErrs = append(allErrs, apivalidation.ValidateLabelName(sr.Key, "key")...)
+	return allErrs
+}
+
+func ValidateScale(scale *extensions.Scale) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	allErrs = append(allErrs, apivalidation.ValidateObjectMeta(&scale.ObjectMeta, true, apivalidation.NameIsDNSSubdomain).Prefix("metadata")...)
+
+	if scale.Spec.Replicas < 0 {
+		allErrs = append(allErrs, errs.NewFieldInvalid("spec.replicas", scale.Spec.Replicas, "must be non-negative"))
+	}
+
+	return allErrs
+}
+
+func ValidateScaleUpdate(newScale *extensions.Scale, oldScale *extensions.Scale) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	// fake the resource version to make this work (we don't have a ResourceVersion for Scale)
+	newScale.ResourceVersion = "1"
+	allErrs = append(allErrs, apivalidation.ValidateObjectMetaUpdate(&newScale.ObjectMeta, &oldScale.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, ValidateScale(newScale)...)
+
 	return allErrs
 }

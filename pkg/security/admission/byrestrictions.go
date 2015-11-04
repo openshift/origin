@@ -12,12 +12,12 @@ func (s ByRestrictions) Len() int {
 }
 func (s ByRestrictions) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s ByRestrictions) Less(i, j int) bool {
-	return s.pointValue(s[i]) < s.pointValue(s[j])
+	return pointValue(s[i]) < pointValue(s[j])
 }
 
 // pointValue places a value on the SCC based on the settings of the SCC that can be used
 // to determine how restrictive it is.  The lower the number, the more restrictive it is.
-func (s ByRestrictions) pointValue(constraint *kapi.SecurityContextConstraints) int {
+func pointValue(constraint *kapi.SecurityContextConstraints) int {
 	points := 0
 
 	// make sure these are always valued higher than the combination of the highest strategies

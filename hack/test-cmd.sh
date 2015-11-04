@@ -150,7 +150,7 @@ os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master
 OPENSHIFT_ON_PANIC=crash openshift start master \
   --config=${MASTER_CONFIG_DIR}/master-config.yaml \
   --loglevel=4 \
-  1>&2 2>"${LOG_DIR}/openshift.log" &
+  &>"${LOG_DIR}/openshift.log" &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then

@@ -534,7 +534,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)
 		}
-		_, hpaKClient, err := oc.GetServiceAccountClients(oc.HPAControllerServiceAccount)
+		hpaOClient, hpaKClient, err := oc.GetServiceAccountClients(oc.HPAControllerServiceAccount)
 		if err != nil {
 			glog.Fatalf("Could not get client for HPA controller: %v", err)
 		}
@@ -547,7 +547,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunScheduler()
 		kc.RunReplicationController(rcClient)
 		kc.RunJobController(jobClient)
-		kc.RunHPAController(hpaKClient)
+		kc.RunHPAController(hpaOClient, hpaKClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
 		kc.RunEndpointController()
 		kc.RunNamespaceController()
 		kc.RunPersistentVolumeClaimBinder()

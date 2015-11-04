@@ -39,7 +39,7 @@ Build Failures
 
 To investigate a build failure, first check the build logs.  You can view the build logs via
 
-    $ oc build-logs [build_id]
+    $ oc logs build/[build_id]
 
 and you can get the build id via:
 

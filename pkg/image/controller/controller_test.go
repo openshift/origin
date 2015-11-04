@@ -10,6 +10,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	client "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/dockerregistry"
@@ -28,8 +30,9 @@ type fakeDockerRegistryClient struct {
 	Namespace, Name, Tag, ID string
 	Insecure                 bool
 
-	Tags map[string]string
-	Err  error
+	Tags    map[string]string
+	Err     error
+	ConnErr error
 
 	Images []expectedImage
 }
@@ -37,7 +40,7 @@ type fakeDockerRegistryClient struct {
 func (f *fakeDockerRegistryClient) Connect(registry string, insecure bool) (dockerregistry.Connection, error) {
 	f.Registry = registry
 	f.Insecure = insecure
-	return f, nil
+	return f, f.ConnErr
 }
 
 func (f *fakeDockerRegistryClient) ImageTags(namespace, name string) (map[string]string, error) {
@@ -573,9 +576,9 @@ func TestControllerWithSpecTags(t *testing.T) {
 		"docker image": {
 			from: &kapi.ObjectReference{
 				Kind: "DockerImage",
-				Name: "some/repo",
+				Name: "some/repo:tagX",
 			},
-			expectUpdate: false,
+			expectUpdate: true,
 		},
 		"from image stream tag": {
 			from: &kapi.ObjectReference{
@@ -606,6 +609,15 @@ func TestControllerWithSpecTags(t *testing.T) {
 						},
 					},
 				},
+				{
+					Tag: "tagX",
+					Image: &dockerregistry.Image{
+						Image: docker.Image{
+							Comment: "foo",
+							Config:  &docker.Config{},
+						},
+					},
+				},
 			},
 		}, &client.Fake{}
 		c := ImportController{client: cli, streams: fake, mappings: fake}
@@ -624,7 +636,7 @@ func TestControllerWithSpecTags(t *testing.T) {
 			t.Errorf("%s: unexpected error: %v", name, err)
 		}
 		if !isRFC3339(stream.Annotations[api.DockerImageRepositoryCheckAnnotation]) {
-			t.Fatalf("%s: did not set annotation: %#v", name, stream)
+			t.Errorf("%s: did not set annotation: %#v", name, stream)
 		}
 		actions := fake.Actions()
 		if test.expectUpdate {
@@ -644,6 +656,156 @@ func TestControllerWithSpecTags(t *testing.T) {
 			if !actions[0].Matches("update", "imagestreams") {
 				t.Errorf("%s: expected %s, got %v", name, "update-imagestreams", actions[0])
 			}
+		}
+	}
+}
+
+func TestControllerReturnsErrForRetries(t *testing.T) {
+	expErr := fmt.Errorf("expected error")
+	osClient := &client.Fake{}
+	errISMClient := &client.Fake{}
+	errISMClient.PrependReactor("create", "imagestreammappings", func(action kclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, ret, expErr
+	})
+	tests := map[string]struct {
+		singleError bool
+		expActions  int
+		fakeClient  *client.Fake
+		fakeDocker  *fakeDockerRegistryClient
+		stream      *api.ImageStream
+	}{
+		"retry-able error no. 1": {
+			singleError: true,
+			expActions:  0,
+			fakeClient:  osClient,
+			fakeDocker: &fakeDockerRegistryClient{
+				ConnErr: expErr,
+			},
+			stream: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
+				Spec: api.ImageStreamSpec{
+					DockerImageRepository: "foo/bar",
+				},
+			},
+		},
+		"retry-able error no. 2": {
+			singleError: true,
+			expActions:  0,
+			fakeClient:  osClient,
+			fakeDocker: &fakeDockerRegistryClient{
+				Err: expErr,
+			},
+			stream: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
+				Spec: api.ImageStreamSpec{
+					DockerImageRepository: "foo/bar",
+				},
+			},
+		},
+		"retry-able error no. 3": {
+			singleError: false,
+			expActions:  0,
+			fakeClient:  osClient,
+			fakeDocker: &fakeDockerRegistryClient{
+				ConnErr: expErr,
+			},
+			stream: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
+				Spec: api.ImageStreamSpec{
+					Tags: map[string]api.TagReference{
+						api.DefaultImageTag: {
+							From: &kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "foo/bar",
+							},
+						},
+					},
+				},
+			},
+		},
+		"retry-able error no. 4": {
+			singleError: false,
+			expActions:  0,
+			fakeClient:  osClient,
+			fakeDocker: &fakeDockerRegistryClient{
+				Images: []expectedImage{
+					{
+						Tag: api.DefaultImageTag,
+						Image: &dockerregistry.Image{
+							Image: docker.Image{
+								Comment: "foo",
+								Config:  &docker.Config{},
+							},
+						},
+						Err: expErr,
+					},
+				},
+			},
+			stream: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
+				Spec: api.ImageStreamSpec{
+					Tags: map[string]api.TagReference{
+						api.DefaultImageTag: {
+							From: &kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "foo/bar",
+							},
+						},
+					},
+				},
+			},
+		},
+		"retry-able error no. 5": {
+			singleError: false,
+			expActions:  1,
+			fakeClient:  errISMClient,
+			fakeDocker: &fakeDockerRegistryClient{
+				Images: []expectedImage{
+					{
+						Tag: api.DefaultImageTag,
+						Image: &dockerregistry.Image{
+							Image: docker.Image{
+								Comment: "foo",
+								Config:  &docker.Config{},
+							},
+						},
+					},
+				},
+			},
+			stream: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
+				Spec: api.ImageStreamSpec{
+					Tags: map[string]api.TagReference{
+						api.DefaultImageTag: {
+							From: &kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "foo/bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		c := ImportController{client: test.fakeDocker, streams: test.fakeClient, mappings: test.fakeClient}
+
+		err := c.Next(test.stream)
+		if err == nil {
+			t.Errorf("%s: unexpected error: %v", name, err)
+		}
+		// The first condition checks error from the getTags method only,
+		// iow. where the error returned is the exact error that happened.
+		// The second condition checks error from the importTags method only,
+		// iow. where the error is an aggregate.
+		if test.singleError && err != expErr {
+			t.Errorf("%s: unexpected error from getTags: %v", name, err)
+		} else if !test.singleError && !strings.Contains(err.Error(), expErr.Error()) {
+			t.Errorf("%s: unexpected error from importTags: %v", name, err)
+		}
+		if len(test.fakeClient.Actions()) != test.expActions {
+			t.Errorf("%s: expected no actions: %#v", name, test.fakeClient.Actions())
 		}
 	}
 }

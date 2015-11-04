@@ -440,6 +440,11 @@ func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
+// DeploymentConfigScaleClient returns the client used by the Scale subresource registry
+func (c *MasterConfig) DeploymentConfigScaleClient() *kclient.Client {
+	return c.PrivilegedLoopbackKubernetesClient
+}
+
 // DeploymentControllerClients returns the deployment controller client objects
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
 	osClient, kClient, err := c.GetServiceAccountClients(c.DeploymentControllerServiceAccount)

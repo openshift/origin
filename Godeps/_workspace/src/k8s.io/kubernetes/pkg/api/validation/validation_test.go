@@ -3287,6 +3287,21 @@ func TestValidateResourceQuota(t *testing.T) {
 		},
 	}
 
+	fractionalComputeSpec := api.ResourceQuotaSpec{
+		Hard: api.ResourceList{
+			api.ResourceCPU: resource.MustParse("100m"),
+		},
+	}
+
+	fractionalPodSpec := api.ResourceQuotaSpec{
+		Hard: api.ResourceList{
+			api.ResourcePods:                   resource.MustParse(".1"),
+			api.ResourceServices:               resource.MustParse(".5"),
+			api.ResourceReplicationControllers: resource.MustParse("1.25"),
+			api.ResourceQuotas:                 resource.MustParse("2.5"),
+		},
+	}
+
 	successCases := []api.ResourceQuota{
 		{
 			ObjectMeta: api.ObjectMeta{
@@ -3294,6 +3309,13 @@ func TestValidateResourceQuota(t *testing.T) {
 				Namespace: "foo",
 			},
 			Spec: spec,
+		},
+		{
+			ObjectMeta: api.ObjectMeta{
+				Name:      "abc",
+				Namespace: "foo",
+			},
+			Spec: fractionalComputeSpec,
 		},
 	}
 
@@ -3326,6 +3348,10 @@ func TestValidateResourceQuota(t *testing.T) {
 		"negative-limits": {
 			api.ResourceQuota{ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: "foo"}, Spec: negativeSpec},
 			isNegativeErrorMsg,
+		},
+		"fractional-api-resource": {
+			api.ResourceQuota{ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: "foo"}, Spec: fractionalPodSpec},
+			isNotIntegerErrorMsg,
 		},
 	}
 	for k, v := range errorCases {
@@ -4067,6 +4093,8 @@ func TestValidPodLogOptions(t *testing.T) {
 
 func TestValidateSecurityContextConstraints(t *testing.T) {
 	var invalidUID int64 = -1
+	var invalidPriority = -1
+	var validPriority = 1
 
 	validSCC := func() *api.SecurityContextConstraints {
 		return &api.SecurityContextConstraints{
@@ -4083,6 +4111,7 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 			SupplementalGroups: api.SupplementalGroupsStrategyOptions{
 				Type: api.SupplementalGroupsStrategyRunAsAny,
 			},
+			Priority: &validPriority,
 		}
 	}
 
@@ -4131,6 +4160,9 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 	invalidRangeNegativeMax.FSGroup.Ranges = []api.IDRange{
 		{Min: 1, Max: -10},
 	}
+
+	negativePriority := validSCC()
+	negativePriority.Priority = &invalidPriority
 
 	errorCases := map[string]struct {
 		scc         *api.SecurityContextConstraints
@@ -4201,6 +4233,11 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 			scc:         invalidRangeNegativeMax,
 			errorType:   errors.ValidationErrorTypeInvalid,
 			errorDetail: "max cannot be negative",
+		},
+		"negative priority": {
+			scc:         negativePriority,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "priority cannot be negative",
 		},
 	}
 

@@ -64,9 +64,11 @@
                 ng-init="containers = pod.status.containerStatuses"
                 ng-if="containersRunning(pod.status.containerStatuses) > 0">
                 <tab-heading>Terminal</tab-heading>
-                <div><span class="fa fa-lg fa-info-circle"></span>
+                <div>
+                  <span class="pficon pficon-info" aria-hidden="true"></span>
                   When you navigate away from this pod, any processes running
-                  in these terminals will quit.</div>
+                  in these terminals will quit.
+                </div>
                 <div class="pod-container-terminal"
                   ng-repeat="container in containers | orderBy:'name' track by container.name"
                   ng-if="container.state.running">

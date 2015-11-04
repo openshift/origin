@@ -14,7 +14,8 @@ function setup_env_vars {
 
 	export ETCD_PORT="${ETCD_PORT:-4001}"
 	export ETCD_PEER_PORT="${ETCD_PEER_PORT:-7001}"
-	export API_HOST="${API_HOST:-$(openshift start --print-ip)}"
+	export API_BIND_HOST="${API_BIND_HOST:-$(openshift start --print-ip)}"
+	export API_HOST="${API_HOST:-${API_BIND_HOST}}"
 	export API_PORT="${API_PORT:-8443}"
 	export LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 	export ETCD_DATA_DIR="${BASETMPDIR}/etcd"
@@ -24,7 +25,8 @@ function setup_env_vars {
 	export MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
 	export PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
 	export KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
-	export KUBELET_HOST="${KUBELET_HOST:-127.0.0.1}"
+	export KUBELET_BIND_HOST="${KUBELET_BIND_HOST:-$(openshift start --print-ip)}"
+	export KUBELET_HOST="${KUBELET_HOST:-${KUBELET_BIND_HOST}}"
 	export KUBELET_PORT="${KUBELET_PORT:-10250}"
 	export SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
 	export MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
@@ -62,7 +64,7 @@ function setup_env_vars {
 function configure_os_server {
 	# find the same IP that openshift start will bind to.	This allows access from pods that have to talk back to master
 	if [[ -z "${ALL_IP_ADDRESSES-}" ]]; then
-		ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
+		ALL_IP_ADDRESSES="$(openshift start --print-ip)"
 		SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
 
 		while read -r IP_ADDRESS
@@ -84,7 +86,7 @@ function configure_os_server {
 
 	echo "[INFO] Creating OpenShift node config"
 	openshift admin create-node-config \
-	--listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
+	--listen="${KUBELET_SCHEME}://${KUBELET_BIND_HOST}:${KUBELET_PORT}" \
 	--node-dir="${NODE_CONFIG_DIR}" \
 	--node="${KUBELET_HOST}" \
 	--hostnames="${KUBELET_HOST}" \
@@ -101,7 +103,7 @@ function configure_os_server {
 	openshift start \
 	--write-config=${SERVER_CONFIG_DIR} \
 	--create-certs=false \
-	--listen="${API_SCHEME}://0.0.0.0:${API_PORT}" \
+	--listen="${API_SCHEME}://${API_BIND_HOST}:${API_PORT}" \
 	--master="${MASTER_ADDR}" \
 	--public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}" \
 	--hostname="${KUBELET_HOST}" \
@@ -146,17 +148,17 @@ function start_os_server {
 	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
 	 --loglevel=4 \
-	&> "${LOG_DIR}/openshift.log" &
+	&>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
 
 	echo "[INFO] OpenShift server start at: "
 	date
-	
-	wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
+
 	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
+	wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
 	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
 	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
-	
+
 	echo "[INFO] OpenShift server health checks done at: "
 	date
 }
@@ -181,7 +183,7 @@ function start_os_master {
 	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \
 	 --config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --loglevel=4 \
-	&> "${LOG_DIR}/openshift.log" &
+	&>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
 
 	echo "[INFO] OpenShift server start at: "

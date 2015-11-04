@@ -236,13 +236,18 @@ func newISTag(tag string, imageStream *api.ImageStream, image *api.Image) (*api.
 		if err != nil {
 			return nil, err
 		}
-
 		ist.Image = *imageWithMetadata
 	} else {
 		ist.Image = api.Image{}
-		ist.Image.DockerImageReference = event.DockerImageReference
 		ist.Image.Name = event.Image
 	}
+
+	// Replace the DockerImageReference with the value from event, which contains
+	// real value from status. This should fix the problem for v1 registries,
+	// where mutliple tags point to a single id and only the first image's metadata
+	// is saved. This in turn will always return the pull spec from the first
+	// imported image, which might be different than the requested tag.
+	ist.Image.DockerImageReference = event.DockerImageReference
 
 	return ist, nil
 }

@@ -126,13 +126,21 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 	if err != nil {
 		return nil, err
 	}
-	versionedPtr, err := a.group.Creater.New(a.group.Version, kind)
+	serializationGroupVersionOfKind := a.group.Version
+	if a.group.NonDefaultGroupVersions != nil {
+		if nonDefaultGroupVersion, exists := a.group.NonDefaultGroupVersions[path]; exists {
+			serializationGroupVersionOfKind = nonDefaultGroupVersion
+		}
+	}
+
+	versionedPtr, err := a.group.Creater.New(serializationGroupVersionOfKind, kind)
 	if err != nil {
 		return nil, err
 	}
 	versionedObject := indirectArbitraryPointer(versionedPtr)
 
-	mapping, err := a.group.Mapper.RESTMapping(kind, a.group.Version)
+	// we need the correct version to serialize here
+	mapping, err := a.group.Mapper.RESTMapping(kind, serializationGroupVersionOfKind)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +388,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		Creater:          a.group.Creater,
 		Convertor:        a.group.Convertor,
 		Codec:            mapping.Codec,
-		APIVersion:       a.group.Version,
+		APIVersion:       serializationGroupVersionOfKind,
 		ServerAPIVersion: serverVersion,
 		Resource:         resource,
 		Subresource:      subresource,

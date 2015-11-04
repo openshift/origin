@@ -4,7 +4,17 @@ angular.module('openshiftConsole')
   .directive('logViewer', [
     'DataService',
     'logLinks',
-    function(DataService, logLinks) {
+    '$timeout',
+    function(DataService, logLinks, $timeout) {
+
+      // Create a template for each log line that we clone below.
+      var logLineTemplate = $('<div row class="log-line"/>');
+      $('<div class="log-line-number"><div row flex main-axis="end"></div></div>').appendTo(logLineTemplate);
+      $('<div flex class="log-line-text"/>').appendTo(logLineTemplate);
+
+      // Keep a reference the DOM node rather than the jQuery object for cloneNode.
+      logLineTemplate = logLineTemplate.get(0);
+
       return {
         restrict: 'AE',
         transclude: true,
@@ -27,13 +37,21 @@ angular.module('openshiftConsole')
             // Default to false. Let the user click the follow link to start auto-scrolling.
             $scope.autoScroll = false;
 
-            // Set to true when we auto-scroll to follow log content.
-            var autoScrolling = false;
+            var updateScrollLinks = function() {
+              $scope.$apply(function() {
+                // Show scroll links if the top or bottom of the log is off screen.
+                var html = document.documentElement, r = document.getElementById('logContent').getBoundingClientRect();
+                $scope.showScrollLinks = r && ((r.top < 0) || (r.bottom > html.clientHeight));
+              });
+            };
+
+            // Set to true before auto-scrolling.
+            var autoScrollingNow = false;
             var onScroll = function() {
               // Determine if the user scrolled or we auto-scrolled.
-              if (autoScrolling) {
+              if (autoScrollingNow) {
                 // Reset the value.
-                autoScrolling = false;
+                autoScrollingNow = false;
               } else {
                 // If the user scrolled the window manually, stop auto-scrolling.
                 $scope.$evalAsync(function() {
@@ -43,10 +61,13 @@ angular.module('openshiftConsole')
             };
             $(window).scroll(onScroll);
 
+            var onResize = _.debounce(updateScrollLinks, 50);
+            $(window).resize(onResize);
+
             var scrollBottom = function() {
               // Tell the scroll listener this is an auto-scroll. The listener
               // will reset it to false.
-              autoScrolling = true;
+              autoScrollingNow = true;
               logLinks.scrollBottom();
             };
 
@@ -64,6 +85,27 @@ angular.module('openshiftConsole')
               logLinks.scrollTop();
             };
 
+            var buffer = document.createDocumentFragment();
+
+            // https://lodash.com/docs#debounce
+            var update = _.debounce(function() {
+              // Display all buffered lines.
+              var logContent = document.getElementById('logContent');
+              logContent.appendChild(buffer);
+
+              // Clear the buffer.
+              buffer = document.createDocumentFragment();
+
+              // Follow the bottom of the log if auto-scroll is on.
+              if ($scope.autoScroll) {
+                scrollBottom();
+              }
+
+              if (!$scope.showScrollLinks) {
+                updateScrollLinks();
+              }
+            }, 100, { maxWait: 300 });
+
             // maintaining one streamer reference & ensuring its closed before we open a new,
             // since the user can (potentially) swap between multiple containers
             var streamer;
@@ -72,8 +114,12 @@ angular.module('openshiftConsole')
                 streamer.stop();
                 streamer = null;
               }
+
               if (!keepContent) {
+                // Cancel any pending updates. (No-op if none pending.)
+                update.cancel();
                 $('#logContent').empty();
+                buffer = document.createDocumentFragment();
               }
             };
 
@@ -85,13 +131,12 @@ angular.module('openshiftConsole')
                 return;
               }
 
-              $scope.$evalAsync(function() {
-                angular.extend($scope, {
-                  loading: true,
-                  error: false,
-                  autoScroll: false,
-                  limitReached: false
-                });
+              angular.extend($scope, {
+                loading: true,
+                error: false,
+                autoScroll: false,
+                limitReached: false,
+                showScrollLinks: false
               });
 
               var options = angular.extend({
@@ -103,6 +148,18 @@ angular.module('openshiftConsole')
                 DataService.createStream($scope.kind, $scope.name, $scope.context, options);
 
               var lastLineNumber = 0;
+              var addLine = function(text) {
+                lastLineNumber++;
+
+                // Append the line to the document fragment buffer.
+                var line = logLineTemplate.cloneNode(true);
+                line.childNodes[0].childNodes[0].appendChild(document.createTextNode(lastLineNumber));
+                line.lastChild.appendChild(document.createTextNode(text));
+                buffer.appendChild(line);
+
+                update();
+              };
+
               streamer.onMessage(function(msg, raw, cumulativeBytes) {
                 if (options.limitBytes && cumulativeBytes >= options.limitBytes) {
                   $scope.$evalAsync(function() {
@@ -112,25 +169,7 @@ angular.module('openshiftConsole')
                   stopStreaming(true);
                 }
 
-                lastLineNumber++;
-
-                // Manipulate the DOM directly for better performance displaying large log files.
-                var logLine = $('<div row class="log-line"/>');
-                $('<div class="log-line-number"><div row flex main-axis="end">' + lastLineNumber + '</div></div>').appendTo(logLine);
-                $('<div flex class="log-line-text"/>').text(msg).appendTo(logLine);
-                logLine.appendTo('#logContent');
-
-                // Follow the bottom of the log if auto-scroll is on.
-                if ($scope.autoScroll) {
-                  scrollBottom();
-                }
-
-                // Show the start and end links if the log is more than 25 lines.
-                if (!$scope.showScrollLinks && lastLineNumber > 25) {
-                  $scope.$evalAsync(function() {
-                    $scope.showScrollLinks = true;
-                  });
-                }
+                addLine(msg);
 
                 // Warn the user if we might be showing a partial log.
                 if (!$scope.largeLog && lastLineNumber >= options.tailLines) {
@@ -143,11 +182,13 @@ angular.module('openshiftConsole')
               streamer.onClose(function() {
                 streamer = null;
                 $scope.$evalAsync(function() {
-                  angular.extend($scope, {
-                    loading: false,
-                    autoScroll: false
-                  });
+                  $scope.autoScroll = false;
                 });
+
+                // Wrap in a timeout so that content displays before we remove the loading ellipses.
+                $timeout(function() {
+                  $scope.loading = false;
+                }, 100);
               });
 
               streamer.onError(function() {
@@ -167,8 +208,12 @@ angular.module('openshiftConsole')
             $scope.$watchGroup(['name', 'options.container'], streamLogs);
 
             $scope.$on('$destroy', function() {
+              // Close streamer if open. (No-op if not streaming.)
               stopStreaming();
+
+              // Stop listening for scroll and resize events.
               $(window).off('scroll', onScroll);
+              $(window).off('resize', onResize);
             });
 
             angular.extend($scope, {

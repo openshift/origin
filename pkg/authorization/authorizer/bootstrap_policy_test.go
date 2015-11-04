@@ -15,6 +15,40 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
+func TestClusterAdminUseGroup(t *testing.T) {
+	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "root", Groups: []string{bootstrappolicy.ClusterAdminGroup}}),
+		attributes: &DefaultAuthorizationAttributes{
+			APIGroup: "extensions",
+			Verb:     "create",
+			Resource: "jobs",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by cluster rule",
+	}
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+
+	test.test(t)
+}
+
+func TestClusterReaderUseGroup(t *testing.T) {
+	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "root", Groups: []string{bootstrappolicy.ClusterReaderGroup}}),
+		attributes: &DefaultAuthorizationAttributes{
+			APIGroup: "extensions",
+			Verb:     "list",
+			Resource: "jobs",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by cluster rule",
+	}
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+
+	test.test(t)
+}
+
 func TestInvalidRole(t *testing.T) {
 	test := &authorizeTest{
 		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Brad"}),

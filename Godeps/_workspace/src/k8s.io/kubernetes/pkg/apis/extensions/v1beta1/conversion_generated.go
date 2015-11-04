@@ -1879,6 +1879,18 @@ func convert_extensions_APIVersion_To_v1beta1_APIVersion(in *extensions.APIVersi
 	return autoconvert_extensions_APIVersion_To_v1beta1_APIVersion(in, out, s)
 }
 
+func autoconvert_extensions_CPUTargetUtilization_To_v1beta1_CPUTargetUtilization(in *extensions.CPUTargetUtilization, out *CPUTargetUtilization, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*extensions.CPUTargetUtilization))(in)
+	}
+	out.TargetPercentage = in.TargetPercentage
+	return nil
+}
+
+func convert_extensions_CPUTargetUtilization_To_v1beta1_CPUTargetUtilization(in *extensions.CPUTargetUtilization, out *CPUTargetUtilization, s conversion.Scope) error {
+	return autoconvert_extensions_CPUTargetUtilization_To_v1beta1_CPUTargetUtilization(in, out, s)
+}
+
 func autoconvert_extensions_ClusterAutoscaler_To_v1beta1_ClusterAutoscaler(in *extensions.ClusterAutoscaler, out *ClusterAutoscaler, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*extensions.ClusterAutoscaler))(in)
@@ -2241,18 +2253,23 @@ func autoconvert_extensions_HorizontalPodAutoscalerSpec_To_v1beta1_HorizontalPod
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*extensions.HorizontalPodAutoscalerSpec))(in)
 	}
-	if in.ScaleRef != nil {
-		out.ScaleRef = new(SubresourceReference)
-		if err := convert_extensions_SubresourceReference_To_v1beta1_SubresourceReference(in.ScaleRef, out.ScaleRef, s); err != nil {
+	if err := convert_extensions_SubresourceReference_To_v1beta1_SubresourceReference(&in.ScaleRef, &out.ScaleRef, s); err != nil {
+		return err
+	}
+	if in.MinReplicas != nil {
+		out.MinReplicas = new(int)
+		*out.MinReplicas = *in.MinReplicas
+	} else {
+		out.MinReplicas = nil
+	}
+	out.MaxReplicas = in.MaxReplicas
+	if in.CPUUtilization != nil {
+		out.CPUUtilization = new(CPUTargetUtilization)
+		if err := convert_extensions_CPUTargetUtilization_To_v1beta1_CPUTargetUtilization(in.CPUUtilization, out.CPUUtilization, s); err != nil {
 			return err
 		}
 	} else {
-		out.ScaleRef = nil
-	}
-	out.MinReplicas = in.MinReplicas
-	out.MaxReplicas = in.MaxReplicas
-	if err := convert_extensions_ResourceConsumption_To_v1beta1_ResourceConsumption(&in.Target, &out.Target, s); err != nil {
-		return err
+		out.CPUUtilization = nil
 	}
 	return nil
 }
@@ -2265,22 +2282,26 @@ func autoconvert_extensions_HorizontalPodAutoscalerStatus_To_v1beta1_HorizontalP
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*extensions.HorizontalPodAutoscalerStatus))(in)
 	}
+	if in.ObservedGeneration != nil {
+		out.ObservedGeneration = new(int64)
+		*out.ObservedGeneration = *in.ObservedGeneration
+	} else {
+		out.ObservedGeneration = nil
+	}
+	if in.LastScaleTime != nil {
+		if err := s.Convert(&in.LastScaleTime, &out.LastScaleTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.LastScaleTime = nil
+	}
 	out.CurrentReplicas = in.CurrentReplicas
 	out.DesiredReplicas = in.DesiredReplicas
-	if in.CurrentConsumption != nil {
-		out.CurrentConsumption = new(ResourceConsumption)
-		if err := convert_extensions_ResourceConsumption_To_v1beta1_ResourceConsumption(in.CurrentConsumption, out.CurrentConsumption, s); err != nil {
-			return err
-		}
+	if in.CurrentCPUUtilizationPercentage != nil {
+		out.CurrentCPUUtilizationPercentage = new(int)
+		*out.CurrentCPUUtilizationPercentage = *in.CurrentCPUUtilizationPercentage
 	} else {
-		out.CurrentConsumption = nil
-	}
-	if in.LastScaleTimestamp != nil {
-		if err := s.Convert(&in.LastScaleTimestamp, &out.LastScaleTimestamp, 0); err != nil {
-			return err
-		}
-	} else {
-		out.LastScaleTimestamp = nil
+		out.CurrentCPUUtilizationPercentage = nil
 	}
 	return nil
 }
@@ -2651,21 +2672,6 @@ func convert_extensions_ReplicationControllerDummy_To_v1beta1_ReplicationControl
 	return autoconvert_extensions_ReplicationControllerDummy_To_v1beta1_ReplicationControllerDummy(in, out, s)
 }
 
-func autoconvert_extensions_ResourceConsumption_To_v1beta1_ResourceConsumption(in *extensions.ResourceConsumption, out *ResourceConsumption, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*extensions.ResourceConsumption))(in)
-	}
-	out.Resource = v1.ResourceName(in.Resource)
-	if err := s.Convert(&in.Quantity, &out.Quantity, 0); err != nil {
-		return err
-	}
-	return nil
-}
-
-func convert_extensions_ResourceConsumption_To_v1beta1_ResourceConsumption(in *extensions.ResourceConsumption, out *ResourceConsumption, s conversion.Scope) error {
-	return autoconvert_extensions_ResourceConsumption_To_v1beta1_ResourceConsumption(in, out, s)
-}
-
 func autoconvert_extensions_RollingUpdateDeployment_To_v1beta1_RollingUpdateDeployment(in *extensions.RollingUpdateDeployment, out *RollingUpdateDeployment, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*extensions.RollingUpdateDeployment))(in)
@@ -2740,7 +2746,6 @@ func autoconvert_extensions_SubresourceReference_To_v1beta1_SubresourceReference
 		defaulting.(func(*extensions.SubresourceReference))(in)
 	}
 	out.Kind = in.Kind
-	out.Namespace = in.Namespace
 	out.Name = in.Name
 	out.APIVersion = in.APIVersion
 	out.Subresource = in.Subresource
@@ -2864,6 +2869,18 @@ func autoconvert_v1beta1_APIVersion_To_extensions_APIVersion(in *APIVersion, out
 
 func convert_v1beta1_APIVersion_To_extensions_APIVersion(in *APIVersion, out *extensions.APIVersion, s conversion.Scope) error {
 	return autoconvert_v1beta1_APIVersion_To_extensions_APIVersion(in, out, s)
+}
+
+func autoconvert_v1beta1_CPUTargetUtilization_To_extensions_CPUTargetUtilization(in *CPUTargetUtilization, out *extensions.CPUTargetUtilization, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*CPUTargetUtilization))(in)
+	}
+	out.TargetPercentage = in.TargetPercentage
+	return nil
+}
+
+func convert_v1beta1_CPUTargetUtilization_To_extensions_CPUTargetUtilization(in *CPUTargetUtilization, out *extensions.CPUTargetUtilization, s conversion.Scope) error {
+	return autoconvert_v1beta1_CPUTargetUtilization_To_extensions_CPUTargetUtilization(in, out, s)
 }
 
 func autoconvert_v1beta1_ClusterAutoscaler_To_extensions_ClusterAutoscaler(in *ClusterAutoscaler, out *extensions.ClusterAutoscaler, s conversion.Scope) error {
@@ -3208,18 +3225,23 @@ func autoconvert_v1beta1_HorizontalPodAutoscalerSpec_To_extensions_HorizontalPod
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*HorizontalPodAutoscalerSpec))(in)
 	}
-	if in.ScaleRef != nil {
-		out.ScaleRef = new(extensions.SubresourceReference)
-		if err := convert_v1beta1_SubresourceReference_To_extensions_SubresourceReference(in.ScaleRef, out.ScaleRef, s); err != nil {
+	if err := convert_v1beta1_SubresourceReference_To_extensions_SubresourceReference(&in.ScaleRef, &out.ScaleRef, s); err != nil {
+		return err
+	}
+	if in.MinReplicas != nil {
+		out.MinReplicas = new(int)
+		*out.MinReplicas = *in.MinReplicas
+	} else {
+		out.MinReplicas = nil
+	}
+	out.MaxReplicas = in.MaxReplicas
+	if in.CPUUtilization != nil {
+		out.CPUUtilization = new(extensions.CPUTargetUtilization)
+		if err := convert_v1beta1_CPUTargetUtilization_To_extensions_CPUTargetUtilization(in.CPUUtilization, out.CPUUtilization, s); err != nil {
 			return err
 		}
 	} else {
-		out.ScaleRef = nil
-	}
-	out.MinReplicas = in.MinReplicas
-	out.MaxReplicas = in.MaxReplicas
-	if err := convert_v1beta1_ResourceConsumption_To_extensions_ResourceConsumption(&in.Target, &out.Target, s); err != nil {
-		return err
+		out.CPUUtilization = nil
 	}
 	return nil
 }
@@ -3232,22 +3254,26 @@ func autoconvert_v1beta1_HorizontalPodAutoscalerStatus_To_extensions_HorizontalP
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*HorizontalPodAutoscalerStatus))(in)
 	}
+	if in.ObservedGeneration != nil {
+		out.ObservedGeneration = new(int64)
+		*out.ObservedGeneration = *in.ObservedGeneration
+	} else {
+		out.ObservedGeneration = nil
+	}
+	if in.LastScaleTime != nil {
+		if err := s.Convert(&in.LastScaleTime, &out.LastScaleTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.LastScaleTime = nil
+	}
 	out.CurrentReplicas = in.CurrentReplicas
 	out.DesiredReplicas = in.DesiredReplicas
-	if in.CurrentConsumption != nil {
-		out.CurrentConsumption = new(extensions.ResourceConsumption)
-		if err := convert_v1beta1_ResourceConsumption_To_extensions_ResourceConsumption(in.CurrentConsumption, out.CurrentConsumption, s); err != nil {
-			return err
-		}
+	if in.CurrentCPUUtilizationPercentage != nil {
+		out.CurrentCPUUtilizationPercentage = new(int)
+		*out.CurrentCPUUtilizationPercentage = *in.CurrentCPUUtilizationPercentage
 	} else {
-		out.CurrentConsumption = nil
-	}
-	if in.LastScaleTimestamp != nil {
-		if err := s.Convert(&in.LastScaleTimestamp, &out.LastScaleTimestamp, 0); err != nil {
-			return err
-		}
-	} else {
-		out.LastScaleTimestamp = nil
+		out.CurrentCPUUtilizationPercentage = nil
 	}
 	return nil
 }
@@ -3618,21 +3644,6 @@ func convert_v1beta1_ReplicationControllerDummy_To_extensions_ReplicationControl
 	return autoconvert_v1beta1_ReplicationControllerDummy_To_extensions_ReplicationControllerDummy(in, out, s)
 }
 
-func autoconvert_v1beta1_ResourceConsumption_To_extensions_ResourceConsumption(in *ResourceConsumption, out *extensions.ResourceConsumption, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ResourceConsumption))(in)
-	}
-	out.Resource = api.ResourceName(in.Resource)
-	if err := s.Convert(&in.Quantity, &out.Quantity, 0); err != nil {
-		return err
-	}
-	return nil
-}
-
-func convert_v1beta1_ResourceConsumption_To_extensions_ResourceConsumption(in *ResourceConsumption, out *extensions.ResourceConsumption, s conversion.Scope) error {
-	return autoconvert_v1beta1_ResourceConsumption_To_extensions_ResourceConsumption(in, out, s)
-}
-
 func autoconvert_v1beta1_RollingUpdateDeployment_To_extensions_RollingUpdateDeployment(in *RollingUpdateDeployment, out *extensions.RollingUpdateDeployment, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*RollingUpdateDeployment))(in)
@@ -3703,7 +3714,6 @@ func autoconvert_v1beta1_SubresourceReference_To_extensions_SubresourceReference
 		defaulting.(func(*SubresourceReference))(in)
 	}
 	out.Kind = in.Kind
-	out.Namespace = in.Namespace
 	out.Name = in.Name
 	out.APIVersion = in.APIVersion
 	out.Subresource = in.Subresource
@@ -3893,7 +3903,6 @@ func init() {
 		autoconvert_extensions_PodSelectorRequirement_To_v1beta1_PodSelectorRequirement,
 		autoconvert_extensions_PodSelector_To_v1beta1_PodSelector,
 		autoconvert_extensions_ReplicationControllerDummy_To_v1beta1_ReplicationControllerDummy,
-		autoconvert_extensions_ResourceConsumption_To_v1beta1_ResourceConsumption,
 		autoconvert_extensions_RollingUpdateDeployment_To_v1beta1_RollingUpdateDeployment,
 		autoconvert_extensions_ScaleSpec_To_v1beta1_ScaleSpec,
 		autoconvert_extensions_ScaleStatus_To_v1beta1_ScaleStatus,
@@ -3977,7 +3986,6 @@ func init() {
 		autoconvert_v1beta1_PodSelectorRequirement_To_extensions_PodSelectorRequirement,
 		autoconvert_v1beta1_PodSelector_To_extensions_PodSelector,
 		autoconvert_v1beta1_ReplicationControllerDummy_To_extensions_ReplicationControllerDummy,
-		autoconvert_v1beta1_ResourceConsumption_To_extensions_ResourceConsumption,
 		autoconvert_v1beta1_RollingUpdateDeployment_To_extensions_RollingUpdateDeployment,
 		autoconvert_v1beta1_ScaleSpec_To_extensions_ScaleSpec,
 		autoconvert_v1beta1_ScaleStatus_To_extensions_ScaleStatus,

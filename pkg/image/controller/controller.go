@@ -9,7 +9,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -55,11 +54,11 @@ const retryCount = 2
 // 3. image retrieving when error is different from RepositoryNotFound, RegistryNotFound or ImageNotFound
 // 4. ImageStreamMapping save error
 // 5. error when marking ImageStream as imported
-
 func (c *ImportController) Next(stream *api.ImageStream) error {
 	if !needsImport(stream) {
 		return nil
 	}
+	glog.V(4).Infof("Importing stream %s/%s...", stream.Namespace, stream.Name)
 
 	insecure := stream.Annotations[api.InsecureRepositoryAnnotation] == "true"
 	client := c.client
@@ -67,29 +66,38 @@ func (c *ImportController) Next(stream *api.ImageStream) error {
 		client = dockerregistry.NewClient()
 	}
 
-	toImport, err := getTags(stream, client, insecure)
+	var errlist []error
+	toImport, retry, err := getTags(stream, client, insecure)
 	// return here, only if there is an error and nothing to import
 	if err != nil && len(toImport) == 0 {
-		return err
-	}
-
-	errs := c.importTags(stream, toImport, client, insecure)
-	// one of retry-able error happened, we need to inform the RetryController
-	// the import should be retried by returning error
-	if len(errs) > 0 {
-		return kerrors.NewAggregate(errs)
+		if retry {
+			return err
+		}
+		return c.done(stream, err.Error(), retryCount)
 	}
 	if err != nil {
-		return err
+		errlist = append(errlist, err)
+	}
+
+	retry, err = c.importTags(stream, toImport, client, insecure)
+	if err != nil {
+		if retry {
+			return err
+		}
+		errlist = append(errlist, err)
+	}
+
+	if len(errlist) > 0 {
+		return c.done(stream, kerrors.NewAggregate(errlist).Error(), retryCount)
 	}
 
 	return c.done(stream, "", retryCount)
 }
 
-// getTags returns tags from default upstream image repository and explicitly defined.
-// Returns a map of tags to be imported and an error if one occurs.
+// getTags returns a map of tags to be imported, a flag saying if we should retry
+// imports, meaning not setting the import annotation and an error if one occurs.
 // Tags explicitly defined will overwrite those from default upstream image repository.
-func getTags(stream *api.ImageStream, client dockerregistry.Client, insecure bool) (map[string]api.DockerImageReference, error) {
+func getTags(stream *api.ImageStream, client dockerregistry.Client, insecure bool) (map[string]api.DockerImageReference, bool, error) {
 	imports := make(map[string]api.DockerImageReference)
 	references := sets.NewString()
 
@@ -111,27 +119,26 @@ func getTags(stream *api.ImageStream, client dockerregistry.Client, insecure boo
 	}
 
 	if len(stream.Spec.DockerImageRepository) == 0 {
-		return imports, nil
+		return imports, false, nil
 	}
 
 	// read tags from default upstream image repository
 	streamRef, err := api.ParseDockerImageReference(stream.Spec.DockerImageRepository)
 	if err != nil {
-		util.HandleError(fmt.Errorf("invalid docker image repository, cannot import data: %v", err))
-		return imports, nil
+		return imports, false, err
 	}
 	conn, err := client.Connect(streamRef.Registry, insecure)
 	if err != nil {
 		// retry-able error no. 1
-		return imports, err
+		return imports, true, err
 	}
 	tags, err := conn.ImageTags(streamRef.Namespace, streamRef.Name)
 	switch {
 	case dockerregistry.IsRepositoryNotFound(err), dockerregistry.IsRegistryNotFound(err):
-		return imports, nil
+		return imports, false, err
 	case err != nil:
 		// retry-able error no. 2
-		return imports, err
+		return imports, true, err
 	}
 	for tag, image := range tags {
 		if _, ok := imports[tag]; ok || references.Has(tag) {
@@ -156,17 +163,22 @@ func getTags(stream *api.ImageStream, client dockerregistry.Client, insecure boo
 		imports[tag] = ref
 	}
 
-	return imports, nil
+	return imports, false, nil
 }
 
-// importTags imports tags specified in a map from given ImageStream. Returns an error if one occurs.
-func (c *ImportController) importTags(stream *api.ImageStream, imports map[string]api.DockerImageReference, client dockerregistry.Client, insecure bool) []error {
+// importTags imports tags specified in a map from given ImageStream. Returns flag
+// saying if we should retry imports, meaning not setting the import annotation
+// and an error if one occurs.
+func (c *ImportController) importTags(stream *api.ImageStream, imports map[string]api.DockerImageReference, client dockerregistry.Client, insecure bool) (bool, error) {
 	retrieved := make(map[string]*dockerregistry.Image)
 	var errlist []error
+	shouldRetry := false
 	for tag, ref := range imports {
-		image, err := c.importTag(stream, tag, ref, retrieved[ref.ID], client, insecure)
+		image, retry, err := c.importTag(stream, tag, ref, retrieved[ref.ID], client, insecure)
 		if err != nil {
-			util.HandleError(err)
+			if retry {
+				shouldRetry = retry
+			}
 			errlist = append(errlist, err)
 			continue
 		}
@@ -175,16 +187,19 @@ func (c *ImportController) importTags(stream *api.ImageStream, imports map[strin
 			retrieved[ref.ID] = image
 		}
 	}
-	return errlist
+	return shouldRetry, kerrors.NewAggregate(errlist)
 }
 
-// importTag import single tag from given ImageStream. Returns an error if one occurs.
-func (c *ImportController) importTag(stream *api.ImageStream, tag string, ref api.DockerImageReference, dockerImage *dockerregistry.Image, client dockerregistry.Client, insecure bool) (*dockerregistry.Image, error) {
+// importTag import single tag from given ImageStream. Returns retrieved image (for later reuse),
+// a flag saying if we should retry imports and an error if one occurs.
+func (c *ImportController) importTag(stream *api.ImageStream, tag string, ref api.DockerImageReference, dockerImage *dockerregistry.Image, client dockerregistry.Client, insecure bool) (*dockerregistry.Image, bool, error) {
+	glog.V(5).Infof("Importing tag %s from %s/%s...", tag, stream.Namespace, stream.Name)
 	if dockerImage == nil {
 		// TODO insecure applies to the stream's spec.dockerImageRepository, not necessarily to an external one!
 		conn, err := client.Connect(ref.Registry, insecure)
 		if err != nil {
-			return nil, err
+			// retry-able error no. 3
+			return nil, true, err
 		}
 		if len(ref.ID) > 0 {
 			dockerImage, err = conn.ImageByID(ref.Namespace, ref.Name, ref.ID)
@@ -192,16 +207,16 @@ func (c *ImportController) importTag(stream *api.ImageStream, tag string, ref ap
 			dockerImage, err = conn.ImageByTag(ref.Namespace, ref.Name, ref.Tag)
 		}
 		switch {
-		case dockerregistry.IsRepositoryNotFound(err), dockerregistry.IsRegistryNotFound(err), dockerregistry.IsImageNotFound(err):
-			return nil, nil
+		case dockerregistry.IsRepositoryNotFound(err), dockerregistry.IsRegistryNotFound(err), dockerregistry.IsImageNotFound(err), dockerregistry.IsTagNotFound(err):
+			return nil, false, err
 		case err != nil:
-			// retry-able error no. 3
-			return nil, err
+			// retry-able error no. 4
+			return nil, true, err
 		}
 	}
 	var image api.DockerImage
 	if err := kapi.Scheme.Convert(&dockerImage.Image, &image); err != nil {
-		return nil, fmt.Errorf("could not convert image: %#v", err)
+		return nil, false, fmt.Errorf("could not convert image: %#v", err)
 	}
 
 	// prefer to pull by ID always
@@ -226,13 +241,13 @@ func (c *ImportController) importTag(stream *api.ImageStream, tag string, ref ap
 		},
 	}
 	if err := c.mappings.ImageStreamMappings(stream.Namespace).Create(mapping); err != nil {
-		// retry-able no. 4
-		return nil, err
+		// retry-able no. 5
+		return nil, true, err
 	}
-	return dockerImage, nil
+	return dockerImage, false, nil
 }
 
-// done marks the stream as being processed due to an error or failure condition
+// done marks the stream as being processed due to an error or failure condition.
 func (c *ImportController) done(stream *api.ImageStream, reason string, retry int) error {
 	if len(reason) == 0 {
 		reason = unversioned.Now().UTC().Format(time.RFC3339)

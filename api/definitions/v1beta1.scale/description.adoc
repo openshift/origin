@@ -1,0 +1,7 @@
+Scale is a subresource representing the current "scale" of certain objects, such as
+ReplicationControllers and DeploymentConfigs.  It may be checked to determine the current
+replica count of these objects, or updated to set the replica count of these objects.
+
+In the case of ReplicationControllers, this directly reflects the scale the ReplicationController.
+For DeploymentConfigs, it reflects the scale of the deployment(s), or, if none are present, the
+scale of the DeploymentConfig's template.

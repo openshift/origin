@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -78,4 +79,22 @@ func (c *FakeDeploymentConfigs) Rollback(inObj *deployapi.DeploymentConfigRollba
 	}
 
 	return obj.(*deployapi.DeploymentConfig), err
+}
+
+func (c *FakeDeploymentConfigs) GetScale(name string) (*extensions.Scale, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("deploymentconfigs/scale", c.Namespace, name), &extensions.Scale{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*extensions.Scale), err
+}
+
+func (c *FakeDeploymentConfigs) UpdateScale(inObj *extensions.Scale) (*extensions.Scale, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("deploymentconfigs/scale", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*extensions.Scale), err
 }
