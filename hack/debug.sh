@@ -492,7 +492,7 @@ do_master_and_nodes ()
     done < $logdir/master/node-ips
 }
 
-######## Main program stars here
+######## Main program starts here
 
 systemd_dir=/usr/lib/systemd/system/
 for name in openshift origin atomic-openshift; do
