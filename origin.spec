@@ -17,12 +17,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit cbebb2516e2c8abe4df2613363589cebfabd8162
+%global commit 75bf529e0fe7a9cde7910f2d9910fc60a04133ad
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.904-112-gcbebb25 -X github.com/openshift/origin/pkg/version.commitFromGit cbebb25 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.1-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.905-154-g75bf529 -X github.com/openshift/origin/pkg/version.commitFromGit 75bf529 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.1-1107-g4c8e6f4
 }
 
 %if "%{dist}" == ".el7aos"
@@ -36,8 +36,8 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.0.2.905
-Release:        0%{?dist}
+Version:        3.0.2.906
+Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -394,6 +394,127 @@ fi
 
 
 %changelog
+* Wed Nov 04 2015 Troy Dawson <tdawson@redhat.com> 3.0.2.906
+- Copy volume mounts to hook pods (ironcladlou@gmail.com)
+- UPSTREAM: 16717: Ensure HPA has valid resource/name/subresource, validate
+  path segments (jliggitt@redhat.com)
+- Switch back to subnet (dmcphers@redhat.com)
+- Inline deployer hook logs (ironcladlou@gmail.com)
+- Remove default subnet (dmcphers@redhat.com)
+- Disable quay.io test (ccoleman@redhat.com)
+- UPSTREAM: 16032: revert origin 03e50db: check if /sbin/mount.nfs is present
+  (mturansk@redhat.com)
+- UPSTREAM: 16277: Fixed resetting last scale time in HPA status
+  (sross@redhat.com)
+- Change subnet default (dmcphers@redhat.com)
+- Add default subnet back (dmcphers@redhat.com)
+- Remove default subnet (dmcphers@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  cb0e352cd7591ace30d592d4f82685d2bcd38a04 (rpenta@redhat.com)
+- Disable new-app Git tests in Vagrant (ccoleman@redhat.com)
+- oc logs long description is wrong (ffranz@redhat.com)
+- scc sort by priority (pweil@redhat.com)
+- UPSTREAM:<carry>:v1beta3 scc priority field (pweil@redhat.com)
+- UPSTREAM:<carry>:scc priority field (pweil@redhat.com)
+- Bug and issue fixes (3) (sgoodwin@redhat.com)
+- Fix deploy test conflict flake (ironcladlou@gmail.com)
+- Prevent early exit on install-assets failure (jliggitt@redhat.com)
+- UPSTREAM: 15997: Prevent NPE in resource printer on HPA (ccoleman@redhat.com)
+- UPSTREAM: 16478: Daemon controller shouldn't place pods on not ready nodes
+  (ccoleman@redhat.com)
+- UPSTREAM: 16340: Kubelet pod status update is not correctly occuring
+  (ccoleman@redhat.com)
+- UPSTREAM: 16191: Mirror pods don't show logs (ccoleman@redhat.com)
+- UPSTREAM: 14182: Distinguish image registry unavailable and pull failure
+  (decarr@redhat.com)
+- UPSTREAM: 16174: NPE when checking for mounting /etc/hosts
+  (ccoleman@redhat.com)
+-  Bug 1275537 - Fixed the way image import controller informs about errors
+  from imports. (maszulik@redhat.com)
+- UPSTREAM: 16052: Control /etc/hosts in the kubelet (ccoleman@redhat.com)
+- UPSTREAM: 16044: Don't shadow error in cache.Store (ccoleman@redhat.com)
+- UPSTREAM: 16025: Fix NPE in describe of HPA (ccoleman@redhat.com)
+- UPSTREAM: 16668: Fix hpa escalation (deads@redhat.com)
+- UPSTREAM: 15944: DaemonSet controller modifies the wrong fields
+  (ccoleman@redhat.com)
+- UPSTREAM: 15414: Annotations for kube-proxy move to beta
+  (ccoleman@redhat.com)
+- UPSTREAM: 15745: Endpoint timeouts in the proxy are bad (ccoleman@redhat.com)
+- UPSTREAM: 15646: DaemonSet validation (ccoleman@redhat.com)
+- UPSTREAM: 15574: Validation on resource quota (ccoleman@redhat.com)
+- Calculate correct bottom scroll position (spadgett@redhat.com)
+- oc tag should retry on conflict errors (ccoleman@redhat.com)
+- Remove log arg for travis (jliggitt@redhat.com)
+- hack/install-assets: fix nonstandard bash (lmeyer@redhat.com)
+- extend role covers with groups (deads@redhat.com)
+- Bug 1277021 - Fixed import-image help information. (maszulik@redhat.com)
+- Deprecate build-logs in favor of logs (mkargaki@redhat.com)
+- Build and deployment logs should check kubelet response (ccoleman@redhat.com)
+- DNS services are not resolving properly (ccoleman@redhat.com)
+- hack/test-end-to-end.sh won't start on IPv6 system (ccoleman@redhat.com)
+- Wait longer for etcd startup in integration tests (ccoleman@redhat.com)
+- Restore detailed checking for forbidden exec (jliggitt@redhat.com)
+- UPSTREAM: 16711: Read error from failed upgrade attempts
+  (jliggitt@redhat.com)
+- Only show scroll links when log is offscreen (spadgett@redhat.com)
+- Temporarily accept 'Forbidden' and 'forbidden' responses
+  (jliggitt@redhat.com)
+- Add HPA support for DeploymentConfig (sross@redhat.com)
+- UPSTREAM: 16570: Fix GetRequestInfo subresource parsing for proxy/redirect
+  verbs (sross@redhat.com)
+- UPSTREAM: 16671: Customize HPA Heapster service namespace/name
+  (sross@redhat.com)
+- Add Scale Subresource to DeploymentConfigs (sross@redhat.com)
+- bz 1276319 - Fix oc rsync deletion with tar strategy (cewong@redhat.com)
+- UPSTREAM: <carry>: s/imagestraams/imagestreams/ in `oc get`
+  (eparis@redhat.com)
+- UPSTREAM(go-dockerclient): 408: fix stdin-only attach (agoldste@redhat.com)
+- Add error clause to service/project.js (admin@benjaminapetersen.me)
+- Switch to checking for CrashLoopBackOff to show the container looping message
+  (jforrest@redhat.com)
+- Fix namespace initialization (jliggitt@redhat.com)
+- UPSTREAM: 16590: Create all streams before copying in exec/attach
+  (agoldste@redhat.com)
+- UPSTREAM: 16677: Add Validator for Scale Objects (sross@redhat.com)
+- UPSTREAM: 16537: attach must only allow a tty when container supports it
+  (ffranz@redhat.com)
+- Bug 1276602 - fixes error when scaling dc with --timeout (ffranz@redhat.com)
+- test/cmd/admin.sh isn't reentrant (ccoleman@redhat.com)
+- add group/version serialization to master (deads@redhat.com)
+- UPSTREAM: <drop>: allow specific, skewed group/versions (deads@redhat.com)
+- UPSTREAM: 16667: Make Kubernetes HPA Controller use Namespacers
+  (sross@redhat.com)
+- rsync: output warnings to stdout instead of using glog (cewong@redhat.com)
+- Throttle log updates to avoid UI flicker (spadgett@redhat.com)
+- allow cluster-admin and cluster-reader to use different groups
+  (deads@redhat.com)
+- UPSTREAM: 16127: Bump cAdvisor (jimmidyson@gmail.com)
+- UPSTREAM: 15612: Bump cadvisor (jimmidyson@gmail.com)
+- Bug 1277017 - Added checking if spec.DockerImageRepository and spec.Tags are
+  not empty. (maszulik@redhat.com)
+- rsync: output warnings to stdout instead of using glog (cewong@redhat.com)
+- Bug 1276657 - Reuse --insecure-registry flag value when creating ImageStream
+  from passed docker image. (maszulik@redhat.com)
+- Use pficon-info on pod terminal tab (spadgett@redhat.com)
+- Bug 1268000 - replace Image.DockerImageReference with value from status.
+  (maszulik@redhat.com)
+- UPSTREAM: 16223: Concurrency fixes in kubelet status manager
+  (ccoleman@redhat.com)
+- UPSTREAM: 15275: Kubelet reacts much faster to unhealthy containers
+  (ccoleman@redhat.com)
+- UPSTREAM: 16033: Mount returns verbose error (ccoleman@redhat.com)
+- UPSTREAM: 16032: check if /sbin/mount.nfs is present (ccoleman@redhat.com)
+- UPSTREAM: 15555: Use default port 3260 for iSCSI (ccoleman@redhat.com)
+- UPSTREAM: 15562: iSCSI use global path to mount (ccoleman@redhat.com)
+- UPSTREAM: 15236: Better error output from gluster (ccoleman@redhat.com)
+- UPSTREAM: 15706: HorizontalPodAutoscaler and Scale subresource APIs graduated
+  to beta (sross@redhat.com)
+- Fixed how tags are being printed when describing ImageStream. Previously the
+  image.Spec.Tags was ignored, which resulted in not showing the tags for which
+  there were errors during imports. (maszulik@redhat.com)
+- UPSTREAM: 15961: Add streaming subprotocol negotation (agoldste@redhat.com)
+- Systemd throws an error on Restart=Always (sdodson@redhat.com)
+
 * Sun Nov 01 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.905
 - Add and test field label conversions (jliggitt@redhat.com)
 - logs: View logs from older deployments/builds with --version
