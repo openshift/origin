@@ -16,7 +16,7 @@ angular.module('openshiftConsole')
       };
 
       var scrollBottom = function() {
-        $window.scrollTo(null, $document.innerHeight());
+        $window.scrollTo(null, $(document).height() - $(window).height());
       };
 
       var scrollTo = function(anchor, event) {
