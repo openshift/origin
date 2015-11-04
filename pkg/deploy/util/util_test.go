@@ -4,10 +4,13 @@ import (
 	"sort"
 	"strconv"
 	"testing"
+	"time"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
-	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func podTemplateA() *kapi.PodTemplateSpec {
@@ -150,5 +153,32 @@ func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
 		if e, a := 4-i, DeploymentVersionFor(&deployments[i]); e != a {
 			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
 		}
+	}
+}
+
+// TestSort verifies that builds are sorted by most recently created
+func TestSort(t *testing.T) {
+	present := unversioned.Now()
+	past := unversioned.NewTime(present.Time.Add(-1 * time.Minute))
+	controllers := []*kapi.ReplicationController{
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:              "past",
+				CreationTimestamp: past,
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:              "present",
+				CreationTimestamp: present,
+			},
+		},
+	}
+	sort.Sort(ByMostRecent(controllers))
+	if controllers[0].Name != "present" {
+		t.Errorf("Unexpected sort order")
+	}
+	if controllers[1].Name != "past" {
+		t.Errorf("Unexpected sort order")
 	}
 }

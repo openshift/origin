@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/prune"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 const deploymentsLongDesc = `%s %s - Remove older completed and failed deployments`
@@ -89,11 +90,21 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 			case true:
 				deploymentPruneFunc = func(deployment *kapi.ReplicationController) error {
 					describingPruneDeploymentFunc(deployment)
-					err := kclient.ReplicationControllers(deployment.Namespace).Delete(deployment.Name)
-					if err != nil {
-						return err
+					// If the deployment is failed we need to remove its deployer pods, too.
+					if deployutil.DeploymentStatusFor(deployment) == deployapi.DeploymentStatusFailed {
+						dpSelector := deployutil.DeployerPodSelector(deployment.Name)
+						deployers, err := kclient.Pods(deployment.Namespace).List(dpSelector, fields.Everything())
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "Cannot list deployer pods for %q: %v\n", deployment.Name, err)
+						} else {
+							for _, pod := range deployers.Items {
+								if err := kclient.Pods(pod.Namespace).Delete(pod.Name, nil); err != nil {
+									fmt.Fprintf(os.Stderr, "Cannot remove deployer pod %q: %v\n", pod.Name, err)
+								}
+							}
+						}
 					}
-					return nil
+					return kclient.ReplicationControllers(deployment.Namespace).Delete(deployment.Name)
 				}
 			default:
 				fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove deployments")
