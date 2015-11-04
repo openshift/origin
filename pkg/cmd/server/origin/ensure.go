@@ -9,9 +9,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/controller/serviceaccount"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
@@ -155,32 +152,19 @@ func (c *MasterConfig) ensureNamespaceServiceAccountRoleBindings(namespace *kapi
 }
 
 func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
-	sccList, err := c.KubeClient().SecurityContextConstraints().List(labels.Everything(), fields.Everything())
-	if err != nil {
-		glog.Errorf("Unable to initialize security context constraints: %v.  This may prevent the creation of pods", err)
-		return
-	}
-	if len(sccList.Items) > 0 {
-		return
-	}
-
-	glog.Infof("No security context constraints detected, adding defaults")
-
-	// add the build user to the privileged SCC access
 	ns := c.Options.PolicyConfig.OpenShiftInfrastructureNamespace
-	buildControllerUsername := serviceaccount.MakeUsername(ns, c.BuildControllerServiceAccount)
-	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess()
-	bootstrapSCCUsers[bootstrappolicy.SecurityContextConstraintPrivileged] = append(bootstrapSCCUsers[bootstrappolicy.SecurityContextConstraintPrivileged], buildControllerUsername)
-
-	// add the pv controller to the HostMount SCC access. Recyclers created by the controller are admin tasks performed by the controller.
-	pvControllerUsername := serviceaccount.MakeUsername(ns, c.PersistentVolumeControllerServiceAccount)
-	bootstrapSCCUsers[bootstrappolicy.SecurityContextConstraintHostMount] = append(bootstrapSCCUsers[bootstrappolicy.SecurityContextConstraintHostMount], pvControllerUsername)
+	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
 
 	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
-		_, err = c.KubeClient().SecurityContextConstraints().Create(&scc)
+		_, err := c.KubeClient().SecurityContextConstraints().Create(&scc)
+		if kapierror.IsAlreadyExists(err) {
+			continue
+		}
 		if err != nil {
 			glog.Errorf("Unable to create default security context constraint %s.  Got error: %v", scc.Name, err)
+			continue
 		}
+		glog.Infof("Created default security context constraint %s", scc.Name)
 	}
 }
 

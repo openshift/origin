@@ -481,6 +481,33 @@ _oadm_policy_remove-scc-from-group()
     must_have_one_noun=()
 }
 
+_oadm_policy_reconcile-sccs()
+{
+    last_command="oadm_policy_reconcile-sccs"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--additive-only")
+    flags+=("--confirm")
+    flags+=("--infrastructure-namespace=")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _oadm_policy()
 {
     last_command="oadm_policy"
@@ -502,6 +529,7 @@ _oadm_policy()
     commands+=("add-scc-to-group")
     commands+=("remove-scc-from-user")
     commands+=("remove-scc-from-group")
+    commands+=("reconcile-sccs")
 
     flags=()
     two_word_flags=()

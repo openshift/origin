@@ -219,6 +219,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PrivilegedLoopbackOpenShiftClient:  privilegedLoopbackOpenShiftClient,
 		PrivilegedLoopbackKubernetesClient: privilegedLoopbackKubeClient,
 
+		// NOTE: if these become configurable we will need to update the reconcile-scc and
+		// scc bootstrap access code to use MasterConfig to pass the values.
 		BuildControllerServiceAccount:            bootstrappolicy.InfraBuildControllerServiceAccountName,
 		DeploymentControllerServiceAccount:       bootstrappolicy.InfraDeploymentControllerServiceAccountName,
 		ReplicationControllerServiceAccount:      bootstrappolicy.InfraReplicationControllerServiceAccountName,
