@@ -43,8 +43,8 @@ type HorizontalController struct {
 	scaleNamespacer client.ScaleNamespacer
 	hpaNamespacer   client.HorizontalPodAutoscalersNamespacer
 
-	metricsClient    metrics.MetricsClient
-	eventRecorder    record.EventRecorder
+	metricsClient metrics.MetricsClient
+	eventRecorder record.EventRecorder
 }
 
 var downscaleForbiddenWindow = 5 * time.Minute
@@ -80,7 +80,7 @@ func (a *HorizontalController) computeReplicasForCPUUtilization(hpa extensions.H
 		return 0, nil, nil
 	}
 	currentReplicas := scale.Status.Replicas
-	currentUtilization, err := a.metricsClient.GetCPUUtilization(hpa.Spec.ScaleRef.Namespace, scale.Status.Selector)
+	currentUtilization, err := a.metricsClient.GetCPUUtilization(hpa.Namespace, scale.Status.Selector)
 
 	// TODO: what to do on partial errors (like metrics obtained for 75% of pods).
 	if err != nil {
@@ -97,9 +97,9 @@ func (a *HorizontalController) computeReplicasForCPUUtilization(hpa extensions.H
 }
 
 func (a *HorizontalController) reconcileAutoscaler(hpa extensions.HorizontalPodAutoscaler) error {
-	reference := fmt.Sprintf("%s/%s/%s", hpa.Spec.ScaleRef.Kind, hpa.Spec.ScaleRef.Namespace, hpa.Spec.ScaleRef.Name)
+	reference := fmt.Sprintf("%s/%s/%s", hpa.Spec.ScaleRef.Kind, hpa.Namespace, hpa.Spec.ScaleRef.Name)
 
-	scale, err := a.scaleNamespacer.Scales(hpa.Spec.ScaleRef.Namespace).Get(hpa.Spec.ScaleRef.Kind, hpa.Spec.ScaleRef.Name)
+	scale, err := a.scaleNamespacer.Scales(hpa.Namespace).Get(hpa.Spec.ScaleRef.Kind, hpa.Spec.ScaleRef.Name)
 	if err != nil {
 		a.eventRecorder.Event(&hpa, "FailedGetScale", err.Error())
 		return fmt.Errorf("failed to query scale subresource for %s: %v", reference, err)
