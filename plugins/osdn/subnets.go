@@ -13,7 +13,7 @@ import (
 
 func SubnetStartMaster(oc *OvsController) error {
 	subrange := make([]string, 0)
-	subnets, _, err := oc.registry.GetSubnets()
+	subnets, _, err := oc.Registry.GetSubnets()
 	if err != nil {
 		log.Errorf("Error in initializing/fetching subnets: %v", err)
 		return err
@@ -22,13 +22,13 @@ func SubnetStartMaster(oc *OvsController) error {
 		subrange = append(subrange, sub.SubnetCIDR)
 	}
 
-	cn, err := oc.registry.GetClusterNetworkCIDR()
+	cn, err := oc.Registry.GetClusterNetworkCIDR()
 	if err != nil {
 		log.Errorf("Error re-fetching cluster network CIDR: %v", err)
 		return err
 	}
 
-	hsl, err := oc.registry.GetHostSubnetLength()
+	hsl, err := oc.Registry.GetHostSubnetLength()
 	if err != nil {
 		log.Errorf("Error re-fetching host subnet length: %v", err)
 		return err
@@ -57,7 +57,7 @@ func SubnetStartMaster(oc *OvsController) error {
 
 func (oc *OvsController) serveExistingNodes(nodes []api.Node) error {
 	for _, node := range nodes {
-		_, err := oc.registry.GetSubnet(node.Name)
+		_, err := oc.Registry.GetSubnet(node.Name)
 		if err == nil {
 			// subnet already exists, continue
 			continue
@@ -85,7 +85,7 @@ func (oc *OvsController) addNode(nodeName string, nodeIP string) error {
 		NodeIP:     nodeIP,
 		SubnetCIDR: sn.String(),
 	}
-	err = oc.registry.CreateSubnet(nodeName, subnet)
+	err = oc.Registry.CreateSubnet(nodeName, subnet)
 	if err != nil {
 		log.Errorf("Error writing subnet to etcd for node %s: %v", nodeName, sn)
 		return err
@@ -94,7 +94,7 @@ func (oc *OvsController) addNode(nodeName string, nodeIP string) error {
 }
 
 func (oc *OvsController) deleteNode(nodeName string) error {
-	sub, err := oc.registry.GetSubnet(nodeName)
+	sub, err := oc.Registry.GetSubnet(nodeName)
 	if err != nil {
 		log.Errorf("Error fetching subnet for node %s for delete operation.", nodeName)
 		return err
@@ -105,7 +105,7 @@ func (oc *OvsController) deleteNode(nodeName string) error {
 		return err
 	}
 	oc.subnetAllocator.ReleaseNetwork(ipnet)
-	return oc.registry.DeleteSubnet(nodeName)
+	return oc.Registry.DeleteSubnet(nodeName)
 }
 
 func SubnetStartNode(oc *OvsController) error {
@@ -115,12 +115,12 @@ func SubnetStartNode(oc *OvsController) error {
 	}
 
 	// Assume we are working with IPv4
-	clusterNetworkCIDR, err := oc.registry.GetClusterNetworkCIDR()
+	clusterNetworkCIDR, err := oc.Registry.GetClusterNetworkCIDR()
 	if err != nil {
 		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
 		return err
 	}
-	servicesNetworkCIDR, err := oc.registry.GetServicesNetworkCIDR()
+	servicesNetworkCIDR, err := oc.Registry.GetServicesNetworkCIDR()
 	if err != nil {
 		log.Errorf("Failed to obtain ServicesNetwork: %v", err)
 		return err
@@ -155,7 +155,7 @@ func (oc *OvsController) initSelfSubnet() error {
 	// Try every retryInterval and bail-out if it exceeds max retries
 	for i := 0; i < retries; i++ {
 		// Get subnet for current node
-		subnet, err = oc.registry.GetSubnet(oc.hostName)
+		subnet, err = oc.Registry.GetSubnet(oc.hostName)
 		if err == nil {
 			break
 		}
@@ -172,13 +172,13 @@ func (oc *OvsController) initSelfSubnet() error {
 func watchNodes(oc *OvsController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
 	nodeEvent := make(chan *api.NodeEvent)
-	go oc.registry.WatchNodes(nodeEvent, ready, start, stop)
+	go oc.Registry.WatchNodes(nodeEvent, ready, start, stop)
 	for {
 		select {
 		case ev := <-nodeEvent:
 			switch ev.Type {
 			case api.Added:
-				sub, err := oc.registry.GetSubnet(ev.Node.Name)
+				sub, err := oc.Registry.GetSubnet(ev.Node.Name)
 				if err != nil {
 					// subnet does not exist already
 					oc.addNode(ev.Node.Name, ev.Node.IP)
@@ -186,13 +186,13 @@ func watchNodes(oc *OvsController, ready chan<- bool, start <-chan string) {
 					// Current node IP is obtained from event, ev.NodeIP to
 					// avoid cached/stale IP lookup by net.LookupIP()
 					if sub.NodeIP != ev.Node.IP {
-						err = oc.registry.DeleteSubnet(ev.Node.Name)
+						err = oc.Registry.DeleteSubnet(ev.Node.Name)
 						if err != nil {
 							log.Errorf("Error deleting subnet for node %s, old ip %s", ev.Node.Name, sub.NodeIP)
 							continue
 						}
 						sub.NodeIP = ev.Node.IP
-						err = oc.registry.CreateSubnet(ev.Node.Name, sub)
+						err = oc.Registry.CreateSubnet(ev.Node.Name, sub)
 						if err != nil {
 							log.Errorf("Error creating subnet for node %s, ip %s", ev.Node.Name, sub.NodeIP)
 							continue
@@ -213,7 +213,7 @@ func watchNodes(oc *OvsController, ready chan<- bool, start <-chan string) {
 func watchSubnets(oc *OvsController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
 	clusterEvent := make(chan *api.SubnetEvent)
-	go oc.registry.WatchSubnets(clusterEvent, ready, start, stop)
+	go oc.Registry.WatchSubnets(clusterEvent, ready, start, stop)
 	for {
 		select {
 		case ev := <-clusterEvent:

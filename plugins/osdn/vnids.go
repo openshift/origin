@@ -17,7 +17,7 @@ const (
 )
 
 func VnidStartMaster(oc *OvsController) error {
-	nets, _, err := oc.registry.GetNetNamespaces()
+	nets, _, err := oc.Registry.GetNetNamespaces()
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (oc *OvsController) isAdminNamespace(nsName string) bool {
 }
 
 func (oc *OvsController) assignVNID(namespaceName string) error {
-	_, err := oc.registry.GetNetNamespace(namespaceName)
+	_, err := oc.Registry.GetNetNamespace(namespaceName)
 	if err == nil {
 		return nil
 	}
@@ -96,7 +96,7 @@ func (oc *OvsController) assignVNID(namespaceName string) error {
 			return err
 		}
 	}
-	err = oc.registry.WriteNetNamespace(namespaceName, netid)
+	err = oc.Registry.WriteNetNamespace(namespaceName, netid)
 	if err != nil {
 		e := oc.netIDManager.ReleaseNetID(netid)
 		if e != nil {
@@ -109,7 +109,7 @@ func (oc *OvsController) assignVNID(namespaceName string) error {
 }
 
 func (oc *OvsController) revokeVNID(namespaceName string) error {
-	err := oc.registry.DeleteNetNamespace(namespaceName)
+	err := oc.Registry.DeleteNetNamespace(namespaceName)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (oc *OvsController) revokeVNID(namespaceName string) error {
 func watchNamespaces(oc *OvsController, ready chan<- bool, start <-chan string) {
 	nsevent := make(chan *api.NamespaceEvent)
 	stop := make(chan bool)
-	go oc.registry.WatchNamespaces(nsevent, ready, start, stop)
+	go oc.Registry.WatchNamespaces(nsevent, ready, start, stop)
 	for {
 		select {
 		case ev := <-nsevent:
@@ -216,7 +216,7 @@ func VnidStartNode(oc *OvsController) error {
 
 func (oc *OvsController) updatePodNetwork(namespace string, netID, oldNetID uint) error {
 	// Update OF rules for the existing/old pods in the namespace
-	pods, err := oc.registry.GetRunningPods(oc.hostName, namespace)
+	pods, err := oc.Registry.GetRunningPods(oc.hostName, namespace)
 	if err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ func (oc *OvsController) updatePodNetwork(namespace string, netID, oldNetID uint
 	}
 
 	// Update OF rules for the old services in the namespace
-	services, err := oc.registry.GetServicesForNamespace(namespace)
+	services, err := oc.Registry.GetServicesForNamespace(namespace)
 	if err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func (oc *OvsController) updatePodNetwork(namespace string, netID, oldNetID uint
 func watchNetNamespaces(oc *OvsController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
 	netNsEvent := make(chan *api.NetNamespaceEvent)
-	go oc.registry.WatchNetNamespaces(netNsEvent, ready, start, stop)
+	go oc.Registry.WatchNetNamespaces(netNsEvent, ready, start, stop)
 	for {
 		select {
 		case ev := <-netNsEvent:
@@ -281,7 +281,7 @@ func watchNetNamespaces(oc *OvsController, ready chan<- bool, start <-chan strin
 func watchServices(oc *OvsController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
 	svcevent := make(chan *api.ServiceEvent)
-	go oc.registry.WatchServices(svcevent, ready, start, stop)
+	go oc.Registry.WatchServices(svcevent, ready, start, stop)
 	for {
 		select {
 		case ev := <-svcevent:
@@ -334,7 +334,7 @@ func watchServices(oc *OvsController, ready chan<- bool, start <-chan string) {
 
 func watchPods(oc *OvsController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
-	go oc.registry.WatchPods(ready, start, stop)
+	go oc.Registry.WatchPods(ready, start, stop)
 
 	<-oc.sig
 	log.Error("Signal received. Stopping watching of pods.")

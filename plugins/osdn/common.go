@@ -24,7 +24,7 @@ var pluginCtors map[string]PluginCtor = make(map[string]PluginCtor)
 type startFunc func(oc *OvsController) error
 
 type OvsController struct {
-	registry        *Registry
+	Registry        *Registry
 	localIP         string
 	localSubnet     *api.Subnet
 	hostName        string
@@ -93,7 +93,7 @@ func NewBaseController(registry *Registry, flowController FlowController, hostna
 	}
 	log.Infof("Self IP: %s.", selfIP)
 	return &OvsController{
-		registry:         registry,
+		Registry:         registry,
 		flowController:   flowController,
 		localIP:          selfIP,
 		hostName:         hostname,
@@ -162,7 +162,7 @@ func (oc *OvsController) validateServiceNetwork(networkCIDR string, hostIPNets [
 		}
 	}
 
-	services, _, err := oc.registry.GetServices()
+	services, _, err := oc.Registry.GetServices()
 	if err != nil {
 		return err
 	}
@@ -196,9 +196,9 @@ func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSu
 	// Any mismatch in cluster/service network is handled by WriteNetworkConfig
 	// For any new cluster/service network, ensure existing node subnets belong
 	// to the given cluster network and service IPs belong to the given service network
-	if _, err := oc.registry.GetClusterNetworkCIDR(); err != nil {
+	if _, err := oc.Registry.GetClusterNetworkCIDR(); err != nil {
 		subrange := make([]string, 0)
-		subnets, _, err := oc.registry.GetSubnets()
+		subnets, _, err := oc.Registry.GetSubnets()
 		if err != nil {
 			log.Errorf("Error in initializing/fetching subnets: %v", err)
 			return err
@@ -213,7 +213,7 @@ func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSu
 		}
 	}
 
-	if err := oc.registry.WriteNetworkConfig(clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR); err != nil {
+	if err := oc.Registry.WriteNetworkConfig(clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR); err != nil {
 		return err
 	}
 
@@ -231,7 +231,7 @@ func (oc *OvsController) StartNode(mtu uint) error {
 	oc.nodeMtu = mtu
 
 	// Assume we are working with IPv4
-	clusterNetworkCIDR, err := oc.registry.GetClusterNetworkCIDR()
+	clusterNetworkCIDR, err := oc.Registry.GetClusterNetworkCIDR()
 	if err != nil {
 		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
 		return err
@@ -304,7 +304,7 @@ func (oc *OvsController) watchAndGetResource(resourceName string, watcher watchW
 
 	go watcher(oc, ready, start)
 	waitForWatchReadiness(ready, strings.ToLower(resourceName))
-	getOutput, version, err := getter(oc.registry)
+	getOutput, version, err := getter(oc.Registry)
 	if err != nil {
 		return nil, err
 	}
