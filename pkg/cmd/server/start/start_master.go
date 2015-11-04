@@ -539,6 +539,11 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for HPA controller: %v", err)
 		}
 
+		_, pvKClient, err := oc.GetServiceAccountClients(oc.PersistentVolumeControllerServiceAccount)
+		if err != nil {
+			glog.Fatalf("Could not get client for persistent volume controller: %v", err)
+		}
+
 		// called by admission control
 		kc.RunResourceQuotaManager()
 
@@ -551,7 +556,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunEndpointController()
 		kc.RunNamespaceController()
 		kc.RunPersistentVolumeClaimBinder()
-		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("deployer"))
+		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("deployer"), pvKClient)
 
 		glog.Infof("Started Kubernetes Controllers")
 	}
