@@ -1,17 +1,18 @@
-  <div class="log-timestamp" ng-if="!chromeless && start">
-    <span>Current log from {{start}}&nbsp;</span>
-    <span ng-if="end">to {{end}}</span>
-  </div>
-
-  <div row main-axis="end" ng-if="canViewArchive">
-    <form
-      ng-if="canViewArchive"
-      action="{{kibanaAuthUrl}}"
-      method="POST" target="_blank">
-      <input type="hidden" name="redirect" value="{{archiveLocation}}">
-      <input type="hidden" name="access_token" value="{{access_token}}">
-      <button class="btn btn-sm btn-primary">View Archive</button>
-    </form>
+  <div row class="log-timestamp" ng-if="!chromeless && start">
+    <div>
+      <span>Current log from {{start}}&nbsp;</span>
+      <span ng-if="end">to {{end}}</span>
+    </div>
+    <div flex></div>
+    <div ng-if="kibanaAuthUrl">
+      <form
+        action="{{kibanaAuthUrl}}"
+        method="POST">
+        <input type="hidden" name="redirect" value="{{archiveLocation}}">
+        <input type="hidden" name="access_token" value="{{access_token}}">
+        <button class="btn btn-sm btn-primary">View Archive</button>
+      </form>
+    </div>
   </div>
 
   <div ng-if="largeLog" class="log-size-warning">
@@ -19,18 +20,17 @@
     Only the previous {{options.tailLines || 1000}} log lines and new log
     messages will be displayed because of the large log size.
   </div>
-  <div ng-if="!chromeless">
-    <div class="row">
-      <div ng-if="status" class="col-md-6 col-sm-12 status">
-        <span>Status:&nbsp;&nbsp;</span>
-        <status-icon status="status"></status-icon>
-        <span>&nbsp;&nbsp;{{status}}</span>
-      </div>
-      <div class="log-link-external col-md-6 col-sm-12">
-        <a href=""  ng-click="goChromeless(options)">
-          Open full view of log<i class="fa fa-external-link"></i>
-        </a>
-      </div>
+
+  <div class="row" ng-if="!chromeless">
+    <div ng-if="status" class="col-md-6 col-sm-12 status">
+      <span>Status:&nbsp;&nbsp;</span>
+      <status-icon status="status"></status-icon>
+      <span>&nbsp;&nbsp;{{status}}</span>
+    </div>
+    <div class="log-link-external col-md-6 col-sm-12 text-right">
+      <a href=""  ng-click="goChromeless(options)">
+        Open full view of log<i class="fa fa-external-link"></i>
+      </a>
     </div>
   </div>
 

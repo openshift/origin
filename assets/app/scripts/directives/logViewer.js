@@ -233,28 +233,38 @@ angular.module('openshiftConsole')
               .getLoggingURL()
               .then(function(url) {
                 // TODO: update lodash for _.get, would rather do this:
-                //var projectName = _.get($scope.context, 'project', 'metadata', 'name');
+                // var projectName = _.get($scope, 'context', 'project', 'metadata', 'name');
+                // var containerName = _.get($scope, 'options', 'container');
                 var projectName = $scope.context &&
                                   $scope.context.project &&
                                   $scope.context.project.metadata &&
                                   $scope.context.project.metadata.name;
 
-                var hasComponents = projectName && $scope.name && url;
-                if(!hasComponents) {
+                var containerName = $scope.options &&
+                                    $scope.options.container;
+
+                if(!(projectName && containerName && $scope.name && url)) {
                   return;
                 }
 
                 angular.extend($scope, {
-                  canViewArchive: true,
-                  kibanaAuthUrl: $sce.trustAsResourceUrl(url+'/auth/token'),
-                  access_token: AuthService.UserStore().getToken(),
-                  // The archive URL violates angular's built in same origin policy.
-                  // Need to explicitly tell it to trust this location or it will throw errors.
-                  archiveLocation: $sce.trustAsResourceUrl(logLinks.archiveUri({
-                    namespace: projectName,
-                    podname: $scope.name,
-                    backlink: $window.location.href
-                  }))
+                  kibanaAuthUrl: $sce.trustAsResourceUrl(URI(url)
+                                                          .segment('auth').segment('token')
+                                                          .normalizePathname().toString()),
+                  access_token: AuthService.UserStore().getToken()
+                });
+
+                $scope.$watchGroup(['context.project.metadata.name', 'options.container', 'name'], function() {
+                  angular.extend($scope, {
+                    // The archive URL violates angular's built in same origin policy.
+                    // Need to explicitly tell it to trust this location or it will throw errors.
+                    archiveLocation: $sce.trustAsResourceUrl(logLinks.archiveUri({
+                                        namespace: $scope.context.project.metadata.name,
+                                        podname: $scope.name,
+                                        containername: $scope.options.container,
+                                        backlink: URI.encode($window.location.href)
+                                      }))
+                  });
                 });
               });
           }
