@@ -142,6 +142,7 @@ oc create -f test/fixtures/failing-dc.yaml
 tryuntil oc get rc/failing-dc-1
 oc logs -f dc/failing-dc
 wait_for_command "oc get rc/failing-dc-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((20*TIME_SEC))
+oc logs dc/failing-dc | grep 'test pre hook executed'
 oc deploy failing-dc --latest
 oc logs --version=1 dc/failing-dc
 
@@ -158,13 +159,12 @@ os::build:wait_for_end "test"
 wait_for_app "test"
 
 # logs can't be tested without a node, so has to be in e2e
-POD_NAME=`oc get pods -o name -n test | head -n 1`
+POD_NAME=$(oc get pods -n test --template='{{(index .items 0).metadata.name}}')
+oc logs pod/${POD_NAME} --loglevel=6
 oc logs ${POD_NAME} --loglevel=6
-POD_NAME_NO_KIND=`oc get pods -o name -n test | head -n 1 | cut -d '/' -f 2`
-oc logs ${POD_NAME_NO_KIND} --loglevel=6
-BUILD_NAME=`oc get builds -o name -n test | head -n 1`
-oc logs ${BUILD_NAME} --loglevel=6
-oc logs ${BUILD_NAME} --loglevel=6
+BUILD_NAME=$(oc get builds -n test --template='{{(index .items 0).metadata.name}}')
+oc logs build/${BUILD_NAME} --loglevel=6
+oc logs build/${BUILD_NAME} --loglevel=6
 oc logs bc/ruby-sample-build --loglevel=6
 oc logs buildconfigs/ruby-sample-build --loglevel=6
 oc logs buildconfig/ruby-sample-build --loglevel=6

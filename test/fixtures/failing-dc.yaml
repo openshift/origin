@@ -8,6 +8,7 @@ spec:
   selector:
     name: failing-dc
   strategy:
+    type: Rolling
     resources: {}
     rollingParams:
       intervalSeconds: 1
@@ -15,7 +16,13 @@ spec:
       maxUnavailable: 25%
       timeoutSeconds: 5
       updatePeriodSeconds: 1
-    type: Rolling
+      pre:
+        failurePolicy: Abort
+        execNewPod:
+          containerName: myapp
+          command:
+          - /bin/echo
+          - test pre hook executed
   template:
     metadata:
       creationTimestamp: null
@@ -23,19 +30,25 @@ spec:
         name: failing-dc
     spec:
       containers:
-      - image: origin-ruby-sample
+      - image: "docker.io/centos:centos7"
         imagePullPolicy: IfNotPresent
-        name: ruby-helloworld
+        name: myapp
+        command:
+        - /bin/false
         ports:
         - containerPort: 8080
           protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          timeoutSeconds: 1
         resources: {}
         securityContext:
           capabilities: {}
           privileged: false
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
-      restartPolicy: Always
       securityContext: {}
       terminationGracePeriodSeconds: 30
   triggers:

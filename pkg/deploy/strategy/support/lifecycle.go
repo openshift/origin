@@ -2,6 +2,8 @@ package support
 
 import (
 	"fmt"
+	"io"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -22,10 +24,38 @@ import (
 	namer "github.com/openshift/origin/pkg/util/namer"
 )
 
+const HookContainerName = "lifecycle"
+
 // HookExecutor executes a deployment lifecycle hook.
 type HookExecutor struct {
-	// PodClient provides access to pods.
-	PodClient HookExecutorPodClient
+	// podClient provides access to pods.
+	podClient HookExecutorPodClient
+	// podLogDestination is where hook pod logs should be written to.
+	podLogDestination io.Writer
+	// podLogStream provides a reader for a pod's logs.
+	podLogStream func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error)
+}
+
+// NewHookExecutor makes a HookExecutor from a client.
+func NewHookExecutor(client kclient.Interface, podLogDestination io.Writer) *HookExecutor {
+	return &HookExecutor{
+		podClient: &HookExecutorPodClientImpl{
+			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+				return client.Pods(namespace).Create(pod)
+			},
+			PodWatchFunc: func(namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
+				return NewPodWatch(client, namespace, name, resourceVersion, stopChannel)
+			},
+		},
+		podLogStream: func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error) {
+			req, err := client.PodLogs(namespace).Get(name, opts)
+			if err != nil {
+				return nil, err
+			}
+			return req.Stream()
+		},
+		podLogDestination: podLogDestination,
+	}
 }
 
 // Execute executes hook in the context of deployment. The label is used to
@@ -70,28 +100,66 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, deployme
 	}
 
 	// Try to create the pod.
-	pod, err := e.PodClient.CreatePod(deployment.Namespace, podSpec)
+	pod, err := e.podClient.CreatePod(deployment.Namespace, podSpec)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			return fmt.Errorf("couldn't create lifecycle pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
 		}
 	} else {
-		glog.V(0).Infof("Created lifecycle pod %s for deployment %s", pod.Name, deployutil.LabelForDeployment(deployment))
+		glog.V(0).Infof("Created lifecycle pod %s/%s for deployment %s", pod.Namespace, pod.Name, deployutil.LabelForDeployment(deployment))
 	}
 
 	stopChannel := make(chan struct{})
 	defer close(stopChannel)
-	nextPod := e.PodClient.PodWatch(pod.Namespace, pod.Name, pod.ResourceVersion, stopChannel)
+	nextPod := e.podClient.PodWatch(pod.Namespace, pod.Name, pod.ResourceVersion, stopChannel)
 
-	glog.V(0).Infof("Waiting for hook pod %s/%s to complete", pod.Namespace, pod.Name)
+	// Wait for the hook pod to reach a terminal phase. Start reading logs as
+	// soon as the pod enters a usable phase.
+	var updatedPod *kapi.Pod
+	var once sync.Once
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	glog.V(0).Infof("Watching logs for hook pod %s/%s while awaiting completion", pod.Namespace, pod.Name)
+waitLoop:
 	for {
-		pod := nextPod()
-		switch pod.Status.Phase {
-		case kapi.PodSucceeded:
-			return nil
-		case kapi.PodFailed:
-			return fmt.Errorf(pod.Status.Message)
+		updatedPod = nextPod()
+		switch updatedPod.Status.Phase {
+		case kapi.PodRunning:
+			go once.Do(func() { e.readPodLogs(pod, wg) })
+		case kapi.PodSucceeded, kapi.PodFailed:
+			go once.Do(func() { e.readPodLogs(pod, wg) })
+			break waitLoop
 		}
+	}
+	// The pod is finished, wait for all logs to be consumed before returning.
+	wg.Wait()
+	if updatedPod.Status.Phase == kapi.PodFailed {
+		return fmt.Errorf(updatedPod.Status.Message)
+	}
+	return nil
+}
+
+// readPodLogs streams logs from pod to podLogDestination. It signals wg when
+// done.
+func (e *HookExecutor) readPodLogs(pod *kapi.Pod, wg *sync.WaitGroup) {
+	defer wg.Done()
+	opts := &kapi.PodLogOptions{
+		Container:  HookContainerName,
+		Follow:     true,
+		Timestamps: false,
+	}
+	logStream, err := e.podLogStream(pod.Namespace, pod.Name, opts)
+	if err != nil || logStream == nil {
+		glog.V(0).Infof("Warning: couldn't get log stream for lifecycle pod %s/%s: %s", pod.Namespace, pod.Name, err)
+		return
+	}
+	// Read logs.
+	defer logStream.Close()
+	written, err := io.Copy(e.podLogDestination, logStream)
+	if err != nil {
+		glog.V(0).Infof("Finished reading logs for hook pod %s/%s (%d bytes): %s", pod.Namespace, pod.Name, written, err)
+	} else {
+		glog.V(0).Infof("Finished reading logs for hook pod %s/%s", pod.Namespace, pod.Name)
 	}
 }
 
@@ -163,7 +231,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
 				{
-					Name:       "lifecycle",
+					Name:       HookContainerName,
 					Image:      baseContainer.Image,
 					Command:    exec.Command,
 					WorkingDir: baseContainer.WorkingDir,
