@@ -168,7 +168,7 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 			return nil
 		}
 		// Log an event if the pod is not created (most likely due to quota denial).
-		bc.Recorder.Eventf(build, "failedCreate", "Error creating: %v", err)
+		bc.Recorder.Eventf(build, "FailedCreate", "Error creating: %v", err)
 		build.Status.Reason = buildapi.StatusReasonCannotCreateBuildPod
 		return fmt.Errorf("failed to create build pod: %v", err)
 	}
