@@ -4067,6 +4067,8 @@ func TestValidPodLogOptions(t *testing.T) {
 
 func TestValidateSecurityContextConstraints(t *testing.T) {
 	var invalidUID int64 = -1
+	var invalidPriority = -1
+	var validPriority = 1
 
 	validSCC := func() *api.SecurityContextConstraints {
 		return &api.SecurityContextConstraints{
@@ -4083,6 +4085,7 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 			SupplementalGroups: api.SupplementalGroupsStrategyOptions{
 				Type: api.SupplementalGroupsStrategyRunAsAny,
 			},
+			Priority: &validPriority,
 		}
 	}
 
@@ -4131,6 +4134,9 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 	invalidRangeNegativeMax.FSGroup.Ranges = []api.IDRange{
 		{Min: 1, Max: -10},
 	}
+
+	negativePriority := validSCC()
+	negativePriority.Priority = &invalidPriority
 
 	errorCases := map[string]struct {
 		scc         *api.SecurityContextConstraints
@@ -4201,6 +4207,11 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 			scc:         invalidRangeNegativeMax,
 			errorType:   errors.ValidationErrorTypeInvalid,
 			errorDetail: "max cannot be negative",
+		},
+		"negative priority": {
+			scc:         negativePriority,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "priority cannot be negative",
 		},
 	}
 

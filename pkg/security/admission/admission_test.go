@@ -16,6 +16,7 @@ import (
 
 	allocator "github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/uid"
+	"sort"
 )
 
 func NewTestAdmission(store cache.Store, kclient client.Interface) kadmission.Interface {
@@ -28,25 +29,11 @@ func NewTestAdmission(store cache.Store, kclient client.Interface) kadmission.In
 
 func TestAdmit(t *testing.T) {
 	// create the annotated namespace and add it to the fake client
-	namespace := &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "default",
-			Annotations: map[string]string{
-				allocator.UIDRangeAnnotation:           "1/3",
-				allocator.MCSAnnotation:                "s0:c1,c0",
-				allocator.SupplementalGroupsAnnotation: "2/3",
-			},
-		},
-	}
+	namespace := createNamespaceForTest()
+	serviceAccount := createSAForTest()
 
 	// used for cases where things are preallocated
 	defaultGroup := int64(2)
-
-	serviceAccount := &kapi.ServiceAccount{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "default",
-		},
-	}
 
 	tc := testclient.NewSimpleFake(namespace, serviceAccount)
 
@@ -70,7 +57,9 @@ func TestAdmit(t *testing.T) {
 		Groups: []string{"system:serviceaccounts"},
 	}
 	// create scc that has specific requirements that shouldn't match but is permissioned to
-	// service accounts to test exact matches
+	// service accounts to test that even though this has matching priorities (0) and a
+	// lower point value score (which will cause it to be sorted in front of scc-sa) it should not
+	// validate the requests so we should try scc-sa.
 	var exactUID int64 = 999
 	saExactSCC := &kapi.SecurityContextConstraints{
 		ObjectMeta: kapi.ObjectMeta{
@@ -108,23 +97,6 @@ func TestAdmit(t *testing.T) {
 	p := NewTestAdmission(store, tc)
 
 	// setup test data
-	// goodPod is empty and should not be used directly for testing since we're providing
-	// two different SCCs.  Since no values are specified it would be allowed to match either
-	// SCC when defaults are filled in.
-	goodPod := func() *kapi.Pod {
-		return &kapi.Pod{
-			Spec: kapi.PodSpec{
-				ServiceAccountName: "default",
-				SecurityContext:    &kapi.PodSecurityContext{},
-				Containers: []kapi.Container{
-					{
-						SecurityContext: &kapi.SecurityContext{},
-					},
-				},
-			},
-		}
-	}
-
 	uidNotInRange := goodPod()
 	var uid int64 = 1001
 	uidNotInRange.Spec.Containers[0].SecurityContext.RunAsUser = &uid
@@ -1282,4 +1254,204 @@ func hasRange(rng kapi.IDRange, ranges []kapi.IDRange) bool {
 		}
 	}
 	return false
+}
+
+func TestAdmitWithPrioritizedSCC(t *testing.T) {
+	// scc with high priority but very restrictive.
+	restricted := restrictiveSCC()
+	restrictedPriority := 100
+	restricted.Priority = &restrictedPriority
+
+	// sccs with matching priorities but one will have a higher point score (by the run as user strategy)
+	uidFive := int64(5)
+	matchingPrioritySCCOne := laxSCC()
+	matchingPrioritySCCOne.Name = "matchingPrioritySCCOne"
+	matchingPrioritySCCOne.RunAsUser = kapi.RunAsUserStrategyOptions{
+		Type: kapi.RunAsUserStrategyMustRunAs,
+		UID:  &uidFive,
+	}
+	matchingPriority := 5
+	matchingPrioritySCCOne.Priority = &matchingPriority
+
+	matchingPrioritySCCTwo := laxSCC()
+	matchingPrioritySCCTwo.Name = "matchingPrioritySCCTwo"
+	matchingPrioritySCCTwo.RunAsUser = kapi.RunAsUserStrategyOptions{
+		Type:        kapi.RunAsUserStrategyMustRunAsRange,
+		UIDRangeMin: &uidFive,
+		UIDRangeMax: &uidFive,
+	}
+	matchingPrioritySCCTwo.Priority = &matchingPriority
+
+	// sccs with matching priorities and scores so should be matched by sorted name
+	uidSix := int64(6)
+	matchingPriorityAndScoreSCCOne := laxSCC()
+	matchingPriorityAndScoreSCCOne.Name = "matchingPriorityAndScoreSCCOne"
+	matchingPriorityAndScoreSCCOne.RunAsUser = kapi.RunAsUserStrategyOptions{
+		Type: kapi.RunAsUserStrategyMustRunAs,
+		UID:  &uidSix,
+	}
+	matchingPriorityAndScorePriority := 1
+	matchingPriorityAndScoreSCCOne.Priority = &matchingPriorityAndScorePriority
+
+	matchingPriorityAndScoreSCCTwo := laxSCC()
+	matchingPriorityAndScoreSCCTwo.Name = "matchingPriorityAndScoreSCCTwo"
+	matchingPriorityAndScoreSCCTwo.RunAsUser = kapi.RunAsUserStrategyOptions{
+		Type: kapi.RunAsUserStrategyMustRunAs,
+		UID:  &uidSix,
+	}
+	matchingPriorityAndScoreSCCTwo.Priority = &matchingPriorityAndScorePriority
+
+	// we will expect these to sort as:
+	expectedSort := []string{"restrictive", "matchingPrioritySCCOne", "matchingPrioritySCCTwo",
+		"matchingPriorityAndScoreSCCOne", "matchingPriorityAndScoreSCCTwo"}
+	sccsToSort := []*kapi.SecurityContextConstraints{matchingPriorityAndScoreSCCTwo, matchingPriorityAndScoreSCCOne,
+		matchingPrioritySCCTwo, matchingPrioritySCCOne, restricted}
+	sort.Sort(ByPriority(sccsToSort))
+
+	for i, scc := range sccsToSort {
+		if scc.Name != expectedSort[i] {
+			t.Fatalf("unexpected sort found %s at element %d but expected %s", scc.Name, i, expectedSort[i])
+		}
+	}
+
+	// sorting works as we're expecting
+	// now, to test we will craft some requests that are targeted to validate against specific
+	// SCCs and ensure that they come out with the right annotation.  This means admission
+	// is using the sort strategy we expect.
+
+	namespace := createNamespaceForTest()
+	serviceAccount := createSAForTest()
+	tc := testclient.NewSimpleFake(namespace, serviceAccount)
+
+	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
+	for _, scc := range sccsToSort {
+		err := store.Add(scc)
+		if err != nil {
+			t.Fatalf("error adding sccs to store: %v", err)
+		}
+	}
+
+	// create the admission plugin
+	plugin := NewTestAdmission(store, tc)
+	// match the restricted SCC
+	testSCCAdmission(goodPod(), plugin, restricted.Name, t)
+	// match matchingPrioritySCCOne by setting RunAsUser to 5
+	matchingPrioritySCCOnePod := goodPod()
+	matchingPrioritySCCOnePod.Spec.Containers[0].SecurityContext.RunAsUser = &uidFive
+	testSCCAdmission(matchingPrioritySCCOnePod, plugin, matchingPrioritySCCOne.Name, t)
+	// match matchingPriorityAndScoreSCCOne by setting RunAsUser to 6
+	matchingPriorityAndScoreSCCOnePod := goodPod()
+	matchingPriorityAndScoreSCCOnePod.Spec.Containers[0].SecurityContext.RunAsUser = &uidSix
+	testSCCAdmission(matchingPriorityAndScoreSCCOnePod, plugin, matchingPriorityAndScoreSCCOne.Name, t)
+}
+
+// testSCCAdmission is a helper to admit the pod and ensure it was validated against the expected
+// SCC.
+func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC string, t *testing.T) {
+	attrs := kadmission.NewAttributesRecord(pod, "Pod", "namespace", "", string(kapi.ResourcePods), "", kadmission.Create, &user.DefaultInfo{})
+	err := plugin.Admit(attrs)
+	if err != nil {
+		t.Errorf("error admitting pod: %v", err)
+		return
+	}
+
+	validatedSCC, ok := pod.Annotations[allocator.ValidatedSCCAnnotation]
+	if !ok {
+		t.Errorf("expected to find the validated annotation on the pod for the scc but found none")
+		return
+	}
+	if validatedSCC != expectedSCC {
+		t.Errorf("should have validated against %s but found %s", expectedSCC, validatedSCC)
+	}
+}
+
+func laxSCC() *kapi.SecurityContextConstraints {
+	return &kapi.SecurityContextConstraints{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "lax",
+		},
+		RunAsUser: kapi.RunAsUserStrategyOptions{
+			Type: kapi.RunAsUserStrategyRunAsAny,
+		},
+		SELinuxContext: kapi.SELinuxContextStrategyOptions{
+			Type: kapi.SELinuxStrategyRunAsAny,
+		},
+		FSGroup: kapi.FSGroupStrategyOptions{
+			Type: kapi.FSGroupStrategyRunAsAny,
+		},
+		SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+			Type: kapi.SupplementalGroupsStrategyRunAsAny,
+		},
+		Groups: []string{"system:serviceaccounts"},
+	}
+}
+
+func restrictiveSCC() *kapi.SecurityContextConstraints {
+	var exactUID int64 = 999
+	return &kapi.SecurityContextConstraints{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "restrictive",
+		},
+		RunAsUser: kapi.RunAsUserStrategyOptions{
+			Type: kapi.RunAsUserStrategyMustRunAs,
+			UID:  &exactUID,
+		},
+		SELinuxContext: kapi.SELinuxContextStrategyOptions{
+			Type: kapi.SELinuxStrategyMustRunAs,
+			SELinuxOptions: &kapi.SELinuxOptions{
+				Level: "s9:z0,z1",
+			},
+		},
+		FSGroup: kapi.FSGroupStrategyOptions{
+			Type: kapi.FSGroupStrategyMustRunAs,
+			Ranges: []kapi.IDRange{
+				{Min: 999, Max: 999},
+			},
+		},
+		SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+			Type: kapi.SupplementalGroupsStrategyMustRunAs,
+			Ranges: []kapi.IDRange{
+				{Min: 999, Max: 999},
+			},
+		},
+		Groups: []string{"system:serviceaccounts"},
+	}
+}
+
+func createNamespaceForTest() *kapi.Namespace {
+	return &kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "default",
+			Annotations: map[string]string{
+				allocator.UIDRangeAnnotation:           "1/3",
+				allocator.MCSAnnotation:                "s0:c1,c0",
+				allocator.SupplementalGroupsAnnotation: "2/3",
+			},
+		},
+	}
+}
+
+func createSAForTest() *kapi.ServiceAccount {
+	return &kapi.ServiceAccount{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "default",
+		},
+	}
+}
+
+// goodPod is empty and should not be used directly for testing since we're providing
+// two different SCCs.  Since no values are specified it would be allowed to match any
+// SCC when defaults are filled in.
+func goodPod() *kapi.Pod {
+	return &kapi.Pod{
+		Spec: kapi.PodSpec{
+			ServiceAccountName: "default",
+			SecurityContext:    &kapi.PodSecurityContext{},
+			Containers: []kapi.Container{
+				{
+					SecurityContext: &kapi.SecurityContext{},
+				},
+			},
+		},
+	}
 }
