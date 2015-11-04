@@ -197,17 +197,15 @@ func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentCon
 		// If the latest deployment exists and is not failed, clear the dc message
 		return "", existingDeployments, latestDeploymentExists, nil
 	}
-
+	bcList, err := c.osClient.BuildConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return "", existingDeployments, latestDeploymentExists, fmt.Errorf("couldn't list build configs: %v", err)
+	}
 	// Rest of the code will handle non-existing or failed latest deployment causes
 	// TODO: Inspect pod logs in case of failed latest
-
-	details := ""
-	allDetails := []string{}
-	if config.Details != nil && len(config.Details.Message) > 0 {
-		// Populate details with the previous message so that in case we stumble upon
-		// an unexpected client error, the message won't be overwritten
-		details = config.Details.Message
-	}
+	invalidIsTags := []string{}
+	isTagsMissingStreams := map[string]string{}
+	isTagBuilds := map[string]string{}
 	// Look into image change triggers and find out possible deployment failures such as
 	// missing image stream tags with or without build configurations pointing at them
 	for _, trigger := range config.Triggers {
@@ -221,28 +219,20 @@ func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentCon
 		// Check if the image stream tag pointed by the trigger exists
 		if _, err := c.osClient.ImageStreamTags(config.Namespace).Get(name, tag); err != nil {
 			if !errors.IsNotFound(err) {
-				glog.V(2).Infof("Error while trying to get image stream tag %q: %v", istag, err)
-				return details, existingDeployments, latestDeploymentExists, nil
+				return "", existingDeployments, latestDeploymentExists, fmt.Errorf("couldn't get image stream tag %q: %v", istag, err)
 			}
 			// In case the image stream tag was not found, then it either doesn't exist or doesn't exist yet
 			// (a build configuration output points to it so it's going to be populated at some point in the
 			// future)
-			details = fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream tag %q does not exist.", istag, istag)
-			bcList, err := c.osClient.BuildConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
-			if err != nil {
-				glog.V(2).Infof("Error while trying to list build configs: %v", err)
-				return details, existingDeployments, latestDeploymentExists, nil
-			}
-
+			invalidIsTags = append(invalidIsTags, istag)
 			for _, bc := range bcList.Items {
 				if bc.Spec.Output.To != nil && bc.Spec.Output.To.Kind == "ImageStreamTag" {
 					parts := strings.Split(bc.Spec.Output.To.Name, ":")
 					if len(parts) != 2 {
-						glog.V(2).Infof("Invalid image stream tag: %q", bc.Spec.Output.To.Name)
-						return details, existingDeployments, latestDeploymentExists, nil
+						return "", existingDeployments, latestDeploymentExists, fmt.Errorf("invalid image stream tag: %q", bc.Spec.Output.To.Name)
 					}
 					if parts[0] == name && parts[1] == tag {
-						details = fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream tag %q does not exist.\n\tIf image stream tag %q is expected, check build config %q which produces image stream tag %q.", istag, istag, istag, bc.Name, istag)
+						isTagBuilds[istag] = bc.Name
 						break
 					}
 				}
@@ -250,25 +240,37 @@ func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentCon
 			// Try to see if the image stream exists, if not then the build will never be able to update the
 			// tag in question
 			if _, err := c.osClient.ImageStreams(config.Namespace).Get(name); err != nil {
-				glog.V(2).Infof("Error while trying to get image stream %q: %v", name, err)
-				if errors.IsNotFound(err) {
-					details = fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream %q does not exist.", istag, name)
+				if !errors.IsNotFound(err) {
+					return "", existingDeployments, latestDeploymentExists, fmt.Errorf("couldn't get image stream %q: %v", name, err)
 				}
+				isTagsMissingStreams[istag] = name
 			}
 		}
-		allDetails = append(allDetails, details)
 	}
 
-	if len(allDetails) > 1 {
-		for i := range allDetails {
-			allDetails[i] = fmt.Sprintf("\t* %s", allDetails[i])
+	details := []string{}
+	for _, isTagName := range invalidIsTags {
+		if streamName, missingStream := isTagsMissingStreams[isTagName]; missingStream {
+			details = append(details, fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream %q does not exist.", isTagName, streamName))
+			continue
+		}
+		if buildName, hasBuild := isTagBuilds[isTagName]; hasBuild {
+			details = append(details, fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream tag %q does not exist.\n\tIf image stream tag %q is expected, check build config %q which produces image stream tag %q.", isTagName, isTagName, isTagName, buildName, isTagName))
+		} else {
+			details = append(details, fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream tag %q does not exist.", isTagName, isTagName))
+		}
+	}
+
+	if len(details) > 1 {
+		for i := range details {
+			details[i] = fmt.Sprintf("\t* %s", details[i])
 		}
 		// Prepend multiple errors warning
 		multipleErrWarning := fmt.Sprintf("Deployment config %q blocked by multiple errors:\n", config.Name)
-		allDetails = append([]string{multipleErrWarning}, allDetails...)
+		details = append([]string{multipleErrWarning}, details...)
 	}
 
-	return strings.Join(allDetails, "\n"), existingDeployments, latestDeploymentExists, nil
+	return strings.Join(details, "\n"), existingDeployments, latestDeploymentExists, nil
 }
 
 // updateDetails updates a deployment configuration with the provided details

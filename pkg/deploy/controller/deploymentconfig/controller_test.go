@@ -493,7 +493,7 @@ func TestFindDetails(t *testing.T) {
 			},
 			expectedDetails: "",
 			expectedLatest:  true,
-			expectedErr:     false,
+			expectedErr:     true,
 		},
 		{
 			name:           "found istag",
@@ -764,7 +764,10 @@ func TestFindDetails(t *testing.T) {
 				},
 			})
 		}
-
+		// This should be recalculated for each scenario.
+		config.Details = &deployapi.DeploymentDetails{
+			Message: "preexisting message",
+		}
 		if test.hasDeployments {
 			existingDeployments.Items = []kapi.ReplicationController{}
 			d := mkdeployment(test.version)
