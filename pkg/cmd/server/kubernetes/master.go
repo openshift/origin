@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	endpointcontroller "k8s.io/kubernetes/pkg/controller/endpoint"
+	gccontroller "k8s.io/kubernetes/pkg/controller/gc"
 	jobcontroller "k8s.io/kubernetes/pkg/controller/job"
 	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
 	nodecontroller "k8s.io/kubernetes/pkg/controller/node"
@@ -147,6 +148,14 @@ func (c *MasterConfig) RunScheduler() {
 func (c *MasterConfig) RunResourceQuotaManager() {
 	resourceQuotaManager := resourcequotacontroller.NewResourceQuotaController(c.KubeClient)
 	resourceQuotaManager.Run(c.ControllerManager.ResourceQuotaSyncPeriod)
+}
+
+// RunGCController starts the pod garbage collector if it's above threshold
+func (c *MasterConfig) RunGCController() {
+	if c.ControllerManager.TerminatedPodGCThreshold > 0 {
+		resourceQuotaManager := gccontroller.New(c.KubeClient, c.ControllerManager.ResyncPeriod, c.ControllerManager.TerminatedPodGCThreshold)
+		resourceQuotaManager.Run(util.NeverStop)
+	}
 }
 
 // RunNodeController starts the node controller
