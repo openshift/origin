@@ -297,6 +297,11 @@ var CheckPodIsRunningFunc = func(pod kapi.Pod) bool {
 	return pod.Status.Phase == kapi.PodRunning
 }
 
+// CheckPodIsSucceededFunc returns true if the pod status is "Succdeded"
+var CheckPodIsSucceededFunc = func(pod kapi.Pod) bool {
+	return pod.Status.Phase == kapi.PodSucceeded
+}
+
 // WaitUntilPodIsGone waits until the named Pod will disappear
 func WaitUntilPodIsGone(c kclient.PodInterface, podName string, timeout time.Duration) error {
 	return wait.Poll(1*time.Second, timeout, func() (bool, error) {
