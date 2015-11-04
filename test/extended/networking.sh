@@ -24,6 +24,14 @@ os::log::install_errexit
 NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-.etworking[:]*}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 
+DEFAULT_SKIP_LIST=(
+  # intra-pod test is currrently broken for origin
+  "Networking should function for intra-pod"
+
+  # DNS inside container fails in CI but works locally
+  "should provide Internet connection for containers"
+)
+
 CLUSTER_CMD="${OS_ROOT}/hack/dind-cluster.sh"
 
 # Control variable to limit unnecessary cleanup
@@ -119,6 +127,9 @@ function test-osdn-plugin() {
   rmdir "${OPENSHIFT_CONFIG_ROOT}"
 }
 
+
+function join { local IFS="$1"; shift; echo "$*"; }
+
 function run-extended-tests() {
   local config_root=$1
   local log_path=${2:-}
@@ -127,8 +138,8 @@ function run-extended-tests() {
   local skip_regex="${NETWORKING_E2E_SKIP}"
 
   if [ -z "${skip_regex}" ]; then
-      # The intra-pod test is currently broken for origin.
-      skip_regex='Networking.*intra-pod'
+      skip_regex=$(join '|' "${DEFAULT_SKIP_LIST[@]}")
+
       local conf_path="${config_root}/openshift.local.config"
       # Only the multitenant plugin can pass the isolation test
       if ! grep -q 'redhat/openshift-ovs-multitenant' \
