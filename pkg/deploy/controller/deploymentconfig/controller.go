@@ -56,20 +56,17 @@ func (e transientError) Error() string {
 
 // Handle processes config and creates a new deployment if necessary.
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
-	// Inspect a deployment configuration every time the controller reconciles it
-	details, existingDeployments, latestDeploymentExists, err := c.findDetails(config)
-	if err != nil {
-		return err
-	}
-	config, err = c.updateDetails(config, details)
-	if err != nil {
-		return transientError(err.Error())
-	}
+	// TODO(danmace): Don't use findDetails yet. See: https://github.com/openshift/origin/pull/5530
 
 	// Only deploy when the version has advanced past 0.
 	if config.LatestVersion == 0 {
 		glog.V(5).Infof("Waiting for first version of %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
+	}
+
+	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
+	if err != nil {
+		return err
 	}
 
 	var inflightDeployment *kapi.ReplicationController
@@ -104,6 +101,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	}
 
 	// if the latest deployment exists then nothing else needs to be done
+	latestDeploymentExists, _ := deployutil.LatestDeploymentInfo(config, existingDeployments)
 	if latestDeploymentExists {
 		return nil
 	}
@@ -184,6 +182,7 @@ func (i *deploymentClientImpl) updateDeployment(namespace string, deployment *ka
 
 // findDetails inspects the given deployment configuration for any failure causes
 // and returns any found details about it
+// TODO(danmace): Don't use findDetails yet. See: https://github.com/openshift/origin/pull/5530
 func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentConfig) (string, *kapi.ReplicationControllerList, bool, error) {
 	// Check if any existing inflight deployments (any non-terminal state).
 	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
