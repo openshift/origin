@@ -246,6 +246,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 							},
 						},
 					},
+					ImagePullSecrets: []kapi.LocalObjectReference{
+						{
+							Name: "secret-1",
+						},
+					},
 				},
 			},
 		},
@@ -294,6 +299,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 									kapi.ResourceMemory: resource.MustParse("10M"),
 								},
 							},
+						},
+					},
+					ImagePullSecrets: []kapi.LocalObjectReference{
+						{
+							Name: "secret-1",
 						},
 					},
 				},
@@ -509,6 +519,11 @@ func deployment(name, namespace string) *kapi.ReplicationController {
 						},
 						RestartPolicy: kapi.RestartPolicyAlways,
 						DNSPolicy:     kapi.DNSClusterFirst,
+						ImagePullSecrets: []kapi.LocalObjectReference{
+							{
+								Name: "secret-1",
+							},
+						},
 					},
 					ObjectMeta: kapi.ObjectMeta{
 						Labels: map[string]string{"a": "b"},
