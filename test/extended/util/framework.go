@@ -95,20 +95,20 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 	return err
 }
 
-// CheckBuildSuccessFunc returns true if the build succeeded
-var CheckBuildSuccessFunc = func(b *buildapi.Build) bool {
+// CheckBuildSuccessFn returns true if the build succeeded
+var CheckBuildSuccessFn = func(b *buildapi.Build) bool {
 	return b.Status.Phase == buildapi.BuildPhaseComplete
 }
 
-// CheckBuildFailedFunc return true if the build failed
-var CheckBuildFailedFunc = func(b *buildapi.Build) bool {
+// CheckBuildFailedFn return true if the build failed
+var CheckBuildFailedFn = func(b *buildapi.Build) bool {
 	return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
 }
 
 // WaitForBuilderAccount waits until the builder service account gets fully
 // provisioned
 func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
-	waitFunc := func() (bool, error) {
+	waitFn := func() (bool, error) {
 		sc, err := c.Get("builder")
 		if err != nil {
 			// If we can't access the service accounts, let's wait till the controller
@@ -125,7 +125,7 @@ func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
 		}
 		return false, nil
 	}
-	return wait.Poll(time.Duration(100*time.Millisecond), time.Duration(60*time.Second), waitFunc)
+	return wait.Poll(time.Duration(100*time.Millisecond), time.Duration(60*time.Second), waitFn)
 }
 
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
@@ -173,14 +173,14 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 	}
 }
 
-// CheckImageStreamLatestTagPopulatedFunc returns true if the imagestream has a ':latest' tag filed
-var CheckImageStreamLatestTagPopulatedFunc = func(i *imageapi.ImageStream) bool {
+// CheckImageStreamLatestTagPopulatedFn returns true if the imagestream has a ':latest' tag filed
+var CheckImageStreamLatestTagPopulatedFn = func(i *imageapi.ImageStream) bool {
 	_, ok := i.Status.Tags["latest"]
 	return ok
 }
 
-// CheckImageStreamTagNotFoundFunc return true if the imagestream update was not successful
-var CheckImageStreamTagNotFoundFunc = func(i *imageapi.ImageStream) bool {
+// CheckImageStreamTagNotFoundFn return true if the imagestream update was not successful
+var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
 	return strings.Contains(i.Annotations[imageapi.DockerImageRepositoryCheckAnnotation], "not") ||
 		strings.Contains(i.Annotations[imageapi.DockerImageRepositoryCheckAnnotation], "error")
 }
@@ -235,13 +235,13 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 	}
 }
 
-// CheckDeploymentCompletedFunc returns true if the deployment completed
-var CheckDeploymentCompletedFunc = func(d *kapi.ReplicationController) bool {
+// CheckDeploymentCompletedFn returns true if the deployment completed
+var CheckDeploymentCompletedFn = func(d *kapi.ReplicationController) bool {
 	return d.Annotations[deployapi.DeploymentStatusAnnotation] == string(deployapi.DeploymentStatusComplete)
 }
 
-// CheckDeploymentFailedFunc returns true if the deployment failed
-var CheckDeploymentFailedFunc = func(d *kapi.ReplicationController) bool {
+// CheckDeploymentFailedFn returns true if the deployment failed
+var CheckDeploymentFailedFn = func(d *kapi.ReplicationController) bool {
 	return d.Annotations[deployapi.DeploymentStatusAnnotation] == string(deployapi.DeploymentStatusFailed)
 }
 
@@ -277,13 +277,13 @@ func WaitForPods(c kclient.PodInterface, label labels.Selector, predicate func(k
 	return podNames, err
 }
 
-// CheckPodIsRunningFunc returns true if the pod is running
-var CheckPodIsRunningFunc = func(pod kapi.Pod) bool {
+// CheckPodIsRunningFn returns true if the pod is running
+var CheckPodIsRunningFn = func(pod kapi.Pod) bool {
 	return pod.Status.Phase == kapi.PodRunning
 }
 
-// CheckPodIsSucceededFunc returns true if the pod status is "Succdeded"
-var CheckPodIsSucceededFunc = func(pod kapi.Pod) bool {
+// CheckPodIsSucceededFn returns true if the pod status is "Succdeded"
+var CheckPodIsSucceededFn = func(pod kapi.Pod) bool {
 	return pod.Status.Phase == kapi.PodSucceeded
 }
 
@@ -446,7 +446,7 @@ func FixturePath(elem ...string) string {
 // FetchURL grabs the output from the specified url and returns it.
 // It will retry once per second for duration retryTimeout if an error occurs during the request.
 func FetchURL(url string, retryTimeout time.Duration) (response string, err error) {
-	waitFunc := func() (bool, error) {
+	waitFn := func() (bool, error) {
 		r, err := http.Get(url)
 		if err != nil || r.StatusCode != 200 {
 			// lie to the poller that we didn't get an error even though we did
@@ -458,7 +458,7 @@ func FetchURL(url string, retryTimeout time.Duration) (response string, err erro
 		response = string(bytes)
 		return true, nil
 	}
-	pollErr := wait.Poll(time.Duration(1*time.Second), retryTimeout, waitFunc)
+	pollErr := wait.Poll(time.Duration(1*time.Second), retryTimeout, waitFn)
 	if pollErr == wait.ErrWaitTimeout {
 		return "", fmt.Errorf("Timed out while fetching url %q", url)
 	}

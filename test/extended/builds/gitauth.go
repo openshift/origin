@@ -64,7 +64,7 @@ var _ = g.Describe("builds: parallel: gitauth: Check build for private source re
 
 			g.By("expecting the deployment of the gitserver to be in the Complete phase")
 			err = exutil.WaitForADeployment(oc.KubeREST().ReplicationControllers(oc.Namespace()), gitServerDeploymentConfigName,
-				exutil.CheckDeploymentCompletedFunc, exutil.CheckDeploymentFailedFunc)
+				exutil.CheckDeploymentCompletedFn, exutil.CheckDeploymentFailedFn)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("creating a new secret for the gitserver by calling oc secrets new-basicauth %s --username=%s --password=%s --cacert=%s",
@@ -88,7 +88,7 @@ var _ = g.Describe("builds: parallel: gitauth: Check build for private source re
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("expecting build %s to complete successfully", buildName))
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})

@@ -17,7 +17,7 @@ var _ = g.Describe("images: s2i: python", func() {
 		oc               = exutil.NewCLI("s2i-python", exutil.KubeConfigPath())
 		djangoRepository = "https://github.com/openshift/django-ex.git"
 		modifyCommand    = []string{"sed", "-ie", `s/'count': PageView.objects.count()/'count': 1337/`, "welcome/views.py"}
-		pageCountFunc    = func(count int) string { return fmt.Sprintf("Page views: %d", count) }
+		pageCountFn      = func(count int) string { return fmt.Sprintf("Page views: %d", count) }
 		dcName           = "django-ex-1"
 		dcLabel          = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
 	)
@@ -30,7 +30,7 @@ var _ = g.Describe("images: s2i: python", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "django-ex-1", exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "django-ex-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")
@@ -38,10 +38,10 @@ var _ = g.Describe("images: s2i: python", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			assertPageCountIs := func(i int) {
-				_, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFunc, 1, 120*time.Second)
+				_, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 120*time.Second)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				result, err := CheckPageContains(oc, "django-ex", "", pageCountFunc(i))
+				result, err := CheckPageContains(oc, "django-ex", "", pageCountFn(i))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(result).To(o.BeTrue())
 			}

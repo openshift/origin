@@ -48,7 +48,7 @@ var _ = g.Describe("cli: parallel: oc rsync", func() {
 			podName = pods.Items[0].Name
 		})
 
-		testRsyncFunc := func(strategy string) func() {
+		testRsyncFn := func(strategy string) func() {
 			return func() {
 				g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --strategy=%s", sourcePath1, podName, strategy))
 				err := oc.Run("rsync").Args(
@@ -140,7 +140,7 @@ var _ = g.Describe("cli: parallel: oc rsync", func() {
 		}
 
 		for _, strategy := range strategies {
-			g.It(fmt.Sprintf("should copy files with the %s strategy", strategy), testRsyncFunc(strategy))
+			g.It(fmt.Sprintf("should copy files with the %s strategy", strategy), testRsyncFn(strategy))
 		}
 	})
 })

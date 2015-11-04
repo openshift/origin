@@ -24,7 +24,7 @@ var _ = g.Describe("Job", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("Waiting for pod..."))
-			podNames, err := exeutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), exeutil.ParseLabelsOrDie("app=pi"), exeutil.CheckPodIsSucceededFunc, 1, 120*time.Second)
+			podNames, err := exeutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), exeutil.ParseLabelsOrDie("app=pi"), exeutil.CheckPodIsSucceededFn, 1, 120*time.Second)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(podNames)).Should(o.Equal(1))
 			podName := podNames[0]
