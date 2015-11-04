@@ -131,7 +131,7 @@ os::cmd::expect_success 'oc delete clusterrole/cluster-status --cascade=false'
 os::cmd::expect_failure 'oc get clusterrole/cluster-status'
 os::cmd::expect_success 'oadm policy reconcile-cluster-roles'
 os::cmd::expect_failure 'oc get clusterrole/cluster-status'
-os::cmd::expect_success 'oadm policy reconcile-cluster-roles --confirm'
+os::cmd::expect_success 'oadm policy reconcile-cluster-roles --confirm --loglevel=8'
 os::cmd::expect_success 'oc get clusterrole/cluster-status'
 # check the reconcile again with a specific cluster role name
 os::cmd::expect_success 'oc delete clusterrole/cluster-status --cascade=false'
