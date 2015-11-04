@@ -172,7 +172,10 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 		build.Status.Reason = buildapi.StatusReasonCannotCreateBuildPod
 		return fmt.Errorf("failed to create build pod: %v", err)
 	}
-
+	if build.Annotations == nil {
+		build.Annotations = make(map[string]string)
+	}
+	build.Annotations[buildapi.BuildPodNameAnnotation] = podSpec.Name
 	glog.V(4).Infof("Created pod for build: %#v", podSpec)
 	return nil
 }
