@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# We want to supress the hostkey check
-SSH_OPTS='-o StrictHostKeyChecking=no'
-
 # echoes args to stderr and exits
 die () {
     echo "$*" 1>&2
@@ -39,10 +36,11 @@ filter_env () {
 
 log_system () {
     logpath=$1
+    sevice_name=$2
 
     echo_and_eval  journalctl --boot                                  &> $logpath/journal-full
-    echo_and_eval  journalctl -u $aos_master_service                  &> $logpath/journal-openshift
-    echo_and_eval  systemctl show $aos_master_service                 &> $logpath/systemctl-show
+    echo_and_eval  journalctl -u $service_name                        &> $logpath/journal-openshift
+    echo_and_eval  systemctl show $service_name                       &> $logpath/systemctl-show
     echo_and_eval  nmcli --nocheck -f all dev show                    &> $logpath/nmcli-dev
     echo_and_eval  nmcli --nocheck -f all con show                    &> $logpath/nmcli-con
     echo_and_eval  head -1000 /etc/sysconfig/network-scripts/ifcfg-*  &> $logpath/ifcfg
@@ -73,13 +71,16 @@ do_master () {
     mkdir -p $logmaster
 
     # Log the generic system stuff
-    log_system $logmaster
+    log_system $logmaster $aos_master_service
 
     # And the master specific stuff
-    echo_and_eval  oc get nodes                     -o json           &> $logmaster/nodes
-    echo_and_eval  oc get pods     --all-namespaces -o json           &> filter_env >& $logmaster/pods
-    echo_and_eval  oc get services --all-namespaces -o json           &> $logmaster/services
-    echo_and_eval  oc get routes   --all-namespaces -o json           &> $logmaster/aos_routes
+    echo_and_eval  oc get nodes                     -o yaml               &> $logmaster/nodes
+    echo_and_eval  oc get pods     --all-namespaces -o yaml  | filter_env &> $logmaster/pods
+    echo_and_eval  oc get services --all-namespaces -o yaml               &> $logmaster/services
+    echo_and_eval  oc get routes   --all-namespaces -o yaml               &> $logmaster/aos_routes
+    echo_and_eval  oc get clusternetwork            -o yaml               &> $logmaster/clusternetwork
+    echo_and_eval  oc get hostsubnets               -o yaml               &> $logmaster/hostsubnets
+    echo_and_eval  oc get netnamespaces             -o yaml               &> $logmaster/netnamespaces
 
     for node in $nodes; do
 	reg_ip=$(oc get node $node --template '{{range .status.addresses}}{{if eq .type "InternalIP"}}{{.address}}{{end}}{{end}}')
@@ -200,7 +201,7 @@ do_pod_to_pod_connectivity_check () {
     echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${other_pod_port},reg0=${other_pod_vnid},ip,nw_src=${other_pod_addr},nw_dst=${base_pod_addr},dl_dst=${base_pod_ether}"
     echo ""
 
-    if nsenter -n -t $base_pod_pid  ping -c 1 -W 2 $other_pod_addr  &> /dev/null; then
+    if nsenter -n -t $base_pod_pid -- ping -c 1 -W 2 $other_pod_addr  &> /dev/null; then
 	echo "ping $other_pod_addr  ->  success"
     else
 	echo "ping $other_pod_addr  ->  failed"
@@ -230,7 +231,7 @@ do_pod_external_connectivity_check () {
     echo_and_eval ovs-appctl ofproto/trace br0 "in_port=2,ip,nw_src=198.51.100.1,nw_dst=${base_pod_addr},dl_dst=${base_pod_ether}"
     echo ""
 
-    if nsenter -n -t $base_pod_pid  ping -c 1 -W 2 www.redhat.com  &> /dev/null; then
+    if nsenter -n -t $base_pod_pid -- ping -c 1 -W 2 www.redhat.com  &> /dev/null; then
 	echo "ping www.redhat.com  ->  success"
     else
 	echo "ping www.redhat.com  ->  failed"
@@ -292,7 +293,7 @@ do_node () {
     mkdir -p $lognode
 
     # Log the generic system stuff
-    log_system $lognode
+    log_system $lognode $aos_node_service
 
     # Log some node-only information
     echo_and_eval  brctl show                              &> $lognode/bridges
@@ -318,8 +319,8 @@ do_node () {
 	    continue
 	fi
 
-	echo_and_eval nsenter -n -t $pid  ip addr  show  &> $logpod/addresses
-	echo_and_eval nsenter -n -t $pid  ip route show  &> $logpod/routes
+	echo_and_eval nsenter -n -t $pid -- ip addr  show  &> $logpod/addresses
+	echo_and_eval nsenter -n -t $pid -- ip route show  &> $logpod/routes
 
 	# If we haven't found a local pod yet, or if we have, but it's
 	# in the default namespace, then make this the new base pod.
@@ -346,7 +347,7 @@ do_node () {
 	echo "Could not find VNID for ${base_pod_addr}!"
 	return
     fi
-    base_pod_ether=$(nsenter -n -t $base_pod_pid  ip a | sed -ne "s/.*link.ether \([^ ]*\) .*/\1/p")
+    base_pod_ether=$(nsenter -n -t $base_pod_pid -- ip a | sed -ne "s/.*link.ether \([^ ]*\) .*/\1/p")
     if [ -z "$base_pod_ether" ]; then
 	echo "Could not find MAC address for ${base_pod_addr}!"
 	return
@@ -433,7 +434,9 @@ run_self_via_ssh () {
     host=$2
     remote_logdir=$3
 
-    if ! try_eval ssh $SSH_OPTS -o PasswordAuthentication=no root@$host /bin/true; then
+    SSH_OPTS='-o StrictHostKeyChecking=no -o PasswordAuthentication=no'
+
+    if ! try_eval ssh $SSH_OPTS root@$host /bin/true; then
 	return 1
     fi
 
