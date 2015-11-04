@@ -157,6 +157,7 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
 	experimental.AddCommand(diagnostics.NewCommandDiagnostics("diagnostics", fullName+" diagnostics", out))
 	experimental.AddCommand(syncgroups.NewCmdSyncGroups(syncgroups.SyncGroupsRecommendedName, fullName+" "+syncgroups.SyncGroupsRecommendedName, f, out))
+	experimental.AddCommand(syncgroups.NewCmdPruneGroups(syncgroups.PruneGroupsRecommendedName, fullName+" "+syncgroups.PruneGroupsRecommendedName, f, out))
 	experimental.AddCommand(cmd.NewCmdOptions(out))
 	return experimental
 }

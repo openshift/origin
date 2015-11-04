@@ -35,3 +35,8 @@ type LDAPGroupListerNameMapper interface {
 	LDAPGroupLister
 	LDAPGroupNameMapper
 }
+
+// LDAPGroupDetector determines if a group identified by an LDAP group UID exists on the LDAP server
+type LDAPGroupDetector interface {
+	Exists(ldapGroupUID string) (exists bool, err error)
+}

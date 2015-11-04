@@ -7,46 +7,29 @@ import (
 	"github.com/go-ldap/ldap"
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-// errEntryNotFound is an error that occurs when trying to find a specific entry fails.
-type errEntryNotFound struct {
-}
-
-// Error returns the error string for the out-of-bounds query
-func (e *errEntryNotFound) Error() string {
-	return "search for entry did not return any results"
-}
-
-func IsEntryNotFoundError(err error) bool {
-	if err == nil {
-		return false
+// NewLDAPQuery converts a user-provided LDAPQuery into a version we can use
+func NewLDAPQuery(config api.LDAPQuery) (LDAPQuery, error) {
+	scope, err := DetermineLDAPScope(config.Scope)
+	if err != nil {
+		return LDAPQuery{}, err
 	}
 
-	_, ok := err.(*errEntryNotFound)
-	return ok
-}
-
-// errQueryOutOfBounds is an error that occurs when trying to search by DN for an entry that exists
-// outside of the tree specified with the BaseDN for search.
-type errQueryOutOfBounds struct {
-	BaseDN  string
-	QueryDN string
-}
-
-// Error returns the error string for the out-of-bounds query
-func (q *errQueryOutOfBounds) Error() string {
-	return fmt.Sprintf("search for entry with dn=%q would search outside of the base dn specified (dn=%q)", q.QueryDN, q.BaseDN)
-}
-
-func IsQueryOutOfBoundsError(err error) bool {
-	if err == nil {
-		return false
+	derefAliases, err := DetermineDerefAliasesBehavior(config.DerefAliases)
+	if err != nil {
+		return LDAPQuery{}, err
 	}
 
-	_, ok := err.(*errQueryOutOfBounds)
-	return ok
+	return LDAPQuery{
+		BaseDN:       config.BaseDN,
+		Scope:        scope,
+		DerefAliases: derefAliases,
+		TimeLimit:    config.TimeLimit,
+		Filter:       config.Filter,
+	}, nil
 }
 
 // LDAPQuery encodes an LDAP query
@@ -84,39 +67,6 @@ func (q *LDAPQuery) NewSearchRequest(additionalAttributes []string) *ldap.Search
 	)
 }
 
-// LDAPQueryOnAttribute encodes an LDAP query that conjoins two filters to extract a specific LDAP entry
-// This query is not self-sufficient and needs the value of the QueryAttribute to construct the final filter
-type LDAPQueryOnAttribute struct {
-	// Query retrieves entries from an LDAP server
-	LDAPQuery
-
-	// QueryAttribute is the attribute for a specific filter that, when conjoined with the common filter,
-	// retrieves the specific LDAP entry from the LDAP server. (e.g. "cn", when formatted with "aGroupName"
-	// and conjoined with "objectClass=groupOfNames", becomes (&(objectClass=groupOfNames)(cn=aGroupName))")
-	QueryAttribute string
-}
-
-// NewLDAPQuery converts a user-provided LDAPQuery into a version we can use
-func NewLDAPQuery(config api.LDAPQuery) (LDAPQuery, error) {
-	scope, err := DetermineLDAPScope(config.Scope)
-	if err != nil {
-		return LDAPQuery{}, err
-	}
-
-	derefAliases, err := DetermineDerefAliasesBehavior(config.DerefAliases)
-	if err != nil {
-		return LDAPQuery{}, err
-	}
-
-	return LDAPQuery{
-		BaseDN:       config.BaseDN,
-		Scope:        scope,
-		DerefAliases: derefAliases,
-		TimeLimit:    config.TimeLimit,
-		Filter:       config.Filter,
-	}, nil
-}
-
 // NewLDAPQueryOnAttribute converts a user-provided LDAPQuery into a version we can use by parsing
 // the input and combining it with a set of name attributes
 func NewLDAPQueryOnAttribute(config api.LDAPQuery, attribute string) (LDAPQueryOnAttribute, error) {
@@ -131,15 +81,27 @@ func NewLDAPQueryOnAttribute(config api.LDAPQuery, attribute string) (LDAPQueryO
 	}, nil
 }
 
+// LDAPQueryOnAttribute encodes an LDAP query that conjoins two filters to extract a specific LDAP entry
+// This query is not self-sufficient and needs the value of the QueryAttribute to construct the final filter
+type LDAPQueryOnAttribute struct {
+	// Query retrieves entries from an LDAP server
+	LDAPQuery
+
+	// QueryAttribute is the attribute for a specific filter that, when conjoined with the common filter,
+	// retrieves the specific LDAP entry from the LDAP server. (e.g. "cn", when formatted with "aGroupName"
+	// and conjoined with "objectClass=groupOfNames", becomes (&(objectClass=groupOfNames)(cn=aGroupName))")
+	QueryAttribute string
+}
+
 // NewSearchRequest creates a new search request from the identifying query by internalizing the value of
 // the attribute to be filtered as well as any attributes that need to be recovered
 func (o *LDAPQueryOnAttribute) NewSearchRequest(attributeValue string, attributes []string) (*ldap.SearchRequest, error) {
 	if strings.EqualFold(o.QueryAttribute, "dn") {
-		if !strings.Contains(attributeValue, o.BaseDN) {
-			return nil, &errQueryOutOfBounds{QueryDN: attributeValue, BaseDN: o.BaseDN}
-		}
 		if _, err := ldap.ParseDN(attributeValue); err != nil {
 			return nil, fmt.Errorf("could not search by dn, invalid dn value: %v", err)
+		}
+		if !strings.Contains(attributeValue, o.BaseDN) {
+			return nil, NewQueryOutOfBoundsError(attributeValue, o.BaseDN)
 		}
 		return o.buildDNQuery(attributeValue, attributes), nil
 
@@ -190,14 +152,14 @@ func (o *LDAPQueryOnAttribute) buildAttributeQuery(attributeValue string,
 
 // QueryForUniqueEntry queries for an LDAP entry with the given searchRequest. The query is expected
 // to return one unqiue result. If this is not the case, errors are raised
-func QueryForUniqueEntry(clientConfig *LDAPClientConfig, query *ldap.SearchRequest) (*ldap.Entry, error) {
+func QueryForUniqueEntry(clientConfig ldapclient.Config, query *ldap.SearchRequest) (*ldap.Entry, error) {
 	result, err := QueryForEntries(clientConfig, query)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(result) == 0 {
-		return nil, &errEntryNotFound{}
+		return nil, NewEntryNotFoundError(query.BaseDN, query.Filter)
 	}
 
 	if len(result) > 1 {
@@ -225,20 +187,25 @@ func formatResult(results []*ldap.Entry) string {
 }
 
 // QueryForEntries queries for LDAP with the given searchRequest
-func QueryForEntries(clientConfig *LDAPClientConfig, query *ldap.SearchRequest) ([]*ldap.Entry, error) {
+func QueryForEntries(clientConfig ldapclient.Config, query *ldap.SearchRequest) ([]*ldap.Entry, error) {
 	connection, err := clientConfig.Connect()
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to the LDAP server: %v", err)
 	}
 	defer connection.Close()
 
-	if _, err := clientConfig.Bind(connection); err != nil {
-		return nil, fmt.Errorf("could not bind to the LDAP server: %v", err)
+	if bindDN, bindPassword := clientConfig.GetBindCredentials(); len(bindDN) > 0 {
+		if err := connection.Bind(bindDN, bindPassword); err != nil {
+			return nil, fmt.Errorf("could not bind to the LDAP server: %v", err)
+		}
 	}
 
-	glog.V(4).Infof("searching LDAP server %v://%v at dn=%q with scope %v for %s requesting %v", clientConfig.Scheme, clientConfig.Host, query.BaseDN, query.Scope, query.Filter, query.Attributes)
+	glog.V(4).Infof("searching LDAP server with config %v with dn=%q and scope %v for %s requesting %v", clientConfig, query.BaseDN, query.Scope, query.Filter, query.Attributes)
 	searchResult, err := connection.Search(query)
 	if err != nil {
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+			return nil, NewNoSuchObjectError(query.BaseDN)
+		}
 		return nil, err
 	}
 

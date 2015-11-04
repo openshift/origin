@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-func ValidateLDAPSyncConfig(config api.LDAPSyncConfig) ValidationResults {
+func ValidateLDAPSyncConfig(config *api.LDAPSyncConfig) ValidationResults {
 	validationResults := ValidateLDAPClientConfig(config.URL, config.BindDN, config.BindPassword, config.CA, config.Insecure)
 
 	schemaConfigsFound := []string{}

@@ -500,7 +500,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 
 		opts := ldappassword.Options{
 			URL:                  url,
-			ClientConfig:         *clientConfig,
+			ClientConfig:         clientConfig,
 			UserAttributeDefiner: ldaputil.NewLDAPUserAttributeDefiner(provider.Attributes),
 		}
 		return ldappassword.New(identityProvider.Name, opts, identityMapper)
