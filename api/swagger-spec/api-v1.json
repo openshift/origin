@@ -14741,6 +14741,7 @@
    "v1.SecurityContextConstraints": {
     "id": "v1.SecurityContextConstraints",
     "required": [
+     "priority",
      "allowPrivilegedContainer",
      "allowedCapabilities",
      "allowHostDirVolumePlugin",
@@ -14760,6 +14761,11 @@
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
+     },
+     "priority": {
+      "type": "integer",
+      "format": "int32",
+      "description": "determines which SCC is used when multiple SCCs allow a particular pod; higher priority SCCs are preferred"
      },
      "allowPrivilegedContainer": {
       "type": "boolean",

@@ -83,6 +83,7 @@
 }
 
 .log-link-external {
+  text-align: right;
   a {
     margin-left: 20px;
   }
@@ -99,18 +100,19 @@
   }
 }
 .log-line-number {
+  .flex(@columns: 0 0 60px); // set width of number column
   &:hover, &:focus {
     background-color: lighten(@log-bg-color, 13%);
     color: @link-hover-color-bright;
   }
   div {
-    width: 60px;
     padding-right: 10px;
   }
 }
 .log-line-text {
   padding: 0 10px;
   white-space: pre-wrap;
+  .word-break();
 }
 .log-chromeless {
   margin-top: -1px;

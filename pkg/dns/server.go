@@ -3,6 +3,8 @@ package dns
 import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 
+	"github.com/golang/glog"
+
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/prometheus/client_golang/prometheus"
 	backendetcd "github.com/skynetservices/skydns/backends/etcd"
@@ -12,8 +14,9 @@ import (
 // NewServerDefaults returns the default SkyDNS server configuration for a DNS server.
 func NewServerDefaults() (*server.Config, error) {
 	config := &server.Config{
-		Domain: "cluster.local.",
-		Local:  "openshift.default.svc.cluster.local.",
+		Domain:  "cluster.local.",
+		Local:   "openshift.default.svc.cluster.local.",
+		Verbose: bool(glog.V(4)),
 	}
 	return config, server.SetDefaults(config)
 }

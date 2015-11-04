@@ -48,6 +48,46 @@ func TestMultipleRulesCoveringSingleRule(t *testing.T) {
 
 }
 
+func TestMultipleAPIGroupsCoveringSingleRule(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"group1"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("deployments")},
+			{APIGroups: []string{"group1"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("builds")},
+			{APIGroups: []string{"group1"}, Verbs: sets.NewString("update"), Resources: sets.NewString("builds", "deployments")},
+			{APIGroups: []string{"group2"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("deployments")},
+			{APIGroups: []string{"group2"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("builds")},
+			{APIGroups: []string{"group2"}, Verbs: sets.NewString("update"), Resources: sets.NewString("builds", "deployments")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"group1", "group2"}, Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("builds", "deployments")},
+		},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
+	}.test(t)
+
+}
+
+func TestSingleAPIGroupsCoveringMultiple(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"group1", "group2"}, Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("builds", "deployments")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"group1"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("deployments")},
+			{APIGroups: []string{"group1"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("builds")},
+			{APIGroups: []string{"group1"}, Verbs: sets.NewString("update"), Resources: sets.NewString("builds", "deployments")},
+			{APIGroups: []string{"group2"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("deployments")},
+			{APIGroups: []string{"group2"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("builds")},
+			{APIGroups: []string{"group2"}, Verbs: sets.NewString("update"), Resources: sets.NewString("builds", "deployments")},
+		},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
+	}.test(t)
+
+}
+
 func TestMultipleRulesMissingSingleVerbResourceCombination(t *testing.T) {
 	escalationTest{
 		ownerRules: []authorizationapi.PolicyRule{
@@ -117,6 +157,50 @@ func TestEnumeratedMissingPartOfResourceGroup(t *testing.T) {
 			{Verbs: sets.NewString("delete"), Resources: sets.NewString("buildconfigs/webhooks")},
 			{Verbs: sets.NewString("update"), Resources: sets.NewString("buildconfigs/webhooks")},
 		},
+	}.test(t)
+}
+
+func TestAPIGroupStarCoveringMultiple(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"*"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"group1", "group2"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
+		},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
+	}.test(t)
+}
+
+func TestEnumerationNotCoveringAPIGroupStar(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"dummy-group"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"*"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
+		},
+
+		expectedCovered: false,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"*"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
+		},
+	}.test(t)
+}
+
+func TestAPIGroupStarCoveringStar(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"*"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"*"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
+		},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
 	}.test(t)
 }
 

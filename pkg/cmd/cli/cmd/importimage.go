@@ -24,8 +24,8 @@ const (
 	importImageLong = `
 Import tag and image information from an external Docker image repository
 
-Only image streams that have a value set for spec.dockerImageRepository may
-have tag and image information imported.`
+Only image streams that have a value set for spec.dockerImageRepository and/or
+spec.Tags may have tag and image information imported.`
 
 	importImageExample = `  $ %[1]s import-image mystream`
 )
@@ -83,6 +83,9 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 			Spec:       imageapi.ImageStreamSpec{DockerImageRepository: from},
 		}
 	} else {
+		if len(stream.Spec.DockerImageRepository) == 0 && len(stream.Spec.Tags) == 0 {
+			return fmt.Errorf("image stream has not defined anything to import")
+		}
 		if len(from) != 0 {
 			if from != stream.Spec.DockerImageRepository {
 				if !confirm {

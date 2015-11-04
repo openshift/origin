@@ -127,7 +127,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 
 	// remove duplicate constraints and sort
 	matchedConstraints = deduplicateSecurityContextConstraints(matchedConstraints)
-	sort.Sort(ByRestrictions(matchedConstraints))
+	sort.Sort(ByPriority(matchedConstraints))
 	providers, errs := c.createProvidersFromConstraints(a.GetNamespace(), matchedConstraints)
 	logProviders(pod, providers, errs)
 

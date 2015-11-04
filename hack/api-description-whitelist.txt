@@ -233,3 +233,5 @@ unversioned.statuscause
 unversioned.statusdetails
 unversioned.patch
 unversioned.listmeta
+v1beta1.scalestatus
+v1beta1.scalespec

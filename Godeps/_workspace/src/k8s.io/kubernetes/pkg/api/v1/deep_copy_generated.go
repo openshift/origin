@@ -2130,6 +2130,12 @@ func deepCopy_v1_SecurityContextConstraints(in SecurityContextConstraints, out *
 	if err := deepCopy_v1_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
 		return err
 	}
+	if in.Priority != nil {
+		out.Priority = new(int)
+		*out.Priority = *in.Priority
+	} else {
+		out.Priority = nil
+	}
 	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
 	if in.AllowedCapabilities != nil {
 		out.AllowedCapabilities = make([]Capability, len(in.AllowedCapabilities))

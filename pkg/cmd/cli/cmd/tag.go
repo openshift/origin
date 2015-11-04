@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -25,6 +26,7 @@ type TagOptions struct {
 
 	deleteTag bool
 	aliasTag  bool
+	namespace string
 
 	ref            imageapi.DockerImageReference
 	sourceKind     string
@@ -133,9 +135,11 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	}
 
 	// Setup namespace.
-	defaultNamespace, _, err := f.DefaultNamespace()
-	if err != nil {
-		return err
+	if len(o.namespace) == 0 {
+		o.namespace, _, err = f.DefaultNamespace()
+		if err != nil {
+			return err
+		}
 	}
 
 	// Populate source.
@@ -164,7 +168,7 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 				return fmt.Errorf("server in SOURCE is only allowed when providing a Docker image")
 			}
 			if ref.Namespace == imageapi.DockerDefaultNamespace {
-				ref.Namespace = defaultNamespace
+				ref.Namespace = o.namespace
 			}
 			if sourceKind == "ImageStreamTag" {
 				if len(ref.Tag) == 0 {
@@ -195,7 +199,7 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 		if sourceKind == "ImageStreamTag" && !o.aliasTag {
 			srcNamespace := ref.Namespace
 			if len(srcNamespace) == 0 {
-				srcNamespace = defaultNamespace
+				srcNamespace = o.namespace
 			}
 			is, err := o.osClient.ImageStreams(srcNamespace).Get(ref.Name)
 			if err != nil {
@@ -227,7 +231,7 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 
 	// Populate destinations.
 	for _, arg := range args {
-		destNamespace, destNameAndTag, err := parseStreamName(defaultNamespace, arg)
+		destNamespace, destNameAndTag, err := parseStreamName(o.namespace, arg)
 		if err != nil {
 			return err
 		}
@@ -289,74 +293,93 @@ func (o TagOptions) RunTag() error {
 			return fmt.Errorf("%q must be of the form <namespace>/<stream_name>:<tag>", destNameAndTag)
 		}
 
-		isc := o.osClient.ImageStreams(o.destNamespace[i])
-		target, err := isc.Get(destName)
-		if err != nil {
-			if !kerrors.IsNotFound(err) {
+		err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+			isc := o.osClient.ImageStreams(o.destNamespace[i])
+			target, err := isc.Get(destName)
+			if err != nil {
+				if !kerrors.IsNotFound(err) {
+					return err
+				}
+
+				if o.deleteTag {
+					// Nothing to do here, continue to the next dest tag
+					// if there is any.
+					return nil
+				}
+
+				// try to create the target if it doesn't exist
+				target = &imageapi.ImageStream{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: destName,
+					},
+				}
+			}
+
+			if target.Spec.Tags == nil {
+				target.Spec.Tags = make(map[string]imageapi.TagReference)
+			}
+
+			msg := ""
+			if o.deleteTag {
+				// The user wants to delete a spec tag.
+				if _, ok := target.Spec.Tags[destTag]; !ok {
+					return fmt.Errorf("destination tag %s/%s does not exist.\n", o.destNamespace[i], destNameAndTag)
+				}
+				delete(target.Spec.Tags, destTag)
+				msg = fmt.Sprintf("Deleted tag %s/%s.", o.destNamespace[i], destNameAndTag)
+			} else {
+				// The user wants to symlink a tag.
+				targetRef, ok := target.Spec.Tags[destTag]
+				if !ok {
+					targetRef = imageapi.TagReference{}
+				}
+
+				targetRef.From = &kapi.ObjectReference{
+					Kind: o.sourceKind,
+				}
+				localRef := o.ref
+				switch o.sourceKind {
+				case "DockerImage":
+					targetRef.From.Name = localRef.String()
+				default:
+					targetRef.From.Name = localRef.NameString()
+					targetRef.From.Namespace = o.ref.Namespace
+				}
+
+				sameNamespace := o.namespace == o.destNamespace[i]
+				target.Spec.Tags[destTag] = targetRef
+				if o.aliasTag {
+					if sameNamespace {
+						msg = fmt.Sprintf("Tag %s set up to track %s.", destNameAndTag, o.ref.Exact())
+					} else {
+						msg = fmt.Sprintf("Tag %s/%s set up to track %s.", o.destNamespace[i], destNameAndTag, o.ref.Exact())
+					}
+				} else {
+					if sameNamespace {
+						msg = fmt.Sprintf("Tag %s set to %s.", destNameAndTag, o.ref.Exact())
+					} else {
+						msg = fmt.Sprintf("Tag %s/%s set to %s.", o.destNamespace[i], destNameAndTag, o.ref.Exact())
+					}
+				}
+			}
+
+			// Check the stream creation timestamp and make sure we will not
+			// create a new image stream while deleting.
+			if target.CreationTimestamp.IsZero() && !o.deleteTag {
+				_, err = isc.Create(target)
+			} else {
+				_, err = isc.Update(target)
+			}
+			if err != nil {
 				return err
 			}
 
-			if o.deleteTag {
-				// Nothing to do here, continue to the next dest tag
-				// if there is any.
-				continue
-			}
-
-			// try to create the target if it doesn't exist
-			target = &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: destName,
-				},
-			}
-		}
-
-		if target.Spec.Tags == nil {
-			target.Spec.Tags = make(map[string]imageapi.TagReference)
-		}
-
-		msg := ""
-		if !o.deleteTag {
-			// The user wants to symlink a tag.
-			targetRef, ok := target.Spec.Tags[destTag]
-			if !ok {
-				targetRef = imageapi.TagReference{}
-			}
-
-			targetRef.From = &kapi.ObjectReference{
-				Kind: o.sourceKind,
-			}
-			localRef := o.ref
-			switch o.sourceKind {
-			case "DockerImage":
-				targetRef.From.Name = localRef.String()
-			default:
-				targetRef.From.Name = localRef.NameString()
-				targetRef.From.Namespace = o.ref.Namespace
-			}
-
-			target.Spec.Tags[destTag] = targetRef
-			msg = fmt.Sprintf("Tag %s set up to track tag %s/%s.", o.ref.Exact(), o.destNamespace[i], destNameAndTag)
-		} else {
-			// The user wants to delete a spec tag.
-			if _, ok := target.Spec.Tags[destTag]; !ok {
-				return fmt.Errorf("destination tag %s/%s does not exist.\n", o.destNamespace[i], destNameAndTag)
-			}
-			delete(target.Spec.Tags, destTag)
-			msg = fmt.Sprintf("Deleted tag %s/%s.", o.destNamespace[i], destNameAndTag)
-		}
-
-		// Check the stream creation timestamp and make sure we will not
-		// create a new image stream while deleting.
-		if target.CreationTimestamp.IsZero() && !o.deleteTag {
-			_, err = isc.Create(target)
-		} else {
-			_, err = isc.Update(target)
-		}
+			fmt.Fprintln(o.out, msg)
+			return nil
+		})
 		if err != nil {
 			return err
 		}
-
-		fmt.Fprintln(o.out, msg)
 	}
 
 	return nil

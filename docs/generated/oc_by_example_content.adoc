@@ -52,19 +52,6 @@ Attach to a running container.
 ====
 
 
-== oc build-logs
-Show logs from a build
-
-====
-
-[options="nowrap"]
-----
-  # Stream logs from container
-  $ openshift cli build-logs 566bed879d2d
-----
-====
-
-
 == oc cancel-build
 Cancel a pending or running build
 
@@ -502,22 +489,22 @@ Print the logs for a resource.
 
 [options="nowrap"]
 ----
-  # Returns snapshot of ruby-container logs from pod backend.
-  $ openshift cli logs backend -c ruby-container
-
-  # Starts streaming of ruby-container logs from pod backend.
-  $ openshift cli logs -f pod/backend -c ruby-container
-
-  # Starts streaming the logs of the most recent build of the openldap build config.
+  # Start streaming the logs of the most recent build of the openldap build config.
   $ openshift cli logs -f bc/openldap
 
-  # Starts streaming the logs of the latest deployment of the mysql deployment config.
+  # Start streaming the logs of the latest deployment of the mysql deployment config.
   $ openshift cli logs -f dc/mysql
 
   # Get the logs of the first deployment for the mysql deployment config. Note that logs
   # from older deployments may not exist either because the deployment was successful
   # or due to deployment pruning or manual deletion of the deployment.
   $ openshift cli logs --version=1 dc/mysql
+
+  # Return a snapshot of ruby-container logs from pod backend.
+  $ openshift cli logs backend -c ruby-container
+
+  # Start streaming of ruby-container logs from pod backend.
+  $ openshift cli logs -f pod/backend -c ruby-container
 ----
 ====
 
@@ -781,7 +768,7 @@ Copy files between local filesystem and a pod
 
   # Synchronize a local directory with a pod directory
   $ openshift cli rsync ./local/dir/ POD:/remote/dir
-  
+
   # Synchronize a pod directory with a local directory
   $ openshift cli rsync POD:/remote/dir/ ./local/dir
 ----

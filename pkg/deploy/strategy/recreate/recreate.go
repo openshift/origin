@@ -2,6 +2,7 @@ package recreate
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang/glog"
@@ -48,18 +49,9 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return client.ReplicationControllers(namespace).Get(name)
 		},
-		scaler: scaler,
-		codec:  codec,
-		hookExecutor: &stratsupport.HookExecutor{
-			PodClient: &stratsupport.HookExecutorPodClientImpl{
-				CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-					return client.Pods(namespace).Create(pod)
-				},
-				PodWatchFunc: func(namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
-					return stratsupport.NewPodWatch(client, namespace, name, resourceVersion, stopChannel)
-				},
-			},
-		},
+		scaler:       scaler,
+		codec:        codec,
+		hookExecutor: stratsupport.NewHookExecutor(client, os.Stdout),
 		retryTimeout: 120 * time.Second,
 		retryPeriod:  1 * time.Second,
 	}

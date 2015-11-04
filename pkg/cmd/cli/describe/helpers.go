@@ -154,7 +154,7 @@ func webhookURL(c *buildapi.BuildConfig, cli client.BuildConfigsNamespacer) map[
 }
 
 func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) {
-	if len(stream.Status.Tags) == 0 {
+	if len(stream.Status.Tags) == 0 && len(stream.Spec.Tags) == 0 {
 		fmt.Fprintf(out, "Tags:\t<none>\n")
 		return
 	}

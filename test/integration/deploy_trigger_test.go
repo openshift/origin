@@ -10,8 +10,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/golang/glog"
-
 	kapi "k8s.io/kubernetes/pkg/api"
 	klatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/rest"
@@ -21,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/tools/etcdtest"
+	"k8s.io/kubernetes/pkg/util/wait"
 	watchapi "k8s.io/kubernetes/pkg/watch"
 	"k8s.io/kubernetes/plugin/pkg/admission/admit"
 
@@ -47,6 +46,8 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
+const maxUpdateRetries = 5
+
 func init() {
 	testutil.RequireEtcd()
 }
@@ -64,8 +65,6 @@ func TestTriggers_manual(t *testing.T) {
 		},
 	}
 
-	var err error
-
 	dc, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
@@ -77,21 +76,25 @@ func TestTriggers_manual(t *testing.T) {
 	}
 	defer watch.Stop()
 
-	config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name)
-	if err != nil {
-		t.Fatalf("Error generating config: %v", err)
+	retryErr := kclient.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
+		config, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name)
+		if err != nil {
+			return err
+		}
+		if config.LatestVersion != 1 {
+			t.Fatalf("Generated deployment should have version 1: %#v", config)
+		}
+		t.Logf("config(1): %#v", config)
+		updatedConfig, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config)
+		if err != nil {
+			return err
+		}
+		t.Logf("config(2): %#v", updatedConfig)
+		return nil
+	})
+	if retryErr != nil {
+		t.Fatal(err)
 	}
-	if config.LatestVersion != 1 {
-		t.Fatalf("Generated deployment should have version 1: %#v", config)
-	}
-	glog.Infof("config(1): %#v", config)
-
-	new, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config)
-	if err != nil {
-		t.Fatalf("Couldn't create updated DeploymentConfig: %v %#v", err, config)
-	}
-	glog.Infof("config(2): %#v", new)
-
 	event := <-watch.ResultChan()
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
@@ -243,28 +246,35 @@ func TestTriggers_configChange(t *testing.T) {
 
 	assertEnvVarEquals("ENV1", "VAL1", deployment, t)
 
-	// submit a new config with an updated environment variable
-	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name); err != nil {
-		t.Fatalf("Error generating config: %v", err)
-	}
+	retryErr := kclient.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
+		// submit a new config with an updated environment variable
+		config, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name)
+		if err != nil {
+			return err
+		}
 
-	config.Template.ControllerTemplate.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
+		config.Template.ControllerTemplate.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
 
-	// before we update the config, we need to update the state of the existing deployment
-	// this is required to be done manually since the deployment and deployer pod controllers are not run in this test
-	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
-	// update the deployment
-	if _, err = openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Update(deployment); err != nil {
-		t.Fatalf("Error updating existing deployment: %v", err)
-	}
+		// before we update the config, we need to update the state of the existing deployment
+		// this is required to be done manually since the deployment and deployer pod controllers are not run in this test
+		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
+		// update the deployment
+		if _, err := openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Update(deployment); err != nil {
+			return err
+		}
 
-	event = <-watch.ResultChan()
-	if e, a := watchapi.Modified, event.Type; e != a {
-		t.Fatalf("expected watch event type %s, got %s", e, a)
-	}
+		event = <-watch.ResultChan()
+		if e, a := watchapi.Modified, event.Type; e != a {
+			t.Fatalf("expected watch event type %s, got %s", e, a)
+		}
 
-	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
-		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
+		if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
+			return err
+		}
+		return nil
+	})
+	if retryErr != nil {
+		t.Fatal(retryErr)
 	}
 
 	event = <-watch.ResultChan()
@@ -363,8 +373,8 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
 	//imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 
-	deployConfigStorage := deployconfigetcd.NewStorage(etcdHelper)
-	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
+	deployConfigStorage := deployconfigetcd.NewStorage(etcdHelper, kubeClient)
+	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage.DeploymentConfig)
 
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
 		Client: deployconfiggenerator.Client{
@@ -380,7 +390,7 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 		"imageStreamImages":         imageStreamImageStorage,
 		"imageStreamMappings":       imageStreamMappingStorage,
 		"imageStreamTags":           imageStreamTagStorage,
-		"deploymentConfigs":         deployConfigStorage,
+		"deploymentConfigs":         deployConfigStorage.DeploymentConfig,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
 	}
 	for k, v := range storage {

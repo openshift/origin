@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	// Ensure that extensions/v1beta1 package is initialized.
 	_ "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
@@ -44,12 +43,13 @@ func validNewHorizontalPodAutoscaler(name string) *extensions.HorizontalPodAutos
 			Namespace: api.NamespaceDefault,
 		},
 		Spec: extensions.HorizontalPodAutoscalerSpec{
-			ScaleRef: &extensions.SubresourceReference{
+			ScaleRef: extensions.SubresourceReference{
+				Kind:        "ReplicationController",
+				Name:        "myrc",
 				Subresource: "scale",
 			},
-			MinReplicas: 1,
-			MaxReplicas: 5,
-			Target:      extensions.ResourceConsumption{Resource: api.ResourceCPU, Quantity: resource.MustParse("0.8")},
+			MaxReplicas:    5,
+			CPUUtilization: &extensions.CPUTargetUtilization{TargetPercentage: 70},
 		},
 	}
 }

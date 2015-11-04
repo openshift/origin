@@ -9,6 +9,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
+	osclient "github.com/openshift/origin/pkg/client"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
@@ -17,6 +18,8 @@ import (
 	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
 	nodecontroller "k8s.io/kubernetes/pkg/controller/node"
 	volumeclaimbinder "k8s.io/kubernetes/pkg/controller/persistentvolume"
+	podautoscalercontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
+	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
 	resourcequotacontroller "k8s.io/kubernetes/pkg/controller/resourcequota"
 	"k8s.io/kubernetes/pkg/master"
@@ -113,8 +116,10 @@ func (c *MasterConfig) RunJobController(client *client.Client) {
 }
 
 // RunHPAController starts the Kubernetes hpa controller sync loop
-func (c *MasterConfig) RunHPAController(client *client.Client) {
-	// TDO fix stub
+func (c *MasterConfig) RunHPAController(oc *osclient.Client, kc *client.Client, heapsterNamespace string) {
+	delegScaleNamespacer := osclient.NewDelegatingScaleNamespacer(oc, kc)
+	podautoscaler := podautoscalercontroller.NewHorizontalController(kc, delegScaleNamespacer, kc, metrics.NewHeapsterMetricsClient(kc, heapsterNamespace, "heapster"))
+	podautoscaler.Run(c.ControllerManager.HorizontalPodAutoscalerSyncPeriod)
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop

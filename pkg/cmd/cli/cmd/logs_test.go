@@ -16,7 +16,7 @@ import (
 func TestFlagParity(t *testing.T) {
 	kubeCmd := kcmd.NewCmdLog(nil, ioutil.Discard)
 	f := clientcmd.NewFactory(nil)
-	originCmd := NewCmdLogs("", f, ioutil.Discard)
+	originCmd := NewCmdLogs("oc", "logs", f, ioutil.Discard)
 
 	kubeCmd.LocalFlags().VisitAll(func(kubeFlag *pflag.Flag) {
 		originFlag := originCmd.LocalFlags().Lookup(kubeFlag.Name)

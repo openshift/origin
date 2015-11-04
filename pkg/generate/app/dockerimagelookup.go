@@ -213,6 +213,7 @@ func (r DockerRegistrySearcher) Search(terms ...string) (ComponentMatches, error
 			Score:       0,
 			Image:       dockerImage,
 			ImageTag:    ref.Tag,
+			Insecure:    r.AllowInsecure,
 			Meta:        map[string]string{"registry": ref.Registry},
 		})
 	}

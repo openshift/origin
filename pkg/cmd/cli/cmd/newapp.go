@@ -260,7 +260,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			}
 		case *buildapi.BuildConfig:
 			if len(t.Spec.Triggers) > 0 {
-				fmt.Fprintf(out, "%sBuild scheduled for %q - use the build-logs command to track its progress.\n", indent, t.Name)
+				fmt.Fprintf(out, "%sBuild scheduled for %q - use the logs command to track its progress.\n", indent, t.Name)
 			}
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
