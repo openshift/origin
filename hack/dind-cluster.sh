@@ -180,6 +180,9 @@ function start() {
   if [ "${SKIP_BUILD}" = "true" ]; then
       args="${args} -s"
   fi
+  if [ "${SDN_NODE}" = "true" ]; then
+      args="${args} -o"
+  fi
 
   echo "Provisioning ${MASTER_NAME}"
   local cmd="${SCRIPT_ROOT}/provision-master.sh ${args} -c \

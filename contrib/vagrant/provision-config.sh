@@ -27,6 +27,7 @@ NETWORK_PLUGIN=${OPENSHIFT_NETWORK_PLUGIN:-""}
 NODE_INDEX=0
 CONFIG_ROOT=${ORIGIN_ROOT}
 SKIP_BUILD=${OPENSHIFT_SKIP_BUILD:-false}
+SDN_NODE=${OPENSHIFT_SDN_NODE_ON_MASTER:-false}
 
 # Parse optional arguments
 # Skip the positional arguments
@@ -47,6 +48,9 @@ while getopts ":i:n:c:fs" opt; do
       ;;
     s)
       SKIP_BUILD=true
+      ;;
+    o)
+      SDN_NODE=true
       ;;
     \?)
       echo "Invalid option: -${OPTARG}" >&2
