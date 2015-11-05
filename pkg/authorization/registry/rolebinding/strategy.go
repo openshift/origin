@@ -40,7 +40,7 @@ func (strategy) AllowUnconditionalUpdate() bool {
 }
 
 func (s strategy) GenerateName(base string) string {
-	return base
+	return kapi.SimpleNameGenerator.GenerateName(base)
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
