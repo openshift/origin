@@ -1,10 +1,10 @@
 package options
 
 import (
+	"strconv"
+
 	"github.com/spf13/pflag"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	kutil "k8s.io/kubernetes/pkg/util"
-	"strconv"
 )
 
 // FlagInfos serve as a customizable intermediary between the command flags and
@@ -36,10 +36,10 @@ func (i FlagInfo) BindIntFlag(flags *pflag.FlagSet, target *int) {
 // BindListFlag binds a flag that expects a kube list value. Note that if the target
 // comes pre-populated, that list is not erased; anything the user puts in the flag
 // is added on. This is probably a bug in k8s impl of StringList.
-func (i FlagInfo) BindListFlag(flags *pflag.FlagSet, target *kutil.StringList) {
+func (i FlagInfo) BindListFlag(flags *pflag.FlagSet, target *[]string) {
 	// assume flags with no longname are not desired
 	if len(i.LongName) > 0 {
-		flags.VarP(target, i.LongName, i.ShortName, i.Description)
+		flags.StringSliceVarP(target, i.LongName, i.ShortName, *target, i.Description)
 	}
 }
 

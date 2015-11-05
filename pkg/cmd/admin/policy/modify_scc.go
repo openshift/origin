@@ -9,7 +9,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -54,7 +53,7 @@ func NewCmdAddSCCToGroup(name, fullName string, f *clientcmd.Factory, out io.Wri
 
 func NewCmdAddSCCToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
-	saNames := util.StringList{}
+	saNames := []string{}
 
 	cmd := &cobra.Command{
 		Use:   name + " SCC USER [USER ...]",
@@ -71,7 +70,7 @@ func NewCmdAddSCCToUser(name, fullName string, f *clientcmd.Factory, out io.Writ
 		},
 	}
 
-	cmd.Flags().VarP(&saNames, "serviceaccount", "z", "service account in the current namespace to use as a user")
+	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
 
 	return cmd
 }
@@ -99,7 +98,7 @@ func NewCmdRemoveSCCFromGroup(name, fullName string, f *clientcmd.Factory, out i
 
 func NewCmdRemoveSCCFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
-	saNames := util.StringList{}
+	saNames := []string{}
 
 	cmd := &cobra.Command{
 		Use:   name + " SCC USER [USER ...]",
@@ -116,12 +115,12 @@ func NewCmdRemoveSCCFromUser(name, fullName string, f *clientcmd.Factory, out io
 		},
 	}
 
-	cmd.Flags().VarP(&saNames, "serviceaccount", "z", "service account in the current namespace to use as a user")
+	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
 
 	return cmd
 }
 
-func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, args []string, saNames util.StringList) error {
+func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, args []string, saNames []string) error {
 	if (len(args) < 2) && (len(saNames) == 0) {
 		return errors.New("you must specify at least two arguments (<scc> <user> [user]...) or a service account (<scc> -z <service account name>) ")
 	}
