@@ -14,6 +14,9 @@ import (
 
 	oclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
+	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/router/controller"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
 )
 
@@ -21,6 +24,9 @@ import (
 // part of this router.
 type RouterSelection struct {
 	ResyncInterval time.Duration
+
+	HostnameTemplate string
+	OverrideHostname bool
 
 	LabelSelector string
 	Labels        labels.Selector
@@ -40,6 +46,8 @@ type RouterSelection struct {
 // Bind sets the appropriate labels
 func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.DurationVar(&o.ResyncInterval, "resync-interval", 10*time.Minute, "The interval at which the route list should be fully refreshed")
+	flag.StringVar(&o.HostnameTemplate, "hostname-template", cmdutil.Env("ROUTER_SUBDOMAIN", ""), "If specified, a template that should be used to generate the hostname for a route without spec.host (e.g. '${name}-${namespace}.myapps.mycompany.com')")
+	flag.BoolVar(&o.OverrideHostname, "override-hostname", false, "Override the spec.host value for a route with --hostname-template")
 	flag.StringVar(&o.LabelSelector, "labels", cmdutil.Env("ROUTE_LABELS", ""), "A label selector to apply to the routes to watch")
 	flag.StringVar(&o.FieldSelector, "fields", cmdutil.Env("ROUTE_FIELDS", ""), "A field selector to apply to routes to watch")
 	flag.StringVar(&o.ProjectLabelSelector, "project-labels", cmdutil.Env("PROJECT_LABELS", ""), "A label selector to apply to projects to watch; if '*' watches all projects the client can access")
@@ -47,9 +55,38 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.BoolVar(&o.IncludeUDP, "include-udp-endpoints", false, "If true, UDP endpoints will be considered as candidates for routing")
 }
 
+// RouteSelectionFunc returns a func that identifies the host for a route.
+func (o *RouterSelection) RouteSelectionFunc() controller.RouteHostFunc {
+	if len(o.HostnameTemplate) == 0 {
+		return controller.HostForRoute
+	}
+	return func(route *routeapi.Route) string {
+		if !o.OverrideHostname && len(route.Spec.Host) > 0 {
+			return route.Spec.Host
+		}
+		s, err := variable.ExpandStrict(o.HostnameTemplate, func(key string) (string, bool) {
+			switch key {
+			case "name":
+				return route.Name, true
+			case "namespace":
+				return route.Namespace, true
+			default:
+				return "", false
+			}
+		})
+		if err != nil {
+			return ""
+		}
+		return s
+	}
+}
+
 // Complete converts string representations of field and label selectors to their parsed equivalent, or
 // returns an error.
 func (o *RouterSelection) Complete() error {
+	if len(o.HostnameTemplate) == 0 && o.OverrideHostname {
+		return fmt.Errorf("--override-hostname requires that --hostname-template be specified")
+	}
 	if len(o.LabelSelector) > 0 {
 		s, err := labels.Parse(o.LabelSelector)
 		if err != nil {
