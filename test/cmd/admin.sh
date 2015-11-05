@@ -70,6 +70,14 @@ oadm policy who-can get pods --all-namespaces
 
 oadm policy add-role-to-group cluster-admin system:unauthenticated
 oadm policy add-role-to-user cluster-admin system:no-user
+oadm policy add-role-to-user admin -z fake-sa
+oc get rolebinding/admins -o jsonpath={.subjects} | grep "fake-sa"
+oadm policy remove-role-from-user admin -z fake-sa
+[ ! "$(oc get rolebinding/admins -o jsonpath={.subjects} | grep 'fake-sa')" ]
+oadm policy add-role-to-user admin -z fake-sa
+oc get rolebinding/admins -o jsonpath={.subjects} | grep "fake-sa"
+oadm policy remove-role-from-user admin "system:serviceaccount:$(oc project -q):fake-sa"
+[ ! "$(oc get rolebinding/admins -o jsonpath={.subjects} | grep 'fake-sa')" ]
 oadm policy remove-role-from-group cluster-admin system:unauthenticated
 oadm policy remove-role-from-user cluster-admin system:no-user
 oadm policy remove-group system:unauthenticated
