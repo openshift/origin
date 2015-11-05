@@ -277,6 +277,26 @@ Replace cluster roles to match the recommended bootstrap policy
 ====
 
 
+== oadm policy reconcile-sccs
+Replace cluster SCCs to match the recommended bootstrap policy
+
+====
+
+[options="nowrap"]
+----
+  # Display the cluster SCCs that would be modified
+  $ openshift admin policy reconcile-sccs
+
+  # Update cluster SCCs that don't match the current defaults preserving additional grants
+  # for users and group and keeping any priorities that are already set
+  $ openshift admin policy reconcile-sccs --confirm
+
+  # Replace existing users, groups, and priorities that do not match defaults
+  $ openshift admin policy reconcile-sccs --additive-only=false --confirm
+----
+====
+
+
 == oadm registry
 Install the integrated Docker registry
 

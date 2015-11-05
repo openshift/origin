@@ -34,6 +34,9 @@ type imagePuller struct {
 	backOff  *util.Backoff
 }
 
+// enforce compatibility.
+var _ ImagePuller = &imagePuller{}
+
 // NewImagePuller takes an event recorder and container runtime to create a
 // image puller that wraps the container runtime's PullImage interface.
 func NewImagePuller(recorder record.EventRecorder, runtime Runtime, imageBackOff *util.Backoff) ImagePuller {
@@ -75,6 +78,7 @@ func (puller *imagePuller) PullImage(pod *api.Pod, container *api.Container, pul
 	if err != nil {
 		glog.Errorf("Couldn't make a ref to pod %v, container %v: '%v'", pod.Name, container.Name, err)
 	}
+
 	spec := ImageSpec{container.Image}
 	present, err := puller.runtime.IsImagePresent(spec)
 	if err != nil {
@@ -102,7 +106,7 @@ func (puller *imagePuller) PullImage(pod *api.Pod, container *api.Container, pul
 		return ErrImagePullBackOff, msg
 	}
 	puller.logIt(ref, "Pulling", logPrefix, fmt.Sprintf("pulling image %q", container.Image), glog.Info)
-	if err = puller.runtime.PullImage(spec, pullSecrets); err != nil {
+	if err := puller.runtime.PullImage(spec, pullSecrets); err != nil {
 		puller.logIt(ref, "Failed", logPrefix, fmt.Sprintf("Failed to pull image %q: %v", container.Image, err), glog.Warning)
 		puller.backOff.Next(backOffKey, puller.backOff.Clock.Now())
 		if err == RegistryUnavailable {

@@ -189,3 +189,22 @@ oc create -f test/fixtures/app-scenarios
 oc status
 oc status -o dot
 echo "complex-scenarios: ok"
+
+# Test reconciling SCCs
+oc delete scc/restricted
+[ ! "$(oc get scc/restricted)" ]
+oadm policy reconcile-sccs
+[ ! "$(oc get scc/restricted)" ]
+oadm policy reconcile-sccs --confirm
+oc get scc/restricted
+
+oadm policy add-scc-to-user restricted my-restricted-user
+[ "$(oc get scc/restricted -o yaml | grep my-restricted-user)" ]
+oadm policy reconcile-sccs --confirm
+[ "$(oc get scc/restricted -o yaml | grep my-restricted-user)" ]
+
+oadm policy remove-scc-from-group restricted system:authenticated
+[ ! "$(oc get scc/restricted -o yaml | grep system:authenticated)" ]
+oadm policy reconcile-sccs --confirm
+[ "$(oc get scc/restricted -o yaml | grep system:authenticated)" ]
+echo "reconcile-scc: ok"

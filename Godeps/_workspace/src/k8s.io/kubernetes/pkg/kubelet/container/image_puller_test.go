@@ -116,4 +116,5 @@ func TestPuller(t *testing.T) {
 			assert.Equal(t, expected, err, "in test %d tick=%d", i, tick)
 		}
 	}
+
 }

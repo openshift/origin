@@ -1,6 +1,7 @@
 package bootstrappolicy
 
 import (
+	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"reflect"
 	"testing"
 )
@@ -16,7 +17,7 @@ func TestBootstrappedConstraints(t *testing.T) {
 	}
 	expectedGroups, expectedUsers := getExpectedAccess()
 
-	groups, users := GetBoostrapSCCAccess()
+	groups, users := GetBoostrapSCCAccess(DefaultOpenShiftInfraNamespace)
 	bootstrappedConstraints := GetBootstrapSecurityContextConstraints(groups, users)
 
 	if len(expectedConstraints) != len(bootstrappedConstraints) {
@@ -40,7 +41,7 @@ func TestBootstrappedConstraintsWithAddedUser(t *testing.T) {
 	expectedGroups, expectedUsers := getExpectedAccess()
 
 	// get default access and add our own user to it
-	groups, users := GetBoostrapSCCAccess()
+	groups, users := GetBoostrapSCCAccess(DefaultOpenShiftInfraNamespace)
 	users[SecurityContextConstraintPrivileged] = append(users[SecurityContextConstraintPrivileged], "foo")
 	bootstrappedConstraints := GetBootstrapSecurityContextConstraints(groups, users)
 
@@ -66,6 +67,12 @@ func getExpectedAccess() (map[string][]string, map[string][]string) {
 		SecurityContextConstraintsAnyUID:    {ClusterAdminGroup},
 		SecurityContextConstraintRestricted: {AuthenticatedGroup},
 	}
-	users := map[string][]string{}
+
+	buildControllerUsername := serviceaccount.MakeUsername(DefaultOpenShiftInfraNamespace, InfraBuildControllerServiceAccountName)
+	pvControllerUsername := serviceaccount.MakeUsername(DefaultOpenShiftInfraNamespace, InfraPersistentVolumeControllerServiceAccountName)
+	users := map[string][]string{
+		SecurityContextConstraintPrivileged: {buildControllerUsername},
+		SecurityContextConstraintHostMount:  {pvControllerUsername},
+	}
 	return groups, users
 }

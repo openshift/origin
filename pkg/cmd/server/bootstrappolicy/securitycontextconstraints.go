@@ -2,6 +2,7 @@ package bootstrappolicy
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 )
 
 const (
@@ -272,12 +273,18 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 }
 
 // GetBoostrapSCCAccess provides the default set of access that should be passed to GetBootstrapSecurityContextConstraints.
-func GetBoostrapSCCAccess() (map[string][]string, map[string][]string) {
+func GetBoostrapSCCAccess(infraNamespace string) (map[string][]string, map[string][]string) {
 	groups := map[string][]string{
 		SecurityContextConstraintPrivileged: {ClusterAdminGroup, NodesGroup},
 		SecurityContextConstraintsAnyUID:    {ClusterAdminGroup},
 		SecurityContextConstraintRestricted: {AuthenticatedGroup},
 	}
-	users := map[string][]string{}
+
+	buildControllerUsername := serviceaccount.MakeUsername(infraNamespace, InfraBuildControllerServiceAccountName)
+	pvControllerUsername := serviceaccount.MakeUsername(infraNamespace, InfraPersistentVolumeControllerServiceAccountName)
+	users := map[string][]string{
+		SecurityContextConstraintPrivileged: {buildControllerUsername},
+		SecurityContextConstraintHostMount:  {pvControllerUsername},
+	}
 	return groups, users
 }

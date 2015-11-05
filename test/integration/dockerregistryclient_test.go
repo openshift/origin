@@ -129,9 +129,7 @@ func TestRegistryClientQuayIOImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = conn.ImageByTag("coreos", "etcd", "latest")
-	if err != nil {
-		t.Skip("SKIPPING: unexpected error from quay.io: %v", err)
-		//t.Errorf("unexpected error: %v", err)
+	if _, err := conn.ImageByTag("coreos", "etcd", "latest"); err != nil {
+		t.Errorf("unexpected error: %v", err)
 	}
 }
