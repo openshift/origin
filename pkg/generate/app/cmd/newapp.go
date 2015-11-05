@@ -334,6 +334,11 @@ func (c *AppConfig) addReferenceBuilderComponents(b *app.ReferenceBuilder) {
 		input.Searcher = searcher
 		return input
 	})
+
+	_, repos, _ := b.Result()
+	for _, repo := range repos {
+		repo.SetContextDir(c.ContextDir)
+	}
 }
 
 // validate converts all of the arguments on the config into references to objects, or returns an error

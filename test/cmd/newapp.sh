@@ -74,6 +74,13 @@ oc get template ruby-helloworld-sample
 [ "$(oc new-app -S mysql --env=FOO=BAR 2>&1 | grep "can't be used")" ]
 [ "$(oc new-app --search mysql --code=https://github.com/openshift/ruby-hello-world 2>&1 | grep "can't be used")" ]
 [ "$(oc new-app --search mysql --param=FOO=BAR 2>&1 | grep "can't be used")" ]
+# set context-dir
+[ "$(oc new-app https://github.com/openshift/sti-ruby.git --context-dir="2.0/test/puma-test-app" -o yaml | grep 'contextDir: 2.0/test/puma-test-app')" ]
+[ "$(oc new-app ruby~https://github.com/openshift/sti-ruby.git --context-dir="2.0/test/puma-test-app" -o yaml | grep 'contextDir: 2.0/test/puma-test-app')" ]
+# set strategy
+[ "$(oc new-app ruby~https://github.com/openshift/ruby-hello-world.git --strategy=docker -o yaml | grep 'dockerStrategy')" ]
+[ "$(oc new-app https://github.com/openshift/ruby-hello-world.git --strategy=source -o yaml | grep 'sourceStrategy')" ]
+
 oc delete imageStreams --all
 # check that we can create from the template without errors
 [ "$(oc new-app ruby-helloworld-sample -l app=helloworld 2>&1 | grep 'Service "frontend" created')" ]
