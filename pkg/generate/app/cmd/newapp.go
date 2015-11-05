@@ -10,14 +10,17 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/validation"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
+	authapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -90,6 +93,8 @@ type AppConfig struct {
 	Out    io.Writer
 	ErrOut io.Writer
 
+	KubeClient kclient.Interface
+
 	refBuilder *app.ReferenceBuilder
 
 	dockerSearcher                  app.Searcher
@@ -120,6 +125,7 @@ type errlist interface {
 
 type ErrRequiresExplicitAccess struct {
 	Match app.ComponentMatch
+	Input app.GeneratorInput
 }
 
 func (e ErrRequiresExplicitAccess) Error() string {
@@ -759,11 +765,14 @@ type fakeSecretAccessor struct {
 func (a *fakeSecretAccessor) Token() (string, error) {
 	return a.token, nil
 }
+func (a *fakeSecretAccessor) CACert() (string, error) {
+	return "", nil
+}
 
 // installComponents attempts to create pods to run installable images identified by the user. If an image
 // is installable, we check whether it requires access to the user token. If so, the caller must have
 // explicitly granted that access (because the token may be the user's).
-func (c *AppConfig) installComponents(components app.ComponentReferences) ([]runtime.Object, string, error) {
+func (c *AppConfig) installComponents(components app.ComponentReferences, env app.Environment) ([]runtime.Object, string, error) {
 	if c.SkipGeneration {
 		return nil, "", nil
 	}
@@ -790,6 +799,8 @@ func (c *AppConfig) installComponents(components app.ComponentReferences) ([]run
 
 	imageRef.AsImageStream = false
 	imageRef.AsResolvedImage = true
+	imageRef.Env = env
+
 	name := c.Name
 	if len(name) == 0 {
 		var ok bool
@@ -803,18 +814,39 @@ func (c *AppConfig) installComponents(components app.ComponentReferences) ([]run
 
 	secretAccessor := c.SecretAccessor
 	generatorInput := input.ResolvedMatch.GeneratorInput
-	if generatorInput.Token != nil && !c.AllowSecretUse || secretAccessor == nil {
+	token := generatorInput.Token
+	if token != nil && !c.AllowSecretUse || secretAccessor == nil {
 		if !c.DryRun {
-			return nil, "", ErrRequiresExplicitAccess{*input.ResolvedMatch}
+			return nil, "", ErrRequiresExplicitAccess{Match: *input.ResolvedMatch, Input: generatorInput}
 		}
 		secretAccessor = &fakeSecretAccessor{token: "FAKE_TOKEN"}
 	}
 
-	pod, secret, err := imageRef.InstallablePod(generatorInput, secretAccessor)
+	objects := []runtime.Object{}
+
+	serviceAccountName := "installer"
+	if token != nil && token.ServiceAccount {
+		if _, err := c.KubeClient.ServiceAccounts(c.originNamespace).Get(serviceAccountName); err != nil {
+			if kerrors.IsNotFound(err) {
+				objects = append(objects,
+					// create a new service account
+					&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: serviceAccountName}},
+					// grant the service account the edit role on the project (TODO: installer)
+					&authapi.RoleBinding{
+						ObjectMeta: kapi.ObjectMeta{Name: "installer-role-binding"},
+						Subjects:   []kapi.ObjectReference{{Kind: "ServiceAccount", Name: serviceAccountName}},
+						RoleRef:    kapi.ObjectReference{Name: "edit"},
+					},
+				)
+			}
+		}
+	}
+
+	pod, secret, err := imageRef.InstallablePod(generatorInput, secretAccessor, serviceAccountName)
 	if err != nil {
 		return nil, "", err
 	}
-	objects := []runtime.Object{pod}
+	objects = append(objects, pod)
 	if secret != nil {
 		objects = append(objects, secret)
 	}
@@ -965,8 +997,10 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		return nil, fmt.Errorf("only one component or source repository can be used when specifying a name")
 	}
 
+	env := app.Environment(environment)
+
 	// identify if there are installable components in the input provided by the user
-	installables, name, err := c.installComponents(components)
+	installables, name, err := c.installComponents(components, env)
 	if err != nil {
 		return nil, err
 	}
@@ -980,7 +1014,7 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		}, nil
 	}
 
-	pipelines, err := c.buildPipelines(imageRefs, app.Environment(environment))
+	pipelines, err := c.buildPipelines(imageRefs, env)
 	if err != nil {
 		return nil, err
 	}

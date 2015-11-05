@@ -34,7 +34,7 @@ import (
 )
 
 func skipExternalGit(t *testing.T) {
-	if len(os.Getenv("TEST_ASSETS_HEADLESS")) > 0 || len(os.Getenv("SKIP_EXTERNAL_GIT")) > 0 {
+	if len(os.Getenv("SKIP_EXTERNAL_GIT")) > 0 {
 		t.Skip("external Git tests are disabled")
 	}
 }
@@ -214,6 +214,7 @@ func TestBuildTemplates(t *testing.T) {
 		appCfg.Out = &bytes.Buffer{}
 		appCfg.refBuilder = &app.ReferenceBuilder{}
 		appCfg.SetOpenShiftClient(&client.Fake{}, c.namespace)
+		appCfg.KubeClient = ktestclient.NewSimpleFake()
 		appCfg.templateSearcher = fakeTemplateSearcher()
 		appCfg.AddArguments([]string{c.templateName})
 		appCfg.TemplateParameters = util.StringList{}

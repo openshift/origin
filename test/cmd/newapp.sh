@@ -108,13 +108,18 @@ tryuntil oc project "${project}"
 
 tryuntil oc get imagestreamtags installable:file
 tryuntil oc get imagestreamtags installable:token
+tryuntil oc get imagestreamtags installable:serviceaccount
 [ ! "$(oc new-app installable:file)" ]
 [ "$(oc new-app installable:file 2>&1 | grep 'requires that you grant the image access')" ]
+[ "$(oc new-app installable:serviceaccount 2>&1 | grep "requires that you create the 'installer' service account")" ]
 [ "$(oc new-app installable:file --grant-install-rights -o yaml | grep -F '/var/run/openshift.secret.token')" ]
 [ "$(oc new-app installable:file --grant-install-rights -o yaml | grep -F 'activeDeadlineSeconds: 14400')" ]
 [ "$(oc new-app installable:file --grant-install-rights -o yaml | grep -F 'openshift.io/generated-job: "true"')" ]
 [ "$(oc new-app installable:file --grant-install-rights -o yaml | grep -F 'openshift.io/generated-job.for: installable:file')" ]
 [ "$(oc new-app installable:token --grant-install-rights -o yaml | grep -F 'name: TOKEN_ENV')" ]
 [ "$(oc new-app installable:token --grant-install-rights -o yaml | grep -F 'openshift/origin@sha256:')" ]
+[ "$(oc new-app installable:serviceaccount --grant-install-rights -o yaml | grep -F 'serviceAccountName: installer')" ]
+[ "$(oc new-app installable:serviceaccount --grant-install-rights -o yaml | grep -F 'fieldPath: metadata.namespace')" ]
+[ "$(oc new-app installable:serviceaccount --grant-install-rights -o yaml A=B | grep -F 'name: A')" ]
 
 echo "new-app: ok"
