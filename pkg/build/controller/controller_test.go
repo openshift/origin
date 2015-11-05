@@ -186,6 +186,7 @@ func TestHandleBuild(t *testing.T) {
 		imageClient   imageStreamClient
 		podManager    podManager
 		outputSpec    string
+		errExpected   bool
 	}
 
 	tests := []handleBuildTest{
@@ -251,7 +252,7 @@ func TestHandleBuild(t *testing.T) {
 		},
 		{ // 6
 			inStatus:      buildapi.BuildPhaseNew,
-			outStatus:     buildapi.BuildPhaseError,
+			outStatus:     buildapi.BuildPhaseNew,
 			buildStrategy: &errStrategy{},
 			buildOutput: buildapi.BuildOutput{
 				To: &kapi.ObjectReference{
@@ -259,10 +260,11 @@ func TestHandleBuild(t *testing.T) {
 					Name: "repository/dataBuild",
 				},
 			},
+			errExpected: true,
 		},
 		{ // 7
 			inStatus:   buildapi.BuildPhaseNew,
-			outStatus:  buildapi.BuildPhaseError,
+			outStatus:  buildapi.BuildPhaseNew,
 			podManager: &errPodManager{},
 			buildOutput: buildapi.BuildOutput{
 				To: &kapi.ObjectReference{
@@ -270,10 +272,11 @@ func TestHandleBuild(t *testing.T) {
 					Name: "repository/dataBuild",
 				},
 			},
+			errExpected: true,
 		},
 		{ // 8
 			inStatus:   buildapi.BuildPhaseNew,
-			outStatus:  buildapi.BuildPhasePending,
+			outStatus:  buildapi.BuildPhaseNew,
 			podManager: &errExistsPodManager{},
 			buildOutput: buildapi.BuildOutput{
 				To: &kapi.ObjectReference{
@@ -318,7 +321,7 @@ func TestHandleBuild(t *testing.T) {
 		},
 		{ // 12
 			inStatus:    buildapi.BuildPhaseNew,
-			outStatus:   buildapi.BuildPhaseError,
+			outStatus:   buildapi.BuildPhaseNew,
 			imageClient: &errNotFoundImageStreamClient{},
 			buildOutput: buildapi.BuildOutput{
 				To: &kapi.ObjectReference{
@@ -326,10 +329,11 @@ func TestHandleBuild(t *testing.T) {
 					Name: "foo:tag",
 				},
 			},
+			errExpected: true,
 		},
 		{ // 13
 			inStatus:    buildapi.BuildPhaseNew,
-			outStatus:   buildapi.BuildPhaseError,
+			outStatus:   buildapi.BuildPhaseNew,
 			imageClient: &errImageStreamClient{},
 			buildOutput: buildapi.BuildOutput{
 				To: &kapi.ObjectReference{
@@ -337,6 +341,7 @@ func TestHandleBuild(t *testing.T) {
 					Name: "foo:tag",
 				},
 			},
+			errExpected: true,
 		},
 		{ // 14
 			inStatus:  buildapi.BuildPhaseNew,
@@ -382,14 +387,11 @@ func TestHandleBuild(t *testing.T) {
 
 		// ensure we return an error for cases where expected output is an error.
 		// these will be retried by the retrycontroller
-		if tc.inStatus != buildapi.BuildPhaseError && tc.outStatus == buildapi.BuildPhaseError {
-			if err == nil {
-				t.Errorf("(%d) Expected an error from HandleBuild, got none!", i)
-			}
-			continue
+		if tc.errExpected && err == nil {
+			t.Errorf("(%d) Expected an error from HandleBuild, got none!", i)
 		}
 
-		if err != nil {
+		if !tc.errExpected && err != nil {
 			t.Errorf("(%d) Unexpected error %v", i, err)
 		}
 		if build.Status.Phase != tc.outStatus {

@@ -128,11 +128,6 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	}
 	build.Status.OutputDockerImageReference = ref
 
-	// Set the build phase, which will be persisted if no error occurs.
-	build.Status.Phase = buildapi.BuildPhasePending
-	build.Status.Reason = ""
-	build.Status.Message = ""
-
 	// Make a copy to avoid mutating the build from this point on.
 	copy, err := kapi.Scheme.Copy(build)
 	if err != nil {
@@ -164,6 +159,7 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 
 	if _, err := bc.PodManager.CreatePod(build.Namespace, podSpec); err != nil {
 		if errors.IsAlreadyExists(err) {
+			bc.Recorder.Eventf(build, "failedCreate", "Pod already exists: %s/%s", podSpec.Namespace, podSpec.Name)
 			glog.V(4).Infof("Build pod already existed: %#v", podSpec)
 			return nil
 		}
@@ -174,6 +170,11 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	}
 
 	glog.V(4).Infof("Created pod for build: %#v", podSpec)
+
+	// Set the build phase, which will be persisted.
+	build.Status.Phase = buildapi.BuildPhasePending
+	build.Status.Reason = ""
+	build.Status.Message = ""
 	return nil
 }
 
