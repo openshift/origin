@@ -34,6 +34,30 @@ filter_env () {
     awk '/"env": \[$/ { indent = index($0, "\""); skipping = 1; next } !skipping { print; } skipping { if (index($0, "]") == indent) skipping = 0; }'
 }
 
+log_system () {
+    logpath=$1
+    sevice_name=$2
+
+    echo_and_eval  journalctl --boot                                  &> $logpath/journal-full
+    echo_and_eval  journalctl -u $service_name                        &> $logpath/journal-openshift
+    echo_and_eval  systemctl show $service_name                       &> $logpath/systemctl-show
+    echo_and_eval  nmcli --nocheck -f all dev show                    &> $logpath/nmcli-dev
+    echo_and_eval  nmcli --nocheck -f all con show                    &> $logpath/nmcli-con
+    echo_and_eval  head -1000 /etc/sysconfig/network-scripts/ifcfg-*  &> $logpath/ifcfg
+    echo_and_eval  ip addr show                                       &> $logpath/addresses
+    echo_and_eval  ip route show                                      &> $logpath/routes
+    echo_and_eval  iptables-save                                      &> $logpath/iptables
+    echo_and_eval  cat /etc/hosts                                     &> $logpath/hosts
+    echo_and_eval  cat /etc/resolv.conf                               &> $logpath/resolv.conf
+    echo_and_eval  lsmod                                              &> $logpath/modules
+
+    echo_and_eval  oc version                                         &> $logpath/version
+    echo                                                             &>> $logpath/version
+    echo_and_eval  docker version                                    &>> $logpath/version
+    echo                                                             &>> $logpath/version
+    echo_and_eval  cat /etc/system-release-cpe                       &>> $logpath/version
+}
+
 do_master () {
     if ! nodes=$(oc get nodes --template '{{range .items}}{{.spec.externalID}} {{end}}'); then
 	if [ -z "$KUBECONFIG" -o ! -f "$KUBECONFIG" ]; then
@@ -45,20 +69,18 @@ do_master () {
 
     logmaster=$logdir/master
     mkdir -p $logmaster
-    echo_and_eval journalctl --boot >& $logmaster/journal-full
-    echo_and_eval journalctl -u $aos_master_service >& $logmaster/journal-openshift
-    echo_and_eval systemctl show $aos_master_service >& $logmaster/systemctl-show
-    echo_and_eval nmcli --nocheck -f all dev show >& $logmaster/nmcli-dev
-    echo_and_eval nmcli --nocheck -f all con show >& $logmaster/nmcli-con
-    echo_and_eval head -1000 /etc/sysconfig/network-scripts/ifcfg-* >& $logmaster/ifcfg
-    echo_and_eval ip addr show >& $logmaster/addresses
-    echo_and_eval ip route show >& $logmaster/routes
-    echo_and_eval iptables-save >& $logmaster/iptables
-    echo_and_eval cat /etc/hosts >& $logmaster/hosts
-    echo_and_eval cat /etc/resolv.conf >& $logmaster/resolv.conf
-    echo_and_eval oc get nodes -o json >& $logmaster/nodes
-    echo_and_eval oc get pods --all-namespaces -o json | filter_env >& $logmaster/pods
-    echo_and_eval oc get services --all-namespaces -o json >& $logmaster/services
+
+    # Log the generic system stuff
+    log_system $logmaster $aos_master_service
+
+    # And the master specific stuff
+    echo_and_eval  oc get nodes                     -o yaml               &> $logmaster/nodes
+    echo_and_eval  oc get pods     --all-namespaces -o yaml  | filter_env &> $logmaster/pods
+    echo_and_eval  oc get services --all-namespaces -o yaml               &> $logmaster/services
+    echo_and_eval  oc get routes   --all-namespaces -o yaml               &> $logmaster/aos_routes
+    echo_and_eval  oc get clusternetwork            -o yaml               &> $logmaster/clusternetwork
+    echo_and_eval  oc get hostsubnets               -o yaml               &> $logmaster/hostsubnets
+    echo_and_eval  oc get netnamespaces             -o yaml               &> $logmaster/netnamespaces
 
     for node in $nodes; do
 	reg_ip=$(oc get node $node --template '{{range .status.addresses}}{{if eq .type "InternalIP"}}{{.address}}{{end}}{{end}}')
@@ -179,7 +201,7 @@ do_pod_to_pod_connectivity_check () {
     echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${other_pod_port},reg0=${other_pod_vnid},ip,nw_src=${other_pod_addr},nw_dst=${base_pod_addr},dl_dst=${base_pod_ether}"
     echo ""
 
-    if nsenter -n -t $base_pod_pid ping -c 1 -W 2 $other_pod_addr >& /dev/null; then
+    if nsenter -n -t $base_pod_pid -- ping -c 1 -W 2 $other_pod_addr  &> /dev/null; then
 	echo "ping $other_pod_addr  ->  success"
     else
 	echo "ping $other_pod_addr  ->  failed"
@@ -209,7 +231,7 @@ do_pod_external_connectivity_check () {
     echo_and_eval ovs-appctl ofproto/trace br0 "in_port=2,ip,nw_src=198.51.100.1,nw_dst=${base_pod_addr},dl_dst=${base_pod_ether}"
     echo ""
 
-    if nsenter -n -t $base_pod_pid ping -c 1 -W 2 www.redhat.com >& /dev/null; then
+    if nsenter -n -t $base_pod_pid -- ping -c 1 -W 2 www.redhat.com  &> /dev/null; then
 	echo "ping www.redhat.com  ->  success"
     else
 	echo "ping www.redhat.com  ->  failed"
@@ -269,20 +291,14 @@ do_node () {
     logdir=$(dirname $0)
     lognode=$logdir/nodes/$node
     mkdir -p $lognode
-    echo_and_eval journalctl --boot >& $lognode/journal-full
-    echo_and_eval journalctl -u $aos_node_service >& $lognode/journal-openshift
-    echo_and_eval systemctl show $aos_node_service >& $lognode/systemctl-show
-    echo_and_eval nmcli --nocheck -f all dev show >& $lognode/nmcli-dev
-    echo_and_eval nmcli --nocheck -f all con show >& $lognode/nmcli-con
-    echo_and_eval head -1000 /etc/sysconfig/network-scripts/ifcfg-* >& $lognode/ifcfg
-    echo_and_eval ip addr show >& $lognode/addresses
-    echo_and_eval ip route show >& $lognode/routes
-    echo_and_eval iptables-save >& $lognode/iptables
-    echo_and_eval cat /etc/hosts >& $lognode/hosts
-    echo_and_eval cat /etc/resolv.conf >& $lognode/resolv.conf
-    echo_and_eval brctl show >& $lognode/bridges
-    echo_and_eval ovs-ofctl -O OpenFlow13 dump-flows br0 >& $lognode/flows
-    echo_and_eval ovs-ofctl -O OpenFlow13 show br0 >& $lognode/ovs-show
+
+    # Log the generic system stuff
+    log_system $lognode $aos_node_service
+
+    # Log some node-only information
+    echo_and_eval  brctl show                              &> $lognode/bridges
+    echo_and_eval  ovs-ofctl -O OpenFlow13 dump-flows br0  &> $lognode/flows
+    echo_and_eval  ovs-ofctl -O OpenFlow13 show br0        &> $lognode/ovs-show
 
     # Iterate over all pods on this node, and log some data about them.
     # Remember the name, address, namespace, and pid of the first pod we find on
@@ -303,8 +319,8 @@ do_node () {
 	    continue
 	fi
 
-	echo_and_eval nsenter -n -t $pid ip addr show >& $logpod/addresses
-	echo_and_eval nsenter -n -t $pid ip route show >& $logpod/routes
+	echo_and_eval nsenter -n -t $pid -- ip addr  show  &> $logpod/addresses
+	echo_and_eval nsenter -n -t $pid -- ip route show  &> $logpod/routes
 
 	# If we haven't found a local pod yet, or if we have, but it's
 	# in the default namespace, then make this the new base pod.
@@ -331,7 +347,7 @@ do_node () {
 	echo "Could not find VNID for ${base_pod_addr}!"
 	return
     fi
-    base_pod_ether=$(nsenter -n -t $base_pod_pid ip a | sed -ne "s/.*link.ether \([^ ]*\) .*/\1/p")
+    base_pod_ether=$(nsenter -n -t $base_pod_pid -- ip a | sed -ne "s/.*link.ether \([^ ]*\) .*/\1/p")
     if [ -z "$base_pod_ether" ]; then
 	echo "Could not find MAC address for ${base_pod_addr}!"
 	return
@@ -418,20 +434,22 @@ run_self_via_ssh () {
     host=$2
     remote_logdir=$3
 
-    if ! try_eval ssh -o PasswordAuthentication=no root@$host /bin/true; then
+    SSH_OPTS='-o StrictHostKeyChecking=no -o PasswordAuthentication=no'
+
+    if ! try_eval ssh $SSH_OPTS root@$host /bin/true; then
 	return 1
     fi
 
-    if ! try_eval ssh root@$host mkdir -m 0700 -p $logdir; then
+    if ! try_eval ssh $SSH_OPTS root@$host mkdir -m 0700 -p $logdir; then
 	return 1
     fi
 
-    if ! try_eval scp $self root@$host:$logdir/debug.sh; then
+    if ! try_eval scp $SSH_OPTS $self root@$host:$logdir/debug.sh; then
 	return 1
     fi
 
     extra_env=""
-    if ! try_eval ssh root@$host oc get pods; then
+    if ! try_eval ssh $SSH_OPTS root@$host oc get pods; then
 	if [ -z "$KUBECONFIG" ]; then
 	    if [ ! -f "$HOME/.kube/config" ]; then
 		return 1
@@ -440,16 +458,16 @@ run_self_via_ssh () {
 	fi
 
 	echo "Retrying with local kubeconfig"
-	if ! try_eval scp $KUBECONFIG root@$host:$logdir/.kubeconfig; then
+	if ! try_eval scp $SSH_OPTS $KUBECONFIG root@$host:$logdir/.kubeconfig; then
 	    return 1
 	fi
 	extra_env="env KUBECONFIG=$logdir/.kubeconfig"
-	if ! try_eval ssh root@$host $extra_env oc get pods; then
+	if ! try_eval ssh $SSH_OPTS root@$host $extra_env oc get pods; then
 	    return 1
 	fi
     fi
 
-    ssh root@$host $extra_env /bin/bash $logdir/debug.sh $args
+    ssh $SSH_OPTS root@$host $extra_env /bin/bash $logdir/debug.sh $args
 }
 
 do_master_and_nodes ()
@@ -462,7 +480,7 @@ do_master_and_nodes ()
 	do_master
     else
 	run_self_via_ssh --master $master $logdir/master && \
-	    try_eval scp -pr root@$master:$logdir/master $logdir
+	    try_eval scp $SSH_OPTS -pr root@$master:$logdir/master $logdir
     fi
 
     while read name addr; do
@@ -470,11 +488,11 @@ do_master_and_nodes ()
 	echo "Analyzing $name ($addr)"
 
 	run_self_via_ssh --node $addr $logdir/nodes < /dev/null && \
-	    try_eval scp -pr root@$addr:$logdir/nodes $logdir
+	    try_eval scp $SSH_OPTS -pr root@$addr:$logdir/nodes $logdir
     done < $logdir/master/node-ips
 }
 
-########
+######## Main program starts here
 
 systemd_dir=/usr/lib/systemd/system/
 for name in openshift origin atomic-openshift; do
