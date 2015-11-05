@@ -129,6 +129,8 @@ type MasterConfig struct {
 	JobControllerServiceAccount string
 	// HPAControllerServiceAccount is the name of the service account in the infra namespace to use to run the hpa controller
 	HPAControllerServiceAccount string
+	// PersistentVolumeControllerServiceAccount is the name of the service account in the infra namespace to use to run the persistent volume controller
+	PersistentVolumeControllerServiceAccount string
 }
 
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the
@@ -217,11 +219,14 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PrivilegedLoopbackOpenShiftClient:  privilegedLoopbackOpenShiftClient,
 		PrivilegedLoopbackKubernetesClient: privilegedLoopbackKubeClient,
 
-		BuildControllerServiceAccount:       bootstrappolicy.InfraBuildControllerServiceAccountName,
-		DeploymentControllerServiceAccount:  bootstrappolicy.InfraDeploymentControllerServiceAccountName,
-		ReplicationControllerServiceAccount: bootstrappolicy.InfraReplicationControllerServiceAccountName,
-		JobControllerServiceAccount:         bootstrappolicy.InfraJobControllerServiceAccountName,
-		HPAControllerServiceAccount:         bootstrappolicy.InfraHPAControllerServiceAccountName,
+		// NOTE: if these become configurable we will need to update the reconcile-scc and
+		// scc bootstrap access code to use MasterConfig to pass the values.
+		BuildControllerServiceAccount:            bootstrappolicy.InfraBuildControllerServiceAccountName,
+		DeploymentControllerServiceAccount:       bootstrappolicy.InfraDeploymentControllerServiceAccountName,
+		ReplicationControllerServiceAccount:      bootstrappolicy.InfraReplicationControllerServiceAccountName,
+		JobControllerServiceAccount:              bootstrappolicy.InfraJobControllerServiceAccountName,
+		HPAControllerServiceAccount:              bootstrappolicy.InfraHPAControllerServiceAccountName,
+		PersistentVolumeControllerServiceAccount: bootstrappolicy.InfraPersistentVolumeControllerServiceAccountName,
 	}
 
 	return config, nil

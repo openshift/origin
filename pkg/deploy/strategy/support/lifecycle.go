@@ -231,6 +231,12 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 		}
 	}
 
+	// Transfer image pull secrets from the pod spec.
+	imagePullSecrets := []kapi.LocalObjectReference{}
+	for _, pullSecret := range deployment.Spec.Template.Spec.ImagePullSecrets {
+		imagePullSecrets = append(imagePullSecrets, kapi.LocalObjectReference{Name: pullSecret.Name})
+	}
+
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: namer.GetPodName(deployment.Name, label),
@@ -257,8 +263,9 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
 			// Setting the node selector on the hook pod so that it is created
 			// on the same set of nodes as the deployment pods.
-			NodeSelector:  deployment.Spec.Template.Spec.NodeSelector,
-			RestartPolicy: restartPolicy,
+			NodeSelector:     deployment.Spec.Template.Spec.NodeSelector,
+			RestartPolicy:    restartPolicy,
+			ImagePullSecrets: imagePullSecrets,
 		},
 	}
 

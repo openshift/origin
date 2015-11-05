@@ -75,7 +75,7 @@ func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
 	binder.Run()
 }
 
-func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string) {
+func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string, client *client.Client) {
 	defaultScrubPod := volume.NewPersistentVolumeRecyclerPodTemplate()
 	defaultScrubPod.Spec.Containers[0].Image = recyclerImageName
 	defaultScrubPod.Spec.Containers[0].Command = []string{"/usr/share/openshift/scripts/volumes/recycler.sh"}
@@ -96,7 +96,7 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(hostPathConfig)...)
 	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins(nfsConfig)...)
 
-	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(c.KubeClient, c.ControllerManager.PVClaimBinderSyncPeriod, allPlugins)
+	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(client, c.ControllerManager.PVClaimBinderSyncPeriod, allPlugins)
 	if err != nil {
 		glog.Fatalf("Could not start Persistent Volume Recycler: %+v", err)
 	}

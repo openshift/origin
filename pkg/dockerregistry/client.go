@@ -312,8 +312,12 @@ func (c *connection) checkV2() (bool, error) {
 	case code >= 300 || resp.StatusCode < 200:
 		return false, nil
 	}
+	if len(resp.Header.Get("Docker-Distribution-API-Version")) == 0 {
+		glog.V(5).Infof("Registry v2 API at %s did not have a Docker-Distribution-API-Version header", base.String())
+		return false, nil
+	}
+
 	glog.V(5).Infof("Found registry v2 API at %s", base.String())
-	// TODO: check Docker-Distribution-API-Version?
 	return true, nil
 }
 
