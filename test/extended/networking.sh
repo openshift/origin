@@ -21,7 +21,7 @@ source "${OS_ROOT}/hack/common.sh"
 os::log::install_errexit
 
 # These strings filter the available tests.
-NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-.etworking[:]*}"
+NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 
 DEFAULT_SKIP_LIST=(
@@ -144,20 +144,20 @@ function run-extended-tests() {
       # Only the multitenant plugin can pass the isolation test
       if ! grep -q 'redhat/openshift-ovs-multitenant' \
            $(find "${conf_path}" -name 'node-config.yaml' | head -n 1); then
-        skip_regex="(${skip_regex}|networking: isolation)"
+        skip_regex="${skip_regex}|networking: isolation"
       fi
   fi
 
   export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
-  export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended/networking"
+  export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
   local test_cmd="${TEST_BINARY} --test.v '--ginkgo.skip=${skip_regex}' \
-'--ginkgo.focus=${focus_regex}' '${TEST_EXTRA_ARGS}'"
+'--ginkgo.focus=${focus_regex}' ${TEST_EXTRA_ARGS}"
   if [ "${log_path}" != "" ]; then
     test_cmd="${test_cmd} | tee ${log_path}"
   fi
 
-  pushd "${EXTENDED_TEST_PATH}" > /dev/null
+  pushd "${EXTENDED_TEST_PATH}/networking" > /dev/null
     eval "${test_cmd}; "'exit_status=${PIPESTATUS[0]}'
   popd > /dev/null
 
