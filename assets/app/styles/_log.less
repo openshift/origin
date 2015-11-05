@@ -65,19 +65,13 @@
   .log-view-output {
     font-size: 12px;
     padding: 30px 0 30px;
-    &:before {
-      content: '';
-      display: block;
-      height: 100%;
-      width: 1px;
-      background-color: lighten(@log-bg-color, 10%);
-      top: 0;
-      left: 60px;
-      position: absolute;
-    }
     .ellipsis-loader {
       // Give space between log output and loader
       margin-top: 30px;
+    }
+    table {
+      table-layout: fixed;
+      width: 100%;
     }
   }
 }
@@ -100,18 +94,22 @@
   }
 }
 .log-line-number {
-  .flex(@columns: 0 0 60px); // set width of number column
+  .unselectable();
+  border-right: 1px lighten(@log-bg-color, 10%) solid;
+  padding-right: 10px;
+  text-align: right;
+  vertical-align: top;
+  white-space: nowrap;
+  width: 60px;
   &:hover, &:focus {
     background-color: lighten(@log-bg-color, 13%);
     color: @link-hover-color-bright;
-  }
-  div {
-    padding-right: 10px;
   }
 }
 .log-line-text {
   padding: 0 10px;
   white-space: pre-wrap;
+  width: 100%;
   .word-break();
 }
 .log-chromeless {
