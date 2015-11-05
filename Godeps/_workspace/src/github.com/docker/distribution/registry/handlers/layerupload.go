@@ -171,6 +171,9 @@ func (luh *layerUploadHandler) PatchLayerData(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Flush the upload layer data before sending a reponse
+	defer luh.Upload.Close()
+
 	ct := r.Header.Get("Content-Type")
 	if ct != "" && ct != "application/octet-stream" {
 		w.WriteHeader(http.StatusBadRequest)
