@@ -35,6 +35,7 @@ type ImageRefGenerator interface {
 // SecretAccessor is an interface for retrieving secrets from the calling context.
 type SecretAccessor interface {
 	Token() (string, error)
+	CACert() (string, error)
 }
 
 type imageRefGenerator struct{}
@@ -139,6 +140,8 @@ type ImageRef struct {
 	OutputImage     bool
 	Insecure        bool
 	HasEmptyDir     bool
+
+	Env Environment
 
 	// ObjectName overrides the name of the ImageStream produced
 	// but does not affect the DockerImageReference
@@ -345,10 +348,12 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 		// TODO: Append environment variables
 	}
 
+	container.Env = append(container.Env, r.Env.List()...)
+
 	return container, triggers, nil
 }
 
-func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor SecretAccessor) (*kapi.Pod, *kapi.Secret, error) {
+func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor SecretAccessor, serviceAccountName string) (*kapi.Pod, *kapi.Secret, error) {
 	name, ok := r.SuggestName()
 	if !ok {
 		return nil, nil, fmt.Errorf("can't suggest a name for the provided image %q", r.Reference.Exact())
@@ -364,6 +369,18 @@ func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor 
 	}
 	container.Name = "install"
 
+	// inject the POD_NAMESPACE resolver first
+	namespaceEnv := kapi.EnvVar{
+		Name: "POD_NAMESPACE",
+		ValueFrom: &kapi.EnvVarSource{
+			FieldRef: &kapi.ObjectFieldSelector{
+				APIVersion: "v1",
+				FieldPath:  "metadata.namespace",
+			},
+		},
+	}
+	container.Env = append([]kapi.EnvVar{namespaceEnv}, container.Env...)
+
 	// give installers 4 hours to complete
 	deadline := int64(60 * 60 * 4)
 	pod := &kapi.Pod{
@@ -376,17 +393,29 @@ func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor 
 
 	var secret *kapi.Secret
 	if token := generatorInput.Token; token != nil {
-		containerToken, err := secretAccessor.Token()
-		if err != nil {
-			return nil, nil, err
+		if token.ServiceAccount {
+			pod.Spec.ServiceAccountName = serviceAccountName
 		}
 		if token.Env != nil {
+			containerToken, err := secretAccessor.Token()
+			if err != nil {
+				return nil, nil, err
+			}
 			container.Env = append(container.Env, kapi.EnvVar{
 				Name:  *token.Env,
 				Value: containerToken,
 			})
 		}
 		if token.File != nil {
+			containerToken, err := secretAccessor.Token()
+			if err != nil {
+				return nil, nil, err
+			}
+			crt, err := secretAccessor.CACert()
+			if err != nil {
+				return nil, nil, err
+			}
+
 			secret = &kapi.Secret{
 				ObjectMeta: meta,
 
@@ -394,6 +423,9 @@ func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor 
 				Data: map[string][]byte{
 					kapi.ServiceAccountTokenKey: []byte(containerToken),
 				},
+			}
+			if len(crt) > 0 {
+				secret.Data[kapi.ServiceAccountRootCAKey] = []byte(crt)
 			}
 			pod.Spec.Volumes = append(pod.Spec.Volumes, kapi.Volume{
 				Name: "generate-token",
