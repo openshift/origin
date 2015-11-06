@@ -74,9 +74,8 @@ func TestFinalizeNamespaceFunc(t *testing.T) {
 }
 
 func testSyncNamespaceThatIsTerminating(t *testing.T, experimentalMode bool) {
-	mockClient := &testclient.Fake{}
 	now := unversioned.Now()
-	testNamespace := &api.Namespace{
+	testNamespacePendingFinalize := &api.Namespace{
 		ObjectMeta: api.ObjectMeta{
 			Name:              "test",
 			ResourceVersion:   "1",
@@ -89,12 +88,21 @@ func testSyncNamespaceThatIsTerminating(t *testing.T, experimentalMode bool) {
 			Phase: api.NamespaceTerminating,
 		},
 	}
-	err := syncNamespace(mockClient, experimentalMode, testNamespace)
-	if err != nil {
-		t.Errorf("Unexpected error when synching namespace %v", err)
+	testNamespaceFinalizeComplete := &api.Namespace{
+		ObjectMeta: api.ObjectMeta{
+			Name:              "test",
+			ResourceVersion:   "1",
+			DeletionTimestamp: &now,
+		},
+		Spec: api.NamespaceSpec{},
+		Status: api.NamespaceStatus{
+			Phase: api.NamespaceTerminating,
+		},
 	}
+
 	// TODO: Reuse the constants for all these strings from testclient
-	expectedActionSet := sets.NewString(
+	pendingActionSet := sets.NewString(
+		strings.Join([]string{"get", "namespaces", ""}, "-"),
 		strings.Join([]string{"list", "replicationcontrollers", ""}, "-"),
 		strings.Join([]string{"list", "services", ""}, "-"),
 		strings.Join([]string{"list", "pods", ""}, "-"),
@@ -105,28 +113,51 @@ func testSyncNamespaceThatIsTerminating(t *testing.T, experimentalMode bool) {
 		strings.Join([]string{"list", "serviceaccounts", ""}, "-"),
 		strings.Join([]string{"list", "persistentvolumeclaims", ""}, "-"),
 		strings.Join([]string{"create", "namespaces", "finalize"}, "-"),
-		strings.Join([]string{"delete", "namespaces", ""}, "-"),
 	)
 
 	if experimentalMode {
-		expectedActionSet.Insert(
-			strings.Join([]string{"list", "horizontalpodautoscalers", ""}, "-"),
+		pendingActionSet.Insert(
 			strings.Join([]string{"list", "daemonsets", ""}, "-"),
 			strings.Join([]string{"list", "deployments", ""}, "-"),
 			strings.Join([]string{"list", "jobs", ""}, "-"),
+			strings.Join([]string{"list", "horizontalpodautoscalers", ""}, "-"),
 			strings.Join([]string{"list", "ingress", ""}, "-"),
 		)
 	}
 
-	actionSet := sets.NewString()
-	for _, action := range mockClient.Actions() {
-		actionSet.Insert(strings.Join([]string{action.GetVerb(), action.GetResource(), action.GetSubresource()}, "-"))
+	scenarios := map[string]struct {
+		testNamespace     *api.Namespace
+		expectedActionSet sets.String
+	}{
+		"pending-finalize": {
+			testNamespace:     testNamespacePendingFinalize,
+			expectedActionSet: pendingActionSet,
+		},
+		"complete-finalize": {
+			testNamespace: testNamespaceFinalizeComplete,
+			expectedActionSet: sets.NewString(
+				strings.Join([]string{"get", "namespaces", ""}, "-"),
+				strings.Join([]string{"delete", "namespaces", ""}, "-"),
+			),
+		},
 	}
-	if !actionSet.HasAll(expectedActionSet.List()...) {
-		t.Errorf("Expected actions: %v, but got: %v", expectedActionSet, actionSet)
-	}
-	if !expectedActionSet.HasAll(actionSet.List()...) {
-		t.Errorf("Expected actions: %v, but got: %v", expectedActionSet, actionSet)
+
+	for scenario, testInput := range scenarios {
+		mockClient := testclient.NewSimpleFake(testInput.testNamespace)
+		err := syncNamespace(mockClient, experimentalMode, testInput.testNamespace)
+		if err != nil {
+			t.Errorf("scenario %s - Unexpected error when synching namespace %v", scenario, err)
+		}
+		actionSet := sets.NewString()
+		for _, action := range mockClient.Actions() {
+			actionSet.Insert(strings.Join([]string{action.GetVerb(), action.GetResource(), action.GetSubresource()}, "-"))
+		}
+		if !actionSet.HasAll(testInput.expectedActionSet.List()...) {
+			t.Errorf("scenario %s - Expected actions:\n%v\n but got:\n%v\nDifference:\n%v", scenario, testInput.expectedActionSet, actionSet, testInput.expectedActionSet.Difference(actionSet))
+		}
+		if !testInput.expectedActionSet.HasAll(actionSet.List()...) {
+			t.Errorf("scenario %s - Expected actions:\n%v\n but got:\n%v\nDifference:\n%v", scenario, testInput.expectedActionSet, actionSet, actionSet.Difference(testInput.expectedActionSet))
+		}
 	}
 }
 

@@ -193,17 +193,26 @@ func describeGeneratedJob(out io.Writer, ref app.ComponentReference, pod *kapi.P
 	fmt.Fprintf(out, "    * Install will run in pod %q\n", localOrRemoteName(pod.ObjectMeta, baseNamespace))
 	switch {
 	case secret != nil:
-		fmt.Fprintf(out, "    * The pod has access to your current session token through the secret %q\n", localOrRemoteName(secret.ObjectMeta, baseNamespace))
-		fmt.Fprintf(out, "    * If you cancel the install, you should delete the secret or log out of your session\n")
+		fmt.Fprintf(out, "    * The pod has access to your current session token through the secret %q.\n", localOrRemoteName(secret.ObjectMeta, baseNamespace))
+		fmt.Fprintf(out, "      If you cancel the install, you should delete the secret or log out of your session.\n")
 	case hasToken && generatorInput.Token.Env != nil:
-		fmt.Fprintf(out, "    * The pod has access to your current session token via environment variable %s\n", *generatorInput.Token.Env)
-		fmt.Fprintf(out, "    * If you cancel the install, you should delete the pod or log out of your session\n")
+		fmt.Fprintf(out, "    * The pod has access to your current session token via environment variable %s.\n", *generatorInput.Token.Env)
+		fmt.Fprintf(out, "      If you cancel the install, you should delete the pod or log out of your session.\n")
+	case hasToken && generatorInput.Token.ServiceAccount:
+		fmt.Fprintf(out, "    * The pod will use the 'installer' service account. If this account does not exist\n")
+		fmt.Fprintf(out, "      with sufficient permissions, you may need to ask a project admin set it up.\n")
 	case hasToken:
-		fmt.Fprintf(out, "    * The pod has access to your current session token. Please delete the pod if you cancel the install\n")
+		fmt.Fprintf(out, "    * The pod has access to your current session token. Please delete the pod if you cancel the install.\n")
 	}
 	if hasToken {
-		fmt.Fprintf(out, "--> WARNING: The pod requires access to your current session token to install this image. Only\n")
-		fmt.Fprintf(out, "      grant access to images whose source you trust. The image will be able to perform any\n")
-		fmt.Fprintf(out, "      action you can take on the cluster.\n")
+		if generatorInput.Token.ServiceAccount {
+			fmt.Fprintf(out, "--> WARNING: The pod requires access to the 'installer' service account to install this\n")
+			fmt.Fprintf(out, "      image. Only grant access to images whose source you trust. The image will be able\n")
+			fmt.Fprintf(out, "      to act as an editor within this project.\n")
+		} else {
+			fmt.Fprintf(out, "--> WARNING: The pod requires access to your current session token to install this image. Only\n")
+			fmt.Fprintf(out, "      grant access to images whose source you trust. The image will be able to perform any\n")
+			fmt.Fprintf(out, "      action you can take on the cluster.\n")
+		}
 	}
 }

@@ -233,13 +233,14 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	}
 
 	mapper, _ := f.Object()
-	var afterFn func(*resource.Info, error)
+	var afterFn configcmd.AfterFunc
 	switch {
 	// only print success if we don't have installables
 	case !result.GeneratedJobs:
 		afterFn = configcmd.NewPrintNameOrErrorAfterIndent(mapper, shortOutput, "created", out, c.Out(), indent)
 	default:
 		afterFn = configcmd.NewPrintErrorAfter(mapper, c.Out())
+		afterFn = configcmd.HaltOnError(afterFn)
 	}
 
 	if err := createObjects(f, afterFn, result); err != nil {
@@ -414,10 +415,11 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 		glog.V(2).Infof("No local Docker daemon detected: %v", err)
 	}
 
-	osclient, _, err := f.Clients()
+	osclient, kclient, err := f.Clients()
 	if err != nil {
 		return err
 	}
+	config.KubeClient = kclient
 	config.SetOpenShiftClient(osclient, namespace)
 	config.Out = out
 	config.ErrOut = c.Out()
@@ -502,7 +504,7 @@ func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 	return nil
 }
 
-func createObjects(f *clientcmd.Factory, after func(*resource.Info, error), result *newcmd.AppResult) error {
+func createObjects(f *clientcmd.Factory, after configcmd.AfterFunc, result *newcmd.AppResult) error {
 	mapper, typer := f.Factory.Object()
 	bulk := configcmd.Bulk{
 		Mapper:            mapper,
@@ -531,7 +533,19 @@ func handleRunError(c *cobra.Command, err error, fullName string) error {
 	}
 	switch t := err.(type) {
 	case newcmd.ErrRequiresExplicitAccess:
+		if t.Input.Token != nil && t.Input.Token.ServiceAccount {
+			return fmt.Errorf(`installing %q requires an 'installer' service account with project editor access
+
+WARNING: This will allow the pod to create and manage resources within your namespace -
+ensure you trust the image with those permissions before you continue.
+
+You can see more information about the image by adding the --dry-run flag.
+If you trust the provided image, include the flag --grant-install-rights.`, t.Match.Value)
+		}
 		return fmt.Errorf(`installing %q requires that you grant the image access to run with your credentials
+
+WARNING: This will allow the pod to act as you across the entire cluster - ensure you
+trust the image with those permissions before you continue.
 
 You can see more information about the image by adding the --dry-run flag.
 If you trust the provided image, include the flag --grant-install-rights.`, t.Match.Value)
@@ -673,4 +687,18 @@ func (r *configSecretRetriever) Token() (string, error) {
 		return r.config.BearerToken, nil
 	}
 	return "", errNoTokenAvailable
+}
+
+func (r *configSecretRetriever) CACert() (string, error) {
+	if len(r.config.CAData) > 0 {
+		return string(r.config.CAData), nil
+	}
+	if len(r.config.CAFile) > 0 {
+		data, err := ioutil.ReadFile(r.config.CAFile)
+		if err != nil {
+			return "", fmt.Errorf("unable to read CA cert from config %s: %v", r.config.CAFile, err)
+		}
+		return string(data), nil
+	}
+	return "", nil
 }

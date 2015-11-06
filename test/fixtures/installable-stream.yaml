@@ -28,3 +28,10 @@ spec:
     from:
       kind: DockerImage
       name: openshift/origin:v1.0.6
+  - name: serviceaccount
+    annotations:
+      io.openshift.generate.job: "true"
+      io.openshift.generate.token.as: "serviceaccount"
+    from:
+      kind: DockerImage
+      name: openshift/origin:v1.0.6
