@@ -19,7 +19,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func TestExtensions(t *testing.T) {
+func TestWebConsoleExtensions(t *testing.T) {
 	// Create a temporary directory.
 	tmpDir, err := ioutil.TempDir("", "extensions")
 	if err != nil {
