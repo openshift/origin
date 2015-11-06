@@ -49,6 +49,17 @@
 #
 #    OPENSHIFT_CONFIG_ROOT=[path] hack/dind-cluster.sh [command]
 #
+# Suggested Workflow
+# ------------------
+#
+# When making changes to the deployment of a dind cluster or making
+# breaking golang changes, the 'restart' command will ensure that an
+# existing cluster is cleaned up before deploying a new cluster.
+#
+# When only making non-breaking changes to golang code, the 'redeploy'
+# command avoids restarting the cluster.  'redeploy' rebuilds the
+# openshift binaries and deploys them to the existing cluster.
+#
 # Running Tests
 # -------------
 #
@@ -256,6 +267,41 @@ function stop() {
 
 }
 
+# Build and deploy openshift binaries to an existing cluster
+function redeploy() {
+  local node_service="openshift-node"
+
+  ${DOCKER_CMD} exec -t "${MASTER_NAME}" bash -c "\
+. ${SCRIPT_ROOT}/provision-util.sh ; \
+os::provision::build-origin ${DEPLOYED_ROOT} ${SKIP_BUILD}"
+
+  echo "Stopping ${MASTER_NAME} service(s)"
+  ${DOCKER_CMD} exec -t "${MASTER_NAME}" systemctl stop "${MASTER_NAME}"
+  if [ "${SDN_NODE}" = "true" ]; then
+    ${DOCKER_CMD} exec -t "${MASTER_NAME}" systemctl stop "${node_service}"
+  fi
+  echo "Updating ${MASTER_NAME} binaries"
+  ${DOCKER_CMD} exec -t "${MASTER_NAME}" bash -c \
+". ${SCRIPT_ROOT}/provision-util.sh ; \
+os::provision::install-cmds ${DEPLOYED_ROOT}"
+  echo "Starting ${MASTER_NAME} service(s)"
+  ${DOCKER_CMD} exec -t "${MASTER_NAME}" systemctl start "${MASTER_NAME}"
+  if [ "${SDN_NODE}" = "true" ]; then
+    ${DOCKER_CMD} exec -t "${MASTER_NAME}" systemctl start "${node_service}"
+  fi
+
+  for node_name in "${NODE_NAMES[@]}"; do
+    echo "Stopping ${node_name} service"
+    ${DOCKER_CMD} exec -t "${node_name}" systemctl stop "${node_service}"
+    echo "Updating ${node_name} binaries"
+    ${DOCKER_CMD} exec -t "${node_name}" bash -c "\
+. ${SCRIPT_ROOT}/provision-util.sh ; \
+os::provision::install-cmds ${DEPLOYED_ROOT}"
+    echo "Starting ${node_name} service"
+    ${DOCKER_CMD} exec -t "${node_name}" systemctl start "${node_service}"
+  done
+}
+
 case "${1:-""}" in
   start)
     start
@@ -267,6 +313,9 @@ case "${1:-""}" in
     stop
     start
     ;;
+  redeploy)
+    redeploy
+    ;;
   build-images)
     BUILD_IMAGES=1
     build-images
@@ -275,6 +324,6 @@ case "${1:-""}" in
     os::provision::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
     ;;
   *)
-    echo "Usage: $0 {start|stop|restart|build-images|config-host}"
+    echo "Usage: $0 {start|stop|restart|redeploy|build-images|config-host}"
     exit 2
 esac
