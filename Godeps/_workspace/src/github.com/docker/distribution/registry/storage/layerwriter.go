@@ -294,6 +294,8 @@ func (lw *layerWriter) resumeHashAt(offset int64) error {
 			return err
 		}
 
+		defer fr.Close()
+
 		if _, err = fr.Seek(int64(lw.resumableDigester.Len()), os.SEEK_SET); err != nil {
 			return fmt.Errorf("unable to seek to layer reader offset %d: %s", lw.resumableDigester.Len(), err)
 		}
@@ -374,6 +376,8 @@ func (lw *layerWriter) validateLayer(dgst digest.Digest) (digest.Digest, error) 
 		if err != nil {
 			return "", err
 		}
+
+		defer fr.Close()
 
 		tr := io.TeeReader(fr, digester)
 
