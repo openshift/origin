@@ -3,9 +3,8 @@ After=docker.service
 Requires=docker.service
 
 [Service]
-EnvironmentFile=/etc/sysconfig/origin-node
 ExecStartPre=-/usr/bin/docker rm -f openvswitch
-ExecStart=/usr/bin/docker run --name openvswitch --rm --privileged --net=host --pid=host -v /lib/modules:/lib/modules -v /run:/run -v /sys:/sys:ro -v /etc/origin/openvswitch:/etc/openvswitch:Z openshift/openvswitch
+ExecStart=/usr/bin/docker run --name openvswitch --rm --privileged --net=host --pid=host -v /lib/modules:/lib/modules -v /run:/run -v /sys:/sys:ro -v /etc/origin/openvswitch:/etc/openvswitch openshift/openvswitch
 ExecStop=/usr/bin/docker stop openvswitch
 Restart=always
 

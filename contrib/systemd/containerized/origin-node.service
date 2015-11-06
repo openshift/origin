@@ -8,11 +8,10 @@ After=openvswitch.service
 [Service]
 EnvironmentFile=/etc/sysconfig/origin-node
 ExecStartPre=-/usr/bin/docker rm -f origin-node
-ExecStart=/usr/bin/docker run --name origin-node --rm --privileged --net=host --pid=host -v /:/rootfs:ro -e CONFIG_FILE=${CONFIG_FILE} -e OPTIONS=${OPTIONS} -e HOST=/rootfs -v /etc/systemd/system:/host-etc/systemd/system -e HOST_ETC=/host-etc -v /etc/localtime:/etc/localtime:ro -v /etc/machine-id:/etc/machine-id:ro -v /lib/modules:/lib/modules -v /run:/run -v /sys:/sys:ro -v /usr/bin/docker:/usr/bin/docker:ro -v /var/lib/docker:/var/lib/docker -v /etc/origin/node:/etc/origin/node:z -v /etc/origin/openvswitch:/etc/openvswitch:Z -v /etc/origin/sdn:/etc/openshift-sdn:Z -v /var/lib/origin:/var/lib/origin:Z openshift/node
+ExecStart=/usr/bin/docker run --name origin-node --rm --privileged --net=host --pid=host -v /:/rootfs:ro -v /etc/systemd/system:/host-etc/systemd/system -v /etc/localtime:/etc/localtime:ro -v /etc/machine-id:/etc/machine-id:ro -v /lib/modules:/lib/modules -v /run:/run -v /sys:/sys:ro -v /usr/bin/docker:/usr/bin/docker:ro -v /var/lib/docker:/var/lib/docker -v /etc/origin/node:/etc/origin/node -v /etc/origin/openvswitch:/etc/openvswitch -v /etc/origin/sdn:/etc/openshift-sdn -v /var/lib/origin:/var/lib/origin -e CONFIG_FILE=${CONFIG_FILE} -e OPTIONS=${OPTIONS} -e HOST=/rootfs -e HOST_ETC=/host-etc openshift/node
 ExecStartPost=/usr/bin/sleep 10
 ExecStop=/usr/bin/docker stop origin-node
 Restart=always
-TimeoutStartSec=5m
 
 [Install]
 WantedBy=multi-user.target

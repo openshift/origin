@@ -50,6 +50,8 @@ images=(
   openshift/origin-haproxy-router
   openshift/origin-f5-router
   openshift/hello-openshift
+  openshift/openvswitch
+  openshift/node
 )
 
 PUSH_OPTS=""
