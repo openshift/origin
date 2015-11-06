@@ -11,35 +11,49 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
+// AfterFunc takes an info and an error, and returns true if processing should stop.
+type AfterFunc func(*resource.Info, error) bool
+
 // Bulk provides helpers for iterating over a list of items
 type Bulk struct {
 	Mapper            meta.RESTMapper
 	Typer             runtime.ObjectTyper
 	RESTClientFactory func(mapping *meta.RESTMapping) (resource.RESTClient, error)
-	After             func(*resource.Info, error)
+	After             AfterFunc
 	Retry             func(info *resource.Info, err error) runtime.Object
 }
 
-func NewPrintNameOrErrorAfter(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer) func(*resource.Info, error) {
+func NewPrintNameOrErrorAfter(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer) AfterFunc {
 	return NewPrintNameOrErrorAfterIndent(mapper, short, operation, out, errs, "")
 }
 
-func NewPrintNameOrErrorAfterIndent(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer, indent string) func(*resource.Info, error) {
-	return func(info *resource.Info, err error) {
+func NewPrintNameOrErrorAfterIndent(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer, indent string) AfterFunc {
+	return func(info *resource.Info, err error) bool {
 		if err == nil {
 			fmt.Fprintf(out, indent)
 			cmdutil.PrintSuccess(mapper, short, out, info.Mapping.Kind, info.Name, operation)
 		} else {
 			fmt.Fprintf(errs, "%serror: %v\n", indent, err)
 		}
+		return false
 	}
 }
 
-func NewPrintErrorAfter(mapper meta.RESTMapper, errs io.Writer) func(*resource.Info, error) {
-	return func(info *resource.Info, err error) {
+func NewPrintErrorAfter(mapper meta.RESTMapper, errs io.Writer) func(*resource.Info, error) bool {
+	return func(info *resource.Info, err error) bool {
 		if err != nil {
 			fmt.Fprintf(errs, "error: %v\n", err)
 		}
+		return false
+	}
+}
+
+func HaltOnError(fn AfterFunc) AfterFunc {
+	return func(info *resource.Info, err error) bool {
+		if fn(info, err) || err != nil {
+			return true
+		}
+		return false
 	}
 }
 
@@ -54,7 +68,7 @@ func (b *Bulk) Create(list *kapi.List, namespace string) []error {
 	resourceMapper := &resource.Mapper{ObjectTyper: b.Typer, RESTMapper: b.Mapper, ClientMapper: resource.ClientMapperFunc(b.RESTClientFactory)}
 	after := b.After
 	if after == nil {
-		after = func(*resource.Info, error) {}
+		after = func(*resource.Info, error) bool { return false }
 	}
 
 	errs := []error{}
@@ -62,7 +76,9 @@ func (b *Bulk) Create(list *kapi.List, namespace string) []error {
 		info, err := resourceMapper.InfoForObject(item)
 		if err != nil {
 			errs = append(errs, err)
-			after(info, err)
+			if after(info, err) {
+				break
+			}
 			continue
 		}
 		obj, err := encodeAndCreate(info, namespace, item)
@@ -73,12 +89,16 @@ func (b *Bulk) Create(list *kapi.List, namespace string) []error {
 		}
 		if err != nil {
 			errs = append(errs, err)
-			after(info, err)
+			if after(info, err) {
+				break
+			}
 			continue
 		}
 		info.Refresh(obj, true)
 		list.Items[i] = obj
-		after(info, nil)
+		if after(info, nil) {
+			break
+		}
 	}
 	return errs
 }

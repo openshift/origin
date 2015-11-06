@@ -74,6 +74,13 @@ oc get template ruby-helloworld-sample
 [ "$(oc new-app -S mysql --env=FOO=BAR 2>&1 | grep "can't be used")" ]
 [ "$(oc new-app --search mysql --code=https://github.com/openshift/ruby-hello-world 2>&1 | grep "can't be used")" ]
 [ "$(oc new-app --search mysql --param=FOO=BAR 2>&1 | grep "can't be used")" ]
+# set context-dir
+[ "$(oc new-app https://github.com/openshift/sti-ruby.git --context-dir="2.0/test/puma-test-app" -o yaml | grep 'contextDir: 2.0/test/puma-test-app')" ]
+[ "$(oc new-app ruby~https://github.com/openshift/sti-ruby.git --context-dir="2.0/test/puma-test-app" -o yaml | grep 'contextDir: 2.0/test/puma-test-app')" ]
+# set strategy
+[ "$(oc new-app ruby~https://github.com/openshift/ruby-hello-world.git --strategy=docker -o yaml | grep 'dockerStrategy')" ]
+[ "$(oc new-app https://github.com/openshift/ruby-hello-world.git --strategy=source -o yaml | grep 'sourceStrategy')" ]
+
 oc delete imageStreams --all
 # check that we can create from the template without errors
 [ "$(oc new-app ruby-helloworld-sample -l app=helloworld 2>&1 | grep 'Service "frontend" created')" ]
@@ -108,13 +115,18 @@ tryuntil oc project "${project}"
 
 tryuntil oc get imagestreamtags installable:file
 tryuntil oc get imagestreamtags installable:token
+tryuntil oc get imagestreamtags installable:serviceaccount
 [ ! "$(oc new-app installable:file)" ]
 [ "$(oc new-app installable:file 2>&1 | grep 'requires that you grant the image access')" ]
+[ "$(oc new-app installable:serviceaccount 2>&1 | grep "requires an 'installer' service account with project editor access")" ]
 [ "$(oc new-app installable:file --grant-install-rights -o yaml | grep -F '/var/run/openshift.secret.token')" ]
 [ "$(oc new-app installable:file --grant-install-rights -o yaml | grep -F 'activeDeadlineSeconds: 14400')" ]
 [ "$(oc new-app installable:file --grant-install-rights -o yaml | grep -F 'openshift.io/generated-job: "true"')" ]
 [ "$(oc new-app installable:file --grant-install-rights -o yaml | grep -F 'openshift.io/generated-job.for: installable:file')" ]
 [ "$(oc new-app installable:token --grant-install-rights -o yaml | grep -F 'name: TOKEN_ENV')" ]
 [ "$(oc new-app installable:token --grant-install-rights -o yaml | grep -F 'openshift/origin@sha256:')" ]
+[ "$(oc new-app installable:serviceaccount --grant-install-rights -o yaml | grep -F 'serviceAccountName: installer')" ]
+[ "$(oc new-app installable:serviceaccount --grant-install-rights -o yaml | grep -F 'fieldPath: metadata.namespace')" ]
+[ "$(oc new-app installable:serviceaccount --grant-install-rights -o yaml A=B | grep -F 'name: A')" ]
 
 echo "new-app: ok"

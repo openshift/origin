@@ -3,9 +3,12 @@ package clientcmd
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/golang/glog"
 
 	"github.com/spf13/pflag"
 	"k8s.io/kubernetes/pkg/api"
@@ -13,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -36,7 +40,6 @@ import (
 // New creates a default Factory for commands that should share identical server
 // connection behavior. Most commands should use this method to get a factory.
 func New(flags *pflag.FlagSet) *Factory {
-	// Override global default to "" so we force the client to ask for user input
 	// TODO refactor this upstream:
 	// DefaultCluster should not be a global
 	// A call to ClientConfig() should always return the best clientCfg possible
@@ -45,10 +48,67 @@ func New(flags *pflag.FlagSet) *Factory {
 
 	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
 	clientConfig := DefaultClientConfig(flags)
+	clientConfig = defaultingClientConfig{clientConfig}
 	f := NewFactory(clientConfig)
 	f.BindFlags(flags)
 
 	return f
+}
+
+// defaultingClientConfig detects whether the provided config is the default, and if
+// so returns an error that indicates the user should set up their config.
+type defaultingClientConfig struct {
+	nested kclientcmd.ClientConfig
+}
+
+// RawConfig calls the nested method
+func (c defaultingClientConfig) RawConfig() (kclientcmdapi.Config, error) {
+	return c.nested.RawConfig()
+}
+
+// Namespace calls the nested method, and if an empty config error is returned
+// it checks for the same default as kubectl - the value of POD_NAMESPACE or
+// "default".
+func (c defaultingClientConfig) Namespace() (string, bool, error) {
+	namespace, ok, err := c.nested.Namespace()
+	if err == nil {
+		return namespace, ok, nil
+	}
+	if !kclientcmd.IsEmptyConfig(err) {
+		return "", false, err
+	}
+	// TODO: can we inject the namespace as a file in the secret?
+	namespace = os.Getenv("POD_NAMESPACE")
+	if len(namespace) == 0 {
+		return api.NamespaceDefault, false, nil
+	}
+	return namespace, true, nil
+}
+
+// ClientConfig returns a complete client config
+func (c defaultingClientConfig) ClientConfig() (*kclient.Config, error) {
+	cfg, err := c.nested.ClientConfig()
+	if err == nil {
+		return cfg, nil
+	}
+
+	if !kclientcmd.IsEmptyConfig(err) {
+		return nil, err
+	}
+
+	// TODO: need to expose inClusterConfig upstream and use that
+	if icc, err := kclient.InClusterConfig(); err == nil {
+		glog.V(4).Infof("Using in-cluster configuration")
+		return icc, nil
+	}
+
+	return nil, fmt.Errorf(`No configuration file found, please login or point to an existing file:
+
+  1. Via the command-line flag --config
+  2. Via the KUBECONFIG environment variable
+  3. In your home directory as ~/.kube/config
+
+To view or setup config directly use the 'config' command.`)
 }
 
 // Factory provides common options for OpenShift commands

@@ -86,24 +86,29 @@ func isGeneratorJobImageStreamTag(stream *imageapi.ImageStream, tag string) bool
 
 func parseGenerateTokenAs(value string) (*TokenInput, error) {
 	parts := strings.SplitN(value, ":", 2)
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("label %s=%s; expected 'env:<NAME>' or not set", labelGenerateTokenAs, value)
-	}
 	switch parts[0] {
 	case "env":
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("label %s=%s; expected 'env:<NAME>' or not set", labelGenerateTokenAs, value)
+		}
 		name := strings.TrimSpace(parts[1])
 		if len(name) == 0 {
 			return nil, fmt.Errorf("label %s=%s; expected 'env:<NAME>' but name was empty", labelGenerateTokenAs, value)
 		}
 		return &TokenInput{Env: &name}, nil
 	case "file":
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("label %s=%s; expected 'file:<PATH>' or not set", labelGenerateTokenAs, value)
+		}
 		name := strings.TrimSpace(parts[1])
 		if len(name) == 0 {
 			return nil, fmt.Errorf("label %s=%s; expected 'file:<PATH>' but path was empty", labelGenerateTokenAs, value)
 		}
 		return &TokenInput{File: &name}, nil
+	case "serviceaccount":
+		return &TokenInput{ServiceAccount: true}, nil
 	default:
-		return nil, fmt.Errorf("unrecognized value for label %s=%s; expected 'env:<NAME>'", labelGenerateTokenAs, value)
+		return nil, fmt.Errorf("unrecognized value for label %s=%s; expected 'env:<NAME>', 'file:<PATH>', or 'serviceaccount'", labelGenerateTokenAs, value)
 	}
 }
 
@@ -113,8 +118,9 @@ const (
 )
 
 type TokenInput struct {
-	Env  *string
-	File *string
+	Env            *string
+	File           *string
+	ServiceAccount bool
 }
 
 type GeneratorInput struct {

@@ -187,7 +187,12 @@ atomic-enterprise start \
 	"${NODE_CONFIG_DIR}/node-config.yaml"
 
 # test client not configured
-[ "$(oc get services 2>&1 | grep 'Error in configuration')" ]
+[ "$(oc get services 2>&1 | grep 'No configuration file found, please login')" ]
+unused_port="33333"
+# setting env bypasses the not configured message
+[ "$(KUBERNETES_MASTER=http://${API_HOST}:${unused_port} oc get services 2>&1 | grep 'did you specify the right host or port')" ]
+# setting --server bypasses the not configured message
+[ "$(oc get services --server=http://${API_HOST}:${unused_port} 2>&1 | grep 'did you specify the right host or port')" ]
 
 # Set KUBERNETES_MASTER for oc from now on
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"

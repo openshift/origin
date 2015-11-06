@@ -65,7 +65,7 @@ function configure_os_server {
 	# find the same IP that openshift start will bind to.	This allows access from pods that have to talk back to master
 	if [[ -z "${ALL_IP_ADDRESSES-}" ]]; then
 		ALL_IP_ADDRESSES="$(openshift start --print-ip)"
-		SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
+		SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost,172.30.0.1"
 
 		while read -r IP_ADDRESS
 		do
