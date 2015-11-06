@@ -63,8 +63,9 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 
 // RunNamespaceController starts the Kubernetes Namespace Manager
 func (c *MasterConfig) RunNamespaceController() {
-	// TODO: Add OR c.ControllerManager.EnableDeploymentController once we have upstream deployments
-	experimentalMode := c.ControllerManager.EnableExperimental
+	// we now have several of the kube "experimental" pieces enabled in Origin, so this needs to be
+	// enabled whenever we have the "experimental" APIs enabled.
+	experimentalMode := c.Master.EnableExp
 	namespaceController := namespacecontroller.NewNamespaceController(c.KubeClient, experimentalMode, c.ControllerManager.NamespaceSyncPeriod)
 	namespaceController.Run()
 }
