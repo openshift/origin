@@ -124,8 +124,8 @@ func BuildSubjects(users, groups []string, userNameValidator, groupNameValidator
 // StringSubjectsFor returns users and groups for comparison against user.Info.  currentNamespace is used to
 // to create usernames for service accounts where namespace=="".
 func StringSubjectsFor(currentNamespace string, subjects []kapi.ObjectReference) ([]string, []string) {
-	users := []string{}
-	groups := []string{}
+	// these MUST be nil to indicate empty
+	var users, groups []string
 
 	for _, subject := range subjects {
 		switch subject.Kind {
@@ -134,7 +134,9 @@ func StringSubjectsFor(currentNamespace string, subjects []kapi.ObjectReference)
 			if len(subject.Namespace) > 0 {
 				namespace = subject.Namespace
 			}
-			users = append(users, serviceaccount.MakeUsername(namespace, subject.Name))
+			if len(namespace) > 0 {
+				users = append(users, serviceaccount.MakeUsername(namespace, subject.Name))
+			}
 
 		case UserKind, SystemUserKind:
 			users = append(users, subject.Name)
