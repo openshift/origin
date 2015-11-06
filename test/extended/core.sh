@@ -113,6 +113,13 @@ if [[ -z ${TEST_ONLY+x} ]]; then
   wait_for_registry
   CREATE_ROUTER_CERT=1 install_router
 
+  echo "[INFO] Installing heapster"
+  oc --namespace=openshift-infra create -f test/extended/fixtures/metrics-sa.yaml
+  oadm policy add-role-to-user edit system:serviceaccount:openshift-infra:metrics-deployer --namespace=openshift-infra
+  oadm policy add-cluster-role-to-user cluster-reader system:serviceaccount:openshift-infra:heapster
+  oc --namespace=openshift-infra secrets new metrics-deployer nothing=/dev/null
+  oc --namespace=openshift-infra process -f test/extended/fixtures/metrics.yaml -v HAWKULAR_METRICS_HOSTNAME=not.needed,MASTER_URL=${MASTER_ADDR} | oc --namespace=openshift-infra create -f -
+
   echo "[INFO] Creating image streams"
   oc create -n openshift -f examples/image-streams/image-streams-centos7.json --config="${ADMIN_KUBECONFIG}"
 fi
