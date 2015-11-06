@@ -216,6 +216,9 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		},
 	}
 
+	// set for consistency -- Origin only used m.EnableExp
+	cmserver.EnableExperimental = m.EnableExp
+
 	if options.DNSConfig != nil {
 		_, dnsPortStr, err := net.SplitHostPort(options.DNSConfig.BindAddress)
 		if err != nil {
