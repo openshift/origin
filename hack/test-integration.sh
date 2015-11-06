@@ -65,7 +65,7 @@ echo
 
 # setup the test dirs
 export ETCD_DIR=${BASETMPDIR}/etcd
-etcdlog="${ETCD_DIR}/etcd.log"
+etcdlog="${BASETMPDIR}/etcd.log"
 testdir="${OS_ROOT}/_output/testbin/${package}"
 name="$(basename ${testdir})"
 testexec="${testdir}/${name}.test"
@@ -74,11 +74,13 @@ mkdir -p "${ETCD_DIR}"
 
 # build the test executable (cgo must be disabled to have the symbol table available)
 pushd "${testdir}" &>/dev/null
+echo "Building test executable..."
 CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
 popd &>/dev/null
 
 
 # Start etcd
+echo "Starting etcd..."
 etcd -name test -data-dir ${ETCD_DIR} \
  --listen-peer-urls http://${ETCD_HOST}:${ETCD_PEER_PORT} \
  --listen-client-urls http://${ETCD_HOST}:${ETCD_PORT} \
@@ -111,12 +113,12 @@ function exectest() {
 
 	if [[ ${result} -eq 0 ]]; then
 		tput setaf 2 # green
-		echo "ok			$1"
+		echo "ok      $1"
 		tput sgr0		# reset
 		exit 0
 	else
 		tput setaf 1 # red
-		echo "failed	$1"
+		echo "failed  $1"
 		tput sgr0		# reset
 		echo "${out}"
 		exit 1
