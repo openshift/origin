@@ -69,3 +69,7 @@ references:
 
   OpenShift clients <= 1.0.4 will need to pass `--api-version=v1` when communicating with
   a master. (https://github.com/openshift/origin/issues/5254)
+
+## Origin 1.1.x / OSE 3.1.x
+
+1. The `buildconfig` label on Build objects, which contains the name of the BuildConfig for the Build, has been deprecated in favor of a new `openshift.io/build-config.name` label.
