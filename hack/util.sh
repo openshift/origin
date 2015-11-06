@@ -515,6 +515,7 @@ function cleanup_openshift {
 	dump_container_logs
 	
 	echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
+	oc login -u system:admin -n default --config=${ADMIN_KUBECONFIG}
 	oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
 
 	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
