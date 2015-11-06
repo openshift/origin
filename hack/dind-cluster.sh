@@ -302,6 +302,20 @@ os::provision::install-cmds ${DEPLOYED_ROOT}"
   done
 }
 
+function nodes-are-ready() {
+    local node_count=$(${DOCKER_CMD} exec -t "${MASTER_NAME}" bash -c "\
+KUBECONFIG=${DEPLOYED_CONFIG_ROOT}/openshift.local.config/master/admin.kubeconfig \
+oc get nodes | grep Ready | wc -l")
+    node_count=$(echo "${node_count}" | tr -d '\r')
+    test "${node_count}" -ge "${NODE_COUNT}"
+}
+
+function wait-for-cluster() {
+  local msg="nodes to register with the master"
+  local condition="nodes-are-ready"
+  os::provision::wait-for-condition "${msg}" "${condition}"
+}
+
 case "${1:-""}" in
   start)
     start
@@ -316,6 +330,9 @@ case "${1:-""}" in
   redeploy)
     redeploy
     ;;
+  wait-for-cluster)
+    wait-for-cluster
+    ;;
   build-images)
     BUILD_IMAGES=1
     build-images
@@ -324,6 +341,6 @@ case "${1:-""}" in
     os::provision::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
     ;;
   *)
-    echo "Usage: $0 {start|stop|restart|redeploy|build-images|config-host}"
+    echo "Usage: $0 {start|stop|restart|redeploy|wait-for-cluster|build-images|config-host}"
     exit 2
 esac

@@ -95,6 +95,7 @@ function test-osdn-plugin() {
   export OS_DIND_BUILD_IMAGES=0
   DIND_CLEANUP_REQUIRED=1
   ${CLUSTER_CMD} start
+  ${CLUSTER_CMD} wait-for-cluster
 
   os::log::info "Saving cluster configuration"
   save-artifacts "${name}" "${OPENSHIFT_CONFIG_ROOT}"
