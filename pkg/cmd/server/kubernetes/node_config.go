@@ -17,6 +17,7 @@ import (
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/oom"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -159,6 +160,17 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	cfg.StreamingConnectionIdleTimeout = 5 * time.Minute // TODO: should be set
 	cfg.KubeClient = kubeClient
 	cfg.DockerExecHandler = dockerExecHandler
+
+	// docker-in-docker (dind) deployments are used for testing
+	// networking plugins.  Running openshift under dind won't work
+	// with the real oom adjuster due to the state of the cgroups path
+	// in a dind container that uses systemd for init.
+	//
+	// TODO(marun) Make dind cgroups compatible with openshift
+	if value := cmdutil.Env("OPENSHIFT_DIND", ""); value == "true" {
+		glog.Warningf("Using FakeOOMAdjuster for docker-in-docker compatibility")
+		cfg.OOMAdjuster = oom.NewFakeOOMAdjuster()
+	}
 
 	// Setup auth
 	osClient, osClientConfig, err := configapi.GetOpenShiftClient(options.MasterKubeConfig)
