@@ -17,13 +17,13 @@ limitations under the License.
 package runtime
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"reflect"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/util/json"
 )
 
 // UnstructuredJSONScheme is capable of converting JSON data into the Unstructured

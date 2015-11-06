@@ -17,11 +17,14 @@ limitations under the License.
 package runtime_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
@@ -44,5 +47,60 @@ func TestDecodeUnstructured(t *testing.T) {
 	}
 	if _, ok := pl.Items[2].(*runtime.Unknown); !ok {
 		t.Errorf("object should not have been converted: %#v", pl.Items[2])
+	}
+}
+
+func TestDecodeNumbers(t *testing.T) {
+
+	// Start with a valid pod
+	originalJSON := []byte(`{
+		"kind":"Pod",
+		"apiVersion":"v1",
+		"metadata":{"name":"pod","namespace":"foo"},
+		"spec":{
+			"containers":[{"name":"container","image":"container"}],
+			"activeDeadlineSeconds":9223372036854775807
+		}
+	}`)
+
+	pod := &api.Pod{}
+
+	// Decode with structured codec
+	codec, err := testapi.GetCodecForObject(pod)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	err = codec.DecodeInto(originalJSON, pod)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// ensure pod is valid
+	if errs := validation.ValidatePod(pod); len(errs) > 0 {
+		t.Fatalf("pod should be valid: %v", errs)
+	}
+
+	// Round-trip with unstructured codec
+	unstructuredObj, err := runtime.UnstructuredJSONScheme.Decode(originalJSON)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	roundtripJSON, err := json.Marshal(unstructuredObj.(*runtime.Unstructured).Object)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Decode with structured codec again
+	pod2 := &api.Pod{}
+	err = codec.DecodeInto(roundtripJSON, pod2)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// ensure pod is still valid
+	if errs := validation.ValidatePod(pod2); len(errs) > 0 {
+		t.Fatalf("pod should be valid: %v", errs)
+	}
+	// ensure round-trip preserved large integers
+	if !reflect.DeepEqual(pod, pod2) {
+		t.Fatalf("Expected\n\t%#v, got \n\t%#v", pod, pod2)
 	}
 }
