@@ -1,0 +1,12 @@
+>>>> BEGIN PACKAGE: /test/package/title <<<<
+==== BEGIN TEST AT /test/package/test.sh:10: func 'arg' 'arg' ====
+output line 1
+output line 2
+output line 3
+==== END TEST: PASS AFTER 3.3333333 MILLISECONDS ====
+==== BEGIN TEST AT /test/package/test.sh:15: other_func 'arg' 'other_arg' ====
+output line 0
+output line 1
+output line 2
+==== END TEST: FAIL AFTER 0.3333333 MILLISECONDS ====
+>>>> END PACKAGE <<<<

@@ -1,0 +1,2 @@
+>>>> BEGIN PACKAGE: /test/package/title <<<<
+>>>> END PACKAGE <<<<
