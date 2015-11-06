@@ -17,12 +17,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 4a9736a1fb3d8237e94837b8d41b6d8ef409aa7a
+%global commit ad4741c220ce38dda32b62d0695dd0f8392fb14b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.905-183-g4a9736a -X github.com/openshift/origin/pkg/version.commitFromGit 4a9736a -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.1-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.0.0-16-gad4741c -X github.com/openshift/origin/pkg/version.commitFromGit ad4741c -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.1-1107-g4c8e6f4
 }
 
 %if "%{dist}" == ".el7aos"
@@ -36,8 +36,8 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.0.0
-Release:        0%{?dist}
+Version:        3.1.0.1
+Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -394,6 +394,18 @@ fi
 
 
 %changelog
+* Fri Nov 06 2015 Troy Dawson <tdawson@redhat.com> 3.1.0.1
+- Allow in-cluster config for oc (ccoleman@redhat.com)
+- deprecation for buildconfig label (bparees@redhat.com)
+- Unable to submit subject rolebindings to a v1 server (ccoleman@redhat.com)
+- Allow a service account installation (ccoleman@redhat.com)
+- UPSTREAM: 16818: Namespace controller should always get latest state prior to
+  deletion (decarr@redhat.com)
+- UPSTREAM: 16859: Return a typed error for no-config (ccoleman@redhat.com)
+- New-app: Set context directory and strategy on source repos specified with
+  tilde(~) (cewong@redhat.com)
+- update UPGRADE.md (pweil@redhat.com)
+
 * Wed Nov 04 2015 Scott Dodson <sdodson@redhat.com> 3.1.0.0
 - add reconcile-sccs command (pweil@redhat.com)
 - Guard against servers that return non-json for the /v2/ check
