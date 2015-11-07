@@ -17,12 +17,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ad4741c220ce38dda32b62d0695dd0f8392fb14b
+%global commit 772b15e871e4d48e99d9f14ed33c603d2c59053c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.0.0-16-gad4741c -X github.com/openshift/origin/pkg/version.commitFromGit ad4741c -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.1-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.0.1-10-g772b15e -X github.com/openshift/origin/pkg/version.commitFromGit 772b15e -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
 }
 
 %if "%{dist}" == ".el7aos"
@@ -36,7 +36,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.0.1
+Version:        3.1.0.2
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -394,6 +394,14 @@ fi
 
 
 %changelog
+* Sat Nov 07 2015 Brenton Leanhardt <bleanhar@redhat.com> 3.1.0.2
+- bump(github.com/openshift/openshift-sdn)
+  d5965ee039bb85c5ec9ef7f455a8c03ac0ff0214 (dcbw@redhat.com)
+- Identify the upstream Kube tag more clearly (ccoleman@redhat.com)
+- Move etcd.log out of etcd dir (jliggitt@redhat.com)
+- Conditionally run extensions controllers (jliggitt@redhat.com)
+- Make namespace delete trigger exp resource delete (sross@redhat.com)
+
 * Fri Nov 06 2015 Troy Dawson <tdawson@redhat.com> 3.1.0.1
 - Allow in-cluster config for oc (ccoleman@redhat.com)
 - deprecation for buildconfig label (bparees@redhat.com)
