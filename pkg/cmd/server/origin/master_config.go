@@ -187,16 +187,18 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	plug, plugStart := newControllerPlug(options, client)
 
+	authorizer := newAuthorizer(policyClient, options.ProjectConfig.ProjectRequestMessage)
+
 	config := &MasterConfig{
 		Options: options,
 
 		Authenticator:                 newAuthenticator(options, etcdHelper, serviceAccountTokenGetter, apiClientCAs, groupCache),
-		Authorizer:                    newAuthorizer(policyClient, options.ProjectConfig.ProjectRequestMessage),
+		Authorizer:                    authorizer,
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		PolicyCache:               policyCache,
 		GroupCache:                groupCache,
-		ProjectAuthorizationCache: newProjectAuthorizationCache(privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClient, policyClient),
+		ProjectAuthorizationCache: newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, policyClient),
 
 		RequestContextMapper: requestContextMapper,
 
@@ -320,10 +322,9 @@ func newAuthenticator(config configapi.MasterConfig, etcdHelper storage.Interfac
 	return ret
 }
 
-func newProjectAuthorizationCache(openshiftClient *osclient.Client, kubeClient *kclient.Client,
-	policyClient policyclient.ReadOnlyPolicyClient) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient *kclient.Client, policyClient policyclient.ReadOnlyPolicyClient) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
-		projectauth.NewReviewer(openshiftClient),
+		projectauth.NewAuthorizerReviewer(authorizer),
 		kubeClient.Namespaces(),
 		policyClient,
 	)
