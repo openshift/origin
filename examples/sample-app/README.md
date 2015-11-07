@@ -145,8 +145,8 @@ This section covers how to perform all the steps of building, deploying, and upd
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
         $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
-          deploymentconfigs/docker-registry
-          services/docker-registry
+          DeploymentConfig "docker-registry" created
+          Service "docker-registry" created
 
     Note that the private Docker registry is using ephemeral storage,
     so when it is stopped, the image will be lost. An external volume
@@ -370,8 +370,8 @@ the ip address shown below with the correct one for your environment.
             # use the container network stack and expose ports, add the
             # --host-network=false option to the oadm router command.
             $ oadm router --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig --service-account=router
-              router # the service
-              router # the deployment config
+              DeploymentConfig "router" created
+              Service "router" created
 
 
 3.  Switch to the `default` project to watch for router to start
@@ -435,7 +435,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
     Sample output:
 
-        services/frontend
+        Service "frontend" deleted
 
   - Check the service was removed:
 
