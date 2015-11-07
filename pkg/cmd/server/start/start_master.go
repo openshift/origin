@@ -551,8 +551,10 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunNodeController()
 		kc.RunScheduler()
 		kc.RunReplicationController(rcClient)
-		kc.RunJobController(jobClient)
-		kc.RunHPAController(hpaOClient, hpaKClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
+		if kc.Master.EnableExp {
+			kc.RunJobController(jobClient)
+			kc.RunHPAController(hpaOClient, hpaKClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
+		}
 		kc.RunEndpointController()
 		kc.RunNamespaceController()
 		kc.RunPersistentVolumeClaimBinder()
