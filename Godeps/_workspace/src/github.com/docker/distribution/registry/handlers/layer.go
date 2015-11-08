@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/docker/distribution"
 	ctxu "github.com/docker/distribution/context"
@@ -48,9 +49,35 @@ type layerHandler struct {
 // GetLayer fetches the binary data from backend storage returns it in the
 // response.
 func (lh *layerHandler) GetLayer(w http.ResponseWriter, r *http.Request) {
+	var (
+		layer distribution.Layer
+		err   error
+	)
+
 	ctxu.GetLogger(lh).Debug("GetImageLayer")
 	layers := lh.Repository.Layers()
-	layer, err := layers.Fetch(lh.Digest)
+
+	// On NFS, recently pushed layer by another registry instance may be unseen to us
+	// for a second. Retry the fetch few times.
+Loop:
+	for retries := 0; ; retries++ {
+		layer, err = layers.Fetch(lh.Digest)
+		if err == nil {
+			if retries > 0 {
+				ctxu.GetLogger(lh).Debugf("(*layerHandler).GetLayer: layer fetched after %d failed attempts", retries)
+			}
+			break Loop
+		}
+		switch err.(type) {
+		case distribution.ErrUnknownLayer:
+			if retries > 10 {
+				break Loop
+			}
+			time.Sleep(100 * time.Millisecond * time.Duration(retries+1))
+		default:
+			break Loop
+		}
+	}
 
 	if err != nil {
 		switch err := err.(type) {

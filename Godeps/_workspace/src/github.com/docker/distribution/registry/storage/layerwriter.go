@@ -79,8 +79,24 @@ func (lw *layerWriter) Finish(dgst digest.Digest) (distribution.Layer, error) {
 
 	}
 
-	if err := lw.moveLayer(canonical); err != nil {
-		// TODO(stevvooe): Cleanup?
+	// On NFS filesystem file attributes are cached on client. File may
+	// not exist (os.Stat failes with NotExist) few seconds after the write
+	// has been completed.
+	for retries := 0; ; retries++ {
+		err := lw.moveLayer(canonical)
+		if err == nil {
+			if retries > 0 {
+				ctxu.GetLogger(lw.layerStore.repository.ctx).Debugf("(*layerWriter).Finish: layer moved after %d failed attempts", retries)
+			}
+			break
+		}
+		switch err.(type) {
+		case storagedriver.PathNotFoundError:
+			if retries < 50 {
+				time.Sleep(100 * time.Millisecond * time.Duration(retries+1))
+				continue
+			}
+		}
 		return nil, err
 	}
 
@@ -93,7 +109,25 @@ func (lw *layerWriter) Finish(dgst digest.Digest) (distribution.Layer, error) {
 		return nil, err
 	}
 
-	return lw.layerStore.Fetch(canonical)
+	// Fetch layer with a retry. Fetch may fail after an upload of big layer on NFS.
+	for retries := 0; ; retries++ {
+		layer, fetchErr := lw.layerStore.Fetch(canonical)
+		if fetchErr == nil {
+			if retries > 0 {
+				ctxu.GetLogger(lw.layerStore.repository.ctx).Debugf("(*layerWriter).Finish: layer fetched after %d failed attempts", retries)
+			}
+			return layer, nil
+		}
+		switch fetchErr.(type) {
+		case distribution.ErrUnknownLayer:
+			if retries < 3 {
+				time.Sleep(100 * time.Millisecond * time.Duration(retries+1))
+				continue
+			}
+		}
+		err = fetchErr
+	}
+	return nil, err
 }
 
 // Cancel the layer upload process.
@@ -258,6 +292,8 @@ func (lw *layerWriter) resumeHashAt(offset int64) error {
 			return err
 		}
 
+		defer fr.Close()
+
 		if _, err = fr.Seek(int64(lw.resumableDigester.Len()), os.SEEK_SET); err != nil {
 			return fmt.Errorf("unable to seek to layer reader offset %d: %s", lw.resumableDigester.Len(), err)
 		}
@@ -298,8 +334,13 @@ func (lw *layerWriter) validateLayer(dgst digest.Digest) (digest.Digest, error) 
 	)
 
 	if lw.resumableDigester != nil {
+		offset := lw.size
+		if offset < lw.offset {
+			// we're probably on NFS where file attributes are cached on client
+			offset = lw.offset
+		}
 		// Restore the hasher state to the end of the upload.
-		if err := lw.resumeHashAt(lw.size); err != nil {
+		if err := lw.resumeHashAt(offset); err != nil {
 			return "", err
 		}
 
@@ -334,6 +375,8 @@ func (lw *layerWriter) validateLayer(dgst digest.Digest) (digest.Digest, error) 
 			return "", err
 		}
 
+		defer fr.Close()
+
 		tr := io.TeeReader(fr, digester)
 
 		if _, err = io.Copy(digestVerifier, tr); err != nil {
@@ -345,7 +388,7 @@ func (lw *layerWriter) validateLayer(dgst digest.Digest) (digest.Digest, error) 
 	}
 
 	if !verified {
-		ctxu.GetLoggerWithField(lw.layerStore.repository.ctx, "canonical", dgst).
+		ctxu.GetLoggerWithField(lw.layerStore.repository.ctx, "canonical", canonical).
 			Errorf("canonical digest does match provided digest")
 		return "", distribution.ErrLayerInvalidDigest{
 			Digest: dgst,
