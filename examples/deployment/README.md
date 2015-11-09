@@ -200,7 +200,7 @@ OpenShift, through labels and deployment configurations, can support multiple si
 
 4.  Create a service that uses the common label:
 
-        $ oc expose dc/ab-example-a --name=ab-example --selector=ab-example=true --generator=service/v1
+        $ oc expose dc/ab-example-a --name=ab-example --selector=ab-example=true
 
     If you have the router installed, make the application available via a route (or use the service IP directly)
 
