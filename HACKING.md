@@ -100,7 +100,9 @@ To run tests without the go race detector, which is on by default, use:
 A line coverage report is run by default when testing a single package.
 To create a coverage report for all packages:
 
-    $ OUTPUT_COVERAGE=true hack/test-go.sh pkg/build
+    $ OUTPUT_COVERAGE=/path/to/dir hack/test-go.sh pkg/build
+
+After that you can open `/path/to/dir/coverage.html` in the browser.
 
 ### Integration tests
 
