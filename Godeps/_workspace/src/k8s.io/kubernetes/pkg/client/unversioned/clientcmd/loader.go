@@ -465,7 +465,7 @@ func MakeRelative(path, base string) (string, error) {
 	return path, nil
 }
 
-// HomeDir return the home directory for the current user
+// HomeDir returns the home directory for the current user
 func HomeDir() string {
 	if runtime.GOOS == "windows" {
 		if homeDrive, homePath := os.Getenv("HOMEDRIVE"), os.Getenv("HOMEPATH"); len(homeDrive) > 0 && len(homePath) > 0 {
