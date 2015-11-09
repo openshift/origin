@@ -23,6 +23,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -42,9 +43,23 @@ const (
 	RecommendedSchemaName       = "schema"
 )
 
-var OldRecommendedHomeFile = path.Join(os.Getenv("HOME"), "/.kube/.kubeconfig")
-var RecommendedHomeFile = path.Join(os.Getenv("HOME"), RecommendedHomeDir, RecommendedFileName)
-var RecommendedSchemaFile = path.Join(os.Getenv("HOME"), RecommendedHomeDir, RecommendedSchemaName)
+var RecommendedHomeFile = path.Join(HomeDir(), RecommendedHomeDir, RecommendedFileName)
+var RecommendedSchemaFile = path.Join(HomeDir(), RecommendedHomeDir, RecommendedSchemaName)
+
+// currentMigrationRules returns a map that holds the history of recommended home directories used in previous versions.
+// Any future changes to RecommendedHomeFile and related are expected to add a migration rule here, in order to make
+// sure existing config files are migrated to their new locations properly.
+func currentMigrationRules() map[string]string {
+	oldRecommendedHomeFile := path.Join(os.Getenv("HOME"), "/.kube/.kubeconfig")
+	oldRecommendedWindowsHomeFile := path.Join(os.Getenv("HOME"), RecommendedHomeDir, RecommendedFileName)
+
+	migrationRules := map[string]string{}
+	migrationRules[RecommendedHomeFile] = oldRecommendedHomeFile
+	if runtime.GOOS == "windows" {
+		migrationRules[RecommendedHomeFile] = oldRecommendedWindowsHomeFile
+	}
+	return migrationRules
+}
 
 // ClientConfigLoadingRules is an ExplicitPath and string slice of specific locations that are used for merging together a Config
 // Callers can put the chain together however they want, but we'd recommend:
@@ -67,7 +82,6 @@ type ClientConfigLoadingRules struct {
 // use this constructor
 func NewDefaultClientConfigLoadingRules() *ClientConfigLoadingRules {
 	chain := []string{}
-	migrationRules := map[string]string{}
 
 	envVarFiles := os.Getenv(RecommendedConfigPathEnvVar)
 	if len(envVarFiles) != 0 {
@@ -75,13 +89,11 @@ func NewDefaultClientConfigLoadingRules() *ClientConfigLoadingRules {
 
 	} else {
 		chain = append(chain, RecommendedHomeFile)
-		migrationRules[RecommendedHomeFile] = OldRecommendedHomeFile
-
 	}
 
 	return &ClientConfigLoadingRules{
 		Precedence:     chain,
-		MigrationRules: migrationRules,
+		MigrationRules: currentMigrationRules(),
 	}
 }
 
@@ -461,4 +473,17 @@ func MakeRelative(path, base string) (string, error) {
 		return rel, nil
 	}
 	return path, nil
+}
+
+// HomeDir return the home directory for the current user
+func HomeDir() string {
+	if runtime.GOOS == "windows" {
+		if homeDrive, homePath := os.Getenv("HOMEDRIVE"), os.Getenv("HOMEPATH"); len(homeDrive) > 0 && len(homePath) > 0 {
+			return homeDrive + homePath
+		}
+		if userProfile := os.Getenv("USERPROFILE"); len(userProfile) > 0 {
+			return userProfile
+		}
+	}
+	return os.Getenv("HOME")
 }
