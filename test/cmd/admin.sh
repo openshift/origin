@@ -98,6 +98,14 @@ oadm policy reconcile-cluster-roles
 [ ! "$(oc get clusterrole/cluster-status)" ]
 oadm policy reconcile-cluster-roles --confirm
 oc get clusterrole/cluster-status
+# check the reconcile again with a specific cluster role name
+oc delete clusterrole/cluster-status
+[ ! "$(oc get clusterrole/cluster-status)" ]
+oadm policy reconcile-cluster-roles cluster-admin --confirm 
+[ ! "$(oc get clusterrole/cluster-status)" ]
+oadm policy reconcile-cluster-roles clusterrole/cluster-status --confirm
+oc get clusterrole/cluster-status
+
 oc replace --force -f ./test/fixtures/basic-user.json
 # display shows customized labels/annotations
 [ "$(oadm policy reconcile-cluster-roles | grep custom-label)" ]
