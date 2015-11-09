@@ -49,7 +49,7 @@ func TestValidationRegistration(t *testing.T) {
 
 // TestAllOpenShiftResourceCoverage checks to make sure that the openshift all group actually contains all openshift resources
 func TestAllOpenShiftResourceCoverage(t *testing.T) {
-	allOpenshift := authorizationapi.ExpandResources(sets.NewString(authorizationapi.GroupsToResources[authorizationapi.OpenshiftAllGroupName]...))
+	allOpenshift := authorizationapi.NormalizeResources(sets.NewString(authorizationapi.GroupsToResources[authorizationapi.OpenshiftAllGroupName]...))
 
 	config := fakeMasterConfig()
 
