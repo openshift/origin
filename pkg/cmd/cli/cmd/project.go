@@ -145,14 +145,15 @@ func (o ProjectOptions) RunProject() error {
 				return err
 			}
 
-			if config.CurrentContext != currentProject {
-				if len(currentProject) > 0 {
-					fmt.Fprintf(out, "Using project %q from context named %q on server %q.\n", currentProject, config.CurrentContext, clientCfg.Host)
-				} else {
-					fmt.Fprintf(out, "Using context named %q on server %q.\n", config.CurrentContext, clientCfg.Host)
-				}
-			} else {
+			defaultContextName := cliconfig.GetContextNickname(currentContext.Namespace, currentContext.Cluster, currentContext.AuthInfo)
+
+			// if they specified a project name and got a generated context, then only show the information they care about.  They won't recognize
+			// a context name they didn't choose
+			if config.CurrentContext == defaultContextName {
 				fmt.Fprintf(out, "Using project %q on server %q.\n", currentProject, clientCfg.Host)
+
+			} else {
+				fmt.Fprintf(out, "Using project %q from context named %q on server %q.\n", currentProject, config.CurrentContext, clientCfg.Host)
 			}
 
 		} else {
@@ -169,7 +170,6 @@ func (o ProjectOptions) RunProject() error {
 
 	contextInUse := ""
 	namespaceInUse := ""
-	contextNameIsGenerated := false
 
 	// Check if argument is an existing context, if so just set it as the context in use.
 	// If not a context then we will try to handle it as a project.
@@ -229,7 +229,6 @@ func (o ProjectOptions) RunProject() error {
 
 		namespaceInUse = projectName
 		contextInUse = merged.CurrentContext
-		contextNameIsGenerated = true
 	}
 
 	if err := kubecmdconfig.ModifyConfig(o.PathOptions, config, true); err != nil {
@@ -241,15 +240,26 @@ func (o ProjectOptions) RunProject() error {
 		return nil
 	}
 
-	if contextInUse != namespaceInUse && !contextNameIsGenerated {
-		if len(namespaceInUse) > 0 {
-			fmt.Fprintf(out, "Now using project %q from context named %q on server %q.\n", namespaceInUse, contextInUse, clientCfg.Host)
-		} else {
-			fmt.Fprintf(out, "Now using context named %q on server %q.\n", contextInUse, clientCfg.Host)
-		}
-	} else {
+	// calculate what name we'd generate for the context.  If the context has the same name, don't drop it into the output, because the user won't
+	// recognize the name since they didn't choose it.
+	defaultContextName := cliconfig.GetContextNickname(namespaceInUse, config.Contexts[contextInUse].Cluster, config.Contexts[contextInUse].AuthInfo)
+
+	switch {
+	// if there is no namespace, then the only information we can provide is the context and server
+	case (len(namespaceInUse) == 0):
+		fmt.Fprintf(out, "Now using context named %q on server %q.\n", contextInUse, clientCfg.Host)
+
+	// if they specified a project name and got a generated context, then only show the information they care about.  They won't recognize
+	// a context name they didn't choose
+	case (argument == namespaceInUse) && (contextInUse == defaultContextName):
 		fmt.Fprintf(out, "Now using project %q on server %q.\n", namespaceInUse, clientCfg.Host)
+
+	// in all other cases, display all information
+	default:
+		fmt.Fprintf(out, "Now using project %q from context named %q on server %q.\n", namespaceInUse, contextInUse, clientCfg.Host)
+
 	}
+
 	return nil
 }
 
