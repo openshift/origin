@@ -67,11 +67,14 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 		}
 		return true, nil
 	})
+	if err == wait.ErrWaitTimeout {
+		return fmt.Errorf("Timed out waiting for build %q to be created", name)
+	}
 	if err != nil {
 		return err
 	}
 	// wait longer for the build to run to completion
-	return wait.Poll(5*time.Second, 20*time.Minute, func() (bool, error) {
+	err = wait.Poll(5*time.Second, 30*time.Minute, func() (bool, error) {
 		list, err := c.List(labels.Everything(), fields.Set{"name": name}.AsSelector())
 		if err != nil {
 			return false, err
@@ -81,33 +84,15 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 				return true, nil
 			}
 			if name != list.Items[i].Name || isFailed(&list.Items[i]) {
-				return false, fmt.Errorf("The build %q status is %q", name, &list.Items[i].Status.Phase)
+				return false, fmt.Errorf("The build %q status is %q", name, list.Items[i].Status.Phase)
 			}
 		}
-
-		rv := list.ResourceVersion
-		w, err := c.Watch(labels.Everything(), fields.Set{"name": name}.AsSelector(), rv)
-		if err != nil {
-			return false, err
-		}
-		defer w.Stop()
-
-		for {
-			val, ok := <-w.ResultChan()
-			if !ok {
-				// reget and re-watch
-				return false, nil
-			}
-			if e, ok := val.Object.(*buildapi.Build); ok {
-				if name == e.Name && isOK(e) {
-					return true, nil
-				}
-				if name != e.Name || isFailed(e) {
-					return false, fmt.Errorf("The build %q status is %q", name, e.Status.Phase)
-				}
-			}
-		}
+		return false, nil
 	})
+	if err == wait.ErrWaitTimeout {
+		return fmt.Errorf("Timed out waiting for build %q to complete", name)
+	}
+	return err
 }
 
 // CheckBuildSuccessFunc returns true if the build succeeded
@@ -469,6 +454,9 @@ func FetchURL(url string, retryTimeout time.Duration) (response string, err erro
 		return true, nil
 	}
 	pollErr := wait.Poll(time.Duration(1*time.Second), retryTimeout, waitFunc)
+	if pollErr == wait.ErrWaitTimeout {
+		return "", fmt.Errorf("Timed out while fetching url %q", url)
+	}
 	if pollErr != nil {
 		return "", pollErr
 	}
