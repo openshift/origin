@@ -122,6 +122,6 @@ func (a cachedServiceNamespacer) Delete(name string) error {
 func (a cachedServiceNamespacer) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (a cachedServiceNamespacer) ProxyGet(name, path string, params map[string]string) client.ResponseWrapper {
+func (a cachedServiceNamespacer) ProxyGet(scheme, name, port, path string, params map[string]string) client.ResponseWrapper {
 	return nil
 }

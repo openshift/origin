@@ -119,7 +119,7 @@ func (c *MasterConfig) RunJobController(client *client.Client) {
 // RunHPAController starts the Kubernetes hpa controller sync loop
 func (c *MasterConfig) RunHPAController(oc *osclient.Client, kc *client.Client, heapsterNamespace string) {
 	delegScaleNamespacer := osclient.NewDelegatingScaleNamespacer(oc, kc)
-	podautoscaler := podautoscalercontroller.NewHorizontalController(kc, delegScaleNamespacer, kc, metrics.NewHeapsterMetricsClient(kc, heapsterNamespace, "heapster"))
+	podautoscaler := podautoscalercontroller.NewHorizontalController(kc, delegScaleNamespacer, kc, metrics.NewHeapsterMetricsClient(kc, heapsterNamespace, "https", "heapster", ""))
 	podautoscaler.Run(c.ControllerManager.HorizontalPodAutoscalerSyncPeriod)
 }
 

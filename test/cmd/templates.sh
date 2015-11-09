@@ -28,6 +28,29 @@ oc status
 [ "$(oc status | grep frontend-service)" ]
 echo "template+config: ok"
 
+
+# Run as cluster-admin to allow choosing any supplemental groups we want
+# Ensure large integers survive unstructured JSON creation
+oc create -f test/fixtures/template-type-precision.json
+# ... and processing
+[ "$(oc process template-type-precision | grep 1000030003)" ]
+[ "$(oc process template-type-precision | grep 2147483647)" ]
+[ "$(oc process template-type-precision | grep 9223372036854775807)" ]
+# ... and re-encoding as structured resources
+[ "$(oc process template-type-precision | oc create -f -)" ]
+# ... and persisting
+[ "$(oc get pod/template-type-precision -o json | grep 1000030003)" ]
+[ "$(oc get pod/template-type-precision -o json | grep 2147483647)" ]
+[ "$(oc get pod/template-type-precision -o json | grep 9223372036854775807)" ]
+# Ensure patch computation preserves data
+oc patch pod template-type-precision -p '{"metadata":{"annotations":{"comment":"patch comment"}}}'
+[ "$(oc get pod/template-type-precision -o json | grep 9223372036854775807)" ]
+[ "$(oc get pod/template-type-precision -o json | grep "patch comment")" ]
+oc delete template/template-type-precision
+oc delete pod/template-type-precision
+echo "template data precision: ok"
+
+
 oc create -f examples/sample-app/application-template-dockerbuild.json -n openshift
 oc policy add-role-to-user admin test-user
 oc login -u test-user -p password

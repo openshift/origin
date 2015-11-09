@@ -1,7 +1,10 @@
 package auth
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
 )
 
@@ -9,6 +12,20 @@ import (
 type Review interface {
 	Users() []string
 	Groups() []string
+}
+
+type defaultReview struct {
+	users  []string
+	groups []string
+}
+
+func (r *defaultReview) Users() []string {
+	return r.users
+}
+
+// Groups returns the groups that can access a resource
+func (r *defaultReview) Groups() []string {
+	return r.groups
 }
 
 type review struct {
@@ -59,6 +76,34 @@ func (r *reviewer) Review(name string) (Review, error) {
 	}
 	review := &review{
 		response: response,
+	}
+	return review, nil
+}
+
+type authorizerReviewer struct {
+	policyChecker authorizer.Authorizer
+}
+
+func NewAuthorizerReviewer(policyChecker authorizer.Authorizer) Reviewer {
+	return &authorizerReviewer{policyChecker: policyChecker}
+}
+
+func (r *authorizerReviewer) Review(namespaceName string) (Review, error) {
+	attributes := authorizer.DefaultAuthorizationAttributes{
+		Verb:         "get",
+		Resource:     "namespaces",
+		ResourceName: namespaceName,
+	}
+
+	ctx := kapi.WithNamespace(kapi.NewContext(), namespaceName)
+	users, groups, err := r.policyChecker.GetAllowedSubjects(ctx, attributes)
+	if err != nil {
+		return nil, err
+	}
+
+	review := &defaultReview{
+		users:  users.List(),
+		groups: groups.List(),
 	}
 	return review, nil
 }

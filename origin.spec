@@ -17,12 +17,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 772b15e871e4d48e99d9f14ed33c603d2c59053c
+%global commit 08aa8ca2abaf0e70871d15ac2d1e5d3a4132b3c5
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.0.1-10-g772b15e -X github.com/openshift/origin/pkg/version.commitFromGit 772b15e -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.0.2-23-g08aa8ca -X github.com/openshift/origin/pkg/version.commitFromGit 08aa8ca -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
 }
 
 %if "%{dist}" == ".el7aos"
@@ -36,7 +36,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.0.2
+Version:        3.1.0.3
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -394,6 +394,23 @@ fi
 
 
 %changelog
+* Mon Nov 09 2015 Troy Dawson <tdawson@redhat.com> 3.1.0.3
+- Add jenkins status to readme (dmcphers@redhat.com)
+- cAdvisor needs access to dmsetup for devicemapper info (ccoleman@redhat.com)
+- Make auth-in-container tests cause test failure again (ccoleman@redhat.com)
+- UPSTREAM: 16969: nsenter file writer mangles newlines (ccoleman@redhat.com)
+- Doc fixes (mkargaki@redhat.com)
+- Doc fixes (dmcphers@redhat.com)
+- Specify scheme/port for metrics client (jliggitt@redhat.com)
+- UPSTREAM: 16926: Enable specifying scheme/port for metrics client
+  (jliggitt@redhat.com)
+- Test template preservation of integers (jliggitt@redhat.com)
+- UPSTREAM: 16964: Preserve int64 data when unmarshaling (jliggitt@redhat.com)
+- Given we don't restrict on Travis success.  Make what it does report be 100%%
+  reliable and fast.  So when it does fail we know something is truly wrong.
+  (dmcphers@redhat.com)
+- back project cache with local authorizer (deads@redhat.com)
+
 * Sat Nov 07 2015 Brenton Leanhardt <bleanhar@redhat.com> 3.1.0.2
 - bump(github.com/openshift/openshift-sdn)
   d5965ee039bb85c5ec9ef7f455a8c03ac0ff0214 (dcbw@redhat.com)
