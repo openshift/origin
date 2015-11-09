@@ -43,7 +43,7 @@ The easiest way to run OpenShift Origin is in a Docker container (OpenShift requ
 
 **Important!**: Docker on non-RedHat distributions (Ubuntu, Debian, boot2docker) has mount propagation PRIVATE, which [breaks](https://github.com/openshift/origin/issues/3072) running OpenShift inside a container. Please use the [Vagrant](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant) or binary installation paths on those distributions.
 
-**Option 1**: Red Hat-based distributions (Fedora, CentOs, RHEL)
+**Option 1**: Red Hat-based distributions (Fedora, CentOS, RHEL)
 
     $ sudo atomic run openshift/origin
 
