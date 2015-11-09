@@ -31,6 +31,9 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) fielderro
 
 	allErrs = append(allErrs, ValidateBuild(build)...)
 
+	if buildutil.IsBuildComplete(older) && older.Status.Phase != build.Status.Phase {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("status.Phase", build.Status.Phase, "phase cannot be updated from a terminal state"))
+	}
 	if !kapi.Semantic.DeepEqual(build.Spec, older.Spec) {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec", "content of spec is not printed out, please refer to the \"details\"", "spec is immutable"))
 	}

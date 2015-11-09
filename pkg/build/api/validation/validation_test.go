@@ -94,16 +94,24 @@ func newDefaultParameters() buildapi.BuildSpec {
 	}
 }
 
+func newNonDefaultParameters() buildapi.BuildSpec {
+	o := newDefaultParameters()
+	o.Source.Git.URI = "changed"
+	return o
+}
+
 func TestValidateBuildUpdate(t *testing.T) {
 	old := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 		Spec:       newDefaultParameters(),
+		Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
 	}
 
 	errs := ValidateBuildUpdate(
 		&buildapi.Build{
 			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 			Spec:       newDefaultParameters(),
+			Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseComplete},
 		},
 		old,
 	)
@@ -112,25 +120,85 @@ func TestValidateBuildUpdate(t *testing.T) {
 	}
 
 	errorCases := map[string]struct {
-		A *buildapi.Build
-		T fielderrors.ValidationErrorType
-		F string
+		Old    *buildapi.Build
+		Update *buildapi.Build
+		T      fielderrors.ValidationErrorType
+		F      string
 	}{
 		"changed spec": {
-			A: &buildapi.Build{
+			Old: &buildapi.Build{
 				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newNonDefaultParameters(),
 			},
 			T: fielderrors.ValidationErrorTypeInvalid,
 			F: "spec",
 		},
+		"update from terminal1": {
+			Old: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseComplete},
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "status.Phase",
+		},
+		"update from terminal2": {
+			Old: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseCancelled},
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "status.Phase",
+		},
+		"update from terminal3": {
+			Old: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseError},
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "status.Phase",
+		},
+		"update from terminal4": {
+			Old: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseFailed},
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "status.Phase",
+		},
 	}
-	errorCases["changed spec"].A.Spec.Source.Git.URI = "different"
 
 	for k, v := range errorCases {
-		errs := ValidateBuildUpdate(v.A, old)
+		errs := ValidateBuildUpdate(v.Update, v.Old)
 		if len(errs) == 0 {
-			t.Errorf("expected failure %s for %v", k, v.A)
+			t.Errorf("expected failure %s for %v", k, v.Update)
 			continue
 		}
 		for i := range errs {
