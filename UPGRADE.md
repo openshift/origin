@@ -20,9 +20,9 @@ when that change will happen.
   no longer be supported in Origin 1.1. After that, a warning will be printed on startup if it
   is set to true.
 
-1. The `/ns/namespace-name/subjectaccessreview` endpoint is deprecated, use `/subjectaccessreview` 
-(with the `namespace` field set) or `/ns/namespace-name/localsubjectaccessreview`.  In 
-Origin 1.y / OSE 3.y, support for `/ns/namespace-name/subjectaccessreview` wil be removed.
+1. The `/ns/namespace-name/subjectaccessreview` endpoint is deprecated, use `/subjectaccessreview`
+(with the `namespace` field set) or `/ns/namespace-name/localsubjectaccessreview`.  In
+Origin 1.y / OSE 3.y, support for `/ns/namespace-name/subjectaccessreview` will be removed.
 At that time, the openshift docker registry image must be upgraded in order to continue functioning.
 
 1. The `deploymentConfig.rollingParams.updatePercent` field is deprecated in
@@ -37,31 +37,31 @@ you may [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/
 
 New Fields:
 
-  1.  allowHostPID - defaults to false.  You may wish to change this to true on any privileged SCCs or 
-  [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints) 
+  1.  allowHostPID - defaults to false.  You may wish to change this to true on any privileged SCCs or
+  [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints)
   which will set this field to true for the privileged SCC and false for the restricted SCC.
-  1.  allowHostIPC - defaults to false.  You may wish to change this to true on any privileged SCCs or 
-  [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints) 
+  1.  allowHostIPC - defaults to false.  You may wish to change this to true on any privileged SCCs or
+  [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints)
   which will set this field to true for the privileged SCC and false for the restricted SCC.
-  1.  allowHostNetwork - defaults to false.  You may wish to change this to true on any privileged SCCs or 
-  [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints) 
+  1.  allowHostNetwork - defaults to false.  You may wish to change this to true on any privileged SCCs or
+  [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints)
   which will set this field to true for the privileged SCC and false for the restricted SCC.
-  1.  allowHostPorts - defaults to false.  You may wish to change this to true on any privileged SCCs or 
-  [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints) 
+  1.  allowHostPorts - defaults to false.  You may wish to change this to true on any privileged SCCs or
+  [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints)
   which will set this field to true for the privileged SCC and false for the restricted SCC.
   1.  fsGroup - if the strategy type is unset this field will default based on the runAsUser strategy.
   If runAsUser is set to RunAsAny this field will also be set to RunAsAny.  If the strategy type is
-  any other value this field will default to MustRunAs and look to the namespace for [annotation 
+  any other value this field will default to MustRunAs and look to the namespace for [annotation
   configuration](https://docs.openshift.org/latest/architecture/additional_concepts/authorization.html#understanding-pre-allocated-values-and-security-context-constraints).
   1.  supplementalGroups - if the strategy type is unset this field will default based on the runAsUser strategy.
   If runAsUser is set to RunAsAny this field will also be set to RunAsAny.  If the strategy type is
-  any other value this field will default to MustRunAs and look to the namespace for [annotation 
+  any other value this field will default to MustRunAs and look to the namespace for [annotation
   configuration](https://docs.openshift.org/latest/architecture/additional_concepts/authorization.html#understanding-pre-allocated-values-and-security-context-constraints).
   1.  priority - defaults to nil for existing SCCs.  Please refer to the
   [SCC Documentation](https://docs.openshift.org/latest/architecture/additional_concepts/authorization.html#security-context-constraints)
   for more information on how this affects admission.
 
-   
+
 
 1. The `v1beta3` API version is being removed in Origin 1.1 (OSE 3.1).
 Existing `v1beta3` resources stored in etcd will still be readable and
