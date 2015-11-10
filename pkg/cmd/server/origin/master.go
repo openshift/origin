@@ -19,6 +19,8 @@ import (
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kmaster "k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/registry/service/allocator"
+	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -59,7 +61,10 @@ import (
 	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
 	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
+	"github.com/openshift/origin/pkg/sdn/registry/netnamespace"
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
+	"github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnid"
+	"github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnidallocator"
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
@@ -339,8 +344,20 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	routeEtcd := routeetcd.NewREST(c.EtcdHelper, routeAllocator)
 	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
-	netNamespaceStorage := netnamespaceetcd.NewREST(c.EtcdHelper)
 	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
+
+	netNamespaceStorage := netnamespaceetcd.NewREST(c.EtcdHelper)
+	netNamespaceRegistry := netnamespace.NewRegistry(netNamespaceStorage)
+
+	vnidRange, err := vnid.NewVNIDRange(vnid.MinVNID, vnid.MaxVNID-vnid.MinVNID+1)
+	if err != nil {
+		glog.Fatalf("Unable to create VNID range: %v", err)
+	}
+	namespaceVNIDAllocator := vnidallocator.NewAllocatorCustom(*vnidRange, func(max int, rangeSpec string) allocator.Interface {
+		mem := allocator.NewContiguousAllocationMap(max, rangeSpec)
+		etcd := etcdallocator.NewEtcd(mem, "/ranges/namespacevnids", "namespacevnidallocation", c.EtcdHelper)
+		return etcd
+	})
 
 	userStorage := useretcd.NewREST(c.EtcdHelper)
 	userRegistry := userregistry.NewRegistry(userStorage)
@@ -453,8 +470,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"projectRequests": projectRequestStorage,
 
 		"hostSubnets":     hostSubnetStorage,
-		"netNamespaces":   netNamespaceStorage,
 		"clusterNetworks": clusterNetworkStorage,
+		"netNamespaces":   netnamespace.NewStorage(netNamespaceRegistry, namespaceVNIDAllocator),
 
 		"users":                userStorage,
 		"groups":               groupetcd.NewREST(c.EtcdHelper),
