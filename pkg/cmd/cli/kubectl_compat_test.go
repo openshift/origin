@@ -53,3 +53,29 @@ kubectlLoop:
 	}
 
 }
+
+// this only checks one level deep for nested commands, but it does ensure that we've gotten several
+// --validate flags.  Based on that we can reasonably assume we got them in the kube commands since they
+// all share the same registration.
+func TestValidateDisabled(t *testing.T) {
+	f := clientcmd.New(pflag.NewFlagSet("name", pflag.ContinueOnError))
+
+	oc := NewCommandCLI("oc", "oc", &bytes.Buffer{}, ioutil.Discard, ioutil.Discard)
+	kubectl := kcmd.NewKubectlCommand(f.Factory, nil, ioutil.Discard, ioutil.Discard)
+
+	for _, kubecmd := range kubectl.Commands() {
+		for _, occmd := range oc.Commands() {
+			if kubecmd.Name() == occmd.Name() {
+				ocValidateFlag := occmd.Flags().Lookup("validate")
+				if ocValidateFlag == nil {
+					continue
+				}
+
+				if ocValidateFlag.Value.String() != "false" {
+					t.Errorf("%s --validate is not defaulting to false", occmd.Name())
+				}
+			}
+		}
+	}
+
+}
