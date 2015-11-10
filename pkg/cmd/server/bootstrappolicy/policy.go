@@ -507,7 +507,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					// TODO: restrict this to the appropriate namespace
 					Verbs:         sets.NewString("proxy"),
 					Resources:     sets.NewString("services"),
-					ResourceNames: sets.NewString("heapster"),
+					ResourceNames: sets.NewString("https:heapster:"),
 				},
 			},
 		},
