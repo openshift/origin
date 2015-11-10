@@ -38,18 +38,22 @@ func (e gitNotFoundError) Error() string {
 
 // fetchSource retrieves the inputs defined by the build source into the
 // provided directory, or returns an error if retrieval is not possible.
-func fetchSource(dir string, build *api.Build, urlTimeout time.Duration, in io.Reader, git git.Git) error {
+func fetchSource(dir string, build *api.Build, urlTimeout time.Duration, in io.Reader, git git.Git) (*s2iapi.SourceInfo, error) {
 	hasGitSource := false
 
 	// expect to receive input from STDIN
 	if err := extractInputBinary(in, build.Spec.Source.Binary, dir); err != nil {
-		return err
+		return nil, err
 	}
 
 	// may retrieve source from Git
 	hasGitSource, err := extractGitSource(git, build.Spec.Source.Git, build.Spec.Revision, dir, urlTimeout)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	var sourceInfo *s2iapi.SourceInfo
+	if hasGitSource {
+		sourceInfo = git.GetInfo(dir)
 	}
 
 	// a Dockerfile has been specified, create or overwrite into the destination
@@ -59,10 +63,10 @@ func fetchSource(dir string, build *api.Build, urlTimeout time.Duration, in io.R
 		if hasGitSource && len(build.Spec.Source.ContextDir) != 0 {
 			baseDir = filepath.Join(baseDir, build.Spec.Source.ContextDir)
 		}
-		return ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660)
+		return sourceInfo, ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660)
 	}
 
-	return nil
+	return sourceInfo, nil
 }
 
 // checkRemoteGit validates the specified Git URL. It returns GitNotFoundError

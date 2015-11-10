@@ -22,6 +22,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	"github.com/openshift/origin/pkg/client"
 )
 
 // builderFactory is the internal interface to decouple S2I-specific code from Origin builder code
@@ -52,8 +53,8 @@ func (_ runtimeConfigValidator) ValidateConfig(config *s2iapi.Config) []validati
 	return validation.ValidateConfig(config)
 }
 
-// STIBuilder performs an STI build given the build object
-type STIBuilder struct {
+// S2IBuilder performs an STI build given the build object
+type S2IBuilder struct {
 	builder   builderFactory
 	validator validator
 	git       git.Git
@@ -61,32 +62,34 @@ type STIBuilder struct {
 	dockerClient DockerClient
 	dockerSocket string
 	build        *api.Build
+	client       client.BuildInterface
 }
 
-// NewSTIBuilder creates a new STIBuilder instance
-func NewSTIBuilder(client DockerClient, dockerSocket string, build *api.Build) *STIBuilder {
+// NewS2IBuilder creates a new STIBuilder instance
+func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *api.Build) *S2IBuilder {
 	// delegate to internal implementation passing default implementation of builderFactory and validator
-	return newSTIBuilder(client, dockerSocket, build, runtimeBuilderFactory{}, runtimeConfigValidator{})
+	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, runtimeBuilderFactory{}, runtimeConfigValidator{})
 
 }
 
-// newSTIBuilder is the internal factory function to create STIBuilder based on parameters. Used for testing.
-func newSTIBuilder(client DockerClient, dockerSocket string, build *api.Build,
-	builder builderFactory, validator validator) *STIBuilder {
+// newS2IBuilder is the internal factory function to create STIBuilder based on parameters. Used for testing.
+func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *api.Build,
+	builder builderFactory, validator validator) *S2IBuilder {
 	// just create instance
-	return &STIBuilder{
+	return &S2IBuilder{
 		builder:   builder,
 		validator: validator,
 		git:       git.New(),
 
-		dockerClient: client,
+		dockerClient: dockerClient,
 		dockerSocket: dockerSocket,
 		build:        build,
+		client:       buildsClient,
 	}
 }
 
 // Build executes STI build based on configured builder, S2I builder factory and S2I config validator
-func (s *STIBuilder) Build() error {
+func (s *S2IBuilder) Build() error {
 	var push bool
 
 	contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
@@ -246,7 +249,7 @@ func (s *STIBuilder) Build() error {
 }
 
 type downloader struct {
-	s       *STIBuilder
+	s       *S2IBuilder
 	in      io.Reader
 	timeout time.Duration
 
@@ -264,12 +267,14 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 	}
 
 	// fetch source
-	if err := fetchSource(targetDir, d.s.build, d.timeout, d.in, d.s.git); err != nil {
+	sourceInfo, err := fetchSource(targetDir, d.s.build, d.timeout, d.in, d.s.git)
+	if err != nil {
 		return nil, err
 	}
-	// TODO: allow source info to be overriden by build
-	sourceInfo := d.s.git.GetInfo(targetDir)
-	sourceInfo.ContextDir = config.ContextDir
+	if sourceInfo != nil {
+		sourceInfo.ContextDir = config.ContextDir
+		updateBuildRevision(d.s.client, d.s.build, sourceInfo)
+	}
 
 	// if a context dir is provided, move the context dir contents into the src location
 	if len(d.contextDir) > 0 {
