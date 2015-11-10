@@ -32,7 +32,7 @@ func TestClientConfigForVersion(t *testing.T) {
 
 	// First call, negotiate
 	called = 0
-	v1Config, err := clients.ClientConfigForVersion("v1")
+	v1Config, err := clients.ClientConfigForVersion("")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -44,6 +44,19 @@ func TestClientConfigForVersion(t *testing.T) {
 	}
 
 	// Second call, cache
+	called = 0
+	v1Config, err = clients.ClientConfigForVersion("")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if v1Config.Version != "v1" {
+		t.Fatalf("Expected v1, got %v", v1Config.Version)
+	}
+	if called != 0 {
+		t.Fatalf("Expected not be called again getting a config from cache, was called %d additional times", called)
+	}
+
+	// Third call, cached under exactly matching version
 	called = 0
 	v1Config, err = clients.ClientConfigForVersion("v1")
 	if err != nil {

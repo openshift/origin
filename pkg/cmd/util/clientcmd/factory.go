@@ -489,6 +489,11 @@ func (c *clientCache) ClientConfigForVersion(version string) (*kclient.Config, e
 	client.SetOpenShiftDefaults(&config)
 	c.configs[version] = &config
 
+	// `version` does not necessarily equal `config.Version`.  However, we know that we call this method again with
+	// `config.Version`, we should get the the config we've just built.
+	configCopy := config
+	c.configs[config.Version] = &configCopy
+
 	return &config, nil
 }
 
