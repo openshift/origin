@@ -13,7 +13,6 @@ import (
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -52,9 +51,6 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue, 2*time.Minute).Run()
 
-	buildConfigStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(buildConfigLW, &buildapi.BuildConfig{}, buildConfigStore, 2*time.Minute).Run()
-
 	configController := &DeploymentConfigController{
 		deploymentClient: &deploymentClientImpl{
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
@@ -76,7 +72,6 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
 			return deployutil.MakeDeployment(config, factory.Codec)
 		},
-		buildConfigs:        buildConfigStore,
 		messageUpdatePeriod: DefaultMessageUpdatePeriod,
 		now:                 defaultNow,
 	}

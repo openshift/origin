@@ -15,7 +15,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/util"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -48,8 +47,6 @@ type DeploymentConfigController struct {
 	osClient osclient.Interface
 	// makeDeployment knows how to make a deployment from a config.
 	makeDeployment func(*deployapi.DeploymentConfig) (*kapi.ReplicationController, error)
-	// buildConfigs is a cache of buildConfigs for generating status.
-	buildConfigs cache.Store
 	// messageUpdatePeriod is how often to recompute the config status message.
 	messageUpdatePeriod time.Duration
 	// now returns the current time.
@@ -233,7 +230,6 @@ func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentCon
 	// TODO: Inspect pod logs in case of failed latest
 	invalidIsTags := []string{}
 	isTagsMissingStreams := map[string]string{}
-	isTagBuilds := map[string]string{}
 	// Look into image change triggers and find out possible deployment failures such as
 	// missing image stream tags with or without build configurations pointing at them
 	for _, trigger := range config.Triggers {
@@ -244,6 +240,21 @@ func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentCon
 		tag := trigger.ImageChangeParams.Tag
 		istag := imageapi.JoinImageStreamTag(name, tag)
 
+		// Try to see if the image stream exists, if not then the build will never be able to update the
+		// tag in question
+		if _, err := c.osClient.ImageStreams(config.Namespace).Get(name); err != nil {
+			if !errors.IsNotFound(err) {
+				return "", fmt.Errorf("couldn't get image stream %q: %v", name, err)
+			}
+			isTagsMissingStreams[istag] = name
+		} else {
+			if _, err := c.osClient.ImageStreamTags(config.Namespace).Get(name, tag); err != nil {
+				if !errors.IsNotFound(err) {
+					return "", fmt.Errorf("couldn't get image stream tag %q: %v", istag, err)
+				}
+				isTagsMissingStreams[istag] = name
+			}
+		}
 		// Check if the image stream tag pointed by the trigger exists
 		if _, err := c.osClient.ImageStreamTags(config.Namespace).Get(name, tag); err != nil {
 			if !errors.IsNotFound(err) {
@@ -253,19 +264,6 @@ func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentCon
 			// (a build configuration output points to it so it's going to be populated at some point in the
 			// future)
 			invalidIsTags = append(invalidIsTags, istag)
-			for _, obj := range c.buildConfigs.List() {
-				bc := obj.(*buildapi.BuildConfig)
-				if bc.Spec.Output.To != nil && bc.Spec.Output.To.Kind == "ImageStreamTag" {
-					parts := strings.Split(bc.Spec.Output.To.Name, ":")
-					if len(parts) != 2 {
-						return "", fmt.Errorf("invalid image stream tag: %q", bc.Spec.Output.To.Name)
-					}
-					if parts[0] == name && parts[1] == tag {
-						isTagBuilds[istag] = bc.Name
-						break
-					}
-				}
-			}
 			// Try to see if the image stream exists, if not then the build will never be able to update the
 			// tag in question
 			if _, err := c.osClient.ImageStreams(config.Namespace).Get(name); err != nil {
