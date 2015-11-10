@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+	<testsuite tests="2" failures="0" time="0.400" name="package1/foo">
+		<properties>
+			<property name="go.version" value="1.0"></property>
+			<property name="coverage.statements.pct" value="10.0"></property>
+		</properties>
+		<testcase classname="foo" name="TestA" time="0.100"></testcase>
+		<testcase classname="foo" name="TestB" time="0.300"></testcase>
+	</testsuite>
+	<testsuite tests="1" failures="0" time="4.200" name="package2/bar">
+		<properties>
+			<property name="go.version" value="1.0"></property>
+			<property name="coverage.statements.pct" value="99.8"></property>
+		</properties>
+		<testcase classname="bar" name="TestC" time="4.200"></testcase>
+	</testsuite>
+</testsuites>

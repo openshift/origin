@@ -1,0 +1,7 @@
+=== RUN TestZ
+--- PASS: TestZ (0.06 seconds)
+=== RUN TestA
+--- PASS: TestA (0.10 seconds)
+PASS
+coverage: 13.37% of statements
+ok  	package/name 0.160s

@@ -1,0 +1,10 @@
+=== RUN TestDoFoo
+=== RUN TestDoFoo2
+--- PASS: TestDoFoo (0.27s)
+	cov_test.go:10: DoFoo log 1
+	cov_test.go:10: DoFoo log 2
+--- PASS: TestDoFoo2 (0.16s)
+	cov_test.go:21: DoFoo2 log 1
+	cov_test.go:21: DoFoo2 log 2
+PASS
+ok  	github.com/dmitris/test-go-junit-report	0.440s

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+	<testsuite tests="2" failures="0" time="0.440" name="github.com/dmitris/test-go-junit-report">
+		<properties>
+			<property name="go.version" value="1.0"></property>
+		</properties>
+		<testcase classname="test-go-junit-report" name="TestDoFoo" time="0.270"></testcase>
+		<testcase classname="test-go-junit-report" name="TestDoFoo2" time="0.160"></testcase>
+	</testsuite>
+</testsuites>

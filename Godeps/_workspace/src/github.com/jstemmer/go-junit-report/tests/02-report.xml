@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+	<testsuite tests="2" failures="1" time="0.151" name="package/name">
+		<properties>
+			<property name="go.version" value="1.0"></property>
+		</properties>
+		<testcase classname="name" name="TestOne" time="0.020">
+			<failure message="Failed" type="">file_test.go:11: Error message&#xA;file_test.go:11: Longer&#xA;&#x9;error&#xA;&#x9;message.</failure>
+		</testcase>
+		<testcase classname="name" name="TestTwo" time="0.130"></testcase>
+	</testsuite>
+</testsuites>
