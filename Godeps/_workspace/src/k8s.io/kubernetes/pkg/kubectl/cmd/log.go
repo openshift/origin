@@ -18,11 +18,15 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/docker/docker/pkg/term"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -200,6 +204,23 @@ func (o LogsOptions) RunLog() (int64, error) {
 		return 0, err
 	}
 	defer readCloser.Close()
+
+	if file, ok := o.Out.(*os.File); ok {
+		inFd := file.Fd()
+		if term.IsTerminal(inFd) {
+			defer fmt.Fprint(o.Out, "\033[0m")
+			ch := make(chan os.Signal, 1)
+			signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+			defer signal.Stop(ch)
+			go func() {
+				if _, ok := <-ch; !ok {
+					return
+				}
+				fmt.Fprint(o.Out, "\033[0m")
+				os.Exit(0)
+			}()
+		}
+	}
 
 	return io.Copy(o.Out, readCloser)
 }
