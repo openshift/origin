@@ -38,12 +38,6 @@
                 "protocol": "TCP"
               }
             ],
-            "env": [
-              {
-                "name": "TEST",
-                "value": "value"
-              }
-            ],
             "resources": {
               "limits": {
                 "cpu": "100m",
