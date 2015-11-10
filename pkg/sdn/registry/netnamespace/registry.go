@@ -13,7 +13,7 @@ import (
 // Registry is an interface implemented by things that know how to store sdn objects.
 type Registry interface {
 	// ListNetNamespaces obtains a list of NetNamespaces
-	ListNetNamespaces(ctx kapi.Context) (*api.NetNamespaceList, error)
+	ListNetNamespaces(ctx kapi.Context, label labels.Selector, field fields.Selector) (*api.NetNamespaceList, error)
 	// GetNetNamespace returns a specific NetNamespace
 	GetNetNamespace(ctx kapi.Context, name string) (*api.NetNamespace, error)
 	// CreateNetNamespace creates a NetNamespace
@@ -37,8 +37,8 @@ func NewRegistry(s rest.StandardStorage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListNetNamespaces(ctx kapi.Context) (*api.NetNamespaceList, error) {
-	obj, err := s.List(ctx, labels.Everything(), fields.Everything())
+func (s *storage) ListNetNamespaces(ctx kapi.Context, label labels.Selector, field fields.Selector) (*api.NetNamespaceList, error) {
+	obj, err := s.List(ctx, label, field)
 	if err != nil {
 		return nil, err
 	}
