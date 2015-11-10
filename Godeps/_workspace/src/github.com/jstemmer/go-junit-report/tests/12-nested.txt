@@ -1,0 +1,17 @@
+=== RUN TestA
+--- PASS: TestA (0.10 seconds)
+=== RUN TestB
+--- PASS: TestB (0.30 seconds)
+PASS
+coverage: 10% of statements
+ok  	package1/foo 0.400s  coverage: 10.0% of statements
+=== RUN TestC
+--- PASS: TestC (4.20 seconds)
+PASS
+coverage: 99.8% of statements
+ok  	package1/bar 4.200s  coverage: 99.8% of statements
+=== RUN TestD
+--- PASS: TestD (8.40 seconds)
+PASS
+coverage: 20.0% of statements
+ok  	package1/bar/baz 8.400s  coverage: 20.0% of statements

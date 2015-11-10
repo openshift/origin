@@ -624,7 +624,7 @@
 		},
  		{
 			"ImportPath": "github.com/jstemmer/go-junit-report",
-			"Rev": "833f8ea2b99d36d5f018698333834f3df200a0c2"
+			"Rev": "a4964dd3fdbe3104071e70e56b04d411c6587b53"
 		},
 		{
 			"ImportPath": "github.com/jteeuwen/go-bindata",

@@ -20,7 +20,7 @@ const (
 
 // Report is a collection of package tests.
 type Report struct {
-	Packages []Package
+	Packages []*Package
 }
 
 // Package contains the test results of a single package.
@@ -29,6 +29,7 @@ type Package struct {
 	Time        int
 	Tests       []*Test
 	CoveragePct string
+	Children    []*Package
 }
 
 // Test contains the results of a single test.
@@ -51,7 +52,7 @@ var (
 func Parse(r io.Reader, pkgName string) (*Report, error) {
 	reader := bufio.NewReader(r)
 
-	report := &Report{make([]Package, 0)}
+	report := &Report{Packages: make([]*Package, 0)}
 
 	// keep track of tests we find
 	var tests []*Test
@@ -90,11 +91,13 @@ func Parse(r io.Reader, pkgName string) (*Report, error) {
 			}
 
 			// all tests in this package are finished
-			report.Packages = append(report.Packages, Package{
+			parentPackage := findOrCreateParent(report, report.Packages, matches[2])
+			parentPackage.Children = append(parentPackage.Children, &Package{
 				Name:        matches[2],
 				Time:        parseTime(matches[3]),
 				Tests:       tests,
 				CoveragePct: coveragePct,
+				Children:    []*Package{},
 			})
 
 			tests = make([]*Test, 0)
@@ -135,11 +138,12 @@ func Parse(r io.Reader, pkgName string) (*Report, error) {
 
 	if len(tests) > 0 {
 		// no result line found
-		report.Packages = append(report.Packages, Package{
+		report.Packages = append(report.Packages, &Package{
 			Name:        pkgName,
 			Time:        testsTime,
 			Tests:       tests,
 			CoveragePct: coveragePct,
+			Children:    []*Package{},
 		})
 	}
 
@@ -152,6 +156,53 @@ func parseTime(time string) int {
 		return 0
 	}
 	return t
+}
+
+// findOrCreateParent will return the parent Package of the Package idenified with the name given
+// if the parent Package does not exist, it will be created. Grand-parents and older generations
+// will be created recursively. If a package has no parent (its name does not contain '/'), then it
+// is the root package and, if it is being created, it will be added to the root.
+func findOrCreateParent(root *Report, packages []*Package, name string) *Package {
+	parentName, exists := getParentName(name)
+	if !exists {
+		return nil
+	}
+
+	if parentPackage := findPackage(packages, parentName); parentPackage == nil {
+		parentPackage = &Package{
+			Name:     parentName,
+			Children: []*Package{},
+		}
+		grandParentPackage := findOrCreateParent(root, packages, parentName)
+		if grandParentPackage != nil {
+			grandParentPackage.Children = append(grandParentPackage.Children, parentPackage)
+		} else {
+			root.Packages = append(root.Packages, parentPackage)
+		}
+		return parentPackage
+	} else {
+		return parentPackage
+	}
+}
+
+func getParentName(name string) (string, bool) {
+	i := strings.LastIndex(name, "/")
+	if i == -1 {
+		return "", false
+	}
+	return name[0:i], true
+}
+
+func findPackage(packages []*Package, name string) *Package {
+	for i := 0; i < len(packages); i++ {
+		if packages[i].Name == name {
+			return packages[i]
+		}
+		if strings.HasPrefix(name, packages[i].Name) {
+			return findPackage(packages[i].Children, name)
+		}
+	}
+	return nil
 }
 
 func findTest(tests []*Test, name string) *Test {
