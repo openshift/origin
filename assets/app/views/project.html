@@ -145,7 +145,7 @@
             Pods in deployments created from this deployment config will be routed to by this service.
             Show things related to triggers that are about to create stuff, like builds.
             -->
-            <triggers triggers="deploymentConfig.spec.triggers"></triggers>
+            <triggers triggers="deploymentConfig.spec.triggers" builds-by-output-image="recentBuildsByOutputImage" namespace="projectName"></triggers>
           </div>
           <!--
           Iterate over all deployments for this service grouped by deploymentConfig (or lack thereof)
@@ -162,7 +162,7 @@
               Pods in deployments created from this deployment config will be routed to by this service.
               Show things related to triggers that are about to create stuff, like builds.
               -->
-              <triggers triggers="deploymentConfigsByService[serviceId][deploymentConfigId].spec.triggers"></triggers>
+              <triggers triggers="deploymentConfigsByService[serviceId][deploymentConfigId].spec.triggers" builds-by-output-image="recentBuildsByOutputImage" namespace="projectName"></triggers>
             </div>
 
             <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)"
@@ -213,7 +213,7 @@
               Pods in deployments created from this deployment config will not be routed to by any service.
               Show things related to triggers that are about to create stuff, like builds.
               -->
-              <triggers triggers="deploymentConfigs[deploymentConfigId].spec.triggers"></triggers>
+              <triggers triggers="deploymentConfigs[deploymentConfigId].spec.triggers" builds-by-output-image="recentBuildsByOutputImage" namespace="projectName"></triggers>
             </div>
 
             <!-- Make sure deploymentConfigs are loaded before testing if the deployment config is missing. -->

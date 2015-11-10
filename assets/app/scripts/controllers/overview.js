@@ -20,7 +20,9 @@ angular.module('openshiftConsole')
                         Logger,
                         ImageStreamResolver,
                         ObjectDescriber,
-                        $parse) {
+                        $parse,
+                        $filter,
+                        $interval) {
     $scope.pods = {};
     $scope.services = {};
     $scope.routes = {};
@@ -56,6 +58,8 @@ angular.module('openshiftConsole')
     // "" service key for deployment configs not under any service
     $scope.deploymentConfigsByService = {};
 
+    $scope.recentBuildsByOutputImage = {};
+
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
@@ -82,6 +86,7 @@ angular.module('openshiftConsole')
     $scope.topologyItems = { };
     $scope.topologyRelations = [ ];
 
+    var intervals = [];
     var watches = [];
 
     watches.push(DataService.watch("pods", $scope, function(pods) {
@@ -311,49 +316,9 @@ angular.module('openshiftConsole')
       Logger.log("imagestreams (subscribe)", $scope.imageStreams);
     }));
 
-    function associateDeploymentConfigTriggersToBuild(deploymentConfig, build) {
-      // Make sure we have both a deploymentConfig and a build
-      if (!deploymentConfig || !build) {
-        return;
-      }
-      // Make sure the deployment config has triggers.
-      if (!deploymentConfig.spec.triggers) {
-        return;
-      }
-      // Make sure we have a build output
-      if (!build.spec.output.to) {
-        return;
-      }
-      for (var i = 0; i < deploymentConfig.spec.triggers.length; i++) {
-        var trigger = deploymentConfig.spec.triggers[i];
-        if (trigger.type === "ImageChange") {
-          var buildOutputImage = imageObjectRefFilter(build.spec.output.to, build.metadata.namespace);
-          var deploymentTriggerImage = imageObjectRefFilter(trigger.imageChangeParams.from, deploymentConfig.metadata.namespace);
-          if (buildOutputImage !== deploymentTriggerImage) {
-              continue;
-          }
-
-          trigger.builds = trigger.builds || {};
-          trigger.builds[build.metadata.name] = build;
-        }
-      }
-    }
-
     // Sets up subscription for deploymentConfigs, associates builds to triggers on deploymentConfigs
-    watches.push(DataService.watch("deploymentconfigs", $scope, function(deploymentConfigs, action, deploymentConfig) {
+    watches.push(DataService.watch("deploymentconfigs", $scope, function(deploymentConfigs) {
       $scope.deploymentConfigs = deploymentConfigs.by("metadata.name");
-      if (!action) {
-        angular.forEach($scope.deploymentConfigs, function(depConfig) {
-          angular.forEach($scope.builds, function(build) {
-            associateDeploymentConfigTriggersToBuild(depConfig, build);
-          });
-        });
-      }
-      else if (action !== 'DELETED') {
-        angular.forEach($scope.builds, function(build) {
-          associateDeploymentConfigTriggersToBuild(deploymentConfig, build);
-        });
-      }
 
       deploymentConfigsByService();
       // Must be called after deploymentConfigsByService()
@@ -363,24 +328,25 @@ angular.module('openshiftConsole')
       Logger.log("deploymentconfigs (subscribe)", $scope.deploymentConfigs);
     }));
 
+    function updateRecentBuildsByOutputImage() {
+      $scope.recentBuildsByOutputImage = {};
+      angular.forEach($scope.builds, function(build) {
+        // pre-filter the list to save us some time on each digest loop later
+        if ($filter('isRecentBuild')(build) || $filter('isOscActiveObject')(build)) {
+          var buildOutputImage = imageObjectRefFilter(build.spec.output.to, build.metadata.namespace);
+          $scope.recentBuildsByOutputImage[buildOutputImage] = $scope.recentBuildsByOutputImage[buildOutputImage] || [];
+          $scope.recentBuildsByOutputImage[buildOutputImage].push(build);
+        }
+      });
+    }
+
     // Sets up subscription for builds, associates builds to triggers on deploymentConfigs
-    watches.push(DataService.watch("builds", $scope, function(builds, action, build) {
+    watches.push(DataService.watch("builds", $scope, function(builds) {
       $scope.builds = builds.by("metadata.name");
-      if (!action) {
-        angular.forEach($scope.builds, function(bld) {
-          angular.forEach($scope.deploymentConfigs, function(depConfig) {
-            associateDeploymentConfigTriggersToBuild(depConfig, bld);
-          });
-        });
-      }
-      else if (action === 'ADDED' || action === 'MODIFIED') {
-        angular.forEach($scope.deploymentConfigs, function(depConfig) {
-          associateDeploymentConfigTriggersToBuild(depConfig, build);
-        });
-      }
-      else if (action === 'DELETED'){
-        // TODO
-      }
+      updateRecentBuildsByOutputImage();
+
+      intervals.push($interval(updateRecentBuildsByOutputImage, 5 * 60 * 1000)); // prune the list every 5 minutes
+
       updateTopologyLater();
       Logger.log("builds (subscribe)", $scope.builds);
     }));
@@ -543,5 +509,8 @@ angular.module('openshiftConsole')
       DataService.unwatchAll(watches);
       window.clearTimeout(updateTimeout);
       ObjectDescriber.removeResourceChangedCallback(selectionChanged);
+      angular.forEach(intervals, function (interval){
+        $interval.cancel(interval);
+      });
     });
   });
