@@ -5,6 +5,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/sdn/api"
 )
@@ -19,8 +20,10 @@ type Registry interface {
 	CreateNetNamespace(ctx kapi.Context, nn *api.NetNamespace) (*api.NetNamespace, error)
 	// UpdateNetNamespace updates a NetNamespace
 	UpdateNetNamespace(ctx kapi.Context, nn *api.NetNamespace) (*api.NetNamespace, error)
-	// DeleteNetNamespace deletes a netnamespace
+	// DeleteNetNamespace deletes a NetNamespace
 	DeleteNetNamespace(ctx kapi.Context, name string) error
+	// WatchNetNamespaces watches NetNamespaces
+	WatchNetNamespaces(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // storage puts strong typing around storage calls
@@ -72,4 +75,8 @@ func (s *storage) DeleteNetNamespace(ctx kapi.Context, name string) error {
 		return err
 	}
 	return nil
+}
+
+func (s *storage) WatchNetNamespaces(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	return s.Watch(ctx, label, field, resourceVersion)
 }
