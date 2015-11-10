@@ -10,7 +10,10 @@ set -o pipefail
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/test/cmd/util.sh"
 os::log::install_errexit
+
+test::junit::declare_package_start "test-cmd"
 
 function cleanup()
 {
@@ -291,3 +294,5 @@ wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/metrics" "metrics: " 0.25 
 echo
 echo
 echo "test-cmd: ok"
+
+test::junit::declare_package_end
