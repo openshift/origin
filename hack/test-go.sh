@@ -8,7 +8,23 @@ set -o pipefail
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
+
+# are we outputting jUnit XML?
+JUNIT=${JUNIT:-0}
+
+verbose=
+JUNIT_OUTPUT_FILE=/dev/null
+JUNIT_REPORT_FILE=/dev/null
+if [ "${JUNIT}" -eq 1 ]; then
+  source "${OS_ROOT}/hack/junit-util.sh"
+  # if we are creating jUnit output, we need `go test` to run in verbose mode
+    verbose="-v"
+
+  JUNIT_OUTPUT_FILE="${JUNIT_OUTPUT_DIR}/test-go_junit_output.txt"
+  JUNIT_REPORT_FILE="${JUNIT_REPORT_DIR}/test-go_junit_report.xml"
+else 
+  source "${OS_ROOT}/hack/common.sh"
+fi
 
 # Go to the top of the tree.
 cd "${OS_ROOT}"
@@ -104,7 +120,7 @@ if [[ -n "${KUBE_COVER}" && -n "${OUTPUT_COVERAGE}" ]]; then
     mkdir -p "$OUTPUT_COVERAGE/$test_package"
     KUBE_COVER_PROFILE="-coverprofile=$OUTPUT_COVERAGE/$test_package/profile.out"
 
-    go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$KUBE_COVER_PROFILE" "$test_package" "${@:2}"
+    go test $verbose $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$KUBE_COVER_PROFILE" "$test_package" "${@:2}" | tee "${JUNIT_OUTPUT_FILE}"
   done
 
   echo 'mode: atomic' > ${OUTPUT_COVERAGE}/profiles.out
@@ -113,7 +129,13 @@ if [[ -n "${KUBE_COVER}" && -n "${OUTPUT_COVERAGE}" ]]; then
 
   rm -rf $OUTPUT_COVERAGE/$OS_GO_PACKAGE
 else
-  nice go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${@:2}" $test_packages
+  nice go test $verbose $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${@:2}" $test_packages | tee "${JUNIT_OUTPUT_FILE}"
 fi
 
-ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
+ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
+
+if [ "${JUNIT}" -eq 1 ]; then
+  cat "${JUNIT_OUTPUT_FILE}" | go-junit-report > "${JUNIT_REPORT_FILE}"
+fi
+
+exit "$ret"
