@@ -17,12 +17,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 08aa8ca2abaf0e70871d15ac2d1e5d3a4132b3c5
+%global commit cf75fd93f5a9ba1a5405c294e64af68e6626a806
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.0.2-23-g08aa8ca -X github.com/openshift/origin/pkg/version.commitFromGit 08aa8ca -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.0.3-16-gcf75fd9 -X github.com/openshift/origin/pkg/version.commitFromGit cf75fd9 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
 }
 
 %if "%{dist}" == ".el7aos"
@@ -36,7 +36,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.0.3
+Version:        3.1.0.4
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -394,6 +394,21 @@ fi
 
 
 %changelog
+* Tue Nov 10 2015 Scott Dodson <sdodson@redhat.com> 3.1.0.4
+- change OS bootstrap SCCs to use RunAsAny for fsgroup and sup groups
+  (pweil@redhat.com)
+- UPSTREAM:<carry>:v1beta3 default fsgroup/supgroup strategies to RunAsAny
+  (pweil@redhat.com)
+- UPSTREAM:<carry>:default fsgroup/supgroup strategies to RunAsAny
+  (pweil@redhat.com)
+- UPSTREAM: 17061: Unnecessary updates to ResourceQuota when doing UPDATE
+  (decarr@redhat.com)
+- Fix typo (dmcphers@redhat.com)
+- Update HPA bootstrap policy (sross@redhat.com)
+- Run deployer as non-root user (ironcladlou@gmail.com)
+- UPSTREAM: 15537: openstack: cache InstanceID and use it for volume
+  management. (jsafrane@redhat.com)
+
 * Mon Nov 09 2015 Troy Dawson <tdawson@redhat.com> 3.1.0.3
 - Add jenkins status to readme (dmcphers@redhat.com)
 - cAdvisor needs access to dmsetup for devicemapper info (ccoleman@redhat.com)
