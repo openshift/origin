@@ -5,7 +5,7 @@ This environment consists of 4 hosts:
 * 2 GlusterFS nodes consisting of the gluster cluster (gluster1.rhs and gluster2.rhs)
 * 2 RHEL7 Atomic Hosts running OpenShift and GlusterFS Client (master= ose1.rhs and node1 = ose2.rhs)
 
-OpenShift is installed from [OpenShift Admin Guide – quick installation](https://docs.openshift.com/enterprise/3.0/admin_guide/install/quick_install.html) and operational (meaning the server is running and you can login to the OpenShift Console via the GUI - https://master-host:8443/console).  Also the gluster cluster has been tested with all RHEL Atomic Nodes and is working properly and accessible to the OpenShift nodes.  
+OpenShift is installed from [OpenShift Admin Guide – quick installation](https://docs.openshift.com/enterprise/latest/admin_guide/install/quick_install.html) and operational (meaning the server is running and you can login to the OpenShift Console via the GUI - https://master-host:8443/console).  Also the gluster cluster has been tested with all RHEL Atomic Nodes and is working properly and accessible to the OpenShift nodes.  
 
 Below is a summary of the Gluster Volume Info used for this example:
 
