@@ -88,10 +88,6 @@ func (c Client) GetImageStreamTag(ctx kapi.Context, name string) (*imageapi.Imag
 	return c.GetImageStreamTagFunc(ctx, name)
 }
 
-type fatalError struct {
-	error
-}
-
 type streamRef struct {
 	ref *kapi.ObjectReference
 	tag string
@@ -442,7 +438,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from kapi
 			if errors.IsNotFound(err) {
 				return "", err
 			}
-			return "", fatalError{err}
+			return "", err
 		}
 		image := imageStreamImage.Image
 		glog.V(4).Infof("Resolved ImageStreamReference %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
@@ -454,7 +450,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from kapi
 			if errors.IsNotFound(err) {
 				return "", err
 			}
-			return "", fatalError{err}
+			return "", err
 		}
 		image := imageStreamTag.Image
 		glog.V(4).Infof("Resolved ImageStreamTag %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
@@ -462,7 +458,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from kapi
 	case "DockerImage":
 		return from.Name, nil
 	default:
-		return "", fatalError{fmt.Errorf("Unknown From Kind %s", from.Kind)}
+		return "", fmt.Errorf("Unknown From Kind %s", from.Kind)
 	}
 }
 
@@ -483,7 +479,7 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx kapi.Context, fr
 			if errors.IsNotFound(err) {
 				return "", err
 			}
-			return "", fatalError{err}
+			return "", err
 		}
 		image := imageStreamImage.Image
 		glog.V(4).Infof("Resolved ImageStreamReference %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
@@ -496,7 +492,7 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx kapi.Context, fr
 			if errors.IsNotFound(err) {
 				return "", err
 			}
-			return "", fatalError{err}
+			return "", err
 		}
 		image, err := imageapi.DockerImageReferenceForStream(is)
 		if err != nil {
@@ -508,7 +504,7 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx kapi.Context, fr
 	case "DockerImage":
 		return from.Name, nil
 	default:
-		return "", fatalError{fmt.Errorf("Unknown From Kind %s", from.Kind)}
+		return "", fmt.Errorf("Unknown From Kind %s", from.Kind)
 	}
 }
 
