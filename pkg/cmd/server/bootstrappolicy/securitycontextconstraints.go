@@ -12,7 +12,7 @@ const (
 
 	// SecurityContextConstraintRestricted is used as the name for the system default restricted scc.
 	SecurityContextConstraintRestricted     = "restricted"
-	SecurityContextConstraintRestrictedDesc = "restricted denys access to all host features and requires pods to be run with a UID, SELinux context, fs group, and supplemental groups that are allocated to the namespace.  This is the most restrictive SCC."
+	SecurityContextConstraintRestrictedDesc = "restricted denies access to all host features and requires pods to be run with a UID, and SELinux context that are allocated to the namespace.  This is the most restrictive SCC."
 
 	// SecurityContextConstraintNonRoot is used as the name for the system default non-root scc.
 	SecurityContextConstraintNonRoot     = "nonroot"
@@ -25,7 +25,7 @@ const (
 	// SecurityContextConstraintHostNS is used as the name for the system default scc
 	// that grants access to all host ns features.
 	SecurityContextConstraintHostNS     = "hostaccess"
-	SecurityContextConstraintHostNSDesc = "hostaccess allows access to all host namespaces but still requires pods to be run with a UID, SELinux context, fs group, and supplemental groups that are allocated to the namespace. WARNING: this SCC allows host access to namespaces, file systems, and PIDS.  It should only be used by trusted pods.  Grant with caution."
+	SecurityContextConstraintHostNSDesc = "hostaccess allows access to all host namespaces but still requires pods to be run with a UID and SELinux context that are allocated to the namespace. WARNING: this SCC allows host access to namespaces, file systems, and PIDS.  It should only be used by trusted pods.  Grant with caution."
 
 	// SecurityContextConstraintsAnyUID is used as the name for the system default scc that
 	// grants access to run as any uid but is still restricted to specific SELinux contexts.
@@ -97,20 +97,10 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 				Type: kapi.RunAsUserStrategyMustRunAsNonRoot,
 			},
 			FSGroup: kapi.FSGroupStrategyOptions{
-				// This strategy requires that annotations on the namespace which will be populated
-				// by the admission controller.  Admission will first look for the SupplementalGroupsAnnotation
-				// on the namespace and if it is unable to find that annotation it will attempt
-				// to use the UIDRangeAnnotation.  If neither annotation exists then creation
-				// of the strategy will fail.
-				Type: kapi.FSGroupStrategyMustRunAs,
+				Type: kapi.FSGroupStrategyRunAsAny,
 			},
 			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
-				// This strategy requires that annotations on the namespace which will be populated
-				// by the admission controller.  Admission will first look for the SupplementalGroupsAnnotation
-				// on the namespace and if it is unable to find that annotation it will attempt
-				// to use the UIDRangeAnnotation.  If neither annotation exists then creation
-				// of the strategy will fail.
-				Type: kapi.SupplementalGroupsStrategyMustRunAs,
+				Type: kapi.SupplementalGroupsStrategyRunAsAny,
 			},
 		},
 		// SecurityContextConstraintHostMount is the same as the restricted scc but allows host mounts.
@@ -136,20 +126,10 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 				Type: kapi.RunAsUserStrategyMustRunAsRange,
 			},
 			FSGroup: kapi.FSGroupStrategyOptions{
-				// This strategy requires that annotations on the namespace which will be populated
-				// by the admission controller.  Admission will first look for the SupplementalGroupsAnnotation
-				// on the namespace and if it is unable to find that annotation it will attempt
-				// to use the UIDRangeAnnotation.  If neither annotation exists then creation
-				// of the strategy will fail.
-				Type: kapi.FSGroupStrategyMustRunAs,
+				Type: kapi.FSGroupStrategyRunAsAny,
 			},
 			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
-				// This strategy requires that annotations on the namespace which will be populated
-				// by the admission controller.  Admission will first look for the SupplementalGroupsAnnotation
-				// on the namespace and if it is unable to find that annotation it will attempt
-				// to use the UIDRangeAnnotation.  If neither annotation exists then creation
-				// of the strategy will fail.
-				Type: kapi.SupplementalGroupsStrategyMustRunAs,
+				Type: kapi.SupplementalGroupsStrategyRunAsAny,
 			},
 		},
 		// SecurityContextConstraintHostNS allows access to everything except privileged on the host
@@ -179,20 +159,10 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 				Type: kapi.RunAsUserStrategyMustRunAsRange,
 			},
 			FSGroup: kapi.FSGroupStrategyOptions{
-				// This strategy requires that annotations on the namespace which will be populated
-				// by the admission controller.  Admission will first look for the SupplementalGroupsAnnotation
-				// on the namespace and if it is unable to find that annotation it will attempt
-				// to use the UIDRangeAnnotation.  If neither annotation exists then creation
-				// of the strategy will fail.
-				Type: kapi.FSGroupStrategyMustRunAs,
+				Type: kapi.FSGroupStrategyRunAsAny,
 			},
 			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
-				// This strategy requires that annotations on the namespace which will be populated
-				// by the admission controller.  Admission will first look for the SupplementalGroupsAnnotation
-				// on the namespace and if it is unable to find that annotation it will attempt
-				// to use the UIDRangeAnnotation.  If neither annotation exists then creation
-				// of the strategy will fail.
-				Type: kapi.SupplementalGroupsStrategyMustRunAs,
+				Type: kapi.SupplementalGroupsStrategyRunAsAny,
 			},
 		},
 		// SecurityContextConstraintRestricted allows no host access and allocates UIDs and SELinux.
@@ -216,20 +186,10 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 				Type: kapi.RunAsUserStrategyMustRunAsRange,
 			},
 			FSGroup: kapi.FSGroupStrategyOptions{
-				// This strategy requires that annotations on the namespace which will be populated
-				// by the admission controller.  Admission will first look for the SupplementalGroupsAnnotation
-				// on the namespace and if it is unable to find that annotation it will attempt
-				// to use the UIDRangeAnnotation.  If neither annotation exists then creation
-				// of the strategy will fail.
-				Type: kapi.FSGroupStrategyMustRunAs,
+				Type: kapi.FSGroupStrategyRunAsAny,
 			},
 			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
-				// This strategy requires that annotations on the namespace which will be populated
-				// by the admission controller.  Admission will first look for the SupplementalGroupsAnnotation
-				// on the namespace and if it is unable to find that annotation it will attempt
-				// to use the UIDRangeAnnotation.  If neither annotation exists then creation
-				// of the strategy will fail.
-				Type: kapi.SupplementalGroupsStrategyMustRunAs,
+				Type: kapi.SupplementalGroupsStrategyRunAsAny,
 			},
 		},
 		// SecurityContextConstraintsAnyUID allows no host access and allocates SELinux.
