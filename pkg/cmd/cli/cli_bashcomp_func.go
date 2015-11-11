@@ -52,14 +52,20 @@ __oc_require_pod_and_container()
 
 __custom_func() {
     case ${last_command} in
-        oc_get | oc_describe | oc_delete | oc_label | oc_stop | oc_expose | oc_export | oc_patch | oc_annotate | oc_env | oc_edit | oc_volume)
+ 
+        # first arg is the kind according to ValidArgs, second is resource name
+        oc_get | oc_describe | oc_delete | oc_label | oc_stop | oc_expose | oc_export | oc_patch | oc_annotate | oc_env | oc_edit | oc_volume | oc_scale )
             __oc_get_resource
             return
             ;;
-        oc_logs)
+ 
+        # first arg is a pod name, second is a container name
+        oc_logs | oc_attach)
             __oc_require_pod_and_container
             return
             ;;
+ 
+        # args other than the first are filenames
         oc_secrets_new)
             # Complete args other than the first as filenames
             if [[ ${#nouns[@]} -gt 0 ]]; then
@@ -67,12 +73,47 @@ __custom_func() {
             fi;
             return
             ;;
+ 
+        # first arg is a build config name
         oc_start-build | oc_cancel-build)
             if [[ ${#nouns[@]} -eq 0 ]]; then
                 __oc_parse_get buildconfigs
             fi;
             return
             ;;
+ 
+        # first arg is a deployment config
+        oc_deploy)
+            if [[ ${#nouns[@]} -eq 0 ]]; then
+                __oc_parse_get deploymentconfigs
+            fi;
+            return
+            ;;
+ 
+        # first arg is a deployment config OR deployment
+        oc_rollback)
+            if [[ ${#nouns[@]} -eq 0 ]]; then
+                __oc_parse_get deploymentconfigs,replicationcontrollers
+            fi;
+            return
+            ;;
+
+        # first arg is a project name
+        oc_project)
+            if [[ ${#nouns[@]} -eq 0 ]]; then
+                __oc_parse_get projects
+            fi;
+            return
+            ;;
+ 
+        # first arg is an image stream
+        oc_import-image)
+            if [[ ${#nouns[@]} -eq 0 ]]; then
+                __oc_parse_get imagestreams
+            fi;
+            return
+            ;;
+ 
         *)
             ;;
     esac

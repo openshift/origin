@@ -258,6 +258,7 @@ func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 	cmd.Short = "Change the number of pods in a deployment"
 	cmd.Long = scaleLong
 	cmd.Example = fmt.Sprintf(scaleExample, fullName)
+	cmd.ValidArgs = []string{"deploymentconfig", "job", "replicationcontroller"}
 	return cmd
 }
 
