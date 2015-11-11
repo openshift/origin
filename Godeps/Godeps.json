@@ -694,48 +694,48 @@
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.3-24-g20c763f",
+			"Rev": "20c763f82a4361a60bbd2fcbc809ea5d07e59957"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.3-24-g20c763f",
+			"Rev": "20c763f82a4361a60bbd2fcbc809ea5d07e59957"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/docker",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.3-24-g20c763f",
+			"Rev": "20c763f82a4361a60bbd2fcbc809ea5d07e59957"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/errors",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.3-24-g20c763f",
+			"Rev": "20c763f82a4361a60bbd2fcbc809ea5d07e59957"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/ignore",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.3-24-g20c763f",
+			"Rev": "20c763f82a4361a60bbd2fcbc809ea5d07e59957"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scm",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.3-24-g20c763f",
+			"Rev": "20c763f82a4361a60bbd2fcbc809ea5d07e59957"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scripts",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.3-24-g20c763f",
+			"Rev": "20c763f82a4361a60bbd2fcbc809ea5d07e59957"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/tar",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.3-24-g20c763f",
+			"Rev": "20c763f82a4361a60bbd2fcbc809ea5d07e59957"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.3-24-g20c763f",
+			"Rev": "20c763f82a4361a60bbd2fcbc809ea5d07e59957"
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",
