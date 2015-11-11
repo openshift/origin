@@ -220,7 +220,7 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 	}
 
 	if deploymentStatus := util.DeploymentStatusFor(controller); deploymentStatus != api.DeploymentStatusComplete {
-		return nil, false, err
+		return nil, false, errors.NewInternalError(fmt.Errorf("cannot scale DeploymentConfig %q: latest deployment %q is not complete or has failed: %v", deploymentConfig.Name, controller.Name, deploymentStatus))
 	}
 
 	// TODO(directxman12): this is going to be a bit out of sync, since we are calculating it
