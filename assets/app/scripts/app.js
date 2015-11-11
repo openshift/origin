@@ -139,11 +139,19 @@ angular
         templateUrl: 'views/browse/deployment-config.html'
       })
       .when('/project/:project/browse/deployments/:deploymentconfig/:deployment', {
-        templateUrl: 'views/browse/deployment.html'
+        templateUrl: function(params) {
+          if (params.view === 'chromeless') {
+            return 'views/logs/chromeless-deployment-log.html';
+          }
+
+          return 'views/browse/deployment.html';
+        },
+        controller: 'DeploymentController'
       })
       // Needs to still be prefixed with browse/deployments so the secondary nav active state is correct
       .when('/project/:project/browse/deployments-replicationcontrollers/:replicationcontroller', {
-        templateUrl: 'views/browse/deployment.html'
+        templateUrl: 'views/browse/replication-controller.html',
+        controller: 'DeploymentController'
       })
       .when('/project/:project/browse/events', {
         templateUrl: 'views/events.html'
