@@ -11,7 +11,7 @@ func TestBootstrappedConstraints(t *testing.T) {
 		SecurityContextConstraintPrivileged,
 		SecurityContextConstraintRestricted,
 		SecurityContextConstraintNonRoot,
-		SecurityContextConstraintHostMount,
+		SecurityContextConstraintHostMountAndAnyUID,
 		SecurityContextConstraintHostNS,
 		SecurityContextConstraintsAnyUID,
 	}
@@ -71,8 +71,8 @@ func getExpectedAccess() (map[string][]string, map[string][]string) {
 	buildControllerUsername := serviceaccount.MakeUsername(DefaultOpenShiftInfraNamespace, InfraBuildControllerServiceAccountName)
 	pvControllerUsername := serviceaccount.MakeUsername(DefaultOpenShiftInfraNamespace, InfraPersistentVolumeControllerServiceAccountName)
 	users := map[string][]string{
-		SecurityContextConstraintPrivileged: {buildControllerUsername},
-		SecurityContextConstraintHostMount:  {pvControllerUsername},
+		SecurityContextConstraintPrivileged:         {buildControllerUsername},
+		SecurityContextConstraintHostMountAndAnyUID: {pvControllerUsername},
 	}
 	return groups, users
 }

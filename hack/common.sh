@@ -59,6 +59,7 @@ readonly OS_ALL_BINARIES=("${OS_ALL_TARGETS[@]##*/}")
 readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-router
   openshift-deploy
+  openshift-recycle
   openshift-sti-build
   openshift-docker-build
   origin

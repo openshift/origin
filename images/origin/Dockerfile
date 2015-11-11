@@ -20,8 +20,6 @@ RUN ln -s /usr/bin/openshift /usr/bin/oc && \
     ln -s /usr/bin/openshift /usr/bin/openshift-f5-router && \
     setcap 'cap_net_bind_service=ep' /usr/bin/openshift
 
-ADD scripts/recycler.sh /usr/share/openshift/scripts/volumes/recycler.sh
-
 ENV HOME /root
 ENV OPENSHIFT_CONTAINERIZED true
 ENV KUBECONFIG /var/lib/openshift/openshift.local.config/master/admin.kubeconfig
