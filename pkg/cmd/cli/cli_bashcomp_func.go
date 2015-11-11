@@ -67,6 +67,12 @@ __custom_func() {
             fi;
             return
             ;;
+        oc_start-build | oc_cancel-build)
+            if [[ ${#nouns[@]} -eq 0 ]]; then
+                __oc_parse_get buildconfigs
+            fi;
+            return
+            ;;
         *)
             ;;
     esac
