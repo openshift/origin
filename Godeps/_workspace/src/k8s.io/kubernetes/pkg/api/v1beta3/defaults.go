@@ -220,22 +220,13 @@ func defaultSecurityContext(container *Container) {
 	}
 }
 
-// Default SCCs for new fields.  Defaults are based on the RunAsUser type if not explicitly set.
-// If the SCC allows RunAsAny UID then the FSGroup/SupGroups will default to RunAsAny.  Otherwise
-// default to MustRunAs with namespace allocation.
+// Default SCCs for new fields.  FSGroup and SupplementalGroups are
+// set to the RunAsAny strategy if they are unset on the scc.
 func defaultSecurityContextConstraints(scc *SecurityContextConstraints) {
 	if len(scc.FSGroup.Type) == 0 {
-		if scc.RunAsUser.Type == RunAsUserStrategyRunAsAny {
-			scc.FSGroup.Type = FSGroupStrategyRunAsAny
-		} else {
-			scc.FSGroup.Type = FSGroupStrategyMustRunAs
-		}
+		scc.FSGroup.Type = FSGroupStrategyRunAsAny
 	}
 	if len(scc.SupplementalGroups.Type) == 0 {
-		if scc.RunAsUser.Type == RunAsUserStrategyRunAsAny {
-			scc.SupplementalGroups.Type = SupplementalGroupsStrategyRunAsAny
-		} else {
-			scc.SupplementalGroups.Type = SupplementalGroupsStrategyMustRunAs
-		}
+		scc.SupplementalGroups.Type = SupplementalGroupsStrategyRunAsAny
 	}
 }

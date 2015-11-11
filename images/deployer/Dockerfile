@@ -9,4 +9,7 @@
 #
 FROM openshift/origin
 
+# The deployer doesn't require a privileged user.
+USER 1001
+
 ENTRYPOINT ["/usr/bin/openshift-deploy"]
