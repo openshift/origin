@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
@@ -202,8 +203,14 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return nil, err
 		}
 
-		if mapping.Kind == "DeploymentConfig" {
+		switch mapping.Kind {
+		case "DeploymentConfig":
 			return deployreaper.NewDeploymentConfigReaper(oc, kc), nil
+		case "Role":
+			return authorizationreaper.NewRoleReaper(oc, oc), nil
+		case "ClusterRole":
+			return authorizationreaper.NewClusterRoleReaper(oc, oc, oc), nil
+
 		}
 		return kReaperFunc(mapping)
 	}
