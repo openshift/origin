@@ -31,6 +31,7 @@ readonly OS_IMAGE_COMPILE_TARGETS=(
   images/pod
   cmd/dockerregistry
   cmd/gitserver
+  cmd/recycle
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
   examples/hello-openshift
@@ -59,7 +60,6 @@ readonly OS_ALL_BINARIES=("${OS_ALL_TARGETS[@]##*/}")
 readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-router
   openshift-deploy
-  openshift-recycle
   openshift-sti-build
   openshift-docker-build
   origin

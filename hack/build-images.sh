@@ -49,6 +49,7 @@ cp -pf "${imagedir}/hello-openshift" examples/hello-openshift/bin
 cp -pf "${imagedir}/deployment"      examples/deployment/bin
 cp -pf "${imagedir}/gitserver"       examples/gitserver/bin
 cp -pf "${imagedir}/dockerregistry"  images/dockerregistry/bin
+cp -pf "${imagedir}/recycle"         images/recycler/bin
 
 # Copy SDN scripts into images/node
 os::util::install-sdn "${OS_ROOT}" "${OS_ROOT}/images/node"
