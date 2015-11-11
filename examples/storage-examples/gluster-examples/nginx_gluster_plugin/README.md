@@ -114,7 +114,7 @@ _Under volumeMounts_
         
 
 
-_Under securityContext_     [see this for more info on Security Context](https://github.com/kubernetes/kubernetes/blob/master/docs/design/security_context.md). _You may also have to configure the scc privileged `Security Constraint` - more information about this can be found_ [here](https://docs.openshift.com/enterprise/3.0/admin_guide/manage_scc.html#grant-access-to-the-privileged-scc) 
+_Under securityContext_     [see this for more info on Security Context](https://github.com/kubernetes/kubernetes/blob/master/docs/design/security_context.md). _You may also have to configure the scc privileged `Security Constraint` - more information about this can be found_ [here](https://docs.openshift.com/enterprise/latest/admin_guide/manage_scc.html#grant-access-to-the-privileged-scc) 
         
         privileged: true             This security setting will allow the container to run as privileged so the mount can be created.
 
