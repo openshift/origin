@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/test"
 )
 
@@ -17,7 +18,7 @@ func (f *FakeExecutor) Execute(string, *api.Config) error {
 
 func newFakeLayered() *Layered {
 	return &Layered{
-		docker:  &test.FakeDocker{},
+		docker:  &docker.FakeDocker{},
 		config:  &api.Config{},
 		fs:      &test.FakeFileSystem{},
 		tar:     &test.FakeTar{},
@@ -75,7 +76,7 @@ func TestBuildErrorOpenTarFile(t *testing.T) {
 
 func TestBuildErrorBuildImage(t *testing.T) {
 	l := newFakeLayered()
-	l.docker.(*test.FakeDocker).BuildImageError = errors.New("BuildImageError")
+	l.docker.(*docker.FakeDocker).BuildImageError = errors.New("BuildImageError")
 	_, err := l.Build(l.config)
 	if err == nil || err.Error() != "BuildImageError" {
 		t.Errorf("An error was expected for BuildImage, but got different: %v", err)

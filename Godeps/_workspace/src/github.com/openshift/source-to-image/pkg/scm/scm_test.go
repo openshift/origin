@@ -10,7 +10,7 @@ import (
 )
 
 func createLocalGitDirectory(t *testing.T) string {
-	dir, err := ioutil.TempDir(os.TempDir(), "s2i-test")
+	dir, err := ioutil.TempDir(os.TempDir(), "gitdir-s2i-test")
 	if err != nil {
 		t.Error(err)
 	}
@@ -18,22 +18,10 @@ func createLocalGitDirectory(t *testing.T) string {
 	return dir
 }
 
-func TestIsLocalGitRepository(t *testing.T) {
-	d := createLocalGitDirectory(t)
-	defer os.RemoveAll(d)
-	if isLocalGitRepository(d) == false {
-		t.Errorf("The %q directory is git repository", d)
-	}
-	os.RemoveAll(filepath.Join(d, ".git"))
-	if isLocalGitRepository(d) == true {
-		t.Errorf("The %q directory is not git repository", d)
-	}
-}
-
 func TestDownloaderForSource(t *testing.T) {
 	gitLocalDir := createLocalGitDirectory(t)
 	defer os.RemoveAll(gitLocalDir)
-	localDir, _ := ioutil.TempDir(os.TempDir(), "s2i-test")
+	localDir, _ := ioutil.TempDir(os.TempDir(), "localdir-s2i-test")
 	defer os.RemoveAll(localDir)
 
 	tc := map[string]string{
@@ -49,9 +37,8 @@ func TestDownloaderForSource(t *testing.T) {
 		gitLocalDir:             "git.Clone",
 		"file://" + gitLocalDir: "git.Clone",
 		// Local directory that exists but it is not GIT repository
-		localDir:             "file.File",
-		"file://" + localDir: "file.File",
-		".":                  "file.File",
+		localDir:               "file.File",
+		"file://" + localDir:   "file.File",
 		"foo://github.com/bar": "error",
 		"./foo":                "error",
 	}

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -141,7 +142,7 @@ func (b *Layered) Build(config *api.Config) (*api.Result, error) {
 	// new image name
 	b.config.BuilderImage = newBuilderImage
 	// the scripts are inside the image
-	b.config.ScriptsURL = "image://" + filepath.Join(getDestination(config), "scripts")
+	b.config.ScriptsURL = "image://" + path.Join(getDestination(config), "scripts")
 
 	glog.V(2).Infof("Building %s using sti-enabled image", b.config.Tag)
 	if err := b.scripts.Execute(api.Assemble, b.config); err != nil {

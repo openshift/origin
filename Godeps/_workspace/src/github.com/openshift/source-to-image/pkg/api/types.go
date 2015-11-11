@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+
 	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/openshift/source-to-image/pkg/util/user"
@@ -10,6 +12,24 @@ import (
 const (
 	DefaultNamespace    = "io.openshift.s2i."
 	KubernetesNamespace = "io.k8s."
+)
+
+const (
+	// PullAlways means that we always attempt to pull the latest image.
+	PullAlways PullPolicy = "always"
+
+	// PullNever means that we never pull an image, but only use a local image.
+	PullNever PullPolicy = "never"
+
+	// PullIfNotPresent means that we pull if the image isn't present on disk.
+	PullIfNotPresent PullPolicy = "if-not-present"
+
+	// DefaultBuilderPullPolicy specifies the default pull policy to use
+	DefaultBuilderPullPolicy = PullIfNotPresent
+
+	// DefaultPreviousImagePullPolicy specifies policy for pulling the previously
+	// build Docker image when doing incremental build
+	DefaultPreviousImagePullPolicy = PullAlways
 )
 
 // Config contains essential fields for performing build.
@@ -65,6 +85,19 @@ type Config struct {
 	// Tag is a result image tag name.
 	Tag string
 
+	// BuilderPullPolicy specifies when to pull the builder image
+	BuilderPullPolicy PullPolicy
+
+	// PreviousImagePullPolicy specifies when to pull the previously build image
+	// when doing incremental build
+	PreviousImagePullPolicy PullPolicy
+
+	// ForcePull defines if the builder image should be always pulled or not.
+	// This is now deprecated by BuilderPullPolicy and will be removed soon.
+	// Setting this to 'true' equals setting BuilderPullPolicy to 'PullAlways'.
+	// Setting this to 'false' equals setting BuilderPullPolicy to 'PullIfNotPresent'
+	ForcePull bool
+
 	// Incremental describes whether to try to perform incremental build.
 	Incremental bool
 
@@ -90,9 +123,6 @@ type Config struct {
 
 	// Destination specifies a location where the untar operation will place its artifacts.
 	Destination string
-
-	// ForcePull describes if the builder should pull the images from registry prior to building.
-	ForcePull bool
 
 	// WorkingDir describes temporary directory used for downloading sources, scripts and tar operations.
 	WorkingDir string
@@ -120,6 +150,9 @@ type Config struct {
 	// RunImage will trigger a "docker run ..." invocation of the produced image so the user
 	// can see if it operates as he would expect
 	RunImage bool
+
+	// Usage allows for properly shortcircuiting s2i logic when `s2i usage` is invoked
+	Usage bool
 }
 
 // DockerConfig contains the configuration for a Docker connection
@@ -229,4 +262,39 @@ const (
 // It can be used, for instance, to place the s2i container in the network namespace of the infrastructure container of a k8s pod.
 func NewDockerNetworkModeContainer(id string) DockerNetworkMode {
 	return DockerNetworkMode(DockerNetworkModeContainerPrefix + id)
+}
+
+// PullPolicy specifies a type for the method used to retrieve the Docker image
+type PullPolicy string
+
+// String implements the String() function of pflags.Value so this can be used as
+// command line parameter.
+// This method is really used just to show the default value when printing help.
+// It will not default the configuration.
+func (p *PullPolicy) String() string {
+	if len(string(*p)) == 0 {
+		return string(DefaultBuilderPullPolicy)
+	}
+	return string(*p)
+}
+
+// Type implements the Type() function of pflags.Value interface
+func (p *PullPolicy) Type() string {
+	return "string"
+}
+
+// Set implements the Set() function of pflags.Value interface
+// The valid options are "always", "never" or "if-not-present"
+func (p *PullPolicy) Set(v string) error {
+	switch v {
+	case "always":
+		*p = PullAlways
+	case "never":
+		*p = PullNever
+	case "if-not-present":
+		*p = PullIfNotPresent
+	default:
+		return fmt.Errorf("invalid value %q, valid values are: always, never or if-not-present")
+	}
+	return nil
 }
