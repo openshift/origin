@@ -25,13 +25,13 @@ for test_dir in $test_dirs
 do
   go tool vet -shadow=false $test_dir
   if [ "$?" -ne 0 ]
-  then 
+  then
     FAILURE=true
   fi
 done
 
-# We don't want to exit on the first failure of go vet, so just keep track of 
-# whether a failure occured or not.
+# We don't want to exit on the first failure of go vet, so just keep track of
+# whether a failure occurred or not.
 if $FAILURE
 then
   echo "FAILURE: go vet failed!"

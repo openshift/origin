@@ -106,7 +106,7 @@ func (l *LDAPClientConfig) Connect() (*ldap.Conn, error) {
 }
 
 // Bind binds to a given LDAP connection if a bind DN and password were given.
-// Bind returns whether a bind occured and whether an error occurred
+// Bind returns whether a bind occurred and whether an error occurred
 func (l *LDAPClientConfig) Bind(connection *ldap.Conn) (bound bool, err error) {
 	if len(l.BindDN) > 0 {
 		if err := connection.Bind(l.BindDN, l.BindPassword); err != nil {
