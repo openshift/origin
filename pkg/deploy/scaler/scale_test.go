@@ -49,10 +49,10 @@ func TestScale(t *testing.T) {
 			kc:        ktestclient.NewSimpleFake(mkDeploymentList(1)),
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
+				ktestclient.NewUpdateAction("deploymentconfigs/scale", "default", nil),
 			},
 			kexpected: []ktestclient.Action{
 				ktestclient.NewGetAction("replicationcontrollers", "default", "config-1"),
-				ktestclient.NewUpdateAction("replicationcontrollers", "default", nil),
 			},
 			expectedErr: nil,
 		},
@@ -66,11 +66,11 @@ func TestScale(t *testing.T) {
 			kc:              ktestclient.NewSimpleFake(mkDeploymentList(1)),
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
+				ktestclient.NewUpdateAction("deploymentconfigs/scale", "default", nil),
 				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
 			},
 			kexpected: []ktestclient.Action{
 				ktestclient.NewGetAction("replicationcontrollers", "default", "config-1"),
-				ktestclient.NewUpdateAction("replicationcontrollers", "default", nil),
 				ktestclient.NewGetAction("replicationcontrollers", "default", "config-1"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 			},
