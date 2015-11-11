@@ -471,7 +471,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 		"hostSubnets":     hostSubnetStorage,
 		"clusterNetworks": clusterNetworkStorage,
-		"netNamespaces":   netnamespace.NewStorage(netNamespaceRegistry, namespaceVNIDAllocator),
+		"netNamespaces":   netnamespace.NewStorage(netNamespaceRegistry, namespaceVNIDAllocator, []string{"default"}),
 
 		"users":                userStorage,
 		"groups":               groupetcd.NewREST(c.EtcdHelper),
