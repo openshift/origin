@@ -731,7 +731,7 @@ func printHostSubnetList(list *sdnapi.HostSubnetList, w io.Writer, withNamespace
 }
 
 func printNetNamespace(h *sdnapi.NetNamespace, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
-	_, err := fmt.Fprintf(w, "%s\t%d\n", h.NetName, h.NetID)
+	_, err := fmt.Fprintf(w, "%s\t%d\n", h.NetName, *h.NetID)
 	return err
 }
 

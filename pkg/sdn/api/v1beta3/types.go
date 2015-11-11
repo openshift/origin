@@ -44,7 +44,7 @@ type NetNamespace struct {
 	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	NetName string `json:"netname" description:"Name of the network namespace."`
-	NetID   uint   `json:"netid" description:"NetID of the network namespace assigned to each overlay network packet."`
+	NetID   *uint  `json:"netid,omitempty" description:"NetID of the network namespace assigned to each overlay network packet."`
 }
 
 // NetNamespaceList is a collection of NetNamespaces

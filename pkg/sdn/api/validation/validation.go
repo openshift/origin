@@ -113,7 +113,7 @@ func ValidateNetNamespace(netnamespace *sdnapi.NetNamespace) fielderrors.Validat
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&netnamespace.ObjectMeta, false, oapi.MinimalNameRequirements).Prefix("metadata")...)
 
-	if netnamespace.NetID < 0 {
+	if netnamespace.NetID != nil && *netnamespace.NetID < 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("netID", netnamespace.NetID, "invalid Net ID: cannot be negative"))
 	}
 	return allErrs

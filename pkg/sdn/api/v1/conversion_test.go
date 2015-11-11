@@ -3,6 +3,8 @@ package v1
 import (
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/sdn/api"
 	testutil "github.com/openshift/origin/test/util/api"
 )
