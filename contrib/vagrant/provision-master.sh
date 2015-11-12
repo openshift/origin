@@ -9,8 +9,8 @@ os::provision::build-etcd "${ORIGIN_ROOT}" "${SKIP_BUILD}"
 
 echo "Installing openshift"
 os::provision::install-cmds "${ORIGIN_ROOT}"
-os::provision::install-sdn "${ORIGIN_ROOT}"
 
+# TODO(marun) Should only deploy sdn node when openshift-sdn is configured
 if [ "${SDN_NODE}" = "true" ]; then
   # Running an sdn node on the master when using an openshift sdn
   # plugin ensures connectivity between the openshift service and
@@ -24,8 +24,18 @@ if [ "${SDN_NODE}" = "true" ]; then
   os::provision::add-to-hosts-file "${MASTER_IP}" "${SDN_NODE_NAME}" 1
 fi
 
-os::provision::init-certs "${CONFIG_ROOT}" "${NETWORK_PLUGIN}" \
-  "${MASTER_NAME}" "${MASTER_IP}" NODE_NAMES NODE_IPS
+if [ "${NETWORK_PLUGIN}" = "flannel" ]; then
+  # Avoid setting a network plugin in the openshift config when
+  # flannel is used.
+  CONFIG_NETWORK_PLUGIN=""
+  NETWORK_PLUGIN_OPT=""
+else
+  CONFIG_NETWORK_PLUGIN="${NETWORK_PLUGIN}"
+  NETWORK_PLUGIN_OPT="--network-plugin=${NETWORK_PLUGIN}"
+fi
+
+os::provision::init-certs "${CONFIG_ROOT}" "${CONFIG_NETWORK_PLUGIN}" \
+    "${MASTER_NAME}" "${MASTER_IP}" NODE_NAMES NODE_IPS
 
 # Copy configuration to local storage when the configuration path is
 # mounted over nfs to prevent etcd from experiencing nfs-related
@@ -39,12 +49,16 @@ else
 fi
 
 echo "Launching openshift daemons"
-NODE_LIST=$(os::provision::join , ${NODE_NAMES[@]})
 cmd="/usr/bin/openshift start master --loglevel=${LOG_LEVEL} \
  --master=https://${MASTER_IP}:8443 \
- --network-plugin=${NETWORK_PLUGIN}"
+ ${NETWORK_PLUGIN_OPT}"
 os::provision::start-os-service "openshift-master" "OpenShift Master" \
     "${cmd}" "${DEPLOYED_CONFIG_ROOT}"
+
+# Install networking after starting openshift to ensure that plugins
+# like flannel can write configuration to openshift's etcd server.
+os::provision::install-networking "${NETWORK_PLUGIN}" "${MASTER_IP}" \
+    "${ORIGIN_ROOT}" "${DEPLOYED_CONFIG_ROOT}" true
 
 if [ "${SDN_NODE}" = "true" ]; then
   os::provision::start-node-service "${DEPLOYED_CONFIG_ROOT}" \

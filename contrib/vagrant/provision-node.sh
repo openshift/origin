@@ -23,9 +23,12 @@ os::provision::copy-config "${CONFIG_ROOT}"
 # openshift is assumed to have been built before node deployment
 os::provision::install-cmds "${ORIGIN_ROOT}"
 
-os::provision::install-sdn "${ORIGIN_ROOT}"
+os::provision::copy-config "${CONFIG_ROOT}"
 
 echo "Launching openshift daemon"
 os::provision::start-node-service "${DEPLOYED_CONFIG_ROOT}" "${NODE_NAME}"
+
+os::provision::install-networking "${NETWORK_PLUGIN}" "${MASTER_IP}" \
+    "${ORIGIN_ROOT}" "${DEPLOYED_CONFIG_ROOT}"
 
 os::provision::set-os-env "${ORIGIN_ROOT}" "${DEPLOYED_CONFIG_ROOT}"
