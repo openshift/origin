@@ -95,10 +95,7 @@ NOTE: Replace "linux/amd64" with the appropriate value for your platform/archite
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
         $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
-        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
-
-+
-NOTE: "oadm" is located in the current directory, use './oadm' if you encounter the following execution error 'bash: oadm: command not found...'.
+        $ ./oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
 
 11.  If it is not there already, add the current directory to the $PATH, so you can leverage the OpenShift commands elsewhere.
 
