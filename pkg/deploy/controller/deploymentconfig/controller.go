@@ -2,43 +2,45 @@ package deploymentconfig
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/record"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
-	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// DeploymentConfigController is responsible for creating a new deployment when:
+// DeploymentConfigController is responsible for creating a new deployment
+// when:
 //
 //    1. The config version is > 0 and,
-//    2. No existing deployment for that version exists.
+//    2. No deployment for the version exists.
 //
-// The responsibility of constructing a new deployment resource from a config
-// is delegated. See util.MakeDeployment for more details. The new deployment
-// will have DesiredReplicasAnnotation set to the desired replica count for
-// the new deployment based on the replica count of the previous/active
-// deployment.
+// The controller reconciles deployments with the replica count specified on
+// the config. The active deployment (that is, the latest successful
+// deployment) will always be scaled to the config replica count. All other
+// deployments will be scaled to zero.
 //
-// Use the DeploymentConfigControllerFactory to create this controller.
+// If a new version is observed for which no deployment exists, any running
+// deployments will be cancelled. The controller will not attempt to scale
+// running deployments.
 type DeploymentConfigController struct {
-	// deploymentClient provides access to deployments.
-	deploymentClient deploymentClient
-	// osClient provides access to Origin resources
+	// kubeClient provides acceess to Kube resources.
+	kubeClient kclient.Interface
+	// osClient provides access to OpenShift resources.
 	osClient osclient.Interface
-	// makeDeployment knows how to make a deployment from a config.
-	makeDeployment func(*deployapi.DeploymentConfig) (*kapi.ReplicationController, error)
+	// codec is used to build deployments from configs.
+	codec runtime.Codec
+	// recorder is used to record events.
+	recorder record.EventRecorder
 }
 
 // fatalError is an error which can't be retried.
@@ -54,230 +56,196 @@ func (e transientError) Error() string {
 	return "transient error handling deployment config: " + string(e)
 }
 
-// Handle processes config and creates a new deployment if necessary.
-func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
-	// TODO(danmace): Don't use findDetails yet. See: https://github.com/openshift/origin/pull/5530
+func NewDeploymentConfigController(kubeClient kclient.Interface, osClient osclient.Interface, codec runtime.Codec, recorder record.EventRecorder) *DeploymentConfigController {
+	return &DeploymentConfigController{
+		kubeClient: kubeClient,
+		osClient:   osClient,
+		codec:      codec,
+		recorder:   recorder,
+	}
+}
 
-	// Only deploy when the version has advanced past 0.
+func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
+	// There's nothing to reconcile until the version is nonzero.
 	if config.LatestVersion == 0 {
 		glog.V(5).Infof("Waiting for first version of %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
-	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
+	// Find all deployments owned by the deploymentConfig.
+	sel := deployutil.ConfigSelector(config.Name)
+	existingDeployments, err := c.kubeClient.ReplicationControllers(config.Namespace).List(sel, fields.Everything())
 	if err != nil {
 		return err
 	}
 
-	var inflightDeployment *kapi.ReplicationController
-	for _, deployment := range existingDeployments.Items {
-
-		deploymentStatus := deployutil.DeploymentStatusFor(&deployment)
-		switch deploymentStatus {
-		case deployapi.DeploymentStatusFailed,
-			deployapi.DeploymentStatusComplete:
-			// Previous deployment in terminal state - can ignore
-			// Ignoring specific deployment states so that any newly introduced
-			// deployment state will not be ignored
-		default:
-			if inflightDeployment == nil {
-				inflightDeployment = &deployment
+	latestIsDeployed, latestDeployment := deployutil.LatestDeploymentInfo(config, existingDeployments)
+	// If the latest deployment doesn't exist yet, cancel any running
+	// deployments to allow them to be superceded by the new config version.
+	awaitingCancellations := false
+	if !latestIsDeployed {
+		for _, deployment := range existingDeployments.Items {
+			// Skip deployments with an outcome.
+			if deployutil.IsTerminatedDeployment(&deployment) {
 				continue
 			}
-			var deploymentForCancellation *kapi.ReplicationController
-			if deployutil.DeploymentVersionFor(inflightDeployment) < deployutil.DeploymentVersionFor(&deployment) {
-				deploymentForCancellation, inflightDeployment = inflightDeployment, &deployment
-			} else {
-				deploymentForCancellation = &deployment
+			// Cancel running deployments.
+			awaitingCancellations = true
+			if !deployutil.IsDeploymentCancelled(&deployment) {
+				deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+				deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
+				_, err := c.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
+				if err != nil {
+					c.recorder.Eventf(config, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.LatestVersion, err)
+				} else {
+					c.recorder.Eventf(config, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.LatestVersion)
+				}
 			}
-
-			deploymentForCancellation.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
-			deploymentForCancellation.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
-			if _, err := c.deploymentClient.updateDeployment(deploymentForCancellation.Namespace, deploymentForCancellation); err != nil {
-				util.HandleError(fmt.Errorf("couldn't cancel deployment %s: %v", deployutil.LabelForDeployment(deploymentForCancellation), err))
-			}
-			glog.V(4).Infof("Cancelled deployment %s for deployment config %s", deployutil.LabelForDeployment(deploymentForCancellation), deployutil.LabelForDeploymentConfig(config))
 		}
 	}
-
-	// if the latest deployment exists then nothing else needs to be done
-	latestDeploymentExists, _ := deployutil.LatestDeploymentInfo(config, existingDeployments)
-	if latestDeploymentExists {
-		return nil
-	}
-
-	// check to see if there are inflight deployments
-	if inflightDeployment != nil {
+	// Wait for deployment cancellations before reconciling or creating a new
+	// deployment to avoid competing with existing deployment processes.
+	if awaitingCancellations {
+		c.recorder.Eventf(config, "DeploymentAwaitingCancellation", "Deployment of version %d awaiting cancellation of older running deployments", config.LatestVersion)
 		// raise a transientError so that the deployment config can be re-queued
-		glog.V(4).Infof("Found previous inflight deployment for %s - will requeue", deployutil.LabelForDeploymentConfig(config))
 		return transientError(fmt.Sprintf("found previous inflight deployment for %s - requeuing", deployutil.LabelForDeploymentConfig(config)))
 	}
-
-	// Try and build a deployment for the config.
-	deployment, err := c.makeDeployment(config)
+	// If the latest deployment already exists, reconcile existing deployments
+	// and return early.
+	if latestIsDeployed {
+		// If the latest deployment is still running, try again later. We don't
+		// want to compete with the deployer.
+		if !deployutil.IsTerminatedDeployment(latestDeployment) {
+			return nil
+		}
+		return c.reconcileDeployments(existingDeployments, config)
+	}
+	// No deployments are running and the latest deployment doesn't exist, so
+	// create the new deployment.
+	deployment, err := deployutil.MakeDeployment(config, c.codec)
 	if err != nil {
 		return fatalError(fmt.Sprintf("couldn't make deployment from (potentially invalid) deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err))
 	}
-
-	// Compute the desired replicas for the deployment. Use the last completed
-	// deployment's current replica count, or the config template if there is no
-	// prior completed deployment available.
-	desiredReplicas := config.Template.ControllerTemplate.Replicas
-	if len(existingDeployments.Items) > 0 {
-		sort.Sort(deployutil.ByLatestVersionDesc(existingDeployments.Items))
-		for _, existing := range existingDeployments.Items {
-			if deployutil.DeploymentStatusFor(&existing) == deployapi.DeploymentStatusComplete {
-				desiredReplicas = existing.Spec.Replicas
-				glog.V(4).Infof("Desired replicas for %s set to %d based on prior completed deployment %s", deployutil.LabelForDeploymentConfig(config), desiredReplicas, existing.Name)
-				break
-			}
-		}
-	}
-	deployment.Annotations[deployapi.DesiredReplicasAnnotation] = strconv.Itoa(desiredReplicas)
-
-	// Create the deployment.
-	if _, err := c.deploymentClient.createDeployment(config.Namespace, deployment); err == nil {
-		glog.V(4).Infof("Created deployment for deployment config %s", deployutil.LabelForDeploymentConfig(config))
-		return nil
-	} else {
-		// If the deployment was already created, just move on. The cache could be stale, or another
-		// process could have already handled this update.
+	created, err := c.kubeClient.ReplicationControllers(config.Namespace).Create(deployment)
+	if err != nil {
+		// If the deployment was already created, just move on. The cache could be
+		// stale, or another process could have already handled this update.
 		if errors.IsAlreadyExists(err) {
-			glog.V(4).Infof("Deployment already exists for deployment config %s", deployutil.LabelForDeploymentConfig(config))
 			return nil
 		}
-
-		glog.Warningf("Cannot create latest deployment for deployment config %q: %v", deployutil.LabelForDeploymentConfig(config), err)
+		c.recorder.Eventf(config, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.LatestVersion, err)
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
+	c.recorder.Eventf(config, "DeploymentCreated", "Created new deployment %q for version %d", created.Name, config.LatestVersion)
+	return nil
 }
 
-// deploymentClient abstracts access to deployments.
-type deploymentClient interface {
-	createDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
-	// listDeploymentsForConfig should return deployments associated with the
-	// provided config.
-	listDeploymentsForConfig(namespace, configName string) (*kapi.ReplicationControllerList, error)
-	updateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
-}
-
-// deploymentClientImpl is a pluggable deploymentClient.
-type deploymentClientImpl struct {
-	createDeploymentFunc         func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
-	listDeploymentsForConfigFunc func(namespace, configName string) (*kapi.ReplicationControllerList, error)
-	updateDeploymentFunc         func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
-}
-
-func (i *deploymentClientImpl) createDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	return i.createDeploymentFunc(namespace, deployment)
-}
-
-func (i *deploymentClientImpl) listDeploymentsForConfig(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-	return i.listDeploymentsForConfigFunc(namespace, configName)
-}
-
-func (i *deploymentClientImpl) updateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	return i.updateDeploymentFunc(namespace, deployment)
-}
-
-// findDetails inspects the given deployment configuration for any failure causes
-// and returns any found details about it
-// TODO(danmace): Don't use findDetails yet. See: https://github.com/openshift/origin/pull/5530
-func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentConfig) (string, *kapi.ReplicationControllerList, bool, error) {
-	// Check if any existing inflight deployments (any non-terminal state).
-	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
-	if err != nil {
-		return "", nil, false, fmt.Errorf("couldn't list deployments for deployment config %q: %v", deployutil.LabelForDeploymentConfig(config), err)
+// reconcileDeployments reconciles existing deployment replica counts which
+// could have diverged outside the deployment process (e.g. due to auto or
+// manual scaling, or partial deployments). The active deployment is the last
+// successful deployment, not necessarily the latest in terms of the config
+// version. The active deployment replica count should follow the config, and
+// all other deployments should be scaled to zero.
+//
+// Previously, scaling behavior was that the config replica count was used
+// only for initial deployments and the active deployment had to be scaled up
+// directly. To continue supporting that old behavior we must detect when the
+// deployment has been directly manipulated, and if so, preserve the directly
+// updated value and sync the config with the deployment.
+func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *kapi.ReplicationControllerList, config *deployapi.DeploymentConfig) error {
+	latestIsDeployed, latestDeployment := deployutil.LatestDeploymentInfo(config, existingDeployments)
+	if !latestIsDeployed {
+		// We shouldn't be reconciling if the latest deployment hasn't been
+		// created; this is enforced on the calling side, but double checking
+		// can't hurt.
+		return nil
 	}
-	// check if the latest deployment exists
-	// we'll return after we've dealt with the multiple-active-deployments case
-	latestDeploymentExists, latestDeploymentStatus := deployutil.LatestDeploymentInfo(config, existingDeployments)
-	if latestDeploymentExists && latestDeploymentStatus != deployapi.DeploymentStatusFailed {
-		// If the latest deployment exists and is not failed, clear the dc message
-		return "", existingDeployments, latestDeploymentExists, nil
-	}
-
-	// Rest of the code will handle non-existing or failed latest deployment causes
-	// TODO: Inspect pod logs in case of failed latest
-
-	details := ""
-	allDetails := []string{}
-	if config.Details != nil && len(config.Details.Message) > 0 {
-		// Populate details with the previous message so that in case we stumble upon
-		// an unexpected client error, the message won't be overwritten
-		details = config.Details.Message
-	}
-	// Look into image change triggers and find out possible deployment failures such as
-	// missing image stream tags with or without build configurations pointing at them
-	for _, trigger := range config.Triggers {
-		if trigger.Type != deployapi.DeploymentTriggerOnImageChange || trigger.ImageChangeParams == nil || !trigger.ImageChangeParams.Automatic {
-			continue
-		}
-		name := trigger.ImageChangeParams.From.Name
-		tag := trigger.ImageChangeParams.Tag
-		istag := imageapi.JoinImageStreamTag(name, tag)
-
-		// Check if the image stream tag pointed by the trigger exists
-		if _, err := c.osClient.ImageStreamTags(config.Namespace).Get(name, tag); err != nil {
-			if !errors.IsNotFound(err) {
-				glog.V(2).Infof("Error while trying to get image stream tag %q: %v", istag, err)
-				return details, existingDeployments, latestDeploymentExists, nil
+	activeDeployment := deployutil.ActiveDeployment(config, existingDeployments)
+	// Compute the replica count for the active deployment (even if the active
+	// deployment doesn't exist). The active replica count is the value that
+	// should be assigned to the config, to allow the replica propagation to
+	// flow downward from the config.
+	//
+	// This takes into account resources predating the propagation behavior
+	// change, as well as external modifications to the deployments (e.g.
+	// scalers).
+	activeReplicas := config.Template.ControllerTemplate.Replicas
+	source := "the deploymentConfig itself (no change)"
+	if activeDeployment != nil {
+		activeDeploymentIsLatest := activeDeployment.Name == latestDeployment.Name
+		lastActiveReplicas, hasLastActiveReplicas := deployutil.DeploymentReplicas(activeDeployment)
+		if activeDeploymentIsLatest {
+			if !hasLastActiveReplicas || lastActiveReplicas != activeDeployment.Spec.Replicas {
+				activeReplicas = activeDeployment.Spec.Replicas
+				source = fmt.Sprintf("the latest/active deployment %q which was scaled directly or has not previously been synced", deployutil.LabelForDeployment(activeDeployment))
 			}
-			// In case the image stream tag was not found, then it either doesn't exist or doesn't exist yet
-			// (a build configuration output points to it so it's going to be populated at some point in the
-			// future)
-			details = fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream tag %q does not exist.", istag, istag)
-			bcList, err := c.osClient.BuildConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+		} else {
+			if hasLastActiveReplicas {
+				if lastActiveReplicas != activeDeployment.Spec.Replicas && activeDeployment.Spec.Replicas > 0 {
+					activeReplicas = activeDeployment.Spec.Replicas
+					source = fmt.Sprintf("the active deployment %q which was scaled directly", deployutil.LabelForDeployment(activeDeployment))
+				}
+			} else {
+				if activeDeployment.Spec.Replicas > 0 {
+					activeReplicas = activeDeployment.Spec.Replicas
+					source = fmt.Sprintf("the active deployment %q which has not been previously synced", deployutil.LabelForDeployment(activeDeployment))
+				} else {
+					latestDesiredReplicas, latestHasDesiredReplicas := deployutil.DeploymentDesiredReplicas(latestDeployment)
+					if latestHasDesiredReplicas {
+						activeReplicas = latestDesiredReplicas
+						source = fmt.Sprintf("the desired replicas of latest deployment %q which has not been previously synced", deployutil.LabelForDeployment(latestDeployment))
+					}
+				}
+			}
+		}
+	} else {
+		latestDesiredReplicas, latestHasDesiredReplicas := deployutil.DeploymentDesiredReplicas(latestDeployment)
+		if latestHasDesiredReplicas {
+			activeReplicas = latestDesiredReplicas
+			source = fmt.Sprintf("the desired replicas of latest deployment %q with no active deployment", deployutil.LabelForDeployment(latestDeployment))
+		}
+	}
+	// Bring the config in sync with the deployment. Once we know the config
+	// accurately represents the desired replica count of the active deployment,
+	// we can safely reconcile deployments.
+	if config.Template.ControllerTemplate.Replicas != activeReplicas {
+		oldReplicas := config.Template.ControllerTemplate.Replicas
+		config.Template.ControllerTemplate.Replicas = activeReplicas
+		_, err := c.osClient.DeploymentConfigs(config.Namespace).Update(config)
+		if err != nil {
+			return err
+		}
+		glog.V(4).Infof("Synced deploymentConfig %q replicas from %d to %d based on %s", deployutil.LabelForDeploymentConfig(config), oldReplicas, activeReplicas, source)
+	}
+	// Reconcile deployments. The active deployment follows the config, and all
+	// other deployments should be scaled to zero.
+	for _, deployment := range existingDeployments.Items {
+		isActiveDeployment := activeDeployment != nil && deployment.Name == activeDeployment.Name
+
+		oldReplicaCount := deployment.Spec.Replicas
+		newReplicaCount := 0
+		if isActiveDeployment {
+			newReplicaCount = activeReplicas
+		}
+		lastReplicas, hasLastReplicas := deployutil.DeploymentReplicas(&deployment)
+		// Only update if necessary.
+		if !hasLastReplicas || newReplicaCount != oldReplicaCount || lastReplicas != newReplicaCount {
+			deployment.Spec.Replicas = newReplicaCount
+			deployment.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(newReplicaCount)
+			_, err := c.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
 			if err != nil {
-				glog.V(2).Infof("Error while trying to list build configs: %v", err)
-				return details, existingDeployments, latestDeploymentExists, nil
+				c.recorder.Eventf(config, "DeploymentScaleFailed",
+					"Failed to scale deployment %q from %d to %d: %s", deployment.Name, oldReplicaCount, newReplicaCount, err)
+				return err
 			}
-
-			for _, bc := range bcList.Items {
-				if bc.Spec.Output.To != nil && bc.Spec.Output.To.Kind == "ImageStreamTag" {
-					parts := strings.Split(bc.Spec.Output.To.Name, ":")
-					if len(parts) != 2 {
-						glog.V(2).Infof("Invalid image stream tag: %q", bc.Spec.Output.To.Name)
-						return details, existingDeployments, latestDeploymentExists, nil
-					}
-					if parts[0] == name && parts[1] == tag {
-						details = fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream tag %q does not exist.\n\tIf image stream tag %q is expected, check build config %q which produces image stream tag %q.", istag, istag, istag, bc.Name, istag)
-						break
-					}
-				}
-			}
-			// Try to see if the image stream exists, if not then the build will never be able to update the
-			// tag in question
-			if _, err := c.osClient.ImageStreams(config.Namespace).Get(name); err != nil {
-				glog.V(2).Infof("Error while trying to get image stream %q: %v", name, err)
-				if errors.IsNotFound(err) {
-					details = fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream %q does not exist.", istag, name)
-				}
+			// Only report scaling events if we changed the replica count.
+			if oldReplicaCount != newReplicaCount {
+				c.recorder.Eventf(config, "DeploymentScaled",
+					"Scaled deployment %q from %d to %d", deployment.Name, oldReplicaCount, newReplicaCount)
+			} else {
+				glog.V(4).Infof("Updated deployment %q replica annotation to match current replica count %d", deployutil.LabelForDeployment(&deployment), newReplicaCount)
 			}
 		}
-		allDetails = append(allDetails, details)
 	}
-
-	if len(allDetails) > 1 {
-		for i := range allDetails {
-			allDetails[i] = fmt.Sprintf("\t* %s", allDetails[i])
-		}
-		// Prepend multiple errors warning
-		multipleErrWarning := fmt.Sprintf("Deployment config %q blocked by multiple errors:\n", config.Name)
-		allDetails = append([]string{multipleErrWarning}, allDetails...)
-	}
-
-	return strings.Join(allDetails, "\n"), existingDeployments, latestDeploymentExists, nil
-}
-
-// updateDetails updates a deployment configuration with the provided details
-func (c *DeploymentConfigController) updateDetails(config *deployapi.DeploymentConfig, details string) (*deployapi.DeploymentConfig, error) {
-	if config.Details == nil {
-		config.Details = new(deployapi.DeploymentDetails)
-	}
-	if details != config.Details.Message {
-		config.Details.Message = details
-		return c.osClient.DeploymentConfigs(config.Namespace).Update(config)
-	}
-	return config, nil
+	return nil
 }
