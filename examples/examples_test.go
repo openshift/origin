@@ -61,6 +61,9 @@ func TestExampleObjectSchemas(t *testing.T) {
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	capabilities.Setup(true, capabilities.PrivilegedSources{}, 0)
 	cases := map[string]map[string]runtime.Object{
+		"../examples/wordpress/template": {
+			"wordpress-mysql": &templateapi.Template{},
+		},
 		"../examples/hello-openshift": {
 			"hello-pod":     &kapi.Pod{},
 			"hello-project": &projectapi.Project{},
