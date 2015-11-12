@@ -118,6 +118,13 @@ Requires:       %{name} = %{version}-%{release}
 %description pod
 %{summary}
 
+%package recycle
+Summary:        %{product_name} Recycler
+Requires:       %{name} = %{version}-%{release}
+
+%description recycle
+%{summary}
+
 %package sdn-ovs
 Summary:          %{product_name} SDN Plugin for Open vSwitch
 Requires:         openvswitch >= %{openvswitch_version}
@@ -154,7 +161,7 @@ pushd _thirdpartyhacks
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
 # Build all linux components we care about
-for cmd in oc openshift dockerregistry
+for cmd in oc openshift dockerregistry recycle
 do
         go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
 done
@@ -173,7 +180,7 @@ popd
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc openshift dockerregistry
+for bin in oc openshift dockerregistry recycle
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
@@ -391,6 +398,10 @@ fi
 %files pod
 %defattr(-,root,root,-)
 %{_bindir}/pod
+
+%files recycle
+%defattr(-,root,root,-)
+%{_bindir}/recycle
 
 
 %changelog
