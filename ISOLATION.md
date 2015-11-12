@@ -21,7 +21,7 @@ When using Vagrant to configure the cluster, the master and each node are assign
 
 When manual or other provisioning is used, the nodes must be told of the master's IP address through the --config argument and/or the kubeconfig files.  The master must be told its IP address with the --master argument.
 
-Regardless of how the cluster's public IP addresses are provisioned, each node is also assigned a cluster-private /24 in the 10.1.x.x/16 range by the openshift master process, either through the --network-cidr argument or the NewDefaultNetworkArgs() function.  Each node's OpenShift multitenant plugin then uses this address (retrieved from the master's etcd service) for local IP address allocation to pods.  OpenShift (through the openshift-sdn-multitenant-setup.sh script) creates lbr0 and assigns it 10.1.x.1/24, then tells docker to use that interface.  Docker then automatically begins providing IPAM on that interface for all containers on the system, both docker-only and OpenShift originated ones.
+Regardless of how the cluster's public IP addresses are provisioned, each node is also assigned a cluster-private /24 in the 10.1.x.x/16 range by the openshift master process, either through the --network-cidr argument or the NewDefaultNetworkArgs() function.  Each node's OpenShift multitenant plugin then uses this address (retrieved from the master's etcd service) for local IP address allocation to pods.  OpenShift (through the openshift-sdn-ovs-setup.sh script) creates lbr0 and assigns it 10.1.x.1/24, then tells docker to use that interface.  Docker then automatically begins providing IPAM on that interface for all containers on the system, both docker-only and OpenShift originated ones.
 
 #### Isolation
 
@@ -33,17 +33,17 @@ OpenFlow rules will prevent delivery of any traffic to a pod's port that is not 
 
 #### Outside Network Access
 
-The tun0 interface is an OVS internal port assigned the IP address 10.1.x.1/24 based on the node's assigned subnet range in the 10.1.x.x/16 address space.  You may notice that this interface has the same IP address as the lbr0 device, but this is only because we need Docker to do IPAM on lbr0, but we also need to control the default gateway.  As such, iptables rules are disabled on lbr0 by openshift-sdn-multitenant-setup.sh and all pod traffic destined for the default gateway (10.1.x.1) traffic exiting the node eventually ends up at tun0, where it is NAT-ed to the host's physical interface.
+The tun0 interface is an OVS internal port assigned the IP address 10.1.x.1/24 based on the node's assigned subnet range in the 10.1.x.x/16 address space.  You may notice that this interface has the same IP address as the lbr0 device, but this is only because we need Docker to do IPAM on lbr0, but we also need to control the default gateway.  As such, iptables rules are disabled on lbr0 by openshift-sdn-ovs-setup.sh and all pod traffic destined for the default gateway (10.1.x.1) traffic exiting the node eventually ends up at tun0, where it is NAT-ed to the host's physical interface.
 
 #### openshift-sdn Kubernetes plugin
 
-Kubernetes (and therefore OpenShift) makes use of network plugins, of which openshift-sdn's multitenant code is only one.  Network plugins are selected by passing the --network-plugin argument to the OpenShift master process.  Kubernetes usually looks for the plugin you specify in the /usr/libexec/kubernetes/kubelet-plugins/net/exec/ directory (which contains directories into which the plugin places its main binary), but when openshift-sdn is linked directly into Origin, the openshift-sdn multitenant plugin is instantiated directly by some specific code in the master and nodes that looks for the multitenant plugin's name.
+Kubernetes (and therefore OpenShift) makes use of network plugins, of which openshift-sdn's code is only one.  Network plugins are selected by passing the --network-plugin argument to the OpenShift master process.  Kubernetes usually looks for the plugin you specify in the /usr/libexec/kubernetes/kubelet-plugins/net/exec/ directory (which contains directories into which the plugin places its main binary), but when openshift-sdn is linked directly into Origin, the openshift-sdn plugin is instantiated directly by some specific code in the master and nodes that looks for the names associated with that plugin--"redhat/openshift-ovs-subnet" (for single-tenant) and "redhat/openshift-ovs-multitenant" (for multi-tenant).
 
-The most interesting pieces of the multitenant plugin are:
+The most interesting pieces of the openshift-sdn plugin are:
 
-* **ovssubnet/controller/multitenant/bin/openshift-ovs-multitenant**: This script is run every time a pod is started/stopped to set up/tear down the network namespace that all containers of the pod share.  It handles taking the container's veth endpoint out of lbr0 and adding it to the OVS bridge instead.  It then adds pod-specific OVS flow rules to provide traffic flow and isolation based on the VNID.
+* **plugin/osdn/ovs/bin/openshift-sdn-ovs**: This script is run every time a pod is started/stopped to set up/tear down the network namespace that all containers of the pod share.  It handles taking the container's veth endpoint out of lbr0 and adding it to the OVS bridge instead.  It then adds pod-specific OVS flow rules to provide traffic flow and isolation based on the VNID.
 
-* **ovssubnet/controller/multitenant/bin/openshift-sdn-multitenant-setup.sh**: this script is run every time the openshift-node process starts or stops.  It does initial setup, like configuring the lbr0 bridge, adding the OVS bridge, adding the OVS VXLAN port, setting up the tun0 port and NAT rules, and configuring the non-pod-specific OVS rules.
+* **plugin/osdn/ovs/bin/openshift-sdn-ovs-setup.sh**: this script is run every time the openshift-node process starts or stops.  It does initial setup, like configuring the lbr0 bridge, adding the OVS bridge, adding the OVS VXLAN port, setting up the tun0 port and NAT rules, and configuring the non-pod-specific OVS rules.
 
-* **ovssubnet/controller/multitenant/multitenant.go**: this module watches etcd for indications of nodes added to or removed from the cluster, and updates the OVS rules to ensure each node can be reached through the VXLAN tunnel.
+* **plugin/osdn/ovs/controller.go**: this module watches etcd for indications of nodes added to or removed from the cluster, and updates the OVS rules to ensure each node can be reached through the VXLAN tunnel.
 
