@@ -298,6 +298,17 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 			},
 		}
 		objects = app.AddServices(objects, true)
+
+		// Set registry service's sessionAffinity to ClientIP to prevent push
+		// failures due to a use of poorly consistent storage shared by
+		// multiple replicas.
+		for _, obj := range objects {
+			switch t := obj.(type) {
+			case *kapi.Service:
+				t.Spec.SessionAffinity = kapi.ServiceAffinityClientIP
+			}
+		}
+
 		// TODO: label all created objects with the same label
 		list := &kapi.List{Items: objects}
 
