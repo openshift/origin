@@ -248,7 +248,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args 
 	o.RoleBindingAccessor = NewLocalRoleBindingAccessor(roleBindingNamespace, osClient)
 
 	for _, sa := range saNames {
-		o.Subjects = append(o.Subjects, kapi.ObjectReference{Name: sa, Kind: "ServiceAccount"})
+		o.Subjects = append(o.Subjects, kapi.ObjectReference{Namespace: roleBindingNamespace, Name: sa, Kind: "ServiceAccount"})
 	}
 
 	return nil
