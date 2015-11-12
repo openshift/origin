@@ -34,6 +34,12 @@ type MySQL struct {
 	MasterPodName string
 }
 
+// PostgreSQL is a PostgreSQL helper for executing commands
+type PostgreSQL struct {
+	PodName       string
+	MasterPodName string
+}
+
 // PodConfig holds configuration for a pod
 type PodConfig struct {
 	Container string
@@ -42,7 +48,7 @@ type PodConfig struct {
 
 // NewMysql queries OpenShift for a pod with given name, saving environment
 // variables like username and password for easier use.
-func NewMysql(c kclient.PodInterface, podName, masterPodName string) Database {
+func NewMysql(podName, masterPodName string) Database {
 	if masterPodName == "" {
 		masterPodName = podName
 	}
@@ -52,7 +58,23 @@ func NewMysql(c kclient.PodInterface, podName, masterPodName string) Database {
 	}
 }
 
+// NewPostgreSQL queries OpenShift for a pod with given name, saving environment
+// variables like username and password for easier use.
+func NewPostgreSQL(podName, masterPodName string) Database {
+	if masterPodName == "" {
+		masterPodName = podName
+	}
+	return &PostgreSQL{
+		PodName:       podName,
+		MasterPodName: masterPodName,
+	}
+}
+
 func (m MySQL) GetPodName() string {
+	return m.PodName
+}
+
+func (m PostgreSQL) GetPodName() string {
 	return m.PodName
 }
 
@@ -118,14 +140,82 @@ func (m MySQL) TestRemoteLogin(oc *CLI, hostAddress string) error {
 	if err != nil {
 		return err
 	}
-	confi, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.MasterPodName)
+	masterConf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.MasterPodName)
 	if err != nil {
 		return err
 	}
-	_, err = oc.Run("exec").Args(m.PodName, "-c", conf.Container, "--", "bash", "-c",
+	err = oc.Run("exec").Args(m.PodName, "-c", conf.Container, "--", "bash", "-c",
 		fmt.Sprintf("mysql -h %s -u%s -p%s -e \"SELECT 1;\" %s",
-			hostAddress, confi.Env["MYSQL_USER"], confi.Env["MYSQL_PASSWORD"],
-			confi.Env["MYSQL_DATABASE"])).Output()
+			hostAddress, masterConf.Env["MYSQL_USER"], masterConf.Env["MYSQL_PASSWORD"],
+			masterConf.Env["MYSQL_DATABASE"])).Execute()
+	return err
+}
+
+// IsReady pings the PostgreSQL server
+func (m PostgreSQL) IsReady(oc *CLI) (bool, error) {
+	conf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.PodName)
+	if err != nil {
+		return false, err
+	}
+	out, err := oc.Run("exec").Args(m.PodName, "-c", conf.Container, "--", "bash", "-c",
+		"psql postgresql://postgres@127.0.0.1 -x -c \"SELECT 1;\"").Output()
+	if err != nil {
+		switch err.(type) {
+		case *exec.ExitError:
+			return false, nil
+		default:
+			return false, err
+		}
+	}
+	return out == "-[ RECORD 1 ]\n?column? | 1", nil
+}
+
+// Query executes an SQL query as an ordinary user and returns the result.
+func (m PostgreSQL) Query(oc *CLI, query string) (string, error) {
+	conf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.PodName)
+	if err != nil {
+		return "", err
+	}
+	masterConf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.MasterPodName)
+	if err != nil {
+		return "", err
+	}
+	return oc.Run("exec").Args(m.PodName, "-c", conf.Container, "--", "bash", "-c",
+		fmt.Sprintf("psql postgres://%s:%s@127.0.0.1/%s -x -c \"%s\"",
+			masterConf.Env["POSTGRESQL_USER"], masterConf.Env["POSTGRESQL_PASSWORD"],
+			masterConf.Env["POSTGRESQL_DATABASE"], query)).Output()
+}
+
+// QueryPrivileged executes an SQL query as a root user and returns the result.
+func (m PostgreSQL) QueryPrivileged(oc *CLI, query string) (string, error) {
+	conf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.PodName)
+	if err != nil {
+		return "", err
+	}
+	masterConf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.MasterPodName)
+	if err != nil {
+		return "", err
+	}
+	return oc.Run("exec").Args(m.PodName, "-c", conf.Container, "--", "bash", "-c",
+		fmt.Sprintf("psql postgres://postgres:%s@127.0.0.1/%s -x -c \"%s\"",
+			masterConf.Env["POSTGRESQL_ADMIN_PASSWORD"],
+			masterConf.Env["POSTGRESQL_DATABASE"], query)).Output()
+}
+
+// TestRemoteLogin will test whether we can login through to a remote database.
+func (m PostgreSQL) TestRemoteLogin(oc *CLI, hostAddress string) error {
+	conf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.PodName)
+	if err != nil {
+		return err
+	}
+	masterConf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.MasterPodName)
+	if err != nil {
+		return err
+	}
+	err = oc.Run("exec").Args(m.PodName, "-c", conf.Container, "--", "bash", "-c",
+		fmt.Sprintf("psql postgres://%s:%s@%s/%s -x -c \"SELECT 1;\"",
+			masterConf.Env["POSTGRESQL_USER"], masterConf.Env["POSTGRESQL_PASSWORD"],
+			hostAddress, masterConf.Env["POSTGRESQL_DATABASE"])).Execute()
 	return err
 }
 
