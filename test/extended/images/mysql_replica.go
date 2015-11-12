@@ -8,8 +8,8 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	testutil "github.com/openshift/origin/test/util"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/util/rand"
 )
 
 var (
@@ -62,6 +62,9 @@ func replicationTestFactory(oc *exutil.CLI, template string) func() {
 		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeREST().PersistentVolumes(), oc.Namespace(), "512Mi", 1)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		err = testutil.WaitForPolicyUpdate(oc.REST(), oc.Namespace(), "create", "templates", true)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		err = oc.Run("new-app").Args("-f", template).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -70,8 +73,10 @@ func replicationTestFactory(oc *exutil.CLI, template string) func() {
 		err = oc.KubeFramework().WaitForAnEndpoint(helperName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		tableCounter := 0
 		assertReplicationIsWorking := func(masterDeployment, slaveDeployment string, slaveCount int) (exutil.Database, []exutil.Database, exutil.Database) {
-			table := fmt.Sprintf("table_%s", rand.String(10))
+			tableCounter++
+			table := fmt.Sprintf("table_%0.2d", tableCounter)
 
 			master, slaves, helper := CreateMySQLReplicationHelpers(oc.KubeREST().Pods(oc.Namespace()), masterDeployment, slaveDeployment, fmt.Sprintf("%s-1", helperName), slaveCount)
 			o.Expect(exutil.WaitUntilAllHelpersAreUp(oc, []exutil.Database{master, helper})).NotTo(o.HaveOccurred())

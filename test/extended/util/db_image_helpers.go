@@ -91,25 +91,33 @@ func (m MySQL) IsReady(oc *CLI) (bool, error) {
 
 // Query executes an SQL query as an ordinary user and returns the result.
 func (m MySQL) Query(oc *CLI, query string) (string, error) {
-	conf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.MasterPodName)
+	conf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.PodName)
+	if err != nil {
+		return "", err
+	}
+	masterConf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.MasterPodName)
 	if err != nil {
 		return "", err
 	}
 	return oc.Run("exec").Args(m.PodName, "-c", conf.Container, "--", "bash", "-c",
 		fmt.Sprintf("mysql -h 127.0.0.1 -u%s -p%s -e \"%s\" %s",
-			conf.Env["MYSQL_USER"], conf.Env["MYSQL_PASSWORD"], query,
-			conf.Env["MYSQL_DATABASE"])).Output()
+			masterConf.Env["MYSQL_USER"], masterConf.Env["MYSQL_PASSWORD"], query,
+			masterConf.Env["MYSQL_DATABASE"])).Output()
 }
 
 // QueryPrivileged executes an SQL query as a root user and returns the result.
 func (m MySQL) QueryPrivileged(oc *CLI, query string) (string, error) {
-	conf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.MasterPodName)
+	conf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.PodName)
+	if err != nil {
+		return "", err
+	}
+	masterConf, err := GetPodConfig(oc.KubeREST().Pods(oc.Namespace()), m.MasterPodName)
 	if err != nil {
 		return "", err
 	}
 	return oc.Run("exec").Args(m.PodName, "-c", conf.Container, "--", "bash", "-c",
 		fmt.Sprintf("mysql -h 127.0.0.1 -uroot -e \"%s\" %s",
-			query, conf.Env["MYSQL_DATABASE"])).Output()
+			query, masterConf.Env["MYSQL_DATABASE"])).Output()
 }
 
 // TestRemoteLogin will test whether we can login through to a remote database.
@@ -134,7 +142,7 @@ func (m MySQL) TestRemoteLogin(oc *CLI, hostAddress string) error {
 // testing replication, since it might take some time untill the data is propagated
 // to slaves.
 func WaitForQueryOutput(oc *CLI, d Database, timeout time.Duration, admin bool, query, resultSubstr string) error {
-	return wait.Poll(5*time.Second, timeout, func() (bool, error) {
+	err := wait.Poll(5*time.Second, timeout, func() (bool, error) {
 		var (
 			out string
 			err error
@@ -157,13 +165,21 @@ func WaitForQueryOutput(oc *CLI, d Database, timeout time.Duration, admin bool, 
 		}
 		return false, nil
 	})
+	if err == wait.ErrWaitTimeout {
+		return fmt.Errorf("timed out waiting for query: %q", query)
+	}
+	return err
 }
 
 // WaitUntilUp continuously waits for the server to become ready, up until timeout.
 func WaitUntilUp(oc *CLI, d Database, timeout time.Duration) error {
-	return wait.Poll(2*time.Second, timeout, func() (bool, error) {
+	err := wait.Poll(2*time.Second, timeout, func() (bool, error) {
 		return d.IsReady(oc)
 	})
+	if err == wait.ErrWaitTimeout {
+		return fmt.Errorf("timed out waiting for pod %s get up", d.GetPodName())
+	}
+	return err
 }
 
 // WaitUntilAllHelpersAreUp waits until all helpers are ready to serve requests
