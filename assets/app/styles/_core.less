@@ -11,6 +11,18 @@ html, body {
   display: none !important;
 }
 
+// Prevent zooming when focusing input fields in mobile Safari. Try to only
+// target mobile devices to avoid larger-than-wanted fonts elsewhere.
+@media only screen and (max-device-width: 736px) and (-webkit-min-device-pixel-ratio: 0) {
+  input[type="text"],
+  input[type="number"],
+  input[type="search"],
+  input[type="url"],
+  textarea {
+    font-size: 16px;
+  }
+}
+
 .console-os {
   background-color: @body-bg;
   height: ~"calc(100% - 121px)"; // removes scrollbar on pages with less than full viewport content
