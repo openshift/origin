@@ -187,6 +187,7 @@ echo "router: ok"
 [ "$(oadm registry -o yaml --credentials="${KUBECONFIG}" | egrep 'image:.*-docker-registry')" ]
 oadm registry --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
 [ "$(oadm registry | grep 'service exists')" ]
+[ "$(oc describe svc/docker-registry | grep 'Session Affinity:\s*ClientIP')" ]
 echo "registry: ok"
 
 # Test building a dependency tree
