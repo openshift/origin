@@ -2,8 +2,7 @@
 
 os::util::install-sdn() {
   local deployed_root=$1
-  local target=$2
-  target=${target:-/usr}
+  local target=${2:-/usr}
   if [ ! -d ${target} ]; then
     mkdir -p ${target}
   fi
