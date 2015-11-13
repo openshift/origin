@@ -246,6 +246,18 @@ func TestProjectStatus(t *testing.T) {
 			},
 			Time: mustParseTime("2015-04-07T04:12:25Z"),
 		},
+		"restarting pod": {
+			Path: "../../../api/graph/test/restarting-pod.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				`container "ruby-helloworld" in pod/frontend-app-1-bjwh8 has restarted 8 times`,
+			},
+		},
 	}
 	oldTimeFn := timeNowFn
 	defer func() { timeNowFn = oldTimeFn }()

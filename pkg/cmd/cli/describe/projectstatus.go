@@ -251,6 +251,7 @@ func createForbiddenMarkers(forbiddenResources sets.String) []osgraph.Marker {
 
 func getMarkerScanners() []osgraph.MarkerScanner {
 	return []osgraph.MarkerScanner{
+		kubeanalysis.FindRestartingPods,
 		kubeanalysis.FindDuelingReplicationControllers,
 		kubeanalysis.FindUnmountableSecrets,
 		kubeanalysis.FindMissingSecrets,
