@@ -46,7 +46,7 @@ func TestBuildValidationFailure(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: ""},
 		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
+				Type: "Git123",
 				Git: &buildapi.GitBuildSource{
 					URI: "http://github.com/my/repository",
 				},
@@ -67,7 +67,7 @@ func TestBuildValidationFailure(t *testing.T) {
 			Phase: buildapi.BuildPhaseNew,
 		},
 	}
-	if result := ValidateBuild(build); len(result) != 2 {
+	if result := ValidateBuild(build); len(result) != 3 {
 		t.Errorf("Unexpected validation result: %v", result)
 	}
 }
@@ -715,6 +715,21 @@ func TestValidateSource(t *testing.T) {
 				Binary: &buildapi.BinaryBuildSource{AsFile: "/././file"},
 			},
 			ok: true,
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "type",
+			source: &buildapi.BuildSource{
+				Type:   "invalidType",
+				Binary: &buildapi.BinaryBuildSource{AsFile: "/././file"},
+			},
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeRequired,
+			path: "type",
+			source: &buildapi.BuildSource{
+				Binary: &buildapi.BinaryBuildSource{AsFile: "/././file"},
+			},
 		},
 	}
 	for i, tc := range errorCases {

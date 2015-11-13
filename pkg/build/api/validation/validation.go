@@ -189,6 +189,8 @@ func validateSource(input *buildapi.BuildSource) fielderrors.ValidationErrorList
 		}
 	case "":
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("type"))
+	default:
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("type", input.Type, fmt.Sprintf("source type must be one of Git, Dockerfile, or Binary")))
 	}
 	allErrs = append(allErrs, validateSecretRef(input.SourceSecret).Prefix("sourceSecret")...)
 
