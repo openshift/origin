@@ -173,6 +173,14 @@ func changeSharedFlagDefaults(rootCmd *cobra.Command) {
 			showAllFlag.Changed = false
 			showAllFlag.Usage = "When printing, show all resources (false means hide terminated pods.)"
 		}
+
+		// we want to disable the --validate flag by default when we're running kube commands from oc.  We want to make sure
+		// that we're only getting the upstream --validate flags, so check both the flag and the usage
+		if validateFlag := currCmd.Flags().Lookup("validate"); (validateFlag != nil) && (validateFlag.Usage == "If true, use a schema to validate the input before sending it") {
+			validateFlag.DefValue = "false"
+			validateFlag.Value.Set("false")
+			validateFlag.Changed = false
+		}
 	}
 }
 
