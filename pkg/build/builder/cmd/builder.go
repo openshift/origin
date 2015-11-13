@@ -50,6 +50,7 @@ func run(builderFactory factoryFunc) {
 				glog.Fatalf("Cannot setup secret file for accessing private repository: %v", err)
 			}
 			if sourceURL != nil {
+				build.Annotations[bld.OriginalSourceURLAnnotationKey] = build.Spec.Source.Git.URI
 				build.Spec.Source.Git.URI = sourceURL.String()
 			}
 		}

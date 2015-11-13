@@ -3,21 +3,29 @@ package scmauth
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
+	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/golang/glog"
+
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/util/file"
 )
 
 const (
-	DefaultUsername      = "builder"
-	UsernamePasswordName = "password"
-	UsernameSecret       = "username"
-	PasswordSecret       = "password"
-	TokenSecret          = "token"
-	UserPassGitConfig    = `# credential git config
+	DefaultUsername       = "builder"
+	UsernamePasswordName  = "password"
+	UsernameSecret        = "username"
+	PasswordSecret        = "password"
+	TokenSecret           = "token"
+	curlPasswordThreshold = 255
+	proxyHost             = "127.0.0.1:8080"
+	UserPassGitConfig     = `# credential git config
 [credential]
    helper = store --file=%s
 `
@@ -51,7 +59,8 @@ func (u UsernamePassword) Setup(baseDir string) (*url.URL, error) {
 	}
 
 	// Determine overrides
-	overrideSourceURL, gitconfigURL, err := doSetup(u.SourceURL, usernameSecret, passwordSecret, tokenSecret)
+	overrideFn := longPasswordOverride(baseDir, removeCredentials)
+	overrideSourceURL, gitconfigURL, err := doSetup(u.SourceURL, usernameSecret, passwordSecret, tokenSecret, overrideFn)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +89,24 @@ func (u UsernamePassword) Setup(baseDir string) (*url.URL, error) {
 	return overrideSourceURL, nil
 }
 
-func doSetup(sourceURL url.URL, usernameSecret, passwordSecret, tokenSecret string) (*url.URL, *url.URL, error) {
+type overrideURLFunc func(sourceURL *url.URL, username, password string) (*url.URL, error)
+
+func removeCredentials(sourceURL *url.URL, username, password string) (*url.URL, error) {
+	overrideURL := *sourceURL
+	overrideURL.User = nil
+	return &overrideURL, nil
+}
+
+func longPasswordOverride(dir string, overrideFn overrideURLFunc) overrideURLFunc {
+	return func(sourceURL *url.URL, username, password string) (*url.URL, error) {
+		if len(password) > curlPasswordThreshold {
+			return startProxy(dir, sourceURL, username, password)
+		}
+		return overrideFn(sourceURL, username, password)
+	}
+}
+
+func doSetup(sourceURL url.URL, usernameSecret, passwordSecret, tokenSecret string, overrideURLFn overrideURLFunc) (*url.URL, *url.URL, error) {
 	// Extract auth from the source URL
 	urlUsername := ""
 	urlPassword := ""
@@ -114,15 +140,16 @@ func doSetup(sourceURL url.URL, usernameSecret, passwordSecret, tokenSecret stri
 		username = DefaultUsername
 	}
 
-	// Remove user/pw from the source url
-	overrideSourceURL := sourceURL
-	overrideSourceURL.User = nil
+	overrideSourceURL, err := overrideURLFn(&sourceURL, username, password)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// Set user/pw in the config url
 	configURL := sourceURL
 	configURL.User = url.UserPassword(username, password)
 
-	return &overrideSourceURL, &configURL, nil
+	return overrideSourceURL, &configURL, nil
 }
 
 // Name returns the name of this auth method.
@@ -154,4 +181,79 @@ func readSecret(baseDir, fileName string) (string, error) {
 		return "", nil
 	}
 	return lines[0], nil
+}
+
+type basicAuthTransport struct {
+	transport http.RoundTripper
+	username  string
+	password  string
+}
+
+func (t *basicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.SetBasicAuth(t.username, t.password)
+	// Ensure that the Host header has the value of the real git server
+	// and not the local proxy.
+	req.Host = req.URL.Host
+	if glog.V(8) {
+		glog.Infof("Proxying request to URL %q", req.URL.String())
+		if reqdump, err := httputil.DumpRequestOut(req, false); err == nil {
+			glog.Infof("Request:\n%s\n", string(reqdump))
+		}
+	}
+	resp, err := t.transport.RoundTrip(req)
+	if glog.V(8) {
+		if err != nil {
+			glog.Infof("Proxy RoundTrip error: %#v", err)
+		} else {
+			if respdump, err := httputil.DumpResponse(resp, false); err == nil {
+				glog.Infof("Response:\n%s\n", string(respdump))
+			}
+		}
+	}
+	return resp, err
+}
+
+func startProxy(dir string, sourceURL *url.URL, username, password string) (*url.URL, error) {
+
+	// Setup the targetURL of the proxy to be the host of the original URL
+	targetURL := &url.URL{
+		Scheme: sourceURL.Scheme,
+		Host:   sourceURL.Host,
+	}
+	proxyHandler := httputil.NewSingleHostReverseProxy(targetURL)
+
+	// The baseTransport will either be the default transport or a
+	// transport with the appropriate TLSConfig if a ca.crt is present.
+	baseTransport := http.DefaultTransport
+
+	// Check whether a CA cert is available and use it if it is.
+	caCertFile := filepath.Join(dir, "ca.crt")
+	_, err := os.Stat(caCertFile)
+	if err == nil && sourceURL.Scheme == "https" {
+		baseTransport, err = cmdutil.TransportFor(caCertFile, "", "")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Build a basic auth RoundTripper for use by the proxy
+	authTransport := &basicAuthTransport{
+		username:  username,
+		password:  password,
+		transport: baseTransport,
+	}
+	proxyHandler.Transport = authTransport
+
+	// Start the proxy go-routine
+	go func() {
+		log.Fatal(http.ListenAndServe(proxyHost, proxyHandler))
+	}()
+
+	// The new URL will use the proxy endpoint
+	proxyURL := *sourceURL
+	proxyURL.User = nil
+	proxyURL.Host = proxyHost
+	proxyURL.Scheme = "http"
+
+	return &proxyURL, nil
 }
