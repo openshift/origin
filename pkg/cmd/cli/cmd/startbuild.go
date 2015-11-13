@@ -383,7 +383,12 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 			return nil, err
 		}
 		if stat.IsDir() {
-			info, gitErr := gitRefInfo(git, clean, "HEAD")
+			commit := "HEAD"
+			if len(options.Commit) > 0 {
+				commit = options.Commit
+			}
+			fmt.Fprintf(out, "Uploading %q at commit %q as binary input for the build ...\n", clean, commit)
+			info, gitErr := gitRefInfo(git, clean, commit)
 			if gitErr == nil {
 				options.Commit = info.GitSourceRevision.Commit
 				options.Message = info.GitSourceRevision.Message
@@ -399,17 +404,9 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 				if gitErr != nil {
 					return nil, fmt.Errorf("the directory %q is not a valid Git repository: %v", clean, gitErr)
 				}
-				commit := options.Commit
-				if len(commit) > 0 {
-					fmt.Fprintf(out, "Uploading Git repository %q at commit %q as binary input for the build ...\n", clean, commit)
-				} else {
-					commit = "HEAD"
-					fmt.Fprintf(out, "Uploading Git repository %q as binary input for the build ...\n", clean)
-				}
-
 				pr, pw := io.Pipe()
 				go func() {
-					if err := git.Archive(clean, commit, "tar.gz", pw); err != nil {
+					if err := git.Archive(clean, options.Commit, "tar.gz", pw); err != nil {
 						pw.CloseWithError(fmt.Errorf("unable to create Git archive of %q for build: %v", clean, err))
 					} else {
 						pw.CloseWithError(io.EOF)
