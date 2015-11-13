@@ -487,6 +487,15 @@ func TestHandlePod(t *testing.T) {
 			startTimestamp:      nil,
 			completionTimestamp: curtime,
 		},
+		{ // 6
+			matchID:             true,
+			inStatus:            buildapi.BuildPhaseCancelled,
+			outStatus:           buildapi.BuildPhaseCancelled,
+			podStatus:           kapi.PodFailed,
+			exitCode:            0,
+			startTimestamp:      nil,
+			completionTimestamp: nil,
+		},
 	}
 
 	for i, tc := range tests {

@@ -268,7 +268,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		nextStatus = buildapi.BuildPhaseFailed
 	}
 
-	if build.Status.Phase != nextStatus {
+	if build.Status.Phase != nextStatus && !buildutil.IsBuildComplete(build) {
 		glog.V(4).Infof("Updating build %s/%s status %s -> %s", build.Namespace, build.Name, build.Status.Phase, nextStatus)
 		build.Status.Phase = nextStatus
 		build.Status.Reason = ""
