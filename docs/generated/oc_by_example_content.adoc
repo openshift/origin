@@ -13,21 +13,21 @@ Update the annotations on a resource
 ----
   # Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
   # If the same annotation is set multiple times, only the last value will be applied
-  $ openshift cli annotate pods foo description='my frontend'
+  $ oc annotate pods foo description='my frontend'
 
   # Update pod 'foo' with the annotation 'description' and the value
   # 'my frontend running nginx', overwriting any existing value.
-  $ openshift cli annotate --overwrite pods foo description='my frontend running nginx'
+  $ oc annotate --overwrite pods foo description='my frontend running nginx'
 
   # Update all pods in the namespace
-  $ openshift cli annotate pods --all description='my frontend running nginx'
+  $ oc annotate pods --all description='my frontend running nginx'
 
   # Update pod 'foo' only if the resource is unchanged from version 1.
-  $ openshift cli annotate pods foo description='my frontend running nginx' --resource-version=1
+  $ oc annotate pods foo description='my frontend running nginx' --resource-version=1
 
   # Update pod 'foo' by removing an annotation named 'description' if it exists.
   # Does not require the --overwrite flag.
-  $ openshift cli annotate pods foo description-
+  $ oc annotate pods foo description-
 ----
 ====
 
@@ -40,14 +40,14 @@ Attach to a running container.
 [options="nowrap"]
 ----
   # Get output from running pod 123456-7890, using the first container by default
-  $ openshift cli attach 123456-7890
+  $ oc attach 123456-7890
 
   # Get output from ruby-container from pod 123456-7890
-  $ openshift cli attach 123456-7890 -c ruby-container
+  $ oc attach 123456-7890 -c ruby-container
 
   # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780
   # and sends stdout/stderr from 'bash' back to the client
-  $ openshift cli attach 123456-7890 -c ruby-container -i -t
+  $ oc attach 123456-7890 -c ruby-container -i -t
 ----
 ====
 
@@ -60,13 +60,13 @@ Cancel a pending or running build
 [options="nowrap"]
 ----
   # Cancel the build with the given name
-  $ openshift cli cancel-build 1da32cvq
+  $ oc cancel-build 1da32cvq
 
   # Cancel the named build and print the build logs
-  $ openshift cli cancel-build 1da32cvq --dump-logs
+  $ oc cancel-build 1da32cvq --dump-logs
 
   # Cancel the named build and create a new one with the same parameters
-  $ openshift cli cancel-build 1da32cvq --restart
+  $ oc cancel-build 1da32cvq --restart
 ----
 ====
 
@@ -79,10 +79,10 @@ Change configuration files for the client
 [options="nowrap"]
 ----
   # Change the config context to use
-  openshift cli config use-context my-context
+  oc config use-context my-context
   
   # Set the value of a config preference
-  openshift cli config set preferences.some true
+  oc config set preferences.some true
 ----
 ====
 
@@ -95,13 +95,13 @@ Sets a cluster entry in kubeconfig
 [options="nowrap"]
 ----
   # Set only the server field on the e2e cluster entry without touching other values.
-  $ openshift cli config set-cluster e2e --server=https://1.2.3.4
+  $ oc config set-cluster e2e --server=https://1.2.3.4
   
   # Embed certificate authority data for the e2e cluster entry
-  $ openshift cli config set-cluster e2e --certificate-authority=~/.kube/e2e/kubernetes.ca.crt
+  $ oc config set-cluster e2e --certificate-authority=~/.kube/e2e/kubernetes.ca.crt
   
   # Disable cert checking for the dev cluster entry
-  $ openshift cli config set-cluster e2e --insecure-skip-tls-verify=true
+  $ oc config set-cluster e2e --insecure-skip-tls-verify=true
 ----
 ====
 
@@ -114,7 +114,7 @@ Sets a context entry in kubeconfig
 [options="nowrap"]
 ----
   # Set the user field on the gce context entry without touching other values
-  $ openshift cli config set-context gce --user=cluster-admin
+  $ oc config set-context gce --user=cluster-admin
 ----
 ====
 
@@ -128,13 +128,13 @@ Sets a user entry in kubeconfig
 ----
   # Set only the "client-key" field on the "cluster-admin"
   # entry, without touching other values:
-  $ openshift cli config set-credentials cluster-admin --client-key=~/.kube/admin.key
+  $ oc config set-credentials cluster-admin --client-key=~/.kube/admin.key
   
   # Set basic auth for the "cluster-admin" entry
-  $ openshift cli config set-credentials cluster-admin --username=admin --password=uXFGweU9l35qcif
+  $ oc config set-credentials cluster-admin --username=admin --password=uXFGweU9l35qcif
   
   # Embed client certificate data in the "cluster-admin" entry
-  $ openshift cli config set-credentials cluster-admin --client-certificate=~/.kube/admin.crt --embed-certs=true
+  $ oc config set-credentials cluster-admin --client-certificate=~/.kube/admin.crt --embed-certs=true
 ----
 ====
 
@@ -147,10 +147,10 @@ Displays merged kubeconfig settings or a specified kubeconfig file.
 [options="nowrap"]
 ----
   # Show Merged kubeconfig settings.
-  $ openshift cli config view
+  $ oc config view
   
   # Get the password for the e2e user
-  $ openshift cli config view -o template --template='{{range .users}}{{ if eq .name "e2e" }}{{ index .user.password }}{{end}}{{end}}'
+  $ oc config view -o template --template='{{range .users}}{{ if eq .name "e2e" }}{{ index .user.password }}{{end}}{{end}}'
 ----
 ====
 
@@ -163,14 +163,14 @@ Convert config files between different API versions
 [options="nowrap"]
 ----
 # Convert 'pod.yaml' to latest version and print to stdout.
-$ openshift cli convert -f pod.yaml
+$ oc convert -f pod.yaml
 
 # Convert the live state of the resource specified by 'pod.yaml' to the latest version
 # and print to stdout in json format.
-$ openshift cli convert -f pod.yaml --local -o json
+$ oc convert -f pod.yaml --local -o json
 
 # Convert all files under current directory to latest version and create them all.
-$ openshift cli convert -f . | kubectl create -f -
+$ oc convert -f . | kubectl create -f -
 
 ----
 ====
@@ -184,10 +184,10 @@ Create a resource by filename or stdin
 [options="nowrap"]
 ----
   # Create a pod using the data in pod.json.
-  $ openshift cli create -f pod.json
+  $ oc create -f pod.json
 
   # Create a pod based on the JSON passed into stdin.
-  $ cat pod.json | openshift cli create -f -
+  $ cat pod.json | oc create -f -
 ----
 ====
 
@@ -200,19 +200,19 @@ Delete resources by filenames, stdin, resources and names, or by resources and l
 [options="nowrap"]
 ----
   # Delete a pod using the type and ID specified in pod.json.
-  $ openshift cli delete -f pod.json
+  $ oc delete -f pod.json
 
   # Delete a pod based on the type and ID in the JSON passed into stdin.
-  $ cat pod.json | openshift cli delete -f -
+  $ cat pod.json | oc delete -f -
 
   # Delete pods and services with label name=myLabel.
-  $ openshift cli delete pods,services -l name=myLabel
+  $ oc delete pods,services -l name=myLabel
 
   # Delete a pod with ID 1234-56-7890-234234-456456.
-  $ openshift cli delete pod 1234-56-7890-234234-456456
+  $ oc delete pod 1234-56-7890-234234-456456
 
   # Delete all pods
-  $ openshift cli delete pods --all
+  $ oc delete pods --all
 ----
 ====
 
@@ -225,17 +225,17 @@ View, start, cancel, or retry a deployment
 [options="nowrap"]
 ----
   # Display the latest deployment for the 'database' deployment config
-  $ openshift cli deploy database
+  $ oc deploy database
 
   # Start a new deployment based on the 'database'
-  $ openshift cli deploy database --latest
+  $ oc deploy database --latest
 
   # Retry the latest failed deployment based on 'frontend'
   # The deployer pod and any hook pods are deleted for the latest failed deployment
-  $ openshift cli deploy frontend --retry
+  $ oc deploy frontend --retry
 
   # Cancel the in-progress deployment based on 'frontend'
-  $ openshift cli deploy frontend --cancel
+  $ oc deploy frontend --cancel
 ----
 ====
 
@@ -248,10 +248,10 @@ Show details of a specific resource or group of resources
 [options="nowrap"]
 ----
   # Provide details about the ruby-20-centos7 image repository
-  $ openshift cli describe imageRepository ruby-20-centos7
+  $ oc describe imageRepository ruby-20-centos7
 
   # Provide details about the ruby-sample-build build configuration
-  $ openshift cli describe bc ruby-sample-build
+  $ oc describe bc ruby-sample-build
 ----
 ====
 
@@ -264,16 +264,16 @@ Edit a resource on the server
 [options="nowrap"]
 ----
   # Edit the service named 'docker-registry':
-  $ openshift cli edit svc/docker-registry
+  $ oc edit svc/docker-registry
 
   # Edit the DeploymentConfig named 'my-deployment':
-  $ openshift cli edit dc/my-deployment
+  $ oc edit dc/my-deployment
 
   # Use an alternative editor
-  $ OC_EDITOR="nano" openshift cli edit dc/my-deployment
+  $ OC_EDITOR="nano" oc edit dc/my-deployment
 
   # Edit the service 'docker-registry' in JSON using the v1beta3 API format:
-  $ openshift cli edit svc/docker-registry --output-version=v1beta3 -o json
+  $ oc edit svc/docker-registry --output-version=v1beta3 -o json
 ----
 ====
 
@@ -286,29 +286,29 @@ Update the environment on a resource with a pod template
 [options="nowrap"]
 ----
   # Update deployment 'registry' with a new environment variable
-  $ openshift cli env dc/registry STORAGE_DIR=/local
+  $ oc env dc/registry STORAGE_DIR=/local
 
   # List the environment variables defined on a deployment config 'registry'
-  $ openshift cli env dc/registry --list
+  $ oc env dc/registry --list
 
   # List the environment variables defined on all pods
-  $ openshift cli env pods --all --list
+  $ oc env pods --all --list
 
   # Output modified deployment config in YAML, and does not alter the object on the server
-  $ openshift cli env dc/registry STORAGE_DIR=/data -o yaml
+  $ oc env dc/registry STORAGE_DIR=/data -o yaml
 
   # Update all containers in all replication controllers in the project to have ENV=prod
-  $ openshift cli env rc --all ENV=prod
+  $ oc env rc --all ENV=prod
 
   # Remove the environment variable ENV from container 'c1' in all deployment configs
-  $ openshift cli env dc --all --containers="c1" ENV-
+  $ oc env dc --all --containers="c1" ENV-
 
   # Remove the environment variable ENV from a deployment config definition on disk and
   # update the deployment config on the server
-  $ openshift cli env -f dc.json ENV-
+  $ oc env -f dc.json ENV-
 
   # Set some of the local shell environment into a deployment config on the server
-  $ env | grep RAILS_ | openshift cli env -e - dc/registry
+  $ env | grep RAILS_ | oc env -e - dc/registry
 ----
 ====
 
@@ -321,10 +321,10 @@ Execute a command in a container.
 [options="nowrap"]
 ----
   # Get output from running 'date' in ruby-container from pod 123456-7890
-  $ openshift cli exec -p 123456-7890 -c ruby-container date
+  $ oc exec -p 123456-7890 -c ruby-container date
 
   # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780 and sends stdout/stderr from 'bash' back to the client
-  $ openshift cli exec -p 123456-7890 -c ruby-container -i -t -- bash -il
+  $ oc exec -p 123456-7890 -c ruby-container -i -t -- bash -il
 ----
 ====
 
@@ -337,10 +337,10 @@ Documentation of resources.
 [options="nowrap"]
 ----
 # Get the documentation of the resource and its fields
-$ openshift cli explain pods
+$ oc explain pods
 
 # Get the documentation of a specific field of a resource
-$ openshift cli explain pods.spec.containers
+$ oc explain pods.spec.containers
 ----
 ====
 
@@ -353,16 +353,16 @@ Export resources so they can be used elsewhere
 [options="nowrap"]
 ----
   # export the services and deployment configurations labeled name=test
-  openshift cli export svc,dc -l name=test
+  oc export svc,dc -l name=test
 
   # export all services to a template
-  openshift cli export service --as-template=test
+  oc export service --as-template=test
 
   # export to JSON
-  openshift cli export service -o json
+  oc export service -o json
 
   # convert a file on disk to the latest API version (in YAML, the default)
-  openshift cli export -f a_v1beta3_service.json --output-version=v1 --exact
+  oc export -f a_v1beta3_service.json --output-version=v1 --exact
 ----
 ====
 
@@ -375,16 +375,16 @@ Expose a replicated application as a service or route
 [options="nowrap"]
 ----
   # Create a route based on service nginx. The new route will re-use nginx's labels
-  $ openshift cli expose service nginx
+  $ oc expose service nginx
 
   # Create a route and specify your own label and route name
-  $ openshift cli expose service nginx -l name=myroute --name=fromdowntown
+  $ oc expose service nginx -l name=myroute --name=fromdowntown
 
   # Create a route and specify a hostname
-  $ openshift cli expose service nginx --hostname=www.example.com
+  $ oc expose service nginx --hostname=www.example.com
 
   # Expose a deployment configuration as a service and use the specified port
-  $ openshift cli expose dc ruby-hello-world --port=8080
+  $ oc expose dc ruby-hello-world --port=8080
 ----
 ====
 
@@ -397,16 +397,16 @@ Display one or many resources
 [options="nowrap"]
 ----
   # List all pods in ps output format.
-  $ openshift cli get pods
+  $ oc get pods
 
   # List a single replication controller with specified ID in ps output format.
-  $ openshift cli get replicationController 1234-56-7890-234234-456456
+  $ oc get replicationController 1234-56-7890-234234-456456
 
   # List a single pod in JSON output format.
-  $ openshift cli get -o json pod 1234-56-7890-234234-456456
+  $ oc get -o json pod 1234-56-7890-234234-456456
 
   # Return only the status value of the specified pod.
-  $ openshift cli get -o template pod 1234-56-7890-234234-456456 --template={{.currentState.status}}
+  $ oc get -o template pod 1234-56-7890-234234-456456 --template={{.currentState.status}}
 ----
 ====
 
@@ -418,7 +418,7 @@ Imports images from a Docker registry
 
 [options="nowrap"]
 ----
-  $ openshift cli import-image mystream
+  $ oc import-image mystream
 ----
 ====
 
@@ -431,20 +431,20 @@ Update the labels on a resource
 [options="nowrap"]
 ----
   # Update pod 'foo' with the label 'unhealthy' and the value 'true'.
-  $ openshift cli label pods foo unhealthy=true
+  $ oc label pods foo unhealthy=true
 
   # Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value.
-  $ openshift cli label --overwrite pods foo status=unhealthy
+  $ oc label --overwrite pods foo status=unhealthy
 
   # Update all pods in the namespace
-  $ openshift cli label pods --all status=unhealthy
+  $ oc label pods --all status=unhealthy
 
   # Update pod 'foo' only if the resource is unchanged from version 1.
-  $ openshift cli label pods foo status=unhealthy --resource-version=1
+  $ oc label pods foo status=unhealthy --resource-version=1
 
   # Update pod 'foo' by removing a label named 'bar' if it exists.
   # Does not require the --overwrite flag.
-  $ openshift cli label pods foo bar-
+  $ oc label pods foo bar-
 ----
 ====
 
@@ -457,13 +457,13 @@ Log in to a server
 [options="nowrap"]
 ----
   # Log in interactively
-  $ openshift cli login
+  $ oc login
 
   # Log in to the given server with the given certificate authority file
-  $ openshift cli login localhost:8443 --certificate-authority=/path/to/cert.crt
+  $ oc login localhost:8443 --certificate-authority=/path/to/cert.crt
 
   # Log in to the given server with the given credentials (will not prompt interactively)
-  $ openshift cli login localhost:8443 --username=myuser --password=mypass
+  $ oc login localhost:8443 --username=myuser --password=mypass
 ----
 ====
 
@@ -477,7 +477,7 @@ End the current server session
 ----
 
   # Logout
-  $ openshift cli logout
+  $ oc logout
 ----
 ====
 
@@ -490,21 +490,21 @@ Print the logs for a resource.
 [options="nowrap"]
 ----
   # Start streaming the logs of the most recent build of the openldap build config.
-  $ openshift cli logs -f bc/openldap
+  $ oc logs -f bc/openldap
 
   # Start streaming the logs of the latest deployment of the mysql deployment config.
-  $ openshift cli logs -f dc/mysql
+  $ oc logs -f dc/mysql
 
   # Get the logs of the first deployment for the mysql deployment config. Note that logs
   # from older deployments may not exist either because the deployment was successful
   # or due to deployment pruning or manual deletion of the deployment.
-  $ openshift cli logs --version=1 dc/mysql
+  $ oc logs --version=1 dc/mysql
 
   # Return a snapshot of ruby-container logs from pod backend.
-  $ openshift cli logs backend -c ruby-container
+  $ oc logs backend -c ruby-container
 
   # Start streaming of ruby-container logs from pod backend.
-  $ openshift cli logs -f pod/backend -c ruby-container
+  $ oc logs -f pod/backend -c ruby-container
 ----
 ====
 
@@ -518,45 +518,45 @@ Create a new application
 ----
 
   # List all local templates and image streams that can be used to create an app
-  $ openshift cli new-app --list
+  $ oc new-app --list
 
   # Search all templates, image streams, and Docker images for the ones that match "ruby"
-  $ openshift cli new-app --search ruby
+  $ oc new-app --search ruby
 
   # Create an application based on the source code in the current git repository (with a public remote)
   # and a Docker image
-  $ openshift cli new-app . --docker-image=repo/langimage
+  $ oc new-app . --docker-image=repo/langimage
 
   # Create a Ruby application based on the provided [image]~[source code] combination
-  $ openshift cli new-app openshift/ruby-20-centos7~https://github.com/openshift/ruby-hello-world.git
+  $ oc new-app openshift/ruby-20-centos7~https://github.com/openshift/ruby-hello-world.git
 
   # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
-  $ openshift cli new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
+  $ oc new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
 
   # Use a MySQL image in a private registry to create an app and override application artifacts' names
-  $ openshift cli new-app --docker-image=myregistry.com/mycompany/mysql --name=private
+  $ oc new-app --docker-image=myregistry.com/mycompany/mysql --name=private
 
   # Create an application from a remote repository using its beta4 branch
-  $ openshift cli new-app https://github.com/openshift/ruby-hello-world#beta4
+  $ oc new-app https://github.com/openshift/ruby-hello-world#beta4
 
   # Create an application based on a stored template, explicitly setting a parameter value
-  $ openshift cli new-app --template=ruby-helloworld-sample --param=MYSQL_USER=admin
+  $ oc new-app --template=ruby-helloworld-sample --param=MYSQL_USER=admin
 
   # Create an application from a remote repository and specify a context directory
-  $ openshift cli new-app https://github.com/youruser/yourgitrepo --context-dir=src/build
+  $ oc new-app https://github.com/youruser/yourgitrepo --context-dir=src/build
 
   # Create an application based on a template file, explicitly setting a parameter value
-  $ openshift cli new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
+  $ oc new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
 
   # Search for "mysql" in all image repositories and stored templates
-  $ openshift cli new-app --search mysql
+  $ oc new-app --search mysql
 
   # Search for "ruby", but only in stored templates (--template, --image and --docker-image
   # can be used to filter search results)
-  $ openshift cli new-app --search --template=ruby
+  $ oc new-app --search --template=ruby
 
   # Search for "ruby" in stored templates and print the output as an YAML
-  $ openshift cli new-app --search --template=ruby --output=yaml
+  $ oc new-app --search --template=ruby --output=yaml
 ----
 ====
 
@@ -571,19 +571,19 @@ Create a new build configuration
 
   # Create a build config based on the source code in the current git repository (with a public
   # remote) and a Docker image
-  $ openshift cli new-build . --docker-image=repo/langimage
+  $ oc new-build . --docker-image=repo/langimage
 
   # Create a NodeJS build config based on the provided [image]~[source code] combination
-  $ openshift cli new-build openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
+  $ oc new-build openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
 
   # Create a build config from a remote repository using its beta2 branch
-  $ openshift cli new-build https://github.com/openshift/ruby-hello-world#beta2
+  $ oc new-build https://github.com/openshift/ruby-hello-world#beta2
 
   # Create a build config using a Dockerfile specified as an argument
-  $ openshift cli new-build -D $'FROM centos:7\nRUN yum install -y httpd'
+  $ oc new-build -D $'FROM centos:7\nRUN yum install -y httpd'
 
   # Create a build config from a remote repository and add custom environment variables
-  $ openshift cli new-build https://github.com/openshift/ruby-hello-world RACK_ENV=development
+  $ oc new-build https://github.com/openshift/ruby-hello-world RACK_ENV=development
 ----
 ====
 
@@ -596,10 +596,10 @@ Request a new project
 [options="nowrap"]
 ----
   # Create a new project with minimal information
-  $ openshift cli new-project web-team-dev
+  $ oc new-project web-team-dev
 
   # Create a new project with a display name and description
-  $ openshift cli new-project web-team-dev --display-name="Web Team Development" --description="Development project for the web team."
+  $ oc new-project web-team-dev --display-name="Web Team Development" --description="Development project for the web team."
 ----
 ====
 
@@ -612,7 +612,7 @@ Update field(s) of a resource by stdin.
 [options="nowrap"]
 ----
   # Partially update a node using strategic merge patch
-  $ openshift cli patch node k8s-node-1 -p '{"spec":{"unschedulable":true}}'
+  $ oc patch node k8s-node-1 -p '{"spec":{"unschedulable":true}}'
 ----
 ====
 
@@ -625,16 +625,16 @@ Forward one or more local ports to a pod.
 [options="nowrap"]
 ----
   # Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
-  $ openshift cli port-forward -p mypod 5000 6000
+  $ oc port-forward -p mypod 5000 6000
 
   # Listens on port 8888 locally, forwarding to 5000 in the pod
-  $ openshift cli port-forward -p mypod 8888:5000
+  $ oc port-forward -p mypod 8888:5000
 
   # Listens on a random port locally, forwarding to 5000 in the pod
-  $ openshift cli port-forward -p mypod :5000
+  $ oc port-forward -p mypod :5000
 
   # Listens on a random port locally, forwarding to 5000 in the pod
-  $ openshift cli port-forward -p mypod 0:5000
+  $ oc port-forward -p mypod 0:5000
 ----
 ====
 
@@ -647,22 +647,22 @@ Process a template into list of resources
 [options="nowrap"]
 ----
   # Convert template.json file into resource list and pass to create
-  $ openshift cli process -f template.json | openshift cli create -f -
+  $ oc process -f template.json | oc create -f -
 
   # Process template while passing a user-defined label
-  $ openshift cli process -f template.json -l name=mytemplate
+  $ oc process -f template.json -l name=mytemplate
 
   # Convert stored template into resource list
-  $ openshift cli process foo
+  $ oc process foo
 
   # Convert template stored in different namespace into a resource list
-  $ openshift cli process openshift//foo
+  $ oc process openshift//foo
 
   # Convert template.json into resource list
-  $ cat template.json | openshift cli process -f -
+  $ cat template.json | oc process -f -
 
   # Combine multiple templates into single resource list
-  $ cat template.json second_template.json | openshift cli process -f -
+  $ cat template.json second_template.json | oc process -f -
 ----
 ====
 
@@ -675,10 +675,10 @@ Switch to another project
 [options="nowrap"]
 ----
   # Switch to 'myapp' project
-  $ openshift cli project myapp
+  $ oc project myapp
 
   # Display the project currently in use
-  $ openshift cli project
+  $ oc project
 ----
 ====
 
@@ -691,11 +691,11 @@ Run a proxy to the Kubernetes API server
 [options="nowrap"]
 ----
   # Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
-  $ openshift cli proxy --port=8011 --www=./local/www/
+  $ oc proxy --port=8011 --www=./local/www/
 
   # Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
   # This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta3/pods/
-  $ openshift cli proxy --api-prefix=k8s-api
+  $ oc proxy --api-prefix=k8s-api
 ----
 ====
 
@@ -708,13 +708,13 @@ Replace a resource by filename or stdin.
 [options="nowrap"]
 ----
   # Replace a pod using the data in pod.json.
-  $ openshift cli replace -f pod.json
+  $ oc replace -f pod.json
 
   # Replace a pod based on the JSON passed into stdin.
-  $ cat pod.json | openshift cli replace -f -
+  $ cat pod.json | oc replace -f -
 
   # Force replace, delete and then re-create the resource
-  $ openshift cli replace --force -f pod.json
+  $ oc replace --force -f pod.json
 ----
 ====
 
@@ -727,16 +727,16 @@ Revert part of an application back to a previous deployment
 [options="nowrap"]
 ----
   # Perform a rollback to the last successfully completed deployment for a deploymentconfig
-  $ openshift cli rollback frontend
+  $ oc rollback frontend
 
   # See what a rollback to version 3 will look like, but don't perform the rollback
-  $ openshift cli rollback frontend --to-version=3 --dry-run
+  $ oc rollback frontend --to-version=3 --dry-run
 
   # Perform a rollback to a specific deployment
-  $ openshift cli rollback frontend-2
+  $ oc rollback frontend-2
 
-  # Perform the rollback manually by piping the JSON of the new config back to openshift cli
-  $ openshift cli rollback frontend --output=json | openshift cli update deploymentConfigs deployment -f -
+  # Perform the rollback manually by piping the JSON of the new config back to oc
+  $ oc rollback frontend --output=json | oc update deploymentConfigs deployment -f -
 ----
 ====
 
@@ -750,10 +750,10 @@ Start a shell session in a pod
 ----
 
   # Open a shell session on the first container in pod 'foo'
-  $ openshift cli rsh foo
+  $ oc rsh foo
 
   # Run the command 'cat /etc/resolv.conf' inside pod 'foo'
-  $ openshift cli rsh foo cat /etc/resolv.conf
+  $ oc rsh foo cat /etc/resolv.conf
 ----
 ====
 
@@ -767,10 +767,10 @@ Copy files between local filesystem and a pod
 ----
 
   # Synchronize a local directory with a pod directory
-  $ openshift cli rsync ./local/dir/ POD:/remote/dir
+  $ oc rsync ./local/dir/ POD:/remote/dir
 
   # Synchronize a pod directory with a local directory
-  $ openshift cli rsync POD:/remote/dir/ ./local/dir
+  $ oc rsync POD:/remote/dir/ ./local/dir
 ----
 ====
 
@@ -783,20 +783,20 @@ Run a particular image on the cluster.
 [options="nowrap"]
 ----
   # Starts a single instance of nginx.
-  $ openshift cli run nginx --image=nginx
+  $ oc run nginx --image=nginx
 
   # Starts a replicated instance of nginx.
-  $ openshift cli run nginx --image=nginx --replicas=5
+  $ oc run nginx --image=nginx --replicas=5
 
   # Dry run. Print the corresponding API objects without creating them.
-  $ openshift cli run nginx --image=nginx --dry-run
+  $ oc run nginx --image=nginx --dry-run
 
   # Start a single instance of nginx, but overload the spec of the replication
   # controller with a partial set of values parsed from JSON.
-  $ openshift cli run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
+  $ oc run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
 
   # Start a single instance of nginx and keep it in the foreground, don't restart it if it exits.
-  $ openshift cli run -i -tty nginx --image=nginx --restart=Never
+  $ oc run -i -tty nginx --image=nginx --restart=Never
 ----
 ====
 
@@ -809,14 +809,14 @@ Change the number of pods in a deployment
 [options="nowrap"]
 ----
   # Scale replication controller named 'foo' to 3.
-  $ openshift cli scale --replicas=3 replicationcontrollers foo
+  $ oc scale --replicas=3 replicationcontrollers foo
 
   # If the replication controller named foo's current size is 2, scale foo to 3.
-  $ openshift cli scale --current-replicas=2 --replicas=3 replicationcontrollers foo
+  $ oc scale --current-replicas=2 --replicas=3 replicationcontrollers foo
 
   # Scale the latest deployment of 'bar'. In case of no deployment, bar's template
   # will be scaled instead.
-  $ openshift cli scale --replicas=10 dc bar
+  $ oc scale --replicas=10 dc bar
 ----
 ====
 
@@ -829,13 +829,13 @@ Add secrets to a ServiceAccount
 [options="nowrap"]
 ----
   // To use your secret inside of a pod or as a push, pull, or source secret for a build, you must add a 'mount' secret to your service account like this:
-  $ openshift cli secrets add serviceaccount/sa-name secrets/secret-name secrets/another-secret-name
+  $ oc secrets add serviceaccount/sa-name secrets/secret-name secrets/another-secret-name
 
   // To use your secret as an image pull secret, you must add a 'pull' secret to your service account like this:
-  $ openshift cli secrets add serviceaccount/sa-name secrets/secret-name --for=pull
+  $ oc secrets add serviceaccount/sa-name secrets/secret-name --for=pull
 
   // To use your secret for image pulls or inside a pod:
-  $ openshift cli secrets add serviceaccount/sa-name secrets/secret-name --for=pull,mount
+  $ oc secrets add serviceaccount/sa-name secrets/secret-name --for=pull,mount
 ----
 ====
 
@@ -848,16 +848,16 @@ Create a new secret based on a key file or on files within a directory
 [options="nowrap"]
 ----
   // Create a new secret named my-secret with a key named ssh-privatekey
-  $ openshift cli secrets new my-secret ~/.ssh/ssh-privatekey
+  $ oc secrets new my-secret ~/.ssh/ssh-privatekey
 
   // Create a new secret named my-secret with keys named ssh-privatekey and ssh-publickey instead of the names of the keys on disk
-  $ openshift cli secrets new my-secret ssh-privatekey=~/.ssh/id_rsa ssh-publickey=~/.ssh/id_rsa.pub
+  $ oc secrets new my-secret ssh-privatekey=~/.ssh/id_rsa ssh-publickey=~/.ssh/id_rsa.pub
 
   // Create a new secret named my-secret with keys for each file in the folder "bar"
-  $ openshift cli secrets new my-secret path/to/bar
+  $ oc secrets new my-secret path/to/bar
 
   // Create a new .dockercfg secret named my-secret
-  $ openshift cli secrets new my-secret path/to/.dockercfg
+  $ oc secrets new my-secret path/to/.dockercfg
 ----
 ====
 
@@ -870,13 +870,13 @@ Create a new secret for basic authentication
 [options="nowrap"]
 ----
   // If your basic authentication method requires only username and password or token, add it by using:
-  $ openshift cli secrets new-basicauth SECRET --username=USERNAME --password=PASSWORD
+  $ oc secrets new-basicauth SECRET --username=USERNAME --password=PASSWORD
 
   // If your basic authentication method requires also CA certificate, add it by using:
-  $ openshift cli secrets new-basicauth SECRET --username=USERNAME --password=PASSWORD --ca-cert=FILENAME
+  $ oc secrets new-basicauth SECRET --username=USERNAME --password=PASSWORD --ca-cert=FILENAME
 
   // If you do already have a .gitconfig file needed for authentication, you can create a gitconfig secret by using:
-  $ openshift cli secrets new SECRET path/to/.gitconfig
+  $ oc secrets new SECRET path/to/.gitconfig
 ----
 ====
 
@@ -889,13 +889,13 @@ Create a new dockercfg secret
 [options="nowrap"]
 ----
   // If you don't already have a .dockercfg file, you can create a dockercfg secret directly by using:
-  $ openshift cli secrets new-dockercfg SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
+  $ oc secrets new-dockercfg SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
 
   // If you do already have a .dockercfg file, you can create a dockercfg secret by using:
-  $ openshift cli secrets new SECRET path/to/.dockercfg
+  $ oc secrets new SECRET path/to/.dockercfg
 
   // To add new secret to 'imagePullSecrets' for the node, or 'secrets' for builds, use:
-  $ openshift cli edit SERVICE_ACCOUNT
+  $ oc edit SERVICE_ACCOUNT
 ----
 ====
 
@@ -908,13 +908,13 @@ Create a new secret for SSH authentication
 [options="nowrap"]
 ----
   // If your SSH authentication method requires only private SSH key, add it by using:
-  $ openshift cli secrets new-sshauth SECRET --ssh-privatekey=FILENAME
+  $ oc secrets new-sshauth SECRET --ssh-privatekey=FILENAME
 
   // If your SSH authentication method requires also CA certificate, add it by using:
-  $ openshift cli secrets new-sshauth SECRET --ssh-privatekey=FILENAME --ca-cert=FILENAME
+  $ oc secrets new-sshauth SECRET --ssh-privatekey=FILENAME --ca-cert=FILENAME
 
   // If you do already have a .gitconfig file needed for authentication, you can create a gitconfig secret by using:
-  $ openshift cli secrets new SECRET path/to/.gitconfig
+  $ oc secrets new SECRET path/to/.gitconfig
 ----
 ====
 
@@ -927,24 +927,24 @@ Start a new build
 [options="nowrap"]
 ----
   # Starts build from build config "hello-world"
-  $ openshift cli start-build hello-world
+  $ oc start-build hello-world
 
   # Starts build from a previous build "hello-world-1"
-  $ openshift cli start-build --from-build=hello-world-1
+  $ oc start-build --from-build=hello-world-1
 
   # Use the contents of a directory as build input
-  $ openshift cli start-build hello-world --from-dir=src/
+  $ oc start-build hello-world --from-dir=src/
 
   # Send the contents of a Git repository to the server from tag 'v2'
-  $ openshift cli start-build hello-world --from-repo=../hello-world --commit=v2
+  $ oc start-build hello-world --from-repo=../hello-world --commit=v2
 
   # Start a new build for build config "hello-world" and watch the logs until the build
   # completes or fails.
-  $ openshift cli start-build hello-world --follow
+  $ oc start-build hello-world --follow
 
   # Start a new build for build config "hello-world" and wait until the build completes. It
   # exits with a non-zero return code if the build fails.
-  $ openshift cli start-build hello-world --wait
+  $ oc start-build hello-world --wait
 ----
 ====
 
@@ -957,7 +957,7 @@ Show an overview of the current project
 [options="nowrap"]
 ----
   # Show an overview of the current project
-  $ openshift cli status
+  $ oc status
 ----
 ====
 
@@ -970,16 +970,16 @@ Deprecated: Gracefully shut down a resource by name or filename.
 [options="nowrap"]
 ----
   # Shut down foo.
-  $ openshift cli stop replicationcontroller foo
+  $ oc stop replicationcontroller foo
 
   # Stop pods and services with label name=myLabel.
-  $ openshift cli stop pods,services -l name=myLabel
+  $ oc stop pods,services -l name=myLabel
 
   # Shut down the service defined in service.json
-  $ openshift cli stop -f service.json
+  $ oc stop -f service.json
 
   # Shut down all resources in the path/to/resources directory
-  $ openshift cli stop -f path/to/resources
+  $ oc stop -f path/to/resources
 ----
 ====
 
@@ -992,16 +992,16 @@ Tag existing images into image streams
 [options="nowrap"]
 ----
   # Tag the current image for the image stream 'openshift/ruby' and tag '2.0' into the image stream 'yourproject/ruby with tag 'tip'.
-  $ openshift cli tag openshift/ruby:2.0 yourproject/ruby:tip
+  $ oc tag openshift/ruby:2.0 yourproject/ruby:tip
 
   # Tag a specific image.
-  $ openshift cli tag openshift/ruby@sha256:6b646fa6bf5e5e4c7fa41056c27910e679c03ebe7f93e361e6515a9da7e258cc yourproject/ruby:tip
+  $ oc tag openshift/ruby@sha256:6b646fa6bf5e5e4c7fa41056c27910e679c03ebe7f93e361e6515a9da7e258cc yourproject/ruby:tip
 
   # Tag an external Docker image.
-  $ openshift cli tag --source=docker openshift/origin:latest yourproject/ruby:tip
+  $ oc tag --source=docker openshift/origin:latest yourproject/ruby:tip
 
   # Remove the specified spec tag from an image stream.
-  $ openshift cli tag openshift/origin:latest -d
+  $ oc tag openshift/origin:latest -d
 ----
 ====
 
@@ -1014,16 +1014,16 @@ An introduction to concepts and types
 [options="nowrap"]
 ----
   # View all projects you have access to
-  $ openshift cli get projects
+  $ oc get projects
 
   # See a list of all services in the current project
-  $ openshift cli get svc
+  $ oc get svc
 
   # Describe a deployment configuration in detail
-  $ openshift cli describe dc mydeploymentconfig
+  $ oc describe dc mydeploymentconfig
 
   # Show the images tagged into an image stream
-  $ openshift cli describe is ruby-centos7
+  $ oc describe is ruby-centos7
 ----
 ====
 
@@ -1036,31 +1036,31 @@ Update volume on a resource with a pod template
 [options="nowrap"]
 ----
   # List volumes defined on all deployment configs in the current project
-  $ openshift cli volume dc --all
+  $ oc volume dc --all
 
   # Add a new empty dir volume to deployment config (dc) 'registry' mounted under
   # /var/lib/registry
-  $ openshift cli volume dc/registry --add --mount-path=/var/lib/registry
+  $ oc volume dc/registry --add --mount-path=/var/lib/registry
 
   # Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
-  $ openshift cli volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
+  $ oc volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
 
   # Remove volume 'v1' from deployment config 'registry'
-  $ openshift cli volume dc/registry --remove --name=v1
+  $ oc volume dc/registry --remove --name=v1
 
   # Create a new persistent volume claim that overwrites an existing volume 'v1'
-  $ openshift cli volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
+  $ oc volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
 
   # Change the mount point for volume 'v1' to /data
-  $ openshift cli volume dc/registry --add --name=v1 -m /data --overwrite
+  $ oc volume dc/registry --add --name=v1 -m /data --overwrite
 
   # Modify the deployment config by removing volume mount "v1" from container "c1"
   # (and by removing the volume "v1" if no other containers have volume mounts that reference it)
-  $ openshift cli volume dc/registry --remove --name=v1 --containers=c1
+  $ oc volume dc/registry --remove --name=v1 --containers=c1
 
   # Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
   # Ceph, Gluster, NFS, ISCSI, ...)
-  $ openshift cli volume dc/registry --add -m /repo --source=<json-string>
+  $ oc volume dc/registry --add -m /repo --source=<json-string>
 ----
 ====
 
