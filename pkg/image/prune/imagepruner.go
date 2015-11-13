@@ -9,6 +9,12 @@ import (
 	"github.com/docker/distribution/registry/api/v2"
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/util"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
+
 	"github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -17,14 +23,10 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
+	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // TODO these edges should probably have an `Add***Edges` method in images/graph and be moved there
@@ -157,7 +159,7 @@ type defaultRegistryPinger struct {
 
 func (drp *defaultRegistryPinger) ping(registry string) error {
 	healthzCheck := func(proto, registry string) error {
-		healthzResponse, err := drp.client.Get(fmt.Sprintf("%s://%s/healthz", proto, registry))
+		healthzResponse, err := drp.client.Get(fmt.Sprintf("%s://%s%s", proto, registry, dockerregistry.HealthRoutePath))
 		if err != nil {
 			return err
 		}
