@@ -41,6 +41,14 @@ The supported log levels are:
 
 Note: currently most of our logging either goes to INFO or ERROR
 
+#### Local configuration
+
+`assets/app/config.js` is the default configuration file for web console
+development. If you need to change the configuration, for example, to point to
+a different API server, copy `assets/app/config.js` to
+`assets/app/config.local.js` and edit the copy. `assets/app/config.local.js` is
+not tracked and will be used instead if it exists.
+
 #### Before opening a pull request
 1. If needed, run `hack/build-assets.sh` to update bindata.go
 2. Run the spec tests with `hack/test-assets.sh`
