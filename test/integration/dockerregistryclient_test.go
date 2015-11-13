@@ -58,8 +58,7 @@ func TestRegistryClientV2DockerHub(t *testing.T) {
 		t.Fatal(err)
 	}
 	image, err := conn.ImageByTag("kubernetes", "guestbook", "latest")
-	// The V2 docker hub registry seems to have a bug for this repo, should eventually get fixed
-	if !dockerregistry.IsTagNotFound(err) {
+	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
