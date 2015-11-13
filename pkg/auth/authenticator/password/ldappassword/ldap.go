@@ -14,6 +14,7 @@ import (
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 )
 
 // Options contains configuration for an Authenticator instance
@@ -21,7 +22,7 @@ type Options struct {
 	// URL is a parsed RFC 2255 URL
 	URL ldaputil.LDAPURL
 	// ClientConfig holds information about connecting with the LDAP server
-	ClientConfig ldaputil.LDAPClientConfig
+	ClientConfig ldapclient.Config
 
 	// UserAttributeDefiner defines the values corresponding to OpenShift Identities in LDAP entries
 	// by using a deterministic mapping of LDAP entry attributes to OpenShift Identity fields. The first
@@ -91,8 +92,10 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 	}
 	defer l.Close()
 
-	if _, err := a.options.ClientConfig.Bind(l); err != nil {
-		return nil, false, err
+	if bindDN, bindPassword := a.options.ClientConfig.GetBindCredentials(); len(bindDN) > 0 {
+		if err := l.Bind(bindDN, bindPassword); err != nil {
+			return nil, false, err
+		}
 	}
 
 	// & together the filter specified in the LDAP options with the user-specific filter

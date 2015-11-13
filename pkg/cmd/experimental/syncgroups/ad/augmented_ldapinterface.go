@@ -6,11 +6,13 @@ import (
 	"github.com/go-ldap/ldap"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
-	ldapinterfaces "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
+	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/groupdetector"
+	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 )
 
 // NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
-func NewAugmentedADLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
+func NewAugmentedADLDAPInterface(clientConfig ldapclient.Config,
 	userQuery ldaputil.LDAPQuery,
 	groupMembershipAttributes []string,
 	userNameAttributes []string,
@@ -27,10 +29,6 @@ func NewAugmentedADLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
 
 // LDAPInterface extracts the member list of an LDAP user entry from an LDAP server
 // with first-class LDAP entries for users and group.  Group membership is on the user. The LDAPInterface is *NOT* thread-safe.
-// The LDAPInterface satisfies:
-// - LDAPMemberExtractor
-// - LDAPGroupGetter
-// - LDAPGroupLister
 type AugmentedADLDAPInterface struct {
 	*ADLDAPInterface
 
@@ -40,12 +38,14 @@ type AugmentedADLDAPInterface struct {
 	// groupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for an OpenShift group
 	groupNameAttributes []string
 
+	// cachedGroups holds the result of group queries for later reference, indexed on group UID
+	// e.g. this will map an LDAP group UID to the LDAP entry returned from the query made using it
 	cachedGroups map[string]*ldap.Entry
 }
 
-var _ ldapinterfaces.LDAPMemberExtractor = &AugmentedADLDAPInterface{}
-var _ ldapinterfaces.LDAPGroupGetter = &AugmentedADLDAPInterface{}
-var _ ldapinterfaces.LDAPGroupLister = &AugmentedADLDAPInterface{}
+var _ interfaces.LDAPMemberExtractor = &AugmentedADLDAPInterface{}
+var _ interfaces.LDAPGroupGetter = &AugmentedADLDAPInterface{}
+var _ interfaces.LDAPGroupLister = &AugmentedADLDAPInterface{}
 
 // GroupFor returns an LDAP group entry for the given group UID by searching the internal cache
 // of the LDAPInterface first, then sending an LDAP query if the cache did not contain the entry.
@@ -76,4 +76,10 @@ func (e *AugmentedADLDAPInterface) requiredGroupAttributes() []string {
 	allAttributes.Insert(e.groupQuery.QueryAttribute)         // this is used for extracting the group UID (otherwise an entry isn't self-describing)
 
 	return allAttributes.List()
+}
+
+// Exists determines if a group idenified with it's LDAP group UID exists on the LDAP server
+func (e *AugmentedADLDAPInterface) Exists(ldapGroupUID string) (bool, error) {
+	groupDetector := groupdetector.NewCompoundDetector(groupdetector.NewGroupBasedDetector(e), groupdetector.NewMemberBasedDetector(e))
+	return groupDetector.Exists(ldapGroupUID)
 }
