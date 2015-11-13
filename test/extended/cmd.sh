@@ -28,10 +28,8 @@ function join { local IFS="$1"; shift; echo "$*"; }
 function cleanup()
 {
 	docker rmi test/scratchimage
-	out=$?
 	cleanup_openshift
 	echo "[INFO] Exiting"
-	exit $out
 }
 
 trap "exit" INT TERM
@@ -68,3 +66,14 @@ rm -rf $tmp
 [ "$(oc new-app test/scratchimage2 -o yaml |& tr '\n' ' ' 2>&1 | grep -E "partial match")" ]
 # success with exact match	
 [ "$(oc new-app test/scratchimage -o yaml)" ]
+
+echo "[INFO] Running env variable expansion tests"
+oc new-project envtest
+oc create -f test/extended/fixtures/test-env-pod.json
+tryuntil "oc get pods | grep Running"
+podname=$(oc get pods --template='{{with index .items 0}}{{.metadata.name}}{{end}}')
+oc exec test-pod env | grep podname=test-pod
+oc exec test-pod env | grep podname_composed=test-pod_composed
+oc exec test-pod env | grep var1=value1
+oc exec test-pod env | grep var2=value1
+oc exec test-pod ps ax | grep "sleep 120"
