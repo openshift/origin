@@ -122,6 +122,18 @@ os::build::build_binaries() {
     local version_ldflags
     version_ldflags=$(os::build::ldflags)
 
+    # Use eval to preserve embedded quoted strings.
+    local goflags
+    eval "goflags=(${OS_GOFLAGS:-})"
+
+    local arg
+    for arg; do
+      if [[ "${arg}" == -* ]]; then
+        # Assume arguments starting with a dash are flags to pass to go.
+        goflags+=("${arg}")
+      fi
+    done
+
     os::build::export_targets "$@"
 
     local platform
@@ -140,17 +152,10 @@ os::build::build_binaries() {
 # Accepts binaries via $@, and platforms via OS_BUILD_PLATFORMS, or defaults to
 # the current platform.
 os::build::export_targets() {
-  # Use eval to preserve embedded quoted strings.
-  local goflags
-  eval "goflags=(${OS_GOFLAGS:-})"
-
   targets=()
   local arg
   for arg; do
-    if [[ "${arg}" == -* ]]; then
-      # Assume arguments starting with a dash are flags to pass to go.
-      goflags+=("${arg}")
-    else
+    if [[ "${arg}" != -* ]]; then
       targets+=("${arg}")
     fi
   done
