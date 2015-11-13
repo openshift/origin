@@ -55,7 +55,14 @@
                   <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
                 </div>
               </dl>
-            </div>
+              <div ng-if="(buildConfig | buildStrategy).env">
+                <h3>Environment Variables</h3>
+                <dl class="dl-horizontal left">
+                  <dt ng-repeat-start="envVar in (buildConfig | buildStrategy).env">{{envVar.name}}:</dt>
+                  <dd ng-repeat-end>{{envVar.value}}</dd>
+                </dl>
+              </div>               
+            </div>               
             <div class="col-lg-6">
               <h3>Triggers</h3>
               <dl class="dl-horizontal left">
@@ -136,7 +143,7 @@
                 </dd>
 
               </dl>
-            </div>
+            </div>        
           </div>
           <annotations annotations="buildConfig.metadata.annotations"></annotations>
         </div>

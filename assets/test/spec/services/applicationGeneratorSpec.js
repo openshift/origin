@@ -32,7 +32,11 @@ describe("ApplicationGenerator", function(){
         sourceUrl: "https://github.com/openshift/ruby-hello-world.git",
         buildOnSourceChange: true,
         buildOnImageChange: true,
-        buildOnConfigChange: true
+        buildOnConfigChange: true,
+        envVars: {
+          "BUILD_ENV_1" : "someValue",
+          "BUILD_ENV_2" : "anotherValue"
+        }
       },
       deploymentConfig: {
         deployOnConfigChange: true,
@@ -224,7 +228,17 @@ describe("ApplicationGenerator", function(){
                       "from": {
                         "kind": "ImageStreamTag",
                         "name": "origin-ruby-sample:latest"
-                      }
+                      },
+                      "env": [
+                        {
+                          "name": "BUILD_ENV_1",
+                          "value": "someValue"
+                        },
+                        {
+                          "name": "BUILD_ENV_2",
+                          "value": "anotherValue"
+                        }                        
+                      ]
                     }
                 },
                 "triggers": [

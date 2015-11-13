@@ -31,7 +31,9 @@ angular.module("openshiftConsole")
       scope.buildConfig = {
         buildOnSourceChange: true,
         buildOnImageChange: true,
-        buildOnConfigChange: true
+        buildOnConfigChange: true,
+        envVars : {
+        }        
       };
       scope.deploymentConfig = {
         deployOnNewImage: true,

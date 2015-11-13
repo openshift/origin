@@ -143,71 +143,6 @@
                     <!-- /routing -->
 
                     <osc-form-section
-                      header="Deployment Configuration"
-                      about-title="Deployment Configuration"
-                      about="Deployment configurations describe how your application is configured
-                        by the cluster and under what conditions it should be recreated (e.g. when the image changes)."
-                      expand="true"
-                      can-toggle="false"
-                      >
-                      <div ng-hide="$parent.expand">
-                        <h3>Autodeploy when</h3>
-                        <div>
-                          <label>New image is available: </label>
-                          <span>{{deploymentConfig.deployOnNewImage | yesNo}}</span>
-                        </div>
-                        <div>
-                          <label>Deployment configuration changes: </label>
-                          <span>{{deploymentConfig.deployOnConfigChange | yesNo}}</span>
-                        </div>
-                        <h3>Environment Variables <span class="help action-inline">
-                          <a href data-toggle="tooltip" data-placement="right"
-                             data-original-title="Environment variables are used to configure and pass information to running containers.">
-                            <i class="pficon pficon-help"></i>
-                          </a>
-                        </span></h3>
-
-                        <osc-key-values
-                          entries="deploymentConfig.envVars"
-                          delimiter="="
-                          key-validator="env"
-                          delete-policy="added"
-                          editable="true"></osc-key-values>
-                      </div>
-                      <div class="animate-drawer" ng-show="$parent.expand">
-                        <h3>Autodeploy when</h3>
-                        <div class="checkbox">
-                          <label>
-                            <input type="checkbox" ng-model="deploymentConfig.deployOnNewImage">
-                            New image is available
-                          </label>
-                        </div>
-                        <div class="checkbox">
-                        <label>
-                          <input type="checkbox" ng-model="deploymentConfig.deployOnConfigChange">
-                          Deployment configuration changes
-                        </label>
-                        </div>
-                        <div>
-                          <h3>Environment Variables <span class="help action-inline">
-                            <a href data-toggle="tooltip" data-placement="right"
-                               data-original-title="Environment variables are used to configure and pass information to images.">
-                              <i class="pficon pficon-help"></i>
-                            </a>
-                          </span></h3>
-                          <osc-key-values
-                            entries="deploymentConfig.envVars"
-                            delimiter="="
-                            key-validator="env"
-                            delete-policy="added"
-                            key-validation-tooltip="A valid environment variable name is an alphanumeric (a-z and 0-9) string beginning with a letter that may contain underscores."></osc-key-values>
-                        </div>
-                      </div>
-                    </osc-form-section>
-
-                    <!-- /deployment config -->
-
-                    <osc-form-section
                       header="Build Configuration"
                       about-title="Build Configuration"
                       about="A build configuration describes how to build your deployable image.  This includes
@@ -244,9 +179,62 @@
                           Automatically build a new image when the build configuration changes
                         </label>
                       </div>
+                      <h3>Environment Variables (Build and Runtime) <span class="help action-inline">
+                        <a href data-toggle="tooltip" data-placement="right"
+                           data-original-title="Environment variables are used to configure and pass information to running containers.  These environment variables will be available during your build and at runtime.">
+                          <i class="pficon pficon-help"></i>
+                        </a>
+                      </span></h3>
+                      <osc-key-values
+                        entries="buildConfig.envVars"
+                        delimiter="="
+                        key-validator="env"
+                        delete-policy="added"
+                        key-validation-tooltip="A valid environment variable name is an alphanumeric (a-z and 0-9) string beginning with a letter that may contain underscores."></osc-key-values>                      
                     </osc-form-section>
 
                     <!-- /build config -->
+
+                    <osc-form-section
+                      header="Deployment Configuration"
+                      about-title="Deployment Configuration"
+                      about="Deployment configurations describe how your application is configured
+                        by the cluster and under what conditions it should be recreated (e.g. when the image changes)."
+                      expand="true"
+                      can-toggle="false"
+                      >
+                      <div class="animate-drawer" ng-show="$parent.expand">
+                        <h3>Autodeploy when</h3>
+                        <div class="checkbox">
+                          <label>
+                            <input type="checkbox" ng-model="deploymentConfig.deployOnNewImage">
+                            New image is available
+                          </label>
+                        </div>
+                        <div class="checkbox">
+                        <label>
+                          <input type="checkbox" ng-model="deploymentConfig.deployOnConfigChange">
+                          Deployment configuration changes
+                        </label>
+                        </div>
+                        <div>
+                          <h3>Environment Variables (Runtime only) <span class="help action-inline">
+                            <a href data-toggle="tooltip" data-placement="right"
+                               data-original-title="Environment variables are used to configure and pass information to running containers.  These environment variables will only be available at runtime.">
+                              <i class="pficon pficon-help"></i>
+                            </a>
+                          </span></h3>
+                          <osc-key-values
+                            entries="deploymentConfig.envVars"
+                            delimiter="="
+                            key-validator="env"
+                            delete-policy="added"
+                            key-validation-tooltip="A valid environment variable name is an alphanumeric (a-z and 0-9) string beginning with a letter that may contain underscores."></osc-key-values>
+                        </div>
+                      </div>
+                    </osc-form-section>
+
+                    <!-- /deployment config -->
 
                     <osc-form-section
                       header="Scaling"
