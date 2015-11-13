@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
+	deployanalysis "github.com/openshift/origin/pkg/deploy/graph/analysis"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -212,13 +213,19 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		if errorMarkers := allMarkers.BySeverity(osgraph.ErrorSeverity); len(errorMarkers) > 0 {
 			fmt.Fprintln(out, "Errors:")
 			for _, marker := range errorMarkers {
-				fmt.Fprintln(out, indent+marker.Message)
+				fmt.Fprintln(out, indent+"* "+marker.Message)
 			}
 		}
 		if warningMarkers := allMarkers.BySeverity(osgraph.WarningSeverity); len(warningMarkers) > 0 {
 			fmt.Fprintln(out, "Warnings:")
 			for _, marker := range warningMarkers {
-				fmt.Fprintln(out, indent+marker.Message)
+				fmt.Fprintln(out, indent+"* "+marker.Message)
+			}
+		}
+		if infoMarkers := allMarkers.BySeverity(osgraph.InfoSeverity); len(infoMarkers) > 0 {
+			fmt.Fprintln(out, "Info:")
+			for _, marker := range infoMarkers {
+				fmt.Fprintln(out, indent+"* "+marker.Message)
 			}
 		}
 
@@ -257,6 +264,7 @@ func getMarkerScanners() []osgraph.MarkerScanner {
 		kubeanalysis.FindMissingSecrets,
 		buildanalysis.FindUnpushableBuildConfigs,
 		buildanalysis.FindCircularBuilds,
+		deployanalysis.FindDeploymentConfigTriggerErrors,
 		routeanalysis.FindMissingPortMapping,
 	}
 }
