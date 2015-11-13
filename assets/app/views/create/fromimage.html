@@ -39,7 +39,10 @@
                               name="appname"
                               ng-change="nameTaken = false"
                               ng-blur="shouldValidateName = form.appname.$dirty"
-                              class="form-control form-control-md">
+                              class="form-control form-control-md"
+                              autocorrect="off"
+                              autocapitalize="off"
+                              spellcheck="false">
                       </div>
                       <div class="help-block">Used to uniquely identify within this project all the resources created to support the application.</div>
                       <div class="has-error" ng-show="form.appname.$error.required && form.appname.$dirty">
@@ -62,13 +65,17 @@
                   <div class="form-group">
                     <label for="sourceUrl" class="required">Git Repository URL</label>
                     <div ng-class="{'has-warning': form.sourceUrl.$dirty && !sourceURLPattern.test(buildConfig.sourceUrl), 'has-error': (form.sourceUrl.$error.required && form.sourceUrl.$dirty)}">
-                       <input class="form-control"
-                         id="sourceUrl"
-                         name="sourceUrl"
-                         type="text"
-                         required
-                         aria-describedby="from_source_help"
-                         ng-model="buildConfig.sourceUrl">
+                      <!-- Unfortunately, we can't set type="url" because some valid values don't pass browser validation. -->
+                      <input class="form-control"
+                        id="sourceUrl"
+                        name="sourceUrl"
+                        type="text"
+                        required
+                        aria-describedby="from_source_help"
+                        ng-model="buildConfig.sourceUrl"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        spellcheck="false">
                     </div>
                     <div ng-if="image.metadata.annotations.sampleRepo" class="help-block">
                       Sample repository for {{imageName}}: {{image.metadata.annotations.sampleRepo}}<span ng-if="image.metadata.annotations.sampleRef">,
@@ -89,14 +96,30 @@
                     <div class="form-group">
                       <label for="gitref">Git Reference</label>
                       <div>
-                        <input id="gitref" ng-model="buildConfig.gitRef" type="text" placeholder="master" class="form-control form-control-md">
+                        <input
+                          id="gitref"
+                          ng-model="buildConfig.gitRef"
+                          type="text"
+                          placeholder="master"
+                          autocorrect="off"
+                          autocapitalize="off"
+                          spellcheck="false"
+                          class="form-control form-control-md">
                       </div>
                       <div class="help-block">Optional branch, tag, or commit.</div>
                     </div>
                     <div class="form-group">
                       <label for="contextdir">Context Dir</label>
                       <div>
-                        <input id="contextdir" ng-model="buildConfig.contextDir" type="text" placeholder="/" class="form-control form-control-md">
+                        <input
+                          id="contextdir"
+                          ng-model="buildConfig.contextDir"
+                          type="text"
+                          placeholder="/"
+                          autocorrect="off"
+                          autocapitalize="off"
+                          spellcheck="false"
+                          class="form-control form-control-md">
                       </div>
                       <div class="help-block">Optional subdirectory for the application source code, used as the context directory for the build.</div> </div>
 

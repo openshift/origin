@@ -20,7 +20,10 @@
                   aria-describedby="nameHelp"
                   ng-model="name"
                   ng-model-options="{ updateOn: 'default blur' }"
-                  ng-change="nameTaken = false">
+                  ng-change="nameTaken = false"
+                  autocorrect="off"
+                  autocapitalize="off"
+                  spellcheck="false">
             </span>
             <div>
               <span class="help-block">A unique name for the project.</span>
