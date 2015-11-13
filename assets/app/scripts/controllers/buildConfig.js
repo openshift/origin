@@ -62,41 +62,47 @@ angular.module('openshiftConsole')
       watches.push(DataService.watch("builds", $scope, function(builds, action, build) {
         $scope.emptyMessage = "No builds to show";
         // TODO we should send the ?labelSelector=buildconfig=<name> on the API request
-        // to only load the buildconfig's builds, but this requires some DataService changes
-        var allBuilds = builds.by("metadata.name");
-        angular.forEach(allBuilds, function(build, name) {
-          if (build.metadata.labels && build.metadata.labels.buildconfig === $routeParams.buildconfig) {
-            $scope.unfilteredBuilds[name] = build;
-          }
-        });
-        LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredBuilds, $scope.labelSuggestions);
-        LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-        $scope.builds = LabelFilter.getLabelSelector().select($scope.unfilteredBuilds);      
-        updateFilterWarning();
-
-
-        var buildConfigName;
-        var buildName;
-        if (build) {
-          if (build.metadata.labels) {
-            buildConfigName = build.metadata.labels.buildconfig;
-          }
-          buildName = build.metadata.name;
-        }
+        // to only load the buildconfig's builds, but this requires some DataService changes  
 
         if (!action) {
+          $scope.unfilteredBuilds = {};
+          var allBuilds = builds.by("metadata.name");
+          angular.forEach(allBuilds, function(build, name) {
+            if (build.metadata.labels && build.metadata.labels.buildconfig === $routeParams.buildconfig) {
+              $scope.unfilteredBuilds[name] = build;
+            }
+          });
+
           // Loading of the page that will create buildConfigBuildsInProgress structure, which will associate running build to his buildConfig.
-          $scope.buildConfigBuildsInProgress = BuildsService.associateRunningBuildToBuildConfig($scope.builds);
-        } else if (action === 'ADDED'){
-          // When new build id instantiated/cloned associate him to his buildConfig and add him into buildConfigBuildsInProgress structure.
-          $scope.buildConfigBuildsInProgress[buildConfigName] = $scope.buildConfigBuildsInProgress[buildConfigName] || {};
-          $scope.buildConfigBuildsInProgress[buildConfigName][buildName] = build;
-        } else if (action === 'MODIFIED'){
-          // After the build ends remove him from the buildConfigBuildsInProgress structure.
-          if (!$filter('isIncompleteBuild')(build) && $scope.buildConfigBuildsInProgress[buildConfigName]){
-            delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
+          $scope.buildConfigBuildsInProgress = BuildsService.associateRunningBuildToBuildConfig($scope.unfilteredBuilds);
+        } else if (build.metadata.labels && build.metadata.labels.buildconfig === $routeParams.buildconfig) {
+          var buildName = build.metadata.name;
+          var buildConfigName = $routeParams.buildconfig;
+          switch (action) {
+            case 'ADDED':
+            case 'MODIFIED':
+              $scope.unfilteredBuilds[buildName] = build;
+              // After the build ends remove him from the buildConfigBuildsInProgress structure.
+              if ($filter('isIncompleteBuild')(build)){
+                $scope.buildConfigBuildsInProgress[buildConfigName] = $scope.buildConfigBuildsInProgress[buildConfigName] || {};
+                $scope.buildConfigBuildsInProgress[buildConfigName][buildName] = build;
+              } else if ($scope.buildConfigBuildsInProgress[buildConfigName]) {
+                delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
+              }
+              break;
+            case 'DELETED':
+              delete $scope.unfilteredBuilds[buildName];
+              if ($scope.buildConfigBuildsInProgress[buildConfigName]){
+                delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
+              }
+              break;
           }
-        }        
+        }
+        
+        $scope.builds = LabelFilter.getLabelSelector().select($scope.unfilteredBuilds); 
+        updateFilterWarning();
+        LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredBuilds, $scope.labelSuggestions);
+        LabelFilter.setLabelSuggestions($scope.labelSuggestions);    
       }));
     });
 

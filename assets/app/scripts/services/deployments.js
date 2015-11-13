@@ -212,6 +212,13 @@ angular.module("openshiftConsole")
       return deploymentsByDeploymentConfig;
     };
 
+    DeploymentsService.prototype.deploymentBelongsToConfig = function(deployment, deploymentConfigName) {
+      if (!deployment || !deploymentConfigName) {
+        return false;
+      }
+      return deploymentConfigName === $filter('annotation')(deployment, 'deploymentConfig');
+    };
+
     DeploymentsService.prototype.associateRunningDeploymentToDeploymentConfig = function(deploymentsByDeploymentConfig) {
       var deploymentConfigDeploymentsInProgress = {};
       angular.forEach(deploymentsByDeploymentConfig, function(deploymentConfigDeployments, deploymentConfigName) {
