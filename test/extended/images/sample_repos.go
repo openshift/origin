@@ -69,7 +69,7 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				err = oc.KubeFramework().WaitForAnEndpoint(c.serviceName)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				response, err := exutil.FetchURL("http://"+serviceIP+":8080"+c.appPath, time.Duration(10*time.Second))
+				response, err := exutil.FetchURL("http://"+serviceIP+":8080"+c.appPath, time.Duration(30*time.Second))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(response).Should(o.ContainSubstring(c.expectedString))
 			})

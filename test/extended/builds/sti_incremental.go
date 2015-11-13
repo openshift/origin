@@ -70,10 +70,14 @@ var _ = g.Describe("builds: s2i incremental build with push and pull to authenti
 			// so wait until webrick output is complete before curling.
 			logs := ""
 			count := 0
-			for strings.Contains(logs, "8080") && count < 10 {
+			maxCount := 30
+			for strings.Contains(logs, "8080") && count < maxCount {
 				logs, _ = oc.Run("logs").Args(pod.Name).Output()
 				time.Sleep(time.Second)
 				count++
+			}
+			if count == maxCount {
+				e2e.Failf("Never saw port 8080 open in pod logs")
 			}
 
 			g.By("expecting the pod container has saved artifacts")
