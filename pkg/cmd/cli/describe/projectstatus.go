@@ -354,7 +354,7 @@ func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
 func describeStandaloneBuildGroup(pipeline graphview.ImagePipeline, namespace string) []string {
 	switch {
 	case pipeline.Build != nil:
-		lines := []string{fmt.Sprintf("%s %s", pipeline.Build.ResourceString(), describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage))}
+		lines := []string{describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage)}
 		if pipeline.Image != nil {
 			lines = append(lines, fmt.Sprintf("pushes to %s", describeImageTagInPipeline(pipeline.Image, namespace)))
 		}
@@ -397,26 +397,26 @@ func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphview.Im
 		// TODO: handle case where no source repo
 		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
-			return fmt.Sprintf("unconfigured docker build bc/%s - no source set", build.Name)
+			return fmt.Sprintf("bc/%s unconfigured docker build - no source set", build.Name)
 		}
-		return fmt.Sprintf("docker build of %s through bc/%s", source, build.Name)
+		return fmt.Sprintf("bc/%s docker build of %s", build.Name, source)
 	case buildapi.SourceBuildStrategyType:
 		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
-			return fmt.Sprintf("unconfigured source build bc/%s", build.Name)
+			return fmt.Sprintf("bc/%s unconfigured source build", build.Name)
 		}
 		if baseImage == nil {
-			return fmt.Sprintf("%s through bc/%s; no image set", source, build.Name)
+			return fmt.Sprintf("bc/%s %s; no image set", build.Name, source)
 		}
-		return fmt.Sprintf("builds %s with %s through bc/%s", source, baseImage.ImageSpec(), build.Name)
+		return fmt.Sprintf("bc/%s builds %s with %s", build.Name, source, baseImage.ImageSpec())
 	case buildapi.CustomBuildStrategyType:
 		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
-			return fmt.Sprintf("custom build bc/%s ", build.Name)
+			return fmt.Sprintf("bc/%s custom build ", build.Name)
 		}
-		return fmt.Sprintf("custom build of %s through bc/%s", source, build.Name)
+		return fmt.Sprintf("bc/%s custom build of %s", build.Name, source)
 	default:
-		return fmt.Sprintf("unrecognized build bc/%s", build.Name)
+		return fmt.Sprintf("bc/%s unrecognized build", build.Name)
 	}
 }
 
