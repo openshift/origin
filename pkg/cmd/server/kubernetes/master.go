@@ -77,10 +77,13 @@ func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
 }
 
 func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string, client *client.Client) {
+	uid := int64(0)
 	defaultScrubPod := volume.NewPersistentVolumeRecyclerPodTemplate()
 	defaultScrubPod.Spec.Containers[0].Image = recyclerImageName
-	defaultScrubPod.Spec.Containers[0].Command = []string{"/usr/share/openshift/scripts/volumes/recycler.sh"}
+	defaultScrubPod.Spec.Containers[0].Command = []string{"/usr/bin/recycle"}
 	defaultScrubPod.Spec.Containers[0].Args = []string{"/scrub"}
+	defaultScrubPod.Spec.Containers[0].SecurityContext = &kapi.SecurityContext{RunAsUser: &uid}
+	defaultScrubPod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 
 	hostPathConfig := volume.VolumeConfig{
 		RecyclerMinimumTimeout:   30,

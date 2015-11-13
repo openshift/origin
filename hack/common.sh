@@ -31,6 +31,7 @@ readonly OS_IMAGE_COMPILE_TARGETS=(
   images/pod
   cmd/dockerregistry
   cmd/gitserver
+  cmd/recycle
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
   examples/hello-openshift
