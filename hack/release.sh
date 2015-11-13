@@ -18,7 +18,14 @@ if [[ -z "${OS_TAG}" ]]; then
 fi
 tag="${OS_TAG}"
 
-git tag "${tag}" -a -m "${tag}" HEAD
+if [[ "$(git name-rev --name-only --tags HEAD)" != "${tag}^0" ]]; then
+  if git rev-parse -q --short "${tag}" &>/dev/null; then
+    echo "Tag ${tag} already exists"
+    exit 1
+  else
+    git tag "${tag}" -a -m "${tag}" HEAD
+  fi
+fi
 
 docker pull openshift/origin-base
 docker pull openshift/origin-release
