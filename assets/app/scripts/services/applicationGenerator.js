@@ -188,6 +188,10 @@ angular.module("openshiftConsole")
     };
 
     scope._generateBuildConfig = function(input, imageSpec){
+      var env = [];
+      angular.forEach(input.buildConfig.envVars, function(value, key){
+        env.push({name: key, value: value});
+      });
       var triggers = [
         {
           generic: {
@@ -255,7 +259,8 @@ angular.module("openshiftConsole")
                 kind: "ImageStreamTag",
                 name: input.imageName + ":" + input.imageTag,
                 namespace: input.namespace
-              }
+              },
+              env: env
             }
           },
           triggers: triggers

@@ -738,4 +738,21 @@ angular.module('openshiftConsole')
 
       return false;
     };
+  })
+  .filter('buildStrategy', function() {
+    return function(build) {
+      if (!build || !build.spec || !build.spec.strategy) {
+        return null;
+      }
+      switch (build.spec.strategy.type) {
+        case 'Source':
+          return build.spec.strategy.sourceStrategy;
+        case 'Docker':
+          return build.spec.strategy.dockerStrategy;
+        case 'Custom':
+          return build.spec.strategy.customStrategy;
+        default:
+          return null;
+      }
+    };
   });
