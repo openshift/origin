@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -66,6 +67,12 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	req, err := http.NewRequest("GET", a.url, nil)
 	if err != nil {
 		return nil, false, err
+	}
+
+	// Basic auth does not support usernames containing colons
+	// http://tools.ietf.org/html/rfc2617#section-2
+	if strings.Contains(username, ":") {
+		return nil, false, fmt.Errorf("invalid username")
 	}
 
 	req.SetBasicAuth(username, password)

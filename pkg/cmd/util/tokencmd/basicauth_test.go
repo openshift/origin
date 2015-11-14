@@ -2,6 +2,7 @@ package tokencmd
 
 import (
 	"bytes"
+	"errors"
 	"net/http"
 	"reflect"
 	"testing"
@@ -151,6 +152,45 @@ Username: Password: `,
 				},
 			},
 		},
+
+		"invalid basic auth username": {
+			Handler: &BasicChallengeHandler{
+				Host:     "myhost",
+				Reader:   bytes.NewBufferString(""),
+				Username: "system:admin",
+				Password: "mypassword",
+			},
+			Challenges: []Challenge{
+				{
+					Headers:           basicChallenge,
+					ExpectedCanHandle: true,
+					ExpectedHeaders:   nil,
+					ExpectedHandled:   false,
+					ExpectedErr:       errors.New("username system:admin is invalid for basic auth"),
+					ExpectedPrompt:    "",
+				},
+			},
+		},
+		"invalid basic auth username prompt": {
+			Handler: &BasicChallengeHandler{
+				Host:     "myhost",
+				Reader:   bytes.NewBufferString(``),
+				Username: "system:admin",
+				Password: "",
+			},
+			Challenges: []Challenge{
+				{
+					Headers:           basicChallenge,
+					ExpectedCanHandle: true,
+					ExpectedHeaders:   nil,
+					ExpectedHandled:   false,
+					ExpectedErr:       errors.New("username system:admin is invalid for basic auth"),
+					ExpectedPrompt: `Authentication required for myhost (myrealm)
+Username: system:admin
+Password: `,
+				},
+			},
+		},
 	}
 
 	for k, tc := range testCases {
@@ -171,7 +211,7 @@ Username: Password: `,
 				if handled != challenge.ExpectedHandled {
 					t.Errorf("%s: %d: Expected handled=%v, got %v", k, i, challenge.ExpectedHandled, handled)
 				}
-				if err != challenge.ExpectedErr {
+				if ((err == nil) != (challenge.ExpectedErr == nil)) || (err != nil && err.Error() != challenge.ExpectedErr.Error()) {
 					t.Errorf("%s: %d: Expected err=%v, got %v", k, i, challenge.ExpectedErr, err)
 				}
 				if out.String() != challenge.ExpectedPrompt {
