@@ -2382,6 +2382,9 @@ _openshift_cli_scale()
     must_have_one_flag=()
     must_have_one_flag+=("--replicas=")
     must_have_one_noun=()
+    must_have_one_noun+=("deploymentconfig")
+    must_have_one_noun+=("job")
+    must_have_one_noun+=("replicationcontroller")
 }
 
 _openshift_cli_tag()
