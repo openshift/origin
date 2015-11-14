@@ -76,7 +76,7 @@ func (o *ValidateMasterConfigOptions) Complete(args []string) error {
 }
 
 // Run runs the master config validation and returns the result of the validation as a boolean as well as any errors
-// that occured trying to validate the file
+// that occurred trying to validate the file
 func (o *ValidateMasterConfigOptions) Run() (bool, error) {
 	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(o.MasterConfigFile)
 	if err != nil {

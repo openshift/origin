@@ -301,7 +301,7 @@ func (c *CLI) Execute() error {
 	return err
 }
 
-// FatalErr exits the test in case a fatal error has occured.
+// FatalErr exits the test in case a fatal error has occurred.
 func FatalErr(msg interface{}) {
 	e2e.Failf("%v", msg)
 }
