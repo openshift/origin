@@ -66,3 +66,7 @@ func (f *FakeGit) AddRemote(source, remote, url string) error {
 func (f *FakeGit) ShowFormat(source, ref, format string) (string, error) {
 	return "", nil
 }
+
+func (f *FakeGit) ListRemote(url string) error {
+	return nil
+}

@@ -66,8 +66,8 @@ func TestAddArguments(t *testing.T) {
 			unknown:    []string{},
 		},
 		"source": {
-			args:    []string{".", testDir, "git://server/repo.git"},
-			repos:   util.StringList([]string{".", testDir, "git://server/repo.git"}),
+			args:    []string{".", testDir, "git://github.com/openshift/origin.git"},
+			repos:   util.StringList([]string{".", testDir, "git://github.com/openshift/origin.git"}),
 			unknown: []string{},
 		},
 		"env": {
@@ -76,9 +76,9 @@ func TestAddArguments(t *testing.T) {
 			unknown: []string{},
 		},
 		"mix 1": {
-			args:       []string{"git://server/repo.git", "mysql+ruby~git@test.server/repo.git", "env1=test", "ruby-helloworld-sample"},
-			repos:      util.StringList([]string{"git://server/repo.git"}),
-			components: util.StringList([]string{"mysql+ruby~git@test.server/repo.git", "ruby-helloworld-sample"}),
+			args:       []string{"git://github.com/openshift/origin.git", "mysql+ruby~git@github.com/openshift/origin.git", "env1=test", "ruby-helloworld-sample"},
+			repos:      util.StringList([]string{"git://github.com/openshift/origin.git"}),
+			components: util.StringList([]string{"mysql+ruby~git@github.com/openshift/origin.git", "ruby-helloworld-sample"}),
 			env:        util.StringList([]string{"env1=test"}),
 			unknown:    []string{},
 		},
@@ -256,6 +256,9 @@ func TestBuildTemplates(t *testing.T) {
 }
 
 func TestEnsureHasSource(t *testing.T) {
+	gitLocalDir := createLocalGitDirectory(t)
+	defer os.RemoveAll(gitLocalDir)
+
 	tests := []struct {
 		name              string
 		cfg               AppConfig
@@ -271,7 +274,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: MockSourceRepositories(t),
+			repositories: MockSourceRepositories(t, gitLocalDir),
 			expectedErr:  "there are multiple code locations provided - use one of the following suggestions",
 		},
 		{
@@ -284,7 +287,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: MockSourceRepositories(t),
+			repositories: MockSourceRepositories(t, gitLocalDir),
 			expectedErr:  "Use '[image]~[repo]' to declare which code goes with which image",
 		},
 		{
@@ -319,7 +322,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: false,
 				}),
 			},
-			repositories: MockSourceRepositories(t)[:1],
+			repositories: MockSourceRepositories(t, gitLocalDir)[:1],
 			expectedErr:  "",
 		},
 		{
@@ -329,7 +332,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: false,
 				}),
 			},
-			repositories: MockSourceRepositories(t),
+			repositories: MockSourceRepositories(t, gitLocalDir),
 			expectedErr:  "",
 		},
 	}
@@ -421,10 +424,13 @@ func TestResolve(t *testing.T) {
 
 func TestDetectSource(t *testing.T) {
 	skipExternalGit(t)
+	gitLocalDir := createLocalGitDirectory(t)
+	defer os.RemoveAll(gitLocalDir)
+
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
-	mocks := MockSourceRepositories(t)
+	mocks := MockSourceRepositories(t, gitLocalDir)
 	tests := []struct {
 		name         string
 		cfg          *AppConfig
@@ -441,7 +447,7 @@ func TestDetectSource(t *testing.T) {
 				},
 				dockerSearcher: dockerSearcher,
 			},
-			repositories: []*app.SourceRepository{mocks[1]},
+			repositories: []*app.SourceRepository{mocks[0]},
 			expectedLang: "ruby",
 			expectedErr:  "",
 		},
@@ -1503,14 +1509,22 @@ func fakeSimpleDockerSearcher() app.Searcher {
 	}
 }
 
+func createLocalGitDirectory(t *testing.T) string {
+	dir, err := ioutil.TempDir(os.TempDir(), "s2i-test")
+	if err != nil {
+		t.Error(err)
+	}
+	os.Mkdir(filepath.Join(dir, ".git"), 0600)
+	return dir
+}
+
 // MockSourceRepositories is a set of mocked source repositories used for
 // testing
-func MockSourceRepositories(t *testing.T) []*app.SourceRepository {
+func MockSourceRepositories(t *testing.T, file string) []*app.SourceRepository {
 	var b []*app.SourceRepository
 	for _, location := range []string{
-		"some/location.git",
 		"https://github.com/openshift/ruby-hello-world.git",
-		"another/location.git",
+		file,
 	} {
 		s, err := app.NewSourceRepository(location)
 		if err != nil {

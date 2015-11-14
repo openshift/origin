@@ -9,6 +9,7 @@ import (
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/build"
+	"github.com/openshift/source-to-image/pkg/docker"
 	stierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/ignore"
 	"github.com/openshift/source-to-image/pkg/scm/file"
@@ -45,7 +46,7 @@ func newFakeBaseSTI() *STI {
 	return &STI{
 		config:    &api.Config{},
 		result:    &api.Result{},
-		docker:    &test.FakeDocker{},
+		docker:    &docker.FakeDocker{},
 		installer: &test.FakeInstaller{},
 		git:       &test.FakeGit{},
 		fs:        &test.FakeFileSystem{},
@@ -57,7 +58,7 @@ func newFakeSTI(f *FakeSTI) *STI {
 	s := &STI{
 		config:    &api.Config{},
 		result:    &api.Result{},
-		docker:    &test.FakeDocker{},
+		docker:    &docker.FakeDocker{},
 		installer: &test.FakeInstaller{},
 		git:       &test.FakeGit{},
 		fs:        &test.FakeFileSystem{},
@@ -273,8 +274,8 @@ func TestWasExpectedError(t *testing.T) {
 
 func testBuildHandler() *STI {
 	s := &STI{
-		docker:            &test.FakeDocker{},
-		incrementalDocker: &test.FakeDocker{},
+		docker:            &docker.FakeDocker{},
+		incrementalDocker: &docker.FakeDocker{},
 		installer:         &test.FakeInstaller{},
 		git:               &test.FakeGit{},
 		fs:                &test.FakeFileSystem{ExistsResult: map[string]bool{"a-repo-source/.": true}},
@@ -321,11 +322,11 @@ func TestPostExecute(t *testing.T) {
 		bh.config.CallbackURL = "https://my.callback.org/test"
 		bh.config.Tag = tc.tag
 		bh.config.Incremental = tc.incremental
-		dh := bh.docker.(*test.FakeDocker)
+		dh := bh.docker.(*docker.FakeDocker)
 		if tc.previousImageID != "" {
 			bh.config.RemovePreviousImage = true
 			bh.incremental = tc.incremental
-			bh.docker.(*test.FakeDocker).GetImageIDResult = tc.previousImageID
+			bh.docker.(*docker.FakeDocker).GetImageIDResult = tc.previousImageID
 		}
 		ci := bh.callbackInvoker.(*test.FakeCallbackInvoker)
 		if tc.scriptsFromImage {
@@ -396,9 +397,9 @@ func TestExists(t *testing.T) {
 		bh := testBuildHandler()
 		bh.config.WorkingDir = "/working-dir"
 		bh.config.Incremental = ti.incremental
-		bh.config.ForcePull = true
+		bh.config.BuilderPullPolicy = api.PullAlways
 		bh.installedScripts = map[string]bool{api.SaveArtifacts: ti.scriptInstalled}
-		bh.incrementalDocker.(*test.FakeDocker).PullResult = ti.previousImage
+		bh.incrementalDocker.(*docker.FakeDocker).PullResult = ti.previousImage
 		bh.config.DockerConfig = &api.DockerConfig{Endpoint: "http://localhost:4243"}
 		incremental := bh.Exists(bh.config)
 		if incremental != ti.expected {
@@ -424,7 +425,7 @@ func TestSaveArtifacts(t *testing.T) {
 	bh.config.WorkingDir = "/working-dir"
 	bh.config.Tag = "image/tag"
 	fs := bh.fs.(*test.FakeFileSystem)
-	fd := bh.docker.(*test.FakeDocker)
+	fd := bh.docker.(*docker.FakeDocker)
 	th := bh.tar.(*test.FakeTar)
 	err := bh.Save(bh.config)
 	if err != nil {
@@ -458,7 +459,7 @@ func TestSaveArtifactsRunError(t *testing.T) {
 	for i := range tests {
 		for _, te := range tarError {
 			bh := testBuildHandler()
-			fd := bh.docker.(*test.FakeDocker)
+			fd := bh.docker.(*docker.FakeDocker)
 			th := bh.tar.(*test.FakeTar)
 			fd.RunContainerError = tests[i]
 			if te {
@@ -476,7 +477,7 @@ func TestSaveArtifactsRunError(t *testing.T) {
 
 func TestSaveArtifactsErrorBeforeStart(t *testing.T) {
 	bh := testBuildHandler()
-	fd := bh.docker.(*test.FakeDocker)
+	fd := bh.docker.(*docker.FakeDocker)
 	expected := fmt.Errorf("run error")
 	fd.RunContainerError = expected
 	fd.RunContainerErrorBeforeStart = true
@@ -708,10 +709,10 @@ func TestExecuteOK(t *testing.T) {
 	rh.postExecutor = pe
 	rh.config.WorkingDir = "/working-dir"
 	rh.config.BuilderImage = "test/image"
-	rh.config.ForcePull = true
+	rh.config.BuilderPullPolicy = api.PullAlways
 	th := rh.tar.(*test.FakeTar)
 	th.CreateTarResult = "/working-dir/test.tar"
-	fd := rh.docker.(*test.FakeDocker)
+	fd := rh.docker.(*docker.FakeDocker)
 	fd.RunContainerContainerID = "1234"
 	fd.RunContainerCmd = []string{"one", "two"}
 
@@ -744,8 +745,8 @@ func TestExecuteOK(t *testing.T) {
 	if _, ok := ro.Stdin.(*io.PipeReader); !ok {
 		t.Errorf("Unexpected input stream: %#v", ro.Stdin)
 	}
-	if !ro.PullImage {
-		t.Errorf("PullImage is not true for RunContainer")
+	if ro.PullImage {
+		t.Errorf("PullImage is true for RunContainer, should be false")
 	}
 	if ro.Command != "test-command" {
 		t.Errorf("Unexpected command passed to RunContainer: %s",
@@ -767,7 +768,7 @@ func TestExecuteErrorCreateTarFile(t *testing.T) {
 	if err != nil {
 		t.Errorf("An error was expected for CreateTarFile, but got different: %v", err)
 	}
-	ro := rh.docker.(*test.FakeDocker).RunContainerOpts
+	ro := rh.docker.(*docker.FakeDocker).RunContainerOpts
 	if ro.Stdin == nil {
 		t.Fatalf("Stream not passed to Docker interface")
 	}

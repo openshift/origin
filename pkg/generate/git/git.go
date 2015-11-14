@@ -2,10 +2,10 @@ package git
 
 import (
 	"bufio"
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 	"io"
 	"net/url"
 	"path"
-	"path/filepath"
 	"strings"
 )
 
@@ -16,29 +16,25 @@ import (
 // - http, https
 // - file
 // - git
+// - ssh
 func ParseRepository(s string) (*url.URL, error) {
 	uri, err := url.Parse(s)
 	if err != nil {
 		return nil, err
 	}
 
-	if uri.Scheme == "" && !strings.HasPrefix(uri.Path, "git@") {
-		path := s
-		ref := ""
-		segments := strings.SplitN(path, "#", 2)
-		if len(segments) == 2 {
-			path, ref = segments[0], segments[1]
-		}
-		path, err := filepath.Abs(path)
-		if err != nil {
-			return nil, err
-		}
-		uri = &url.URL{
-			Scheme:   "file",
-			Path:     path,
-			Fragment: ref,
-		}
+	// There are some shortcomings with url.Parse when it comes to GIT, namely wrt
+	// the GIT local/file and ssh protocols - it does not handle implied schema (i.e. no <proto>:// prefix)well;
+	// We handle those caveats here
+	err = s2igit.New().MungeNoProtocolURL(s, uri)
+	if err != nil {
+		return nil, err
 	}
+	//TODO temporary work around for s2i's MungeNoProtocolURL (which is not used in s2i at the moment)
+	// there is some overloaded usage between the uri Path and the Path needed for DownloaderForSource
+	// this temporary work around  can sit here even after the s2i change (including duplicating tests in this dir's git_test.go  to source-to-image/pkg/scm/git/git_test.go)
+	// gets Godeps into origin, and then we can remove this
+	uri.Path = strings.TrimPrefix(uri.Path, "file://")
 
 	return uri, nil
 }

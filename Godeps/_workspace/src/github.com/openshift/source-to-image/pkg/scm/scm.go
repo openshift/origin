@@ -2,10 +2,8 @@ package scm
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
+
+	"github.com/golang/glog"
 
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/scm/file"
@@ -16,52 +14,30 @@ import (
 // DownloaderForSource determines what SCM plugin should be used for downloading
 // the sources from the repository.
 func DownloaderForSource(s string) (build.Downloader, string, error) {
-	// If the source is using file:// protocol but it is not a GIT repository,
-	// trim the prefix and treat it as a file copy.
-	if strings.HasPrefix(s, "file://") && !isLocalGitRepository(s) {
-		s = strings.TrimPrefix(s, "file://")
+	glog.V(4).Infof("DownloadForSource %s", s)
+
+	details, mods := git.ParseFile(s)
+	glog.V(4).Infof("return from ParseFile file exists %v proto specified %v use copy %v", details.FileExists, details.ProtoSpecified, details.UseCopy)
+
+	if details.FileExists && details.BadRef {
+		return nil, s, fmt.Errorf("local location referenced by %s exists but the input after the # is malformed", s)
 	}
 
-	// If the source is file:// protocol and it is GIT repository, but we don't
-	// have GIT binary to fetch it, treat it as file copy.
-	if strings.HasPrefix(s, "file://") && !hasGitBinary() {
-		s = strings.TrimPrefix(s, "file://")
+	if details.FileExists && mods != nil {
+		glog.V(4).Infof("new path from parse file %s", mods.Path)
+		s = mods.Path
 	}
 
-	// If the source is valid GIT protocol (file://, git://, git@, etc..) use GIT
-	// binary to download the sources
-	if g := git.New(); g.ValidCloneSpec(s) {
-		return &git.Clone{g, util.NewFileSystem()}, s, nil
-	}
-
-	// Convert relative path to absolute path.
-	if !strings.HasPrefix(s, "/") {
-		if absolutePath, err := filepath.Abs(s); err == nil {
-			s = absolutePath
-		}
-	}
-
-	if isLocalGitRepository(s) {
-		return DownloaderForSource("file://" + s)
-	}
-
-	// If we have local directory and that directory exists, use file copy
-	if _, err := os.Stat(s); err == nil {
+	if details.FileExists && details.UseCopy {
 		return &file.File{util.NewFileSystem()}, s, nil
 	}
 
-	return nil, s, fmt.Errorf("No downloader defined for location: %q", s)
-}
+	// If the source is valid  GIT protocol (file://, ssh://, git://, git@, etc..) use GIT
+	// binary to download the sources
+	g := git.New()
+	if g.ValidCloneSpec(s) {
+		return &git.Clone{g, util.NewFileSystem()}, s, nil
+	}
 
-// isLocalGitRepository checks if the specified directory has .git subdirectory (it
-// is a GIT repository)
-func isLocalGitRepository(dir string) bool {
-	_, err := os.Stat(fmt.Sprintf("%s/.git", strings.TrimPrefix(dir, "file://")))
-	return !(err != nil && os.IsNotExist(err))
-}
-
-// hasGitBinary checks if the 'git' binary is available on the system
-func hasGitBinary() bool {
-	_, err := exec.LookPath("git")
-	return err == nil
+	return nil, s, fmt.Errorf("no downloader defined for location: %q", s)
 }

@@ -3,7 +3,6 @@ package build
 import (
 	"fmt"
 
-	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker"
 )
@@ -11,21 +10,11 @@ import (
 // GenerateConfigFromLabels generates the S2I Config struct from the Docker
 // image labels.
 func GenerateConfigFromLabels(image string, config *api.Config) error {
-	d, err := docker.New(config.DockerConfig, config.PullAuthentication)
+	result, err := docker.GetBuilderImage(config)
 	if err != nil {
 		return err
 	}
-
-	var source *dockerclient.Image
-	if config.ForcePull {
-		source, err = d.PullImage(image)
-	} else {
-		source, err = d.CheckAndPullImage(image)
-	}
-
-	if err != nil {
-		return err
-	}
+	source := result.Image
 
 	if builderVersion, ok := source.Config.Labels["io.openshift.builder-version"]; ok {
 		config.BuilderImageVersion = builderVersion
