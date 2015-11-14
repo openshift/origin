@@ -11,11 +11,11 @@ os::log::install_errexit
 # This test validates template commands
 
 oc get templates
-oc create -f examples/sample-app/application-template-dockerbuild.json 
+oc create -f examples/sample-app/application-template-dockerbuild.json
 oc get templates
 oc get templates ruby-helloworld-sample
-oc get template ruby-helloworld-sample -o json | oc process -f -
-oc process ruby-helloworld-sample
+oc get template ruby-helloworld-sample -o json | oc process -f - >/dev/null
+oc process ruby-helloworld-sample >/dev/null
 oc describe templates ruby-helloworld-sample
 [ "$(oc describe templates ruby-helloworld-sample | grep -E "BuildConfig.*ruby-sample-build")" ]
 oc delete templates ruby-helloworld-sample

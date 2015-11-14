@@ -287,7 +287,8 @@ done
 # Done
 echo
 echo
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/metrics" "metrics: " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/metrics" "metrics: " 0.25 80 > "${LOG_DIR}/metrics.log"
+grep "request_count" "${LOG_DIR}/metrics.log"
 echo
 echo
 echo "test-cmd: ok"
