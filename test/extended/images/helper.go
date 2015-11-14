@@ -50,7 +50,7 @@ func CheckPageContains(oc *exutil.CLI, endpoint, path, contents string) (bool, e
 		return false, err
 	}
 
-	response, err := exutil.FetchURL(fmt.Sprintf("http://%s/%s", address, path), 60*time.Second)
+	response, err := exutil.FetchURL(fmt.Sprintf("http://%s/%s", address, path), 3*time.Minute)
 	if err != nil {
 		return false, err
 	}
