@@ -1,6 +1,8 @@
 package netnamespace
 
 import (
+	"fmt"
+
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
@@ -116,42 +118,50 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bo
 		return nil, false, errors.NewInvalid("netNamespace", netns.Name, errs)
 	}
 
-	err = rs.updateNetID(oldNetns, netns)
-	if err != nil {
-		return nil, false, err
+	createdNetID := false
+	changedNetID := true
+	if netns.NetID == nil {
+		err = rs.assignNetID(netns)
+		if err != nil {
+			return nil, false, err
+		}
+		createdNetID = true
+	} else if *oldNetns.NetID == *netns.NetID {
+		changedNetID = false
+	} else if *netns.NetID != vnid.GlobalVNID {
+		err = rs.vnids.Allocate(*netns.NetID)
+		if err != vnidallocator.ErrAllocated {
+			return nil, false, fmt.Errorf("NetID %d is not allocated, you can only use existing NetID during update")
+		}
 	}
 
 	out, err := rs.registry.UpdateNetNamespace(ctx, netns)
 	if err != nil {
-		er := rs.updateNetID(netns, oldNetns)
-		if er != nil {
-			// problems should be fixed by an eventual reconciliation / restart
-			glog.Errorf("error(s) committing NetID changes: %v", er)
+		if createdNetID {
+			er := rs.revokeNetID(netns)
+			if er != nil {
+				// these should be caught by an eventual reconciliation / restart
+				glog.Errorf("Error releasing netnamespace %s NetID %d: %v", netns.Name, *netns.NetID, er)
+			}
 		}
+		return nil, false, err
 	}
-	return out, false, err
-}
 
-func (rs *REST) updateNetID(oldNetns, newNetns *api.NetNamespace) error {
-	if oldNetns.NetID != newNetns.NetID {
-		err := rs.revokeNetID(oldNetns)
-		if err != nil {
+	if changedNetID {
+		er := rs.revokeNetID(oldNetns)
+		if er != nil {
 			// these should be caught by an eventual reconciliation / restart
-			glog.Errorf("Error releasing netnamespace %s NetID %d: %v", oldNetns.Name, oldNetns.NetID, err)
-		}
-		err = rs.assignNetID(newNetns)
-		if err != nil {
-			return err
+			glog.Errorf("Error releasing netnamespace %s NetID %d: %v", oldNetns.Name, *oldNetns.NetID, er)
 		}
 	}
-	return nil
+	return out, false, nil
 }
 
 func (rs *REST) assignNetID(netns *api.NetNamespace) error {
 	if rs.isGlobalNamespace(netns) {
 		netns.NetID = new(uint)
 		*netns.NetID = vnid.GlobalVNID
-	} else if isNetIDSet(netns) {
+	} else if netns.NetID != nil {
 		// Try to respect the requested Net ID.
 		if err := rs.vnids.Allocate(*netns.NetID); err != nil {
 			el := fielderrors.ValidationErrorList{fielderrors.NewFieldInvalid("NetID", netns.NetID, err.Error())}
@@ -193,6 +203,9 @@ func (rs *REST) revokeNetID(netns *api.NetNamespace) error {
 	return rs.vnids.Release(*netns.NetID)
 }
 
+// isGlobalNamespace returns true in these cases:
+// - when NetID = vnid.GlobalVNID or
+// - NetName is in the rs.globalNamespaces
 func (rs *REST) isGlobalNamespace(netns *api.NetNamespace) bool {
 	if (netns.NetID != nil) && (*netns.NetID == vnid.GlobalVNID) {
 		return true
@@ -201,8 +214,4 @@ func (rs *REST) isGlobalNamespace(netns *api.NetNamespace) bool {
 		return true
 	}
 	return false
-}
-
-func isNetIDSet(netns *api.NetNamespace) bool {
-	return (netns.NetID != nil)
 }
