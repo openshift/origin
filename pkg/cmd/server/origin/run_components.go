@@ -36,9 +36,10 @@ import (
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn/factory"
+	sdnfactory "github.com/openshift/openshift-sdn/plugins/osdn/factory"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	vnidcontroller "github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnidallocator/controller"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 )
 
@@ -329,7 +330,7 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 // RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
 	oClient, kClient := c.SDNControllerClients()
-	controller, _, err := factory.NewPlugin(c.Options.NetworkConfig.NetworkPluginName, oClient, kClient, "", "")
+	controller, _, err := sdnfactory.NewPlugin(c.Options.NetworkConfig.NetworkPluginName, oClient, kClient, "", "")
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
@@ -350,6 +351,22 @@ func (c *MasterConfig) RunImageImportController() {
 	}
 	controller := factory.Create()
 	controller.Run()
+}
+
+// RunNetIDAllocationController starts the VNID allocation controller process.
+func (c *MasterConfig) RunNetIDAllocationController() {
+	// NetID allocator is only required for multitenant network plugin
+	if !sdnfactory.IsMultitenantNetworkPlugin(c.Options.NetworkConfig.NetworkPluginName) {
+		return
+	}
+
+	repair := vnidcontroller.NewRepair(15*time.Minute, c.MultitenantNetworkConfig.NetNamespaceRegistry, c.MultitenantNetworkConfig.NetIDRange, c.MultitenantNetworkConfig.NetIDRegistry)
+	if err := repair.RunOnce(); err != nil {
+		glog.Fatalf("Unable to initialize netnamespace allocation: %v", err)
+	}
+
+	runner := util.NewRunner(repair.RunUntil)
+	runner.Start()
 }
 
 // RunSecurityAllocationController starts the security allocation controller process.
