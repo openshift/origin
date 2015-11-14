@@ -89,7 +89,7 @@ sudo docker run -d --name="origin" \
 CURL_EXTRA="-k"
 wait_for_url "https://localhost:8443/healthz/ready" "apiserver(ready): " 0.25 160
 
-IMAGE_WORKING_DIR=/var/lib/openshift
+IMAGE_WORKING_DIR=/var/lib/origin
 docker cp origin:${IMAGE_WORKING_DIR}/openshift.local.config ${BASETMPDIR}
 
 export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
