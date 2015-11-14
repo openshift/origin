@@ -344,7 +344,7 @@ terminal session. Can be used to debug containers and invoke interactive command
   $ %[1]s attach 123456-7890
 
   # Get output from ruby-container from pod 123456-7890
-  $ %[1]s attach 123456-7890 -c ruby-container date
+  $ %[1]s attach 123456-7890 -c ruby-container
 
   # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780
   # and sends stdout/stderr from 'bash' back to the client
