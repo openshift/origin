@@ -217,7 +217,7 @@ function ensure_iptables_or_die {
 	set -e
 }
 
-# tryuntil loops, retrying an action until it succeeds a 90
+# tryuntil loops, retrying an action until it succeeds or times out after 90 seconds.
 function tryuntil {
 	timeout=$(($(date +%s) + 90))
 	echo "++ Retrying until success or timeout: ${@}"
