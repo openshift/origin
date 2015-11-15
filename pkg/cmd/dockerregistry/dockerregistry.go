@@ -43,10 +43,6 @@ func Execute(configFile io.Reader) {
 
 	app := handlers.NewApp(ctx, *config)
 
-	// register OpenShift routes
-	// TODO: change this to an anonymous Access record
-	app.RegisterRoute(app.NewRoute().Path("/healthz"), server.HealthzHandler, handlers.NameNotRequired, handlers.NoCustomAccessRecords)
-
 	// TODO add https scheme
 	adminRouter := app.NewRoute().PathPrefix("/admin/").Subrouter()
 

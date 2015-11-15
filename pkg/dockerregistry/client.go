@@ -24,6 +24,7 @@ const (
 	publicV1DockerHubHost = "index.docker.io"
 	// TODO: is there a better URL?
 	publicV2DockerHubHost = "registry-1.docker.io"
+	HealthRoutePath       = "/v2/"
 )
 
 type Image struct {

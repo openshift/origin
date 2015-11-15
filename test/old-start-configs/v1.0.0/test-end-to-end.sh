@@ -321,7 +321,7 @@ registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short
 [[ -n "${registry}" && "${registry}:5000" == "${DOCKER_REGISTRY}" ]]
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
-wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry says: " $((2*TIME_MIN))
+wait_for_url_timed "http://${DOCKER_REGISTRY}/v2/" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
 [ "$(dig @${API_HOST} "docker-registry.default.local." A)" ]
 
@@ -404,7 +404,7 @@ oc exec -p ${registry_pod} id | grep 10
 # Port forwarding
 echo "[INFO] Validating port-forward"
 oc port-forward -p ${registry_pod} 5001:5000  &> "${LOG_DIR}/port-forward.log" &
-wait_for_url_timed "http://localhost:5001/healthz" "[INFO] Docker registry says: " $((10*TIME_SEC))
+wait_for_url_timed "http://localhost:5001/v2/" "[INFO] Docker registry says: " $((10*TIME_SEC))
 
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then
