@@ -289,3 +289,12 @@ func (d ByLatestVersionDesc) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
 func (d ByLatestVersionDesc) Less(i, j int) bool {
 	return DeploymentVersionFor(&d[j]) < DeploymentVersionFor(&d[i])
 }
+
+// ByMostRecent sorts deployments by most recently created.
+type ByMostRecent []*api.ReplicationController
+
+func (s ByMostRecent) Len() int      { return len(s) }
+func (s ByMostRecent) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s ByMostRecent) Less(i, j int) bool {
+	return !s[i].CreationTimestamp.Before(s[j].CreationTimestamp)
+}

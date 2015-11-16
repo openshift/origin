@@ -111,8 +111,8 @@ func (o *perDeploymentConfigResolver) Resolve() ([]*kapi.ReplicationController, 
 				failedDeployments = append(failedDeployments, deployment)
 			}
 		}
-		sort.Sort(sortableReplicationControllers(completeDeployments))
-		sort.Sort(sortableReplicationControllers(failedDeployments))
+		sort.Sort(deployutil.ByMostRecent(completeDeployments))
+		sort.Sort(deployutil.ByMostRecent(failedDeployments))
 
 		if o.keepComplete >= 0 && o.keepComplete < len(completeDeployments) {
 			results = append(results, completeDeployments[o.keepComplete:]...)
