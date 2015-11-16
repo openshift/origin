@@ -20,6 +20,7 @@ type KeyValue struct {
 type GitClient interface {
 	CloneWithOptions(dir string, url string, opts git.CloneOptions) error
 	Checkout(dir string, ref string) error
+	SubmoduleUpdate(dir string, init, recursive bool) error
 	ListRemote(url string, args ...string) (string, string, error)
 	GetInfo(location string) (*git.SourceInfo, []error)
 }

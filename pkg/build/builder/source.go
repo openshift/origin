@@ -198,21 +198,32 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 		return true, err
 	}
 
+	// check if we specify a commit, ref, or branch to check out
+	usingRef := len(gitSource.Ref) != 0 || (revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0)
+
+	// Recursive clone if we're not going to checkout a ref and submodule update later
 	glog.V(2).Infof("Cloning source from %s", gitSource.URI)
 
 	// Only use the quiet flag if Verbosity is not 5 or greater
 	quiet := !bool(glog.V(5))
-	if err := gitClient.CloneWithOptions(dir, gitSource.URI, git.CloneOptions{Recursive: true, Quiet: quiet}); err != nil {
+	if err := gitClient.CloneWithOptions(dir, gitSource.URI, git.CloneOptions{Recursive: !usingRef, Quiet: quiet}); err != nil {
 		return true, err
 	}
 
-	// if we specify a commit, ref, or branch to checkout, do so
-	if len(gitSource.Ref) != 0 || (revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0) {
+	// if we specify a commit, ref, or branch to checkout, do so, and update submodules
+	if usingRef {
 		commit := gitSource.Ref
+
 		if revision != nil && revision.Git != nil && revision.Git.Commit != "" {
 			commit = revision.Git.Commit
 		}
+
 		if err := gitClient.Checkout(dir, commit); err != nil {
+			return true, err
+		}
+
+		// Recursively update --init
+		if err := gitClient.SubmoduleUpdate(dir, true, true); err != nil {
 			return true, err
 		}
 	}
