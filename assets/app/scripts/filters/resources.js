@@ -755,4 +755,17 @@ angular.module('openshiftConsole')
           return null;
       }
     };
+  })
+  .filter('humanizeResourceType', function() {
+    return function(resourceType) {
+      var nameFormatMap = {
+        'imagestream': 'Image Stream',
+        'pod': 'Pod',
+        'service': 'Service',
+        'buildconfig': 'Build Config',
+        'deploymentconfig': 'Deployment Config',
+        'project': 'Project'
+      };
+      return nameFormatMap[resourceType];
+    };
   });

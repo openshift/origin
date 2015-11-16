@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('DeploymentsController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver, DeploymentsService) {
+  .controller('DeploymentsController', function ($scope, AlertMessageService, DataService, $filter, LabelFilter, Logger, ImageStreamResolver, DeploymentsService) {
     $scope.deployments = {};
     $scope.unfilteredDeploymentConfigs = {};
     // leave undefined so we know when data is loaded
@@ -20,6 +20,12 @@ angular.module('openshiftConsole')
     $scope.expandedDeploymentConfigRow = {};
     $scope.unfilteredReplicationControllers = {};
 
+    // get and clear any alerts
+    AlertMessageService.getAlerts().forEach(function(alert) {
+      $scope.alerts[alert.name] = alert.data;
+    });
+    AlertMessageService.clearAlerts();
+    
     var watches = [];
 
     watches.push(DataService.watch("replicationcontrollers", $scope, function(deployments, action, deployment) {

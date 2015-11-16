@@ -9,6 +9,13 @@
           <div class="tile">
             <h1>
               {{service.metadata.name}}
+              <delete-button 
+                class="pull-right fa-lg"
+                resource-type="service" 
+                resource-name="{{service.metadata.name}}" 
+                project-name="{{service.metadata.namespace}}" 
+                alerts="alerts">
+              </delete-button>
               <small class="meta">created <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></small>
             </h1>
             <labels labels="service.metadata.labels" clickable="true" kind="services" project-name="{{service.metadata.namespace}}" limit="3"></labels>
@@ -76,7 +83,7 @@
             </div>
           </div> <!-- /tile -->
         </div> <!-- /col -->
-      </div> <!-- /row -->        
+      </div> <!-- /row -->
     </div>
   </project-page>
 </div>
