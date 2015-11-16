@@ -201,10 +201,10 @@ mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
 for cmd in openshift-router openshift-deploy openshift-sti-build openshift-docker-build origin atomic-enterprise \
   oadm kubernetes kubelet kube-proxy kube-apiserver kube-controller-manager kube-scheduler ; do
-    ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/$cmd
+    ln -s openshift %{buildroot}%{_bindir}/$cmd
 done
 
-ln -s %{_bindir}/oc %{buildroot}%{_bindir}/kubectl
+ln -s oc %{buildroot}%{_bindir}/kubectl
 
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
