@@ -1,4 +1,4 @@
-<div ng-controller="BuildConfigController" class="content">
+<div class="content">
   <project-page>
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
@@ -7,10 +7,10 @@
       <div>
         <h1>
           {{buildConfig.metadata.name}}
-          <delete-button 
+          <delete-button
             class="pull-right fa-lg"
-            resource-type="buildconfig" 
-            resource-name="{{buildConfig.metadata.name}}" 
+            resource-type="buildconfig"
+            resource-name="{{buildConfig.metadata.name}}"
             project-name="{{buildConfig.metadata.namespace}}"
             alerts="alerts">
           </delete-button>
@@ -54,7 +54,7 @@
                     <dt ng-if="buildConfig.spec.source.git.ref">Source ref:</dt>
                     <dd ng-if="buildConfig.spec.source.git.ref">{{buildConfig.spec.source.git.ref}}</dd>
                     <dt ng-if="buildConfig.spec.source.contextDir">Source context dir:</dt>
-                    <dd ng-if="buildConfig.spec.source.contextDir">{{buildConfig.spec.source.contextDir}}</dd>            
+                    <dd ng-if="buildConfig.spec.source.contextDir">{{buildConfig.spec.source.contextDir}}</dd>
                   </div>
                 </div>
                 <div ng-if="buildConfig.spec.output.to">
@@ -68,8 +68,8 @@
                   <dt ng-repeat-start="envVar in (buildConfig | buildStrategy).env">{{envVar.name}}:</dt>
                   <dd ng-repeat-end>{{envVar.value}}</dd>
                 </dl>
-              </div>               
-            </div>               
+              </div>
+            </div>
             <div class="col-lg-6">
               <h3>Triggers</h3>
               <dl class="dl-horizontal left">
@@ -150,7 +150,7 @@
                 </dd>
 
               </dl>
-            </div>        
+            </div>
           </div>
           <annotations annotations="buildConfig.metadata.annotations"></annotations>
         </div>
@@ -173,31 +173,24 @@
             <td data-title="Build">
               <!-- Build number and link -->
               <span ng-if="build | annotation : 'buildNumber'">
-                <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{buildConfig.metadata.name}}/{{build.metadata.name}}">#{{build | annotation : 'buildNumber'}}</a>
+                <a ng-href="{{build | navigateResourceURL}}">#{{build | annotation : 'buildNumber'}}</a>
               </span>
               <span ng-if="!(build | annotation : 'buildNumber')">
-                <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{buildConfig.metadata.name}}/{{build.metadata.name}}">{{build.metadata.name}}</a>
+                <a ng-href="{{build | navigateResourceURL}}">{{build.metadata.name}}</a>
               </span>
               <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
             </td>
             <td data-title="Status">
               <div row class="status">
                 <!-- Build status -->
-                <span ng-switch="build.status.phase" class="hide-ng-leave status-icon">
-                  <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
-                  <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
-                  <span ng-switch-when="Error" class="fa fa-times text-danger" aria-hidden="true"></span>
-                  <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>
-                  <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-                  <span ng-switch-default class="fa fa-refresh" aria-hidden="true"></span>
-                </span>
+                <status-icon status="build.status.phase" disable-animation></status-icon>
                 <span flex>
                   <span>{{build.status.phase}}</span>
                   <!-- Build duration -->
                   <span ng-switch="build.status.phase" class="hide-ng-leave">
                     <span ng-switch-when="Complete"> in {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
                     <span ng-switch-when="Failed">after {{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
-                    <span ng-switch-when="Cancelled"> after {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>                  
+                    <span ng-switch-when="Cancelled"> after {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
                     <span ng-switch-when="Running"> for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
                     <span ng-switch-when="New">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
                     <span ng-switch-when="Pending">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>

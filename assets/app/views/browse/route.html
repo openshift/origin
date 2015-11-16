@@ -1,4 +1,4 @@
-<div ng-controller="RouteController" class="content">
+<div class="content">
   <project-page>
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
@@ -21,7 +21,7 @@
                   </span>
                   <span ng-if="!(route | isWebRoute)">
                     {{route | routeLabel}}
-                  </span>            
+                  </span>
                 </dd>
                 <dt>Path:</dt>
                 <dd>
@@ -68,7 +68,7 @@
                 </dl>
                 <div ng-if="!route.spec.tls"><em>TLS is not enabled for this route</em></div>
               </div>
-              <annotations annotations="route.metadata.annotations"></annotations>              
+              <annotations annotations="route.metadata.annotations"></annotations>
             </div>
           </div> <!-- /tile -->
         </div> <!-- /col -->

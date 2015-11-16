@@ -10,7 +10,7 @@
 angular.module('openshiftConsole')
   .controller('ProjectsController', function ($scope, $route, $filter, $location, $modal, DataService, AuthService, AlertMessageService, Logger, hashSizeFilter) {
     $scope.projects = {};
-    $scope.alerts = $scope.alerts || {};
+    $scope.alerts = {};
     $scope.showGetStarted = false;
     $scope.canCreate = undefined;
 
