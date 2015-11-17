@@ -156,7 +156,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 
 	// provide any config overrides
 	cfg.NodeName = options.NodeName
-	cfg.StreamingConnectionIdleTimeout = 5 * time.Minute // TODO: should be set
 	cfg.KubeClient = kubeClient
 	cfg.DockerExecHandler = dockerExecHandler
 
