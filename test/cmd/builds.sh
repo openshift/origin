@@ -26,7 +26,7 @@ oc get buildConfigs
 oc get bc
 oc get builds
 
-# make sure the imagestream is imported before starting a build or the build will immediately fail.
+# make sure the imagestream has the latest tag before starting a build or the build will immediately fail.
 wait_for_command "oc get is ruby-20-centos7 | grep latest"
 
 REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}')
