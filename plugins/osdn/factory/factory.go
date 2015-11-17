@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
+	oskserver "github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"github.com/openshift/openshift-sdn/plugins/osdn/flatsdn"
@@ -15,7 +16,7 @@ import (
 )
 
 // Call by higher layers to create the plugin instance
-func NewPlugin(pluginType string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, ready chan struct{}) (api.OsdnPlugin, error) {
+func NewPlugin(pluginType string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, ready chan struct{}) (api.OsdnPlugin, oskserver.FilteringEndpointsConfigHandler, error) {
 	switch strings.ToLower(pluginType) {
 	case flatsdn.NetworkPluginName():
 		return flatsdn.CreatePlugin(osdn.NewRegistry(osClient, kClient), hostname, selfIP, ready)
@@ -23,5 +24,5 @@ func NewPlugin(pluginType string, osClient *osclient.Client, kClient *kclient.Cl
 		return multitenant.CreatePlugin(osdn.NewRegistry(osClient, kClient), hostname, selfIP, ready)
 	}
 
-	return nil, fmt.Errorf("unknown network plugin type: %v", pluginType)
+	return nil, nil, fmt.Errorf("unknown network plugin type: %v", pluginType)
 }

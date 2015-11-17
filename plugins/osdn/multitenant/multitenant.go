@@ -8,7 +8,7 @@ import (
 
 	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
-	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+	oskserver "github.com/openshift/origin/pkg/cmd/server/kubernetes"
 
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -23,15 +23,15 @@ func NetworkPluginName() string {
 	return "redhat/openshift-ovs-multitenant"
 }
 
-func CreatePlugin(registry *osdn.Registry, hostname string, selfIP string, ready chan struct{}) (api.OsdnPlugin, error) {
+func CreatePlugin(registry *osdn.Registry, hostname string, selfIP string, ready chan struct{}) (api.OsdnPlugin, oskserver.FilteringEndpointsConfigHandler, error) {
 	mtp := &multitenantPlugin{}
 
 	err := mtp.BaseInit(registry, NewFlowController(), mtp, hostname, selfIP, ready)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return mtp, err
+	return mtp, registry, err
 }
 
 func (plugin *multitenantPlugin) PluginStartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
@@ -46,16 +46,16 @@ func (plugin *multitenantPlugin) PluginStartMaster(clusterNetworkCIDR string, cl
 	return nil
 }
 
-func (plugin *multitenantPlugin) PluginStartNode(mtu uint) (kubernetes.FilteringEndpointsConfigHandler, error) {
+func (plugin *multitenantPlugin) PluginStartNode(mtu uint) error {
 	if err := plugin.SubnetStartNode(mtu); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := plugin.VnidStartNode(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return plugin.Registry, nil
+	return nil
 }
 
 //-----------------------------------------------

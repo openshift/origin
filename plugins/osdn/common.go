@@ -10,7 +10,6 @@ import (
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
-	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -20,7 +19,7 @@ import (
 
 type PluginHooks interface {
 	PluginStartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
-	PluginStartNode(mtu uint) (kubernetes.FilteringEndpointsConfigHandler, error)
+	PluginStartNode(mtu uint) error
 }
 
 type OvsController struct {
@@ -191,17 +190,17 @@ func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSu
 	return nil
 }
 
-func (oc *OvsController) StartNode(mtu uint) (kubernetes.FilteringEndpointsConfigHandler, error) {
+func (oc *OvsController) StartNode(mtu uint) error {
 	// Assume we are working with IPv4
 	clusterNetworkCIDR, err := oc.Registry.GetClusterNetworkCIDR()
 	if err != nil {
 		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
-		return nil, err
+		return err
 	}
 
 	ipt := iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4)
 	if err := SetupIptables(ipt, clusterNetworkCIDR); err != nil {
-		return nil, fmt.Errorf("Failed to set up iptables: %v", err)
+		return fmt.Errorf("Failed to set up iptables: %v", err)
 	}
 
 	ipt.AddReloadFunc(func() {
@@ -211,16 +210,15 @@ func (oc *OvsController) StartNode(mtu uint) (kubernetes.FilteringEndpointsConfi
 		}
 	})
 
-	endpointFilter, err := oc.pluginHooks.PluginStartNode(mtu)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to start plugin: %v", err)
+	if err := oc.pluginHooks.PluginStartNode(mtu); err != nil {
+		return fmt.Errorf("Failed to start plugin: %v", err)
 	}
 
 	if oc.ready != nil {
 		close(oc.ready)
 	}
 
-	return endpointFilter, nil
+	return nil
 }
 
 func (oc *OvsController) Stop() {

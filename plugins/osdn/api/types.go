@@ -1,7 +1,6 @@
 package api
 
 import (
-	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 )
 
@@ -85,5 +84,5 @@ type OsdnPlugin interface {
 	knetwork.NetworkPlugin
 
 	StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
-	StartNode(mtu uint) (kubernetes.FilteringEndpointsConfigHandler, error)
+	StartNode(mtu uint) error
 }
