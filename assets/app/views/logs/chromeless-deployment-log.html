@@ -1,3 +1,4 @@
+<default-header class="top-header"></default-header>
 <div column flex class="content">
   <div flex class="log-chromeless">
     <alerts alerts="alerts"></alerts>
@@ -7,7 +8,9 @@
       name="deploymentConfigName"
       context="logContext"
       options="logOptions"
-      chromeless="true">
+      chromeless="true"
+      run="logCanRun"
+      flex>
     </log-viewer>
   </div>
 </div>

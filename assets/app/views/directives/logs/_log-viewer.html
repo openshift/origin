@@ -1,47 +1,84 @@
-  <div row class="log-timestamp" ng-if="!chromeless && start">
-    <div>
-      <span>Current log from {{start}}&nbsp;</span>
-      <span ng-if="end">to {{end}}</span>
-    </div>
-    <div flex></div>
-    <div ng-if="kibanaAuthUrl">
-      <form
-        action="{{kibanaAuthUrl}}"
-        method="POST">
-        <input type="hidden" name="redirect" value="{{archiveLocation}}">
-        <input type="hidden" name="access_token" value="{{access_token}}">
-        <button class="btn btn-sm btn-primary">View Archive</button>
-      </form>
-    </div>
+<div row class="log-timestamp" ng-if="!chromeless && start">
+  <div>
+    <span>Current log from {{start}}&nbsp;</span>
+    <span ng-if="end">to {{end}}</span>
   </div>
-
-  <div ng-if="largeLog" class="log-size-warning">
-    <span class="pficon pficon-info" aria-hidden="true"></span>
-    Only the previous {{options.tailLines || 1000}} log lines and new log
-    messages will be displayed because of the large log size.
+  <div flex></div>
+  <div ng-if="kibanaAuthUrl">
+    <form
+      action="{{kibanaAuthUrl}}"
+      method="POST">
+      <input type="hidden" name="redirect" value="{{archiveLocation}}">
+      <input type="hidden" name="access_token" value="{{access_token}}">
+      <button class="btn btn-sm btn-primary">View Archive</button>
+    </form>
   </div>
+</div>
 
-  <div class="row" ng-if="!chromeless">
-    <div class="col-md-6 col-sm-12 status">
-      <span ng-if="status">
-        <span>Status:&nbsp;&nbsp;</span>
-        <status-icon status="status"></status-icon>
-        <span>&nbsp;&nbsp;{{status}}</span>
-      </span>
-    </div>
-    <div class="log-link-external col-md-6 col-sm-12 text-right">
-      <a href=""  ng-click="goChromeless(options)">
-        Open full view of log<i class="fa fa-external-link"></i>
+
+<div ng-if="largeLog" class="log-size-warning">
+  <span class="pficon pficon-info" aria-hidden="true"></span>
+  Only the previous {{options.tailLines || 1000}} log lines and new log
+  messages will be displayed because of the large log size.
+</div>
+
+
+<div class="row" ng-if="!chromeless">
+  <div class="col-md-6 col-sm-12 status">
+    <span ng-if="status">
+      <span>Status:&nbsp;&nbsp;</span>
+      <status-icon status="status"></status-icon>
+      <span>&nbsp;&nbsp;{{status}}</span>
+    </span>
+  </div>
+  <div class="log-link-external col-md-6 col-sm-12 text-right">
+    <a href=""  ng-click="goChromeless(options)">
+      Open full view of log<i class="fa fa-external-link"></i>
+    </a>
+  </div>
+</div>
+
+
+
+<div flex height-max>
+  <a
+    name="logTop"
+    id="logTop"></a>
+
+  <div flex height-max class="log-view">
+    <div
+      ng-show="showScrollLinks"
+      class="log-scroll log-scroll-top"
+      affix
+      offset-top="445"
+      offset-bottom="90">
+      <a ng-if="loading" href="" ng-click="toggleAutoScroll()">
+        <span ng-if="!autoScroll">Follow</span>
+        <span ng-if="autoScroll">Stop following</span>
+      </a>
+      <a ng-if="!loading" href="" ng-click="onScrollBottom()">
+        Go to end
       </a>
     </div>
+    <div flex column height-max class="log-view-output">
+      <table>
+        <tbody id="logContent"></tbody>
+      </table>
+      <div row main-axis="center">
+        <ellipsis-loader ng-show="loading"></ellipsis-loader>
+      </div>
+    </div>
+    <div
+      ng-show="showScrollLinks"
+      class="log-scroll log-scroll-bottom">
+      <a href="" ng-click="onScrollTop()">Go to top</a>
+    </div>
   </div>
+  <a
+    id="logBottom"
+    name="logBottom"></a>
+</div>
 
-<!--
-<ng-include
-  src="'views/directives/logs/_log-raw.html'"></ng-include>
--->
-<ng-include
-  src="'views/directives/logs/_log-formatted.html'"></ng-include>
 
 <!-- Show a different messsage if the log might have stopped because we reached the byte limit -->
 <div ng-if="limitReached" class="text-muted">

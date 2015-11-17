@@ -31,7 +31,7 @@ exports.login = function(loginPageAlreadyLoaded) {
   driver.findElement(by.css("button[type='submit']")).click();
 
   driver.wait(function() {
-    return driver.isElementPresent(by.css(".navbar-utility .username"));
+    return driver.isElementPresent(by.css(".navbar-iconic .username"));
   }, 5000);
 };
 
