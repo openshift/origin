@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -75,21 +76,21 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 	if err != nil {
 		return err
 	}
-	controller, err := scaler.rcClient.ReplicationControllers(namespace).Get(util.LatestDeploymentNameForConfig(dc))
-	if err != nil {
-		return kubectl.ControllerScaleError{FailureType: kubectl.ControllerScaleGetFailure, ResourceVersion: "Unknown", ActualError: err}
-	}
-
 	if preconditions != nil {
+		controller, err := scaler.rcClient.ReplicationControllers(namespace).Get(util.LatestDeploymentNameForConfig(dc))
+		if err != nil {
+			return kubectl.ControllerScaleError{FailureType: kubectl.ControllerScaleGetFailure, ResourceVersion: "Unknown", ActualError: err}
+		}
 		if err := preconditions.ValidateReplicationController(controller); err != nil {
 			return err
 		}
 	}
-	controller.Spec.Replicas = int(newSize)
-	// TODO: do retry on 409 errors here?
-	if _, err := scaler.rcClient.ReplicationControllers(namespace).Update(controller); err != nil {
-		return kubectl.ControllerScaleError{FailureType: kubectl.ControllerScaleUpdateFailure, ResourceVersion: controller.ResourceVersion, ActualError: err}
+
+	scale := api.ScaleFromConfig(dc)
+	scale.Spec.Replicas = int(newSize)
+
+	if _, err := scaler.dcClient.DeploymentConfigs(namespace).UpdateScale(scale); err != nil {
+		return kubectl.ControllerScaleError{FailureType: kubectl.ControllerScaleUpdateFailure, ActualError: err}
 	}
-	// TODO: do a better job of printing objects here.
 	return nil
 }
