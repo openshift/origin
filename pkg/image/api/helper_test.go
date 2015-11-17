@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -904,5 +905,109 @@ func TestJoinImageStreamTag(t *testing.T) {
 	}
 	if e, a := "foo:"+DefaultImageTag, JoinImageStreamTag("foo", ""); e != a {
 		t.Errorf("Unexpected value: %s", a)
+	}
+}
+
+func TestResolveImageID(t *testing.T) {
+	tests := map[string]struct {
+		tags     map[string]TagEventList
+		imageID  string
+		expErr   string
+		expEvent TagEvent
+	}{
+		"single tag, match ID prefix": {
+			tags: map[string]TagEventList{
+				"tag1": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "repo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+							Image:                "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+						},
+					},
+				},
+			},
+			imageID: "3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			expErr:  "",
+			expEvent: TagEvent{
+				DockerImageReference: "repo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+				Image:                "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			},
+		},
+		"single tag, match string prefix": {
+			tags: map[string]TagEventList{
+				"tag1": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "repo:mytag",
+							Image:                "mytag",
+						},
+					},
+				},
+			},
+			imageID: "mytag",
+			expErr:  "",
+			expEvent: TagEvent{
+				DockerImageReference: "repo:mytag",
+				Image:                "mytag",
+			},
+		},
+		"single tag, ID error": {
+			tags: map[string]TagEventList{
+				"tag1": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "repo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b2",
+							Image:                "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b2",
+						},
+					},
+				},
+			},
+			imageID:  "3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			expErr:   "not found",
+			expEvent: TagEvent{},
+		},
+		"no tag": {
+			tags:     map[string]TagEventList{},
+			imageID:  "3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			expErr:   "not found",
+			expEvent: TagEvent{},
+		},
+		"multiple match": {
+			tags: map[string]TagEventList{
+				"tag1": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "repo@mytag",
+							Image:                "mytag",
+						},
+						{
+							DockerImageReference: "repo@mytag",
+							Image:                "mytag2",
+						},
+					},
+				},
+			},
+			imageID:  "mytag",
+			expErr:   "multiple images match the prefix",
+			expEvent: TagEvent{},
+		},
+	}
+
+	for name, test := range tests {
+		stream := &ImageStream{}
+		stream.Status.Tags = test.tags
+		event, err := ResolveImageID(stream, test.imageID)
+		if len(test.expErr) > 0 {
+			if err == nil || !strings.Contains(err.Error(), test.expErr) {
+				t.Errorf("%s: unexpected error, expected %v, got %v", name, test.expErr, err)
+			}
+			continue
+		} else if err != nil {
+			t.Errorf("%s: unexpected error, got %v", name, err)
+			continue
+		}
+		if test.expEvent.Image != event.Image || test.expEvent.DockerImageReference != event.DockerImageReference {
+			t.Errorf("%s: unexpected tag, expected %#v, got %#v", name, test.expEvent, event)
+		}
 	}
 }

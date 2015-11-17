@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/util/sets"
+
 	"github.com/docker/distribution/digest"
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // DockerDefaultNamespace is the value for namespace when a single segment name is provided.
@@ -436,23 +439,38 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 	return updated
 }
 
-// ResolveImageID returns a sets.String of all the image IDs in stream that start with imageID.
-func ResolveImageID(stream *ImageStream, imageID string) sets.String {
+// ResolveImageID returns latest TagEvent for specified imageID and an error if
+// there's more than one image matching the ID or when one does not exist.
+func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
+	var event *TagEvent
 	set := sets.NewString()
 	for _, history := range stream.Status.Tags {
 		for _, tagging := range history.Items {
 			if d, err := digest.ParseDigest(tagging.Image); err == nil {
 				if strings.HasPrefix(d.Hex(), imageID) || strings.HasPrefix(tagging.Image, imageID) {
+					event = &tagging
 					set.Insert(tagging.Image)
 				}
 				continue
 			}
 			if strings.HasPrefix(tagging.Image, imageID) {
+				event = &tagging
 				set.Insert(tagging.Image)
 			}
 		}
 	}
-	return set
+	switch len(set) {
+	case 1:
+		return &TagEvent{
+			Created:              unversioned.Now(),
+			DockerImageReference: event.DockerImageReference,
+			Image:                event.Image,
+		}, nil
+	case 0:
+		return nil, errors.NewNotFound("imageStreamImage", imageID)
+	default:
+		return nil, errors.NewConflict("imageStreamImage", imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
+	}
 }
 
 // ShortDockerImageID returns a short form of the provided DockerImage ID for display
