@@ -1,0 +1,28 @@
+
+// PF overrides
+.btn-group.bootstrap-select.form-control {
+    background-color: transparent;
+    box-shadow: none;
+}
+.console-os .navbar-project .bootstrap-select.btn-group .btn {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: @sidebar-os-active-color;
+    &:focus {
+      border-color: @input-border-hover;
+    }
+}
+// .bootstrap-select.btn-group .dropdown-menu {
+//     background-color: @sidebar-os-bg; // #292e34
+//     border-color: @navbar-os-project-border-color; // #1E2126
+// }
+// .bootstrap-select.btn-group .dropdown-menu .divider {
+//     background: @navbar-os-sidebar-border-color !important;
+// }
+
+// TEMP hide filter widget
+.create-button-container,
+.navbar-filter-widget-collapse {
+    display: none;
+}

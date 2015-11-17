@@ -65,6 +65,9 @@ html, body {
   }
   .navbar-pf {
     background: @navbar-os-bg-color;
+    .navbar-header {
+      border-bottom: 1px solid @navbar-os-sidebar-border-color;
+    }
     .navbar-nav li {
       > a {
         border: 0;
@@ -104,15 +107,15 @@ html, body {
 }
 
 .console-os .navbar-project {
-  border-bottom: 1px solid @navbar-os-project-border-color;
+  border-bottom: 1px solid @navbar-os-sidebar-border-color;
   padding-bottom: 5px;
   padding-top: 5px;
   position: relative;
   background: #fff;
   label.control-label {
     color: @navbar-project-label-color;
-    font-size: 11px;
-    font-weight: 400;
+    font-size: @font-size-small;
+    font-weight: 300;
     margin: 8px 0 0 0;
   }
   .bootstrap-select.btn-group .btn {
@@ -179,7 +182,7 @@ html, body {
           font-size: 18px;
           padding: 4px 14px 5px;
           &:hover, &:active, &:focus {
-            background-color: @sidebar-os-hover-bg;
+            background-color: @sidebar-os-active-bg;
             color: @navbar-os-project-menu-color;
           }
         }

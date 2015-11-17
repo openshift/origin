@@ -31,15 +31,16 @@
 @font-size-base: 13px;
 @link-hover-color-bright: lighten(@link-color, 13%);
 @log-bg-color: #101214;
-@navbar-os-bg-color: #34383c;
+@navbar-os-bg-color: #34383d;
 @navbar-os-label-filter-bg: @navbar-os-project-menu-bg;
-@navbar-os-project-bg: #eee;
-@navbar-os-project-border-color: darken(@navbar-os-project-bg, 8%);
-@navbar-project-label-color: lighten(@navbar-os-project-menu-color, 10%);
+@navbar-os-project-bg: @navbar-os-bg-color;
+@navbar-os-sidebar-border-color: darken(@sidebar-os-bg, 5%);
+@navbar-os-project-border-color: lighten(@navbar-os-bg-color, 8%);
 @navbar-os-project-menu-bg: #fff;
 @navbar-os-project-menu-border: 1px solid @btn-default-border;
 @navbar-os-project-menu-color: #333;
 @navbar-project-input-height: 41px;
+@navbar-project-label-color: @sidebar-os-color;
 @osc-object-active-color: @console-bright-blue;
 @osc-object-hover-color: rgba(0, 168, 225, 0.5);
 @osc-object-box-shadow: 0 0 0 1px @connector-color;
@@ -48,10 +49,12 @@
 @pod-running-bg: #E4F5BC;
 @pod-pending-bg: #e8e8e8;
 @pod-warning-bg: #f9d67a;
-@sidebar-os-bg: #fff;
-@sidebar-os-drawer: @sidebar-os-bg;
-// @sidebar-os-drawer-box-shadow: inset -3px 0px 3px -3px rgba(0,0,0,0.3);
-@sidebar-os-hover-bg: @sidebar-os-bg;
+@sidebar-os-bg: #292e34;
+@sidebar-os-color: #dbdada;
+@sidebar-os-active-bg: #393f44;
+@sidebar-os-active-color: lighten(@sidebar-os-color, 13%);
+@sidebar-os-hover-bg: darken(@sidebar-os-bg,3%);
+@sidebar-os-icon-color: #72767b;
 @sidebar-os-padding-x: 15px;
 @sidebar-os-padding-y: 10px;
 @sidebar-os-active: @console-bright-blue;
@@ -74,7 +77,7 @@
 
 // Bootstrap overrides
 @body-bg: #f6f6f6;
-@page-header-border-color: lighten(@navbar-os-project-border-color, 6%);
+@page-header-border-color: @gray-lighter;
 
 @font-size-h1: ceil(@font-size-base * 1.84); // ~24px
 @font-size-h2: ceil(@font-size-base * 1.4); // ~19px
