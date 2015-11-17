@@ -12,6 +12,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	"github.com/openshift/origin/pkg/util"
 )
 
 // DeploymentController starts a deployment by creating a deployer pod which
@@ -248,6 +249,10 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 			ServiceAccountName: c.serviceAccount,
 		},
 	}
+
+	// MergeInfo will not overwrite values unless the flag OverwriteExistingDstKey is set.
+	util.MergeInto(pod.Labels, deploymentConfig.Template.Strategy.Labels, 0)
+	util.MergeInto(pod.Annotations, deploymentConfig.Template.Strategy.Annotations, 0)
 
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 

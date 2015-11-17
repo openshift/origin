@@ -51,7 +51,7 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec
 		},
 		scaler:       scaler,
 		codec:        codec,
-		hookExecutor: stratsupport.NewHookExecutor(client, os.Stdout),
+		hookExecutor: stratsupport.NewHookExecutor(client, os.Stdout, codec),
 		retryTimeout: 120 * time.Second,
 		retryPeriod:  1 * time.Second,
 	}

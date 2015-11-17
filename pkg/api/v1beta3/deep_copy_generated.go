@@ -1577,6 +1577,22 @@ func deepCopy_v1beta3_DeploymentStrategy(in deployapiv1beta3.DeploymentStrategy,
 	} else {
 		out.Resources = newVal.(pkgapiv1beta3.ResourceRequirements)
 	}
+	if in.Labels != nil {
+		out.Labels = make(map[string]string)
+		for key, val := range in.Labels {
+			out.Labels[key] = val
+		}
+	} else {
+		out.Labels = nil
+	}
+	if in.Annotations != nil {
+		out.Annotations = make(map[string]string)
+		for key, val := range in.Annotations {
+			out.Annotations[key] = val
+		}
+	} else {
+		out.Annotations = nil
+	}
 	return nil
 }
 
