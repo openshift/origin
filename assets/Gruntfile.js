@@ -57,6 +57,10 @@ module.exports = function (grunt) {
         files: ['extensions/extensions.js', 'extensions/extensions.css'],
         tasks: ['copy:extensions']
       },
+      localConfig: {
+        files: ['<%= yeoman.app %>/config.local.js'],
+        tasks: ['copy:localConfig']
+      },
       gruntfile: {
         files: ['Gruntfile.js']
       },
@@ -67,6 +71,7 @@ module.exports = function (grunt) {
         files: [
           '<%= yeoman.app %>/{,*/}*.html',
           '.tmp/styles/{,*/}*.css',
+          '.tmp/config.js',
           '.tmp/scripts/extensions.js',
           '<%= yeoman.app %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}'
         ]
@@ -474,6 +479,18 @@ module.exports = function (grunt) {
           src: 'extensions.css',
           dest: '.tmp/styles'
         }]
+      },
+      // config.local.js is for local customizations if it exists.
+      localConfig: {
+        files: [{
+          expand: true,
+          cwd: '<%= yeoman.app %>',
+          src: 'config.local.js',
+          dest: '.tmp',
+          rename: function(path, name) {
+            return path + '/config.js';
+          }
+        }]
       }
     },
 
@@ -482,7 +499,8 @@ module.exports = function (grunt) {
       server: [
         'less:development',
         'copy:styles',
-        'copy:extensions'
+        'copy:extensions',
+        'copy:localConfig'
       ],
       test: [
         'less:development'
