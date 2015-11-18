@@ -493,9 +493,12 @@ func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, p
 	}
 
 	// TODO: should be a versioned struct
-	data, err := json.Marshal(event)
-	if err != nil {
-		return err
+	var data []byte
+	if event != nil {
+		data, err = json.Marshal(event)
+		if err != nil {
+			return err
+		}
 	}
 
 	httpClient := http.DefaultClient
@@ -529,7 +532,7 @@ func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, p
 }
 
 // hookEventFromPostReceive creates a GenericWebHookEvent from the provided git repository and
-// post receive input. If no inputs are available will return an empty event.
+// post receive input. If no inputs are available, it will return nil.
 func hookEventFromPostReceive(repo git.Repository, path, postReceivePath string) (*buildapi.GenericWebHookEvent, error) {
 	// TODO: support other types of refs
 	event := &buildapi.GenericWebHookEvent{
@@ -557,6 +560,9 @@ func hookEventFromPostReceive(repo git.Repository, path, postReceivePath string)
 			return nil, err
 		}
 		refs = r
+	}
+	if len(refs) == 0 {
+		return nil, nil
 	}
 	for _, ref := range refs {
 		if len(ref.New) == 0 || ref.New == ref.Old {
