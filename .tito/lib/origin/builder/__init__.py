@@ -76,7 +76,7 @@ class OriginBuilder(Builder):
                     for dep in depdict[u'Deps']
                 ]:
                     provides_list.append(
-                        "Provides: golang(bundled({0})) = {1}".format(
+                        "Provides: bundled(golang({0})) = {1}".format(
                             bdep[0],
                             bdep[1]
                         )
