@@ -24,11 +24,11 @@ var (
 // CreateMySQLReplicationHelpers creates a set of MySQL helpers for master,
 // slave an en extra helper that is used for remote login test.
 func CreateMySQLReplicationHelpers(c kclient.PodInterface, masterDeployment, slaveDeployment, helperDeployment string, slaveCount int) (exutil.Database, []exutil.Database, exutil.Database) {
-	podNames, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", masterDeployment)), exutil.CheckPodIsRunningFunc, 1, 60*time.Second)
+	podNames, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", masterDeployment)), exutil.CheckPodIsRunningFn, 1, 60*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	masterPod := podNames[0]
 
-	slavePods, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", slaveDeployment)), exutil.CheckPodIsRunningFunc, slaveCount, 120*time.Second)
+	slavePods, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", slaveDeployment)), exutil.CheckPodIsRunningFn, slaveCount, 120*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Create MySQL helper for master
@@ -41,7 +41,7 @@ func CreateMySQLReplicationHelpers(c kclient.PodInterface, masterDeployment, sla
 		slaves[i] = slave
 	}
 
-	helperNames, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", helperDeployment)), exutil.CheckPodIsRunningFunc, 1, 60*time.Second)
+	helperNames, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", helperDeployment)), exutil.CheckPodIsRunningFn, 1, 60*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	helper := exutil.NewMysql(c, helperNames[0], masterPod)
 
