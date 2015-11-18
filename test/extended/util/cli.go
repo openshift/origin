@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	g "github.com/onsi/ginkgo"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -100,7 +101,7 @@ func (c *CLI) ChangeUser(name string) *CLI {
 	}
 
 	c.username = name
-	fmt.Printf("INFO: configPath is now %q\n", c.configPath)
+	e2e.Logf("configPath is now %q", c.configPath)
 	return c
 }
 
@@ -291,11 +292,11 @@ func (c *CLI) OutputToFile(filename string) (string, error) {
 }
 
 // Execute executes the current command and return error if the execution failed
-// This function will set the default output to stdout.
+// This function will set the default output to Ginkgo writer.
 func (c *CLI) Execute() error {
 	out, err := c.Output()
-	if _, err := io.Copy(os.Stdout, strings.NewReader(out+"\n")); err != nil {
-		fmt.Printf("ERROR: Unable to copy the output to stdout")
+	if _, err := io.Copy(g.GinkgoWriter, strings.NewReader(out+"\n")); err != nil {
+		fmt.Printf("ERROR: Unable to copy the output to ginkgo writer")
 	}
 	os.Stdout.Sync()
 	return err
