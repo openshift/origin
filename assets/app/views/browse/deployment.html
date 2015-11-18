@@ -3,12 +3,23 @@
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
     <div ng-if="!loaded">Loading...</div>
-    <div ng-if="deployment" class="deployment">
+    <div ng-if="deployment">
       <div class="row">
         <div class="col-md-12">
           <div class="tile">
             <h1>
               {{deployment.metadata.name}}
+              <span
+                ng-if="deploymentConfigMissing"
+                class="pficon pficon-warning-triangle-o"
+                style="cursor: help; vertical-align: middle;"
+                data-toggle="tooltip"
+                data-placement="right"
+                data-trigger="hover"
+                title="The deployment's deployment config is missing."
+                aria-hidden="true">
+              </span>
+              <span ng-if="deploymentConfigMissing" class="sr-only">Warning: The deployment's deployment config is missing.</span>
               <small class="meta">created <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp></small>
               <div class="pull-right dropdown">
                 <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>

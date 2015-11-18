@@ -233,11 +233,56 @@ angular.module("openshiftConsole")
       return deploymentConfigDeploymentsInProgress;
     };
 
-    DeploymentsService.prototype.scale = function(deployment, replicas) {
-      var req = angular.copy(deployment);
+    // Gets the latest in progress or complete deployment among deployments.
+    // Deployments are assumed to be from the same deployment config.
+    DeploymentsService.prototype.getActiveDeployment = function(deployments) {
+      var orderByDate = $filter('orderObjectsByDate');
+      var isInProgress = $filter('deploymentIsInProgress');
+      var annotation = $filter('annotation');
+
+      // Sort to look at most recent deployments first.
+      var i, deployment, orderedDeployments = orderByDate(deployments, true);
+      for (i = 0; i < orderedDeployments.length; i++) {
+        deployment = orderedDeployments[i];
+        if (isInProgress(deployment) || annotation(deployment, 'deploymentStatus') === 'Complete') {
+          return deployment;
+        }
+      }
+
+      return null;
+    };
+
+    DeploymentsService.prototype.scaleDC = function(dc, replicas) {
+      // TODO: Use the scale subresource when the web console supports API groups.
+      /*
+      var scale = {
+        kind: "Scale",
+        metadata: {
+          name: dc.metadata.name,
+          namespace: dc.metadata.namespace,
+          creationTimestamp: dc.metadata.creationTimestamp
+        },
+        spec: {
+          replicas: replicas
+        }
+      };
+      return DataService.update("deploymentconfigs/scale", dc.metadata.name, scale, {
+        namespace: dc.metadata.namespace
+      });
+     */
+
+      var req = angular.copy(dc);
       req.spec.replicas = replicas;
-      return DataService.update("replicationcontrollers", deployment.metadata.name, req, {
-        namespace: deployment.metadata.namespace
+      return DataService.update("deploymentconfigs", dc.metadata.name, req, {
+        namespace: dc.metadata.namespace
+      });
+    };
+
+    DeploymentsService.prototype.scaleRC = function(rc, replicas) {
+      var req = angular.copy(rc);
+      req.spec.replicas = replicas;
+      return DataService.update("replicationcontrollers", rc.metadata.name, req, {
+        namespace: rc.metadata.namespace
       });
     };
 

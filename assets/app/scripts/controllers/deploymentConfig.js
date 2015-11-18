@@ -182,9 +182,21 @@ angular.module('openshiftConsole')
           }
         };
 
+        $scope.scale = function(replicas) {
+          var showScalingError = function(result) {
+            $scope.alerts = $scope.alerts || {};
+            $scope.alerts["scale"] = {
+              type: "error",
+              message: "An error occurred scaling the deployment config.",
+              details: $filter('getErrorDetails')(result)
+            };
+          };
+
+          DeploymentsService.scaleDC($scope.deploymentConfig, replicas).then(_.noop, showScalingError);
+        };
+
         $scope.$on('$destroy', function(){
           DataService.unwatchAll(watches);
         });
-
     }));
   });
