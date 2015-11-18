@@ -329,14 +329,20 @@ func generateProbeConfigForRoute(cfg *RouterConfig, ports []kapi.ContainerPort) 
 	var probe *kapi.Probe
 
 	if cfg.Type == "haproxy-router" {
-		probe = &kapi.Probe{
-			Handler: kapi.Handler{
-				TCPSocket: &kapi.TCPSocketAction{
-					Port: kutil.IntOrString{
-						IntVal: ports[0].ContainerPort,
-					},
+		probe = &kapi.Probe{}
+		if cfg.StatsPort > 0 {
+			probe.Handler.HTTPGet = &kapi.HTTPGetAction{
+				Path: "/healthz",
+				Port: kutil.IntOrString{
+					IntVal: cfg.StatsPort,
 				},
-			},
+			}
+		} else {
+			probe.Handler.TCPSocket = &kapi.TCPSocketAction{
+				Port: kutil.IntOrString{
+					IntVal: ports[0].ContainerPort,
+				},
+			}
 		}
 	}
 
