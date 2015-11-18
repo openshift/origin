@@ -377,10 +377,11 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	buildList, err := d.Builds(namespace).List(labels.SelectorFromSet(labels.Set{buildapi.DeprecatedBuildConfigLabel: name}), fields.Everything())
+	buildList, err := d.Builds(namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return "", err
 	}
+	buildList.Items = buildapi.FilterBuilds(buildList.Items, buildapi.ByBuildConfigLabelPredicate(name))
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)

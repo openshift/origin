@@ -261,11 +261,11 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if !ok {
 				return nil, errors.New("provided options object is not a BuildLogOptions")
 			}
-			buildsForBCSelector := labels.SelectorFromSet(map[string]string{buildapi.DeprecatedBuildConfigLabel: t.Name})
-			builds, err := oc.Builds(t.Namespace).List(buildsForBCSelector, fields.Everything())
+			builds, err := oc.Builds(t.Namespace).List(labels.Everything(), fields.Everything())
 			if err != nil {
 				return nil, err
 			}
+			builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigLabelPredicate(t.Name))
 			if len(builds.Items) == 0 {
 				return nil, fmt.Errorf("no builds found for %s", t.Name)
 			}

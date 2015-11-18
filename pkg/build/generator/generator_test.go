@@ -601,7 +601,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	if build.Labels[buildapi.BuildConfigLabel] != bc.Name {
 		t.Errorf("Build does not contain labels from BuildConfig")
 	}
-	if build.Labels[buildapi.DeprecatedBuildConfigLabel] != bc.Name {
+	if build.Labels[buildapi.BuildConfigLabelDeprecated] != bc.Name {
 		t.Errorf("Build does not contain labels from BuildConfig")
 	}
 	if build.Status.Config.Name != bc.Name || build.Status.Config.Namespace != bc.Namespace || build.Status.Config.Kind != "BuildConfig" {
