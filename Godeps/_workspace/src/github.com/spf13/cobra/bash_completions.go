@@ -295,6 +295,12 @@ func writeFlags(cmd *Command, out *bytes.Buffer) {
 			writeShortFlag(flag, out)
 		}
 	})
+	cmd.InheritedFlags().VisitAll(func(flag *pflag.Flag) {
+		writeFlag(flag, out)
+		if len(flag.Shorthand) > 0 {
+			writeShortFlag(flag, out)
+		}
+	})
 
 	fmt.Fprintf(out, "\n")
 }
@@ -380,6 +386,11 @@ func (cmd *Command) MarkFlagRequired(name string) error {
 	return MarkFlagRequired(cmd.Flags(), name)
 }
 
+// MarkPersistentFlagRequired adds the BashCompOneRequiredFlag annotation to the named persistent flag, if it exists.
+func (cmd *Command) MarkPersistentFlagRequired(name string) error {
+	return MarkFlagRequired(cmd.PersistentFlags(), name)
+}
+
 // MarkFlagRequired adds the BashCompOneRequiredFlag annotation to the named flag in the flag set, if it exists.
 func MarkFlagRequired(flags *pflag.FlagSet, name string) error {
 	return flags.SetAnnotation(name, BashCompOneRequiredFlag, []string{"true"})
@@ -389,6 +400,12 @@ func MarkFlagRequired(flags *pflag.FlagSet, name string) error {
 // Generated bash autocompletion will select filenames for the flag, limiting to named extensions if provided.
 func (cmd *Command) MarkFlagFilename(name string, extensions ...string) error {
 	return MarkFlagFilename(cmd.Flags(), name, extensions...)
+}
+
+// MarkPersistentFlagFilename adds the BashCompFilenameExt annotation to the named persistent flag, if it exists.
+// Generated bash autocompletion will select filenames for the flag, limiting to named extensions if provided.
+func (cmd *Command) MarkPersistentFlagFilename(name string, extensions ...string) error {
+	return MarkFlagFilename(cmd.PersistentFlags(), name, extensions...)
 }
 
 // MarkFlagFilename adds the BashCompFilenameExt annotation to the named flag in the flag set, if it exists.
