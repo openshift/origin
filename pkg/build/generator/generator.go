@@ -351,8 +351,22 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	if build.Labels == nil {
 		build.Labels = make(map[string]string)
 	}
-	build.Labels[buildapi.DeprecatedBuildConfigLabel] = bcCopy.Name
-	build.Labels[buildapi.BuildConfigLabel] = bcCopy.Name
+	build.Labels[buildapi.DeprecatedBuildConfigLabel] = bc.Name
+	build.Labels[buildapi.BuildConfigLabel] = bc.Name
+
+	to, err := g.resolveOutputDockerImageReference(ctx, bc.Spec.Output.To, bc.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	build.Status.OutputDockerImageReference = to
+	// spec.Output.To is deprecated but there may still be custom builders out there
+	// expecting it to contain the docker image (pull spec) that they are supposed to
+	// push to, so we continue to populate it here.
+	build.Spec.Output.To = &kapi.ObjectReference{
+		Kind: "DockerImage",
+		Name: to,
+	}
 
 	builderSecrets, err := g.FetchServiceAccountSecrets(bc.Namespace, serviceAccount)
 	if err != nil {
@@ -417,6 +431,49 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, image)
 	}
 	return build, nil
+}
+
+// resolveOutputDockerImageReference returns a reference to a Docker image
+// computed from the buildconfig.Spec.Output.To reference.
+func (g *BuildGenerator) resolveOutputDockerImageReference(ctx kapi.Context, to *kapi.ObjectReference, defaultNamespace string) (string, error) {
+	if to == nil || to.Name == "" {
+		return "", nil
+	}
+	var ref string
+	switch to.Kind {
+	case "DockerImage":
+		ref = to.Name
+	case "ImageStream", "ImageStreamTag":
+		// TODO(smarterclayton): security, ensure that the reference image stream is actually visible
+		namespace := to.Namespace
+		if len(namespace) == 0 {
+			namespace = defaultNamespace
+		}
+
+		var tag string
+		streamName := to.Name
+		if to.Kind == "ImageStreamTag" {
+			var ok bool
+			streamName, tag, ok = imageapi.SplitImageStreamTag(streamName)
+			if !ok {
+				return "", fmt.Errorf("the referenced image stream tag is invalid: %s", to.Name)
+			}
+			tag = ":" + tag
+		}
+		stream, err := g.Client.GetImageStream(kapi.WithNamespace(ctx, namespace), streamName)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return "", fmt.Errorf("the referenced output image stream %s/%s does not exist", namespace, streamName)
+			}
+			return "", fmt.Errorf("the referenced output image stream %s/%s could not be resolved: %v", namespace, streamName, err)
+		}
+		if len(stream.Status.DockerImageRepository) == 0 {
+			e := fmt.Errorf("the image stream %s/%s cannot be used as a build output because the integrated Docker registry is not configured and no external registry was defined", namespace, to.Name)
+			return "", e
+		}
+		ref = fmt.Sprintf("%s%s", stream.Status.DockerImageRepository, tag)
+	}
+	return ref, nil
 }
 
 // resolveImageStreamReference looks up the ImageStream[Tag/Image] and converts it to a

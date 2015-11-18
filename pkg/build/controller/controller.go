@@ -120,35 +120,46 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 		return nil
 	}
 
-	// Set the output Docker image reference.
-	ref, err := bc.resolveOutputDockerImageReference(build)
-	if err != nil {
-		build.Status.Reason = buildapi.StatusReasonInvalidOutputReference
-		return err
-	}
-	build.Status.OutputDockerImageReference = ref
+	// Set the build phase, which will be persisted if no error occurs.
+	build.Status.Phase = buildapi.BuildPhasePending
+	build.Status.Reason = ""
+	build.Status.Message = ""
 
-	// Make a copy to avoid mutating the build from this point on.
-	copy, err := kapi.Scheme.Copy(build)
-	if err != nil {
-		return fmt.Errorf("unable to copy build: %v", err)
-	}
-	buildCopy := copy.(*buildapi.Build)
+	// For backwards compatibility in case we have build objects that do not
+	// have the output Docker image reference set (it is now set when
+	// the build is created from the buildconfig, but it used to be set here),
+	// check if the output reference is already set, and if not go through
+	// the old logic to set it now.
+	buildCopy := build
+	if len(build.Status.OutputDockerImageReference) == 0 {
+		ref, err := bc.resolveOutputDockerImageReference(build)
+		if err != nil {
+			build.Status.Reason = buildapi.StatusReasonInvalidOutputReference
+			return err
+		}
+		build.Status.OutputDockerImageReference = ref
 
-	// TODO(rhcarvalho)
-	// The S2I and Docker builders expect build.Spec.Output.To to contain a
-	// resolved reference to a Docker image. Since build.Spec is immutable, we
-	// change a copy (that is never persisted) and pass it to
-	// bc.BuildStrategy.CreateBuildPod. We should make the builders use
-	// build.Status.OutputDockerImageReference, what will make copying the build
-	// unnecessary.
-	if build.Spec.Output.To != nil && len(build.Spec.Output.To.Name) != 0 {
-		buildCopy.Spec.Output.To = &kapi.ObjectReference{
-			Kind: "DockerImage",
-			Name: ref,
+		// Make a copy to avoid mutating the build from this point on.
+		copy, err := kapi.Scheme.Copy(build)
+		if err != nil {
+			return fmt.Errorf("unable to copy build: %v", err)
+		}
+		buildCopy = copy.(*buildapi.Build)
+
+		// TODO(rhcarvalho)
+		// The S2I and Docker builders expect build.Spec.Output.To to contain a
+		// resolved reference to a Docker image. Since build.Spec is immutable, we
+		// change a copy (that is never persisted) and pass it to
+		// bc.BuildStrategy.CreateBuildPod. We should make the builders use
+		// build.Status.OutputDockerImageReference, what will make copying the build
+		// unnecessary.
+		if build.Spec.Output.To != nil && len(build.Spec.Output.To.Name) != 0 {
+			buildCopy.Spec.Output.To = &kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: ref,
+			}
 		}
 	}
-
 	// Invoke the strategy to get a build pod.
 	podSpec, err := bc.BuildStrategy.CreateBuildPod(buildCopy)
 	if err != nil {
