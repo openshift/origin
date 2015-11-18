@@ -24,8 +24,17 @@ describe("ApplicationGenerator", function(){
       routing: {
         include: true,
         targetPort: {
-          containerPort: 80,
-          protocol: "TCP"
+          containerPort: 443,
+          protocol: "TCP",
+        },
+        host: "www.example.com",
+        path: "/test",
+        tls: {
+          termination: "edge",
+          insecureEdgeTerminationPolicy: "Redirect",
+          certificate: "dummy-cert",
+          key: "dummy-key",
+          caCertificate: "dummy-ca-cert"
         }
       },
       buildConfig: {
@@ -178,8 +187,17 @@ describe("ApplicationGenerator", function(){
             kind: "Service",
             name: "theServiceName"
           },
+          host: "www.example.com",
+          path: "/test",
           port: {
-            targetPort: 80
+            targetPort: 443
+          },
+          tls: {
+            termination: "edge",
+            insecureEdgeTerminationPolicy: "Redirect",
+            certificate: "dummy-cert",
+            key: "dummy-key",
+            caCertificate: "dummy-ca-cert"
           }
         }
       });

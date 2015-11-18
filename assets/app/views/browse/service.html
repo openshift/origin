@@ -68,7 +68,8 @@
                   </tbody>
                 </table>
               </div>
-              <dl class="dl-horizontal left">
+              <!-- No bottom margin so Create Route link is close to content. -->
+              <dl class="dl-horizontal left" style="margin-bottom: 0;">
                 <dt>Routes:</dt>
                 <dd>
                   <span ng-if="!routesForService.length"><em>none</em></span>
@@ -79,6 +80,9 @@
                   </span>
                 </dd>
               </dl>
+              <div class="gutter-bottom">
+                <a ng-href="project/{{project.metadata.name}}/createRoute?service={{service.metadata.name}}">Create route</a>
+              </div>
               <annotations annotations="service.metadata.annotations"></annotations>
             </div>
           </div> <!-- /tile -->

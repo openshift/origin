@@ -39,7 +39,7 @@
                               name="appname"
                               ng-change="nameTaken = false"
                               ng-blur="shouldValidateName = form.appname.$dirty"
-                              class="form-control form-control-md"
+                              class="form-control"
                               autocorrect="off"
                               autocapitalize="off"
                               spellcheck="false">
@@ -82,7 +82,7 @@
                         ref: {{image.metadata.annotations.sampleRef}}</span><span ng-if="image.metadata.annotations.sampleContextDir">,
                         context dir: {{image.metadata.annotations.sampleContextDir}}</span>
                       <a href="" ng-click="fillSampleRepo()"
-                        style="margin-left: 3px;">Try it<i class="fa fa-level-up" style="margin-left: 3px; font-size: 17px;"></i></a>
+                        style="margin-left: 3px;" class="nowrap">Try it<i class="fa fa-level-up" style="margin-left: 3px; font-size: 17px;"></i></a>
                     </div>
                     <div class="has-error" ng-show="form.sourceUrl.$error.required && form.sourceUrl.$dirty">
                       <span class="help-block">A Git repository URL is required.</span>
@@ -92,7 +92,7 @@
                     </div>
                   </div>
 
-                  <div click-to-reveal link-text="Show advanced build and deployment options">
+                  <div click-to-reveal link-text="Show advanced routing, build, and deployment options">
                     <div class="form-group">
                       <label for="gitref">Git Reference</label>
                       <div>
@@ -104,7 +104,7 @@
                           autocorrect="off"
                           autocapitalize="off"
                           spellcheck="false"
-                          class="form-control form-control-md">
+                          class="form-control">
                       </div>
                       <div class="help-block">Optional branch, tag, or commit.</div>
                     </div>
@@ -119,7 +119,7 @@
                           autocorrect="off"
                           autocapitalize="off"
                           spellcheck="false"
-                          class="form-control form-control-md">
+                          class="form-control">
                       </div>
                       <div class="help-block">Optional subdirectory for the application source code, used as the context directory for the build.</div> </div>
 
@@ -132,35 +132,16 @@
                       can-toggle="false"
                       ng-if="routing.portOptions.length"
                       >
-                      <div ng-hide="$parent.expand">
-                        <div>
-                          <label>Create a route to the application: </label>
-                          <span>{{routing | yesNo}}</span>
-                        </div>
+                      <div class="form-group checkbox">
+                        <label>
+                          <input type="checkbox" ng-model="routing.include">
+                          Create a route to the application
+                        </label>
                       </div>
-                      <div ng-show="$parent.expand">
-                        <div class="form-group checkbox">
-                          <label>
-                            <input type="checkbox" ng-model="routing.include">
-                              Create a route to the application
-                              <span class="help action-inline">
-                                <i class="pficon pficon-help" data-toggle="tooltip" data-placement="right" data-original-title="Additional routes with alternative configuration options (security, TLS termination, etc) can be added using the oc command."></i>
-                              </span>
-                          </label>
-
-                        </div>
-                        <div class="form-group">
-                          <label for="routeTargetPort">Target port:</label>
-                          <span ng-if="routing.portOptions.length === 1">{{routing.portOptions[0].containerPort}}/{{routing.portOptions[0].protocol}}</span>
-                          <select
-                              id="routeTargetPort"
-                              ng-if="routing.portOptions.length > 1"
-                              ng-model="routing.targetPort"
-                              ng-options="(portSpec.containerPort + '/' + portSpec.protocol) for portSpec in routing.portOptions"
-                              ng-disabled="!routing.include">
-                          </select>
-                        </div>
-                      </div>
+                      <osc-routing
+                        model="routing"
+                        routing-disabled="!routing.include">
+                      </osc-routing>
                     </osc-form-section>
 
                     <!-- /routing -->
