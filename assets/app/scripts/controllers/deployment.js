@@ -25,6 +25,7 @@ angular.module('openshiftConsole')
         link: "project/" + $routeParams.project + "/browse/deployments"
       }
     ];
+
     // if this is an RC it won't have deploymentconfig
     if ($routeParams.deploymentconfig){
       $scope.breadcrumbs.push({

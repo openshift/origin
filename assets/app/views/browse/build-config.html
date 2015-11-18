@@ -7,6 +7,13 @@
       <div>
         <h1>
           {{buildConfig.metadata.name}}
+          <delete-button 
+            class="pull-right fa-lg"
+            resource-type="buildconfig" 
+            resource-name="{{buildConfig.metadata.name}}" 
+            project-name="{{buildConfig.metadata.namespace}}"
+            alerts="alerts">
+          </delete-button>
           <small class="meta">created <relative-timestamp timestamp="buildConfig.metadata.creationTimestamp"></relative-timestamp></small>
         </h1>
         <labels labels="buildConfig.metadata.labels" clickable="true" kind="builds" title-kind="build configs" project-name="{{buildConfig.metadata.namespace}}" limit="3"></labels>

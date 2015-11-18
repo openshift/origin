@@ -24,49 +24,14 @@ angular.module('openshiftConsole')
       $route.reload();
     });
 
+    $scope.$on('deleteProject', function() {
+      loadProjects();
+    });
+
     $scope.$on('$destroy', function(){
       // The click handler is only necessary on the projects page.
       $('#openshift-logo').off('click.projectsPage');
     });
-
-    $scope.openDeleteModal = function(project) {
-      // opening the modal with settings scope as parent
-      $scope.project = project;
-      var modalInstance = $modal.open({
-        animation: true,
-        templateUrl: 'views/modals/delete-project.html',
-        controller: 'DeleteModalController',
-        scope: $scope
-      });
-
-      modalInstance.result.then(function() {
-        // actually deleting the project
-        var projectName = project.metadata.name;
-        delete $scope.alerts[projectName];
-        DataService.delete('projects', projectName, $scope)
-        .then(function() {
-          // called if successful deletion
-          $scope.alerts[projectName] = {
-            type: "success",
-            message: "Project " + $filter('displayName')(project) + " was marked for deletion."
-          };
-
-          loadProjects();
-        })
-        .catch(function(err) {
-          // called if failure to delete
-          $scope.alerts[projectName] = {
-            type: "error",
-            message: "Project " + $filter('displayName')(project) + " could not be deleted.",
-            details: getErrorDetails(err)
-          };
-          Logger.error("Project " + $filter('displayName')(project) + " could not be deleted.", getErrorDetails(err));
-        })
-        .finally(function() {
-          $scope.project = {};
-        });
-      });
-    };
 
     AuthService.withUser().then(function() {
       loadProjects();
@@ -104,20 +69,6 @@ angular.module('openshiftConsole')
         }
       }
     });
-
-    var getErrorDetails = function(result) {
-      var error = result.data || {};
-      if (error.message) {
-        return error.message;
-      }
-
-      var status = result.status || error.status;
-      if (status) {
-        return "Status: " + status;
-      }
-
-      return "";
-    };
 
     var loadProjects = function() {
       DataService.list("projects", $scope, function(projects) {

@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('BuildsController', function ($scope, DataService, $filter, LabelFilter, Logger, $location, $anchorScroll, BuildsService) {
+  .controller('BuildsController', function ($scope, AlertMessageService, DataService, $filter, LabelFilter, Logger, $location, $anchorScroll, BuildsService) {
     $scope.builds = {};
     $scope.unfilteredBuildConfigs = {};
     $scope.buildConfigs = undefined;
@@ -22,6 +22,12 @@ angular.module('openshiftConsole')
 
     $scope.buildsByBuildConfig = {};
     $scope.expandedBuildConfigRow = {};
+
+    // get and clear any alerts
+    AlertMessageService.getAlerts().forEach(function(alert) {
+      $scope.alerts[alert.name] = alert.data;
+    });
+    AlertMessageService.clearAlerts();
 
     var watches = [];
 
