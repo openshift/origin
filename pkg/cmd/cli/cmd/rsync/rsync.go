@@ -65,9 +65,9 @@ type RsyncOptions struct {
 	StrategyName  string
 	Quiet         bool
 	Delete        bool
-
-	Out    io.Writer
-	ErrOut io.Writer
+	Progress      bool
+	Out           io.Writer
+	ErrOut        io.Writer
 }
 
 // NewCmdRsync creates a new sync command
@@ -94,6 +94,7 @@ func NewCmdRsync(name, parent string, f *clientcmd.Factory, out, errOut io.Write
 	// Flags for rsync options, Must match rsync flag names
 	cmd.Flags().BoolVarP(&o.Quiet, "quiet", "q", false, "Suppress non-error messages")
 	cmd.Flags().BoolVar(&o.Delete, "delete", false, "Delete files not present in source")
+	cmd.Flags().BoolVar(&o.Progress, "progress", false, "Show progress during transfer")
 	return cmd
 }
 

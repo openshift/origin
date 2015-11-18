@@ -270,6 +270,9 @@ func newRsyncDaemonStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOpti
 	if o.Delete {
 		flags = append(flags, "--delete")
 	}
+	if o.Progress {
+		flags = append(flags, "--progress")
+	}
 
 	remoteExec, err := newRemoteExecutor(f, o)
 	if err != nil {
