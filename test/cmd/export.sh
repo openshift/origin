@@ -12,6 +12,11 @@ os::log::install_errexit
 
 oc new-app -f examples/sample-app/application-template-stibuild.json --name=sample
 
+# this checks to make sure that the generated tokens and dockercfg secrets are excluded by default
+# and included when --exact is requested
+oc export sa/default --template='{{ .secrets }}' | grep -q "<no value>"
+oc export sa/default --exact --template='{{ .secrets }}' | grep "default-token"
+
 [ "$(oc export all --all-namespaces)" ]
 # make sure the deprecated flag doesn't fail
 [ "$(oc export all --all)" ]
