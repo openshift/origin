@@ -212,6 +212,45 @@ func TestValidateBuildUpdate(t *testing.T) {
 	}
 }
 
+func TestBuildConfigGitSourceWithProxyFailure(t *testing.T) {
+	buildConfig := &buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI:        "git://github.com/my/repository",
+						HTTPProxy:  "127.0.0.1:3128",
+						HTTPSProxy: "127.0.0.1:3128",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+	}
+	errors := ValidateBuildConfig(buildConfig)
+	if len(errors) != 1 {
+		t.Errorf("Expected one error, got %d", len(errors))
+	}
+	err := errors[0].(*fielderrors.ValidationError)
+	if err.Type != fielderrors.ValidationErrorTypeInvalid {
+		t.Errorf("Expected invalid value validation error, got %q", err.Type)
+	}
+	if err.Detail != "only http:// and https:// GIT protocols are allowed with HTTP or HTTPS proxy set" {
+		t.Errorf("Exptected git:// protocol with proxy validation error, got: %q", err.Detail)
+	}
+}
+
 // TestBuildConfigDockerStrategyImageChangeTrigger ensures that it is invalid to
 // have a BuildConfig with Docker strategy and an ImageChangeTrigger where
 // neither DockerStrategy.From nor ImageChange.From are defined.
