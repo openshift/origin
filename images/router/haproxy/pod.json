@@ -1,55 +1,65 @@
 {
-  "apiVersion": "v1beta1",
-  "desiredState": {
-    "manifest": {
-      "containers": [
-        {
-          "command": [
-            "--loglevel=4"
-          ],
-          "env": [
-            {
-              "name": "OPENSHIFT_MASTER",
-              "value": "${OPENSHIFT_MASTER}"
-            },
-            {
-              "name": "OPENSHIFT_CA_DATA",
-              "value": "${OPENSHIFT_CA_DATA}"
-            },
-            {
-              "name": "OPENSHIFT_KEY_DATA",
-              "value": "${OPENSHIFT_KEY_DATA}"
-            },
-            {
-              "name": "OPENSHIFT_CERT_DATA",
-              "value": "${OPENSHIFT_CERT_DATA}"
-            },
-            {
-              "name": "OPENSHIFT_INSECURE",
-              "value": "${OPENSHIFT_INSECURE}"
-            }
-          ],
-          "image": "openshift/origin-haproxy-router",
-          "imagePullPolicy": "PullIfNotPresent",
-          "name": "origin-haproxy-router-ROUTER_ID",
-          "ports": [
-            {
-              "containerPort": 80,
-              "hostPort": 80
-            },
-            {
-              "containerPort": 443,
-              "hostPort": 443
-            }
-          ]
-        }
-      ],
-      "restartPolicy": {
-        "always": {}
-      },
-      "version": "v1beta2"
-    }
+  "kind": "Pod",
+  "apiVersion": "v1beta3",
+  "metadata": {
+    "name": "ROUTER_ID",
+    "creationTimestamp": null
   },
-  "id": "ROUTER_ID",
-  "kind": "Pod"
+  "spec": {
+    "containers": [
+      {
+        "name": "origin-haproxy-router-ROUTER_ID",
+        "image": "openshift/origin-haproxy-router",
+        "args": [
+          "--loglevel=4"
+        ],
+        "ports": [
+          {
+            "hostPort": 80,
+            "containerPort": 80,
+            "protocol": "TCP"
+          },
+          {
+            "hostPort": 443,
+            "containerPort": 443,
+            "protocol": "TCP"
+          }
+        ],
+        "env": [
+          {
+            "name": "OPENSHIFT_MASTER",
+            "value": "${OPENSHIFT_MASTER}"
+          },
+          {
+            "name": "OPENSHIFT_CA_DATA",
+            "value": "${OPENSHIFT_CA_DATA}"
+          },
+          {
+            "name": "OPENSHIFT_KEY_DATA",
+            "value": "${OPENSHIFT_KEY_DATA}"
+          },
+          {
+            "name": "OPENSHIFT_CERT_DATA",
+            "value": "${OPENSHIFT_CERT_DATA}"
+          },
+          {
+            "name": "OPENSHIFT_INSECURE",
+            "value": "${OPENSHIFT_INSECURE}"
+          }
+        ],
+        "resources": {},
+        "terminationMessagePath": "/dev/termination-log",
+        "imagePullPolicy": "IfNotPresent",
+        "capabilities": {},
+        "securityContext": {
+          "capabilities": {},
+          "privileged": false
+        }
+      }
+    ],
+    "restartPolicy": "Always",
+    "dnsPolicy": "ClusterFirst",
+    "serviceAccount": ""
+  },
+  "status": {}
 }

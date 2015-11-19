@@ -1,4 +1,5 @@
 'use strict';
+/* jshint unused: false */
 
 /**
  * @ngdoc function
@@ -8,25 +9,22 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, $q, $location, TaskList, $parse) {
+  .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, $q, $location, TaskList, $parse, Navigate, $filter, imageObjectRefFilter, failureObjectNameFilter) {
+    var displayNameFilter = $filter('displayName');
+    var humanize = $filter('humanize');
 
-    function errorPage(message) {
-      var redirect = URI('error').query({
-        "error_description": message
-      }).toString();
-      $location.url(redirect);
-    }
-
-    var dcContainers = $parse('template.controllerTemplate.podTemplate.desiredState.manifest.containers');
-    var stiBuilderImage = $parse('parameters.strategy.stiStrategy.image');
-    var outputImage = $parse('parameters.output.to.name || parameters.output.DockerImageReference');
+    var dcContainers = $parse('spec.template.spec.containers');
+    var builderImage = $parse('spec.strategy.sourceStrategy.from || spec.strategy.dockerStrategy.from || spec.strategy.customStrategy.from');
+    var outputImage = $parse('spec.output.to');
 
     function deploymentConfigImages(dc) {
       var images = [];
       var containers = dcContainers(dc);
       if (containers) {
-        containers.forEach(function(container) {
-          images.push(container.image);
+        angular.forEach(containers, function(container) {
+          if (container.image) {
+            images.push(container.image);
+          }
         });
       }
       return images;
@@ -36,13 +34,13 @@ angular.module('openshiftConsole')
       var images = [];
       var dcImages = [];
       var outputImages = {};
-      data.items.forEach(function(item) {
+      angular.forEach(data.objects, function(item) {
         if (item.kind === "BuildConfig") {
-          var builder = stiBuilderImage(item);
+          var builder = imageObjectRefFilter(builderImage(item), $scope.projectName);
           if(builder) {
             images.push({ name: builder });
           }
-          var output = outputImage(item);
+          var output = imageObjectRefFilter(outputImage(item), $scope.projectName);
           if (output) {
             outputImages[output] = true;
           }
@@ -65,7 +63,7 @@ angular.module('openshiftConsole')
       var helpLinks = {};
       for (var attr in template.annotations) {
         var match = attr.match(helpLinkName);
-	var link;
+        var link;
         if (match) {
           link = helpLinks[match[1]] || {};
           link.title = template.annotations[attr];
@@ -84,15 +82,16 @@ angular.module('openshiftConsole')
     }
 
     $scope.projectDisplayName = function() {
-      return (this.project && this.project.displayName) || this.projectName;
+      return displayNameFilter(this.project) || this.projectName;
     };
 
     $scope.templateDisplayName = function() {
-      return (this.template.annotations && this.template.annotations.displayName) || this.template.metadata.name;
+      return displayNameFilter(this.template);
     };
 
     $scope.createFromTemplate = function() {
-      DataService.create("templateConfigs", $scope.template, $scope).then(
+      $scope.disableInputs = true;
+      DataService.create("processedtemplates", null, $scope.template, $scope).then(
         function(config) { // success
           var titles = {
             started: "Creating " + $scope.templateDisplayName() + " in project " + $scope.projectDisplayName(),
@@ -101,27 +100,31 @@ angular.module('openshiftConsole')
           };
 
           var helpLinks = getHelpLinks($scope.template);
+          TaskList.clear();
           TaskList.add(titles, helpLinks, function() {
             var d = $q.defer();
-            DataService.createList(config.items, $scope).then(
+            DataService.createList(config.objects, $scope).then(
               function(result) {
                 var alerts = [];
                 var hasErrors = false;
                 if (result.failure.length > 0) {
+                  hasErrors = true;
                   result.failure.forEach(
                     function(failure) {
-                      var objectName = "";
-                      if (failure.data && failure.data.details) {
-                        objectName = failure.data.details.kind + " " + failure.data.details.id;
-                      } else {
-                        objectName = "object";
-                      }
+                      var objectName = failureObjectNameFilter(failure) || "object";
                       alerts.push({
                         type: "error",
-                        message: "Cannot create " + objectName + ". ",
+                        message: "Cannot create " + humanize(objectName).toLowerCase() + ". ",
                         details: failure.data.message
                       });
-                      hasErrors = true;
+                    }
+                  );
+                  result.success.forEach(
+                    function(success) {
+                      alerts.push({
+                        type: "success",
+                        message: "Created " + humanize(success.kind).toLowerCase() + " \"" + success.metadata.name + "\" successfully. "
+                      });
                     }
                   );
                 } else {
@@ -133,34 +136,34 @@ angular.module('openshiftConsole')
             );
             return d.promise;
           });
-          $location.path("project/" + $scope.projectName + "/overview");
+          Navigate.toNextSteps($routeParams.name, $scope.projectName);
         },
         function(result) { // failure
-          $scope.alerts = [
+          $scope.disableInputs = false;
+          var details;
+          if (result.data && result.data.message) {
+            details = result.data.message;
+          }
+          $scope.alerts["process"] = 
             {
               type: "error",
               message: "An error occurred processing the template.",
-              details: "Status: " + result.status + ". " + result.data,
-            }
-          ];
+              details: details
+            };
         }
       );
-    };
-
-    $scope.toggleOptionsExpanded = function() {
-      $scope.optionsExpanded = !$scope.optionsExpanded;
     };
 
     var name = $routeParams.name;
     var namespace = $routeParams.namespace;
 
     if (!name) {
-      errorPage("Cannot create from template: a template name was not specified.");
+      Navigate.toErrorPage("Cannot create from template: a template name was not specified.");
       return;
     }
 
     $scope.emptyMessage = "Loading...";
-    $scope.alerts = [];
+    $scope.alerts = {};
     $scope.projectName = $routeParams.project;
     $scope.projectPromise = $.Deferred();
     DataService.get("projects", $scope.projectName, $scope).then(function(project) {
@@ -168,17 +171,16 @@ angular.module('openshiftConsole')
       $scope.projectPromise.resolve(project);
     });
 
-    DataService.get("templates", name, $scope, {namespace: namespace}).then(
+    DataService.get("templates", name, {namespace: (namespace || $scope.projectName)}).then(
       function(template) {
         $scope.template = template;
         $scope.templateImages = imageItems(template);
         $scope.hasParameters = $scope.template.parameters && $scope.template.parameters.length > 0;
-        $scope.optionsExpanded = false;
         $scope.templateUrl = template.metadata.selfLink;
         template.labels = template.labels || {};
       },
       function() {
-        errorPage("Cannot create from template: the specified template could not be retrieved.");
+        Navigate.toErrorPage("Cannot create from template: the specified template could not be retrieved.");
       }
     );
   });

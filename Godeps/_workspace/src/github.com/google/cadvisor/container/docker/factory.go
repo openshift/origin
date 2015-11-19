@@ -24,7 +24,6 @@ import (
 	"sync"
 
 	"github.com/docker/libcontainer/cgroups"
-	"github.com/docker/libcontainer/cgroups/systemd"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/google/cadvisor/container"
@@ -41,6 +40,17 @@ var DockerNamespace = "docker"
 
 // Basepath to all container specific information that libcontainer stores.
 var dockerRootDir = flag.String("docker_root", "/var/lib/docker", "Absolute path to the Docker state root directory (default: /var/lib/docker)")
+var dockerRunDir = flag.String("docker_run", "/var/run/docker", "Absolute path to the Docker run directory (default: /var/run/docker)")
+
+// Regexp that identifies docker cgroups, containers started with
+// --cgroup-parent have another prefix than 'docker'
+var dockerCgroupRegexp = regexp.MustCompile(`.+-([a-z0-9]{64})\.scope$`)
+
+// TODO(vmarmol): Export run dir too for newer Dockers.
+// Directory holding Docker container state information.
+func DockerStateDir() string {
+	return libcontainer.DockerStateDir(*dockerRootDir)
+}
 
 // Whether the system is using Systemd.
 var useSystemd bool
@@ -48,16 +58,19 @@ var check = sync.Once{}
 
 func UseSystemd() bool {
 	check.Do(func() {
-		// run and initialize useSystemd
-		useSystemd = systemd.UseSystemd()
-		if !useSystemd {
-			// Second attempt at checking for systemd, check for a "name=systemd" cgroup.
-			mnt, err := cgroups.FindCgroupMountpoint("cpu")
+		useSystemd = false
+
+		// Check for system.slice in systemd and cpu cgroup.
+		for _, cgroupType := range []string{"name=systemd", "cpu"} {
+			mnt, err := cgroups.FindCgroupMountpoint(cgroupType)
 			if err == nil {
 				// systemd presence does not mean systemd controls cgroups.
 				// If system.slice cgroup exists, then systemd is taking control.
 				// This breaks if user creates system.slice manually :)
-				useSystemd = utils.FileExists(mnt + "/system.slice")
+				if utils.FileExists(path.Join(mnt, "system.slice")) {
+					useSystemd = true
+					break
+				}
 			}
 		}
 	})
@@ -68,11 +81,17 @@ func RootDir() string {
 	return *dockerRootDir
 }
 
+type storageDriver string
+
+const (
+	devicemapperStorageDriver storageDriver = "devicemapper"
+	aufsStorageDriver         storageDriver = "aufs"
+)
+
 type dockerFactory struct {
 	machineInfoFactory info.MachineInfoFactory
 
-	// Whether docker is running with AUFS storage driver.
-	usesAufsDriver bool
+	storageDriver storageDriver
 
 	client *docker.Client
 
@@ -87,8 +106,8 @@ func (self *dockerFactory) String() string {
 	return DockerNamespace
 }
 
-func (self *dockerFactory) NewContainerHandler(name string) (handler container.ContainerHandler, err error) {
-	client, err := docker.NewClient(*ArgDockerEndpoint)
+func (self *dockerFactory) NewContainerHandler(name string, inHostNamespace bool) (handler container.ContainerHandler, err error) {
+	client, err := Client()
 	if err != nil {
 		return
 	}
@@ -97,9 +116,9 @@ func (self *dockerFactory) NewContainerHandler(name string) (handler container.C
 		name,
 		self.machineInfoFactory,
 		self.fsInfo,
-		*dockerRootDir,
-		self.usesAufsDriver,
+		self.storageDriver,
 		&self.cgroupSubsystems,
+		inHostNamespace,
 	)
 	return
 }
@@ -110,35 +129,44 @@ func ContainerNameToDockerId(name string) string {
 
 	// Turn systemd cgroup name into Docker ID.
 	if UseSystemd() {
-		id = strings.TrimPrefix(id, "docker-")
-		id = strings.TrimSuffix(id, ".scope")
+		if matches := dockerCgroupRegexp.FindStringSubmatch(id); matches != nil {
+			id = matches[1]
+		}
 	}
 
 	return id
 }
 
-// Returns a full container name for the specified Docker ID.
-func FullContainerName(dockerId string) string {
-	// Add the full container name.
+func isContainerName(name string) bool {
 	if UseSystemd() {
-		return path.Join("/system.slice", fmt.Sprintf("docker-%s.scope", dockerId))
-	} else {
-		return path.Join("/docker", dockerId)
+		return dockerCgroupRegexp.MatchString(path.Base(name))
 	}
+	return true
 }
 
 // Docker handles all containers under /docker
-func (self *dockerFactory) CanHandle(name string) (bool, error) {
+func (self *dockerFactory) CanHandleAndAccept(name string) (bool, bool, error) {
+	// docker factory accepts all containers it can handle.
+	canAccept := true
+
+	if !isContainerName(name) {
+		return false, canAccept, fmt.Errorf("invalid container name")
+	}
+
 	// Check if the container is known to docker and it is active.
 	id := ContainerNameToDockerId(name)
 
 	// We assume that if Inspect fails then the container is not known to docker.
 	ctnr, err := self.client.InspectContainer(id)
 	if err != nil || !ctnr.State.Running {
-		return false, fmt.Errorf("error inspecting container: %v", err)
+		return false, canAccept, fmt.Errorf("error inspecting container: %v", err)
 	}
 
-	return true, nil
+	return true, canAccept, nil
+}
+
+func (self *dockerFactory) DebugInfo() map[string][]string {
+	return map[string][]string{}
 }
 
 func parseDockerVersion(full_version_string string) ([]int, error) {
@@ -162,7 +190,11 @@ func parseDockerVersion(full_version_string string) ([]int, error) {
 
 // Register root container before running this function!
 func Register(factory info.MachineInfoFactory, fsInfo fs.FsInfo) error {
-	client, err := docker.NewClient(*ArgDockerEndpoint)
+	if UseSystemd() {
+		glog.Infof("System is using systemd")
+	}
+
+	client, err := Client()
 	if err != nil {
 		return fmt.Errorf("unable to communicate with docker daemon: %v", err)
 	}
@@ -185,32 +217,16 @@ func Register(factory info.MachineInfoFactory, fsInfo fs.FsInfo) error {
 	}
 
 	// Check that the libcontainer execdriver is used.
-	information, err := client.Info()
+	information, err := DockerInfo()
 	if err != nil {
 		return fmt.Errorf("failed to detect Docker info: %v", err)
 	}
-	usesNativeDriver := false
-	for _, val := range *information {
-		if strings.Contains(val, "ExecutionDriver=") && strings.Contains(val, "native") {
-			usesNativeDriver = true
-			break
-		}
-	}
-	if !usesNativeDriver {
+	execDriver, ok := information["ExecutionDriver"]
+	if !ok || !strings.HasPrefix(execDriver, "native") {
 		return fmt.Errorf("docker found, but not using native exec driver")
 	}
 
-	usesAufsDriver := false
-	for _, val := range *information {
-		if strings.Contains(val, "Driver=") && strings.Contains(val, "aufs") {
-			usesAufsDriver = true
-			break
-		}
-	}
-
-	if UseSystemd() {
-		glog.Infof("System is using systemd")
-	}
+	sd, _ := information["Driver"]
 
 	cgroupSubsystems, err := libcontainer.GetCgroupSubsystems()
 	if err != nil {
@@ -221,7 +237,7 @@ func Register(factory info.MachineInfoFactory, fsInfo fs.FsInfo) error {
 	f := &dockerFactory{
 		machineInfoFactory: factory,
 		client:             client,
-		usesAufsDriver:     usesAufsDriver,
+		storageDriver:      storageDriver(sd),
 		cgroupSubsystems:   cgroupSubsystems,
 		fsInfo:             fsInfo,
 	}

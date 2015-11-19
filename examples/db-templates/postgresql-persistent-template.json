@@ -1,0 +1,196 @@
+{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "postgresql-persistent",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "PostgreSQL database service, with persistent storage. Scaling to more than one replica is not supported",
+      "iconClass": "icon-postgresql",
+      "tags": "database,postgresql"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "postgresql",
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 5432,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "PersistentVolumeClaim",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "${VOLUME_CAPACITY}"
+          }
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "postgresql"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "postgresql:latest",
+                "namespace": "openshift"
+              },
+              "lastTriggeredImage": ""
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "${DATABASE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "postgresql",
+                "image": "postgresql",
+                "ports": [
+                  {
+                    "containerPort": 5432,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "POSTGRESQL_USER",
+                    "value": "${POSTGRESQL_USER}"
+                  },
+                  {
+                    "name": "POSTGRESQL_PASSWORD",
+                    "value": "${POSTGRESQL_PASSWORD}"
+                  },
+                  {
+                    "name": "POSTGRESQL_DATABASE",
+                    "value": "${POSTGRESQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "${DATABASE_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/pgsql/data"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${DATABASE_SERVICE_NAME}-data",
+                "persistentVolumeClaim": {
+                  "claimName": "${DATABASE_SERVICE_NAME}"
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    }
+  ],
+  "parameters": [
+    {
+      "name": "DATABASE_SERVICE_NAME",
+      "description": "Database service name",
+      "value": "postgresql",
+      "required": true
+    },
+    {
+      "name": "POSTGRESQL_USER",
+      "description": "Username for PostgreSQL user that will be used for accessing the database",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}",
+      "required": true
+    },
+    {
+      "name": "POSTGRESQL_PASSWORD",
+      "description": "Password for the PostgreSQL user",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
+      "name": "POSTGRESQL_DATABASE",
+      "description": "Database name",
+      "value": "sampledb",
+      "required": true
+    },
+    {
+      "name": "VOLUME_CAPACITY",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi",
+      "value": "512Mi",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "postgresql-persistent-template"
+  }
+}

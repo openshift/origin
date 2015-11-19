@@ -11,7 +11,7 @@ fi
 SECRET_PATH=${PUSH_DOCKERCFG_PATH:-}
 
 if [ -z "${SECRET_PATH}" ]; then
-  echo "The dockercfg not found in /var/run/secrets/push"
+  echo "The dockercfg not found in /var/run/secrets/openshift.io/push"
   exit 1
 fi
 

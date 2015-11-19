@@ -1,7 +1,8 @@
 package test
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 )
@@ -13,23 +14,23 @@ type ClientRegistry struct {
 	DeletedClientName string
 }
 
-func (r *ClientRegistry) ListClients(labels labels.Selector) (*api.OAuthClientList, error) {
+func (r *ClientRegistry) ListClients(ctx kapi.Context, labels labels.Selector) (*api.OAuthClientList, error) {
 	return r.Clients, r.Err
 }
 
-func (r *ClientRegistry) GetClient(name string) (*api.OAuthClient, error) {
+func (r *ClientRegistry) GetClient(ctx kapi.Context, name string) (*api.OAuthClient, error) {
 	return r.Client, r.Err
 }
 
-func (r *ClientRegistry) CreateClient(client *api.OAuthClient) error {
-	return r.Err
+func (r *ClientRegistry) CreateClient(ctx kapi.Context, client *api.OAuthClient) (*api.OAuthClient, error) {
+	return r.Client, r.Err
 }
 
-func (r *ClientRegistry) UpdateClient(client *api.OAuthClient) error {
-	return r.Err
+func (r *ClientRegistry) UpdateClient(ctx kapi.Context, client *api.OAuthClient) (*api.OAuthClient, error) {
+	return r.Client, r.Err
 }
 
-func (r *ClientRegistry) DeleteClient(name string) error {
+func (r *ClientRegistry) DeleteClient(ctx kapi.Context, name string) error {
 	r.DeletedClientName = name
 	return r.Err
 }

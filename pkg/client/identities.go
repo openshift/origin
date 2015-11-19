@@ -1,10 +1,9 @@
 package client
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	userapi "github.com/openshift/origin/pkg/user/api"
-	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
 // IdentitiesInterface has methods to work with Identity resources
@@ -37,8 +36,8 @@ func (c *identities) List(label labels.Selector, field fields.Selector) (result 
 	result = &userapi.IdentityList{}
 	err = c.r.Get().
 		Resource("identities").
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Do().
 		Into(result)
 	return

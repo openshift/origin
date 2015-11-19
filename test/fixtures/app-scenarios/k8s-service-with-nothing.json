@@ -1,21 +1,37 @@
 {
-  "apiVersion": "v1beta1",
+  "kind": "List",
+  "apiVersion": "v1beta3",
+  "metadata": {},
   "items": [
     {
-      "apiVersion": "v1beta1",
-      "containerPort": 8080,
-      "id": "empty-service",
       "kind": "Service",
-      "labels": {
-        "template": "empty-service"
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "empty-service",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "empty-service"
+        }
       },
-      "port": 5432,
-      "protocol": "TCP",
-      "selector": {
-        "name": "empty-service"
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "empty-service"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
       },
-      "sessionAffinity": "None"
+      "status": {
+        "loadBalancer": {}
+      }
     }
-  ],
-  "kind": "List"
+  ]
 }

@@ -1,51 +1,35 @@
 package identitymapper
 
 import (
-	"errors"
-	"fmt"
-
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	kuser "k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
-	"github.com/openshift/origin/pkg/user"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 )
 
-// UserNameGenerator returns a username
-type UserNameGenerator func(base string, sequence int) string
-
-var (
-	// MaxGenerateAttempts limits how many times we try to find an available username for a new identity
-	MaxGenerateAttempts = 100
-
-	// DefaultGenerator attempts to use the base name first, then "base2", "base3", ...
-	DefaultGenerator = UserNameGenerator(func(base string, sequence int) string {
-		if sequence == 0 {
-			return base
-		}
-		return fmt.Sprintf("%s%d", base, sequence+1)
-	})
-)
-
-type provisioningIdentityMapper struct {
-	identity    identityregistry.Registry
-	user        userregistry.Registry
-	generator   UserNameGenerator
-	initializer user.Initializer
+// UserForNewIdentityGetter is responsible for creating or locating the persisted User for the given Identity.
+// The preferredUserName is available to the strategies
+type UserForNewIdentityGetter interface {
+	// UserForNewIdentity returns a persisted User object for the given Identity, creating it if needed
+	UserForNewIdentity(ctx kapi.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error)
 }
 
-// NewAlwaysCreateUserIdentityToUserMapper returns an IdentityMapper that does the following:
-// 1. Returns an existing user if the identity exists and is associated with an existing user
-// 2. Returns an error if the identity exists and is not associated with a user
-// 3. Creates the identity and creates and returns a new user with a unique username if the identity does not yet exist
-func NewAlwaysCreateUserIdentityToUserMapper(identityRegistry identityregistry.Registry, userRegistry userregistry.Registry) authapi.UserIdentityMapper {
-	return &provisioningIdentityMapper{identityRegistry, userRegistry, DefaultGenerator, user.NewDefaultUserInitStrategy()}
+var _ = authapi.UserIdentityMapper(&provisioningIdentityMapper{})
+
+// provisioningIdentityMapper implements api.UserIdentityMapper
+// If an existing UserIdentityMapping exists for an identity, it is returned.
+// If an identity does not exist, it creates an Identity referencing the user returned from provisioningStrategy.UserForNewIdentity
+// Otherwise an error is returned
+type provisioningIdentityMapper struct {
+	identity             identityregistry.Registry
+	user                 userregistry.Registry
+	provisioningStrategy UserForNewIdentityGetter
 }
 
 // UserFor returns info about the user for whom identity info have been provided
@@ -67,11 +51,14 @@ func (p *provisioningIdentityMapper) userForWithRetries(info authapi.UserIdentit
 
 	if kerrs.IsNotFound(err) {
 		user, err := p.createIdentityAndMapping(ctx, info)
-		// Only retry for AlreadyExists errors, which can occur in the following cases:
+		// Only retry for the following types of errors:
+		// AlreadyExists errors:
 		// * The same user was created by another identity provider with the same preferred username
-		// * The same user was created by another instance of this identity provider
-		// * The same identity was created by another instance of this identity provider
-		if kerrs.IsAlreadyExists(err) && allowedRetries > 0 {
+		// * The same user was created by another instance of this identity provider (e.g. double-clicked login button)
+		// * The same identity was created by another instance of this identity provider (e.g. double-clicked login button)
+		// Conflict errors:
+		// * The same user was updated be another identity provider to add identity info
+		if (kerrs.IsAlreadyExists(err) || kerrs.IsConflict(err)) && allowedRetries > 0 {
 			return p.userForWithRetries(info, allowedRetries-1)
 		}
 		return user, err
@@ -97,7 +84,7 @@ func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx kapi.Context, 
 	}
 
 	// Get or create a persisted user pointing to the identity
-	persistedUser, err := p.getOrCreateUserForIdentity(ctx, identity)
+	persistedUser, err := p.provisioningStrategy.UserForNewIdentity(ctx, getPreferredUserName(identity), identity)
 	if err != nil {
 		return nil, err
 	}
@@ -112,57 +99,10 @@ func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx kapi.Context, 
 	}
 
 	return &kuser.DefaultInfo{
-		Name: persistedUser.Name,
-		UID:  string(persistedUser.UID),
+		Name:   persistedUser.Name,
+		UID:    string(persistedUser.UID),
+		Groups: persistedUser.Groups,
 	}, nil
-}
-
-func (p *provisioningIdentityMapper) getOrCreateUserForIdentity(ctx kapi.Context, identity *userapi.Identity) (*userapi.User, error) {
-
-	preferredUserName := getPreferredUserName(identity)
-
-	// Iterate through the max allowed generated usernames
-	// If an existing user references this identity, associate the identity with that user and return
-	// Otherwise, create a user with the first generated user name that does not already exist and return.
-	// Names are created in a deterministic order, so the first one that isn't present gets created.
-	// In the case of a race, one will get to persist the user object and the other will fail.
-	for sequence := 0; sequence < MaxGenerateAttempts; sequence++ {
-		// Get the username we want
-		potentialUserName := p.generator(preferredUserName, sequence)
-
-		// See if it already exists
-		persistedUser, err := p.user.GetUser(ctx, potentialUserName)
-
-		if err != nil && !kerrs.IsNotFound(err) {
-			// Fail on errors other than "not found"
-			return nil, err
-		}
-
-		if err != nil && kerrs.IsNotFound(err) {
-			// Try to create a user with the available name
-			desiredUser := &userapi.User{
-				ObjectMeta: kapi.ObjectMeta{Name: potentialUserName},
-				Identities: []string{identity.Name},
-			}
-
-			// Initialize from the identity
-			p.initializer.InitializeUser(identity, desiredUser)
-
-			// Create the user
-			createdUser, err := p.user.CreateUser(ctx, desiredUser)
-			if err != nil {
-				return nil, err
-			}
-			return createdUser, nil
-		}
-
-		if util.NewStringSet(persistedUser.Identities...).Has(identity.Name) {
-			// If the existing user references our identity, we're done
-			return persistedUser, nil
-		}
-	}
-
-	return nil, errors.New("Could not create user, max attempts exceeded")
 }
 
 func (p *provisioningIdentityMapper) getMapping(ctx kapi.Context, identity *userapi.Identity) (kuser.Info, error) {
@@ -177,18 +117,19 @@ func (p *provisioningIdentityMapper) getMapping(ctx kapi.Context, identity *user
 		glog.Errorf("identity.user.uid (%s) and user.uid (%s) do not match for identity %s", identity.User.UID, u.UID, identity.Name)
 		return nil, kerrs.NewNotFound("UserIdentityMapping", identity.Name)
 	}
-	if !util.NewStringSet(u.Identities...).Has(identity.Name) {
+	if !sets.NewString(u.Identities...).Has(identity.Name) {
 		glog.Errorf("user.identities (%#v) does not include identity (%s)", u, identity.Name)
 		return nil, kerrs.NewNotFound("UserIdentityMapping", identity.Name)
 	}
 	return &kuser.DefaultInfo{
-		Name: u.Name,
-		UID:  string(u.UID),
+		Name:   u.Name,
+		UID:    string(u.UID),
+		Groups: u.Groups,
 	}, nil
 }
 
 func getPreferredUserName(identity *userapi.Identity) string {
-	if login, ok := identity.Extra[authapi.IdentityLoginKey]; ok && len(login) > 0 {
+	if login, ok := identity.Extra[authapi.IdentityPreferredUsernameKey]; ok && len(login) > 0 {
 		return login
 	}
 	return identity.ProviderUserName

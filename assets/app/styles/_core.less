@@ -6,8 +6,26 @@ html, body {
   height: 100%;
 }
 
+// See https://docs.angularjs.org/api/ng/directive/ngCloak
+[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+  display: none !important;
+}
+
+// Prevent zooming when focusing input fields in mobile Safari. Try to only
+// target mobile devices to avoid larger-than-wanted fonts elsewhere.
+@media only screen and (max-device-width: 736px) and (-webkit-min-device-pixel-ratio: 0) {
+  input[type="text"],
+  input[type="number"],
+  input[type="search"],
+  input[type="url"],
+  textarea {
+    font-size: 16px;
+  }
+}
+
 .console-os {
   background-color: @body-bg;
+  height: ~"calc(100% - 121px)"; // removes scrollbar on pages with less than full viewport content
   #content-wrap {
     height: 100%;
     .content {
@@ -16,12 +34,17 @@ html, body {
   }
   .container-main {
     background-color: @body-bg;
+    padding-bottom: @grid-gutter-width * 2;
     .flex(@columns: 1);
+    h1 {
+      word-wrap: break-word;
+    }
   }
   #content-wrap > .container {
     margin-top: 35px;
+    margin-bottom: @grid-gutter-width * 2;
     h1 {
-      margin-top: 10px;
+      margin: 10px 0 20px;
     }
   }
 }
@@ -32,45 +55,54 @@ html, body {
   }
   .navbar-pf {
     background: @navbar-os-bg-color;
-    .navbar-header {
-      border-bottom-color: lighten(@navbar-pf-bg-color, 62%);
-    }
-    .navbar-utility > li {
+    .navbar-nav li {
       > a {
         border: 0;
         font-size: 12px;
         &:hover {
         }
       }
-    }
-    .navbar-brand { 
-      border: 0;
-      img {
-        height: 11px;
+      + li {
+        border-top: 0;
       }
     }
+    @media (max-width: @screen-xs-max) {
+      .navbar-utility {
+        border-top: 1px solid @navbar-pf-navbar-header-border-color;
+      }
+    }
+    .navbar-brand {
+      border: 0;
+      margin-left: 20px;
+      margin-top: 4px;
+      padding: 8px 0 8px;
+
+    }
   }
+  .page-header {
+    margin-top: 22px;
+  }
+}
+#header-logo {
+  background: url('@{image-path}/logo-origin-thin.svg');
+  background-repeat: no-repeat;
+  width: 160px;
+  height: 10px;
 }
 
 .console-os .navbar-project {
-  border-bottom: 1px solid @navbar-os-project-border-color; 
+  border-bottom: 1px solid @navbar-os-project-border-color;
   padding-bottom: 5px;
+  padding-top: 5px;
   position: relative;
-  background: @navbar-os-project-bg;
-  min-height: 85px;
-  .navbar-project-menu {
-    position: relative;
-    display: block;
-    top: 0;
-    margin: 0 20px;
-  }
+  background: #fff;
   label.control-label {
     color: @navbar-project-label-color;
     font-size: 11px;
     font-weight: 400;
     margin: 8px 0 0 0;
   }
-  .bootstrap-select > .btn {
+  .bootstrap-select.btn-group .btn {
     width: 100%;
     padding: 7px 25px 7px 10px;
     font-size: @font-size-large;
@@ -79,16 +111,22 @@ html, body {
     font-weight: 400;
     background: @navbar-os-project-menu-bg;
     border: @navbar-os-project-menu-border;
+    transition: none;
+    &:hover, &:focus {
+      border-color: @input-border-hover;
+    }
     .caret {
       font-size: @font-size-large + 5;
+      margin-top: -4px;
+    }
+    .filter-option {
+      text-overflow: ellipsis;
     }
   }
-  .dropdown-menu.open {
-    .dropdown-menu.inner.selectpicker {
-      li {
-        a {
-          padding: 5px 10px;
-        }
+  .bootstrap-select.btn-group {
+    .dropdown-menu {
+      li a {
+        padding: 10px;
       }
     }
   }
@@ -102,50 +140,214 @@ html, body {
       margin-bottom: 0;
     }
   }
+  .active-filters {
+    /* If line-height is set, the active-filters div takes up space even
+       when no filters are active. */
+    line-height: 0;
+  }
+  .create-button-container {
+    margin-top: 15px;
+  }
 }
-@media (min-width: @screen-sm-min) {
-  .console-os .navbar-project {
-    .navbar-project-menu {
-      display: inline-block;
-      float: left;
-      width: @navbar-project-menu-sm;
-    }
-    .navbar-search {
-      margin-left: @sidebar-left-width-open-sm;
+@media (max-width: @screen-xs-max) {
+  // Project nav at mobile widths
+  .console-os {
+    .navbar-project {
+      .form-group {
+        display: inline;
+      }
+      .project-actions {
+        margin-right: -10px;
+        margin-left: 10px;
+        a {
+          color: lighten(@navbar-os-project-menu-color, 20%);
+          cursor: pointer;
+          display: inline-block;
+          font-size: 18px;
+          padding: 4px 14px 5px;
+          &:hover, &:active, &:focus {
+            background-color: @sidebar-os-hover-bg;
+            color: @navbar-os-project-menu-color;
+          }
+        }
+      }
+      .navbar-filter-widget {
+        margin-top: 10px;
+        white-space: nowrap;
+      }
     }
   }
 }
-@media (min-width: @screen-lg-min) { 
-  .console-os .navbar-project {
-    .navbar-project-menu {
-      width: @navbar-project-menu-md;
+ @media (min-width: @screen-sm-min) {
+  .console-os {
+    .navbar-pf {
+      .navbar-header {
+        .navbar-brand {
+          margin-top: 0;
+        }
+      }
     }
-    .navbar-search {
-      margin-left: @sidebar-left-width-open-md;
+    .navbar-project {
+      background: @navbar-os-project-bg;
+      padding-bottom: 20px;
+      padding-top: 0;
+      .navbar-filter-widget-collapse.collapse {
+        // Prevent filter field from being hidden when going from mobile to desktop width
+        display: block;
+      }
+      .navbar-filter-widget {
+        /* Prevent the filter button from wrapping at wide screen sizes. */
+        min-width: 340px;
+      }
+      .create-button-container {
+        text-align: right;
+        /* Align button with other navbar controls that have a label above. */
+        margin-top: 30px;
+      }
     }
-  }
-}
-@media (min-width: @screen-xlg-min)  {
-  .console-os .navbar-project {
-    .navbar-project-menu {
-      width: @navbar-project-menu-lg;
-    }
-    .navbar-search {
-      margin-left: @sidebar-left-width-open-lg;
+    .container-main {
+      // Ensures short content pages in IE have sidebars that extend beneath the left nav
+      min-height: 600px;
     }
   }
 }
 
-.dl-horizontal.left dt {
-  text-align: left;
+.separator {
+  border-top: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.breadcrumb {
+  font-size: @font-size-base - 1;
+  strong {
+    font-weight: 600;
+  }
+}
+
+.nav-tabs {
+  font-size: @font-size-base;
+  a {
+    // ui.bootstrap.tabs doesn't set the href attr, so the cursor style is
+    // required or it's a vertical bar
+    cursor: pointer;
+  }
+  li.active {
+    a, a:hover {
+      // Remove when we update patternfly
+      background-color: #fff;
+    }
+  }
+}
+
+.nav-tabs, .tab-content {
+  margin-top: @grid-gutter-width / 2;
+}
+
+.empty-project {
+  margin: 10px auto;
+  max-width: 500px;
+  padding: 30px;
+
+  // Make sure icons are the same size so text aligns.
+  .fa {
+    width: 16px;
+    text-align: center;
+  }
+  dd {
+    margin-left: 20px;
+    margin-bottom: 10px;
+  }
+}
+
+.empty-state-message {
+  margin: @grid-gutter-width auto;
+  max-width: 600px;
+  padding: 0 (@grid-gutter-width / 2);
+  .btn {
+    margin: 10px 0 20px;
+  }
+  @media (min-height: 500px) {
+    margin-top: 150px;
+  }
+}
+
+  .service-table {
+    border: 0;
+    margin: 10px 0 5px;
+    table {
+      .table;
+      .table-condensed;
+      .text-center;
+      .small;
+      margin-bottom: 0;
+      thead {
+        tr th {
+          .text-center;
+        }
+      }
+    }
+  }
+
+.pod-metrics {
+  .metrics-options {
+    .form-group {
+      margin-bottom: 0;
+    }
+    .select-container {
+      display: inline-block;
+    }
+    @media (min-width: @screen-sm-min) {
+      .form-group {
+        display: inline-block;
+      }
+      .select-container {
+        margin-right: 10px;
+      }
+    }
+  }
+  .metrics-chart {
+    // The utilization chart floats some elements, so this is needed for proper padding.
+    clear: both;
+    max-width: 800px;
+    padding-top: 5px;
+  }
+}
+
+// Create App
+// --------------------------------------------------
+
+label.checkbox {
   font-weight: normal;
 }
 
+// Make sure icons are the same size so headings align.
+.add-to-project {
+  .filter-group {
+    line-height: 1.75;
+    .search-input, .btn-group {
+      display: inline-block;
+      margin-bottom: 10px;
+      vertical-align: top;
+    }
+    .search-input {
+      width: 100%;
+      @media (min-width: @screen-sm-min) {
+        width: 400px;
+      }
+    }
+    .filter-btn {
+      margin-right: 5px;
+    }
+    @media (min-width: @screen-sm-min) {
+      .filter-msg {
+        display: inline-block;
+      }
+    }
+  }
+}
 
-// Create App
-// --------------
-
-.create-from-template {
+.create-from-template,
+.create-from-image {
+  margin-bottom: 100px; // needed space for hover help text near bottom
   .template-name {
     text-align: right;
     span.fa {
@@ -160,41 +362,145 @@ html, body {
   span.fa.visible-xs-inline {
     margin-right: 10px;
   }
-}
-
-.flow {
-  display: table;
-  width: 100%;
-  > .flow-block {
-    display: inline-block;
-    &.right {
-      font-size: @font-size-small;
-      font-weight: normal;
-    }
-    .action {
+  .flow {
+    .separator;
+    display: table;
+    margin-top: @grid-gutter-width;
+    width: 100%;
+    > .flow-block {
+      display: inline-block;
+      &.right {
         font-size: @font-size-small;
         font-weight: normal;
-        // &:extend(.action-inline);
       }
-    > ul.list-inline {
-      margin-bottom: 0;
-      > li {
-        font-size: @font-size-small;
-        text-align: left;
+      .action {
+          font-size: @font-size-small;
+          font-weight: normal;
+          // &:extend(.action-inline);
+        }
+      > ul.list-inline {
+        margin-bottom: 0;
+        > li {
+          font-size: @font-size-small;
+          text-align: left;
+        }
       }
     }
   }
-}
-@media (min-width: 767px) {
-  .flow > .flow-block {
-    display: table-cell;
-    &.right {
-      // float: right;
-      text-align: right;
+  .first-section .flow {
+    margin-top: (@grid-gutter-width / 2);
+    border-top: 0;
+  }
+  .template-options {
+    line-height: 1.5;
+    .list-unstyled {
+      .options {
+        margin-bottom: 12px;
+      }
+      .help-block {
+        margin: 0 0 5px 2px;
+      }
+    }
+    .form-group {
+      width: 100%;
+      max-width: 600px;
+    }
+    .help-block {
+      margin-bottom: 5px;
     }
   }
 }
 
+.next-steps {
+  .tile {
+    margin-bottom: 0;
+    &.tile-status {
+      margin-top: 0;
+    }
+  }
+}
+
+.catalog-col section {
+  margin-bottom: 10px;
+  > h3 {
+    margin-top: 0;
+    small {
+      font-size: @font-size-base;
+    }
+  }
+}
+@media (min-width:@screen-sm-min) {
+  .catalog-col-2 {
+    margin-left: 3%;
+  }
+}
+
+.tag {
+  color: #999999;
+  text-transform: uppercase;
+  margin-right: 10px;
+}
+
+.catalog {
+  .flex-display(@display: flex);
+
+  // Stack at mobile screen sizes
+  .flex-direction(@direction: column);
+
+  .tile-template, .tile-image {
+    width: 100%;
+    a.tag {
+      text-decoration: none;
+      &:hover {
+        color: black;
+        background: #dfdfdf;
+        text-decoration: none;
+      }
+    }
+  }
+
+  // Arrange in columns >767px
+  @media (min-width: @screen-sm-min) {
+    .flex-direction(@direction: row);
+    .flex-wrap(@wrap: wrap);
+    .justify-content(@justify: flex-start);
+    .tile-template, .tile-image {
+      .flex(@columns: 1 0 auto);
+      width: 100%;
+      margin-right: (@grid-gutter-width / 2);
+    }
+    &.catalog-fluid {
+      .tile-template, .tile-image {
+        width: 375px;
+      }
+    }
+  }
+}
+
+@create-form-md-width: 44%;
+@media (min-width: 767px) {
+  .create-from-template,
+  .create-from-image {
+    .flow > .flow-block {
+      display: table-cell;
+      &.right {
+        // float: right;
+        text-align: right;
+      }
+    }
+    .form-control-md {
+      width: @create-form-md-width;
+    }
+    .labels .form-group {
+      // Show name/value fields like labels and env vars side by side at wide screen sizes.
+      // Align text fields with read-only values.
+      width: @create-form-md-width;
+      .form-control {
+        width: 100%;
+      }
+    }
+  }
+}
 
 .label-list li,
 .env-variable-list li {
@@ -215,87 +521,126 @@ html, body {
   }
 }
 
-// Modals //
-.modal {
-  &.modal-create {
-    .modal-content {
-      padding: 0;
-      .modal-header {
-        background-color: transparent;
-      }
-      .modal-body {
-        .template-icon {
-          text-align: center;
-        }
-        .template-icon {
-          font-size: 80px;
-          line-height: 80px;
-        }
-        @media (min-width:@screen-sm-min) {
-          .template-icon {
-            font-size: 130px;
-            line-height: 130px;
-          }
-        }
-      }
-      .modal-footer {
-        .btn-block {
-          padding: 10px;
-        }
-      }
-    }
-    @media (min-width:@screen-sm-min) {
-      .modal-content {padding: 25px;}
-    }
-  }
-}
-
 .label + .label {
   margin-left: 3px;
 }
 
-// Misc
-// ------------
 
+// Misc
+// TODO: pull out into _partials where it makes sense
+// --------------------------------------------------
 .action-inline {
   margin-left: @action-link-inline-margin;
+  font-size: @font-size-small;
   i.pficon, i.fa {
     color: @btn-default-color;
     margin-right: 5px;
   }
 }
+
+label.required:before {
+  content: '*';
+  position: absolute;
+  left: 10px;
+}
+
 .btn-xs {
   padding: 0 4px;
 }
 .btn-lg, .btn-group-lg > .btn {
-  line-height: 1.334; // needed to make same height as inputs 
+  line-height: 1.334; // needed to make same height as inputs
 }
+
+code {
+  white-space: normal;
+}
+
+pre {
+  &.code {
+    background-color: #fff;
+    border: none;
+    border-left: 2px solid rgb(204, 204, 204);
+  }
+}
+
+[data-toggle="tooltip"] {
+  cursor: pointer; // so tooltips get correct cursor
+}
+
+// Fix to override the Firefox 40+ behavior to add text-decoration
+// No other browser does this.
+abbr[data-original-title], abbr[title] {
+  text-decoration: none;
+}
+
+.dl-horizontal {
+  &.left {
+    dt {
+      text-align: left;
+    }
+  }
+  &.indent {
+    margin-left: (@grid-gutter-width / 2); // 20px
+  }
+  dd {
+    &:extend(.clearfix all); // Including this here because it's not being set even though it's in /bootstrap/less/type.less dunno why?
+  }
+}
+
 .gutter-top-bottom {
-  padding: 15px 0;
+  padding: @grid-gutter-width / 2 0;
+  &.gutter-top-bottom-2x {
+    padding: @grid-gutter-width 0;
+  }
 }
 .gutter-top {
-  padding-top: 15px;
+  padding-top: @grid-gutter-width / 2;
+  &.gutter-top-2x {
+    padding-top: @grid-gutter-width;
+  }
 }
 .gutter-bottom {
-  padding-bottom: 15px;
+  padding-bottom: @grid-gutter-width / 2;
+  &.gutter-bottom-2x {
+    padding-bottom: @grid-gutter-width;
+  }
 }
+
 select:invalid {
     box-shadow: none;
 }
+
 .truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  // Bootstrap mixin
+  // Note: If truncating within a flex container then the parent needs a width
+  .text-overflow();
+}
+
+.word-break {
+  .word-break();
+}
+
+.nowrap {
   white-space: nowrap;
 }
 
 .well > {
   h1, h2, h3, h4, h5 {
     &:first-child {
-      margin-top: 0;
+      margin: 5px 0 15px;
     }
   }
 }
 
+.spinner.spinner-xs { // set height & width to 12px so that FF displays correctly
+  height: 12px;
+  width: 12px;
+}
+
+.spinner.spinner-inverse {
+  border-color: rgba(0,153,211, .25);
+  border-top-color: rgba(0,153,211, .75);
+}
 
 .attention-message {
   background-color: lighten(@brand-primary, 20%);
@@ -317,4 +662,135 @@ select:invalid {
   font-weight: normal;
 }
 
+.short-id {
+  background-color: #f1f1f1;
+  color: #666;
+}
 
+.input-number {
+  width: 60px;
+}
+
+.deployment .replicas-form input {
+  display: inline-block;
+}
+
+.action-button {
+  color: @gray-light;
+  cursor: pointer;
+  &:hover {
+    color: #000;
+  }
+}
+
+a.action-button {
+  &:hover, &:active, &:focus {
+    text-decoration: none;
+  }
+}
+
+.modal-resource-delete {
+  background-color: @gray-lighter;
+  h1 {
+    font-size: 21px;
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+  p {
+    font-size: @font-size-large + 1;
+  }
+}
+
+.status {
+  min-width: 130px;
+  .status-icon {
+    margin-right: 6px;
+    width: 13px;
+    text-align: center;
+  }
+}
+pre.clipped {
+  display: inline-block;
+}
+
+.k8s-label {
+  margin-right: 5px;
+  &:before {
+    content: ' ';
+    white-space: normal;
+  }
+  .label-pair {
+    margin-bottom: 2px;
+  .label {
+    &:first-child {
+      border-radius: 2px 0 0 2px;
+    }
+    &:last-child {
+      border-radius: 0 2px 2px 0;
+    }
+  }
+  .label-key {
+    background-color: #bee1f4;
+    color: #00659c;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    margin-left: 0;
+    font-size: 12px;
+  }
+  // if its a link
+  a.label-key {
+    &:hover, &:focus, &:active {
+      background-color: #00659c;
+      color: #FFFFFF;
+    }
+  }
+  .label-value {
+    background-color: #7dc3e8;
+    color: #FFFFFF;
+    margin-left: 0;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    font-size: 12px;
+  }
+  a.label-value {
+    &:hover, &:focus, &:active {
+      background-color: #00659c;
+    }
+  }
+  }
+}
+@media (max-width: @screen-sm-min) {
+  .k8s-label {
+  // enable label to truncate
+    width: 100%;
+    .label {
+      display: block;
+      min-width: 50px;
+    }
+    .label-pair {
+      width: 100%;
+    }
+  }
+}
+
+labels + .resource-details {
+  margin-top: 10px;
+}
+
+[flex].page-header {
+  // reduced for consistency if used with flex
+  margin-top: 21px;
+}
+
+.resource-details h3 {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+h1 small.meta {
+  font-size: 12px;
+}
+
+.action-divider {
+  color: @gray-light;
+}

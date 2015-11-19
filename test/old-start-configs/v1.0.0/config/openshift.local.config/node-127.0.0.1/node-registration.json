@@ -1,0 +1,1 @@
+{"kind":"Node","apiVersion":"v1","metadata":{"name":"127.0.0.1","creationTimestamp":null},"spec":{},"status":{"nodeInfo":{"machineID":"","systemUUID":"","bootID":"","kernelVersion":"","osImage":"","containerRuntimeVersion":"","kubeletVersion":"","kubeProxyVersion":""}}}

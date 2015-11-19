@@ -1,23 +1,24 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
+	kapi "k8s.io/kubernetes/pkg/api"
+	klatest "k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/apiserver"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/tools/etcdtest"
+	"k8s.io/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -28,14 +29,23 @@ import (
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
+	buildetcd "github.com/openshift/origin/pkg/build/registry/build/etcd"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
-	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
+	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
 	"github.com/openshift/origin/pkg/build/webhook"
+	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/image/registry/image"
+	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
+	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
+	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	testutil "github.com/openshift/origin/test/util"
+
+	buildclonestorage "github.com/openshift/origin/pkg/build/registry/buildclone"
+	buildinstantiatestorage "github.com/openshift/origin/pkg/build/registry/buildconfiginstantiate"
 )
 
 func init() {
@@ -133,12 +143,13 @@ func TestWatchBuilds(t *testing.T) {
 func mockBuild() *buildapi.Build {
 	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
+			GenerateName: "mock-build",
 			Labels: map[string]string{
 				"label1": "value1",
 				"label2": "value2",
 			},
 		},
-		Parameters: buildapi.BuildParameters{
+		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
@@ -151,18 +162,21 @@ func mockBuild() *buildapi.Build {
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
-				DockerImageReference: "namespace/builtimage",
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "namespace/builtimage",
+				},
 			},
 		},
 	}
 }
 
 type testBuildOpenshift struct {
-	Client   *osclient.Client
-	server   *httptest.Server
-	whPrefix string
-	stop     chan struct{}
-	lock     sync.Mutex
+	KubeClient *kclient.Client
+	Client     *osclient.Client
+	server     *httptest.Server
+	stop       chan struct{}
+	lock       sync.Mutex
 }
 
 func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
@@ -173,15 +187,16 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	openshift.lock.Lock()
 	defer openshift.lock.Unlock()
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
+	etcdHelper, _ := master.NewEtcdStorage(etcdClient, latest.InterfacesFor, latest.Version, etcdtest.PathPrefix())
 
 	osMux := http.NewServeMux()
 	openshift.server = httptest.NewServer(osMux)
 
-	kubeClient := client.NewOrDie(&client.Config{Host: openshift.server.URL, Version: klatest.Version})
-	osClient := osclient.NewOrDie(&client.Config{Host: openshift.server.URL, Version: latest.Version})
+	kubeClient := kclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: klatest.DefaultVersionForLegacyGroup()})
+	osClient := osclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: latest.Version})
 
 	openshift.Client = osClient
+	openshift.KubeClient = kubeClient
 
 	kubeletClient, err := kclient.NewKubeletClient(&kclient.KubeletConfig{Port: 10250})
 	if err != nil {
@@ -190,59 +205,92 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	handlerContainer := master.NewHandlerContainer(osMux)
 
+	storageDestinations := master.NewStorageDestinations()
+	storageDestinations.AddAPIGroup("", etcdHelper)
+
 	_ = master.New(&master.Config{
-		EtcdHelper:       etcdHelper,
-		KubeletClient:    kubeletClient,
-		APIPrefix:        "/api",
-		AdmissionControl: admit.NewAlwaysAdmit(),
-		RestfulContainer: handlerContainer,
+		StorageDestinations: storageDestinations,
+		KubeletClient:       kubeletClient,
+		APIPrefix:           "/api",
+		AdmissionControl:    admit.NewAlwaysAdmit(),
+		RestfulContainer:    handlerContainer,
+		DisableV1:           false,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 
-	buildEtcd := buildetcd.New(etcdHelper)
+	buildStorage := buildetcd.NewStorage(etcdHelper)
+	buildRegistry := buildregistry.NewRegistry(buildStorage)
+	buildConfigStorage := buildconfigetcd.NewStorage(etcdHelper)
+	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
-	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(
+	imageStorage := imageetcd.NewREST(etcdHelper)
+	imageRegistry := image.NewRegistry(imageStorage)
+
+	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(
 		etcdHelper,
 		imagestream.DefaultRegistryFunc(func() (string, bool) {
 			return "registry:3000", true
 		}),
 		&fakeSubjectAccessReviewRegistry{},
 	)
-	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus)
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
+
+	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
+	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
+
+	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
+	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
-			GetBuildConfigFunc:    buildEtcd.GetBuildConfig,
-			UpdateBuildConfigFunc: buildEtcd.UpdateBuildConfig,
-			GetBuildFunc:          buildEtcd.GetBuild,
-			CreateBuildFunc:       buildEtcd.CreateBuild,
-			GetImageStreamFunc:    imageStreamRegistry.GetImageStream,
+			GetBuildConfigFunc:      buildConfigRegistry.GetBuildConfig,
+			UpdateBuildConfigFunc:   buildConfigRegistry.UpdateBuildConfig,
+			GetBuildFunc:            buildRegistry.GetBuild,
+			CreateBuildFunc:         buildRegistry.CreateBuild,
+			GetImageStreamFunc:      imageStreamRegistry.GetImageStream,
+			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
+			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
 	}
-	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
+
+	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
+		buildConfigRegistry,
+		buildclient.NewOSClientBuildConfigInstantiatorClient(osClient),
+		map[string]webhook.Plugin{
+			"generic": generic.New(),
+			"github":  github.New(),
+		},
+	)
 
 	storage := map[string]rest.Storage{
-		"builds":                   buildregistry.NewREST(buildEtcd),
-		"builds/clone":             buildClone,
-		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
-		"buildConfigs/instantiate": buildConfigInstantiate,
+		"builds":                   buildStorage,
+		"buildConfigs":             buildConfigStorage,
+		"buildConfigs/webhooks":    buildConfigWebHooks,
+		"builds/clone":             buildclonestorage.NewStorage(buildGenerator),
+		"buildConfigs/instantiate": buildinstantiatestorage.NewStorage(buildGenerator),
 		"imageStreams":             imageStreamStorage,
 		"imageStreams/status":      imageStreamStatus,
+		"imageStreamTags":          imageStreamTagStorage,
+		"imageStreamImages":        imageStreamImageStorage,
+	}
+	for k, v := range storage {
+		storage[strings.ToLower(k)] = v
 	}
 
 	version := &apiserver.APIGroupVersion{
-		Root:    "/osapi",
-		Version: "v1beta1",
+		Root:    "/oapi",
+		Version: "v1",
 
 		Storage: storage,
 		Codec:   latest.Codec,
 
 		Mapper: latest.RESTMapper,
 
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  interfaces.MetadataAccessor,
+		Creater:   kapi.Scheme,
+		Typer:     kapi.Scheme,
+		Convertor: kapi.Scheme,
+		Linker:    interfaces.MetadataAccessor,
 
 		Admit:   admit.NewAlwaysAdmit(),
 		Context: kapi.NewRequestContextMapper(),
@@ -250,14 +298,6 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	if err := version.InstallREST(handlerContainer); err != nil {
 		t.Fatalf("unable to install REST: %v", err)
 	}
-
-	openshift.whPrefix = "/osapi/v1beta1/buildConfigHooks/"
-	bcClient := buildclient.NewOSClientBuildConfigClient(osClient)
-	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
-		webhook.NewController(bcClient, buildclient.NewOSClientBuildConfigInstantiatorClient(osClient),
-			osClient.ImageStreams(kapi.NamespaceAll).(osclient.ImageStreamNamespaceGetter), map[string]webhook.Plugin{
-				"github": github.New(),
-			})))
 
 	bcFactory := buildcontrollerfactory.BuildControllerFactory{
 		OSClient:     osClient,
@@ -267,7 +307,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 			Image: "test-docker-builder",
 			Codec: latest.Codec,
 		},
-		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
+		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
 			Image:                "test-sti-builder",
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			Codec:                latest.Codec,

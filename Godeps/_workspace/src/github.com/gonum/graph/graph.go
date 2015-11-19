@@ -4,204 +4,170 @@
 
 package graph
 
-// All a node needs to do is identify itself. This allows the user to pass in nodes more
-// interesting than an int, but also allow us to reap the benefits of having a map-storable,
-// comparable type.
+import "math"
+
+// Node is a graph node. It returns a graph-unique integer ID.
 type Node interface {
 	ID() int
 }
 
-// Allows edges to do something more interesting that just be a group of nodes. While the methods
-// are called Head and Tail, they are not considered directed unless the given interface specifies
-// otherwise.
+// Edge is a graph edge. In directed graphs, the direction of the
+// edge is given from -> to, otherwise the edge is semantically
+// unordered.
 type Edge interface {
-	Head() Node
-	Tail() Node
+	From() Node
+	To() Node
 }
 
-// A Graph implements the behavior of an undirected graph.
-//
-// All methods in Graph are implicitly undirected. Graph algorithms that care about directionality
-// will intelligently choose the DirectedGraph behavior if that interface is also implemented,
-// even if the function itself only takes in a Graph (or a super-interface of graph).
+// Graph is a generalized graph.
 type Graph interface {
-	// NodeExists returns true when node is currently in the graph.
-	NodeExists(Node) bool
+	// Has returns whether the node exists within the graph.
+	Has(Node) bool
 
-	// NodeList returns a list of all nodes in no particular order, useful for
-	// determining things like if a graph is fully connected. The caller is
-	// free to modify this list. Implementations should construct a new list
-	// and not return internal representation.
-	NodeList() []Node
+	// Nodes returns all the nodes in the graph.
+	Nodes() []Node
 
-	// Neighbors returns all nodes connected by any edge to this node.
-	Neighbors(Node) []Node
+	// From returns all nodes that can be reached directly
+	// from the given node.
+	From(Node) []Node
 
-	// EdgeBetween returns an edge between node and neighbor such that
-	// Head is one argument and Tail is the other. If no
-	// such edge exists, this function returns nil.
-	EdgeBetween(node, neighbor Node) Edge
+	// HasEdge returns whether an edge exists between
+	// nodes x and y without considering direction.
+	HasEdge(x, y Node) bool
+
+	// Edge returns the edge from u to v if such an edge
+	// exists and nil otherwise. The node v must be directly
+	// reachable from u as defined by the From method.
+	Edge(u, v Node) Edge
 }
 
-// Directed graphs are characterized by having seperable Heads and Tails in their edges.
-// That is, if node1 goes to node2, that does not necessarily imply that node2 goes to node1.
-//
-// While it's possible for a directed graph to have fully reciprocal edges (i.e. the graph is
-// symmetric) -- it is not required to be. The graph is also required to implement Graph
-// because in many cases it can be useful to know all neighbors regardless of direction.
-type DirectedGraph interface {
+// Undirected is an undirected graph.
+type Undirected interface {
 	Graph
-	// Successors gives the nodes connected by OUTBOUND edges.
-	// If the graph is an undirected graph, this set is equal to Predecessors.
-	Successors(Node) []Node
 
-	// EdgeTo returns an edge between node and successor such that
-	// Head returns node and Tail returns successor, if no
-	// such edge exists, this function returns nil.
-	EdgeTo(node, successor Node) Edge
-
-	// Predecessors gives the nodes connected by INBOUND edges.
-	// If the graph is an undirected graph, this set is equal to Successors.
-	Predecessors(Node) []Node
+	// EdgeBetween returns the edge between nodes x and y.
+	EdgeBetween(x, y Node) Edge
 }
 
-// Returns all undirected edges in the graph
-type EdgeLister interface {
-	EdgeList() []Edge
-}
-
-type EdgeListGraph interface {
+// Directed is a directed graph.
+type Directed interface {
 	Graph
-	EdgeLister
+
+	// HasEdgeFromTo returns whether an edge exists
+	// in the graph from u to v.
+	HasEdgeFromTo(u, v Node) bool
+
+	// To returns all nodes that can reach directly
+	// to the given node.
+	To(Node) []Node
 }
 
-// Returns all directed edges in the graph.
-type DirectedEdgeLister interface {
-	DirectedEdgeList() []Edge
+// Weighter defines graphs that can report edge weights.
+type Weighter interface {
+	// Weight returns the weight for the given edge.
+	Weight(Edge) float64
 }
 
-type DirectedEdgeListGraph interface {
-	Graph
-	DirectedEdgeLister
-}
-
-// A crunch graph forces a sparse graph to become a dense graph. That is, if the node IDs are
-// [1,4,9,7] it would "crunch" the ids into the contiguous block [0,1,2,3]. Order is not
-// required to be preserved between the non-cruched and crunched instances (that means in
-// the example above 0 may correspond to 4 or 7 or 9, not necessarily 1).
-//
-// All dense graphs must have the first ID as 0.
-type CrunchGraph interface {
-	Graph
-	Crunch()
-}
-
-// A Graph that implements Coster has an actual cost between adjacent nodes, also known as a
-// weighted graph. If a graph implements coster and a function needs to read cost (e.g. A*),
-// this function will take precedence over the Uniform Cost function (all weights are 1) if "nil"
-// is passed in for the function argument.
-//
-// If the argument is nil, or the edge is invalid for some reason, this should return math.Inf(1)
-type Coster interface {
-	Cost(Edge) float64
-}
-
-type CostGraph interface {
-	Coster
-	Graph
-}
-
-type CostDirectedGraph interface {
-	Coster
-	DirectedGraph
-}
-
-// A graph that implements HeuristicCoster implements a heuristic between any two given nodes.
-// Like Coster, if a graph implements this and a function needs a heuristic cost (e.g. A*), this
-// function will take precedence over the Null Heuristic (always returns 0) if "nil" is passed in
-// for the function argument. If HeuristicCost is not intended to be used, it can be implemented as
-// the null heuristic (always returns 0).
-type HeuristicCoster interface {
-	// HeuristicCost returns a heuristic cost between any two nodes.
-	HeuristicCost(n1, n2 Node) float64
-}
-
-// A Mutable is a graph that can have arbitrary nodes and edges added or removed.
-//
-// Anything implementing Mutable is required to store the actual argument. So if AddNode(myNode) is
-// called and later a user calls on the graph graph.NodeList(), the node added by AddNode must be
-// an the exact node, not a new node with the same ID.
-//
-// In any case where conflict is possible (e.g. adding two nodes with the same ID), the later
-// call always supercedes the earlier one.
-//
-// Functions will generally expect one of MutableGraph or MutableDirectedGraph and not Mutable
-// itself. That said, any function that takes Mutable[x], the destination mutable should
-// always be a different graph than the source.
+// Mutable is an interface for generalized graph mutation.
 type Mutable interface {
-	// NewNode returns a node with a unique arbitrary ID.
-	NewNode() Node
+	// NewNodeID returns a new unique arbitrary ID.
+	NewNodeID() int
 
-	// Adds a node to the graph. If this is called multiple times for the same ID, the newer node
-	// overwrites the old one.
+	// Adds a node to the graph. AddNode panics if
+	// the added node ID matches an existing node ID.
 	AddNode(Node)
 
-	// RemoveNode removes a node from the graph, as well as any edges
-	// attached to it. If no such node exists, this is a no-op, not an error.
+	// RemoveNode removes a node from the graph, as
+	// well as any edges attached to it. If the node
+	// is not in the graph it is a no-op.
 	RemoveNode(Node)
+
+	// SetEdge adds an edge from one node to another.
+	// If the nodes do not exist, they are added.
+	// SetEdge will panic if the IDs of the e.From
+	// and e.To are equal.
+	SetEdge(e Edge, cost float64)
+
+	// RemoveEdge removes the given edge, leaving the
+	// terminal nodes. If the edge does not exist it
+	// is a no-op.
+	RemoveEdge(Edge)
 }
 
-// MutableGraph is an interface ensuring the implementation of the ability to construct
-// an arbitrary undirected graph. It is very important to note that any implementation
-// of MutableGraph absolutely cannot safely implement the DirectedGraph interface.
-//
-// A MutableGraph is required to store any Edge argument in the same way Mutable must
-// store a Node argument -- any retrieval call is required to return the exact supplied edge.
-// This is what makes it incompatible with DirectedGraph.
-//
-// The reasoning is this: if you call AddUndirectedEdge(Edge{head,tail}); you are required
-// to return the exact edge passed in when a retrieval method (EdgeTo/EdgeBetween) is called.
-// If I call EdgeTo(tail,head), this means that since the edge exists, and was added as
-// Edge{head,tail} this function MUST return Edge{head,tail}. However, EdgeTo requires this
-// be returned as Edge{tail,head}. Thus there's a conflict that cannot be resolved between the
-// two interface requirements.
-type MutableGraph interface {
-	CostGraph
+// MutableUndirected is an undirected graph that can be arbitrarily altered.
+type MutableUndirected interface {
+	Undirected
 	Mutable
-
-	// Like EdgeBetween in Graph, AddUndirectedEdge adds an edge between two nodes.
-	// If one or both nodes do not exist, the graph is expected to add them. However,
-	// if the nodes already exist it should NOT replace existing nodes with e.Head() or
-	// e.Tail(). Overwriting nodes should explicitly be done with another call to AddNode()
-	AddUndirectedEdge(e Edge, cost float64)
-
-	// RemoveEdge clears the stored edge between two nodes. Calling this will never
-	// remove a node. If the edge does not exist this is a no-op, not an error.
-	RemoveUndirectedEdge(Edge)
 }
 
-// MutableDirectedGraph is an interface that ensures one can construct an arbitrary directed
-// graph. Naturally, a MutableDirectedGraph works for both undirected and directed cases,
-// but simply using a MutableGraph may be cleaner. As the documentation for MutableGraph
-// notes, however, a graph cannot safely implement MutableGraph and MutableDirectedGraph
-// at the same time, because of the functionality of a EdgeTo in DirectedGraph.
-type MutableDirectedGraph interface {
-	CostDirectedGraph
+// MutableDirected is a directed graph that can be arbitrarily altered.
+type MutableDirected interface {
+	Directed
 	Mutable
-
-	// Like EdgeTo in DirectedGraph, AddDirectedEdge adds an edge FROM head TO tail.
-	// If one or both nodes do not exist, the graph is expected to add them. However,
-	// if the nodes already exist it should NOT replace existing nodes with e.Head() or
-	// e.Tail(). Overwriting nodes should explicitly be done with another call to AddNode()
-	AddDirectedEdge(e Edge, cost float64)
-
-	// Removes an edge FROM e.Head TO e.Tail. If no such edge exists, this is a no-op,
-	// not an error.
-	RemoveDirectedEdge(Edge)
 }
 
-// A function that returns the cost of following an edge
-type CostFunc func(Edge) float64
+// WeightFunc is a mapping between an edge and an edge weight.
+type WeightFunc func(Edge) float64
 
-// Estimates the cost of travelling between two nodes
-type HeuristicCostFunc func(Node, Node) float64
+// UniformCost is a WeightFunc that returns an edge cost of 1 for a non-nil Edge
+// and Inf for a nil Edge.
+func UniformCost(e Edge) float64 {
+	if e == nil {
+		return math.Inf(1)
+	}
+	return 1
+}
+
+// CopyUndirected copies nodes and edges as undirected edges from the source to the
+// destination without first clearing the destination. CopyUndirected will panic if
+// a node ID in the source graph matches a node ID in the destination. If the source
+// does not implement Weighter, UniformCost is used to define edge weights.
+//
+// Note that if the source is a directed graph and a fundamental cycle exists with
+// two nodes where the edge weights differ, the resulting destination graph's edge
+// weight between those nodes is undefined.
+func CopyUndirected(dst MutableUndirected, src Graph) {
+	var weight WeightFunc
+	if g, ok := src.(Weighter); ok {
+		weight = g.Weight
+	} else {
+		weight = UniformCost
+	}
+
+	nodes := src.Nodes()
+	for _, n := range nodes {
+		dst.AddNode(n)
+	}
+	for _, u := range nodes {
+		for _, v := range src.From(u) {
+			edge := src.Edge(u, v)
+			dst.SetEdge(edge, weight(edge))
+		}
+	}
+}
+
+// CopyDirected copies nodes and edges as directed edges from the source to the
+// destination without first clearing the destination. CopyDirected will panic if
+// a node ID in the source graph matches a node ID in the destination. If the
+// source is undirected both directions will be present in the destination after
+// the copy is complete. If the source does not implement Weighter, UniformCost
+// is used to define edge weights.
+func CopyDirected(dst MutableDirected, src Graph) {
+	var weight WeightFunc
+	if g, ok := src.(Weighter); ok {
+		weight = g.Weight
+	} else {
+		weight = UniformCost
+	}
+
+	nodes := src.Nodes()
+	for _, n := range nodes {
+		dst.AddNode(n)
+	}
+	for _, u := range nodes {
+		for _, v := range src.From(u) {
+			edge := src.Edge(u, v)
+			dst.SetEdge(edge, weight(edge))
+		}
+	}
+}

@@ -1,68 +1,150 @@
 package clientcmd
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"sort"
+	"strconv"
+	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-
-	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/cli/describe"
-	"github.com/openshift/origin/pkg/cmd/util"
+	"github.com/golang/glog"
 
 	"github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/meta"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/kubectl"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
+
+	"github.com/openshift/origin/pkg/api/latest"
+	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deploygen "github.com/openshift/origin/pkg/deploy/generator"
+	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
+	deployscaler "github.com/openshift/origin/pkg/deploy/scaler"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	routegen "github.com/openshift/origin/pkg/route/generator"
 )
 
-// NewFactory creates a default Factory for commands that should share identical server
+// New creates a default Factory for commands that should share identical server
 // connection behavior. Most commands should use this method to get a factory.
 func New(flags *pflag.FlagSet) *Factory {
-	// Override global default to "" so we force the client to ask for user input
-	// TODO refactor this usptream:
+	// TODO refactor this upstream:
 	// DefaultCluster should not be a global
 	// A call to ClientConfig() should always return the best clientCfg possible
 	// even if an error was returned, and let the caller decide what to do
 	kclientcmd.DefaultCluster.Server = ""
 
 	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
-	clientConfig := util.DefaultClientConfig(flags)
+	clientConfig := DefaultClientConfig(flags)
+	clientConfig = defaultingClientConfig{clientConfig}
 	f := NewFactory(clientConfig)
 	f.BindFlags(flags)
 
 	return f
 }
 
+// defaultingClientConfig detects whether the provided config is the default, and if
+// so returns an error that indicates the user should set up their config.
+type defaultingClientConfig struct {
+	nested kclientcmd.ClientConfig
+}
+
+// RawConfig calls the nested method
+func (c defaultingClientConfig) RawConfig() (kclientcmdapi.Config, error) {
+	return c.nested.RawConfig()
+}
+
+// Namespace calls the nested method, and if an empty config error is returned
+// it checks for the same default as kubectl - the value of POD_NAMESPACE or
+// "default".
+func (c defaultingClientConfig) Namespace() (string, bool, error) {
+	namespace, ok, err := c.nested.Namespace()
+	if err == nil {
+		return namespace, ok, nil
+	}
+	if !kclientcmd.IsEmptyConfig(err) {
+		return "", false, err
+	}
+	// TODO: can we inject the namespace as a file in the secret?
+	namespace = os.Getenv("POD_NAMESPACE")
+	if len(namespace) == 0 {
+		return api.NamespaceDefault, false, nil
+	}
+	return namespace, true, nil
+}
+
+// ClientConfig returns a complete client config
+func (c defaultingClientConfig) ClientConfig() (*kclient.Config, error) {
+	cfg, err := c.nested.ClientConfig()
+	if err == nil {
+		return cfg, nil
+	}
+
+	if !kclientcmd.IsEmptyConfig(err) {
+		return nil, err
+	}
+
+	// TODO: need to expose inClusterConfig upstream and use that
+	if icc, err := kclient.InClusterConfig(); err == nil {
+		glog.V(4).Infof("Using in-cluster configuration")
+		return icc, nil
+	}
+
+	return nil, fmt.Errorf(`No configuration file found, please login or point to an existing file:
+
+  1. Via the command-line flag --config
+  2. Via the KUBECONFIG environment variable
+  3. In your home directory as ~/.kube/config
+
+To view or setup config directly use the 'config' command.`)
+}
+
 // Factory provides common options for OpenShift commands
 type Factory struct {
-	*kubecmd.Factory
+	*cmdutil.Factory
 	OpenShiftClientConfig kclientcmd.ClientConfig
 	clients               *clientCache
 }
 
 // NewFactory creates an object that holds common methods across all OpenShift commands
 func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
-	mapper := ShortcutExpander{kubectl.ShortcutExpander{latest.RESTMapper}}
+	mapper := ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: latest.RESTMapper}}
 
 	clients := &clientCache{
 		clients: make(map[string]*client.Client),
+		configs: make(map[string]*kclient.Config),
 		loader:  clientConfig,
 	}
 
+	generators := map[string]kubectl.Generator{
+		"route/v1":          routegen.RouteGenerator{},
+		"run/v1":            deploygen.BasicDeploymentConfigController{},
+		"run-controller/v1": kubectl.BasicReplicationController{},
+	}
+
 	w := &Factory{
-		Factory:               kubecmd.NewFactory(clientConfig),
+		Factory:               cmdutil.NewFactory(clientConfig),
 		OpenShiftClientConfig: clientConfig,
 		clients:               clients,
 	}
 
 	w.Object = func() (meta.RESTMapper, runtime.ObjectTyper) {
-		if cfg, err := clientConfig.ClientConfig(); err == nil {
-			return kubectl.OutputVersionMapper{mapper, cfg.Version}, api.Scheme
+		// Output using whatever version was negotiated in the client cache. The
+		// version we decode with may not be the same as what the server requires.
+		if cfg, err := clients.ClientConfigForVersion(""); err == nil {
+			return kubectl.OutputVersionMapper{RESTMapper: mapper, OutputVersion: cfg.Version}, api.Scheme
 		}
 		return mapper, api.Scheme
 	}
@@ -101,12 +183,194 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kDescriberFunc(mapping)
 	}
+	kScalerFunc := w.Factory.Scaler
+	w.Scaler = func(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
+		oc, kc, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
 
-	w.Printer = func(mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
-		return describe.NewHumanReadablePrinter(noHeaders), nil
+		if mapping.Kind == "DeploymentConfig" {
+			return deployscaler.NewDeploymentConfigScaler(oc, kc), nil
+		}
+		return kScalerFunc(mapping)
+	}
+	kReaperFunc := w.Factory.Reaper
+	w.Reaper = func(mapping *meta.RESTMapping) (kubectl.Reaper, error) {
+		oc, kc, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+
+		if mapping.Kind == "DeploymentConfig" {
+			return deployreaper.NewDeploymentConfigReaper(oc, kc), nil
+		}
+		return kReaperFunc(mapping)
+	}
+	kGeneratorFunc := w.Factory.Generator
+	w.Generator = func(name string) (kubectl.Generator, bool) {
+		if generator, ok := generators[name]; ok {
+			return generator, true
+		}
+		return kGeneratorFunc(name)
+	}
+	kPodSelectorForObjectFunc := w.Factory.PodSelectorForObject
+	w.PodSelectorForObject = func(object runtime.Object) (string, error) {
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			return kubectl.MakeLabels(t.Template.ControllerTemplate.Selector), nil
+		default:
+			return kPodSelectorForObjectFunc(object)
+		}
+	}
+	kPortsForObjectFunc := w.Factory.PortsForObject
+	w.PortsForObject = func(object runtime.Object) ([]string, error) {
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			return getPorts(t.Template.ControllerTemplate.Template.Spec), nil
+		default:
+			return kPortsForObjectFunc(object)
+		}
+	}
+	kLogsForObjectFunc := w.Factory.LogsForObject
+	w.LogsForObject = func(object, options runtime.Object) (*kclient.Request, error) {
+		oc, _, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			dopts, ok := options.(*deployapi.DeploymentLogOptions)
+			if !ok {
+				return nil, errors.New("provided options object is not a DeploymentLogOptions")
+			}
+			return oc.DeploymentLogs(t.Namespace).Get(t.Name, *dopts), nil
+		case *buildapi.Build:
+			bopts, ok := options.(*buildapi.BuildLogOptions)
+			if !ok {
+				return nil, errors.New("provided options object is not a BuildLogOptions")
+			}
+			if bopts.Version != nil {
+				// should --version work with builds at all?
+				return nil, errors.New("cannot specify a version and a build")
+			}
+			return oc.BuildLogs(t.Namespace).Get(t.Name, *bopts), nil
+		case *buildapi.BuildConfig:
+			bopts, ok := options.(*buildapi.BuildLogOptions)
+			if !ok {
+				return nil, errors.New("provided options object is not a BuildLogOptions")
+			}
+			builds, err := oc.Builds(t.Namespace).List(labels.Everything(), fields.Everything())
+			if err != nil {
+				return nil, err
+			}
+			builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigLabelPredicate(t.Name))
+			if len(builds.Items) == 0 {
+				return nil, fmt.Errorf("no builds found for %s", t.Name)
+			}
+			if bopts.Version != nil {
+				// If a version has been specified, try to get the logs from that build.
+				desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
+				return oc.BuildLogs(t.Namespace).Get(desired, *bopts), nil
+			}
+			sort.Sort(sort.Reverse(buildapi.BuildSliceByCreationTimestamp(builds.Items)))
+			return oc.BuildLogs(t.Namespace).Get(builds.Items[0].Name, *bopts), nil
+		default:
+			return kLogsForObjectFunc(object, options)
+		}
+	}
+	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, showAll bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
+		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, columnLabels), nil
+	}
+	kCanBeExposed := w.Factory.CanBeExposed
+	w.CanBeExposed = func(kind string) error {
+		if kind == "DeploymentConfig" {
+			return nil
+		}
+		return kCanBeExposed(kind)
+	}
+	kAttachablePodForObjectFunc := w.Factory.AttachablePodForObject
+	w.AttachablePodForObject = func(object runtime.Object) (*api.Pod, error) {
+		oc, kc, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			var err error
+			var pods *api.PodList
+			for pods == nil || len(pods.Items) == 0 {
+				if t.LatestVersion == 0 {
+					time.Sleep(2 * time.Second)
+				}
+				if t, err = oc.DeploymentConfigs(t.Namespace).Get(t.Name); err != nil {
+					return nil, err
+				}
+				latestDeploymentName := deployutil.LatestDeploymentNameForConfig(t)
+				deployment, err := kc.ReplicationControllers(t.Namespace).Get(latestDeploymentName)
+				if err != nil {
+					if kerrors.IsNotFound(err) {
+						continue
+					}
+					return nil, err
+				}
+				pods, err = kc.Pods(deployment.Namespace).List(labels.SelectorFromSet(deployment.Spec.Selector), fields.Everything())
+				if err != nil {
+					return nil, err
+				}
+				if len(pods.Items) == 0 {
+					time.Sleep(2 * time.Second)
+				}
+			}
+			var oldestPod *api.Pod
+			for _, pod := range pods.Items {
+				if oldestPod == nil || pod.CreationTimestamp.Before(oldestPod.CreationTimestamp) {
+					oldestPod = &pod
+				}
+			}
+			return oldestPod, nil
+		default:
+			return kAttachablePodForObjectFunc(object)
+		}
 	}
 
 	return w
+}
+
+func getPorts(spec api.PodSpec) []string {
+	result := []string{}
+	for _, container := range spec.Containers {
+		for _, port := range container.Ports {
+			result = append(result, strconv.Itoa(port.ContainerPort))
+		}
+	}
+	return result
+}
+
+// UpdatePodSpecForObject update the pod specification for the provided object
+// TODO: move to upstream
+func (f *Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpec) error) (bool, error) {
+	// TODO: replace with a swagger schema based approach (identify pod template via schema introspection)
+	switch t := obj.(type) {
+	case *api.Pod:
+		return true, fn(&t.Spec)
+	case *api.PodTemplate:
+		return true, fn(&t.Template.Spec)
+	case *api.ReplicationController:
+		if t.Spec.Template == nil {
+			t.Spec.Template = &api.PodTemplateSpec{}
+		}
+		return true, fn(&t.Spec.Template.Spec)
+	case *deployapi.DeploymentConfig:
+		template := t.Template.ControllerTemplate
+		if template.Template == nil {
+			template.Template = &api.PodTemplateSpec{}
+		}
+		return true, fn(&template.Template.Spec)
+	default:
+		return false, fmt.Errorf("the object is not a pod or does not have a pod template")
+	}
 }
 
 // Clients returns an OpenShift and Kubernetes client.
@@ -134,13 +398,37 @@ func (e ShortcutExpander) VersionAndKindForResource(resource string) (defaultVer
 	return e.RESTMapper.VersionAndKindForResource(resource)
 }
 
+// AliasesForResource returns whether a resource has an alias or not
+func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {
+	aliases := map[string][]string{
+		"all": latest.UserResources,
+	}
+
+	if res, ok := aliases[resource]; ok {
+		return res, true
+	}
+	return nil, false
+}
+
+// ResourceIsValid takes a string (kind) and checks if it's a valid resource.
+// It expands the resource first, then invokes the wrapped mapper.
+func (e ShortcutExpander) ResourceIsValid(resource string) bool {
+	return e.RESTMapper.ResourceIsValid(expandResourceShortcut(resource))
+}
+
 // expandResourceShortcut will return the expanded version of resource
 // (something that a pkg/api/meta.RESTMapper can understand), if it is
 // indeed a shortcut. Otherwise, will return resource unmodified.
 func expandResourceShortcut(resource string) string {
 	shortForms := map[string]string{
-		"dc": "deploymentConfigs",
-		"bc": "buildConfigs",
+		"dc":      "deploymentConfigs",
+		"bc":      "buildConfigs",
+		"is":      "imageStreams",
+		"istag":   "imageStreamTags",
+		"isimage": "imageStreamImages",
+		"sa":      "serviceAccounts",
+		"pv":      "persistentVolumes",
+		"pvc":     "persistentVolumeClaims",
 	}
 	if expanded, ok := shortForms[resource]; ok {
 		return expanded
@@ -148,12 +436,16 @@ func expandResourceShortcut(resource string) string {
 	return resource
 }
 
-// clientCache caches previously loaded clients for reuse, and ensures MatchServerVersion
-// is invoked only once
+// clientCache caches previously loaded clients for reuse. This is largely
+// copied from upstream (because of typing) but reuses the negotiation logic.
+// TODO: Consolidate this entire concept with upstream's ClientCache.
 type clientCache struct {
 	loader        kclientcmd.ClientConfig
 	clients       map[string]*client.Client
+	configs       map[string]*kclient.Config
 	defaultConfig *kclient.Config
+	// negotiatingClient is used only for negotiating versions with the server.
+	negotiatingClient *kclient.Client
 }
 
 // ClientConfigForVersion returns the correct config for a server
@@ -166,11 +458,41 @@ func (c *clientCache) ClientConfigForVersion(version string) (*kclient.Config, e
 		c.defaultConfig = config
 	}
 	// TODO: have a better config copy method
-	config := *c.defaultConfig
-	if len(version) != 0 {
-		config.Version = version
+	if config, ok := c.configs[version]; ok {
+		return config, nil
 	}
+	if c.negotiatingClient == nil {
+		// TODO: We want to reuse the upstream negotiation logic, which is coupled
+		// to a concrete kube Client. The negotiation will ultimately try and
+		// build an unversioned URL using the config prefix to ask for supported
+		// server versions. If we use the default kube client config, the prefix
+		// will be /api, while we need to use the OpenShift prefix to ask for the
+		// OpenShift server versions. For now, set OpenShift defaults on the
+		// config to ensure the right prefix gets used. The client cache and
+		// negotiation logic should be refactored upstream to support downstream
+		// reuse so that we don't need to do any of this cache or negotiation
+		// duplication.
+		negotiatingConfig := *c.defaultConfig
+		client.SetOpenShiftDefaults(&negotiatingConfig)
+		negotiatingClient, err := kclient.New(&negotiatingConfig)
+		if err != nil {
+			return nil, err
+		}
+		c.negotiatingClient = negotiatingClient
+	}
+	config := *c.defaultConfig
+	negotiatedVersion, err := kclient.NegotiateVersion(c.negotiatingClient, &config, version, latest.Versions)
+	if err != nil {
+		return nil, err
+	}
+	config.Version = negotiatedVersion
 	client.SetOpenShiftDefaults(&config)
+	c.configs[version] = &config
+
+	// `version` does not necessarily equal `config.Version`.  However, we know that we call this method again with
+	// `config.Version`, we should get the the config we've just built.
+	configCopy := config
+	c.configs[config.Version] = &configCopy
 
 	return &config, nil
 }
@@ -178,15 +500,13 @@ func (c *clientCache) ClientConfigForVersion(version string) (*kclient.Config, e
 // ClientForVersion initializes or reuses a client for the specified version, or returns an
 // error if that is not possible
 func (c *clientCache) ClientForVersion(version string) (*client.Client, error) {
+	if client, ok := c.clients[version]; ok {
+		return client, nil
+	}
 	config, err := c.ClientConfigForVersion(version)
 	if err != nil {
 		return nil, err
 	}
-
-	if client, ok := c.clients[config.Version]; ok {
-		return client, nil
-	}
-
 	client, err := client.New(config)
 	if err != nil {
 		return nil, err

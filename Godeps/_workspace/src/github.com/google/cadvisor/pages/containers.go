@@ -18,7 +18,6 @@ package pages
 import (
 	"fmt"
 	"html/template"
-	"math"
 	"net/http"
 	"net/url"
 	"path"
@@ -149,15 +148,19 @@ func toMegabytes(bytes uint64) float64 {
 	return float64(bytes) / (1 << 20)
 }
 
+// Size after which we consider memory to be "unlimited". This is not
+// MaxInt64 due to rounding by the kernel.
+const maxMemorySize = uint64(1 << 62)
+
 func printSize(bytes uint64) string {
-	if bytes >= math.MaxInt64 {
+	if bytes >= maxMemorySize {
 		return "unlimited"
 	}
 	return ByteSize(bytes).Size()
 }
 
 func printUnit(bytes uint64) string {
-	if bytes >= math.MaxInt64 {
+	if bytes >= maxMemorySize {
 		return ""
 	}
 	return ByteSize(bytes).Unit()
@@ -195,12 +198,14 @@ func serveContainersPage(m manager.Manager, w http.ResponseWriter, u *url.URL) e
 		return err
 	}
 
+	rootDir := getRootDir(containerName)
+
 	// Make a list of the parent containers and their links
 	pathParts := strings.Split(string(cont.Name), "/")
 	parentContainers := make([]link, 0, len(pathParts))
 	parentContainers = append(parentContainers, link{
 		Text: "root",
-		Link: ContainersPage,
+		Link: path.Join(rootDir, ContainersPage),
 	})
 	for i := 1; i < len(pathParts); i++ {
 		// Skip empty parts.
@@ -209,39 +214,51 @@ func serveContainersPage(m manager.Manager, w http.ResponseWriter, u *url.URL) e
 		}
 		parentContainers = append(parentContainers, link{
 			Text: pathParts[i],
-			Link: path.Join(ContainersPage, path.Join(pathParts[1:i+1]...)),
+			Link: path.Join(rootDir, ContainersPage, path.Join(pathParts[1:i+1]...)),
 		})
 	}
 
 	// Build the links for the subcontainers.
 	subcontainerLinks := make([]link, 0, len(cont.Subcontainers))
 	for _, sub := range cont.Subcontainers {
+		if !m.Exists(sub.Name) {
+			continue
+		}
 		subcontainerLinks = append(subcontainerLinks, link{
 			Text: getContainerDisplayName(sub),
-			Link: path.Join(ContainersPage, sub.Name),
+			Link: path.Join(rootDir, ContainersPage, sub.Name),
 		})
 	}
 
 	data := &pageData{
-		DisplayName:        displayName,
-		ContainerName:      cont.Name,
-		ParentContainers:   parentContainers,
-		Subcontainers:      subcontainerLinks,
-		Spec:               cont.Spec,
-		Stats:              cont.Stats,
-		MachineInfo:        machineInfo,
-		IsRoot:             cont.Name == "/",
-		ResourcesAvailable: cont.Spec.HasCpu || cont.Spec.HasMemory || cont.Spec.HasNetwork || cont.Spec.HasFilesystem,
-		CpuAvailable:       cont.Spec.HasCpu,
-		MemoryAvailable:    cont.Spec.HasMemory,
-		NetworkAvailable:   cont.Spec.HasNetwork,
-		FsAvailable:        cont.Spec.HasFilesystem,
+		DisplayName:            displayName,
+		ContainerName:          escapeContainerName(cont.Name),
+		ParentContainers:       parentContainers,
+		Subcontainers:          subcontainerLinks,
+		Spec:                   cont.Spec,
+		Stats:                  cont.Stats,
+		MachineInfo:            machineInfo,
+		IsRoot:                 cont.Name == "/",
+		ResourcesAvailable:     cont.Spec.HasCpu || cont.Spec.HasMemory || cont.Spec.HasNetwork || cont.Spec.HasFilesystem,
+		CpuAvailable:           cont.Spec.HasCpu,
+		MemoryAvailable:        cont.Spec.HasMemory,
+		NetworkAvailable:       cont.Spec.HasNetwork,
+		FsAvailable:            cont.Spec.HasFilesystem,
+		CustomMetricsAvailable: cont.Spec.HasCustomMetrics,
+		Root: rootDir,
 	}
 	err = pageTemplate.Execute(w, data)
 	if err != nil {
 		glog.Errorf("Failed to apply template: %s", err)
 	}
 
-	glog.V(1).Infof("Request took %s", time.Since(start))
+	glog.V(5).Infof("Request took %s", time.Since(start))
 	return nil
+}
+
+// Build a relative path to the root of the container page.
+func getRootDir(containerName string) string {
+	// The root is at: container depth
+	levels := (strings.Count(containerName, "/"))
+	return strings.Repeat("../", levels)
 }

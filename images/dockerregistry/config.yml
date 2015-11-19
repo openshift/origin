@@ -1,10 +1,16 @@
 version: 0.1
-loglevel: debug
+log:
+  level: debug
 http:
   addr: :5000
 storage:
+  cache:
+    layerinfo: inmemory
   filesystem:
     rootdirectory: /registry
+auth:
+  openshift:
+    realm: openshift
 middleware:
   repository:
     - name: openshift

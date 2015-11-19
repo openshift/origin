@@ -1,26 +1,25 @@
 package api
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 // DockerImage is the type representing a docker image and its various properties when
 // retrieved from the Docker client API.
 type DockerImage struct {
-	kapi.TypeMeta `json:",inline"`
+	unversioned.TypeMeta `json:",inline"`
 
-	ID              string       `json:"Id"`
-	Parent          string       `json:"Parent,omitempty"`
-	Comment         string       `json:"Comment,omitempty"`
-	Created         util.Time    `json:"Created,omitempty"`
-	Container       string       `json:"Container,omitempty"`
-	ContainerConfig DockerConfig `json:"ContainerConfig,omitempty"`
-	DockerVersion   string       `json:"DockerVersion,omitempty"`
-	Author          string       `json:"Author,omitempty"`
-	Config          DockerConfig `json:"Config,omitempty"`
-	Architecture    string       `json:"Architecture,omitempty"`
-	Size            int64        `json:"Size,omitempty"`
+	ID              string           `json:"Id"`
+	Parent          string           `json:"Parent,omitempty"`
+	Comment         string           `json:"Comment,omitempty"`
+	Created         unversioned.Time `json:"Created,omitempty"`
+	Container       string           `json:"Container,omitempty"`
+	ContainerConfig DockerConfig     `json:"ContainerConfig,omitempty"`
+	DockerVersion   string           `json:"DockerVersion,omitempty"`
+	Author          string           `json:"Author,omitempty"`
+	Config          *DockerConfig    `json:"Config,omitempty"`
+	Architecture    string           `json:"Architecture,omitempty"`
+	Size            int64            `json:"Size,omitempty"`
 }
 
 // DockerConfig is the list of configuration options used when creating a container.
@@ -51,6 +50,7 @@ type DockerConfig struct {
 	NetworkDisabled bool                `json:"NetworkDisabled,omitempty"`
 	SecurityOpts    []string            `json:"SecurityOpts,omitempty"`
 	OnBuild         []string            `json:"OnBuild,omitempty"`
+	Labels          map[string]string   `json:"Labels,omitempty"`
 }
 
 // DockerImageManifest represents the Docker v2 image format.
@@ -65,8 +65,8 @@ type DockerImageManifest struct {
 
 // DockerFSLayer is a container struct for BlobSums defined in an image manifest
 type DockerFSLayer struct {
-	// TODO make this digest.Digest once docker/distribution is in Godeps
 	// DockerBlobSum is the tarsum of the referenced filesystem image layer
+	// TODO make this digest.Digest once docker/distribution is in Godeps
 	DockerBlobSum string `json:"blobSum"`
 }
 
@@ -79,15 +79,15 @@ type DockerHistory struct {
 // DockerV1CompatibilityImage represents the structured v1
 // compatibility information.
 type DockerV1CompatibilityImage struct {
-	ID              string       `json:"id"`
-	Parent          string       `json:"parent,omitempty"`
-	Comment         string       `json:"comment,omitempty"`
-	Created         util.Time    `json:"created"`
-	Container       string       `json:"container,omitempty"`
-	ContainerConfig DockerConfig `json:"container_config,omitempty"`
-	DockerVersion   string       `json:"docker_version,omitempty"`
-	Author          string       `json:"author,omitempty"`
-	Config          DockerConfig `json:"config,omitempty"`
-	Architecture    string       `json:"architecture,omitempty"`
-	Size            int64        `json:"size,omitempty"`
+	ID              string           `json:"id"`
+	Parent          string           `json:"parent,omitempty"`
+	Comment         string           `json:"comment,omitempty"`
+	Created         unversioned.Time `json:"created"`
+	Container       string           `json:"container,omitempty"`
+	ContainerConfig DockerConfig     `json:"container_config,omitempty"`
+	DockerVersion   string           `json:"docker_version,omitempty"`
+	Author          string           `json:"author,omitempty"`
+	Config          *DockerConfig    `json:"config,omitempty"`
+	Architecture    string           `json:"architecture,omitempty"`
+	Size            int64            `json:"size,omitempty"`
 }

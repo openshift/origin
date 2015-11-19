@@ -16,25 +16,30 @@ echo
 echo "Hit ENTER to continue or CTRL+C to cancel"
 read
 
-pushd $GOPATH/src/github.com/GoogleCloudPlatform/kubernetes > /dev/null
-echo "Fetching latest ..."
-git fetch
-git fetch --tags
-popd > /dev/null
-git fetch --tags
+export GOOS=linux
 
 echo "Restoring Origin dependencies ..."
 make clean
 godep restore
+git fetch --tags
 
-pushd $GOPATH/src/github.com/GoogleCloudPlatform/kubernetes > /dev/null
+pushd $GOPATH/src/k8s.io/kubernetes > /dev/null
+echo "Fetching latest ..."
+git fetch
+git fetch --tags
+popd > /dev/null
+
+pushd $GOPATH/src/k8s.io/kubernetes > /dev/null
 git checkout stable_proposed
 echo "Restoring any newer Kubernetes dependencies ..."
 rm -rf _output Godeps/_workspace/pkg
 godep restore
 popd > /dev/null
 
-make clean
+echo "Restore complete, update any packages which must diverge from Kubernetes now"
+echo
+echo "Hit ENTER to continue"
+read
 
 echo "Clearing old versions ..."
 git rm -r Godeps

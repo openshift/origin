@@ -1,7 +1,9 @@
+'use strict';
+
 angular.module('openshiftConsole')
   .directive('alerts', function() {
     return {
-      restrict: 'E',    
+      restrict: 'E',
       scope: {
         alerts: '='
       },

@@ -71,9 +71,8 @@ type Options struct {
 	ContentMD5           string
 	ContentDisposition   string
 	Range                string
+	StorageClass         StorageClass
 	// What else?
-	//// The following become headers so they are []strings rather than strings... I think
-	// x-amz-storage-class []string
 }
 
 type CopyOptions struct {
@@ -97,7 +96,7 @@ var attempts = aws.AttemptStrategy{
 
 // New creates a new S3.
 func New(auth aws.Auth, region aws.Region) *S3 {
-	return &S3{auth, region, 0, 0, 0, aws.V2Signature}
+	return &S3{auth, region, 0, 0, aws.V2Signature, 0}
 }
 
 // Bucket returns a Bucket with the given name.
@@ -163,6 +162,13 @@ const (
 	AuthenticatedRead = ACL("authenticated-read")
 	BucketOwnerRead   = ACL("bucket-owner-read")
 	BucketOwnerFull   = ACL("bucket-owner-full-control")
+)
+
+type StorageClass string
+
+const (
+	ReducedRedundancy = StorageClass("REDUCED_REDUNDANCY")
+	StandardStorage   = StorageClass("STANDARD")
 )
 
 // PutBucket creates a new bucket.
@@ -401,6 +407,10 @@ func (o Options) addHeaders(headers map[string][]string) {
 	}
 	if len(o.ContentDisposition) != 0 {
 		headers["Content-Disposition"] = []string{o.ContentDisposition}
+	}
+	if len(o.StorageClass) != 0 {
+		headers["x-amz-storage-class"] = []string{string(o.StorageClass)}
+
 	}
 	for k, v := range o.Meta {
 		headers["x-amz-meta-"+k] = v

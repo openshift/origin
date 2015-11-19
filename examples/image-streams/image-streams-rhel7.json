@@ -1,0 +1,378 @@
+{
+  "kind": "ImageStreamList",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "2.0"
+            }
+          },
+          {
+            "name": "2.0",
+            "annotations": {
+              "description": "Build and run Ruby 2.0 applications",
+              "iconClass": "icon-ruby",
+              "tags": "builder,ruby",
+              "supports": "ruby:2.0,ruby",
+              "version": "2.0",
+              "sampleRepo": "https://github.com/openshift/ruby-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/openshift3/ruby-20-rhel7:latest"
+            }
+          },
+          {
+            "name": "2.2",
+            "annotations": {
+              "description": "Build and run Ruby 2.2 applications",
+              "iconClass": "icon-ruby",
+              "tags": "builder,ruby",
+              "supports": "ruby:2.2,ruby",
+              "version": "2.2",
+              "sampleRepo": "https://github.com/openshift/ruby-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/rhscl/ruby-22-rhel7:latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "nodejs",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "0.10"
+            }
+          },
+          {
+            "name": "0.10",
+            "annotations": {
+              "description": "Build and run NodeJS 0.10 applications",
+              "iconClass": "icon-nodejs",
+              "tags": "builder,nodejs",
+              "supports":"nodejs:0.10,nodejs:0.1,nodejs",
+              "version": "0.10",
+              "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/openshift3/nodejs-010-rhel7:latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "perl",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "5.16"
+            }
+          },
+          {
+            "name": "5.16",
+            "annotations": {
+              "description": "Build and run Perl 5.16 applications",
+              "iconClass": "icon-perl",
+              "tags": "builder,perl",
+              "supports":"perl:5.16,perl",
+              "version": "5.16",
+              "sampleRepo": "https://github.com/openshift/dancer-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/openshift3/perl-516-rhel7:latest"
+            }
+          },
+          {
+            "name": "5.20",
+            "annotations": {
+              "description": "Build and run Perl 5.20 applications",
+              "iconClass": "icon-perl",
+              "tags": "builder,perl",
+              "supports":"perl:5.20,perl",
+              "version": "5.20",
+              "sampleRepo": "https://github.com/openshift/dancer-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/rhscl/perl-520-rhel7:latest"
+            }
+
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "php",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "5.5"
+            }
+          },
+          {
+            "name": "5.5",
+            "annotations": {
+              "description": "Build and run PHP 5.5 applications",
+              "iconClass": "icon-php",
+              "tags": "builder,php",
+              "supports":"php:5.5,php",
+              "version": "5.5",
+              "sampleRepo": "https://github.com/openshift/cakephp-ex.git"              
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/openshift3/php-55-rhel7:latest"
+            }
+          },
+          {
+            "name": "5.6",
+            "annotations": {
+              "description": "Build and run PHP 5.6 applications",
+              "iconClass": "icon-php",
+              "tags": "builder,php",
+              "supports":"php:5.6,php",
+              "version": "5.6",
+              "sampleRepo": "https://github.com/openshift/cakephp-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/rhscl/php-56-rhel7:latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "python",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "3.3"
+            }
+          },
+          {
+            "name": "3.3",
+            "annotations": {
+              "description": "Build and run Python 3.3 applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python:3.3,python",
+              "version": "3.3",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/openshift3/python-33-rhel7:latest"
+            }
+          },
+          {
+            "name": "2.7",
+            "annotations": {
+              "description": "Build and run Python 2.7 applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python:2.7,python",
+              "version": "2.7",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/rhscl/python-27-rhel7:latest"
+            }
+          },
+          {
+            "name": "3.4",
+            "annotations": {
+              "description": "Build and run Python 3.4 applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python:3.4,python",
+              "version": "3.4",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/rhscl/python-34-rhel7:latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "mysql",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "5.5"
+            }
+          },
+          {
+            "name": "5.5",
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/openshift3/mysql-55-rhel7:latest"
+            }
+          },
+          {
+            "name": "5.6",
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/rhscl/mysql-56-rhel7:latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "postgresql",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "9.2"
+            }
+          },
+          {
+            "name": "9.2",
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/openshift3/postgresql-92-rhel7:latest"
+            }
+          },
+          {
+            "name": "9.4",
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/rhscl/postgresql-94-rhel7:latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "mongodb",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "2.4"
+            }
+          },
+          {
+            "name": "2.4",
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/openshift3/mongodb-24-rhel7:latest"
+            }
+          },
+          {
+            "name": "2.6",
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/rhscl/mongodb-26-rhel7:latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "jenkins",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "1"
+            }
+          },
+          {
+            "name": "1",
+            "from": {
+              "Kind": "DockerImage",
+              "Name": "registry.access.redhat.com/openshift3/jenkins-1-rhel7:latest"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

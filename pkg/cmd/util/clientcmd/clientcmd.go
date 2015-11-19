@@ -2,10 +2,14 @@ package clientcmd
 
 import (
 	"fmt"
+	"io/ioutil"
+	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -14,13 +18,24 @@ import (
 
 const ConfigSyntax = " --master=<addr>"
 
+// Config contains all the necessary bits for client configuration
 type Config struct {
-	MasterAddr     flagtypes.Addr
+	// MasterAddr is the address the master can be reached on (host, host:port, or URL).
+	MasterAddr flagtypes.Addr
+	// KubernetesAddr is the address of the Kubernetes server (host, host:port, or URL).
+	// If omitted defaults to the master.
 	KubernetesAddr flagtypes.Addr
-	// ClientConfig is the shared base config for both the openshift config and kubernetes config
+	// CommonConfig is the shared base config for both the OpenShift config and Kubernetes config
 	CommonConfig kclient.Config
+	// Namespace is the namespace to act in
+	Namespace string
+
+	// If set, allow kubeconfig file loading
+	FromFile     bool
+	clientConfig clientcmd.ClientConfig
 }
 
+// NewConfig returns a new configuration
 func NewConfig() *Config {
 	return &Config{
 		MasterAddr:     flagtypes.Addr{Value: "localhost:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
@@ -29,36 +44,86 @@ func NewConfig() *Config {
 	}
 }
 
-// BindClientConfig adds flags for the supplied client config
+// AnonymousClientConfig returns a copy of the given config with all user credentials (cert/key, bearer token, and username/password) removed
+func AnonymousClientConfig(config kclient.Config) kclient.Config {
+	config.BearerToken = ""
+	config.CertData = nil
+	config.CertFile = ""
+	config.KeyData = nil
+	config.KeyFile = ""
+	config.Username = ""
+	config.Password = ""
+	return config
+}
+
+// BindClientConfigSecurityFlags adds flags for the supplied client config
 func BindClientConfigSecurityFlags(config *kclient.Config, flags *pflag.FlagSet) {
 	flags.BoolVar(&config.Insecure, "insecure-skip-tls-verify", config.Insecure, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")
-	flags.StringVar(&config.CertFile, "client-certificate", config.CertFile, "Path to a client key file for TLS.")
+	flags.StringVar(&config.CertFile, "client-certificate", config.CertFile, "Path to a client certificate file for TLS.")
 	flags.StringVar(&config.KeyFile, "client-key", config.KeyFile, "Path to a client key file for TLS.")
 	flags.StringVar(&config.CAFile, "certificate-authority", config.CAFile, "Path to a cert. file for the certificate authority")
 	flags.StringVar(&config.BearerToken, "token", config.BearerToken, "If present, the bearer token for this request.")
 }
 
+// Bind binds configuration values to the passed flagset
 func (cfg *Config) Bind(flags *pflag.FlagSet) {
 	flags.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host, host:port, or URL).")
 	flags.Var(&cfg.KubernetesAddr, "kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If omitted defaults to the master.")
 
-	BindClientConfigSecurityFlags(&cfg.CommonConfig, flags)
-}
-
-func EnvVarsFromConfig(config *kclient.Config) []api.EnvVar {
-	insecure := "false"
-	if config.Insecure {
-		insecure = "true"
-	}
-	return []api.EnvVar{
-		{Name: "OPENSHIFT_CA_DATA", Value: string(config.CAData)},
-		{Name: "OPENSHIFT_CERT_DATA", Value: string(config.CertData)},
-		{Name: "OPENSHIFT_KEY_DATA", Value: string(config.KeyData)},
-		{Name: "OPENSHIFT_INSECURE", Value: insecure},
+	if cfg.FromFile {
+		cfg.clientConfig = DefaultClientConfig(flags)
+	} else {
+		BindClientConfigSecurityFlags(&cfg.CommonConfig, flags)
 	}
 }
 
-func (cfg *Config) bindEnv() {
+func EnvVars(host string, caData []byte, insecure bool, bearerTokenFile string) []api.EnvVar {
+	envvars := []api.EnvVar{
+		{Name: "KUBERNETES_MASTER", Value: host},
+		{Name: "OPENSHIFT_MASTER", Value: host},
+	}
+
+	if len(bearerTokenFile) > 0 {
+		envvars = append(envvars, api.EnvVar{Name: "BEARER_TOKEN_FILE", Value: bearerTokenFile})
+	}
+
+	if len(caData) > 0 {
+		envvars = append(envvars, api.EnvVar{Name: "OPENSHIFT_CA_DATA", Value: string(caData)})
+	} else if insecure {
+		envvars = append(envvars, api.EnvVar{Name: "OPENSHIFT_INSECURE", Value: "true"})
+	}
+
+	return envvars
+}
+
+func (cfg *Config) bindEnv() error {
+	var err error
+
+	// callers may not use the config file if they have specified a master directly
+	_, masterSet := util.GetEnv("OPENSHIFT_MASTER")
+	specifiedMaster := masterSet || cfg.MasterAddr.Provided
+
+	if cfg.clientConfig != nil && !specifiedMaster {
+		clientConfig, err := cfg.clientConfig.ClientConfig()
+		if err != nil {
+			return err
+		}
+		cfg.CommonConfig = *clientConfig
+		cfg.Namespace, _, err = cfg.clientConfig.Namespace()
+		if err != nil {
+			return err
+		}
+
+		if !cfg.MasterAddr.Provided {
+			cfg.MasterAddr.Set(cfg.CommonConfig.Host)
+		}
+		if !cfg.KubernetesAddr.Provided {
+			cfg.KubernetesAddr.Set(cfg.CommonConfig.Host)
+		}
+		return nil
+	}
+
+	// Legacy path - preserve env vars set on pods that previously were honored.
 	if value, ok := util.GetEnv("KUBERNETES_MASTER"); ok && !cfg.KubernetesAddr.Provided {
 		cfg.KubernetesAddr.Set(value)
 	}
@@ -67,6 +132,16 @@ func (cfg *Config) bindEnv() {
 	}
 	if value, ok := util.GetEnv("BEARER_TOKEN"); ok && len(cfg.CommonConfig.BearerToken) == 0 {
 		cfg.CommonConfig.BearerToken = value
+	}
+	if value, ok := util.GetEnv("BEARER_TOKEN_FILE"); ok && len(cfg.CommonConfig.BearerToken) == 0 {
+		if tokenData, tokenErr := ioutil.ReadFile(value); tokenErr == nil {
+			cfg.CommonConfig.BearerToken = strings.TrimSpace(string(tokenData))
+			if len(cfg.CommonConfig.BearerToken) == 0 {
+				err = fmt.Errorf("BEARER_TOKEN_FILE %q was empty", value)
+			}
+		} else {
+			err = fmt.Errorf("Error reading BEARER_TOKEN_FILE %q: %v", value, tokenErr)
+		}
 	}
 
 	if value, ok := util.GetEnv("OPENSHIFT_CA_FILE"); ok && len(cfg.CommonConfig.CAFile) == 0 {
@@ -90,10 +165,16 @@ func (cfg *Config) bindEnv() {
 	if value, ok := util.GetEnv("OPENSHIFT_INSECURE"); ok && len(value) != 0 {
 		cfg.CommonConfig.Insecure = value == "true"
 	}
+
+	return err
 }
 
+// KubeConfig returns the Kubernetes configuration
 func (cfg *Config) KubeConfig() *kclient.Config {
-	cfg.bindEnv()
+	err := cfg.bindEnv()
+	if err != nil {
+		glog.Error(err)
+	}
 
 	kaddr := cfg.KubernetesAddr
 	if !kaddr.Provided {
@@ -106,8 +187,12 @@ func (cfg *Config) KubeConfig() *kclient.Config {
 	return &kConfig
 }
 
+// OpenShiftConfig returns the OpenShift configuration
 func (cfg *Config) OpenShiftConfig() *kclient.Config {
-	cfg.bindEnv()
+	err := cfg.bindEnv()
+	if err != nil {
+		glog.Error(err)
+	}
 
 	osConfig := cfg.CommonConfig
 	osConfig.Host = cfg.MasterAddr.String()
@@ -115,6 +200,7 @@ func (cfg *Config) OpenShiftConfig() *kclient.Config {
 	return &osConfig
 }
 
+// Clients returns an OpenShift and a Kubernetes client from a given configuration
 func (cfg *Config) Clients() (osclient.Interface, kclient.Interface, error) {
 	cfg.bindEnv()
 
@@ -125,7 +211,7 @@ func (cfg *Config) Clients() (osclient.Interface, kclient.Interface, error) {
 
 	osClient, err := osclient.New(cfg.OpenShiftConfig())
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to configure OpenShift client: %v", err)
+		return nil, nil, fmt.Errorf("Unable to configure Origin client: %v", err)
 	}
 
 	return osClient, kubeClient, nil

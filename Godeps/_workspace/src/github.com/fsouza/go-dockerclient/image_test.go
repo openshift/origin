@@ -9,22 +9,27 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func newTestClient(rt *FakeRoundTripper) Client {
 	endpoint := "http://localhost:4243"
 	u, _ := parseEndpoint("http://localhost:4243", false)
+	testAPIVersion, _ := NewAPIVersion("1.17")
 	client := Client{
 		HTTPClient:             &http.Client{Transport: rt},
+		Dialer:                 &net.Dialer{},
 		endpoint:               endpoint,
 		endpointURL:            u,
 		SkipServerVersionCheck: true,
+		serverAPIVersion:       testAPIVersion,
 	}
 	return client
 }
@@ -233,14 +238,29 @@ func TestRemoveImageExtended(t *testing.T) {
 
 func TestInspectImage(t *testing.T) {
 	body := `{
-     "id":"b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
-     "parent":"27cf784147099545",
-     "created":"2013-03-23T22:24:18.818426-07:00",
-     "container":"3d67245a8d72ecf13f33dffac9f79dcdf70f75acb84d308770391510e0c23ad0",
-     "container_config":{"Memory":0}
+     "Id":"b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
+     "Parent":"27cf784147099545",
+     "Created":"2013-03-23T22:24:18.818426Z",
+     "Container":"3d67245a8d72ecf13f33dffac9f79dcdf70f75acb84d308770391510e0c23ad0",
+     "ContainerConfig":{"Memory":1},
+     "VirtualSize":12345
 }`
-	var expected Image
-	json.Unmarshal([]byte(body), &expected)
+
+	created, err := time.Parse(time.RFC3339Nano, "2013-03-23T22:24:18.818426Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := Image{
+		ID:        "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
+		Parent:    "27cf784147099545",
+		Created:   created,
+		Container: "3d67245a8d72ecf13f33dffac9f79dcdf70f75acb84d308770391510e0c23ad0",
+		ContainerConfig: Config{
+			Memory: 1,
+		},
+		VirtualSize: 12345,
+	}
 	fakeRT := &FakeRoundTripper{message: body, status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	image, err := client.InspectImage(expected.ID)
@@ -655,8 +675,14 @@ func TestBuildImageParameters(t *testing.T) {
 		Name:                "testImage",
 		NoCache:             true,
 		SuppressOutput:      true,
+		Pull:                true,
 		RmTmpContainer:      true,
 		ForceRmTmpContainer: true,
+		Memory:              1024,
+		Memswap:             2048,
+		CPUShares:           10,
+		CPUSetCPUs:          "0-3",
+		Ulimits:             []ULimit{ULimit{Name: "nofile", Soft: 100, Hard: 200}},
 		InputStream:         &buf,
 		OutputStream:        &buf,
 	}
@@ -665,7 +691,19 @@ func TestBuildImageParameters(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expected := map[string][]string{"t": {opts.Name}, "nocache": {"1"}, "q": {"1"}, "rm": {"1"}, "forcerm": {"1"}}
+	expected := map[string][]string{
+		"t":          {opts.Name},
+		"nocache":    {"1"},
+		"q":          {"1"},
+		"pull":       {"1"},
+		"rm":         {"1"},
+		"forcerm":    {"1"},
+		"memory":     {"1024"},
+		"memswap":    {"2048"},
+		"cpushares":  {"10"},
+		"cpusetcpus": {"0-3"},
+		"ulimits":    {"[{\"Name\":\"nofile\",\"Soft\":100,\"Hard\":200}]"},
+	}
 	got := map[string][]string(req.URL.Query())
 	if !reflect.DeepEqual(got, expected) {
 		t.Errorf("BuildImage: wrong query string. Want %#v. Got %#v.", expected, got)
@@ -857,6 +895,40 @@ func TestExportImage(t *testing.T) {
 	expectedPath := "/images/testimage/get"
 	if req.URL.Path != expectedPath {
 		t.Errorf("ExportIMage: wrong path. Expected %q. Got %q.", expectedPath, req.URL.Path)
+	}
+}
+
+func TestExportImages(t *testing.T) {
+	var buf bytes.Buffer
+	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	opts := ExportImagesOptions{Names: []string{"testimage1", "testimage2:latest"}, OutputStream: &buf}
+	err := client.ExportImages(opts)
+	if nil != err {
+		t.Error(err)
+	}
+	req := fakeRT.requests[0]
+	if req.Method != "GET" {
+		t.Errorf("ExportImage: wrong method. Expected %q. Got %q.", "GET", req.Method)
+	}
+	expected := "http://localhost:4243/images/get?names=testimage1&names=testimage2%3Alatest"
+	got := req.URL.String()
+	if !reflect.DeepEqual(got, expected) {
+		t.Errorf("ExportIMage: wrong path. Expected %q. Got %q.", expected, got)
+	}
+}
+
+func TestExportImagesNoNames(t *testing.T) {
+	var buf bytes.Buffer
+	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	opts := ExportImagesOptions{Names: []string{}, OutputStream: &buf}
+	err := client.ExportImages(opts)
+	if err == nil {
+		t.Error("Expected an error")
+	}
+	if err != ErrMustSpecifyNames {
+		t.Error(err)
 	}
 }
 

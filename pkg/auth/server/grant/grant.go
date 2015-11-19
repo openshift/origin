@@ -1,19 +1,22 @@
 package grant
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/util"
+
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"
-	ohandlers "github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
-	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
-	"github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
+	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
+	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
 	"github.com/openshift/origin/pkg/oauth/scope"
 )
 
@@ -62,11 +65,11 @@ type Grant struct {
 	auth           authenticator.Request
 	csrf           csrf.CSRF
 	render         FormRenderer
-	clientregistry clientregistry.Registry
-	authregistry   clientauthorization.Registry
+	clientregistry oauthclient.Registry
+	authregistry   oauthclientauthorization.Registry
 }
 
-func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, clientregistry clientregistry.Registry, authregistry clientauthorization.Registry) *Grant {
+func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, clientregistry oauthclient.Registry, authregistry oauthclientauthorization.Registry) *Grant {
 	return &Grant{
 		auth:           auth,
 		csrf:           csrf,
@@ -109,7 +112,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 	scopes := q.Get("scopes")
 	redirectURI := q.Get("redirect_uri")
 
-	client, err := l.clientregistry.GetClient(clientID)
+	client, err := l.clientregistry.GetClient(kapi.NewContext(), clientID)
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
 		return
@@ -170,14 +173,14 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 			return
 		}
 		q := url.Query()
-		q["error"] = []string{ohandlers.GrantDeniedError}
+		q.Set("error", "access_denied")
 		url.RawQuery = q.Encode()
 		http.Redirect(w, req, url.String(), http.StatusFound)
 		return
 	}
 
 	clientID := req.FormValue("client_id")
-	client, err := l.clientregistry.GetClient(clientID)
+	client, err := l.clientregistry.GetClient(kapi.NewContext(), clientID)
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
 		return
@@ -185,11 +188,12 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 
 	clientAuthID := l.authregistry.ClientAuthorizationName(user.GetName(), client.Name)
 
-	clientAuth, err := l.authregistry.GetClientAuthorization(clientAuthID)
+	ctx := kapi.NewContext()
+	clientAuth, err := l.authregistry.GetClientAuthorization(ctx, clientAuthID)
 	if err == nil && clientAuth != nil {
 		// Add new scopes and update
 		clientAuth.Scopes = scope.Add(clientAuth.Scopes, scope.Split(scopes))
-		if err = l.authregistry.UpdateClientAuthorization(clientAuth); err != nil {
+		if _, err = l.authregistry.UpdateClientAuthorization(ctx, clientAuth); err != nil {
 			glog.Errorf("Unable to update authorization: %v", err)
 			l.failed("Could not update client authorization", w, req)
 			return
@@ -204,7 +208,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		}
 		clientAuth.Name = clientAuthID
 
-		if err = l.authregistry.CreateClientAuthorization(clientAuth); err != nil {
+		if _, err = l.authregistry.CreateClientAuthorization(ctx, clientAuth); err != nil {
 			glog.Errorf("Unable to create authorization: %v", err)
 			l.failed("Could not create client authorization", w, req)
 			return
@@ -255,7 +259,7 @@ func (r grantTemplateRenderer) Render(form Form, w http.ResponseWriter, req *htt
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	if err := grantTemplate.Execute(w, form); err != nil {
-		glog.Errorf("Unable to render grant template: %v", err)
+		util.HandleError(fmt.Errorf("unable to render grant template: %v", err))
 	}
 }
 

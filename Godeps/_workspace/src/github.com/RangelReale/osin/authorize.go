@@ -11,7 +11,7 @@ type AuthorizeRequestType string
 
 const (
 	CODE  AuthorizeRequestType = "code"
-	TOKEN                      = "token"
+	TOKEN AuthorizeRequestType = "token"
 )
 
 // Authorize request information
@@ -65,7 +65,12 @@ type AuthorizeData struct {
 
 // IsExpired is true if authorization expired
 func (d *AuthorizeData) IsExpired() bool {
-	return d.CreatedAt.Add(time.Duration(d.ExpiresIn) * time.Second).Before(time.Now())
+	return d.IsExpiredAt(time.Now())
+}
+
+// IsExpired is true if authorization expires at time 't'
+func (d *AuthorizeData) IsExpiredAt(t time.Time) bool {
+	return d.ExpireAt().Before(t)
 }
 
 // ExpireAt returns the expiration date
@@ -83,115 +88,67 @@ type AuthorizeTokenGen interface {
 func (s *Server) HandleAuthorizeRequest(w *Response, r *http.Request) *AuthorizeRequest {
 	r.ParseForm()
 
+	// create the authorization request
+	unescapedUri, err := url.QueryUnescape(r.Form.Get("redirect_uri"))
+	if err != nil {
+		w.SetErrorState(E_INVALID_REQUEST, "", "")
+		w.InternalError = err
+		return nil
+	}
+
+	ret := &AuthorizeRequest{
+		State:       r.Form.Get("state"),
+		Scope:       r.Form.Get("scope"),
+		RedirectUri: unescapedUri,
+		Authorized:  false,
+		HttpRequest: r,
+	}
+
+	// must have a valid client
+	ret.Client, err = w.Storage.GetClient(r.Form.Get("client_id"))
+	if err != nil {
+		w.SetErrorState(E_SERVER_ERROR, "", ret.State)
+		w.InternalError = err
+		return nil
+	}
+	if ret.Client == nil {
+		w.SetErrorState(E_UNAUTHORIZED_CLIENT, "", ret.State)
+		return nil
+	}
+	if ret.Client.GetRedirectUri() == "" {
+		w.SetErrorState(E_UNAUTHORIZED_CLIENT, "", ret.State)
+		return nil
+	}
+
+	// check redirect uri, if there are multiple client redirect uri's
+	// don't set the uri
+	if ret.RedirectUri == "" && FirstUri(ret.Client.GetRedirectUri(), s.Config.RedirectUriSeparator) == ret.Client.GetRedirectUri() {
+		ret.RedirectUri = FirstUri(ret.Client.GetRedirectUri(), s.Config.RedirectUriSeparator)
+	}
+
+	if err = ValidateUriList(ret.Client.GetRedirectUri(), ret.RedirectUri, s.Config.RedirectUriSeparator); err != nil {
+		w.SetErrorState(E_INVALID_REQUEST, "", ret.State)
+		w.InternalError = err
+		return nil
+	}
+
+	w.SetRedirect(ret.RedirectUri)
+
 	requestType := AuthorizeRequestType(r.Form.Get("response_type"))
 	if s.Config.AllowedAuthorizeTypes.Exists(requestType) {
 		switch requestType {
 		case CODE:
-			return s.handleCodeRequest(w, r)
+			ret.Type = CODE
+			ret.Expiration = s.Config.AuthorizationExpiration
 		case TOKEN:
-			return s.handleTokenRequest(w, r)
+			ret.Type = TOKEN
+			ret.Expiration = s.Config.AccessExpiration
 		}
+		return ret
 	}
 
-	w.SetError(E_UNSUPPORTED_RESPONSE_TYPE, "")
+	w.SetErrorState(E_UNSUPPORTED_RESPONSE_TYPE, "", ret.State)
 	return nil
-}
-
-func (s *Server) handleCodeRequest(w *Response, r *http.Request) *AuthorizeRequest {
-	// create the authorization request
-	unescapedUri, err := url.QueryUnescape(r.Form.Get("redirect_uri"))
-	if err != nil {
-		unescapedUri = ""
-	}
-	ret := &AuthorizeRequest{
-		Type:        CODE,
-		State:       r.Form.Get("state"),
-		Scope:       r.Form.Get("scope"),
-		RedirectUri: unescapedUri,
-		Authorized:  false,
-		Expiration:  s.Config.AuthorizationExpiration,
-		HttpRequest: r,
-	}
-
-	// must have a valid client
-	ret.Client, err = w.Storage.GetClient(r.Form.Get("client_id"))
-	if err != nil {
-		w.SetErrorState(E_SERVER_ERROR, "", ret.State)
-		w.InternalError = err
-		return nil
-	}
-	if ret.Client == nil {
-		w.SetErrorState(E_UNAUTHORIZED_CLIENT, "", ret.State)
-		return nil
-	}
-	if ret.Client.GetRedirectUri() == "" {
-		w.SetErrorState(E_UNAUTHORIZED_CLIENT, "", ret.State)
-		return nil
-	}
-
-	// force redirect response to client redirecturl first
-	w.SetRedirect(FirstUri(ret.Client.GetRedirectUri(), s.Config.RedirectUriSeparator))
-
-	// check redirect uri
-	if ret.RedirectUri == "" {
-		ret.RedirectUri = FirstUri(ret.Client.GetRedirectUri(), s.Config.RedirectUriSeparator)
-	}
-	if err = ValidateUriList(ret.Client.GetRedirectUri(), ret.RedirectUri, s.Config.RedirectUriSeparator); err != nil {
-		w.SetErrorState(E_INVALID_REQUEST, "", ret.State)
-		w.InternalError = err
-		return nil
-	}
-
-	return ret
-}
-
-func (s *Server) handleTokenRequest(w *Response, r *http.Request) *AuthorizeRequest {
-	// create the authorization request
-	unescapedUri, err := url.QueryUnescape(r.Form.Get("redirect_uri"))
-	if err != nil {
-		unescapedUri = ""
-	}
-	ret := &AuthorizeRequest{
-		Type:        TOKEN,
-		State:       r.Form.Get("state"),
-		Scope:       r.Form.Get("scope"),
-		RedirectUri: unescapedUri,
-		Authorized:  false,
-		// this type will generate a token directly, use access token expiration instead.
-		Expiration:  s.Config.AccessExpiration,
-		HttpRequest: r,
-	}
-
-	// must have a valid client
-	ret.Client, err = w.Storage.GetClient(r.Form.Get("client_id"))
-	if err != nil {
-		w.SetErrorState(E_SERVER_ERROR, "", ret.State)
-		w.InternalError = err
-		return nil
-	}
-	if ret.Client == nil {
-		w.SetErrorState(E_UNAUTHORIZED_CLIENT, "", ret.State)
-		return nil
-	}
-	if ret.Client.GetRedirectUri() == "" {
-		w.SetErrorState(E_UNAUTHORIZED_CLIENT, "", ret.State)
-		return nil
-	}
-
-	// force redirect response to client redirecturl first
-	w.SetRedirect(FirstUri(ret.Client.GetRedirectUri(), s.Config.RedirectUriSeparator))
-
-	// check redirect uri
-	if ret.RedirectUri == "" {
-		ret.RedirectUri = FirstUri(ret.Client.GetRedirectUri(), s.Config.RedirectUriSeparator)
-	}
-	if err = ValidateUriList(ret.Client.GetRedirectUri(), ret.RedirectUri, s.Config.RedirectUriSeparator); err != nil {
-		w.SetErrorState(E_INVALID_REQUEST, "", ret.State)
-		w.InternalError = err
-		return nil
-	}
-
-	return ret
 }
 
 func (s *Server) FinishAuthorizeRequest(w *Response, r *http.Request, ar *AuthorizeRequest) {
@@ -221,11 +178,14 @@ func (s *Server) FinishAuthorizeRequest(w *Response, r *http.Request, ar *Author
 			}
 
 			s.FinishAccessRequest(w, r, ret)
+			if ar.State != "" && w.InternalError == nil {
+				w.Output["state"] = ar.State
+			}
 		} else {
 			// generate authorization token
 			ret := &AuthorizeData{
 				Client:      ar.Client,
-				CreatedAt:   time.Now(),
+				CreatedAt:   s.Now(),
 				ExpiresIn:   ar.Expiration,
 				RedirectUri: ar.RedirectUri,
 				State:       ar.State,

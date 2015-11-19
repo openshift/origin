@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: wordpress
+  labels: 
+    name: wordpress
+spec: 
+  containers: 
+    - image: wordpress
+      name: wordpress
+      env:
+        - name: WORDPRESS_DB_USER
+          value: wp_user
+        - name: WORDPRESS_DB_PASSWORD
+          value: wp_pass
+        - name: WORDPRESS_DB_NAME
+          value: wp_db
+        - name: WORDPRESS_DB_HOST
+          # this is the name of the mysql service fronting the mysql pod in the same namespace
+          # expands to mysql.<namespace>.svc.cluster.local  - where <namespace> is the current namespace
+          value: mysql
+      ports: 
+        - containerPort: 80
+          name: wordpress
+      volumeMounts:
+        - name: wordpress-persistent-storage
+          mountPath: /var/www/html
+  volumes:
+    - name: wordpress-persistent-storage
+      persistentVolumeClaim:
+       claimName: claim-wp

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/build/api"
@@ -36,21 +35,23 @@ type pushEvent struct {
 
 // Extract services webhooks from github.com
 func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
-	trigger, ok := webhook.FindTriggerPolicy(api.GithubWebHookBuildTriggerType, buildCfg)
+	trigger, ok := webhook.FindTriggerPolicy(api.GitHubWebHookBuildTriggerType, buildCfg)
 	if !ok {
-		err = fmt.Errorf("BuildConfig %s does not support the Github webhook trigger type", buildCfg.Name)
+		err = webhook.ErrHookNotEnabled
 		return
 	}
-	if trigger.GithubWebHook.Secret != secret {
-		err = fmt.Errorf("Secret does not match for BuildConfig %s", buildCfg.Name)
+	glog.V(4).Infof("Checking if the provided secret for BuildConfig %s/%s matches", buildCfg.Namespace, buildCfg.Name)
+	if trigger.GitHubWebHook.Secret != secret {
+		err = webhook.ErrSecretMismatch
 		return
 	}
+	glog.V(4).Infof("Verifying build request for BuildConfig %s/%s", buildCfg.Namespace, buildCfg.Name)
 	if err = verifyRequest(req); err != nil {
 		return
 	}
-	method := req.Header.Get("X-GitHub-Event")
+	method := getEvent(req.Header)
 	if method != "ping" && method != "push" {
-		err = fmt.Errorf("Unknown X-GitHub-Event %s", method)
+		err = fmt.Errorf("Unknown X-GitHub-Event or X-Gogs-Event %s", method)
 		return
 	}
 	if method == "ping" {
@@ -65,9 +66,9 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 	if err = json.Unmarshal(body, &event); err != nil {
 		return
 	}
-	proceed = webhook.GitRefMatches(event.Ref, buildCfg.Parameters.Source.Git.Ref)
+	proceed = webhook.GitRefMatches(event.Ref, buildCfg.Spec.Source.Git.Ref)
 	if !proceed {
-		glog.V(2).Infof("Skipping build for '%s'.  Branch reference from '%s' does not match configuration", buildCfg, event)
+		glog.V(2).Infof("Skipping build for BuildConfig %s/%s.  Branch reference from '%s' does not match configuration", buildCfg.Namespace, buildCfg, event)
 	}
 
 	revision = &api.SourceRevision{
@@ -90,11 +91,17 @@ func verifyRequest(req *http.Request) error {
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
 		return fmt.Errorf("Unsupported Content-Type %s", contentType)
 	}
-	if userAgent := req.Header.Get("User-Agent"); !strings.HasPrefix(userAgent, "GitHub-Hookshot/") {
-		return fmt.Errorf("Unsupported User-Agent %s", userAgent)
-	}
-	if req.Header.Get("X-GitHub-Event") == "" {
-		return errors.New("Missing X-GitHub-Event")
+	if len(getEvent(req.Header)) == 0 {
+		return errors.New("Missing X-GitHub-Event or X-Gogs-Event")
 	}
 	return nil
+}
+
+func getEvent(header http.Header) string {
+	event := header.Get("X-GitHub-Event")
+	if len(event) == 0 {
+		event = header.Get("X-Gogs-Event")
+	}
+
+	return event
 }

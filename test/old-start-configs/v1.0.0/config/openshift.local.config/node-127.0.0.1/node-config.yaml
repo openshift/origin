@@ -1,0 +1,20 @@
+allowDisabledDocker: false
+apiVersion: v1
+dnsDomain: cluster.local
+dnsIP: 127.0.0.1
+dockerConfig:
+  execHandlerName: native
+imageConfig:
+  format: openshift/origin-${component}:${version}
+  latest: false
+kind: NodeConfig
+masterKubeConfig: node.kubeconfig
+networkPluginName: ""
+nodeName: 127.0.0.1
+podManifestConfig: null
+servingInfo:
+  bindAddress: 0.0.0.0:10250
+  certFile: server.crt
+  clientCA: node-client-ca.crt
+  keyFile: server.key
+volumeDirectory: /tmp/cfg/openshift.local.volumes

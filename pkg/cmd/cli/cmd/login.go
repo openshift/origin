@@ -1,75 +1,182 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
 	"github.com/openshift/origin/pkg/cmd/cli/config"
-	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const longDescription = `Logs in to the OpenShift server and saves a config file that
-will be used by subsequent commands.
+const (
+	loginLong = `
+Log in to your server and save login for subsequent use
 
-First-time users of the OpenShift client must run this command to configure the server,
-establish a session against it, and save it to a configuration file. The default
-configuration will be in your home directory under ".config/openshift/.config".
+First-time users of the client should run this command to connect to a server,
+establish an authenticated session, and save connection to the configuration file. The
+default configuration will be saved to your home directory under
+".kube/config".
 
-The information required to login, like username and password, a session token, or
-the server details, can be provided through flags. If not provided, the command will
-prompt for user input as needed.
-`
+The information required to login -- like username and password, a session token, or
+the server details -- can be provided through flags. If not provided, the command will
+prompt for user input as needed.`
 
-func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
+	loginExample = `  # Log in interactively
+  $ %[1]s login
+
+  # Log in to the given server with the given certificate authority file
+  $ %[1]s login localhost:8443 --certificate-authority=/path/to/cert.crt
+
+  # Log in to the given server with the given credentials (will not prompt interactively)
+  $ %[1]s login localhost:8443 --username=myuser --password=mypass`
+)
+
+// NewCmdLogin implements the OpenShift cli login command
+func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
 	options := &LoginOptions{
-		Reader:       reader,
-		Out:          out,
-		ClientConfig: f.OpenShiftClientConfig,
+		Reader: reader,
+		Out:    out,
 	}
 
 	cmds := &cobra.Command{
-		Use:   "login [--username=<username>] [--password=<password>] [--server=<server>] [--context=<context>] [--certificate-authority=<path>]",
-		Short: "Logs in and save the configuration",
-		Long:  longDescription,
+		Use:     "login [URL]",
+		Short:   "Log in to a server",
+		Long:    loginLong,
+		Example: fmt.Sprintf(loginExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
+			if err := options.Complete(f, cmd, args); err != nil {
+				kcmdutil.CheckErr(err)
+			}
+
+			if err := options.Validate(args, kcmdutil.GetFlagString(cmd, "server")); err != nil {
+				kcmdutil.CheckErr(err)
+			}
+
 			err := RunLogin(cmd, options)
-			cmdutil.CheckErr(err)
+
+			if kapierrors.IsUnauthorized(err) {
+				fmt.Fprintln(out, "Login failed (401 Unauthorized)")
+
+				if err, isStatusErr := err.(*kapierrors.StatusError); isStatusErr {
+					if details := err.Status().Details; details != nil {
+						for _, cause := range details.Causes {
+							fmt.Fprintln(out, cause.Message)
+						}
+					}
+				}
+
+				os.Exit(1)
+
+			} else {
+				kcmdutil.CheckErr(err)
+			}
 		},
 	}
 
-	// TODO flags below should be DE-REGISTERED from the persistent flags and kept only here.
-	// Login is the only command that can negotiate a session token against the auth server.
+	// Login is the only command that can negotiate a session token against the auth server using basic auth
 	cmds.Flags().StringVarP(&options.Username, "username", "u", "", "Username, will prompt if not provided")
 	cmds.Flags().StringVarP(&options.Password, "password", "p", "", "Password, will prompt if not provided")
-
-	templater := templates.Templater{
-		UsageTemplate: templates.MainUsageTemplate(),
-		Exposed:       []string{"server", "certificate-authority", "insecure-skip-tls-verify", "context"},
-	}
-	cmds.SetUsageFunc(templater.UsageFunc())
-	cmds.SetHelpTemplate(templates.MainHelpTemplate())
 
 	return cmds
 }
 
-func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
-	if certFile := cmdutil.GetFlagString(cmd, "client-certificate"); len(certFile) > 0 {
-		options.CertFile = certFile
-	}
-	if keyFile := cmdutil.GetFlagString(cmd, "client-key"); len(keyFile) > 0 {
-		options.KeyFile = keyFile
+func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args []string) error {
+	kubeconfig, err := f.OpenShiftClientConfig.RawConfig()
+	o.StartingKubeConfig = &kubeconfig
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		// build a valid object to use if we failed on a non-existent file
+		o.StartingKubeConfig = kclientcmdapi.NewConfig()
 	}
 
+	addr := flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default()
+
+	if serverFlag := kcmdutil.GetFlagString(cmd, "server"); len(serverFlag) > 0 {
+		if err := addr.Set(serverFlag); err != nil {
+			return err
+		}
+		o.Server = addr.String()
+
+	} else if len(args) == 1 {
+		if err := addr.Set(args[0]); err != nil {
+			return err
+		}
+		o.Server = addr.String()
+
+	} else if len(o.Server) == 0 {
+		if defaultContext, defaultContextExists := o.StartingKubeConfig.Contexts[o.StartingKubeConfig.CurrentContext]; defaultContextExists {
+			if cluster, exists := o.StartingKubeConfig.Clusters[defaultContext.Cluster]; exists {
+				o.Server = cluster.Server
+			}
+		}
+	}
+
+	o.CertFile = kcmdutil.GetFlagString(cmd, "client-certificate")
+	o.KeyFile = kcmdutil.GetFlagString(cmd, "client-key")
+	o.APIVersion = kcmdutil.GetFlagString(cmd, "api-version")
+
+	// if the API version isn't explicitly passed, use the API version from the default context (same rules as the server above)
+	if len(o.APIVersion) == 0 {
+		if defaultContext, defaultContextExists := o.StartingKubeConfig.Contexts[o.StartingKubeConfig.CurrentContext]; defaultContextExists {
+			if cluster, exists := o.StartingKubeConfig.Clusters[defaultContext.Cluster]; exists {
+				o.APIVersion = cluster.APIVersion
+			}
+		}
+
+	}
+
+	o.CAFile = kcmdutil.GetFlagString(cmd, "certificate-authority")
+	o.InsecureTLS = kcmdutil.GetFlagBool(cmd, "insecure-skip-tls-verify")
+	o.Token = kcmdutil.GetFlagString(cmd, "token")
+
+	o.DefaultNamespace, _, _ = f.OpenShiftClientConfig.Namespace()
+
+	o.PathOptions = config.NewPathOptions(cmd)
+
+	return nil
+}
+
+func (o LoginOptions) Validate(args []string, serverFlag string) error {
+	if len(args) > 1 {
+		return errors.New("Only the server URL may be specified as an argument")
+	}
+
+	if (len(serverFlag) > 0) && (len(args) == 1) {
+		return errors.New("--server and passing the server URL as an argument are mutually exclusive")
+	}
+
+	if (len(o.Server) == 0) && !cmdutil.IsTerminal(o.Reader) {
+		return errors.New("A server URL must be specified")
+	}
+
+	if len(o.Username) > 0 && len(o.Token) > 0 {
+		return errors.New("--token and --username are mutually exclusive")
+	}
+
+	if o.StartingKubeConfig == nil {
+		return errors.New("Must have a config file already created")
+	}
+
+	return nil
+}
+
+// RunLogin contains all the necessary functionality for the OpenShift cli login command
+func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
 	if err := options.GatherInfo(); err != nil {
 		return err
 	}
-
-	forcePath := cmdutil.GetFlagString(cmd, config.OpenShiftConfigFlagName)
-	options.PathToSaveConfig = forcePath
 
 	newFileCreated, err := options.SaveConfig()
 	if err != nil {
@@ -77,7 +184,7 @@ func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
 	}
 
 	if newFileCreated {
-		fmt.Fprintln(options.Out, "Welcome to OpenShift! See 'osc help' to get started.")
+		fmt.Fprintln(options.Out, "Welcome! See 'oc help' to get started.")
 	}
 	return nil
 }

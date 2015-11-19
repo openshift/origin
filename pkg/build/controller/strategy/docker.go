@@ -3,8 +3,8 @@ package strategy
 import (
 	"fmt"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -25,7 +25,21 @@ type DockerBuildStrategy struct {
 func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	data, err := bs.Codec.Encode(build)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to encode the build: %v", err)
+	}
+
+	privileged := true
+	strategy := build.Spec.Strategy.DockerStrategy
+
+	containerEnv := []kapi.EnvVar{
+		{Name: "BUILD", Value: string(data)},
+		{Name: "BUILD_LOGLEVEL", Value: fmt.Sprintf("%d", cmdutil.GetLogLevel())},
+	}
+
+	addSourceEnvVars(build.Spec.Source, &containerEnv)
+
+	if len(strategy.Env) > 0 {
+		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)
 	}
 
 	pod := &kapi.Pod{
@@ -35,24 +49,35 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			Labels:    getPodLabels(build),
 		},
 		Spec: kapi.PodSpec{
+			ServiceAccountName: build.Spec.ServiceAccount,
 			Containers: []kapi.Container{
 				{
 					Name:  "docker-build",
 					Image: bs.Image,
-					Env: []kapi.EnvVar{
-						{Name: "BUILD", Value: string(data)},
-					},
-					Command: []string{"--loglevel=" + fmt.Sprintf("%d", cmdutil.GetLogLevel())},
+					Env:   containerEnv,
+					Args:  []string{"--loglevel=" + getContainerVerbosity(containerEnv)},
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-					Privileged: true,
+					SecurityContext: &kapi.SecurityContext{
+						Privileged: &privileged,
+					},
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+	pod.Spec.Containers[0].Resources = build.Spec.Resources
+
+	if build.Spec.CompletionDeadlineSeconds != nil {
+		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds
+	}
+	if build.Spec.Source.Binary != nil {
+		pod.Spec.Containers[0].Stdin = true
+		pod.Spec.Containers[0].StdinOnce = true
+	}
 
 	setupDockerSocket(pod)
-	setupDockerSecrets(pod, build.Parameters.Output.PushSecretName)
+	setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret)
+	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
 	return pod, nil
 }

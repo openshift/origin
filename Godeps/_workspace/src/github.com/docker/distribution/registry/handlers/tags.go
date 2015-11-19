@@ -35,7 +35,7 @@ func (th *tagsHandler) GetTags(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	manifests := th.Repository.Manifests()
 
-	tags, err := manifests.Tags()
+	tags, err := manifests.Tags(th.Context)
 	if err != nil {
 		switch err := err.(type) {
 		case distribution.ErrRepositoryUnknown:

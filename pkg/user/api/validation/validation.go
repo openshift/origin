@@ -4,26 +4,20 @@ import (
 	"fmt"
 	"strings"
 
-	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
+
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/user/api"
 )
 
 func ValidateUserName(name string, _ bool) (bool, string) {
-	if strings.Contains(name, "%") {
-		return false, `may not contain "%"`
+	if ok, reason := oapi.MinimalNameRequirements(name, false); !ok {
+		return ok, reason
 	}
-	if strings.Contains(name, "/") {
-		return false, `may not contain "/"`
-	}
+
 	if strings.Contains(name, ":") {
 		return false, `may not contain ":"`
-	}
-	if name == ".." {
-		return false, `may not equal ".."`
-	}
-	if name == "." {
-		return false, `may not equal "."`
 	}
 	if name == "~" {
 		return false, `may not equal "~"`
@@ -32,18 +26,10 @@ func ValidateUserName(name string, _ bool) (bool, string) {
 }
 
 func ValidateIdentityName(name string, _ bool) (bool, string) {
-	if strings.Contains(name, "%") {
-		return false, `may not contain "%"`
+	if ok, reason := oapi.MinimalNameRequirements(name, false); !ok {
+		return ok, reason
 	}
-	if strings.Contains(name, "/") {
-		return false, `may not contain "/"`
-	}
-	if name == ".." {
-		return false, `may not equal ".."`
-	}
-	if name == "." {
-		return false, `may not equal "."`
-	}
+
 	parts := strings.Split(name, ":")
 	if len(parts) != 2 {
 		return false, `must be in the format <providerName>:<providerUserName>`
@@ -57,13 +43,25 @@ func ValidateIdentityName(name string, _ bool) (bool, string) {
 	return true, ""
 }
 
+func ValidateGroupName(name string, _ bool) (bool, string) {
+	if ok, reason := oapi.MinimalNameRequirements(name, false); !ok {
+		return ok, reason
+	}
+
+	if strings.Contains(name, ":") {
+		return false, `may not contain ":"`
+	}
+	if name == "~" {
+		return false, `may not equal "~"`
+	}
+	return true, ""
+}
+
 func ValidateIdentityProviderName(name string) (bool, string) {
-	if strings.Contains(name, "%") {
-		return false, `may not contain "%"`
+	if ok, reason := oapi.MinimalNameRequirements(name, false); !ok {
+		return ok, reason
 	}
-	if strings.Contains(name, "/") {
-		return false, `may not contain "/"`
-	}
+
 	if strings.Contains(name, ":") {
 		return false, `may not contain ":"`
 	}
@@ -75,6 +73,30 @@ func ValidateIdentityProviderUserName(name string) (bool, string) {
 	return ValidateUserName(name, false)
 }
 
+func ValidateGroup(group *api.Group) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&group.ObjectMeta, false, ValidateGroupName).Prefix("metadata")...)
+
+	for index, user := range group.Users {
+		if len(user) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("users[%d]", index), user, "may not be empty"))
+			continue
+		}
+		if ok, msg := ValidateUserName(user, false); !ok {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("users[%d]", index), user, msg))
+		}
+	}
+
+	return allErrs
+}
+
+func ValidateGroupUpdate(group *api.Group, old *api.Group) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&group.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, ValidateGroup(group)...)
+	return allErrs
+}
+
 func ValidateUser(user *api.User) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&user.ObjectMeta, false, ValidateUserName).Prefix("metadata")...)
@@ -83,12 +105,24 @@ func ValidateUser(user *api.User) fielderrors.ValidationErrorList {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("identities[%d]", index), identity, msg))
 		}
 	}
+
+	for index, group := range user.Groups {
+		if len(group) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("groups[%d]", index), group, "may not be empty"))
+			continue
+		}
+		if ok, msg := ValidateGroupName(group, false); !ok {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("groups[%d]", index), group, msg))
+		}
+	}
+
 	return allErrs
 }
 
 func ValidateUserUpdate(user *api.User, old *api.User) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&old.ObjectMeta, &user.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&user.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, ValidateUser(user)...)
 	return allErrs
 }
 
@@ -130,7 +164,8 @@ func ValidateIdentity(identity *api.Identity) fielderrors.ValidationErrorList {
 func ValidateIdentityUpdate(identity *api.Identity, old *api.Identity) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&old.ObjectMeta, &identity.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&identity.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, ValidateIdentity(identity)...)
 
 	if identity.ProviderName != old.ProviderName {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("providerName", identity.ProviderName, "may not change providerName"))
@@ -159,7 +194,7 @@ func ValidateUserIdentityMapping(mapping *api.UserIdentityMapping) fielderrors.V
 
 func ValidateUserIdentityMappingUpdate(mapping *api.UserIdentityMapping, old *api.UserIdentityMapping) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&mapping.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
 	allErrs = append(allErrs, ValidateUserIdentityMapping(mapping)...)
-	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&old.ObjectMeta, &mapping.ObjectMeta).Prefix("metadata")...)
 	return allErrs
 }

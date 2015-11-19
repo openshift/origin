@@ -1,0 +1,85 @@
+//
+// Tables
+// --------------------------------------------------
+
+.table {
+  background-color: #fff;
+  &.table-bordered {
+    > thead >tr > th, > tbody > tr > td {
+      border-left: 0;
+      border-right: 0;
+      padding-bottom: 8px;
+      padding-top: 8px;
+      vertical-align: middle;
+    }
+
+    &.table-bordered-columns {
+      > thead >tr > th, > tbody > tr > td {
+        border: 1px solid @table-border-color;
+      }    
+    }
+  }
+}
+
+.table th .pficon-help {
+  color: #999;
+  cursor: help;
+
+  &:not(:first-child) {
+    margin-left: 5px;
+  }
+}
+
+.table {
+  > tbody {
+    + tbody {
+      border-top-width: 1px;
+    }
+  }
+  tr {
+    @media (min-width: @screen-md-min) {
+      td.event-time {
+        white-space: nowrap;
+      }
+    }
+  }
+}
+@media (max-width: @screen-xs-max) {
+  .table-mobile {
+    border-top: 2px solid @table-border-color;
+    thead, tbody, th, td, tr {
+      display: block;
+    }
+    thead tr {
+      /* Hide table headers (but not display: none;, for accessibility) */
+      .sr-only();
+    }
+    > tbody {
+      + tbody {
+        border-top-width: 2px;
+      }
+      > tr {
+        > td {
+           /* Behave like a row */
+          border: none;
+          border-bottom: 1px solid lighten(@table-border-color, 5%);
+          padding: 3px 6px 2px 35%;
+          position: relative;
+          &:last-child {
+            border-bottom: none;
+          }
+          &:before {
+            /* Act as mobile table header */
+            content: attr(data-title);
+            position: absolute;
+            top: 8px;
+            left: 6px;
+            width: 35%; 
+            padding-right: 10px; 
+            white-space: nowrap;
+          }
+        }
+      }
+    }
+  }
+}

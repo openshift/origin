@@ -2,10 +2,11 @@ package strategy
 
 import (
 	"errors"
+	"fmt"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -23,19 +24,17 @@ type CustomBuildStrategy struct {
 func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	data, err := bs.Codec.Encode(build)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to encode the build: %v", err)
 	}
 
-	strategy := build.Parameters.Strategy.CustomStrategy
+	strategy := build.Spec.Strategy.CustomStrategy
 	containerEnv := []kapi.EnvVar{{Name: "BUILD", Value: string(data)}}
 
-	if build.Parameters.Source.Git != nil {
-		containerEnv = append(containerEnv, kapi.EnvVar{
-			Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI,
-		})
+	if build.Spec.Source.Git != nil {
+		addSourceEnvVars(build.Spec.Source, &containerEnv)
 	}
 
-	if strategy == nil || (strategy != nil && len(strategy.Image) == 0) {
+	if strategy == nil || len(strategy.From.Name) == 0 {
 		return nil, errors.New("CustomBuildStrategy cannot be executed without image")
 	}
 
@@ -48,6 +47,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		containerEnv = append(containerEnv, kapi.EnvVar{Name: "DOCKER_SOCKET", Value: dockerSocketPath})
 	}
 
+	privileged := true
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      buildutil.GetBuildPodName(build),
@@ -55,27 +55,46 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			Labels:    getPodLabels(build),
 		},
 		Spec: kapi.PodSpec{
+			ServiceAccountName: build.Spec.ServiceAccount,
 			Containers: []kapi.Container{
 				{
 					Name:  "custom-build",
-					Image: strategy.Image,
+					Image: strategy.From.Name,
 					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-					Privileged: true,
+					SecurityContext: &kapi.SecurityContext{
+						Privileged: &privileged,
+					},
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
 		},
+	}
+	if build.Spec.CompletionDeadlineSeconds != nil {
+		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds
 	}
 
 	if err := setupBuildEnv(build, pod); err != nil {
 		return nil, err
 	}
 
-	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+	if !strategy.ForcePull {
+		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+	} else {
+		glog.V(2).Infof("ForcePull is enabled for %s build", build.Name)
+		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullAlways
+	}
+	pod.Spec.Containers[0].Resources = build.Spec.Resources
+	if build.Spec.Source.Binary != nil {
+		pod.Spec.Containers[0].Stdin = true
+		pod.Spec.Containers[0].StdinOnce = true
+	}
+
 	if strategy.ExposeDockerSocket {
 		setupDockerSocket(pod)
-		setupDockerSecrets(pod, build.Parameters.Output.PushSecretName)
+		setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret)
 	}
+	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
+	setupAdditionalSecrets(pod, build.Spec.Strategy.CustomStrategy.Secrets)
 	return pod, nil
 }

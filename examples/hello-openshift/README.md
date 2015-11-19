@@ -1,6 +1,20 @@
 Hello, OpenShift!
 -----------------
 
-This example will serve an http response of "Hello OpenShift!" to [http://localhost:6061](http://localhost:6061).  To create the pod run:
+This example will serve an HTTP response of "Hello OpenShift!".
 
-        $ osc create -f examples/hello-openshift/hello-pod.json
+    $ oc create -f examples/hello-openshift/hello-pod.json
+
+    $ oc get pod hello-openshift -o yaml |grep podIP
+     podIP: 10.1.0.2
+
+    $ curl 10.1.0.2:8080
+     Hello OpenShift!
+
+To test from external network, you need to create router. Please refer to [Running the router](https://github.com/openshift/origin/blob/master/docs/routing.md)
+
+If you need to rebuild the image:
+
+    $ go build -tags netgo   # avoid dynamic linking (we want a static binary)
+    $ mv hello-openshift bin
+    $ docker build -t docker.io/openshift/hello-openshift .

@@ -1,21 +1,37 @@
 <div ng-controller="ProjectController" class="content">
   <project-page>
     <div ng-controller="SettingsController">
-      <h1>Project Settings</h1>
+      <div class="page-header page-header-bleed-right">
+        <delete-button 
+          class="pull-right fa-lg"
+          resource-type="project" 
+          resource-name="{{project.metadata.name}}"
+          project-name="{{project.metadata.name}}"
+          display-name="{{(project | displayName)}}"
+          alerts="alerts">
+        </delete-button>
+        <h1>Project Settings</h1>
+      </div>
+
       <alerts alerts="alerts"></alerts>
       <h2>General information</h2>
       <!-- TODO make these fields editable - probably with a cog icon that flips into inline-editing -->
       <dl class="dl-horizontal left">
+        <dt>Name:</dt>
+        <dd>{{projectName}}</dd>
         <dt>Display name:</dt>
-        <dd ng-if="project.displayName">{{project.displayName}}</dd>
-        <dd ng-if="!project.displayName"><em>No display name</em></dd>
+        <dd ng-if="project | displayName: true">{{project | displayName: true}}</dd>
+        <dd ng-if="!(project | displayName: true)"><em>No display name</em></dd>
         <dt>Description:</dt>
-        <dd ng-if="project | description">{{project | description}}</dd>
+        <dd ng-if="project | description">
+          <truncate-long-text content="project | description" limit="1024" use-word-boundary="true"></truncate-long-text>
+        </dd>
         <dd ng-if="!(project | description)"><em>No description</em></dd>
       </dl>
       <h2>
         <span>Quota</span>
-        <a href="javascript:;" style="margin-left: 5px; cursor: pointer;" class="small pficon pficon-help" data-container="body" data-toggle="popover" data-placement="right" data-trigger="focus" data-content="Quota is enforced at the project level.  Once the maximum for the project has been reached no more of that resource can be allocated within the project."></a>
+        <i style="margin-left: 5px; cursor: help;" class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="Quota is enforced at the project level.  Once the maximum for the project has been reached no more of that resource can be allocated within the project."></i>
       </h2>
       <div ng-if="(quotas | hashSize) == 0"><em>{{emptyMessageQuotas}}</em></div>
       <table ng-if="(quotas | hashSize) > 0" class="table">
@@ -27,20 +43,14 @@
         <tbody ng-repeat="quota in quotas">
           <tr ng-if='!quota.status.used' class="danger">
             <td colspan="5">
-              <span class="pficon-layered" data-toggle="tooltip" data-placement="right" title="Missing quota status" style="cursor: help;">
-                <span class="pficon pficon-error-octagon"></span>
-                <span class="pficon pficon-error-exclamation"></span>
-              </span>
+              <span data-toggle="tooltip" data-placement="right" title="Missing quota status" class="pficon pficon-error-circle-o" style="cursor: help;"></span>
               Status has not been reported on this quota usage record.  Any resources limited by this quota record can not be allocated.
             </td>
           </tr>
           <tr ng-class="{warning: (quota.status.used[resourceType] | usageValue) >= (quota.status.hard[resourceType] | usageValue)}" ng-repeat="(resourceType, specMax) in quota.spec.hard">
             <!-- TODO prettify resourceType? -->
             <td>
-              <span ng-if="(quota.status.used[resourceType] | usageValue) >= (quota.status.hard[resourceType] | usageValue)" class="pficon-layered" data-toggle="tooltip" data-placement="right" title="Quota limit reached" style="cursor: help;">
-                <span class="pficon pficon-warning-triangle"></span>
-                <span class="pficon pficon-warning-exclamation"></span>
-              </span>
+              <span ng-if="(quota.status.used[resourceType] | usageValue) >= (quota.status.hard[resourceType] | usageValue)" data-toggle="tooltip" data-placement="right" title="Quota limit reached" class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
               {{resourceType}}
             </td>
             <td>
@@ -56,25 +66,53 @@
       </table>
       <h2>
         <span>Resource limits</span>
-        <a href="javascript:;" style="margin-left: 5px; cursor: pointer;" class="small pficon pficon-help" data-container="body" data-toggle="popover" data-placement="right" data-trigger="focus" data-content="Resource limits define minimum and maximum values that can be created for each resource type."></a>
-      </h2>      
+        <i style="margin-left: 5px; cursor: help;" class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="Resource limits define minimum and maximum constraints for compute resources."></i>
+      </h2>
       <div ng-if="(limitRanges | hashSize) == 0"><em>{{emptyMessageLimitRanges}}</em></div>
       <table ng-if="(limitRanges | hashSize) > 0" class="table">
         <thead>
           <th>Resource type</th>
-          <th>Min</th>
-          <th>Max</th>
+          <th>
+            Min
+            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="The minimum amount of this compute resource that can be requested."></i>
+          </th>
+          <th>
+            Max
+            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="The maximum amount of this compute resource that can be requested.  The limit must also be below the maximum value."></i>
+          </th>
+          <th>
+            Default Request
+            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="A container will default to request this amount of a compute resource if no request is specified. The system will guarantee the requested amount of compute resource when scheduling a container for execution. If a quota is enabled for this compute resource, the quota usage is incremented by the requested value."></i>
+          </th>
+          <th>
+            Default Limit
+            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="The default limit defines the maximum amount of compute resource the container may have access to during execution if no limit is specified. If no request is made for the compute resource on the container or via a Default Request value, the container will default to request the limit."></i>
+          </th>
+          <th>
+            Max Limit/Request Ratio
+            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="If specified, the compute resource must have a request and limit that are both non-zero, where limit divided by request is less than or equal to the specified amount; this represents the max burst for the compute resource during execution."></i>
+          </th>
         </thead>
-        <tbody ng-repeat="limitRange in limitRanges">
+        <tbody ng-repeat="(limitRangeName, limitRange) in limitRanges">
           <tr ng-repeat-start="limit in limitRange.spec.limits"></tr>
-          <tr ng-repeat="(type, min) in limit.min">
+          <tr ng-repeat="(type, typeLimits) in limitsByType[limitRangeName][limit.type]">
             <!-- TODO prettify type -->
             <td>{{limit.type}} {{type}}</td>
-            <td>{{(min | usageWithUnits : type) || "&mdash;"}}</td>
-            <td>{{(limit.max[type] | usageWithUnits : type) || "&mdash;"}}</td>
+            <td>{{(typeLimits.min | usageWithUnits : type) || "&mdash;"}}</td>
+            <td>{{(typeLimits.max | usageWithUnits : type) || "&mdash;"}}</td>
+            <td>{{(typeLimits.defaultRequest | usageWithUnits : type) || "&mdash;"}}</td>
+            <td>{{(typeLimits["default"] | usageWithUnits : type) || "&mdash;"}}</td>
+            <td>{{typeLimits.maxLimitRequestRatio || "&mdash;"}}</td>
           </tr>
           <tr ng-repeat-end></tr>
         </tbody>
-      </table>      
+      </table>
+    </div>
   </project-page>
 </div>

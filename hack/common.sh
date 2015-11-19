@@ -18,8 +18,8 @@ OS_ROOT=$(
 OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
 OS_OUTPUT="${OS_ROOT}/${OS_OUTPUT_SUBPATH}"
 OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
-OS_LOCAL_BINPATH="${OS_ROOT}/_output/local/go/bin"
-OS_LOCAL_RELEASEPATH="${OS_ROOT}/_output/local/releases"
+OS_LOCAL_BINPATH="${OS_OUTPUT}/go/bin"
+OS_LOCAL_RELEASEPATH="${OS_OUTPUT}/releases"
 
 readonly OS_GO_PACKAGE=github.com/openshift/origin
 readonly OS_GOPATH="${OS_OUTPUT}/go"
@@ -29,18 +29,25 @@ readonly OS_IMAGE_COMPILE_PLATFORMS=(
 )
 readonly OS_IMAGE_COMPILE_TARGETS=(
   images/pod
-  examples/hello-openshift
   cmd/dockerregistry
+  cmd/gitserver
+  cmd/recycle
 )
-readonly OS_IMAGE_COMPILE_BINARIES=("${OS_IMAGE_COMPILE_TARGETS[@]##*/}")
+readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
+  examples/hello-openshift
+  examples/deployment
+)
+readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS[@]##*/}")
 
 readonly OS_CROSS_COMPILE_PLATFORMS=(
   linux/amd64
   darwin/amd64
   windows/amd64
+  linux/386
 )
 readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
+  cmd/oc
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
@@ -48,16 +55,40 @@ readonly OS_ALL_TARGETS=(
   "${OS_CROSS_COMPILE_TARGETS[@]}"
 )
 readonly OS_ALL_BINARIES=("${OS_ALL_TARGETS[@]##*/}")
+
+#If you update this list, be sure to get the images/origin/Dockerfile
 readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-router
   openshift-deploy
   openshift-sti-build
   openshift-docker-build
+  origin
+  atomic-enterprise
   osc
+  oadm
   osadm
+  kubectl
+  kubernetes
+  kubelet
+  kube-proxy
+  kube-apiserver
+  kube-controller-manager
+  kube-scheduler
 )
 readonly OPENSHIFT_BINARY_COPY=(
-  osc
+  oadm
+  kubelet
+  kube-proxy
+  kube-apiserver
+  kube-controller-manager
+  kube-scheduler
+)
+readonly OC_BINARY_COPY=(
+  kubectl
+)
+readonly OS_BINARY_RELEASE_WINDOWS=(
+  oc.exe
+  kubectl.exe
 )
 
 # os::build::binaries_from_targets take a list of build targets and return the
@@ -96,28 +127,15 @@ os::build::build_binaries() {
     local goflags
     eval "goflags=(${OS_GOFLAGS:-})"
 
-    local -a targets=()
     local arg
     for arg; do
       if [[ "${arg}" == -* ]]; then
         # Assume arguments starting with a dash are flags to pass to go.
         goflags+=("${arg}")
-      else
-        targets+=("${arg}")
       fi
     done
 
-    if [[ ${#targets[@]} -eq 0 ]]; then
-      targets=("${OS_ALL_TARGETS[@]}")
-    fi
-
-    local -a platforms=("${OS_BUILD_PLATFORMS[@]:+${OS_BUILD_PLATFORMS[@]}}")
-    if [[ ${#platforms[@]} -eq 0 ]]; then
-      platforms=("$(os::build::host_platform)")
-    fi
-
-    local binaries
-    binaries=($(os::build::binaries_from_targets "${targets[@]}"))
+    os::build::export_targets "$@"
 
     local platform
     for platform in "${platforms[@]}"; do
@@ -129,6 +147,30 @@ os::build::build_binaries() {
       os::build::unset_platform_envs "${platform}"
     done
   )
+}
+
+# Generates the set of target packages, binaries, and platforms to build for.
+# Accepts binaries via $@, and platforms via OS_BUILD_PLATFORMS, or defaults to
+# the current platform.
+os::build::export_targets() {
+  targets=()
+  local arg
+  for arg; do
+    if [[ "${arg}" != -* ]]; then
+      targets+=("${arg}")
+    fi
+  done
+
+  if [[ ${#targets[@]} -eq 0 ]]; then
+    targets=("${OS_ALL_TARGETS[@]}")
+  fi
+
+  binaries=($(os::build::binaries_from_targets "${targets[@]}"))
+
+  platforms=("${OS_BUILD_PLATFORMS[@]:+${OS_BUILD_PLATFORMS[@]}}")
+  if [[ ${#platforms[@]} -eq 0 ]]; then
+    platforms=("$(os::build::host_platform)")
+  fi
 }
 
 # Takes the platform name ($1) and sets the appropriate golang env variables
@@ -179,7 +221,7 @@ os::build::setup_env() {
   os::build::create_gopath_tree
 
   if [[ -z "$(which go)" ]]; then
-    echo <<EOF
+    cat <<EOF
 
 Can't find 'go' in PATH, please fix and retry.
 See http://golang.org/doc/install for installation instructions.
@@ -194,12 +236,12 @@ EOF
   if [[ "${TRAVIS:-}" != "true" ]]; then
     local go_version
     go_version=($(go version))
-    if [[ "${go_version[2]}" < "go1.2" ]]; then
-      echo <<EOF
+    if [[ "${go_version[2]}" < "go1.4" ]]; then
+      cat <<EOF
 
 Detected go version: ${go_version[*]}.
-Kubernetes requires go version 1.2 or greater.
-Please install Go version 1.2 or later.
+OpenShift and Kubernetes requires go version 1.4 or greater.
+Please install Go version 1.4 or later.
 
 EOF
       exit 2
@@ -224,11 +266,11 @@ EOF
   unset GOBIN
 }
 
-# This will take OS_RELEASE_BINARIES from $GOPATH/bin and copy them to the appropriate
+# This will take $@ from $GOPATH/bin and copy them to the appropriate
 # place in ${OS_OUTPUT_BINDIR}
 #
 # If OS_RELEASE_ARCHIVE is set, tar archives prefixed with OS_RELEASE_ARCHIVE for
-# each OS_RELEASE_PLATFORMS are created.
+# each of OS_BUILD_PLATFORMS are created.
 #
 # Ideally this wouldn't be necessary and we could just set GOBIN to
 # OS_OUTPUT_BINDIR but that won't work in the face of cross compilation.  'go
@@ -247,7 +289,9 @@ os::build::place_bins() {
       mkdir -p "${OS_LOCAL_RELEASEPATH}"
     fi
 
-    for platform in "${OS_RELEASE_PLATFORMS[@]-(host_platform)}"; do
+    os::build::export_targets "$@"
+
+    for platform in "${platforms[@]}"; do
       # The substitution on platform_src below will replace all slashes with
       # underscores.  It'll transform darwin/amd64 -> darwin_amd64.
       local platform_src="/${platform//\//_}"
@@ -265,31 +309,30 @@ os::build::place_bins() {
 
       # Create an array of binaries to release. Append .exe variants if the platform is windows.
       local -a binaries=()
-      local binary
-      for binary in "${OS_RELEASE_BINARIES[@]}"; do
-        binaries+=("${binary}")
+      for binary in "${targets[@]}"; do
+        binary=$(basename $binary)
         if [[ $platform == "windows/amd64" ]]; then
           binaries+=("${binary}.exe")
+        else
+          binaries+=("${binary}")
         fi
       done
 
-      # Copy the only the specified release binaries to the shared OS_OUTPUT_BINPATH.
-      local -a includes=()
+      # Move the specified release binaries to the shared OS_OUTPUT_BINPATH.
       for binary in "${binaries[@]}"; do
-        includes+=("--include=${binary}")
+        mv "${full_binpath_src}/${binary}" "${OS_OUTPUT_BINPATH}/${platform}/"
       done
-      find "${full_binpath_src}" -maxdepth 1 -type f -exec \
-        rsync "${includes[@]}" --exclude="*" -pt {} "${OS_OUTPUT_BINPATH}/${platform}" \;
 
       # If no release archive was requested, we're done.
       if [[ "${OS_RELEASE_ARCHIVE-}" == "" ]]; then
         continue
       fi
-      
+
       # Create a temporary bin directory containing only the binaries marked for release.
       local release_binpath=$(mktemp -d openshift.release.${OS_RELEASE_ARCHIVE}.XXX)
-      find "${full_binpath_src}" -maxdepth 1 -type f -exec \
-        rsync "${includes[@]}" --exclude="*" -pt {} "${release_binpath}" \;
+      for binary in "${binaries[@]}"; do
+        cp "${OS_OUTPUT_BINPATH}/${platform}/${binary}" "${release_binpath}/"
+      done
 
       # Create binary copies where specified.
       local suffix=""
@@ -299,27 +342,41 @@ os::build::place_bins() {
       for linkname in "${OPENSHIFT_BINARY_COPY[@]}"; do
         local src="${release_binpath}/openshift${suffix}"
         if [[ -f "${src}" ]]; then
-          cp "${release_binpath}/openshift${suffix}" "${release_binpath}/${linkname}${suffix}"
+          ln "${release_binpath}/openshift${suffix}" "${release_binpath}/${linkname}${suffix}"
+        fi
+      done
+      for linkname in "${OC_BINARY_COPY[@]}"; do
+        local src="${release_binpath}/oc${suffix}"
+        if [[ -f "${src}" ]]; then
+          ln "${release_binpath}/oc${suffix}" "${release_binpath}/${linkname}${suffix}"
         fi
       done
 
       # Create the release archive.
       local platform_segment="${platform//\//-}"
-      local archive_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.tar.gz"
-
-      echo "++ Creating ${archive_name}"
-      tar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" -C "${release_binpath}" .
+      if [[ $platform == "windows/amd64" ]]; then
+        local archive_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.zip"
+        echo "++ Creating ${archive_name}"
+        for file in "${OS_BINARY_RELEASE_WINDOWS[@]}"; do
+          zip "${OS_LOCAL_RELEASEPATH}/${archive_name}" -qj "${release_binpath}/${file}"
+        done
+      else
+        local archive_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.tar.gz"
+        echo "++ Creating ${archive_name}"
+        tar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" -C "${release_binpath}" .
+      fi
       rm -rf "${release_binpath}"
     done
   )
 }
 
 # os::build::make_openshift_binary_symlinks makes symlinks for the openshift
-# binary in _output/local/go/bin
+# binary in _output/local/bin/${platform}
 os::build::make_openshift_binary_symlinks() {
-  if [[ -f "${OS_LOCAL_BINPATH}/openshift" ]]; then
+  platform=$(os::build::host_platform)
+  if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift" ]]; then
     for linkname in "${OPENSHIFT_BINARY_SYMLINKS[@]}"; do
-      ln -sf "${OS_LOCAL_BINPATH}/openshift" "${OS_LOCAL_BINPATH}/${linkname}"
+      ln -sf openshift "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
     done
   fi
 }
@@ -335,13 +392,21 @@ os::build::make_openshift_binary_symlinks() {
 os::build::detect_local_release_tars() {
   local platform="$1"
 
-  local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-*-${platform}-* | grep -v image)
+  if [[ ! -d "${OS_LOCAL_RELEASEPATH}" ]]; then
+    echo "There are no release artifacts in ${OS_LOCAL_RELEASEPATH}"
+    exit 2
+  fi
+  if [[ ! -f "${OS_LOCAL_RELEASEPATH}/.commit" ]]; then
+    echo "There is no release .commit identifier ${OS_LOCAL_RELEASEPATH}"
+    exit 2
+  fi
+  local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-*-${platform}* | grep -v image)
   if [[ $(echo "${primary}" | wc -l) -ne 1 ]]; then
     echo "There should be exactly one ${platform} primary tar in $OS_LOCAL_RELEASEPATH"
     exit 2
   fi
 
-  local image=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}-*)
+  local image=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}*)
   if [[ $(echo "${image}" | wc -l) -ne 1 ]]; then
     echo "There should be exactly one ${platform} image tar in $OS_LOCAL_RELEASEPATH"
     exit 3
@@ -403,8 +468,8 @@ os::build::os_version_vars() {
 # os::build::kube_version_vars returns the version of Kubernetes we have
 # vendored.
 os::build::kube_version_vars() {
-  KUBE_GIT_VERSION=$(go run "${OS_ROOT}/hack/version.go" "${OS_ROOT}/Godeps/Godeps.json" "github.com/GoogleCloudPlatform/kubernetes/pkg/api" "comment")
-  KUBE_GIT_COMMIT=$(go run "${OS_ROOT}/hack/version.go" "${OS_ROOT}/Godeps/Godeps.json" "github.com/GoogleCloudPlatform/kubernetes/pkg/api")
+  KUBE_GIT_VERSION=$(go run "${OS_ROOT}/hack/version.go" "${OS_ROOT}/Godeps/Godeps.json" "k8s.io/kubernetes/pkg/api" "comment")
+  KUBE_GIT_COMMIT=$(go run "${OS_ROOT}/hack/version.go" "${OS_ROOT}/Godeps/Godeps.json" "k8s.io/kubernetes/pkg/api")
 }
 
 # Saves the environment flags to $1
@@ -426,27 +491,150 @@ KUBE_GIT_VERSION='${KUBE_GIT_VERSION-}'
 EOF
 }
 
+# golang 1.5 wants `-X key=val`, but golang 1.4- REQUIRES `-X key val`
+os::build::ldflag() {
+  local key=${1}
+  local val=${2}
+
+  GO_VERSION=($(go version))
+
+  if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.5') ]]; then
+    echo "-X ${OS_GO_PACKAGE}/pkg/version.${key} ${val}"
+  else
+    echo "-X ${OS_GO_PACKAGE}/pkg/version.${key}=${val}"
+  fi
+}
+
 # os::build::ldflags calculates the -ldflags argument for building OpenShift
 os::build::ldflags() {
-  (
-    # Run this in a subshell to prevent settings/variables from leaking.
-    set -o errexit
-    set -o nounset
-    set -o pipefail
+  # Run this in a subshell to prevent settings/variables from leaking.
+  set -o errexit
+  set -o nounset
+  set -o pipefail
 
-    cd "${OS_ROOT}"
+  cd "${OS_ROOT}"
 
-    os::build::get_version_vars
+  os::build::get_version_vars
 
-    declare -a ldflags=()
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}")
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}")
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}")
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}")
-    ldflags+=(-X "github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}")
-    ldflags+=(-X "github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}")
+  declare -a ldflags=()
 
-    # The -ldflags parameter takes a single string, so join the output.
-    echo "${ldflags[*]-}"
-  )
+  ldflags+=($(os::build::ldflag "majorFromGit" "${OS_GIT_MAJOR}"))
+  ldflags+=($(os::build::ldflag "minorFromGit" "${OS_GIT_MINOR}"))
+  ldflags+=($(os::build::ldflag "versionFromGit" "${OS_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "commitFromGit" "${OS_GIT_COMMIT}"))
+
+  GO_VERSION=($(go version))
+  if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.5') ]]; then
+    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}")
+    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}")
+  else
+    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitCommit=${KUBE_GIT_COMMIT}")
+    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitVersion=${KUBE_GIT_VERSION}")
+  fi
+
+  # The -ldflags parameter takes a single string, so join the output.
+  echo "${ldflags[*]-}"
+}
+
+# os::build::require_clean_tree exits if the current Git tree is not clean.
+os::build::require_clean_tree() {
+  if ! git diff-index --quiet HEAD -- || test $(git ls-files --exclude-standard --others | wc -l) != 0; then
+    echo "You can't have any staged or dirty files in $(pwd) for this command."
+    echo "Either commit them or unstage them to continue."
+    exit 1
+  fi
+}
+
+# os::build::commit_range takes one or two arguments - if the first argument is an
+# integer, it is assumed to be a pull request and the local origin/pr/# branch is
+# used to determine the common range with the second argument. If the first argument
+# is not an integer, it is assumed to be a Git commit range and output directly.
+os::build::commit_range() {
+  local remote
+  remote="${UPSTREAM_REMOTE:-origin}"
+  if [[ "$1" =~ ^-?[0-9]+$ ]]; then
+    local target
+    target="$(git rev-parse ${remote}/pr/$1)"
+    if [[ $? -ne 0 ]]; then
+      echo "Branch does not exist, or you have not configured ${remote}/pr/* style branches from GitHub" 1>&2
+      exit 1
+    fi
+
+    local base
+    base="$(git merge-base ${target} $2)"
+    if [[ $? -ne 0 ]]; then
+      echo "Branch has no common commits with $2" 1>&2
+      exit 1
+    fi
+    if [[ "${base}" == "${target}" ]]; then
+
+      # DO NOT TRUST THIS CODE
+      merged="$(git rev-list --reverse ${target}..$2 --ancestry-path | head -1)"
+      if [[ -z "${merged}" ]]; then
+        echo "Unable to find the commit that merged ${remote}/pr/$1" 1>&2
+        exit 1
+      fi
+      #if [[ $? -ne 0 ]]; then
+      #  echo "Unable to find the merge commit for $1: ${merged}" 1>&2
+      #  exit 1
+      #fi
+      echo "++ pr/$1 appears to have merged at ${merged}" 1>&2
+      leftparent="$(git rev-list --parents -n 1 ${merged} | cut -f2 -d ' ')"
+      if [[ $? -ne 0 ]]; then
+        echo "Unable to find the left-parent for the merge of for $1" 1>&2
+        exit 1
+      fi
+      base="$(git merge-base ${target} ${leftparent})"
+      if [[ $? -ne 0 ]]; then
+        echo "Unable to find the common commit between ${leftparent} and $1" 1>&2
+        exit 1
+      fi
+      echo "${base}..${target}"
+      exit 0
+      #echo "Branch has already been merged to upstream master, use explicit range instead" 1>&2
+      #exit 1
+    fi
+
+    echo "${base}...${target}"
+    exit 0
+  fi
+
+  echo "$1"
+}
+
+os::build::gen-docs() {
+  local cmd="$1"
+  local dest="$2"
+  local skipprefix="${3:-}"
+
+  # We do this in a tmpdir in case the dest has other non-autogenned files
+  # We don't want to include them in the list of gen'd files
+  local tmpdir="${OS_ROOT}/_tmp/gen_doc"
+  mkdir -p "${tmpdir}"
+  # generate the new files
+  ${cmd} "${tmpdir}"
+  # create the list of generated files
+  ls "${tmpdir}" | LC_ALL=C sort > "${tmpdir}/.files_generated"
+
+  # remove all old generated file from the destination
+  while read file; do
+    if [[ -e "${tmpdir}/${file}" && -n "${skipprefix}" ]]; then
+      local original generated
+      original=$(grep -v "^${skipprefix}" "${dest}/${file}") || :
+      generated=$(grep -v "^${skipprefix}" "${tmpdir}/${file}") || :
+      if [[ "${original}" == "${generated}" ]]; then
+        # overwrite generated with original.
+        mv "${dest}/${file}" "${tmpdir}/${file}"
+      fi
+    else
+      rm "${dest}/${file}" || true
+    fi
+  done <"${dest}/.files_generated"
+
+  # put the new generated file into the destination
+  find "${tmpdir}" -exec rsync -pt {} "${dest}" \; >/dev/null
+  #cleanup
+  rm -rf "${tmpdir}"
+
+  echo "Assets generated in ${dest}"
 }

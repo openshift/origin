@@ -36,6 +36,10 @@ func NewProvider(providerName, clientID, clientSecret string) external.Provider 
 	return provider{providerName, clientID, clientSecret}
 }
 
+func (p provider) GetTransport() (http.RoundTripper, error) {
+	return nil, nil
+}
+
 // NewConfig implements external/interfaces/Provider.NewConfig
 func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 	config := &osincli.ClientConfig{
@@ -63,6 +67,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 	if err != nil {
 		return nil, false, err
 	}
+	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -80,9 +85,15 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 	}
 
 	identity := authapi.NewDefaultUserIdentityInfo(p.providerName, fmt.Sprintf("%d", userdata.ID))
-	identity.Extra[authapi.IdentityDisplayNameKey] = userdata.Name
-	identity.Extra[authapi.IdentityLoginKey] = userdata.Login
-	identity.Extra[authapi.IdentityEmailKey] = userdata.Email
+	if len(userdata.Name) > 0 {
+		identity.Extra[authapi.IdentityDisplayNameKey] = userdata.Name
+	}
+	if len(userdata.Login) > 0 {
+		identity.Extra[authapi.IdentityPreferredUsernameKey] = userdata.Login
+	}
+	if len(userdata.Email) > 0 {
+		identity.Extra[authapi.IdentityEmailKey] = userdata.Email
+	}
 	glog.V(4).Infof("Got identity=%#v", identity)
 
 	return identity, true, nil

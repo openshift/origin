@@ -1,6 +1,0 @@
-ROLE="node"
-OPTIONS="--loglevel=0"
-# If running node on a separate host please rsync the admin directory ie:
-# rsync root@openshift-master:/var/lib/openshift/openshift.local.certificates/admin /var/lib/openshift/openshift.local.certificates/
-KUBECONFIG="/var/lib/openshift/openshift.local.certificates/admin/.kubeconfig"
-IMAGES='openshift/origin-${component}:${version}'

@@ -2,11 +2,12 @@ package context
 
 import (
 	"net/http"
+	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
 	"reflect"
 	"testing"
 	"time"
-
-	"golang.org/x/net/context"
 )
 
 func TestWithRequest(t *testing.T) {
@@ -20,7 +21,7 @@ func TestWithRequest(t *testing.T) {
 	req.Header.Set("Referer", "foo.com/referer")
 	req.Header.Set("User-Agent", "test/0.1")
 
-	ctx := WithRequest(context.Background(), &req)
+	ctx := WithRequest(Background(), &req)
 	for _, testcase := range []struct {
 		key      string
 		expected interface{}
@@ -129,10 +130,23 @@ func (trw *testResponseWriter) Flush() {
 
 func TestWithResponseWriter(t *testing.T) {
 	trw := testResponseWriter{}
-	ctx, rw := WithResponseWriter(context.Background(), &trw)
+	ctx, rw := WithResponseWriter(Background(), &trw)
 
-	if ctx.Value("http.response") != &trw {
-		t.Fatalf("response not available in context: %v != %v", ctx.Value("http.response"), &trw)
+	if ctx.Value("http.response") != rw {
+		t.Fatalf("response not available in context: %v != %v", ctx.Value("http.response"), rw)
+	}
+
+	grw, err := GetResponseWriter(ctx)
+	if err != nil {
+		t.Fatalf("error getting response writer: %v", err)
+	}
+
+	if grw != rw {
+		t.Fatalf("unexpected response writer returned: %#v != %#v", grw, rw)
+	}
+
+	if ctx.Value("http.response.status") != 0 {
+		t.Fatalf("response status should always be a number and should be zero here: %v != 0", ctx.Value("http.response.status"))
 	}
 
 	if n, err := rw.Write(make([]byte, 1024)); err != nil {
@@ -180,7 +194,7 @@ func TestWithVars(t *testing.T) {
 		return vars
 	}
 
-	ctx := WithVars(context.Background(), &req)
+	ctx := WithVars(Background(), &req)
 	for _, testcase := range []struct {
 		key      string
 		expected interface{}
@@ -203,5 +217,69 @@ func TestWithVars(t *testing.T) {
 		if !reflect.DeepEqual(v, testcase.expected) {
 			t.Fatalf("%q: %v != %v", testcase.key, v, testcase.expected)
 		}
+	}
+}
+
+// SingleHostReverseProxy will insert an X-Forwarded-For header, and can be used to test
+// RemoteAddr().  A fake RemoteAddr cannot be set on the HTTP request - it is overwritten
+// at the transport layer to 127.0.0.1:<port> .  However, as the X-Forwarded-For header
+// just contains the IP address, it is different enough for testing.
+func TestRemoteAddr(t *testing.T) {
+	var expectedRemote string
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		if r.RemoteAddr == expectedRemote {
+			t.Errorf("Unexpected matching remote addresses")
+		}
+
+		actualRemote := RemoteAddr(r)
+		if expectedRemote != actualRemote {
+			t.Errorf("Mismatching remote hosts: %v != %v", expectedRemote, actualRemote)
+		}
+
+		w.WriteHeader(200)
+	}))
+
+	defer backend.Close()
+	backendURL, err := url.Parse(backend.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(backendURL)
+	frontend := httptest.NewServer(proxy)
+	defer frontend.Close()
+
+	// X-Forwarded-For set by proxy
+	expectedRemote = "127.0.0.1"
+	proxyReq, err := http.NewRequest("GET", frontend.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = http.DefaultClient.Do(proxyReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// RemoteAddr in X-Real-Ip
+	getReq, err := http.NewRequest("GET", backend.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedRemote = "1.2.3.4"
+	getReq.Header["X-Real-ip"] = []string{expectedRemote}
+	_, err = http.DefaultClient.Do(getReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Valid X-Real-Ip and invalid X-Forwarded-For
+	getReq.Header["X-forwarded-for"] = []string{"1.2.3"}
+	_, err = http.DefaultClient.Do(getReq)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

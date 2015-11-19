@@ -35,6 +35,11 @@ const CurrentVersion Version = "0.1"
 // StorageDriver defines methods that a Storage Driver must implement for a
 // filesystem-like key/value object storage.
 type StorageDriver interface {
+	// Name returns the human-readable "name" of the driver, useful in error
+	// messages and logging. By convention, this will just be the registration
+	// name, but drivers may provide other information here.
+	Name() string
+
 	// GetContent retrieves the content stored at "path" as a []byte.
 	// This should primarily be used for small objects.
 	GetContent(path string) ([]byte, error)
@@ -83,7 +88,7 @@ type StorageDriver interface {
 // number of path components separated by slashes, where each component is
 // restricted to lowercase alphanumeric characters or a period, underscore, or
 // hyphen.
-var PathRegexp = regexp.MustCompile(`^(/[a-z0-9._-]+)+$`)
+var PathRegexp = regexp.MustCompile(`^(/[A-Za-z0-9._-]+)+$`)
 
 // ErrUnsupportedMethod may be returned in the case where a StorageDriver implementation does not support an optional method.
 var ErrUnsupportedMethod = errors.New("unsupported method")

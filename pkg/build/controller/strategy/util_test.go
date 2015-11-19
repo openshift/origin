@@ -3,8 +3,8 @@ package strategy
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func TestSetupDockerSocketHostSocket(t *testing.T) {
@@ -51,13 +51,12 @@ func TestSetupDockerSocketHostSocket(t *testing.T) {
 	if e, a := "/var/run/docker.sock", mount.MountPath; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
-	if pod.Spec.Containers[0].Privileged {
+	if pod.Spec.Containers[0].SecurityContext != nil && pod.Spec.Containers[0].SecurityContext.Privileged != nil && *pod.Spec.Containers[0].SecurityContext.Privileged {
 		t.Error("Expected privileged to be false")
 	}
 }
 
 func isVolumeSourceEmpty(volumeSource kapi.VolumeSource) bool {
-
 	if volumeSource.EmptyDir == nil &&
 		volumeSource.HostPath == nil &&
 		volumeSource.GCEPersistentDisk == nil &&
@@ -68,12 +67,13 @@ func isVolumeSourceEmpty(volumeSource kapi.VolumeSource) bool {
 	return false
 }
 
-func TestSetupBuildEnvFails(t *testing.T) {
-	build := mockCustomBuild()
+func TestSetupBuildEnvEmpty(t *testing.T) {
+	build := mockCustomBuild(false)
 	containerEnv := []kapi.EnvVar{
 		{Name: "BUILD", Value: ""},
-		{Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI},
+		{Name: "SOURCE_REPOSITORY", Value: build.Spec.Source.Git.URI},
 	}
+	privileged := true
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: buildutil.GetBuildPodName(build),
@@ -82,10 +82,12 @@ func TestSetupBuildEnvFails(t *testing.T) {
 			Containers: []kapi.Container{
 				{
 					Name:  "custom-build",
-					Image: build.Parameters.Strategy.CustomStrategy.Image,
+					Image: build.Spec.Strategy.CustomStrategy.From.Name,
 					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-					Privileged: true,
+					SecurityContext: &kapi.SecurityContext{
+						Privileged: &privileged,
+					},
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
@@ -94,32 +96,34 @@ func TestSetupBuildEnvFails(t *testing.T) {
 	if err := setupBuildEnv(build, pod); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-
-	build.Parameters.Output.DockerImageReference = ""
-	if err := setupBuildEnv(build, pod); err == nil {
-		t.Errorf("unexpected non-error: %v", err)
-	}
 }
 
-func TestMergeEnvWithoutDuplicates(t *testing.T) {
+func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {
 	input := []kapi.EnvVar{
 		{Name: "foo", Value: "bar"},
 		{Name: "input", Value: "inputVal"},
+		{Name: "BUILD_LOGLEVEL", Value: "loglevel"},
 	}
 	output := []kapi.EnvVar{
 		{Name: "foo", Value: "test"},
 	}
 
-	mergeEnvWithoutDuplicates(input, &output)
+	mergeTrustedEnvWithoutDuplicates(input, &output)
 
 	if len(output) != 2 {
-		t.Errorf("Expected output to contain input items len!=2 (%d)", len(output))
+		t.Errorf("Expected output to contain input items len==2 (%d)", len(output))
 	}
 
 	if output[0].Name != "foo" {
 		t.Errorf("Expected output to have env 'foo', got %+v", output[0])
 	}
-	if output[0].Value != "bar" {
-		t.Errorf("Expected output env 'foo' to have value 'bar', got %+v", output[0])
+	if output[0].Value != "test" {
+		t.Errorf("Expected output env 'foo' to have value 'test', got %+v", output[0])
+	}
+	if output[1].Name != "BUILD_LOGLEVEL" {
+		t.Errorf("Expected output to have env 'BUILD_LOGLEVEL', got %+v", output[0])
+	}
+	if output[1].Value != "loglevel" {
+		t.Errorf("Expected output env 'foo' to have value 'loglevel', got %+v", output[0])
 	}
 }

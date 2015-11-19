@@ -1,38 +1,29 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
-
-/*
 
 import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 
-	"github.com/golang/glog"
-
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	watchapi "github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
-	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
+	kapi "k8s.io/kubernetes/pkg/api"
+	klatest "k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/apiserver"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/tools/etcdtest"
+	"k8s.io/kubernetes/pkg/util/wait"
+	watchapi "k8s.io/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/api/v1beta1"
-	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
-	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
-	buildgenerator "github.com/openshift/origin/pkg/build/generator"
-	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
-	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
-	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -40,19 +31,22 @@ import (
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
-	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
-	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
+	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
-	"github.com/openshift/origin/pkg/image/registry/imagerepository"
-	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
-	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
-	"github.com/openshift/origin/pkg/image/registry/imagerepositorytag"
+	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
+	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
+	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
+
+const maxUpdateRetries = 5
 
 func init() {
 	testutil.RequireEtcd()
@@ -60,7 +54,7 @@ func init() {
 
 func TestTriggers_manual(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestOpenshift(t)
+	openshift := NewTestDeployOpenshift(t)
 	defer openshift.Close()
 
 	config := deploytest.OkDeploymentConfig(0)
@@ -70,8 +64,6 @@ func TestTriggers_manual(t *testing.T) {
 			Type: deployapi.DeploymentTriggerManual,
 		},
 	}
-
-	var err error
 
 	dc, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config)
 	if err != nil {
@@ -84,135 +76,144 @@ func TestTriggers_manual(t *testing.T) {
 	}
 	defer watch.Stop()
 
-	config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name)
-	if err != nil {
-		t.Fatalf("Error generating config: %v", err)
+	retryErr := kclient.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
+		config, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name)
+		if err != nil {
+			return err
+		}
+		if config.LatestVersion != 1 {
+			t.Fatalf("Generated deployment should have version 1: %#v", config)
+		}
+		t.Logf("config(1): %#v", config)
+		updatedConfig, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config)
+		if err != nil {
+			return err
+		}
+		t.Logf("config(2): %#v", updatedConfig)
+		return nil
+	})
+	if retryErr != nil {
+		t.Fatal(err)
 	}
-	if config.LatestVersion != 1 {
-		t.Fatalf("Generated deployment should have version 1: %#v", config)
-	}
-	glog.Infof("config(1): %#v", config)
-
-	new, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config)
-	if err != nil {
-		t.Fatalf("Couldn't create updated DeploymentConfig: %v %#v", err, config)
-	}
-	glog.Infof("config(2): %#v", new)
-
 	event := <-watch.ResultChan()
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	deployment := event.Object.(*kapi.ReplicationController)
 
-	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+	if e, a := config.Name, deployutil.DeploymentConfigNameFor(deployment); e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
-	if e, a := "1", deployment.Annotations[deployapi.DeploymentVersionAnnotation]; e != a {
+	if e, a := 1, deployutil.DeploymentVersionFor(deployment); e != a {
 		t.Fatalf("Deployment annotation version does not match: %#v", deployment)
 	}
 }
 
 func TestTriggers_imageChange(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestOpenshift(t)
-	defer openshift.Close()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("error starting master: %v", err)
+	}
+	openshiftClusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("error getting cluster admin client: %v", err)
+	}
+	openshiftClusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("error getting cluster admin client config: %v", err)
+	}
+	openshiftProjectAdminClient, err := testserver.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
+	if err != nil {
+		t.Fatalf("error creating project: %v", err)
+	}
 
-	imageRepo := &imageapi.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "test-image-repo"}}
+	imageStream := &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "test-image-stream"}}
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
-	var err error
 
-	watch, err := openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	configWatch, err := openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
-	defer watch.Stop()
+	defer configWatch.Stop()
 
-	if imageRepo, err = openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo); err != nil {
-		t.Fatalf("Couldn't create ImageRepository: %v", err)
+	if imageStream, err = openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
+		t.Fatalf("Couldn't create ImageStream: %v", err)
 	}
 
-	imageWatch, err := openshift.Client.ImageRepositories(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	imageWatch, err := openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
-		t.Fatalf("Couldn't subscribe to ImageRepositories: %s", err)
+		t.Fatalf("Couldn't subscribe to ImageStreams: %s", err)
 	}
 	defer imageWatch.Stop()
 
-	// Make a function which can create a new tag event for the image repo and
-	// then wait for the repo status to be asynchronously updated.
-	createTagEvent := func(image string) {
-		mapping := &imageapi.ImageRepositoryMapping{
-			ObjectMeta: kapi.ObjectMeta{Name: imageRepo.Name},
+	updatedImage := "sha256:00000000000000000000000000000001"
+	updatedPullSpec := fmt.Sprintf("registry:8080/openshift/test-image@%s", updatedImage)
+	// Make a function which can create a new tag event for the image stream and
+	// then wait for the stream status to be asynchronously updated.
+	createTagEvent := func() {
+		mapping := &imageapi.ImageStreamMapping{
+			ObjectMeta: kapi.ObjectMeta{Name: imageStream.Name},
 			Tag:        "latest",
 			Image: imageapi.Image{
 				ObjectMeta: kapi.ObjectMeta{
-					Name: image,
+					Name: updatedImage,
 				},
-				DockerImageReference: fmt.Sprintf("registry:8080/openshift/test-image@%s", image),
+				DockerImageReference: updatedPullSpec,
 			},
 		}
-		if err := openshift.Client.ImageRepositoryMappings(testutil.Namespace()).Create(mapping); err != nil {
+		if err := openshiftProjectAdminClient.ImageStreamMappings(testutil.Namespace()).Create(mapping); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		t.Log("Waiting for image repository mapping to be reflected in the IR status...")
+		t.Log("Waiting for image stream mapping to be reflected in the IS status...")
 	statusLoop:
 		for {
 			select {
 			case event := <-imageWatch.ResultChan():
-				ir := event.Object.(*imageapi.ImageRepository)
-				if _, ok := ir.Status.Tags["latest"]; ok {
-					t.Logf("ImageRepository now has Status with tags: %#v", ir.Status.Tags)
+				stream := event.Object.(*imageapi.ImageStream)
+				if _, ok := stream.Status.Tags["latest"]; ok {
+					t.Logf("ImageStream %s now has Status with tags: %#v", stream.Name, stream.Status.Tags)
 					break statusLoop
 				} else {
-					t.Log("Still waiting for latest tag status on imagerepo")
+					t.Logf("Still waiting for latest tag status on ImageStream %s", stream.Name)
 				}
 			}
 		}
 	}
 
-	createTagEvent("sha256:00000000000000000000000000000001")
-
-	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
+	if config, err = openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
-	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name); err != nil {
-		t.Fatalf("Error generating config: %v", err)
-	}
+	createTagEvent()
 
-	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
-		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
-	}
-
-	event := <-watch.ResultChan()
-	if e, a := watchapi.Added, event.Type; e != a {
-		t.Fatalf("expected watch event type %s, got %s", e, a)
-	}
-	deployment := event.Object.(*kapi.ReplicationController)
-
-	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
-		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
-	}
-
-	createTagEvent("sha256:00000000000000000000000000000002")
-
-	event = <-watch.ResultChan()
-	if e, a := watchapi.Added, event.Type; e != a {
-		t.Fatalf("expected watch event type %s, got %s", e, a)
-	}
-	newDeployment := event.Object.(*kapi.ReplicationController)
-
-	if newDeployment.Name == deployment.Name {
-		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.Name, newDeployment.Name)
+	var newConfig *deployapi.DeploymentConfig
+	t.Log("Waiting for a new deployment config in response to ImageStream update")
+waitForNewConfig:
+	for {
+		select {
+		case event := <-configWatch.ResultChan():
+			if event.Type == watchapi.Modified {
+				newConfig = event.Object.(*deployapi.DeploymentConfig)
+				// Multiple updates to the config can be expected (e.g. status
+				// updates), so wait for a significant update (e.g. version).
+				if newConfig.LatestVersion > 0 {
+					if e, a := updatedPullSpec, newConfig.Template.ControllerTemplate.Template.Spec.Containers[0].Image; e != a {
+						t.Fatalf("unexpected image for pod template container 0; expected %q, got %q", e, a)
+					}
+					break waitForNewConfig
+				}
+				t.Log("Still waiting for a new deployment config in response to ImageStream update")
+			}
+		}
 	}
 }
 
 func TestTriggers_configChange(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestOpenshift(t)
+	openshift := NewTestDeployOpenshift(t)
 	defer openshift.Close()
 
 	config := deploytest.OkDeploymentConfig(0)
@@ -239,21 +240,41 @@ func TestTriggers_configChange(t *testing.T) {
 
 	deployment := event.Object.(*kapi.ReplicationController)
 
-	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+	if e, a := config.Name, deployutil.DeploymentConfigNameFor(deployment); e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 
 	assertEnvVarEquals("ENV1", "VAL1", deployment, t)
 
-	// submit a new config with an updated environment variable
-	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name); err != nil {
-		t.Fatalf("Error generating config: %v", err)
-	}
+	retryErr := kclient.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
+		// submit a new config with an updated environment variable
+		config, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name)
+		if err != nil {
+			return err
+		}
 
-	config.Template.ControllerTemplate.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
+		config.Template.ControllerTemplate.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
 
-	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
-		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
+		// before we update the config, we need to update the state of the existing deployment
+		// this is required to be done manually since the deployment and deployer pod controllers are not run in this test
+		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
+		// update the deployment
+		if _, err := openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Update(deployment); err != nil {
+			return err
+		}
+
+		event = <-watch.ResultChan()
+		if e, a := watchapi.Modified, event.Type; e != a {
+			t.Fatalf("expected watch event type %s, got %s", e, a)
+		}
+
+		if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
+			return err
+		}
+		return nil
+	})
+	if retryErr != nil {
+		t.Fatal(retryErr)
 	}
 
 	event = <-watch.ResultChan()
@@ -281,28 +302,32 @@ func assertEnvVarEquals(name string, value string, deployment *kapi.ReplicationC
 	t.Fatalf("Expected env var with name %s and value %s", name, value)
 }
 
-type testOpenshift struct {
+type testDeployOpenshift struct {
 	Client     *osclient.Client
-	KubeClient kclient.Interface
-	Server     *httptest.Server
+	KubeClient *kclient.Client
+	server     *httptest.Server
 	stop       chan struct{}
+	lock       sync.Mutex
 }
 
-func NewTestOpenshift(t *testing.T) *testOpenshift {
+func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 	t.Logf("Starting test openshift")
 
-	openshift := &testOpenshift{
+	openshift := &testDeployOpenshift{
 		stop: make(chan struct{}),
 	}
 
+	openshift.lock.Lock()
+	defer openshift.lock.Unlock()
+
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
+	etcdHelper, _ := master.NewEtcdStorage(etcdClient, latest.InterfacesFor, latest.Version, etcdtest.PathPrefix())
 
 	osMux := http.NewServeMux()
-	openshift.Server = httptest.NewServer(osMux)
+	openshift.server = httptest.NewServer(osMux)
 
-	kubeClient := client.NewOrDie(&client.Config{Host: openshift.Server.URL, Version: klatest.Version})
-	osClient, _ := osclient.New(&client.Config{Host: openshift.Server.URL, Version: latest.Version})
+	kubeClient := kclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: klatest.DefaultVersionForLegacyGroup()})
+	osClient := osclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: latest.Version})
 
 	openshift.Client = osClient
 	openshift.KubeClient = kubeClient
@@ -314,12 +339,16 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 
 	handlerContainer := master.NewHandlerContainer(osMux)
 
+	storageDestinations := master.NewStorageDestinations()
+	storageDestinations.AddAPIGroup("", etcdHelper)
+
 	_ = master.New(&master.Config{
-		EtcdHelper:       etcdHelper,
-		KubeletClient:    kubeletClient,
-		APIPrefix:        "/api",
-		AdmissionControl: admit.NewAlwaysAdmit(),
-		RestfulContainer: handlerContainer,
+		StorageDestinations: storageDestinations,
+		KubeletClient:       kubeletClient,
+		APIPrefix:           "/api",
+		AdmissionControl:    admit.NewAlwaysAdmit(),
+		RestfulContainer:    handlerContainer,
+		DisableV1:           false,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
@@ -327,65 +356,60 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	imageStorage := imageetcd.NewREST(etcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
 
-	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(etcdHelper, imagerepository.DefaultRegistryFunc(func() (string, bool) { return "registry:3000", true }))
-	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
-	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry)
-	imageRepositoryTagStorage := imagerepositorytag.NewREST(imageRegistry, imageRepositoryRegistry)
-	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageRepositoryRegistry)
+	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(
+		etcdHelper,
+		imagestream.DefaultRegistryFunc(func() (string, bool) {
+			return "registry:3000", true
+		}),
+		&fakeSubjectAccessReviewRegistry{},
+	)
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
 
-	deployEtcd := deployetcd.New(etcdHelper)
+	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)
+
+	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
+	//imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
+
+	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
+	//imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
+
+	deployConfigStorage := deployconfigetcd.NewStorage(etcdHelper, kubeClient)
+	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage.DeploymentConfig)
+
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
 		Client: deployconfiggenerator.Client{
-			DCFn:   deployEtcd.GetDeploymentConfig,
-			IRFn:   imageRepositoryRegistry.GetImageRepository,
-			LIRFn2: imageRepositoryRegistry.ListImageRepositories,
+			DCFn:   deployConfigRegistry.GetDeploymentConfig,
+			ISFn:   imageStreamRegistry.GetImageStream,
+			LISFn2: imageStreamRegistry.ListImageStreams,
 		},
 	}
-
-	buildEtcd := buildetcd.New(etcdHelper)
-	buildGenerator := &buildgenerator.BuildGenerator{
-		Client: buildgenerator.Client{
-			GetBuildConfigFunc:     buildEtcd.GetBuildConfig,
-			UpdateBuildConfigFunc:  buildEtcd.UpdateBuildConfig,
-			GetBuildFunc:           buildEtcd.GetBuild,
-			CreateBuildFunc:        buildEtcd.CreateBuild,
-			GetImageRepositoryFunc: imageRepositoryRegistry.GetImageRepository,
-		},
-	}
-	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
 	storage := map[string]rest.Storage{
-		"images":                   imageStorage,
-		"imageStreams":             imageRepositoryStorage,
-		"imageStreamImages":        imageStreamImageStorage,
-		"imageStreamMappings":      imageRepositoryMappingStorage,
-		"imageStreamTags":          imageRepositoryTagStorage,
-		"imageRepositories":        imageRepositoryStorage,
-		"imageRepositories/status": imageRepositoryStatus,
-		"imageRepositoryMappings":  imageRepositoryMappingStorage,
-		"imageRepositoryTags":      imageRepositoryTagStorage,
-
-		"deployments":               deployregistry.NewREST(deployEtcd),
-		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, v1beta1.Codec),
-		"builds":                    buildregistry.NewREST(buildEtcd),
-		"builds/clone":              buildClone,
-		"buildConfigs":              buildconfigregistry.NewREST(buildEtcd),
-		"buildConfigs/instantiate":  buildConfigInstantiate,
+		"images":                    imageStorage,
+		"imageStreams":              imageStreamStorage,
+		"imageStreamImages":         imageStreamImageStorage,
+		"imageStreamMappings":       imageStreamMappingStorage,
+		"imageStreamTags":           imageStreamTagStorage,
+		"deploymentConfigs":         deployConfigStorage.DeploymentConfig,
+		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
+	}
+	for k, v := range storage {
+		storage[strings.ToLower(k)] = v
 	}
 
 	version := &apiserver.APIGroupVersion{
-		Root:    "/osapi",
-		Version: "v1beta1",
+		Root:    "/oapi",
+		Version: "v1",
 
 		Storage: storage,
 		Codec:   latest.Codec,
 
 		Mapper: latest.RESTMapper,
 
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  interfaces.MetadataAccessor,
+		Creater:   kapi.Scheme,
+		Typer:     kapi.Scheme,
+		Convertor: kapi.Scheme,
+		Linker:    interfaces.MetadataAccessor,
 
 		Admit:   admit.NewAlwaysAdmit(),
 		Context: kapi.NewRequestContextMapper(),
@@ -413,36 +437,10 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	}
 	iccFactory.Create().Run()
 
-	biccFactory := buildcontrollerfactory.ImageChangeControllerFactory{
-		Client:                  osClient,
-		BuildConfigUpdater:      buildclient.NewOSClientBuildConfigClient(osClient),
-		BuildConfigInstantiator: buildclient.NewOSClientBuildConfigInstantiatorClient(osClient),
-		Stop: openshift.stop,
-	}
-	biccFactory.Create().Run()
-
-	bcFactory := buildcontrollerfactory.BuildControllerFactory{
-		OSClient:     osClient,
-		KubeClient:   kubeClient,
-		BuildUpdater: buildclient.NewOSClientBuildClient(osClient),
-		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
-			Image: "test-docker-builder",
-			Codec: latest.Codec,
-		},
-		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
-			Image:                "test-sti-builder",
-			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
-			Codec:                latest.Codec,
-		},
-		Stop: openshift.stop,
-	}
-
-	bcFactory.Create().Run()
-
 	return openshift
 }
 
-func (t *testOpenshift) Close() {
+func (t *testDeployOpenshift) Close() {
 }
 
 type clientDeploymentInterface struct {
@@ -453,10 +451,10 @@ func (c *clientDeploymentInterface) GetDeployment(ctx kapi.Context, id string) (
 	return c.KubeClient.ReplicationControllers(kapi.NamespaceValue(ctx)).Get(id)
 }
 
-func makeRepo(name, tag, dir, image string) *imageapi.ImageRepository {
-	return &imageapi.ImageRepository{
+func makeStream(name, tag, dir, image string) *imageapi.ImageStream {
+	return &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: name},
-		Status: imageapi.ImageRepositoryStatus{
+		Status: imageapi.ImageStreamStatus{
 			Tags: map[string]imageapi.TagEventList{
 				tag: {
 					Items: []imageapi.TagEvent{
@@ -470,4 +468,3 @@ func makeRepo(name, tag, dir, image string) *imageapi.ImageRepository {
 		},
 	}
 }
-*/

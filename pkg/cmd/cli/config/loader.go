@@ -3,52 +3,57 @@ package config
 import (
 	"os"
 	"path"
+	"path/filepath"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	"github.com/spf13/cobra"
+
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
 const (
-	OpenShiftConfigPathEnvVar      = "OPENSHIFTCONFIG"
+	OpenShiftConfigPathEnvVar      = "KUBECONFIG"
 	OpenShiftConfigFlagName        = "config"
-	OpenShiftConfigFileName        = ".openshiftconfig"
-	OpenShiftConfigHomeDir         = ".config/openshift"
-	OpenShiftConfigHomeFileName    = ".config"
+	OpenShiftConfigHomeDir         = ".kube"
+	OpenShiftConfigHomeFileName    = "config"
 	OpenShiftConfigHomeDirFileName = OpenShiftConfigHomeDir + "/" + OpenShiftConfigHomeFileName
-
-	KubeConfigPathEnvVar = clientcmd.RecommendedConfigPathEnvVar
-	KubeConfigFileName   = ".kubeconfig"
-	KubeConfigHomeDir    = ".kube"
 )
 
-// Set up the rules and priorities for loading config files.
+var OldRecommendedHomeFile = path.Join(os.Getenv("HOME"), ".kube/.config")
+var RecommendedHomeFile = path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFileName)
+
+// NewOpenShiftClientConfigLoadingRules returns file priority loading rules for OpenShift.
+// 1. --config value
+// 2. if KUBECONFIG env var has a value, use it. Otherwise, ~/.kube/config file
 func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules {
-	return &clientcmd.ClientConfigLoadingRules{Precedence: FullClientConfigFilePriority()}
-}
+	chain := []string{}
+	migrationRules := map[string]string{}
 
-// File priority loading rules for OpenShift.
-// 1. OPENSHIFTCONFIG env var
-// 2. .openshiftconfig file in current directory
-// 3. ~/.config/openshift/.config file
-func OpenShiftClientConfigFilePriority() []string {
-	return []string{
-		os.Getenv(OpenShiftConfigPathEnvVar),
-		OpenShiftConfigFileName,
-		path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFileName),
+	envVarFile := os.Getenv(OpenShiftConfigPathEnvVar)
+	if len(envVarFile) != 0 {
+		chain = append(chain, filepath.SplitList(envVarFile)...)
+	} else {
+		chain = append(chain, RecommendedHomeFile)
+		migrationRules[RecommendedHomeFile] = OldRecommendedHomeFile
+	}
+
+	return &clientcmd.ClientConfigLoadingRules{
+		Precedence:     chain,
+		MigrationRules: migrationRules,
 	}
 }
 
-// File priority loading rules for Kube.
-// 1. KUBECONFIG env var
-// 2. .kubeconfig file in current directory
-// 3. ~/.kube/.kubeconfig file
-func KubeClientConfigFilePriority() []string {
-	return []string{
-		os.Getenv(KubeConfigPathEnvVar),
-		KubeConfigFileName,
-		path.Join(os.Getenv("HOME"), KubeConfigHomeDir, KubeConfigFileName),
-	}
-}
+func NewPathOptions(cmd *cobra.Command) *kubecmdconfig.PathOptions {
+	return &kubecmdconfig.PathOptions{
+		GlobalFile: RecommendedHomeFile,
 
-func FullClientConfigFilePriority() []string {
-	return append(OpenShiftClientConfigFilePriority(), KubeClientConfigFilePriority()...)
+		EnvVar:           OpenShiftConfigPathEnvVar,
+		ExplicitFileFlag: OpenShiftConfigFlagName,
+
+		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
+			ExplicitPath: cmdutil.GetFlagString(cmd, OpenShiftConfigFlagName),
+		},
+	}
 }

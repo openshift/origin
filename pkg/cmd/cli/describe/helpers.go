@@ -7,12 +7,14 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/docker/docker/pkg/units"
 
-	"github.com/openshift/origin/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util/sets"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -20,8 +22,7 @@ const emptyString = "<none>"
 
 func tabbedString(f func(*tabwriter.Writer) error) (string, error) {
 	out := new(tabwriter.Writer)
-	b := make([]byte, 1024)
-	buf := bytes.NewBuffer(b)
+	buf := &bytes.Buffer{}
 	out.Init(buf, 0, 8, 1, '\t', 0)
 
 	err := f(out)
@@ -35,7 +36,7 @@ func tabbedString(f func(*tabwriter.Writer) error) (string, error) {
 }
 
 func toString(v interface{}) string {
-	value := fmt.Sprintf("%s", v)
+	value := fmt.Sprintf("%v", v)
 	if len(value) == 0 {
 		value = emptyString
 	}
@@ -54,8 +55,19 @@ func convertEnv(env []api.EnvVar) map[string]string {
 	return result
 }
 
+func formatEnv(env api.EnvVar) string {
+	if env.ValueFrom != nil && env.ValueFrom.FieldRef != nil {
+		return fmt.Sprintf("%s=<%s>", env.Name, env.ValueFrom.FieldRef.FieldPath)
+	}
+	return fmt.Sprintf("%s=%s", env.Name, env.Value)
+}
+
 func formatString(out *tabwriter.Writer, label string, v interface{}) {
 	fmt.Fprintf(out, fmt.Sprintf("%s:\t%s\n", label, toString(v)))
+}
+
+func formatTime(out *tabwriter.Writer, label string, t time.Time) {
+	fmt.Fprintf(out, fmt.Sprintf("%s:\t%s ago\n", label, formatRelativeTime(t)))
 }
 
 func formatLabels(labelMap map[string]string) string {
@@ -80,60 +92,81 @@ func formatAnnotations(out *tabwriter.Writer, m api.ObjectMeta, prefix string) {
 	if len(values[0]) > 0 {
 		formatString(out, prefix+"Description", values[0])
 	}
-	if len(annotations) > 0 {
-		formatString(out, prefix+"Annotations", formatLabels(annotations))
+	keys := sets.NewString()
+	for k := range annotations {
+		keys.Insert(k)
 	}
+	for i, key := range keys.List() {
+		if i == 0 {
+			formatString(out, prefix+"Annotations", fmt.Sprintf("%s=%s", key, annotations[key]))
+		} else {
+			fmt.Fprintf(out, "%s\t%s=%s\n", prefix, key, annotations[key])
+		}
+	}
+}
+
+var timeNowFn = func() time.Time {
+	return time.Now()
+}
+
+func formatRelativeTime(t time.Time) string {
+	return units.HumanDuration(timeNowFn().Sub(t))
+}
+
+// FormatRelativeTime converts a time field into a human readable age string (hours, minutes, days).
+func FormatRelativeTime(t time.Time) string {
+	return formatRelativeTime(t)
 }
 
 func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 	formatString(out, "Name", m.Name)
 	if !m.CreationTimestamp.IsZero() {
-		formatString(out, "Created", m.CreationTimestamp)
+		formatTime(out, "Created", m.CreationTimestamp.Time)
 	}
 	formatString(out, "Labels", formatLabels(m.Labels))
 	formatAnnotations(out, m, "")
 }
 
 // webhookURL assembles map with of webhook type as key and webhook url and value
-func webhookURL(c *buildapi.BuildConfig, configHost string) map[string]string {
+func webhookURL(c *buildapi.BuildConfig, cli client.BuildConfigsNamespacer) map[string]string {
 	result := map[string]string{}
-	for i, trigger := range c.Triggers {
+	for _, trigger := range c.Spec.Triggers {
 		whTrigger := ""
 		switch trigger.Type {
-		case "github":
-			whTrigger = trigger.GithubWebHook.Secret
-		case "generic":
+		case buildapi.GitHubWebHookBuildTriggerType:
+			whTrigger = trigger.GitHubWebHook.Secret
+		case buildapi.GenericWebHookBuildTriggerType:
 			whTrigger = trigger.GenericWebHook.Secret
 		}
 		if len(whTrigger) == 0 {
 			continue
 		}
-		apiVersion := latest.Version
-		host := "localhost"
-		if len(configHost) > 0 {
-			host = configHost
+		out := ""
+		url, err := cli.BuildConfigs(c.Namespace).WebHookURL(c.Name, &trigger)
+		if err != nil {
+			out = fmt.Sprintf("<error: %s>", err.Error())
+		} else {
+			out = url.String()
 		}
-		url := fmt.Sprintf("%s/osapi/%s/buildConfigHooks/%s/%s/%s",
-			host,
-			apiVersion,
-			c.Name,
-			whTrigger,
-			c.Triggers[i].Type,
-		)
-		result[string(trigger.Type)] = url
+		result[string(trigger.Type)] = out
 	}
 	return result
 }
 
 func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) {
-	if len(stream.Status.Tags) == 0 {
+	if len(stream.Status.Tags) == 0 && len(stream.Spec.Tags) == 0 {
 		fmt.Fprintf(out, "Tags:\t<none>\n")
 		return
 	}
-	fmt.Fprint(out, "Tags:\n  Tag\tSpec\tCreated\tPullSpec\tImage\n")
+	fmt.Fprint(out, "\nTag\tSpec\tCreated\tPullSpec\tImage\n")
 	sortedTags := []string{}
 	for k := range stream.Status.Tags {
 		sortedTags = append(sortedTags, k)
+	}
+	for k := range stream.Spec.Tags {
+		if _, ok := stream.Status.Tags[k]; !ok {
+			sortedTags = append(sortedTags, k)
+		}
 	}
 	sort.Strings(sortedTags)
 	for _, tag := range sortedTags {
@@ -141,34 +174,50 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 		specTag := ""
 		if ok {
 			if tagRef.From != nil {
-				specTag = fmt.Sprintf("%s/%s", tagRef.From.Namespace, tagRef.From.Name)
-			} else if len(tagRef.DockerImageReference) != 0 {
-				specTag = tagRef.DockerImageReference
+				namePair := ""
+				if len(tagRef.From.Namespace) > 0 && tagRef.From.Namespace != stream.Namespace {
+					namePair = fmt.Sprintf("%s/%s", tagRef.From.Namespace, tagRef.From.Name)
+				} else {
+					namePair = tagRef.From.Name
+				}
+
+				switch tagRef.From.Kind {
+				case "ImageStreamTag", "ImageStreamImage":
+					specTag = namePair
+				case "DockerImage":
+					specTag = tagRef.From.Name
+				default:
+					specTag = fmt.Sprintf("<unknown %s> %s", tagRef.From.Kind, namePair)
+				}
 			}
 		} else {
 			specTag = "<pushed>"
 		}
-		for _, event := range stream.Status.Tags[tag].Items {
-			d := time.Now().Sub(event.Created.Time)
-			image := event.Image
-			ref, err := imageapi.ParseDockerImageReference(event.DockerImageReference)
-			if err == nil {
-				if ref.ID == image {
-					image = ""
+		if taglist, ok := stream.Status.Tags[tag]; ok {
+			for _, event := range taglist.Items {
+				d := timeNowFn().Sub(event.Created.Time)
+				image := event.Image
+				ref, err := imageapi.ParseDockerImageReference(event.DockerImageReference)
+				if err == nil {
+					if ref.ID == image {
+						image = ""
+					}
+				}
+				fmt.Fprintf(out, "%s\t%s\t%s ago\t%s\t%v\n",
+					tag,
+					specTag,
+					units.HumanDuration(d),
+					event.DockerImageReference,
+					image)
+				if tag != "" {
+					tag = ""
+				}
+				if specTag != "" {
+					specTag = ""
 				}
 			}
-			fmt.Fprintf(out, "  %s \t%s \t%s ago \t%s \t%v\n",
-				tag,
-				specTag,
-				units.HumanDuration(d),
-				event.DockerImageReference,
-				image)
-			if tag != "" {
-				tag = ""
-			}
-			if specTag != "" {
-				specTag = ""
-			}
+		} else {
+			fmt.Fprintf(out, "%s\t%s\t\t<not available>\t<not available>\n", tag, specTag)
 		}
 	}
 }

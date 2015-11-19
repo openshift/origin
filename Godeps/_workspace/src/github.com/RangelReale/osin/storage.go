@@ -10,7 +10,7 @@ type Storage interface {
 	// Can return itself if not a problem.
 	Clone() Storage
 
-	// Close the resources the Storate potentially holds (using Clone for example)
+	// Close the resources the Storage potentially holds (using Clone for example)
 	Close()
 
 	// GetClient loads the client by id (client_id)

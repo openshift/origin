@@ -50,6 +50,20 @@ func TestCapturePanic(t *testing.T) {
 	}
 }
 
+func TestCapturePanicWithEncoded(t *testing.T) {
+	tearDown()
+	Add(newPanicingService())
+	DefaultContainer.EnableContentEncoding(true)
+	httpRequest, _ := http.NewRequest("GET", "http://here.com/fire", nil)
+	httpRequest.Header.Set("Accept", "*/*")
+	httpRequest.Header.Set("Accept-Encoding", "gzip")
+	httpWriter := httptest.NewRecorder()
+	DefaultContainer.dispatch(httpWriter, httpRequest)
+	if 500 != httpWriter.Code {
+		t.Error("500 expected on fire, got", httpWriter.Code)
+	}
+}
+
 func TestNotFound(t *testing.T) {
 	tearDown()
 	httpRequest, _ := http.NewRequest("GET", "http://here.com/missing", nil)
@@ -108,6 +122,20 @@ func TestContentType415_POST_Issue170(t *testing.T) {
 	}
 }
 
+// go test -v -test.run TestContentType406PlainJson ...restful
+func TestContentType406PlainJson(t *testing.T) {
+	tearDown()
+	TraceLogger(testLogger{t})
+	Add(newGetPlainTextOrJsonService())
+	httpRequest, _ := http.NewRequest("GET", "http://here.com/get", nil)
+	httpRequest.Header.Set("Accept", "text/plain")
+	httpWriter := httptest.NewRecorder()
+	DefaultContainer.dispatch(httpWriter, httpRequest)
+	if got, want := httpWriter.Code, 200; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 // go test -v -test.run TestContentTypeOctet_Issue170 ...restful
 func TestContentTypeOctet_Issue170(t *testing.T) {
 	tearDown()
@@ -151,6 +179,13 @@ func newPostOnlyJsonOnlyService() *WebService {
 func newGetOnlyJsonOnlyService() *WebService {
 	ws := new(WebService).Path("")
 	ws.Consumes("application/json")
+	ws.Route(ws.GET("/get").To(doNothing))
+	return ws
+}
+
+func newGetPlainTextOrJsonService() *WebService {
+	ws := new(WebService).Path("")
+	ws.Produces("text/plain", "application/json")
 	ws.Route(ws.GET("/get").To(doNothing))
 	return ws
 }

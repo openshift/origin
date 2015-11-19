@@ -1,4 +1,5 @@
 'use strict';
+/* jshint unused: false */
 
 describe('Controller: ProjectsController', function () {
 
@@ -27,7 +28,7 @@ describe('Controller: ProjectsController', function () {
 
   // Make sure a base location exists in the generated test html
   if (!$('head base').length) {
-    $('head').append($('<base href="/">'))
+    $('head').append($('<base href="/">'));
   }
 
   angular.module('openshiftConsole').config(function(AuthServiceProvider) {
@@ -42,7 +43,7 @@ describe('Controller: ProjectsController', function () {
     timeout;
 
   // Initialize the controller and a mock scope
-  beforeEach(inject(function ($controller, $timeout, $rootScope, MemoryUserStore) {
+  beforeEach(inject(function ($controller, $timeout, $rootScope, $q, MemoryUserStore) {
     // Set up a stub user
     MemoryUserStore.setToken("myToken");
     MemoryUserStore.setUser({metadata: {name: "My User"}});
@@ -52,10 +53,16 @@ describe('Controller: ProjectsController', function () {
 
     ProjectsController = $controller('ProjectsController', {
       $scope: scope,
+      $route: {},
       DataService: {
         list: function(type, context, callback, opts) {
           // TODO return mocked project data
-          callback({by: function(){return {}}});
+          callback({by: function(){return {};}});
+        },
+        get: function(type, name, context, opts) {
+          var deferred = $q.defer();
+          deferred.resolve({});
+          return deferred.promise;
         }
       }
     });

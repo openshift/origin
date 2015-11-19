@@ -7,5 +7,9 @@ import (
 )
 
 func TestGoogle(t *testing.T) {
-	_ = external.Provider(NewProvider("google", "clientid", "clientsecret"))
+	p, err := NewProvider("google", "clientid", "clientsecret", "")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	_ = external.Provider(p)
 }

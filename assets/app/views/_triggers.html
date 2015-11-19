@@ -1,11 +1,46 @@
-<div ng-repeat="trigger in triggers">
-  <div ng-repeat="build in trigger.builds" style="border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-top: 10px;" ng-if="(build.status != 'Complete' && build.status != 'Failed') || (build.metadata.creationTimestamp | ageLessThan : 5 : 'minutes')" class="animate-repeat">
-    <span ng-switch="build.status" class="hide-ng-leave">
-      <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true" style="margin-right: 5px;"></span>
-      <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true" style="margin-right: 5px;"></span>
-      <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true" style="margin-right: 5px;"></span>
-    </span>
-    <span>A build of {{build.metadata.labels.buildconfig}} is {{build.status | lowercase}}.</span>
-    <span ng-if="build.status != 'Complete' && build.status != 'Failed' && trigger.imageChangeParams.automatic">  A new deployment will be created automatically once the build completes.</span>
+<div class="builds-block">
+  <div class="builds" ng-repeat="trigger in triggers">
+    <div ng-if="trigger.type === 'ImageChange'">
+      <div ng-repeat="build in buildsByOutputImage[(trigger.imageChangeParams.from | imageObjectRef : namespace)] | orderObjectsByDate track by (build | uid)"
+          ng-if="!isBuildHidden(build)"
+          class="build animate-repeat osc-object"
+          kind="Build"
+          resource="build">
+        <!-- Icon -->
+        <status-icon status="build.status.phase" style="margin-right: 5px;"></status-icon>
+        <!-- Message -->
+        Build
+        <span ng-if="build | annotation : 'buildNumber'">
+          <a ng-href="{{build | navigateResourceURL}}">
+            <span ng-if="build.metadata.labels.buildconfig">{{build.metadata.labels.buildconfig}}</span>
+            #{{build | annotation : 'buildNumber'}}
+          </a>
+        </span>
+        <span ng-if="!(build | annotation : 'buildNumber')">
+          {{build.metadata.name}}
+        </span>
+        <span ng-switch="build.status.phase" class="hide-ng-leave" style="margin-right: 5px;">
+          <span ng-switch-when="Complete">completed.</span>
+          <span ng-switch-when="Failed">failed.</span>
+          <span ng-switch-when="Error">encountered an error.</span>
+          <span ng-switch-when="Cancelled">was cancelled.</span>
+          <span ng-switch-default>is {{build.status.phase | lowercase}}.
+            <span ng-if="trigger.imageChangeParams.automatic">
+              A new deployment will be created automatically once the build completes.
+            </span>
+          </span>
+        </span>
+        <a
+          ng-if="!!['New', 'Pending'].indexOf(build.status.phase)"
+          ng-href="project/{{build.metadata.namespace}}/browse/builds/{{build.metadata.labels.buildconfig}}/{{build.metadata.name}}?tab=logs">
+          View Log
+        </a>
+        <span class="action-divider" ng-show="!!['New', 'Pending'].indexOf(build.status.phase) && !(build | isIncompleteBuild)">|</span>
+        <a ng-hide="build | isIncompleteBuild" href="" ng-click="hideBuild(build)">Dismiss</a>
+      </div>
+    </div>
   </div>
 </div>
+
+
+

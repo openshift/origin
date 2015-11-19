@@ -1,18 +1,16 @@
-/*
-Copyright 2013 CoreOS Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright 2015 CoreOS, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package store
 
@@ -26,7 +24,8 @@ import (
 	"time"
 
 	etcdErr "github.com/coreos/etcd/error"
-	ustrings "github.com/coreos/etcd/pkg/strings"
+	"github.com/coreos/etcd/pkg/types"
+	"github.com/jonboulle/clockwork"
 )
 
 // The default version to set when the store is first initialized.
@@ -40,7 +39,6 @@ func init() {
 
 type Store interface {
 	Version() int
-	CommandFactory() CommandFactory
 	Index() uint64
 
 	Get(nodePath string, recursive, sorted bool) (*Event, error)
@@ -50,15 +48,17 @@ type Store interface {
 		expireTime time.Time) (*Event, error)
 	CompareAndSwap(nodePath string, prevValue string, prevIndex uint64,
 		value string, expireTime time.Time) (*Event, error)
-	Delete(nodePath string, recursive, dir bool) (*Event, error)
+	Delete(nodePath string, dir, recursive bool) (*Event, error)
 	CompareAndDelete(nodePath string, prevValue string, prevIndex uint64) (*Event, error)
 
-	Watch(prefix string, recursive, stream bool, sinceIndex uint64) (*Watcher, error)
+	Watch(prefix string, recursive, stream bool, sinceIndex uint64) (Watcher, error)
 
 	Save() ([]byte, error)
 	Recovery(state []byte) error
 
-	TotalTransactions() uint64
+	Clone() Store
+	SaveNoCopy() ([]byte, error)
+
 	JsonStats() []byte
 	DeleteExpiredKeys(cutoff time.Time)
 }
@@ -71,19 +71,28 @@ type store struct {
 	CurrentVersion int
 	ttlKeyHeap     *ttlKeyHeap  // need to recovery manually
 	worldLock      sync.RWMutex // stop the world lock
+	clock          clockwork.Clock
+	readonlySet    types.Set
 }
 
-func New() Store {
-	return newStore()
+// The given namespaces will be created as initial directories in the returned store.
+func New(namespaces ...string) Store {
+	s := newStore(namespaces...)
+	s.clock = clockwork.NewRealClock()
+	return s
 }
 
-func newStore() *store {
+func newStore(namespaces ...string) *store {
 	s := new(store)
 	s.CurrentVersion = defaultVersion
-	s.Root = newDir(s, "/", s.CurrentIndex, nil, "", Permanent)
+	s.Root = newDir(s, "/", s.CurrentIndex, nil, Permanent)
+	for _, namespace := range namespaces {
+		s.Root.Add(newDir(s, namespace, s.CurrentIndex, s.Root, Permanent))
+	}
 	s.Stats = newStats()
 	s.WatcherHub = newWatchHub(1000)
 	s.ttlKeyHeap = newTtlKeyHeap()
+	s.readonlySet = types.NewUnsafeSet(append(namespaces, "/")...)
 	return s
 }
 
@@ -94,12 +103,9 @@ func (s *store) Version() int {
 
 // Retrieves current of the store
 func (s *store) Index() uint64 {
+	s.worldLock.RLock()
+	defer s.worldLock.RUnlock()
 	return s.CurrentIndex
-}
-
-// CommandFactory retrieves the command factory for the current version of the store.
-func (s *store) CommandFactory() CommandFactory {
-	return GetCommandFactory(s.Version())
 }
 
 // Get returns a get event.
@@ -115,13 +121,24 @@ func (s *store) Get(nodePath string, recursive, sorted bool) (*Event, error) {
 
 	if err != nil {
 		s.Stats.Inc(GetFail)
+		if recursive {
+			reportReadFailure(GetRecursive)
+		} else {
+			reportReadFailure(Get)
+		}
 		return nil, err
 	}
 
 	e := newEvent(Get, nodePath, n.ModifiedIndex, n.CreatedIndex)
-	e.Node.loadInternalNode(n, recursive, sorted)
+	e.EtcdIndex = s.CurrentIndex
+	e.Node.loadInternalNode(n, recursive, sorted, s.clock)
 
 	s.Stats.Inc(GetSuccess)
+	if recursive {
+		reportReadSuccess(GetRecursive)
+	} else {
+		reportReadSuccess(Get)
+	}
 
 	return e, nil
 }
@@ -135,10 +152,13 @@ func (s *store) Create(nodePath string, dir bool, value string, unique bool, exp
 	e, err := s.internalCreate(nodePath, dir, value, unique, false, expireTime, Create)
 
 	if err == nil {
+		e.EtcdIndex = s.CurrentIndex
 		s.WatcherHub.notify(e)
 		s.Stats.Inc(CreateSuccess)
+		reportWriteSuccess(Create)
 	} else {
 		s.Stats.Inc(CreateFail)
+		reportWriteFailure(Create)
 	}
 
 	return e, err
@@ -154,8 +174,10 @@ func (s *store) Set(nodePath string, dir bool, value string, expireTime time.Tim
 	defer func() {
 		if err == nil {
 			s.Stats.Inc(SetSuccess)
+			reportWriteSuccess(Set)
 		} else {
 			s.Stats.Inc(SetFail)
+			reportWriteFailure(Set)
 		}
 	}()
 
@@ -171,11 +193,12 @@ func (s *store) Set(nodePath string, dir bool, value string, expireTime time.Tim
 	if err != nil {
 		return nil, err
 	}
+	e.EtcdIndex = s.CurrentIndex
 
 	// Put prevNode into event
 	if getErr == nil {
 		prev := newEvent(Get, nodePath, n.ModifiedIndex, n.CreatedIndex)
-		prev.Node.loadInternalNode(n, false, false)
+		prev.Node.loadInternalNode(n, false, false, s.clock)
 		e.PrevNode = prev.Node
 	}
 
@@ -204,7 +227,7 @@ func (s *store) CompareAndSwap(nodePath string, prevValue string, prevIndex uint
 
 	nodePath = path.Clean(path.Join("/", nodePath))
 	// we do not allow the user to change "/"
-	if nodePath == "/" {
+	if s.readonlySet.Contains(nodePath) {
 		return nil, etcdErr.NewError(etcdErr.EcodeRootROnly, "/", s.CurrentIndex)
 	}
 
@@ -212,11 +235,13 @@ func (s *store) CompareAndSwap(nodePath string, prevValue string, prevIndex uint
 
 	if err != nil {
 		s.Stats.Inc(CompareAndSwapFail)
+		reportWriteFailure(CompareAndSwap)
 		return nil, err
 	}
 
 	if n.IsDir() { // can only compare and swap file
 		s.Stats.Inc(CompareAndSwapFail)
+		reportWriteFailure(CompareAndSwap)
 		return nil, etcdErr.NewError(etcdErr.EcodeNotFile, nodePath, s.CurrentIndex)
 	}
 
@@ -225,6 +250,7 @@ func (s *store) CompareAndSwap(nodePath string, prevValue string, prevIndex uint
 	if ok, which := n.Compare(prevValue, prevIndex); !ok {
 		cause := getCompareFailCause(n, which, prevValue, prevIndex)
 		s.Stats.Inc(CompareAndSwapFail)
+		reportWriteFailure(CompareAndSwap)
 		return nil, etcdErr.NewError(etcdErr.EcodeTestFailed, cause, s.CurrentIndex)
 	}
 
@@ -232,7 +258,8 @@ func (s *store) CompareAndSwap(nodePath string, prevValue string, prevIndex uint
 	s.CurrentIndex++
 
 	e := newEvent(CompareAndSwap, nodePath, s.CurrentIndex, n.CreatedIndex)
-	e.PrevNode = n.Repr(false, false)
+	e.EtcdIndex = s.CurrentIndex
+	e.PrevNode = n.Repr(false, false, s.clock)
 	eNode := e.Node
 
 	// if test succeed, write the value
@@ -240,12 +267,14 @@ func (s *store) CompareAndSwap(nodePath string, prevValue string, prevIndex uint
 	n.UpdateTTL(expireTime)
 
 	// copy the value for safety
-	valueCopy := ustrings.Clone(value)
+	valueCopy := value
 	eNode.Value = &valueCopy
-	eNode.Expiration, eNode.TTL = n.ExpirationAndTTL()
+	eNode.Expiration, eNode.TTL = n.expirationAndTTL(s.clock)
 
 	s.WatcherHub.notify(e)
 	s.Stats.Inc(CompareAndSwapSuccess)
+	reportWriteSuccess(CompareAndSwap)
+
 	return e, nil
 }
 
@@ -257,7 +286,7 @@ func (s *store) Delete(nodePath string, dir, recursive bool) (*Event, error) {
 
 	nodePath = path.Clean(path.Join("/", nodePath))
 	// we do not allow the user to change "/"
-	if nodePath == "/" {
+	if s.readonlySet.Contains(nodePath) {
 		return nil, etcdErr.NewError(etcdErr.EcodeRootROnly, "/", s.CurrentIndex)
 	}
 
@@ -270,12 +299,14 @@ func (s *store) Delete(nodePath string, dir, recursive bool) (*Event, error) {
 
 	if err != nil { // if the node does not exist, return error
 		s.Stats.Inc(DeleteFail)
+		reportWriteFailure(Delete)
 		return nil, err
 	}
 
 	nextIndex := s.CurrentIndex + 1
 	e := newEvent(Delete, nodePath, nextIndex, n.CreatedIndex)
-	e.PrevNode = n.Repr(false, false)
+	e.EtcdIndex = nextIndex
+	e.PrevNode = n.Repr(false, false, s.clock)
 	eNode := e.Node
 
 	if n.IsDir() {
@@ -291,6 +322,7 @@ func (s *store) Delete(nodePath string, dir, recursive bool) (*Event, error) {
 
 	if err != nil {
 		s.Stats.Inc(DeleteFail)
+		reportWriteFailure(Delete)
 		return nil, err
 	}
 
@@ -300,6 +332,7 @@ func (s *store) Delete(nodePath string, dir, recursive bool) (*Event, error) {
 	s.WatcherHub.notify(e)
 
 	s.Stats.Inc(DeleteSuccess)
+	reportWriteSuccess(Delete)
 
 	return e, nil
 }
@@ -314,11 +347,13 @@ func (s *store) CompareAndDelete(nodePath string, prevValue string, prevIndex ui
 
 	if err != nil { // if the node does not exist, return error
 		s.Stats.Inc(CompareAndDeleteFail)
+		reportWriteFailure(CompareAndDelete)
 		return nil, err
 	}
 
 	if n.IsDir() { // can only compare and delete file
 		s.Stats.Inc(CompareAndSwapFail)
+		reportWriteFailure(CompareAndDelete)
 		return nil, etcdErr.NewError(etcdErr.EcodeNotFile, nodePath, s.CurrentIndex)
 	}
 
@@ -327,6 +362,7 @@ func (s *store) CompareAndDelete(nodePath string, prevValue string, prevIndex ui
 	if ok, which := n.Compare(prevValue, prevIndex); !ok {
 		cause := getCompareFailCause(n, which, prevValue, prevIndex)
 		s.Stats.Inc(CompareAndDeleteFail)
+		reportWriteFailure(CompareAndDelete)
 		return nil, etcdErr.NewError(etcdErr.EcodeTestFailed, cause, s.CurrentIndex)
 	}
 
@@ -334,42 +370,37 @@ func (s *store) CompareAndDelete(nodePath string, prevValue string, prevIndex ui
 	s.CurrentIndex++
 
 	e := newEvent(CompareAndDelete, nodePath, s.CurrentIndex, n.CreatedIndex)
-	e.PrevNode = n.Repr(false, false)
+	e.EtcdIndex = s.CurrentIndex
+	e.PrevNode = n.Repr(false, false, s.clock)
 
 	callback := func(path string) { // notify function
 		// notify the watchers with deleted set true
 		s.WatcherHub.notifyWatchers(e, path, true)
 	}
 
-	// delete a key-value pair, no error should happen
-	n.Remove(false, false, callback)
+	err = n.Remove(false, false, callback)
+	if err != nil {
+		return nil, err
+	}
 
 	s.WatcherHub.notify(e)
 	s.Stats.Inc(CompareAndDeleteSuccess)
+	reportWriteSuccess(CompareAndDelete)
+
 	return e, nil
 }
 
-func (s *store) Watch(key string, recursive, stream bool, sinceIndex uint64) (*Watcher, error) {
+func (s *store) Watch(key string, recursive, stream bool, sinceIndex uint64) (Watcher, error) {
 	s.worldLock.RLock()
 	defer s.worldLock.RUnlock()
 
 	key = path.Clean(path.Join("/", key))
-	nextIndex := s.CurrentIndex + 1
-
-	var w *Watcher
-	var err *etcdErr.Error
-
 	if sinceIndex == 0 {
-		w, err = s.WatcherHub.watch(key, recursive, stream, nextIndex)
-
-	} else {
-		w, err = s.WatcherHub.watch(key, recursive, stream, sinceIndex)
+		sinceIndex = s.CurrentIndex + 1
 	}
-
+	// WatchHub does not know about the current index, so we need to pass it in
+	w, err := s.WatcherHub.watch(key, recursive, stream, sinceIndex, s.CurrentIndex)
 	if err != nil {
-		// watchhub do not know the current Index
-		// we need to attach the currentIndex here
-		err.Index = s.CurrentIndex
 		return nil, err
 	}
 
@@ -407,7 +438,7 @@ func (s *store) Update(nodePath string, newValue string, expireTime time.Time) (
 
 	nodePath = path.Clean(path.Join("/", nodePath))
 	// we do not allow the user to change "/"
-	if nodePath == "/" {
+	if s.readonlySet.Contains(nodePath) {
 		return nil, etcdErr.NewError(etcdErr.EcodeRootROnly, "/", s.CurrentIndex)
 	}
 
@@ -417,16 +448,19 @@ func (s *store) Update(nodePath string, newValue string, expireTime time.Time) (
 
 	if err != nil { // if the node does not exist, return error
 		s.Stats.Inc(UpdateFail)
+		reportWriteFailure(Update)
 		return nil, err
 	}
 
 	e := newEvent(Update, nodePath, nextIndex, n.CreatedIndex)
-	e.PrevNode = n.Repr(false, false)
+	e.EtcdIndex = nextIndex
+	e.PrevNode = n.Repr(false, false, s.clock)
 	eNode := e.Node
 
 	if n.IsDir() && len(newValue) != 0 {
 		// if the node is a directory, we cannot update value to non-empty
 		s.Stats.Inc(UpdateFail)
+		reportWriteFailure(Update)
 		return nil, etcdErr.NewError(etcdErr.EcodeNotFile, nodePath, currIndex)
 	}
 
@@ -436,18 +470,19 @@ func (s *store) Update(nodePath string, newValue string, expireTime time.Time) (
 		eNode.Dir = true
 	} else {
 		// copy the value for safety
-		newValueCopy := ustrings.Clone(newValue)
+		newValueCopy := newValue
 		eNode.Value = &newValueCopy
 	}
 
 	// update ttl
 	n.UpdateTTL(expireTime)
 
-	eNode.Expiration, eNode.TTL = n.ExpirationAndTTL()
+	eNode.Expiration, eNode.TTL = n.expirationAndTTL(s.clock)
 
 	s.WatcherHub.notify(e)
 
 	s.Stats.Inc(UpdateSuccess)
+	reportWriteSuccess(Update)
 
 	s.CurrentIndex = nextIndex
 
@@ -466,12 +501,12 @@ func (s *store) internalCreate(nodePath string, dir bool, value string, unique, 
 	nodePath = path.Clean(path.Join("/", nodePath))
 
 	// we do not allow the user to change "/"
-	if nodePath == "/" {
+	if s.readonlySet.Contains(nodePath) {
 		return nil, etcdErr.NewError(etcdErr.EcodeRootROnly, "/", currIndex)
 	}
 
-	// Assume expire times that are way in the past are not valid.
-	// This can occur when the time is serialized to JSON and read back in.
+	// Assume expire times that are way in the past are
+	// This can occur when the time is serialized to JS
 	if expireTime.Before(minExpireTime) {
 		expireTime = Permanent
 	}
@@ -483,6 +518,7 @@ func (s *store) internalCreate(nodePath string, dir bool, value string, unique, 
 
 	if err != nil {
 		s.Stats.Inc(SetFail)
+		reportWriteFailure(action)
 		err.Index = currIndex
 		return nil, err
 	}
@@ -498,7 +534,7 @@ func (s *store) internalCreate(nodePath string, dir bool, value string, unique, 
 			if n.IsDir() {
 				return nil, etcdErr.NewError(etcdErr.EcodeNotFile, nodePath, currIndex)
 			}
-			e.PrevNode = n.Repr(false, false)
+			e.PrevNode = n.Repr(false, false, s.clock)
 
 			n.Remove(false, false, nil)
 		} else {
@@ -508,15 +544,15 @@ func (s *store) internalCreate(nodePath string, dir bool, value string, unique, 
 
 	if !dir { // create file
 		// copy the value for safety
-		valueCopy := ustrings.Clone(value)
+		valueCopy := value
 		eNode.Value = &valueCopy
 
-		n = newKV(s, nodePath, value, nextIndex, d, "", expireTime)
+		n = newKV(s, nodePath, value, nextIndex, d, expireTime)
 
 	} else { // create directory
 		eNode.Dir = true
 
-		n = newDir(s, nodePath, nextIndex, d, "", expireTime)
+		n = newDir(s, nodePath, nextIndex, d, expireTime)
 	}
 
 	// we are sure d is a directory and does not have the children with name n.Name
@@ -526,7 +562,7 @@ func (s *store) internalCreate(nodePath string, dir bool, value string, unique, 
 	if !n.IsPermanent() {
 		s.ttlKeyHeap.push(n)
 
-		eNode.Expiration, eNode.TTL = n.ExpirationAndTTL()
+		eNode.Expiration, eNode.TTL = n.expirationAndTTL(s.clock)
 	}
 
 	s.CurrentIndex = nextIndex
@@ -574,7 +610,8 @@ func (s *store) DeleteExpiredKeys(cutoff time.Time) {
 
 		s.CurrentIndex++
 		e := newEvent(Expire, node.Path, s.CurrentIndex, node.CreatedIndex)
-		e.PrevNode = node.Repr(false, false)
+		e.EtcdIndex = s.CurrentIndex
+		e.PrevNode = node.Repr(false, false, s.clock)
 
 		callback := func(path string) { // notify function
 			// notify the watchers with deleted set true
@@ -584,6 +621,7 @@ func (s *store) DeleteExpiredKeys(cutoff time.Time) {
 		s.ttlKeyHeap.pop()
 		node.Remove(true, true, callback)
 
+		reportExpiredKey()
 		s.Stats.Inc(ExpireCount)
 
 		s.WatcherHub.notify(e)
@@ -606,7 +644,7 @@ func (s *store) checkDir(parent *node, dirName string) (*node, *etcdErr.Error) {
 		return nil, etcdErr.NewError(etcdErr.EcodeNotDir, node.Path, s.CurrentIndex)
 	}
 
-	n := newDir(s, path.Join(parent.Path, dirName), s.CurrentIndex+1, parent, parent.ACL, Permanent)
+	n := newDir(s, path.Join(parent.Path, dirName), s.CurrentIndex+1, parent, Permanent)
 
 	parent.Children[dirName] = n
 
@@ -618,6 +656,24 @@ func (s *store) checkDir(parent *node, dirName string) (*node, *etcdErr.Error) {
 // It will not save the parent field of the node. Or there will
 // be cyclic dependencies issue for the json package.
 func (s *store) Save() ([]byte, error) {
+	b, err := json.Marshal(s.Clone())
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
+}
+
+func (s *store) SaveNoCopy() ([]byte, error) {
+	b, err := json.Marshal(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
+}
+
+func (s *store) Clone() Store {
 	s.worldLock.Lock()
 
 	clonedStore := newStore()
@@ -628,14 +684,7 @@ func (s *store) Save() ([]byte, error) {
 	clonedStore.CurrentVersion = s.CurrentVersion
 
 	s.worldLock.Unlock()
-
-	b, err := json.Marshal(clonedStore)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
+	return clonedStore
 }
 
 // Recovery recovers the store system from a static state
@@ -660,8 +709,4 @@ func (s *store) Recovery(state []byte) error {
 func (s *store) JsonStats() []byte {
 	s.Stats.Watchers = uint64(s.WatcherHub.count)
 	return s.Stats.toJson()
-}
-
-func (s *store) TotalTransactions() uint64 {
-	return s.Stats.TotalTranscations()
 }

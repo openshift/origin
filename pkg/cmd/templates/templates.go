@@ -7,7 +7,7 @@ func MainHelpTemplate() string {
 }
 
 func MainUsageTemplate() string {
-	return decorate(mainUsageTemplate, true)
+	return decorate(mainUsageTemplate, true) + "\n"
 }
 
 func OptionsHelpTemplate() string {
@@ -28,22 +28,28 @@ func decorate(template string, trim bool) string {
 const (
 	vars = `{{$isRootCmd := isRootCmd .}}` +
 		`{{$rootCmd := rootCmd .}}` +
+		`{{$visibleFlags := visibleFlags (flagsNotIntersected .LocalFlags .PersistentFlags)}}` +
 		`{{$explicitlyExposedFlags := exposed .}}` +
-		`{{$localNotPersistentFlags := flagsNotIntersected .LocalFlags .PersistentFlags}}`
+		`{{$optionsCmdFor := optionsCmdFor .}}`
 
 	mainHelpTemplate = `{{.Long | trim}}
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
-	mainUsageTemplate = vars + `{{ $cmd := . }}{{ if .HasSubCommands}}
-Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}
-{{end}}
-{{ if or $localNotPersistentFlags.HasFlags $explicitlyExposedFlags.HasFlags}}Options:
-{{ if $localNotPersistentFlags.HasFlags}}{{flagsUsages $localNotPersistentFlags}}{{end}}{{ if $explicitlyExposedFlags.HasFlags}}{{flagsUsages $explicitlyExposedFlags}}{{end}}
-{{end}}{{ if not $isRootCmd}}Use "{{$rootCmd}} --help" for a list of all commands available in {{$rootCmd}}.
-{{end}}{{ if .HasSubCommands }}Use "{{$rootCmd}} <command> --help" for more information about a given command.
-{{end}}{{ if and .HasInheritedFlags (not $isRootCmd)}}Use "{{$rootCmd}} options" for a list of global command-line options (applies to all commands).
-{{end}}`
+	mainUsageTemplate = vars + `{{if and .Runnable (ne .UseLine "") (ne .UseLine $rootCmd)}}
+Usage:
+  {{.UseLine}}{{if .HasFlags}} [options]{{end}}{{if .HasExample}}
+
+Examples:
+{{ .Example | trimRight}}
+{{end}}{{ if .HasAvailableSubCommands}}
+{{end}}{{end}}{{ if .HasAvailableSubCommands}}{{range cmdGroups . .Commands}}
+{{.Message}}{{range .Commands}}{{if .Runnable}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
+{{end}}{{end}}{{ if or $visibleFlags.HasFlags $explicitlyExposedFlags.HasFlags}}
+Options:
+{{ if $visibleFlags.HasFlags}}{{flagsUsages $visibleFlags}}{{end}}{{ if $explicitlyExposedFlags.HasFlags}}{{flagsUsages $explicitlyExposedFlags}}{{end}}{{end}}{{ if .HasSubCommands }}
+Use "{{$rootCmd}} help <command>" for more information about a given command.{{end}}{{ if $optionsCmdFor}}
+Use "{{$optionsCmdFor}}" for a list of global command-line options (applies to all commands).{{end}}`
 
 	optionsHelpTemplate = ``
 

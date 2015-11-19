@@ -1,0 +1,150 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: origin
+  spec:
+    dockerImageRepository: openshift/origin
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: etcd
+  spec:
+    dockerImageRepository: quay.io/coreos/etcd
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: master
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: master
+    template:
+      metadata:
+        labels:
+          deploymentconfig: master
+
+      spec:
+        volumes:
+        - name: master-config
+          secret:
+            secretName: master-config # has to be added to the service account
+
+        containers:
+        - name: api
+          image: openshift/origin
+          args: ["start", "master", "api", "--config=/var/run/openshift/master-config.yaml", "--master-ip=$(POD_IP)"]
+          env:
+          - name: POD_IP # requires master config to be set to use POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          volumeMounts:
+          - mountPath: /var/run/openshift
+            name: master-config
+
+        - name: controllers
+          image: openshift/origin
+          args: ["start", "master", "controllers", "--config=/var/run/openshift/master-config.yaml"] # uses loopback client
+          volumeMounts:
+          - mountPath: /var/run/openshift
+            name: master-config
+
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - origin
+        from:
+          kind: ImageStreamTag
+          name: origin:latest
+      type: ImageChange
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: etcd
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: etcd
+    template:
+      metadata:
+        labels:
+          deploymentconfig: etcd
+      spec:
+        volumes:
+        - name: etcd-dir
+          emptyDir: {}
+        containers:
+        - image: coreos/etcd
+          name: etcd
+          workingDir: /var/lib/etcd
+          args: [
+            "--listen-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001",
+            "--listen-peer-urls=http://0.0.0.0:2380,http://0.0.0.0:7001",
+            "--advertise-client-urls=http://$(POD_IP):2379,http://$(POD_IP):4001"
+            ]
+          env:
+          - name: POD_IP # requires master config to be set to use POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          volumeMounts:
+          - mountPath: /var/lib/etcd
+            name: etcd-dir
+          ports:
+          - containerPort: 2379
+          - containerPort: 2380
+          - containerPort: 4001
+          - containerPort: 7001
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - etcd
+        from:
+          kind: ImageStreamTag
+          name: etcd:v2.0.13
+      type: ImageChange
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: master
+  spec:
+    ports:
+    - name: api
+      port: 8443
+      targetPort: 8443
+    - name: dns
+      port: 53
+      targetPort: 53
+    selector:
+      deploymentconfig: master
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: etcd
+  spec:
+    ports:
+    - name: etcd-tcp-2379
+      port: 2379
+      targetPort: 2379
+    - name: etcd-tcp-2380
+      port: 2380
+      targetPort: 2380
+    - name: etcd-tcp-4001
+      port: 4001
+      targetPort: 4001
+    - name: etcd-tcp-7001
+      port: 7001
+      targetPort: 7001
+    selector:
+      deploymentconfig: etcd

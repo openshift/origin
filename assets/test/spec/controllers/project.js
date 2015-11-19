@@ -1,4 +1,5 @@
 'use strict';
+/* jshint unused: false */
 
 describe('Controller: ProjectController', function () {
 
@@ -27,7 +28,7 @@ describe('Controller: ProjectController', function () {
 
   // Make sure a base location exists in the generated test html
   if (!$('head base').length) {
-    $('head').append($('<base href="/">'))
+    $('head').append($('<base href="/">'));
   }
 
   angular.module('openshiftConsole').config(function(AuthServiceProvider) {

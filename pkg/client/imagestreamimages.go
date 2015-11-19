@@ -13,7 +13,7 @@ type ImageStreamImagesNamespacer interface {
 
 // ImageStreamImageInterface exposes methods on ImageStreamImage resources.
 type ImageStreamImageInterface interface {
-	Get(name, id string) (*api.Image, error)
+	Get(name, id string) (*api.ImageStreamImage, error)
 }
 
 // imageStreamImages implements ImageStreamImagesNamespacer interface
@@ -31,8 +31,8 @@ func newImageStreamImages(c *Client, namespace string) *imageStreamImages {
 }
 
 // Get finds the specified image by name of an image repository and id.
-func (c *imageStreamImages) Get(name, id string) (result *api.Image, err error) {
-	result = &api.Image{}
+func (c *imageStreamImages) Get(name, id string) (result *api.ImageStreamImage, err error) {
+	result = &api.ImageStreamImage{}
 	err = c.r.Get().Namespace(c.ns).Resource("imageStreamImages").Name(fmt.Sprintf("%s@%s", name, id)).Do().Into(result)
 	return
 }

@@ -19,6 +19,8 @@ const (
 	InstallErrorRequired
 	URLHandlerError
 	STIContainerError
+	SourcePathError
+	BuilderUserNotAllowedError
 )
 
 // Error represents an error thrown during STI execution
@@ -67,7 +69,7 @@ func NewPullImageError(name string, err error) error {
 		Message:    fmt.Sprintf("unable to get %s", name),
 		Details:    err,
 		ErrorCode:  PullImageError,
-		Suggestion: "check image name, or if using local image add --forcePull=false flag",
+		Suggestion: "check image name, or if using local image add --force-pull=false flag",
 	}
 }
 
@@ -122,7 +124,7 @@ func NewTarTimeoutError() error {
 		Message:    fmt.Sprintf("timeout waiting for tar stream"),
 		Details:    nil,
 		ErrorCode:  TarTimeoutError,
-		Suggestion: "check the sti-helper script if it accepts tar stream for assemble and sends for save-artifacts",
+		Suggestion: "check the Source-To-Image scripts if it accepts tar stream for assemble and sends for save-artifacts",
 	}
 }
 
@@ -155,18 +157,18 @@ func NewInstallError(script string) error {
 		Message:    fmt.Sprintf("failed to install %v", script),
 		Details:    nil,
 		ErrorCode:  InstallError,
-		Suggestion: "provide URL with STI scripts with -s flag or check the image if it contains STI_SCRIPTS_URL variable set",
+		Suggestion: "provide URL with Source-To-Image scripts with -s flag or check the image if it contains %q label set",
 	}
 }
 
 // NewInstallRequiredError returns a new error which indicates there was a problem
 // when downloading a required script
-func NewInstallRequiredError(scripts []string) error {
+func NewInstallRequiredError(scripts []string, label string) error {
 	return Error{
 		Message:    fmt.Sprintf("failed to install %v", scripts),
 		Details:    nil,
 		ErrorCode:  InstallErrorRequired,
-		Suggestion: "provide URL with STI scripts with -s flag or check the image if it contains STI_SCRIPTS_URL variable set",
+		Suggestion: "provide URL with Source-To-Image scripts with -s flag or check the image if it contains " + label + " label set",
 	}
 }
 
@@ -190,5 +192,33 @@ func NewContainerError(name string, code int, output string) error {
 		ErrorCode:  STIContainerError,
 		Suggestion: "check the container logs for more information on the failure",
 		ExitCode:   code,
+	}
+}
+
+// NewSourcePathError returns a new error which indicates there was a problem
+// when accessing the source code from the local filesystem
+func NewSourcePathError(path string) error {
+	return Error{
+		Message:    fmt.Sprintf("Local filesystem source path does not exist: %s", path),
+		Details:    nil,
+		ErrorCode:  SourcePathError,
+		Suggestion: "check the source code path on the local filesystem",
+	}
+}
+
+// NewBuilderUserNotAllowedError returns a new error that indicates that the build
+// could not run because the builder is not allowed to specify a user outside of the
+// range of allowed users
+func NewBuilderUserNotAllowedError(image string, onbuild bool) error {
+	var msg string
+	if onbuild {
+		msg = fmt.Sprintf("image %q includes at least one ONBUILD instruction that sets the user to a user that is not allowed", image)
+	} else {
+		msg = fmt.Sprintf("image %q must specify a user that is numeric and within the range of allowed users", image)
+	}
+	return Error{
+		Message:    msg,
+		ErrorCode:  BuilderUserNotAllowedError,
+		Suggestion: "modify builder image to use a numeric user within the allowed range or build without the --allowed-uids flag",
 	}
 }

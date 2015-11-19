@@ -13,6 +13,11 @@ type BasicAuth struct {
 	Password string
 }
 
+// Parse bearer authentication header
+type BearerAuth struct {
+	Code string
+}
+
 // Return authorization header data
 func CheckBasicAuth(r *http.Request) (*BasicAuth, error) {
 	if r.Header.Get("Authorization") == "" {
@@ -34,6 +39,24 @@ func CheckBasicAuth(r *http.Request) (*BasicAuth, error) {
 	}
 
 	return &BasicAuth{Username: pair[0], Password: pair[1]}, nil
+}
+
+// Return "Bearer" token from request. The header has precedence over query string.
+func CheckBearerAuth(r *http.Request) *BearerAuth {
+	authHeader := r.Header.Get("Authorization")
+	authForm := r.Form.Get("code")
+	if authHeader == "" && authForm == "" {
+		return nil
+	}
+	token := authForm
+	if authHeader != "" {
+		s := strings.SplitN(authHeader, " ", 2)
+		if (len(s) != 2 || s[0] != "Bearer") && token == "" {
+			return nil
+		}
+		token = s[1]
+	}
+	return &BearerAuth{Code: token}
 }
 
 // getClientAuth checks client basic authentication in params if allowed,

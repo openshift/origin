@@ -11,10 +11,6 @@ Using it, you can build your own OAuth2 authentication service.
 
 The library implements the majority of the specification, like authorization and token endpoints, and authorization code, implicit, resource owner and client credentials grant types.
 
-### Dependencies
-
-* go-uuid (http://code.google.com/p/go-uuid)
-
 ### Example Server
 
 ````go
@@ -27,7 +23,7 @@ server := osin.NewServer(osin.NewServerConfig(), &TestStorage{})
 http.HandleFunc("/authorize", func(w http.ResponseWriter, r *http.Request) {
 	resp := server.NewResponse()
 	defer resp.Close()
-	
+
 	if ar := server.HandleAuthorizeRequest(resp, r); ar != nil {
 
 		// HANDLE LOGIN PAGE HERE
@@ -42,7 +38,7 @@ http.HandleFunc("/authorize", func(w http.ResponseWriter, r *http.Request) {
 http.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
 	resp := server.NewResponse()
 	defer resp.Close()
-	
+
 	if ar := server.HandleAccessRequest(resp, r); ar != nil {
 		ar.Authorized = true
 		server.FinishAccessRequest(resp, r, ar)
@@ -79,7 +75,7 @@ rangelreale@gmail.com
 	  that need to clone / close in each connection (mgo)
 	- Client was changed to be an interface instead of an struct. Because of that,
 	  the Storage interface also had to change, as interface is already a pointer.
-	
+
 	- HOW TO FIX YOUR CODE:
 		+ In your Storage, add a Clone function returning itself, and a do nothing Close.
 		+ In your Storage, replace all *osin.Client with osin.Client (remove the pointer reference)
@@ -88,6 +84,6 @@ rangelreale@gmail.com
 		+ Change all accesses using osin.Client to use the methods instead of the fields directly.
 		+ You MUST defer Response.Close in all your http handlers, otherwise some
 		  Storages may not clean correctly.
-		
+
 				resp := server.NewResponse()
 				defer resp.Close()

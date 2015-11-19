@@ -1,7 +1,8 @@
 package test
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 )
@@ -13,23 +14,19 @@ type AuthorizeTokenRegistry struct {
 	DeletedAuthorizeTokenName string
 }
 
-func (r *AuthorizeTokenRegistry) ListAuthorizeTokens(labels labels.Selector) (*api.OAuthAuthorizeTokenList, error) {
+func (r *AuthorizeTokenRegistry) ListAuthorizeTokens(ctx kapi.Context, labels labels.Selector) (*api.OAuthAuthorizeTokenList, error) {
 	return r.AuthorizeTokens, r.Err
 }
 
-func (r *AuthorizeTokenRegistry) GetAuthorizeToken(name string) (*api.OAuthAuthorizeToken, error) {
+func (r *AuthorizeTokenRegistry) GetAuthorizeToken(ctx kapi.Context, name string) (*api.OAuthAuthorizeToken, error) {
 	return r.AuthorizeToken, r.Err
 }
 
-func (r *AuthorizeTokenRegistry) CreateAuthorizeToken(token *api.OAuthAuthorizeToken) error {
-	return r.Err
+func (r *AuthorizeTokenRegistry) CreateAuthorizeToken(ctx kapi.Context, token *api.OAuthAuthorizeToken) (*api.OAuthAuthorizeToken, error) {
+	return r.AuthorizeToken, r.Err
 }
 
-func (r *AuthorizeTokenRegistry) UpdateAuthorizeToken(token *api.OAuthAuthorizeToken) error {
-	return r.Err
-}
-
-func (r *AuthorizeTokenRegistry) DeleteAuthorizeToken(name string) error {
+func (r *AuthorizeTokenRegistry) DeleteAuthorizeToken(ctx kapi.Context, name string) error {
 	r.DeletedAuthorizeTokenName = name
 	return r.Err
 }

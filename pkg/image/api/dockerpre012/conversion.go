@@ -3,9 +3,9 @@ package dockerpre012
 import (
 	"github.com/fsouza/go-dockerclient"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/conversion"
 
 	newer "github.com/openshift/origin/pkg/image/api"
 )
@@ -23,7 +23,7 @@ func init() {
 			out.ID = in.ID
 			out.Parent = in.Parent
 			out.Comment = in.Comment
-			out.Created = util.NewTime(in.Created)
+			out.Created = unversioned.NewTime(in.Created)
 			out.Container = in.Container
 			out.DockerVersion = in.DockerVersion
 			out.Author = in.Author

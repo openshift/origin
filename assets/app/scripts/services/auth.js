@@ -1,3 +1,5 @@
+'use strict';
+
 angular.module('openshiftConsole')
 // In a config step, set the desired user store and login service. For example:
 //   AuthServiceProvider.setUserStore('LocalStorageUserStore')
@@ -7,8 +9,9 @@ angular.module('openshiftConsole')
 //   withUser()
 //     returns a promise that resolves when there is a current user
 //     starts a login if there is no current user
-//   setUser(user, token)
+//   setUser(user, token[, ttl])
 //     sets the current user and token to use for authenticated requests
+//     if ttl is specified, it indicates how many seconds the user and token are valid
 //     triggers onUserChanged callbacks if the new user is different than the current user
 //   requestRequiresAuth(config)
 //     returns true if the request is to a protected URL
@@ -61,10 +64,10 @@ angular.module('openshiftConsole')
     var _loginCallbacks = $.Callbacks();
     var _logoutCallbacks = $.Callbacks();
     var _userChangedCallbacks = $.Callbacks();
-  
+
     var _loginPromise = null;
     var _logoutPromise = null;
-  
+
     var userStore = loadService($injector, _userStore, "AuthServiceProvider.UserStore()");
     if (!userStore.available()) {
       Logger.error("AuthServiceProvider.$get user store " + _userStore + " not available");
@@ -73,6 +76,12 @@ angular.module('openshiftConsole')
     var logoutService = loadService($injector, _logoutService, "AuthServiceProvider.LogoutService()");
 
     return {
+
+      // Returns the configured user store
+      UserStore: function() {
+        return userStore;
+      },
+
       // Returns true if currently logged in.
       isLoggedIn: function() {
         return !!userStore.getUser();
@@ -90,27 +99,26 @@ angular.module('openshiftConsole')
           return this.startLogin();
         }
       },
-  
-      setUser: function(user, token) {
-        authLogger.log('AuthService.setUser()', user, token);
+
+      setUser: function(user, token, ttl) {
+        authLogger.log('AuthService.setUser()', user, token, ttl);
         var oldUser = userStore.getUser();
-        userStore.setUser(user);
-        userStore.setToken(token);
+        userStore.setUser(user, ttl);
+        userStore.setToken(token, ttl);
 
         $rootScope.user = user;
 
         var oldName = oldUser && oldUser.metadata && oldUser.metadata.name;
         var newName = user    && user.metadata    && user.metadata.name;
-        if (oldName != newName) {
+        if (oldName !== newName) {
           authLogger.log('AuthService.setUser(), user changed', oldUser, user);
           _userChangedCallbacks.fire(user);
         }
       },
-  
+
       requestRequiresAuth: function(config) {
-        // TODO: replace with real implementation
-        var requiresAuth = config.url.toString().indexOf("api/") > 0;
-        authLogger.log('AuthService.requestRequiresAuth()', config.url.toString());
+        var requiresAuth = !!config.auth;
+        authLogger.log('AuthService.requestRequiresAuth()', config.url.toString(), requiresAuth);
         return requiresAuth;
       },
       addAuthToRequest: function(config) {
@@ -127,9 +135,9 @@ angular.module('openshiftConsole')
           authLogger.log('AuthService.addAuthToRequest(), no token available');
           return false;
         }
-  
+
         // Handle web socket requests with a parameter
-        if (config.method == 'WATCH') {
+        if (config.method === 'WATCH') {
           config.url = URI(config.url).addQuery({access_token: token}).toString();
           authLogger.log('AuthService.addAuthToRequest(), added token param', config.url);
         } else {
@@ -138,7 +146,7 @@ angular.module('openshiftConsole')
         }
         return true;
       },
-    
+
       startLogin: function() {
         if (_loginPromise) {
           authLogger.log("Login already in progress");
@@ -146,7 +154,7 @@ angular.module('openshiftConsole')
         }
         var self = this;
         _loginPromise = loginService.login().then(function(result) {
-          self.setUser(result.user, result.token);
+          self.setUser(result.user, result.token, result.ttl);
           _loginCallbacks.fire(result.user);
         }).catch(function(err) {
           Logger.error(err);
@@ -182,7 +190,7 @@ angular.module('openshiftConsole')
         });
         return _logoutPromise;
       },
-  
+
       // TODO: add a way to unregister once we start doing in-page logins
       onLogin: function(callback) {
         _loginCallbacks.add(callback);
@@ -195,7 +203,7 @@ angular.module('openshiftConsole')
       onUserChanged: function(callback) {
         _userChangedCallbacks.add(callback);
       }
-    }
+    };
   };
 })
 // register the interceptor as a service
@@ -253,12 +261,6 @@ angular.module('openshiftConsole')
       // detect if this is an auth error (401) or other error we should trigger a login flow for
       var status = rejection.status;
       switch (status) {
-        case 0:
-      	  // TODO: this can be caused by many things, some of which probably shouldn't redirect to login:
-      	  // 1. A cert error. Redirecting will visibly prompt acceptance and make people stop asking why the web console isn't working
-      	  // 2. A CORS error. This would also prevent the initial user load from working, so we'll end up on an error page, not a login loop.
-      	  // 3. A timeout. Redirecting might be unecessary if we just retried or waited longer.
-      	  // 4. An unreachable API server. Redirecting might send them to a dead API server.
         case 401:
           // console.log('responseError', status);
           // 1. Set up a deferred and remember this config, so we can add auth info and retry once login is complete
@@ -273,4 +275,4 @@ angular.module('openshiftConsole')
       }
     }
   };
-}])
+}]);

@@ -42,10 +42,13 @@ func (m *SentryMonitor) capturePanic(capture interface{}) chan error {
 	return ch
 }
 
+// CapturePanic is used by the Sentry client to capture panics
 func (m *SentryMonitor) CapturePanic(capture interface{}) {
 	m.capturePanic(capture)
 }
 
+// CapturePanicAndWait waits until either the Sentry client captures a panic or
+// the provided time expires
 func (m *SentryMonitor) CapturePanicAndWait(capture interface{}, until time.Duration) {
 	select {
 	case <-m.capturePanic(capture):
@@ -53,6 +56,7 @@ func (m *SentryMonitor) CapturePanicAndWait(capture interface{}, until time.Dura
 	}
 }
 
+// CaptureError is used by the Sentry client to capture errors
 func (m *SentryMonitor) CaptureError(err error) {
 	m.client.CaptureError(err, m.tags)
 }

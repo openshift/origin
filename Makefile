@@ -44,24 +44,67 @@ all build:
 #   make check
 #   make check WHAT=pkg/build GOFLAGS=-v
 check:
-	hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
+	TEST_KUBE=1 hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
 .PHONY: check
 
-# Build and run unit and integration tests that don't require Docker.
+# Verify code is properly organized.
+#
+# Example:
+#   make verify
+ifeq ($(SKIP_BUILD), true)
+verify:
+else
+verify: build
+endif
+	hack/verify-gofmt.sh
+	hack/verify-govet.sh
+	hack/verify-generated-deep-copies.sh
+	hack/verify-generated-conversions.sh
+	hack/verify-generated-completions.sh
+	hack/verify-generated-docs.sh
+	hack/verify-generated-swagger-spec.sh
+	hack/verify-api-descriptions.sh
+.PHONY: verify
+
+# check and verify can't run concurently because of strange concurrent build issues.
+check-verify:
+	# delegate to another make process that runs serially against the check and verify targets
+	$(MAKE) -j1 check verify
+.PHONY: check-verify
+
+# Install travis dependencies
+#
+# Args:
+#   TEST_ASSETS: Instead of running tests, test assets only.
+ifeq ($(TEST_ASSETS), true)
+install-travis:
+	hack/install-assets.sh
+else
+install-travis:
+	hack/install-etcd.sh
+	hack/install-tools.sh
+endif
+.PHONY: install-travis
+
+# Run unit and integration tests that don't require Docker.
 #
 # Args:
 #   GOFLAGS: Extra flags to pass to 'go' when building.
 #   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
+#   TEST_ASSETS: Instead of running tests, test assets only.
 #
 # Example:
 #   make check-test
 check-test: export KUBE_COVER= -cover -covermode=atomic
 check-test: export KUBE_RACE=  -race
-check-test: build check
+ifeq ($(TEST_ASSETS), true)
 check-test:
-	hack/verify-gofmt.sh
+	hack/test-assets.sh
+else
+check-test: check-verify
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration.sh
+endif
 .PHONY: check-test
 
 # Build and run the complete test-suite.
@@ -76,26 +119,38 @@ check-test:
 test: export KUBE_COVER= -cover -covermode=atomic
 test: export KUBE_RACE=  -race
 ifeq ($(SKIP_BUILD), true)
-$(info build is being skipped)
-test: check
+test: check-verify test-int-plus
 else
-test: build check
+test: build check-verify test-int-plus
 endif
-test:
+.PHONY: test
+
+# Split out of `test`.  This allows `make -j --output-sync=recurse test` to parallelize as expected
+test-int-plus: export KUBE_COVER= -cover -covermode=atomic
+test-int-plus: export KUBE_RACE=  -race
+ifeq ($(SKIP_BUILD), true)
+test-int-plus: 
+else
+test-int-plus: build
+endif
+test-int-plus:
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration-docker.sh
-	hack/test-end-to-end.sh
+	hack/test-end-to-end-docker.sh
 ifeq ($(EXTENDED),true)
 	hack/test-extended.sh
 endif
-.PHONY: test
+.PHONY: test-int-plus
+
 
 # Run All-in-one OpenShift server.
 #
 # Example:
 #   make run
+OS_OUTPUT_BINPATH=$(shell bash -c 'source hack/common.sh; echo $${OS_OUTPUT_BINPATH}')
+PLATFORM=$(shell bash -c 'source hack/common.sh; os::build::host_platform')
 run: build
-	$(OUT_DIR)/local/go/bin/openshift start
+	$(OS_OUTPUT_BINPATH)/$(PLATFORM)/openshift start
 .PHONY: run
 
 # Remove all build artifacts.
@@ -109,8 +164,18 @@ clean:
 # Build an official release of OpenShift, including the official images.
 #
 # Example:
-#   make clean
+#   make release
 release: clean
 	hack/build-release.sh
 	hack/build-images.sh
+	hack/extract-release.sh
 .PHONY: release
+
+# Build only the release binaries for OpenShift
+#
+# Example:
+#   make release-binaries
+release-binaries: clean
+	hack/build-release.sh
+	hack/extract-release.sh
+.PHONY: release-binaries

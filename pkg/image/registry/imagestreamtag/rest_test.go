@@ -3,13 +3,18 @@ package imagestreamtag
 import (
 	"reflect"
 	"testing"
+	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/coreos/go-etcd/etcd"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/runtime"
+	kstorage "k8s.io/kubernetes/pkg/storage"
+	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/tools"
+	"k8s.io/kubernetes/pkg/tools/etcdtest"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -49,20 +54,20 @@ func (u *fakeUser) GetGroups() []string {
 	return []string{"group1"}
 }
 
-func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
+func setup(t *testing.T) (*tools.FakeEtcdClient, kstorage.Interface, *REST) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec)
+	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
 	imageStorage := imageetcd.NewREST(helper)
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
-	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus)
+	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
 	storage := NewREST(imageRegistry, imageStreamRegistry)
 	return fakeEtcdClient, helper, storage
 }
 
 type statusError interface {
-	Status() kapi.Status
+	Status() unversioned.Status
 }
 
 func TestNameAndTag(t *testing.T) {
@@ -129,6 +134,10 @@ func TestGetImageStreamTag(t *testing.T) {
 		"happy path": {
 			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
 			repo: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
 				Spec: api.ImageStreamSpec{
 					Tags: map[string]api.TagReference{
 						"latest": {
@@ -141,10 +150,30 @@ func TestGetImageStreamTag(t *testing.T) {
 				},
 				Status: api.ImageStreamStatus{
 					Tags: map[string]api.TagEventList{
-						"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
+						"latest": {
+							Items: []api.TagEvent{
+								{
+									Created:              unversioned.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
+									DockerImageReference: "test",
+									Image:                "10",
+								},
+							},
+						},
 					},
 				},
 			},
+		},
+		"image = ''": {
+			repo: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "test"},
+				Status: api.ImageStreamStatus{
+					Tags: map[string]api.TagEventList{
+						"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: ""}}},
+					},
+				}},
+			expectError:     true,
+			errorTargetKind: "imageStreamTag",
+			errorTargetID:   "test:latest",
 		},
 		"missing image": {
 			repo: &api.ImageStream{Status: api.ImageStreamStatus{
@@ -163,14 +192,16 @@ func TestGetImageStreamTag(t *testing.T) {
 		},
 		"missing tag": {
 			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
-			repo: &api.ImageStream{Status: api.ImageStreamStatus{
-				Tags: map[string]api.TagEventList{
-					"other": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
-				},
-			}},
+			repo: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "test"},
+				Status: api.ImageStreamStatus{
+					Tags: map[string]api.TagEventList{
+						"other": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
+					},
+				}},
 			expectError:     true,
 			errorTargetKind: "imageStreamTag",
-			errorTargetID:   "latest",
+			errorTargetID:   "test:latest",
 		},
 	}
 
@@ -178,7 +209,7 @@ func TestGetImageStreamTag(t *testing.T) {
 		fakeEtcdClient, _, storage := setup(t)
 
 		if testCase.image != nil {
-			fakeEtcdClient.Data["/images/"+testCase.image.Name] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data[etcdtest.AddPrefix("/images/"+testCase.image.Name)] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: &etcd.Node{
 						Value:         runtime.EncodeOrDie(latest.Codec, testCase.image),
@@ -187,7 +218,7 @@ func TestGetImageStreamTag(t *testing.T) {
 				},
 			}
 		} else {
-			fakeEtcdClient.Data["/images/10"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data[etcdtest.AddPrefix("/images/10")] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: nil,
 				},
@@ -196,7 +227,7 @@ func TestGetImageStreamTag(t *testing.T) {
 		}
 
 		if testCase.repo != nil {
-			fakeEtcdClient.Data["/imageRepositories/default/test"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/test")] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: &etcd.Node{
 						Value:         runtime.EncodeOrDie(latest.Codec, testCase.repo),
@@ -205,7 +236,7 @@ func TestGetImageStreamTag(t *testing.T) {
 				},
 			}
 		} else {
-			fakeEtcdClient.Data["/imageRepositories/default/test"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/test")] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: nil,
 				},
@@ -223,18 +254,73 @@ func TestGetImageStreamTag(t *testing.T) {
 				t.Fatalf("%s: unexpected error type: %v", name, err)
 			}
 			status := err.(statusError).Status()
-			if status.Details.Kind != testCase.errorTargetKind || status.Details.ID != testCase.errorTargetID {
+			if status.Details.Kind != testCase.errorTargetKind || status.Details.Name != testCase.errorTargetID {
 				t.Errorf("%s: unexpected status: %#v", name, status)
 			}
 		} else {
-			actual := obj.(*api.Image)
-			if e, a := testCase.image.Name, actual.Name; e != a {
-				t.Errorf("%s: image name: expected %v, got %v", name, e, a)
+			actual := obj.(*api.ImageStreamTag)
+			if e, a := "default", actual.Namespace; e != a {
+				t.Errorf("%s: namespace: expected %v, got %v", name, e, a)
 			}
-			if e, a := map[string]string{"size": "large", "color": "blue"}, actual.Annotations; !reflect.DeepEqual(e, a) {
-				t.Errorf("%s: image annotations: expected %v, got %v", name, e, a)
+			if e, a := "test:latest", actual.Name; e != a {
+				t.Errorf("%s: name: expected %v, got %v", name, e, a)
+			}
+			if e, a := map[string]string{"size": "large", "color": "blue"}, actual.Image.Annotations; !reflect.DeepEqual(e, a) {
+				t.Errorf("%s: annotations: expected %v, got %v", name, e, a)
+			}
+			if e, a := unversioned.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC), actual.CreationTimestamp; !a.Equal(e) {
+				t.Errorf("%s: timestamp: expected %v, got %v", name, e, a)
 			}
 		}
+	}
+}
+
+func TestGetImageStreamTagDIR(t *testing.T) {
+	expDockerImageReference := "foo/bar/baz:latest"
+	image := &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz:different"}
+	repo := &api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "default",
+			Name:      "test",
+		},
+		Status: api.ImageStreamStatus{
+			Tags: map[string]api.TagEventList{
+				"latest": {
+					Items: []api.TagEvent{
+						{
+							Created:              unversioned.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
+							DockerImageReference: expDockerImageReference,
+							Image:                "10",
+						},
+					},
+				},
+			},
+		},
+	}
+	fakeEtcdClient, _, storage := setup(t)
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/images/"+image.Name)] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value:         runtime.EncodeOrDie(latest.Codec, image),
+				ModifiedIndex: 1,
+			},
+		},
+	}
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/test")] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value:         runtime.EncodeOrDie(latest.Codec, repo),
+				ModifiedIndex: 1,
+			},
+		},
+	}
+	obj, err := storage.Get(kapi.NewDefaultContext(), "test:latest")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	actual := obj.(*api.ImageStreamTag)
+	if actual.Image.DockerImageReference != expDockerImageReference {
+		t.Errorf("Different DockerImageReference: expected %s, got %s", expDockerImageReference, actual.Image.DockerImageReference)
 	}
 }
 
@@ -340,7 +426,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 	for name, testCase := range tests {
 		fakeEtcdClient, helper, storage := setup(t)
 		if testCase.repo != nil {
-			fakeEtcdClient.Data["/imageRepositories/default/test"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/test")] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: &etcd.Node{
 						Value:         runtime.EncodeOrDie(latest.Codec, testCase.repo),
@@ -349,7 +435,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 				},
 			}
 		} else {
-			fakeEtcdClient.Data["/imageRepositories/default/test"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/test")] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: nil,
 				},
@@ -370,16 +456,16 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		if obj == nil {
 			t.Fatalf("%s: unexpected nil response", name)
 		}
-		expectedStatus := &kapi.Status{Status: kapi.StatusSuccess}
+		expectedStatus := &unversioned.Status{Status: unversioned.StatusSuccess}
 		if e, a := expectedStatus, obj; !reflect.DeepEqual(e, a) {
 			t.Errorf("%s: expected %#v, got %#v", name, e, a)
 		}
 
 		updatedRepo := &api.ImageStream{}
-		if err := helper.ExtractObj("/imageRepositories/default/test", updatedRepo, false); err != nil {
+		if err := helper.Get(kapi.NewDefaultContext(), "/imagestreams/default/test", updatedRepo, false); err != nil {
 			t.Fatalf("%s: error retrieving updated repo: %s", name, err)
 		}
-		expected := map[string]api.TagReference{
+		expectedStreamSpec := map[string]api.TagReference{
 			"another": {
 				From: &kapi.ObjectReference{
 					Kind: "ImageStreamTag",
@@ -387,8 +473,39 @@ func TestDeleteImageStreamTag(t *testing.T) {
 				},
 			},
 		}
-		if e, a := expected, updatedRepo.Spec.Tags; !reflect.DeepEqual(e, a) {
-			t.Errorf("%s: tags: expected %v, got %v", name, e, a)
+		expectedStreamStatus := map[string]api.TagEventList{
+			"another": {
+				Items: []api.TagEvent{
+					{
+						DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+						Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+					},
+				},
+			},
+			"foo": {
+				Items: []api.TagEvent{
+					{
+						DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+						Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+					},
+				},
+			},
+			"bar": {
+				Items: []api.TagEvent{
+					{
+						DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+						Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+					},
+				},
+			},
 		}
+
+		if e, a := expectedStreamStatus, updatedRepo.Status.Tags; !reflect.DeepEqual(e, a) {
+			t.Errorf("%s: stream status: expected\n%v\ngot\n%v\n", name, e, a)
+		}
+		if e, a := expectedStreamSpec, updatedRepo.Spec.Tags; !reflect.DeepEqual(e, a) {
+			t.Errorf("%s: stream spec: expected\n%v\ngot\n%v\n", name, e, a)
+		}
+
 	}
 }

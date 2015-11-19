@@ -2,110 +2,134 @@ package etcd
 
 import (
 	"fmt"
+	"net"
+	"net/http"
 	"time"
 
-	etcdconfig "github.com/coreos/etcd/config"
-	"github.com/coreos/etcd/etcd"
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
+	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 // RunEtcd starts an etcd server and runs it forever
 func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
+	cfg := &config{
+		name: defaultName,
+		dir:  etcdServerConfig.StorageDir,
 
-	config := etcdconfig.New()
+		TickMs:       100,
+		ElectionMs:   1000,
+		maxSnapFiles: 5,
+		maxWalFiles:  5,
 
-	config.Addr = etcdServerConfig.Address
-	config.BindAddr = etcdServerConfig.ServingInfo.BindAddress
-
-	if configapi.UseTLS(etcdServerConfig.ServingInfo) {
-		config.CAFile = etcdServerConfig.ServingInfo.ClientCA
-		config.CertFile = etcdServerConfig.ServingInfo.ServerCert.CertFile
-		config.KeyFile = etcdServerConfig.ServingInfo.ServerCert.KeyFile
+		initialClusterToken: "etcd-cluster",
 	}
-
-	config.Peer.Addr = etcdServerConfig.PeerAddress
-	config.Peer.BindAddr = etcdServerConfig.PeerServingInfo.BindAddress
+	var err error
+	if configapi.UseTLS(etcdServerConfig.ServingInfo) {
+		cfg.clientTLSInfo.CAFile = etcdServerConfig.ServingInfo.ClientCA
+		cfg.clientTLSInfo.CertFile = etcdServerConfig.ServingInfo.ServerCert.CertFile
+		cfg.clientTLSInfo.KeyFile = etcdServerConfig.ServingInfo.ServerCert.KeyFile
+	}
+	if cfg.lcurls, err = urlsFromStrings(etcdServerConfig.ServingInfo.BindAddress, cfg.clientTLSInfo); err != nil {
+		glog.Fatalf("Unable to build etcd client URLs: %v", err)
+	}
 
 	if configapi.UseTLS(etcdServerConfig.PeerServingInfo) {
-		config.Peer.CAFile = etcdServerConfig.PeerServingInfo.ClientCA
-		config.Peer.CertFile = etcdServerConfig.PeerServingInfo.ServerCert.CertFile
-		config.Peer.KeyFile = etcdServerConfig.PeerServingInfo.ServerCert.KeyFile
+		cfg.peerTLSInfo.CAFile = etcdServerConfig.PeerServingInfo.ClientCA
+		cfg.peerTLSInfo.CertFile = etcdServerConfig.PeerServingInfo.ServerCert.CertFile
+		cfg.peerTLSInfo.KeyFile = etcdServerConfig.PeerServingInfo.ServerCert.KeyFile
+	}
+	if cfg.lpurls, err = urlsFromStrings(etcdServerConfig.PeerServingInfo.BindAddress, cfg.peerTLSInfo); err != nil {
+		glog.Fatalf("Unable to build etcd peer URLs: %v", err)
 	}
 
-	config.DataDir = etcdServerConfig.StorageDir
-	config.Name = "openshift.local"
+	if cfg.acurls, err = urlsFromStrings(etcdServerConfig.Address, cfg.clientTLSInfo); err != nil {
+		glog.Fatalf("Unable to build etcd announce client URLs: %v", err)
+	}
+	if cfg.apurls, err = urlsFromStrings(etcdServerConfig.PeerAddress, cfg.peerTLSInfo); err != nil {
+		glog.Fatalf("Unable to build etcd announce peer URLs: %v", err)
+	}
 
-	server := etcd.New(config)
-	go util.Forever(func() {
-		glog.Infof("Started etcd at %s", config.Addr)
-		server.Run()
-		glog.Fatalf("etcd died, exiting.")
-	}, 500*time.Millisecond)
-	<-server.ReadyNotify()
+	if err := cfg.resolveUrls(); err != nil {
+		glog.Fatalf("Unable to resolve etcd URLs: %v", err)
+	}
+
+	cfg.initialCluster = fmt.Sprintf("%s=%s", cfg.name, cfg.apurls[0].String())
+
+	stopped, err := startEtcd(cfg)
+	if err != nil {
+		glog.Fatalf("Unable to start etcd: %v", err)
+	}
+	go func() {
+		glog.Infof("Started etcd at %s", etcdServerConfig.Address)
+		<-stopped
+	}()
 }
 
-// getAndTestEtcdClient creates an etcd client based on the provided config and waits
-// until etcd server is reachable. It errors out and exits if the server cannot
-// be reached for a certain amount of time.
+// GetAndTestEtcdClient creates an etcd client based on the provided config. It will attempt to
+// connect to the etcd server and block until the server responds at least once, or return an
+// error if the server never responded.
 func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client, error) {
-	var etcdClient *etcdclient.Client
-
-	if len(etcdClientInfo.ClientCert.CertFile) > 0 {
-		tlsClient, err := etcdclient.NewTLSClient(
-			etcdClientInfo.URLs,
-			etcdClientInfo.ClientCert.CertFile,
-			etcdClientInfo.ClientCert.KeyFile,
-			etcdClientInfo.CA,
-		)
-		if err != nil {
-			return nil, err
-		}
-		etcdClient = tlsClient
-	} else if len(etcdClientInfo.CA) > 0 {
-		etcdClient = etcdclient.NewClient(etcdClientInfo.URLs)
-		err := etcdClient.AddRootCA(etcdClientInfo.CA)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		etcdClient = etcdclient.NewClient(etcdClientInfo.URLs)
+	etcdClient, err := EtcdClient(etcdClientInfo)
+	if err != nil {
+		return nil, err
 	}
-
-	for i := 0; ; i++ {
-		// TODO: make sure this works with etcd2 (root key may not exist)
-		_, err := etcdClient.Get("/", false, false)
-		if err == nil || tools.IsEtcdNotFound(err) {
-			break
-		}
-		if i > 100 {
-			return nil, fmt.Errorf("Could not reach etcd: %v", err)
-		}
-		time.Sleep(50 * time.Millisecond)
+	if err := TestEtcdClient(etcdClient); err != nil {
+		return nil, err
 	}
-
 	return etcdClient, nil
 }
 
-// newOpenShiftEtcdHelper returns an EtcdHelper for the provided arguments or an error if the version
-// is incorrect.
-func NewOpenShiftEtcdHelper(etcdClientInfo configapi.EtcdConnectionInfo) (helper tools.EtcdHelper, err error) {
-	// Connect and setup etcd interfaces
-	client, err := GetAndTestEtcdClient(etcdClientInfo)
+// EtcdClient creates an etcd client based on the provided config.
+func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client, error) {
+	tlsConfig, err := client.TLSConfigFor(&client.Config{
+		TLSClientConfig: client.TLSClientConfig{
+			CertFile: etcdClientInfo.ClientCert.CertFile,
+			KeyFile:  etcdClientInfo.ClientCert.KeyFile,
+			CAFile:   etcdClientInfo.CA,
+		},
+	})
 	if err != nil {
-		return tools.EtcdHelper{}, err
+		return nil, err
 	}
 
-	version := latest.Version
-	interfaces, err := latest.InterfacesFor(version)
-	if err != nil {
-		return helper, err
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		Dial: (&net.Dialer{
+			// default from http.DefaultTransport
+			Timeout: 30 * time.Second,
+			// Lower the keep alive for connections.
+			KeepAlive: 1 * time.Second,
+		}).Dial,
+		// Because watches are very bursty, defends against long delays in watch reconnections.
+		MaxIdleConnsPerHost: 500,
+		// defaults from http.DefaultTransport
+		Proxy:               http.ProxyFromEnvironment,
+		TLSHandshakeTimeout: 10 * time.Second,
 	}
-	return tools.NewEtcdHelper(client, interfaces.Codec), nil
+
+	etcdClient := etcdclient.NewClient(etcdClientInfo.URLs)
+	etcdClient.SetTransport(transport)
+	return etcdClient, nil
+}
+
+// TestEtcdClient verifies a client is functional.  It will attempt to
+// connect to the etcd server and block until the server responds at least once, or return an
+// error if the server never responded.
+func TestEtcdClient(etcdClient *etcdclient.Client) error {
+	for i := 0; ; i++ {
+		_, err := etcdClient.Get("/", false, false)
+		if err == nil || etcdstorage.IsEtcdNotFound(err) {
+			break
+		}
+		if i > 100 {
+			return fmt.Errorf("could not reach etcd: %v", err)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return nil
 }

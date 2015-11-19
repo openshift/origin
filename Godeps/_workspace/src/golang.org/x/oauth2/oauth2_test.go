@@ -61,6 +61,15 @@ func TestAuthCodeURL(t *testing.T) {
 	}
 }
 
+func TestAuthCodeURL_CustomParam(t *testing.T) {
+	conf := newConf("server")
+	param := SetAuthURLParam("foo", "bar")
+	url := conf.AuthCodeURL("baz", param)
+	if url != "server/auth?client_id=CLIENT_ID&foo=bar&redirect_uri=REDIRECT_URL&response_type=code&scope=scope1+scope2&state=baz" {
+		t.Errorf("Auth code URL doesn't match the expected, found: %v", url)
+	}
+}
+
 func TestAuthCodeURL_Optional(t *testing.T) {
 	conf := &Config{
 		ClientID: "CLIENT_ID",
@@ -173,11 +182,11 @@ func TestExchangeRequest_JSONResponse_Expiry(t *testing.T) {
 		expect  error
 	}{
 		{fmt.Sprintf(`"expires_in": %d`, seconds), nil},
-		{fmt.Sprintf(`"expires_in": "%d"`, seconds), nil},                             // PayPal case
-		{fmt.Sprintf(`"expires": %d`, seconds), nil},                                  // Facebook case
-		{`"expires": false`, &json.UnmarshalTypeError{"bool", jsonNumberType}},        // wrong type
-		{`"expires": {}`, &json.UnmarshalTypeError{"object", jsonNumberType}},         // wrong type
-		{`"expires": "zzz"`, &strconv.NumError{"ParseInt", "zzz", strconv.ErrSyntax}}, // wrong value
+		{fmt.Sprintf(`"expires_in": "%d"`, seconds), nil},                                             // PayPal case
+		{fmt.Sprintf(`"expires": %d`, seconds), nil},                                                  // Facebook case
+		{`"expires": false`, &json.UnmarshalTypeError{Value: "bool", Type: jsonNumberType}},           // wrong type
+		{`"expires": {}`, &json.UnmarshalTypeError{Value: "object", Type: jsonNumberType}},            // wrong type
+		{`"expires": "zzz"`, &strconv.NumError{Func: "ParseInt", Num: "zzz", Err: strconv.ErrSyntax}}, // wrong value
 	} {
 		testExchangeRequest_JSONResponse_expiry(t, c.expires, c.expect)
 	}
@@ -193,16 +202,20 @@ func testExchangeRequest_JSONResponse_expiry(t *testing.T, exp string, expect er
 	t1 := time.Now().Add(day)
 	tok, err := conf.Exchange(NoContext, "exchange-code")
 	t2 := time.Now().Add(day)
-	if err == nil && expect != nil {
-		t.Errorf("Incorrect state, conf.Exchange() should return an error: %v", expect)
-	} else if err != nil {
-		if reflect.DeepEqual(err, expect) {
-			t.Logf("Expected error: %v", err)
-			return
-		} else {
-			t.Error(err)
-		}
-
+	// Do a fmt.Sprint comparison so either side can be
+	// nil. fmt.Sprint just stringifies them to "<nil>", and no
+	// non-nil expected error ever stringifies as "<nil>", so this
+	// isn't terribly disgusting.  We do this because Go 1.4 and
+	// Go 1.5 return a different deep value for
+	// json.UnmarshalTypeError.  In Go 1.5, the
+	// json.UnmarshalTypeError contains a new field with a new
+	// non-zero value.  Rather than ignore it here with reflect or
+	// add new files and +build tags, just look at the strings.
+	if fmt.Sprint(err) != fmt.Sprint(expect) {
+		t.Errorf("Error = %v; want %v", err, expect)
+	}
+	if err != nil {
+		return
 	}
 	if !tok.Valid() {
 		t.Fatalf("Token invalid. Got: %#v", tok)
@@ -406,21 +419,4 @@ func TestConfigClientWithToken(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-}
-
-func Test_providerAuthHeaderWorks(t *testing.T) {
-	for _, p := range brokenAuthHeaderProviders {
-		if providerAuthHeaderWorks(p) {
-			t.Errorf("URL: %s not found in list", p)
-		}
-		p := fmt.Sprintf("%ssomesuffix", p)
-		if providerAuthHeaderWorks(p) {
-			t.Errorf("URL: %s not found in list", p)
-		}
-	}
-	p := "https://api.not-in-the-list-example.com/"
-	if !providerAuthHeaderWorks(p) {
-		t.Errorf("URL: %s found in list", p)
-	}
-
 }

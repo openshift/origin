@@ -1,9 +1,9 @@
 package client
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -21,6 +21,7 @@ type ImageStreamInterface interface {
 	Update(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	Delete(name string) error
 	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	UpdateStatus(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 }
 
 // ImageStreamNamespaceGetter exposes methods to get ImageStreams by Namespace
@@ -48,8 +49,8 @@ func (c *imageStreams) List(label labels.Selector, field fields.Selector) (resul
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("imageStreams").
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Do().
 		Into(result)
 	return
@@ -96,7 +97,14 @@ func (c *imageStreams) Watch(label labels.Selector, field fields.Selector, resou
 		Namespace(c.ns).
 		Resource("imageStreams").
 		Param("resourceVersion", resourceVersion).
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Watch()
+}
+
+// UpdateStatus updates the image stream's status. Returns the server's representation of the image stream, and an error, if it occurs.
+func (c *imageStreams) UpdateStatus(stream *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
+	result = &imageapi.ImageStream{}
+	err = c.r.Put().Namespace(c.ns).Resource("imageStreams").Name(stream.Name).SubResource("status").Body(stream).Do().Into(result)
+	return
 }

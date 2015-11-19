@@ -9,34 +9,39 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strings"
 
 	"code.google.com/p/go-uuid/uuid"
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	kuser "k8s.io/kubernetes/pkg/auth/user"
+	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
+	"github.com/openshift/origin/pkg/auth/authenticator/challenger/placeholderchallenger"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/allowanypassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/basicauthpassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/denypassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/htpasswd"
+	"github.com/openshift/origin/pkg/auth/authenticator/password/keystonepassword"
+	"github.com/openshift/origin/pkg/auth/authenticator/password/ldappassword"
+	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/basicauthrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
-	"github.com/openshift/origin/pkg/auth/authenticator/token/filetoken"
+	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
 	"github.com/openshift/origin/pkg/auth/oauth/external/google"
+	"github.com/openshift/origin/pkg/auth/oauth/external/openid"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/oauth/registry"
-	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	"github.com/openshift/origin/pkg/auth/server/grant"
 	"github.com/openshift/origin/pkg/auth/server/login"
@@ -45,10 +50,14 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
-	oauthclient "github.com/openshift/origin/pkg/oauth/registry/client"
-	"github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
-	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
+	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
+	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
+	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
+	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
+	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
+	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
+	clientauthregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
+	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
 )
@@ -66,39 +75,46 @@ var (
 		ObjectMeta: kapi.ObjectMeta{
 			Name: OpenShiftWebConsoleClientID,
 		},
-		Secret: uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.
+		Secret: uuid.New(), // random secret so no one knows what it is ahead of time.
 	}
 	// OSBrowserClientBase is used as a skeleton for building a Client.  We can't set the allowed redirecturis because we don't yet know the host:port of the auth server
 	OSBrowserClientBase = oauthapi.OAuthClient{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "openshift-browser-client",
 		},
-		Secret: uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
+		Secret: uuid.New(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
 	}
 	OSCliClientBase = oauthapi.OAuthClient{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "openshift-challenging-client",
 		},
-		Secret:                uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
+		Secret:                uuid.New(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
 		RespondWithChallenges: true,
 	}
 )
 
-// InstallSupport registers endpoints for an OAuth2 server into the provided mux,
+// InstallAPI registers endpoints for an OAuth2 server into the provided mux,
 // then returns an array of strings indicating what endpoints were started
 // (these are format strings that will expect to be sent a single string value).
 func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	// TODO: register into container
 	mux := container.ServeMux
 
-	oauthEtcd := oauthetcd.New(c.EtcdHelper)
+	accessTokenStorage := accesstokenetcd.NewREST(c.EtcdHelper)
+	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
+	authorizeTokenStorage := authorizetokenetcd.NewREST(c.EtcdHelper)
+	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
+	clientStorage := clientetcd.NewREST(c.EtcdHelper)
+	clientRegistry := clientregistry.NewRegistry(clientStorage)
+	clientAuthStorage := clientauthetcd.NewREST(c.EtcdHelper)
+	clientAuthRegistry := clientauthregistry.NewRegistry(clientAuthStorage)
 
 	authRequestHandler, authHandler, authFinalizer, err := c.getAuthorizeAuthenticationHandlers(mux)
 	if err != nil {
 		glog.Fatal(err)
 	}
 
-	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, registry.NewUserConversion())
+	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, clientRegistry, registry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
 	if c.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds > 0 {
 		config.AuthorizationExpiration = c.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds
@@ -107,8 +123,8 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 		config.AccessExpiration = c.Options.TokenConfig.AccessTokenMaxAgeSeconds
 	}
 
-	grantChecker := registry.NewClientAuthorizationGrantChecker(oauthEtcd)
-	grantHandler := c.getGrantHandler(mux, authRequestHandler, oauthEtcd, oauthEtcd)
+	grantChecker := registry.NewClientAuthorizationGrantChecker(clientAuthRegistry)
+	grantHandler := c.getGrantHandler(mux, authRequestHandler, clientRegistry, clientAuthRegistry)
 
 	server := osinserver.New(
 		config,
@@ -133,20 +149,23 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	)
 	server.Install(mux, OpenShiftOAuthAPIPrefix)
 
-	CreateOrUpdateDefaultOAuthClients(c.Options.MasterPublicURL, c.AssetPublicAddresses, oauthEtcd)
+	CreateOrUpdateDefaultOAuthClients(c.Options.MasterPublicURL, c.AssetPublicAddresses, clientRegistry)
 	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(&OSBrowserClientBase)
 	osOAuthClientConfig.RedirectUrl = c.Options.MasterPublicURL + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)
 
 	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
-	if c.MasterRoots != nil {
-		// Copy the default transport
-		var transport http.Transport = *http.DefaultTransport.(*http.Transport)
-		// Set TLS CA roots
-		transport.TLSClientConfig = &tls.Config{RootCAs: c.MasterRoots}
-		osOAuthClient.Transport = &transport
+	if len(*c.Options.MasterCA) > 0 {
+		rootCAs, err := cmdutil.CertPoolFromFile(*c.Options.MasterCA)
+		if err != nil {
+			glog.Fatal(err)
+		}
+
+		osOAuthClient.Transport = kutil.SetTransportDefaults(&http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: rootCAs},
+		})
 	}
 
-	tokenRequestEndpoints := tokenrequest.NewEndpoints(osOAuthClient)
+	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.Options.MasterPublicURL, osOAuthClient)
 	tokenRequestEndpoints.Install(mux, OpenShiftOAuthAPIPrefix)
 
 	// glog.Infof("oauth server configured as: %#v", server)
@@ -157,7 +176,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 
 	return []string{
 		fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix),
-		fmt.Sprintf("Started login server at %%s%s", OpenShiftLoginPrefix),
+		fmt.Sprintf("Started Login endpoint at %%s%s", OpenShiftLoginPrefix),
 	}
 }
 
@@ -169,7 +188,7 @@ func (c *AuthConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.OAuthClient)
 		ErrorsInStatusCode:       true,
 		SendClientSecretInParams: true,
 		AuthorizeUrl:             OpenShiftOAuthAuthorizeURL(c.Options.MasterPublicURL),
-		TokenUrl:                 OpenShiftOAuthTokenURL(c.Options.MasterPublicURL),
+		TokenUrl:                 OpenShiftOAuthTokenURL(c.Options.MasterURL),
 		Scope:                    "",
 	}
 	return config
@@ -181,8 +200,11 @@ func OpenShiftOAuthAuthorizeURL(masterAddr string) string {
 func OpenShiftOAuthTokenURL(masterAddr string) string {
 	return masterAddr + path.Join(OpenShiftOAuthAPIPrefix, osinserver.TokenPath)
 }
+func OpenShiftOAuthTokenRequestURL(masterAddr string) string {
+	return masterAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.RequestTokenEndpoint)
+}
 
-func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry oauthclient.Registry) {
+func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry clientregistry.Registry) {
 	clientsToEnsure := []*oauthapi.OAuthClient{
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -206,28 +228,48 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			},
 			Secret:                OSCliClientBase.Secret,
 			RespondWithChallenges: OSCliClientBase.RespondWithChallenges,
-			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
+			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},
 		},
 	}
 
+	ctx := kapi.NewContext()
 	for _, currClient := range clientsToEnsure {
-		if existing, err := clientRegistry.GetClient(currClient.Name); err == nil || strings.Contains(err.Error(), " not found") {
-			if existing != nil {
-				clientRegistry.DeleteClient(currClient.Name)
+		existing, err := clientRegistry.GetClient(ctx, currClient.Name)
+		if err == nil {
+			// Update the existing resource version
+			currClient.ResourceVersion = existing.ResourceVersion
+
+			// Preserve redirects for clients other than the CLI client
+			// The CLI client doesn't care about the redirect URL, just the token or error fragment
+			if currClient.Name != OSCliClientBase.Name {
+				// Add in any redirects from the existing one
+				// This preserves any additional customized redirects in the default clients
+				redirects := sets.NewString(currClient.RedirectURIs...)
+				for _, redirect := range existing.RedirectURIs {
+					if !redirects.Has(redirect) {
+						currClient.RedirectURIs = append(currClient.RedirectURIs, redirect)
+						redirects.Insert(redirect)
+					}
+				}
 			}
-			if err = clientRegistry.CreateClient(currClient); err != nil {
-				glog.Errorf("Error creating client: %v due to %v\n", currClient, err)
+
+			if _, err := clientRegistry.UpdateClient(ctx, currClient); err != nil {
+				glog.Errorf("Error updating OAuthClient %v: %v", currClient.Name, err)
+			}
+		} else if kerrs.IsNotFound(err) {
+			if _, err = clientRegistry.CreateClient(ctx, currClient); err != nil {
+				glog.Errorf("Error creating OAuthClient %v: %v", currClient.Name, err)
 			}
 		} else {
-			glog.Errorf("Error getting client: %v due to %v\n", currClient, err)
-
+			glog.Errorf("Error getting OAuthClient %v: %v", currClient.Name, err)
 		}
 	}
 }
 
 // getCSRF returns the object responsible for generating and checking CSRF tokens
-func getCSRF() csrf.CSRF {
-	return csrf.NewCookieCSRF("csrf", "/", "", false, false)
+func (c *AuthConfig) getCSRF() csrf.CSRF {
+	secure := isHTTPS(c.Options.MasterPublicURL)
+	return csrf.NewCookieCSRF("csrf", "/", "", secure, true)
 }
 
 func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
@@ -245,7 +287,7 @@ func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authen
 }
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
-func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Registry, authregistry clientauthorization.Registry) handlers.GrantHandler {
+func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Registry, authregistry clientauthregistry.Registry) handlers.GrantHandler {
 	switch c.Options.GrantConfig.Method {
 	case configapi.GrantHandlerDeny:
 		return handlers.NewEmptyGrant()
@@ -254,7 +296,7 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 		return handlers.NewAutoGrant()
 
 	case configapi.GrantHandlerPrompt:
-		grantServer := grant.NewGrant(getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
+		grantServer := grant.NewGrant(c.getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
 		grantServer.Install(mux, OpenShiftApprovePrefix)
 		return handlers.NewRedirectGrant(OpenShiftApprovePrefix)
 
@@ -282,14 +324,16 @@ func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
 }
 
 func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (handlers.AuthenticationHandler, error) {
-	successHandler := c.getAuthenticationSuccessHandler()
-
 	challengers := map[string]handlers.AuthenticationChallenger{}
 	redirectors := map[string]handlers.AuthenticationRedirector{}
 
 	for _, identityProvider := range c.Options.IdentityProviders {
-		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(c.IdentityRegistry, c.UserRegistry)
+		identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod))
+		if err != nil {
+			return nil, err
+		}
 
+		// TODO: refactor handler building per type
 		if configapi.IsPasswordAuthenticator(identityProvider) {
 			passwordAuth, err := c.getPasswordAuthenticator(identityProvider)
 			if err != nil {
@@ -297,53 +341,140 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 			}
 
 			if identityProvider.UseAsLogin {
-				redirectors["login"] = &redirector{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}
-				login := login.NewLogin(getCSRF(), &callbackPasswordAuthenticator{passwordAuth, successHandler}, login.DefaultLoginFormRenderer)
+				// Password auth requires:
+				// 1. a session success handler (to remember you logged in)
+				// 2. a redirectSuccessHandler (to go back to the "then" param)
+				if c.SessionAuth == nil {
+					return nil, errors.New("SessionAuth is required for password-based login")
+				}
+				passwordSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, redirectSuccessHandler{}}
+
+				// Since we're redirecting to a local login page, we don't need to force absolute URL resolution
+				redirectors["login-"+identityProvider.Name+"-redirect"] = redirector.NewRedirector(nil, OpenShiftLoginPrefix+"?then=${url}")
+
+				var loginTemplateFile string
+				if c.Options.Templates != nil {
+					loginTemplateFile = c.Options.Templates.Login
+				}
+				loginFormRenderer, err := login.NewLoginFormRenderer(loginTemplateFile)
+				if err != nil {
+					return nil, err
+				}
+
+				login := login.NewLogin(c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, loginFormRenderer)
 				login.Install(mux, OpenShiftLoginPrefix)
 			}
 			if identityProvider.UseAsChallenger {
-				challengers["login"] = passwordchallenger.NewBasicAuthChallenger("openshift")
+				// For now, all password challenges share a single basic challenger, since they'll all respond to any basic credentials
+				challengers["basic-challenge"] = passwordchallenger.NewBasicAuthChallenger("openshift")
+			}
+		} else if configapi.IsOAuthIdentityProvider(identityProvider) {
+			oauthProvider, err := c.getOAuthProvider(identityProvider)
+			if err != nil {
+				return nil, err
 			}
 
-		} else {
-			switch provider := identityProvider.Provider.Object.(type) {
-			case (*configapi.OAuthRedirectingIdentityProvider):
-				callbackPath := ""
-				var oauthProvider external.Provider
-				switch provider.Provider.Object.(type) {
-				case (*configapi.GoogleOAuthProvider):
-					callbackPath = path.Join(OpenShiftOAuthCallbackPrefix, "google")
-					oauthProvider = google.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret)
-				case (*configapi.GitHubOAuthProvider):
-					callbackPath = path.Join(OpenShiftOAuthCallbackPrefix, "github")
-					oauthProvider = github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret)
-				default:
-					return nil, fmt.Errorf("unexpected oauth provider %#v", provider)
-				}
+			// Default state builder, combining CSRF and return URL handling
+			state := external.CSRFRedirectingState(c.getCSRF())
 
-				state := external.DefaultState(getCSRF())
-				oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, successHandler, errorHandler, identityMapper)
-				if err != nil {
-					return nil, fmt.Errorf("unexpected error: %v", err)
-				}
+			// OAuth auth requires
+			// 1. a session success handler (to remember you logged in)
+			// 2. a state success handler (to go back to the URL encoded in the state)
+			if c.SessionAuth == nil {
+				return nil, errors.New("SessionAuth is required for OAuth-based login")
+			}
+			oauthSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, state}
 
-				mux.Handle(callbackPath, oauthHandler)
-				if identityProvider.UseAsLogin {
-					redirectors[identityProvider.Name] = oauthHandler
-				}
-				if identityProvider.UseAsChallenger {
-					return nil, errors.New("oauth identity providers cannot issue challenges")
-				}
+			// If the specified errorHandler doesn't handle the login error, let the state error handler attempt to propagate specific errors back to the token requester
+			oauthErrorHandler := handlers.AuthenticationErrorHandlers{errorHandler, state}
+
+			callbackPath := path.Join(OpenShiftOAuthCallbackPrefix, identityProvider.Name)
+			oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, oauthSuccessHandler, oauthErrorHandler, identityMapper)
+			if err != nil {
+				return nil, fmt.Errorf("unexpected error: %v", err)
+			}
+
+			mux.Handle(callbackPath, oauthHandler)
+			if identityProvider.UseAsLogin {
+				redirectors["oauth-"+identityProvider.Name+"-redirect"] = oauthHandler
+			}
+			if identityProvider.UseAsChallenger {
+				return nil, errors.New("oauth identity providers cannot issue challenges")
+			}
+		} else if requestHeaderProvider, isRequestHeader := identityProvider.Provider.Object.(*configapi.RequestHeaderIdentityProvider); isRequestHeader {
+			// We might be redirecting to an external site, we need to fully resolve the request URL to the public master
+			baseRequestURL, err := url.Parse(c.Options.MasterPublicURL + OpenShiftOAuthAPIPrefix + osinserver.AuthorizePath)
+			if err != nil {
+				return nil, err
+			}
+			if identityProvider.UseAsChallenger {
+				challengers["requestheader-"+identityProvider.Name+"-redirect"] = redirector.NewChallenger(baseRequestURL, requestHeaderProvider.ChallengeURL)
+			}
+			if identityProvider.UseAsLogin {
+				redirectors["requestheader-"+identityProvider.Name+"-redirect"] = redirector.NewRedirector(baseRequestURL, requestHeaderProvider.LoginURL)
 			}
 		}
+	}
+
+	if len(redirectors) > 0 && len(challengers) == 0 {
+		// Add a default challenger that will warn and give a link to the web browser token-granting location
+		challengers["placeholder"] = placeholderchallenger.New(OpenShiftOAuthTokenRequestURL(c.Options.MasterPublicURL))
 	}
 
 	authHandler := handlers.NewUnionAuthenticationHandler(challengers, redirectors, errorHandler)
 	return authHandler, nil
 }
 
+func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvider) (external.Provider, error) {
+	switch provider := identityProvider.Provider.Object.(type) {
+	case (*configapi.GitHubIdentityProvider):
+		return github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret), nil
+
+	case (*configapi.GoogleIdentityProvider):
+		return google.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret, provider.HostedDomain)
+
+	case (*configapi.OpenIDIdentityProvider):
+		transport, err := cmdutil.TransportFor(provider.CA, "", "")
+		if err != nil {
+			return nil, err
+		}
+
+		// OpenID Connect requests MUST contain the openid scope value
+		// http://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+		scopes := sets.NewString("openid")
+		scopes.Insert(provider.ExtraScopes...)
+
+		config := openid.Config{
+			ClientID:     provider.ClientID,
+			ClientSecret: provider.ClientSecret,
+
+			Scopes: scopes.List(),
+
+			ExtraAuthorizeParameters: provider.ExtraAuthorizeParameters,
+
+			AuthorizeURL: provider.URLs.Authorize,
+			TokenURL:     provider.URLs.Token,
+			UserInfoURL:  provider.URLs.UserInfo,
+
+			IDClaims:                provider.Claims.ID,
+			PreferredUsernameClaims: provider.Claims.PreferredUsername,
+			EmailClaims:             provider.Claims.Email,
+			NameClaims:              provider.Claims.Name,
+		}
+
+		return openid.NewProvider(identityProvider.Name, transport, config)
+
+	default:
+		return nil, fmt.Errorf("No OAuth provider found that matches %v.  The OAuth server cannot start!", identityProvider)
+	}
+
+}
+
 func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.IdentityProvider) (authenticator.Password, error) {
-	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(c.IdentityRegistry, c.UserRegistry)
+	identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod))
+	if err != nil {
+		return nil, err
+	}
 
 	switch provider := identityProvider.Provider.Object.(type) {
 	case (*configapi.AllowAllPasswordIdentityProvider):
@@ -351,6 +482,28 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 
 	case (*configapi.DenyAllPasswordIdentityProvider):
 		return denypassword.New(), nil
+
+	case (*configapi.LDAPPasswordIdentityProvider):
+		url, err := ldaputil.ParseURL(provider.URL)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing LDAPPasswordIdentityProvider URL: %v", err)
+		}
+
+		clientConfig, err := ldaputil.NewLDAPClientConfig(provider.URL,
+			provider.BindDN,
+			provider.BindPassword,
+			provider.CA,
+			provider.Insecure)
+		if err != nil {
+			return nil, err
+		}
+
+		opts := ldappassword.Options{
+			URL:                  url,
+			ClientConfig:         *clientConfig,
+			UserAttributeDefiner: ldaputil.NewLDAPUserAttributeDefiner(provider.Attributes),
+		}
+		return ldappassword.New(identityProvider.Name, opts, identityMapper)
 
 	case (*configapi.HTPasswdPasswordIdentityProvider):
 		htpasswdFile := provider.File
@@ -374,37 +527,22 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 		}
 		return basicauthpassword.New(identityProvider.Name, connectionInfo.URL, transport, identityMapper), nil
 
+	case (*configapi.KeystonePasswordIdentityProvider):
+		connectionInfo := provider.RemoteConnectionInfo
+		if len(connectionInfo.URL) == 0 {
+			return nil, fmt.Errorf("URL is required for KeystonePasswordIdentityProvider")
+		}
+		transport, err := cmdutil.TransportFor(connectionInfo.CA, connectionInfo.ClientCert.CertFile, connectionInfo.ClientCert.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("Error building KeystonePasswordIdentityProvider client: %v", err)
+		}
+
+		return keystonepassword.New(identityProvider.Name, connectionInfo.URL, transport, provider.DomainName, identityMapper), nil
+
 	default:
-		return nil, fmt.Errorf("No password auth found that matches %v.  The oauth server cannot start!", identityProvider)
+		return nil, fmt.Errorf("No password auth found that matches %v.  The OAuth server cannot start!", identityProvider)
 	}
 
-}
-
-func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSuccessHandler {
-	successHandlers := handlers.AuthenticationSuccessHandlers{}
-
-	if c.SessionAuth != nil {
-		successHandlers = append(successHandlers, c.SessionAuth)
-	}
-
-	addedRedirectSuccessHandler := false
-	for _, identityProvider := range c.Options.IdentityProviders {
-		if !identityProvider.UseAsLogin {
-			continue
-		}
-
-		switch identityProvider.Provider.Object.(type) {
-		case (*configapi.OAuthRedirectingIdentityProvider):
-			successHandlers = append(successHandlers, external.DefaultState(getCSRF()).(handlers.AuthenticationSuccessHandler))
-		}
-
-		if !addedRedirectSuccessHandler && configapi.IsPasswordAuthenticator(identityProvider) {
-			successHandlers = append(successHandlers, redirectSuccessHandler{})
-			addedRedirectSuccessHandler = true
-		}
-	}
-
-	return successHandlers
 }
 
 func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, error) {
@@ -415,7 +553,10 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 	}
 
 	for _, identityProvider := range c.Options.IdentityProviders {
-		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(c.IdentityRegistry, c.UserRegistry)
+		identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod))
+		if err != nil {
+			return nil, err
+		}
 
 		if configapi.IsPasswordAuthenticator(identityProvider) {
 			passwordAuthenticator, err := c.getPasswordAuthenticator(identityProvider)
@@ -458,48 +599,17 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 	return authRequestHandler, nil
 }
 
-func GetEtcdTokenAuthenticator(etcdHelper tools.EtcdHelper) (authenticator.Token, error) {
-	oauthRegistry := oauthetcd.New(etcdHelper)
-	return authnregistry.NewTokenAuthenticator(oauthRegistry), nil
-}
-
-func GetCSVTokenAuthenticator(path string) (authenticator.Token, error) {
-	return filetoken.NewTokenAuthenticator(path)
-}
-
-// Captures the original request url as a "then" param in a redirect to a login flow
-type redirector struct {
-	RedirectURL string
-	ThenParam   string
-}
-
-// AuthenticationRedirectNeeded redirects HTTP request to authorization URL
-func (auth *redirector) AuthenticationRedirect(w http.ResponseWriter, req *http.Request) error {
-	redirectURL, err := url.Parse(auth.RedirectURL)
-	if err != nil {
-		return err
-	}
-	if len(auth.ThenParam) != 0 {
-		redirectURL.RawQuery = url.Values{
-			auth.ThenParam: {req.URL.String()},
-		}.Encode()
-	}
-	http.Redirect(w, req, redirectURL.String(), http.StatusFound)
-	return nil
-}
-
-//
-// Combines password auth, successful login callback, and "then" param redirection
-//
+// callbackPasswordAuthenticator combines password auth, successful login callback,
+// and "then" param redirection
 type callbackPasswordAuthenticator struct {
 	authenticator.Password
 	handlers.AuthenticationSuccessHandler
 }
 
-// Redirects to the then param on successful authentication
+// redirectSuccessHandler redirects to the then param on successful authentication
 type redirectSuccessHandler struct{}
 
-// AuthenticationSuccess informs client when authentication was successful
+// AuthenticationSucceeded informs client when authentication was successful
 func (redirectSuccessHandler) AuthenticationSucceeded(user kuser.Info, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	if len(then) == 0 {
 		return false, fmt.Errorf("Auth succeeded, but no redirect existed - user=%#v", user)
@@ -517,7 +627,6 @@ func authenticationHandlerFilter(handler http.Handler, authenticator authenticat
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		glog.V(6).Infof("user %v -> %v", user, req.URL)
 
 		ctx, ok := contextMapper.Get(req)
 		if !ok {

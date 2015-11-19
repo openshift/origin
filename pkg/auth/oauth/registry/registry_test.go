@@ -7,18 +7,21 @@ import (
 	"testing"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	apierrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/RangelReale/osincli"
+	kapi "k8s.io/kubernetes/pkg/api"
+	apierrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
+	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/test"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
+	userapi "github.com/openshift/origin/pkg/user/api"
+	usertest "github.com/openshift/origin/pkg/user/registry/test"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 type testHandlers struct {
@@ -245,7 +248,8 @@ func TestRegistryAndServer(t *testing.T) {
 
 func TestAuthenticateTokenNotFound(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{Err: apierrs.NewNotFound("AccessToken", "token")}
-	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
+	userRegistry := usertest.NewUserRegistry()
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry, identitymapper.NoopGroupMapper{})
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if found {
@@ -263,7 +267,8 @@ func TestAuthenticateTokenNotFound(t *testing.T) {
 }
 func TestAuthenticateTokenOtherGetError(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{Err: errors.New("get error")}
-	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
+	userRegistry := usertest.NewUserRegistry()
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry, identitymapper.NoopGroupMapper{})
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if found {
@@ -283,11 +288,12 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{
 		Err: nil,
 		AccessToken: &oapi.OAuthAccessToken{
-			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: util.Time{time.Now().Add(-1 * time.Hour)}},
+			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: unversioned.Time{Time: time.Now().Add(-1 * time.Hour)}},
 			ExpiresIn:  600, // 10 minutes
 		},
 	}
-	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
+	userRegistry := usertest.NewUserRegistry()
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry, identitymapper.NoopGroupMapper{})
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if found {
@@ -304,11 +310,16 @@ func TestAuthenticateTokenValidated(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{
 		Err: nil,
 		AccessToken: &oapi.OAuthAccessToken{
-			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: util.Time{time.Now()}},
+			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: unversioned.Time{Time: time.Now()}},
 			ExpiresIn:  600, // 10 minutes
+			UserName:   "foo",
+			UserUID:    string("bar"),
 		},
 	}
-	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
+	userRegistry := usertest.NewUserRegistry()
+	userRegistry.Get["foo"] = &userapi.User{ObjectMeta: kapi.ObjectMeta{UID: "bar"}}
+
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry, identitymapper.NoopGroupMapper{})
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if !found {

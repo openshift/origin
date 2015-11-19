@@ -10,6 +10,7 @@ pushd ${OS_ROOT}/assets > /dev/null
   rm -rf bower_components/*
   rm -rf node_modules/*
   rm -rf dist/*
+  rm -rf dist.*/*
 
   if which bower > /dev/null 2>&1 ; then
     # In case upstream components change things without incrementing versions

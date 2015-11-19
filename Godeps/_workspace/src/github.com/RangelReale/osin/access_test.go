@@ -189,7 +189,30 @@ func TestAccessClientCredentials(t *testing.T) {
 		t.Fatalf("Unexpected access token: %s", d)
 	}
 
-	if d := resp.Output["refresh_token"]; d != "r1" {
-		t.Fatalf("Unexpected refresh token: %s", d)
+	if d, dok := resp.Output["refresh_token"]; dok {
+		t.Fatalf("Refresh token should not be generated: %s", d)
 	}
+}
+
+func TestExtraScopes(t *testing.T) {
+	if extraScopes("", "") == true {
+		t.Fatalf("extraScopes returned true with empty scopes")
+	}
+
+	if extraScopes("a", "") == true {
+		t.Fatalf("extraScopes returned true with less scopes")
+	}
+
+	if extraScopes("a,b", "b,a") == true {
+		t.Fatalf("extraScopes returned true with matching scopes")
+	}
+
+	if extraScopes("a,b", "b,a,c") == false {
+		t.Fatalf("extraScopes returned false with extra scopes")
+	}
+
+	if extraScopes("", "a") == false {
+		t.Fatalf("extraScopes returned false with extra scopes")
+	}
+
 }

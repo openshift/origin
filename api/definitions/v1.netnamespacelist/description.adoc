@@ -1,0 +1,1 @@
+NetNamespaceList represents a list of NetNamespace objects. NetNamespace catpures information about a segregated network namespace for an entire cluster. When a group of pods, or a project, or a group of projects get a NetNamespace assigned then the openshift-sdn's multitenant plugin ensures network layer isolation of traffic from other NetNamespaces.

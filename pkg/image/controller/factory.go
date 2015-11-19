@@ -3,18 +3,17 @@ package controller
 import (
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
+	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/controller"
-	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/api"
 )
 
@@ -37,9 +36,8 @@ func (f *ImportControllerFactory) Create() controller.RunnableController {
 	cache.NewReflector(lw, &api.ImageStream{}, q, 2*time.Minute).Run()
 
 	c := &ImportController{
-		client:       dockerregistry.NewClient(),
-		repositories: f.Client,
-		mappings:     f.Client,
+		streams:  f.Client,
+		mappings: f.Client,
 	}
 
 	return &controller.RetryController{
@@ -47,9 +45,9 @@ func (f *ImportControllerFactory) Create() controller.RunnableController {
 		RetryManager: controller.NewQueueRetryManager(
 			q,
 			cache.MetaNamespaceKeyFunc,
-			func(obj interface{}, err error, count int) bool {
+			func(obj interface{}, err error, retries controller.Retry) bool {
 				util.HandleError(err)
-				return count < 5
+				return retries.Count < 5
 			},
 			kutil.NewTokenBucketRateLimiter(1, 10),
 		),

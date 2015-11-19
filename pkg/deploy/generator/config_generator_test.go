@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -29,7 +29,7 @@ func TestGenerate_fromMissingDeploymentConfig(t *testing.T) {
 	config, err := generator.Generate(kapi.NewDefaultContext(), "1234")
 
 	if config != nil {
-		t.Fatalf("Unexpected deployment config generated: %#v", config)
+		t.Fatalf("Unexpected DeploymentConfig generated: %#v", config)
 	}
 
 	if err == nil {
@@ -46,7 +46,7 @@ func TestGenerate_fromConfigWithoutTagChange(t *testing.T) {
 			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				stream := makeStream(
 					"test-image-stream",
-					"latest",
+					imageapi.DefaultImageTag,
 					"registry:8080/repo1:ref1",
 					"00000000000000000000000000000001",
 				)
@@ -82,7 +82,7 @@ func TestGenerate_deprecatedFromConfigWithoutTagChange(t *testing.T) {
 			LISFn: func(ctx kapi.Context) (*imageapi.ImageStreamList, error) {
 				stream := makeStream(
 					"test-image-stream",
-					"latest",
+					imageapi.DefaultImageTag,
 					"registry:8080/repo1:ref1",
 					"00000000000000000000000000000001",
 				)
@@ -118,7 +118,7 @@ func TestGenerate_fromZeroConfigWithoutTagChange(t *testing.T) {
 			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				stream := makeStream(
 					"test-image-stream",
-					"latest",
+					imageapi.DefaultImageTag,
 					"registry:8080/repo1:ref1",
 					"00000000000000000000000000000001",
 				)
@@ -155,7 +155,7 @@ func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
 			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				stream := makeStream(
 					"test-image-stream",
-					"latest",
+					imageapi.DefaultImageTag,
 					newRepoName,
 					newImageID,
 				)
@@ -187,7 +187,7 @@ func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
 		t.Fatalf("Expected LastTriggeredImage %s, got %s", e, a)
 	}
 
-	if e, a := config.Details.Causes[0].ImageTrigger.Tag, "latest"; e != a {
+	if e, a := config.Details.Causes[0].ImageTrigger.Tag, imageapi.DefaultImageTag; e != a {
 		t.Fatalf("Expected cause tag %s, got %s", e, a)
 	}
 	if e, a := config.Details.Causes[0].ImageTrigger.RepositoryName, newRepoName; e != a {

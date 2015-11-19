@@ -1,8 +1,8 @@
 package v1
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/openshift/origin/pkg/cmd/server/api"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
 var Codec = runtime.CodecFor(api.Scheme, "v1")
@@ -18,24 +18,32 @@ func init() {
 		&AllowAllPasswordIdentityProvider{},
 		&DenyAllPasswordIdentityProvider{},
 		&HTPasswdPasswordIdentityProvider{},
+		&LDAPPasswordIdentityProvider{},
+		&KeystonePasswordIdentityProvider{},
 		&RequestHeaderIdentityProvider{},
-		&OAuthRedirectingIdentityProvider{},
+		&GitHubIdentityProvider{},
+		&GoogleIdentityProvider{},
+		&OpenIDIdentityProvider{},
 		&GrantConfig{},
-		&GoogleOAuthProvider{},
-		&GitHubOAuthProvider{},
+
+		&LDAPSyncConfig{},
 	)
 }
+
+func (*LDAPSyncConfig) IsAnAPIObject() {}
 
 func (*IdentityProvider) IsAnAPIObject()                  {}
 func (*BasicAuthPasswordIdentityProvider) IsAnAPIObject() {}
 func (*AllowAllPasswordIdentityProvider) IsAnAPIObject()  {}
 func (*DenyAllPasswordIdentityProvider) IsAnAPIObject()   {}
 func (*HTPasswdPasswordIdentityProvider) IsAnAPIObject()  {}
+func (*LDAPPasswordIdentityProvider) IsAnAPIObject()      {}
+func (*KeystonePasswordIdentityProvider) IsAnAPIObject()  {}
 func (*RequestHeaderIdentityProvider) IsAnAPIObject()     {}
-func (*OAuthRedirectingIdentityProvider) IsAnAPIObject()  {}
+func (*GitHubIdentityProvider) IsAnAPIObject()            {}
+func (*GoogleIdentityProvider) IsAnAPIObject()            {}
+func (*OpenIDIdentityProvider) IsAnAPIObject()            {}
 func (*GrantConfig) IsAnAPIObject()                       {}
-func (*GoogleOAuthProvider) IsAnAPIObject()               {}
-func (*GitHubOAuthProvider) IsAnAPIObject()               {}
 
 func (*MasterConfig) IsAnAPIObject()   {}
 func (*NodeConfig) IsAnAPIObject()     {}

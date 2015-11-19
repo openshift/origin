@@ -1,5 +1,5 @@
 <project-nav></project-nav>
-<div class="wrap">
+<div class="wrap" ng-class="{'show-sidebar-right': renderOptions.showSidebarRight}">
   <div class="sidebar-left">
     <sidebar></sidebar>
   </div>
@@ -12,7 +12,12 @@
       </div>
     </div>
   </div>
-  <div class="sidebar-right">
-    sidebar-right
+  <div class="sidebar-right sidebar-pf sidebar-pf-right">
+    <div class="container-fluid">
+      <div class="sidebar-header sidebar-header-bleed-left sidebar-header-bleed-right">
+        <h2 class="h5">Details</h2>
+      </div>
+      <osc-object-describer></osc-object-describer>
+    </div>
   </div>
 </div>

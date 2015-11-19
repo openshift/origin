@@ -5,18 +5,30 @@ import (
 	"path"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
 type DefaultAuthorizationAttributes struct {
 	Verb              string
+	APIVersion        string
+	APIGroup          string
 	Resource          string
 	ResourceName      string
 	RequestAttributes interface{}
 	NonResourceURL    bool
 	URL               string
+}
+
+// ToDefaultAuthorizationAttributes coerces AuthorizationAttributes to DefaultAuthorizationAttributes.  Namespace is not included
+// because the authorizer takes that information on the context
+func ToDefaultAuthorizationAttributes(in authorizationapi.AuthorizationAttributes) DefaultAuthorizationAttributes {
+	return DefaultAuthorizationAttributes{
+		Verb:         in.Verb,
+		Resource:     in.Resource,
+		ResourceName: in.ResourceName,
+	}
 }
 
 func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.PolicyRule) (bool, error) {
@@ -31,21 +43,23 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 	}
 
 	if a.verbMatches(rule.Verbs) {
-		allowedResourceTypes := authorizationapi.ExpandResources(rule.Resources)
+		if a.apiGroupMatches(rule.APIGroups) {
 
-		if a.resourceMatches(allowedResourceTypes) {
-			if a.nameMatches(rule.ResourceNames) {
-				// this rule matches the request, so we should check the additional restrictions to be sure that it's allowed
-				if rule.AttributeRestrictions.Object != nil {
-					switch rule.AttributeRestrictions.Object.(type) {
-					case (*authorizationapi.IsPersonalSubjectAccessReview):
-						return IsPersonalAccessReview(a)
-					default:
-						return false, fmt.Errorf("unable to interpret: %#v", rule.AttributeRestrictions.Object)
+			allowedResourceTypes := authorizationapi.ExpandResources(rule.Resources)
+			if a.resourceMatches(allowedResourceTypes) {
+				if a.nameMatches(rule.ResourceNames) {
+					// this rule matches the request, so we should check the additional restrictions to be sure that it's allowed
+					if rule.AttributeRestrictions.Object != nil {
+						switch rule.AttributeRestrictions.Object.(type) {
+						case (*authorizationapi.IsPersonalSubjectAccessReview):
+							return IsPersonalAccessReview(a)
+						default:
+							return false, fmt.Errorf("unable to interpret: %#v", rule.AttributeRestrictions.Object)
+						}
 					}
-				}
 
-				return true, nil
+					return true, nil
+				}
 			}
 		}
 	}
@@ -53,11 +67,31 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 	return false, nil
 }
 
-func (a DefaultAuthorizationAttributes) verbMatches(verbs util.StringSet) bool {
+func (a DefaultAuthorizationAttributes) apiGroupMatches(allowedGroups []string) bool {
+	// if no APIGroups are specified, then the default APIGroup of "" is assumed.
+	if len(allowedGroups) == 0 && len(a.GetAPIGroup()) == 0 {
+		return true
+	}
+
+	// allowedGroups is expected to be small, so I don't feel bad about this.
+	for _, allowedGroup := range allowedGroups {
+		if allowedGroup == authorizationapi.APIGroupAll {
+			return true
+		}
+
+		if strings.ToLower(allowedGroup) == strings.ToLower(a.GetAPIGroup()) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (a DefaultAuthorizationAttributes) verbMatches(verbs sets.String) bool {
 	return verbs.Has(authorizationapi.VerbAll) || verbs.Has(strings.ToLower(a.GetVerb()))
 }
 
-func (a DefaultAuthorizationAttributes) resourceMatches(allowedResourceTypes util.StringSet) bool {
+func (a DefaultAuthorizationAttributes) resourceMatches(allowedResourceTypes sets.String) bool {
 	return allowedResourceTypes.Has(authorizationapi.ResourceAll) || allowedResourceTypes.Has(strings.ToLower(a.GetResource()))
 }
 
@@ -65,7 +99,7 @@ func (a DefaultAuthorizationAttributes) resourceMatches(allowedResourceTypes uti
 // An empty string in the whitelist should only match the action's resourceName if the resourceName itself is empty string.  This behavior allows for the
 // combination of a whitelist for gets in the same rule as a list that won't have a resourceName.  I don't recommend writing such a rule, but we do
 // handle it like you'd expect: white list is respected for gets while not preventing the list you explicitly asked for.
-func (a DefaultAuthorizationAttributes) nameMatches(allowedResourceNames util.StringSet) bool {
+func (a DefaultAuthorizationAttributes) nameMatches(allowedResourceNames sets.String) bool {
 	if len(allowedResourceNames) == 0 {
 		return true
 	}
@@ -103,6 +137,14 @@ func splitPath(thePath string) []string {
 		return []string{}
 	}
 	return strings.Split(thePath, "/")
+}
+
+func (a DefaultAuthorizationAttributes) GetAPIVersion() string {
+	return a.APIVersion
+}
+
+func (a DefaultAuthorizationAttributes) GetAPIGroup() string {
+	return a.APIGroup
 }
 
 func (a DefaultAuthorizationAttributes) GetResource() string {

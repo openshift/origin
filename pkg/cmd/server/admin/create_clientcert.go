@@ -2,17 +2,18 @@ package admin
 
 import (
 	"errors"
+	"io"
 
 	"github.com/golang/glog"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
 
 type CreateClientCertOptions struct {
-	GetSignerCertOptions *GetSignerCertOptions
+	SignerCertOptions *SignerCertOptions
 
 	CertFile string
 	KeyFile  string
@@ -21,6 +22,7 @@ type CreateClientCertOptions struct {
 	Groups util.StringList
 
 	Overwrite bool
+	Output    io.Writer
 }
 
 func (o CreateClientCertOptions) Validate(args []string) error {
@@ -37,10 +39,10 @@ func (o CreateClientCertOptions) Validate(args []string) error {
 		return errors.New("user must be provided")
 	}
 
-	if o.GetSignerCertOptions == nil {
+	if o.SignerCertOptions == nil {
 		return errors.New("signer options are required")
 	}
-	if err := o.GetSignerCertOptions.Validate(); err != nil {
+	if err := o.SignerCertOptions.Validate(); err != nil {
 		return err
 	}
 
@@ -48,17 +50,25 @@ func (o CreateClientCertOptions) Validate(args []string) error {
 }
 
 func (o CreateClientCertOptions) CreateClientCert() (*crypto.TLSCertificateConfig, error) {
-	glog.V(2).Infof("Creating a client cert with: %#v and %#v", o, o.GetSignerCertOptions)
+	glog.V(4).Infof("Creating a client cert with: %#v and %#v", o, o.SignerCertOptions)
 
-	signerCert, err := o.GetSignerCertOptions.GetSignerCert()
+	signerCert, err := o.SignerCertOptions.CA()
 	if err != nil {
 		return nil, err
 	}
 
+	var cert *crypto.TLSCertificateConfig
+	written := true
 	userInfo := &user.DefaultInfo{Name: o.User, Groups: o.Groups}
 	if o.Overwrite {
-		return signerCert.MakeClientCertificate(o.CertFile, o.KeyFile, userInfo)
+		cert, err = signerCert.MakeClientCertificate(o.CertFile, o.KeyFile, userInfo)
 	} else {
-		return signerCert.EnsureClientCertificate(o.CertFile, o.KeyFile, userInfo)
+		cert, written, err = signerCert.EnsureClientCertificate(o.CertFile, o.KeyFile, userInfo)
 	}
+	if written {
+		glog.V(3).Infof("Generated new client cert as %s and key as %s\n", o.CertFile, o.KeyFile)
+	} else {
+		glog.V(3).Infof("Keeping existing client cert at %s and key at %s\n", o.CertFile, o.KeyFile)
+	}
+	return cert, err
 }

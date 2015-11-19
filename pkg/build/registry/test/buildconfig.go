@@ -3,11 +3,11 @@ package test
 import (
 	"sync"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/build/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
 type BuildConfigRegistry struct {
@@ -18,7 +18,7 @@ type BuildConfigRegistry struct {
 	sync.Mutex
 }
 
-func (r *BuildConfigRegistry) ListBuildConfigs(ctx kapi.Context, labels labels.Selector) (*api.BuildConfigList, error) {
+func (r *BuildConfigRegistry) ListBuildConfigs(ctx kapi.Context, labels labels.Selector, field fields.Selector) (*api.BuildConfigList, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.BuildConfigs, r.Err

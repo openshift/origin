@@ -1,106 +1,112 @@
 {
-  "apiVersion": "v1beta1",
+  "kind": "List",
+  "apiVersion": "v1beta3",
+  "metadata": {},
   "items": [
     {
-      "apiVersion": "v1beta1",
       "kind": "ImageStream",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "ruby-20-centos7-buildcli"
+        "name": "ruby-20-centos7-buildcli",
+        "creationTimestamp": null
       },
       "spec": {
         "dockerImageRepository": "openshift/ruby-20-centos7",
         "tags": [
           {
-            "name": "valid",
-            "dockerImageReference": "openshift/ruby-20-centos7:success"
+            "name": "valid"
           }
         ]
+      },
+      "status": {
+        "dockerImageRepository": ""
       }
     },
     {
-      "apiVersion": "v1beta1",
       "kind": "BuildConfig",
-      "labels": {
-        "name": "ruby-sample-build"
-      },
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "ruby-sample-build-validtag"
+        "name": "ruby-sample-build-validtag",
+        "creationTimestamp": null
       },
-      "parameters": {
-        "output": {
-          "to": {
-            "name": "origin-ruby-sample"
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
           }
-        },
+        ],
         "source": {
+          "type": "Git",
           "git": {
             "uri": "git://github.com/openshift/ruby-hello-world.git"
-          },
-          "type": "Git"
+          }
         },
         "strategy": {
-          "stiStrategy": {
-            "image": "openshift/ruby-20-centos7",
-            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos7/master/.sti/bin"
-          },
-          "type": "STI"
-        }
-      },
-      "triggers": [
-        {
-          "imageChange": {
+          "type": "Source",
+          "sourceStrategy": {
             "from": {
-              "name": "ruby-20-centos7-buildcli"
+              "kind": "DockerImage",
+              "name": "openshift/ruby-20-centos7"
             },
-            "image": "openshift/ruby-20-centos7",
-            "tag": "valid"
-          },
-          "type": "imageChange"
-        }
-      ]
+            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos7/master/.sti/bin",
+            "incremental": true
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
     },
     {
-      "apiVersion": "v1beta1",
       "kind": "BuildConfig",
-      "labels": {
-        "name": "ruby-sample-build"
-      },
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "ruby-sample-build-invalidtag"
+        "name": "ruby-sample-build-invalidtag",
+        "creationTimestamp": null
       },
-      "parameters": {
-        "output": {
-          "to": {
-            "name": "origin-ruby-sample"
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
           }
-        },
+        ],
         "source": {
+          "type": "Git",
           "git": {
             "uri": "git://github.com/openshift/ruby-hello-world.git"
-          },
-          "type": "Git"
+          }
         },
         "strategy": {
-          "stiStrategy": {
-            "image": "openshift/ruby-20-centos7",
-            "scripts": "https://raw.githubusercontent.com/openshift/sti-ruby/master/2.0/.sti/bin"
-          },
-          "type": "STI"
-        }
-      },
-      "triggers": [
-        {
-          "imageChange": {
+          "type": "Source",
+          "sourceStrategy": {
             "from": {
-              "name": "ruby-20-centos7-buildcli"
+              "kind": "DockerImage",
+              "name": "openshift/ruby-20-centos7"
             },
-            "image": "openshift/ruby-20-centos7",
-            "tag": "invalid"
-          },
-          "type": "imageChange"
-        }
-      ]
+            "scripts": "https://raw.githubusercontent.com/openshift/sti-ruby/master/2.0/.sti/bin",
+            "incremental": true
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
     }
-  ],
-  "kind": "List"
+  ]
 }

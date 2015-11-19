@@ -1,7 +1,9 @@
 'use strict';
+/* jshint eqeqeq: false, unused: false, expr: true */
 
 angular.module('openshiftConsole')
-.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger) {
+.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger, $timeout) {
+
   function Data(array) {
     this._data = {};
     this._objectsByAttribute(array, "metadata.name", this._data);
@@ -73,10 +75,26 @@ angular.module('openshiftConsole')
     }
   };
 
+  var normalizeResource = function(resource) {
+     if (!resource) {
+      return resource;
+     }
+
+     // only lowercase the first segment, leaving subresources as-is (some are case-sensitive)
+     var segments = resource.split("/");
+     segments[0] = segments[0].toLowerCase();
+     var normalized = segments.join("/");
+     if (resource !== normalized) {
+       Logger.warn('Non-lower case resource "' + resource + '"');
+     }
+
+     return normalized;
+  };
 
   function DataService() {
     this._listCallbacksMap = {};
     this._watchCallbacksMap = {};
+    this._watchObjectCallbacksMap = {};
     this._watchOperationMap = {};
     this._listOperationMap = {};
     this._resourceVersionMap = {};
@@ -84,53 +102,60 @@ angular.module('openshiftConsole')
     this._watchOptionsMap = {};
     this._watchWebsocketsMap = {};
     this._watchPollTimeoutsMap = {};
-    this._watchWebsocketRetriesMap = {};
+    this._websocketEventsMap = {};
 
     var self = this;
     $rootScope.$on( "$routeChangeStart", function(event, next, current) {
-      self._watchWebsocketRetriesMap = {};
-    });    
+      self._websocketEventsMap = {};
+    });
+
+    this.oApiVersion = "v1";
+    this.k8sApiVersion = "v1";
+
   }
 
-// type:      API type (e.g. "pods")
+// resource:  API resource (e.g. "pods")
 // context:   API context (e.g. {project: "..."})
-// callback:  function to be called with the list of the requested type and context,
+// callback:  function to be called with the list of the requested resource and context,
 //            parameters passed to the callback:
 //            Data:   a Data object containing the (context-qualified) results
 //                    which includes a helper method for returning a map indexed
 //                    by attribute (e.g. data.by('metadata.name'))
 // opts:      options (currently none, placeholder)
-  DataService.prototype.list = function(type, context, callback, opts) {
-    var callbacks = this._listCallbacks(type, context);
+  DataService.prototype.list = function(resource, context, callback, opts) {
+    resource = normalizeResource(resource);
+    var callbacks = this._listCallbacks(resource, context);
     callbacks.add(callback);
 
-    if (this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
+    if (this._watchInFlight(resource, context) && this._resourceVersion(resource, context)) {
       // A watch operation is running, and we've already received the
-      // initial set of data for this type
-      callbacks.fire(this._data(type, context));
+      // initial set of data for this resource
+      callbacks.fire(this._data(resource, context));
       callbacks.empty();
     }
-    else if (this._listInFlight(type, context)) {
+    else if (this._listInFlight(resource, context)) {
       // no-op, our callback will get called when listOperation completes
     }
     else {
-      this._startListOp(type, context);
+      this._startListOp(resource, context);
     }
   };
 
-// type:      API type (e.g. "pods")
+// resource:  API resource (e.g. "pods")
 // name:      API name, the unique name for the object
 // context:   API context (e.g. {project: "..."})
 // opts:      http - options to pass to the inner $http call
 // Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
-  DataService.prototype.delete = function(type, name, context, opts) {
+  DataService.prototype.delete = function(resource, name, context, opts) {
+    resource = normalizeResource(resource);
     opts = opts || {};
     var deferred = $q.defer();
     var self = this;
-  this._getNamespace(type, context, opts).then(function(ns){
+    this._getNamespace(resource, context, opts).then(function(ns){
       $http(angular.extend({
         method: 'DELETE',
-        url: self._urlForType(type, name, context, false, ns)
+        auth: {},
+        url: self._urlForResource(resource, name, null, context, false, ns)
       }, opts.http || {}))
       .success(function(data, status, headerFunc, config, statusText) {
         deferred.resolve(data);
@@ -147,20 +172,23 @@ angular.module('openshiftConsole')
     return deferred.promise;
   };
 
-// type:      API type (e.g. "pods")
+// resource:  API resource (e.g. "pods")
+// name:      API name, the unique name for the object
 // object:    API object data(eg. { kind: "Build", parameters: { ... } } )
 // context:   API context (e.g. {project: "..."})
 // opts:      http - options to pass to the inner $http call
 // Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
-  DataService.prototype.create = function(type, object, context, opts) {
+  DataService.prototype.update = function(resource, name, object, context, opts) {
+    resource = normalizeResource(resource);
     opts = opts || {};
     var deferred = $q.defer();
     var self = this;
-    this._getNamespace(type, context, opts).then(function(ns){
+    this._getNamespace(resource, context, opts).then(function(ns){
       $http(angular.extend({
-        method: 'POST',
+        method: 'PUT',
+        auth: {},
         data: object,
-        url: self._urlForType(type, null, context, false, ns)
+        url: self._urlForResource(resource, name, object.apiVersion, context, false, ns)
       }, opts.http || {}))
       .success(function(data, status, headerFunc, config, statusText) {
         deferred.resolve(data);
@@ -177,6 +205,39 @@ angular.module('openshiftConsole')
     return deferred.promise;
   };
 
+// resource:  API resource (e.g. "pods")
+// name:      API name, the unique name for the object.
+//            In case the name of the Object is provided, expected format of 'resource' parameter is 'resource/subresource', eg: 'buildconfigs/instantiate'.
+// object:    API object data(eg. { kind: "Build", parameters: { ... } } )
+// context:   API context (e.g. {project: "..."})
+// opts:      http - options to pass to the inner $http call
+// Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
+  DataService.prototype.create = function(resource, name, object, context, opts) {
+    resource = normalizeResource(resource);
+    opts = opts || {};
+    var deferred = $q.defer();
+    var self = this;
+    this._getNamespace(resource, context, opts).then(function(ns){
+      $http(angular.extend({
+        method: 'POST',
+        auth: {},
+        data: object,
+        url: self._urlForResource(resource, name, object.apiVersion, context, false, ns)
+      }, opts.http || {}))
+      .success(function(data, status, headerFunc, config, statusText) {
+        deferred.resolve(data);
+      })
+      .error(function(data, status, headers, config) {
+        deferred.reject({
+          data: data,
+          status: status,
+          headers: headers,
+          config: config
+        });
+      });
+    });
+    return deferred.promise;
+  };
 
   // objects:   Array of API object data(eg. [{ kind: "Build", parameters: { ... } }] )
   // context:   API context (e.g. {project: "..."})
@@ -198,7 +259,27 @@ angular.module('openshiftConsole')
     }
 
     objects.forEach(function(object) {
-      self.create(self._objectType(object.kind), object, context, opts).then(
+      var resource = self.kindToResource(object.kind);
+      if (!resource) {
+        failureResults.push({
+          data: {message: "Unrecognized kind " + object.kind}
+        });
+        remaining--;
+        _checkDone();
+        return;
+      }
+
+      var resourceInfo = self.resourceInfo(resource, object.apiVersion);
+      if (!resourceInfo) {
+        failureResults.push({
+          data: {message: "Unknown API version "+object.apiVersion+" for kind " + object.kind}
+        });
+        remaining--;
+        _checkDone();
+        return;
+      }
+
+      self.create(resource, null, object, context, opts).then(
         function (data) {
           successResults.push(data);
           remaining--;
@@ -214,13 +295,14 @@ angular.module('openshiftConsole')
     return result.promise;
   };
 
-// type:      API type (e.g. "pods")
+// resource:  API resource (e.g. "pods")
 // name:      API name, the unique name for the object
 // context:   API context (e.g. {project: "..."})
 // opts:      force - always request (default is false)
 //            http - options to pass to the inner $http call
 //            errorNotification - will popup an error notification if the API request fails (default true)
-  DataService.prototype.get = function(type, name, context, opts) {
+  DataService.prototype.get = function(resource, name, context, opts) {
+    resource = normalizeResource(resource);
     opts = opts || {};
 
     var force = !!opts.force;
@@ -228,15 +310,23 @@ angular.module('openshiftConsole')
 
     var deferred = $q.defer();
 
-    if (!force && this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
-      var obj = this._data(type, context).by('metadata.name')[name];
+    var existingData = this._data(resource, context);
+
+    // If this is a cached resource (immutable resources only), ignore the force parameter
+    if (this._isResourceCached(resource) && existingData && existingData.by('metadata.name')[name]) {
+      $timeout(function() {
+        deferred.resolve(existingData.by('metadata.name')[name]);
+      }, 0);
+    }
+    else if (!force && this._watchInFlight(resource, context) && this._resourceVersion(resource, context)) {
+      var obj = existingData.by('metadata.name')[name];
       if (obj) {
-        $rootScope.$apply(function(){
+        $timeout(function() {
           deferred.resolve(obj);
-        });
+        }, 0);
       }
       else {
-        $rootScope.$apply(function(){
+        $timeout(function() {
           // simulation of API object not found
           deferred.reject({
             data: {},
@@ -244,25 +334,34 @@ angular.module('openshiftConsole')
             headers: function() { return null; },
             config: {}
           });
-        });
+        }, 0);
       }
     }
     else {
       var self = this;
-      this._getNamespace(type, context, opts).then(function(ns){
+      this._getNamespace(resource, context, opts).then(function(ns){
         $http(angular.extend({
           method: 'GET',
-          url: self._urlForType(type, name, context, false, ns)
+          auth: {},
+          url: self._urlForResource(resource, name, null, context, false, ns)
         }, opts.http || {}))
         .success(function(data, status, headerFunc, config, statusText) {
+          if (self._isResourceCached(resource)) {
+            if (!existingData) {
+              self._data(resource, context, [data]);
+            }
+            else {
+              existingData.update(data, "ADDED");
+            }
+          }
           deferred.resolve(data);
         })
         .error(function(data, status, headers, config) {
           if (opts.errorNotification !== false) {
-            var msg = "Failed to get " + type + "/" + name;
+            var msg = "Failed to get " + resource + "/" + name;
             if (status !== 0) {
-              msg += " (" + status + ")"
-            }            
+              msg += " (" + status + ")";
+            }
             Notification.error(msg);
           }
           deferred.reject({
@@ -277,9 +376,137 @@ angular.module('openshiftConsole')
     return deferred.promise;
   };
 
-// type:      API type (e.g. "pods")
+// https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/btoa
+function utf8_to_b64( str ) {
+    return window.btoa(window.unescape(encodeURIComponent( str )));
+}
+function b64_to_utf8( str ) {
+    return decodeURIComponent(window.escape(window.atob( str )));
+}
+
+// TODO (bpeterse): Create a new Streamer service & get this out of DataService.
+DataService.prototype.createStream = function(kind, name, context, opts, isRaw) {
+  var getNamespace = this._getNamespace.bind(this);
+  var urlForResource = this._urlForResource.bind(this);
+  kind = this.kindToResource(kind) ?
+              this.kindToResource(kind) :
+              normalizeResource(kind);
+
+  var protocols = isRaw ? 'binary.k8s.io' : 'base64.binary.k8s.io';
+  var identifier = 'stream_';
+  var openQueue = {};
+  var messageQueue = {};
+  var closeQueue = {};
+  var errorQueue = {};
+
+  var stream;
+  var makeStream = function() {
+     return getNamespace(kind, context, {})
+                .then(function(params) {
+                  var cumulativeBytes = 0;
+                  return  $ws({
+                            url: urlForResource(kind, name, null, context, true, _.extend(params, opts)),
+                            auth: {},
+                            onopen: function(evt) {
+                              _.each(openQueue, function(fn) {
+                                fn(evt);
+                              });
+                            },
+                            onmessage: function(evt) {
+                              if(!_.isString(evt.data)) {
+                                Logger.log('log stream response is not a string', evt.data);
+                                return;
+                              }
+
+                              var message;
+                              if(!isRaw) {
+                                message = b64_to_utf8(evt.data);
+                                // Count bytes for log streams, which will stop when limitBytes is reached.
+                                // There's no other way to detect we've reach the limit currently.
+                                cumulativeBytes += message.length;
+                              }
+
+                              _.each(messageQueue, function(fn) {
+                                if(isRaw) {
+                                  fn(evt.data);
+                                } else {
+                                  fn(message, evt.data, cumulativeBytes);
+                                }
+                              });
+                            },
+                            onclose: function(evt) {
+                              _.each(closeQueue, function(fn) {
+                                fn(evt);
+                              });
+                            },
+                            onerror: function(evt) {
+                              _.each(errorQueue, function(fn) {
+                                fn(evt);
+                              });
+                            },
+                            protocols: protocols
+                          }).then(function(ws) {
+                            Logger.log("Streaming pod log", ws);
+                            return ws;
+                          });
+                });
+  };
+  return {
+    onOpen: function(fn) {
+      if(!_.isFunction(fn)) {
+        return;
+      }
+      var id = _.uniqueId(identifier);
+      openQueue[id] = fn;
+      return id;
+    },
+    onMessage: function(fn) {
+      if(!_.isFunction(fn)) {
+        return;
+      }
+      var id = _.uniqueId(identifier);
+      messageQueue[id] = fn;
+      return id;
+    },
+    onClose: function(fn) {
+      if(!_.isFunction(fn)) {
+        return;
+      }
+      var id = _.uniqueId(identifier);
+      closeQueue[id] = fn;
+      return id;
+    },
+    onError: function(fn) {
+      if(!_.isFunction(fn)) {
+        return;
+      }
+      var id = _.uniqueId(identifier);
+      errorQueue[id] = fn;
+      return id;
+    },
+    // can remove any callback from open, message, close or error
+    remove: function(id) {
+      if (openQueue[id]) { delete openQueue[id]; }
+      if (messageQueue[id]) { delete messageQueue[id]; }
+      if (closeQueue[id]) { delete closeQueue[id]; }
+      if (errorQueue[id]) { delete errorQueue[id]; }
+    },
+    start: function() {
+      stream = makeStream();
+      return stream;
+    },
+    stop: function() {
+      stream.then(function(ws) {
+        ws.close();
+      });
+    }
+  };
+};
+
+
+// resource:  API resource (e.g. "pods")
 // context:   API context (e.g. {project: "..."})
-// callback:  function to be called with the initial list of the requested type,
+// callback:  optional function to be called with the initial list of the requested resource,
 //            and when updates are received, parameters passed to the callback:
 //            Data:   a Data object containing the (context-qualified) results
 //                    which includes a helper method for returning a map indexed
@@ -297,62 +524,155 @@ angular.module('openshiftConsole')
 //                    only applies if poll=true.  Default is 5000.
 //
 // returns handle to the watch, needed to unwatch e.g.
-//        var handle = DataService.watch(type,context,callback[,opts])
+//        var handle = DataService.watch(resource,context,callback[,opts])
 //        DataService.unwatch(handle)
-  DataService.prototype.watch = function(type, context, callback, opts) {
+  DataService.prototype.watch = function(resource, context, callback, opts) {
+    resource = normalizeResource(resource);
     opts = opts || {};
-    this._watchCallbacks(type, context).add(callback);
 
-    var existingWatchOpts = this._watchOptions(type, context);
+    if (callback) {
+      // If we were given a callback, add it
+      this._watchCallbacks(resource, context).add(callback);
+    }
+    else if (!this._watchCallbacks(resource, context).has()) {
+      // We can be called with no callback in order to re-run a list/watch sequence for existing callbacks
+      // If there are no existing callbacks, return
+      return {};
+    }
+
+    var existingWatchOpts = this._watchOptions(resource, context);
     if (existingWatchOpts) {
       // Check any options for compatibility with existing watch
       if (existingWatchOpts.poll != opts.poll) {
-        throw "A watch already exists for " + type + " with a different polling option.";
+        throw "A watch already exists for " + resource + " with a different polling option.";
       }
     }
     else {
-      this._watchOptions(type, context, opts);
+      this._watchOptions(resource, context, opts);
     }
 
-    if (this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
-      callback(this._data(type, context));
-    }
-    else if (this._listInFlight(type, context)) {
-      // no-op, our callback will get called when listOperation completes
+    var self = this;
+
+    if (this._watchInFlight(resource, context) && this._resourceVersion(resource, context)) {
+      if (callback) {
+        $timeout(function() {
+          callback(self._data(resource, context));
+        }, 0);
+      }
     }
     else {
-      this._startListOp(type, context);
+      if (callback) {
+        var existingData = this._data(resource, context);
+        if (existingData) {
+          $timeout(function() {
+            callback(existingData);
+          }, 0);
+        }
+      }
+      if (!this._listInFlight(resource, context)) {
+        this._startListOp(resource, context);
+      }
     }
 
-    // returned handle needs type, context, and callback in order to unwatch
+    // returned handle needs resource, context, and callback in order to unwatch
     return {
-      type: type,
+      resource: resource,
       context: context,
       callback: callback,
       opts: opts
     };
   };
 
+
+
+// resource:  API resource (e.g. "pods")
+// name:      API name, the unique name for the object
+// context:   API context (e.g. {project: "..."})
+// callback:  optional function to be called with the initial list of the requested resource,
+//            and when updates are received, parameters passed to the callback:
+//            obj:    the requested object
+//            event:  specific event that caused this call ("ADDED", "MODIFIED",
+//                    "DELETED", or null) callbacks can optionally use this to
+//                    more efficiently process updates
+// opts:      options
+//            poll:   true | false - whether to poll the server instead of opening
+//                    a websocket. Default is false.
+//            pollInterval: in milliseconds, how long to wait between polling the server
+//                    only applies if poll=true.  Default is 5000.
+//
+// returns handle to the watch, needed to unwatch e.g.
+//        var handle = DataService.watch(resource,context,callback[,opts])
+//        DataService.unwatch(handle)
+  DataService.prototype.watchObject = function(resource, name, context, callback, opts) {
+    resource = normalizeResource(resource);
+    opts = opts || {};
+
+    var wrapperCallback;
+    if (callback) {
+      // If we were given a callback, add it
+      this._watchObjectCallbacks(resource, name, context).add(callback);
+      var self = this;
+      wrapperCallback = function(items, event, item) {
+        // If we got an event for a single item, only fire the callback if its the item we care about
+        if (item && item.metadata.name === name) {
+          self._watchObjectCallbacks(resource, name, context).fire(item, event);
+        }
+        else if (!item) {
+          // Otherwise its an initial listing, see if we can find the item we care about in the list
+          var itemsByName = items.by("metadata.name");
+          if (itemsByName[name]) {
+            self._watchObjectCallbacks(resource, name, context).fire(itemsByName[name]);
+          }
+        }
+      };
+    }
+    else if (!this._watchObjectCallbacks(resource, name, context).has()) {
+      // This block may not be needed yet, don't expect this would get called without a callback currently...
+      return {};
+    }
+
+    // For now just watch the type, eventually we may want to do something more complicated
+    // and watch just the object if the type is not already being watched
+    var handle = this.watch(resource, context, wrapperCallback, opts);
+    handle.objectCallback = callback;
+    handle.objectName = name;
+
+    return handle;
+  };
+
   DataService.prototype.unwatch = function(handle) {
-    var type = handle.type;
+    var resource = handle.resource;
+    var objectName = handle.objectName;
     var context = handle.context;
     var callback = handle.callback;
+    var objectCallback = handle.objectCallback;
     var opts = handle.opts;
-    var callbacks = this._watchCallbacks(type, context);
-    callbacks.remove(callback);
+
+    if (objectCallback && objectName) {
+      var objCallbacks = this._watchObjectCallbacks(resource, objectName, context);
+      objCallbacks.remove(objectCallback);
+    }
+
+    var callbacks = this._watchCallbacks(resource, context);
+    if (callback) {
+      callbacks.remove(callback);
+    }
     if (!callbacks.has()) {
       if (opts && opts.poll) {
-        clearTimeout(this._watchPollTimeouts(type, context));
-        this._watchPollTimeouts(type, context, null);
+        clearTimeout(this._watchPollTimeouts(resource, context));
+        this._watchPollTimeouts(resource, context, null);
       }
-      else if (this._watchWebsockets(type, context)){
+      else if (this._watchWebsockets(resource, context)){
         // watchWebsockets may not have been set up yet if the projectPromise never resolves
-        this._watchWebsockets(type, context).close();
-        this._watchWebsockets(type, context, null);
+        var ws = this._watchWebsockets(resource, context);
+        // Make sure the onclose listener doesn't reopen this websocket.
+        ws.shouldClose = true;
+        ws.close();
+        this._watchWebsockets(resource, context, null);
       }
 
-      this._watchInFlight(type, context, false);
-      this._watchOptions(type, context, null);
+      this._watchInFlight(resource, context, false);
+      this._watchOptions(resource, context, null);
     }
   };
 
@@ -363,16 +683,24 @@ angular.module('openshiftConsole')
     }
   };
 
-  DataService.prototype._watchCallbacks = function(type, context) {
-    var key = this._uniqueKeyForTypeContext(type, context);
+  DataService.prototype._watchCallbacks = function(resource, context) {
+    var key = this._uniqueKeyForResourceContext(resource, context);
     if (!this._watchCallbacksMap[key]) {
       this._watchCallbacksMap[key] = $.Callbacks();
     }
     return this._watchCallbacksMap[key];
   };
 
-  DataService.prototype._listCallbacks = function(type, context) {
-    var key = this._uniqueKeyForTypeContext(type, context);
+  DataService.prototype._watchObjectCallbacks = function(resource, name, context) {
+    var key = this._uniqueKeyForResourceContext(resource, context) + "/" + name;
+    if (!this._watchObjectCallbacksMap[key]) {
+      this._watchObjectCallbacksMap[key] = $.Callbacks();
+    }
+    return this._watchObjectCallbacksMap[key];
+  };
+
+  DataService.prototype._listCallbacks = function(resource, context) {
+    var key = this._uniqueKeyForResourceContext(resource, context);
     if (!this._listCallbacksMap[key]) {
       this._listCallbacksMap[key] = $.Callbacks();
     }
@@ -380,8 +708,8 @@ angular.module('openshiftConsole')
   };
 
   // maybe change these
-  DataService.prototype._watchInFlight = function(type, context, op) {
-    var key = this._uniqueKeyForTypeContext(type, context);
+  DataService.prototype._watchInFlight = function(resource, context, op) {
+    var key = this._uniqueKeyForResourceContext(resource, context);
     if (!op && op !== false) {
       return this._watchOperationMap[key];
     }
@@ -390,8 +718,8 @@ angular.module('openshiftConsole')
     }
   };
 
-  DataService.prototype._listInFlight = function(type, context, op) {
-    var key = this._uniqueKeyForTypeContext(type, context);
+  DataService.prototype._listInFlight = function(resource, context, op) {
+    var key = this._uniqueKeyForResourceContext(resource, context);
     if (!op && op !== false) {
       return this._listOperationMap[key];
     }
@@ -400,8 +728,8 @@ angular.module('openshiftConsole')
     }
   };
 
-  DataService.prototype._resourceVersion = function(type, context, rv) {
-    var key = this._uniqueKeyForTypeContext(type, context);
+  DataService.prototype._resourceVersion = function(resource, context, rv) {
+    var key = this._uniqueKeyForResourceContext(resource, context);
     if (!rv) {
       return this._resourceVersionMap[key];
     }
@@ -410,8 +738,8 @@ angular.module('openshiftConsole')
     }
   };
 
-  DataService.prototype._data = function(type, context, data) {
-    var key = this._uniqueKeyForTypeContext(type, context);
+  DataService.prototype._data = function(resource, context, data) {
+    var key = this._uniqueKeyForResourceContext(resource, context);
     if (!data) {
       return this._dataMap[key];
     }
@@ -420,8 +748,8 @@ angular.module('openshiftConsole')
     }
   };
 
-  DataService.prototype._watchOptions = function(type, context, opts) {
-    var key = this._uniqueKeyForTypeContext(type, context);
+  DataService.prototype._watchOptions = function(resource, context, opts) {
+    var key = this._uniqueKeyForResourceContext(resource, context);
     if (opts === undefined) {
       return this._watchOptionsMap[key];
     }
@@ -430,8 +758,8 @@ angular.module('openshiftConsole')
     }
   };
 
-  DataService.prototype._watchPollTimeouts = function(type, context, timeout) {
-    var key = this._uniqueKeyForTypeContext(type, context);
+  DataService.prototype._watchPollTimeouts = function(resource, context, timeout) {
+    var key = this._uniqueKeyForResourceContext(resource, context);
     if (!timeout) {
       return this._watchPollTimeoutsMap[key];
     }
@@ -440,8 +768,8 @@ angular.module('openshiftConsole')
     }
   };
 
-  DataService.prototype._watchWebsockets = function(type, context, timeout) {
-    var key = this._uniqueKeyForTypeContext(type, context);
+  DataService.prototype._watchWebsockets = function(resource, context, timeout) {
+    var key = this._uniqueKeyForResourceContext(resource, context);
     if (!timeout) {
       return this._watchWebsocketsMap[key];
     }
@@ -450,38 +778,108 @@ angular.module('openshiftConsole')
     }
   };
 
-  DataService.prototype._watchWebsocketRetries = function(type, context, retry) {
-    var key = this._uniqueKeyForTypeContext(type, context);
-    if (retry === undefined) {
-      return this._watchWebsocketRetriesMap[key];
+  // Maximum number of websocket events to track per resource/context in _websocketEventsMap.
+  var maxWebsocketEvents = 10;
+
+  DataService.prototype._addWebsocketEvent = function(resource, context, eventType) {
+    var key = this._uniqueKeyForResourceContext(resource, context);
+    var events = this._websocketEventsMap[key];
+    if (!events) {
+      events = this._websocketEventsMap[key] = [];
     }
-    else {
-      this._watchWebsocketRetriesMap[key] = retry;
-    }
+
+    // Add the event to the end of the array with the time in millis.
+    events.push({
+      type: eventType,
+      time: Date.now()
+    });
+
+    // Only keep 10 events. Shift the array to make room for the new event.
+    while (events.length > maxWebsocketEvents) { events.shift(); }
   };
 
-  DataService.prototype._uniqueKeyForTypeContext = function(type, context) {
+  function isTooManyRecentEvents(events) {
+    // If we've had more than 10 events in 30 seconds, stop.
+    // The oldest event is at index 0.
+    var recentDuration = 1000 * 30;
+    return events.length >= maxWebsocketEvents && (Date.now() - events[0].time) < recentDuration;
+  }
+
+  function isTooManyConsecutiveCloses(events) {
+    var maxConsecutiveCloseEvents = 5;
+    if (events.length < maxConsecutiveCloseEvents) {
+      return false;
+    }
+
+    // Make sure the last 5 events were not close events, which means the
+    // connection is not succeeding. This check is necessary if connection
+    // timeouts take longer than 6 seconds.
+    for (var i = events.length - maxConsecutiveCloseEvents; i < events.length; i++) {
+      if (events[i].type !== 'close') {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  DataService.prototype._isTooManyWebsocketRetries = function(resource, context) {
+    var key = this._uniqueKeyForResourceContext(resource, context);
+    var events = this._websocketEventsMap[key];
+    if (!events) {
+      return false;
+    }
+
+    if (isTooManyRecentEvents(events)) {
+      Logger.log("Too many websocket open or close events for resource/context in a short period", resource, context, events);
+      return true;
+    }
+
+    if (isTooManyConsecutiveCloses(events)) {
+      Logger.log("Too many consecutive websocket close events for resource/context", resource, context, events);
+      return true;
+    }
+
+    return false;
+  };
+
+  DataService.prototype._uniqueKeyForResourceContext = function(resource, context) {
     // Note: when we start handling selecting multiple projects this
     // will change to include all relevant scope
-    return type + context.projectName;
+    if (resource === "projects" || resource === "projectrequests") { // when we are loading non-namespaced resources we don't need additional context
+      return resource;
+    }
+    else if (context.namespace) {
+      return resource + "/" + context.namespace;
+    }
+    else if (context.project && context.project.metadata) {
+      return resource + "/" + context.project.metadata.name;
+    }
+    else if (context.projectName) {
+      return resource + "/" + context.projectName;
+    }
+    else {
+      return resource;
+    }
   };
 
-  DataService.prototype._startListOp = function(type, context) {
+  DataService.prototype._startListOp = function(resource, context) {
     // mark the operation as in progress
-    this._listInFlight(type, context, true);
+    this._listInFlight(resource, context, true);
 
     var self = this;
-    if (context.projectPromise && type !== "projects") {
+    if (context.projectPromise && resource !== "projects") {
       context.projectPromise.done(function(project) {
         $http({
           method: 'GET',
-          url: self._urlForType(type, null, context, false, {namespace: project.metadata.name})
+          auth: {},
+          url: self._urlForResource(resource, null, null, context, false, {namespace: project.metadata.name})
         }).success(function(data, status, headerFunc, config, statusText) {
-          self._listOpComplete(type, context, data);
+          self._listOpComplete(resource, context, data);
         }).error(function(data, status, headers, config) {
-          var msg = "Failed to list " + type;
+          var msg = "Failed to list " + resource;
           if (status !== 0) {
-            msg += " (" + status + ")"
+            msg += " (" + status + ")";
           }
           // TODO would like to make this optional with an errorNotification option, see get for an example
           Notification.error(msg);
@@ -491,13 +889,14 @@ angular.module('openshiftConsole')
     else {
       $http({
         method: 'GET',
-        url: this._urlForType(type, null, context),
+        auth: {},
+        url: this._urlForResource(resource, null, null, context),
       }).success(function(data, status, headerFunc, config, statusText) {
-        self._listOpComplete(type, context, data);
+        self._listOpComplete(resource, context, data);
       }).error(function(data, status, headers, config) {
-        var msg = "Failed to list " + type;
+        var msg = "Failed to list " + resource;
         if (status !== 0) {
-          msg += " (" + status + ")"
+          msg += " (" + status + ")";
         }
         // TODO would like to make this optional with an errorNotification option, see get for an example
         Notification.error(msg);
@@ -505,179 +904,241 @@ angular.module('openshiftConsole')
     }
   };
 
-  DataService.prototype._listOpComplete = function(type, context, data) {
-    this._resourceVersion(type, context, data.resourceVersion || data.metadata.resourceVersion);
-    this._data(type, context, data.items);
-    this._listCallbacks(type, context).fire(this._data(type, context));
-    this._listCallbacks(type, context).empty();
-    this._watchCallbacks(type, context).fire(this._data(type, context));
+  DataService.prototype._listOpComplete = function(resource, context, data) {
+    // Here we normalize all items to have a kind property.
+    // One of the warts in the kubernetes REST API is that items retrieved
+    // via GET on a list resource won't have a kind property set.
+    // See: https://github.com/kubernetes/kubernetes/issues/3030
+    if (data.kind && data.kind.indexOf("List") === data.kind.length - 4) {
+      angular.forEach(data.items, function(item) {
+        if (!item.kind) {
+          item.kind = data.kind.slice(0, -4);
+        }
+      });
+    }
+
+    this._resourceVersion(resource, context, data.resourceVersion || data.metadata.resourceVersion);
+    this._data(resource, context, data.items);
+    this._listCallbacks(resource, context).fire(this._data(resource, context));
+    this._listCallbacks(resource, context).empty();
+    this._watchCallbacks(resource, context).fire(this._data(resource, context));
 
     // mark list op as complete
-    this._listInFlight(type, context, false);
+    this._listInFlight(resource, context, false);
 
-    if (this._watchCallbacks(type, context).has()) {
-      var watchOpts = this._watchOptions(type, context) || {};
+    if (this._watchCallbacks(resource, context).has()) {
+      var watchOpts = this._watchOptions(resource, context) || {};
       if (watchOpts.poll) {
-        this._watchInFlight(type, context, true);
-        this._watchPollTimeouts(type, context, setTimeout($.proxy(this, "_startListOp", type, context), watchOpts.pollInterval || 5000));
+        this._watchInFlight(resource, context, true);
+        this._watchPollTimeouts(resource, context, setTimeout($.proxy(this, "_startListOp", resource, context), watchOpts.pollInterval || 5000));
       }
-      else if (!this._watchInFlight(type, context)) {
-        this._startWatchOp(type, context, this._resourceVersion(type, context));
+      else if (!this._watchInFlight(resource, context)) {
+        this._startWatchOp(resource, context, this._resourceVersion(resource, context));
       }
     }
   };
 
-  DataService.prototype._startWatchOp = function(type, context, resourceVersion) {
-    this._watchInFlight(type, context, true);
-    // Note: current impl uses one websocket per type
+  DataService.prototype._startWatchOp = function(resource, context, resourceVersion) {
+    this._watchInFlight(resource, context, true);
+    // Note: current impl uses one websocket per resource
     // eventually want a single websocket connection that we
-    // send a subscription request to for each type
+    // send a subscription request to for each resource
 
     // Only listen for updates if websockets are available
     if ($ws.available()) {
       var self = this;
       var params = {};
+      params.watch = true;
       if (resourceVersion) {
         params.resourceVersion = resourceVersion;
       }
-      if (context.projectPromise && type !== "projects") {
+      if (context.projectPromise && resource !== "projects") {
         context.projectPromise.done(function(project) {
           params.namespace = project.metadata.name;
           $ws({
             method: "WATCH",
-            url: self._urlForType(type, null, context, true, params),
-            onclose: $.proxy(self, "_watchOpOnClose", type, context),
-            onmessage: $.proxy(self, "_watchOpOnMessage", type, context),
-            onopen: $.proxy(self, "_watchOpOnOpen", type, context)
+            url: self._urlForResource(resource, null, null, context, true, params),
+            auth:      {},
+            onclose:   $.proxy(self, "_watchOpOnClose",   resource, context),
+            onmessage: $.proxy(self, "_watchOpOnMessage", resource, context),
+            onopen:    $.proxy(self, "_watchOpOnOpen",    resource, context)
           }).then(function(ws) {
             Logger.log("Watching", ws);
-            self._watchWebsockets(type, context, ws);
+            self._watchWebsockets(resource, context, ws);
           });
         });
       }
       else {
         $ws({
           method: "WATCH",
-          url: self._urlForType(type, null, context, true, params),
-          onclose: $.proxy(self, "_watchOpOnClose", type, context),
-          onmessage: $.proxy(self, "_watchOpOnMessage", type, context),
-          onopen: $.proxy(self, "_watchOpOnOpen", type, context)
+          url: self._urlForResource(resource, null, null, context, true, params),
+          auth:      {},
+          onclose:   $.proxy(self, "_watchOpOnClose",   resource, context),
+          onmessage: $.proxy(self, "_watchOpOnMessage", resource, context),
+          onopen:    $.proxy(self, "_watchOpOnOpen",    resource, context)
         }).then(function(ws){
           Logger.log("Watching", ws);
-          self._watchWebsockets(type, context, ws);
+          self._watchWebsockets(resource, context, ws);
         });
       }
     }
   };
 
-  DataService.prototype._watchOpOnOpen = function(type, context, event) {
-    // If we opened the websocket cleanly, set retries to 0
-    this._watchWebsocketRetries(type, context, 0);
+  DataService.prototype._watchOpOnOpen = function(resource, context, event) {
+    Logger.log('Websocket opened for resource/context', resource, context);
+    this._addWebsocketEvent(resource, context, 'open');
   };
 
-  DataService.prototype._watchOpOnMessage = function(type, context, event) {
+  DataService.prototype._watchOpOnMessage = function(resource, context, event) {
     try {
       var eventData = $.parseJSON(event.data);
 
-      this._resourceVersion(type, context, eventData.object.resourceVersion || eventData.object.metadata.resourceVersion);
+      if (eventData.type == "ERROR") {
+        Logger.log("Watch window expired for resource/context", resource, context);
+        if (event.target) {
+          event.target.shouldRelist = true;
+        }
+        return;
+      }
+      else if (eventData.type === "DELETED") {
+        // Add this ourselves since the API doesn't add anything
+        // this way the views can use it to trigger special behaviors
+        if (eventData.object && eventData.object.metadata && !eventData.object.metadata.deletionTimestamp) {
+          eventData.object.metadata.deletionTimestamp = (new Date()).toISOString();
+        }
+      }
+
+      if (eventData.object) {
+        this._resourceVersion(resource, context, eventData.object.resourceVersion || eventData.object.metadata.resourceVersion);
+      }
       // TODO do we reset all the by() indices, or simply update them, since we should know what keys are there?
       // TODO let the data object handle its own update
-      this._data(type, context).update(eventData.object, eventData.type);
+      this._data(resource, context).update(eventData.object, eventData.type);
       var self = this;
-      // Wrap in $apply to mirror $http callback behavior
-      $rootScope.$apply(function() {
-        self._watchCallbacks(type, context).fire(self._data(type, context), eventData.type, eventData.object);
-      });
+      // Wrap in a $timeout which will trigger an $apply to mirror $http callback behavior
+      // without timeout this is triggering a repeated digest loop
+      $timeout(function() {
+        self._watchCallbacks(resource, context).fire(self._data(resource, context), eventData.type, eventData.object);
+      }, 0);
     }
     catch (e) {
-      // TODO report the JSON parsing exception
+      // TODO: surface in the UI?
+      Logger.error("Error processing message", resource, event.data);
     }
   };
 
-  DataService.prototype._watchOpOnClose = function(type, context, event) {
-    // Attempt to re-establish the connection in cases
-    // where the socket close was unexpected, i.e. the event's
-    // wasClean attribute is false
-    var retry = this._watchWebsocketRetries(type, context) || 0;
-    if (!event.wasClean && this._watchCallbacks(type, context).has()) {
-      if (retry < 5) {
-        this._watchWebsocketRetries(type, context, retry + 1);
-        setTimeout(
-          $.proxy(this, "_startWatchOp", type, context, this._resourceVersion(type, context)),
-          1000
-        );
-      }
-      else {
-        Notification.error(
-          "Server connection interrupted.", 
-          {
-            id: "websocket_retry_halted",
-            mustDismiss: true,
-            actions: {
-              "refresh" : {
-                label: "Refresh",
-                action: function() {
-                  window.location.reload();
-                }
-              }
-            }
-          }
-        );
-      }
+  DataService.prototype._watchOpOnClose = function(resource, context, event) {
+    var eventWS = event.target;
+    if (!eventWS) {
+      Logger.log("Skipping reopen, no eventWS in event", event);
+      return;
     }
+
+    var registeredWS = this._watchWebsockets(resource, context);
+    if (!registeredWS) {
+      Logger.log("Skipping reopen, no registeredWS for resource/context", resource, context);
+      return;
+    }
+
+    // Don't reopen a web socket that is no longer registered for this resource/context
+    if (eventWS !== registeredWS) {
+      Logger.log("Skipping reopen, eventWS does not match registeredWS", eventWS, registeredWS);
+      return;
+    }
+
+    // We are the registered web socket for this resource/context, and we are no longer in flight
+    // Unlock this resource/context in case we decide not to reopen
+    this._watchInFlight(resource, context, false);
+
+    // Don't reopen web sockets we closed ourselves
+    if (eventWS.shouldClose) {
+      Logger.log("Skipping reopen, eventWS was explicitly closed", eventWS);
+      return;
+    }
+
+    // Don't reopen clean closes (for example, navigating away from the page to example.com)
+    if (event.wasClean) {
+      Logger.log("Skipping reopen, clean close", event);
+      return;
+    }
+
+    // Don't reopen if no one is listening for this data any more
+    if (!this._watchCallbacks(resource, context).has()) {
+      Logger.log("Skipping reopen, no listeners registered for resource/context", resource, context);
+      return;
+    }
+
+    // Don't reopen if we've failed this resource/context too many times
+    if (this._isTooManyWebsocketRetries(resource, context)) {
+      Notification.error("Server connection interrupted.", {
+        id: "websocket_retry_halted",
+        mustDismiss: true,
+        actions: {
+          refresh: {label: "Refresh", action: function() { window.location.reload(); }}
+        }
+      });
+      return;
+    }
+
+    // Keep track of this event.
+    this._addWebsocketEvent(resource, context, 'close');
+
+    // If our watch window expired, we have to relist to get a new resource version to watch from
+    if (eventWS.shouldRelist) {
+      Logger.log("Relisting for resource/context", resource, context);
+      // Restart a watch() from the beginning, which triggers a list/watch sequence
+      // The watch() call is responsible for setting _watchInFlight back to true
+      // Add a short delay to avoid a scenario where we make non-stop requests
+      // When the timeout fires, if no callbacks are registered for this
+      //   resource/context, or if a watch is already in flight, `watch()` is a no-op
+      var self = this;
+      setTimeout(function() {
+        self.watch(resource, context);
+      }, 2000);
+      return;
+    }
+
+    // Attempt to re-establish the connection after a two-second back-off
+    // Re-mark ourselves as in-flight to prevent other callers from jumping in in the meantime
+    Logger.log("Rewatching for resource/context", resource, context);
+    this._watchInFlight(resource, context, true);
+    setTimeout(
+      $.proxy(this, "_startWatchOp", resource, context, this._resourceVersion(resource, context)),
+      2000
+    );
   };
 
-  var URL_ROOT_TEMPLATE = "{protocol}://{+serverUrl}{+apiPrefix}/{apiVersion}/";
-  var URL_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/{type}{?q*}";
-  var URL_GET_LIST = URL_ROOT_TEMPLATE + "{type}{?q*}";
-  var URL_GET_OBJECT = URL_ROOT_TEMPLATE + "{type}/{id}{?q*}";
-  var URL_NAMESPACED_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/namespaces/{namespace}/{type}{?q*}";
-  var URL_NAMESPACED_GET_LIST = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}{?q*}";
-  var URL_NAMESPACED_GET_OBJECT = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}/{id}{?q*}";
-  // TODO is there a better way to get this template instead of building it, introspection?
-  var BUILD_HOOKS_URL = URL_ROOT_TEMPLATE + "{type}/{id}/{secret}/{hookType}{?q*}";
+  var URL_ROOT_TEMPLATE         = "{protocol}://{+serverUrl}{+apiPrefix}/{apiVersion}/";
+  var URL_GET_LIST              = URL_ROOT_TEMPLATE + "{resource}{?q*}";
+  var URL_OBJECT                = URL_ROOT_TEMPLATE + "{resource}/{name}{/subresource*}{?q*}";
+  var URL_NAMESPACED_GET_LIST   = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{resource}{?q*}";
+  var URL_NAMESPACED_OBJECT     = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{resource}/{name}{/subresource*}{?q*}";
 
-  // Set the api version the console is currently able to talk to
-  API_CFG.openshift.version = "v1beta1";
-  API_CFG.k8s.version = "v1beta3";
+  // Set the default api versions the console will use if otherwise unspecified
+  API_CFG.openshift.defaultVersion = "v1";
+  API_CFG.k8s.defaultVersion = "v1";
 
-  // Set whether namespace is a path or query parameter
-  API_CFG.openshift.namespacePath = false;
-  API_CFG.k8s.namespacePath = true;
+  DataService.prototype._urlForResource = function(resource, name, apiVersion, context, isWebsocket, params) {
 
-  // TODO this is not the ideal, issue open to discuss adding
-  // an introspection endpoint that would give us this mapping
-  // https://github.com/openshift/origin/issues/230
-  var SERVER_TYPE_MAP = {
-    builds:                    API_CFG.openshift,
-    buildConfigs:              API_CFG.openshift,
-    buildConfigHooks:          API_CFG.openshift,
-    deploymentConfigs:         API_CFG.openshift,
-    images:                    API_CFG.openshift,
-    imageRepositories:         API_CFG.openshift,
-    imageStreams:              API_CFG.openshift,
-    oAuthAccessTokens:         API_CFG.openshift,
-    oAuthAuthorizeTokens:      API_CFG.openshift,
-    oAuthClients:              API_CFG.openshift,
-    oAuthClientAuthorizations: API_CFG.openshift,
-    policies:                  API_CFG.openshift,
-    policyBindings:            API_CFG.openshift,
-    projects:                  API_CFG.openshift,
-    roles:                     API_CFG.openshift,
-    roleBindings:              API_CFG.openshift,
-    routes:                    API_CFG.openshift,
-    templates:                 API_CFG.openshift,
-    templateConfigs:           API_CFG.openshift,
-    users:                     API_CFG.openshift,
+    var resourceWithSubresource;
+    var subresource;
+    // Parse the resource parameter for resource itself and subresource. Examples:
+    //    buildconfigs/instantiate
+    //    buildconfigs/webhooks/mysecret/github
+    if(resource.indexOf('/') !== -1){
+      resourceWithSubresource = resource.split("/");
+      // first segment is the resource
+      resource = resourceWithSubresource.shift();
+      // all remaining segments are the subresource
+      subresource = resourceWithSubresource;
+    }
 
-    pods:                      API_CFG.k8s,
-    replicationcontrollers:    API_CFG.k8s,
-    services:                  API_CFG.k8s,
-    resourcequotas:            API_CFG.k8s,
-    limitranges:               API_CFG.k8s
-  };
+    var resourceInfo = this.resourceInfo(resource, apiVersion);
+    if (!resourceInfo) {
+      Logger.error("_urlForResource called with unknown resource", resource, arguments);
+      return null;
+    }
 
-  DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {
     var protocol;
     params = params || {};
     if (isWebsocket) {
@@ -691,7 +1152,7 @@ angular.module('openshiftConsole')
       params.namespace = context.namespace;
     }
 
-    var namespaceInPath = params.namespace && SERVER_TYPE_MAP[type].namespacePath;
+    var namespaceInPath = params.namespace;
     var namespace = null;
     if (namespaceInPath) {
       namespace = params.namespace;
@@ -701,84 +1162,108 @@ angular.module('openshiftConsole')
     var template;
     var templateOptions = {
       protocol: protocol,
-      serverUrl: SERVER_TYPE_MAP[type].hostPort,
-      apiPrefix: SERVER_TYPE_MAP[type].prefix,
-      apiVersion: SERVER_TYPE_MAP[type].version,
-      type: type,
-      id: id,
-      namespace: namespace
+      serverUrl: resourceInfo.hostPort,
+      apiPrefix: resourceInfo.prefix,
+      apiVersion: resourceInfo.apiVersion,
+      resource: resource,
+      subresource: subresource,
+      name: name,
+      namespace: namespace,
+      q: params
     };
-    if (isWebsocket) {
-      template = namespaceInPath ? URL_NAMESPACED_WATCH_LIST : URL_WATCH_LIST;
-    }
-    else if (id) {
-      if (type === "buildConfigHooks") {
-        templateOptions.secret = params.secret;
-        templateOptions.hookType = params.hookType;
-        params = angular.copy(params);
-        delete params.secret;
-        delete params.hookType;
-        template = BUILD_HOOKS_URL;
-      }
-      else
-      {
-        template = namespaceInPath ? URL_NAMESPACED_GET_OBJECT : URL_GET_OBJECT;
-      }
+    if (name) {
+      template = namespaceInPath ? URL_NAMESPACED_OBJECT : URL_OBJECT;
     }
     else {
       template = namespaceInPath ? URL_NAMESPACED_GET_LIST : URL_GET_LIST;
     }
-
-    templateOptions.q = params;
     return URI.expand(template, templateOptions);
   };
 
   DataService.prototype.url = function(options) {
-    if (options && options.type) {
+    if (options && options.resource) {
       var opts = angular.copy(options);
-      delete opts.type;
-      delete opts.id;
-      return this._urlForType(options.type, options.id, null, false, opts).toString();
+      delete opts.resource;
+      delete opts.name;
+      delete opts.apiVersion;
+      delete opts.isWebsocket;
+      var resource = normalizeResource(options.resource);
+      var u = this._urlForResource(resource, options.name, options.apiVersion, null, !!options.isWebsocket, opts);
+      if (u) {
+        return u.toString();
+      }
     }
     return null;
   };
 
-  var OBJECT_KIND_MAP = {
-    Build:                    "builds",
-    BuildConfig:              "buildConfigs",
-    DeploymentConfig:         "deploymentConfigs",
-    Image:                    "images",
-    ImageRepository:          "imageRepositories",
-    ImageStream:              "imageStreams",
-    OAuthAccessToken:         "oAuthAccessTokens",
-    OAuthAuthorizeToken:      "oAuthAuthorizeTokens",
-    OAuthClient:              "oAuthClients",
-    OAuthClientAuthorization: "oAuthClientAuthorizations",
-    Policy:                   "policies",
-    PolicyBinding:            "policyBindings",
-    Project:                  "projects",
-    Role:                     "roles",
-    RoleBinding:              "roleBindings",
-    Route:                    "routes",
-    User:                     "users",
-
-    Pod:                      "pods",
-    ReplicationController:    "replicationcontrollers",
-    Service:                  "services",
-    ResourceQuota:            "resourcequotas",
-    LimitRange:               "limitranges"
+  DataService.prototype.openshiftAPIBaseUrl = function() {
+    var protocol = window.location.protocol === "http:" ? "http" : "https";
+    var hostPort = API_CFG.openshift.hostPort;
+    return new URI({protocol: protocol, hostname: hostPort}).toString();
   };
 
-  DataService.prototype._objectType = function(kind) {
-    return OBJECT_KIND_MAP[kind];
+  DataService.prototype.resourceInfo = function(resource, preferredAPIVersion) {
+    var api, apiVersion, prefix;
+    for (var apiName in API_CFG) {
+      api = API_CFG[apiName];
+      if (!api.resources[resource] && !api.resources['*']) {
+        continue;
+      }
+      apiVersion = preferredAPIVersion || api.defaultVersion;
+      prefix = api.prefixes[apiVersion] || api.prefixes['*'];
+      if (!prefix) {
+        continue;
+      }
+      return {
+      	hostPort:   api.hostPort,
+      	prefix:     prefix,
+      	apiVersion: apiVersion
+      };
+    }
+    return undefined;
   };
 
-  DataService.prototype._getNamespace = function(type, context, opts) {
+  // port of restmapper.go#kindToResource
+  DataService.prototype.kindToResource = function(kind) {
+    if (!kind) {
+      return "";
+    }
+    var resource = String(kind).toLowerCase();
+    if (resource.endsWith('status')) {
+      resource = resource + 'es';
+    }
+    else if (resource.endsWith('s')) {
+      // no-op
+    }
+    else if (resource.endsWith('y')) {
+      resource = resource.substring(0, resource.length-1) + 'ies';
+    }
+    else {
+      resource = resource + 's';
+    }
+
+    // make sure it is a known resource
+    if (!this.resourceInfo(resource)) {
+      Logger.warn('Unknown resource "' + resource + '"');
+      return undefined;
+    }
+    return resource;
+  };
+
+  var CACHED_RESOURCE = {
+    imagestreamimages: true
+  };
+
+  DataService.prototype._isResourceCached = function(resource) {
+    return !!CACHED_RESOURCE[resource];
+  };
+
+  DataService.prototype._getNamespace = function(resource, context, opts) {
     var deferred = $q.defer();
     if (opts.namespace) {
       deferred.resolve({namespace: opts.namespace});
     }
-    else if (context.projectPromise && type !== "projects") {
+    else if (context.projectPromise && resource !== "projects") {
       context.projectPromise.done(function(project) {
         deferred.resolve({namespace: project.metadata.name});
       });

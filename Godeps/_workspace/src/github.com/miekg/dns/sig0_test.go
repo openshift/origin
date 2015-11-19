@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"crypto"
 	"testing"
 	"time"
 )
@@ -11,7 +12,7 @@ func TestSIG0(t *testing.T) {
 	}
 	m := new(Msg)
 	m.SetQuestion("example.org.", TypeSOA)
-	for _, alg := range []uint8{DSA, ECDSAP256SHA256, ECDSAP384SHA384, RSASHA1, RSASHA256, RSASHA512} {
+	for _, alg := range []uint8{ECDSAP256SHA256, ECDSAP384SHA384, RSASHA1, RSASHA256, RSASHA512} {
 		algstr := AlgorithmToString[alg]
 		keyrr := new(KEY)
 		keyrr.Hdr.Name = algstr + "."
@@ -27,8 +28,7 @@ func TestSIG0(t *testing.T) {
 		}
 		pk, err := keyrr.Generate(keysize)
 		if err != nil {
-			t.Logf("Failed to generate key for “%s”: %v", algstr, err)
-			t.Fail()
+			t.Errorf("Failed to generate key for “%s”: %v", algstr, err)
 			continue
 		}
 		now := uint32(time.Now().Unix())
@@ -41,21 +41,18 @@ func TestSIG0(t *testing.T) {
 		sigrr.Inception = now - 300
 		sigrr.KeyTag = keyrr.KeyTag()
 		sigrr.SignerName = keyrr.Hdr.Name
-		mb, err := sigrr.Sign(pk, m)
+		mb, err := sigrr.Sign(pk.(crypto.Signer), m)
 		if err != nil {
-			t.Logf("Failed to sign message using “%s”: %v", algstr, err)
-			t.Fail()
+			t.Errorf("Failed to sign message using “%s”: %v", algstr, err)
 			continue
 		}
 		m := new(Msg)
 		if err := m.Unpack(mb); err != nil {
-			t.Logf("Failed to unpack message signed using “%s”: %v", algstr, err)
-			t.Fail()
+			t.Errorf("Failed to unpack message signed using “%s”: %v", algstr, err)
 			continue
 		}
 		if len(m.Extra) != 1 {
-			t.Logf("Missing SIG for message signed using “%s”", algstr)
-			t.Fail()
+			t.Errorf("Missing SIG for message signed using “%s”", algstr)
 			continue
 		}
 		var sigrrwire *SIG
@@ -63,8 +60,7 @@ func TestSIG0(t *testing.T) {
 		case *SIG:
 			sigrrwire = rr
 		default:
-			t.Logf("Expected SIG RR, instead: %v", rr)
-			t.Fail()
+			t.Errorf("Expected SIG RR, instead: %v", rr)
 			continue
 		}
 		for _, rr := range []*SIG{sigrr, sigrrwire} {
@@ -73,23 +69,20 @@ func TestSIG0(t *testing.T) {
 				id = "sigrrwire"
 			}
 			if err := rr.Verify(keyrr, mb); err != nil {
-				t.Logf("Failed to verify “%s” signed SIG(%s): %v", algstr, id, err)
-				t.Fail()
+				t.Errorf("Failed to verify “%s” signed SIG(%s): %v", algstr, id, err)
 				continue
 			}
 		}
 		mb[13]++
 		if err := sigrr.Verify(keyrr, mb); err == nil {
-			t.Logf("Verify succeeded on an altered message using “%s”", algstr)
-			t.Fail()
+			t.Errorf("Verify succeeded on an altered message using “%s”", algstr)
 			continue
 		}
 		sigrr.Expiration = 2
 		sigrr.Inception = 1
-		mb, _ = sigrr.Sign(pk, m)
+		mb, _ = sigrr.Sign(pk.(crypto.Signer), m)
 		if err := sigrr.Verify(keyrr, mb); err == nil {
-			t.Logf("Verify succeeded on an expired message using “%s”", algstr)
-			t.Fail()
+			t.Errorf("Verify succeeded on an expired message using “%s”", algstr)
 			continue
 		}
 	}

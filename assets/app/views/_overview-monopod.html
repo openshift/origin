@@ -1,0 +1,42 @@
+<!--
+  Expects the following variables. All must be defined in the overviewMonopod directive scope.
+
+  pod - Pod. Required.
+ -->
+<div class="tile-container components-panel deployment-block osc-object" kind="Pod" resource="pod">
+  <div class="connector">
+    <i class="fa fa-search"></i>
+  </div>
+
+  <div class="component-block component-meta">
+    <div class="component">
+      <span class="component-label">Pod: {{pod.metadata.name}}</span>
+    </div>
+
+    <div class="component meta-data">
+      created <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp>
+    </div>
+
+  </div>
+
+  <div row mobile="column" axis="center center" class="pod-block">
+    <div row>
+      <!-- spacer -->
+      <div flex class="visible-xs-block"></div>
+      <div column class="overview-pods">
+        <div column>
+          <pod-status-chart pods="[pod]" ng-click="viewPod()"></pod-status-chart>
+        </div>
+      </div>
+      <!-- spacer -->
+      <div flex class="visible-xs-block"></div>
+    </div>
+    <div column grow="2">
+      <!-- spacer -->
+      <div flex></div>
+      <pod-template pod-template="pod"></pod-template>
+      <!-- spacer -->
+      <div flex></div>
+    </div>
+  </div>
+</div>

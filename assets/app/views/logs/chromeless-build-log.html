@@ -1,0 +1,15 @@
+<div column flex class="content">
+  <div flex class="log-chromeless">
+    <alerts alerts="alerts"></alerts>
+    <log-viewer
+      kind="builds/log"
+      name="build.metadata.name"
+      context="logContext"
+      status="build.status.phase"
+      start="build.status.startTimestamp | date : 'short'"
+      end="build.status.completionTimestamp | date : 'short'"
+      chromeless="true"
+      flex>
+    </log-viewer>
+  </div>
+</div>

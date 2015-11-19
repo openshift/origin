@@ -3,13 +3,14 @@ package generator
 import (
 	"fmt"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -54,16 +55,16 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 		}
 
 		// Find the latest tag event for the trigger tag
-		latestEvent, err := imageapi.LatestTaggedImage(imageStream, params.Tag)
-		if err != nil {
+		latestEvent := imageapi.LatestTaggedImage(imageStream, params.Tag)
+		if latestEvent == nil {
 			f := fmt.Sprintf("triggers[%d].imageChange.tag", i)
-			errs = append(errs, fielderrors.NewFieldInvalid(f, params.Tag, err.Error()))
+			errs = append(errs, fielderrors.NewFieldInvalid(f, params.Tag, fmt.Sprintf("no image recorded for %s/%s:%s", imageStream.Namespace, imageStream.Name, params.Tag)))
 			continue
 		}
 
 		// Update containers
 		template := config.Template.ControllerTemplate.Template
-		names := util.NewStringSet(params.ContainerNames...)
+		names := sets.NewString(params.ContainerNames...)
 		containerChanged := false
 		for i := range template.Spec.Containers {
 			container := &template.Spec.Containers[i]
@@ -132,12 +133,7 @@ func (g *DeploymentConfigGenerator) findImageStream(config *deployapi.Deployment
 			return &repo, nil
 		}
 	}
-	return nil, fmt.Errorf("couldn't find image stream for config %s trigger params", labelFor(config))
-}
-
-// labelFor builds a string identifier for a DeploymentConfig.
-func labelFor(config *deployapi.DeploymentConfig) string {
-	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
+	return nil, fmt.Errorf("couldn't find image stream for config %s trigger params", deployutil.LabelForDeploymentConfig(config))
 }
 
 type GeneratorClient interface {

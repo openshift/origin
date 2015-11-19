@@ -1,9 +1,9 @@
 package client
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -38,7 +38,7 @@ func newPolicies(c *Client, namespace string) *policies {
 // List returns a list of policies that match the label and field selectors.
 func (c *policies) List(label labels.Selector, field fields.Selector) (result *authorizationapi.PolicyList, err error) {
 	result = &authorizationapi.PolicyList{}
-	err = c.r.Get().Namespace(c.ns).Resource("policies").LabelsSelectorParam("labels", label).FieldsSelectorParam("fields", field).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("policies").LabelsSelectorParam(label).FieldsSelectorParam(field).Do().Into(result)
 	return
 }
 
@@ -57,5 +57,5 @@ func (c *policies) Delete(name string) (err error) {
 
 // Watch returns a watch.Interface that watches the requested policies
 func (c *policies) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.r.Get().Prefix("watch").Namespace(c.ns).Resource("policies").Param("resourceVersion", resourceVersion).LabelsSelectorParam("labels", label).FieldsSelectorParam("fields", field).Watch()
+	return c.r.Get().Prefix("watch").Namespace(c.ns).Resource("policies").Param("resourceVersion", resourceVersion).LabelsSelectorParam(label).FieldsSelectorParam(field).Watch()
 }

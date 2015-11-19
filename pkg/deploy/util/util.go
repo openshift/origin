@@ -1,66 +1,106 @@
 package util
 
 import (
-	"encoding/json"
 	"fmt"
-	"hash/adler32"
+	"sort"
 	"strconv"
+	"strings"
 
-	"github.com/golang/glog"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	"github.com/openshift/origin/pkg/util/namer"
 )
 
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
 func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
-	return config.Name + "-" + strconv.Itoa(config.LatestVersion)
+	return fmt.Sprintf("%s-%d", config.Name, config.LatestVersion)
 }
 
-func DeployerPodNameForDeployment(deployment *api.ReplicationController) string {
-	return fmt.Sprintf("deploy-%s", deployment.Name)
-}
-
-// HashPodSpecs hashes a PodSpec into a uint64.
-// TODO: Resources are currently ignored due to the formats not surviving encoding/decoding
-// in a consistent manner (e.g. 0 is represented sometimes as 0.000)
-func HashPodSpec(t api.PodSpec) uint64 {
-	// Ignore resources by making them uniformly empty
-	for i := range t.Containers {
-		t.Containers[i].Resources = api.ResourceRequirements{}
+// LatestDeploymentInfo returns info about the latest deployment for a config,
+// if it exists and its current status
+func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments *api.ReplicationControllerList) (bool, deployapi.DeploymentStatus) {
+	if config.LatestVersion == 0 || len(deployments.Items) == 0 {
+		return false, deployapi.DeploymentStatus("")
 	}
-
-	jsonString, err := json.Marshal(t)
-	if err != nil {
-		glog.Errorf("An error occurred marshalling pod state: %v", err)
-		return 0
-	}
-	hash := adler32.New()
-	fmt.Fprintf(hash, "%s", jsonString)
-	return uint64(hash.Sum32())
+	sort.Sort(ByLatestVersionDesc(deployments.Items))
+	candidate := &deployments.Items[0]
+	return DeploymentVersionFor(candidate) == config.LatestVersion, DeploymentStatusFor(candidate)
 }
 
-// PodSpecsEqual returns true if the given PodSpecs are the same.
-func PodSpecsEqual(a, b api.PodSpec) bool {
-	return HashPodSpec(a) == HashPodSpec(b)
+// DeployerPodSuffix is the suffix added to pods created from a deployment
+const DeployerPodSuffix = "deploy"
+
+// DeployerPodNameForDeployment returns the name of a pod for a given deployment
+func DeployerPodNameForDeployment(deployment string) string {
+	return namer.GetPodName(deployment, DeployerPodSuffix)
+}
+
+// LabelForDeployment builds a string identifier for a Deployment.
+func LabelForDeployment(deployment *api.ReplicationController) string {
+	return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
+}
+
+// LabelForDeploymentConfig builds a string identifier for a DeploymentConfig.
+func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
+	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
+}
+
+// DeploymentNameForConfigVersion returns the name of the version-th deployment
+// for the config that has the provided name
+func DeploymentNameForConfigVersion(name string, version int) string {
+	return fmt.Sprintf("%s-%d", name, version)
+}
+
+// ConfigSelector returns a label Selector which can be used to find all
+// deployments for a DeploymentConfig.
+//
+// TODO: Using the annotation constant for now since the value is correct
+// but we could consider adding a new constant to the public types.
+func ConfigSelector(name string) labels.Selector {
+	return labels.Set{deployapi.DeploymentConfigAnnotation: name}.AsSelector()
+}
+
+// DeployerPodSelector returns a label Selector which can be used to find all
+// deployer pods associated with a deployment with name.
+func DeployerPodSelector(name string) labels.Selector {
+	return labels.Set{deployapi.DeployerPodForDeploymentLabel: name}.AsSelector()
+}
+
+// AnyDeployerPodSelector returns a label Selector which can be used to find
+// all deployer pods across all deployments, including hook and custom
+// deployer pods.
+func AnyDeployerPodSelector() labels.Selector {
+	sel, _ := labels.Parse(deployapi.DeployerPodForDeploymentLabel)
+	return sel
+}
+
+// HasChangeTrigger returns whether the provided deployment configuration has
+// a config change trigger or not
+func HasChangeTrigger(config *deployapi.DeploymentConfig) bool {
+	for _, trigger := range config.Triggers {
+		if trigger.Type == deployapi.DeploymentTriggerOnConfigChange {
+			return true
+		}
+	}
+	return false
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
 // if the controller doesn't contain an encoded config.
 func DecodeDeploymentConfig(controller *api.ReplicationController, codec runtime.Codec) (*deployapi.DeploymentConfig, error) {
-	encodedConfig := []byte(controller.Annotations[deployapi.DeploymentEncodedConfigAnnotation])
+	encodedConfig := []byte(EncodedDeploymentConfigFor(controller))
 	if decoded, err := codec.Decode(encodedConfig); err == nil {
 		if config, ok := decoded.(*deployapi.DeploymentConfig); ok {
 			return config, nil
 		} else {
-			return nil, fmt.Errorf("Decoded deploymentConfig from controller is not a DeploymentConfig: %v", err)
+			return nil, fmt.Errorf("decoded DeploymentConfig from controller is not a DeploymentConfig: %v", err)
 		}
 	} else {
-		return nil, fmt.Errorf("Failed to decode DeploymentConfig from controller: %v", err)
+		return nil, fmt.Errorf("failed to decode DeploymentConfig from controller: %v", err)
 	}
 }
 
@@ -87,13 +127,17 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 
 	podSpec := api.PodSpec{}
 	if err := api.Scheme.Convert(&config.Template.ControllerTemplate.Template.Spec, &podSpec); err != nil {
-		return nil, fmt.Errorf("Couldn't clone podTemplateSpec: %v", err)
+		return nil, fmt.Errorf("couldn't clone podSpec: %v", err)
 	}
 
 	controllerLabels := make(labels.Set)
 	for k, v := range config.Labels {
 		controllerLabels[k] = v
 	}
+	// Correlate the deployment with the config.
+	// TODO: Using the annotation constant for now since the value is correct
+	// but we could consider adding a new constant to the public types.
+	controllerLabels[deployapi.DeploymentConfigAnnotation] = config.Name
 
 	// Ensure that pods created by this deployment controller can be safely associated back
 	// to the controller, and that multiple deployment controllers for the same config don't
@@ -161,4 +205,96 @@ func (lw *ListWatcherImpl) List() (runtime.Object, error) {
 
 func (lw *ListWatcherImpl) Watch(resourceVersion string) (watch.Interface, error) {
 	return lw.WatchFunc(resourceVersion)
+}
+
+func DeploymentConfigNameFor(obj runtime.Object) string {
+	return annotationFor(obj, deployapi.DeploymentConfigAnnotation)
+}
+
+func DeploymentNameFor(obj runtime.Object) string {
+	return annotationFor(obj, deployapi.DeploymentAnnotation)
+}
+
+func DeployerPodNameFor(obj runtime.Object) string {
+	return annotationFor(obj, deployapi.DeploymentPodAnnotation)
+}
+
+func DeploymentStatusFor(obj runtime.Object) deployapi.DeploymentStatus {
+	return deployapi.DeploymentStatus(annotationFor(obj, deployapi.DeploymentStatusAnnotation))
+}
+
+func DeploymentStatusReasonFor(obj runtime.Object) string {
+	return annotationFor(obj, deployapi.DeploymentStatusReasonAnnotation)
+}
+
+func DeploymentDesiredReplicas(obj runtime.Object) (int, bool) {
+	s := annotationFor(obj, deployapi.DesiredReplicasAnnotation)
+	if len(s) == 0 {
+		return 0, false
+	}
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, false
+	}
+	return i, true
+}
+
+func EncodedDeploymentConfigFor(obj runtime.Object) string {
+	return annotationFor(obj, deployapi.DeploymentEncodedConfigAnnotation)
+}
+
+func DeploymentVersionFor(obj runtime.Object) int {
+	v, err := strconv.Atoi(annotationFor(obj, deployapi.DeploymentVersionAnnotation))
+	if err != nil {
+		return -1
+	}
+	return v
+}
+
+func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
+	value := annotationFor(deployment, deployapi.DeploymentCancelledAnnotation)
+	return strings.EqualFold(value, deployapi.DeploymentCancelledAnnotationValue)
+}
+
+// IsTerminatedDeployment returns true if the passed deployment has terminated (either
+// complete or failed).
+func IsTerminatedDeployment(deployment *api.ReplicationController) bool {
+	current := DeploymentStatusFor(deployment)
+	return current == deployapi.DeploymentStatusComplete || current == deployapi.DeploymentStatusFailed
+}
+
+// annotationFor returns the annotation with key for obj.
+func annotationFor(obj runtime.Object, key string) string {
+	meta, err := api.ObjectMetaFor(obj)
+	if err != nil {
+		return ""
+	}
+	return meta.Annotations[key]
+}
+
+// ByLatestVersionAsc sorts deployments by LatestVersion ascending.
+type ByLatestVersionAsc []api.ReplicationController
+
+func (d ByLatestVersionAsc) Len() int      { return len(d) }
+func (d ByLatestVersionAsc) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
+func (d ByLatestVersionAsc) Less(i, j int) bool {
+	return DeploymentVersionFor(&d[i]) < DeploymentVersionFor(&d[j])
+}
+
+// ByLatestVersionDesc sorts deployments by LatestVersion descending.
+type ByLatestVersionDesc []api.ReplicationController
+
+func (d ByLatestVersionDesc) Len() int      { return len(d) }
+func (d ByLatestVersionDesc) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
+func (d ByLatestVersionDesc) Less(i, j int) bool {
+	return DeploymentVersionFor(&d[j]) < DeploymentVersionFor(&d[i])
+}
+
+// ByMostRecent sorts deployments by most recently created.
+type ByMostRecent []*api.ReplicationController
+
+func (s ByMostRecent) Len() int      { return len(s) }
+func (s ByMostRecent) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s ByMostRecent) Less(i, j int) bool {
+	return !s[i].CreationTimestamp.Before(s[j].CreationTimestamp)
 }

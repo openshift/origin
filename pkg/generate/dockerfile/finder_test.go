@@ -57,6 +57,11 @@ func TestFind(t *testing.T) {
 			isDir: false,
 		},
 		{
+			name:  "Dockerfile",
+			path:  "test2/Dockerfile",
+			isDir: true,
+		},
+		{
 			name:  ".hidden",
 			path:  ".hidden",
 			isDir: true,

@@ -8,41 +8,47 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('PodsController', function ($scope, DataService, $filter, LabelFilter, Logger) {
+  .controller('PodsController', function ($scope, DataService, AlertMessageService, $filter, LabelFilter, Logger) {
     $scope.pods = {};
     $scope.unfilteredPods = {};
-    $scope.images = {};
-    $scope.imagesByDockerReference = {};
-    $scope.builds = {};    
+    // TODO should we add links to the image streams the pod is using
+    // $scope.imageStreams = {};
+    // $scope.imagesByDockerReference = {};
+    // $scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
+
+    // get and clear any alerts
+    AlertMessageService.getAlerts().forEach(function(alert) {
+      $scope.alerts[alert.name] = alert.data;
+    });
+    AlertMessageService.clearAlerts();
+
     var watches = [];
 
     watches.push(DataService.watch("pods", $scope, function(pods) {
       $scope.unfilteredPods = pods.by("metadata.name");
-      LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredPods, $scope.labelSuggestions);
-      LabelFilter.setLabelSuggestions($scope.labelSuggestions);
       $scope.pods = LabelFilter.getLabelSelector().select($scope.unfilteredPods);
       $scope.emptyMessage = "No pods to show";
+      // TODO should we add links to the image streams the pod is using
+      //ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
+      LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredPods, $scope.labelSuggestions);
+      LabelFilter.setLabelSuggestions($scope.labelSuggestions);
       updateFilterWarning();
       Logger.log("pods (subscribe)", $scope.unfilteredPods);
-    }));    
+    }));
 
-    // Also load images and builds to fill out details in the pod template
-    watches.push(DataService.watch("images", $scope, function(images) {
-      $scope.images = images.by("metadata.name");
-      $scope.imagesByDockerReference = images.by("dockerImageReference");
-      Logger.log("images (subscribe)", $scope.images);
-      Logger.log("imagesByDockerReference (subscribe)", $scope.imagesByDockerReference);
-    }));    
+    // TODO should we add links to the image streams the pod is using
+    // // Sets up subscription for imageStreams
+    // watches.push(DataService.watch("imagestreams", $scope, function(imageStreams) {
+    //   $scope.imageStreams = imageStreams.by("metadata.name");
+    //   ImageStreamResolver.buildDockerRefMapForImageStreams($scope.imageStreams, $scope.imageStreamImageRefByDockerReference);
+    //   ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
+    //   Logger.log("imagestreams (subscribe)", $scope.imageStreams);
+    // }));
 
-    watches.push(DataService.watch("builds", $scope, function(builds) {
-      $scope.builds = builds.by("metadata.name");
-      Logger.log("builds (subscribe)", $scope.builds);
-    }));   
-
-    var updateFilterWarning = function() {
+    function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.pods) && !$.isEmptyObject($scope.unfilteredPods)) {
         $scope.alerts["pods"] = {
           type: "warning",
@@ -51,8 +57,8 @@ angular.module('openshiftConsole')
       }
       else {
         delete $scope.alerts["pods"];
-      }       
-    };
+      }
+    }
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
       // trigger a digest loop
@@ -60,9 +66,9 @@ angular.module('openshiftConsole')
         $scope.pods = labelSelector.select($scope.unfilteredPods);
         updateFilterWarning();
       });
-    });   
+    });
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
-    });     
+    });
   });

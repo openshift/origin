@@ -1,63 +1,72 @@
 package start
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
+	"path/filepath"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
-
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 )
 
-func TestCommandBindingListenHttp(t *testing.T) {
-	valueToSet := "http://example.org:9123"
-	masterArgs, masterCfg, masterErr, nodeArgs, nodeCfg, nodeErr := executeAllInOneCommandWithConfigs([]string{"--listen=" + valueToSet})
+// this groups of methods force all the unit tests to share the same config directory
+// the non-cert parts of the directory are cleaned up with every execution, but the certs
+// remain in order to speed up the tests.
+var configDir = ""
 
-	if masterErr != nil {
-		t.Fatalf("Unexpected error: %v", masterErr)
-	}
-	if nodeErr != nil {
-		t.Fatalf("Unexpected error: %v", nodeErr)
-	}
+const nodeConfigGlob = "node-*/node-config.yaml"
 
-	if configapi.UseTLS(masterCfg.ServingInfo) {
-		t.Errorf("Unexpected TLS: %v", masterCfg.ServingInfo)
-	}
-	if configapi.UseTLS(masterCfg.AssetConfig.ServingInfo) {
-		t.Errorf("Unexpected TLS: %v", masterCfg.AssetConfig.ServingInfo)
-	}
-	if configapi.UseTLS(nodeCfg.ServingInfo) {
-		t.Errorf("Unexpected TLS: %v", nodeCfg.ServingInfo)
+func getNodeConfigGlob() string {
+	return path.Join(getNodeConfigDir(), nodeConfigGlob)
+}
+
+func getConfigDir() string {
+	if len(configDir) == 0 {
+		configDir, _ = ioutil.TempDir("", "")
 	}
 
-	if masterArgs.ListenArg.ListenAddr.String() != valueToSet {
-		t.Errorf("Expected %v, got %v", valueToSet, masterArgs.ListenArg.ListenAddr.String())
-	}
-	if nodeArgs.ListenArg.ListenAddr.String() != valueToSet {
-		t.Errorf("Expected %v, got %v", valueToSet, nodeArgs.ListenArg.ListenAddr.String())
-	}
+	return configDir
+}
 
-	// Ensure there are no errors other than missing client kubeconfig files and missing bootstrap policy files
-	masterErrs := validation.ValidateMasterConfig(masterCfg).Filter(func(e error) bool {
-		return strings.Contains(e.Error(), "masterClients.") || strings.Contains(e.Error(), "policyConfig.bootstrapPolicyFile")
-	})
-	if len(masterErrs) != 0 {
-		t.Errorf("Unexpected validation errors: %v", utilerrors.NewAggregate(masterErrs))
-	}
+func getAllInOneConfigDir() string {
+	return getConfigDir()
+}
 
-	nodeErrs := validation.ValidateNodeConfig(nodeCfg).Filter(func(e error) bool {
-		return strings.Contains(e.Error(), "masterKubeConfig")
-	})
-	if len(nodeErrs) != 0 {
-		t.Errorf("Unexpected validation errors: %v", utilerrors.NewAggregate(nodeErrs))
+func getMasterConfigDir() string {
+	return path.Join(getConfigDir(), "master")
+}
+
+func getCleanAllInOneConfigDir() string {
+	cleanupMasterConfigDir()
+	return getAllInOneConfigDir()
+}
+
+func getCleanMasterConfigDir() string {
+	cleanupMasterConfigDir()
+	cleanupNodeConfigDirs()
+	return getMasterConfigDir()
+}
+
+func getNodeConfigDir() string {
+	return path.Join(getConfigDir(), "node")
+}
+
+func cleanupMasterConfigDir() {
+	os.Remove(path.Join(getMasterConfigDir(), "policy.json"))
+	os.Remove(path.Join(getMasterConfigDir(), "master-config.yaml"))
+}
+func cleanupNodeConfigDirs() {
+	// no errors reported, just best effort
+	nodeConfigs, _ := filepath.Glob(getNodeConfigGlob())
+	for _, file := range nodeConfigs {
+		os.Remove(file)
 	}
 }
 
@@ -113,11 +122,8 @@ func TestCommandBindingPortalNet(t *testing.T) {
 	valueToSet := "192.168.0.0/16"
 	actualCfg := executeMasterCommand([]string{"--portal-net=" + valueToSet})
 
-	expectedArgs := NewDefaultMasterArgs()
-	expectedArgs.PortalNet.Set(valueToSet)
-
-	if expectedArgs.PortalNet.String() != actualCfg.PortalNet.String() {
-		t.Errorf("expected %v, got %v", expectedArgs.PortalNet.String(), actualCfg.PortalNet.String())
+	if valueToSet != actualCfg.NetworkArgs.ServiceNetworkCIDR {
+		t.Errorf("expected %v, got %v", valueToSet, actualCfg.NetworkArgs.ServiceNetworkCIDR)
 	}
 }
 
@@ -146,18 +152,6 @@ func TestCommandBindingImageLatest(t *testing.T) {
 	}
 }
 
-func TestCommandBindingVolumeDir(t *testing.T) {
-	valueToSet := "some-string"
-	actualCfg := executeNodeCommand([]string{"--volume-dir=" + valueToSet})
-
-	expectedArgs := NewDefaultNodeArgs()
-	expectedArgs.VolumeDir = valueToSet
-
-	if expectedArgs.VolumeDir != actualCfg.VolumeDir {
-		t.Errorf("expected %v, got %v", expectedArgs.VolumeDir, actualCfg.VolumeDir)
-	}
-}
-
 func TestCommandBindingEtcdDir(t *testing.T) {
 	valueToSet := "some-string"
 	actualCfg := executeMasterCommand([]string{"--etcd-dir=" + valueToSet})
@@ -167,74 +161,6 @@ func TestCommandBindingEtcdDir(t *testing.T) {
 
 	if expectedArgs.EtcdDir != actualCfg.EtcdDir {
 		t.Errorf("expected %v, got %v", expectedArgs.EtcdDir, actualCfg.EtcdDir)
-	}
-}
-
-func TestCommandBindingCertDir(t *testing.T) {
-	valueToSet := "some-string"
-	actualCfg := executeMasterCommand([]string{"--cert-dir=" + valueToSet})
-
-	expectedArgs := NewDefaultMasterArgs()
-	expectedArgs.CertArgs.CertDir = valueToSet
-
-	if expectedArgs.CertArgs.CertDir != actualCfg.CertArgs.CertDir {
-		t.Errorf("expected %v, got %v", expectedArgs.CertArgs.CertDir, actualCfg.CertArgs.CertDir)
-	}
-}
-
-func TestCommandBindingHostname(t *testing.T) {
-	valueToSet := "some-string"
-	actualCfg := executeNodeCommand([]string{"--hostname=" + valueToSet})
-
-	expectedArgs := NewDefaultNodeArgs()
-	expectedArgs.NodeName = valueToSet
-
-	if expectedArgs.NodeName != actualCfg.NodeName {
-		t.Errorf("expected %v, got %v", expectedArgs.NodeName, actualCfg.NodeName)
-	}
-}
-
-// AllInOne always adds the default hostname
-func TestCommandBindingNodesForAllInOneAppend(t *testing.T) {
-	valueToSet := "first,second,third"
-	actualMasterCfg, actualNodeConfig := executeAllInOneCommand([]string{"--nodes=" + valueToSet})
-
-	expectedArgs := NewDefaultMasterArgs()
-
-	stringList := util.StringList{}
-	stringList.Set(valueToSet + "," + strings.ToLower(actualNodeConfig.NodeName))
-	expectedArgs.NodeList.Set(strings.Join(util.NewStringSet(stringList...).List(), ","))
-
-	if expectedArgs.NodeList.String() != actualMasterCfg.NodeList.String() {
-		t.Errorf("expected %v, got %v", expectedArgs.NodeList, actualMasterCfg.NodeList)
-	}
-}
-
-// AllInOne always adds the default hostname
-func TestCommandBindingNodesForAllInOneAppendNoDupes(t *testing.T) {
-	valueToSet := "first,localhost,second,third"
-	actualMasterCfg, _ := executeAllInOneCommand([]string{"--nodes=" + valueToSet, "--hostname=LOCALHOST"})
-
-	expectedArgs := NewDefaultMasterArgs()
-	expectedArgs.NodeList.Set(valueToSet)
-
-	util.NewStringSet()
-
-	if expectedArgs.NodeList.String() != actualMasterCfg.NodeList.String() {
-		t.Errorf("expected %v, got %v", expectedArgs.NodeList, actualMasterCfg.NodeList)
-	}
-}
-
-// AllInOne always adds the default hostname
-func TestCommandBindingNodesDefaultingAllInOne(t *testing.T) {
-	actualMasterCfg, _ := executeAllInOneCommand([]string{})
-
-	expectedArgs := NewDefaultMasterArgs()
-	expectedNodeArgs := NewDefaultNodeArgs()
-	expectedArgs.NodeList.Set(strings.ToLower(expectedNodeArgs.NodeName))
-
-	if expectedArgs.NodeList.String() != actualMasterCfg.NodeList.String() {
-		t.Errorf("expected %v, got %v", expectedArgs.NodeList, actualMasterCfg.NodeList)
 	}
 }
 
@@ -276,16 +202,11 @@ func TestCommandBindingCors(t *testing.T) {
 }
 
 func executeMasterCommand(args []string) *MasterArgs {
-	fakeConfigFile, _ := ioutil.TempFile("", "")
-	defer os.Remove(fakeConfigFile.Name())
-
 	argsToUse := make([]string, 0, 4+len(args))
 	argsToUse = append(argsToUse, "master")
 	argsToUse = append(argsToUse, args...)
-	argsToUse = append(argsToUse, "--write-config")
-	argsToUse = append(argsToUse, "--create-policy-file=false")
+	argsToUse = append(argsToUse, "--write-config="+getCleanMasterConfigDir())
 	argsToUse = append(argsToUse, "--create-certs=false")
-	argsToUse = append(argsToUse, "--config="+fakeConfigFile.Name())
 
 	root := &cobra.Command{
 		Use:   "openshift",
@@ -296,7 +217,7 @@ func executeMasterCommand(args []string) *MasterArgs {
 		},
 	}
 
-	openshiftStartCommand, cfg := NewCommandStartMaster()
+	openshiftStartCommand, cfg := NewCommandStartMaster("openshift", os.Stdout)
 	root.AddCommand(openshiftStartCommand)
 	root.SetArgs(argsToUse)
 	root.Execute()
@@ -310,19 +231,11 @@ func executeAllInOneCommand(args []string) (*MasterArgs, *NodeArgs) {
 }
 
 func executeAllInOneCommandWithConfigs(args []string) (*MasterArgs, *configapi.MasterConfig, error, *NodeArgs, *configapi.NodeConfig, error) {
-	fakeMasterConfigFile, _ := ioutil.TempFile("", "")
-	defer os.Remove(fakeMasterConfigFile.Name())
-	fakeNodeConfigFile, _ := ioutil.TempFile("", "")
-	defer os.Remove(fakeNodeConfigFile.Name())
-
 	argsToUse := make([]string, 0, 4+len(args))
 	argsToUse = append(argsToUse, "start")
 	argsToUse = append(argsToUse, args...)
-	argsToUse = append(argsToUse, "--write-config")
+	argsToUse = append(argsToUse, "--write-config="+getCleanAllInOneConfigDir())
 	argsToUse = append(argsToUse, "--create-certs=false")
-	argsToUse = append(argsToUse, "--create-policy-file=false")
-	argsToUse = append(argsToUse, "--master-config="+fakeMasterConfigFile.Name())
-	argsToUse = append(argsToUse, "--node-config="+fakeNodeConfigFile.Name())
 
 	root := &cobra.Command{
 		Use:   "openshift",
@@ -333,41 +246,27 @@ func executeAllInOneCommandWithConfigs(args []string) (*MasterArgs, *configapi.M
 		},
 	}
 
-	openshiftStartCommand, cfg := NewCommandStartAllInOne()
+	openshiftStartCommand, cfg := NewCommandStartAllInOne("openshift start", os.Stdout)
 	root.AddCommand(openshiftStartCommand)
 	root.SetArgs(argsToUse)
 	root.Execute()
 
-	masterCfg, masterErr := configapilatest.ReadAndResolveMasterConfig(fakeMasterConfigFile.Name())
-	nodeCfg, nodeErr := configapilatest.ReadAndResolveNodeConfig(fakeNodeConfigFile.Name())
+	masterCfg, masterErr := configapilatest.ReadAndResolveMasterConfig(path.Join(getAllInOneConfigDir(), "master", "master-config.yaml"))
 
-	return cfg.MasterArgs, masterCfg, masterErr, cfg.NodeArgs, nodeCfg, nodeErr
-}
+	var nodeCfg *configapi.NodeConfig
+	var nodeErr error
 
-func executeNodeCommand(args []string) *NodeArgs {
-	fakeConfigFile, _ := ioutil.TempFile("", "")
-	defer os.Remove(fakeConfigFile.Name())
-
-	argsToUse := make([]string, 0, 4+len(args))
-	argsToUse = append(argsToUse, "node")
-	argsToUse = append(argsToUse, args...)
-	argsToUse = append(argsToUse, "--write-config")
-	argsToUse = append(argsToUse, "--create-certs=false")
-	argsToUse = append(argsToUse, "--config="+fakeConfigFile.Name())
-
-	root := &cobra.Command{
-		Use:   "openshift",
-		Short: "test",
-		Long:  "",
-		Run: func(c *cobra.Command, args []string) {
-			c.Help()
-		},
+	nodeConfigs, nodeErr := filepath.Glob(getNodeConfigGlob())
+	if nodeErr == nil {
+		if len(nodeConfigs) != 1 {
+			nodeErr = fmt.Errorf("found wrong number of node configs: %v", nodeConfigs)
+		} else {
+			nodeCfg, nodeErr = configapilatest.ReadAndResolveNodeConfig(nodeConfigs[0])
+		}
 	}
 
-	openshiftStartCommand, cfg := NewCommandStartNode()
-	root.AddCommand(openshiftStartCommand)
-	root.SetArgs(argsToUse)
-	root.Execute()
-
-	return cfg.NodeArgs
+	if nodeCfg == nil && nodeErr == nil {
+		nodeErr = errors.New("did not find node config")
+	}
+	return cfg.MasterOptions.MasterArgs, masterCfg, masterErr, cfg.NodeArgs, nodeCfg, nodeErr
 }

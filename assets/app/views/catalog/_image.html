@@ -1,0 +1,38 @@
+<div class="tile tile-compact tile-image tile-click label-tags" id="" ng-attr-title="{{imageStream | imageStreamTagAnnotation : 'description' : imageTag}}">
+  <div row cross-axis="center" class="tile-flex">
+    <div row main-axis="center" class="image-icon">
+      <custom-icon resource="imageStream" kind="image" tag="imageTag" title="{{imageStream.metadata.name}}:{{imageTag}}"></custom-icon>
+    </div>
+    <div flex>
+      <h3>
+        <a class="tile-target" ng-href="{{imageStream | createFromImageURL : imageTag : project}}">{{imageStream.metadata.name}}:{{imageTag}}</a>
+      </h3>
+      <div ng-if="imageStream | imageStreamTagAnnotation : 'provider' : imageTag">
+        <label style="margin-right: 5px;">Provider:</label>
+        {{imageStream | imageStreamTagAnnotation : 'provider' : imageTag}}
+      </div>
+      <!-- Only show the namespace if it's not in the shared openshift namespace -->
+      <div ng-if="imageStream.metadata.namespace !== 'openshift'">
+        <label style="margin-right: 5px;">Namespace:</label>
+        {{imageStream.metadata.namespace}}
+      </div>
+      <div ng-if="version && version !== imageTag">
+        <label style="margin-right: 5px;">Version:</label>
+        {{version}}
+      </div>
+      <a href="" ng-click="filterTag(tag)" ng-repeat="tag in (imageStream | imageStreamTagTags : imageTag)" class="tag small">
+        {{tag}}
+      </a>
+    </div>
+    <!-- Unset title attribute to prevent two tooltips. -->
+    <div title="" ng-if="isBuilder">
+      <i
+        class="pficon pficon-image"
+        aria-hidden="true"
+        data-toggle="tooltip"
+        data-placement="bottom"
+        data-container="body"
+        data-original-title="This image can build source code."></i>
+    </div>
+  </div>
+</div>

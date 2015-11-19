@@ -1,3 +1,5 @@
+'use strict';
+
 // Provide a websocket implementation that behaves like $http
 // Methods:
 //   $ws({
@@ -5,13 +7,11 @@
 //     method: "...", // defaults to WATCH
 //   })
 //   returns a promise to the opened WebSocket
-// 
+//
 //   $ws.available()
 //   returns true if WebSockets are available to use
 angular.module('openshiftConsole')
 .provider('$ws', function($httpProvider) {
-
-  var debug = false;
 
   // $get method is called to build the $ws service
   this.$get = function($q, $injector, Logger) {
@@ -36,10 +36,11 @@ angular.module('openshiftConsole')
       authLogger.log("$ws (pre-intercept)", config.url.toString());
       var serverRequest = function(config) {
         authLogger.log("$ws (post-intercept)", config.url.toString());
-        var ws = new WebSocket(config.url);
+        var ws = new WebSocket(config.url, config.protocols);
         if (config.onclose)   { ws.onclose   = config.onclose;   }
         if (config.onmessage) { ws.onmessage = config.onmessage; }
-        if (config.onopen) { ws.onopen = config.onopen; }
+        if (config.onopen)    { ws.onopen    = config.onopen;    }
+        if (config.onerror)   { ws.onerror    = config.onerror;  }
         return ws;
       };
 
@@ -62,7 +63,7 @@ angular.module('openshiftConsole')
       }
       return promise;
     };
-  
+
     // Implement $ws.available()
     $ws.available = function() {
       try {
@@ -72,7 +73,19 @@ angular.module('openshiftConsole')
         return false;
       }
     };
-  
+
     return $ws;
   };
 })
+
+/* A WebSocket factory for kubernetesContainerTerminal */
+.factory("ContainerWebSocket", function(API_CFG, $ws) {
+  return function AuthWebSocket(url, protocols) {
+    var scheme;
+    if (url.indexOf("/") === 0) {
+      scheme = window.location.protocol === "http:" ? "ws://" : "wss://";
+      url = scheme + API_CFG.openshift.hostPort + url;
+    }
+    return $ws({ url: url, method: "WATCH", protocols: protocols, auth: {} });
+  };
+});

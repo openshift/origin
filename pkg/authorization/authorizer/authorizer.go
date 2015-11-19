@@ -1,23 +1,21 @@
 package authorizer
 
 import (
-	"fmt"
-
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/user"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 )
 
 type openshiftAuthorizer struct {
-	masterAuthorizationNamespace string
-	ruleResolver                 rulevalidation.AuthorizationRuleResolver
+	ruleResolver          rulevalidation.AuthorizationRuleResolver
+	forbiddenMessageMaker ForbiddenMessageMaker
 }
 
-func NewAuthorizer(masterAuthorizationNamespace string, ruleResolver rulevalidation.AuthorizationRuleResolver) Authorizer {
-	return &openshiftAuthorizer{masterAuthorizationNamespace, ruleResolver}
+func NewAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, forbiddenMessageMaker ForbiddenMessageMaker) Authorizer {
+	return &openshiftAuthorizer{ruleResolver, forbiddenMessageMaker}
 }
 
 func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes AuthorizationAttributes) (bool, string, error) {
@@ -28,7 +26,7 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Autho
 	// This is most common when a bound role is missing, but enough roles are still present and bound to authorize the request.
 	errs := []error{}
 
-	masterContext := kapi.WithNamespace(ctx, a.masterAuthorizationNamespace)
+	masterContext := kapi.WithNamespace(ctx, kapi.NamespaceNone)
 	globalAllowed, globalReason, err := a.authorizeWithNamespaceRules(masterContext, attributes)
 	if globalAllowed {
 		return true, globalReason, nil
@@ -52,78 +50,80 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Autho
 		return false, "", kerrors.NewAggregate(errs)
 	}
 
-	username := "MISSING"
-	if user, userExists := kapi.UserFrom(ctx); userExists {
-		username = user.GetName()
-	}
-
-	denyReason := "denied by default"
-	if passedAttributes.IsNonResourceURL() {
-		denyReason = fmt.Sprintf("%v cannot %v on %v", username, attributes.GetVerb(), attributes.GetURL())
-
-	} else {
-		resourceNamePart := ""
-		if len(attributes.GetResourceName()) > 0 {
-			resourceNamePart = fmt.Sprintf(" with name \"%v\"", attributes.GetResourceName())
-		}
-		denyReason = fmt.Sprintf("%v cannot %v on %v%v in %v", username, attributes.GetVerb(), attributes.GetResource(), resourceNamePart, namespace)
+	user, _ := kapi.UserFrom(ctx)
+	denyReason, err := a.forbiddenMessageMaker.MakeMessage(MessageContext{user, namespace, attributes})
+	if err != nil {
+		denyReason = err.Error()
 	}
 
 	return false, denyReason, nil
 }
 
-func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
-	masterContext := kapi.WithNamespace(ctx, a.masterAuthorizationNamespace)
+// GetAllowedSubjects returns the subjects it knows can perform the action.
+// If we got an error, then the list of subjects may not be complete, but it does not contain any incorrect names.
+// This is done because policy rules are purely additive and policy determinations
+// can be made on the basis of those rules that are found.
+func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) (sets.String, sets.String, error) {
+	errs := []error{}
+
+	masterContext := kapi.WithNamespace(ctx, kapi.NamespaceNone)
 	globalUsers, globalGroups, err := a.getAllowedSubjectsFromNamespaceBindings(masterContext, attributes)
 	if err != nil {
-		return nil, nil, err
+		errs = append(errs, err)
 	}
 	localUsers, localGroups, err := a.getAllowedSubjectsFromNamespaceBindings(ctx, attributes)
 	if err != nil {
-		return nil, nil, err
+		errs = append(errs, err)
 	}
 
-	users := util.StringSet{}
+	users := sets.String{}
 	users.Insert(globalUsers.List()...)
 	users.Insert(localUsers.List()...)
 
-	groups := util.StringSet{}
+	groups := sets.String{}
 	groups.Insert(globalGroups.List()...)
 	groups.Insert(localGroups.List()...)
 
-	return users, groups, nil
+	return users, groups, kerrors.NewAggregate(errs)
 }
 
-func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.Context, passedAttributes AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
+func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.Context, passedAttributes AuthorizationAttributes) (sets.String, sets.String, error) {
 	attributes := coerceToDefaultAuthorizationAttributes(passedAttributes)
+
+	errs := []error{}
 
 	roleBindings, err := a.ruleResolver.GetRoleBindings(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	users := util.StringSet{}
-	groups := util.StringSet{}
+	users := sets.String{}
+	groups := sets.String{}
 	for _, roleBinding := range roleBindings {
 		role, err := a.ruleResolver.GetRole(roleBinding)
 		if err != nil {
-			return nil, nil, err
+			// If we got an error, then the list of subjects may not be complete, but it does not contain any incorrect names.
+			// This is done because policy rules are purely additive and policy determinations
+			// can be made on the basis of those rules that are found.
+			errs = append(errs, err)
+			continue
 		}
 
-		for _, rule := range role.Rules {
+		for _, rule := range role.Rules() {
 			matches, err := attributes.RuleMatches(rule)
 			if err != nil {
-				return nil, nil, err
+				errs = append(errs, err)
+				continue
 			}
 
 			if matches {
-				users.Insert(roleBinding.Users.List()...)
-				groups.Insert(roleBinding.Groups.List()...)
+				users.Insert(roleBinding.Users().List()...)
+				groups.Insert(roleBinding.Groups().List()...)
 			}
 		}
 	}
 
-	return users, groups, nil
+	return users, groups, kerrors.NewAggregate(errs)
 }
 
 // authorizeWithNamespaceRules returns isAllowed, reason, and error.  If an error is returned, isAllowed and reason are still valid.  This seems strange
@@ -140,7 +140,11 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(ctx kapi.Context, pass
 			return false, "", err
 		}
 		if matches {
-			return true, fmt.Sprintf("allowed by rule in %v: %#v", kapi.NamespaceValue(ctx), rule), nil
+			namespace := kapi.NamespaceValue(ctx)
+			if len(namespace) == 0 {
+				return true, "allowed by cluster rule", nil
+			}
+			return true, "allowed by rule in " + namespace, nil
 		}
 	}
 
@@ -153,6 +157,7 @@ func coerceToDefaultAuthorizationAttributes(passedAttributes AuthorizationAttrib
 	attributes, ok := passedAttributes.(*DefaultAuthorizationAttributes)
 	if !ok {
 		attributes = &DefaultAuthorizationAttributes{
+			APIGroup:          passedAttributes.GetAPIGroup(),
 			Verb:              passedAttributes.GetVerb(),
 			RequestAttributes: passedAttributes.GetRequestAttributes(),
 			Resource:          passedAttributes.GetResource(),
@@ -165,7 +170,7 @@ func coerceToDefaultAuthorizationAttributes(passedAttributes AuthorizationAttrib
 	return attributes
 }
 
-func doesApplyToUser(ruleUsers, ruleGroups util.StringSet, user user.Info) bool {
+func doesApplyToUser(ruleUsers, ruleGroups sets.String, user user.Info) bool {
 	if ruleUsers.Has(user.GetName()) {
 		return true
 	}

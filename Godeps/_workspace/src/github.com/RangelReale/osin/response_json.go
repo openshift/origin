@@ -23,8 +23,10 @@ func OutputJSON(rs *Response, w http.ResponseWriter, r *http.Request) error {
 		w.Header().Add("Location", u)
 		w.WriteHeader(302)
 	} else {
-		// Output json
-		w.Header().Add("Content-Type", "application/json")
+		// set content type if the response doesn't already have one associated with it
+		if w.Header().Get("Content-Type") == "" {
+			w.Header().Set("Content-Type", "application/json")
+		}
 		w.WriteHeader(rs.StatusCode)
 
 		encoder := json.NewEncoder(w)

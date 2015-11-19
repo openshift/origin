@@ -1,39 +1,70 @@
 package admin
 
 import (
-	"errors"
+	"fmt"
+	"os"
+	"sync"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
-type GetSignerCertOptions struct {
+type SignerCertOptions struct {
 	CertFile   string
 	KeyFile    string
 	SerialFile string
+
+	lock sync.Mutex
+	ca   *crypto.CA
 }
 
-func BindGetSignerCertOptions(options *GetSignerCertOptions, flags *pflag.FlagSet, prefix string) {
-	flags.StringVar(&options.CertFile, prefix+"signer-cert", "openshift.local.certificates/ca/cert.crt", "The certificate file.")
-	flags.StringVar(&options.KeyFile, prefix+"signer-key", "openshift.local.certificates/ca/key.key", "The key file.")
-	flags.StringVar(&options.SerialFile, prefix+"signer-serial", "openshift.local.certificates/ca/serial.txt", "The serial file that keeps track of how many certs have been signed.")
+func BindSignerCertOptions(options *SignerCertOptions, flags *pflag.FlagSet, prefix string) {
+	flags.StringVar(&options.CertFile, prefix+"signer-cert", options.CertFile, "The certificate file.")
+	flags.StringVar(&options.KeyFile, prefix+"signer-key", options.KeyFile, "The key file.")
+	flags.StringVar(&options.SerialFile, prefix+"signer-serial", options.SerialFile, "The serial file that keeps track of how many certs have been signed.")
+
+	// autocompletion hints
+	cobra.MarkFlagFilename(flags, prefix+"signer-cert")
+	cobra.MarkFlagFilename(flags, prefix+"signer-key")
+	cobra.MarkFlagFilename(flags, prefix+"signer-serial")
 }
 
-func (o GetSignerCertOptions) Validate() error {
-	if len(o.CertFile) == 0 {
-		return errors.New("signer-cert must be provided")
+func NewDefaultSignerCertOptions() *SignerCertOptions {
+	options := &SignerCertOptions{}
+	options.CertFile = "openshift.local.config/master/ca.crt"
+	options.KeyFile = "openshift.local.config/master/ca.key"
+	options.SerialFile = "openshift.local.config/master/ca.serial.txt"
+
+	return options
+}
+
+func (o *SignerCertOptions) Validate() error {
+	if _, err := os.Stat(o.CertFile); len(o.CertFile) == 0 || err != nil {
+		return fmt.Errorf("--signer-cert, %q must be a valid certificate file", cmdutil.GetDisplayFilename(o.CertFile))
 	}
-	if len(o.KeyFile) == 0 {
-		return errors.New("signer-key must be provided")
+	if _, err := os.Stat(o.KeyFile); len(o.KeyFile) == 0 || err != nil {
+		return fmt.Errorf("--signer-key, %q must be a valid key file", cmdutil.GetDisplayFilename(o.KeyFile))
 	}
-	if len(o.SerialFile) == 0 {
-		return errors.New("signer-serial must be provided")
+	if _, err := os.Stat(o.SerialFile); len(o.SerialFile) == 0 || err != nil {
+		return fmt.Errorf("--signer-serial, %q must be a valid file", cmdutil.GetDisplayFilename(o.SerialFile))
 	}
 
 	return nil
 }
 
-func (o GetSignerCertOptions) GetSignerCert() (*crypto.CA, error) {
-	return crypto.GetCA(o.CertFile, o.KeyFile, o.SerialFile)
+func (o *SignerCertOptions) CA() (*crypto.CA, error) {
+	o.lock.Lock()
+	defer o.lock.Unlock()
+	if o.ca != nil {
+		return o.ca, nil
+	}
+	ca, err := crypto.GetCA(o.CertFile, o.KeyFile, o.SerialFile)
+	if err != nil {
+		return nil, err
+	}
+	o.ca = ca
+	return ca, nil
 }

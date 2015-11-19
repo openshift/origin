@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,7 +20,7 @@ import (
 	"github.com/skynetservices/skydns/msg"
 )
 
-const Version = "2.1.0a"
+const Version = "2.5.2d"
 
 type server struct {
 	backend Backend
@@ -71,8 +72,21 @@ func (g FirstBackend) ReverseRecord(name string) (record *msg.Service, err error
 	return nil, lastError
 }
 
+func bindNetworks(bindNetwork string) (tcp, udp string) {
+	tcpNetwork, udpNetwork := "tcp", "udp"
+	switch bindNetwork {
+	case "ipv4":
+		tcpNetwork, udpNetwork = "tcp4", "udp4"
+	case "ipv6":
+		tcpNetwork, udpNetwork = "tcp6", "udp6"
+	}
+	return tcpNetwork, udpNetwork
+}
+
 // New returns a new SkyDNS server.
 func New(backend Backend, config *Config) *server {
+	tcpNetwork, udpNetwork := bindNetworks(config.BindNetwork)
+
 	return &server{
 		backend: backend,
 		config:  config,
@@ -80,8 +94,8 @@ func New(backend Backend, config *Config) *server {
 		group:        new(sync.WaitGroup),
 		scache:       cache.New(config.SCache, 0),
 		rcache:       cache.New(config.RCache, config.RCacheTtl),
-		dnsUDPclient: &dns.Client{Net: "udp", ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
-		dnsTCPclient: &dns.Client{Net: "tcp", ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
+		dnsUDPclient: &dns.Client{Net: udpNetwork, ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
+		dnsTCPclient: &dns.Client{Net: tcpNetwork, ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
 	}
 }
 
@@ -92,28 +106,28 @@ func (s *server) Run() error {
 
 	dnsReadyMsg := func(addr, net string) {
 		if s.config.DNSSEC == "" {
-			log.Printf("skydns: ready for queries on %s for %s://%s [rcache %d]", s.config.Domain, net, addr, s.config.RCache)
+			logf("ready for queries on %s for %s://%s [rcache %d]", s.config.Domain, net, addr, s.config.RCache)
 		} else {
-			log.Printf("skydns: ready for queries on %s for %s://%s [rcache %d], signing with %s [scache %d]", s.config.Domain, net, addr, s.config.RCache, s.config.DNSSEC, s.config.SCache)
+			logf("ready for queries on %s for %s://%s [rcache %d], signing with %s [scache %d]", s.config.Domain, net, addr, s.config.RCache, s.config.DNSSEC, s.config.SCache)
 		}
 	}
 
 	s.group.Add(1)
 	go func() {
 		defer s.group.Done()
-		if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
+		if err := dns.ListenAndServe(s.config.DnsAddr, s.dnsTCPclient.Net, mux); err != nil {
 			log.Fatalf("skydns: %s", err)
 		}
 	}()
-	dnsReadyMsg(s.config.DnsAddr, "tcp")
+	dnsReadyMsg(s.config.DnsAddr, s.dnsTCPclient.Net)
 	s.group.Add(1)
 	go func() {
 		defer s.group.Done()
-		if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
+		if err := dns.ListenAndServe(s.config.DnsAddr, s.dnsUDPclient.Net, mux); err != nil {
 			log.Fatalf("skydns: %s", err)
 		}
 	}()
-	dnsReadyMsg(s.config.DnsAddr, "udp")
+	dnsReadyMsg(s.config.DnsAddr, s.dnsUDPclient.Net)
 
 	s.group.Wait()
 	return nil
@@ -136,8 +150,12 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	bufsize := uint16(512)
 	dnssec := false
 	tcp := false
+	start := time.Now()
 
-	if req.Question[0].Qtype == dns.TypeANY {
+	q := req.Question[0]
+	name := strings.ToLower(q.Name)
+
+	if q.Qtype == dns.TypeANY {
 		m.Authoritative = false
 		m.Rcode = dns.RcodeRefused
 		m.RecursionAvailable = false
@@ -145,6 +163,8 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		m.Compress = false
 		// if write fails don't care
 		w.WriteMsg(m)
+
+		promErrorCount.WithLabelValues("refused").Inc()
 		return
 	}
 
@@ -156,74 +176,101 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		bufsize = 512
 	}
 	// with TCP we can send 64K
-	if _, ok := w.RemoteAddr().(*net.TCPAddr); ok {
+	if tcp = isTCP(w); tcp {
 		bufsize = dns.MaxMsgSize - 1
-		tcp = true
+		promRequestCount.WithLabelValues("tcp").Inc()
+	} else {
+		promRequestCount.WithLabelValues("udp").Inc()
 	}
-	// Check cache first.
-	key := cache.QuestionKey(req.Question[0], dnssec)
-	m1, exp, hit := s.rcache.Search(key)
-	if hit {
-		// Cache hit! \o/
-		if time.Since(exp) < 0 {
-			m1.Id = m.Id
-			m1.Compress = true
-			if dnssec {
-				StatsDnssecOkCount.Inc(1)
-				// The key for DNS/DNSSEC in cache is different, no
-				// need to do Denial/Sign here.
-				//if s.config.PubKey != nil {
-				//s.Denial(m1) // not needed for cache hits
-				//s.Sign(m1, bufsize)
-				//}
-			}
-			if m1.Len() > int(bufsize) && !tcp {
-				m1.Truncated = true
-			}
-			// Still round-robin even with hits from the cache.
-			// Only shuffle A and AAAA records with each other.
-			if req.Question[0].Qtype == dns.TypeA || req.Question[0].Qtype == dns.TypeAAAA {
-				s.RoundRobin(m1.Answer)
-			}
 
-			if err := w.WriteMsg(m1); err != nil {
-				log.Printf("skydns: failure to return reply %q", err)
+	StatsRequestCount.Inc(1)
+
+	if dnssec {
+		StatsDnssecOkCount.Inc(1)
+		promDnssecOkCount.Inc()
+	}
+
+	if s.config.Verbose {
+		logf("received DNS Request for %q from %q with type %d", q.Name, w.RemoteAddr(), q.Qtype)
+	}
+
+	// Check cache first.
+	m1 := s.rcache.Hit(q, dnssec, tcp, m.Id)
+	if m1 != nil {
+		if tcp {
+			if _, overflow := Fit(m1, dns.MaxMsgSize, tcp); overflow {
+				promErrorCount.WithLabelValues("overflow").Inc()
+				msgFail := new(dns.Msg)
+				s.ServerFailure(msgFail, req)
+				w.WriteMsg(msgFail)
+				return
+			}
+		} else {
+			// Overflow with udp always results in TC.
+			Fit(m1, int(bufsize), tcp)
+			if m1.Truncated {
+				promErrorCount.WithLabelValues("truncated").Inc()
+			}
+		}
+		// Still round-robin even with hits from the cache.
+		// Only shuffle A and AAAA records with each other.
+		if q.Qtype == dns.TypeA || q.Qtype == dns.TypeAAAA {
+			s.RoundRobin(m1.Answer)
+		}
+
+		if err := w.WriteMsg(m1); err != nil {
+			logf("failure to return reply %q", err)
+		}
+		metricSizeAndDuration(m1, start, tcp)
+		return
+	}
+
+	for zone, ns := range *s.config.stub {
+		if strings.HasSuffix(name, zone) {
+			resp := s.ServeDNSStubForward(w, req, ns)
+			if resp != nil {
+				s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), resp)
+				metricSizeAndDuration(resp, start, tcp)
 			}
 			return
 		}
-		// Expired! /o\
-		s.rcache.Remove(key)
 	}
 
-	q := req.Question[0]
-	name := strings.ToLower(q.Name)
-	StatsRequestCount.Inc(1)
-	if s.config.Verbose {
-		log.Printf("skydns: received DNS Request for %q from %q with type %d", q.Name, w.RemoteAddr(), q.Qtype)
-	}
-	// If the qname is local.dns.skydns.local. and s.config.Local != "", substitute that name.
+	// If the qname is local.ds.skydns.local. and s.config.Local != "", substitute that name.
 	if s.config.Local != "" && name == s.config.localDomain {
 		name = s.config.Local
 	}
 
 	if q.Qtype == dns.TypePTR && strings.HasSuffix(name, ".in-addr.arpa.") || strings.HasSuffix(name, ".ip6.arpa.") {
-		s.ServeDNSReverse(w, req)
+		resp := s.ServeDNSReverse(w, req)
+		if resp != nil {
+			s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), resp)
+			metricSizeAndDuration(resp, start, tcp)
+		}
 		return
 	}
 
 	if q.Qclass != dns.ClassCHAOS && !strings.HasSuffix(name, s.config.Domain) {
-		s.ServeDNSForward(w, req)
+		resp := s.ServeDNSForward(w, req)
+		if resp != nil {
+			s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), resp)
+			metricSizeAndDuration(resp, start, tcp)
+		}
 		return
 	}
+
+	promCacheMiss.WithLabelValues("response").Inc()
 
 	defer func() {
 		if m.Rcode == dns.RcodeServerFailure {
 			if err := w.WriteMsg(m); err != nil {
-				log.Printf("skydns: failure to return reply %q", err)
+				logf("failure to return reply %q", err)
 			}
 			return
 		}
-		// Set TTL to the minimum of the RRset.
+		// Set TTL to the minimum of the RRset and dedup the message, i.e. remove identical RRs.
+		m = s.dedup(m)
+
 		minttl := s.config.Ttl
 		if len(m.Answer) > 1 {
 			for _, r := range m.Answer {
@@ -236,24 +283,33 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 			}
 		}
 
-		s.rcache.InsertMessage(cache.QuestionKey(req.Question[0], dnssec), m)
-
 		if dnssec {
-			StatsDnssecOkCount.Inc(1)
 			if s.config.PubKey != nil {
 				m.AuthenticatedData = true
 				s.Denial(m)
 				s.Sign(m, bufsize)
 			}
 		}
-		if m.Len() > int(bufsize) && !tcp {
-			// TODO(miek): this is a little brain dead, better is to not add
-			// RRs in the message in the first place.
-			m.Truncated = true
+
+		if tcp {
+			if _, overflow := Fit(m, dns.MaxMsgSize, tcp); overflow {
+				msgFail := new(dns.Msg)
+				s.ServerFailure(msgFail, req)
+				w.WriteMsg(msgFail)
+				return
+			}
+		} else {
+			Fit(m, int(bufsize), tcp)
+			if m.Truncated {
+				promErrorCount.WithLabelValues("truncated").Inc()
+			}
 		}
+		s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), m)
+
 		if err := w.WriteMsg(m); err != nil {
-			log.Printf("skydns: failure to return reply %q", err)
+			logf("failure to return reply %q", err)
 		}
+		metricSizeAndDuration(m, start, tcp)
 	}()
 
 	if name == s.config.Domain {
@@ -316,95 +372,61 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		}
 		// Lookup s.config.DnsDomain
 		records, extra, err := s.NSRecords(q, s.config.dnsDomain)
-		if err != nil {
-			if e, ok := err.(*etcd.EtcdError); ok {
-				if e.ErrorCode == 100 {
-					s.NameError(m, req)
-					return
-				}
-			}
+		if isEtcdNameError(err, s) {
+			s.NameError(m, req)
+			return
 		}
 		m.Answer = append(m.Answer, records...)
 		m.Extra = append(m.Extra, extra...)
 	case dns.TypeA, dns.TypeAAAA:
-		records, err := s.AddressRecords(q, name, nil)
-		if err != nil {
-			if e, ok := err.(*etcd.EtcdError); ok {
-				if e.ErrorCode == 100 {
-					s.NameError(m, req)
-					return
-				}
-			}
-			if err.Error() == "incomplete CNAME chain" {
-				// We can not complete the CNAME internally, *iff* there is a
-				// external name in the set, take it, and try to resolve it externally.
-				if len(records) == 0 {
-					s.NameError(m, req)
-					return
-				}
-				target := ""
-				for _, r := range records {
-					if v, ok := r.(*dns.CNAME); ok {
-						if !dns.IsSubDomain(s.config.Domain, v.Target) {
-							target = v.Target
-							break
-						}
-					}
-				}
-				if target == "" {
-					log.Printf("skydns: incomplete CNAME chain for %s", name)
-					s.NoDataError(m, req)
-					return
-				}
-				m1, e1 := s.Lookup(target, req.Question[0].Qtype, bufsize, dnssec)
-				if e1 != nil {
-					log.Printf("skydns: %s", err)
-					s.NoDataError(m, req)
-					return
-				}
-				records = append(records, m1.Answer...)
-			}
+		records, err := s.AddressRecords(q, name, nil, bufsize, dnssec, false)
+		if isEtcdNameError(err, s) {
+			s.NameError(m, req)
+			return
 		}
 		m.Answer = append(m.Answer, records...)
 	case dns.TypeTXT:
 		records, err := s.TXTRecords(q, name)
-		if err != nil {
-			if e, ok := err.(*etcd.EtcdError); ok {
-				if e.ErrorCode == 100 {
-					s.NameError(m, req)
-					return
-				}
-			}
+		if isEtcdNameError(err, s) {
+			s.NameError(m, req)
+			return
 		}
 		m.Answer = append(m.Answer, records...)
 	case dns.TypeCNAME:
 		records, err := s.CNAMERecords(q, name)
-		if err != nil {
-			if e, ok := err.(*etcd.EtcdError); ok {
-				if e.ErrorCode == 100 {
-					s.NameError(m, req)
-					return
-				}
-			}
+		if isEtcdNameError(err, s) {
+			s.NameError(m, req)
+			return
 		}
 		m.Answer = append(m.Answer, records...)
+	case dns.TypeMX:
+		records, extra, err := s.MXRecords(q, name, bufsize, dnssec)
+		if isEtcdNameError(err, s) {
+			s.NameError(m, req)
+			return
+		}
+		m.Answer = append(m.Answer, records...)
+		m.Extra = append(m.Extra, extra...)
 	default:
 		fallthrough // also catch other types, so that they return NODATA
-	case dns.TypeSRV, dns.TypeANY:
+	case dns.TypeSRV:
 		records, extra, err := s.SRVRecords(q, name, bufsize, dnssec)
 		if err != nil {
-			if e, ok := err.(*etcd.EtcdError); ok {
-				if e.ErrorCode == 100 {
-					s.NameError(m, req)
-					return
-				}
+			if isEtcdNameError(err, s) {
+				s.NameError(m, req)
+				return
+			}
+			logf("got error from backend: %s", err)
+			if q.Qtype == dns.TypeSRV { // Otherwise NODATA
+				s.ServerFailure(m, req)
+				return
 			}
 		}
 		// if we are here again, check the types, because an answer may only
-		// be given for SRV or ANY. All other types should return NODATA, the
+		// be given for SRV. All other types should return NODATA, the
 		// NXDOMAIN part is handled in the above code. TODO(miek): yes this
 		// can be done in a more elegant manor.
-		if q.Qtype == dns.TypeSRV || q.Qtype == dns.TypeANY {
+		if q.Qtype == dns.TypeSRV {
 			m.Answer = append(m.Answer, records...)
 			m.Extra = append(m.Extra, extra...)
 		}
@@ -417,47 +439,67 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	}
 }
 
-func (s *server) AddressRecords(q dns.Question, name string, previousRecords []dns.RR) (records []dns.RR, err error) {
+func (s *server) AddressRecords(q dns.Question, name string, previousRecords []dns.RR, bufsize uint16, dnssec, both bool) (records []dns.RR, err error) {
 	services, err := s.backend.Records(name, false)
 	if err != nil {
 		return nil, err
 	}
+
+	services = msg.Group(services)
+
 	for _, serv := range services {
 		ip := net.ParseIP(serv.Host)
 		switch {
 		case ip == nil:
-			// TODO: deduplicate with above code
-			// Try to resolve as CNAME if it's not an IP.
-			newRecord := serv.NewCNAME(q.Name, dns.Fqdn(serv.Host))
-			if len(previousRecords) > 7 {
-				log.Printf("skydns: CNAME lookup limit of 8 exceeded for %s", newRecord)
-				return nil, fmt.Errorf("exceeded CNAME lookup limit")
-			}
-			if s.isDuplicateCNAME(newRecord, previousRecords) {
-				log.Printf("skydns: CNAME loop detected for record %s", newRecord)
-				return nil, fmt.Errorf("detected CNAME loop")
+			// Try to resolve as CNAME if it's not an IP, but only if we don't create loops.
+			if q.Name == dns.Fqdn(serv.Host) {
+				// x CNAME x is a direct loop, don't add those
+				continue
 			}
 
-			records = append(records, newRecord)
-			nextRecords, err := s.AddressRecords(dns.Question{Name: dns.Fqdn(serv.Host), Qtype: q.Qtype, Qclass: q.Qclass}, strings.ToLower(dns.Fqdn(serv.Host)), append(previousRecords, newRecord))
-			if err != nil {
-				// This means we can not complete the CNAME, this is OK, but
-				// if we return an error this will trigger an NXDOMAIN.
-				// We also don't want to return the CNAME, because of the
-				// no other data rule. So return nothing and let NODATA
-				// kick in (via a hack).
-				return records, fmt.Errorf("incomplete CNAME chain")
+			newRecord := serv.NewCNAME(q.Name, dns.Fqdn(serv.Host))
+			if len(previousRecords) > 7 {
+				logf("CNAME lookup limit of 8 exceeded for %s", newRecord)
+				// don't add it, and just continue
+				continue
 			}
-			records = append(records, nextRecords...)
-		case ip.To4() != nil && q.Qtype == dns.TypeA:
+			if s.isDuplicateCNAME(newRecord, previousRecords) {
+				logf("CNAME loop detected for record %s", newRecord)
+				continue
+			}
+
+			nextRecords, err := s.AddressRecords(dns.Question{Name: dns.Fqdn(serv.Host), Qtype: q.Qtype, Qclass: q.Qclass},
+				strings.ToLower(dns.Fqdn(serv.Host)), append(previousRecords, newRecord), bufsize, dnssec, both)
+			if err == nil {
+				// Only have we found something we should add the CNAME and the IP addresses.
+				if len(nextRecords) > 0 {
+					records = append(records, newRecord)
+					records = append(records, nextRecords...)
+				}
+				continue
+			}
+			// This means we can not complete the CNAME, try to look else where.
+			target := newRecord.Target
+			if dns.IsSubDomain(s.config.Domain, target) {
+				// We should already have found it
+				continue
+			}
+			m1, e1 := s.Lookup(target, q.Qtype, bufsize, dnssec)
+			if e1 != nil {
+				logf("incomplete CNAME chain: %s", e1)
+				continue
+			}
+			// Len(m1.Answer) > 0 here is well?
+			records = append(records, newRecord)
+			records = append(records, m1.Answer...)
+			continue
+		case ip.To4() != nil && (q.Qtype == dns.TypeA || both):
 			records = append(records, serv.NewA(q.Name, ip.To4()))
-		case ip.To4() == nil && q.Qtype == dns.TypeAAAA:
+		case ip.To4() == nil && (q.Qtype == dns.TypeAAAA || both):
 			records = append(records, serv.NewAAAA(q.Name, ip.To16()))
 		}
 	}
-	if s.config.RoundRobin {
-		s.RoundRobin(records)
-	}
+	s.RoundRobin(records)
 	return records, nil
 }
 
@@ -467,6 +509,8 @@ func (s *server) NSRecords(q dns.Question, name string) (records []dns.RR, extra
 	if err != nil {
 		return nil, nil, err
 	}
+
+	services = msg.Group(services)
 
 	for _, serv := range services {
 		ip := net.ParseIP(serv.Host)
@@ -487,12 +531,14 @@ func (s *server) NSRecords(q dns.Question, name string) (records []dns.RR, extra
 }
 
 // SRVRecords returns SRV records from etcd.
-// If the Target is not an name but an IP address, an name is created .
+// If the Target is not a name but an IP address, a name is created.
 func (s *server) SRVRecords(q dns.Question, name string, bufsize uint16, dnssec bool) (records []dns.RR, extra []dns.RR, err error) {
 	services, err := s.backend.Records(name, false)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	services = msg.Group(services)
 
 	// Looping twice to get the right weight vs priority
 	w := make(map[int]int)
@@ -521,31 +567,107 @@ func (s *server) SRVRecords(q dns.Question, name string, bufsize uint16, dnssec 
 		case ip == nil:
 			srv := serv.NewSRV(q.Name, weight)
 			records = append(records, srv)
-			if _, ok := lookup[srv.Target]; !ok {
-				if !dns.IsSubDomain(s.config.Domain, srv.Target) {
-					m1, e1 := s.Lookup(srv.Target, dns.TypeA, bufsize, dnssec)
-					if e1 == nil {
-						extra = append(extra, m1.Answer...)
-					}
-					m1, e1 = s.Lookup(srv.Target, dns.TypeAAAA, bufsize, dnssec)
-					if e1 == nil {
-						// If we have seen CNAME's we *assume* that they are already added.
-						for _, a := range m1.Answer {
-							if _, ok := a.(*dns.CNAME); !ok {
-								extra = append(extra, a)
-							}
+
+			if _, ok := lookup[srv.Target]; ok {
+				break
+			}
+
+			lookup[srv.Target] = true
+
+			if !dns.IsSubDomain(s.config.Domain, srv.Target) {
+				m1, e1 := s.Lookup(srv.Target, dns.TypeA, bufsize, dnssec)
+				if e1 == nil {
+					extra = append(extra, m1.Answer...)
+				}
+				m1, e1 = s.Lookup(srv.Target, dns.TypeAAAA, bufsize, dnssec)
+				if e1 == nil {
+					// If we have seen CNAME's we *assume* that they are already added.
+					for _, a := range m1.Answer {
+						if _, ok := a.(*dns.CNAME); !ok {
+							extra = append(extra, a)
 						}
 					}
 				}
+				break
 			}
-			lookup[srv.Target] = true
+			// Internal name, we should have some info on them, either v4 or v6
+			// Clients expect a complete answer, because we are a recursor in their
+			// view.
+			addr, e1 := s.AddressRecords(dns.Question{srv.Target, dns.ClassINET, dns.TypeA},
+				srv.Target, nil, bufsize, dnssec, true)
+			if e1 == nil {
+				extra = append(extra, addr...)
+			}
 		case ip.To4() != nil:
 			serv.Host = msg.Domain(serv.Key)
-			records = append(records, serv.NewSRV(q.Name, weight))
+			srv := serv.NewSRV(q.Name, weight)
+
+			records = append(records, srv)
+			extra = append(extra, serv.NewA(srv.Target, ip.To4()))
+		case ip.To4() == nil:
+			serv.Host = msg.Domain(serv.Key)
+			srv := serv.NewSRV(q.Name, weight)
+
+			records = append(records, srv)
+			extra = append(extra, serv.NewAAAA(srv.Target, ip.To16()))
+		}
+	}
+	return records, extra, nil
+}
+
+// MXRecords returns MX records from etcd.
+// If the Target is not a name but an IP address, a name is created.
+func (s *server) MXRecords(q dns.Question, name string, bufsize uint16, dnssec bool) (records []dns.RR, extra []dns.RR, err error) {
+	services, err := s.backend.Records(name, false)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	lookup := make(map[string]bool)
+	for _, serv := range services {
+		if !serv.Mail {
+			continue
+		}
+		ip := net.ParseIP(serv.Host)
+		switch {
+		case ip == nil:
+			mx := serv.NewMX(q.Name)
+			records = append(records, mx)
+			if _, ok := lookup[mx.Mx]; ok {
+				break
+			}
+
+			lookup[mx.Mx] = true
+
+			if !dns.IsSubDomain(s.config.Domain, mx.Mx) {
+				m1, e1 := s.Lookup(mx.Mx, dns.TypeA, bufsize, dnssec)
+				if e1 == nil {
+					extra = append(extra, m1.Answer...)
+				}
+				m1, e1 = s.Lookup(mx.Mx, dns.TypeAAAA, bufsize, dnssec)
+				if e1 == nil {
+					// If we have seen CNAME's we *assume* that they are already added.
+					for _, a := range m1.Answer {
+						if _, ok := a.(*dns.CNAME); !ok {
+							extra = append(extra, a)
+						}
+					}
+				}
+				break
+			}
+			// Internal name
+			addr, e1 := s.AddressRecords(dns.Question{mx.Mx, dns.ClassINET, dns.TypeA},
+				mx.Mx, nil, bufsize, dnssec, true)
+			if e1 == nil {
+				extra = append(extra, addr...)
+			}
+		case ip.To4() != nil:
+			serv.Host = msg.Domain(serv.Key)
+			records = append(records, serv.NewMX(q.Name))
 			extra = append(extra, serv.NewA(serv.Host, ip.To4()))
 		case ip.To4() == nil:
 			serv.Host = msg.Domain(serv.Key)
-			records = append(records, serv.NewSRV(q.Name, weight))
+			records = append(records, serv.NewMX(q.Name))
 			extra = append(extra, serv.NewAAAA(serv.Host, ip.To16()))
 		}
 	}
@@ -557,6 +679,8 @@ func (s *server) CNAMERecords(q dns.Question, name string) (records []dns.RR, er
 	if err != nil {
 		return nil, err
 	}
+
+	services = msg.Group(services)
 
 	if len(services) > 0 {
 		serv := services[0]
@@ -572,6 +696,8 @@ func (s *server) TXTRecords(q dns.Question, name string) (records []dns.RR, err 
 	if err != nil {
 		return nil, err
 	}
+
+	services = msg.Group(services)
 
 	for _, serv := range services {
 		if serv.Text == "" {
@@ -589,8 +715,6 @@ func (s *server) PTRRecords(q dns.Question) (records []dns.RR, err error) {
 		return nil, err
 	}
 
-	// If serv.Host is parseble as a IP address we should not return anything.
-	// TODO(miek).
 	records = append(records, serv.NewPTR(q.Name, serv.Ttl))
 	return records, nil
 }
@@ -623,20 +747,23 @@ func (s *server) NameError(m, req *dns.Msg) {
 	m.SetRcode(req, dns.RcodeNameError)
 	m.Ns = []dns.RR{s.NewSOA()}
 	m.Ns[0].Header().Ttl = s.config.MinTtl
+
 	StatsNameErrorCount.Inc(1)
+	promErrorCount.WithLabelValues("nxdomain")
 }
 
 func (s *server) NoDataError(m, req *dns.Msg) {
 	m.SetRcode(req, dns.RcodeSuccess)
 	m.Ns = []dns.RR{s.NewSOA()}
 	m.Ns[0].Header().Ttl = s.config.MinTtl
-	//	StatsNoDataCount.Inc(1)
+
+	StatsNoDataCount.Inc(1)
+	promErrorCount.WithLabelValues("nodata")
 }
 
-func (s *server) logNoConnection(e error) {
-	if e.(*etcd.EtcdError).ErrorCode == etcd.ErrCodeEtcdNotReachable {
-		log.Printf("skydns: failure to connect to etcd: %s", e)
-	}
+func (s *server) ServerFailure(m, req *dns.Msg) {
+	m.SetRcode(req, dns.RcodeServerFailure)
+	promErrorCount.WithLabelValues("servfail")
 }
 
 func (s *server) RoundRobin(rrs []dns.RR) {
@@ -671,4 +798,100 @@ func (s *server) RoundRobin(rrs []dns.RR) {
 		}
 	}
 
+}
+
+// dedup will de-duplicate a message on a per section basis.
+// Multiple identical (same name, class, type and rdata) RRs will be coalesced into one.
+func (s *server) dedup(m *dns.Msg) *dns.Msg {
+	// Answer section
+	ma := make(map[string]dns.RR)
+	for _, a := range m.Answer {
+		// Or use Pack()... Think this function also could be placed in go dns.
+		s1 := a.Header().Name
+		s1 += strconv.Itoa(int(a.Header().Class))
+		s1 += strconv.Itoa(int(a.Header().Rrtype))
+		// there can only be one CNAME for an ownername
+		if a.Header().Rrtype == dns.TypeCNAME {
+			if _, ok := ma[s1]; ok {
+				// already exist, randomly overwrite if roundrobin is true
+				// Note: even with roundrobin *off* this depends on the
+				// order we get the names.
+				if s.config.RoundRobin && dns.Id()%2 == 0 {
+					ma[s1] = a
+					continue
+				}
+			}
+			ma[s1] = a
+			continue
+		}
+		for i := 1; i <= dns.NumField(a); i++ {
+			s1 += dns.Field(a, i)
+		}
+		ma[s1] = a
+	}
+	// Only is our map is smaller than the #RR in the answer section we should reset the RRs
+	// in the section it self
+	if len(ma) < len(m.Answer) {
+		i := 0
+		for _, v := range ma {
+			m.Answer[i] = v
+			i++
+		}
+		m.Answer = m.Answer[:len(ma)]
+	}
+
+	// Additional section
+	me := make(map[string]dns.RR)
+	for _, e := range m.Extra {
+		s1 := e.Header().Name
+		s1 += strconv.Itoa(int(e.Header().Class))
+		s1 += strconv.Itoa(int(e.Header().Rrtype))
+		// there can only be one CNAME for an ownername
+		if e.Header().Rrtype == dns.TypeCNAME {
+			if _, ok := me[s1]; ok {
+				// already exist, randomly overwrite if roundrobin is true
+				if s.config.RoundRobin && dns.Id()%2 == 0 {
+					me[s1] = e
+					continue
+				}
+			}
+			me[s1] = e
+			continue
+		}
+		for i := 1; i <= dns.NumField(e); i++ {
+			s1 += dns.Field(e, i)
+		}
+		me[s1] = e
+	}
+
+	if len(me) < len(m.Extra) {
+		i := 0
+		for _, v := range me {
+			m.Extra[i] = v
+			i++
+		}
+		m.Extra = m.Extra[:len(me)]
+	}
+
+	return m
+}
+
+// isTCP returns true if the client is connecting over TCP.
+func isTCP(w dns.ResponseWriter) bool {
+	_, ok := w.RemoteAddr().(*net.TCPAddr)
+	return ok
+}
+
+// etcNameError return a NameError to the client if the error
+// returned from etcd has ErrorCode == 100.
+func isEtcdNameError(err error, s *server) bool {
+	if e, ok := err.(*etcd.EtcdError); ok {
+		if e.ErrorCode == 100 {
+			return true
+		}
+	}
+	if err != nil {
+		logf("error from backend: %s", err)
+	}
+	return false
 }

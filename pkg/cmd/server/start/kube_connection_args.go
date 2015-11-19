@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 )
@@ -22,22 +22,22 @@ type KubeConnectionArgs struct {
 	// ClientConfigLoadingRules is the ruleset used to load the client config.
 	// Only the CommandLinePath is expected to be used.
 	ClientConfigLoadingRules clientcmd.ClientConfigLoadingRules
-
-	CertArgs *CertArgs
 }
 
+// BindKubeConnectionArgs binds values to the given arguments by using flags
 func BindKubeConnectionArgs(args *KubeConnectionArgs, flags *pflag.FlagSet, prefix string) {
 	// TODO remove entirely
 	flags.Var(&args.KubernetesAddr, prefix+"kubernetes", "removed in favor of --"+prefix+"kubeconfig")
 	flags.StringVar(&args.ClientConfigLoadingRules.ExplicitPath, prefix+"kubeconfig", "", "Path to the kubeconfig file to use for requests to the Kubernetes API.")
 }
 
+// NewDefaultKubeConnectionArgs returns a new set of default connection
+// arguments for Kubernetes
 func NewDefaultKubeConnectionArgs() *KubeConnectionArgs {
 	config := &KubeConnectionArgs{}
 
 	config.KubernetesAddr = flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default()
 	config.ClientConfig = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&config.ClientConfigLoadingRules, &clientcmd.ConfigOverrides{})
-	config.CertArgs = NewDefaultCertArgs()
 
 	return config
 }

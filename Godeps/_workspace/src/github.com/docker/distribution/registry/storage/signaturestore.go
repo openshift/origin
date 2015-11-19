@@ -2,8 +2,10 @@ package storage
 
 import (
 	"path"
+	"sync"
 
 	"github.com/docker/distribution"
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 )
 
@@ -33,21 +35,59 @@ func (s *signatureStore) Get(dgst digest.Digest) ([][]byte, error) {
 		return nil, err
 	}
 
-	var signatures [][]byte
-	for _, sigPath := range signaturePaths {
+	var wg sync.WaitGroup
+	type result struct {
+		index     int
+		signature []byte
+		err       error
+	}
+	ch := make(chan result)
+
+	for i, sigPath := range signaturePaths {
 		// Append the link portion
 		sigPath = path.Join(sigPath, "link")
 
-		// TODO(stevvooe): These fetches should be parallelized for performance.
-		p, err := s.blobStore.linked(sigPath)
-		if err != nil {
-			return nil, err
-		}
+		wg.Add(1)
+		go func(idx int, sigPath string) {
+			defer wg.Done()
+			context.GetLogger(s.ctx).
+				Debugf("fetching signature from %q", sigPath)
 
-		signatures = append(signatures, p)
+			r := result{index: idx}
+			if p, err := s.blobStore.linked(sigPath); err != nil {
+				context.GetLogger(s.ctx).
+					Errorf("error fetching signature from %q: %v", sigPath, err)
+				r.err = err
+			} else {
+				r.signature = p
+			}
+
+			ch <- r
+		}(i, sigPath)
+	}
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	// aggregrate the results
+	signatures := make([][]byte, len(signaturePaths))
+loop:
+	for {
+		select {
+		case result := <-ch:
+			signatures[result.index] = result.signature
+			if result.err != nil && err == nil {
+				// only set the first one.
+				err = result.err
+			}
+		case <-done:
+			break loop
+		}
 	}
 
-	return signatures, nil
+	return signatures, err
 }
 
 func (s *signatureStore) Put(dgst digest.Digest, signatures ...[]byte) error {

@@ -67,3 +67,10 @@ func ParseINI(ini io.Reader) (map[string]map[string]string, error) {
 	}
 	return result, nil
 }
+
+func CondVal(v string) []string {
+	if v == "" {
+		return nil
+	}
+	return []string{v}
+}

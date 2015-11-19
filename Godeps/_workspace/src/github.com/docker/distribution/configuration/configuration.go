@@ -16,8 +16,24 @@ type Configuration struct {
 	// Version is the version which defines the format of the rest of the configuration
 	Version Version `yaml:"version"`
 
-	// Loglevel is the level at which registry operations are logged
-	Loglevel Loglevel `yaml:"loglevel"`
+	// Log supports setting various parameters related to the logging
+	// subsystem.
+	Log struct {
+		// Level is the granularity at which registry operations are logged.
+		Level Loglevel `yaml:"level"`
+
+		// Formatter overrides the default formatter with another. Options
+		// include "text", "json" and "logstash".
+		Formatter string `yaml:"formatter,omitempty"`
+
+		// Fields allows users to specify static string fields to include in
+		// the logger context.
+		Fields map[string]interface{} `yaml:"fields,omitempty"`
+	}
+
+	// Loglevel is the level at which registry operations are logged. This is
+	// deprecated. Please use Log.Level in the future.
+	Loglevel Loglevel `yaml:"loglevel,omitempty"`
 
 	// Storage is the configuration for the registry's storage driver
 	Storage Storage `yaml:"storage"`
@@ -57,6 +73,10 @@ type Configuration struct {
 			// contain the private portion for the file specified in
 			// Certificate.
 			Key string `yaml:"key,omitempty"`
+
+			// Specifies the CA certs for client authentication
+			// A file may contain multiple CA certificates encoded as PEM
+			ClientCAs []string `yaml:"clientcas,omitempty"`
 		} `yaml:"tls,omitempty"`
 
 		// Debug configures the http debug interface, if specified. This can
@@ -71,6 +91,36 @@ type Configuration struct {
 	// Notifications specifies configuration about various endpoint to which
 	// registry events are dispatched.
 	Notifications Notifications `yaml:"notifications,omitempty"`
+
+	// Redis configures the redis pool available to the registry webapp.
+	Redis struct {
+		// Addr specifies the the redis instance available to the application.
+		Addr string `yaml:"addr,omitempty"`
+
+		// Password string to use when making a connection.
+		Password string `yaml:"password,omitempty"`
+
+		// DB specifies the database to connect to on the redis instance.
+		DB int `yaml:"db,omitempty"`
+
+		DialTimeout  time.Duration `yaml:"dialtimeout,omitempty"`  // timeout for connect
+		ReadTimeout  time.Duration `yaml:"readtimeout,omitempty"`  // timeout for reads of data
+		WriteTimeout time.Duration `yaml:"writetimeout,omitempty"` // timeout for writes of data
+
+		// Pool configures the behavior of the redis connection pool.
+		Pool struct {
+			// MaxIdle sets the maximum number of idle connections.
+			MaxIdle int `yaml:"maxidle,omitempty"`
+
+			// MaxActive sets the maximum number of connections that should be
+			// opened before blocking a connection request.
+			MaxActive int `yaml:"maxactive,omitempty"`
+
+			// IdleTimeout sets the amount time to wait before closing
+			// inactive connections.
+			IdleTimeout time.Duration `yaml:"idletimeout,omitempty"`
+		} `yaml:"pool,omitempty"`
+	} `yaml:"redis,omitempty"`
 }
 
 // v0_1Configuration is a Version 0.1 Configuration struct
@@ -137,7 +187,14 @@ type Storage map[string]Parameters
 func (storage Storage) Type() string {
 	// Return only key in this map
 	for k := range storage {
-		return k
+		switch k {
+		case "maintenance":
+			// allow configuration of maintenance
+		case "cache":
+			// allow configuration of caching
+		default:
+			return k
+		}
 	}
 	return ""
 }
@@ -161,9 +218,19 @@ func (storage *Storage) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		if len(storageMap) > 1 {
 			types := make([]string, 0, len(storageMap))
 			for k := range storageMap {
-				types = append(types, k)
+				switch k {
+				case "maintenance":
+					// allow for configuration of maintenance
+				case "cache":
+					// allow configuration of caching
+				default:
+					types = append(types, k)
+				}
 			}
-			return fmt.Errorf("Must provide exactly one storage type. Provided: %v", types)
+
+			if len(types) > 1 {
+				return fmt.Errorf("Must provide exactly one storage type. Provided: %v", types)
+			}
 		}
 		*storage = storageMap
 		return nil
@@ -293,6 +360,8 @@ type NewRelicReporting struct {
 	LicenseKey string `yaml:"licensekey,omitempty"`
 	// Name is the component name of the registry in NewRelic
 	Name string `yaml:"name,omitempty"`
+	// Verbose configures debug output to STDOUT
+	Verbose bool `yaml:"verbose,omitempty"`
 }
 
 // Middleware configures named middlewares to be applied at injection points.

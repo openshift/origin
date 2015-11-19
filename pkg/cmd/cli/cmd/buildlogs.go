@@ -3,43 +3,79 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"net/http"
+	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const buildLogsLongDesc = `Retrieve logs from the containers where the build occured
+const (
+	buildLogsLong = `
+Retrieve logs for a build
 
-NOTE: This command may be moved in the future.
+This command displays the log for the provided build. If the pod that ran the build has been deleted logs
+will no longer be available. If the build has not yet completed, the build logs will be streamed until the
+build completes or fails.`
 
-Examples:
+	buildLogsExample = `  # Stream logs from container
+  $ %[1]s build-logs 566bed879d2d`
+)
 
-	# Stream logs from container to stdout
-	$ %[1]s build-logs 566bed879d2d
-`
-
+// NewCmdBuildLogs implements the OpenShift cli build-logs command
 func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	opts := api.BuildLogOptions{}
 	cmd := &cobra.Command{
-		Use:   "build-logs <build>",
-		Short: "Show container logs from the build container",
-		Long:  fmt.Sprintf(buildLogsLongDesc, fullName),
+		Use:        "build-logs BUILD",
+		Short:      "Show logs from a build",
+		Long:       buildLogsLong,
+		Example:    fmt.Sprintf(buildLogsExample, fullName),
+		Deprecated: fmt.Sprintf("use %q instead.", LogsRecommendedName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunBuildLogs(f, out, cmd, args)
+			err := RunBuildLogs(fullName, f, out, cmd, opts, args)
+
+			if err, ok := err.(kclient.APIStatus); ok {
+				if msg := err.Status().Message; strings.HasSuffix(msg, buildutil.NoBuildLogsMessage) {
+					fmt.Fprintf(out, msg)
+					os.Exit(1)
+				}
+				if err.Status().Code == http.StatusNotFound {
+					switch err.Status().Details.Kind {
+					case "build":
+						fmt.Fprintf(out, "The build %s could not be found.  Therefore build logs cannot be retrieved.\n", err.Status().Details.Name)
+					case "pod":
+						fmt.Fprintf(out, "The pod %s for build %s could not be found.  Therefore build logs cannot be retrieved.\n", err.Status().Details.Name, args[0])
+					}
+					os.Exit(1)
+				}
+			}
 			cmdutil.CheckErr(err)
 		},
 	}
+	cmd.Flags().BoolVarP(&opts.Follow, "follow", "f", true, "Specify whether logs should be followed; default is true.")
+	cmd.Flags().BoolVarP(&opts.NoWait, "nowait", "w", false, "Specify whether to return immediately without waiting for logs to be available; default is false.")
 	return cmd
 }
 
-func RunBuildLogs(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+// RunBuildLogs contains all the necessary functionality for the OpenShift cli build-logs command
+func RunBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, opts api.BuildLogOptions, args []string) error {
 	if len(args) != 1 {
-		return cmdutil.UsageError(cmd, "<build> is a required argument")
+		cmdNamespace := cmdutil.GetFlagString(cmd, "namespace")
+		var namespace string
+		if cmdNamespace != "" {
+			namespace = " -n " + cmdNamespace
+		}
+		return cmdutil.UsageError(cmd, "A build name is required - you can run `%s get builds%s` to list builds", fullName, namespace)
 	}
 
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -49,7 +85,7 @@ func RunBuildLogs(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args 
 		return err
 	}
 
-	readCloser, err := c.BuildLogs(namespace).Get(args[0]).Stream()
+	readCloser, err := c.BuildLogs(namespace).Get(args[0], opts).Stream()
 	if err != nil {
 		return err
 	}

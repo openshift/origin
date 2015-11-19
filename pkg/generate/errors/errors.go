@@ -28,7 +28,7 @@ func (e GenerationError) Error() string {
 	case CouldNotDetect:
 		return "could not detect a build type from the source."
 	case NoBuilderFound:
-		return "could not find a builder to match the STI source repository."
+		return "could not find a builder to match the source-to-image source repository."
 	case InvalidDockerfile:
 		return "invalid Dockerfile. Does not contain a FROM clause."
 	case ImageNotFound:

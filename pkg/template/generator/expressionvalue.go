@@ -30,13 +30,14 @@ type ExpressionValueGenerator struct {
 const (
 	Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	Numerals = "0123456789"
-	ASCII    = Alphabet + Numerals + "~!@#$%^&*()-_+={}[]\\|<,>.?/\"';:`"
+	Symbols  = "~!@#$%^&*()-_+={}[]\\|<,>.?/\"';:`"
+	ASCII    = Alphabet + Numerals + Symbols
 )
 
 var (
 	rangeExp      = regexp.MustCompile(`([\\]?[a-zA-Z0-9]\-?[a-zA-Z0-9]?)`)
 	generatorsExp = regexp.MustCompile(`\[([a-zA-Z0-9\-\\]+)\](\{([0-9]+)\})`)
-	expressionExp = regexp.MustCompile(`\[(\\w|\\d|\\a)|([a-zA-Z0-9]\-[a-zA-Z0-9])+\]`)
+	expressionExp = regexp.MustCompile(`\[(\\w|\\d|\\a|\\A)|([a-zA-Z0-9]\-[a-zA-Z0-9])+\]`)
 )
 
 // NewExpressionValueGenerator creates new ExpressionValueGenerator.
@@ -77,7 +78,7 @@ func alphabetSlice(from, to byte) (string, error) {
 	leftPos := strings.Index(ASCII, string(from))
 	rightPos := strings.LastIndex(ASCII, string(to))
 	if leftPos > rightPos {
-		return "", fmt.Errorf("Invalid range specified: %s-%s", string(from), string(to))
+		return "", fmt.Errorf("invalid range specified: %s-%s", string(from), string(to))
 	}
 	return ASCII[leftPos:rightPos], nil
 }
@@ -89,11 +90,13 @@ func replaceWithGenerated(s *string, expression string, ranges [][]byte, length 
 	for _, r := range ranges {
 		switch string(r[0]) + string(r[1]) {
 		case `\w`:
-			alphabet += ASCII
+			alphabet += Alphabet + Numerals + "_"
 		case `\d`:
 			alphabet += Numerals
 		case `\a`:
 			alphabet += Alphabet + Numerals
+		case `\A`:
+			alphabet += Symbols
 		default:
 			slice, err := alphabetSlice(r[0], r[1])
 			if err != nil {
@@ -103,11 +106,29 @@ func replaceWithGenerated(s *string, expression string, ranges [][]byte, length 
 		}
 	}
 	result := make([]byte, length)
+	alphabet = removeDuplicateChars(alphabet)
 	for i := 0; i < length; i++ {
 		result[i] = alphabet[seed.Intn(len(alphabet))]
 	}
 	*s = strings.Replace(*s, expression, string(result), 1)
 	return nil
+}
+
+// removeDuplicateChars removes the duplicate characters from the data slice
+func removeDuplicateChars(input string) string {
+	data := []byte(input)
+	length := len(data) - 1
+	for i := 0; i < length; i++ {
+		for j := i + 1; j <= length; j++ {
+			if data[i] == data[j] {
+				data[j] = data[length]
+				data = data[0:length]
+				length--
+				j--
+			}
+		}
+	}
+	return string(data)
 }
 
 // findExpressionPos searches the given string for the valid expressions
@@ -127,7 +148,7 @@ func findExpressionPos(s string) [][]byte {
 func rangesAndLength(s string) (string, int, error) {
 	expr := s[0:strings.LastIndex(s, "{")]
 	if !expressionExp.MatchString(expr) {
-		return "", 0, fmt.Errorf("Malformed expresion syntax: %s", expr)
+		return "", 0, fmt.Errorf("malformed expresion syntax: %s", expr)
 	}
 
 	length, _ := strconv.Atoi(s[strings.LastIndex(s, "{")+1 : len(s)-1])
@@ -135,5 +156,5 @@ func rangesAndLength(s string) (string, int, error) {
 	if length > 0 && length <= 255 {
 		return expr, length, nil
 	}
-	return "", 0, fmt.Errorf("Range must be within [1-255] characters (%d)", length)
+	return "", 0, fmt.Errorf("range must be within [1-255] characters (%d)", length)
 }

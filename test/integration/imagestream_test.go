@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -6,14 +6,15 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func init() {
@@ -21,12 +22,16 @@ func init() {
 }
 
 func TestImageStreamList(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -45,12 +50,16 @@ func mockImageStream() *imageapi.ImageStream {
 }
 
 func TestImageStreamCreate(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -87,12 +96,16 @@ func TestImageStreamCreate(t *testing.T) {
 }
 
 func TestImageStreamMappingCreate(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -131,7 +144,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	image := &imageapi.Image{
 		ObjectMeta: kapi.ObjectMeta{Name: "image2"},
 		DockerImageMetadata: imageapi.DockerImage{
-			Config: imageapi.DockerConfig{
+			Config: &imageapi.DockerConfig{
 				Env: []string{"A=B"},
 			},
 		},
@@ -179,7 +192,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "image1" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:newer" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
@@ -187,7 +200,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "image2" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:newest" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "different" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
@@ -214,7 +227,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "image1" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:newer" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
@@ -222,26 +235,30 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "image2" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:newest" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "different" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 	fromTag, err = clusterAdminClient.ImageStreamTags(testutil.Namespace()).Get(stream.Name, "anothertag")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "image2" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:anothertag" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
 }
 
 func TestImageStreamDelete(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

@@ -1,5 +1,6 @@
 // Generated on 2014-09-12 using generator-angular 0.9.8
 'use strict';
+/* jshint unused: false */
 
 // # Globbing
 // for performance reasons we're only matching one level down:
@@ -51,7 +52,15 @@ module.exports = function (grunt) {
       css: {
         files: '<%= yeoman.app %>/styles/*.less',
         tasks: ['less']
-      },      
+      },
+      extensions: {
+        files: ['extensions/extensions.js', 'extensions/extensions.css'],
+        tasks: ['copy:extensions']
+      },
+      localConfig: {
+        files: ['<%= yeoman.app %>/config.local.js'],
+        tasks: ['copy:localConfig']
+      },
       gruntfile: {
         files: ['Gruntfile.js']
       },
@@ -62,6 +71,8 @@ module.exports = function (grunt) {
         files: [
           '<%= yeoman.app %>/{,*/}*.html',
           '.tmp/styles/{,*/}*.css',
+          '.tmp/config.js',
+          '.tmp/scripts/extensions.js',
           '<%= yeoman.app %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}'
         ]
       }
@@ -81,8 +92,12 @@ module.exports = function (grunt) {
           open: true,
           middleware: function (connect) {
             return [
-              modRewrite(['!^/(config.js|favicon.ico|(bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
+              modRewrite(['!^/(config.js|favicon.ico|(java|bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
               connect.static('.tmp'),
+              connect().use(
+                '/java',
+                connect.static('./openshift-jvm')
+              ),
               connect().use(
                 '/bower_components',
                 connect.static('./bower_components')
@@ -178,12 +193,12 @@ module.exports = function (grunt) {
           'bower_components/uri.js/src/URI.min.js',
           'bower_components/uri.js/src/jquery.URI.min.js',
           'bower_components/uri.js/src/URI.fragmentQuery.js',
+          'bower_components/messenger/build/css/messenger.css',
           'bower_components/messenger/build/css/messenger-theme-future.css',
-          'bower_components/messenger/build/css/messenger-theme-flat.css',
+          'bower_components/messenger/build/css/messenger-theme-block.css',
           'bower_components/messenger/build/css/messenger-theme-air.css',
           'bower_components/messenger/build/css/messenger-theme-ice.css',
           'bower_components/messenger/build/js/messenger-theme-future.js',
-          'bower_components/messenger/build/js/messenger-theme-flat.js',
           'bower_components/fontawesome/css/font-awesome.css'
         ]
       }
@@ -200,7 +215,7 @@ module.exports = function (grunt) {
       },
       production: {
         files: {
-          'dist/css/main.css': '<%= yeoman.app %>/styles/main.less'
+          'dist/styles/main.css': '<%= yeoman.app %>/styles/main.less'
         },
         options: {
           cleancss: true,
@@ -257,8 +272,8 @@ module.exports = function (grunt) {
                     beautify: {
                       beautify: true,
                       indent_level: 0, // Don't waste characters indenting
-                      space_colon: false, // Don't waste characters 
-                      width: 1000,
+                      space_colon: false, // Don't waste characters
+                      width: 1000
                     },
                   };
                 }
@@ -326,6 +341,16 @@ module.exports = function (grunt) {
       }
     },
 
+    htmlhint: {
+      html: {
+        options: {
+          'tag-pair': true,
+          'attr-no-duplication': true
+        },
+        src: ['app/**/*.html']
+      }
+    },
+
     htmlmin: {
       dist: {
         options: {
@@ -335,7 +360,7 @@ module.exports = function (grunt) {
           collapseBooleanAttributes: true,
           removeComments: true,
           removeCommentsFromCDATA: true,
-          removeOptionalTags: true,
+          removeOptionalTags: false,
           keepClosingSlash: true
         },
         files: [{
@@ -360,10 +385,16 @@ module.exports = function (grunt) {
       }
     },
 
-    // Replace Google CDN references
-    cdnify: {
+    ngtemplates: {
       dist: {
-        html: ['<%= yeoman.dist %>/*.html']
+        cwd: '<%= yeoman.app %>',
+        src: 'views/**/*.html',
+        dest: 'dist/scripts/templates.js',
+        options: {
+          module: 'openshiftConsoleTemplates',
+          standalone: true,
+          htmlmin: '<%= htmlmin.dist.options %>'
+        }
       }
     },
 
@@ -379,7 +410,7 @@ module.exports = function (grunt) {
             '*.{ico,png,txt}',
             '.htaccess',
             '*.html',
-            'views/{,*/}*.html',
+            'images/{,*/}*.{png,jpg,jpeg,gif}',
             'images/{,*/}*.{webp}',
             'fonts/*',
             'styles/fonts/*'
@@ -399,12 +430,22 @@ module.exports = function (grunt) {
           cwd: 'bower_components/patternfly/components/font-awesome',
           src: 'fonts/*',
           dest: '<%= yeoman.dist %>/styles'
-        }, 
+        },
         {
           expand: true,
           cwd: 'bower_components/zeroclipboard/dist',
           src: 'ZeroClipboard.swf',
           dest: '<%= yeoman.dist %>/scripts'
+        },
+
+        // Copy separate components
+        {
+          expand: true,
+          cwd: 'openshift-jvm',
+          src: '**/*',
+          // Copy to a separate "dist.*" directory for go-bindata
+          // Make the folder structure inside the dist.* directory match the desired path
+          dest: '<%= yeoman.dist %>.java/java'
         }]
       },
       styles: {
@@ -424,6 +465,32 @@ module.exports = function (grunt) {
           src: 'fonts/*',
           dest: '.tmp/styles'
         }]
+      },
+      // Copy files in the extensions dir for development, but not distribution.
+      extensions: {
+        files: [{
+          expand: true,
+          cwd: 'extensions',
+          src: 'extensions.js',
+          dest: '.tmp/scripts'
+        }, {
+          expand: true,
+          cwd: 'extensions',
+          src: 'extensions.css',
+          dest: '.tmp/styles'
+        }]
+      },
+      // config.local.js is for local customizations if it exists.
+      localConfig: {
+        files: [{
+          expand: true,
+          cwd: '<%= yeoman.app %>',
+          src: 'config.local.js',
+          dest: '.tmp',
+          rename: function(path, name) {
+            return path + '/config.js';
+          }
+        }]
       }
     },
 
@@ -431,14 +498,17 @@ module.exports = function (grunt) {
     concurrent: {
       server: [
         'less:development',
-        'copy:styles'
+        'copy:styles',
+        'copy:extensions',
+        'copy:localConfig'
       ],
       test: [
         'less:development'
       ],
       dist: [
         'less:production',
-        'imagemin',
+        // remove imagemin from build, since it doesn't tend to behave well cross-platform
+        // 'imagemin',
         'svgmin'
       ]
     },
@@ -453,21 +523,20 @@ module.exports = function (grunt) {
 
     protractor: {
       options: {
-        configFile: "test/protractor.conf.js", // Default config file 
-        keepAlive: false, // If false, the grunt process stops when the test fails. 
-        noColor: false, // If true, protractor will not use colors in its output. 
+        configFile: "test/protractor-chrome.conf.js", // Default config file
+        keepAlive: false, // If false, the grunt process stops when the test fails.
+        noColor: false, // If true, protractor will not use colors in its output.
         args: {
-          // Arguments passed to the command 
+          // Arguments passed to the command
         }
       },
-      phantomjs: {},
       chrome: {
         options: {
-          configFile: "test/protractor-chrome.conf.js", // Target-specific config file 
-          args: {} // Target-specific arguments 
+          configFile: "test/protractor-chrome.conf.js", // Target-specific config file
+          args: {} // Target-specific arguments
         }
       }
-    },    
+    },
 
     // Settings for grunt-istanbul-coverage
     // NOTE: coverage task is currently not in use
@@ -482,7 +551,7 @@ module.exports = function (grunt) {
         dir: 'coverage',
         root: 'test'
       }
-    }    
+    }
   });
 
 
@@ -509,6 +578,10 @@ module.exports = function (grunt) {
   // Loads the coverage task which enforces the minimum coverage thresholds
   grunt.loadNpmTasks('grunt-istanbul-coverage');
 
+  grunt.loadNpmTasks('grunt-htmlhint');
+
+  grunt.loadNpmTasks('grunt-angular-templates');
+
   // karma must run prior to coverage since karma will generate the coverage results
   grunt.registerTask('test', [
     'clean:server',
@@ -524,29 +597,22 @@ module.exports = function (grunt) {
     'concurrent:server',
     'autoprefixer',
     'connect:test',
-    'protractor:phantomjs',
-    'clean:server'
-  ]);  
-
-  grunt.registerTask('test-e2e-chrome', [
-    'clean:server',
-    'concurrent:server',
-    'autoprefixer',
-    'connect:test',
     'protractor:chrome',
     'clean:server'
-  ]);  
+  ]);
 
   grunt.registerTask('build', [
     'clean:dist',
+    'newer:jshint',
+    'htmlhint',
     'wiredep',
     'useminPrepare',
+    'ngtemplates',
     'concurrent:dist',
     'autoprefixer',
     'concat',
     'ngAnnotate',
     'copy:dist',
-    'cdnify',
     'less',
     'cssmin',
     'uglify',

@@ -3,7 +3,7 @@
 # This command attempts to export the correct arguments for a curl client.
 # Exports CURL_ARGS which should be used with curl:
 #
-#   $ source hack/export-certs.sh ./openshift.local.certificates/admin
+#   $ source hack/export-certs.sh ./openshift.local.config/master/admin
 #   $ curl $CURL_ARGS <a protected URL>
 
 set -o errexit
@@ -22,8 +22,8 @@ if [[ -z "${CERT_DIR}" ]]; then
     exit 1
 fi
 
-export CURL_CERT="${CERT_DIR}/cert.crt"
-export CURL_KEY="${CERT_DIR}/key.key"
-export CURL_CA_BUNDLE="${CERT_DIR}/../ca/cert.crt"
+export CURL_CERT="${CERT_DIR}/admin.crt"
+export CURL_KEY="${CERT_DIR}/admin.key"
+export CURL_CA_BUNDLE="${CERT_DIR}/ca.crt"
 
 set_curl_args

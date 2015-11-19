@@ -3,8 +3,8 @@ package test
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 )
@@ -22,25 +22,25 @@ func (r *ClientAuthorizationRegistry) ClientAuthorizationName(userName, clientNa
 	return fmt.Sprintf("%s:%s", userName, clientName)
 }
 
-func (r *ClientAuthorizationRegistry) ListClientAuthorizations(label labels.Selector, field fields.Selector) (*api.OAuthClientAuthorizationList, error) {
+func (r *ClientAuthorizationRegistry) ListClientAuthorizations(ctx kapi.Context, label labels.Selector) (*api.OAuthClientAuthorizationList, error) {
 	return r.ClientAuthorizations, r.Err
 }
 
-func (r *ClientAuthorizationRegistry) GetClientAuthorization(name string) (*api.OAuthClientAuthorization, error) {
+func (r *ClientAuthorizationRegistry) GetClientAuthorization(ctx kapi.Context, name string) (*api.OAuthClientAuthorization, error) {
 	return r.ClientAuthorization, r.Err
 }
 
-func (r *ClientAuthorizationRegistry) CreateClientAuthorization(grant *api.OAuthClientAuthorization) error {
+func (r *ClientAuthorizationRegistry) CreateClientAuthorization(ctx kapi.Context, grant *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error) {
 	r.CreatedAuthorization = grant
-	return r.Err
+	return r.ClientAuthorization, r.Err
 }
 
-func (r *ClientAuthorizationRegistry) UpdateClientAuthorization(grant *api.OAuthClientAuthorization) error {
+func (r *ClientAuthorizationRegistry) UpdateClientAuthorization(ctx kapi.Context, grant *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error) {
 	r.UpdatedAuthorization = grant
-	return r.Err
+	return r.ClientAuthorization, r.Err
 }
 
-func (r *ClientAuthorizationRegistry) DeleteClientAuthorization(name string) error {
+func (r *ClientAuthorizationRegistry) DeleteClientAuthorization(ctx kapi.Context, name string) error {
 	r.DeletedClientAuthorizationName = name
 	return r.Err
 }

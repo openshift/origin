@@ -7,22 +7,38 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
-
 os::log::install_errexit
 
 function cleanup()
 {
     out=$?
     pkill -P $$
+    set +e
+    kill_all_processes
 
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Test Failed !!!!"
+        echo
+        tail -40 "${LOG_DIR}/openshift.log"
+        echo
+        echo -------------------------------------
+        echo
     else
+        if path=$(go tool -n pprof 2>&1); then
+          echo
+          echo "pprof: top output"
+          echo
+          go tool pprof -text ./_output/local/bin/$(os::util::host_platform)/openshift cpu.pprof | head -120
+        fi
+
         echo
         echo "Complete"
     fi
+
+    ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
     exit $out
 }
 
@@ -31,29 +47,30 @@ trap "cleanup" EXIT
 
 set -e
 
+function find_tests {
+  cd "${OS_ROOT}"
+  find "${1}" -name '*.sh' | sort -u
+}
+tests=( $(find_tests ${1:-test/cmd}) )
+
+# Setup environment
+
+# test-cmd specific defaults
+BASETMPDIR=${USE_TEMP:-$(mkdir -p /tmp/openshift-cmd && mktemp -d /tmp/openshift-cmd/XXXX)}
+API_HOST=${API_HOST:-127.0.0.1}
+export API_PORT=${API_PORT:-28443}
+
+export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
+export ETCD_PORT=${ETCD_PORT:-24001}
+export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
+setup_env_vars
+export SUDO=''
+mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" "${LOG_DIR}"
+
+
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
-unset OPENSHIFTCONFIG
 
-USE_LOCAL_IMAGES=${USE_LOCAL_IMAGES:-true}
-
-ETCD_HOST=${ETCD_HOST:-127.0.0.1}
-ETCD_PORT=${ETCD_PORT:-4001}
-API_SCHEME=${API_SCHEME:-https}
-API_PORT=${API_PORT:-8443}
-API_HOST=${API_HOST:-127.0.0.1}
-MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
-PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
-KUBELET_SCHEME=${KUBELET_SCHEME:-https}
-KUBELET_HOST=${KUBELET_HOST:-127.0.0.1}
-KUBELET_PORT=${KUBELET_PORT:-10250}
-
-TEMP_DIR=${USE_TEMP:-$(mktemp -d /tmp/openshift-cmd.XXXX)}
-ETCD_DATA_DIR="${TEMP_DIR}/etcd"
-VOLUME_DIR="${TEMP_DIR}/volumes"
-CERT_DIR="${TEMP_DIR}/certs"
-CONFIG_DIR="${TEMP_DIR}/configs"
-mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${CERT_DIR}" "${CONFIG_DIR}"
 
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
@@ -64,11 +81,9 @@ if [[ -n "${profile}" ]]; then
     else
         export WEB_PROFILE="${profile}"
     fi
+else
+  export WEB_PROFILE=cpu
 fi
-
-# set path so OpenShift is available
-GO_OUT="${OS_ROOT}/_output/local/go/bin"
-export PATH="${GO_OUT}:${PATH}"
 
 # Check openshift version
 out=$(openshift version)
@@ -78,57 +93,74 @@ echo openshift: $out
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
 # Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
-echo "[INFO] Create certificates for the OpenShift server to ${CERT_DIR}"
+echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
-ALL_IP_ADDRESSES=`ifconfig | grep "inet " | awk '{print $2}'`
-SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
-while read -r IP_ADDRESS
-do
-    SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
-done <<< "${ALL_IP_ADDRESSES}"
+SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},$(openshift start --print-ip),localhost"
 
-openshift admin create-master-certs \
+openshift admin ca create-master-certs \
   --overwrite=false \
-  --cert-dir="${CERT_DIR}" \
+  --cert-dir="${MASTER_CONFIG_DIR}" \
   --hostnames="${SERVER_HOSTNAME_LIST}" \
   --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
+  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
 
 openshift admin create-node-config \
   --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
-  --node-dir="${CERT_DIR}/node-${KUBELET_HOST}" \
+  --node-dir="${NODE_CONFIG_DIR}" \
   --node="${KUBELET_HOST}" \
   --hostnames="${KUBELET_HOST}" \
   --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${CERT_DIR}/ca/cert.crt" \
-  --certificate-authority="${CERT_DIR}/ca/cert.crt" \
-  --signer-cert="${CERT_DIR}/ca/cert.crt" \
-  --signer-key="${CERT_DIR}/ca/key.key" \
-  --signer-serial="${CERT_DIR}/ca/serial.txt"
+  --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+  --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+  --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
+  --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
+  --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
 
-# Start openshift
-OPENSHIFT_ON_PANIC=crash openshift start \
+oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
+
+# create openshift config
+openshift start \
+  --write-config=${SERVER_CONFIG_DIR} \
+  --create-certs=false \
   --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
   --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
   --hostname="${KUBELET_HOST}" \
   --volume-dir="${VOLUME_DIR}" \
-  --cert-dir="${CERT_DIR}" \
   --etcd-dir="${ETCD_DATA_DIR}" \
-  --create-certs=false 1>&2 &
+  --images="${USE_IMAGES}"
+
+# validate config that was generated
+[ "$(openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml 2>&1 | grep SUCCESS)" ]
+[ "$(openshift ex validate node-config ${NODE_CONFIG_DIR}/node-config.yaml 2>&1 | grep SUCCESS)" ]
+# breaking the config fails the validation check
+cp ${MASTER_CONFIG_DIR}/master-config.yaml ${BASETMPDIR}/master-config-broken.yaml
+os::util::sed '5,10d' ${BASETMPDIR}/master-config-broken.yaml
+[ "$(openshift ex validate master-config ${BASETMPDIR}/master-config-broken.yaml 2>&1 | grep ERROR)" ]
+
+cp ${NODE_CONFIG_DIR}/node-config.yaml ${BASETMPDIR}/node-config-broken.yaml
+os::util::sed '5,10d' ${BASETMPDIR}/node-config-broken.yaml
+[ "$(openshift ex validate node-config ${BASETMPDIR}/node-config-broken.yaml 2>&1 | grep ERROR)" ]
+echo "validation: ok"
+
+# Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
+os::util::sed "s/:4001$/:${ETCD_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
+os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
+
+# Start openshift
+OPENSHIFT_ON_PANIC=crash openshift start master \
+  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
+  --loglevel=4 \
+  &>"${LOG_DIR}/openshift.log" &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
-    export CURL_CA_BUNDLE="${CERT_DIR}/ca/cert.crt"
-    export CURL_CERT="${CERT_DIR}/admin/cert.crt"
-    export CURL_KEY="${CERT_DIR}/admin/key.key"
+    export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
+    export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
+    export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 fi
 
-# set the home directory so we don't pick up the users .config
-export HOME="${CERT_DIR}/admin"
-
-wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/${KUBELET_HOST}" "apiserver(minions): " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
@@ -137,322 +169,126 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 # Begin tests
 #
 
-# test client not configured
-[ "$(osc get services 2>&1 | grep 'no server found')" ]
+# create master config as atomic-enterprise just to test it works
+atomic-enterprise start \
+  --write-config="${BASETMPDIR}/atomic.local.config" \
+  --create-certs=true \
+  --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
+  --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
+  --hostname="${KUBELET_HOST}" \
+  --volume-dir="${VOLUME_DIR}" \
+  --etcd-dir="${ETCD_DATA_DIR}" \
+  --images="${USE_IMAGES}"
 
-# Set KUBERNETES_MASTER for osc from now on
+# ensure that DisabledFeatures aren't written to config files
+! grep -i '\<disabledFeatures\>' \
+	"${MASTER_CONFIG_DIR}/master-config.yaml" \
+	"${BASETMPDIR}/atomic.local.config/master/master-config.yaml" \
+	"${NODE_CONFIG_DIR}/node-config.yaml"
+
+# test client not configured
+[ "$(oc get services 2>&1 | grep 'No configuration file found, please login')" ]
+unused_port="33333"
+# setting env bypasses the not configured message
+[ "$(KUBERNETES_MASTER=http://${API_HOST}:${unused_port} oc get services 2>&1 | grep 'did you specify the right host or port')" ]
+# setting --server bypasses the not configured message
+[ "$(oc get services --server=http://${API_HOST}:${unused_port} 2>&1 | grep 'did you specify the right host or port')" ]
+
+# Set KUBERNETES_MASTER for oc from now on
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 
-# Set certificates for osc from now on
+# Set certificates for oc from now on
 if [[ "${API_SCHEME}" == "https" ]]; then
     # test bad certificate
-    [ "$(osc get services 2>&1 | grep 'certificate signed by unknown authority')" ]
-
-    # ignore anything in the running user's $HOME dir
-    export HOME="${CERT_DIR}/admin"
+    [ "$(oc get services 2>&1 | grep 'certificate signed by unknown authority')" ]
 fi
 
+
+# login and logout tests
+# --token and --username are mutually exclusive
+[ "$(oc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify 2>&1 | grep 'mutually exclusive')" ]
+# must only accept one arg (server)
+[ "$(oc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
+# logs in with a valid certificate authority
+oc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1
+grep -q "v1" ${HOME}/.kube/config
+oc logout
+# logs in skipping certificate check
+oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything
+# logs in by an existing and valid token
+temp_token=$(oc config view -o template --template='{{range .users}}{{ index .user.token }}{{end}}')
+[ "$(oc login --token=${temp_token} 2>&1 | grep 'using the token provided')" ]
+oc logout
+# properly parse server port
+[ "$(oc login https://server1:844333 2>&1 | grep 'Not a valid port')" ]
+# properly handle trailing slash
+oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+# create a new project
+oc new-project project-foo --display-name="my project" --description="boring project description"
+[ "$(oc project | grep 'Using project "project-foo"')" ]
+# new user should get default context
+oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u new-and-unknown-user -p anything
+[ "$(oc config view | grep current-context | grep /${API_HOST}:${API_PORT}/new-and-unknown-user)" ]
+# denies access after logging out
+oc logout
+[ -z "$(oc get pods | grep 'system:anonymous')" ]
+
+# log in as an image-pruner and test that oadm prune images works against the atomic binary
+oadm policy add-cluster-role-to-user system:image-pruner pruner --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u pruner -p anything
+# this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
+oadm prune images
+
+# log in and set project to use from now on
+oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+oc get projects
+oc project project-foo
+[ "$(oc config view | grep current-context | grep project-foo/${API_HOST}:${API_PORT}/test-user)" ]
+[ "$(oc whoami | grep 'test-user')" ]
+[ "$(oc whoami --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" | grep 'system:admin')" ]
+[ -n "$(oc whoami -t)" ]
+[ -n "$(oc whoami -c)" ]
+
 # test config files from the --config flag
-osc get services --config="${CERT_DIR}/admin/.kubeconfig"
+oc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 
 # test config files from env vars
-OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig" osc get services
-KUBECONFIG="${CERT_DIR}/admin/.kubeconfig" osc get services
-
-# test config files in the current directory
-TEMP_PWD=`pwd` 
-pushd ${CONFIG_DIR} >/dev/null
-    cp ${CERT_DIR}/admin/.kubeconfig .openshiftconfig
-    ${TEMP_PWD}/${GO_OUT}/osc get services
-    mv .openshiftconfig .kubeconfig 
-    ${TEMP_PWD}/${GO_OUT}/osc get services
-popd 
+KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" oc get services
 
 # test config files in the home directory
-mv ${CONFIG_DIR} ${HOME}/.kube
-osc get services
-mkdir -p ${HOME}/.config
-mv ${HOME}/.kube ${HOME}/.config/openshift
-mv ${HOME}/.config/openshift/.kubeconfig ${HOME}/.config/openshift/.config
-osc get services
+mkdir -p ${HOME}/.kube
+cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/config
+oc get services
+mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
 echo "config files: ok"
-export OPENSHIFTCONFIG="${HOME}/.config/openshift/.config"
 
-# from this point every command will use config from the OPENSHIFTCONFIG env var
+# from this point every command will use config from the KUBECONFIG env var
+export KUBECONFIG="${HOME}/.kube/non-default-config"
+export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template --template='{{index . "current-context"}}')
 
-osc get templates
-osc create -f examples/sample-app/application-template-dockerbuild.json
-osc get templates
-osc get templates ruby-helloworld-sample
-osc process ruby-helloworld-sample
-osc describe templates ruby-helloworld-sample
-osc delete templates ruby-helloworld-sample
-osc get templates
-# TODO: create directly from template
-echo "templates: ok"
 
-# verify some default commands
-[ "$(openshift cli)" ]
-[ "$(openshift ex)" ]
-[ "$(openshift admin config 2>&1)" ]
-[ "$(openshift cli config 2>&1)" ]
-[ "$(openshift ex tokens)" ]
-[ "$(openshift admin policy  2>&1)" ]
-[ "$(openshift kubectl 2>&1)" ]
-[ "$(openshift kube 2>&1)" ]
-[ "$(openshift admin 2>&1)" ]
+# NOTE: Do not add tests here, add them to test/cmd/*.
+# Tests should assume they run in an empty project, and should be reentrant if possible
+# to make it easy to run individual tests
+for test in "${tests[@]}"; do
+  echo
+  echo "++ ${test}"
+  name=$(basename ${test} .sh)
 
-# help for root commands must be consistent
-[ "$(openshift | grep 'OpenShift Application Platform')" ]
-[ "$(osc | grep 'OpenShift Client')" ]
-[ "! $(osc | grep 'Options')" ]
-[ "! $(osc | grep 'Global Options')" ]
-[ "$(openshift cli | grep 'OpenShift Client')" ]
-[ "$(openshift kubectl 2>&1 | grep 'Kubernetes cluster')" ]
-[ "$(osadm 2>&1 | grep 'OpenShift Administrative Commands')" ]
-[ "$(openshift admin 2>&1 | grep 'OpenShift Administrative Commands')" ]
+  # switch back to a standard identity. This prevents individual tests from changing contexts and messing up other tests
+  oc project ${CLUSTER_ADMIN_CONTEXT}
+  oc new-project "cmd-${name}"
+  ${test}
+  oc project ${CLUSTER_ADMIN_CONTEXT}
+  oc delete project "cmd-${name}"
+done
 
-# help for root commands with --help flag must be consistent
-[ "$(openshift --help 2>&1 | grep 'OpenShift Application Platform')" ]
-[ "$(osc --help 2>&1 | grep 'OpenShift Client')" ]
-[ "$(osc login --help 2>&1 | grep 'Options')" ]
-[ "! $(osc login --help 2>&1 | grep 'Global Options')" ]
-[ "$(openshift cli --help 2>&1 | grep 'OpenShift Client')" ]
-[ "$(openshift kubectl --help 2>&1 | grep 'Kubernetes cluster')" ]
-[ "$(osadm --help 2>&1 | grep 'OpenShift Administrative Commands')" ]
-[ "$(openshift admin --help 2>&1 | grep 'OpenShift Administrative Commands')" ]
 
-# help for root commands through help command must be consistent
-[ "$(openshift help cli 2>&1 | grep 'OpenShift Client')" ]
-[ "$(openshift help kubectl 2>&1 | grep 'Kubernetes cluster')" ]
-[ "$(openshift help admin 2>&1 | grep 'OpenShift Administrative Commands')" ]
-
-# help for given command with --help flag must be consistent
-[ "$(osc get --help 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift cli get --help 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift kubectl get --help 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift start --help 2>&1 | grep 'Start an OpenShift all-in-one server')" ]
-[ "$(openshift start master --help 2>&1 | grep 'Start an OpenShift master')" ]
-[ "$(openshift start node --help 2>&1 | grep 'Start an OpenShift node')" ]
-[ "$(osc get --help 2>&1 | grep 'osc')" ]
-
-# help for given command through help command must be consistent
-[ "$(osc help get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift cli help get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift kubectl help get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift help start 2>&1 | grep 'Start an OpenShift all-in-one server')" ]
-[ "$(openshift help start master 2>&1 | grep 'Start an OpenShift master')" ]
-[ "$(openshift help start node 2>&1 | grep 'Start an OpenShift node')" ]
-[ "$(openshift cli help update 2>&1 | grep 'openshift')" ]
-
-# runnable commands with required flags must error consistently
-[ "$(osc get 2>&1 | grep 'you must provide one or more resources')" ]
-[ "$(openshift cli get 2>&1 | grep 'you must provide one or more resources')" ]
-[ "$(openshift kubectl get 2>&1 | grep 'you must provide one or more resources')" ]
-
-osc get pods --match-server-version
-osc create -f examples/hello-openshift/hello-pod.json
-osc describe pod hello-openshift
-osc delete pods hello-openshift
-echo "pods: ok"
-
-osc get services
-osc create -f test/integration/fixtures/test-service.json
-osc delete services frontend
-echo "services: ok"
-
-osc get minions
-echo "minions: ok"
-
-osc get images
-osc create -f test/integration/fixtures/test-image.json
-osc delete images test
-echo "images: ok"
-
-osc get imageStreams
-osc create -f test/integration/fixtures/test-image-stream.json
-[ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
-osc create -f examples/sample-app/docker-registry-config.json
-[ -n "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
-osc delete -f examples/sample-app/docker-registry-config.json
-osc delete imageStreams test
-[ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
-osc create -f examples/image-streams/image-streams.json
-[ -n "$(osc get imageStreams ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
-osc delete imageStreams ruby-20-centos7
-osc delete imageStreams nodejs-010-centos7
-osc delete imageStreams wildfly-8-centos
-osc delete imageStreams mysql-55-centos7
-osc delete imageStreams postgresql-92-centos7
-osc delete imageStreams mongodb-24-centos7
-[ -z "$(osc get imageStreams ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
-echo "imageStreams: ok"
-
-osc create -f test/integration/fixtures/test-image-stream.json
-osc create -f test/integration/fixtures/test-image-stream-mapping.json
-osc get images
-osc get imageStreams
-osc get imageStreamTag test:sometag
-osc get imageStreamImage test@sha256:4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125
-osc delete imageStreams test
-echo "imageStreamMappings: ok"
-
-osc get imageRepositories
-osc create -f test/integration/fixtures/test-image-repository.json
-[ -n "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
-osc delete imageRepositories test
-osc create -f examples/image-repositories/image-repositories.json
-[ -n "$(osc get imageRepositories ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageRepositories mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageRepositories postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageRepositories mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
-osc delete imageRepositories ruby-20-centos7
-osc delete imageRepositories nodejs-010-centos7
-osc delete imageRepositories mysql-55-centos7
-osc delete imageRepositories postgresql-92-centos7
-osc delete imageRepositories mongodb-24-centos7
-[ -z "$(osc get imageRepositories ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageRepositories mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageRepositories postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageRepositories mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
-# don't delete wildfly-8-centos
-osc create -f - << EOF
-{"apiVersion": "v1beta1","dockerImageRepository": "openshift/mysql-55-centos7","kind": "ImageRepository","metadata": {"name": "mysql"}}
-EOF
-echo "imageRepositories: ok"
-
-osc create -f test/integration/fixtures/test-image-repository.json
-osc create -f test/integration/fixtures/test-image-repository-mapping.json
-osc get images
-osc get imageRepositories
-osc get imageRepositoryTag test:sometag
-osc delete imageRepositories test
-echo "imageRepositoryMappings: ok"
-
-[ -n "$(osc get imageRepositories mysql -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
-[ "$(osc new-app php mysql -o yaml | grep 3306)" ]
-# verify we can generate a Docker image based component "mongodb" directly
-[ ! "$(osc new-app unknownhubimage -o yaml)" ]
-[ "$(osc new-app mongo -o yaml | grep library/mongo)" ]
-# the local image repository takes precedence over the Docker Hub "mysql" image
-[ "$(osc new-app mysql -o yaml | grep mysql-55-centos7)" ]
-osc new-app php mysql
-echo "new-app: ok"
-
-osc get routes
-osc create -f test/integration/fixtures/test-route.json
-osc delete routes testroute
-echo "routes: ok"
-
-osc get deploymentConfigs
-osc get dc
-osc create -f test/integration/fixtures/test-deployment-config.json
-osc describe deploymentConfigs test-deployment-config
-osc delete deploymentConfigs test-deployment-config
-echo "deploymentConfigs: ok"
-
-osc process -f test/templates/fixtures/guestbook.json --parameters --value="ADMIN_USERNAME=admin"
-osc process -f test/templates/fixtures/guestbook.json | osc create -f -
-osc status
-[ "$(osc status | grep frontend-service)" ]
-echo "template+config: ok"
-
-openshift kube resize --replicas=2 rc guestbook
-osc get pods
-echo "resize: ok"
-
-osc process -f examples/sample-app/application-template-dockerbuild.json | osc create -f -
-osc get buildConfigs
-osc get bc
-osc get builds
-[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Github") =~ "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github" ]]
-[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Generic") =~ "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic" ]]
-echo "buildConfig: ok"
-
-osc create -f test/integration/fixtures/test-buildcli.json
-# a build for which there is not an upstream tag in the corresponding imagerepo, so
-# the build should use the image field as defined in the buildconfig
-started=$(osc start-build ruby-sample-build-invalidtag)
-echo "start-build: ok"
-osc describe build ${started} | grep openshift/ruby-20-centos7$
-
-osc cancel-build "${started}" --dump-logs --restart
-# a build for which there is an upstream tag in the corresponding imagerepo, so
-# the build should use that specific tag of the image instead of the image field
-# as defined in the buildconfig
-started=$(osc start-build ruby-sample-build-validtag)
-osc describe imagestream ruby-20-centos7-buildcli
-osc describe build ${started}
-osc describe build ${started} | grep openshift/ruby-20-centos7:success$
-osc cancel-build "${started}" --dump-logs --restart
-echo "cancel-build: ok"
-
-openshift admin policy add-role-to-group cluster-admin system:unauthenticated
-openshift admin policy remove-role-from-group cluster-admin system:unauthenticated
-openshift admin policy remove-role-from-group-from-project system:unauthenticated
-openshift admin policy add-role-to-user cluster-admin system:no-user
-openshift admin policy remove-user cluster-admin system:no-user
-openshift admin policy remove-user-from-project system:no-user
-echo "ex policy: ok"
-
-# Test the commands the UI projects page tells users to run
-# These should match what is described in projects.html
-osadm new-project ui-test-project --admin="createuser"
-osadm policy add-role-to-user admin adduser -n ui-test-project
-# Make sure project can be listed by osc (after auth cache syncs)
-sleep 2 && [ "$(osc get projects | grep 'ui-test-project')" ]
-# Make sure users got added
-[ "$(osc describe policybinding master -n ui-test-project | grep createuser)" ]
-[ "$(osc describe policybinding master -n ui-test-project | grep adduser)" ]
-echo "ui-project-commands: ok"
-
-# Test deleting and recreating a project
-osadm new-project recreated-project --admin="createuser1"
-osc delete project recreated-project
-osc delete project recreated-project
-osadm new-project recreated-project --admin="createuser2"
-osc describe policybinding master -n recreated-project | grep createuser2
-echo "ex new-project: ok"
-
-# Test running a router
-[ ! "$(osadm router | grep 'does not exist')" ]
-[ "$(osadm router -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-haproxy-')" ]
-osadm router --create --credentials="${OPENSHIFTCONFIG}"
-[ "$(osadm router | grep 'service exists')" ]
-echo "ex router: ok"
-
-# Test running a registry
-[ ! "$(osadm registry | grep 'does not exist')"]
-[ "$(osadm registry -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-docker-registry')" ]
-osadm registry --create --credentials="${OPENSHIFTCONFIG}"
-[ "$(osadm registry | grep 'service exists')" ]
-echo "ex registry: ok"
-
-# verify the image repository had its tags populated
-[ -n "$(osc get imageStreams wildfly-8-centos -t "{{.status.tags.latest}}")" ]
-[ -n "$(osc get imageStreams wildfly-8-centos -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
-
-# Test building a dependency tree
-[ "$(openshift ex build-chain --all -o dot | grep 'graph')" ]
-echo "ex build-chain: ok"
-
-osc get minions,pods
-
-osadm new-project example --admin="createuser"
-osc project example
-osc create -f test/fixtures/app-scenarios
-osc status
-echo "complex-scenarios: ok"
+# Done
+echo
+echo
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/metrics" "metrics: " 0.25 80 > "${LOG_DIR}/metrics.log"
+grep "request_count" "${LOG_DIR}/metrics.log"
+echo
+echo
+echo "test-cmd: ok"

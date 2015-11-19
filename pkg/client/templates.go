@@ -1,9 +1,9 @@
 package client
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
 
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
@@ -43,8 +43,8 @@ func (c *templates) List(label labels.Selector, field fields.Selector) (result *
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("templates").
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Do().
 		Into(result)
 	return
@@ -84,7 +84,7 @@ func (c *templates) Watch(label labels.Selector, field fields.Selector, resource
 		Namespace(c.ns).
 		Resource("templates").
 		Param("resourceVersion", resourceVersion).
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Watch()
 }

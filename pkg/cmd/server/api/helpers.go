@@ -1,16 +1,111 @@
 package api
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net"
+	"net/http"
+	"strings"
+	"time"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
+
+var (
+	// Maps lower-cased feature flag names and aliases to their canonical names.
+	knownOpenShiftFeatureSet map[string]string
+)
+
+func init() {
+	knownOpenShiftFeatureSet = make(map[string]string, len(KnownOpenShiftFeatures))
+	for _, feature := range KnownOpenShiftFeatures {
+		knownOpenShiftFeatureSet[strings.ToLower(feature)] = feature
+	}
+	for alias, feature := range FeatureAliases {
+		knownOpenShiftFeatureSet[strings.ToLower(alias)] = feature
+	}
+}
+
+// NormalizeOpenShiftFeature returns canonical name for given OpenShift feature
+// flag or an alias if known. Otherwise lower-cased name is returned.
+func NormalizeOpenShiftFeature(name string) (string, bool) {
+	name = strings.ToLower(name)
+	if feature, ok := knownOpenShiftFeatureSet[name]; ok {
+		return feature, true
+	}
+	return name, false
+}
+
+// Add extends feature list with given valid items. They are appended
+// unless already present.
+func (fl *FeatureList) Add(items ...string) error {
+	unknown := []string{}
+	toAppend := make([]string, 0, len(items))
+	for _, item := range items {
+		feature, known := NormalizeOpenShiftFeature(item)
+		if !known {
+			unknown = append(unknown, item)
+			continue
+		}
+		if fl.Has(feature) {
+			continue
+		}
+		toAppend = append(toAppend, feature)
+	}
+	if len(unknown) > 0 {
+		return fmt.Errorf("unknown features: %s", strings.Join(unknown, ", "))
+	}
+	*fl = append(*fl, toAppend...)
+	return nil
+}
+
+// Delete removes given items from feature list while keeping its original
+// order.
+func (fl *FeatureList) Delete(items ...string) {
+	toDelete := FeatureList(items)
+	newList := []string{}
+	for _, item := range *fl {
+		if !toDelete.Has(item) {
+			newList = append(newList, item)
+		}
+	}
+	*fl = newList
+}
+
+// Has returns true if given feature exists in feature list. The check is
+// case-insensitive.
+func (fl FeatureList) Has(feature string) bool {
+	normalized, _ := NormalizeOpenShiftFeature(feature)
+	for _, item := range fl {
+		itemNormalized, _ := NormalizeOpenShiftFeature(item)
+		if normalized == itemNormalized {
+			return true
+		}
+	}
+	return false
+}
+
+// ParseNamespaceAndName returns back the namespace and name (empty if something goes wrong), for a given string.
+// This is useful when pointing to a particular resource inside of our config.
+func ParseNamespaceAndName(in string) (string, string, error) {
+	if len(in) == 0 {
+		return "", "", nil
+	}
+
+	tokens := strings.Split(in, "/")
+	if len(tokens) != 2 {
+		return "", "", fmt.Errorf("expected input in the form <namespace>/<resource-name>, not: %v", in)
+	}
+
+	return tokens[0], tokens[1], nil
+}
 
 func RelativizeMasterConfigPaths(config *MasterConfig, base string) error {
 	return cmdutil.RelativizePathWithNoBacksteps(GetMasterFileReferences(config), base)
@@ -26,6 +121,10 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 	refs = append(refs, &config.ServingInfo.ServerCert.CertFile)
 	refs = append(refs, &config.ServingInfo.ServerCert.KeyFile)
 	refs = append(refs, &config.ServingInfo.ClientCA)
+	for i := range config.ServingInfo.NamedCertificates {
+		refs = append(refs, &config.ServingInfo.NamedCertificates[i].CertFile)
+		refs = append(refs, &config.ServingInfo.NamedCertificates[i].KeyFile)
+	}
 
 	refs = append(refs, &config.EtcdClientInfo.ClientCert.CertFile)
 	refs = append(refs, &config.EtcdClientInfo.ClientCert.KeyFile)
@@ -39,15 +138,27 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.EtcdConfig.ServingInfo.ServerCert.CertFile)
 		refs = append(refs, &config.EtcdConfig.ServingInfo.ServerCert.KeyFile)
 		refs = append(refs, &config.EtcdConfig.ServingInfo.ClientCA)
+		for i := range config.EtcdConfig.ServingInfo.NamedCertificates {
+			refs = append(refs, &config.EtcdConfig.ServingInfo.NamedCertificates[i].CertFile)
+			refs = append(refs, &config.EtcdConfig.ServingInfo.NamedCertificates[i].KeyFile)
+		}
 
 		refs = append(refs, &config.EtcdConfig.PeerServingInfo.ServerCert.CertFile)
 		refs = append(refs, &config.EtcdConfig.PeerServingInfo.ServerCert.KeyFile)
 		refs = append(refs, &config.EtcdConfig.PeerServingInfo.ClientCA)
+		for i := range config.EtcdConfig.PeerServingInfo.NamedCertificates {
+			refs = append(refs, &config.EtcdConfig.PeerServingInfo.NamedCertificates[i].CertFile)
+			refs = append(refs, &config.EtcdConfig.PeerServingInfo.NamedCertificates[i].KeyFile)
+		}
 
 		refs = append(refs, &config.EtcdConfig.StorageDir)
 	}
 
 	if config.OAuthConfig != nil {
+
+		if config.OAuthConfig.MasterCA != nil {
+			refs = append(refs, config.OAuthConfig.MasterCA)
+		}
 
 		if config.OAuthConfig.SessionConfig != nil {
 			refs = append(refs, &config.OAuthConfig.SessionConfig.SessionSecretsFile)
@@ -61,12 +172,27 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 			case (*HTPasswdPasswordIdentityProvider):
 				refs = append(refs, &provider.File)
 
+			case (*LDAPPasswordIdentityProvider):
+				refs = append(refs, &provider.CA)
+
 			case (*BasicAuthPasswordIdentityProvider):
 				refs = append(refs, &provider.RemoteConnectionInfo.CA)
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.KeyFile)
 
+			case (*KeystonePasswordIdentityProvider):
+				refs = append(refs, &provider.RemoteConnectionInfo.CA)
+				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
+				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.KeyFile)
+
+			case (*OpenIDIdentityProvider):
+				refs = append(refs, &provider.CA)
+
 			}
+		}
+
+		if config.OAuthConfig.Templates != nil {
+			refs = append(refs, &config.OAuthConfig.Templates.Login)
 		}
 	}
 
@@ -74,15 +200,37 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.AssetConfig.ServingInfo.ServerCert.CertFile)
 		refs = append(refs, &config.AssetConfig.ServingInfo.ServerCert.KeyFile)
 		refs = append(refs, &config.AssetConfig.ServingInfo.ClientCA)
+		for i := range config.AssetConfig.ServingInfo.NamedCertificates {
+			refs = append(refs, &config.AssetConfig.ServingInfo.NamedCertificates[i].CertFile)
+			refs = append(refs, &config.AssetConfig.ServingInfo.NamedCertificates[i].KeyFile)
+		}
+
+		for i := range config.AssetConfig.ExtensionScripts {
+			refs = append(refs, &config.AssetConfig.ExtensionScripts[i])
+		}
+		for i := range config.AssetConfig.ExtensionStylesheets {
+			refs = append(refs, &config.AssetConfig.ExtensionStylesheets[i])
+		}
+		for i := range config.AssetConfig.Extensions {
+			refs = append(refs, &config.AssetConfig.Extensions[i].SourceDirectory)
+		}
 	}
 
 	if config.KubernetesMasterConfig != nil {
 		refs = append(refs, &config.KubernetesMasterConfig.SchedulerConfigFile)
+
+		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.CertFile)
+		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.KeyFile)
 	}
 
-	refs = append(refs, &config.MasterClients.DeployerKubeConfig)
+	refs = append(refs, &config.ServiceAccountConfig.MasterCA)
+	refs = append(refs, &config.ServiceAccountConfig.PrivateKeyFile)
+	for i := range config.ServiceAccountConfig.PublicKeyFiles {
+		refs = append(refs, &config.ServiceAccountConfig.PublicKeyFiles[i])
+	}
+
 	refs = append(refs, &config.MasterClients.OpenShiftLoopbackKubeConfig)
-	refs = append(refs, &config.MasterClients.KubernetesKubeConfig)
+	refs = append(refs, &config.MasterClients.ExternalKubernetesKubeConfig)
 
 	refs = append(refs, &config.PolicyConfig.BootstrapPolicyFile)
 
@@ -103,14 +251,24 @@ func GetNodeFileReferences(config *NodeConfig) []*string {
 	refs = append(refs, &config.ServingInfo.ServerCert.CertFile)
 	refs = append(refs, &config.ServingInfo.ServerCert.KeyFile)
 	refs = append(refs, &config.ServingInfo.ClientCA)
+	for i := range config.ServingInfo.NamedCertificates {
+		refs = append(refs, &config.ServingInfo.NamedCertificates[i].CertFile)
+		refs = append(refs, &config.ServingInfo.NamedCertificates[i].KeyFile)
+	}
 
 	refs = append(refs, &config.MasterKubeConfig)
 
 	refs = append(refs, &config.VolumeDirectory)
 
+	if config.PodManifestConfig != nil {
+		refs = append(refs, &config.PodManifestConfig.Path)
+	}
+
 	return refs
 }
 
+// TODO: clients should be copied and instantiated from a common client config, tweaked, then
+// given to individual controllers and other infrastructure components.
 func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
@@ -120,6 +278,13 @@ func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, err
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// This is an internal client which is shared by most controllers, so boost default QPS
+	// TODO: this should be configured by the caller, not in this method.
+	kubeConfig.QPS = 100.0
+	kubeConfig.Burst = 200
+
+	kubeConfig.WrapTransport = DefaultClientTransport
 	kubeClient, err := kclient.New(kubeConfig)
 	if err != nil {
 		return nil, nil, err
@@ -128,6 +293,8 @@ func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, err
 	return kubeClient, kubeConfig, nil
 }
 
+// TODO: clients should be copied and instantiated from a common client config, tweaked, then
+// given to individual controllers and other infrastructure components.
 func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *kclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
@@ -137,12 +304,35 @@ func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *kclient.Config,
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// This is an internal client which is shared by most controllers, so boost default QPS
+	// TODO: this should be configured by the caller, not in this method.
+	kubeConfig.QPS = 150.0
+	kubeConfig.Burst = 300
+
+	kubeConfig.WrapTransport = DefaultClientTransport
 	openshiftClient, err := client.New(kubeConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	return openshiftClient, kubeConfig, nil
+}
+
+// DefaultClientTransport sets defaults for a client Transport that are suitable
+// for use by infrastructure components.
+func DefaultClientTransport(rt http.RoundTripper) http.RoundTripper {
+	transport := rt.(*http.Transport)
+	// TODO: this should be configured by the caller, not in this method.
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	transport.Dial = dialer.Dial
+	// Hold open more internal idle connections
+	// TODO: this should be configured by the caller, not in this method.
+	transport.MaxIdleConnsPerHost = 100
+	return transport
 }
 
 func UseTLS(servingInfo ServingInfo) bool {
@@ -152,6 +342,26 @@ func UseTLS(servingInfo ServingInfo) bool {
 // GetAPIClientCertCAPool returns the cert pool used to validate client certificates to the API server
 func GetAPIClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 	return cmdutil.CertPoolFromFile(options.ServingInfo.ClientCA)
+}
+
+// GetNamedCertificateMap returns a map of strings to *tls.Certificate, suitable for use in tls.Config#NamedCertificates
+// Returns an error if any of the certs cannot be loaded, or do not match the configured name
+// Returns nil if len(namedCertificates) == 0
+func GetNamedCertificateMap(namedCertificates []NamedCertificate) (map[string]*tls.Certificate, error) {
+	if len(namedCertificates) == 0 {
+		return nil, nil
+	}
+	namedCerts := map[string]*tls.Certificate{}
+	for _, namedCertificate := range namedCertificates {
+		cert, err := tls.LoadX509KeyPair(namedCertificate.CertFile, namedCertificate.KeyFile)
+		if err != nil {
+			return nil, err
+		}
+		for _, name := range namedCertificate.Names {
+			namedCerts[name] = &cert
+		}
+	}
+	return namedCerts, nil
 }
 
 // GetClientCertCAPool returns a cert pool containing all client CAs that could be presented (union of API and OAuth)
@@ -179,17 +389,8 @@ func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 	return roots, nil
 }
 
-// GetAPIServerCertCAPool returns the cert pool containing the roots for the API server cert
-func GetAPIServerCertCAPool(options MasterConfig) (*x509.CertPool, error) {
-	if !UseTLS(options.ServingInfo) {
-		return x509.NewCertPool(), nil
-	}
-
-	return cmdutil.CertPoolFromFile(options.ServingInfo.ClientCA)
-}
-
 func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if !UseTLS(options.ServingInfo) {
+	if !UseTLS(options.ServingInfo.ServingInfo) {
 		return nil, nil
 	}
 
@@ -217,7 +418,7 @@ func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 }
 
 func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if !UseTLS(options.ServingInfo) {
+	if !UseTLS(options.ServingInfo.ServingInfo) {
 		return nil, nil
 	}
 
@@ -244,15 +445,14 @@ func GetKubeletClientConfig(options MasterConfig) *kclient.KubeletConfig {
 }
 
 func IsPasswordAuthenticator(provider IdentityProvider) bool {
-	return IsPasswordAuthenticatorProviderType(provider.Provider)
-}
-func IsPasswordAuthenticatorProviderType(provider runtime.EmbeddedObject) bool {
-	switch provider.Object.(type) {
+	switch provider.Provider.Object.(type) {
 	case
 		(*BasicAuthPasswordIdentityProvider),
 		(*AllowAllPasswordIdentityProvider),
 		(*DenyAllPasswordIdentityProvider),
-		(*HTPasswdPasswordIdentityProvider):
+		(*HTPasswdPasswordIdentityProvider),
+		(*LDAPPasswordIdentityProvider),
+		(*KeystonePasswordIdentityProvider):
 
 		return true
 	}
@@ -264,11 +464,15 @@ func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
 	switch provider.Object.(type) {
 	case
 		(*RequestHeaderIdentityProvider),
-		(*OAuthRedirectingIdentityProvider),
 		(*BasicAuthPasswordIdentityProvider),
 		(*AllowAllPasswordIdentityProvider),
 		(*DenyAllPasswordIdentityProvider),
-		(*HTPasswdPasswordIdentityProvider):
+		(*HTPasswdPasswordIdentityProvider),
+		(*LDAPPasswordIdentityProvider),
+		(*KeystonePasswordIdentityProvider),
+		(*OpenIDIdentityProvider),
+		(*GitHubIdentityProvider),
+		(*GoogleIdentityProvider):
 
 		return true
 	}
@@ -276,14 +480,39 @@ func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
 	return false
 }
 
-func IsOAuthProviderType(provider runtime.EmbeddedObject) bool {
-	switch provider.Object.(type) {
+func IsOAuthIdentityProvider(provider IdentityProvider) bool {
+	switch provider.Provider.Object.(type) {
 	case
-		(*GoogleOAuthProvider),
-		(*GitHubOAuthProvider):
+		(*OpenIDIdentityProvider),
+		(*GitHubIdentityProvider),
+		(*GoogleIdentityProvider):
 
 		return true
 	}
 
 	return false
+}
+
+func HasOpenShiftAPILevel(config MasterConfig, apiLevel string) bool {
+	apiLevelSet := sets.NewString(config.APILevels...)
+	return apiLevelSet.Has(apiLevel)
+}
+
+// GetEnabledAPIVersionsForGroup returns the list of API Versions that are enabled for that group
+func GetEnabledAPIVersionsForGroup(config KubernetesMasterConfig, apiGroup string) []string {
+	allowedVersions := KubeAPIGroupsToAllowedVersions[apiGroup]
+	blacklist := sets.NewString(config.DisabledAPIGroupVersions[apiGroup]...)
+
+	if blacklist.Has(AllVersions) {
+		return []string{}
+	}
+
+	enabledVersions := []string{}
+	for _, currVersion := range allowedVersions {
+		if !blacklist.Has(currVersion) {
+			enabledVersions = append(enabledVersions, currVersion)
+		}
+	}
+
+	return enabledVersions
 }

@@ -6,10 +6,10 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/types"
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/registry/test"
@@ -25,8 +25,10 @@ func makeUser() *api.User {
 func makeUserFromSequence(sequence int) *api.User {
 	userName := fmt.Sprintf("myuser-%d", sequence)
 	userUID := types.UID(fmt.Sprintf("useruid-%d", sequence))
+	userResourceVersion := fmt.Sprintf("%d", sequence+100)
+
 	return &api.User{
-		ObjectMeta: kapi.ObjectMeta{Name: userName, UID: userUID},
+		ObjectMeta: kapi.ObjectMeta{Name: userName, UID: userUID, ResourceVersion: userResourceVersion},
 	}
 }
 
@@ -40,9 +42,10 @@ func makeIdentityFromSequence(sequence int) *api.Identity {
 	providerUserName := fmt.Sprintf("providerusername-%d", sequence)
 	identityName := fmt.Sprintf("%s:%s", providerName, providerUserName)
 	identityUID := types.UID(fmt.Sprintf("identityuid-%d", sequence))
+	identityResourceVersion := fmt.Sprintf("%d", sequence+200)
 
 	return &api.Identity{
-		ObjectMeta:       kapi.ObjectMeta{Name: identityName, UID: identityUID},
+		ObjectMeta:       kapi.ObjectMeta{Name: identityName, UID: identityUID, ResourceVersion: identityResourceVersion},
 		ProviderName:     providerName,
 		ProviderUserName: providerUserName,
 	}
@@ -398,8 +401,9 @@ func TestUpdate(t *testing.T) {
 	}
 
 	mapping := &api.UserIdentityMapping{
-		Identity: kapi.ObjectReference{Name: unassociatedIdentity1.Name},
-		User:     kapi.ObjectReference{Name: unassociatedUser2.Name},
+		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
+		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
@@ -428,8 +432,9 @@ func TestUpdateMissingIdentity(t *testing.T) {
 	}
 
 	mapping := &api.UserIdentityMapping{
-		Identity: kapi.ObjectReference{Name: unassociatedIdentity1.Name},
-		User:     kapi.ObjectReference{Name: unassociatedUser2.Name},
+		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
+		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(nil, associatedUser1, unassociatedUser2)
@@ -460,8 +465,9 @@ func TestUpdateMissingUser(t *testing.T) {
 	}
 
 	mapping := &api.UserIdentityMapping{
-		Identity: kapi.ObjectReference{Name: unassociatedIdentity1.Name},
-		User:     kapi.ObjectReference{Name: unassociatedUser2.Name},
+		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
+		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1)
@@ -486,8 +492,9 @@ func TestUpdateOldUserMatches(t *testing.T) {
 	}
 
 	mapping := &api.UserIdentityMapping{
-		Identity: kapi.ObjectReference{Name: identity.Name},
-		User:     kapi.ObjectReference{Name: user.Name},
+		ObjectMeta: kapi.ObjectMeta{ResourceVersion: identity.ResourceVersion},
+		Identity:   kapi.ObjectReference{Name: identity.Name},
+		User:       kapi.ObjectReference{Name: user.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
@@ -503,52 +510,9 @@ func TestUpdateOldUserMatches(t *testing.T) {
 	verifyMapping(createdMapping, user, identity, t)
 }
 
-func TestUpdateWithMatchingResourceVersion(t *testing.T) {
+func TestUpdateWithEmptyResourceVersion(t *testing.T) {
 	// Starting conditions
 	associatedUser1, associatedIdentity1User1 := makeAssociated()
-	associatedIdentity1User1.ResourceVersion = "ver1"
-	unassociatedUser2 := makeUser()
-	// Finishing conditions
-	unassociatedUser1, unassociatedIdentity1 := disassociate(associatedUser1, associatedIdentity1User1)
-	associatedUser2, associatedIdentity1User2 := associate(unassociatedUser2, unassociatedIdentity1)
-
-	expectedActions := []test.Action{
-		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
-		// New user lookup
-		{"GetUser", unassociatedUser2.Name},
-		// New user update
-		{"UpdateUser", associatedUser2},
-		// Identity update
-		{"UpdateIdentity", associatedIdentity1User2},
-		// Old user cleanup
-		{"UpdateUser", unassociatedUser1},
-	}
-
-	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: "ver1"},
-		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
-		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
-	}
-
-	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
-	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	if created {
-		t.Errorf("Unexpected created")
-	}
-	verifyActions(expectedActions, *actions, t)
-	verifyMapping(createdMapping, associatedUser2, associatedIdentity1User2, t)
-}
-
-func TestUpdateWithMismatchedResourceVersion(t *testing.T) {
-	// Starting conditions
-	associatedUser1, associatedIdentity1User1 := makeAssociated()
-	associatedIdentity1User1.ResourceVersion = "ver1"
 	unassociatedUser2 := makeUser()
 	// Finishing conditions
 	_, unassociatedIdentity1 := disassociate(associatedUser1, associatedIdentity1User1)
@@ -560,7 +524,37 @@ func TestUpdateWithMismatchedResourceVersion(t *testing.T) {
 	}
 
 	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: "ver2"},
+		Identity: kapi.ObjectReference{Name: unassociatedIdentity1.Name},
+		User:     kapi.ObjectReference{Name: unassociatedUser2.Name},
+	}
+
+	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
+	_, _, err := rest.Update(kapi.NewContext(), mapping)
+
+	if err == nil {
+		t.Errorf("Expected error")
+	}
+	if !kerrs.IsInvalid(err) {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	verifyActions(expectedActions, *actions, t)
+}
+
+func TestUpdateWithMismatchedResourceVersion(t *testing.T) {
+	// Starting conditions
+	associatedUser1, associatedIdentity1User1 := makeAssociated()
+	unassociatedUser2 := makeUser()
+	// Finishing conditions
+	_, unassociatedIdentity1 := disassociate(associatedUser1, associatedIdentity1User1)
+
+	expectedActions := []test.Action{
+		// Existing mapping lookup
+		{"GetIdentity", associatedIdentity1User1.Name},
+		{"GetUser", associatedUser1.Name},
+	}
+
+	mapping := &api.UserIdentityMapping{
+		ObjectMeta: kapi.ObjectMeta{ResourceVersion: "123"},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
@@ -601,8 +595,9 @@ func TestUpdateOldUserUpdateError(t *testing.T) {
 	expectedErr := errors.New("Couldn't update old user")
 
 	mapping := &api.UserIdentityMapping{
-		Identity: kapi.ObjectReference{Name: unassociatedIdentity1.Name},
-		User:     kapi.ObjectReference{Name: unassociatedUser2.Name},
+		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
+		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, userRegistry, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
@@ -640,8 +635,9 @@ func TestUpdateUserUpdateError(t *testing.T) {
 	expectedErr := errors.New("Couldn't update new user")
 
 	mapping := &api.UserIdentityMapping{
-		Identity: kapi.ObjectReference{Name: unassociatedIdentity1.Name},
-		User:     kapi.ObjectReference{Name: unassociatedUser2.Name},
+		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
+		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, userRegistry, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
@@ -679,8 +675,9 @@ func TestUpdateIdentityUpdateError(t *testing.T) {
 	expectedErr := errors.New("Couldn't update identity")
 
 	mapping := &api.UserIdentityMapping{
-		Identity: kapi.ObjectReference{Name: unassociatedIdentity1.Name},
-		User:     kapi.ObjectReference{Name: unassociatedUser2.Name},
+		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
+		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, _, identityRegistry, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)

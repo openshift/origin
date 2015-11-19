@@ -1,6 +1,8 @@
 package dns
 
 import (
+	"crypto"
+	"crypto/ecdsa"
 	"crypto/rsa"
 	"reflect"
 	"strings"
@@ -46,8 +48,8 @@ func TestGenerateEC(t *testing.T) {
 	key.Protocol = 3
 	key.Algorithm = ECDSAP256SHA256
 	privkey, _ := key.Generate(256)
-	t.Logf("%s\n", key.String())
-	t.Logf("%s\n", key.PrivateKeyString(privkey))
+	t.Log(key.String())
+	t.Log(key.PrivateKeyString(privkey))
 }
 
 func TestGenerateDSA(t *testing.T) {
@@ -63,8 +65,8 @@ func TestGenerateDSA(t *testing.T) {
 	key.Protocol = 3
 	key.Algorithm = DSA
 	privkey, _ := key.Generate(1024)
-	t.Logf("%s\n", key.String())
-	t.Logf("%s\n", key.PrivateKeyString(privkey))
+	t.Log(key.String())
+	t.Log(key.PrivateKeyString(privkey))
 }
 
 func TestGenerateRSA(t *testing.T) {
@@ -80,8 +82,8 @@ func TestGenerateRSA(t *testing.T) {
 	key.Protocol = 3
 	key.Algorithm = RSASHA256
 	privkey, _ := key.Generate(1024)
-	t.Logf("%s\n", key.String())
-	t.Logf("%s\n", key.PrivateKeyString(privkey))
+	t.Log(key.String())
+	t.Log(key.PrivateKeyString(privkey))
 }
 
 func TestSecure(t *testing.T) {
@@ -108,10 +110,9 @@ func TestSecure(t *testing.T) {
 	key.Algorithm = RSASHA256
 	key.PublicKey = "AwEAAcNEU67LJI5GEgF9QLNqLO1SMq1EdoQ6E9f85ha0k0ewQGCblyW2836GiVsm6k8Kr5ECIoMJ6fZWf3CQSQ9ycWfTyOHfmI3eQ/1Covhb2y4bAmL/07PhrL7ozWBW3wBfM335Ft9xjtXHPy7ztCbV9qZ4TVDTW/Iyg0PiwgoXVesz"
 
-	// It should validate. Period is checked seperately, so this will keep on working
+	// It should validate. Period is checked separately, so this will keep on working
 	if sig.Verify(key, []RR{soa}) != nil {
-		t.Log("failure to validate")
-		t.Fail()
+		t.Error("failure to validate")
 	}
 }
 
@@ -132,15 +133,13 @@ func TestSignature(t *testing.T) {
 
 	// Should not be valid
 	if sig.ValidityPeriod(time.Now()) {
-		t.Log("should not be valid")
-		t.Fail()
+		t.Error("should not be valid")
 	}
 
 	sig.Inception = 315565800   //Tue Jan  1 10:10:00 CET 1980
 	sig.Expiration = 4102477800 //Fri Jan  1 10:10:00 CET 2100
 	if !sig.ValidityPeriod(time.Now()) {
-		t.Log("should be valid")
-		t.Fail()
+		t.Error("should be valid")
 	}
 }
 
@@ -196,17 +195,15 @@ func TestSignVerify(t *testing.T) {
 	sig.Algorithm = RSASHA256
 
 	for _, r := range []RR{soa, soa1, srv} {
-		if sig.Sign(privkey, []RR{r}) != nil {
-			t.Log("failure to sign the record")
-			t.Fail()
+		if sig.Sign(privkey.(*rsa.PrivateKey), []RR{r}) != nil {
+			t.Error("failure to sign the record")
 			continue
 		}
 		if sig.Verify(key, []RR{r}) != nil {
-			t.Log("failure to validate")
-			t.Fail()
+			t.Error("failure to validate")
 			continue
 		}
-		t.Logf("validated: %s\n", r.Header().Name)
+		t.Logf("validated: %s", r.Header().Name)
 	}
 }
 
@@ -234,27 +231,26 @@ func Test65534(t *testing.T) {
 	sig.KeyTag = key.KeyTag()
 	sig.SignerName = key.Hdr.Name
 	sig.Algorithm = RSASHA256
-	if err := sig.Sign(privkey, []RR{t6}); err != nil {
-		t.Log(err)
-		t.Log("failure to sign the TYPE65534 record")
-		t.Fail()
+	if err := sig.Sign(privkey.(*rsa.PrivateKey), []RR{t6}); err != nil {
+		t.Error(err)
+		t.Error("failure to sign the TYPE65534 record")
 	}
 	if err := sig.Verify(key, []RR{t6}); err != nil {
-		t.Log(err)
-		t.Log("failure to validate")
-		t.Fail()
+		t.Error(err)
+		t.Error("failure to validate")
 	} else {
-		t.Logf("validated: %s\n", t6.Header().Name)
+		t.Logf("validated: %s", t6.Header().Name)
 	}
 }
 
 func TestDnskey(t *testing.T) {
-	//	f, _ := os.Open("t/Kmiek.nl.+010+05240.key")
-	pubkey, _ := ReadRR(strings.NewReader(`
+	pubkey, err := ReadRR(strings.NewReader(`
 miek.nl.	IN	DNSKEY	256 3 10 AwEAAZuMCu2FdugHkTrXYgl5qixvcDw1aDDlvL46/xJKbHBAHY16fNUb2b65cwko2Js/aJxUYJbZk5dwCDZxYfrfbZVtDPQuc3o8QaChVxC7/JYz2AHc9qHvqQ1j4VrH71RWINlQo6VYjzN/BGpMhOZoZOEwzp1HfsOE3lNYcoWU1smL ;{id = 5240 (zsk), size = 1024b}
 `), "Kmiek.nl.+010+05240.key")
-	privkey, _ := pubkey.(*DNSKEY).ReadPrivateKey(strings.NewReader(`
-Private-key-format: v1.2
+	if err != nil {
+		t.Fatal(err)
+	}
+	privStr := `Private-key-format: v1.3
 Algorithm: 10 (RSASHA512)
 Modulus: m4wK7YV26AeROtdiCXmqLG9wPDVoMOW8vjr/EkpscEAdjXp81RvZvrlzCSjYmz9onFRgltmTl3AINnFh+t9tlW0M9C5zejxBoKFXELv8ljPYAdz2oe+pDWPhWsfvVFYg2VCjpViPM38EakyE5mhk4TDOnUd+w4TeU1hyhZTWyYs=
 PublicExponent: AQAB
@@ -264,13 +260,19 @@ Prime2: xA1bF8M0RTIQ6+A11AoVG6GIR/aPGg5sogRkIZ7ID/sF6g9HMVU/CM2TqVEBJLRPp73cv6Ze
 Exponent1: xzkblyZ96bGYxTVZm2/vHMOXswod4KWIyMoOepK6B/ZPcZoIT6omLCgtypWtwHLfqyCz3MK51Nc0G2EGzg8rFQ==
 Exponent2: Pu5+mCEb7T5F+kFNZhQadHUklt0JUHbi3hsEvVoHpEGSw3BGDQrtIflDde0/rbWHgDPM4WQY+hscd8UuTXrvLw==
 Coefficient: UuRoNqe7YHnKmQzE6iDWKTMIWTuoqqrFAmXPmKQnC+Y+BQzOVEHUo9bXdDnoI9hzXP1gf8zENMYwYLeWpuYlFQ==
-`), "Kmiek.nl.+010+05240.private")
-	if pubkey.(*DNSKEY).PublicKey != "AwEAAZuMCu2FdugHkTrXYgl5qixvcDw1aDDlvL46/xJKbHBAHY16fNUb2b65cwko2Js/aJxUYJbZk5dwCDZxYfrfbZVtDPQuc3o8QaChVxC7/JYz2AHc9qHvqQ1j4VrH71RWINlQo6VYjzN/BGpMhOZoZOEwzp1HfsOE3lNYcoWU1smL" {
-		t.Log("pubkey is not what we've read")
-		t.Fail()
+`
+	privkey, err := pubkey.(*DNSKEY).ReadPrivateKey(strings.NewReader(privStr),
+		"Kmiek.nl.+010+05240.private")
+	if err != nil {
+		t.Fatal(err)
 	}
-	// Coefficient looks fishy...
-	t.Logf("%s", pubkey.(*DNSKEY).PrivateKeyString(privkey))
+	if pubkey.(*DNSKEY).PublicKey != "AwEAAZuMCu2FdugHkTrXYgl5qixvcDw1aDDlvL46/xJKbHBAHY16fNUb2b65cwko2Js/aJxUYJbZk5dwCDZxYfrfbZVtDPQuc3o8QaChVxC7/JYz2AHc9qHvqQ1j4VrH71RWINlQo6VYjzN/BGpMhOZoZOEwzp1HfsOE3lNYcoWU1smL" {
+		t.Error("pubkey is not what we've read")
+	}
+	if pubkey.(*DNSKEY).PrivateKeyString(privkey) != privStr {
+		t.Error("privkey is not what we've read")
+		t.Errorf("%v", pubkey.(*DNSKEY).PrivateKeyString(privkey))
+	}
 }
 
 func TestTag(t *testing.T) {
@@ -286,8 +288,7 @@ func TestTag(t *testing.T) {
 
 	tag := key.KeyTag()
 	if tag != 12051 {
-		t.Logf("wrong key tag: %d for key %v\n", tag, key)
-		t.Fail()
+		t.Errorf("wrong key tag: %d for key %v", tag, key)
 	}
 }
 
@@ -326,14 +327,12 @@ func TestKeyRSA(t *testing.T) {
 	sig.KeyTag = key.KeyTag()
 	sig.SignerName = key.Hdr.Name
 
-	if err := sig.Sign(priv, []RR{soa}); err != nil {
-		t.Logf("failed to sign")
-		t.Fail()
+	if err := sig.Sign(priv.(*rsa.PrivateKey), []RR{soa}); err != nil {
+		t.Error("failed to sign")
 		return
 	}
 	if err := sig.Verify(key, []RR{soa}); err != nil {
-		t.Logf("failed to verify")
-		t.Fail()
+		t.Error("failed to verify")
 	}
 }
 
@@ -350,8 +349,7 @@ func TestKeyToDS(t *testing.T) {
 
 	ds := key.ToDS(SHA1)
 	if strings.ToUpper(ds.Digest) != "B5121BDB5B8D86D0CC5FFAFBAAABE26C3E20BAC1" {
-		t.Logf("wrong DS digest for SHA1\n%v\n", ds)
-		t.Fail()
+		t.Errorf("wrong DS digest for SHA1\n%v", ds)
 	}
 }
 
@@ -376,23 +374,18 @@ Activate: 20110302104537`
 	k := xk.(*DNSKEY)
 	p, err := k.NewPrivateKey(priv)
 	if err != nil {
-		t.Logf("%v\n", err)
-		t.Fail()
+		t.Error(err)
 	}
 	switch priv := p.(type) {
 	case *rsa.PrivateKey:
 		if 65537 != priv.PublicKey.E {
-			t.Log("exponenent should be 65537")
-			t.Fail()
+			t.Error("exponenent should be 65537")
 		}
 	default:
-		t.Logf("we should have read an RSA key: %v", priv)
-		t.Fail()
+		t.Errorf("we should have read an RSA key: %v", priv)
 	}
 	if k.KeyTag() != 37350 {
-		t.Logf("%d %v\n", k.KeyTag(), k)
-		t.Log("keytag should be 37350")
-		t.Fail()
+		t.Errorf("keytag should be 37350, got %d %v", k.KeyTag(), k)
 	}
 
 	soa := new(SOA)
@@ -413,11 +406,9 @@ Activate: 20110302104537`
 	sig.SignerName = k.Hdr.Name
 	sig.Algorithm = k.Algorithm
 
-	sig.Sign(p, []RR{soa})
+	sig.Sign(p.(*rsa.PrivateKey), []RR{soa})
 	if sig.Signature != "D5zsobpQcmMmYsUMLxCVEtgAdCvTu8V/IEeP4EyLBjqPJmjt96bwM9kqihsccofA5LIJ7DN91qkCORjWSTwNhzCv7bMyr2o5vBZElrlpnRzlvsFIoAZCD9xg6ZY7ZyzUJmU6IcTwG4v3xEYajcpbJJiyaw/RqR90MuRdKPiBzSo=" {
-		t.Log("signature is not correct")
-		t.Logf("%v\n", sig)
-		t.Fail()
+		t.Errorf("signature is not correct: %v", sig)
 	}
 }
 
@@ -432,13 +423,13 @@ PrivateKey: WURgWHCcYIYUPWgeLmiPY2DJJk02vgrmTfitxgqcL4vwW7BOrbawVmVe0d9V94SR`
 
 	eckey, err := NewRR(pub)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	privkey, err := eckey.(*DNSKEY).NewPrivateKey(priv)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
-	// TODO: Create seperate test for this
+	// TODO: Create separate test for this
 	ds := eckey.(*DNSKEY).ToDS(SHA384)
 	if ds.KeyTag != 10771 {
 		t.Fatal("wrong keytag on DS")
@@ -455,26 +446,25 @@ PrivateKey: WURgWHCcYIYUPWgeLmiPY2DJJk02vgrmTfitxgqcL4vwW7BOrbawVmVe0d9V94SR`
 	sig.SignerName = eckey.(*DNSKEY).Hdr.Name
 	sig.Algorithm = eckey.(*DNSKEY).Algorithm
 
-	if sig.Sign(privkey, []RR{a}) != nil {
+	if sig.Sign(privkey.(*ecdsa.PrivateKey), []RR{a}) != nil {
 		t.Fatal("failure to sign the record")
 	}
 
-	if e := sig.Verify(eckey.(*DNSKEY), []RR{a}); e != nil {
-		t.Logf("\n%s\n%s\n%s\n\n%s\n\n",
+	if err := sig.Verify(eckey.(*DNSKEY), []RR{a}); err != nil {
+		t.Fatalf("Failure to validate:\n%s\n%s\n%s\n\n%s\n\n%v",
 			eckey.(*DNSKEY).String(),
 			a.String(),
 			sig.String(),
 			eckey.(*DNSKEY).PrivateKeyString(privkey),
+			err,
 		)
-
-		t.Fatalf("failure to validate: %s", e.Error())
 	}
 }
 
 func TestSignVerifyECDSA2(t *testing.T) {
 	srv1, err := NewRR("srv.miek.nl. IN SRV 1000 800 0 web1.miek.nl.")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 	srv := srv1.(*SRV)
 
@@ -504,20 +494,19 @@ func TestSignVerifyECDSA2(t *testing.T) {
 	sig.SignerName = key.Hdr.Name
 	sig.Algorithm = ECDSAP256SHA256
 
-	if sig.Sign(privkey, []RR{srv}) != nil {
+	if sig.Sign(privkey.(*ecdsa.PrivateKey), []RR{srv}) != nil {
 		t.Fatal("failure to sign the record")
 	}
 
 	err = sig.Verify(key, []RR{srv})
 	if err != nil {
-		t.Logf("\n%s\n%s\n%s\n\n%s\n\n",
+		t.Logf("Failure to validate:\n%s\n%s\n%s\n\n%s\n\n%v",
 			key.String(),
 			srv.String(),
 			sig.String(),
 			key.PrivateKeyString(privkey),
+			err,
 		)
-
-		t.Fatal("Failure to validate:", err)
 	}
 }
 
@@ -532,11 +521,11 @@ Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ=`
 	rrDNSKEY, err := NewRR(exDNSKEY)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	priv, err := rrDNSKEY.(*DNSKEY).NewPrivateKey(exPriv)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 
 	exDS := `example.net. 3600 IN DS 55648 13 2 (
@@ -544,11 +533,11 @@ PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ=`
              e2770ce6d6e37df61d17 )`
 	rrDS, err := NewRR(exDS)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	ourDS := rrDNSKEY.(*DNSKEY).ToDS(SHA256)
 	if !reflect.DeepEqual(ourDS, rrDS.(*DS)) {
-		t.Errorf("DS record differs:\n%v\n%v\n", ourDS, rrDS.(*DS))
+		t.Errorf("DS record differs:\n%v\n%v", ourDS, rrDS.(*DS))
 	}
 
 	exA := `www.example.net. 3600 IN A 192.0.2.1`
@@ -558,11 +547,11 @@ PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ=`
                 yGmt+3SNruPFKG7tZoLBLlUzGGus7ZwmwWep666VCw== )`
 	rrA, err := NewRR(exA)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	rrRRSIG, err := NewRR(exRRSIG)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	if err = rrRRSIG.(*RRSIG).Verify(rrDNSKEY.(*DNSKEY), []RR{rrA}); err != nil {
 		t.Errorf("Failure to validate the spec RRSIG: %v", err)
@@ -578,9 +567,9 @@ PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ=`
 	}
 	ourRRSIG.Expiration, _ = StringToTime("20100909100439")
 	ourRRSIG.Inception, _ = StringToTime("20100812100439")
-	err = ourRRSIG.Sign(priv, []RR{rrA})
+	err = ourRRSIG.Sign(priv.(*ecdsa.PrivateKey), []RR{rrA})
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 
 	if err = ourRRSIG.Verify(rrDNSKEY.(*DNSKEY), []RR{rrA}); err != nil {
@@ -591,7 +580,7 @@ PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ=`
 	rrRRSIG.(*RRSIG).Signature = ""
 	ourRRSIG.Signature = ""
 	if !reflect.DeepEqual(ourRRSIG, rrRRSIG.(*RRSIG)) {
-		t.Fatalf("RRSIG record differs:\n%v\n%v\n", ourRRSIG, rrRRSIG.(*RRSIG))
+		t.Fatalf("RRSIG record differs:\n%v\n%v", ourRRSIG, rrRRSIG.(*RRSIG))
 	}
 }
 
@@ -606,11 +595,11 @@ Algorithm: 14 (ECDSAP384SHA384)
 PrivateKey: WURgWHCcYIYUPWgeLmiPY2DJJk02vgrmTfitxgqcL4vwW7BOrbawVmVe0d9V94SR`
 	rrDNSKEY, err := NewRR(exDNSKEY)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	priv, err := rrDNSKEY.(*DNSKEY).NewPrivateKey(exPriv)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 
 	exDS := `example.net. 3600 IN DS 10771 14 4 (
@@ -619,11 +608,11 @@ PrivateKey: WURgWHCcYIYUPWgeLmiPY2DJJk02vgrmTfitxgqcL4vwW7BOrbawVmVe0d9V94SR`
            6df983d6 )`
 	rrDS, err := NewRR(exDS)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	ourDS := rrDNSKEY.(*DNSKEY).ToDS(SHA384)
 	if !reflect.DeepEqual(ourDS, rrDS.(*DS)) {
-		t.Fatalf("DS record differs:\n%v\n%v\n", ourDS, rrDS.(*DS))
+		t.Fatalf("DS record differs:\n%v\n%v", ourDS, rrDS.(*DS))
 	}
 
 	exA := `www.example.net. 3600 IN A 192.0.2.1`
@@ -634,11 +623,11 @@ PrivateKey: WURgWHCcYIYUPWgeLmiPY2DJJk02vgrmTfitxgqcL4vwW7BOrbawVmVe0d9V94SR`
            WTSSPdz7wnqXL5bdcJzusdnI0RSMROxxwGipWcJm )`
 	rrA, err := NewRR(exA)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	rrRRSIG, err := NewRR(exRRSIG)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	if err = rrRRSIG.(*RRSIG).Verify(rrDNSKEY.(*DNSKEY), []RR{rrA}); err != nil {
 		t.Errorf("Failure to validate the spec RRSIG: %v", err)
@@ -654,9 +643,9 @@ PrivateKey: WURgWHCcYIYUPWgeLmiPY2DJJk02vgrmTfitxgqcL4vwW7BOrbawVmVe0d9V94SR`
 	}
 	ourRRSIG.Expiration, _ = StringToTime("20100909102025")
 	ourRRSIG.Inception, _ = StringToTime("20100812102025")
-	err = ourRRSIG.Sign(priv, []RR{rrA})
+	err = ourRRSIG.Sign(priv.(*ecdsa.PrivateKey), []RR{rrA})
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 
 	if err = ourRRSIG.Verify(rrDNSKEY.(*DNSKEY), []RR{rrA}); err != nil {
@@ -667,6 +656,67 @@ PrivateKey: WURgWHCcYIYUPWgeLmiPY2DJJk02vgrmTfitxgqcL4vwW7BOrbawVmVe0d9V94SR`
 	rrRRSIG.(*RRSIG).Signature = ""
 	ourRRSIG.Signature = ""
 	if !reflect.DeepEqual(ourRRSIG, rrRRSIG.(*RRSIG)) {
-		t.Fatalf("RRSIG record differs:\n%v\n%v\n", ourRRSIG, rrRRSIG.(*RRSIG))
+		t.Fatalf("RRSIG record differs:\n%v\n%v", ourRRSIG, rrRRSIG.(*RRSIG))
+	}
+}
+
+func TestInvalidRRSet(t *testing.T) {
+	goodRecords := make([]RR, 2)
+	goodRecords[0] = &TXT{Hdr: RR_Header{Name: "name.cloudflare.com.", Rrtype: TypeTXT, Class: ClassINET, Ttl: 0}, Txt: []string{"Hello world"}}
+	goodRecords[1] = &TXT{Hdr: RR_Header{Name: "name.cloudflare.com.", Rrtype: TypeTXT, Class: ClassINET, Ttl: 0}, Txt: []string{"_o/"}}
+
+	// Generate key
+	keyname := "cloudflare.com."
+	key := &DNSKEY{
+		Hdr:       RR_Header{Name: keyname, Rrtype: TypeDNSKEY, Class: ClassINET, Ttl: 0},
+		Algorithm: ECDSAP256SHA256,
+		Flags:     ZONE,
+		Protocol:  3,
+	}
+	privatekey, err := key.Generate(256)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Need to fill in: Inception, Expiration, KeyTag, SignerName and Algorithm
+	curTime := time.Now()
+	signature := &RRSIG{
+		Inception:  uint32(curTime.Unix()),
+		Expiration: uint32(curTime.Add(time.Hour).Unix()),
+		KeyTag:     key.KeyTag(),
+		SignerName: keyname,
+		Algorithm:  ECDSAP256SHA256,
+	}
+
+	// Inconsistent name between records
+	badRecords := make([]RR, 2)
+	badRecords[0] = &TXT{Hdr: RR_Header{Name: "name.cloudflare.com.", Rrtype: TypeTXT, Class: ClassINET, Ttl: 0}, Txt: []string{"Hello world"}}
+	badRecords[1] = &TXT{Hdr: RR_Header{Name: "nama.cloudflare.com.", Rrtype: TypeTXT, Class: ClassINET, Ttl: 0}, Txt: []string{"_o/"}}
+
+	if IsRRset(badRecords) {
+		t.Fatal("Record set with inconsistent names considered valid")
+	}
+
+	badRecords[0] = &TXT{Hdr: RR_Header{Name: "name.cloudflare.com.", Rrtype: TypeTXT, Class: ClassINET, Ttl: 0}, Txt: []string{"Hello world"}}
+	badRecords[1] = &A{Hdr: RR_Header{Name: "name.cloudflare.com.", Rrtype: TypeA, Class: ClassINET, Ttl: 0}}
+
+	if IsRRset(badRecords) {
+		t.Fatal("Record set with inconsistent record types considered valid")
+	}
+
+	badRecords[0] = &TXT{Hdr: RR_Header{Name: "name.cloudflare.com.", Rrtype: TypeTXT, Class: ClassINET, Ttl: 0}, Txt: []string{"Hello world"}}
+	badRecords[1] = &TXT{Hdr: RR_Header{Name: "name.cloudflare.com.", Rrtype: TypeTXT, Class: ClassCHAOS, Ttl: 0}, Txt: []string{"_o/"}}
+
+	if IsRRset(badRecords) {
+		t.Fatal("Record set with inconsistent record class considered valid")
+	}
+
+	// Sign the good record set and then make sure verification fails on the bad record set
+	if err := signature.Sign(privatekey.(crypto.Signer), goodRecords); err != nil {
+		t.Fatal("Signing good records failed")
+	}
+
+	if err := signature.Verify(key, badRecords); err != ErrRRset {
+		t.Fatal("Verification did not return ErrRRset with inconsistent records")
 	}
 }

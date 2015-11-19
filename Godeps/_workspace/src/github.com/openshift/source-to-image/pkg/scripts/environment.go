@@ -20,10 +20,10 @@ type Environment struct {
 
 // GetEnvironment gets the .sti/environment file located in the sources and
 // parse it into []environment
-func GetEnvironment(request *api.Request) ([]Environment, error) {
-	envPath := filepath.Join(request.WorkingDir, api.Source, ".sti", api.Environment)
+func GetEnvironment(config *api.Config) ([]Environment, error) {
+	envPath := filepath.Join(config.WorkingDir, api.Source, ".sti", api.Environment)
 	if _, err := os.Stat(envPath); os.IsNotExist(err) {
-		return nil, errors.New("no evironment file found in application sources")
+		return nil, errors.New("no environment file found in application sources")
 	}
 
 	f, err := os.Open(envPath)
@@ -66,8 +66,13 @@ func ConvertEnvironment(env []Environment) (result []string) {
 
 // ConvertEnvironmentToDocker converts the []Environment into Dockerfile format
 func ConvertEnvironmentToDocker(env []Environment) (result string) {
-	for _, e := range env {
-		result += fmt.Sprintf("ENV %s %s\n", e.Name, e.Value)
+	for i, e := range env {
+		if i == 0 {
+			result += fmt.Sprintf("ENV %s=\"%s\"", e.Name, e.Value)
+		} else {
+			result += fmt.Sprintf(" \\\n\t%s=\"%s\"", e.Name, e.Value)
+		}
 	}
+	result += "\n"
 	return
 }

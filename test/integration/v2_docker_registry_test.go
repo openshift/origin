@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -12,21 +12,25 @@ import (
 	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/docker/libtrust"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/cmd/dockerregistry"
+	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func init() {
 	testutil.RequireEtcd()
 }
 
-func signedManifest() ([]byte, digest.Digest, error) {
+func signedManifest(name string) ([]byte, digest.Digest, error) {
 	key, err := libtrust.GenerateECP256PrivateKey()
 	if err != nil {
 		return []byte{}, "", fmt.Errorf("error generating EC key: %s", err)
@@ -36,8 +40,8 @@ func signedManifest() ([]byte, digest.Digest, error) {
 		Versioned: manifest.Versioned{
 			SchemaVersion: 1,
 		},
-		Name:         "test-integration/test",
-		Tag:          "latest",
+		Name:         name,
+		Tag:          imageapi.DefaultImageTag,
 		Architecture: "amd64",
 		History: []manifest.History{
 			{
@@ -73,19 +77,26 @@ func signedManifest() ([]byte, digest.Digest, error) {
 }
 
 func TestV2RegistryGetTags(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("error starting master: %v", err)
 	}
-
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("error getting cluster admin client: %v", err)
 	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("error getting cluster admin client config: %v", err)
+	}
+	user := "admin"
+	adminClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, testutil.Namespace(), user)
+	if err != nil {
+		t.Fatalf("error creating project: %v", err)
+	}
+	token, err := tokencmd.RequestToken(clusterAdminClientConfig, nil, user, "password")
+	if err != nil {
+		t.Fatalf("error requesting token: %v", err)
 	}
 
 	config := `version: 0.1
@@ -94,6 +105,8 @@ http:
   addr: 127.0.0.1:5000
 storage:
   inmemory: {}
+auth:
+  openshift:
 middleware:
   repository:
     - name: openshift
@@ -113,11 +126,11 @@ middleware:
 			Name:      "test",
 		},
 	}
-	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(&stream); err != nil {
+	if _, err := adminClient.ImageStreams(testutil.Namespace()).Create(&stream); err != nil {
 		t.Fatalf("error creating image stream: %s", err)
 	}
 
-	tags, err := getTags(stream.Name)
+	tags, err := getTags(stream.Name, user, token)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,38 +138,30 @@ middleware:
 		t.Fatalf("expected 0 tags, got: %#v", tags)
 	}
 
-	putUrl := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), stream.Name, "latest")
-	signedManifest, dgst, err := signedManifest()
+	dgst, err := putManifest(stream.Name, user, token)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, err := http.NewRequest("PUT", putUrl, bytes.NewReader(signedManifest))
-	if err != nil {
-		t.Fatalf("error creating put request: %s", err)
-	}
-	client := http.DefaultClient
-	resp, err := client.Do(req)
-	if err != nil {
-		t.Fatalf("error putting manifest: %s", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusAccepted {
-		t.Fatalf("unexpected put status code: %d", resp.StatusCode)
-	}
 
-	tags, err = getTags(stream.Name)
+	tags, err = getTags(stream.Name, user, token)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(tags) != 1 {
 		t.Fatalf("expected 1 tag, got %d: %v", len(tags), tags)
 	}
-	if tags[0] != "latest" {
+	if tags[0] != imageapi.DefaultImageTag {
 		t.Fatalf("expected latest, got %q", tags[0])
 	}
 
-	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), stream.Name, dgst.String())
-	resp, err = http.Get(url)
+	// test get by tag
+	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), stream.Name, imageapi.DefaultImageTag)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		t.Fatalf("error creating request: %v", err)
+	}
+	req.SetBasicAuth(user, token)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("error retrieving manifest from registry: %s", err)
 	}
@@ -169,31 +174,122 @@ middleware:
 	if err := json.Unmarshal(body, &retrievedManifest); err != nil {
 		t.Fatalf("error unmarshaling retrieved manifest")
 	}
-	if retrievedManifest.Name != "test-integration/test" {
+	if retrievedManifest.Name != fmt.Sprintf("%s/%s", testutil.Namespace(), stream.Name) {
 		t.Fatalf("unexpected manifest name: %s", retrievedManifest.Name)
 	}
-	if retrievedManifest.Tag != "latest" {
+	if retrievedManifest.Tag != imageapi.DefaultImageTag {
 		t.Fatalf("unexpected manifest tag: %s", retrievedManifest.Tag)
 	}
 
-	image, err := clusterAdminClient.ImageStreamImages(testutil.Namespace()).Get(stream.Name, dgst.String())
+	// test get by digest
+	url = fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), stream.Name, dgst.String())
+	req, err = http.NewRequest("GET", url, nil)
+	if err != nil {
+		t.Fatalf("error creating request: %v", err)
+	}
+	req.SetBasicAuth(user, token)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("error retrieving manifest from registry: %s", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status code: %d", resp.StatusCode)
+	}
+	body, err = ioutil.ReadAll(resp.Body)
+	if err := json.Unmarshal(body, &retrievedManifest); err != nil {
+		t.Fatalf("error unmarshaling retrieved manifest")
+	}
+	if retrievedManifest.Name != fmt.Sprintf("%s/%s", testutil.Namespace(), stream.Name) {
+		t.Fatalf("unexpected manifest name: %s", retrievedManifest.Name)
+	}
+	if retrievedManifest.Tag != imageapi.DefaultImageTag {
+		t.Fatalf("unexpected manifest tag: %s", retrievedManifest.Tag)
+	}
+
+	image, err := adminClient.ImageStreamImages(testutil.Namespace()).Get(stream.Name, dgst.String())
 	if err != nil {
 		t.Fatalf("error getting imageStreamImage: %s", err)
 	}
-	if e, a := dgst.String(), image.Name; e != a {
+	if e, a := fmt.Sprintf("test@%s", dgst.Hex()[:7]), image.Name; e != a {
 		t.Errorf("image name: expected %q, got %q", e, a)
 	}
-	if e, a := fmt.Sprintf("127.0.0.1:5000/%s/%s@%s", testutil.Namespace(), stream.Name, dgst.String()), image.DockerImageReference; e != a {
+	if e, a := dgst.String(), image.Image.Name; e != a {
+		t.Errorf("image name: expected %q, got %q", e, a)
+	}
+	if e, a := fmt.Sprintf("127.0.0.1:5000/%s/%s@%s", testutil.Namespace(), stream.Name, dgst.String()), image.Image.DockerImageReference; e != a {
 		t.Errorf("image dockerImageReference: expected %q, got %q", e, a)
 	}
-	if e, a := "foo", image.DockerImageMetadata.ID; e != a {
+	if e, a := "foo", image.Image.DockerImageMetadata.ID; e != a {
 		t.Errorf("image dockerImageMetadata.ID: expected %q, got %q", e, a)
+	}
+
+	// test auto provisioning
+	otherStream, err := adminClient.ImageStreams(testutil.Namespace()).Get("otherrepo")
+	t.Logf("otherStream=%#v, err=%v", otherStream, err)
+	if err == nil {
+		t.Fatalf("expected error getting otherrepo")
+	}
+
+	otherDigest, err := putManifest("otherrepo", user, token)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	otherStream, err = adminClient.ImageStreams(testutil.Namespace()).Get("otherrepo")
+	if err != nil {
+		t.Fatalf("unexpected error getting otherrepo: %s", err)
+	}
+	if otherStream == nil {
+		t.Fatalf("unexpected nil otherrepo")
+	}
+	if len(otherStream.Status.Tags) != 1 {
+		t.Errorf("expected 1 tag, got %#v", otherStream.Status.Tags)
+	}
+	history, ok := otherStream.Status.Tags[imageapi.DefaultImageTag]
+	if !ok {
+		t.Fatal("unable to find 'latest' tag")
+	}
+	if len(history.Items) != 1 {
+		t.Errorf("expected 1 tag event, got %#v", history.Items)
+	}
+	if e, a := otherDigest.String(), history.Items[0].Image; e != a {
+		t.Errorf("digest: expected %q, got %q", e, a)
 	}
 }
 
-func getTags(repoName string) ([]string, error) {
-	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/tags/list", testutil.Namespace(), repoName)
-	resp, err := http.Get(url)
+func putManifest(name, user, token string) (digest.Digest, error) {
+	putUrl := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), name, imageapi.DefaultImageTag)
+	signedManifest, dgst, err := signedManifest(fmt.Sprintf("%s/%s", testutil.Namespace(), name))
+	if err != nil {
+		return "", err
+	}
+	req, err := http.NewRequest("PUT", putUrl, bytes.NewReader(signedManifest))
+	if err != nil {
+		return "", fmt.Errorf("error creating put request: %s", err)
+	}
+	req.SetBasicAuth(user, token)
+	client := http.DefaultClient
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("error putting manifest: %s", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusAccepted {
+		return "", fmt.Errorf("unexpected put status code: %d", resp.StatusCode)
+	}
+	return dgst, nil
+}
+
+func getTags(streamName, user, token string) ([]string, error) {
+	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/tags/list", testutil.Namespace(), streamName)
+	client := http.DefaultClient
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return []string{}, fmt.Errorf("error creating request: %v", err)
+	}
+	req.SetBasicAuth(user, token)
+	resp, err := client.Do(req)
 	if err != nil {
 		return []string{}, fmt.Errorf("error retrieving tags from registry: %s", err)
 	}

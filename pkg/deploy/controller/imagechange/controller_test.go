@@ -4,7 +4,7 @@ import (
 	"flag"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -22,7 +22,7 @@ func TestHandle_changeForNonAutomaticTag(t *testing.T) {
 	controller := &ImageChangeController{
 		deploymentConfigClient: &deploymentConfigClientImpl{
 			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-				t.Fatalf("unexpected deployment config update")
+				t.Fatalf("unexpected DeploymentConfig update")
 				return nil, nil
 			},
 			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
@@ -41,7 +41,7 @@ func TestHandle_changeForNonAutomaticTag(t *testing.T) {
 	// verify no-op
 	tagUpdate := makeRepo(
 		"test-image-repo",
-		"latest",
+		imageapi.DefaultImageTag,
 		"registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
 		"00000000000000000000000000000001",
 	)
@@ -59,7 +59,7 @@ func TestHandle_changeForUnregisteredTag(t *testing.T) {
 	controller := &ImageChangeController{
 		deploymentConfigClient: &deploymentConfigClientImpl{
 			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-				t.Fatalf("unexpected deployment config update")
+				t.Fatalf("unexpected DeploymentConfig update")
 				return nil, nil
 			},
 			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
@@ -94,21 +94,21 @@ func TestHandle_matchScenarios(t *testing.T) {
 			Automatic:          true,
 			ContainerNames:     []string{"container-1"},
 			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: "repoA"},
-			Tag:                "latest",
+			Tag:                imageapi.DefaultImageTag,
 			LastTriggeredImage: "",
 		},
 		"params.2": {
 			Automatic:          true,
 			ContainerNames:     []string{"container-1"},
 			From:               kapi.ObjectReference{Name: "repoA"},
-			Tag:                "latest",
+			Tag:                imageapi.DefaultImageTag,
 			LastTriggeredImage: "",
 		},
 		"params.3": {
 			Automatic:          false,
 			ContainerNames:     []string{"container-1"},
 			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: "repoA"},
-			Tag:                "latest",
+			Tag:                imageapi.DefaultImageTag,
 			LastTriggeredImage: "",
 		},
 		// This tests the deprecated RepositoryName reference
@@ -116,20 +116,20 @@ func TestHandle_matchScenarios(t *testing.T) {
 			Automatic:      true,
 			ContainerNames: []string{"container-1"},
 			RepositoryName: "registry:8080/openshift/test-image",
-			Tag:            "latest",
+			Tag:            imageapi.DefaultImageTag,
 		},
 		"params.5": {
 			Automatic:          true,
 			ContainerNames:     []string{"container-1"},
 			From:               kapi.ObjectReference{Name: "repoA"},
-			Tag:                "latest",
+			Tag:                imageapi.DefaultImageTag,
 			LastTriggeredImage: "registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
 		},
 		"params.6": {
 			Automatic:          true,
 			ContainerNames:     []string{"container-1"},
 			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: "repoC"},
-			Tag:                "latest",
+			Tag:                imageapi.DefaultImageTag,
 			LastTriggeredImage: "",
 		},
 	}
@@ -152,7 +152,7 @@ func TestHandle_matchScenarios(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{Name: "repoA", Namespace: kapi.NamespaceDefault},
 			Status: imageapi.ImageStreamStatus{
 				Tags: tagHistoryFor(
-					"latest",
+					imageapi.DefaultImageTag,
 					"registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
 					"00000000000000000000000000000001",
 				),
@@ -165,7 +165,7 @@ func TestHandle_matchScenarios(t *testing.T) {
 			Status: imageapi.ImageStreamStatus{
 				DockerImageRepository: "registry:8080/openshift/test-image",
 				Tags: tagHistoryFor(
-					"latest",
+					imageapi.DefaultImageTag,
 					"registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
 					"00000000000000000000000000000001",
 				),
@@ -213,7 +213,7 @@ func TestHandle_matchScenarios(t *testing.T) {
 			deploymentConfigClient: &deploymentConfigClientImpl{
 				updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 					if !s.matches {
-						t.Fatalf("unexpected deployment config update for scenario: %v", s)
+						t.Fatalf("unexpected DeploymentConfig update for scenario: %v", s)
 					}
 					updated = true
 					return config, nil

@@ -28,6 +28,7 @@ module.exports = function(config) {
       "bower_components/angular-touch/angular-touch.js",
       "bower_components/angular-route/angular-route.js",
       "bower_components/angular-bootstrap/ui-bootstrap-tpls.js",
+      "bower_components/angular-patternfly/dist/angular-patternfly.js",
       "bower_components/uri.js/src/URI.js",
       "bower_components/uri.js/src/URITemplate.js",
       "bower_components/uri.js/src/jquery.URI.js",
@@ -35,16 +36,23 @@ module.exports = function(config) {
       "bower_components/moment/moment.js",
       "bower_components/patternfly/components/bootstrap/dist/js/bootstrap.js",
       "bower_components/patternfly/components/bootstrap-select/bootstrap-select.js",
+      "bower_components/patternfly/components/c3/c3.min.js",
       "bower_components/js-logger/src/logger.js",
-      //"bower_components/webcomponentsjs/webcomponents.js",
       "bower_components/hawtio-core/hawtio-core.js",
       "bower_components/lodash/lodash.js",
       "bower_components/hawtio-core-navigation/dist/hawtio-core-navigation.js",
       "bower_components/hawtio-extension-service/dist/hawtio-extension-service.js",
       "bower_components/kubernetes-label-selector/labelSelector.js",
       "bower_components/kubernetes-label-selector/labelFilter.js",
+      "bower_components/kubernetes-object-describer/dist/object-describer.js",
+      "bower_components/term.js/src/term.js",
+      "bower_components/kubernetes-container-terminal/dist/container-terminal.js",
+      "bower_components/messenger/build/js/messenger.js",
+      "bower_components/openshift-object-describer/dist/object-describer.js",
+      'app/config.js',
       'app/scripts/**/*.js',
       //'test/mock/**/*.js',
+      'test/spec/spec-helper.js',
       'test/spec/**/*.js'
     ],
 
@@ -81,12 +89,12 @@ module.exports = function(config) {
 
     // level of logging
     // possible values: LOG_DISABLE || LOG_ERROR || LOG_WARN || LOG_INFO || LOG_DEBUG
-    logLevel: config.LOG_INFO,
+    logLevel: config.LOG_DEBUG,
 
-    // Uncomment the following lines if you are using grunt's server to run the tests
-    // proxies: {
-    //   '/': 'http://localhost:9000/'
-    // },
+    // Help karma find the views on disk in the app subdirectory
+    proxies: {
+      '/views/': '/app/views/'
+    },
     // URL root prevent conflicts with the site root
     // urlRoot: '_karma_'
 

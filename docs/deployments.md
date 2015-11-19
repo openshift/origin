@@ -22,53 +22,63 @@ A `deploymentConfig` in OpenShift is a REST object which can be POSTed to the AP
 
 ```
 {
+  "kind": "DeploymentConfig",
+  "apiVersion": "v1beta3",
   "metadata": {
     "name": "frontend"
   },
-  "kind": "DeploymentConfig",
-  "apiVersion": "v1beta1",
-  "triggers": [
-    {
-      "type": "ImageChange",
-      "imageChangeParams": {
-        "automatic": true,
-        "containerNames": [
-          "helloworld"
-        ],
-        "repositoryName": "openshift/origin-ruby-sample",
-        "tag": "latest"
-      }
-    }
-  ],
-  "template": {
+  "spec": {
     "strategy": {
-      "type": "Recreate"
+      "type": "Recreate",
+      "resources": {}
     },
-    "controllerTemplate": {
-      "replicas": 1,
-      "replicaSelector": {
-        "name": "frontend"
-      },
-      "podTemplate": {
-        "desiredState": {
-          "manifest": {
-            "version": "v1beta1",
-            "containers": [
-              {
-                "name": "helloworld",
-                "image": "openshift/openshift/origin-ruby-sample",
-                "ports": [
-                  {
-                    "containerPort": 8080
-                  }
-                ]
-              }
-            ]
-          }
-        },
+    "triggers": [
+      {
+        "type": "ImageChange",
+        "imageChangeParams": {
+          "automatic": true,
+          "containerNames": [
+            "helloworld"
+          ],
+          "from": {},
+          "lastTriggeredImage": ""
+        }
+      }
+    ],
+    "replicas": 1,
+    "selector": {
+      "name": "frontend"
+    },
+    "template": {
+      "metadata": {
+        "creationTimestamp": null,
         "labels": {
           "name": "frontend"
         }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "helloworld",
+            "image": "openshift/openshift/origin-ruby-sample",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
       }
     }
   }
@@ -176,18 +186,14 @@ The `rollback` API object configures the generation process and provides the sco
 
 ```
 {
-  "metadata": {
-    "name": "rollback-1",
-    "namespace": "default"
-  },
   "kind": "DeploymentConfigRollback",
-  "apiVersion": "v1beta1",
+  "apiVersion": "v1beta3",
   "spec": {
     "from": {
       "name": "deployment-1"
     },
-    "includeTemplate": true,
     "includeTriggers": false,
+    "includeTemplate": true,
     "includeReplicationMeta": false,
     "includeStrategy": true
   }

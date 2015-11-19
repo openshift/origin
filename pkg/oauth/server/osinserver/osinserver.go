@@ -1,11 +1,13 @@
 package osinserver
 
 import (
+	"fmt"
 	"net/http"
 	"path"
 
 	"github.com/RangelReale/osin"
-	"github.com/golang/glog"
+
+	"k8s.io/kubernetes/pkg/util"
 )
 
 const (
@@ -23,9 +25,15 @@ type Server struct {
 }
 
 func New(config *osin.ServerConfig, storage osin.Storage, authorize AuthorizeHandler, access AccessHandler, errorHandler ErrorHandler) *Server {
+	server := osin.NewServer(config, storage)
+
+	// Override tokengen to ensure we get valid length tokens
+	server.AuthorizeTokenGen = TokenGen{}
+	server.AccessTokenGen = TokenGen{}
+
 	return &Server{
 		config:       config,
-		server:       osin.NewServer(config, storage),
+		server:       server,
 		authorize:    authorize,
 		access:       access,
 		errorHandler: errorHandler,
@@ -59,19 +67,36 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	defer resp.Close()
 
 	if ar := s.server.HandleAuthorizeRequest(resp, r); ar != nil {
-		handled, err := s.authorize.HandleAuthorize(ar, w)
-		if err != nil {
-			s.errorHandler.HandleError(err, w, r)
-			return
+
+		if errorCode := r.FormValue("error"); len(errorCode) != 0 {
+
+			// The request already has an error parameter, return directly to the user
+			resp.SetErrorUri(
+				r.FormValue("error"),
+				r.FormValue("error_description"),
+				r.FormValue("error_uri"),
+				r.FormValue("state"),
+			)
+			// force redirect response
+			resp.SetRedirect(ar.RedirectUri)
+
+		} else {
+
+			handled, err := s.authorize.HandleAuthorize(ar, w)
+			if err != nil {
+				s.errorHandler.HandleError(err, w, r)
+				return
+			}
+			if handled {
+				return
+			}
+			s.server.FinishAuthorizeRequest(resp, r, ar)
+
 		}
-		if handled {
-			return
-		}
-		s.server.FinishAuthorizeRequest(resp, r, ar)
 	}
 
 	if resp.IsError && resp.InternalError != nil {
-		glog.Errorf("Internal error: %s", resp.InternalError)
+		util.HandleError(fmt.Errorf("internal error: %s", resp.InternalError))
 	}
 	osin.OutputJSON(resp, w, r)
 }
@@ -88,7 +113,7 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 		s.server.FinishAccessRequest(resp, r, ar)
 	}
 	if resp.IsError && resp.InternalError != nil {
-		glog.Errorf("Internal error: %s", resp.InternalError)
+		util.HandleError(fmt.Errorf("internal error: %s", resp.InternalError))
 	}
 	osin.OutputJSON(resp, w, r)
 }

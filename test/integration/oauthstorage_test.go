@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -7,15 +7,21 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"golang.org/x/oauth2"
+	kapi "k8s.io/kubernetes/pkg/api"
+	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/tools/etcdtest"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/oauth/api"
-	"github.com/openshift/origin/pkg/oauth/registry/etcd"
+	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
+	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
+	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
+	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
+	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
+	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	registrystorage "github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
 	testutil "github.com/openshift/origin/test/util"
@@ -55,11 +61,17 @@ func TestOAuthStorage(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper := tools.NewEtcdHelper(etcdClient, interfaces.Codec)
-	registry := etcd.New(etcdHelper)
+	etcdHelper := etcdstorage.NewEtcdStorage(etcdClient, interfaces.Codec, etcdtest.PathPrefix())
+
+	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
+	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
+	authorizeTokenStorage := authorizetokenetcd.NewREST(etcdHelper)
+	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
+	clientStorage := clientetcd.NewREST(etcdHelper)
+	clientRegistry := clientregistry.NewRegistry(clientStorage)
 
 	user := &testUser{UserName: "test", UserUID: "1"}
-	storage := registrystorage.New(registry, registry, registry, user)
+	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, clientRegistry, user)
 
 	oauthServer := osinserver.New(
 		osinserver.NewDefaultServerConfig(),
@@ -98,7 +110,7 @@ func TestOAuthStorage(t *testing.T) {
 		ch <- token
 	}))
 
-	registry.CreateClient(&api.OAuthClient{
+	clientRegistry.CreateClient(kapi.NewContext(), &api.OAuthClient{
 		ObjectMeta:   kapi.ObjectMeta{Name: "test"},
 		Secret:       "secret",
 		RedirectURIs: []string{assertServer.URL + "/assert"},
@@ -154,7 +166,7 @@ func TestOAuthStorage(t *testing.T) {
 		t.Errorf("unexpected access token: %#v", token)
 	}
 
-	actualToken, err := registry.GetAccessToken(token.AccessToken)
+	actualToken, err := accessTokenRegistry.GetAccessToken(kapi.NewContext(), token.AccessToken)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

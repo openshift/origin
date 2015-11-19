@@ -4,9 +4,10 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 
-	"github.com/openshift/origin/pkg/api/v1beta1"
+	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
@@ -14,7 +15,7 @@ import (
 func TestDockerCreateBuildPod(t *testing.T) {
 	strategy := DockerBuildStrategy{
 		Image: "docker-test-image",
-		Codec: v1beta1.Codec,
+		Codec: latest.Codec,
 	}
 
 	expected := mockDockerBuild()
@@ -26,12 +27,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if expected, actual := buildutil.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	expectedLabels := make(map[string]string)
-	for k, v := range expected.Labels {
-		expectedLabels[k] = v
-	}
-	expectedLabels[buildapi.BuildLabel] = expected.Name
-	if !reflect.DeepEqual(expectedLabels, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: expected.Name}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	container := actual.Spec.Containers[0]
@@ -47,22 +43,44 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.VolumeMounts) != 2 {
-		t.Fatalf("Expected 2 volumes in container, got %d", len(container.VolumeMounts))
+	if len(container.Env) != 8 {
+		t.Fatalf("Expected 8 elements in Env table, got %d: %+v", len(container.Env), container.Env)
 	}
-	if container.VolumeMounts[0].MountPath != dockerSocketPath {
-		t.Fatalf("Expected %s in first VolumeMount, got %s", dockerSocketPath, container.VolumeMounts[0].MountPath)
+	if len(container.VolumeMounts) != 4 {
+		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
 	}
-	if container.VolumeMounts[1].MountPath != dockerPushSecretMountPath {
-		t.Fatalf("Expected %s in first VolumeMount, got %s", dockerPushSecretMountPath, container.VolumeMounts[1].MountPath)
+	if *actual.Spec.ActiveDeadlineSeconds != 60 {
+		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
 	}
-	if len(actual.Spec.Volumes) != 2 {
-		t.Fatalf("Expected 2 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	for i, expected := range []string{dockerSocketPath, DockerPushSecretMountPath, DockerPullSecretMountPath, sourceSecretMountPath} {
+		if container.VolumeMounts[i].MountPath != expected {
+			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
+		}
 	}
-	if len(container.Env) != 3 {
-		t.Fatalf("Expected 3 elements in Env table, got %d", len(container.Env))
+	if len(actual.Spec.Volumes) != 4 {
+		t.Fatalf("Expected 4 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
-	buildJSON, _ := v1beta1.Codec.Encode(expected)
+	if !kapi.Semantic.DeepEqual(container.Resources, expected.Spec.Resources) {
+		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Spec.Resources)
+	}
+	found := false
+	foundIllegal := false
+	for _, v := range container.Env {
+		if v.Name == "BUILD_LOGLEVEL" && v.Value == "bar" {
+			found = true
+		}
+		if v.Name == "ILLEGAL" {
+			foundIllegal = true
+		}
+	}
+	if !found {
+		t.Fatalf("Expected variable BUILD_LOGLEVEL be defined for the container")
+	}
+	if foundIllegal {
+		t.Fatalf("Found illegal environment variable 'ILLEGAL' defined on container")
+	}
+
+	buildJSON, _ := latest.Codec.Encode(expected)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
@@ -74,6 +92,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 }
 
 func mockDockerBuild() *buildapi.Build {
+	timeout := int64(60)
 	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "dockerBuild",
@@ -81,25 +100,45 @@ func mockDockerBuild() *buildapi.Build {
 				"name": "dockerBuild",
 			},
 		},
-		Parameters: buildapi.BuildParameters{
+		Spec: buildapi.BuildSpec{
 			Revision: &buildapi.SourceRevision{
 				Git: &buildapi.GitSourceRevision{},
 			},
 			Source: buildapi.BuildSource{
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.build.com/the/dockerbuild/Dockerfile",
+					Ref: "master",
 				},
-				ContextDir: "my/test/dir",
+				ContextDir:   "my/test/dir",
+				SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
+				Type: buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{
+					PullSecret: &kapi.LocalObjectReference{Name: "bar"},
+					Env: []kapi.EnvVar{
+						{Name: "ILLEGAL", Value: "foo"},
+						{Name: "BUILD_LOGLEVEL", Value: "bar"},
+					},
+				},
 			},
 			Output: buildapi.BuildOutput{
-				DockerImageReference: "docker-registry/repository/dockerBuild",
-				PushSecretName:       "foo",
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "docker-registry/repository/dockerBuild",
+				},
+				PushSecret: &kapi.LocalObjectReference{Name: "foo"},
 			},
+			Resources: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+				},
+			},
+			CompletionDeadlineSeconds: &timeout,
 		},
-		Status: buildapi.BuildStatusNew,
+		Status: buildapi.BuildStatus{
+			Phase: buildapi.BuildPhaseNew,
+		},
 	}
 }

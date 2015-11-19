@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -8,19 +8,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 const (
@@ -199,24 +200,25 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(fmt.Sprintf(`{"id":"%s"}`, expectedUsername)))
+		w.Write([]byte(fmt.Sprintf(`{"sub":"%s"}`, expectedUsername)))
 	})
 
 	// Start remote server
-	remoteAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
+	remoteAddr, err := testserver.FindAvailableBindAddress(9443, 9999)
+	if err != nil {
+		t.Fatalf("Couldn't get free address for test server: %v", err)
+	}
 	remoteServer := &http.Server{
 		Addr:           remoteAddr,
 		Handler:        remoteHandler,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
-		TLSConfig: &tls.Config{
-			// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-			MinVersion: tls.VersionTLS10,
+		TLSConfig: crypto.SecureTLSConfig(&tls.Config{
 			// RequireAndVerifyClientCert lets us limit requests to ones with a valid client certificate
 			ClientAuth: tls.RequireAndVerifyClientCert,
 			ClientCAs:  clientCAs,
-		},
+		}),
 	}
 	go func() {
 		if err := remoteServer.ListenAndServeTLS(certNames[basicAuthRemoteServerCert], certNames[basicAuthRemoteServerKey]); err != nil {
@@ -225,7 +227,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 	}()
 
 	// Build master config
-	masterOptions, err := testutil.DefaultMasterOptions()
+	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -234,8 +236,9 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 		Name:            "basicauth",
 		UseAsChallenger: true,
 		UseAsLogin:      true,
+		MappingMethod:   "claim",
 		Provider: runtime.EmbeddedObject{
-			&configapi.BasicAuthPasswordIdentityProvider{
+			Object: &configapi.BasicAuthPasswordIdentityProvider{
 				RemoteConnectionInfo: configapi.RemoteConnectionInfo{
 					URL: fmt.Sprintf("https://%s", remoteAddr),
 					CA:  certNames[basicAuthRemoteCACert],
@@ -249,7 +252,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 	}
 
 	// Start server
-	clusterAdminKubeConfig, err := testutil.StartConfiguredMaster(masterOptions)
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterOptions)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

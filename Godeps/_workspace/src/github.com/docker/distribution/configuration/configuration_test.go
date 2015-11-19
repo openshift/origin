@@ -15,19 +15,26 @@ func Test(t *testing.T) { TestingT(t) }
 
 // configStruct is a canonical example configuration, which should map to configYamlV0_1
 var configStruct = Configuration{
-	Version:  "0.1",
+	Version: "0.1",
+	Log: struct {
+		Level     Loglevel               `yaml:"level"`
+		Formatter string                 `yaml:"formatter,omitempty"`
+		Fields    map[string]interface{} `yaml:"fields,omitempty"`
+	}{
+		Fields: map[string]interface{}{"environment": "test"},
+	},
 	Loglevel: "info",
 	Storage: Storage{
 		"s3": Parameters{
-			"region":    "us-east-1",
-			"bucket":    "my-bucket",
-			"rootpath":  "/registry",
-			"encrypt":   true,
-			"secure":    false,
-			"accesskey": "SAMPLEACCESSKEY",
-			"secretkey": "SUPERSECRET",
-			"host":      nil,
-			"port":      42,
+			"region":        "us-east-1",
+			"bucket":        "my-bucket",
+			"rootdirectory": "/registry",
+			"encrypt":       true,
+			"secure":        false,
+			"accesskey":     "SAMPLEACCESSKEY",
+			"secretkey":     "SUPERSECRET",
+			"host":          nil,
+			"port":          42,
 		},
 	},
 	Auth: Auth{
@@ -52,17 +59,41 @@ var configStruct = Configuration{
 			},
 		},
 	},
+	HTTP: struct {
+		Addr   string `yaml:"addr,omitempty"`
+		Prefix string `yaml:"prefix,omitempty"`
+		Secret string `yaml:"secret,omitempty"`
+		TLS    struct {
+			Certificate string   `yaml:"certificate,omitempty"`
+			Key         string   `yaml:"key,omitempty"`
+			ClientCAs   []string `yaml:"clientcas,omitempty"`
+		} `yaml:"tls,omitempty"`
+		Debug struct {
+			Addr string `yaml:"addr,omitempty"`
+		} `yaml:"debug,omitempty"`
+	}{
+		TLS: struct {
+			Certificate string   `yaml:"certificate,omitempty"`
+			Key         string   `yaml:"key,omitempty"`
+			ClientCAs   []string `yaml:"clientcas,omitempty"`
+		}{
+			ClientCAs: []string{"/path/to/ca.pem"},
+		},
+	},
 }
 
 // configYamlV0_1 is a Version 0.1 yaml document representing configStruct
 var configYamlV0_1 = `
 version: 0.1
+log:
+  fields:
+    environment: test
 loglevel: info
 storage:
   s3:
     region: us-east-1
     bucket: my-bucket
-    rootpath: /registry
+    rootdirectory: /registry
     encrypt: true
     secure: false
     accesskey: SAMPLEACCESSKEY
@@ -82,6 +113,9 @@ notifications:
 reporting:
   bugsnag:
     apikey: BugsnagApiKey
+http:
+  clientcas:
+    - /path/to/ca.pem
 `
 
 // inmemoryConfigYamlV0_1 is a Version 0.1 yaml document specifying an inmemory
@@ -136,6 +170,7 @@ func (suite *ConfigSuite) TestParseSimple(c *C) {
 func (suite *ConfigSuite) TestParseInmemory(c *C) {
 	suite.expectedConfig.Storage = Storage{"inmemory": Parameters{}}
 	suite.expectedConfig.Reporting = Reporting{}
+	suite.expectedConfig.Log.Fields = nil
 
 	config, err := Parse(bytes.NewReader([]byte(inmemoryConfigYamlV0_1)))
 	c.Assert(err, IsNil)
@@ -150,6 +185,7 @@ func (suite *ConfigSuite) TestParseIncomplete(c *C) {
 	_, err := Parse(bytes.NewReader([]byte(incompleteConfigYaml)))
 	c.Assert(err, NotNil)
 
+	suite.expectedConfig.Log.Fields = nil
 	suite.expectedConfig.Storage = Storage{"filesystem": Parameters{"rootdirectory": "/tmp/testroot"}}
 	suite.expectedConfig.Auth = Auth{"silly": Parameters{"realm": "silly"}}
 	suite.expectedConfig.Reporting = Reporting{}
@@ -303,13 +339,19 @@ func copyConfig(config Configuration) *Configuration {
 
 	configCopy.Version = MajorMinorVersion(config.Version.Major(), config.Version.Minor())
 	configCopy.Loglevel = config.Loglevel
+	configCopy.Log = config.Log
+	configCopy.Log.Fields = make(map[string]interface{}, len(config.Log.Fields))
+	for k, v := range config.Log.Fields {
+		configCopy.Log.Fields[k] = v
+	}
+
 	configCopy.Storage = Storage{config.Storage.Type(): Parameters{}}
 	for k, v := range config.Storage.Parameters() {
 		configCopy.Storage.setParameter(k, v)
 	}
 	configCopy.Reporting = Reporting{
 		Bugsnag:  BugsnagReporting{config.Reporting.Bugsnag.APIKey, config.Reporting.Bugsnag.ReleaseStage, config.Reporting.Bugsnag.Endpoint},
-		NewRelic: NewRelicReporting{config.Reporting.NewRelic.LicenseKey, config.Reporting.NewRelic.Name},
+		NewRelic: NewRelicReporting{config.Reporting.NewRelic.LicenseKey, config.Reporting.NewRelic.Name, config.Reporting.NewRelic.Verbose},
 	}
 
 	configCopy.Auth = Auth{config.Auth.Type(): Parameters{}}

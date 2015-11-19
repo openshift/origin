@@ -6,18 +6,19 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/apiserver"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	osclient "github.com/openshift/origin/pkg/client"
-	config "github.com/openshift/origin/pkg/config/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 )
 
@@ -52,26 +53,31 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 	server := httptest.NewServer(osMux)
 	defer server.Close()
 
-	osClient := osclient.NewOrDie(&kclient.Config{Host: server.URL})
+	osClient := osclient.NewOrDie(&kclient.Config{Host: server.URL, Version: latest.Version})
 
 	storage := map[string]rest.Storage{
-		"templateConfigs": templateregistry.NewREST(),
+		"processedTemplates": templateregistry.NewREST(),
+	}
+	for k, v := range storage {
+		delete(storage, k)
+		storage[strings.ToLower(k)] = v
 	}
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	handlerContainer := master.NewHandlerContainer(osMux)
 	version := apiserver.APIGroupVersion{
-		Root:    "/osapi",
-		Version: "v1beta1",
+		Root:    "/oapi",
+		Version: latest.Version,
 
 		Mapper: latest.RESTMapper,
 
 		Storage: storage,
 		Codec:   interfaces.Codec,
 
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  interfaces.MetadataAccessor,
+		Creater:   kapi.Scheme,
+		Typer:     kapi.Scheme,
+		Convertor: kapi.Scheme,
+		Linker:    interfaces.MetadataAccessor,
 
 		Admit:   admit.NewAlwaysAdmit(),
 		Context: kapi.NewRequestContextMapper(),
@@ -80,14 +86,18 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	walkJSONFiles("fixtures", func(name, path string, _ []byte) {
-		config := &config.Config{}
-		err := osClient.RESTClient.Post().Resource("templateConfigs").Body(path).Do().Into(config)
+	walkJSONFiles("fixtures", func(name, path string, data []byte) {
+		template, err := interfaces.Codec.Decode(data)
 		if err != nil {
 			t.Errorf("%q: unexpected error: %v", path, err)
 			return
 		}
-		if len(config.Items) == 0 {
+		config, err := osClient.TemplateConfigs("default").Create(template.(*templateapi.Template))
+		if err != nil {
+			t.Errorf("%q: unexpected error: %v", path, err)
+			return
+		}
+		if len(config.Objects) == 0 {
 			t.Errorf("%q: no items in config object", path)
 			return
 		}

@@ -3,26 +3,27 @@ package app
 import (
 	"log"
 	"net/url"
+	"reflect"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	build "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func testImageInfo() *imageapi.DockerImage {
 	return &imageapi.DockerImage{
-		Config: imageapi.DockerConfig{},
+		Config: &imageapi.DockerConfig{},
 	}
 }
 
 func TestWithType(t *testing.T) {
 	out := &Generated{
 		Items: []runtime.Object{
-			&build.BuildConfig{
+			&buildapi.BuildConfig{
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "foo",
 				},
@@ -35,7 +36,7 @@ func TestWithType(t *testing.T) {
 		},
 	}
 
-	builds := []build.BuildConfig{}
+	builds := []buildapi.BuildConfig{}
 	if !out.WithType(&builds) {
 		t.Errorf("expected true")
 	}
@@ -43,7 +44,7 @@ func TestWithType(t *testing.T) {
 		t.Errorf("unexpected slice: %#v", builds)
 	}
 
-	buildPtrs := []*build.BuildConfig{}
+	buildPtrs := []*buildapi.BuildConfig{}
 	if out.WithType(&buildPtrs) {
 		t.Errorf("expected false")
 	}
@@ -52,7 +53,7 @@ func TestWithType(t *testing.T) {
 	}
 }
 
-func TestSimpleBuildConfig(t *testing.T) {
+func TestBuildConfigNoOutput(t *testing.T) {
 	url, err := url.Parse("https://github.com/openshift/origin.git")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -66,152 +67,8 @@ func TestSimpleBuildConfig(t *testing.T) {
 	if config.Name != "origin" {
 		t.Errorf("unexpected name: %#v", config)
 	}
-
-	output := &ImageRef{
-		DockerImageReference: imageapi.DockerImageReference{
-			Registry:  "myregistry",
-			Namespace: "openshift",
-			Name:      "origin",
-		},
-	}
-	build = &BuildRef{Source: source, Output: output}
-	config, err = build.BuildConfig()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if config.Name != "origin" || config.Parameters.Output.To.Name != "origin" {
-		t.Errorf("unexpected name: %#v", config)
-	}
-}
-
-func TestSimpleDeploymentConfig(t *testing.T) {
-	image := &ImageRef{
-		DockerImageReference: imageapi.DockerImageReference{
-			Registry:  "myregistry",
-			Namespace: "openshift",
-			Name:      "origin",
-		},
-		Info:          testImageInfo(),
-		AsImageStream: true,
-	}
-	deploy := &DeploymentConfigRef{Images: []*ImageRef{image}}
-	config, err := deploy.DeploymentConfig()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if config.Name != "origin" || len(config.Triggers) != 2 || config.Template.ControllerTemplate.Template.Spec.Containers[0].Image != image.String() {
-		t.Errorf("unexpected value: %#v", config)
-	}
-}
-
-func TestImageRefDeployableContainerPorts(t *testing.T) {
-	tests := []struct {
-		name          string
-		inputPorts    map[string]struct{}
-		expectedPorts map[int]string
-		expectError   bool
-	}{
-		{
-			name: "tcp implied, individual ports",
-			inputPorts: map[string]struct{}{
-				"123": {},
-				"456": {},
-			},
-			expectedPorts: map[int]string{
-				123: "TCP",
-				456: "TCP",
-			},
-			expectError: false,
-		},
-		{
-			name: "tcp implied, multiple ports",
-			inputPorts: map[string]struct{}{
-				"123 456":  {},
-				"678 1123": {},
-			},
-			expectedPorts: map[int]string{
-				123:  "TCP",
-				678:  "TCP",
-				456:  "TCP",
-				1123: "TCP",
-			},
-			expectError: false,
-		},
-		{
-			name: "tcp and udp, individual ports",
-			inputPorts: map[string]struct{}{
-				"123/tcp": {},
-				"456/udp": {},
-			},
-			expectedPorts: map[int]string{
-				123: "TCP",
-				456: "UDP",
-			},
-			expectError: false,
-		},
-		{
-			name: "tcp implied, multiple ports",
-			inputPorts: map[string]struct{}{
-				"123/tcp 456/udp":  {},
-				"678/udp 1123/tcp": {},
-			},
-			expectedPorts: map[int]string{
-				123:  "TCP",
-				456:  "UDP",
-				678:  "UDP",
-				1123: "TCP",
-			},
-			expectError: false,
-		},
-		{
-			name: "invalid format",
-			inputPorts: map[string]struct{}{
-				"123/tcp abc": {},
-			},
-			expectedPorts: map[int]string{},
-			expectError:   true,
-		},
-	}
-	for _, test := range tests {
-		imageRef := &ImageRef{
-			DockerImageReference: imageapi.DockerImageReference{
-				Namespace: "test",
-				Name:      "image",
-				Tag:       "latest",
-			},
-			Info: &imageapi.DockerImage{
-				Config: imageapi.DockerConfig{
-					ExposedPorts: test.inputPorts,
-				},
-			},
-		}
-		container, _, err := imageRef.DeployableContainer()
-		if err != nil && !test.expectError {
-			t.Errorf("%s: unexpected error: %v", test.name, err)
-			continue
-		}
-		if err == nil && test.expectError {
-			t.Errorf("%s: got no error and expected an error", test.name)
-			continue
-		}
-		if test.expectError {
-			continue
-		}
-		remaining := test.expectedPorts
-		for _, port := range container.Ports {
-			proto, ok := remaining[port.ContainerPort]
-			if !ok {
-				t.Errorf("%s: got unexpected port: %v", test.name, port)
-				continue
-			}
-			if kapi.Protocol(proto) != port.Protocol {
-				t.Errorf("%s: got unexpected protocol %s for port %v", test.name, port.Protocol, port)
-			}
-			delete(remaining, port.ContainerPort)
-		}
-		if len(remaining) > 0 {
-			t.Errorf("%s: did not find expected ports: %#v", test.name, remaining)
-		}
+	if !reflect.DeepEqual(config.Spec.Output, buildapi.BuildOutput{}) {
+		t.Errorf("unexpected build output: %#v", config.Spec.Output)
 	}
 }
 
@@ -244,7 +101,7 @@ func TestSourceRefBuildSourceURI(t *testing.T) {
 	}
 }
 
-func ExampleGenerateSimpleDockerApp() {
+func TestGenerateSimpleDockerApp(t *testing.T) {
 	// TODO: determine if the repo is secured prior to fetching
 	// TODO: determine whether we want to clone this repo, or use it directly. Using it directly would require setting hooks
 	// if we have source, assume we are going to go into a build flow.
@@ -259,7 +116,7 @@ func ExampleGenerateSimpleDockerApp() {
 	// deployment configs in templates (hint: yes).
 	// SOLUTION? Make deployment config accept unqualified image repo names (foo) and then prior to creating the RC resolve those.
 	output := &ImageRef{
-		DockerImageReference: imageapi.DockerImageReference{
+		Reference: imageapi.DockerImageReference{
 			Name: name,
 		},
 		AsImageStream: true,
@@ -288,4 +145,93 @@ func ExampleGenerateSimpleDockerApp() {
 	}
 	log.Print(string(data))
 	// output:
+}
+
+func TestImageStream(t *testing.T) {
+	tests := []struct {
+		name        string
+		r           *ImageRef
+		expectedIs  *imageapi.ImageStream
+		expectedErr error
+	}{
+		{
+			name: "existing image stream",
+			r: &ImageRef{
+				Stream: &imageapi.ImageStream{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "some-stream",
+					},
+				},
+			},
+			expectedIs: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "some-stream",
+				},
+			},
+		},
+		{
+			name: "input stream",
+			r: &ImageRef{
+				Reference: imageapi.DockerImageReference{
+					Namespace: "test",
+					Name:      "input",
+				},
+			},
+			expectedIs: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "input",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: "test/input",
+				},
+			},
+		},
+		{
+			name: "insecure input stream",
+			r: &ImageRef{
+				Reference: imageapi.DockerImageReference{
+					Namespace: "test",
+					Name:      "insecure",
+				},
+				Insecure: true,
+			},
+			expectedIs: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "insecure",
+					Annotations: map[string]string{
+						imageapi.InsecureRepositoryAnnotation: "true",
+					},
+				},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: "test/insecure",
+				},
+			},
+		},
+		{
+			name: "output stream",
+			r: &ImageRef{
+				Reference: imageapi.DockerImageReference{
+					Namespace: "test",
+					Name:      "output",
+				},
+				OutputImage: true,
+			},
+			expectedIs: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "output",
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		is, err := test.r.ImageStream()
+		if err != test.expectedErr {
+			t.Errorf("%s: error mismatch, expected %v, got %v", test.name, test.expectedErr, err)
+			continue
+		}
+		if !reflect.DeepEqual(is, test.expectedIs) {
+			t.Errorf("%s: image stream mismatch, expected %+v, got %+v", test.name, test.expectedIs, is)
+		}
+	}
 }

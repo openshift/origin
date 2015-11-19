@@ -1,3 +1,5 @@
+'use strict';
+
 // Login strategies
 angular.module('openshiftConsole')
 .provider('RedirectLoginService', function() {
@@ -28,25 +30,27 @@ angular.module('openshiftConsole')
     var authLogger = Logger.get("auth");
 
     return {
-      // Returns a promise that resolves with {user:{...}, token:''}, or rejects with {error:'...'[,error_description:'...',error_uri:'...']}
+      // Returns a promise that resolves with {user:{...}, token:'...', ttl:X}, or rejects with {error:'...'[,error_description:'...',error_uri:'...']}
       login: function() {
-        if (_oauth_client_id == "") {
-          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthClientID() not set'}); 
+        if (_oauth_client_id === "") {
+          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthClientID() not set'});
         }
-        if (_oauth_authorize_uri == "") {
-          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthAuthorizeURI() not set'}); 
+        if (_oauth_authorize_uri === "") {
+          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthAuthorizeURI() not set'});
         }
-        if (_oauth_redirect_uri == "") {
-          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthRedirectURI not set'}); 
+        if (_oauth_redirect_uri === "") {
+          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthRedirectURI not set'});
         }
 
         var deferred = $q.defer();
         var uri = new URI(_oauth_authorize_uri);
+        // Never send a local fragment to remote servers
+        var returnUri = new URI($location.url()).fragment("");
         uri.query({
           client_id: _oauth_client_id,
           response_type: 'token',
-          state: $location.url(), // TODO: get state working
-          redirect_uri: _oauth_redirect_uri,
+          state: returnUri.toString(),
+          redirect_uri: _oauth_redirect_uri
         });
         authLogger.log("RedirectLoginService.login(), redirecting", uri.toString());
         window.location.href = uri.toString();
@@ -64,7 +68,7 @@ angular.module('openshiftConsole')
 
         // Read params
         var queryParams = u.query(true);
-        var fragmentParams = new URI("?" + u.fragment()).query(true); 
+        var fragmentParams = new URI("?" + u.fragment()).query(true);
         authLogger.log("RedirectLoginService.finish()", queryParams, fragmentParams);
 
        // Error codes can come in query params or fragment params
@@ -82,10 +86,11 @@ angular.module('openshiftConsole')
         }
 
         // Handle an access_token response
-        if (fragmentParams.access_token && fragmentParams.token_type == "bearer") {
+        if (fragmentParams.access_token && (fragmentParams.token_type || "").toLowerCase() === "bearer") {
           var deferred = $q.defer();
           deferred.resolve({
             token: fragmentParams.access_token,
+            ttl: fragmentParams.expires_in,
             then: fragmentParams.state
           });
           return deferred.promise;
@@ -94,7 +99,7 @@ angular.module('openshiftConsole')
         // No token and no error is invalid
         return $q.reject({
           error: "invalid_request",
-          error_description: "No API token returned",
+          error_description: "No API token returned"
         });
       }
     };

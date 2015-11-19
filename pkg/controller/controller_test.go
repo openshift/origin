@@ -5,8 +5,8 @@ import (
 	"sync"
 	"testing"
 
-	kcache "github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kcache "k8s.io/kubernetes/pkg/client/cache"
+	kutil "k8s.io/kubernetes/pkg/util"
 )
 
 func TestRetryController_handleOneRetryableError(t *testing.T) {
@@ -80,13 +80,10 @@ func TestQueueRetryManager_retries(t *testing.T) {
 		keyFunc: func(obj interface{}) (string, error) {
 			return obj.(testObj).id, nil
 		},
-		retryFunc: func(obj interface{}, err error, count int) bool {
-			if count > 4 {
-				return false
-			}
-			return true
+		retryFunc: func(obj interface{}, err error, r Retry) bool {
+			return r.Count < 5 && !r.StartTimestamp.IsZero()
 		},
-		retries: make(map[string]int),
+		retries: make(map[string]Retry),
 		limiter: kutil.NewTokenBucketRateLimiter(1000, 1000),
 	}
 
@@ -131,7 +128,7 @@ func TestRetryController_realFifoEventOrdering(t *testing.T) {
 
 	controller := &RetryController{
 		Queue:        fifo,
-		RetryManager: NewQueueRetryManager(fifo, keyFunc, func(_ interface{}, _ error, _ int) bool { return true }, kutil.NewTokenBucketRateLimiter(1000, 10)),
+		RetryManager: NewQueueRetryManager(fifo, keyFunc, func(_ interface{}, _ error, _ Retry) bool { return true }, kutil.NewTokenBucketRateLimiter(1000, 10)),
 		Handle: func(obj interface{}) error {
 			if e, a := 1, obj.(testObj).value; e != a {
 				t.Fatalf("expected to handle test value %d, got %d", e, a)
@@ -170,11 +167,8 @@ func TestRetryController_ratelimit(t *testing.T) {
 	limiter := &mockLimiter{}
 	retryManager := NewQueueRetryManager(fifo,
 		keyFunc,
-		func(_ interface{}, _ error, c int) bool {
-			if c < 15 {
-				return true
-			}
-			return false
+		func(_ interface{}, _ error, r Retry) bool {
+			return r.Count < 15
 		},
 		limiter,
 	)

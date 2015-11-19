@@ -5,11 +5,11 @@ import (
 	"net"
 	"strconv"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	kubeutil "k8s.io/kubernetes/pkg/util"
 )
 
 type ValidateFunc func(string) error
@@ -55,15 +55,18 @@ func WaitForAddress(pod *kapi.Pod, service *kapi.Service, ns string) (string, er
 		if eventEndpoint.Name != service.Name {
 			continue
 		}
-		if len(eventEndpoint.Endpoints) == 0 {
+		if len(eventEndpoint.Subsets) == 0 {
 			fmt.Printf("Waiting for %s address\n", eventEndpoint.Name)
 			continue
 		}
-		for i := range eventEndpoint.Endpoints {
-			e := &eventEndpoint.Endpoints[i]
-			addr := net.JoinHostPort(e.IP, strconv.Itoa(e.Port))
-			fmt.Printf("Discovered new %s endpoint: %s\n", service.Name, addr)
-			return addr, nil
+		for _, s := range eventEndpoint.Subsets {
+			for _, p := range s.Ports {
+				for _, a := range s.Addresses {
+					addr := net.JoinHostPort(a.IP, strconv.Itoa(p.Port))
+					fmt.Printf("Discovered new %s endpoint: %s\n", service.Name, addr)
+					return addr, nil
+				}
+			}
 		}
 	}
 	return "", fmt.Errorf("Service does not get any endpoints")
@@ -114,9 +117,11 @@ func CreateServiceForPod(pod *kapi.Pod, ns string) *kapi.Service {
 			Name: ns,
 		},
 		Spec: kapi.ServiceSpec{
-			Selector:   map[string]string{"name": ns},
-			TargetPort: kubeutil.IntOrString{Kind: kubeutil.IntstrInt, IntVal: 8080},
-			Port:       8080,
+			Selector: map[string]string{"name": ns},
+			Ports: []kapi.ServicePort{{
+				Port:       8080,
+				TargetPort: kubeutil.IntOrString{Kind: kubeutil.IntstrInt, IntVal: 8080},
+			}},
 		},
 	}
 	if service, err := client.Services(ns).Create(service); err != nil {
@@ -133,6 +138,6 @@ func CleanupServiceAndPod(pod *kapi.Pod, service *kapi.Service, ns string) {
 	if err != nil {
 		return
 	}
-	client.Pods(ns).Delete(pod.Name)
+	client.Pods(ns).Delete(pod.Name, nil)
 	client.Services(ns).Delete(service.Name)
 }

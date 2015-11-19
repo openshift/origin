@@ -6,16 +6,21 @@ import (
 	"testing"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest/resttest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/registrytest"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
+	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/tools"
+	"k8s.io/kubernetes/pkg/tools/etcdtest"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/watch"
+
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/image/api"
@@ -57,11 +62,16 @@ func makeTestDefaultImageRepositoriesListKey() string {
 	return makeTestImageRepositoriesListKey(kapi.NamespaceDefault)
 }
 
-func newHelper(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper) {
+func newHelper(t *testing.T) (*tools.FakeEtcdClient, storage.Interface) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec)
+	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
 	return fakeEtcdClient, helper
+}
+
+func newStorage(t *testing.T) (*REST, *tools.FakeEtcdClient) {
+	etcdStorage, fakeClient := registrytest.NewEtcdStorage(t, "")
+	return NewREST(etcdStorage), fakeClient
 }
 
 func TestStorage(t *testing.T) {
@@ -73,19 +83,17 @@ func TestStorage(t *testing.T) {
 func validNewImage() *api.Image {
 	return &api.Image{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      "foo",
-			Namespace: kapi.NamespaceDefault,
+			Name: "foo",
 		},
 		DockerImageReference: "openshift/origin",
 	}
 }
 
 func TestCreate(t *testing.T) {
-	fakeEtcdClient, helper := newHelper(t)
-	storage := NewREST(helper)
-	test := resttest.New(t, storage, fakeEtcdClient.SetError)
+	storage, fakeClient := newStorage(t)
+	test := registrytest.New(t, fakeClient, storage.store).ClusterScope()
 	image := validNewImage()
-	image.ObjectMeta = kapi.ObjectMeta{}
+	image.ObjectMeta = kapi.ObjectMeta{GenerateName: "foo"}
 	test.TestCreate(
 		// valid
 		image,
@@ -120,7 +128,7 @@ func TestCreateAlreadyExists(t *testing.T) {
 		DockerImageReference: "foo/bar:abcd1234",
 	}
 
-	fakeEtcdClient.Data["/images/foo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/images/foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, existingImage),
@@ -159,7 +167,7 @@ func TestListError(t *testing.T) {
 func TestListEmptyList(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.ChangeIndex = 1
-	fakeEtcdClient.Data["/images"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/images")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{},
 		E: fakeEtcdClient.NewError(tools.EtcdErrorCodeNotFound),
 	}
@@ -180,7 +188,7 @@ func TestListEmptyList(t *testing.T) {
 func TestListPopulatedList(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.ChangeIndex = 1
-	fakeEtcdClient.Data["/images"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/images")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -208,7 +216,7 @@ func TestListPopulatedList(t *testing.T) {
 func TestListFiltered(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.ChangeIndex = 1
-	fakeEtcdClient.Data["/images"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/images")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -299,7 +307,7 @@ func TestGetError(t *testing.T) {
 func TestGetNotFound(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	storage := NewREST(helper)
-	fakeEtcdClient.Data["/images/foo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/images/foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: nil,
 		},
@@ -321,7 +329,7 @@ func TestGetOK(t *testing.T) {
 		ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	}
-	fakeEtcdClient.Data["/images/foo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/images/foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value: runtime.EncodeOrDie(latest.Codec, expectedImage),
@@ -344,7 +352,7 @@ func TestGetOK(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	fakeEtcdClient.Data["/images/foo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/images/foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value: runtime.EncodeOrDie(latest.Codec, &api.Image{}),
@@ -362,16 +370,16 @@ func TestDelete(t *testing.T) {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
 
-	status, ok := obj.(*kapi.Status)
+	status, ok := obj.(*unversioned.Status)
 	if !ok {
 		t.Fatalf("Expected status type, got: %#v", obj)
 	}
-	if status.Status != kapi.StatusSuccess {
+	if status.Status != unversioned.StatusSuccess {
 		t.Errorf("Expected status=success, got: %#v", status)
 	}
 	if len(fakeEtcdClient.DeletedKeys) != 1 {
 		t.Errorf("Expected 1 delete, found %#v", fakeEtcdClient.DeletedKeys)
-	} else if key := "/images/foo"; fakeEtcdClient.DeletedKeys[0] != key {
+	} else if key := etcdtest.AddPrefix("/images/foo"); fakeEtcdClient.DeletedKeys[0] != key {
 		t.Errorf("Unexpected key: %s, expected %s", fakeEtcdClient.DeletedKeys[0], key)
 	}
 }

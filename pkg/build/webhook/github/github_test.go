@@ -8,61 +8,72 @@ import (
 	"strings"
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
-	imageapi "github.com/openshift/origin/pkg/image/api"
 )
-
-type okImageRepositoryNamespaceGetter struct{}
-
-func (m *okImageRepositoryNamespaceGetter) GetByNamespace(namespace, name string) (*imageapi.ImageStream, error) {
-	return &imageapi.ImageStream{
-		Status: imageapi.ImageStreamStatus{
-			DockerImageRepository: "repository/image",
-		},
-	}, nil
-}
 
 type okBuildConfigGetter struct{}
 
 func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GithubWebHookBuildTriggerType,
-				GithubWebHook: &api.WebHookTrigger{
-					Secret: "secret101",
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &api.WebHookTrigger{
+						Secret: "secret101",
+					},
 				},
 			},
-		},
-		Parameters: api.BuildParameters{
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					URI: "git://github.com/my/repo.git",
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						URI: "git://github.com/my/repo.git",
+					},
 				},
+				Strategy: mockBuildStrategy,
 			},
-			Strategy: mockBuildStrategy,
 		},
 	}, nil
 }
 
-var mockBuildStrategy api.BuildStrategy = api.BuildStrategy{
+var mockBuildStrategy = api.BuildStrategy{
 	Type: "STI",
-	STIStrategy: &api.STIBuildStrategy{
-		Image: "repository/image",
+	SourceStrategy: &api.SourceBuildStrategy{
+		From: kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: "repository/image",
+		},
 	},
 }
 
 type okBuildConfigInstantiator struct{}
 
-func (*okBuildConfigInstantiator) Instantiate(namespace string, requet *api.BuildRequest) (*api.Build, error) {
+func (*okBuildConfigInstantiator) Instantiate(namespace string, request *api.BuildRequest) (*api.Build, error) {
 	return &api.Build{}, nil
+}
+
+func TestWrongSecret(t *testing.T) {
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
+		map[string]webhook.Plugin{"github": New()}))
+	defer server.Close()
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("POST", server.URL+"/build100/wrongsecret/github", nil)
+	resp, _ := client.Do(req)
+	body, _ := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusBadRequest ||
+		!strings.Contains(string(body), webhook.ErrSecretMismatch.Error()) {
+		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
+	}
 }
 
 func TestWrongMethod(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		&okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	resp, _ := http.Get(server.URL + "/build100/secret101/github")
@@ -75,111 +86,99 @@ func TestWrongMethod(t *testing.T) {
 
 func TestWrongContentType(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		&okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("POST", server.URL+"/build100/secret101/github", nil)
 	req.Header.Add("Content-Type", "application/text")
-	req.Header.Add("User-Agent", "GitHub-Hookshot/github")
 	req.Header.Add("X-Github-Event", "ping")
 	resp, _ := client.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusBadRequest ||
 		!strings.Contains(string(body), "Content-Type") {
-		t.Errorf("Excepcted BadRequest, got %s: %s!", resp.Status, string(body))
+		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
 	}
 }
 
-func TestWrongUserAgent(t *testing.T) {
+func TestMissingEvent(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		&okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("POST", server.URL+"/build100/secret101/github", nil)
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", "go-lang")
-	req.Header.Add("X-Github-Event", "ping")
 	resp, _ := client.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), "User-Agent go-lang") {
-		t.Errorf("Excepcted BadRequest, got %s: %s!", resp.Status, string(body))
+		!strings.Contains(string(body), "Missing X-GitHub-Event or X-Gogs-Event") {
+		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
 	}
 }
 
-func TestMissingGithubEvent(t *testing.T) {
+func TestWrongGitHubEvent(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		&okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("POST", server.URL+"/build100/secret101/github", nil)
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", "GitHub-Hookshot/github")
-	resp, _ := client.Do(req)
-	body, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), "X-GitHub-Event") {
-		t.Errorf("Excepcted BadRequest, got %s: %s!", resp.Status, string(body))
-	}
-}
-
-func TestWrongGithubEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		&okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
-	defer server.Close()
-
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", server.URL+"/build100/secret101/github", nil)
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", "GitHub-Hookshot/github")
 	req.Header.Add("X-GitHub-Event", "wrong")
 	resp, _ := client.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), "Unknown") {
-		t.Errorf("Excepcted BadRequest, got %s: %s!", resp.Status, string(body))
+		!strings.Contains(string(body), "Unknown X-GitHub-Event or X-Gogs-Event") {
+		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
 	}
 }
 
 func TestJsonPingEvent(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		&okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
-	postFile("ping", "pingevent.json", server.URL+"/build100/secret101/github",
+	postFile("X-GitHub-Event", "ping", "pingevent.json", server.URL+"/build100/secret101/github",
 		http.StatusOK, t)
 }
 
 func TestJsonPushEventError(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		&okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
-	post("push", []byte{}, server.URL+"/build100/secret101/github", http.StatusBadRequest, t)
+	post("X-GitHub-Event", "push", []byte{}, server.URL+"/build100/secret101/github", http.StatusBadRequest, t)
 }
 
-func TestJsonPushEvent(t *testing.T) {
+func TestJsonGitHubPushEvent(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		&okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
-	postFile("push", "pushevent.json", server.URL+"/build100/secret101/github",
+	postFile("X-GitHub-Event", "push", "pushevent.json", server.URL+"/build100/secret101/github",
 		http.StatusOK, t)
 }
 
-func postFile(event, filename, url string, expStatusCode int, t *testing.T) {
+func TestJsonGogsPushEvent(t *testing.T) {
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
+		map[string]webhook.Plugin{"github": New()}))
+	defer server.Close()
+
+	postFile("X-Gogs-Event", "push", "pushevent.json", server.URL+"/build100/secret101/github",
+		http.StatusOK, t)
+}
+
+func postFile(eventHeader, eventName, filename, url string, expStatusCode int, t *testing.T) {
 	data, err := ioutil.ReadFile("fixtures/" + filename)
 	if err != nil {
 		t.Errorf("Failed to open %s: %v", filename, err)
 	}
 
-	post(event, data, url, expStatusCode, t)
+	post(eventHeader, eventName, data, url, expStatusCode, t)
 }
 
-func post(event string, data []byte, url string, expStatusCode int, t *testing.T) {
+func post(eventHeader, eventName string, data []byte, url string, expStatusCode int, t *testing.T) {
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
 	if err != nil {
@@ -187,8 +186,7 @@ func post(event string, data []byte, url string, expStatusCode int, t *testing.T
 	}
 
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", "GitHub-Hookshot/github")
-	req.Header.Add("X-Github-Event", event)
+	req.Header.Add(eventHeader, eventName)
 	resp, err := client.Do(req)
 
 	if err != nil {
@@ -212,22 +210,24 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 	context := testContext{
 		plugin: WebHook{},
 		buildCfg: &api.BuildConfig{
-			Triggers: []api.BuildTriggerPolicy{
-				{
-					Type: api.GithubWebHookBuildTriggerType,
-					GithubWebHook: &api.WebHookTrigger{
-						Secret: "secret101",
+			Spec: api.BuildConfigSpec{
+				Triggers: []api.BuildTriggerPolicy{
+					{
+						Type: api.GitHubWebHookBuildTriggerType,
+						GitHubWebHook: &api.WebHookTrigger{
+							Secret: "secret101",
+						},
 					},
 				},
-			},
-			Parameters: api.BuildParameters{
-				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
-					Git: &api.GitBuildSource{
-						URI: "git://github.com/my/repo.git",
+				BuildSpec: api.BuildSpec{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "git://github.com/my/repo.git",
+						},
 					},
+					Strategy: mockBuildStrategy,
 				},
-				Strategy: mockBuildStrategy,
 			},
 		},
 		path: "/foobar",
@@ -238,7 +238,6 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 	}
 	req, err := http.NewRequest("POST", "http://origin.com", bytes.NewReader(event))
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", "GitHub-Hookshot/github")
 	req.Header.Add("X-Github-Event", eventType)
 
 	context.req = req
@@ -287,7 +286,7 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 	//setup
 	context := setup(t, "pushevent-not-master-branch.json", "push")
-	context.buildCfg.Parameters.Source.Git.Ref = "my_other_branch"
+	context.buildCfg.Spec.Source.Git.Ref = "my_other_branch"
 
 	//execute
 	revision, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
@@ -311,11 +310,11 @@ func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 func TestExtractSkipsBuildForUnmatchedBranches(t *testing.T) {
 	//setup
 	context := setup(t, "pushevent.json", "push")
-	context.buildCfg.Parameters.Source.Git.Ref = "adfj32qrafdavckeaewra"
+	context.buildCfg.Spec.Source.Git.Ref = "adfj32qrafdavckeaewra"
 
 	//execute
 	_, proceed, _ := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 	if proceed {
-		t.Errorf("Expecting to not continue from this event because the branch is not for this buildConfig '%s'", context.buildCfg.Parameters.Source.Git.Ref)
+		t.Errorf("Expecting to not continue from this event because the branch is not for this buildConfig '%s'", context.buildCfg.Spec.Source.Git.Ref)
 	}
 }

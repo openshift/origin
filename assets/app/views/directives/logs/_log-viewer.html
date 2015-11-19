@@ -1,0 +1,57 @@
+  <div row class="log-timestamp" ng-if="!chromeless && start">
+    <div>
+      <span>Current log from {{start}}&nbsp;</span>
+      <span ng-if="end">to {{end}}</span>
+    </div>
+    <div flex></div>
+    <div ng-if="kibanaAuthUrl">
+      <form
+        action="{{kibanaAuthUrl}}"
+        method="POST">
+        <input type="hidden" name="redirect" value="{{archiveLocation}}">
+        <input type="hidden" name="access_token" value="{{access_token}}">
+        <button class="btn btn-sm btn-primary">View Archive</button>
+      </form>
+    </div>
+  </div>
+
+  <div ng-if="largeLog" class="log-size-warning">
+    <span class="pficon pficon-info" aria-hidden="true"></span>
+    Only the previous {{options.tailLines || 1000}} log lines and new log
+    messages will be displayed because of the large log size.
+  </div>
+
+  <div class="row" ng-if="!chromeless">
+    <div class="col-md-6 col-sm-12 status">
+      <span ng-if="status">
+        <span>Status:&nbsp;&nbsp;</span>
+        <status-icon status="status"></status-icon>
+        <span>&nbsp;&nbsp;{{status}}</span>
+      </span>
+    </div>
+    <div class="log-link-external col-md-6 col-sm-12 text-right">
+      <a href=""  ng-click="goChromeless(options)">
+        Open full view of log<i class="fa fa-external-link"></i>
+      </a>
+    </div>
+  </div>
+
+<!--
+<ng-include
+  src="'views/directives/logs/_log-raw.html'"></ng-include>
+-->
+<ng-include
+  src="'views/directives/logs/_log-formatted.html'"></ng-include>
+
+<!-- Show a different messsage if the log might have stopped because we reached the byte limit -->
+<div ng-if="limitReached" class="text-muted">
+  The maximum web console log size has been reached. Use the command-line interface or
+  <a href="" ng-click="restartLogs()">reload</a> the log to see new messages.
+</div>
+<div ng-if="!loading && !limitReached && !error" class="text-muted">
+  End of log
+</div>
+<div ng-if="error" class="text-muted">
+  An error occurred loading the log.
+  <a href="" ng-click="restartLogs()">Reload</a>
+</div>

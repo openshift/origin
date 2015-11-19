@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -7,23 +7,24 @@ import (
 	"os"
 	"testing"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func TestHTPasswd(t *testing.T) {
+func TestOAuthHTPasswd(t *testing.T) {
 	htpasswdFile, err := ioutil.TempFile("", "test.htpasswd")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	defer os.Remove(htpasswdFile.Name())
 
-	masterOptions, err := testutil.DefaultMasterOptions()
+	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -32,14 +33,15 @@ func TestHTPasswd(t *testing.T) {
 		Name:            "htpasswd",
 		UseAsChallenger: true,
 		UseAsLogin:      true,
+		MappingMethod:   "claim",
 		Provider: runtime.EmbeddedObject{
-			&configapi.HTPasswdPasswordIdentityProvider{
+			Object: &configapi.HTPasswdPasswordIdentityProvider{
 				File: htpasswdFile.Name(),
 			},
 		},
 	}
 
-	clusterAdminKubeConfig, err := testutil.StartConfiguredMaster(masterOptions)
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterOptions)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

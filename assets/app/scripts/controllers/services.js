@@ -8,40 +8,61 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ServicesController', function ($scope, DataService, $filter, LabelFilter, Logger) {
+  .controller('ServicesController', function ($scope, AlertMessageService, DataService, $filter, LabelFilter, Logger, $location, $anchorScroll) {
     $scope.services = {};
     $scope.unfilteredServices = {};
     $scope.routesByService = {};
+    $scope.routes = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
+    $scope.emptyMessageRoutes = "Loading...";
+
+    // get and clear any alerts
+    AlertMessageService.getAlerts().forEach(function(alert) {
+      $scope.alerts[alert.name] = alert.data;
+    });
+    AlertMessageService.clearAlerts();
+
     var watches = [];
 
-    watches.push(DataService.watch("services", $scope, function(services) {
+    watches.push(DataService.watch("services", $scope, function(services, action) {
       $scope.unfilteredServices = services.by("metadata.name");
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredServices, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
       $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
       $scope.emptyMessage = "No services to show";
       updateFilterWarning();
+
+      // Scroll to anchor on first load if location has a hash.
+      if (!action && $location.hash()) {
+        // Wait until the digest loop completes.
+        setTimeout($anchorScroll, 10);
+      }
+
       Logger.log("services (subscribe)", $scope.unfilteredServices);
     }));
 
     watches.push(DataService.watch("routes", $scope, function(routes){
-        $scope.routesByService = routesByService(routes.by("metadata.name"));
+        $scope.routes = routes.by("metadata.name");
+        $scope.emptyMessageRoutes = "No routes to show";
+        $scope.routesByService = routesByService($scope.routes);
         Logger.log("routes (subscribe)", $scope.routesByService);
     }));
 
-    var routesByService = function(routes) {
+    function routesByService(routes) {
         var routeMap = {};
         angular.forEach(routes, function(route, routeName){
-            routeMap[route.serviceName] = routeMap[route.serviceName] || {};
-            routeMap[route.serviceName][routeName] = route;
+          var to = route.spec.to;
+          if (to.kind === "Service") {
+            routeMap[to.name] = routeMap[to.name] || {};
+            routeMap[to.name][routeName] = route;
+          }
         });
         return routeMap;
-    };
+    }
 
-    var updateFilterWarning = function() {
+    function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.services)  && !$.isEmptyObject($scope.unfilteredServices)) {
         $scope.alerts["services"] = {
           type: "warning",
@@ -50,8 +71,8 @@ angular.module('openshiftConsole')
       }
       else {
         delete $scope.alerts["services"];
-      }       
-    };
+      }
+    }
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
       // trigger a digest loop
@@ -59,9 +80,9 @@ angular.module('openshiftConsole')
         $scope.services = labelSelector.select($scope.unfilteredServices);
         updateFilterWarning();
       });
-    });   
+    });
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
-    });      
+    });
   });

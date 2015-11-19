@@ -10,6 +10,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 
@@ -43,10 +44,22 @@ images=(
   openshift/origin-pod
   openshift/origin-deployer
   openshift/origin-docker-builder
+  openshift/origin-docker-registry
+  openshift/origin-keepalived-ipfailover
   openshift/origin-sti-builder
   openshift/origin-haproxy-router
+  openshift/origin-f5-router
+  openshift/origin-recycler
+  openshift/origin-gitserver
   openshift/hello-openshift
+  openshift/openvswitch
+  openshift/node
 )
+
+PUSH_OPTS=""
+if docker push --help | grep -q force; then
+  PUSH_OPTS="--force"
+fi
 
 # Push the base images to a registry
 if [[ "${tag}" == ":latest" ]]; then
@@ -55,7 +68,7 @@ if [[ "${tag}" == ":latest" ]]; then
       if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" ]]; then
         docker tag -f "${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY}${image}${tag}"
       fi
-      docker push "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
+      docker push ${PUSH_OPTS} "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
     done
   fi
 fi
@@ -69,7 +82,8 @@ if [[ "${tag}" != ":latest" ]]; then
     done
     set +e
   else
-    echo "Pushing local :${source_tag} images to ${OS_PUSH_BASE_REGISTRY-}*${tag} - CTRL+C to cancel"
+    echo "WARNING: Pushing local :${source_tag} images to ${OS_PUSH_BASE_REGISTRY-}*${tag}"
+    echo "  CTRL+C to cancel, or any other key to continue"
     read
   fi
 fi
@@ -83,5 +97,7 @@ if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" || "${tag}" != "" ]]; then
 fi
 
 for image in "${images[@]}"; do
-  docker push "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
+  docker push ${PUSH_OPTS} "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
 done
+
+ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

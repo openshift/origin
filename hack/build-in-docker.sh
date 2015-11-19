@@ -13,6 +13,7 @@ function absolute_path() {
   popd > /dev/null
 }
 
+STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 origin_path="src/github.com/openshift/origin"
 
@@ -27,3 +28,5 @@ if [ -d /sys/fs/selinux ]; then
 fi
 
 docker run -e "OWNER_GROUP=$UID:$GROUPS" --rm -v "$(absolute_path $OS_ROOT):/go/${origin_path}" openshift/origin-release /usr/bin/openshift-origin-build.sh $@
+
+ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

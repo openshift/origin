@@ -1,8 +1,8 @@
 package test
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 type FakeBuildStore struct {
@@ -30,17 +30,21 @@ func (s FakeBuildStore) List() []interface{} {
 	return []interface{}{s.Build}
 }
 
-func (s FakeBuildStore) ContainedIDs() util.StringSet {
-	return util.NewStringSet()
+func (s FakeBuildStore) ListKeys() []string {
+	return []string{"build"}
 }
 
-func (s FakeBuildStore) Get(obj interface{}) (item interface{}, exists bool, err error) {
+func (s FakeBuildStore) ContainedIDs() sets.String {
+	return sets.NewString()
+}
+
+func (s FakeBuildStore) Get(obj interface{}) (interface{}, bool, error) {
 	return s.GetByKey("")
 }
 
-func (s FakeBuildStore) GetByKey(id string) (item interface{}, exists bool, err error) {
+func (s FakeBuildStore) GetByKey(id string) (interface{}, bool, error) {
 	if s.Err != nil {
-		return nil, false, err
+		return nil, false, s.Err
 	}
 	if s.Build == nil {
 		return nil, false, nil
@@ -49,6 +53,6 @@ func (s FakeBuildStore) GetByKey(id string) (item interface{}, exists bool, err 
 	return s.Build, true, nil
 }
 
-func (s FakeBuildStore) Replace(list []interface{}) error {
+func (s FakeBuildStore) Replace(list []interface{}, resourceVersion string) error {
 	return nil
 }

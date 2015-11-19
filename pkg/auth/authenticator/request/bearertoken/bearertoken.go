@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 type Authenticator struct {
@@ -30,6 +30,12 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 	}
 
 	token := parts[1]
+
+	// Empty bearer tokens aren't valid
+	if len(token) == 0 {
+		return nil, false, nil
+	}
+
 	user, ok, err := a.auth.AuthenticateToken(token)
 	if ok && a.removeHeader {
 		req.Header.Del("Authorization")

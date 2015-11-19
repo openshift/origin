@@ -2,21 +2,22 @@ package auth
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/client/cache"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/watch"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/client"
+	policyclient "github.com/openshift/origin/pkg/authorization/client"
 )
 
 // Lister enforces ability to enumerate a resource based on policy
@@ -28,7 +29,7 @@ type Lister interface {
 // subjectRecord is a cache record for the set of namespaces a subject can access
 type subjectRecord struct {
 	subject    string
-	namespaces util.StringSet
+	namespaces sets.String
 }
 
 // reviewRequest is the resource we want to review
@@ -67,44 +68,82 @@ func subjectRecordKeyFn(obj interface{}) (string, error) {
 	return subjectRecord.subject, nil
 }
 
+type skipSynchronizer interface {
+	// SkipSynchronize returns true if if its safe to skip synchronization of the cache based on provided token from previous observation
+	SkipSynchronize(prevState string, versionedObjects ...LastSyncResourceVersioner) (skip bool, currentState string)
+}
+
+// LastSyncResourceVersioner is any object that can divulge a LastSyncResourceVersion
+type LastSyncResourceVersioner interface {
+	LastSyncResourceVersion() string
+}
+
+type unchangingLastSyncResourceVersioner struct{}
+
+func (u unchangingLastSyncResourceVersioner) LastSyncResourceVersion() string {
+	return "0"
+}
+
+type statelessSkipSynchronizer struct{}
+
+func (rs *statelessSkipSynchronizer) SkipSynchronize(prevState string, versionedObjects ...LastSyncResourceVersioner) (skip bool, currentState string) {
+	resourceVersions := []string{}
+	for i := range versionedObjects {
+		resourceVersions = append(resourceVersions, versionedObjects[i].LastSyncResourceVersion())
+	}
+	currentState = strings.Join(resourceVersions, ",")
+	skip = currentState == prevState
+
+	return skip, currentState
+}
+
+type neverSkipSynchronizer struct{}
+
+func (s *neverSkipSynchronizer) SkipSynchronize(prevState string, versionedObjects ...LastSyncResourceVersioner) (bool, string) {
+	return false, ""
+}
+
 // AuthorizationCache maintains a cache on the set of namespaces a user or group can access.
 type AuthorizationCache struct {
-	namespaceStore          cache.Store
-	policyBindingIndexer    cache.Indexer
-	policyIndexer           cache.Indexer
+	namespaceStore            cache.Store
+	namespaceInterface        kclient.NamespaceInterface
+	lastSyncResourceVersioner LastSyncResourceVersioner
+
+	policyClient policyclient.ReadOnlyPolicyClient
+
 	reviewRecordStore       cache.Store
 	userSubjectRecordStore  cache.Store
 	groupSubjectRecordStore cache.Store
 
-	masterNamespace              string
-	masterBindingResourceVersion string
-	masterPolicyResourceVersion  string
+	clusterBindingResourceVersions sets.String
+	clusterPolicyResourceVersions  sets.String
+
+	skip      skipSynchronizer
+	lastState string
 
 	reviewer Reviewer
-
-	namespaceInterface       kclient.NamespaceInterface
-	policyBindingsNamespacer client.PolicyBindingsNamespacer
-	policiesNamespacer       client.PoliciesNamespacer
 
 	syncHandler func(request *reviewRequest, userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) error
 }
 
 // NewAuthorizationCache creates a new AuthorizationCache
-func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kclient.NamespaceInterface, policyBindingsNamespacer client.PolicyBindingsNamespacer, policiesNamespacer client.PoliciesNamespacer, masterNamespace string) *AuthorizationCache {
+func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kclient.NamespaceInterface, policyClient policyclient.ReadOnlyPolicyClient) *AuthorizationCache {
 	result := &AuthorizationCache{
-		namespaceStore:               cache.NewStore(cache.MetaNamespaceKeyFunc),
-		policyIndexer:                cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc}),
-		policyBindingIndexer:         cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc}),
-		reviewRecordStore:            cache.NewStore(reviewRecordKeyFn),
-		userSubjectRecordStore:       cache.NewStore(subjectRecordKeyFn),
-		groupSubjectRecordStore:      cache.NewStore(subjectRecordKeyFn),
-		masterNamespace:              masterNamespace,
-		masterBindingResourceVersion: "",
-		masterPolicyResourceVersion:  "",
-		namespaceInterface:           namespaceInterface,
-		policyBindingsNamespacer:     policyBindingsNamespacer,
-		policiesNamespacer:           policiesNamespacer,
-		reviewer:                     reviewer,
+		namespaceStore:            cache.NewStore(cache.MetaNamespaceKeyFunc),
+		namespaceInterface:        namespaceInterface,
+		lastSyncResourceVersioner: &unchangingLastSyncResourceVersioner{},
+
+		clusterPolicyResourceVersions:  sets.NewString(),
+		clusterBindingResourceVersions: sets.NewString(),
+
+		policyClient: policyClient,
+
+		reviewRecordStore:       cache.NewStore(reviewRecordKeyFn),
+		userSubjectRecordStore:  cache.NewStore(subjectRecordKeyFn),
+		groupSubjectRecordStore: cache.NewStore(subjectRecordKeyFn),
+
+		reviewer: reviewer,
+		skip:     &neverSkipSynchronizer{},
 	}
 	result.syncHandler = result.syncRequest
 	return result
@@ -127,43 +166,16 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 		2*time.Minute,
 	)
 	namespaceReflector.Run()
+	ac.lastSyncResourceVersioner = namespaceReflector
 
-	policyBindingReflector := cache.NewReflector(
-		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return ac.policyBindingsNamespacer.PolicyBindings(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
-			},
-			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return ac.policyBindingsNamespacer.PolicyBindings(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
-			},
-		},
-		&authorizationapi.PolicyBinding{},
-		ac.policyBindingIndexer,
-		2*time.Minute,
-	)
-	policyBindingReflector.Run()
-
-	policyReflector := cache.NewReflector(
-		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return ac.policiesNamespacer.Policies(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
-			},
-			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return ac.policiesNamespacer.Policies(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
-			},
-		},
-		&authorizationapi.Policy{},
-		ac.policyIndexer,
-		2*time.Minute,
-	)
-	policyReflector.Run()
+	ac.skip = &statelessSkipSynchronizer{}
 
 	go util.Forever(func() { ac.synchronize() }, period)
 }
 
 // synchronizeNamespaces synchronizes access over each namespace and returns a set of namespace names that were looked at in last sync
-func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) *util.StringSet {
-	namespaceSet := util.NewStringSet()
+func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) *sets.String {
+	namespaceSet := sets.NewString()
 	items := ac.namespaceStore.List()
 	for i := range items {
 		namespace := items[i].(*kapi.Namespace)
@@ -181,9 +193,12 @@ func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache
 
 // synchronizePolicies synchronizes access over each policy
 func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
-	items := ac.policyIndexer.List()
-	for i := range items {
-		policy := items[i].(*authorizationapi.Policy)
+	policyList, err := ac.policyClient.ReadOnlyPolicies(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		util.HandleError(err)
+		return
+	}
+	for _, policy := range policyList.Items {
 		reviewRequest := &reviewRequest{
 			namespace:                  policy.Namespace,
 			policyUIDToResourceVersion: map[types.UID]string{policy.UID: policy.ResourceVersion},
@@ -196,12 +211,15 @@ func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.S
 
 // synchronizePolicyBindings synchronizes access over each policy binding
 func (ac *AuthorizationCache) synchronizePolicyBindings(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
-	items := ac.policyBindingIndexer.List()
-	for i := range items {
-		binding := items[i].(*authorizationapi.PolicyBinding)
+	policyBindingList, err := ac.policyClient.ReadOnlyPolicyBindings(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		util.HandleError(err)
+		return
+	}
+	for _, policyBinding := range policyBindingList.Items {
 		reviewRequest := &reviewRequest{
-			namespace:                         binding.Namespace,
-			policyBindingUIDToResourceVersion: map[types.UID]string{binding.UID: binding.ResourceVersion},
+			namespace:                         policyBinding.Namespace,
+			policyBindingUIDToResourceVersion: map[types.UID]string{policyBinding.UID: policyBinding.ResourceVersion},
 		}
 		if err := ac.syncHandler(reviewRequest, userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore); err != nil {
 			util.HandleError(fmt.Errorf("error synchronizing: %v", err))
@@ -210,52 +228,58 @@ func (ac *AuthorizationCache) synchronizePolicyBindings(userSubjectRecordStore c
 }
 
 // purgeDeletedNamespaces will remove all namespaces enumerated in a reviewRecordStore that are not in the namespace set
-func purgeDeletedNamespaces(namespaceSet *util.StringSet, userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
+func purgeDeletedNamespaces(namespaceSet *sets.String, userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
 	reviewRecordItems := reviewRecordStore.List()
 	for i := range reviewRecordItems {
 		reviewRecord := reviewRecordItems[i].(*reviewRecord)
 		if !namespaceSet.Has(reviewRecord.namespace) {
-			deleteSubjectsToNamespace(userSubjectRecordStore, reviewRecord.users, reviewRecord.namespace)
-			deleteSubjectsToNamespace(groupSubjectRecordStore, reviewRecord.groups, reviewRecord.namespace)
+			deleteNamespaceFromSubjects(userSubjectRecordStore, reviewRecord.users, reviewRecord.namespace)
+			deleteNamespaceFromSubjects(groupSubjectRecordStore, reviewRecord.groups, reviewRecord.namespace)
 			reviewRecordStore.Delete(reviewRecord)
 		}
 	}
 }
 
-// invalidateCache returns true if there was a change in the master namespace that holds global policy and policy bindings
+// invalidateCache returns true if there was a change in the cluster namespace that holds cluster policy and policy bindings
 func (ac *AuthorizationCache) invalidateCache() bool {
 	invalidateCache := false
 
-	masterPolicies, err := ac.policyIndexer.Index("namespace", &authorizationapi.Policy{ObjectMeta: kapi.ObjectMeta{Namespace: ac.masterNamespace}})
+	clusterPolicyList, err := ac.policyClient.ReadOnlyClusterPolicies().List(labels.Everything(), fields.Everything())
 	if err != nil {
-		return true
-	}
-	for i := range masterPolicies {
-		policy := masterPolicies[i].(*authorizationapi.Policy)
-		if policy.ResourceVersion != ac.masterPolicyResourceVersion {
-			invalidateCache = true
-			ac.masterPolicyResourceVersion = policy.ResourceVersion
-		}
+		util.HandleError(err)
+		return invalidateCache
 	}
 
-	masterPolicyBindings, err := ac.policyBindingIndexer.Index("namespace", &authorizationapi.PolicyBinding{ObjectMeta: kapi.ObjectMeta{Namespace: ac.masterNamespace}})
-	if err != nil {
-		return true
+	temporaryVersions := sets.NewString()
+	for _, clusterPolicy := range clusterPolicyList.Items {
+		temporaryVersions.Insert(clusterPolicy.ResourceVersion)
 	}
-	for i := range masterPolicyBindings {
-		policyBinding := masterPolicyBindings[i].(*authorizationapi.PolicyBinding)
-		if policyBinding.ResourceVersion != ac.masterBindingResourceVersion {
-			invalidateCache = true
-			ac.masterBindingResourceVersion = policyBinding.ResourceVersion
-		}
+	if (len(ac.clusterPolicyResourceVersions) != len(temporaryVersions)) || !ac.clusterPolicyResourceVersions.HasAll(temporaryVersions.List()...) {
+		invalidateCache = true
+		ac.clusterPolicyResourceVersions = temporaryVersions
+	}
+
+	clusterPolicyBindingList, err := ac.policyClient.ReadOnlyClusterPolicyBindings().List(labels.Everything(), fields.Everything())
+	if err != nil {
+		util.HandleError(err)
+		return invalidateCache
+	}
+
+	temporaryVersions.Delete(temporaryVersions.List()...)
+	for _, clusterPolicyBinding := range clusterPolicyBindingList.Items {
+		temporaryVersions.Insert(clusterPolicyBinding.ResourceVersion)
+	}
+	if (len(ac.clusterBindingResourceVersions) != len(temporaryVersions)) || !ac.clusterBindingResourceVersions.HasAll(temporaryVersions.List()...) {
+		invalidateCache = true
+		ac.clusterBindingResourceVersions = temporaryVersions
 	}
 	return invalidateCache
 }
 
 // synchronize runs a a full synchronization over the cache data.  it must be run in a single-writer model, it's not thread-safe by design.
 func (ac *AuthorizationCache) synchronize() {
-	// TODO: upstream cache object should support a high-water mark, if there was no change in any of our caches, then we should be able to return quickly
-	skip := false
+	// if none of our internal reflectors changed, then we can skip reviewing the cache
+	skip, currentState := ac.skip.SkipSynchronize(ac.lastState, ac.lastSyncResourceVersioner, ac.policyClient)
 	if skip {
 		return
 	}
@@ -286,6 +310,8 @@ func (ac *AuthorizationCache) synchronize() {
 		ac.reviewRecordStore = reviewRecordStore
 	}
 
+	// we were able to update our cache since this last observation period
+	ac.lastState = currentState
 }
 
 // syncRequest takes a reviewRequest and determines if it should update the caches supplied, it is not thread-safe
@@ -306,8 +332,8 @@ func (ac *AuthorizationCache) syncRequest(request *reviewRequest, userSubjectRec
 		return err
 	}
 
-	usersToRemove := util.NewStringSet()
-	groupsToRemove := util.NewStringSet()
+	usersToRemove := sets.NewString()
+	groupsToRemove := sets.NewString()
 	if lastKnownValue != nil {
 		usersToRemove.Insert(lastKnownValue.users...)
 		usersToRemove.Delete(review.Users()...)
@@ -315,8 +341,8 @@ func (ac *AuthorizationCache) syncRequest(request *reviewRequest, userSubjectRec
 		groupsToRemove.Delete(review.Groups()...)
 	}
 
-	deleteSubjectsToNamespace(userSubjectRecordStore, usersToRemove.List(), namespace)
-	deleteSubjectsToNamespace(groupSubjectRecordStore, groupsToRemove.List(), namespace)
+	deleteNamespaceFromSubjects(userSubjectRecordStore, usersToRemove.List(), namespace)
+	deleteNamespaceFromSubjects(groupSubjectRecordStore, groupsToRemove.List(), namespace)
 	addSubjectsToNamespace(userSubjectRecordStore, review.Users(), namespace)
 	addSubjectsToNamespace(groupSubjectRecordStore, review.Groups(), namespace)
 	cacheReviewRecord(request, lastKnownValue, review, reviewRecordStore)
@@ -325,7 +351,7 @@ func (ac *AuthorizationCache) syncRequest(request *reviewRequest, userSubjectRec
 
 // List returns the set of namespace names the user has access to view
 func (ac *AuthorizationCache) List(userInfo user.Info) (*kapi.NamespaceList, error) {
-	keys := util.StringSet{}
+	keys := sets.String{}
 	user := userInfo.GetName()
 	groups := userInfo.GetGroups()
 
@@ -354,6 +380,10 @@ func (ac *AuthorizationCache) List(userInfo user.Info) (*kapi.NamespaceList, err
 		}
 	}
 	return namespaceList, nil
+}
+
+func (ac *AuthorizationCache) ReadyForAccess() bool {
+	return len(ac.lastState) > 0
 }
 
 // skipReview returns true if the request was satisfied by the lastKnown
@@ -396,9 +426,9 @@ func skipReview(request *reviewRequest, lastKnownValue *reviewRecord) bool {
 	return true
 }
 
-// deleteSubjectsToNamespace removes the namespace from each subject
+// deleteNamespaceFromSubjects removes the namespace from each subject
 // if no other namespaces are active to that subject, it will also delete the subject from the cache entirely
-func deleteSubjectsToNamespace(subjectRecordStore cache.Store, subjects []string, namespace string) {
+func deleteNamespaceFromSubjects(subjectRecordStore cache.Store, subjects []string, namespace string) {
 	for _, subject := range subjects {
 		obj, exists, _ := subjectRecordStore.GetByKey(subject)
 		if exists {
@@ -419,7 +449,7 @@ func addSubjectsToNamespace(subjectRecordStore cache.Store, subjects []string, n
 		if exists {
 			item = obj.(*subjectRecord)
 		} else {
-			item = &subjectRecord{subject: subject, namespaces: util.NewStringSet()}
+			item = &subjectRecord{subject: subject, namespaces: sets.NewString()}
 			subjectRecordStore.Add(item)
 		}
 		item.namespaces.Insert(namespace)

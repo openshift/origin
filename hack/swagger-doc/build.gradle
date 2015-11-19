@@ -1,0 +1,27 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'io.github.robwin:swagger2markup:0.6.0'
+    }
+}
+
+task gendocs << {
+  io.github.robwin.swagger2markup.Swagger2MarkupConverter
+    .from("../../api/swagger-spec/oapi-v1.json")
+    .withExamples("../../api/examples")
+    .withDescriptions("../../api")
+    .build()
+    .intoFolder("../../_output/local/docs/swagger/oapi/v1");
+  println '*** generating docs to _output/local/docs/swagger/oapi/v1'
+  io.github.robwin.swagger2markup.Swagger2MarkupConverter
+    .from("../../api/swagger-spec/api-v1.json")
+    .withExamples("../../api/examples")
+    .withDescriptions("../../api")
+    .build()
+    .intoFolder("../../_output/local/docs/swagger/api/v1");
+  println '*** generating docs to _output/local/docs/swagger/api/v1'
+}

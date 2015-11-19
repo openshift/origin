@@ -1,0 +1,12 @@
+{
+  "kind": "ImageStream",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "openldap-testenv",
+    "creationTimestamp": null
+  },
+  "spec": {},
+  "status": {
+    "dockerImageRepository": ""
+  }
+}

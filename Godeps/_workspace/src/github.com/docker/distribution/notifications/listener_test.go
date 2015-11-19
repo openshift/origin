@@ -9,6 +9,7 @@ import (
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
 	"github.com/docker/distribution/registry/storage"
+	"github.com/docker/distribution/registry/storage/cache"
 	"github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/docker/distribution/testutil"
 	"github.com/docker/libtrust"
@@ -16,7 +17,7 @@ import (
 )
 
 func TestListener(t *testing.T) {
-	registry := storage.NewRegistryWithDriver(inmemory.New())
+	registry := storage.NewRegistryWithDriver(inmemory.New(), cache.NewInMemoryLayerInfoCache())
 	tl := &testListener{
 		ops: make(map[string]int),
 	}
@@ -28,7 +29,7 @@ func TestListener(t *testing.T) {
 	repository = Listen(repository, tl)
 
 	// Now take the registry through a number of operations
-	checkExerciseRepository(t, repository)
+	checkExerciseRepository(t, ctx, repository)
 
 	expectedOps := map[string]int{
 		"manifest:push": 1,
@@ -82,7 +83,7 @@ func (tl *testListener) LayerDeleted(repo distribution.Repository, layer distrib
 
 // checkExerciseRegistry takes the registry through all of its operations,
 // carrying out generic checks.
-func checkExerciseRepository(t *testing.T, repository distribution.Repository) {
+func checkExerciseRepository(t *testing.T, ctx context.Context, repository distribution.Repository) {
 	// TODO(stevvooe): This would be a nice testutil function. Basically, it
 	// takes the registry through a common set of operations. This could be
 	// used to make cross-cutting updates by changing internals that affect
@@ -143,7 +144,7 @@ func checkExerciseRepository(t *testing.T, repository distribution.Repository) {
 
 	manifests := repository.Manifests()
 
-	if err := manifests.Put(sm); err != nil {
+	if err := manifests.Put(ctx, sm); err != nil {
 		t.Fatalf("unexpected error putting the manifest: %v", err)
 	}
 
@@ -157,7 +158,7 @@ func checkExerciseRepository(t *testing.T, repository distribution.Repository) {
 		t.Fatalf("unexpected error digesting manifest payload: %v", err)
 	}
 
-	fetchedByManifest, err := manifests.Get(dgst)
+	fetchedByManifest, err := manifests.Get(ctx, dgst)
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest: %v", err)
 	}
@@ -166,7 +167,7 @@ func checkExerciseRepository(t *testing.T, repository distribution.Repository) {
 		t.Fatalf("retrieved unexpected manifest: %v", err)
 	}
 
-	fetched, err := manifests.GetByTag(tag)
+	fetched, err := manifests.GetByTag(ctx, tag)
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest: %v", err)
 	}

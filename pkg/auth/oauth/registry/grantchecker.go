@@ -3,25 +3,26 @@ package registry
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
-	"github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
+	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
 	"github.com/openshift/origin/pkg/oauth/scope"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 type ClientAuthorizationGrantChecker struct {
-	registry clientauthorization.Registry
+	registry oauthclientauthorization.Registry
 }
 
-func NewClientAuthorizationGrantChecker(registry clientauthorization.Registry) *ClientAuthorizationGrantChecker {
+func NewClientAuthorizationGrantChecker(registry oauthclientauthorization.Registry) *ClientAuthorizationGrantChecker {
 	return &ClientAuthorizationGrantChecker{registry}
 }
 
 func (c *ClientAuthorizationGrantChecker) HasAuthorizedClient(user user.Info, grant *api.Grant) (approved bool, err error) {
 	id := c.registry.ClientAuthorizationName(user.GetName(), grant.Client.GetId())
-	authorization, err := c.registry.GetClientAuthorization(id)
+	authorization, err := c.registry.GetClientAuthorization(kapi.NewContext(), id)
 	if errors.IsNotFound(err) {
 		return false, nil
 	}

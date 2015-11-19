@@ -10,14 +10,14 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	kapi "k8s.io/kubernetes/pkg/api"
+	klatest "k8s.io/kubernetes/pkg/api/latest"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/master/ports"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -29,7 +29,7 @@ import (
 const NodeConfigCommandName = "create-node-config"
 
 type CreateNodeConfigOptions struct {
-	GetSignerCertOptions *GetSignerCertOptions
+	SignerCertOptions *SignerCertOptions
 
 	NodeConfigDir string
 
@@ -42,38 +42,38 @@ type CreateNodeConfigOptions struct {
 	DNSIP               string
 	ListenAddr          flagtypes.Addr
 
-	ClientCertFile   string
-	ClientKeyFile    string
-	ServerCertFile   string
-	ServerKeyFile    string
-	NodeClientCAFile string
-	APIServerCAFile  string
-	APIServerURL     string
+	ClientCertFile    string
+	ClientKeyFile     string
+	ServerCertFile    string
+	ServerKeyFile     string
+	NodeClientCAFile  string
+	APIServerCAFile   string
+	APIServerURL      string
+	Output            io.Writer
+	NetworkPluginName string
 }
 
 func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := NewDefaultCreateNodeConfigOptions()
+	options.Output = out
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create a portable client folder containing a client certificate, a client key, a server certificate authority, and a .kubeconfig file.",
-		Run: func(c *cobra.Command, args []string) {
+		Short: "Create a configuration bundle for a node",
+		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.Out(), err.Error())
-				c.Help()
-				return
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			if err := options.CreateNodeFolder(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
-	BindGetSignerCertOptions(options.GetSignerCertOptions, flags, "")
+	BindSignerCertOptions(options.SignerCertOptions, flags, "")
 
 	flags.StringVar(&options.NodeConfigDir, "node-dir", "", "The client data directory.")
 
@@ -94,21 +94,34 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 	flags.StringVar(&options.NodeClientCAFile, "node-client-certificate-authority", options.NodeClientCAFile, "The file containing signing authorities to use to verify requests to the node. If empty, all requests will be allowed.")
 	flags.StringVar(&options.APIServerURL, "master", options.APIServerURL, "The API server's URL.")
 	flags.StringVar(&options.APIServerCAFile, "certificate-authority", options.APIServerCAFile, "Path to the API server's CA file.")
+	flags.StringVar(&options.NetworkPluginName, "network-plugin", options.NetworkPluginName, "Name of the network plugin to hook to for pod networking.")
+
+	// autocompletion hints
+	cmd.MarkFlagFilename("node-dir")
+	cmd.MarkFlagFilename("volume-dir")
+	cmd.MarkFlagFilename("client-certificate")
+	cmd.MarkFlagFilename("client-key")
+	cmd.MarkFlagFilename("server-certificate")
+	cmd.MarkFlagFilename("server-key")
+	cmd.MarkFlagFilename("node-client-certificate-authority")
+	cmd.MarkFlagFilename("certificate-authority")
 
 	return cmd
 }
 
 func NewDefaultCreateNodeConfigOptions() *CreateNodeConfigOptions {
-	options := &CreateNodeConfigOptions{GetSignerCertOptions: &GetSignerCertOptions{}}
+	options := &CreateNodeConfigOptions{SignerCertOptions: NewDefaultSignerCertOptions()}
 	options.VolumeDir = "openshift.local.volumes"
-	options.DNSDomain = "local"
+	// TODO: replace me with a proper round trip of config options through decode
+	options.DNSDomain = "cluster.local"
 	options.APIServerURL = "https://localhost:8443"
-	options.APIServerCAFile = "openshift.local.certificates/ca/cert.crt"
-	options.NodeClientCAFile = "openshift.local.certificates/ca/cert.crt"
+	options.APIServerCAFile = "openshift.local.config/master/ca.crt"
+	options.NodeClientCAFile = "openshift.local.config/master/ca.crt"
 
 	options.ImageTemplate = variable.NewDefaultImageTemplate()
 
 	options.ListenAddr = flagtypes.Addr{Value: "0.0.0.0:10250", DefaultScheme: "https", DefaultPort: 10250, AllowPrefix: true}.Default()
+	options.NetworkPluginName = ""
 
 	return options
 }
@@ -134,16 +147,16 @@ func (o CreateNodeConfigOptions) Validate(args []string) error {
 		return errors.New("no arguments are supported")
 	}
 	if len(o.NodeConfigDir) == 0 {
-		return errors.New("node-dir must be provided")
+		return errors.New("--node-dir must be provided")
 	}
 	if len(o.NodeName) == 0 {
-		return errors.New("node must be provided")
+		return errors.New("--node must be provided")
 	}
 	if len(o.APIServerURL) == 0 {
-		return errors.New("master must be provided")
+		return errors.New("--master must be provided")
 	}
-	if len(o.APIServerCAFile) == 0 {
-		return errors.New("certificate-authority must be provided")
+	if _, err := os.Stat(o.APIServerCAFile); len(o.APIServerCAFile) == 0 || err != nil {
+		return fmt.Errorf("--certificate-authority, %q must be a valid certificate file", cmdutil.GetDisplayFilename(o.APIServerCAFile))
 	}
 	if len(o.Hostnames) == 0 {
 		return errors.New("at least one hostname must be provided")
@@ -151,29 +164,29 @@ func (o CreateNodeConfigOptions) Validate(args []string) error {
 
 	if len(o.ClientCertFile) != 0 {
 		if len(o.ClientKeyFile) == 0 {
-			return errors.New("client-key must be provided if client-certificate is provided")
+			return errors.New("--client-key must be provided if --client-certificate is provided")
 		}
 	} else if len(o.ClientKeyFile) != 0 {
-		return errors.New("client-certificate must be provided if client-key is provided")
+		return errors.New("--client-certificate must be provided if --client-key is provided")
 	}
 
 	if len(o.ServerCertFile) != 0 {
 		if len(o.ServerKeyFile) == 0 {
-			return errors.New("server-key must be provided if server-certificate is provided")
+			return errors.New("--server-key must be provided if --server-certificate is provided")
 		}
 	} else if len(o.ServerKeyFile) != 0 {
-		return errors.New("server-certificate must be provided if server-key is provided")
+		return errors.New("--server-certificate must be provided if --server-key is provided")
 	}
 
 	if o.IsCreateClientCertificate() || o.IsCreateServerCertificate() {
-		if len(o.GetSignerCertOptions.KeyFile) == 0 {
-			return errors.New("signer-key must be provided to create certificates")
+		if len(o.SignerCertOptions.KeyFile) == 0 {
+			return errors.New("--signer-key must be provided to create certificates")
 		}
-		if len(o.GetSignerCertOptions.CertFile) == 0 {
-			return errors.New("signer-cert must be provided to create certificates")
+		if len(o.SignerCertOptions.CertFile) == 0 {
+			return errors.New("--signer-cert must be provided to create certificates")
 		}
-		if len(o.GetSignerCertOptions.SerialFile) == 0 {
-			return errors.New("signer-serial must be provided to create certificates")
+		if len(o.SignerCertOptions.SerialFile) == 0 {
+			return errors.New("--signer-serial must be provided to create certificates")
 		}
 	}
 
@@ -192,17 +205,22 @@ func CopyFile(src, dest string, permissions os.FileMode) error {
 }
 
 func (o CreateNodeConfigOptions) CreateNodeFolder() error {
-	clientCertFile := path.Join(o.NodeConfigDir, "client.crt")
-	clientKeyFile := path.Join(o.NodeConfigDir, "client.key")
-	apiServerCAFile := path.Join(o.NodeConfigDir, "ca.crt")
+	servingCertInfo := DefaultNodeServingCertInfo(o.NodeConfigDir)
+	clientCertInfo := DefaultNodeClientCertInfo(o.NodeConfigDir)
 
-	serverCertFile := path.Join(o.NodeConfigDir, "server.crt")
-	serverKeyFile := path.Join(o.NodeConfigDir, "server.key")
-	nodeClientCAFile := path.Join(o.NodeConfigDir, "node-client-ca.crt")
+	clientCertFile := clientCertInfo.CertFile
+	clientKeyFile := clientCertInfo.KeyFile
+	apiServerCAFile := DefaultCAFilename(o.NodeConfigDir, CAFilePrefix)
 
-	kubeConfigFile := path.Join(o.NodeConfigDir, ".kubeconfig")
+	serverCertFile := servingCertInfo.CertFile
+	serverKeyFile := servingCertInfo.KeyFile
+	nodeClientCAFile := DefaultCAFilename(o.NodeConfigDir, "node-client-ca")
+
+	kubeConfigFile := DefaultNodeKubeConfigFile(o.NodeConfigDir)
 	nodeConfigFile := path.Join(o.NodeConfigDir, "node-config.yaml")
 	nodeJSONFile := path.Join(o.NodeConfigDir, "node-registration.json")
+
+	fmt.Fprintf(o.Output, "Generating node credentials ...\n")
 
 	if err := o.MakeClientCert(clientCertFile, clientKeyFile); err != nil {
 		return err
@@ -230,19 +248,22 @@ func (o CreateNodeConfigOptions) CreateNodeFolder() error {
 		return err
 	}
 
+	fmt.Fprintf(o.Output, "Created node config for %s in %s\n", o.NodeName, o.NodeConfigDir)
+
 	return nil
 }
 
 func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile string) error {
 	if o.IsCreateClientCertificate() {
 		createNodeClientCert := CreateClientCertOptions{
-			GetSignerCertOptions: o.GetSignerCertOptions,
+			SignerCertOptions: o.SignerCertOptions,
 
 			CertFile: clientCertFile,
 			KeyFile:  clientKeyFile,
 
-			User:   "system:node-" + o.NodeName,
+			User:   "system:node:" + o.NodeName,
 			Groups: util.StringList([]string{bootstrappolicy.NodesGroup}),
+			Output: o.Output,
 		}
 
 		if err := createNodeClientCert.Validate(nil); err != nil {
@@ -267,12 +288,13 @@ func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile st
 func (o CreateNodeConfigOptions) MakeServerCert(serverCertFile, serverKeyFile string) error {
 	if o.IsCreateServerCertificate() {
 		nodeServerCertOptions := CreateServerCertOptions{
-			GetSignerCertOptions: o.GetSignerCertOptions,
+			SignerCertOptions: o.SignerCertOptions,
 
 			CertFile: serverCertFile,
 			KeyFile:  serverKeyFile,
 
 			Hostnames: o.Hostnames,
+			Output:    o.Output,
 		}
 
 		if err := nodeServerCertOptions.Validate(nil); err != nil {
@@ -314,13 +336,14 @@ func (o CreateNodeConfigOptions) MakeKubeConfig(clientCertFile, clientKeyFile, c
 	createKubeConfigOptions := CreateKubeConfigOptions{
 		APIServerURL:    o.APIServerURL,
 		APIServerCAFile: clientCopyOfCAFile,
-		ServerNick:      "master",
 
 		CertFile: clientCertFile,
 		KeyFile:  clientKeyFile,
-		UserNick: "node",
+
+		ContextNamespace: kapi.NamespaceDefault,
 
 		KubeConfigFile: kubeConfigFile,
+		Output:         o.Output,
 	}
 	if err := createKubeConfigOptions.Validate(nil); err != nil {
 		return err
@@ -352,6 +375,10 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		DNSIP:     o.DNSIP,
 
 		MasterKubeConfig: kubeConfigFile,
+
+		NetworkConfig: configapi.NodeNetworkConfig{
+			NetworkPluginName: o.NetworkPluginName,
+		},
 	}
 
 	if o.UseTLS() {
@@ -380,7 +407,17 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		return err
 	}
 
-	content, err := latestconfigapi.WriteYAML(config)
+	// Roundtrip the config to v1 and back to ensure proper defaults are set.
+	ext, err := configapi.Scheme.ConvertToVersion(config, "v1")
+	if err != nil {
+		return err
+	}
+	internal, err := configapi.Scheme.ConvertToVersion(ext, "")
+	if err != nil {
+		return err
+	}
+
+	content, err := latestconfigapi.WriteYAML(internal)
 	if err != nil {
 		return err
 	}
@@ -395,7 +432,7 @@ func (o CreateNodeConfigOptions) MakeNodeJSON(nodeJSONFile string) error {
 	node := &kapi.Node{}
 	node.Name = o.NodeName
 
-	json, err := klatest.Codec.Encode(node)
+	json, err := klatest.CodecForLegacyGroup().Encode(node)
 	if err != nil {
 		return err
 	}

@@ -1,0 +1,27 @@
+// Misc
+// --------------------------------------------------
+.btn-file {
+    position: relative;
+    overflow: hidden;
+    input[type=file] {
+      position: absolute;
+      top: 0;
+      right: 0;
+      min-width: 100%;
+      min-height: 100%;
+      font-size: 100px;
+      text-align: right;
+      filter: alpha(opacity=0);
+      opacity: 0;
+      cursor: inherit;
+      display: block;
+    }
+  }
+
+  .btn-flat-default {
+    border: 1px solid transparent;
+    &:hover, &:focus {
+      background-color: @btn-flat-bg;
+      border-color: @btn-flat-border-color;
+    }
+  }

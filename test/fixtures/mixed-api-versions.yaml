@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: List
+metadata: {}
+items:
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    annotations:
+      description: v1 Secret - used to test v1 negotiation of k8s objects
+    name: v1-secret
+
+- apiVersion: v1beta3
+  kind: Secret
+  metadata:
+    annotations:
+      description: v1beta3 Secret - used to test v1beta3 negotiation of k8s objects
+    name: v1beta3-secret
+
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      description: v1 Route - used to test v1 negotiation of origin objects
+    name: v1-route
+  spec:
+    to:
+      kind: Service
+      name: test
+
+- apiVersion: v1beta3
+  kind: Route
+  metadata:
+    annotations:
+      description: v1beta3 Route - used to test v1beta3 negotiation of origin objects
+    name: v1beta3-route
+  spec:
+    to:
+      kind: Service
+      name: test
+

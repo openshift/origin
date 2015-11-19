@@ -1,34 +1,29 @@
 package kubernetes
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
+	"strings"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/cadvisor"
-	kconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/config"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
-	pconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	kexec "github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/record"
+	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
+	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	pconfig "k8s.io/kubernetes/pkg/proxy/config"
+	proxy "k8s.io/kubernetes/pkg/proxy/userspace"
+	"k8s.io/kubernetes/pkg/util"
+	utildbus "k8s.io/kubernetes/pkg/util/dbus"
+	kexec "k8s.io/kubernetes/pkg/util/exec"
+	"k8s.io/kubernetes/pkg/util/iptables"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
-	"github.com/openshift/origin/pkg/kubelet/app"
-	"github.com/openshift/origin/pkg/service"
 )
 
 type commandExecutor interface {
@@ -47,20 +42,53 @@ func (ce defaultCommandExecutor) Run(command string, args ...string) error {
 	return c.Run()
 }
 
+const minimumDockerAPIVersionWithPullByID = "1.18"
+
 // EnsureDocker attempts to connect to the Docker daemon defined by the helper,
 // and if it is unable to it will print a warning.
 func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 	dockerClient, dockerAddr := docker.GetClientOrExit()
 	if err := dockerClient.Ping(); err != nil {
-		if !c.AllowDisabledDocker {
-			glog.Fatalf("ERROR: Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", dockerAddr, err)
-		}
-		glog.Errorf("WARNING: Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", dockerAddr, err)
-		c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env{"apiversion=1.15"}}
-	} else {
-		glog.Infof("Connecting to Docker at %s", dockerAddr)
-		c.DockerClient = dockerClient
+		c.HandleDockerError(fmt.Sprintf("Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", dockerAddr, err))
+		return
 	}
+
+	glog.Infof("Connecting to Docker at %s", dockerAddr)
+
+	env, err := dockerClient.Version()
+	if err != nil {
+		c.HandleDockerError(fmt.Sprintf("Unable to check for Docker server version.\n%v", err))
+		return
+	}
+
+	serverVersionString := env.Get("ApiVersion")
+	serverVersion, err := dockerclient.NewAPIVersion(serverVersionString)
+	if err != nil {
+		c.HandleDockerError(fmt.Sprintf("Unable to determine Docker server version from %q.\n%v", serverVersionString, err))
+		return
+	}
+
+	minimumPullByIDVersion, err := dockerclient.NewAPIVersion(minimumDockerAPIVersionWithPullByID)
+	if err != nil {
+		c.HandleDockerError(fmt.Sprintf("Unable to check for Docker server version.\n%v", err))
+		return
+	}
+
+	if serverVersion.LessThan(minimumPullByIDVersion) {
+		c.HandleDockerError(fmt.Sprintf("Docker 1.6 or later (server API version 1.18 or later) required."))
+		return
+	}
+
+	c.DockerClient = dockerClient
+}
+
+// HandleDockerError handles an an error from the docker daemon
+func (c *NodeConfig) HandleDockerError(message string) {
+	if !c.AllowDisabledDocker {
+		glog.Fatalf("ERROR: %s", message)
+	}
+	glog.Errorf("WARNING: %s", message)
+	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env([]string{"ApiVersion=1.18"})}
 }
 
 // EnsureVolumeDir attempts to convert the provided volume directory argument to
@@ -84,12 +112,13 @@ func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (strin
 		if err := os.MkdirAll(rootDirectory, 0750); err != nil {
 			return "", fmt.Errorf("Couldn't create kubelet volume root directory '%s': %s", rootDirectory, err)
 		}
-		if chconPath, err := ce.LookPath("chcon"); err != nil {
-			glog.V(2).Infof("Couldn't locate 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
-		} else {
-			if err := ce.Run(chconPath, "-t", "svirt_sandbox_file_t", rootDirectory); err != nil {
-				glog.Warningf("Error running 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
-			}
+	}
+	// always try to chcon, in case the volume dir existed prior to the node starting
+	if chconPath, err := ce.LookPath("chcon"); err != nil {
+		glog.V(2).Infof("Couldn't locate 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
+	} else {
+		if err := ce.Run(chconPath, "-t", "svirt_sandbox_file_t", rootDirectory); err != nil {
+			glog.Warningf("Error running 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
 		}
 	}
 	return rootDirectory, nil
@@ -97,116 +126,66 @@ func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (strin
 
 // RunKubelet starts the Kubelet.
 func (c *NodeConfig) RunKubelet() {
-	// TODO: clean this up and make it more formal (service named 'dns'?). Use multiple ports.
-	clusterDNS := c.ClusterDNS
-	if clusterDNS == nil {
-		if service, err := c.Client.Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil && len(service.Endpoints) > 0 {
-			firstIP := service.Endpoints[0].IP
-			if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", firstIP, 53), 50*time.Millisecond, 0, 2); err == nil {
-				clusterDNS = net.ParseIP(firstIP)
+	if c.KubeletConfig.ClusterDNS == nil {
+		if service, err := c.Client.Services(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
+			if includesServicePort(service.Spec.Ports, 53, "dns") {
+				// Use master service if service includes "dns" port 53.
+				c.KubeletConfig.ClusterDNS = net.ParseIP(service.Spec.ClusterIP)
+			}
+		}
+	}
+	if c.KubeletConfig.ClusterDNS == nil {
+		if endpoint, err := c.Client.Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
+			if endpointIP, ok := firstEndpointIPWithNamedPort(endpoint, 53, "dns"); ok {
+				// Use first endpoint if endpoint includes "dns" port 53.
+				c.KubeletConfig.ClusterDNS = net.ParseIP(endpointIP)
+			} else if endpointIP, ok := firstEndpointIP(endpoint, 53); ok {
+				// Test and use first endpoint if endpoint includes any port 53.
+				if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", endpointIP, 53), 50*time.Millisecond, 0, 2); err == nil {
+					c.KubeletConfig.ClusterDNS = net.ParseIP(endpointIP)
+				}
 			}
 		}
 	}
 
-	cadvisorInterface, err := cadvisor.New(4194)
-	if err == nil {
-		// TODO: use VersionInfo after the next rebase
-		_, err = cadvisorInterface.MachineInfo()
-	}
-	if err != nil {
-		glog.Errorf("WARNING: cAdvisor cannot be started: %v", err)
-		cadvisorInterface = &cadvisor.Fake{}
-	}
+	c.KubeletConfig.DockerClient = c.DockerClient
+	// updated by NodeConfig.EnsureVolumeDir
+	c.KubeletConfig.RootDirectory = c.VolumeDir
 
-	// initialize Kubelet
-	// Allow privileged containers
-	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
-	kubelet.SetupCapabilities(true, []string{})
-	recorder := record.FromSource(kapi.EventSource{Component: "kubelet", Host: c.NodeHost})
-	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates, recorder)
-	kconfig.NewSourceApiserver(c.Client, c.NodeHost, cfg.Channel("api"))
-	gcPolicy := kubelet.ContainerGCPolicy{
-		MinAge:             10 * time.Second,
-		MaxPerPodContainer: 5,
-		MaxContainers:      100,
-	}
-	imageGCPolicy := kubelet.ImageGCPolicy{
-		HighThresholdPercent: 90,
-		LowThresholdPercent:  80,
-	}
+	// hook for overriding the cadvisor interface for integration tests
+	c.KubeletConfig.CAdvisorInterface = defaultCadvisorInterface
 
-	k, err := kubelet.NewMainKubelet(
-		c.NodeHost,
-		c.DockerClient,
-		c.Client,
-		c.VolumeDir,
-		c.ImageFor("pod"),
-		3*time.Second,
-		0.0,
-		10,
-		gcPolicy,
-		cfg.SeenAllSources,
-		c.ClusterDomain,
-		clusterDNS,
-		kapi.NamespaceDefault,
-		app.ProbeVolumePlugins(),
-		app.ProbeNetworkPlugins(),
-		c.NetworkPluginName,
-		5*time.Minute,
-		recorder,
-		cadvisorInterface,
-		imageGCPolicy,
-		nil)
-	if err != nil {
-		glog.Fatalf("Couldn't run kubelet: %s", err)
-	}
-	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
+	go func() {
+		glog.Fatal(c.KubeletServer.Run(c.KubeletConfig))
+	}()
+}
 
-	handler := kubelet.NewServer(k, true)
+// defaultCadvisorInterface holds the overridden default interface
+// exists only to allow stubbing integration tests, should always be nil in production
+var defaultCadvisorInterface cadvisor.Interface = nil
 
-	server := &http.Server{
-		Addr:           c.BindAddress,
-		Handler:        &handler,
-		ReadTimeout:    5 * time.Minute,
-		WriteTimeout:   5 * time.Minute,
-		MaxHeaderBytes: 1 << 20,
-	}
+// SetFakeCadvisorInterfaceForIntegrationTest sets a fake cadvisor implementation to allow the node to run in integration tests
+func SetFakeCadvisorInterfaceForIntegrationTest() {
+	defaultCadvisorInterface = &cadvisor.Fake{}
+}
 
-	go util.Forever(func() {
-		glog.Infof("Started Kubelet for node %s, server at %s, tls=%v", c.NodeHost, c.BindAddress, c.TLS)
-		if clusterDNS != nil {
-			glog.Infof("  Kubelet is setting %s as a DNS nameserver for domain %q", clusterDNS, c.ClusterDomain)
-		}
-		k.BirthCry()
-
-		if c.TLS {
-			server.TLSConfig = &tls.Config{
-				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-				MinVersion: tls.VersionTLS10,
-				// RequireAndVerifyClientCert lets us limit requests to ones with a valid client certificate
-				ClientAuth: tls.RequireAndVerifyClientCert,
-				ClientCAs:  c.ClientCAs,
-			}
-			glog.Fatal(server.ListenAndServeTLS(c.KubeletCertFile, c.KubeletKeyFile))
-		} else {
-			glog.Fatal(server.ListenAndServe())
-		}
-	}, 0)
+type FilteringEndpointsConfigHandler interface {
+	pconfig.EndpointsConfigHandler
+	SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler)
 }
 
 // RunProxy starts the proxy
-func (c *NodeConfig) RunProxy() {
+func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler) {
 	// initialize kube proxy
 	serviceConfig := pconfig.NewServiceConfig()
 	endpointsConfig := pconfig.NewEndpointsConfig()
-	pconfig.NewSourceAPI(
-		c.Client.Services(kapi.NamespaceAll),
-		c.Client.Endpoints(kapi.NamespaceAll),
-		30*time.Second,
-		serviceConfig.Channel("api"),
-		endpointsConfig.Channel("api"))
 	loadBalancer := proxy.NewLoadBalancerRR()
-	endpointsConfig.RegisterHandler(loadBalancer)
+	if endpointsFilterer == nil {
+		endpointsConfig.RegisterHandler(loadBalancer)
+	} else {
+		endpointsFilterer.SetBaseEndpointsHandler(loadBalancer)
+		endpointsConfig.RegisterHandler(endpointsFilterer)
+	}
 
 	host, _, err := net.SplitHostPort(c.BindAddress)
 	if err != nil {
@@ -222,13 +201,108 @@ func (c *NodeConfig) RunProxy() {
 		protocol = iptables.ProtocolIpv6
 	}
 
-	var proxier pconfig.ServiceConfigHandler
-	proxier = proxy.NewProxier(loadBalancer, ip, iptables.New(kexec.New(), protocol))
-	if proxier == nil || reflect.ValueOf(proxier).IsNil() { // explicitly declared interfaces aren't plain nil, you must reflect inside to see if it's really nil or not
-		glog.Errorf("WARNING: Could not modify iptables.  iptables must be mutable by this process to use services.  Do you have root permissions?")
-		proxier = &service.FailingServiceConfigProxy{}
+	syncPeriod, err := time.ParseDuration(c.IPTablesSyncPeriod)
+	if err != nil {
+		glog.Fatalf("Cannot parse the provided ip-tables sync period (%s) : %v", c.IPTablesSyncPeriod, err)
 	}
-	serviceConfig.RegisterHandler(proxier)
 
-	glog.Infof("Started Kubernetes Proxy on %s", host)
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink(c.Client.Events(""))
+	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "kube-proxy", Host: c.KubeletConfig.NodeName})
+	nodeRef := &kapi.ObjectReference{
+		Kind: "Node",
+		Name: c.KubeletConfig.NodeName,
+	}
+
+	go util.Forever(func() {
+		dbus := utildbus.New()
+		iptables := iptables.New(kexec.New(), dbus, protocol)
+		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables, util.PortRange{}, syncPeriod)
+		if err != nil {
+			switch {
+			// conflicting use of iptables, retry
+			case proxy.IsProxyLocked(err):
+				glog.Errorf("Unable to start proxy, will retry: %v", err)
+				return
+			// on a system without iptables
+			case strings.Contains(err.Error(), "executable file not found in path"):
+				glog.V(4).Infof("kube-proxy initialization error: %v", err)
+				glog.Warningf("WARNING: Could not find the iptables command. The service proxy requires iptables and will be disabled.")
+			case err == proxy.ErrProxyOnLocalhost:
+				glog.Warningf("WARNING: The service proxy cannot bind to localhost and will be disabled.")
+			case strings.Contains(err.Error(), "you must be root"):
+				glog.Warningf("WARNING: Could not modify iptables. You must run this process as root to use the service proxy.")
+			default:
+				glog.Warningf("WARNING: Could not modify iptables. You must run this process as root to use the service proxy: %v", err)
+			}
+			select {}
+		}
+
+		pconfig.NewSourceAPI(
+			c.Client,
+			10*time.Minute,
+			serviceConfig.Channel("api"),
+			endpointsConfig.Channel("api"))
+
+		serviceConfig.RegisterHandler(proxier)
+		recorder.Eventf(nodeRef, "Starting", "Starting kube-proxy.")
+		glog.Infof("Started Kubernetes Proxy on %s", host)
+		select {}
+	}, 5*time.Second)
+}
+
+// TODO: more generic location
+func includesServicePort(ports []kapi.ServicePort, port int, portName string) bool {
+	for _, p := range ports {
+		if p.Port == port && p.Name == portName {
+			return true
+		}
+	}
+	return false
+}
+
+// TODO: more generic location
+func includesEndpointPort(ports []kapi.EndpointPort, port int) bool {
+	for _, p := range ports {
+		if p.Port == port {
+			return true
+		}
+	}
+	return false
+}
+
+// TODO: more generic location
+func firstEndpointIP(endpoints *kapi.Endpoints, port int) (string, bool) {
+	for _, s := range endpoints.Subsets {
+		if !includesEndpointPort(s.Ports, port) {
+			continue
+		}
+		for _, a := range s.Addresses {
+			return a.IP, true
+		}
+	}
+	return "", false
+}
+
+// TODO: more generic location
+func firstEndpointIPWithNamedPort(endpoints *kapi.Endpoints, port int, portName string) (string, bool) {
+	for _, s := range endpoints.Subsets {
+		if !includesNamedEndpointPort(s.Ports, port, portName) {
+			continue
+		}
+		for _, a := range s.Addresses {
+			return a.IP, true
+		}
+	}
+	return "", false
+}
+
+// TODO: more generic location
+func includesNamedEndpointPort(ports []kapi.EndpointPort, port int, portName string) bool {
+	for _, p := range ports {
+		if p.Port == port && p.Name == portName {
+			return true
+		}
+	}
+	return false
 }

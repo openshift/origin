@@ -105,9 +105,12 @@ func TestDownload(t *testing.T) {
 	defer os.Remove(temp.Name())
 	u, _ := url.Parse("http://www.test.url/a/file")
 	temp.Close()
-	err = dl.Download(u, temp.Name())
+	info, err := dl.Download(u, temp.Name())
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if len(info.Location) == 0 {
+		t.Errorf("Expected info.Location to be set, got %v", info)
 	}
 	content, _ := ioutil.ReadFile(temp.Name())
 	if string(content) != fr.content {
@@ -122,7 +125,7 @@ func TestNoDownload(t *testing.T) {
 		},
 	}
 	u, _ := url.Parse("image:///tmp/testfile")
-	err := dl.Download(u, "")
+	_, err := dl.Download(u, "")
 	if err == nil {
 		t.Error("Expected error with information about scripts inside the image!")
 	}
@@ -136,7 +139,7 @@ func TestNoDownloader(t *testing.T) {
 		schemeReaders: map[string]schemeReader{},
 	}
 	u, _ := url.Parse("http://www.test.url/a/file")
-	err := dl.Download(u, "")
+	_, err := dl.Download(u, "")
 	if err == nil {
 		t.Errorf("Expected error, got nil!")
 	}

@@ -7,10 +7,9 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	osclient "github.com/openshift/origin/pkg/client"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // Plugin for Webhook verification is dependent on the sending side, it can be
@@ -28,7 +27,6 @@ type Plugin interface {
 type controller struct {
 	buildConfigInstantiator buildclient.BuildConfigInstantiator
 	buildConfigGetter       buildclient.BuildConfigGetter
-	imageRepoGetter         osclient.ImageStreamNamespaceGetter
 	plugins                 map[string]Plugin
 }
 
@@ -42,12 +40,11 @@ type urlVars struct {
 }
 
 // NewController creates new webhook controller and feed it with provided plugins.
-func NewController(buildConfigGetter buildclient.BuildConfigGetter, buildConfigInstantiator buildclient.BuildConfigInstantiator,
-	imageRepoGetter osclient.ImageStreamNamespaceGetter, plugins map[string]Plugin) http.Handler {
+func NewController(bcg buildclient.BuildConfigGetter,
+	bci buildclient.BuildConfigInstantiator, plugins map[string]Plugin) http.Handler {
 	return &controller{
-		buildConfigGetter:       buildConfigGetter,
-		buildConfigInstantiator: buildConfigInstantiator,
-		imageRepoGetter:         imageRepoGetter,
+		buildConfigGetter:       bcg,
+		buildConfigInstantiator: bci,
 		plugins:                 plugins,
 	}
 }
@@ -56,27 +53,27 @@ func NewController(buildConfigGetter buildclient.BuildConfigGetter, buildConfigI
 func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	uv, err := parseURL(req)
 	if err != nil {
-		glog.V(4).Infof("Failed parsing request URL: %v", err)
+		glog.V(2).Infof("Failed to parse request URL: %v", err)
 		notFound(w, err.Error())
 		return
 	}
 
 	buildCfg, err := c.buildConfigGetter.Get(uv.namespace, uv.buildConfigName)
 	if err != nil {
-		glog.V(4).Infof("Failed getting BuildConfig: %v", err)
+		glog.V(2).Infof("Failed to get BuildConfig %s/%s: %v", uv.namespace, uv.buildConfigName, err)
 		badRequest(w, err.Error())
 		return
 	}
 
 	plugin, ok := c.plugins[uv.plugin]
 	if !ok {
-		glog.V(4).Infof("Plugin %s not found", uv.plugin)
+		glog.V(2).Infof("Plugin %s not found", uv.plugin)
 		notFound(w, "Plugin ", uv.plugin, " not found")
 		return
 	}
 	revision, proceed, err := plugin.Extract(buildCfg, uv.secret, uv.path, req)
 	if err != nil {
-		glog.V(4).Infof("Failed extracting information from webhook: %v", err)
+		glog.V(2).Infof("Failed to extract information from webhook: %v", err)
 		badRequest(w, err.Error())
 		return
 	}
@@ -88,7 +85,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		Revision:   revision,
 	}
 	if _, err := c.buildConfigInstantiator.Instantiate(uv.namespace, request); err != nil {
-		glog.V(4).Infof("Failed generating new build: %v", err)
+		glog.V(2).Infof("Failed to generate new Build from BuildConfig %s/%s: %v", buildCfg.Namespace, buildCfg.Name, err)
 		badRequest(w, err.Error())
 	}
 }
@@ -101,7 +98,7 @@ func parseURL(req *http.Request) (uv urlVars, err error) {
 
 	parts := splitPath(url)
 	if len(parts) < 3 {
-		err = fmt.Errorf("Unexpected URL %s", url)
+		err = fmt.Errorf("unexpected URL %s", url)
 		return
 	}
 	uv = urlVars{

@@ -1,13 +1,8 @@
 package builder
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,26 +10,24 @@ import (
 
 	dockercmd "github.com/docker/docker/builder/command"
 	"github.com/docker/docker/builder/parser"
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	image "github.com/openshift/origin/pkg/image/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/scm/git"
+	"github.com/openshift/source-to-image/pkg/tar"
+	"github.com/openshift/source-to-image/pkg/util"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
-	"github.com/openshift/source-to-image/pkg/git"
-	"github.com/openshift/source-to-image/pkg/tar"
+	imageapi "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
-
-// urlCheckTimeout is the timeout used to check the source URL
-// If fetching the URL exceeds the timeout, then the build will
-// not proceed further and stop
-const urlCheckTimeout = 16 * time.Second
 
 // DockerBuilder builds Docker images given a git repository URL
 type DockerBuilder struct {
 	dockerClient DockerClient
-	authPresent  bool
-	auth         docker.AuthConfiguration
 	git          git.Git
 	tar          tar.Tar
 	build        *api.Build
@@ -42,11 +35,9 @@ type DockerBuilder struct {
 }
 
 // NewDockerBuilder creates a new instance of DockerBuilder
-func NewDockerBuilder(dockerClient DockerClient, authCfg docker.AuthConfiguration, authPresent bool, build *api.Build) *DockerBuilder {
+func NewDockerBuilder(dockerClient DockerClient, build *api.Build) *DockerBuilder {
 	return &DockerBuilder{
 		dockerClient: dockerClient,
-		authPresent:  authPresent,
-		auth:         authCfg,
 		build:        build,
 		git:          git.New(),
 		tar:          tar.New(),
@@ -56,280 +47,255 @@ func NewDockerBuilder(dockerClient DockerClient, authCfg docker.AuthConfiguratio
 
 // Build executes a Docker build
 func (d *DockerBuilder) Build() error {
+	var push bool
+
 	buildDir, err := ioutil.TempDir("", "docker-build")
 	if err != nil {
 		return err
 	}
-	if err = d.fetchSource(buildDir); err != nil {
+	if err := fetchSource(buildDir, d.build, d.urlTimeout, os.Stdin, d.git); err != nil {
 		return err
 	}
-	if err = d.addBuildParameters(buildDir); err != nil {
+	if err := d.addBuildParameters(buildDir); err != nil {
 		return err
 	}
-	if err = d.dockerBuild(buildDir); err != nil {
+	glog.V(4).Infof("Starting Docker build from build config %s ...", d.build.Name)
+	// if there is no output target, set one up so the docker build logic
+	// (which requires a tag) will still work, but we won't push it at the end.
+	if d.build.Spec.Output.To == nil || len(d.build.Spec.Output.To.Name) == 0 {
+		d.build.Status.OutputDockerImageReference = d.build.Name
+	} else {
+		push = true
+	}
+
+	if err := d.dockerBuild(buildDir); err != nil {
 		return err
 	}
-	tag := d.build.Parameters.Output.DockerImageReference
-	defer removeImage(d.dockerClient, tag)
-	if len(d.build.Parameters.Output.DockerImageReference) != 0 {
-		ref, err := image.ParseDockerImageReference(d.build.Parameters.Output.DockerImageReference)
-		if err != nil {
-			glog.Fatalf("Build output does not have a valid Docker image reference: %v", err)
-		}
+
+	defer removeImage(d.dockerClient, d.build.Status.OutputDockerImageReference)
+
+	if push {
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
-			ref.Registry,
+			d.build.Status.OutputDockerImageReference,
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
-			glog.Infof("Using provided Docker push secrets (%s)", pushAuthConfig.Email)
-			d.auth = pushAuthConfig
+			glog.V(4).Infof("Authenticating Docker push with user %q", pushAuthConfig.Username)
 		}
-		return pushImage(d.dockerClient, tag, d.auth)
+		glog.Infof("Pushing image %s ...", d.build.Status.OutputDockerImageReference)
+		if err := pushImage(d.dockerClient, d.build.Status.OutputDockerImageReference, pushAuthConfig); err != nil {
+			return fmt.Errorf("Failed to push image: %v", err)
+		}
+		glog.Infof("Push successful")
 	}
 	return nil
-}
-
-// checkSourceURI performs a check on the URI associated with the build
-// to make sure that it is live before proceeding with the build.
-func (d *DockerBuilder) checkSourceURI() error {
-	rawurl := d.build.Parameters.Source.Git.URI
-	if !d.git.ValidCloneSpec(rawurl) {
-		return fmt.Errorf("Invalid git source url: %s", rawurl)
-	}
-	if strings.HasPrefix(rawurl, "git://") || strings.HasPrefix(rawurl, "git@") {
-		return nil
-	}
-	if !strings.HasPrefix(rawurl, "http://") && !strings.HasPrefix(rawurl, "https://") {
-		rawurl = fmt.Sprintf("https://%s", rawurl)
-	}
-	srcURL, err := url.Parse(rawurl)
-	if err != nil {
-		return err
-	}
-	host := srcURL.Host
-	if strings.Index(host, ":") == -1 {
-		switch srcURL.Scheme {
-		case "http":
-			host += ":80"
-		case "https":
-			host += ":443"
-		}
-	}
-	dialer := net.Dialer{Timeout: d.urlTimeout}
-	conn, err := dialer.Dial("tcp", host)
-	if err != nil {
-		return err
-	}
-	return conn.Close()
-
-}
-
-// fetchSource retrieves the git source from the repository. If a commit ID
-// is included in the build revision, that commit ID is checked out. Otherwise
-// if a ref is included in the source definition, that ref is checked out.
-func (d *DockerBuilder) fetchSource(dir string) error {
-	if err := d.checkSourceURI(); err != nil {
-		return err
-	}
-	if err := d.git.Clone(d.build.Parameters.Source.Git.URI, dir); err != nil {
-		return err
-	}
-	if d.build.Parameters.Source.Git.Ref == "" &&
-		(d.build.Parameters.Revision == nil ||
-			d.build.Parameters.Revision.Git == nil ||
-			d.build.Parameters.Revision.Git.Commit == "") {
-		return nil
-	}
-	if d.build.Parameters.Revision != nil &&
-		d.build.Parameters.Revision.Git != nil &&
-		d.build.Parameters.Revision.Git.Commit != "" {
-		return d.git.Checkout(dir, d.build.Parameters.Revision.Git.Commit)
-	}
-	return d.git.Checkout(dir, d.build.Parameters.Source.Git.Ref)
 }
 
 // addBuildParameters checks if a Image is set to replace the default base image.
 // If that's the case then change the Dockerfile to make the build with the given image.
-// Also append the environment variables in the Dockerfile.
+// Also append the environment variables and labels in the Dockerfile.
 func (d *DockerBuilder) addBuildParameters(dir string) error {
 	dockerfilePath := filepath.Join(dir, "Dockerfile")
-	if d.build.Parameters.Strategy.DockerStrategy != nil && len(d.build.Parameters.Source.ContextDir) > 0 {
-		dockerfilePath = filepath.Join(dir, d.build.Parameters.Source.ContextDir, "Dockerfile")
+	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Source.ContextDir) > 0 {
+		dockerfilePath = filepath.Join(dir, d.build.Spec.Source.ContextDir, "Dockerfile")
 	}
 
-	fileStat, err := os.Lstat(dockerfilePath)
+	f, err := os.Open(dockerfilePath)
 	if err != nil {
 		return err
 	}
 
-	filePerm := fileStat.Mode()
-
-	fileData, err := ioutil.ReadFile(dockerfilePath)
+	// Parse the Dockerfile.
+	node, err := parser.Parse(f)
 	if err != nil {
 		return err
 	}
 
-	var newFileData string
-	if d.build.Parameters.Strategy.DockerStrategy.Image != "" {
-		newFileData, err = replaceValidCmd(dockercmd.From, d.build.Parameters.Strategy.DockerStrategy.Image, fileData)
+	// Update base image if build strategy specifies the From field.
+	if d.build.Spec.Strategy.DockerStrategy.From != nil && d.build.Spec.Strategy.DockerStrategy.From.Kind == "DockerImage" {
+		// Reduce the name to a minimal canonical form for the daemon
+		name := d.build.Spec.Strategy.DockerStrategy.From.Name
+		if ref, err := imageapi.ParseDockerImageReference(name); err == nil {
+			name = ref.DaemonMinimal().String()
+		}
+		err := replaceLastFrom(node, name)
 		if err != nil {
 			return err
 		}
-	} else {
-		newFileData = newFileData + string(fileData)
 	}
 
-	envVars := getBuildEnvVars(d.build)
-	for k, v := range envVars {
-		newFileData = newFileData + fmt.Sprintf("ENV %s %s\n", k, v)
-	}
-
-	if ioutil.WriteFile(dockerfilePath, []byte(newFileData), filePerm); err != nil {
+	// Append build info as environment variables.
+	err = appendEnv(node, d.buildInfo())
+	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-// invalidCmdErr represents an error returned from replaceValidCmd
-// when an invalid Dockerfile command has been passed to
-// replaceValidCmd
-var invalidCmdErr = errors.New("invalid Dockerfile command")
-
-// replaceCmdErr represents an error returned from replaceValidCmd
-// when a command which has more than one valid occurrences inside
-// a Dockerfile has been passed or the specified command cannot
-// be found
-var replaceCmdErr = errors.New("cannot replace given Dockerfile command")
-
-// replaceValidCmd replaces the valid occurrence of a command
-// in a Dockerfile with the given replaceArgs
-func replaceValidCmd(cmd, replaceArgs string, fileData []byte) (string, error) {
-	if _, ok := dockercmd.Commands[cmd]; !ok {
-		return "", invalidCmdErr
-	}
-	buf := bytes.NewBuffer(fileData)
-	// Parse with Docker parser
-	node, err := parser.Parse(buf)
+	// Append build labels.
+	err = appendLabel(node, d.buildLabels(dir))
 	if err != nil {
-		return "", errors.New("cannot parse Dockerfile: " + err.Error())
+		return err
 	}
 
-	pos := traverseAST(cmd, node)
-	if pos == 0 {
-		return "", replaceCmdErr
+	// Insert environment variables defined in the build strategy.
+	err = insertEnvAfterFrom(node, d.build.Spec.Strategy.DockerStrategy.Env)
+	if err != nil {
+		return err
 	}
 
-	// Re-initialize the buffer
-	buf = bytes.NewBuffer(fileData)
-	var newFileData string
-	var index int
-	var replaceNextLn bool
-	for {
-		line, err := buf.ReadString('\n')
-		if err != nil && err != io.EOF {
-			return "", err
-		}
-		line = strings.TrimSpace(line)
+	instructions := dockerfile.ParseTreeToDockerfile(node)
 
-		// The current line starts with the specified command (cmd)
-		if strings.HasPrefix(strings.ToUpper(line), strings.ToUpper(cmd)) {
-			index++
-
-			// The current line finishes on a backslash.
-			// All we need to do is replace the next line
-			// with our specified replaceArgs
-			if line[len(line)-1:] == "\\" && index == pos {
-				replaceNextLn = true
-
-				args := strings.Split(line, " ")
-				if len(args) > 2 {
-					// Keep just our Dockerfile command and the backslash
-					newFileData += args[0] + " \\" + "\n"
-				} else {
-					newFileData += line + "\n"
-				}
-				continue
-			}
-
-			// Normal ending line
-			if index == pos {
-				line = fmt.Sprintf("%s %s", strings.ToUpper(cmd), replaceArgs)
-			}
-		}
-
-		// Previous line ended on a backslash
-		// This line contains command arguments
-		if replaceNextLn {
-			if line[len(line)-1:] == "\\" {
-				// Ignore all successive lines terminating on a backslash
-				// since they all are going to be replaced by replaceArgs
-				continue
-			}
-			replaceNextLn = false
-			line = replaceArgs
-		}
-
-		if err == io.EOF {
-			// Otherwise, the new Dockerfile will have one newline
-			// more in the end
-			newFileData += line
-			break
-		}
-		newFileData += line + "\n"
+	// Overwrite the Dockerfile.
+	fi, err := f.Stat()
+	if err != nil {
+		return err
 	}
-
-	// Parse output for validation
-	buf = bytes.NewBuffer([]byte(newFileData))
-	if _, err := parser.Parse(buf); err != nil {
-		return "", errors.New("cannot parse new Dockerfile: " + err.Error())
-	}
-
-	return newFileData, nil
+	return ioutil.WriteFile(dockerfilePath, instructions, fi.Mode())
 }
 
-// traverseAST traverses the Abstract Syntax Tree output
-// from the Docker parser and returns the valid position
-// of the command it was requested to look for.
-//
-// Note that this function is intended to be used with
-// Dockerfile commands that should be specified only once
-// in a Dockerfile (FROM, CMD, ENTRYPOINT)
-func traverseAST(cmd string, node *parser.Node) int {
-	switch cmd {
-	case dockercmd.From, dockercmd.Entrypoint, dockercmd.Cmd:
-	default:
-		return 0
+// buildInfo converts the buildInfo output to a format that appendEnv can
+// consume.
+func (d *DockerBuilder) buildInfo() []dockerfile.KeyValue {
+	bi := buildInfo(d.build)
+	kv := make([]dockerfile.KeyValue, len(bi))
+	for i, item := range bi {
+		kv[i] = dockerfile.KeyValue{Key: item.Key, Value: item.Value}
 	}
+	return kv
+}
 
-	index := 0
-	if node.Value == cmd {
-		index++
+// buildLabels returns a slice of KeyValue pairs in a format that appendEnv can
+// consume.
+func (d *DockerBuilder) buildLabels(dir string) []dockerfile.KeyValue {
+	labels := map[string]string{}
+	// TODO: allow source info to be overriden by build
+	sourceInfo := &s2iapi.SourceInfo{}
+	if d.build.Spec.Source.Git != nil {
+		sourceInfo = d.git.GetInfo(dir)
 	}
-	for _, n := range node.Children {
-		index += traverseAST(cmd, n)
+	if len(d.build.Spec.Source.ContextDir) > 0 {
+		sourceInfo.ContextDir = d.build.Spec.Source.ContextDir
 	}
-	if node.Next != nil {
-		for n := node.Next; n != nil; n = n.Next {
-			if len(n.Children) > 0 {
-				index += traverseAST(cmd, n)
-			} else if n.Value == cmd {
-				index++
-			}
-		}
+	labels = util.GenerateLabelsFromSourceInfo(labels, sourceInfo, api.DefaultDockerLabelNamespace)
+	kv := make([]dockerfile.KeyValue, 0, len(labels))
+	for k, v := range labels {
+		kv = append(kv, dockerfile.KeyValue{Key: k, Value: v})
 	}
-	return index
+	return kv
+}
+
+// setupPullSecret provides a Docker authentication configuration when the
+// PullSecret is specified.
+func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
+	if len(os.Getenv(dockercfg.PullAuthType)) == 0 {
+		return nil, nil
+	}
+	r, err := os.Open(os.Getenv(dockercfg.PullAuthType))
+	if err != nil {
+		return nil, fmt.Errorf("'%s': %s", os.Getenv(dockercfg.PullAuthType), err)
+	}
+	return docker.NewAuthConfigurations(r)
 }
 
 // dockerBuild performs a docker build on the source that has been retrieved
 func (d *DockerBuilder) dockerBuild(dir string) error {
 	var noCache bool
-	if d.build.Parameters.Strategy.DockerStrategy != nil {
-		if d.build.Parameters.Source.ContextDir != "" {
-			dir = filepath.Join(dir, d.build.Parameters.Source.ContextDir)
+	var forcePull bool
+	if d.build.Spec.Strategy.DockerStrategy != nil {
+		if d.build.Spec.Source.ContextDir != "" {
+			dir = filepath.Join(dir, d.build.Spec.Source.ContextDir)
 		}
-		noCache = d.build.Parameters.Strategy.DockerStrategy.NoCache
+		noCache = d.build.Spec.Strategy.DockerStrategy.NoCache
+		forcePull = d.build.Spec.Strategy.DockerStrategy.ForcePull
 	}
-	return buildImage(d.dockerClient, dir, noCache, d.build.Parameters.Output.DockerImageReference, d.tar)
+	auth, err := d.setupPullSecret()
+	if err != nil {
+		return err
+	}
+	return buildImage(d.dockerClient, dir, noCache, d.build.Status.OutputDockerImageReference, d.tar, auth, forcePull)
+}
+
+// replaceLastFrom changes the last FROM instruction of node to point to the
+// base image image.
+func replaceLastFrom(node *parser.Node, image string) error {
+	if node == nil {
+		return nil
+	}
+	for i := len(node.Children) - 1; i >= 0; i-- {
+		child := node.Children[i]
+		if child != nil && child.Value == dockercmd.From {
+			from, err := dockerfile.From(image)
+			if err != nil {
+				return err
+			}
+			fromTree, err := parser.Parse(strings.NewReader(from))
+			if err != nil {
+				return err
+			}
+			node.Children[i] = fromTree.Children[0]
+			return nil
+		}
+	}
+	return nil
+}
+
+// appendEnv appends an ENV Dockerfile instruction as the last child of node
+// with keys and values from m.
+func appendEnv(node *parser.Node, m []dockerfile.KeyValue) error {
+	return appendKeyValueInstruction(dockerfile.Env, node, m)
+}
+
+// appendLabel appends a LABEL Dockerfile instruction as the last child of node
+// with keys and values from m.
+func appendLabel(node *parser.Node, m []dockerfile.KeyValue) error {
+	if len(m) == 0 {
+		return nil
+	}
+	return appendKeyValueInstruction(dockerfile.Label, node, m)
+}
+
+// appendKeyValueInstruction is a primitive used to avoid code duplication.
+// Callers should use a derivative of this such as appendEnv or appendLabel.
+// appendKeyValueInstruction appends a Dockerfile instruction with key-value
+// syntax created by f as the last child of node with keys and values from m.
+func appendKeyValueInstruction(f func([]dockerfile.KeyValue) (string, error), node *parser.Node, m []dockerfile.KeyValue) error {
+	if node == nil {
+		return nil
+	}
+	instruction, err := f(m)
+	if err != nil {
+		return err
+	}
+	return dockerfile.InsertInstructions(node, len(node.Children), instruction)
+}
+
+// insertEnvAfterFrom inserts an ENV instruction with the environment variables
+// from env after every FROM instruction in node.
+func insertEnvAfterFrom(node *parser.Node, env []kapi.EnvVar) error {
+	if node == nil || len(env) == 0 {
+		return nil
+	}
+
+	// Build ENV instruction.
+	var m []dockerfile.KeyValue
+	for _, e := range env {
+		m = append(m, dockerfile.KeyValue{Key: e.Name, Value: e.Value})
+	}
+	buildEnv, err := dockerfile.Env(m)
+	if err != nil {
+		return err
+	}
+
+	// Insert the buildEnv after every FROM instruction.
+	// We iterate in reverse order, otherwise indices would have to be
+	// recomputed after each step, because we're changing node in-place.
+	indices := dockerfile.FindAll(node, dockercmd.From)
+	for i := len(indices) - 1; i >= 0; i-- {
+		err := dockerfile.InsertInstructions(node, indices[i]+1, buildEnv)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

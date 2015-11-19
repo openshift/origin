@@ -1,13 +1,13 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -116,33 +116,39 @@ func TestWatchBuildConfigs(t *testing.T) {
 func mockBuildConfig() *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
+			GenerateName: "mock-build-config",
 			Labels: map[string]string{
 				"label1": "value1",
 				"label2": "value2",
 			},
 		},
-		Triggers: []buildapi.BuildTriggerPolicy{
-			{
-				Type: buildapi.GithubWebHookBuildTriggerType,
-				GithubWebHook: &buildapi.WebHookTrigger{
-					Secret: "secret101",
+		Spec: buildapi.BuildConfigSpec{
+			Triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret101",
+					},
 				},
 			},
-		},
-		Parameters: buildapi.BuildParameters{
-			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.docker/build",
+			BuildSpec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://my.docker/build",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				DockerImageReference: "namespace/builtimage",
+				Strategy: buildapi.BuildStrategy{
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "namespace/builtimage",
+					},
+				},
 			},
 		},
 	}
@@ -164,25 +170,31 @@ func TestBuildConfigClient(t *testing.T) {
 	// get a validation error
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
+			GenerateName: "mock-build",
 			Labels: map[string]string{
 				"label1": "value1",
 				"label2": "value2",
 			},
 		},
-		Parameters: buildapi.BuildParameters{
-			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.docker/build",
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://my.docker/build",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				DockerImageReference: "namespace/builtimage",
+				Strategy: buildapi.BuildStrategy{
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "namespace/builtimage",
+					},
+				},
 			},
 		},
 	}

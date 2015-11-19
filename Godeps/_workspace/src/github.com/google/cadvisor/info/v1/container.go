@@ -43,6 +43,9 @@ type ContainerSpec struct {
 	// Time at which the container was created.
 	CreationTime time.Time `json:"creation_time,omitempty"`
 
+	// Metadata labels associated with this container.
+	Labels map[string]string `json:"labels,omitempty"`
+
 	HasCpu bool    `json:"has_cpu"`
 	Cpu    CpuSpec `json:"cpu,omitempty"`
 
@@ -55,6 +58,12 @@ type ContainerSpec struct {
 
 	// HasDiskIo when true, indicates that DiskIo stats will be available.
 	HasDiskIo bool `json:"has_diskio"`
+
+	HasCustomMetrics bool         `json:"has_custom_metrics"`
+	CustomMetrics    []MetricSpec `json:"custom_metrics,omitempty"`
+
+	// Image name used for this container.
+	Image string `json:"image,omitempty"`
 }
 
 // Container reference contains enough information to uniquely identify a container
@@ -187,6 +196,9 @@ func (self *ContainerSpec) Eq(b *ContainerSpec) bool {
 	if self.HasDiskIo != b.HasDiskIo {
 		return false
 	}
+	if self.HasCustomMetrics != b.HasCustomMetrics {
+		return false
+	}
 	return true
 }
 
@@ -300,6 +312,8 @@ type MemoryStats struct {
 	// Units: Bytes.
 	WorkingSet uint64 `json:"working_set"`
 
+	Failcnt uint64 `json:"failcnt"`
+
 	ContainerData    MemoryStatsMemoryData `json:"container_data,omitempty"`
 	HierarchicalData MemoryStatsMemoryData `json:"hierarchical_data,omitempty"`
 }
@@ -309,7 +323,9 @@ type MemoryStatsMemoryData struct {
 	Pgmajfault uint64 `json:"pgmajfault"`
 }
 
-type NetworkStats struct {
+type InterfaceStats struct {
+	// The name of the interface.
+	Name string `json:"name"`
 	// Cumulative count of bytes received.
 	RxBytes uint64 `json:"rx_bytes"`
 	// Cumulative count of packets received.
@@ -328,6 +344,40 @@ type NetworkStats struct {
 	TxDropped uint64 `json:"tx_dropped"`
 }
 
+type NetworkStats struct {
+	InterfaceStats `json:",inline"`
+	Interfaces     []InterfaceStats `json:"interfaces,omitempty"`
+	// TCP connection stats (Established, Listen...)
+	Tcp TcpStat `json:"tcp"`
+	// TCP6 connection stats (Established, Listen...)
+	Tcp6 TcpStat `json:"tcp6"`
+}
+
+type TcpStat struct {
+	//Count of TCP connections in state "Established"
+	Established uint64
+	//Count of TCP connections in state "Syn_Sent"
+	SynSent uint64
+	//Count of TCP connections in state "Syn_Recv"
+	SynRecv uint64
+	//Count of TCP connections in state "Fin_Wait1"
+	FinWait1 uint64
+	//Count of TCP connections in state "Fin_Wait2"
+	FinWait2 uint64
+	//Count of TCP connections in state "Time_Wait
+	TimeWait uint64
+	//Count of TCP connections in state "Close"
+	Close uint64
+	//Count of TCP connections in state "Close_Wait"
+	CloseWait uint64
+	//Count of TCP connections in state "Listen_Ack"
+	LastAck uint64
+	//Count of TCP connections in state "Listen"
+	Listen uint64
+	//Count of TCP connections in state "Closing"
+	Closing uint64
+}
+
 type FsStats struct {
 	// The block device name associated with the filesystem.
 	Device string `json:"device,omitempty"`
@@ -337,6 +387,9 @@ type FsStats struct {
 
 	// Number of bytes that is consumed by the container on this filesystem.
 	Usage uint64 `json:"usage"`
+
+	// Number of bytes available for non-root user.
+	Available uint64 `json:"available"`
 
 	// Number of reads completed
 	// This is the total number of reads completed successfully.
@@ -406,6 +459,9 @@ type ContainerStats struct {
 
 	// Task load stats
 	TaskStats LoadStats `json:"task_stats,omitempty"`
+
+	//Custom metrics from all collectors
+	CustomMetrics map[string][]MetricVal `json:"custom_metrics,omitempty"`
 }
 
 func timeEq(t1, t2 time.Time, tolerance time.Duration) bool {
@@ -472,4 +528,48 @@ func calculateCpuUsage(prev, cur uint64) uint64 {
 		return 0
 	}
 	return cur - prev
+}
+
+// Event contains information general to events such as the time at which they
+// occurred, their specific type, and the actual event. Event types are
+// differentiated by the EventType field of Event.
+type Event struct {
+	// the absolute container name for which the event occurred
+	ContainerName string `json:"container_name"`
+
+	// the time at which the event occurred
+	Timestamp time.Time `json:"timestamp"`
+
+	// the type of event. EventType is an enumerated type
+	EventType EventType `json:"event_type"`
+
+	// the original event object and all of its extraneous data, ex. an
+	// OomInstance
+	EventData EventData `json:"event_data,omitempty"`
+}
+
+// EventType is an enumerated type which lists the categories under which
+// events may fall. The Event field EventType is populated by this enum.
+type EventType string
+
+const (
+	EventOom               EventType = "oom"
+	EventOomKill                     = "oomKill"
+	EventContainerCreation           = "containerCreation"
+	EventContainerDeletion           = "containerDeletion"
+)
+
+// Extra information about an event. Only one type will be set.
+type EventData struct {
+	// Information about an OOM kill event.
+	OomKill *OomKillEventData `json:"oom,omitempty"`
+}
+
+// Information related to an OOM kill instance
+type OomKillEventData struct {
+	// process id of the killed process
+	Pid int `json:"pid"`
+
+	// The name of the killed process
+	ProcessName string `json:"process_name"`
 }

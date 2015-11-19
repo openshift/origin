@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"strconv"
@@ -29,7 +30,7 @@ import (
 )
 
 var containerRegexp *regexp.Regexp = regexp.MustCompile(
-	`Task in (.*) killed as a result of limit of `)
+	`Task in (.*) killed as a result of limit of (.*)`)
 var lastLineRegexp *regexp.Regexp = regexp.MustCompile(
 	`(^[A-Z]{1}[a-z]{2} .*[0-9]{1,2} [0-9]{1,2}:[0-9]{2}:[0-9]{2}) .* Killed process ([0-9]+) \(([0-9A-Za-z_]+)\)`)
 var firstLineRegexp *regexp.Regexp = regexp.MustCompile(
@@ -37,7 +38,7 @@ var firstLineRegexp *regexp.Regexp = regexp.MustCompile(
 
 // struct to hold file from which we obtain OomInstances
 type OomParser struct {
-	systemFile string
+	ioreader *bufio.Reader
 }
 
 // struct that contains information related to an OOM kill instance
@@ -51,6 +52,9 @@ type OomInstance struct {
 	TimeOfDeath time.Time
 	// the absolute name of the container that OOMed
 	ContainerName string
+	// the absolute name of the container that was killed
+	// due to the OOM.
+	VictimContainerName string
 }
 
 // gets the container name from a line and adds it to the oomInstance.
@@ -60,6 +64,7 @@ func getContainerName(line string, currentOomInstance *OomInstance) error {
 		return nil
 	}
 	currentOomInstance.ContainerName = path.Join("/", parsedLine[1])
+	currentOomInstance.VictimContainerName = path.Join("/", parsedLine[2])
 	return nil
 }
 
@@ -123,19 +128,18 @@ func readLinesFromFile(lineChannel chan string, ioreader *bufio.Reader) {
 	}
 }
 
-// Calls goroutine for analyzeLinesHelper, which feeds it complete lines.
+// Calls goroutine for readLinesFromFile, which feeds it complete lines.
 // Lines are checked against a regexp to check for the pid, process name, etc.
-// At the end of an oom message group, AnalyzeLines adds the new oomInstance to
+// At the end of an oom message group, StreamOoms adds the new oomInstance to
 // oomLog
-func (self *OomParser) analyzeLines(ioreader *bufio.Reader, outStream chan *OomInstance) {
+func (self *OomParser) StreamOoms(outStream chan *OomInstance) {
 	lineChannel := make(chan string, 10)
 	go func() {
-		readLinesFromFile(lineChannel, ioreader)
+		readLinesFromFile(lineChannel, self.ioreader)
 	}()
 
 	for line := range lineChannel {
 		in_oom_kernel_log := checkIfStartOfOomMessages(line)
-
 		if in_oom_kernel_log {
 			oomCurrentInstance := &OomInstance{
 				ContainerName: "/",
@@ -159,47 +163,58 @@ func (self *OomParser) analyzeLines(ioreader *bufio.Reader, outStream chan *OomI
 	glog.Infof("exiting analyzeLines")
 }
 
+func callJournalctl() (io.ReadCloser, error) {
+	cmd := exec.Command("journalctl", "-k", "-f")
+	readcloser, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	return readcloser, err
+}
+
+func trySystemd() (*OomParser, error) {
+	readcloser, err := callJournalctl()
+	if err != nil {
+		return nil, err
+	}
+	glog.Infof("oomparser using systemd")
+	return &OomParser{
+		ioreader: bufio.NewReader(readcloser),
+	}, nil
+
+}
+
+// List of possible kernel log files. These are prioritized in order so that
+// we will use the first one that is available.
+var kernelLogFiles = []string{"/var/log/kern.log", "/var/log/messages", "/var/log/syslog"}
+
 // looks for system files that contain kernel messages and if one is found, sets
 // the systemFile attribute of the OomParser object
 func getSystemFile() (string, error) {
-	const varLogMessages = "/var/log/messages"
-	const varLogSyslog = "/var/log/syslog"
-	if utils.FileExists(varLogMessages) {
-		return varLogMessages, nil
-	} else if utils.FileExists(varLogSyslog) {
-		return varLogSyslog, nil
+	for _, logFile := range kernelLogFiles {
+		if utils.FileExists(logFile) {
+			glog.Infof("OOM parser using kernel log file: %q", logFile)
+			return logFile, nil
+		}
 	}
-	return "", fmt.Errorf("neither %s nor %s exists from which to read kernel errors", varLogMessages, varLogSyslog)
-}
-
-// calls a go routine that populates self.OomInstances and fills the argument
-// channel with OomInstance objects as they are read from the file.
-// opens the OomParser's systemFile which was set in getSystemFile
-// to look for OOM messages by calling AnalyzeLines.  Takes in the argument
-// outStream, which is passed in by the user and passed to AnalyzeLines.
-// OomInstance objects are added to outStream when they are found by
-// AnalyzeLines
-func (self *OomParser) StreamOoms(outStream chan *OomInstance) error {
-	file, err := os.Open(self.systemFile)
-	if err != nil {
-		return err
-	}
-	ioreader := bufio.NewReader(file)
-
-	// Process the events received from the kernel.
-	go func() {
-		self.analyzeLines(ioreader, outStream)
-	}()
-	return nil
+	return "", fmt.Errorf("unable to find any kernel log file available from our set: %v", kernelLogFiles)
 }
 
 // initializes an OomParser object and calls getSystemFile to set the systemFile
 // attribute.  Returns and OomParser object and an error
 func New() (*OomParser, error) {
-	systemFileName, err := getSystemFile()
+	systemFile, err := getSystemFile()
 	if err != nil {
-		return nil, err
+		return trySystemd()
+	}
+	file, err := os.Open(systemFile)
+	if err != nil {
+		return trySystemd()
 	}
 	return &OomParser{
-		systemFile: systemFileName}, nil
+		ioreader: bufio.NewReader(file),
+	}, nil
 }

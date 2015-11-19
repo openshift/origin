@@ -1,18 +1,17 @@
 package client
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	projectapi "github.com/openshift/origin/pkg/project/api"
-	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
-// UsersInterface has methods to work with User resources in a namespace
+// ProjectsInterface has methods to work with Project resources in a namespace
 type ProjectsInterface interface {
 	Projects() ProjectInterface
 }
 
-// UserInterface exposes methods on user resources.
+// ProjectInterface exposes methods on project resources.
 type ProjectInterface interface {
 	Create(p *projectapi.Project) (*projectapi.Project, error)
 	Delete(name string) error
@@ -24,14 +23,14 @@ type projects struct {
 	r *Client
 }
 
-// newUsers returns a users
+// newUsers returns a project
 func newProjects(c *Client) *projects {
 	return &projects{
 		r: c,
 	}
 }
 
-// Get returns information about a particular user or an error
+// Get returns information about a particular project or an error
 func (c *projects) Get(name string) (result *projectapi.Project, err error) {
 	result = &projectapi.Project{}
 	err = c.r.Get().Resource("projects").Name(name).Do().Into(result)
@@ -43,8 +42,8 @@ func (c *projects) List(label labels.Selector, field fields.Selector) (result *p
 	result = &projectapi.ProjectList{}
 	err = c.r.Get().
 		Resource("projects").
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Do().
 		Into(result)
 	return

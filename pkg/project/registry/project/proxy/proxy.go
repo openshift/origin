@@ -3,15 +3,19 @@ package proxy
 import (
 	"fmt"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
+	nsregistry "k8s.io/kubernetes/pkg/registry/namespace"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
 )
@@ -49,10 +53,8 @@ func (*REST) NewList() runtime.Object {
 
 // convertNamespace transforms a Namespace into a Project
 func convertNamespace(namespace *kapi.Namespace) *api.Project {
-	displayName := namespace.Annotations["displayname"]
 	return &api.Project{
-		ObjectMeta:  namespace.ObjectMeta,
-		DisplayName: displayName,
+		ObjectMeta: namespace.ObjectMeta,
 		Spec: api.ProjectSpec{
 			Finalizers: namespace.Spec.Finalizers,
 		},
@@ -76,7 +78,7 @@ func convertProject(project *api.Project) *kapi.Namespace {
 	if namespace.Annotations == nil {
 		namespace.Annotations = map[string]string{}
 	}
-	namespace.Annotations["displayname"] = project.DisplayName
+	namespace.Annotations[projectapi.ProjectDisplayName] = project.Annotations[projectapi.ProjectDisplayName]
 	return namespace
 }
 
@@ -93,13 +95,18 @@ func convertNamespaceList(namespaceList *kapi.NamespaceList) *api.ProjectList {
 func (s *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
 	user, ok := kapi.UserFrom(ctx)
 	if !ok {
-		return nil, kerrors.NewForbidden("Project", "", fmt.Errorf("Unable to list projects without a user on the context"))
+		return nil, kerrors.NewForbidden("Project", "", fmt.Errorf("unable to list projects without a user on the context"))
 	}
 	namespaceList, err := s.lister.List(user)
 	if err != nil {
 		return nil, err
 	}
-	return convertNamespaceList(namespaceList), nil
+	m := nsregistry.MatchNamespace(label, field)
+	list, err := filterList(namespaceList, m, nil)
+	if err != nil {
+		return nil, err
+	}
+	return convertNamespaceList(list.(*kapi.NamespaceList)), nil
 }
 
 // Get retrieves a Project by name
@@ -129,7 +136,65 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	return convertNamespace(namespace), nil
 }
 
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	project, ok := obj.(*api.Project)
+	if !ok {
+		return nil, false, fmt.Errorf("not a project: %#v", obj)
+	}
+
+	oldObj, err := s.Get(ctx, project.Name)
+	if err != nil {
+		return nil, false, err
+	}
+	s.updateStrategy.PrepareForUpdate(obj, oldObj)
+	if errs := s.updateStrategy.ValidateUpdate(ctx, obj, oldObj); len(errs) > 0 {
+		return nil, false, kerrors.NewInvalid("project", project.Name, errs)
+	}
+
+	namespace, err := s.client.Update(convertProject(project))
+	if err != nil {
+		return nil, false, err
+	}
+
+	return convertNamespace(namespace), false, nil
+}
+
 // Delete deletes a Project specified by its name
 func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
-	return &kapi.Status{Status: kapi.StatusSuccess}, s.client.Delete(name)
+	return &unversioned.Status{Status: unversioned.StatusSuccess}, s.client.Delete(name)
+}
+
+// decoratorFunc can mutate the provided object prior to being returned.
+type decoratorFunc func(obj runtime.Object) error
+
+// filterList filters any list object that conforms to the api conventions,
+// provided that 'm' works with the concrete type of list. d is an optional
+// decorator for the returned functions. Only matching items are decorated.
+func filterList(list runtime.Object, m generic.Matcher, d decoratorFunc) (filtered runtime.Object, err error) {
+	// TODO: push a matcher down into tools.etcdHelper to avoid all this
+	// nonsense. This is a lot of unnecessary copies.
+	items, err := runtime.ExtractList(list)
+	if err != nil {
+		return nil, err
+	}
+	var filteredItems []runtime.Object
+	for _, obj := range items {
+		match, err := m.Matches(obj)
+		if err != nil {
+			return nil, err
+		}
+		if match {
+			if d != nil {
+				if err := d(obj); err != nil {
+					return nil, err
+				}
+			}
+			filteredItems = append(filteredItems, obj)
+		}
+	}
+	err = runtime.SetList(list, filteredItems)
+	if err != nil {
+		return nil, err
+	}
+	return list, nil
 }

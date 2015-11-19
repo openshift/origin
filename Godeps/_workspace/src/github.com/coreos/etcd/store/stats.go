@@ -1,18 +1,16 @@
-/*
-Copyright 2013 CoreOS Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright 2015 CoreOS, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package store
 
@@ -80,28 +78,29 @@ func newStats() *Stats {
 }
 
 func (s *Stats) clone() *Stats {
-	return &Stats{s.GetSuccess, s.GetFail, s.SetSuccess, s.SetFail,
-		s.DeleteSuccess, s.DeleteFail, s.UpdateSuccess, s.UpdateFail, s.CreateSuccess,
-		s.CreateFail, s.CompareAndSwapSuccess, s.CompareAndSwapFail,
-		s.CompareAndDeleteSuccess, s.CompareAndDeleteFail, s.Watchers, s.ExpireCount}
+	return &Stats{
+		GetSuccess:              s.GetSuccess,
+		GetFail:                 s.GetFail,
+		SetSuccess:              s.SetSuccess,
+		SetFail:                 s.SetFail,
+		DeleteSuccess:           s.DeleteSuccess,
+		DeleteFail:              s.DeleteFail,
+		UpdateSuccess:           s.UpdateSuccess,
+		UpdateFail:              s.UpdateFail,
+		CreateSuccess:           s.CreateSuccess,
+		CreateFail:              s.CreateFail,
+		CompareAndSwapSuccess:   s.CompareAndSwapSuccess,
+		CompareAndSwapFail:      s.CompareAndSwapFail,
+		CompareAndDeleteSuccess: s.CompareAndDeleteSuccess,
+		CompareAndDeleteFail:    s.CompareAndDeleteFail,
+		ExpireCount:             s.ExpireCount,
+		Watchers:                s.Watchers,
+	}
 }
 
-// Status() return the statistics info of etcd storage its recent start
 func (s *Stats) toJson() []byte {
 	b, _ := json.Marshal(s)
 	return b
-}
-
-func (s *Stats) TotalReads() uint64 {
-	return s.GetSuccess + s.GetFail
-}
-
-func (s *Stats) TotalTranscations() uint64 {
-	return s.SetSuccess + s.SetFail +
-		s.DeleteSuccess + s.DeleteFail +
-		s.CompareAndSwapSuccess + s.CompareAndSwapFail +
-		s.CompareAndDeleteSuccess + s.CompareAndDeleteFail +
-		s.UpdateSuccess + s.UpdateFail
 }
 
 func (s *Stats) Inc(field int) {

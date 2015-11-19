@@ -1,7 +1,7 @@
 package allocation
 
 import (
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/route"
@@ -10,7 +10,7 @@ import (
 // RouteAllocationControllerFactory creates a RouteAllocationController
 // that allocates router shards to specific routes.
 type RouteAllocationControllerFactory struct {
-	// Client is is an OpenShift client.
+	// OSClient is is an OpenShift client.
 	OSClient osclient.Interface
 
 	// KubeClient is a Kubernetes client.

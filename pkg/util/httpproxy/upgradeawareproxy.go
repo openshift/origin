@@ -11,8 +11,12 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/third_party/golang/netutil"
+
 	"github.com/golang/glog"
 )
 
@@ -32,11 +36,13 @@ func NewUpgradeAwareSingleHostReverseProxy(clientConfig *kclient.Config, backend
 	if err != nil {
 		return nil, err
 	}
+	reverseProxy := httputil.NewSingleHostReverseProxy(backendAddr)
+	reverseProxy.FlushInterval = 200 * time.Millisecond
 	p := &UpgradeAwareSingleHostReverseProxy{
 		clientConfig: clientConfig,
 		backendAddr:  backendAddr,
 		transport:    transport,
-		reverseProxy: httputil.NewSingleHostReverseProxy(backendAddr),
+		reverseProxy: reverseProxy,
 	}
 	p.reverseProxy.Transport = p
 	return p, nil
@@ -53,7 +59,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) RoundTrip(req *http.Request) (*http
 	removeCORSHeaders(resp)
 	removeChallengeHeaders(resp)
 	if resp.StatusCode == http.StatusUnauthorized {
-		glog.Errorf("Got unauthorized error from backend for: %s %s", req.Method, req.URL)
+		util.HandleError(fmt.Errorf("got unauthorized error from backend for: %s %s", req.Method, req.URL))
 		// Internal error, backend didn't recognize proxy identity
 		// Surface as a server error to the client
 		// TODO do we need to do more than this?
@@ -135,26 +141,28 @@ func (p *UpgradeAwareSingleHostReverseProxy) ServeHTTP(w http.ResponseWriter, re
 }
 
 func (p *UpgradeAwareSingleHostReverseProxy) dialBackend(req *http.Request) (net.Conn, error) {
+	dialAddr := netutil.CanonicalAddr(req.URL)
+
 	switch p.backendAddr.Scheme {
 	case "http":
-		return net.Dial("tcp", req.URL.Host)
+		return net.Dial("tcp", dialAddr)
 	case "https":
 		tlsConfig, err := kclient.TLSConfigFor(p.clientConfig)
 		if err != nil {
 			return nil, err
 		}
-		tlsConn, err := tls.Dial("tcp", req.URL.Host, tlsConfig)
+		tlsConn, err := tls.Dial("tcp", dialAddr, tlsConfig)
 		if err != nil {
 			return nil, err
 		}
-		hostToVerify := req.URL.Host
-		if index := strings.Index(hostToVerify, ":"); index > -1 {
-			hostToVerify = hostToVerify[0:index]
+		hostToVerify, _, err := net.SplitHostPort(dialAddr)
+		if err != nil {
+			return nil, err
 		}
 		err = tlsConn.VerifyHostname(hostToVerify)
 		return tlsConn, err
 	default:
-		return nil, fmt.Errorf("Unknown scheme: %s", p.backendAddr.Scheme)
+		return nil, fmt.Errorf("unknown scheme: %s", p.backendAddr.Scheme)
 	}
 }
 
@@ -214,7 +222,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) serveUpgrade(w http.ResponseWriter,
 	go func() {
 		_, err := io.Copy(backendConn, requestHijackedConn)
 		if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-			glog.Errorf("Error proxying data from client to backend: %v", err)
+			util.HandleError(fmt.Errorf("error proxying data from client to backend: %v", err))
 		}
 		done <- struct{}{}
 	}()
@@ -222,7 +230,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) serveUpgrade(w http.ResponseWriter,
 	go func() {
 		_, err := io.Copy(requestHijackedConn, backendConn)
 		if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-			glog.Errorf("Error proxying data from backend to client: %v", err)
+			util.HandleError(fmt.Errorf("error proxying data from backend to client: %v", err))
 		}
 		done <- struct{}{}
 	}()

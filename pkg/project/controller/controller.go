@@ -1,13 +1,14 @@
 package controller
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/project/api"
+	projectutil "github.com/openshift/origin/pkg/project/util"
 )
 
 // NamespaceController is responsible for participating in Kubernetes Namespace termination
@@ -22,6 +23,7 @@ type NamespaceController struct {
 // fatalError is an error which can't be retried.
 type fatalError string
 
+// Error implements the interface for errors
 func (e fatalError) Error() string { return "fatal error handling namespace: " + string(e) }
 
 // Handle processes a namespace and deletes content in origin if its terminating
@@ -32,7 +34,7 @@ func (c *NamespaceController) Handle(namespace *kapi.Namespace) (err error) {
 	}
 
 	// if we already processed this namespace, ignore it
-	if finalized(namespace) {
+	if projectutil.Finalized(namespace) {
 		return nil
 	}
 
@@ -43,41 +45,12 @@ func (c *NamespaceController) Handle(namespace *kapi.Namespace) (err error) {
 	}
 
 	// we have removed content, so mark it finalized by us
-	err = finalize(c.KubeClient, namespace)
+	_, err = projectutil.Finalize(c.KubeClient, namespace)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// finalized returns true if the spec.finalizers does not contain the project finalizer
-func finalized(namespace *kapi.Namespace) bool {
-	for i := range namespace.Spec.Finalizers {
-		if api.FinalizerProject == namespace.Spec.Finalizers[i] {
-			return false
-		}
-	}
-	return true
-}
-
-// finalize will finalize the namespace for kubernetes
-func finalize(kubeClient kclient.Interface, namespace *kapi.Namespace) error {
-	namespaceFinalize := kapi.Namespace{}
-	namespaceFinalize.ObjectMeta = namespace.ObjectMeta
-	namespaceFinalize.Spec = namespace.Spec
-	finalizerSet := util.NewStringSet()
-	for i := range namespace.Spec.Finalizers {
-		if namespace.Spec.Finalizers[i] != api.FinalizerProject {
-			finalizerSet.Insert(string(namespace.Spec.Finalizers[i]))
-		}
-	}
-	namespaceFinalize.Spec.Finalizers = make([]kapi.FinalizerName, 0, len(finalizerSet))
-	for _, value := range finalizerSet.List() {
-		namespaceFinalize.Spec.Finalizers = append(namespaceFinalize.Spec.Finalizers, kapi.FinalizerName(value))
-	}
-	_, err := kubeClient.Namespaces().Finalize(&namespaceFinalize)
-	return err
 }
 
 // deleteAllContent will purge all content in openshift in the specified namespace
@@ -91,10 +64,6 @@ func deleteAllContent(client osclient.Interface, namespace string) (err error) {
 		return err
 	}
 	err = deleteDeploymentConfigs(client, namespace)
-	if err != nil {
-		return err
-	}
-	err = deleteDeployments(client, namespace)
 	if err != nil {
 		return err
 	}
@@ -122,6 +91,24 @@ func deleteAllContent(client osclient.Interface, namespace string) (err error) {
 	if err != nil {
 		return err
 	}
+	err = deleteTemplates(client, namespace)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteTemplates(client osclient.Interface, ns string) error {
+	items, err := client.Templates(ns).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+	for i := range items.Items {
+		err := client.Templates(ns).Delete(items.Items[i].Name)
+		if err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -132,7 +119,7 @@ func deleteRoutes(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.Routes(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -146,7 +133,7 @@ func deleteRoles(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.Roles(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -160,7 +147,7 @@ func deleteRoleBindings(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.RoleBindings(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -174,7 +161,7 @@ func deletePolicyBindings(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.PolicyBindings(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -188,7 +175,7 @@ func deletePolicies(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.Policies(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -202,21 +189,7 @@ func deleteImageStreams(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.ImageStreams(ns).Delete(items.Items[i].Name)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func deleteDeployments(client osclient.Interface, ns string) error {
-	items, err := client.Deployments(ns).List(labels.Everything(), fields.Everything())
-	if err != nil {
-		return err
-	}
-	for i := range items.Items {
-		err := client.Deployments(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -230,7 +203,7 @@ func deleteDeploymentConfigs(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.DeploymentConfigs(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -240,11 +213,14 @@ func deleteDeploymentConfigs(client osclient.Interface, ns string) error {
 func deleteBuilds(client osclient.Interface, ns string) error {
 	items, err := client.Builds(ns).List(labels.Everything(), fields.Everything())
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 	for i := range items.Items {
 		err := client.Builds(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -254,11 +230,14 @@ func deleteBuilds(client osclient.Interface, ns string) error {
 func deleteBuildConfigs(client osclient.Interface, ns string) error {
 	items, err := client.BuildConfigs(ns).List(labels.Everything(), fields.Everything())
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 	for i := range items.Items {
 		err := client.BuildConfigs(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}

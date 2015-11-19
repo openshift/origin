@@ -1,10 +1,3 @@
-/*
-PRIVATE RR
-
-RFC 6895 sets aside a range of type codes for private use. This range
-is 65,280 - 65,534 (0xFF00 - 0xFFFE). When experimenting with new Resource Records these
-can be used, before requesting an official type code from IANA.
-*/
 package dns
 
 import (
@@ -53,8 +46,10 @@ func mkPrivateRR(rrtype uint16) *PrivateRR {
 	panic(fmt.Sprintf("dns: RR is not a PrivateRR, typeToRR[%d] generator returned %T", rrtype, anyrr))
 }
 
+// Header return the RR header of r.
 func (r *PrivateRR) Header() *RR_Header { return &r.Hdr }
-func (r *PrivateRR) String() string     { return r.Hdr.String() + r.Data.String() }
+
+func (r *PrivateRR) String() string { return r.Hdr.String() + r.Data.String() }
 
 // Private len and copy parts to satisfy RR interface.
 func (r *PrivateRR) len() int { return r.Hdr.len() + r.Data.Len() }
@@ -91,9 +86,9 @@ func PrivateHandle(rtypestr string, rtype uint16, generator func() PrivateRdata)
 			// TODO(miek): we could also be returning _QUOTE, this might or might not
 			// be an issue (basically parsing TXT becomes hard)
 			switch l = <-c; l.value {
-			case _NEWLINE, _EOF:
+			case zNewline, zEOF:
 				break FETCH
-			case _STRING:
+			case zString:
 				text = append(text, l.token)
 			}
 		}

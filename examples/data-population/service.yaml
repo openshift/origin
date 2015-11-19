@@ -1,0 +1,10 @@
+apiVersion: v1beta3
+kind: Service
+metadata:
+  name: openshift-service
+spec:
+  ports:
+    - port: 9042
+      targetPort: 9042
+  selector:
+    name: openshift

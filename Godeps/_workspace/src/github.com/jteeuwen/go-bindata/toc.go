@@ -7,7 +7,6 @@ package bindata
 import (
 	"fmt"
 	"io"
-	"os"
 	"sort"
 	"strings"
 )
@@ -54,7 +53,7 @@ func (root *assetTree) funcOrNil() string {
 }
 
 func (root *assetTree) writeGoMap(w io.Writer, nident int) {
-	fmt.Fprintf(w, "&_bintree_t{%s, map[string]*_bintree_t{\n", root.funcOrNil())
+	fmt.Fprintf(w, "&bintree{%s, map[string]*bintree{\n", root.funcOrNil())
 
 	// Sort to make output stable between invocations
 	filenames := make([]string, len(root.Children))
@@ -79,9 +78,9 @@ func (root *assetTree) writeGoMap(w io.Writer, nident int) {
 }
 
 func (root *assetTree) WriteAsGoMap(w io.Writer) error {
-	_, err := fmt.Fprint(w, `type _bintree_t struct {
-	Func func() ([]byte, error)
-	Children map[string]*_bintree_t
+	_, err := fmt.Fprint(w, `type bintree struct {
+	Func func() (*asset, error)
+	Children map[string]*bintree
 }
 var _bintree = `)
 	root.writeGoMap(w, 0)
@@ -118,8 +117,8 @@ func AssetDir(name string) ([]string, error) {
 		return nil, fmt.Errorf("Asset %%s not found", name)
 	}
 	rv := make([]string, 0, len(node.Children))
-	for name := range node.Children {
-		rv = append(rv, name)
+	for childName := range node.Children {
+		rv = append(rv, childName)
 	}
 	return rv, nil
 }
@@ -130,7 +129,7 @@ func AssetDir(name string) ([]string, error) {
 	}
 	tree := newAssetTree()
 	for i := range toc {
-		pathList := strings.Split(toc[i].Name, string(os.PathSeparator))
+		pathList := strings.Split(toc[i].Name, "/")
 		tree.Add(pathList, toc[i])
 	}
 	return tree.WriteAsGoMap(w)
@@ -161,9 +160,39 @@ func writeTOCHeader(w io.Writer) error {
 func Asset(name string) ([]byte, error) {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	if f, ok := _bindata[cannonicalName]; ok {
-		return f()
+		a, err := f()
+		if err != nil {
+			return nil, fmt.Errorf("Asset %%s can't read by error: %%v", name, err)
+		}
+		return a.bytes, nil
 	}
 	return nil, fmt.Errorf("Asset %%s not found", name)
+}
+
+// MustAsset is like Asset but panics when Asset would return an error.
+// It simplifies safe initialization of global variables.
+func MustAsset(name string) []byte {
+	a, err := Asset(name)
+	if (err != nil) {
+		panic("asset: Asset(" + name + "): " + err.Error())
+	}
+
+	return a
+}
+
+// AssetInfo loads and returns the asset info for the given name.
+// It returns an error if the asset could not be found or
+// could not be loaded.
+func AssetInfo(name string) (os.FileInfo, error) {
+	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	if f, ok := _bindata[cannonicalName]; ok {
+		a, err := f()
+		if err != nil {
+			return nil, fmt.Errorf("AssetInfo %%s can't read by error: %%v", name, err)
+		}
+		return a.info, nil
+	}
+	return nil, fmt.Errorf("AssetInfo %%s not found", name)
 }
 
 // AssetNames returns the names of the assets.
@@ -176,7 +205,7 @@ func AssetNames() []string {
 }
 
 // _bindata is a table, holding each asset generator, mapped to its name.
-var _bindata = map[string]func() ([]byte, error){
+var _bindata = map[string]func() (*asset, error){
 `)
 	return err
 }
@@ -190,6 +219,7 @@ func writeTOCAsset(w io.Writer, asset *Asset) error {
 // writeTOCFooter writes the table of contents file footer.
 func writeTOCFooter(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `}
+
 `)
 	return err
 }

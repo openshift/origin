@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -28,7 +28,7 @@ func NewPolicyRegistry(policies []authorizationapi.Policy, err error) *PolicyReg
 	return &PolicyRegistry{policyMap, err}
 }
 
-// ListPolicies obtains list of ListPolicy that match a selector.
+// ListPolicies obtains a list of policies that match a selector.
 func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyList, error) {
 	if r.Err != nil {
 		return nil, r.Err
@@ -136,10 +136,13 @@ func (r *PolicyRegistry) DeletePolicy(ctx kapi.Context, id string) error {
 }
 
 func (r *PolicyRegistry) WatchPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return nil, errors.New("unsupported")
+	return nil, errors.New("unsupported action for test registry")
 }
 
 func addPolicy(policies map[string]map[string]authorizationapi.Policy, policy authorizationapi.Policy) {
+	resourceVersion += 1
+	policy.ResourceVersion = fmt.Sprintf("%d", resourceVersion)
+
 	namespacedPolicies, ok := policies[policy.Namespace]
 	if !ok {
 		namespacedPolicies = make(map[string]authorizationapi.Policy)

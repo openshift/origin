@@ -1,19 +1,18 @@
 package useridentitymapping
 
 import (
-	"errors"
 	"fmt"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
-	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/user/api"
-	"github.com/openshift/origin/pkg/user/api/validation"
 	"github.com/openshift/origin/pkg/user/registry/identity"
 	"github.com/openshift/origin/pkg/user/registry/user"
 )
@@ -31,81 +30,9 @@ func NewREST(userRegistry user.Registry, identityRegistry identity.Registry) *RE
 	return &REST{userRegistry: userRegistry, identityRegistry: identityRegistry}
 }
 
-// userIdentityMappingStrategy implements behavior for image repository mappings.
-type userIdentityMappingStrategy struct {
-	runtime.ObjectTyper
-}
-
-// Strategy is the default logic that applies when creating UserIdentityMapping
-// objects via the REST API.
-var Strategy = userIdentityMappingStrategy{kapi.Scheme}
-
 // New returns a new UserIdentityMapping for use with Create.
 func (r *REST) New() runtime.Object {
 	return &api.UserIdentityMapping{}
-}
-
-// NamespaceScoped is true for image repository mappings.
-func (s userIdentityMappingStrategy) NamespaceScoped() bool {
-	return false
-}
-
-func (userIdentityMappingStrategy) GenerateName(base string) string {
-	return base
-}
-
-func (userIdentityMappingStrategy) AllowCreateOnUpdate() bool {
-	return true
-}
-
-// PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s userIdentityMappingStrategy) PrepareForCreate(obj runtime.Object) {
-	mapping := obj.(*api.UserIdentityMapping)
-
-	if len(mapping.Name) == 0 {
-		mapping.Name = mapping.Identity.Name
-	}
-	mapping.Namespace = ""
-	mapping.ResourceVersion = ""
-
-	mapping.Identity.Namespace = ""
-	mapping.Identity.Kind = ""
-	mapping.Identity.UID = ""
-
-	mapping.User.Namespace = ""
-	mapping.User.Kind = ""
-	mapping.User.UID = ""
-}
-
-// PrepareForUpdate clears fields that are not allowed to be set by end users on update
-func (s userIdentityMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {
-	mapping := obj.(*api.UserIdentityMapping)
-
-	if len(mapping.Name) == 0 {
-		mapping.Name = mapping.Identity.Name
-	}
-	mapping.Namespace = ""
-
-	mapping.Identity.Namespace = ""
-	mapping.Identity.Kind = ""
-	mapping.Identity.UID = ""
-
-	mapping.User.Namespace = ""
-	mapping.User.Kind = ""
-	mapping.User.UID = ""
-}
-
-// Validate validates a new UserIdentityMapping.
-func (s userIdentityMappingStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	mapping := obj.(*api.UserIdentityMapping)
-	return validation.ValidateUserIdentityMapping(mapping)
-}
-
-// Validate validates an updated UserIdentityMapping.
-func (s userIdentityMappingStrategy) ValidateUpdate(ctx kapi.Context, obj runtime.Object, old runtime.Object) fielderrors.ValidationErrorList {
-	mapping := obj.(*api.UserIdentityMapping)
-	oldmapping := old.(*api.UserIdentityMapping)
-	return validation.ValidateUserIdentityMappingUpdate(mapping, oldmapping)
 }
 
 // Get returns the mapping for the named identity
@@ -118,7 +45,7 @@ func (s *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	mapping, ok := obj.(*api.UserIdentityMapping)
 	if !ok {
-		return nil, errors.New("Invalid type")
+		return nil, kerrs.NewBadRequest("invalid type")
 	}
 	Strategy.PrepareForCreate(mapping)
 	createdMapping, _, err := s.createOrUpdate(ctx, obj, true)
@@ -131,7 +58,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	mapping, ok := obj.(*api.UserIdentityMapping)
 	if !ok {
-		return nil, false, errors.New("Invalid type")
+		return nil, false, kerrs.NewBadRequest("invalid type")
 	}
 	Strategy.PrepareForUpdate(mapping, nil)
 	return s.createOrUpdate(ctx, mapping, false)
@@ -229,7 +156,7 @@ func (s *REST) createOrUpdate(ctx kapi.Context, obj runtime.Object, forceCreate 
 	// If this fails, log the error, but continue, because Update is no longer re-entrant
 	if oldUser != nil && removeIdentityFromUser(identity, oldUser) {
 		if _, err := s.userRegistry.UpdateUser(ctx, oldUser); err != nil {
-			glog.Errorf("Error removing identity reference %s from user %s: %v", identity.Name, oldUser.Name, err)
+			util.HandleError(fmt.Errorf("error removing identity reference %s from user %s: %v", identity.Name, oldUser.Name, err))
 		}
 	}
 
@@ -258,11 +185,11 @@ func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
 	// At this point, the mapping for the identity no longer exists
 	if unsetIdentityUser(identity) {
 		if _, err := s.identityRegistry.UpdateIdentity(ctx, identity); err != nil {
-			glog.Errorf("Error removing user reference %s from identity %s: %v", user.Name, identity.Name, err)
+			util.HandleError(fmt.Errorf("error removing user reference %s from identity %s: %v", user.Name, identity.Name, err))
 		}
 	}
 
-	return &kapi.Status{Status: kapi.StatusSuccess}, nil
+	return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
 }
 
 // getRelatedObjects returns the identity, user, and mapping for the named identity
@@ -317,13 +244,13 @@ func identityReferencesUser(identity *api.Identity, user *api.User) bool {
 
 // userReferencesIdentity returns true if the user's identity list contains the given identity
 func userReferencesIdentity(user *api.User, identity *api.Identity) bool {
-	return util.NewStringSet(user.Identities...).Has(identity.Name)
+	return sets.NewString(user.Identities...).Has(identity.Name)
 }
 
 // addIdentityToUser adds the given identity to the user's list of identities
 // returns true if the user's identity list was modified
 func addIdentityToUser(identity *api.Identity, user *api.User) bool {
-	identities := util.NewStringSet(user.Identities...)
+	identities := sets.NewString(user.Identities...)
 	if identities.Has(identity.Name) {
 		return false
 	}
@@ -335,7 +262,7 @@ func addIdentityToUser(identity *api.Identity, user *api.User) bool {
 // removeIdentityFromUser removes the given identity from the user's list of identities
 // returns true if the user's identity list was modified
 func removeIdentityFromUser(identity *api.Identity, user *api.User) bool {
-	identities := util.NewStringSet(user.Identities...)
+	identities := sets.NewString(user.Identities...)
 	if !identities.Has(identity.Name) {
 		return false
 	}

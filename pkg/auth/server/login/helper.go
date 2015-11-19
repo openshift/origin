@@ -31,20 +31,18 @@ func getBaseURL(req *http.Request) (*url.URL, error) {
 }
 
 func postForm(url string, body url.Values) (resp *http.Response, err error) {
-	tr := &http.Transport{}
 	req, err := http.NewRequest("POST", url, strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	return tr.RoundTrip(req)
+	return http.DefaultTransport.RoundTrip(req)
 }
 
 func getURL(url string) (resp *http.Response, err error) {
-	tr := &http.Transport{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	return tr.RoundTrip(req)
+	return http.DefaultTransport.RoundTrip(req)
 }

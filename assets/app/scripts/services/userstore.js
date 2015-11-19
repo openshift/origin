@@ -1,3 +1,6 @@
+'use strict';
+/* jshint unused: false */
+
 // UserStore objects able to remember user and tokens for the current user
 angular.module('openshiftConsole')
 .provider('MemoryUserStore', function() {
@@ -13,7 +16,8 @@ angular.module('openshiftConsole')
         authLogger.log("MemoryUserStore.getUser", _user);
         return _user;
       },
-      setUser: function(user) {
+      setUser: function(user, ttl) {
+        // TODO: honor ttl
         authLogger.log("MemoryUserStore.setUser", user);
         _user = user;
       },
@@ -21,11 +25,12 @@ angular.module('openshiftConsole')
         authLogger.log("MemoryUserStore.getToken", _token);
         return _token;
       },
-      setToken: function(token) {
+      setToken: function(token, ttl) {
+        // TODO: honor ttl
         authLogger.log("MemoryUserStore.setToken", token);
         _token = token;
       }
-    }
+    };
   };
 })
 .provider('SessionStorageUserStore', function() {
@@ -36,11 +41,11 @@ angular.module('openshiftConsole')
     return {
       available: function() {
         try {
-          var x = new Date().getTime();
+          var x = String(new Date().getTime());
           sessionStorage['SessionStorageUserStore.test'] = x;
           var y = sessionStorage['SessionStorageUserStore.test'];
           sessionStorage.removeItem('SessionStorageUserStore.test');
-          return x == y;
+          return x === y;
         } catch(e) {
           return false;
         }
@@ -55,7 +60,8 @@ angular.module('openshiftConsole')
           return null;
         }
       },
-      setUser: function(user) {
+      setUser: function(user, ttl) {
+        // TODO: honor ttl
         if (user) {
           authLogger.log("SessionStorageUserStore.setUser", user);
           sessionStorage[userkey] = JSON.stringify(user);
@@ -74,7 +80,8 @@ angular.module('openshiftConsole')
           return null;
         }
       },
-      setToken: function(token) {
+      setToken: function(token, ttl) {
+        // TODO: honor ttl
         if (token) {
           authLogger.log("SessionStorageUserStore.setToken", token);
           sessionStorage[tokenkey] = token;
@@ -83,7 +90,7 @@ angular.module('openshiftConsole')
           sessionStorage.removeItem(tokenkey);
         }
       }
-    }
+    };
   };
 })
 .provider('LocalStorageUserStore', function() {
@@ -91,20 +98,50 @@ angular.module('openshiftConsole')
     var authLogger = Logger.get("auth");
     var userkey = "LocalStorageUserStore.user";
     var tokenkey = "LocalStorageUserStore.token";
+
+    var ttlKey = function(key) {
+      return key + ".ttl";
+    };
+    var setTTL = function(key, ttl) {
+      if (ttl) {
+        var expires = new Date().getTime() + ttl*1000;
+        localStorage[ttlKey(key)] = expires;
+        authLogger.log("LocalStorageUserStore.setTTL", key, ttl, new Date(expires).toString());
+      } else {
+        localStorage.removeItem(ttlKey(key));
+        authLogger.log("LocalStorageUserStore.setTTL deleting", key);
+      }
+    };
+    var isTTLExpired = function(key) {
+      var ttl = localStorage[ttlKey(key)];
+      if (!ttl) {
+        return false;
+      }
+      var expired = parseInt(ttl) < new Date().getTime();
+      authLogger.log("LocalStorageUserStore.isTTLExpired", key, expired);
+      return expired;
+    };
+
     return {
       available: function() {
         try {
-          var x = new Date().getTime();
+          var x = String(new Date().getTime());
           localStorage['LocalStorageUserStore.test'] = x;
           var y = localStorage['LocalStorageUserStore.test'];
           localStorage.removeItem('LocalStorageUserStore.test');
-          return x == y;
+          return x === y;
         } catch(e) {
           return false;
         }
       },
       getUser: function(){
         try {
+          if (isTTLExpired(userkey)) {
+            authLogger.log("LocalStorageUserStore.getUser expired");
+            localStorage.removeItem(userkey);
+            setTTL(userkey, null);
+            return null;
+          }
           var user = JSON.parse(localStorage[userkey]);
           authLogger.log("LocalStorageUserStore.getUser", user);
           return user;
@@ -113,17 +150,25 @@ angular.module('openshiftConsole')
           return null;
         }
       },
-      setUser: function(user) {
+      setUser: function(user, ttl) {
         if (user) {
-          authLogger.log("LocalStorageUserStore.setUser", user);
+          authLogger.log("LocalStorageUserStore.setUser", user, ttl);
           localStorage[userkey] = JSON.stringify(user);
+          setTTL(userkey, ttl);
         } else {
           authLogger.log("LocalStorageUserStore.setUser", user, "deleting");
           localStorage.removeItem(userkey);
+          setTTL(userkey, null);
         }
       },
       getToken: function() {
         try {
+          if (isTTLExpired(tokenkey)) {
+            authLogger.log("LocalStorageUserStore.getToken expired");
+            localStorage.removeItem(tokenkey);
+            setTTL(tokenkey, null);
+            return null;
+          }
           var token = localStorage[tokenkey];
           authLogger.log("LocalStorageUserStore.getToken", token);
           return token;
@@ -132,15 +177,17 @@ angular.module('openshiftConsole')
           return null;
         }
       },
-      setToken: function(token) {
+      setToken: function(token, ttl) {
         if (token) {
-          authLogger.log("LocalStorageUserStore.setToken", token);
+          authLogger.log("LocalStorageUserStore.setToken", token, ttl);
           localStorage[tokenkey] = token;
+          setTTL(tokenkey, ttl);
         } else {
-          authLogger.log("LocalStorageUserStore.setToken", token, "deleting");
+          authLogger.log("LocalStorageUserStore.setToken", token, ttl, "deleting");
           localStorage.removeItem(tokenkey);
+          setTTL(tokenkey, null);
         }
       }
-    }
+    };
   };
 });

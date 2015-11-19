@@ -1,24 +1,25 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
 import (
-	"os"
+	"io/ioutil"
 	"testing"
 
 	"github.com/spf13/pflag"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	"github.com/openshift/origin/pkg/client"
+	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
-	newproject "github.com/openshift/origin/pkg/cmd/experimental/project"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/user/api"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func init() {
@@ -28,7 +29,7 @@ func init() {
 func TestLogin(t *testing.T) {
 	clientcmd.DefaultCluster = clientcmdapi.Cluster{Server: ""}
 
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -44,18 +45,12 @@ func TestLogin(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// empty config, should display message
-	loginOptions := newLoginOptions("", "", "", "", false)
-	if err := loginOptions.GatherInfo(); err == nil {
-		t.Errorf("Raw login should error out")
-	}
-
 	username := "joe"
 	password := "pass"
 	project := "the-singularity-is-near"
 	server := clusterAdminClientConfig.Host
 
-	loginOptions = newLoginOptions(server, username, password, "", true)
+	loginOptions := newLoginOptions(server, username, password, true)
 
 	if err := loginOptions.GatherInfo(); err != nil {
 		t.Fatalf("Error trying to determine server info: %v", err)
@@ -66,13 +61,12 @@ func TestLogin(t *testing.T) {
 	}
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		Client:                clusterAdminClient,
-		ProjectName:           project,
-		AdminRole:             bootstrappolicy.AdminRoleName,
-		MasterPolicyNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		AdminUser:             username,
+		Client:      clusterAdminClient,
+		ProjectName: project,
+		AdminRole:   bootstrappolicy.AdminRoleName,
+		AdminUser:   username,
 	}
-	if err := newProjectOptions.Run(); err != nil {
+	if err := newProjectOptions.Run(false); err != nil {
 		t.Fatalf("unexpected error, a project is required to continue: %v", err)
 	}
 
@@ -107,31 +101,44 @@ func TestLogin(t *testing.T) {
 	// if _, err = loginOptions.SaveConfig(configFile.Name()); err != nil {
 	// 	t.Fatalf("unexpected error: %v", err)
 	// }
+
+	userWhoamiOptions := cmd.WhoAmIOptions{UserInterface: oClient.Users(), Out: ioutil.Discard}
+	retrievedUser, err := userWhoamiOptions.WhoAmI()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if retrievedUser.Name != username {
+		t.Errorf("expected %v, got %v", retrievedUser.Name, username)
+	}
+
+	adminWhoamiOptions := cmd.WhoAmIOptions{UserInterface: clusterAdminClient.Users(), Out: ioutil.Discard}
+	retrievedAdmin, err := adminWhoamiOptions.WhoAmI()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if retrievedAdmin.Name != "system:admin" {
+		t.Errorf("expected %v, got %v", retrievedAdmin.Name, "system:admin")
+	}
+
 }
 
-func newLoginOptions(server string, username string, password string, context string, insecure bool) *cmd.LoginOptions {
+func newLoginOptions(server string, username string, password string, insecure bool) *cmd.LoginOptions {
 	flagset := pflag.NewFlagSet("test-flags", pflag.ContinueOnError)
-
 	flags := []string{}
+	clientConfig := defaultClientConfig(flagset)
+	flagset.Parse(flags)
 
-	if len(server) > 0 {
-		flags = append(flags, "--server="+server)
-	}
-	if len(context) > 0 {
-		flags = append(flags, "--context="+context)
-	}
-	if insecure {
-		flags = append(flags, "--insecure-skip-tls-verify")
-	}
+	startingConfig, _ := clientConfig.RawConfig()
 
 	loginOptions := &cmd.LoginOptions{
-		ClientConfig: defaultClientConfig(flagset),
-		Reader:       os.Stdin,
-		Username:     username,
-		Password:     password,
-	}
+		Server:             server,
+		StartingKubeConfig: &startingConfig,
+		Username:           username,
+		Password:           password,
+		InsecureTLS:        insecure,
 
-	flagset.Parse(flags)
+		Out: ioutil.Discard,
+	}
 
 	return loginOptions
 }
@@ -157,7 +164,7 @@ func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 
 	overrides := &clientcmd.ConfigOverrides{}
 	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
-	overrideFlags.ContextOverrideFlags.NamespaceShort = "n"
+	overrideFlags.ContextOverrideFlags.Namespace.ShortName = "n"
 	clientcmd.BindOverrideFlags(overrides, flags, overrideFlags)
 
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)

@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/search"
+	"github.com/gonum/graph/topo"
 )
 
 func main() {
@@ -66,8 +67,7 @@ func main() {
 	G.AddRoot(clusterB)
 	// }
 
-	path := []graph.Node{C, D, d, f}
-	if !search.IsPath(path, G) {
+	if !topo.IsPathIn(G, []graph.Node{C, D, d, f}) {
 		fmt.Println("Not working!")
 	} else {
 		fmt.Println("Working!")

@@ -1,18 +1,21 @@
+'use strict';
+
 angular.module('openshiftConsole')
   .filter('dateRelative', function() {
-    return function(timestamp) {
+    // dropSuffix will tell moment whether to include the "ago" text
+    return function(timestamp, dropSuffix) {
       if (!timestamp) {
         return timestamp;
       }
-      return moment(timestamp).fromNow();
+      return moment(timestamp).fromNow(dropSuffix);
     };
   })
   .filter('duration', function() {
-    return function(timestampLhs, timestampRhs) {
+    return function(timestampLhs, timestampRhs, omitSingle) {
       if (!timestampLhs) {
         return timestampLhs;
       }
-      timestampRhs = timestampRhs || Date();
+      timestampRhs = timestampRhs || new Date(); // moment expects either an ISO format string or a Date object
 
       var ms = moment(timestampRhs).diff(timestampLhs);
       var duration = moment.duration(ms);
@@ -25,26 +28,25 @@ angular.module('openshiftConsole')
       var hours = duration.hours();
       var minutes = duration.minutes();
       var seconds = duration.seconds();
-      if (years > 0) {
-        humanizedDuration.push(years + (years == 1 ? " year" : " years"));
-      }
-      if (months > 0) {
-        humanizedDuration.push(months + (months == 1 ? " month" : " months"));
-      }
-      if (days > 0) {
-        humanizedDuration.push(days + (days == 1 ? " day" : " days"));
-      }
-      if (hours > 0) {
-        humanizedDuration.push(hours + (hours == 1 ? " hour" : " hours"));
-      }
-      if (minutes > 0) {
-        humanizedDuration.push(minutes + (minutes == 1 ? " minute" : " minutes"));
-      }
-      if (seconds > 0) {
-        humanizedDuration.push(seconds + (seconds == 1 ? " second" : " seconds"));
-      }      
 
-      if (humanizedDuration.length == 0) {
+      function add(count, singularText, pluralText) {
+        if (count > 0) {
+          if (omitSingle && count === 1) {
+            humanizedDuration.push(singularText);
+          } else {
+            humanizedDuration.push(count + ' ' + (count === 1 ? singularText : pluralText));
+          }
+        }
+      }
+
+      add(years, "year", "years");
+      add(months, "month", "months");
+      add(days, "day", "days");
+      add(hours, "hour", "hours");
+      add(minutes, "minute", "minutes");
+      add(seconds, "second", "seconds");
+
+      if (humanizedDuration.length === 0) {
         humanizedDuration.push("0 seconds");
       }
 
@@ -54,12 +56,12 @@ angular.module('openshiftConsole')
 
       return humanizedDuration.join(", ");
     };
-  })  
+  })
   .filter('ageLessThan', function() {
     // ex:  amt = 5  and unit = 'minutes'
     return function(timestamp, amt, unit) {
       return moment().subtract(amt, unit).diff(moment(timestamp)) < 0;
-    }
+    };
   })
   .filter('orderObjectsByDate', function() {
     return function(items, reverse) {
@@ -73,7 +75,9 @@ angular.module('openshiftConsole')
         }
         return moment(a.metadata.creationTimestamp).diff(moment(b.metadata.creationTimestamp));
       });
-      if(reverse) filtered.reverse();
+      if(reverse) {
+        filtered.reverse();
+      }
       return filtered;
-    }
+    };
   });

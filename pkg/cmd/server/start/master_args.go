@@ -4,20 +4,23 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"path"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/master/ports"
+	"k8s.io/kubernetes/pkg/registry/service/ipallocator"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/spf13/cobra"
 )
 
 // MasterArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting the master
@@ -25,28 +28,52 @@ import (
 // a fully specified config later on.  If you need something not set here, then create a fully specified config file and pass that as argument
 // to starting the master.
 type MasterArgs struct {
+	// MasterAddr is the master address for use by OpenShift components (host, host:port, or URL).
+	// Scheme and port default to the --listen scheme and port. When unset, attempt to use the first
+	// public IPv4 non-loopback address registered on this host.
 	MasterAddr flagtypes.Addr
-	EtcdAddr   flagtypes.Addr
-	PortalNet  flagtypes.IPNet
-	// addresses for external clients
+
+	// EtcdAddr is the address of the etcd server (host, host:port, or URL). If specified, no built-in
+	// etcd will be started.
+	EtcdAddr flagtypes.Addr
+
+	// MasterPublicAddr is the master address for use by public clients, if different (host, host:port,
+	// or URL). Defaults to same as --master.
 	MasterPublicAddr flagtypes.Addr
+
+	// StartAPI controls whether the API component of the master is started (to support the API role)
+	// TODO: once we implement bastion role and kube/os controller role, revisit
+	StartAPI bool
+	// StartControllers controls whether the controller component of the master is started (to support
+	// the controller role)
+	StartControllers bool
+	PauseControllers bool
 
 	// DNSBindAddr exposed for integration tests to set
 	DNSBindAddr flagtypes.Addr
 
-	EtcdDir string
+	// EtcdDir is the etcd data directory.
+	EtcdDir   string
+	ConfigDir *util.StringFlag
 
+	// NodeList contains the hostnames of each node. This currently must be specified
+	// up front. Comma delimited list
 	NodeList util.StringList
 
+	// CORSAllowedOrigins is a list of allowed origins for CORS, comma separated.
+	// An allowed origin can be a regular expression to support subdomain matching.
+	// CORS is enabled for localhost, 127.0.0.1, and the asset server by default.
 	CORSAllowedOrigins util.StringList
 
 	ListenArg          *ListenArg
-	PolicyArgs         *PolicyArgs
 	ImageFormatArgs    *ImageFormatArgs
 	KubeConnectionArgs *KubeConnectionArgs
-	CertArgs           *CertArgs
 
 	SchedulerConfigFile string
+
+	NetworkArgs *NetworkArgs
+
+	OverrideConfig func(config *configapi.MasterConfig) error
 }
 
 // BindMasterArgs binds the options to the flags with prefix + default flag names
@@ -54,12 +81,16 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 	flags.Var(&args.MasterAddr, prefix+"master", "The master address for use by OpenShift components (host, host:port, or URL). Scheme and port default to the --listen scheme and port. When unset, attempt to use the first public IPv4 non-loopback address registered on this host.")
 	flags.Var(&args.MasterPublicAddr, prefix+"public-master", "The master address for use by public clients, if different (host, host:port, or URL). Defaults to same as --master.")
 	flags.Var(&args.EtcdAddr, prefix+"etcd", "The address of the etcd server (host, host:port, or URL). If specified, no built-in etcd will be started.")
-	flags.Var(&args.PortalNet, prefix+"portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
+	flags.Var(&args.DNSBindAddr, prefix+"dns", "The address to listen for DNS requests on.")
+	flags.BoolVar(&args.PauseControllers, prefix+"pause", false, "If true, wait for a signal before starting the controllers.")
 
 	flags.StringVar(&args.EtcdDir, prefix+"etcd-dir", "openshift.local.etcd", "The etcd data directory.")
 
 	flags.Var(&args.NodeList, prefix+"nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
 	flags.Var(&args.CORSAllowedOrigins, prefix+"cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
+
+	// autocompletion hints
+	cobra.MarkFlagFilename(flags, prefix+"etcd-dir")
 }
 
 // NewDefaultMasterArgs creates MasterArgs with sub-objects created and default values set.
@@ -67,18 +98,28 @@ func NewDefaultMasterArgs() *MasterArgs {
 	config := &MasterArgs{
 		MasterAddr:       flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		EtcdAddr:         flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "https", DefaultPort: 4001}.Default(),
-		PortalNet:        flagtypes.DefaultIPNet("172.30.17.0/24"),
 		MasterPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
-		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "http", DefaultPort: 53, AllowPrefix: true}.Default(),
+		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "tcp", DefaultPort: 53, AllowPrefix: true}.Default(),
+
+		ConfigDir: &util.StringFlag{},
 
 		ListenArg:          NewDefaultListenArg(),
-		PolicyArgs:         NewDefaultPolicyArgs(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
-		CertArgs:           NewDefaultCertArgs(),
+		NetworkArgs:        NewDefaultNetworkArgs(),
 	}
 
 	return config
+}
+
+// GetPolicyFile returns the policy filepath for master
+func (args MasterArgs) GetPolicyFile() string {
+	return path.Join(args.ConfigDir.Value(), "policy.json")
+}
+
+// GetConfigFileToWrite returns the configuration filepath for master
+func (args MasterArgs) GetConfigFileToWrite() string {
+	return path.Join(args.ConfigDir.Value(), "master-config.yaml")
 }
 
 // BuildSerializeableMasterConfig takes the MasterArgs (partially complete config) and uses them along with defaulting behavior to create the fully specified
@@ -97,10 +138,12 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		return nil, err
 	}
 
+	listenServingInfo := servingInfoForAddr(&args.ListenArg.ListenAddr)
+
 	// always include the all-in-one server's web console as an allowed CORS origin
 	// always include localhost as an allowed CORS origin
 	// always include master public address as an allowed CORS origin
-	corsAllowedOrigins := util.NewStringSet(args.CORSAllowedOrigins...)
+	corsAllowedOrigins := sets.NewString(args.CORSAllowedOrigins...)
 	corsAllowedOrigins.Insert(assetPublicAddr.Host, masterPublicAddr.Host, "localhost", "127.0.0.1")
 
 	etcdAddress, err := args.GetEtcdAddress()
@@ -131,24 +174,29 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		return nil, err
 	}
 
-	kubeletClientInfo := admin.DefaultMasterKubeletClientCertInfo(args.CertArgs.CertDir)
+	kubeletClientInfo := admin.DefaultMasterKubeletClientCertInfo(args.ConfigDir.Value())
 
-	etcdClientInfo := admin.DefaultMasterEtcdClientCertInfo(args.CertArgs.CertDir)
+	etcdClientInfo := admin.DefaultMasterEtcdClientCertInfo(args.ConfigDir.Value())
+
+	dnsServingInfo := servingInfoForAddr(&dnsBindAddr)
 
 	config := &configapi.MasterConfig{
-		ServingInfo: configapi.ServingInfo{
-			BindAddress: args.ListenArg.ListenAddr.URL.Host,
+		ServingInfo: configapi.HTTPServingInfo{
+			ServingInfo: listenServingInfo,
 		},
 		CORSAllowedOrigins: corsAllowedOrigins.List(),
+		MasterPublicURL:    masterPublicAddr.String(),
 
 		KubernetesMasterConfig: kubernetesMasterConfig,
 		EtcdConfig:             etcdConfig,
 
 		OAuthConfig: oauthConfig,
 
+		PauseControllers: args.PauseControllers,
+
 		AssetConfig: &configapi.AssetConfig{
-			ServingInfo: configapi.ServingInfo{
-				BindAddress: args.GetAssetBindAddress(),
+			ServingInfo: configapi.HTTPServingInfo{
+				ServingInfo: listenServingInfo,
 			},
 
 			LogoutURL:       "",
@@ -157,13 +205,13 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		DNSConfig: &configapi.DNSConfig{
-			BindAddress: dnsBindAddr.URL.Host,
+			BindAddress: dnsServingInfo.BindAddress,
+			BindNetwork: dnsServingInfo.BindNetwork,
 		},
 
 		MasterClients: configapi.MasterClients{
-			DeployerKubeConfig:          admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "openshift-deployer"),
-			OpenShiftLoopbackKubeConfig: admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "openshift-client"),
-			KubernetesKubeConfig:        admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "kube-client"),
+			OpenShiftLoopbackKubeConfig:  admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), bootstrappolicy.MasterUnqualifiedUsername),
+			ExternalKubernetesKubeConfig: args.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath,
 		},
 
 		EtcdClientInfo: configapi.EtcdConnectionInfo{
@@ -175,8 +223,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		PolicyConfig: configapi.PolicyConfig{
-			BootstrapPolicyFile:               args.PolicyArgs.PolicyFile,
-			MasterAuthorizationNamespace:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
+			BootstrapPolicyFile:               args.GetPolicyFile(),
 			OpenShiftSharedResourcesNamespace: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace,
 		},
 
@@ -184,28 +231,79 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			Format: args.ImageFormatArgs.ImageTemplate.Format,
 			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
 		},
+
+		ProjectConfig: configapi.ProjectConfig{
+			DefaultNodeSelector:    "",
+			ProjectRequestMessage:  "",
+			ProjectRequestTemplate: "",
+
+			// Allocator defaults on
+			SecurityAllocator: &configapi.SecurityAllocator{},
+		},
+
+		NetworkConfig: configapi.MasterNetworkConfig{
+			NetworkPluginName:  args.NetworkArgs.NetworkPluginName,
+			ClusterNetworkCIDR: args.NetworkArgs.ClusterNetworkCIDR,
+			HostSubnetLength:   args.NetworkArgs.HostSubnetLength,
+			ServiceNetworkCIDR: args.NetworkArgs.ServiceNetworkCIDR,
+		},
 	}
 
 	if args.ListenArg.UseTLS() {
-		config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.CertArgs.CertDir)
-		config.ServingInfo.ClientCA = admin.DefaultAPIClientCAFile(args.CertArgs.CertDir)
+		config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.ConfigDir.Value())
+		config.ServingInfo.ClientCA = admin.DefaultAPIClientCAFile(args.ConfigDir.Value())
 
-		config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.CertArgs.CertDir)
+		config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.ConfigDir.Value())
+
+		if oauthConfig != nil {
+			s := admin.DefaultRootCAFile(args.ConfigDir.Value())
+			oauthConfig.MasterCA = &s
+		}
 
 		// Only set up ca/cert info for kubelet connections if we're self-hosting Kubernetes
 		if builtInKubernetes {
-			config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
+			config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
 			config.KubeletClientInfo.ClientCert = kubeletClientInfo.CertLocation
+			config.ServiceAccountConfig.MasterCA = admin.DefaultRootCAFile(args.ConfigDir.Value())
 		}
 
 		// Only set up ca/cert info for etcd connections if we're self-hosting etcd
 		if builtInEtcd {
-			config.EtcdClientInfo.CA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
+			config.EtcdClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
 			config.EtcdClientInfo.ClientCert = etcdClientInfo.CertLocation
 		}
 	}
 
-	return config, nil
+	if builtInKubernetes {
+		// When we start Kubernetes, we're responsible for generating all the managed service accounts
+		config.ServiceAccountConfig.ManagedNames = []string{
+			bootstrappolicy.DefaultServiceAccountName,
+			bootstrappolicy.BuilderServiceAccountName,
+			bootstrappolicy.DeployerServiceAccountName,
+		}
+		// We also need the private key file to give to the token generator
+		config.ServiceAccountConfig.PrivateKeyFile = admin.DefaultServiceAccountPrivateKeyFile(args.ConfigDir.Value())
+		// We also need the public key file to give to the authenticator
+		config.ServiceAccountConfig.PublicKeyFiles = []string{
+			admin.DefaultServiceAccountPublicKeyFile(args.ConfigDir.Value()),
+		}
+	} else {
+		// When running against an external Kubernetes, we're only responsible for the builder and deployer accounts.
+		// We don't have the private key, but we need to get the public key to authenticate signed tokens.
+		// TODO: JTL: take arg for public key(s)?
+		config.ServiceAccountConfig.ManagedNames = []string{
+			bootstrappolicy.BuilderServiceAccountName,
+			bootstrappolicy.DeployerServiceAccountName,
+		}
+		config.ServiceAccountConfig.PublicKeyFiles = []string{}
+	}
+
+	internal, err := applyDefaults(config, "v1")
+	if err != nil {
+		return nil, err
+	}
+
+	return internal.(*configapi.MasterConfig), nil
 }
 
 func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, error) {
@@ -234,41 +332,14 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 
 		SessionConfig: &configapi.SessionConfig{
 			SessionSecretsFile:   "",
-			SessionMaxAgeSeconds: 300,
+			SessionMaxAgeSeconds: 5 * 60, // 5 minutes
 			SessionName:          "ssn",
 		},
 
 		TokenConfig: configapi.TokenConfig{
-			AuthorizeTokenMaxAgeSeconds: 300,
-			AccessTokenMaxAgeSeconds:    3600,
+			AuthorizeTokenMaxAgeSeconds: 5 * 60,       // 5 minutes
+			AccessTokenMaxAgeSeconds:    24 * 60 * 60, // 1 day
 		},
-	}
-
-	// Make sure we don't start up in a permissive auth mode they don't expect
-	if cmdutil.Env("OPENSHIFT_OAUTH_HANDLER", "login") != "login" {
-		return nil, fmt.Errorf("OPENSHIFT_OAUTH_HANDLER is deprecated. Use the master configuration file to configure OAuth.")
-	}
-	if cmdutil.Env("OPENSHIFT_OAUTH_PASSWORD_AUTH", "anypassword") != "anypassword" {
-		return nil, fmt.Errorf("OPENSHIFT_OAUTH_PASSWORD_AUTH is deprecated. Use the master configuration file to configure OAuth.")
-	}
-
-	// Warn about deprecation
-	// TODO: remove before 3.0
-	deprecated := []string{
-		"OPENSHIFT_OAUTH_ACCESS_TOKEN_MAX_AGE_SECONDS",
-		"OPENSHIFT_OAUTH_AUTHORIZE_TOKEN_MAX_AGE_SECONDS",
-		"OPENSHIFT_OAUTH_GRANT_HANDLER",
-		"OPENSHIFT_OAUTH_HANDLER",
-		"OPENSHIFT_OAUTH_PASSWORD_AUTH",
-		"OPENSHIFT_OAUTH_REQUEST_HANDLERS",
-		"OPENSHIFT_OAUTH_SESSION_MAX_AGE_SECONDS",
-		"OPENSHIFT_OAUTH_SESSION_NAME",
-		"OPENSHIFT_OAUTH_SESSION_SECRET",
-	}
-	for _, key := range deprecated {
-		if value := cmdutil.Env(key, ""); len(value) != 0 {
-			glog.Warningf("%s is deprecated. Use the master configuration file to configure OAuth.", key)
-		}
 	}
 
 	config.IdentityProviders = append(config.IdentityProviders,
@@ -277,7 +348,7 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 			UseAsChallenger: true,
 			UseAsLogin:      true,
 			Provider: runtime.EmbeddedObject{
-				&configapi.AllowAllPasswordIdentityProvider{},
+				Object: &configapi.AllowAllPasswordIdentityProvider{},
 			},
 		},
 	)
@@ -310,11 +381,11 @@ func (args MasterArgs) BuildSerializeableEtcdConfig() (*configapi.EtcdConfig, er
 	}
 
 	if args.ListenArg.UseTLS() {
-		config.ServingInfo.ServerCert = admin.DefaultEtcdServingCertInfo(args.CertArgs.CertDir)
-		config.ServingInfo.ClientCA = admin.DefaultEtcdClientCAFile(args.CertArgs.CertDir)
+		config.ServingInfo.ServerCert = admin.DefaultEtcdServingCertInfo(args.ConfigDir.Value())
+		config.ServingInfo.ClientCA = admin.DefaultEtcdClientCAFile(args.ConfigDir.Value())
 
-		config.PeerServingInfo.ServerCert = admin.DefaultEtcdServingCertInfo(args.CertArgs.CertDir)
-		config.PeerServingInfo.ClientCA = admin.DefaultEtcdClientCAFile(args.CertArgs.CertDir)
+		config.PeerServingInfo.ServerCert = admin.DefaultEtcdServingCertInfo(args.ConfigDir.Value())
+		config.PeerServingInfo.ClientCA = admin.DefaultEtcdClientCAFile(args.ConfigDir.Value())
 	}
 
 	return config, nil
@@ -323,26 +394,28 @@ func (args MasterArgs) BuildSerializeableEtcdConfig() (*configapi.EtcdConfig, er
 
 // BuildSerializeableKubeMasterConfig creates a fully specified kubernetes master startup configuration based on MasterArgs
 func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.KubernetesMasterConfig, error) {
-	servicesSubnet := net.IPNet(args.PortalNet)
-
 	masterAddr, err := args.GetMasterAddress()
 	if err != nil {
 		return nil, err
 	}
 	masterHost, _, err := net.SplitHostPort(masterAddr.Host)
 	if err != nil {
-
+		masterHost = masterAddr.Host
 	}
 	masterIP := ""
 	if ip := net.ParseIP(masterHost); ip != nil {
 		masterIP = ip.String()
 	}
 
+	staticNodeList := sets.NewString(args.NodeList...)
+	staticNodeList.Delete("")
+
 	config := &configapi.KubernetesMasterConfig{
 		MasterIP:            masterIP,
-		ServicesSubnet:      servicesSubnet.String(),
-		StaticNodeNames:     args.NodeList,
+		ServicesSubnet:      args.NetworkArgs.ServiceNetworkCIDR,
+		StaticNodeNames:     staticNodeList.List(),
 		SchedulerConfigFile: args.SchedulerConfigFile,
+		ProxyClientInfo:     admin.DefaultProxyClientCertInfo(args.ConfigDir.Value()).CertLocation,
 	}
 
 	return config, nil
@@ -376,7 +449,7 @@ func (args MasterArgs) Validate() error {
 }
 
 // GetServerCertHostnames returns the set of hostnames that any serving certificate for master needs to be valid for.
-func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
+func (args MasterArgs) GetServerCertHostnames() (sets.String, error) {
 	masterAddr, err := args.GetMasterAddress()
 	if err != nil {
 		return nil, err
@@ -390,8 +463,37 @@ func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 		return nil, err
 	}
 
-	allHostnames := util.NewStringSet("localhost", "127.0.0.1", "openshift.default.local", "kubernetes.default.local", "kubernetes-ro.default.local", masterAddr.Host, masterPublicAddr.Host, assetPublicAddr.Host)
-	certHostnames := util.StringSet{}
+	allHostnames := sets.NewString(
+		"localhost", "127.0.0.1",
+		"openshift.default.svc.cluster.local",
+		"openshift.default.svc",
+		"openshift.default",
+		"openshift",
+		"kubernetes.default.svc.cluster.local",
+		"kubernetes.default.svc",
+		"kubernetes.default",
+		"kubernetes",
+		masterAddr.Host, masterPublicAddr.Host, assetPublicAddr.Host)
+
+	if _, ipnet, err := net.ParseCIDR(args.NetworkArgs.ServiceNetworkCIDR); err == nil {
+		// CIDR is ignored if it is invalid, other code handles validation.
+		if firstServiceIP, err := ipallocator.GetIndexedIP(ipnet, 1); err == nil {
+			allHostnames.Insert(firstServiceIP.String())
+		}
+	}
+
+	listenIP := net.ParseIP(args.ListenArg.ListenAddr.Host)
+	// add the IPs that might be used based on the ListenAddr.
+	if listenIP != nil && listenIP.IsUnspecified() {
+		allAddresses, _ := cmdutil.AllLocalIP4()
+		for _, ip := range allAddresses {
+			allHostnames.Insert(ip.String())
+		}
+	} else {
+		allHostnames.Insert(args.ListenArg.ListenAddr.Host)
+	}
+
+	certHostnames := sets.String{}
 	for hostname := range allHostnames {
 		if host, _, err := net.SplitHostPort(hostname); err == nil {
 			// add the hostname without the port
@@ -448,16 +550,19 @@ func (args MasterArgs) GetMasterPublicAddress() (*url.URL, error) {
 	return args.GetMasterAddress()
 }
 
+// GetEtcdBindAddress derives the etcd bind address by using the bind address and
+// the default etcd port
 func (args MasterArgs) GetEtcdBindAddress() string {
-	// Derive the etcd bind address by using the bind address and the default etcd port
 	return net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(args.EtcdAddr.DefaultPort))
 }
 
+// GetEtcdPeerBindAddress derives the etcd peer address by using the bind address
+// and the default etcd peering port
 func (args MasterArgs) GetEtcdPeerBindAddress() string {
-	// Derive the etcd peer address by using the bind address and the default etcd peering port
 	return net.JoinHostPort(args.ListenArg.ListenAddr.Host, "7001")
 }
 
+// GetEtcdAddress returns the address for etcd
 func (args MasterArgs) GetEtcdAddress() (*url.URL, error) {
 	if args.EtcdAddr.Provided {
 		return args.EtcdAddr.URL, nil
@@ -505,10 +610,6 @@ func (args MasterArgs) GetAssetPublicAddress() (*url.URL, error) {
 	return &assetPublicAddr, nil
 }
 
-func (args MasterArgs) GetAssetBindAddress() string {
-	return args.ListenArg.ListenAddr.URL.Host
-}
-
 func getHost(theURL url.URL) string {
 	host, _, err := net.SplitHostPort(theURL.Host)
 	if err != nil {
@@ -526,4 +627,23 @@ func getPort(theURL url.URL) int {
 
 	intport, _ := strconv.Atoi(port)
 	return intport
+}
+
+// applyDefaults roundtrips the config to v1 and back to ensure proper defaults are set.
+func applyDefaults(config runtime.Object, version string) (runtime.Object, error) {
+	ext, err := configapi.Scheme.ConvertToVersion(config, version)
+	if err != nil {
+		return nil, err
+	}
+	return configapi.Scheme.ConvertToVersion(ext, "")
+}
+
+func servingInfoForAddr(addr *flagtypes.Addr) configapi.ServingInfo {
+	info := configapi.ServingInfo{
+		BindAddress: addr.URL.Host,
+	}
+	if addr.IPv6Host {
+		info.BindNetwork = "tcp6"
+	}
+	return info
 }

@@ -1,12 +1,13 @@
 package imagestream
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/image/api"
 )
@@ -21,10 +22,12 @@ type Registry interface {
 	CreateImageStream(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	// UpdateImageStream updates an image stream.
 	UpdateImageStream(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
-	// UpdateImageStream updates an image stream's status.
+	// UpdateImageStreamSpec updates an image stream's spec.
+	UpdateImageStreamSpec(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
+	// UpdateImageStreamStatus updates an image stream's status.
 	UpdateImageStreamStatus(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	// DeleteImageStream deletes an image stream.
-	DeleteImageStream(ctx kapi.Context, id string) (*kapi.Status, error)
+	DeleteImageStream(ctx kapi.Context, id string) (*unversioned.Status, error)
 	// WatchImageStreams watches for new/changed/deleted image streams.
 	WatchImageStreams(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
@@ -43,13 +46,14 @@ type Storage interface {
 // storage puts strong typing around storage calls
 type storage struct {
 	Storage
-	status rest.Updater
+	status   rest.Updater
+	internal rest.Updater
 }
 
 // NewRegistry returns a new Registry interface for the given Storage. Any mismatched
 // types will panic.
-func NewRegistry(s Storage, status rest.Updater) Registry {
-	return &storage{s, status}
+func NewRegistry(s Storage, status, internal rest.Updater) Registry {
+	return &storage{Storage: s, status: status, internal: internal}
 }
 
 func (s *storage) ListImageStreams(ctx kapi.Context, label labels.Selector) (*api.ImageStreamList, error) {
@@ -77,6 +81,14 @@ func (s *storage) CreateImageStream(ctx kapi.Context, imageStream *api.ImageStre
 }
 
 func (s *storage) UpdateImageStream(ctx kapi.Context, imageStream *api.ImageStream) (*api.ImageStream, error) {
+	obj, _, err := s.internal.Update(ctx, imageStream)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*api.ImageStream), nil
+}
+
+func (s *storage) UpdateImageStreamSpec(ctx kapi.Context, imageStream *api.ImageStream) (*api.ImageStream, error) {
 	obj, _, err := s.Update(ctx, imageStream)
 	if err != nil {
 		return nil, err
@@ -92,12 +104,12 @@ func (s *storage) UpdateImageStreamStatus(ctx kapi.Context, imageStream *api.Ima
 	return obj.(*api.ImageStream), nil
 }
 
-func (s *storage) DeleteImageStream(ctx kapi.Context, imageStreamID string) (*kapi.Status, error) {
+func (s *storage) DeleteImageStream(ctx kapi.Context, imageStreamID string) (*unversioned.Status, error) {
 	obj, err := s.Delete(ctx, imageStreamID, nil)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*kapi.Status), nil
+	return obj.(*unversioned.Status), nil
 }
 
 func (s *storage) WatchImageStreams(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {

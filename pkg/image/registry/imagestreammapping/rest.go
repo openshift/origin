@@ -1,19 +1,24 @@
 package imagestreammapping
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 )
+
+// maxRetriesOnConflict is the maximum retry count for Create calls which
+// result in resource conflicts.
+const maxRetriesOnConflict = 10
 
 // REST implements the RESTStorage interface in terms of an image registry and
 // image stream registry. It only supports the Create method and is used
@@ -61,7 +66,11 @@ func (s imageStreamMappingStrategy) Validate(ctx kapi.Context, obj runtime.Objec
 	return validation.ValidateImageStreamMapping(mapping)
 }
 
-// Create registers a new image (if it doesn't exist) and updates the specified ImageStream's tags.
+// Create registers a new image (if it doesn't exist) and updates the
+// specified ImageStream's tags. If attempts to update the ImageStream fail
+// with a resource conflict, the update will be retried if the newer
+// ImageStream has no tag diffs from the previous state. If tag diffs are
+// detected, the conflict error is returned.
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 		return nil, err
@@ -77,8 +86,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	image := mapping.Image
 	tag := mapping.Tag
 	if len(tag) == 0 {
-		// TODO: redirect this to the stable tag
-		tag = "latest"
+		tag = api.DefaultImageTag
 	}
 
 	if err := s.imageRegistry.CreateImage(ctx, &image); err != nil && !errors.IsAlreadyExists(err) {
@@ -86,17 +94,44 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	next := api.TagEvent{
-		Created:              util.Now(),
+		Created:              unversioned.Now(),
 		DockerImageReference: image.DockerImageReference,
 		Image:                image.Name,
 	}
-	if api.AddTagEventToImageStream(stream, tag, next) {
-		if _, err := s.imageStreamRegistry.UpdateImageStreamStatus(ctx, stream); err != nil {
-			return nil, err
-		}
-	}
 
-	return &kapi.Status{Status: kapi.StatusSuccess}, nil
+	err = wait.ExponentialBackoff(wait.Backoff{Steps: maxRetriesOnConflict}, func() (bool, error) {
+		lastEvent := api.LatestTaggedImage(stream, tag)
+		if !api.AddTagEventToImageStream(stream, tag, next) {
+			// nothing actually changed
+			return true, nil
+		}
+		api.UpdateTrackingTags(stream, tag, next)
+		_, err := s.imageStreamRegistry.UpdateImageStreamStatus(ctx, stream)
+		if err == nil {
+			return true, nil
+		}
+		if !errors.IsConflict(err) {
+			return false, err
+		}
+		// If the update conflicts, get the latest stream and check for tag
+		// updates. If the latest tag hasn't changed, retry.
+		latestStream, findLatestErr := s.findStreamForMapping(ctx, mapping)
+		if findLatestErr != nil {
+			return false, findLatestErr
+		}
+		newerEvent := api.LatestTaggedImage(latestStream, tag)
+		if lastEvent == nil || kapi.Semantic.DeepEqual(lastEvent, newerEvent) {
+			// The tag hasn't changed, so try again with the updated stream.
+			stream = latestStream
+			return false, nil
+		}
+		// The tag changed, so return the conflict error back to the client.
+		return false, err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
 }
 
 // findStreamForMapping retrieves an ImageStream whose DockerImageRepository matches dockerRepo.

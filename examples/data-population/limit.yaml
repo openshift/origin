@@ -1,0 +1,9 @@
+apiVersion: v1beta3
+kind: LimitRange
+metadata:
+  name: limit
+spec:
+  limits:
+  - default:
+      cpu: 10m
+    type: Container

@@ -7,9 +7,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api"
 )
 
+// ServiceRetriever is an interface for retrieving services
 type ServiceRetriever interface {
 	Get(name string) (*api.Service, error)
 }
@@ -19,14 +20,17 @@ type serviceEntry struct {
 	port string
 }
 
+// ResolverCacheFunc is used for resolving names to services
 type ResolverCacheFunc func(name string) (*api.Service, error)
 
+// ServiceResolverCache is a cache used for resolving names to services
 type ServiceResolverCache struct {
 	fill  ResolverCacheFunc
 	cache map[string]serviceEntry
 	lock  sync.RWMutex
 }
 
+// NewServiceResolverCache returns a new ServiceResolverCache
 func NewServiceResolverCache(fill ResolverCacheFunc) *ServiceResolverCache {
 	return &ServiceResolverCache{
 		cache: make(map[string]serviceEntry),
@@ -53,7 +57,10 @@ func (c *ServiceResolverCache) get(name string) (host, port string, ok bool) {
 	if err != nil {
 		return
 	}
-	host, port, ok = service.Spec.PortalIP, strconv.Itoa(service.Spec.Port), true
+	if len(service.Spec.Ports) == 0 {
+		return
+	}
+	host, port, ok = service.Spec.ClusterIP, strconv.Itoa(service.Spec.Ports[0].Port), true
 	c.cache[name] = serviceEntry{
 		host: host,
 		port: port,

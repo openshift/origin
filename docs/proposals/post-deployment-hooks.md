@@ -282,14 +282,27 @@ A database is exposed to the application using a service:
 ```json
 {
   "kind": "Service",
-  "apiVersion": "v1beta1",
-  "id": "mysql",
-  "containerPort": 3306,
-  "port": 5434,
-  "selector": {
+  "apiVersion": "v1beta3",
+  "metadata": {
     "name": "mysql"
+  },
+  "spec": {
+    "ports": [
+      {
+        "protocol": "TCP",
+        "port": 5434,
+        "targetPort": 3306,
+        "nodePort": 0
+      }
+    ],
+    "selector": {
+      "name": "mysql"
+    },
+    "portalIP": "",
+    "type": "ClusterIP",
+    "sessionAffinity": "None"
   }
-},
+}
 ```
 
 A deployment configuration describes the template for application deployments:
@@ -297,60 +310,53 @@ A deployment configuration describes the template for application deployments:
 ```json
 {
   "kind": "DeploymentConfig",
-  "apiVersion": "v1beta1",
+  "apiVersion": "v1beta3",
   "metadata": {
-    "name": "rails",
-    "description": "A sample Rails application."
+    "name": "rails"
   },
-  "triggers": [
-    {
-      "type": "ConfigChange"
-    }
-  ],
-  "template": {
+  "spec": {
     "strategy": {
       "type": "Recreate",
-      "lifecycle": {
-        "pre": {
-          "execNewPod": {
-          "container": "rails",
-            "command": ["rake", "db:migrate"],
-            "env": [
-              {
-                "name": "CUSTOM_VAR",
-                "value": "custom_value"
-              },
-            ]
-          },
-          "failurePolicy": "Retry"
-        }
-      }
+      "resources": {}
     },
-    "controllerTemplate": {
-      "replicas": 1,
-      "replicaSelector": {
-        "name": "rails"
-      },
-      "podTemplate": {
-        "desiredState": {
-          "manifest": {
-            "version": "v1beta1",
-            "containers": [
-              {
-                "name": "rails",
-                "image": "example/rails",
-                "ports": [
-                  {
-                    "containerPort": 8080
-                  }
-                ]
-              }
-            ]
-          }
-        },
+    "triggers": [
+      {
+        "type": "ConfigChange"
+      }
+    ],
+    "replicas": 1,
+    "selector": {
+      "name": "rails"
+    },
+    "template": {
+      "metadata": {
         "labels": {
           "name": "rails"
         }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "rails",
+            "image": "example/rails",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
       }
     }
   }

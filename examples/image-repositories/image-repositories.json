@@ -1,66 +1,79 @@
 {
-  "apiVersion": "v1beta1",
+  "kind": "ImageStreamList",
+  "apiVersion": "v1beta3",
+  "metadata": {},
   "items": [
     {
-      "apiVersion": "v1beta1",
-      "dockerImageRepository": "openshift/ruby-20-centos7",
-      "kind": "ImageRepository",
       "metadata": {
-        "name": "ruby-20-centos7"
+        "name": "ruby-20-centos7",
+        "creationTimestamp": null
       },
-      "tags": {
+      "spec": {
+        "dockerImageRepository": "openshift/ruby-20-centos7"
+      },
+      "status": {
+        "dockerImageRepository": ""
       }
     },
     {
-      "apiVersion": "v1beta1",
-      "dockerImageRepository": "openshift/nodejs-010-centos7",
-      "kind": "ImageRepository",
       "metadata": {
-        "name": "nodejs-010-centos7"
+        "name": "nodejs-010-centos7",
+        "creationTimestamp": null
       },
-      "tags": {
+      "spec": {
+        "dockerImageRepository": "openshift/nodejs-010-centos7"
+      },
+      "status": {
+        "dockerImageRepository": ""
       }
     },
     {
-      "apiVersion": "v1beta1",
-      "dockerImageRepository": "openshift/wildfly-8-centos",
-      "kind": "ImageRepository",
       "metadata": {
-        "name": "wildfly-8-centos"
+        "name": "wildfly-8-centos",
+        "creationTimestamp": null
       },
-      "tags": {
+      "spec": {
+        "dockerImageRepository": "openshift/wildfly-8-centos"
+      },
+      "status": {
+        "dockerImageRepository": ""
       }
     },
     {
-      "apiVersion": "v1beta1",
-      "dockerImageRepository": "openshift/mysql-55-centos7",
-      "kind": "ImageRepository",
       "metadata": {
-        "name": "mysql-55-centos7"
+        "name": "mysql-55-centos7",
+        "creationTimestamp": null
       },
-      "tags": {
+      "spec": {
+        "dockerImageRepository": "openshift/mysql-55-centos7"
+      },
+      "status": {
+        "dockerImageRepository": ""
       }
     },
     {
-      "apiVersion": "v1beta1",
-      "dockerImageRepository": "openshift/postgresql-92-centos7",
-      "kind": "ImageRepository",
       "metadata": {
-        "name": "postgresql-92-centos7"
+        "name": "postgresql-92-centos7",
+        "creationTimestamp": null
       },
-      "tags": {
+      "spec": {
+        "dockerImageRepository": "openshift/postgresql-92-centos7"
+      },
+      "status": {
+        "dockerImageRepository": ""
       }
     },
     {
-      "apiVersion": "v1beta1",
-      "dockerImageRepository": "openshift/mongodb-24-centos7",
-      "kind": "ImageRepository",
       "metadata": {
-        "name": "mongodb-24-centos7"
+        "name": "mongodb-24-centos7",
+        "creationTimestamp": null
       },
-      "tags": {
+      "spec": {
+        "dockerImageRepository": "openshift/mongodb-24-centos7"
+      },
+      "status": {
+        "dockerImageRepository": ""
       }
     }
-  ],
-  "kind": "ImageRepositoryList"
+  ]
 }

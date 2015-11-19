@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/golang/glog"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 // Authenticator uses basic auth to make a request to a JSON-returning URL.
@@ -32,16 +33,18 @@ type Authenticator struct {
 
 // RemoteUserData holds user data returned from a remote basic-auth protected endpoint.
 // These field names can not be changed unless external integrators are also updated.
+// Names are based on standard OpenID Connect claims: http://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
 type RemoteUserData struct {
-	// ID is the immutable identity of the user
-	ID string
-	// Login is the optional login of the user
-	// Useful when the id is different than the username/login used by the user to authenticate
-	Login string
-	// Name is the optional display name of the user
-	Name string
-	// Email is the optional email address of the user
-	Email string
+	// Subject - Identifier for the End-User at the Issuer. Required.
+	Subject string `json:"sub"`
+	// Name is the end-User's full name in displayable form including all name parts, possibly including titles and suffixes,
+	// ordered according to the End-User's locale and preferences.  Optional.
+	Name string `json:"name"`
+	// PreferredUsername is a shorthand name by which the End-User wishes to be referred. Optional.
+	// Useful when the immutable subject is different than the login used by the user to authenticate
+	PreferredUsername string `json:"preferred_username"`
+	// Email is the end-User's preferred e-mail address. Optional.
+	Email string `json:"email"`
 }
 
 // RemoteError holds error data returned from a remote authentication request
@@ -66,6 +69,12 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 		return nil, false, err
 	}
 
+	// Basic auth does not support usernames containing colons
+	// http://tools.ietf.org/html/rfc2617#section-2
+	if strings.Contains(username, ":") {
+		return nil, false, fmt.Errorf("invalid username")
+	}
+
 	req.SetBasicAuth(username, password)
 	req.Header.Set("Accept", "application/json")
 
@@ -73,6 +82,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	if err != nil {
 		return nil, false, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return nil, false, nil
@@ -99,19 +109,26 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 		return nil, false, err
 	}
 
-	if len(remoteUserData.ID) == 0 {
+	if len(remoteUserData.Subject) == 0 {
 		return nil, false, errors.New("Could not retrieve user data")
 	}
+	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, remoteUserData.Subject)
 
-	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, remoteUserData.ID)
-	identity.Extra[authapi.IdentityDisplayNameKey] = remoteUserData.Name
-	identity.Extra[authapi.IdentityLoginKey] = remoteUserData.Login
-	identity.Extra[authapi.IdentityEmailKey] = remoteUserData.Email
+	if len(remoteUserData.Name) > 0 {
+		identity.Extra[authapi.IdentityDisplayNameKey] = remoteUserData.Name
+	}
+	if len(remoteUserData.PreferredUsername) > 0 {
+		identity.Extra[authapi.IdentityPreferredUsernameKey] = remoteUserData.PreferredUsername
+	}
+	if len(remoteUserData.Email) > 0 {
+		identity.Extra[authapi.IdentityEmailKey] = remoteUserData.Email
+	}
+
 	user, err := a.mapper.UserFor(identity)
-	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 	if err != nil {
 		return nil, false, fmt.Errorf("Error creating or updating mapping for: %#v due to %v", identity, err)
 	}
+	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 
 	return user, true, nil
 }

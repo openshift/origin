@@ -4,39 +4,42 @@ import (
 	"fmt"
 	"io"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const cancelBuildLongDesc = `
-Cancels a pending or running build.
+const (
+	cancelBuildLong = `
+Cancels a pending or running build
 
-Examples:
+This command requests a graceful shutdown of the running build. There may be a delay between requesting 
+the build and the time the build is terminated.`
 
-	# Cancel the build with the given name
-	$ %[1]s cancel-build 1da32cvq
+	cancelBuildExample = `  # Cancel the build with the given name
+  $ %[1]s cancel-build 1da32cvq
 
-	# Cancel the named build and print the build logs
-	$ %[1]s cancel-build 1da32cvq --dump-logs
+  # Cancel the named build and print the build logs
+  $ %[1]s cancel-build 1da32cvq --dump-logs
 
-	# Cancel the named build and create a new one with the same parameters
-	$ %[1]s cancel-build 1da32cvq --restart
-`
+  # Cancel the named build and create a new one with the same parameters
+  $ %[1]s cancel-build 1da32cvq --restart`
+)
 
-// NewCmdCancelBuild manages a build cancelling event.
-// To cancel a build its name has to be specified, and two options
-// are available: displaying logs and restarting.
+// NewCmdCancelBuild implements the OpenShift cli cancel-build command
 func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "cancel-build <build>",
-		Short: "Cancel a pending or running build.",
-		Long:  fmt.Sprintf(cancelBuildLongDesc, fullName),
+		Use:        "cancel-build BUILD",
+		Short:      "Cancel a pending or running build",
+		Long:       cancelBuildLong,
+		Example:    fmt.Sprintf(cancelBuildExample, fullName),
+		SuggestFor: []string{"builds"},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCancelBuild(f, out, cmd, args)
 			cmdutil.CheckErr(err)
@@ -45,16 +48,18 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *co
 
 	cmd.Flags().Bool("dump-logs", false, "Specify if the build logs for the cancelled build should be shown.")
 	cmd.Flags().Bool("restart", false, "Specify if a new build should be created after the current build is cancelled.")
+	//cmdutil.AddOutputFlagsForMutation(cmd)
 	return cmd
 }
 
+// RunCancelBuild contains all the necessary functionality for the OpenShift cli cancel-build command
 func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
 	if len(args) == 0 || len(args[0]) == 0 {
 		return cmdutil.UsageError(cmd, "You must specify the name of a build to cancel.")
 	}
 
 	buildName := args[0]
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -64,34 +69,40 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 		return err
 	}
 	buildClient := client.Builds(namespace)
-	build, err := buildClient.Get(buildName)
+
+	mapper, typer := f.Object()
+	obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+		NamespaceParam(namespace).
+		ResourceNames("builds", buildName).
+		SingleResourceType().
+		Do().Object()
 	if err != nil {
 		return err
 	}
-
+	build, ok := obj.(*buildapi.Build)
+	if !ok {
+		return fmt.Errorf("%q is not a valid build", buildName)
+	}
 	if !isBuildCancellable(build) {
 		return nil
 	}
 
 	// Print build logs before cancelling build.
 	if cmdutil.GetFlagBool(cmd, "dump-logs") {
-		// in order to dump logs, you must have a pod assigned to the build.  Since build pod creation is asynchronous, it is possible to cancel a build without a pod being assigned.
-		if build.Status != buildapi.BuildStatusRunning {
-			glog.V(2).Infof("Build %v has not yet generated any logs.", buildName)
-
+		opts := buildapi.BuildLogOptions{
+			NoWait: true,
+		}
+		response, err := client.BuildLogs(namespace).Get(buildName, opts).Do().Raw()
+		if err != nil {
+			glog.Errorf("Could not fetch build logs for %s: %v", buildName, err)
 		} else {
-			response, err := client.BuildLogs(namespace).Get(buildName).Do().Raw()
-			if err != nil {
-				glog.Errorf("Could not fetch build logs for %s: %v", buildName, err)
-			} else {
-				glog.V(2).Infof("Build logs for %s:\n%v", buildName, string(response))
-			}
+			glog.Infof("Build logs for %s:\n%v", buildName, string(response))
 		}
 	}
 
 	// Mark build to be cancelled.
 	for {
-		build.Cancelled = true
+		build.Status.Cancelled = true
 		if _, err = buildClient.Update(build); err != nil && errors.IsConflict(err) {
 			build, err = buildClient.Get(buildName)
 			if err != nil {
@@ -106,6 +117,10 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 	}
 	glog.V(2).Infof("Build %s was cancelled.", buildName)
 
+	// mapper, typer := f.Object()
+	// resourceMapper := &resource.Mapper{ObjectTyper: typer, RESTMapper: mapper, ClientMapper: f.ClientMapperForCommand()}
+	// shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
+
 	// Create a new build with the same configuration.
 	if cmdutil.GetFlagBool(cmd, "restart") {
 		request := &buildapi.BuildRequest{
@@ -117,23 +132,34 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 		}
 		glog.V(2).Infof("Restarted build %s.", buildName)
 		fmt.Fprintf(out, "%s\n", newBuild.Name)
+		// fmt.Fprintf(out, "%s\n", newBuild.Name)
+		// info, err := resourceMapper.InfoForObject(newBuild)
+		// if err != nil {
+		// 	return err
+		// }
+		//cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "restarted")
 	} else {
 		fmt.Fprintf(out, "%s\n", build.Name)
+		// info, err := resourceMapper.InfoForObject(build)
+		// if err != nil {
+		// 	return err
+		// }
+		// cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "cancelled")
 	}
 	return nil
 }
 
 // isBuildCancellable checks if another cancellation event was triggered, and if the build status is correct.
 func isBuildCancellable(build *buildapi.Build) bool {
-	if build.Status != buildapi.BuildStatusNew &&
-		build.Status != buildapi.BuildStatusPending &&
-		build.Status != buildapi.BuildStatusRunning {
+	if build.Status.Phase != buildapi.BuildPhaseNew &&
+		build.Status.Phase != buildapi.BuildPhasePending &&
+		build.Status.Phase != buildapi.BuildPhaseRunning {
 
 		glog.V(2).Infof("A build can be cancelled only if it has new/pending/running status.")
 		return false
 	}
 
-	if build.Cancelled {
+	if build.Status.Cancelled {
 		glog.V(2).Infof("A cancellation event was already triggered for the build %s.", build.Name)
 		return false
 	}

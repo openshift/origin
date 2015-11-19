@@ -1,16 +1,19 @@
 package etcd
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
+	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/registry"
 )
+
+const prefix = "/templates"
 
 // REST implements a RESTStorage for templates against etcd
 type REST struct {
@@ -18,18 +21,21 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against templates.
-func NewREST(h tools.EtcdHelper) *REST {
+func NewREST(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.Template{} },
 		NewListFunc: func() runtime.Object { return &api.TemplateList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, "/registry/templates")
+			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, "/registry/templates", name)
+			return etcdgeneric.NamespaceKeyFunc(ctx, prefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Template).Name, nil
+		},
+		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
+			return registry.Matcher(label, field)
 		},
 		EndpointName: "templates",
 
@@ -38,22 +44,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 
 		ReturnDeletedObject: true,
 
-		Helper: h,
+		Storage: s,
 	}
 	return &REST{store}
-}
-
-// New returns a new object
-func (r *REST) New() runtime.Object {
-	return r.NewFunc()
-}
-
-// NewList returns a new list object
-func (r *REST) NewList() runtime.Object {
-	return r.NewListFunc()
-}
-
-// List obtains a list of templates with labels that match selector.
-func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	return r.Etcd.ListPredicate(ctx, registry.MatchTemplate(label, field))
 }

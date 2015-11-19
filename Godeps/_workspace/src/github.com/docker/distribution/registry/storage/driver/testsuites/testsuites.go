@@ -15,7 +15,6 @@ import (
 	"time"
 
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
-
 	"gopkg.in/check.v1"
 )
 
@@ -137,7 +136,9 @@ func (suite *DriverSuite) TestValidPaths(c *check.C) {
 		"/.abc",
 		"/a--b",
 		"/a-.b",
-		"/_.abc"}
+		"/_.abc",
+		"/Docker/docker-registry",
+		"/Abc/Cba"}
 
 	for _, filename := range validFiles {
 		err := suite.StorageDriver.PutContent(filename, contents)
@@ -160,8 +161,7 @@ func (suite *DriverSuite) TestInvalidPaths(c *check.C) {
 		"abc",
 		"123.abc",
 		"//bcd",
-		"/abc_123/",
-		"/Docker/docker-registry"}
+		"/abc_123/"}
 
 	for _, filename := range invalidFiles {
 		err := suite.StorageDriver.PutContent(filename, contents)
@@ -435,7 +435,7 @@ func (suite *DriverSuite) testContinueStreamAppend(c *check.C, chunkSize int64) 
 	c.Assert(err, check.IsNil)
 	c.Assert(received, check.DeepEquals, fullContents)
 
-	// Writing past size of file extends file (no offest error). We would like
+	// Writing past size of file extends file (no offset error). We would like
 	// to write chunk 4 one chunk length past chunk 3. It should be successful
 	// and the resulting file will be 5 chunks long, with a chunk of all
 	// zeros.
@@ -589,6 +589,20 @@ func (suite *DriverSuite) TestMoveNonexistent(c *check.C) {
 	received, err := suite.StorageDriver.GetContent(destPath)
 	c.Assert(err, check.IsNil)
 	c.Assert(received, check.DeepEquals, contents)
+}
+
+// TestMoveInvalid provides various checks for invalid moves.
+func (suite *DriverSuite) TestMoveInvalid(c *check.C) {
+	contents := randomContents(32)
+
+	// Create a regular file.
+	err := suite.StorageDriver.PutContent("/notadir", contents)
+	c.Assert(err, check.IsNil)
+	defer suite.StorageDriver.Delete("/notadir")
+
+	// Now try to move a non-existent file under it.
+	err = suite.StorageDriver.Move("/notadir/foo", "/notadir/bar")
+	c.Assert(err, check.NotNil) // non-nil error
 }
 
 // TestDelete checks that the delete operation removes data from the storage

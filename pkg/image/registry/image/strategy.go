@@ -3,12 +3,13 @@ package image
 import (
 	"fmt"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
+	errs "k8s.io/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
@@ -44,6 +45,25 @@ func (imageStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
+func (imageStrategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
+// PrepareForUpdate clears fields that are not allowed to be set by end users on update.
+func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newImage := obj.(*api.Image)
+	oldImage := old.(*api.Image)
+	// image metadata cannot be altered
+	newImage.DockerImageMetadata = oldImage.DockerImageMetadata
+	newImage.DockerImageManifest = oldImage.DockerImageManifest
+	newImage.DockerImageMetadataVersion = oldImage.DockerImageMetadataVersion
+}
+
+// ValidateUpdate is the default update validation for an end user.
+func (imageStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) errs.ValidationErrorList {
+	return validation.ValidateImageUpdate(old.(*api.Image), obj.(*api.Image))
+}
+
 // MatchImage returns a generic matcher for a given label and field selector.
 func MatchImage(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
@@ -51,14 +71,7 @@ func MatchImage(label labels.Selector, field fields.Selector) generic.Matcher {
 		if !ok {
 			return false, fmt.Errorf("not an image")
 		}
-		fields := ImageToSelectableFields(image)
+		fields := api.ImageToSelectableFields(image)
 		return label.Matches(labels.Set(image.Labels)) && field.Matches(fields), nil
 	})
-}
-
-// ImageToSelectableFields returns a label set that represents the object.
-func ImageToSelectableFields(image *api.Image) labels.Set {
-	return labels.Set{
-		"name": image.Name,
-	}
 }

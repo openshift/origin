@@ -28,6 +28,7 @@ type Response struct {
 	Output             ResponseData
 	Headers            http.Header
 	IsError            bool
+	ErrorId            string
 	InternalError      error
 	RedirectInFragment bool
 
@@ -45,7 +46,12 @@ func NewResponse(storage Storage) *Response {
 		IsError:         false,
 		Storage:         storage.Clone(),
 	}
-	r.Headers.Add("Cache-Control", "no-store")
+	r.Headers.Add(
+		"Cache-Control",
+		"no-cache, no-store, max-age=0, must-revalidate",
+	)
+	r.Headers.Add("Pragma", "no-cache")
+	r.Headers.Add("Expires", "Fri, 01 Jan 1990 00:00:00 GMT")
 	return r
 }
 
@@ -70,6 +76,7 @@ func (r *Response) SetErrorUri(id string, description string, uri string, state 
 
 	// set error parameters
 	r.IsError = true
+	r.ErrorId = id
 	r.StatusCode = r.ErrorStatusCode
 	if r.StatusCode != 200 {
 		r.StatusText = description
@@ -117,7 +124,10 @@ func (r *Response) GetRedirectUrl() (string, error) {
 	}
 	if r.RedirectInFragment {
 		u.RawQuery = ""
-		u.Fragment = q.Encode()
+		u.Fragment, err = url.QueryUnescape(q.Encode())
+		if err != nil {
+			return "", err
+		}
 	} else {
 		u.RawQuery = q.Encode()
 	}

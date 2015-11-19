@@ -18,5 +18,4 @@ Kubernetes Service port and let it do the load balancing and routing. Alternatel
 a more meaningful implementation of a router could take the endpoints for the service
 and route/load balance the incoming requests to the corresponding service endpoints.
 */
-
 package route

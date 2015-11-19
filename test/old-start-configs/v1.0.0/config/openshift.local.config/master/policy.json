@@ -1,0 +1,1214 @@
+{
+    "kind": "Template",
+    "apiVersion": "v1",
+    "metadata": {
+        "creationTimestamp": null
+    },
+    "objects": [
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "cluster-admin",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "*"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "*"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "*"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [],
+                    "nonResourceURLs": [
+                        "*"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "cluster-reader",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "resourcegroup:non-escalating"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "resourceaccessreviews",
+                        "subjectaccessreviews"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [],
+                    "nonResourceURLs": [
+                        "*"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "admin",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "create",
+                        "delete",
+                        "get",
+                        "list",
+                        "update",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "builds/custom",
+                        "builds/docker",
+                        "builds/source",
+                        "pods/proxy",
+                        "projects",
+                        "resourcegroup:exposedkube",
+                        "resourcegroup:exposedopenshift",
+                        "resourcegroup:granter",
+                        "secrets"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "pods/exec",
+                        "pods/portforward",
+                        "resourcegroup:allkube",
+                        "resourcegroup:allkube-status",
+                        "resourcegroup:allopenshift-status",
+                        "resourcegroup:policy"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get",
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "imagestreams/layers"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "edit",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "create",
+                        "delete",
+                        "get",
+                        "list",
+                        "update",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "builds/custom",
+                        "builds/docker",
+                        "builds/source",
+                        "pods/proxy",
+                        "resourcegroup:exposedkube",
+                        "resourcegroup:exposedopenshift",
+                        "secrets"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "pods/exec",
+                        "pods/portforward",
+                        "projects",
+                        "resourcegroup:allkube",
+                        "resourcegroup:allkube-status",
+                        "resourcegroup:allopenshift-status"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get",
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "imagestreams/layers"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "view",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "projects",
+                        "resourcegroup:allkube",
+                        "resourcegroup:allkube-status",
+                        "resourcegroup:allopenshift-status",
+                        "resourcegroup:exposedopenshift"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "basic-user",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "users"
+                    ],
+                    "resourceNames": [
+                        "~"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "list"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "projectrequests"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get",
+                        "list"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "clusterroles"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "list"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "projects"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create"
+                    ],
+                    "attributeRestrictions": {
+                        "kind": "IsPersonalSubjectAccessReview",
+                        "apiVersion": "v1"
+                    },
+                    "resources": [
+                        "subjectaccessreviews"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "self-provisioner",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "create"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "projectrequests"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "cluster-status",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [],
+                    "nonResourceURLs": [
+                        "/api",
+                        "/healthz",
+                        "/healthz/*",
+                        "/osapi",
+                        "/version"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:image-puller",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "imagestreams/layers"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:image-builder",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "get",
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "imagestreams/layers"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:image-pruner",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "delete"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "images"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get",
+                        "list"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "buildconfigs",
+                        "builds",
+                        "deploymentconfigs",
+                        "images",
+                        "imagestreams",
+                        "pods",
+                        "replicationcontrollers"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "imagestreams/status"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:deployer",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "get",
+                        "list"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "replicationcontrollers"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get",
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "replicationcontrollers"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create",
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "pods"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:master",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "*"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "*"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:build-controller",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "builds"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "builds"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "imagestreams"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create",
+                        "delete",
+                        "get",
+                        "list"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "pods"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create",
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "events"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:deployment-controller",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "replicationcontrollers"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get",
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "replicationcontrollers"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create",
+                        "delete",
+                        "get",
+                        "list",
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "pods"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create",
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "events"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:replication-controller",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "replicationcontrollers"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get",
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "replicationcontrollers"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "pods"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create",
+                        "delete"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "pods"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create",
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "events"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:oauth-token-deleter",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "delete"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "oauthaccesstokens",
+                        "oauthauthorizetokens"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:router",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "endpoints",
+                        "routes"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:registry",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "delete",
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "images"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "imagestreamimages",
+                        "imagestreams",
+                        "imagestreamtags"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "imagestreams"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "imagestreammappings"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:node-proxier",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "endpoints",
+                        "services"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:node",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "services"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create",
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "nodes"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "nodes/status"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create",
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "events"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "pods"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create",
+                        "delete",
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "pods"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "update"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "pods/status"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "secrets"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "persistentvolumeclaims",
+                        "persistentvolumes"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "endpoints"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:sdn-reader",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "hostsubnets"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "nodes"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "clusternetworks"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:sdn-manager",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "create",
+                        "delete",
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "hostsubnets"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get",
+                        "list",
+                        "watch"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "nodes"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "create",
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "clusternetworks"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRole",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:webhook",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "create",
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "buildconfigs/webhooks"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:masters",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:masters"
+            ],
+            "roleRef": {
+                "name": "system:master"
+            }
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "cluster-admins",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:cluster-admins"
+            ],
+            "roleRef": {
+                "name": "cluster-admin"
+            }
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "cluster-readers",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:cluster-readers"
+            ],
+            "roleRef": {
+                "name": "cluster-reader"
+            }
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "basic-users",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:authenticated"
+            ],
+            "roleRef": {
+                "name": "basic-user"
+            }
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "self-provisioners",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:authenticated"
+            ],
+            "roleRef": {
+                "name": "self-provisioner"
+            }
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:oauth-token-deleters",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:authenticated",
+                "system:unauthenticated"
+            ],
+            "roleRef": {
+                "name": "system:oauth-token-deleter"
+            }
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "cluster-status-binding",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:authenticated",
+                "system:unauthenticated"
+            ],
+            "roleRef": {
+                "name": "cluster-status"
+            }
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:routers",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:routers"
+            ],
+            "roleRef": {
+                "name": "system:router"
+            }
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:registrys",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:registries"
+            ],
+            "roleRef": {
+                "name": "system:registry"
+            }
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:nodes",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:nodes"
+            ],
+            "roleRef": {
+                "name": "system:node"
+            }
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:node-proxiers",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:nodes"
+            ],
+            "roleRef": {
+                "name": "system:node-proxier"
+            }
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:sdn-readers",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:nodes"
+            ],
+            "roleRef": {
+                "name": "system:sdn-reader"
+            }
+        },
+        {
+            "kind": "ClusterRoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:webhooks",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:authenticated",
+                "system:unauthenticated"
+            ],
+            "roleRef": {
+                "name": "system:webhook"
+            }
+        },
+        {
+            "kind": "Role",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "shared-resource-viewer",
+                "namespace": "openshift",
+                "creationTimestamp": null
+            },
+            "rules": [
+                {
+                    "verbs": [
+                        "get",
+                        "list"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "resourcegroup:images",
+                        "templates"
+                    ]
+                },
+                {
+                    "verbs": [
+                        "get"
+                    ],
+                    "attributeRestrictions": null,
+                    "resources": [
+                        "imagestreams/layers"
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "RoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "shared-resource-viewers",
+                "namespace": "openshift",
+                "creationTimestamp": null
+            },
+            "userNames": [],
+            "groupNames": [
+                "system:authenticated"
+            ],
+            "roleRef": {
+                "namespace": "openshift",
+                "name": "shared-resource-viewer"
+            }
+        }
+    ]
+}

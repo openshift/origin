@@ -1,8 +1,8 @@
 package client
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -38,7 +38,7 @@ func newRoles(c *Client, namespace string) *roles {
 // List returns a list of roles that match the label and field selectors.
 func (c *roles) List(label labels.Selector, field fields.Selector) (result *authorizationapi.RoleList, err error) {
 	result = &authorizationapi.RoleList{}
-	err = c.r.Get().Namespace(c.ns).Resource("roles").LabelsSelectorParam("labels", label).FieldsSelectorParam("fields", field).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("roles").LabelsSelectorParam(label).FieldsSelectorParam(field).Do().Into(result)
 	return
 }
 

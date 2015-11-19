@@ -1,7 +1,8 @@
 package test
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 )
@@ -13,23 +14,19 @@ type AccessTokenRegistry struct {
 	DeletedAccessTokenName string
 }
 
-func (r *AccessTokenRegistry) ListAccessTokens(labels labels.Selector) (*api.OAuthAccessTokenList, error) {
+func (r *AccessTokenRegistry) ListAccessTokens(ctx kapi.Context, labels labels.Selector) (*api.OAuthAccessTokenList, error) {
 	return r.AccessTokens, r.Err
 }
 
-func (r *AccessTokenRegistry) GetAccessToken(name string) (*api.OAuthAccessToken, error) {
+func (r *AccessTokenRegistry) GetAccessToken(ctx kapi.Context, name string) (*api.OAuthAccessToken, error) {
 	return r.AccessToken, r.Err
 }
 
-func (r *AccessTokenRegistry) CreateAccessToken(token *api.OAuthAccessToken) error {
-	return r.Err
+func (r *AccessTokenRegistry) CreateAccessToken(ctx kapi.Context, token *api.OAuthAccessToken) (*api.OAuthAccessToken, error) {
+	return r.AccessToken, r.Err
 }
 
-func (r *AccessTokenRegistry) UpdateAccessToken(token *api.OAuthAccessToken) error {
-	return r.Err
-}
-
-func (r *AccessTokenRegistry) DeleteAccessToken(name string) error {
+func (r *AccessTokenRegistry) DeleteAccessToken(ctx kapi.Context, name string) error {
 	r.DeletedAccessTokenName = name
 	return r.Err
 }

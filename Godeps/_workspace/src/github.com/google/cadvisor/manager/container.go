@@ -17,25 +17,32 @@ package manager
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"math"
+	"os/exec"
+	"path"
+	"regexp"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/docker/docker/pkg/units"
 	"github.com/golang/glog"
+	"github.com/google/cadvisor/cache/memory"
+	"github.com/google/cadvisor/collector"
 	"github.com/google/cadvisor/container"
 	info "github.com/google/cadvisor/info/v1"
 	"github.com/google/cadvisor/info/v2"
-	"github.com/google/cadvisor/storage/memory"
 	"github.com/google/cadvisor/summary"
 	"github.com/google/cadvisor/utils/cpuload"
 )
 
 // Housekeeping interval.
 var HousekeepingInterval = flag.Duration("housekeeping_interval", 1*time.Second, "Interval between container housekeepings")
-var maxHousekeepingInterval = flag.Duration("max_housekeeping_interval", 60*time.Second, "Largest interval to allow between container housekeepings")
-var allowDynamicHousekeeping = flag.Bool("allow_dynamic_housekeeping", true, "Whether to allow the housekeeping interval to be dynamic")
+
+var cgroupPathRegExp = regexp.MustCompile(".*devices.*:(.*?)[,;$].*")
 
 // Decay value used for load average smoothing. Interval length of 10 seconds is used.
 var loadDecay = math.Exp(float64(-1 * (*HousekeepingInterval).Seconds() / 10))
@@ -47,22 +54,27 @@ type containerInfo struct {
 }
 
 type containerData struct {
-	handler              container.ContainerHandler
-	info                 containerInfo
-	memoryStorage        *memory.InMemoryStorage
-	lock                 sync.Mutex
-	loadReader           cpuload.CpuLoadReader
-	summaryReader        *summary.StatsSummary
-	loadAvg              float64 // smoothed load average seen so far.
-	housekeepingInterval time.Duration
-	lastUpdatedTime      time.Time
-	lastErrorTime        time.Time
+	handler                  container.ContainerHandler
+	info                     containerInfo
+	memoryCache              *memory.InMemoryCache
+	lock                     sync.Mutex
+	loadReader               cpuload.CpuLoadReader
+	summaryReader            *summary.StatsSummary
+	loadAvg                  float64 // smoothed load average seen so far.
+	housekeepingInterval     time.Duration
+	maxHousekeepingInterval  time.Duration
+	allowDynamicHousekeeping bool
+	lastUpdatedTime          time.Time
+	lastErrorTime            time.Time
 
 	// Whether to log the usage of this container when it is updated.
 	logUsage bool
 
 	// Tells the container to stop.
 	stop chan bool
+
+	// Runs custom metric collectors.
+	collectorManager collector.CollectorManager
 }
 
 func (c *containerData) Start() error {
@@ -71,6 +83,10 @@ func (c *containerData) Start() error {
 }
 
 func (c *containerData) Stop() error {
+	err := c.memoryCache.RemoveContainer(c.info.Name)
+	if err != nil {
+		return err
+	}
 	c.stop <- true
 	return nil
 }
@@ -109,8 +125,173 @@ func (c *containerData) DerivedStats() (v2.DerivedStats, error) {
 	return c.summaryReader.DerivedStats()
 }
 
-func newContainerData(containerName string, memoryStorage *memory.InMemoryStorage, handler container.ContainerHandler, loadReader cpuload.CpuLoadReader, logUsage bool) (*containerData, error) {
-	if memoryStorage == nil {
+func (c *containerData) getCgroupPath(cgroups string) (string, error) {
+	if cgroups == "-" {
+		return "/", nil
+	}
+	matches := cgroupPathRegExp.FindSubmatch([]byte(cgroups))
+	if len(matches) != 2 {
+		glog.V(3).Infof("failed to get devices cgroup path from %q", cgroups)
+		// return root in case of failures - devices hierarchy might not be enabled.
+		return "/", nil
+	}
+	return string(matches[1]), nil
+}
+
+// Returns contents of a file inside the container root.
+// Takes in a path relative to container root.
+func (c *containerData) ReadFile(filepath string, inHostNamespace bool) ([]byte, error) {
+	pids, err := c.getContainerPids(inHostNamespace)
+	if err != nil {
+		return nil, err
+	}
+	// TODO(rjnagal): Optimize by just reading container's cgroup.proc file when in host namespace.
+	rootfs := "/"
+	if !inHostNamespace {
+		rootfs = "/rootfs"
+	}
+	for _, pid := range pids {
+		filePath := path.Join(rootfs, "/proc", pid, "/root", filepath)
+		glog.V(3).Infof("Trying path %q", filePath)
+		data, err := ioutil.ReadFile(filePath)
+		if err == nil {
+			return data, err
+		}
+	}
+	// No process paths could be found. Declare config non-existent.
+	return nil, fmt.Errorf("file %q does not exist.", filepath)
+}
+
+// Return output for ps command in host /proc with specified format
+func (c *containerData) getPsOutput(inHostNamespace bool, format string) ([]byte, error) {
+	args := []string{}
+	command := "ps"
+	if !inHostNamespace {
+		command = "/usr/sbin/chroot"
+		args = append(args, "/rootfs", "ps")
+	}
+	args = append(args, "-e", "-o", format)
+	out, err := exec.Command(command, args...).Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute %q command: %v", command, err)
+	}
+	return out, err
+}
+
+// Get pids of processes in this container.
+// A slightly lighterweight call than GetProcessList if other details are not required.
+func (c *containerData) getContainerPids(inHostNamespace bool) ([]string, error) {
+	format := "pid,cgroup"
+	out, err := c.getPsOutput(inHostNamespace, format)
+	if err != nil {
+		return nil, err
+	}
+	expectedFields := 2
+	lines := strings.Split(string(out), "\n")
+	pids := []string{}
+	for _, line := range lines[1:] {
+		if len(line) == 0 {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < expectedFields {
+			return nil, fmt.Errorf("expected at least %d fields, found %d: output: %q", expectedFields, len(fields), line)
+		}
+		pid := fields[0]
+		cgroup, err := c.getCgroupPath(fields[1])
+		if err != nil {
+			return nil, fmt.Errorf("could not parse cgroup path from %q: %v", fields[1], err)
+		}
+		if c.info.Name == cgroup {
+			pids = append(pids, pid)
+		}
+	}
+	return pids, nil
+}
+
+func (c *containerData) GetProcessList(cadvisorContainer string, inHostNamespace bool) ([]v2.ProcessInfo, error) {
+	// report all processes for root.
+	isRoot := c.info.Name == "/"
+	format := "user,pid,ppid,stime,pcpu,pmem,rss,vsz,stat,time,comm,cgroup"
+	out, err := c.getPsOutput(inHostNamespace, format)
+	if err != nil {
+		return nil, err
+	}
+	expectedFields := 12
+	processes := []v2.ProcessInfo{}
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines[1:] {
+		if len(line) == 0 {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < expectedFields {
+			return nil, fmt.Errorf("expected at least %d fields, found %d: output: %q", expectedFields, len(fields), line)
+		}
+		pid, err := strconv.Atoi(fields[1])
+		if err != nil {
+			return nil, fmt.Errorf("invalid pid %q: %v", fields[1], err)
+		}
+		ppid, err := strconv.Atoi(fields[2])
+		if err != nil {
+			return nil, fmt.Errorf("invalid ppid %q: %v", fields[2], err)
+		}
+		percentCpu, err := strconv.ParseFloat(fields[4], 32)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cpu percent %q: %v", fields[4], err)
+		}
+		percentMem, err := strconv.ParseFloat(fields[5], 32)
+		if err != nil {
+			return nil, fmt.Errorf("invalid memory percent %q: %v", fields[5], err)
+		}
+		rss, err := strconv.ParseUint(fields[6], 0, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid rss %q: %v", fields[6], err)
+		}
+		// convert to bytes
+		rss *= 1024
+		vs, err := strconv.ParseUint(fields[7], 0, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid virtual size %q: %v", fields[7], err)
+		}
+		// convert to bytes
+		vs *= 1024
+		cgroup, err := c.getCgroupPath(fields[11])
+		if err != nil {
+			return nil, fmt.Errorf("could not parse cgroup path from %q: %v", fields[11], err)
+		}
+		// Remove the ps command we just ran from cadvisor container.
+		// Not necessary, but makes the cadvisor page look cleaner.
+		if !inHostNamespace && cadvisorContainer == cgroup && fields[10] == "ps" {
+			continue
+		}
+		var cgroupPath string
+		if isRoot {
+			cgroupPath = cgroup
+		}
+
+		if isRoot || c.info.Name == cgroup {
+			processes = append(processes, v2.ProcessInfo{
+				User:          fields[0],
+				Pid:           pid,
+				Ppid:          ppid,
+				StartTime:     fields[3],
+				PercentCpu:    float32(percentCpu),
+				PercentMemory: float32(percentMem),
+				RSS:           rss,
+				VirtualSize:   vs,
+				Status:        fields[8],
+				RunningTime:   fields[9],
+				Cmd:           fields[10],
+				CgroupPath:    cgroupPath,
+			})
+		}
+	}
+	return processes, nil
+}
+
+func newContainerData(containerName string, memoryCache *memory.InMemoryCache, handler container.ContainerHandler, loadReader cpuload.CpuLoadReader, logUsage bool, collectorManager collector.CollectorManager, maxHousekeepingInterval time.Duration, allowDynamicHousekeeping bool) (*containerData, error) {
+	if memoryCache == nil {
 		return nil, fmt.Errorf("nil memory storage")
 	}
 	if handler == nil {
@@ -122,13 +303,16 @@ func newContainerData(containerName string, memoryStorage *memory.InMemoryStorag
 	}
 
 	cont := &containerData{
-		handler:              handler,
-		memoryStorage:        memoryStorage,
-		housekeepingInterval: *HousekeepingInterval,
-		loadReader:           loadReader,
-		logUsage:             logUsage,
-		loadAvg:              -1.0, // negative value indicates uninitialized.
-		stop:                 make(chan bool, 1),
+		handler:                  handler,
+		memoryCache:              memoryCache,
+		housekeepingInterval:     *HousekeepingInterval,
+		maxHousekeepingInterval:  maxHousekeepingInterval,
+		allowDynamicHousekeeping: allowDynamicHousekeeping,
+		loadReader:               loadReader,
+		logUsage:                 logUsage,
+		loadAvg:                  -1.0, // negative value indicates uninitialized.
+		stop:                     make(chan bool, 1),
+		collectorManager:         collectorManager,
 	}
 	cont.info.ContainerReference = ref
 
@@ -147,9 +331,9 @@ func newContainerData(containerName string, memoryStorage *memory.InMemoryStorag
 
 // Determine when the next housekeeping should occur.
 func (self *containerData) nextHousekeeping(lastHousekeeping time.Time) time.Time {
-	if *allowDynamicHousekeeping {
+	if self.allowDynamicHousekeeping {
 		var empty time.Time
-		stats, err := self.memoryStorage.RecentStats(self.info.Name, empty, empty, 2)
+		stats, err := self.memoryCache.RecentStats(self.info.Name, empty, empty, 2)
 		if err != nil {
 			if self.allowErrorLogging() {
 				glog.Warningf("Failed to get RecentStats(%q) while determining the next housekeeping: %v", self.info.Name, err)
@@ -157,16 +341,14 @@ func (self *containerData) nextHousekeeping(lastHousekeeping time.Time) time.Tim
 		} else if len(stats) == 2 {
 			// TODO(vishnuk): Use no processes as a signal.
 			// Raise the interval if usage hasn't changed in the last housekeeping.
-			if stats[0].StatsEq(stats[1]) && (self.housekeepingInterval < *maxHousekeepingInterval) {
+			if stats[0].StatsEq(stats[1]) && (self.housekeepingInterval < self.maxHousekeepingInterval) {
 				self.housekeepingInterval *= 2
-				if self.housekeepingInterval > *maxHousekeepingInterval {
-					self.housekeepingInterval = *maxHousekeepingInterval
+				if self.housekeepingInterval > self.maxHousekeepingInterval {
+					self.housekeepingInterval = self.maxHousekeepingInterval
 				}
-				glog.V(3).Infof("Raising housekeeping interval for %q to %v", self.info.Name, self.housekeepingInterval)
 			} else if self.housekeepingInterval != *HousekeepingInterval {
 				// Lower interval back to the baseline.
 				self.housekeepingInterval = *HousekeepingInterval
-				glog.V(3).Infof("Lowering housekeeping interval for %q to %v", self.info.Name, self.housekeepingInterval)
 			}
 		}
 	}
@@ -174,6 +356,7 @@ func (self *containerData) nextHousekeeping(lastHousekeeping time.Time) time.Tim
 	return lastHousekeeping.Add(self.housekeepingInterval)
 }
 
+// TODO(vmarmol): Implement stats collecting as a custom collector.
 func (c *containerData) housekeeping() {
 	// Long housekeeping is either 100ms or half of the housekeeping interval.
 	longHousekeeping := 100 * time.Millisecond
@@ -205,7 +388,7 @@ func (c *containerData) housekeeping() {
 		if c.logUsage {
 			const numSamples = 60
 			var empty time.Time
-			stats, err := c.memoryStorage.RecentStats(c.info.Name, empty, empty, numSamples)
+			stats, err := c.memoryCache.RecentStats(c.info.Name, empty, empty, numSamples)
 			if err != nil {
 				if c.allowErrorLogging() {
 					glog.Infof("[%s] Failed to get recent stats for logging usage: %v", c.info.Name, err)
@@ -228,12 +411,15 @@ func (c *containerData) housekeeping() {
 			}
 		}
 
+		next := c.nextHousekeeping(lastHousekeeping)
+
 		// Schedule the next housekeeping. Sleep until that time.
-		nextHousekeeping := c.nextHousekeeping(lastHousekeeping)
-		if time.Now().Before(nextHousekeeping) {
-			time.Sleep(nextHousekeeping.Sub(time.Now()))
+		if time.Now().Before(next) {
+			time.Sleep(next.Sub(time.Now()))
+		} else {
+			next = time.Now()
 		}
-		lastHousekeeping = nextHousekeeping
+		lastHousekeeping = next
 	}
 }
 
@@ -255,6 +441,12 @@ func (c *containerData) updateSpec() error {
 		}
 		return err
 	}
+
+	customMetrics, err := c.collectorManager.GetSpec()
+	if len(customMetrics) > 0 {
+		spec.HasCustomMetrics = true
+		spec.CustomMetrics = customMetrics
+	}
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.info.Spec = spec
@@ -270,7 +462,6 @@ func (c *containerData) updateLoad(newLoad uint64) {
 	} else {
 		c.loadAvg = c.loadAvg*loadDecay + float64(newLoad)*(1.0-loadDecay)
 	}
-	glog.V(3).Infof("New load for %q: %v. latest sample: %d", c.info.Name, c.loadAvg, newLoad)
 }
 
 func (c *containerData) updateStats() error {
@@ -305,9 +496,23 @@ func (c *containerData) updateStats() error {
 		err := c.summaryReader.AddSample(*stats)
 		if err != nil {
 			// Ignore summary errors for now.
-			glog.V(2).Infof("failed to add summary stats for %q: %v", c.info.Name, err)
+			glog.V(2).Infof("Failed to add summary stats for %q: %v", c.info.Name, err)
 		}
 	}
+	var customStatsErr error
+	cm := c.collectorManager.(*collector.GenericCollectorManager)
+	if len(cm.Collectors) > 0 {
+		if cm.NextCollectionTime.Before(time.Now()) {
+			customStats, err := c.updateCustomStats()
+			if customStats != nil {
+				stats.CustomMetrics = customStats
+			}
+			if err != nil {
+				customStatsErr = err
+			}
+		}
+	}
+
 	ref, err := c.handler.ContainerReference()
 	if err != nil {
 		// Ignore errors if the container is dead.
@@ -316,11 +521,25 @@ func (c *containerData) updateStats() error {
 		}
 		return err
 	}
-	err = c.memoryStorage.AddStats(ref, stats)
+	err = c.memoryCache.AddStats(ref, stats)
 	if err != nil {
 		return err
 	}
-	return statsErr
+	if statsErr != nil {
+		return statsErr
+	}
+	return customStatsErr
+}
+
+func (c *containerData) updateCustomStats() (map[string][]info.MetricVal, error) {
+	_, customStats, customStatsErr := c.collectorManager.Collect()
+	if customStatsErr != nil {
+		if !c.handler.Exists() {
+			return customStats, nil
+		}
+		customStatsErr = fmt.Errorf("%v, continuing to push custom stats", customStatsErr)
+	}
+	return customStats, customStatsErr
 }
 
 func (c *containerData) updateSubcontainers() error {

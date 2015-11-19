@@ -1,15 +1,17 @@
 package api
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api"
 )
 
 func init() {
 	api.Scheme.AddKnownTypes("",
 		&Project{},
 		&ProjectList{},
+		&ProjectRequest{},
 	)
 }
 
-func (*Project) IsAnAPIObject()     {}
-func (*ProjectList) IsAnAPIObject() {}
+func (*ProjectRequest) IsAnAPIObject() {}
+func (*Project) IsAnAPIObject()        {}
+func (*ProjectList) IsAnAPIObject()    {}

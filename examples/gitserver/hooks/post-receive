@@ -1,0 +1,54 @@
+#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+function key {
+  git config --local --get "${1}"
+}
+function addkey {
+  git config --local --add "${1}" "${2}"
+}
+
+function detect {
+  if detected=$(key openshift.io.detect); then
+    exit 0
+  fi
+  if ! url=$(key gitserver.self.url); then
+    echo "detect: no self url set"
+    exit 0
+  fi
+
+  # TODO: make it easier to find the build config name created
+  # by oc new-app
+  name=$(basename "${url}")
+  name="${name%.*}"
+
+  if ! lang=$($(dirname $0)/detect-language); then
+    exit 0
+  fi
+  echo "detect: found language ${lang} for ${name}"
+
+  if ! oc=$(which oc); then
+    echo "detect: oc is not installed"
+    addkey openshift.io.detect 1
+    exit 0
+  fi
+  oc new-app "${lang}~${url}"
+  if webhook=$(oc start-build --list-webhooks="generic" "${name}" | head -n 1); then
+    addkey openshift.io.webhook "${webhook}"
+  fi
+  addkey openshift.io.detect 1
+}
+
+cat > /tmp/postreceived
+
+detect
+
+if webhook=$(key openshift.io.webhook); then
+  # TODO: print output from the server about the hook status
+  oc start-build --from-webhook="${webhook}"
+  # TODO: follow logs
+  echo "build: started"
+fi

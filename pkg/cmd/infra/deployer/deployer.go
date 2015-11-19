@@ -2,38 +2,38 @@ package deployer
 
 import (
 	"fmt"
-	"strconv"
+	"sort"
+	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/kubectl"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	strategy "github.com/openshift/origin/pkg/deploy/strategy/recreate"
+	"github.com/openshift/origin/pkg/deploy/strategy"
+	"github.com/openshift/origin/pkg/deploy/strategy/recreate"
+	"github.com/openshift/origin/pkg/deploy/strategy/rolling"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	"github.com/openshift/origin/pkg/version"
 )
 
-const longCommandDesc = `
-Perform a Deployment
+const (
+	deployerLong = `
+Perform a deployment
 
-This command makes calls to OpenShift to perform a deployment as described by a deployment config.
-`
+This command launches a deployment as described by a deployment configuration.`
+)
 
 type config struct {
 	Config         *clientcmd.Config
 	DeploymentName string
 	Namespace      string
-}
-
-type replicationControllerGetter interface {
-	Get(namespace, name string) (*kapi.ReplicationController, error)
-	List(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error)
 }
 
 // NewCommandDeployer provides a CLI handler for deploy.
@@ -44,8 +44,8 @@ func NewCommandDeployer(name string) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
-		Short: "Run the OpenShift deployer",
-		Long:  longCommandDesc,
+		Short: "Run the deployer",
+		Long:  deployerLong,
 		Run: func(c *cobra.Command, args []string) {
 			_, kClient, err := cfg.Config.Clients()
 			if err != nil {
@@ -60,13 +60,14 @@ func NewCommandDeployer(name string) *cobra.Command {
 				glog.Fatal("namespace is required")
 			}
 
-			if err = deploy(kClient, cfg.Namespace, cfg.DeploymentName); err != nil {
+			deployer := NewDeployer(kClient)
+			if err = deployer.Deploy(cfg.Namespace, cfg.DeploymentName); err != nil {
 				glog.Fatal(err)
 			}
 		},
 	}
 
-	cmd.AddCommand(version.NewVersionCommand(name))
+	cmd.AddCommand(version.NewVersionCommand(name, false))
 
 	flag := cmd.Flags()
 	cfg.Config.Bind(flag)
@@ -76,85 +77,125 @@ func NewCommandDeployer(name string) *cobra.Command {
 	return cmd
 }
 
-// deploy executes a deployment strategy.
-func deploy(kClient kclient.Interface, namespace, deploymentName string) error {
-	newDeployment, oldDeployments, err := getDeployerContext(&realReplicationControllerGetter{kClient}, namespace, deploymentName)
+// NewDeployer makes a new Deployer from a kube client.
+func NewDeployer(client kclient.Interface) *Deployer {
+	scaler, _ := kubectl.ScalerFor("ReplicationController", client)
+	return &Deployer{
+		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
+			return client.ReplicationControllers(namespace).Get(name)
+		},
+		getDeployments: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+			return client.ReplicationControllers(namespace).List(deployutil.ConfigSelector(configName), fields.Everything())
+		},
+		scaler: scaler,
+		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
+			switch config.Template.Strategy.Type {
+			case deployapi.DeploymentStrategyTypeRecreate:
+				return recreate.NewRecreateDeploymentStrategy(client, latest.Codec), nil
+			case deployapi.DeploymentStrategyTypeRolling:
+				recreate := recreate.NewRecreateDeploymentStrategy(client, latest.Codec)
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, latest.Codec, recreate), nil
+			default:
+				return nil, fmt.Errorf("unsupported strategy type: %s", config.Template.Strategy.Type)
+			}
+		},
+	}
+}
 
+// Deployer prepares and executes the deployment process. It will:
+//
+// 1. Validate the deployment has a desired replica count and strategy.
+// 2. Find the last completed deployment.
+// 3. Scale down to 0 any old deployments which aren't the new deployment or
+// the last complete deployment.
+// 4. Pass the last completed deployment and the new deployment to a strategy
+// to perform the deployment.
+type Deployer struct {
+	// strategyFor returns a DeploymentStrategy for config.
+	strategyFor func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error)
+	// getDeployment finds the named deployment.
+	getDeployment func(namespace, name string) (*kapi.ReplicationController, error)
+	// getDeployments finds all deployments associated with a config.
+	getDeployments func(namespace, configName string) (*kapi.ReplicationControllerList, error)
+	// scaler is used to scale replication controllers.
+	scaler kubectl.Scaler
+}
+
+// Deploy starts the deployment process for deploymentName.
+func (d *Deployer) Deploy(namespace, deploymentName string) error {
+	// Look up the new deployment.
+	to, err := d.getDeployment(namespace, deploymentName)
+	if err != nil {
+		return fmt.Errorf("couldn't get deployment %s/%s: %v", namespace, deploymentName, err)
+	}
+
+	// Decode the config from the deployment.
+	config, err := deployutil.DecodeDeploymentConfig(to, latest.Codec)
+	if err != nil {
+		return fmt.Errorf("couldn't decode deployment config from deployment %s/%s: %v", to.Namespace, to.Name, err)
+	}
+
+	// Get a strategy for the deployment.
+	strategy, err := d.strategyFor(config)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Choose a strategy based on some input
-	strategy := strategy.NewRecreateDeploymentStrategy(kClient, latest.Codec)
-	return strategy.Deploy(newDeployment, oldDeployments)
-}
-
-// getDeployerContext finds the target deployment and any deployments it considers to be prior to the
-// target deployment. Only deployments whose LatestVersion is less than the target deployment are
-// considered to be prior.
-func getDeployerContext(controllerGetter replicationControllerGetter, namespace, deploymentName string) (*kapi.ReplicationController, []kapi.ObjectReference, error) {
-	var err error
-	var newDeployment *kapi.ReplicationController
-	var newConfig *deployapi.DeploymentConfig
-
-	// Look up the new deployment and its associated config.
-	if newDeployment, err = controllerGetter.Get(namespace, deploymentName); err != nil {
-		return nil, nil, err
+	// New deployments must have a desired replica count.
+	desiredReplicas, hasDesired := deployutil.DeploymentDesiredReplicas(to)
+	if !hasDesired {
+		return fmt.Errorf("deployment %s has no desired replica count", deployutil.LabelForDeployment(to))
 	}
 
-	if newConfig, err = deployutil.DecodeDeploymentConfig(newDeployment, latest.Codec); err != nil {
-		return nil, nil, err
+	// Find all deployments for the config.
+	unsortedDeployments, err := d.getDeployments(namespace, config.Name)
+	if err != nil {
+		return fmt.Errorf("couldn't get controllers in namespace %s: %v", namespace, err)
 	}
+	deployments := unsortedDeployments.Items
 
-	glog.Infof("Found new deployment %s for config %s with latestVersion %d", newDeployment.Name, newConfig.Name, newConfig.LatestVersion)
+	// Sort all the deployments by version.
+	sort.Sort(deployutil.ByLatestVersionDesc(deployments))
 
-	// Collect all deployments that predate the new one by comparing all old ReplicationControllers with
-	// encoded DeploymentConfigs to the new one by LatestVersion. Treat a failure to interpret a given
-	// old deployment as a fatal error to prevent overlapping deployments.
-	var allControllers *kapi.ReplicationControllerList
-	oldDeployments := []kapi.ObjectReference{}
-
-	if allControllers, err = controllerGetter.List(newDeployment.Namespace, labels.Everything()); err != nil {
-		return nil, nil, fmt.Errorf("Unable to get list replication controllers in deployment namespace %s: %v", newDeployment.Namespace, err)
-	}
-
-	glog.Infof("Inspecting %d potential prior deployments", len(allControllers.Items))
-	for _, controller := range allControllers.Items {
-		if configName, hasConfigName := controller.Annotations[deployapi.DeploymentConfigAnnotation]; !hasConfigName {
-			glog.Infof("Disregarding replicationController %s (not a deployment)", controller.Name)
-			continue
-		} else if configName != newConfig.Name {
-			glog.Infof("Disregarding deployment %s (doesn't match target deploymentConfig %s)", controller.Name, configName)
+	// Find any last completed deployment.
+	var from *kapi.ReplicationController
+	for _, candidate := range deployments {
+		if candidate.Name == to.Name {
 			continue
 		}
-
-		var oldVersion int
-		if oldVersion, err = strconv.Atoi(controller.Annotations[deployapi.DeploymentVersionAnnotation]); err != nil {
-			return nil, nil, fmt.Errorf("Couldn't determine version of deployment %s: %v", controller.Name, err)
+		if deployutil.DeploymentStatusFor(&candidate) == deployapi.DeploymentStatusComplete {
+			from = &candidate
+			break
 		}
+	}
 
-		if oldVersion < newConfig.LatestVersion {
-			glog.Infof("Marking deployment %s as a prior deployment", controller.Name)
-			oldDeployments = append(oldDeployments, kapi.ObjectReference{
-				Namespace: controller.Namespace,
-				Name:      controller.Name,
-			})
+	// Scale down any deployments which aren't the new or last deployment.
+	for _, candidate := range deployments {
+		// Skip the from/to deployments.
+		if candidate.Name == to.Name {
+			continue
+		}
+		if from != nil && candidate.Name == from.Name {
+			continue
+		}
+		// Skip the deployment if it's already scaled down.
+		if candidate.Spec.Replicas == 0 {
+			continue
+		}
+		// Scale the deployment down to zero.
+		retryWaitParams := kubectl.NewRetryParams(1*time.Second, 120*time.Second)
+		if err := d.scaler.Scale(candidate.Namespace, candidate.Name, uint(0), &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}, retryWaitParams, retryWaitParams); err != nil {
+			glog.Errorf("Couldn't scale down prior deployment %s: %v", deployutil.LabelForDeployment(&candidate), err)
 		} else {
-			glog.Infof("Disregarding deployment %s (same as or newer than target)", controller.Name)
+			glog.Infof("Scaled down prior deployment %s", deployutil.LabelForDeployment(&candidate))
 		}
 	}
 
-	return newDeployment, oldDeployments, nil
-}
-
-type realReplicationControllerGetter struct {
-	kClient kclient.Interface
-}
-
-func (r *realReplicationControllerGetter) Get(namespace, name string) (*kapi.ReplicationController, error) {
-	return r.kClient.ReplicationControllers(namespace).Get(name)
-}
-
-func (r *realReplicationControllerGetter) List(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-	return r.kClient.ReplicationControllers(namespace).List(selector)
+	// Perform the deployment.
+	if from == nil {
+		glog.Infof("Deploying %s for the first time (replicas: %d)", deployutil.LabelForDeployment(to), desiredReplicas)
+	} else {
+		glog.Infof("Deploying from %s to %s (replicas: %d)", deployutil.LabelForDeployment(from), deployutil.LabelForDeployment(to), desiredReplicas)
+	}
+	return strategy.Deploy(from, to, desiredReplicas)
 }

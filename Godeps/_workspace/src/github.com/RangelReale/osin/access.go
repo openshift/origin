@@ -3,6 +3,7 @@ package osin
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -11,11 +12,11 @@ type AccessRequestType string
 
 const (
 	AUTHORIZATION_CODE AccessRequestType = "authorization_code"
-	REFRESH_TOKEN                        = "refresh_token"
-	PASSWORD                             = "password"
-	CLIENT_CREDENTIALS                   = "client_credentials"
-	ASSERTION                            = "assertion"
-	IMPLICIT                             = "__implicit"
+	REFRESH_TOKEN      AccessRequestType = "refresh_token"
+	PASSWORD           AccessRequestType = "password"
+	CLIENT_CREDENTIALS AccessRequestType = "client_credentials"
+	ASSERTION          AccessRequestType = "assertion"
+	IMPLICIT           AccessRequestType = "__implicit"
 )
 
 // AccessRequest is a request for access tokens
@@ -86,7 +87,12 @@ type AccessData struct {
 
 // IsExpired returns true if access expired
 func (d *AccessData) IsExpired() bool {
-	return d.CreatedAt.Add(time.Duration(d.ExpiresIn) * time.Second).Before(time.Now())
+	return d.IsExpiredAt(time.Now())
+}
+
+// IsExpiredAt returns true if access expires at time 't'
+func (d *AccessData) IsExpiredAt(t time.Time) bool {
+	return d.ExpireAt().Before(t)
 }
 
 // ExpireAt returns the expiration date
@@ -189,7 +195,7 @@ func (s *Server) handleAuthorizationCodeRequest(w *Response, r *http.Request) *A
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if ret.AuthorizeData.IsExpired() {
+	if ret.AuthorizeData.IsExpiredAt(s.Now()) {
 		w.SetError(E_INVALID_GRANT, "")
 		return nil
 	}
@@ -220,6 +226,30 @@ func (s *Server) handleAuthorizationCodeRequest(w *Response, r *http.Request) *A
 	ret.UserData = ret.AuthorizeData.UserData
 
 	return ret
+}
+
+func extraScopes(access_scopes, refresh_scopes string) bool {
+	access_scopes_list := strings.Split(access_scopes, ",")
+	refresh_scopes_list := strings.Split(refresh_scopes, ",")
+
+	access_map := make(map[string]int)
+
+	for _, scope := range access_scopes_list {
+		if scope == "" {
+			continue
+		}
+		access_map[scope] = 1
+	}
+
+	for _, scope := range refresh_scopes_list {
+		if scope == "" {
+			continue
+		}
+		if _, ok := access_map[scope]; !ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Server) handleRefreshTokenRequest(w *Response, r *http.Request) *AccessRequest {
@@ -286,6 +316,12 @@ func (s *Server) handleRefreshTokenRequest(w *Response, r *http.Request) *Access
 		ret.Scope = ret.AccessData.Scope
 	}
 
+	if extraScopes(ret.AccessData.Scope, ret.Scope) {
+		w.SetError(E_ACCESS_DENIED, "")
+		w.InternalError = errors.New("the requested scope must not include any scope not originally granted by the resource owner")
+		return nil
+	}
+
 	return ret
 }
 
@@ -335,7 +371,7 @@ func (s *Server) handleClientCredentialsRequest(w *Response, r *http.Request) *A
 	ret := &AccessRequest{
 		Type:            CLIENT_CREDENTIALS,
 		Scope:           r.Form.Get("scope"),
-		GenerateRefresh: true,
+		GenerateRefresh: false,
 		Expiration:      s.Config.AccessExpiration,
 		HttpRequest:     r,
 	}
@@ -407,7 +443,7 @@ func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessReq
 				AuthorizeData: ar.AuthorizeData,
 				AccessData:    ar.AccessData,
 				RedirectUri:   redirectUri,
-				CreatedAt:     time.Now(),
+				CreatedAt:     s.Now(),
 				ExpiresIn:     ar.Expiration,
 				UserData:      ar.UserData,
 				Scope:         ar.Scope,

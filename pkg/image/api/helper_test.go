@@ -2,13 +2,13 @@ package api
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"testing"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 func TestParseDockerImageReference(t *testing.T) {
@@ -75,6 +75,12 @@ func TestParseDockerImageReference(t *testing.T) {
 			Name:      "baz",
 		},
 		{
+			From:      "bar:5000/baz",
+			Registry:  "bar:5000",
+			Namespace: DockerDefaultNamespace,
+			Name:      "baz",
+		},
+		{
 			From:      "bar:5000/foo/baz:tag",
 			Registry:  "bar:5000",
 			Namespace: "foo",
@@ -89,7 +95,64 @@ func TestParseDockerImageReference(t *testing.T) {
 			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
+			From:      "myregistry.io/foo",
+			Registry:  "myregistry.io",
+			Namespace: DockerDefaultNamespace,
+			Name:      "foo",
+		},
+		{
+			From:      "localhost/bar",
+			Registry:  "localhost",
+			Namespace: DockerDefaultNamespace,
+			Name:      "bar",
+		},
+		// TODO: test cases if ParseDockerImageReference validates segment length and allowed chars
+		//
+		// {
+		// 	// namespace/name == 255 chars
+		// 	From:      fmt.Sprintf("bar:5000/%s/%s:tag", strings.Repeat("a", 63), strings.Repeat("b", 191)),
+		// 	Registry:  "bar:5000",
+		// 	Namespace: strings.Repeat("a", 63),
+		// 	Name:      strings.Repeat("b", 191),
+		// 	Tag:       "tag",
+		// },
+		// {
+		// 	// namespace/name == 255 chars with implicit namespace
+		// 	From:      fmt.Sprintf("bar:5000/%s:tag", strings.Repeat("b", 247)),
+		// 	Registry:  "bar:5000",
+		// 	Namespace: DockerDefaultNamespace,
+		// 	Name:      strings.Repeat("b", 247),
+		// 	Tag:       "tag",
+		// },
+		// {
+		// 	// namespace/name > 255 chars
+		// 	From: fmt.Sprintf("bar:5000/%s/%s:tag", strings.Repeat("a", 63), strings.Repeat("b", 192)),
+		// 	Err:  true,
+		// },
+		// {
+		// 	// namespace/name > 255 chars with implicit namespace
+		// 	From: fmt.Sprintf("bar:5000/%s:tag", strings.Repeat("b", 248)),
+		// 	Err:  true,
+		// },
+		// {
+		// 	// namespace < 2 chars
+		// 	From: "bar:5000/a/b:tag",
+		// 	Err:  true,
+		// },
+		{
+			From: "https://bar:5000/foo/baz",
+			Err:  true,
+		},
+		{
+			From: "http://bar:5000/foo/baz@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Err:  true,
+		},
+		{
 			From: "bar/foo/baz/biz",
+			Err:  true,
+		},
+		{
+			From: "ftp://baz/baz/biz",
 			Err:  true,
 		},
 		{
@@ -126,6 +189,47 @@ func TestParseDockerImageReference(t *testing.T) {
 	}
 }
 
+func TestDockerImageReferenceAsRepository(t *testing.T) {
+	testCases := []struct {
+		Registry, Namespace, Name, Tag, ID string
+		Expected                           string
+	}{
+		{
+			Namespace: "bar",
+			Name:      "foo",
+			Tag:       "tag",
+			Expected:  "bar/foo",
+		},
+		{
+			Namespace: "bar",
+			Name:      "foo",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected:  "bar/foo",
+		},
+		{
+			Registry:  "bar",
+			Namespace: "foo",
+			Name:      "baz",
+			Expected:  "bar/foo/baz",
+		},
+	}
+
+	for i, testCase := range testCases {
+		ref := DockerImageReference{
+			Registry:  testCase.Registry,
+			Namespace: testCase.Namespace,
+			Name:      testCase.Name,
+			Tag:       testCase.Tag,
+			ID:        testCase.ID,
+		}
+		actual := ref.AsRepository().String()
+		if e, a := testCase.Expected, actual; e != a {
+			t.Errorf("%d: expected %q, got %q", i, e, a)
+		}
+	}
+
+}
+
 func TestDockerImageReferenceString(t *testing.T) {
 	testCases := []struct {
 		Registry, Namespace, Name, Tag, ID string
@@ -143,103 +247,12 @@ func TestDockerImageReferenceString(t *testing.T) {
 		{
 			Name:     "foo",
 			ID:       "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-			Expected: "library/foo:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-		},
-		{
-			Namespace: "bar",
-			Name:      "foo",
-			Expected:  "bar/foo",
-		},
-		{
-			Namespace: "bar",
-			Name:      "foo",
-			Tag:       "tag",
-			Expected:  "bar/foo:tag",
-		},
-		{
-			Namespace: "bar",
-			Name:      "foo",
-			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-			Expected:  "bar/foo:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-		},
-		{
-			Registry:  "bar",
-			Namespace: "foo",
-			Name:      "baz",
-			Expected:  "bar/foo/baz",
-		},
-		{
-			Registry:  "bar",
-			Namespace: "foo",
-			Name:      "baz",
-			Tag:       "tag",
-			Expected:  "bar/foo/baz:tag",
-		},
-		{
-			Registry:  "bar",
-			Namespace: "foo",
-			Name:      "baz",
-			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-			Expected:  "bar/foo/baz:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-		},
-		{
-			Registry:  "bar:5000",
-			Namespace: "foo",
-			Name:      "baz",
-			Expected:  "bar:5000/foo/baz",
-		},
-		{
-			Registry:  "bar:5000",
-			Namespace: "foo",
-			Name:      "baz",
-			Tag:       "tag",
-			Expected:  "bar:5000/foo/baz:tag",
-		},
-		{
-			Registry:  "bar:5000",
-			Namespace: "foo",
-			Name:      "baz",
-			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-			Expected:  "bar:5000/foo/baz:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-		},
-	}
-
-	for i, testCase := range testCases {
-		ref := DockerImageReference{
-			Registry:  testCase.Registry,
-			Namespace: testCase.Namespace,
-			Name:      testCase.Name,
-			Tag:       testCase.Tag,
-			ID:        testCase.ID,
-		}
-		actual := ref.String()
-		if e, a := testCase.Expected, actual; e != a {
-			t.Errorf("%d: expected %q, got %q", i, e, a)
-		}
-	}
-}
-
-func TestDockerImageReferenceStringWithRealPullByID(t *testing.T) {
-	os.Setenv("OPENSHIFT_REAL_PULL_BY_ID", "1")
-	dockerPullSpecGenerator = nil
-
-	testCases := []struct {
-		Registry, Namespace, Name, Tag, ID string
-		Expected                           string
-	}{
-		{
-			Name:     "foo",
-			Expected: "library/foo",
-		},
-		{
-			Name:     "foo",
-			Tag:      "tag",
-			Expected: "library/foo:tag",
-		},
-		{
-			Name:     "foo",
-			ID:       "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 			Expected: "library/foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
+			Name:     "foo",
+			ID:       "3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected: "library/foo:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
 			Namespace: "bar",
@@ -419,7 +432,7 @@ func TestImageWithMetadata(t *testing.T) {
 					ID:        "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7",
 					Parent:    "117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c",
 					Comment:   "",
-					Created:   util.Date(2015, 2, 21, 2, 11, 6, 735146646, time.UTC),
+					Created:   unversioned.Date(2015, 2, 21, 2, 11, 6, 735146646, time.UTC),
 					Container: "c9a3eda5951d28aa8dbe5933be94c523790721e4f80886d0a8e7a710132a38ec",
 					ContainerConfig: DockerConfig{
 						Hostname:        "43bd710ec89a",
@@ -449,7 +462,7 @@ func TestImageWithMetadata(t *testing.T) {
 					},
 					DockerVersion: "1.4.1",
 					Author:        "",
-					Config: DockerConfig{
+					Config: &DockerConfig{
 						Hostname:        "43bd710ec89a",
 						Domainname:      "",
 						User:            "",
@@ -500,15 +513,15 @@ func TestImageWithMetadata(t *testing.T) {
 
 func TestLatestTaggedImage(t *testing.T) {
 	tests := []struct {
-		tag         string
-		tags        map[string]TagEventList
-		expected    string
-		shouldError bool
+		tag            string
+		tags           map[string]TagEventList
+		expected       string
+		expectNotFound bool
 	}{
 		{
-			tag:         "foo",
-			tags:        map[string]TagEventList{},
-			shouldError: true,
+			tag:            "foo",
+			tags:           map[string]TagEventList{},
+			expectNotFound: true,
 		},
 		{
 			tag: "foo",
@@ -520,7 +533,7 @@ func TestLatestTaggedImage(t *testing.T) {
 					},
 				},
 			},
-			shouldError: true,
+			expectNotFound: true,
 		},
 		{
 			tag: "",
@@ -558,10 +571,10 @@ func TestLatestTaggedImage(t *testing.T) {
 		stream := &ImageStream{}
 		stream.Status.Tags = test.tags
 
-		actual, err := LatestTaggedImage(stream, test.tag)
-		if err != nil {
-			if !test.shouldError {
-				t.Errorf("%d: unexpected error: %v", i, err)
+		actual := LatestTaggedImage(stream, test.tag)
+		if actual == nil {
+			if !test.expectNotFound {
+				t.Errorf("%d: unexpected nil result", i)
 			}
 			continue
 		}
@@ -731,5 +744,165 @@ func TestAddTagEventToImageStream(t *testing.T) {
 		if e, a := test.expectedTags, stream.Status.Tags; !reflect.DeepEqual(e, a) {
 			t.Errorf("%s: expected tags=%v, got %v", name, e, a)
 		}
+	}
+}
+
+func TestUpdateTrackingTags(t *testing.T) {
+	tests := map[string]struct {
+		fromNil               bool
+		fromKind              string
+		fromNamespace         string
+		fromName              string
+		trackingTags          []string
+		nonTrackingTags       []string
+		statusTags            []string
+		updatedImageReference string
+		updatedImage          string
+		expectedUpdates       []string
+	}{
+		"nil from": {
+			fromNil: true,
+		},
+		"from kind not ImageStreamTag": {
+			fromKind: "ImageStreamImage",
+		},
+		"from namespace different": {
+			fromNamespace: "other",
+		},
+		"from name different": {
+			trackingTags: []string{"otherstream:2.0"},
+		},
+		"no tracking": {
+			trackingTags: []string{},
+			statusTags:   []string{"2.0", "3.0"},
+		},
+		"stream name in from name": {
+			trackingTags:    []string{"latest"},
+			fromName:        "ruby:2.0",
+			statusTags:      []string{"2.0", "3.0"},
+			expectedUpdates: []string{"latest"},
+		},
+		"1 tracking, 1 not": {
+			trackingTags:    []string{"latest"},
+			nonTrackingTags: []string{"other"},
+			statusTags:      []string{"2.0", "3.0"},
+			expectedUpdates: []string{"latest"},
+		},
+		"multiple tracking, multiple not": {
+			trackingTags:    []string{"latest1", "latest2"},
+			nonTrackingTags: []string{"other1", "other2"},
+			statusTags:      []string{"2.0", "3.0"},
+			expectedUpdates: []string{"latest1", "latest2"},
+		},
+		"no change to tracked tag": {
+			trackingTags:          []string{"latest"},
+			statusTags:            []string{"2.0", "3.0"},
+			updatedImageReference: "ns/ruby@id",
+			updatedImage:          "id",
+		},
+	}
+
+	for name, test := range tests {
+		stream := &ImageStream{
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace: "ns",
+				Name:      "ruby",
+			},
+			Spec: ImageStreamSpec{
+				Tags: map[string]TagReference{},
+			},
+			Status: ImageStreamStatus{
+				Tags: map[string]TagEventList{},
+			},
+		}
+
+		if len(test.fromNamespace) > 0 {
+			stream.Namespace = test.fromNamespace
+		}
+
+		fromName := test.fromName
+		if len(fromName) == 0 {
+			fromName = "2.0"
+		}
+
+		for _, tag := range test.trackingTags {
+			stream.Spec.Tags[tag] = TagReference{
+				From: &kapi.ObjectReference{
+					Kind: "ImageStreamTag",
+					Name: fromName,
+				},
+			}
+		}
+
+		for _, tag := range test.nonTrackingTags {
+			stream.Spec.Tags[tag] = TagReference{}
+		}
+
+		for _, tag := range test.statusTags {
+			stream.Status.Tags[tag] = TagEventList{
+				Items: []TagEvent{
+					{
+						DockerImageReference: "ns/ruby@id",
+						Image:                "id",
+					},
+				},
+			}
+		}
+
+		if test.fromNil {
+			stream.Spec.Tags = map[string]TagReference{
+				"latest": {},
+			}
+		}
+
+		if len(test.fromKind) > 0 {
+			stream.Spec.Tags = map[string]TagReference{
+				"latest": {
+					From: &kapi.ObjectReference{
+						Kind: test.fromKind,
+						Name: "asdf",
+					},
+				},
+			}
+		}
+
+		updatedImageReference := test.updatedImageReference
+		if len(updatedImageReference) == 0 {
+			updatedImageReference = "ns/ruby@newid"
+		}
+
+		updatedImage := test.updatedImage
+		if len(updatedImage) == 0 {
+			updatedImage = "newid"
+		}
+
+		newTagEvent := TagEvent{
+			DockerImageReference: updatedImageReference,
+			Image:                updatedImage,
+		}
+
+		UpdateTrackingTags(stream, "2.0", newTagEvent)
+		for _, tag := range test.expectedUpdates {
+			tagEventList, ok := stream.Status.Tags[tag]
+			if !ok {
+				t.Errorf("%s: expected update for tag %q", name, tag)
+				continue
+			}
+			if e, a := updatedImageReference, tagEventList.Items[0].DockerImageReference; e != a {
+				t.Errorf("%s: dockerImageReference: expected %q, got %q", name, e, a)
+			}
+			if e, a := updatedImage, tagEventList.Items[0].Image; e != a {
+				t.Errorf("%s: image: expected %q, got %q", name, e, a)
+			}
+		}
+	}
+}
+
+func TestJoinImageStreamTag(t *testing.T) {
+	if e, a := "foo:bar", JoinImageStreamTag("foo", "bar"); e != a {
+		t.Errorf("Unexpected value: %s", a)
+	}
+	if e, a := "foo:"+DefaultImageTag, JoinImageStreamTag("foo", ""); e != a {
+		t.Errorf("Unexpected value: %s", a)
 	}
 }

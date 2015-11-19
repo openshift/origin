@@ -7,7 +7,7 @@ It is the work of hundreds of contributors. We appreciate your help!
 
 ## Filing issues
 
-When [filing an issue](https://golang.org/issue/new), make sure to answer these five questions:
+When [filing an issue](https://github.com/golang/oauth2/issues), make sure to answer these five questions:
 
 1. What version of Go are you using (`go version`)?
 2. What operating system and processor architecture are you using?

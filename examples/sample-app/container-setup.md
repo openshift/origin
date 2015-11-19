@@ -52,15 +52,12 @@ bits that are used in the sample app.
     $ cd /var/lib/openshift
     $ mkdir -p examples/sample-app
     $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/docker-registry-template.json \
-    -O examples/sample-app/docker-registry-template.json
-    $ wget \
     https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json \
     -O examples/sample-app/application-template-stibuild.json
 
 ## Configure client security
 
-    $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/ca/cert.crt
+    $ export CURL_CA_BUNDLE=`pwd`/openshift.local.config/master/ca.crt
 
 For more information on this step, see [Application Build, Deploy, and Update
 Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
@@ -68,7 +65,7 @@ step #3.
 
 ## Deploy the private docker registry
 
-    $ openshift ex registry --create --credentials="${KUBECONFIG}"
+    $ oadm registry --create --credentials=$(pwd)/openshift.local.config/master/openshift-registry.kubeconfig
     $ cd examples/sample-app
 
 For more information on this step, see [Application Build, Deploy, and Update

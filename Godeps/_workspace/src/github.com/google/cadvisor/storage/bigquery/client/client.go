@@ -20,9 +20,9 @@ import (
 	"io/ioutil"
 	"strings"
 
-	bigquery "code.google.com/p/google-api-go-client/bigquery/v2"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/jwt"
+	bigquery "google.golang.org/api/bigquery/v2"
 )
 
 var (
@@ -231,57 +231,4 @@ func (c *Client) InsertRow(rowData map[string]interface{}) error {
 		return fmt.Errorf(errstr)
 	}
 	return nil
-}
-
-// Returns a bigtable table name (format: datasetID.tableID)
-func (c *Client) GetTableName() (string, error) {
-	if c.service == nil || c.datasetId == "" || c.tableId == "" {
-		return "", fmt.Errorf("table not setup")
-	}
-	return fmt.Sprintf("%s.%s", c.datasetId, c.tableId), nil
-}
-
-// Do a synchronous query on bigtable and return a header and data rows.
-// Number of rows are capped to queryLimit.
-func (c *Client) Query(query string) ([]string, [][]interface{}, error) {
-	service, err := c.getService()
-	if err != nil {
-		return nil, nil, err
-	}
-	datasetRef := &bigquery.DatasetReference{
-		DatasetId: c.datasetId,
-		ProjectId: *projectId,
-	}
-
-	queryRequest := &bigquery.QueryRequest{
-		DefaultDataset: datasetRef,
-		MaxResults:     queryLimit,
-		Kind:           "json",
-		Query:          query,
-	}
-
-	results, err := service.Jobs.Query(*projectId, queryRequest).Do()
-	if err != nil {
-		return nil, nil, err
-	}
-	numRows := results.TotalRows
-	if numRows < 1 {
-		return nil, nil, fmt.Errorf("query returned no data")
-	}
-
-	headers := []string{}
-	for _, col := range results.Schema.Fields {
-		headers = append(headers, col.Name)
-	}
-
-	rows := [][]interface{}{}
-	numColumns := len(results.Schema.Fields)
-	for _, data := range results.Rows {
-		row := make([]interface{}, numColumns)
-		for c := 0; c < numColumns; c++ {
-			row[c] = data.F[c].V
-		}
-		rows = append(rows, row)
-	}
-	return headers, rows, nil
 }

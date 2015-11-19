@@ -132,7 +132,7 @@ Nodes:
 					// name is longer than key
 					continue Nodes
 				}
-				if n == "*" {
+				if n == "*" || n == "any" {
 					continue
 				}
 				if keyParts[i] != n {

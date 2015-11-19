@@ -19,23 +19,23 @@ const containersHtmlTemplate = `
   <head>
     <title>cAdvisor - {{.DisplayName}}</title>
     <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="/static/bootstrap-3.1.1.min.css">
+    <link rel="stylesheet" href="{{.Root}}static/bootstrap-3.1.1.min.css">
 
     <!-- Optional theme -->
-    <link rel="stylesheet" href="/static/bootstrap-theme-3.1.1.min.css">
+    <link rel="stylesheet" href="{{.Root}}static/bootstrap-theme-3.1.1.min.css">
 
-    <link rel="stylesheet" href="/static/containers.css">
+    <link rel="stylesheet" href="{{.Root}}static/containers.css">
 
     <!-- Latest compiled and minified JavaScript -->
-    <script src="/static/jquery-1.10.2.min.js"></script>
-    <script src="/static/bootstrap-3.1.1.min.js"></script>
-    <script type="text/javascript" src="/static/google-jsapi.js"></script>
+    <script src="{{.Root}}static/jquery-1.10.2.min.js"></script>
+    <script src="{{.Root}}static/bootstrap-3.1.1.min.js"></script>
+    <script type="text/javascript" src="{{.Root}}static/google-jsapi.js"></script>
 
-    <script type="text/javascript" src="/static/containers.js"></script>
+    <script type="text/javascript" src="{{.Root}}static/containers.js"></script>
   </head>
   <body>
     <div class="container theme-showcase" >
-      <a href="/" class="col-sm-12" id="logo">
+      <a href="{{.Root}}" class="col-sm-12" id="logo">
       </a>
       <div class="col-sm-12">
 	<div class="page-header">
@@ -49,7 +49,7 @@ const containersHtmlTemplate = `
       </div>
       {{if .IsRoot}}
       <div class="col-sm-12">
-        <h4><a href="/docker">Docker Containers</a></h4>
+        <h4><a href="../docker">Docker Containers</a></h4>
       </div>
       {{end}}
       {{if .Subcontainers}}
@@ -63,6 +63,36 @@ const containersHtmlTemplate = `
 	  {{end}}
 	</div>
       </div>
+      {{end}}
+     {{if .DockerStatus}}
+      <div class="col-sm-12">
+	<div class="page-header">
+	  <h3>Driver Status</h3>
+	</div>
+	<ul class="list-group">
+	  {{range $dockerstatus := .DockerStatus}}
+	  <li class ="list-group-item"><span class="stat-label">{{$dockerstatus.Key}}</span> {{$dockerstatus.Value}}</li>
+	  {{end}}
+	  {{if .DockerDriverStatus}}
+		<li class ="list-group-item"><span class="stat-label">Storage<br></span>
+		<ul class="list-group">
+		{{range $driverstatus := .DockerDriverStatus}}
+		<li class="list-group-item"><span class="stat-label">{{$driverstatus.Key}}</span> {{$driverstatus.Value}}</li>
+		{{end}}
+		</ul>
+		</li>
+	  </ul>
+	  {{end}}
+	</div>
+      {{end}}
+      {{if .DockerImages}}
+      <div class="col-sm-12">
+          <div class="page-header">
+            <h3>Images</h3>
+          </div>
+       <div id="docker-images"></div>
+       <br><br>
+       </div>
       {{end}}
       {{if .ResourcesAvailable}}
       <div class="col-sm-12">
@@ -107,6 +137,12 @@ const containersHtmlTemplate = `
             <h3 class="panel-title">Overview</h3>
           </div>
           <div id="usage-gauge" class="panel-body"></div>
+	</div>
+	<div class="panel panel-primary">
+          <div class="panel-heading">
+            <h3 class="panel-title">Processes</h3>
+          </div>
+          <div id="processes-top" class="panel-body"></div>
 	</div>
 	{{if .CpuAvailable}}
 	<div class="panel panel-primary">
@@ -156,6 +192,16 @@ const containersHtmlTemplate = `
 	  <div class="panel-heading">
             <h3 class="panel-title">Network</h3>
 	  </div>
+          <div class="panel-body">
+	    <div class="dropdown">
+              <button class="btn btn-default dropdown-toggle" type="button" id="network-selection-dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span id="network-selection-text"></span>
+                <span class="caret"></span>
+	      </button>
+              <ul id="network-selection" class="dropdown-menu" role="menu" aria-labelledby="network-selection-dropdown">
+              </ul>
+	    </div>
+          </div>
 	  <div class="panel-body">
             <h4>Throughput</h4>
             <div id="network-bytes-chart"></div>
@@ -175,11 +221,22 @@ const containersHtmlTemplate = `
           </div>
         </div>
 	{{end}}
+	{{if .CustomMetricsAvailable}}
+	<div class="panel panel-primary">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">Application Metrics</h3>
+	  </div>
+	  <div class="panel-body">
+	    <div id="custom-metrics-chart"></div>
+	  </div>
+	</div>
+	{{end}}
       </div>
       {{end}}
     </div>
     <script type="text/javascript">
-      startPage({{.ContainerName}}, {{.CpuAvailable}}, {{.MemoryAvailable}});
+      startPage({{.ContainerName}}, {{.CpuAvailable}}, {{.MemoryAvailable}}, {{.Root}}, {{.IsRoot}});
+      drawImages({{.DockerImages}});
     </script>
   </body>
 </html>

@@ -1,10 +1,14 @@
 package util
 
 import (
+	"sort"
 	"strconv"
 	"testing"
+	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 )
@@ -44,35 +48,16 @@ func podTemplateD() *kapi.PodTemplateSpec {
 	return t
 }
 
-func TestPodSpecsEqualTrue(t *testing.T) {
-	result := PodSpecsEqual(podTemplateA().Spec, podTemplateA().Spec)
-
-	if !result {
-		t.Fatalf("Unexpected false result for PodSpecsEqual")
+func TestPodName(t *testing.T) {
+	deployment := &kapi.ReplicationController{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "testName",
+		},
 	}
-}
-
-func TestPodSpecsJustLabelDiff(t *testing.T) {
-	result := PodSpecsEqual(podTemplateA().Spec, podTemplateB().Spec)
-
-	if !result {
-		t.Fatalf("Unexpected false result for PodSpecsEqual")
-	}
-}
-
-func TestPodSpecsEqualContainerImageChange(t *testing.T) {
-	result := PodSpecsEqual(podTemplateA().Spec, podTemplateC().Spec)
-
-	if result {
-		t.Fatalf("Unexpected true result for PodSpecsEqual")
-	}
-}
-
-func TestPodSpecsEqualAdditionalContainerInManifest(t *testing.T) {
-	result := PodSpecsEqual(podTemplateA().Spec, podTemplateD().Spec)
-
-	if result {
-		t.Fatalf("Unexpected true result for PodSpecsEqual")
+	expected := "testName-deploy"
+	actual := DeployerPodNameForDeployment(deployment.Name)
+	if expected != actual {
+		t.Errorf("Unexpected pod name for deployment. Expected: %s Got: %s", expected, actual)
 	}
 }
 
@@ -108,7 +93,7 @@ func TestMakeDeploymentOk(t *testing.T) {
 		}
 	}
 
-	if len(deployment.Annotations[deployapi.DeploymentEncodedConfigAnnotation]) == 0 {
+	if len(EncodedDeploymentConfigFor(deployment)) == 0 {
 		t.Fatalf("expected deployment with DeploymentEncodedConfigAnnotation annotation")
 	}
 
@@ -125,6 +110,10 @@ func TestMakeDeploymentOk(t *testing.T) {
 		t.Fatalf("expected deployment replicas to be 0")
 	}
 
+	if l, e, a := deployapi.DeploymentConfigAnnotation, config.Name, deployment.Labels[deployapi.DeploymentConfigAnnotation]; e != a {
+		t.Fatalf("expected label %s=%s, got %s", l, e, a)
+	}
+
 	if e, a := config.Name, deployment.Spec.Template.Labels[deployapi.DeploymentConfigLabel]; e != a {
 		t.Fatalf("expected label DeploymentConfigLabel=%s, got %s", e, a)
 	}
@@ -139,5 +128,57 @@ func TestMakeDeploymentOk(t *testing.T) {
 
 	if e, a := deployment.Name, deployment.Spec.Selector[deployapi.DeploymentLabel]; e != a {
 		t.Fatalf("expected selector DeploymentLabel=%s, got %s", e, a)
+	}
+}
+
+func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
+	mkdeployment := func(version int) kapi.ReplicationController {
+		deployment, _ := MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codec)
+		return *deployment
+	}
+	deployments := []kapi.ReplicationController{
+		mkdeployment(4),
+		mkdeployment(1),
+		mkdeployment(2),
+		mkdeployment(3),
+	}
+	sort.Sort(ByLatestVersionAsc(deployments))
+	for i := 0; i < 4; i++ {
+		if e, a := i+1, DeploymentVersionFor(&deployments[i]); e != a {
+			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
+		}
+	}
+	sort.Sort(ByLatestVersionDesc(deployments))
+	for i := 0; i < 4; i++ {
+		if e, a := 4-i, DeploymentVersionFor(&deployments[i]); e != a {
+			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
+		}
+	}
+}
+
+// TestSort verifies that builds are sorted by most recently created
+func TestSort(t *testing.T) {
+	present := unversioned.Now()
+	past := unversioned.NewTime(present.Time.Add(-1 * time.Minute))
+	controllers := []*kapi.ReplicationController{
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:              "past",
+				CreationTimestamp: past,
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:              "present",
+				CreationTimestamp: present,
+			},
+		},
+	}
+	sort.Sort(ByMostRecent(controllers))
+	if controllers[0].Name != "present" {
+		t.Errorf("Unexpected sort order")
+	}
+	if controllers[1].Name != "past" {
+		t.Errorf("Unexpected sort order")
 	}
 }

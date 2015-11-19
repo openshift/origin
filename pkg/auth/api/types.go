@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 const (
@@ -9,10 +9,10 @@ const (
 	IdentityDisplayNameKey = "name"
 	// IdentityEmailKey is the key for an optional email address in an identity's Extra map
 	IdentityEmailKey = "email"
-	// IdentityLoginKey is the key for an optional login in an identity's Extra map.
+	// IdentityPreferredUsernameKey is the key for an optional preferred username in an identity's Extra map.
 	// This is useful when the immutable providerUserName is different than the login used to authenticate
 	// If present, this extra value is used as the preferred username
-	IdentityLoginKey = "login"
+	IdentityPreferredUsernameKey = "preferred_username"
 )
 
 // UserIdentityInfo contains information about an identity.  Identities are distinct from users.  An authentication server of

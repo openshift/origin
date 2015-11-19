@@ -1,11 +1,12 @@
 'use strict';
+/* jshint unused: false */
 
 angular.module('openshiftConsole')
 .factory('Notification', function($rootScope) {
   function Notification() {
     this.messenger = Messenger({
-      extraClasses: 'messenger-fixed messenger-on-top messenger-on-right',
-      theme: 'block',
+      extraClasses: 'messenger-fixed messenger-on-bottom messenger-on-right',
+      theme: 'flat',
       messageDefaults: {
         showCloseButton: true,
         hideAfter: 10
@@ -15,7 +16,7 @@ angular.module('openshiftConsole')
     var self = this;
     $rootScope.$on( "$routeChangeStart", function(event, next, current) {
       self.clear();
-    });      
+    });
   }
 
   // Opts:
@@ -25,7 +26,9 @@ angular.module('openshiftConsole')
     opts = opts || {};
     var notifyOpts = {
       type: type,
-      message: message,
+      // TODO report this issue upstream to messenger, they don't handle messages with invalid html
+      // they should be escaping it
+      message: $('<div/>').text(message).html(),
       id: opts.id,
       actions: opts.actions
     };
@@ -41,7 +44,7 @@ angular.module('openshiftConsole')
 
   Notification.prototype.info = function(message, opts) {
     this.notify("info", message, opts);
-  };  
+  };
 
   Notification.prototype.error = function(message, opts) {
     this.notify("error", message, opts);
@@ -55,5 +58,5 @@ angular.module('openshiftConsole')
     this.messenger.hideAll();
   };
 
-  return new Notification();;
+  return new Notification();
 });

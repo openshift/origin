@@ -5,8 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -18,18 +19,28 @@ type resourceAccessTest struct {
 }
 
 type testAuthorizer struct {
-	users  util.StringSet
-	groups util.StringSet
-	err    string
+	users            sets.String
+	groups           sets.String
+	err              string
+	deniedNamespaces sets.String
 
-	actualAttributes *authorizer.DefaultAuthorizationAttributes
+	actualAttributes authorizer.DefaultAuthorizationAttributes
 }
 
 func (a *testAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
+	// allow the initial check for "can I run this RAR at all"
+	if attributes.GetResource() == "localresourceaccessreviews" {
+		if len(a.deniedNamespaces) != 0 && a.deniedNamespaces.Has(kapi.NamespaceValue(ctx)) {
+			return false, "denied initial check", nil
+		}
+
+		return true, "", nil
+	}
+
 	return false, "", errors.New("unsupported")
 }
-func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
-	attributes, ok := passedAttributes.(*authorizer.DefaultAuthorizationAttributes)
+func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
+	attributes, ok := passedAttributes.(authorizer.DefaultAuthorizationAttributes)
 	if !ok {
 		return nil, nil, errors.New("unexpected type for test")
 	}
@@ -41,15 +52,37 @@ func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes a
 	return a.users, a.groups, errors.New(a.err)
 }
 
+func TestDeniedNamespace(t *testing.T) {
+	test := &resourceAccessTest{
+		authorizer: &testAuthorizer{
+			users:            sets.String{},
+			groups:           sets.String{},
+			err:              "denied initial check",
+			deniedNamespaces: sets.NewString("foo"),
+		},
+		reviewRequest: &authorizationapi.ResourceAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Namespace: "foo",
+				Verb:      "get",
+				Resource:  "pods",
+			},
+		},
+	}
+
+	test.runTest(t)
+}
+
 func TestEmptyReturn(t *testing.T) {
 	test := &resourceAccessTest{
 		authorizer: &testAuthorizer{
-			users:  util.StringSet{},
-			groups: util.StringSet{},
+			users:  sets.String{},
+			groups: sets.String{},
 		},
 		reviewRequest: &authorizationapi.ResourceAccessReview{
-			Verb:     "get",
-			Resource: "pods",
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:     "get",
+				Resource: "pods",
+			},
 		},
 	}
 
@@ -59,28 +92,14 @@ func TestEmptyReturn(t *testing.T) {
 func TestNoErrors(t *testing.T) {
 	test := &resourceAccessTest{
 		authorizer: &testAuthorizer{
-			users:  util.NewStringSet("one", "two"),
-			groups: util.NewStringSet("three", "four"),
+			users:  sets.NewString("one", "two"),
+			groups: sets.NewString("three", "four"),
 		},
 		reviewRequest: &authorizationapi.ResourceAccessReview{
-			Verb:     "delete",
-			Resource: "deploymentConfig",
-		},
-	}
-
-	test.runTest(t)
-}
-
-func TestErrors(t *testing.T) {
-	test := &resourceAccessTest{
-		authorizer: &testAuthorizer{
-			users:  util.StringSet{},
-			groups: util.StringSet{},
-			err:    "some-random-failure",
-		},
-		reviewRequest: &authorizationapi.ResourceAccessReview{
-			Verb:     "get",
-			Resource: "pods",
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:     "delete",
+				Resource: "deploymentConfig",
+			},
 		},
 	}
 
@@ -88,28 +107,30 @@ func TestErrors(t *testing.T) {
 }
 
 func (r *resourceAccessTest) runTest(t *testing.T) {
-	const namespace = "unittest"
-
 	storage := REST{r.authorizer}
 
 	expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
-		Namespace: namespace,
+		Namespace: r.reviewRequest.Action.Namespace,
 		Users:     r.authorizer.users,
 		Groups:    r.authorizer.groups,
 	}
 
-	expectedAttributes := &authorizer.DefaultAuthorizationAttributes{
-		Verb:     r.reviewRequest.Verb,
-		Resource: r.reviewRequest.Resource,
-	}
+	expectedAttributes := authorizer.ToDefaultAuthorizationAttributes(r.reviewRequest.Action)
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), namespace)
+	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 	obj, err := storage.Create(ctx, r.reviewRequest)
 	if err != nil && len(r.authorizer.err) == 0 {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err == nil && len(r.authorizer.err) != 0 {
-		t.Fatalf("unexpected non-error: %v", err)
+	if len(r.authorizer.err) != 0 {
+		if err == nil {
+			t.Fatalf("unexpected non-error: %v", err)
+		}
+		if e, a := r.authorizer.err, err.Error(); e != a {
+			t.Fatalf("expected %v, got %v", e, a)
+		}
+
+		return
 	}
 
 	switch obj.(type) {

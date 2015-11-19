@@ -1,0 +1,18 @@
+<div>
+  <div ng-if="!resource">
+    <p>Select an object to see more details.</p>
+
+    <span class="sidebar-help">
+      <p>A <strong>pod</strong> contains one or more Docker containers that
+        run together on a node, containing your application code.</p>
+
+      <p>A <strong>service</strong> groups pods and provides a common DNS name and
+        an optional, load-balanced IP address to access them.</p>
+
+      <p>A <strong>deployment</strong> is an update to your application, triggered by
+        a changed image or configuration.</p>
+    </span>
+  </div>
+
+  <kubernetes-object-describer kind="{{kind}}" resource="resource" ng-if="resource"></kubernetes-object-describer>
+</div>

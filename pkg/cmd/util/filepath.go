@@ -35,17 +35,25 @@ func ResolvePaths(refs []*string, base string) error {
 	return nil
 }
 
+func MakeRelative(path, base string) (string, error) {
+	if len(path) > 0 {
+		rel, err := filepath.Rel(base, path)
+		if err != nil {
+			return path, err
+		}
+		return rel, nil
+	}
+	return path, nil
+}
+
 // RelativizePaths updates the given refs to be relative paths, relative to the given base directory
 func RelativizePaths(refs []*string, base string) error {
 	for _, ref := range refs {
-		// Don't relativize empty paths
-		if len(*ref) > 0 {
-			rel, err := filepath.Rel(base, *ref)
-			if err != nil {
-				return err
-			}
-			*ref = rel
+		rel, err := MakeRelative(*ref, base)
+		if err != nil {
+			return err
 		}
+		*ref = rel
 	}
 	return nil
 }
@@ -56,7 +64,7 @@ func RelativizePathWithNoBacksteps(refs []*string, base string) error {
 	for _, ref := range refs {
 		// Don't relativize empty paths
 		if len(*ref) > 0 {
-			rel, err := filepath.Rel(base, *ref)
+			rel, err := MakeRelative(*ref, base)
 			if err != nil {
 				return err
 			}

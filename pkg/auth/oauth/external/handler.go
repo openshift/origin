@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/auth/user"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
@@ -40,6 +40,12 @@ func NewExternalOAuthRedirector(provider Provider, state State, redirectURL stri
 	if err != nil {
 		return nil, err
 	}
+
+	transport, err := provider.GetTransport()
+	if err != nil {
+		return nil, err
+	}
+	client.Transport = transport
 
 	return &Handler{
 		provider:     provider,
@@ -86,11 +92,25 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	glog.V(4).Infof("Got auth data")
 
+	// Validate state before making any server-to-server calls
+	ok, err := h.state.Check(authData.State, req)
+	if !ok {
+		glog.V(4).Infof("State is invalid")
+		err := errors.New("State is invalid")
+		h.handleError(err, w, req)
+		return
+	}
+	if err != nil {
+		glog.V(4).Infof("Error verifying state: %v", err)
+		h.handleError(err, w, req)
+		return
+	}
+
 	// Exchange code for a token
 	accessReq := h.client.NewAccessRequest(osincli.AUTHORIZATION_CODE, authData)
 	accessData, err := accessReq.GetToken()
 	if err != nil {
-		glog.V(4).Infof("Error getting access token:", err)
+		glog.V(4).Infof("Error getting access token: %v", err)
 		h.handleError(err, w, req)
 		return
 	}
@@ -118,19 +138,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	ok, err = h.state.Check(authData.State, w, req)
-	if !ok {
-		glog.V(4).Infof("State is invalid")
-		err := errors.New("State is invalid")
-		h.handleError(err, w, req)
-		return
-	}
-	if err != nil {
-		glog.V(4).Infof("Error verifying state: %v", err)
-		h.handleError(err, w, req)
-		return
-	}
-
 	_, err = h.success.AuthenticationSucceeded(user, authData.State, w, req)
 	if err != nil {
 		glog.V(4).Infof("Error calling success handler: %v", err)
@@ -153,11 +160,23 @@ type defaultState struct {
 	csrf csrf.CSRF
 }
 
-func DefaultState(csrf csrf.CSRF) State {
+// RedirectorState combines state generation/verification with redirections on authentication success and error
+type RedirectorState interface {
+	State
+	handlers.AuthenticationSuccessHandler
+	handlers.AuthenticationErrorHandler
+}
+
+func CSRFRedirectingState(csrf csrf.CSRF) RedirectorState {
 	return &defaultState{csrf}
 }
 
 func (d *defaultState) Generate(w http.ResponseWriter, req *http.Request) (string, error) {
+	then := req.URL.String()
+	if len(then) == 0 {
+		return "", errors.New("Cannot generate state: request has no URL")
+	}
+
 	csrfToken, err := d.csrf.Generate(w, req)
 	if err != nil {
 		return "", err
@@ -165,12 +184,12 @@ func (d *defaultState) Generate(w http.ResponseWriter, req *http.Request) (strin
 
 	state := url.Values{
 		"csrf": {csrfToken},
-		"then": {req.URL.String()},
+		"then": {then},
 	}
 	return encodeState(state)
 }
 
-func (d *defaultState) Check(state string, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (d *defaultState) Check(state string, req *http.Request) (bool, error) {
 	values, err := decodeState(state)
 	if err != nil {
 		return false, err
@@ -193,7 +212,7 @@ func (d *defaultState) Check(state string, w http.ResponseWriter, req *http.Requ
 	return true, nil
 }
 
-func (defaultState) AuthenticationSucceeded(user user.Info, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (d *defaultState) AuthenticationSucceeded(user user.Info, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	values, err := decodeState(state)
 	if err != nil {
 		return false, err
@@ -205,6 +224,61 @@ func (defaultState) AuthenticationSucceeded(user user.Info, state string, w http
 	}
 
 	http.Redirect(w, req, then, http.StatusFound)
+	return true, nil
+}
+
+// AuthenticationError handles the very specific case where the remote OAuth provider returned an error
+// In that case, attempt to redirect to the "then" URL with all error parameters echoed
+// In any other case, or if an error is encountered, returns false and the original error
+func (d *defaultState) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
+	// only handle errors that came from the remote OAuth provider...
+	osinErr, ok := err.(*osincli.Error)
+	if !ok {
+		return false, err
+	}
+
+	// with an OAuth error...
+	if len(osinErr.Id) == 0 {
+		return false, err
+	}
+
+	// if they embedded valid state...
+	ok, stateErr := d.Check(osinErr.State, req)
+	if !ok || stateErr != nil {
+		return false, err
+	}
+
+	// if the state decodes...
+	values, err := decodeState(osinErr.State)
+	if err != nil {
+		return false, err
+	}
+
+	// if it contains a redirect...
+	then := values.Get("then")
+	if len(then) == 0 {
+		return false, err
+	}
+
+	// which parses...
+	thenURL, urlErr := url.Parse(then)
+	if urlErr != nil {
+		return false, err
+	}
+
+	// Add in the error, error_description, error_uri params to the "then" redirect
+	q := thenURL.Query()
+	q.Set("error", osinErr.Id)
+	if len(osinErr.Description) > 0 {
+		q.Set("error_description", osinErr.Description)
+	}
+	if len(osinErr.URI) > 0 {
+		q.Set("error_uri", osinErr.URI)
+	}
+	thenURL.RawQuery = q.Encode()
+
+	http.Redirect(w, req, thenURL.String(), http.StatusFound)
+
 	return true, nil
 }
 

@@ -1,0 +1,196 @@
+//
+// Default messenger included here instead of including messenger.css
+// -------------------------------------------------
+
+ul.messenger.messenger-theme-flat {
+  margin: 0;
+  padding: 0;
+  opacity: 1;
+  .transition(all .2s ease .2s);
+  > li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    &.messenger-shown {
+    }
+  }
+  .messenger-message {
+    .clearfix();
+    &.messenger-hidden {
+      display: none;
+    }
+    .messenger-phrase, .messenger-actions a {
+      // padding-right: 5px;
+    }
+    .messenger-actions {
+      float: right;
+      a {
+        cursor: pointer;
+        text-decoration: underline;
+      }
+    }
+    ul, ol {
+      margin: 10px 18px 0;
+    }
+  }
+  &.messenger-fixed {
+    position: fixed;
+    z-index: 10000;
+    .messenger-message {
+      min-width: 0;
+      .box-sizing(border-box);
+    }
+    .message .messenger-actions {
+      float: left;
+    }
+    &.messenger-on-top {
+      top: 20px;
+    }
+    &.messenger-on-bottom {
+      bottom: 20px;
+    }
+    &.messenger-on-top, &.messenger-on-bottom {
+      left: 50%;
+      width: 800px;
+      margin-left: -400px;
+      &.messenger-on-right {
+        right: 20px;
+        left: auto;
+        box-shadow: 2px 2px 6px rgba(0,0,0,.3);
+      }
+      &.messenger-on-left {
+        left: 20px;
+        margin-left: 0px;
+        box-shadow: 2px 2px 6px rgba(0,0,0,.3);
+      }
+    }
+    &.messenger-on-right, &.messenger-on-left {
+      width: 90%;
+      .messenger-actions {
+        float: left;
+      }
+    }
+    @media (min-width: @screen-sm-min) {
+      &.messenger-on-right {
+        width: 45%;
+      }
+    }
+    @media (min-width: @screen-lg-min) {
+      &.messenger-on-right {
+        width: 35%;
+      }
+    }
+    &.messenger-empty.messenger-fixed.messenger-on-bottom.messenger-on-right {
+      display: block;
+      opacity: 0;
+      bottom: 20%;
+    }
+  }
+  .messenger-spinner {
+    display: none;
+  }
+  .messenger-clickable {
+    cursor: pointer;
+  }
+}
+
+
+//
+// Messenger Flat Theme modifications
+// -------------------------------------------------
+
+ul.messenger-theme-flat {
+  background-color: transparent;
+  border-radius: 4px;
+  &.messenger-empty {
+    display: none;
+  }
+}
+
+@insetBackgroundColor: darken(@gray-darker, 10%);
+
+ul.messenger-theme-flat .messenger-message {
+  -webkit-box-shadow: inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor;
+  -moz-box-shadow: inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor;
+  box-shadow: inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor;
+  border-radius: 0px;
+  position: relative;
+  border: 0px;
+  margin-bottom: 0px;
+  font-size: @font-size-base;
+  background: @gray-darker;
+  color: #f0f0f0;
+  font-weight: 500;
+  padding: 10px 30px 10px 65px;
+  line-height: 27px;
+  &:before,
+  .messenger-message-inner:before {
+    font-size: 20px;
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    margin-top: -10px;
+    font-family: 'PatternFlyIcons-webfont';
+    speak: none;
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .messenger-close {
+    line-height: 30px;
+  }
+}
+ul.messenger-theme-flat {
+  .messenger-message-slot.messenger-last .messenger-message,
+  .messenger-message-slot.messenger-first.messenger-last .messenger-message {
+    .box-shadow(inset 50px 0px 0px @insetBackgroundColor);
+  }
+  .messenger-message-slot.messenger-first .messenger-message {
+    -webkit-box-shadow: inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor;
+    -moz-box-shadow: inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor;
+    box-shadow: inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor;
+  }
+}
+ul.messenger-theme-flat .messenger-message .messenger-actions a {
+  text-decoration: none;
+  color: #aaaaaa;
+  background: lighten(@gray-darker, 5%);
+}
+
+ul.messenger-theme-flat {
+  .messenger-message.alert-error {
+    &:before {
+      content: @pficon-var-error-circle-o;
+      color: @brand-danger;
+      display: inline-block;
+    }
+    .messenger-message-inner:before {
+      background-color: transparent;
+    }
+  }
+  .messenger-message.alert-warning {
+    &:before {
+      content: @pficon-var-warning-triangle-o;
+      color: @brand-warning;
+      display: inline-block;
+      left: 14px;
+      margin-top: -11px;
+    }
+  }
+  .messenger-message.alert-success .messenger-message-inner:before {
+    color: @brand-success;
+    content: @pficon-var-ok;
+    display: inline-block;
+    background-color: transparent;
+  }
+  .messenger-message.alert-info .messenger-message-inner:before {
+    color: @brand-info;
+    content: @pficon-var-info;
+    display: inline-block;
+    background-color: transparent;
+  }
+}

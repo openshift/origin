@@ -1,0 +1,1 @@
+IDRange provides a min/max of an allowed range of IDs.

@@ -1,32 +1,54 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .directive('catalogTemplate', function($location) {
+  .directive("catalogCategory", function () {
+    return {
+      restrict: "E",
+      scope: {
+        categoryLabel: "@",
+        builders: "=",
+        templates: "=",
+        project: "@",
+        itemLimit: "@",
+        filterTag: "="
+      },
+      templateUrl: "views/catalog/_catalog-category.html",
+      controller: function($scope) {
+        $scope.builderID = function(builder) {
+          return builder.imageStream.metadata.uid + ":" + builder.imageStreamTag;
+        };
+      }
+    };
+  })
+  .directive('catalogTemplate', function() {
     return {
       restrict: 'E',
+      // Replace the catalog-template element so that the tiles are all equal height as flexbox items.
+      // Otherwise, you have to add the CSS tile classes to catalog-template.
+      replace: true,
       scope: {
         template: '=',
-        project: '='
+        project: '@',
+        filterTag: "="
       },
-      templateUrl: 'views/catalog/_template.html',
-      link: function(scope, elem, attrs) {
-        $(".select-template", elem).click(function() {
-          // Must trigger off of the modal's hidden event to guarantee modal has finished closing before switching screens
-          $(".modal", elem).on('hidden.bs.modal', function () {
-            scope.$apply(function() {
-              var createURI = URI.expand("project/{project}/create/fromtemplate{?q*}", {
-                project: scope.project,
-                q: {
-                  name: scope.template.metadata.name,
-                  namespace: scope.template.metadata.namespace
-                }
-              });
-              $location.url(createURI.toString());
-            });
-          })
-          .modal('hide');
-
-        });
-      }
+      templateUrl: 'views/catalog/_template.html'
+    };
+  })
+  .directive('catalogImage', function() {
+    return {
+      restrict: 'E',
+      // Replace the catalog-template element so that the tiles are all equal height as flexbox items.
+      // Otherwise, you have to add the CSS tile classes to catalog-template.
+      replace: true,
+      scope: {
+        image: '=',
+        imageStream: '=',
+        imageTag: '=',
+        version: '=',
+        project: '@',
+        filterTag: "=",
+        isBuilder: "=?"
+      },
+      templateUrl: 'views/catalog/_image.html'
     };
   });

@@ -1,9 +1,9 @@
 package test
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/user/api"
 )

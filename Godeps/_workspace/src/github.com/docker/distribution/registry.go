@@ -10,12 +10,37 @@ import (
 	"golang.org/x/net/context"
 )
 
-// Registry represents a collection of repositories, addressable by name.
-type Registry interface {
+// Scope defines the set of items that match a namespace.
+type Scope interface {
+	// Contains returns true if the name belongs to the namespace.
+	Contains(name string) bool
+}
+
+type fullScope struct{}
+
+func (f fullScope) Contains(string) bool {
+	return true
+}
+
+// GlobalScope represents the full namespace scope which contains
+// all other scopes.
+var GlobalScope = Scope(fullScope{})
+
+// Namespace represents a collection of repositories, addressable by name.
+// Generally, a namespace is backed by a set of one or more services,
+// providing facilities such as registry access, trust, and indexing.
+type Namespace interface {
+	// Scope describes the names that can be used with this Namespace. The
+	// global namespace will have a scope that matches all names. The scope
+	// effectively provides an identity for the namespace.
+	Scope() Scope
+
 	// Repository should return a reference to the named repository. The
 	// registry may or may not have the repository but should always return a
 	// reference.
 	Repository(ctx context.Context, name string) (Repository, error)
+
+	Blobs() BlobService
 }
 
 // Repository is a named collection of manifests and layers.
@@ -33,31 +58,35 @@ type Repository interface {
 	Signatures() SignatureService
 }
 
+// TODO(stevvooe): Must add close methods to all these. May want to change the
+// way instances are created to better reflect internal dependency
+// relationships.
+
 // ManifestService provides operations on image manifests.
 type ManifestService interface {
 	// Exists returns true if the manifest exists.
-	Exists(dgst digest.Digest) (bool, error)
+	Exists(ctx context.Context, dgst digest.Digest) (bool, error)
 
 	// Get retrieves the identified by the digest, if it exists.
-	Get(dgst digest.Digest) (*manifest.SignedManifest, error)
+	Get(ctx context.Context, dgst digest.Digest) (*manifest.SignedManifest, error)
 
 	// Delete removes the manifest, if it exists.
-	Delete(dgst digest.Digest) error
+	Delete(ctx context.Context, dgst digest.Digest) error
 
 	// Put creates or updates the manifest.
-	Put(manifest *manifest.SignedManifest) error
+	Put(ctx context.Context, manifest *manifest.SignedManifest) error
 
 	// TODO(stevvooe): The methods after this message should be moved to a
 	// discrete TagService, per active proposals.
 
 	// Tags lists the tags under the named repository.
-	Tags() ([]string, error)
+	Tags(ctx context.Context) ([]string, error)
 
 	// ExistsByTag returns true if the manifest exists.
-	ExistsByTag(tag string) (bool, error)
+	ExistsByTag(ctx context.Context, tag string) (bool, error)
 
 	// GetByTag retrieves the named manifest, if it exists.
-	GetByTag(tag string) (*manifest.SignedManifest, error)
+	GetByTag(ctx context.Context, tag string) (*manifest.SignedManifest, error)
 
 	// TODO(stevvooe): There are several changes that need to be done to this
 	// interface:
@@ -80,6 +109,9 @@ type LayerService interface {
 
 	// Fetch the layer identifed by TarSum.
 	Fetch(digest digest.Digest) (Layer, error)
+
+	// Delete unlinks the layer from a Repository.
+	Delete(dgst digest.Digest) error
 
 	// Upload begins a layer upload to repository identified by name,
 	// returning a handle.
@@ -144,6 +176,10 @@ type SignatureService interface {
 
 	// Put stores the signature for the provided digest.
 	Put(dgst digest.Digest, signatures ...[]byte) error
+}
+
+type BlobService interface {
+	Delete(dgst digest.Digest) error
 }
 
 // Descriptor describes targeted content. Used in conjunction with a blob

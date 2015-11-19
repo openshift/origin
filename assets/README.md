@@ -1,6 +1,6 @@
 OpenShift 3 Static Assets
 =========================
-The static assets for OpenShift v3.  This includes the web management console.
+The static assets for OpenShift v3.  This includes the web console.
 
 Contributing
 ------------
@@ -41,10 +41,40 @@ The supported log levels are:
 
 Note: currently most of our logging either goes to INFO or ERROR
 
+#### Local configuration
+
+`assets/app/config.js` is the default configuration file for web console
+development. If you need to change the configuration, for example, to point to
+a different API server, copy `assets/app/config.js` to
+`assets/app/config.local.js` and edit the copy. `assets/app/config.local.js` is
+not tracked and will be used instead if it exists.
+
 #### Before opening a pull request
 1. If needed, run `hack/build-assets.sh` to update bindata.go
-2. Run the test suite with `hack/test-assets.sh`
-3. Rebase and squash changes to a single commit
+2. Run the spec tests with `hack/test-assets.sh`
+3. Run the end to end tests with `TEST_ASSETS=true hack/test-end-to-end.sh`
+4. Rebase and squash changes to a single commit
+
+Note: in order to run the end to end tests you must have [Chrome](http://www.google.com/chrome/) and [chromedriver](https://sites.google.com/a/chromium.org/chromedriver/) installed.  The script below will set this up for you on linux systems.
+
+```
+# Add signing key for Chrome repo
+wget https://dl.google.com/linux/linux_signing_key.pub
+rpm --import linux_signing_key.pub
+
+# Add Chrome yum repo
+yum-config-manager --add-repo=http://dl.google.com/linux/chrome/rpm/stable/x86_64
+
+# Install chrome
+yum install -y google-chrome-stable 
+
+# Install chromedriver
+wget https://chromedriver.storage.googleapis.com/2.16/chromedriver_linux64.zip
+unzip chromedriver_linux64.zip
+mv chromedriver /usr/bin/chromedriver
+chown root /usr/bin/chromedriver
+chmod 755 /usr/bin/chromedriver
+```
 
 #### Production builds
 1. Make sure all dev dependencies are up to date by running `hack/install-assets.sh`
@@ -64,7 +94,7 @@ If Travis complains that bindata.go is different than the committed version, ens
 Architecture
 ------------
 
-The OpenShift v3 management console is based on AngularJS and [Hawt.io](https://github.com/hawtio/hawtio-core)
+The OpenShift v3 web console is based on AngularJS and [Hawt.io](https://github.com/hawtio/hawtio-core)
 
 #### Navigation
 
@@ -100,6 +130,8 @@ For more details on the expected scope arguments, see the source under [app/scri
 * select-on-focus (attribute) - when the element is focused, all text within it will be selected
 * tile-click (attribute or class) - for use with the `.tile` class, when anything on the tile is clicked, a simulated click to the `a.tile-target` link will be fired.  Recommended use is by adding the `.tile-click` class to get the correct styles on hover.
 * click-to-reveal (attribute) - the element will be hidden and a link to show the element will appear instead, link text is customizable
+* osc-object (attribute or class) - When the element is clicked it will be shown in the details sidebar.  Using as a class is preferred to pick up hover/active styles
+* truncate-long-text (element) - truncates text to a limit, optionally on word boundaries, adding a tooltip and ellipsis when the text is truncated
 
 ##### Filters
 

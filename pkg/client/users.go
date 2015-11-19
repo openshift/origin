@@ -1,10 +1,9 @@
 package client
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	userapi "github.com/openshift/origin/pkg/user/api"
-	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
 // UsersInterface has methods to work with User resources
@@ -37,8 +36,8 @@ func (c *users) List(label labels.Selector, field fields.Selector) (result *user
 	result = &userapi.UserList{}
 	err = c.r.Get().
 		Resource("users").
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Do().
 		Into(result)
 	return

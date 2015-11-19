@@ -5,20 +5,25 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"regexp"
+	"strings"
 	"testing"
 
-	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	_ "k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/util"
+
 	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/api/v1beta3"
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/generator"
 )
 
-func makeParameter(name, value, generate string) api.Parameter {
+func makeParameter(name, value, generate string, required bool) api.Parameter {
 	return api.Parameter{
 		Name:     name,
 		Value:    value,
 		Generate: generate,
+		Required: required,
 	}
 }
 
@@ -28,8 +33,8 @@ func TestAddParameter(t *testing.T) {
 	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
 	json.Unmarshal(jsonData, &template)
 
-	AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", ""))
-	AddParameter(&template, makeParameter("CUSTOM_PARAM", "2", ""))
+	AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", "", false))
+	AddParameter(&template, makeParameter("CUSTOM_PARAM", "2", "", false))
 
 	if p := GetParameterByName(&template, "CUSTOM_PARAM"); p == nil {
 		t.Errorf("Unable to add a custom parameter to the template")
@@ -54,6 +59,13 @@ func (g ErrorGenerator) GenerateValue(expression string) (interface{}, error) {
 	return "", fmt.Errorf("error")
 }
 
+type EmptyGenerator struct {
+}
+
+func (g EmptyGenerator) GenerateValue(expression string) (interface{}, error) {
+	return "", nil
+}
+
 func TestParameterGenerators(t *testing.T) {
 	tests := []struct {
 		parameter  api.Parameter
@@ -62,35 +74,47 @@ func TestParameterGenerators(t *testing.T) {
 		expected   api.Parameter
 	}{
 		{ // Empty generator, should pass
-			makeParameter("PARAM", "X", ""),
+			makeParameter("PARAM", "X", "", false),
 			map[string]generator.Generator{},
 			true,
-			makeParameter("PARAM", "X", ""),
+			makeParameter("PARAM", "X", "", false),
 		},
 		{ // Foo generator, should pass
-			makeParameter("PARAM", "", "foo"),
+			makeParameter("PARAM", "", "foo", false),
 			map[string]generator.Generator{"foo": FooGenerator{}},
 			true,
-			makeParameter("PARAM", "foo", ""),
+			makeParameter("PARAM", "foo", "", false),
 		},
 		{ // Invalid generator, should fail
-			makeParameter("PARAM", "", "invalid"),
+			makeParameter("PARAM", "", "invalid", false),
 			map[string]generator.Generator{"invalid": nil},
 			false,
-			makeParameter("PARAM", "", "invalid"),
+			makeParameter("PARAM", "", "invalid", false),
 		},
 		{ // Error generator, should fail
-			makeParameter("PARAM", "", "error"),
+			makeParameter("PARAM", "", "error", false),
 			map[string]generator.Generator{"error": ErrorGenerator{}},
 			false,
-			makeParameter("PARAM", "", "error"),
+			makeParameter("PARAM", "", "error", false),
+		},
+		{ // Error required parameter, no value, should fail
+			makeParameter("PARAM", "", "", true),
+			map[string]generator.Generator{"error": ErrorGenerator{}},
+			false,
+			makeParameter("PARAM", "", "", true),
+		},
+		{ // Error required parameter, no value from generator, should fail
+			makeParameter("PARAM", "", "empty", true),
+			map[string]generator.Generator{"empty": EmptyGenerator{}},
+			false,
+			makeParameter("PARAM", "", "empty", true),
 		},
 	}
 
 	for i, test := range tests {
 		processor := NewProcessor(test.generators)
 		template := api.Template{Parameters: []api.Parameter{test.parameter}}
-		err := processor.GenerateParameterValues(&template)
+		err, _ := processor.GenerateParameterValues(&template)
 		if err != nil && test.shouldPass {
 			t.Errorf("test[%v]: Unexpected error %v", i, err)
 		}
@@ -104,10 +128,24 @@ func TestParameterGenerators(t *testing.T) {
 	}
 }
 
-func ExampleProcessTemplateParameters() {
+func TestProcessValueEscape(t *testing.T) {
 	var template api.Template
-	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
-	latest.Codec.DecodeInto(jsonData, &template)
+	if err := latest.Codec.DecodeInto([]byte(`{
+		"kind":"Template", "apiVersion":"v1",
+		"objects": [
+			{
+				"kind": "Service", "apiVersion": "v1beta3${VALUE}",
+				"metadata": {
+					"labels": {
+						"key1": "${VALUE}",
+						"key2": "$${VALUE}"
+					}
+				}
+			}
+		]
+	}`), &template); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	generators := map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(1337))),
@@ -115,19 +153,217 @@ func ExampleProcessTemplateParameters() {
 	processor := NewProcessor(generators)
 
 	// Define custom parameter for the transformation:
-	AddParameter(&template, makeParameter("CUSTOM_PARAM1", "1", ""))
+	AddParameter(&template, makeParameter("VALUE", "1", "", false))
 
 	// Transform the template config into the result config
-	config, err := processor.Process(&template)
-	fmt.Println(errors.NewAggregate(err))
-	if config != nil {
-		result, err := latest.Codec.Encode(config)
-		if err != nil {
-			fmt.Printf("Unexpected error during encoding Config: %#v", err)
-		}
-		fmt.Println(string(result))
+	errs := processor.Process(&template)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected error: %v", errs)
 	}
-	// Output:
-	//<nil>
-	//{"kind":"Config","apiVersion":"v1beta1","metadata":{"creationTimestamp":null},"items":[{"kind":"Route","apiVersion":"v1beta1","metadata":{"name":"frontend-route","creationTimestamp":null},"host":"guestbook.example.com","serviceName":"frontend-service"},{"kind":"Service","id":"frontend-service","creationTimestamp":null,"apiVersion":"v1beta1","port":5432,"protocol":"TCP","selector":{"name":"frontend-service"},"containerPort":0,"sessionAffinity":"None"},{"kind":"Service","id":"redis-master","creationTimestamp":null,"apiVersion":"v1beta1","port":10000,"protocol":"TCP","selector":{"name":"redis-master"},"containerPort":0,"sessionAffinity":"None"},{"kind":"Service","id":"redis-slave","creationTimestamp":null,"apiVersion":"v1beta1","port":10001,"protocol":"TCP","selector":{"name":"redis-slave"},"containerPort":0,"sessionAffinity":"None"},{"kind":"Pod","id":"redis-master","creationTimestamp":null,"apiVersion":"v1beta1","labels":{"name":"redis-master"},"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"master","image":"dockerfile/redis","ports":[{"containerPort":6379,"protocol":"TCP"}],"env":[{"name":"REDIS_PASSWORD","key":"REDIS_PASSWORD","value":"P8vxbV4C"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"currentState":{"manifest":{"version":"","id":"","volumes":null,"containers":null,"restartPolicy":{}}}},{"kind":"ReplicationController","id":"guestbook","creationTimestamp":null,"apiVersion":"v1beta1","desiredState":{"replicas":3,"replicaSelector":{"name":"frontend-service"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"php-redis","image":"brendanburns/php-redis","ports":[{"hostPort":8000,"containerPort":80,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminQ3H"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"dwNJiJwW"},{"name":"REDIS_PASSWORD","key":"REDIS_PASSWORD","value":"P8vxbV4C"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend-service"}}},"currentState":{"replicas":0,"podTemplate":{"desiredState":{"manifest":{"version":"","id":"","volumes":null,"containers":null,"restartPolicy":{}}}}}},{"kind":"ReplicationController","id":"redis-slave","creationTimestamp":null,"apiVersion":"v1beta1","desiredState":{"replicas":2,"replicaSelector":{"name":"redis-slave"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"slave","image":"brendanburns/redis-slave","ports":[{"hostPort":6380,"containerPort":6379,"protocol":"TCP"}],"env":[{"name":"REDIS_PASSWORD","key":"REDIS_PASSWORD","value":"P8vxbV4C"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"redis-slave"}}},"currentState":{"replicas":0,"podTemplate":{"desiredState":{"manifest":{"version":"","id":"","volumes":null,"containers":null,"restartPolicy":{}}}}}}]}
+	result, err := v1beta3.Codec.Encode(&template)
+	if err != nil {
+		t.Fatalf("unexpected error during encoding Config: %#v", err)
+	}
+	expect := `{"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},"objects":[{"apiVersion":"v1beta31","kind":"Service","metadata":{"labels":{"key1":"1","key2":"$1"}}}],"parameters":[{"name":"VALUE","value":"1"}]}`
+	stringResult := strings.TrimSpace(string(result))
+	if expect != stringResult {
+		t.Errorf("unexpected output: %s", util.StringDiff(expect, stringResult))
+	}
+}
+
+var trailingWhitespace = regexp.MustCompile(`\n\s*`)
+
+func TestEvaluateLabels(t *testing.T) {
+	testCases := map[string]struct {
+		Input  string
+		Output string
+		Labels map[string]string
+	}{
+		"no labels": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
+					{
+						"kind": "Service", "apiVersion": "v1beta3",
+						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1beta3","kind":"Service","metadata":{
+						"labels":{"key1":"v1","key2":"v2"}}
+					}
+				]
+			}`,
+		},
+		"one different label": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
+					{
+						"kind": "Service", "apiVersion": "v1beta3",
+						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1beta3","kind":"Service","metadata":{
+						"labels":{"key1":"v1","key2":"v2","key3":"v3"}}
+					}
+				],
+				"labels":{"key3":"v3"}
+			}`,
+			Labels: map[string]string{"key3": "v3"},
+		},
+		"when the root object has labels and no metadata": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
+					{
+						"kind": "Service", "apiVersion": "v1beta1",
+						"labels": {
+							"key1": "v1",
+							"key2": "v2"
+						}
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1beta1","kind":"Service",
+						"labels":{"key1":"v1","key2":"v2","key3":"v3"}
+					}
+				],
+				"labels":{"key3":"v3"}
+			}`,
+			Labels: map[string]string{"key3": "v3"},
+		},
+		"when the root object has labels and metadata": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
+					{
+						"kind": "Service", "apiVersion": "v1beta1",
+						"metadata": {},
+						"labels": {
+							"key1": "v1",
+							"key2": "v2"
+						}
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1beta1","kind":"Service",
+						"labels":{"key1":"v1","key2":"v2"},
+						"metadata":{"labels":{"key3":"v3"}}
+					}
+				],
+				"labels":{"key3":"v3"}
+			}`,
+			Labels: map[string]string{"key3": "v3"},
+		},
+		"overwrites label": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
+					{
+						"kind": "Service", "apiVersion": "v1beta3",
+						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1beta3","kind":"Service","metadata":{
+						"labels":{"key1":"v1","key2":"v3"}}
+					}
+				],
+				"labels":{"key2":"v3"}
+			}`,
+			Labels: map[string]string{"key2": "v3"},
+		},
+	}
+
+	for k, testCase := range testCases {
+		var template api.Template
+		if err := latest.Codec.DecodeInto([]byte(testCase.Input), &template); err != nil {
+			t.Errorf("%s: unexpected error: %v", k, err)
+			continue
+		}
+
+		generators := map[string]generator.Generator{
+			"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(1337))),
+		}
+		processor := NewProcessor(generators)
+
+		template.ObjectLabels = testCase.Labels
+
+		// Transform the template config into the result config
+		errs := processor.Process(&template)
+		if len(errs) > 0 {
+			t.Errorf("%s: unexpected error: %v", k, errs)
+			continue
+		}
+		result, err := v1beta3.Codec.Encode(&template)
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", k, err)
+			continue
+		}
+		expect := testCase.Output
+		expect = trailingWhitespace.ReplaceAllString(expect, "")
+		stringResult := strings.TrimSpace(string(result))
+		if expect != stringResult {
+			t.Errorf("%s: unexpected output: %s", k, util.StringDiff(expect, stringResult))
+			continue
+		}
+	}
+}
+
+func TestProcessTemplateParameters(t *testing.T) {
+	var template, expectedTemplate api.Template
+	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
+	if err := latest.Codec.DecodeInto(jsonData, &template); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expectedData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook_list.json")
+	if err := latest.Codec.DecodeInto(expectedData, &expectedTemplate); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	generators := map[string]generator.Generator{
+		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(1337))),
+	}
+	processor := NewProcessor(generators)
+
+	// Define custom parameter for the transformation:
+	AddParameter(&template, makeParameter("CUSTOM_PARAM1", "1", "", false))
+
+	// Transform the template config into the result config
+	errs := processor.Process(&template)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected error: %v", errs)
+	}
+	result, err := v1beta3.Codec.Encode(&template)
+	if err != nil {
+		t.Fatalf("unexpected error during encoding Config: %#v", err)
+	}
+	exp, _ := v1beta3.Codec.Encode(&expectedTemplate)
+
+	if string(result) != string(exp) {
+		t.Errorf("unexpected output: %s", util.StringDiff(string(exp), string(result)))
+	}
 }

@@ -5,8 +5,8 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -27,20 +27,14 @@ type DeploymentConfigChangeController struct {
 // fatalError is an error which can't be retried.
 type fatalError string
 
-func (e fatalError) Error() string { return "fatal error handling config: " + string(e) }
+func (e fatalError) Error() string {
+	return fmt.Sprintf("fatal error handling configuration: %s", string(e))
+}
 
 // Handle processes change triggers for config.
 func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentConfig) error {
-	hasChangeTrigger := false
-	for _, trigger := range config.Triggers {
-		if trigger.Type == deployapi.DeploymentTriggerOnConfigChange {
-			hasChangeTrigger = true
-			break
-		}
-	}
-
-	if !hasChangeTrigger {
-		glog.V(4).Infof("Ignoring config %s; no change triggers detected", labelFor(config))
+	if !deployutil.HasChangeTrigger(config) {
+		glog.V(5).Infof("Ignoring DeploymentConfig %s; no change triggers detected", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
@@ -48,42 +42,48 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 		_, _, err := c.generateDeployment(config)
 		if err != nil {
 			if kerrors.IsConflict(err) {
-				return fatalError(fmt.Sprintf("config %s updated since retrieval; aborting trigger: %v", labelFor(config), err))
+				return fatalError(fmt.Sprintf("DeploymentConfig %s updated since retrieval; aborting trigger: %v", deployutil.LabelForDeploymentConfig(config), err))
 			}
-			return fmt.Errorf("couldn't create initial deployment for config %s: %v", labelFor(config), err)
+			glog.V(4).Infof("Couldn't create initial deployment for deploymentConfig %q: %v", deployutil.LabelForDeploymentConfig(config), err)
+			return nil
 		}
-		glog.V(4).Infof("Created initial deployment for config %s", labelFor(config))
+		glog.V(4).Infof("Created initial deployment for deploymentConfig %q", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
 	latestDeploymentName := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := c.changeStrategy.getDeployment(config.Namespace, latestDeploymentName)
 	if err != nil {
+		// If there's no deployment for the latest config, we have no basis of
+		// comparison. It's the responsibility of the deployment config controller
+		// to make the deployment for the config, so return early.
 		if kerrors.IsNotFound(err) {
-			glog.V(4).Infof("Ignoring config change for %s; no existing deployment found", labelFor(config))
+			glog.V(5).Infof("Ignoring change for DeploymentConfig %s; no existing Deployment found", deployutil.LabelForDeploymentConfig(config))
 			return nil
 		}
-		return fmt.Errorf("couldn't retrieve deployment for %s: %v", labelFor(config), err)
+		return fmt.Errorf("couldn't retrieve Deployment for DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 
 	deployedConfig, err := c.decodeConfig(deployment)
 	if err != nil {
-		return fatalError(fmt.Sprintf("error decoding deploymentConfig from deployment %s for config %s: %v", labelForDeployment(deployment), labelFor(config), err))
+		return fatalError(fmt.Sprintf("error decoding DeploymentConfig from Deployment %s for DeploymentConfig %s: %v", deployutil.LabelForDeployment(deployment), deployutil.LabelForDeploymentConfig(config), err))
 	}
 
-	if deployutil.PodSpecsEqual(config.Template.ControllerTemplate.Template.Spec, deployedConfig.Template.ControllerTemplate.Template.Spec) {
-		glog.V(4).Infof("Ignoring config change for %s (latestVersion=%d); same as deployment %s", labelFor(config), config.LatestVersion, labelForDeployment(deployment))
+	// Detect template diffs, and return early if there aren't any changes.
+	if kapi.Semantic.DeepEqual(config.Template.ControllerTemplate.Template, deployedConfig.Template.ControllerTemplate.Template) {
+		glog.V(5).Infof("Ignoring DeploymentConfig change for %s (latestVersion=%d); same as Deployment %s", deployutil.LabelForDeploymentConfig(config), config.LatestVersion, deployutil.LabelForDeployment(deployment))
 		return nil
 	}
 
+	// There was a template diff, so generate a new config version.
 	fromVersion, toVersion, err := c.generateDeployment(config)
 	if err != nil {
 		if kerrors.IsConflict(err) {
-			return fatalError(fmt.Sprintf("config %s updated since retrieval; aborting trigger: %v", labelFor(config), err))
+			return fatalError(fmt.Sprintf("DeploymentConfig %s updated since retrieval; aborting trigger: %v", deployutil.LabelForDeploymentConfig(config), err))
 		}
-		return fmt.Errorf("couldn't generate deployment for config %s: %v", labelFor(config), err)
+		return fmt.Errorf("couldn't generate deployment for DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
-	glog.V(4).Infof("Updated config %s from version %d to %d for existing deployment %s", labelFor(config), fromVersion, toVersion, labelForDeployment(deployment))
+	glog.V(4).Infof("Updated DeploymentConfig %s from version %d to %d for existing deployment %s", deployutil.LabelForDeploymentConfig(config), fromVersion, toVersion, deployutil.LabelForDeployment(deployment))
 	return nil
 }
 
@@ -142,14 +142,4 @@ func (i *changeStrategyImpl) generateDeploymentConfig(namespace, name string) (*
 
 func (i *changeStrategyImpl) updateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 	return i.updateDeploymentConfigFunc(namespace, config)
-}
-
-// labelFor builds a string identifier for a DeploymentConfig.
-func labelFor(config *deployapi.DeploymentConfig) string {
-	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
-}
-
-// labelForDeployment builds a string identifier for a DeploymentConfig.
-func labelForDeployment(deployment *kapi.ReplicationController) string {
-	return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
 }

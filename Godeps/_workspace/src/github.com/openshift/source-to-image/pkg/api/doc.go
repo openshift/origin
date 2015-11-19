@@ -1,2 +1,2 @@
-// Provides types used for processing sti requests.
+// Provides types used for processing sti builds.
 package api

@@ -1,16 +1,16 @@
 package etcd
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
 // REST implements a RESTStorage for image streams against etcd.
@@ -20,9 +20,8 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(h tools.EtcdHelper, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST) {
-	//TODO change to imageStreams at release time
-	prefix := "/imageRepositories"
+func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST, *InternalREST) {
+	prefix := "/imagestreams"
 	store := etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.ImageStream{} },
 		NewListFunc: func() runtime.Object { return &api.ImageStreamList{} },
@@ -38,7 +37,7 @@ func NewREST(h tools.EtcdHelper, defaultRegistry imagestream.DefaultRegistry, su
 		EndpointName: "imageStream",
 
 		ReturnDeletedObject: false,
-		Helper:              h,
+		Storage:             s,
 	}
 
 	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry)
@@ -48,13 +47,16 @@ func NewREST(h tools.EtcdHelper, defaultRegistry imagestream.DefaultRegistry, su
 	statusStore := store
 	statusStore.UpdateStrategy = imagestream.NewStatusStrategy(strategy)
 
+	internalStore := store
+	internalStore.UpdateStrategy = imagestream.NewInternalStrategy(strategy)
+
 	store.CreateStrategy = strategy
 	store.UpdateStrategy = strategy
 	store.Decorator = strategy.Decorate
 
 	rest.store = &store
 
-	return rest, &StatusREST{store: &statusStore}
+	return rest, &StatusREST{store: &statusStore}, &InternalREST{store: &internalStore}
 }
 
 // New returns a new object
@@ -108,5 +110,19 @@ func (r *StatusREST) New() runtime.Object {
 
 // Update alters the status subset of an object.
 func (r *StatusREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, obj)
+}
+
+// InternalREST implements the REST endpoint for changing both the spec and status of an image stream.
+type InternalREST struct {
+	store *etcdgeneric.Etcd
+}
+
+func (r *InternalREST) New() runtime.Object {
+	return &api.ImageStream{}
+}
+
+// Update alters both the spec and status of the object.
+func (r *InternalREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	return r.store.Update(ctx, obj)
 }

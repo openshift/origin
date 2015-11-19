@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/golang/glog"
@@ -29,14 +30,34 @@ import (
 
 const DockerPage = "/docker/"
 
+func toStatusKV(status manager.DockerStatus) ([]keyVal, []keyVal) {
+	ds := []keyVal{
+		{Key: "Driver", Value: status.Driver},
+	}
+	for k, v := range status.DriverStatus {
+		ds = append(ds, keyVal{Key: k, Value: v})
+	}
+	return []keyVal{
+		{Key: "Docker Version", Value: status.Version},
+		{Key: "Kernel Version", Value: status.KernelVersion},
+		{Key: "OS Version", Value: status.OS},
+		{Key: "Host Name", Value: status.Hostname},
+		{Key: "Docker Root Directory", Value: status.RootDir},
+		{Key: "Execution  Driver", Value: status.ExecDriver},
+		{Key: "Number of Images", Value: strconv.Itoa(status.NumImages)},
+		{Key: "Number of Containers", Value: strconv.Itoa(status.NumContainers)},
+	}, ds
+}
+
 func serveDockerPage(m manager.Manager, w http.ResponseWriter, u *url.URL) error {
 	start := time.Now()
 
 	// The container name is the path after the handler
-	containerName := u.Path[len(DockerPage):]
+	containerName := u.Path[len(DockerPage)-1:]
+	rootDir := getRootDir(containerName)
 
 	var data *pageData
-	if containerName == "" {
+	if containerName == "/" {
 		// Get the containers.
 		reqParams := info.ContainerInfoRequest{
 			NumStats: 0,
@@ -49,8 +70,21 @@ func serveDockerPage(m manager.Manager, w http.ResponseWriter, u *url.URL) error
 		for _, cont := range conts {
 			subcontainers = append(subcontainers, link{
 				Text: getContainerDisplayName(cont.ContainerReference),
-				Link: path.Join("/docker", docker.ContainerNameToDockerId(cont.ContainerReference.Name)),
+				Link: path.Join(rootDir, DockerPage, docker.ContainerNameToDockerId(cont.ContainerReference.Name)),
 			})
+		}
+
+		// Get Docker status
+		status, err := m.DockerInfo()
+		if err != nil {
+			return err
+		}
+
+		dockerStatus, driverStatus := toStatusKV(status)
+		// Get Docker Images
+		images, err := m.DockerImages()
+		if err != nil {
+			return err
 		}
 
 		dockerContainersText := "Docker Containers"
@@ -59,16 +93,20 @@ func serveDockerPage(m manager.Manager, w http.ResponseWriter, u *url.URL) error
 			ParentContainers: []link{
 				{
 					Text: dockerContainersText,
-					Link: DockerPage,
+					Link: path.Join(rootDir, DockerPage),
 				}},
-			Subcontainers: subcontainers,
+			Subcontainers:      subcontainers,
+			Root:               rootDir,
+			DockerStatus:       dockerStatus,
+			DockerDriverStatus: driverStatus,
+			DockerImages:       images,
 		}
 	} else {
 		// Get the container.
 		reqParams := info.ContainerInfoRequest{
 			NumStats: 60,
 		}
-		cont, err := m.DockerContainer(containerName, &reqParams)
+		cont, err := m.DockerContainer(containerName[1:], &reqParams)
 		if err != nil {
 			return fmt.Errorf("failed to get container %q with error: %v", containerName, err)
 		}
@@ -77,12 +115,12 @@ func serveDockerPage(m manager.Manager, w http.ResponseWriter, u *url.URL) error
 		// Make a list of the parent containers and their links
 		var parentContainers []link
 		parentContainers = append(parentContainers, link{
-			Text: "Docker containers",
-			Link: DockerPage,
+			Text: "Docker Containers",
+			Link: path.Join(rootDir, DockerPage),
 		})
 		parentContainers = append(parentContainers, link{
 			Text: displayName,
-			Link: path.Join(DockerPage, docker.ContainerNameToDockerId(cont.Name)),
+			Link: path.Join(rootDir, DockerPage, docker.ContainerNameToDockerId(cont.Name)),
 		})
 
 		// Get the MachineInfo
@@ -90,19 +128,20 @@ func serveDockerPage(m manager.Manager, w http.ResponseWriter, u *url.URL) error
 		if err != nil {
 			return err
 		}
-
 		data = &pageData{
-			DisplayName:        displayName,
-			ContainerName:      cont.Name,
-			ParentContainers:   parentContainers,
-			Spec:               cont.Spec,
-			Stats:              cont.Stats,
-			MachineInfo:        machineInfo,
-			ResourcesAvailable: cont.Spec.HasCpu || cont.Spec.HasMemory || cont.Spec.HasNetwork,
-			CpuAvailable:       cont.Spec.HasCpu,
-			MemoryAvailable:    cont.Spec.HasMemory,
-			NetworkAvailable:   cont.Spec.HasNetwork,
-			FsAvailable:        cont.Spec.HasFilesystem,
+			DisplayName:            displayName,
+			ContainerName:          escapeContainerName(cont.Name),
+			ParentContainers:       parentContainers,
+			Spec:                   cont.Spec,
+			Stats:                  cont.Stats,
+			MachineInfo:            machineInfo,
+			ResourcesAvailable:     cont.Spec.HasCpu || cont.Spec.HasMemory || cont.Spec.HasNetwork,
+			CpuAvailable:           cont.Spec.HasCpu,
+			MemoryAvailable:        cont.Spec.HasMemory,
+			NetworkAvailable:       cont.Spec.HasNetwork,
+			FsAvailable:            cont.Spec.HasFilesystem,
+			CustomMetricsAvailable: cont.Spec.HasCustomMetrics,
+			Root: rootDir,
 		}
 	}
 
@@ -111,6 +150,6 @@ func serveDockerPage(m manager.Manager, w http.ResponseWriter, u *url.URL) error
 		glog.Errorf("Failed to apply template: %s", err)
 	}
 
-	glog.V(1).Infof("Request took %s", time.Since(start))
+	glog.V(5).Infof("Request took %s", time.Since(start))
 	return nil
 }

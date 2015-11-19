@@ -1,8 +1,9 @@
 package controller
 
 import (
-	kcache "github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	kcache "k8s.io/kubernetes/pkg/client/cache"
+	kutil "k8s.io/kubernetes/pkg/util"
 )
 
 // RunnableController is a controller which implements a Run loop.
@@ -51,7 +52,7 @@ func (c *RetryController) handleOne(resource interface{}) {
 		c.Retry(resource, err)
 		return
 	}
-	c.RetryManager.Forget(resource)
+	c.Forget(resource)
 }
 
 // RetryManager knows how to retry processing of a resource, and how to forget
@@ -69,7 +70,17 @@ type RetryManager interface {
 
 // RetryFunc should return true if the given object and error should be retried after
 // the provided number of times.
-type RetryFunc func(obj interface{}, err error, retries int) bool
+type RetryFunc func(obj interface{}, err error, retries Retry) bool
+
+// RetryNever is a RetryFunc implementation that will never retry
+func RetryNever(obj interface{}, err error, retries Retry) bool {
+	return false
+}
+
+// RetryNever is a RetryFunc implementation that will always retry
+func RetryAlways(obj interface{}, err error, retries Retry) bool {
+	return true
+}
 
 // QueueRetryManager retries a resource by re-queueing it into a ReQueue as long as
 // retryFunc returns true.
@@ -83,12 +94,21 @@ type QueueRetryManager struct {
 	// retryFunc returns true if the resource and error returned should be retried.
 	retryFunc RetryFunc
 
-	// retries maps resources to their current retry count.
-	retries map[string]int
+	// retries maps resources to their current retry
+	retries map[string]Retry
 
 	// limits how fast retries can be enqueued to ensure you can't tight
 	// loop on retries.
 	limiter kutil.RateLimiter
+}
+
+// Retry describes provides additional information regarding retries.
+type Retry struct {
+	// Count is the number of retries
+	Count int
+
+	// StartTimestamp is retry start timestamp
+	StartTimestamp unversioned.Time
 }
 
 // ReQueue is a queue that allows an object to be requeued
@@ -103,7 +123,7 @@ func NewQueueRetryManager(queue ReQueue, keyFn kcache.KeyFunc, retryFn RetryFunc
 		queue:     queue,
 		keyFunc:   keyFn,
 		retryFunc: retryFn,
-		retries:   make(map[string]int),
+		retries:   make(map[string]Retry),
 		limiter:   limiter,
 	}
 }
@@ -115,7 +135,7 @@ func (r *QueueRetryManager) Retry(resource interface{}, err error) {
 	id, _ := r.keyFunc(resource)
 
 	if _, exists := r.retries[id]; !exists {
-		r.retries[id] = 0
+		r.retries[id] = Retry{0, unversioned.Now()}
 	}
 	tries := r.retries[id]
 
@@ -124,7 +144,8 @@ func (r *QueueRetryManager) Retry(resource interface{}, err error) {
 		// It's important to use AddIfNotPresent to prevent overwriting newer
 		// state in the queue which may have arrived asynchronously.
 		r.queue.AddIfNotPresent(resource)
-		r.retries[id] = tries + 1
+		tries.Count = tries.Count + 1
+		r.retries[id] = tries
 	} else {
 		r.Forget(resource)
 	}

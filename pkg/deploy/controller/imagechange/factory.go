@@ -3,13 +3,13 @@ package imagechange
 import (
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
+	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
@@ -73,12 +73,12 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			func(obj interface{}, err error, count int) bool {
+			func(obj interface{}, err error, retries controller.Retry) bool {
 				kutil.HandleError(err)
 				if _, isFatal := err.(fatalError); isFatal {
 					return false
 				}
-				if count > 0 {
+				if retries.Count > 0 {
 					return false
 				}
 				return true

@@ -3,27 +3,34 @@ package service
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 )
 
 func TestServiceResolverCacheEmpty(t *testing.T) {
-	fakeClient := &client.Fake{}
+	fakeClient := testclient.NewSimpleFake(&api.Service{
+		ObjectMeta: api.ObjectMeta{
+			Name: "foo",
+		},
+		Spec: api.ServiceSpec{
+			Ports: []api.ServicePort{{Port: 80}},
+		},
+	})
 	cache := NewServiceResolverCache(fakeClient.Services("default").Get)
 	if v, ok := cache.resolve("FOO_SERVICE_HOST"); v != "" || !ok {
 		t.Errorf("unexpected cache item")
 	}
-	if len(fakeClient.Actions) != 1 {
-		t.Errorf("unexpected client actions: %#v", fakeClient.Actions)
+	if len(fakeClient.Actions()) != 1 {
+		t.Errorf("unexpected client actions: %#v", fakeClient.Actions())
 	}
 	cache.resolve("FOO_SERVICE_HOST")
-	if len(fakeClient.Actions) != 1 {
-		t.Errorf("unexpected cache miss: %#v", fakeClient.Actions)
+	if len(fakeClient.Actions()) != 1 {
+		t.Errorf("unexpected cache miss: %#v", fakeClient.Actions())
 	}
 	cache.resolve("FOO_SERVICE_PORT")
-	if len(fakeClient.Actions) != 1 {
-		t.Errorf("unexpected cache miss: %#v", fakeClient.Actions)
+	if len(fakeClient.Actions()) != 1 {
+		t.Errorf("unexpected cache miss: %#v", fakeClient.Actions())
 	}
 }
 
@@ -48,8 +55,8 @@ func TestServiceResolverCache(t *testing.T) {
 	c = fakeRetriever{
 		service: &api.Service{
 			Spec: api.ServiceSpec{
-				PortalIP: "127.0.0.1",
-				Port:     80,
+				ClusterIP: "127.0.0.1",
+				Ports:     []api.ServicePort{{Port: 80}},
 			},
 		},
 	}

@@ -1,32 +1,40 @@
 package onbuild
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/docker/docker/builder/parser"
+
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/test"
 )
 
 type fakeSourceHandler struct{}
 
-func (*fakeSourceHandler) Prepare(r *api.Request) error {
+func (*fakeSourceHandler) Prepare(r *api.Config) error {
 	return nil
 }
 
-func (*fakeSourceHandler) Download(r *api.Request) error {
+func (*fakeSourceHandler) Ignore(r *api.Config) error {
 	return nil
+}
+
+func (*fakeSourceHandler) Download(r *api.Config) (*api.SourceInfo, error) {
+	return &api.SourceInfo{}, nil
 }
 
 type fakeCleaner struct{}
 
-func (*fakeCleaner) Cleanup(*api.Request) {}
+func (*fakeCleaner) Cleanup(*api.Config) {}
 
 func newFakeOnBuild() *OnBuild {
 	return &OnBuild{
-		docker:  &test.FakeDocker{},
+		docker:  &docker.FakeDocker{},
 		git:     &test.FakeGit{},
 		fs:      &test.FakeFileSystem{},
 		tar:     &test.FakeTar{},
@@ -45,11 +53,18 @@ func checkDockerfile(fs *test.FakeFileSystem, t *testing.T) {
 	if !strings.Contains(fs.WriteFileContent, `ENTRYPOINT ["./run"]`) {
 		t.Errorf("The Dockerfile does not set correct entrypoint:\n %s\n", fs.WriteFileContent)
 	}
+
+	buf := bytes.NewBuffer([]byte(fs.WriteFileContent))
+	if _, err := parser.Parse(buf); err != nil {
+		t.Errorf("cannot parse new Dockerfile: " + err.Error())
+	}
+
 }
 
 func TestCreateDockerfile(t *testing.T) {
-	fakeRequest := &api.Request{
-		BaseImage: "fake:onbuild",
+	fakeRequest := &api.Config{
+		BuilderImage: "fake:onbuild",
+		Environment:  map[string]string{"FOO": "BAR", "TEST": "A VALUE"},
 	}
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{
@@ -68,8 +83,8 @@ func TestCreateDockerfile(t *testing.T) {
 }
 
 func TestCreateDockerfileWithAssemble(t *testing.T) {
-	fakeRequest := &api.Request{
-		BaseImage: "fake:onbuild",
+	fakeRequest := &api.Config{
+		BuilderImage: "fake:onbuild",
 	}
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{
@@ -92,9 +107,9 @@ func TestCreateDockerfileWithAssemble(t *testing.T) {
 }
 
 func TestBuild(t *testing.T) {
-	fakeRequest := &api.Request{
-		BaseImage: "fake:onbuild",
-		Tag:       "fakeapp",
+	fakeRequest := &api.Config{
+		BuilderImage: "fake:onbuild",
+		Tag:          "fakeapp",
 	}
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{

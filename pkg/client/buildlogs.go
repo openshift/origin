@@ -1,7 +1,10 @@
 package client
 
 import (
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+
+	api "github.com/openshift/origin/pkg/build/api"
 )
 
 // BuildLogsNamespacer has methods to work with BuildLogs resources in a namespace
@@ -11,7 +14,7 @@ type BuildLogsNamespacer interface {
 
 // BuildLogsInterface exposes methods on BuildLogs resources.
 type BuildLogsInterface interface {
-	Get(name string) *kclient.Request
+	Get(name string, opts api.BuildLogOptions) *kclient.Request
 }
 
 // buildLogs implements BuildLogsNamespacer interface
@@ -29,6 +32,6 @@ func newBuildLogs(c *Client, namespace string) *buildLogs {
 }
 
 // Get builds and returns a buildLog request
-func (c *buildLogs) Get(name string) *kclient.Request {
-	return c.r.Get().Namespace(c.ns).Prefix("proxy").Resource("buildLogs").Name(name)
+func (c *buildLogs) Get(name string, opts api.BuildLogOptions) *kclient.Request {
+	return c.r.Get().Namespace(c.ns).Resource("builds").Name(name).SubResource("log").VersionedParams(&opts, kapi.Scheme)
 }

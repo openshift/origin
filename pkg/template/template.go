@@ -5,16 +5,14 @@ import (
 	"regexp"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
-	configapi "github.com/openshift/origin/pkg/config/api"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/template/api"
 	. "github.com/openshift/origin/pkg/template/generator"
 	"github.com/openshift/origin/pkg/util"
+	"github.com/openshift/origin/pkg/util/stringreplace"
 )
 
 var parameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+)\}`)
@@ -33,28 +31,63 @@ func NewProcessor(generators map[string]Generator) *Processor {
 // Parameter values using the defined set of generators first, and then it
 // substitutes all Parameter expression occurrences with their corresponding
 // values (currently in the containers' Environment variables only).
-func (p *Processor) Process(template *api.Template) (*configapi.Config, fielderrors.ValidationErrorList) {
+func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorList {
 	templateErrors := fielderrors.ValidationErrorList{}
 
-	if err := p.GenerateParameterValues(template); err != nil {
-		return nil, append(templateErrors.Prefix("Template"), fielderrors.NewFieldInvalid("parameters", err, "failure to generate parameter value"))
+	if err, badParam := p.GenerateParameterValues(template); err != nil {
+		return append(templateErrors.Prefix("Template"), fielderrors.NewFieldInvalid("parameters", *badParam, err.Error()))
 	}
 
 	for i, item := range template.Objects {
+		if obj, ok := item.(*runtime.Unknown); ok {
+			// TODO: use runtime.DecodeList when it returns ValidationErrorList
+			decodedObj, err := runtime.UnstructuredJSONScheme.Decode(obj.RawJSON)
+			if err != nil {
+				util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("objects", obj, "unable to handle object"))
+				continue
+			}
+			item = decodedObj
+		}
+
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
 		if err != nil {
-			util.ReportError(&templateErrors, i, *fielderrors.NewFieldNotSupported("parameters", err))
+			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("parameters", template.Parameters, err.Error()))
 		}
-		// Remove namespace from the item
-		itemMeta, err := meta.Accessor(newItem)
-		if err != nil {
-			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("namespace", err, "failed to remove the item namespace"))
+		// If an object definition's metadata includes a namespace field, the field will be stripped out of
+		// the definition during template instantiation.  This is necessary because all objects created during
+		// instantiation are placed into the target namespace, so it would be invalid for the object to declare
+		//a different namespace.
+		stripNamespace(newItem)
+		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {
+			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("labels", err, "label could not be applied"))
 		}
-		itemMeta.SetNamespace("")
 		template.Objects[i] = newItem
 	}
 
-	return &configapi.Config{Items: template.Objects}, templateErrors.Prefix("Template")
+	return templateErrors
+}
+
+func stripNamespace(obj runtime.Object) {
+	// Remove namespace from the item
+	if itemMeta, err := meta.Accessor(obj); err == nil {
+		itemMeta.SetNamespace("")
+		return
+	}
+	// TODO: allow meta.Accessor to handle runtime.Unstructured
+	if unstruct, ok := obj.(*runtime.Unstructured); ok && unstruct.Object != nil {
+		if obj, ok := unstruct.Object["metadata"]; ok {
+			if m, ok := obj.(map[string]interface{}); ok {
+				if _, ok := m["namespace"]; ok {
+					m["namespace"] = ""
+				}
+			}
+			return
+		}
+		if _, ok := unstruct.Object["namespace"]; ok {
+			unstruct.Object["namespace"] = ""
+			return
+		}
+	}
 }
 
 // AddParameter adds new custom parameter to the Template. It overrides
@@ -78,14 +111,12 @@ func GetParameterByName(t *api.Template, name string) *api.Parameter {
 	return nil
 }
 
-// SubstituteParameters loops over all Environment variables defined for
-// all ReplicationController and Pod containers and substitutes all
-// Parameter expression occurrences with their corresponding values.
+// SubstituteParameters loops over all values defined in structured
+// and unstructured types that are children of item.
 //
 // Example of Parameter expression:
 //   - ${PARAMETER_NAME}
 //
-// TODO: Implement substitution for more types and fields.
 func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Object) (runtime.Object, error) {
 	// Make searching for given parameter name/value more effective
 	paramMap := make(map[string]string, len(params))
@@ -93,43 +124,18 @@ func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Ob
 		paramMap[param.Name] = param.Value
 	}
 
-	switch obj := item.(type) {
-	case *kapi.ReplicationController:
-		p.substituteParametersInManifest(obj.Spec.Template.Spec.Containers, paramMap)
-		return obj, nil
-	case *kapi.Pod:
-		p.substituteParametersInManifest(obj.Spec.Containers, paramMap)
-		return obj, nil
-	case *deployapi.Deployment:
-		p.substituteParametersInManifest(obj.ControllerTemplate.Template.Spec.Containers, paramMap)
-		return obj, nil
-	case *deployapi.DeploymentConfig:
-		p.substituteParametersInManifest(obj.Template.ControllerTemplate.Template.Spec.Containers, paramMap)
-		return obj, nil
-	default:
-		return obj, nil
-	}
-
-}
-
-// substituteParametersInManifest is a helper function that iterates
-// over the given manifest and substitutes all Parameter expression
-// occurrences with their corresponding values.
-func (p *Processor) substituteParametersInManifest(containers []kapi.Container, paramMap map[string]string) {
-	for i := range containers {
-		for e := range containers[i].Env {
-			envValue := &containers[i].Env[e].Value
-			// Match all parameter expressions found in the given env var
-			for _, match := range parameterExp.FindAllStringSubmatch(*envValue, -1) {
-				// Substitute expression with its value, if corresponding parameter found
-				if len(match) > 1 {
-					if paramValue, found := paramMap[match[1]]; found {
-						*envValue = strings.Replace(*envValue, match[0], paramValue, 1)
-					}
+	stringreplace.VisitObjectStrings(item, func(in string) string {
+		for _, match := range parameterExp.FindAllStringSubmatch(in, -1) {
+			if len(match) > 1 {
+				if paramValue, found := paramMap[match[1]]; found {
+					in = strings.Replace(in, match[0], paramValue, 1)
 				}
 			}
 		}
-	}
+		return in
+	})
+
+	return item, nil
 }
 
 // GenerateParameterValues generates Value for each Parameter of the given
@@ -144,7 +150,8 @@ func (p *Processor) substituteParametersInManifest(containers []kapi.Container, 
 // "[0-1]{8}"       | "01001100"
 // "0x[A-F0-9]{4}"  | "0xB3AF"
 // "[a-zA-Z0-9]{8}" | "hW4yQU5i"
-func (p *Processor) GenerateParameterValues(t *api.Template) error {
+// If an error occurs, the parameter that caused the error is returned along with the error message.
+func (p *Processor) GenerateParameterValues(t *api.Template) (error, *api.Parameter) {
 	for i := range t.Parameters {
 		param := &t.Parameters[i]
 		if len(param.Value) > 0 {
@@ -153,20 +160,23 @@ func (p *Processor) GenerateParameterValues(t *api.Template) error {
 		if param.Generate != "" {
 			generator, ok := p.Generators[param.Generate]
 			if !ok {
-				return fmt.Errorf("template.parameters[%v]: Unable to find the '%v' generator", i, param.Generate)
+				return fmt.Errorf("template.parameters[%v]: Unable to find the '%v' generator for parameter %s", i, param.Generate, param.Name), param
 			}
 			if generator == nil {
-				return fmt.Errorf("template.parameters[%v]: Invalid '%v' generator", i, param.Generate)
+				return fmt.Errorf("template.parameters[%v]: Invalid '%v' generator for parameter %s", i, param.Generate, param.Name), param
 			}
 			value, err := generator.GenerateValue(param.From)
 			if err != nil {
-				return err
+				return fmt.Errorf("template.parameters[%v]: Error %v generating value for parameter %s", i, err.Error(), param.Name), param
 			}
 			param.Value, ok = value.(string)
 			if !ok {
-				return fmt.Errorf("template.parameters[%v]: Unable to convert the generated value '%#v' to string", i, value)
+				return fmt.Errorf("template.parameters[%v]: Unable to convert the generated value '%#v' to string for parameter %s", i, value, param.Name), param
 			}
 		}
+		if len(param.Value) == 0 && param.Required {
+			return fmt.Errorf("template.parameters[%v]: parameter %s is required and must be specified", i, param.Name), param
+		}
 	}
-	return nil
+	return nil, nil
 }

@@ -2,7 +2,6 @@ package client
 
 import (
 	userapi "github.com/openshift/origin/pkg/user/api"
-	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
 )
 
 // UserIdentityMappingsInterface has methods to work with UserIdentityMapping resources in a namespace

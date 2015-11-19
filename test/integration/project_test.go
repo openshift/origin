@@ -1,28 +1,16 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	kv1beta1 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	namespaceetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/namespace/etcd"
-	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
+	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/api/v1beta1"
-	"github.com/openshift/origin/pkg/client"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
-	projectregistry "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func init() {
@@ -31,76 +19,16 @@ func init() {
 
 // TestProjectIsNamespace verifies that a project is a namespace, and a namespace is a project
 func TestProjectIsNamespace(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, err := master.NewEtcdHelper(etcdClient, "")
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// create a kube and its client
-	kubeInterfaces, _ := klatest.InterfacesFor(klatest.Version)
-	namespaceStorage, _, _ := namespaceetcd.NewStorage(etcdHelper)
-	kubeStorage := map[string]rest.Storage{
-		"namespaces": namespaceStorage,
-	}
-
-	osMux := http.NewServeMux()
-	server := httptest.NewServer(osMux)
-	defer server.Close()
-	handlerContainer := master.NewHandlerContainer(osMux)
-
-	version := &apiserver.APIGroupVersion{
-		Root:    "/api",
-		Version: "v1beta1",
-
-		Storage: kubeStorage,
-		Codec:   kv1beta1.Codec,
-
-		Mapper: klatest.RESTMapper,
-
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  kubeInterfaces.MetadataAccessor,
-
-		Admit:   admit.NewAlwaysAdmit(),
-		Context: kapi.NewRequestContextMapper(),
-	}
-	if err := version.InstallREST(handlerContainer); err != nil {
-		t.Fatalf("unable to install REST: %v", err)
-	}
-
-	kubeClient, err := kclient.New(&kclient.Config{Host: server.URL})
+	originClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
-
-	// create an origin
-	originInterfaces, _ := latest.InterfacesFor(latest.Version)
-	originStorage := map[string]rest.Storage{
-		"projects": projectregistry.NewREST(kubeClient.Namespaces(), nil),
-	}
-	osVersion := &apiserver.APIGroupVersion{
-		Root:    "/osapi",
-		Version: "v1beta1",
-
-		Storage: originStorage,
-		Codec:   v1beta1.Codec,
-
-		Mapper: latest.RESTMapper,
-
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  originInterfaces.MetadataAccessor,
-
-		Admit:   admit.NewAlwaysAdmit(),
-		Context: kapi.NewRequestContextMapper(),
-	}
-	if err := osVersion.InstallREST(handlerContainer); err != nil {
-		t.Fatalf("unable to install REST: %v", err)
-	}
-
-	originClient, err := client.New(&kclient.Config{Host: server.URL})
+	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -125,8 +53,13 @@ func TestProjectIsNamespace(t *testing.T) {
 
 	// now create a project
 	project = &projectapi.Project{
-		ObjectMeta:  kapi.ObjectMeta{Name: "new-project"},
-		DisplayName: "Hello World",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "new-project",
+			Annotations: map[string]string{
+				"openshift.io/display-name":  "Hello World",
+				"openshift.io/node-selector": "env=test",
+			},
+		},
 	}
 	projectResult, err := originClient.Projects().Create(project)
 	if err != nil {
@@ -141,8 +74,73 @@ func TestProjectIsNamespace(t *testing.T) {
 	if project.Name != namespace.Name {
 		t.Fatalf("Project name did not match namespace name, project %v, namespace %v", project.Name, namespace.Name)
 	}
-	if project.DisplayName != namespace.Annotations["displayname"] {
-		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.DisplayName, namespace.Annotations["displayname"])
+	if project.Annotations["openshift.io/display-name"] != namespace.Annotations["openshift.io/display-name"] {
+		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.Annotations["openshift.io/display-name"], namespace.Annotations["openshift.io/display-name"])
+	}
+	if project.Annotations["openshift.io/node-selector"] != namespace.Annotations["openshift.io/node-selector"] {
+		t.Fatalf("Project node selector did not match namespace node selector, project %v, namespace %v", project.Annotations["openshift.io/node-selector"], namespace.Annotations["openshift.io/node-selector"])
+	}
+}
+
+// TestProjectMustExist verifies that content cannot be added in a project that does not exist
+func TestProjectMustExist(t *testing.T) {
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	pod := &kapi.Pod{
+		ObjectMeta: kapi.ObjectMeta{Name: "pod"},
+		Spec: kapi.PodSpec{
+			Containers:    []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+			RestartPolicy: kapi.RestartPolicyAlways,
+			DNSPolicy:     kapi.DNSClusterFirst,
+		},
+	}
+
+	_, err = clusterAdminKubeClient.Pods("test").Create(pod)
+	if err == nil {
+		t.Errorf("Expected an error on creation of a Kubernetes resource because namespace does not exist")
+	}
+
+	build := &buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+		Spec: buildapi.BuildSpec{
+			Source: buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "http://github.com/my/repository",
+				},
+				ContextDir: "context",
+			},
+			Strategy: buildapi.BuildStrategy{
+				Type:           buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
+			},
+			Output: buildapi.BuildOutput{
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "repository/data",
+				},
+			},
+		},
+		Status: buildapi.BuildStatus{
+			Phase: buildapi.BuildPhaseNew,
+		},
+	}
+
+	_, err = clusterAdminClient.Builds("test").Create(build)
+	if err == nil {
+		t.Errorf("Expected an error on creation of a Origin resource because namespace does not exist")
+	}
 }

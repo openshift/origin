@@ -1,8 +1,24 @@
+// Copyright 2015 CoreOS, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package store
 
 import (
 	"sort"
 	"time"
+
+	"github.com/jonboulle/clockwork"
 )
 
 // NodeExtern is the external representation of the
@@ -20,7 +36,7 @@ type NodeExtern struct {
 	CreatedIndex  uint64      `json:"createdIndex,omitempty"`
 }
 
-func (eNode *NodeExtern) loadInternalNode(n *node, recursive, sorted bool) {
+func (eNode *NodeExtern) loadInternalNode(n *node, recursive, sorted bool, clock clockwork.Clock) {
 	if n.IsDir() { // node is a directory
 		eNode.Dir = true
 
@@ -36,7 +52,7 @@ func (eNode *NodeExtern) loadInternalNode(n *node, recursive, sorted bool) {
 				continue
 			}
 
-			eNode.Nodes[i] = child.Repr(recursive, sorted)
+			eNode.Nodes[i] = child.Repr(recursive, sorted, clock)
 			i++
 		}
 
@@ -52,7 +68,35 @@ func (eNode *NodeExtern) loadInternalNode(n *node, recursive, sorted bool) {
 		eNode.Value = &value
 	}
 
-	eNode.Expiration, eNode.TTL = n.ExpirationAndTTL()
+	eNode.Expiration, eNode.TTL = n.expirationAndTTL(clock)
+}
+
+func (eNode *NodeExtern) Clone() *NodeExtern {
+	if eNode == nil {
+		return nil
+	}
+	nn := &NodeExtern{
+		Key:           eNode.Key,
+		Dir:           eNode.Dir,
+		TTL:           eNode.TTL,
+		ModifiedIndex: eNode.ModifiedIndex,
+		CreatedIndex:  eNode.CreatedIndex,
+	}
+	if eNode.Value != nil {
+		s := *eNode.Value
+		nn.Value = &s
+	}
+	if eNode.Expiration != nil {
+		t := *eNode.Expiration
+		nn.Expiration = &t
+	}
+	if eNode.Nodes != nil {
+		nn.Nodes = make(NodeExterns, len(eNode.Nodes))
+		for i, n := range eNode.Nodes {
+			nn.Nodes[i] = n.Clone()
+		}
+	}
+	return nn
 }
 
 type NodeExterns []*NodeExtern

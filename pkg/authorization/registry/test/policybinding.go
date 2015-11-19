@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -28,7 +29,7 @@ func NewPolicyBindingRegistry(bindings []authorizationapi.PolicyBinding, err err
 	return &PolicyBindingRegistry{bindingMap, err}
 }
 
-// ListPolicies obtains list of ListPolicyBinding that match a selector.
+// ListPolicyBindings obtains a list of policyBinding that match a selector.
 func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
 	if r.Err != nil {
 		return nil, r.Err
@@ -75,7 +76,7 @@ func (r *PolicyBindingRegistry) GetPolicyBinding(ctx kapi.Context, id string) (*
 		}
 	}
 
-	return nil, fmt.Errorf("PolicyBinding %v::%v not found", namespace, id)
+	return nil, kapierrors.NewNotFound("PolicyBinding", id)
 }
 
 // CreatePolicyBinding creates a new policyBinding.
@@ -108,7 +109,7 @@ func (r *PolicyBindingRegistry) UpdatePolicyBinding(ctx kapi.Context, policyBind
 		return errors.New("invalid request.  Namespace parameter required.")
 	}
 	if existing, _ := r.GetPolicyBinding(ctx, policyBinding.Name); existing == nil {
-		return fmt.Errorf("PolicyBinding %v::%v not found", namespace, policyBinding.Name)
+		return kapierrors.NewNotFound("PolicyBinding", policyBinding.Name)
 	}
 
 	addPolicyBinding(r.PolicyBindings, *policyBinding)
@@ -136,10 +137,13 @@ func (r *PolicyBindingRegistry) DeletePolicyBinding(ctx kapi.Context, id string)
 }
 
 func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return nil, errors.New("unsupported")
+	return nil, errors.New("unsupported action for test registry")
 }
 
 func addPolicyBinding(bindings map[string]map[string]authorizationapi.PolicyBinding, binding authorizationapi.PolicyBinding) {
+	resourceVersion += 1
+	binding.ResourceVersion = fmt.Sprintf("%d", resourceVersion)
+
 	namespacedBindings, ok := bindings[binding.Namespace]
 	if !ok {
 		namespacedBindings = make(map[string]authorizationapi.PolicyBinding)

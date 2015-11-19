@@ -1,0 +1,12 @@
+/*
+ * This is an empty extensions stylesheet file. Extensions stylesheets are
+ * loaded by the Web Console when set in assetConfig in master-config.yaml.
+ * For example,
+ *
+ * assetConfig:
+ *  extensionStylesheets:
+ *   - "/home/vagrant/extensions/extension1/css/ext1.css"
+ *   - "/home/vagrant/extensions/extension2/css/ext2.css"
+ *
+ * You can modify this file to test extensions in a development environment.
+ */

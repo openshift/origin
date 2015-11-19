@@ -1,7 +1,9 @@
 package dns
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
+
+	"github.com/golang/glog"
 
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/prometheus/client_golang/prometheus"
@@ -12,8 +14,9 @@ import (
 // NewServerDefaults returns the default SkyDNS server configuration for a DNS server.
 func NewServerDefaults() (*server.Config, error) {
 	config := &server.Config{
-		Domain: "local.",
-		Local:  "openshift.default.local.",
+		Domain:  "cluster.local.",
+		Local:   "openshift.default.svc.cluster.local.",
+		Verbose: bool(glog.V(4)),
 	}
 	return config, server.SetDefaults(config)
 }
@@ -33,14 +36,18 @@ func ListenAndServe(config *server.Config, client *client.Client, etcdclient *et
 		}))
 	}
 
+	server.RegisterMetrics("", "")
 	s := server.New(resolvers, config)
 	defer close(stop)
 	return s.Run()
 }
 
 func openshiftFallback(name string, exact bool) (string, bool) {
-	if name == "openshift.default" {
-		return "kubernetes.default.", true
+	if name == "openshift.default.svc" {
+		return "kubernetes.default.svc.", true
+	}
+	if name == "_endpoints.openshift.default.svc" {
+		return "_endpoints.kubernetes.default.", true
 	}
 	return "", false
 }
@@ -56,38 +63,7 @@ func newCounter(c prometheus.Counter) server.Counter {
 	return counter{c}
 }
 
+// Inc increases the counter with the given value
 func (c counter) Inc(val int64) {
 	c.Counter.Add(float64(val))
-}
-
-// Add prometheus logging to SkyDNS
-func init() {
-	server.StatsForwardCount = newCounter(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "dns_forward_count",
-		Help: "Counter of DNS requests forwarded",
-	}))
-	server.StatsLookupCount = newCounter(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "dns_lookup_count",
-		Help: "Counter of DNS lookups performed",
-	}))
-	server.StatsRequestCount = newCounter(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "dns_request_count",
-		Help: "Counter of DNS requests made",
-	}))
-	server.StatsDnssecOkCount = newCounter(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "dns_dnssec_ok_count",
-		Help: "Counter of DNSSEC requests that were valid",
-	}))
-	server.StatsDnssecCacheMiss = newCounter(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "dns_dnssec_cache_miss_count",
-		Help: "Counter of DNSSEC requests that missed the cache",
-	}))
-	server.StatsNameErrorCount = newCounter(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "dns_name_error_count",
-		Help: "Counter of DNS requests resulting in a name error",
-	}))
-	server.StatsNoDataCount = newCounter(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "dns_no_data_count",
-		Help: "Counter of DNS requests that contained no data",
-	}))
 }

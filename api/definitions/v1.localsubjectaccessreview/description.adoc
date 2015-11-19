@@ -1,0 +1,1 @@
+Local Subject Access Reviews are objects that allow you to determine whether a given user or group can perform a particular action in a given namespace.  Leaving `user` and `groups` empty allows you determine whether the identity making the request can perform the action.

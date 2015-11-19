@@ -3,17 +3,16 @@ package admin
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/kubectl"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -21,7 +20,7 @@ import (
 )
 
 const (
-	DefaultPolicyFile                    = "openshift.local.policy/policy.json"
+	DefaultPolicyFile                    = "openshift.local.config/master/policy.json"
 	CreateBootstrapPolicyFileCommand     = "create-bootstrap-policy-file"
 	CreateBootstrapPolicyFileFullCommand = "openshift admin " + CreateBootstrapPolicyFileCommand
 )
@@ -29,7 +28,6 @@ const (
 type CreateBootstrapPolicyFileOptions struct {
 	File string
 
-	MasterAuthorizationNamespace      string
 	OpenShiftSharedResourcesNamespace string
 }
 
@@ -38,27 +36,25 @@ func NewCommandCreateBootstrapPolicyFile(commandName string, fullName string, ou
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create bootstrap policy for OpenShift.",
-		Run: func(c *cobra.Command, args []string) {
+		Short: "Create the default bootstrap policy",
+		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.Out(), err.Error())
-				c.Help()
-				return
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			if err := options.CreateBootstrapPolicyFile(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
 	flags.StringVar(&options.File, "filename", DefaultPolicyFile, "The policy template file that will be written with roles and bindings.")
+	flags.StringVar(&options.OpenShiftSharedResourcesNamespace, "openshift-namespace", "openshift", "Namespace for shared resources.")
 
-	flags.StringVar(&options.MasterAuthorizationNamespace, "master-namespace", bootstrappolicy.DefaultMasterAuthorizationNamespace, "Global authorization namespace.")
-	flags.StringVar(&options.OpenShiftSharedResourcesNamespace, "openshift-namespace", "openshift", "Namespace for shared openshift resources.")
+	// autocompletion hints
+	cmd.MarkFlagFilename("filename")
 
 	return cmd
 }
@@ -69,9 +65,6 @@ func (o CreateBootstrapPolicyFileOptions) Validate(args []string) error {
 	}
 	if len(o.File) == 0 {
 		return errors.New("filename must be provided")
-	}
-	if len(o.MasterAuthorizationNamespace) == 0 {
-		return errors.New("master-namespace must be provided")
 	}
 	if len(o.OpenShiftSharedResourcesNamespace) == 0 {
 		return errors.New("openshift-namespace must be provided")
@@ -87,14 +80,24 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 
 	policyTemplate := &api.Template{}
 
-	roles := bootstrappolicy.GetBootstrapRoles(o.MasterAuthorizationNamespace, o.OpenShiftSharedResourcesNamespace)
-	for i := range roles {
-		policyTemplate.Objects = append(policyTemplate.Objects, &roles[i])
+	clusterRoles := bootstrappolicy.GetBootstrapClusterRoles()
+	for i := range clusterRoles {
+		policyTemplate.Objects = append(policyTemplate.Objects, &clusterRoles[i])
 	}
 
-	roleBindings := bootstrappolicy.GetBootstrapRoleBindings(o.MasterAuthorizationNamespace, o.OpenShiftSharedResourcesNamespace)
-	for i := range roleBindings {
-		policyTemplate.Objects = append(policyTemplate.Objects, &roleBindings[i])
+	clusterRoleBindings := bootstrappolicy.GetBootstrapClusterRoleBindings()
+	for i := range clusterRoleBindings {
+		policyTemplate.Objects = append(policyTemplate.Objects, &clusterRoleBindings[i])
+	}
+
+	openshiftRoles := bootstrappolicy.GetBootstrapOpenshiftRoles(o.OpenShiftSharedResourcesNamespace)
+	for i := range openshiftRoles {
+		policyTemplate.Objects = append(policyTemplate.Objects, &openshiftRoles[i])
+	}
+
+	openshiftRoleBindings := bootstrappolicy.GetBootstrapOpenshiftRoleBindings(o.OpenShiftSharedResourcesNamespace)
+	for i := range openshiftRoleBindings {
+		policyTemplate.Objects = append(policyTemplate.Objects, &openshiftRoleBindings[i])
 	}
 
 	versionedPolicyTemplate, err := kapi.Scheme.ConvertToVersion(policyTemplate, latest.Version)

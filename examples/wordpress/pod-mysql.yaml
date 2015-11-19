@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  labels:
+    name: mysql
+spec:
+  containers:
+    - resources:
+        limits :
+          cpu: 0.5
+      image: openshift/mysql-55-centos7
+      name: mysql
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: yourpassword
+        - name: MYSQL_USER
+          value: wp_user
+        - name: MYSQL_PASSWORD
+          value: wp_pass
+        - name: MYSQL_DATABASE
+          value: wp_db
+      ports:
+        - containerPort: 3306
+          name: mysql
+      volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql/data
+  volumes:
+    - name: mysql-persistent-storage
+      persistentVolumeClaim:
+        claimName: claim-mysql

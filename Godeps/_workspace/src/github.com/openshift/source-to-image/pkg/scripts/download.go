@@ -5,15 +5,17 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 
 	"github.com/golang/glog"
 
+	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/errors"
 )
 
 // Downloader downloads the specified URL to the target file location
 type Downloader interface {
-	Download(url *url.URL, target string) error
+	Download(url *url.URL, target string) (*api.SourceInfo, error)
 }
 
 // schemeReader creates an io.Reader from the given url.
@@ -41,12 +43,12 @@ func NewDownloader() Downloader {
 // Download downloads the file pointed to by URL into local targetFile
 // Returns information a boolean flag informing whether any download/copy operation
 // happened and an error if there was a problem during that operation
-func (d *downloader) Download(url *url.URL, targetFile string) error {
+func (d *downloader) Download(url *url.URL, targetFile string) (*api.SourceInfo, error) {
 	schemeReader := d.schemeReaders[url.Scheme]
-
+	info := &api.SourceInfo{}
 	if schemeReader == nil {
 		glog.Errorf("No URL handler found for %s", url.String())
-		return errors.NewURLHandlerError(url.String())
+		return nil, errors.NewURLHandlerError(url.String())
 	}
 
 	reader, err := schemeReader.Read(url)
@@ -54,7 +56,7 @@ func (d *downloader) Download(url *url.URL, targetFile string) error {
 		if e, ok := err.(errors.Error); ok && e.ErrorCode == errors.ScriptsInsideImageError {
 			glog.V(2).Infof("Using image internal scripts from: %s", url.String())
 		}
-		return err
+		return nil, err
 	}
 	defer reader.Close()
 
@@ -63,17 +65,18 @@ func (d *downloader) Download(url *url.URL, targetFile string) error {
 
 	if err != nil {
 		glog.Errorf("Unable to create target file %s (%s)", targetFile, err)
-		return err
+		return nil, err
 	}
 
 	if _, err = io.Copy(out, reader); err != nil {
 		os.Remove(targetFile)
 		glog.Warningf("Skipping file %s due to error copying from source: %s", targetFile, err)
-		return err
+		return nil, err
 	}
 
 	glog.V(2).Infof("Downloaded '%s'", url.String())
-	return nil
+	info.Location = url.String()
+	return info, nil
 }
 
 // HttpURLReader retrieves a response from a given http(s) URL
@@ -106,7 +109,9 @@ type FileURLReader struct{}
 
 // Read produces an io.Reader from a file URL
 func (*FileURLReader) Read(url *url.URL) (io.ReadCloser, error) {
-	return os.Open(url.Path)
+	// for some reason url.Host may contain information about the ./ or ../ when
+	// specifying relative path, thus using that value as well
+	return os.Open(filepath.Join(url.Host, url.Path))
 }
 
 // ImageReader just returns information the URL is from inside the image

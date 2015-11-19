@@ -1,26 +1,25 @@
 package docker10
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 // DockerImage is the type representing a docker image and its various properties when
 // retrieved from the Docker client API.
 type DockerImage struct {
-	kapi.TypeMeta `json:",inline"`
+	unversioned.TypeMeta `json:",inline"`
 
-	ID              string       `json:"Id"`
-	Parent          string       `json:"Parent,omitempty"`
-	Comment         string       `json:"Comment,omitempty"`
-	Created         util.Time    `json:"Created,omitempty"`
-	Container       string       `json:"Container,omitempty"`
-	ContainerConfig DockerConfig `json:"ContainerConfig,omitempty"`
-	DockerVersion   string       `json:"DockerVersion,omitempty"`
-	Author          string       `json:"Author,omitempty"`
-	Config          DockerConfig `json:"Config,omitempty"`
-	Architecture    string       `json:"Architecture,omitempty"`
-	Size            int64        `json:"Size,omitempty"`
+	ID              string           `json:"Id"`
+	Parent          string           `json:"Parent,omitempty"`
+	Comment         string           `json:"Comment,omitempty"`
+	Created         unversioned.Time `json:"Created,omitempty"`
+	Container       string           `json:"Container,omitempty"`
+	ContainerConfig DockerConfig     `json:"ContainerConfig,omitempty"`
+	DockerVersion   string           `json:"DockerVersion,omitempty"`
+	Author          string           `json:"Author,omitempty"`
+	Config          *DockerConfig    `json:"Config,omitempty"`
+	Architecture    string           `json:"Architecture,omitempty"`
+	Size            int64            `json:"Size,omitempty"`
 }
 
 // DockerConfig is the list of configuration options used when creating a container.
@@ -51,4 +50,5 @@ type DockerConfig struct {
 	NetworkDisabled bool                `json:"NetworkDisabled,omitempty"`
 	SecurityOpts    []string            `json:"SecurityOpts,omitempty"`
 	OnBuild         []string            `json:"OnBuild,omitempty"`
+	Labels          map[string]string   `json:"Labels,omitempty"`
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -20,19 +21,21 @@ type ImageChangeController struct {
 // fatalError is an error which can't be retried.
 type fatalError string
 
-func (e fatalError) Error() string { return "fatal error handling imageRepository: " + string(e) }
+func (e fatalError) Error() string {
+	return fmt.Sprintf("fatal error handling ImageStream: %s", string(e))
+}
 
 // Handle processes image change triggers associated with imageRepo.
 func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 	configs, err := c.deploymentConfigClient.listDeploymentConfigs()
 	if err != nil {
-		return fmt.Errorf("couldn't get list of deploymentConfigs while handling imageRepo %s: %v", labelForRepo(imageRepo), err)
+		return fmt.Errorf("couldn't get list of DeploymentConfig while handling ImageStream %s: %v", labelForRepo(imageRepo), err)
 	}
 
 	// Find any configs which should be updated based on the new image state
 	configsToUpdate := map[string]*deployapi.DeploymentConfig{}
 	for _, config := range configs {
-		glog.V(4).Infof("Detecting changed images for deploymentConfig %s", labelFor(config))
+		glog.V(4).Infof("Detecting changed images for DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
 
 		for _, trigger := range config.Triggers {
 			params := trigger.ImageChangeParams
@@ -48,13 +51,13 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 			}
 
 			// Find the latest tag event for the trigger tag
-			latestEvent, err := imageapi.LatestTaggedImage(imageRepo, params.Tag)
-			if err != nil {
-				glog.V(4).Infof("Couldn't find latest tag event for tag %s in imageRepo %s: %s", params.Tag, labelForRepo(imageRepo), err)
+			latestEvent := imageapi.LatestTaggedImage(imageRepo, params.Tag)
+			if latestEvent == nil {
+				glog.V(5).Infof("Couldn't find latest tag event for tag %s in ImageStream %s", params.Tag, labelForRepo(imageRepo))
 				continue
 			}
 
-			// Ensure a change occured
+			// Ensure a change occurred
 			if len(latestEvent.DockerImageReference) > 0 &&
 				latestEvent.DockerImageReference != params.LastTriggeredImage {
 				// Mark the config for regeneration
@@ -69,18 +72,16 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 		err := c.regenerate(config)
 		if err != nil {
 			anyFailed = true
-			glog.Infof("couldn't regenerate depoymentConfig %s: %s", labelFor(config), err)
+			glog.V(2).Infof("Couldn't regenerate DeploymentConfig %s: %s", deployutil.LabelForDeploymentConfig(config), err)
 			continue
 		}
-
-		glog.V(4).Infof("Regenerated deploymentConfig %s in response to image change trigger", labelFor(config))
 	}
 
 	if anyFailed {
-		return fatalError(fmt.Sprintf("couldn't update some deploymentConfigs for trigger on imageRepo %s", labelForRepo(imageRepo)))
+		return fatalError(fmt.Sprintf("couldn't update some DeploymentConfig for trigger on ImageStream %s", labelForRepo(imageRepo)))
 	}
 
-	glog.V(4).Infof("Updated all configs for trigger on imageRepo %s", labelForRepo(imageRepo))
+	glog.V(5).Infof("Updated all DeploymentConfigs for trigger on ImageStream %s", labelForRepo(imageRepo))
 	return nil
 }
 
@@ -116,12 +117,12 @@ func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) e
 	// Get a regenerated config which includes the new image repo references
 	newConfig, err := c.deploymentConfigClient.generateDeploymentConfig(config.Namespace, config.Name)
 	if err != nil {
-		return fmt.Errorf("error generating new version of deploymentConfig %s: %v", labelFor(config), err)
+		return fmt.Errorf("error generating new version of DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 
-	// No update occured
+	// No update occurred
 	if config.LatestVersion == newConfig.LatestVersion {
-		glog.V(4).Infof("No version difference for generated config %s", labelFor(config))
+		glog.V(5).Infof("No version difference for generated DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
@@ -131,7 +132,7 @@ func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) e
 		return err
 	}
 
-	glog.Infof("Regenerated depoymentConfig %s for image updates", labelFor(config))
+	glog.V(4).Infof("Regenerated DeploymentConfig %s for image updates", deployutil.LabelForDeploymentConfig(config))
 	return nil
 }
 
@@ -139,19 +140,14 @@ func labelForRepo(imageRepo *imageapi.ImageStream) string {
 	return fmt.Sprintf("%s/%s", imageRepo.Namespace, imageRepo.Name)
 }
 
-// labelFor builds a string identifier for a DeploymentConfig.
-func labelFor(config *deployapi.DeploymentConfig) string {
-	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
-}
-
-// ImageChangeControllerDeploymentConfigClient abstracts access to DeploymentConfigs.
+// deploymentConfigClient abstracts access to DeploymentConfigs.
 type deploymentConfigClient interface {
 	listDeploymentConfigs() ([]*deployapi.DeploymentConfig, error)
 	updateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	generateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
 }
 
-// ImageChangeControllerDeploymentConfigClientImpl is a pluggable ChangeStrategy.
+// deploymentConfigClientImpl is a pluggable deploymentConfigClient.
 type deploymentConfigClientImpl struct {
 	listDeploymentConfigsFunc    func() ([]*deployapi.DeploymentConfig, error)
 	generateDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)

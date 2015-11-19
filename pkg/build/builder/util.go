@@ -1,28 +1,61 @@
 package builder
 
 import (
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	"bufio"
+	"io"
+	"os"
+	"regexp"
+	"strings"
+
+	stiapi "github.com/openshift/source-to-image/pkg/api"
 )
 
-type Builder interface {
-	Build() error
+var (
+	// procCGroupPattern is a regular expression that parses the entries in /proc/self/cgroup
+	procCGroupPattern = regexp.MustCompile(`\d+:([a-z_,]+):/.*/(docker-|)([a-z0-9]+).*`)
+)
+
+// readNetClsCGroup parses /proc/self/cgroup in order to determine the container id that can be used
+// the network namespace that this process is running on.
+func readNetClsCGroup(reader io.Reader) string {
+	cgroups := make(map[string]string)
+
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		if match := procCGroupPattern.FindStringSubmatch(scanner.Text()); match != nil {
+			list := strings.Split(match[1], ",")
+			containerId := match[3]
+			if len(list) > 0 {
+				for _, key := range list {
+					cgroups[key] = containerId
+				}
+			} else {
+				cgroups[match[1]] = containerId
+			}
+		}
+	}
+
+	names := []string{"net_cls", "cpu"}
+	for _, group := range names {
+		if value, ok := cgroups[group]; ok {
+			return value
+		}
+	}
+
+	return ""
 }
 
-// getBuildEnvVars returns a map with the environment variables that should be added
-// to the built image
-func getBuildEnvVars(build *buildapi.Build) map[string]string {
-	envVars := map[string]string{
-		"OPENSHIFT_BUILD_NAME":      build.Name,
-		"OPENSHIFT_BUILD_NAMESPACE": build.Namespace,
-		"OPENSHIFT_BUILD_SOURCE":    build.Parameters.Source.Git.URI,
+// getDockerNetworkMode determines whether the builder is running as a container
+// by examining /proc/self/cgroup. This contenxt is then passed to source-to-image.
+func getDockerNetworkMode() stiapi.DockerNetworkMode {
+	file, err := os.Open("/proc/self/cgroup")
+	if err != nil {
+		return ""
 	}
-	if build.Parameters.Source.Git.Ref != "" {
-		envVars["OPENSHIFT_BUILD_REFERENCE"] = build.Parameters.Source.Git.Ref
+	defer file.Close()
+
+	if id := readNetClsCGroup(file); id != "" {
+		return stiapi.NewDockerNetworkModeContainer(id)
 	}
-	if build.Parameters.Revision != nil &&
-		build.Parameters.Revision.Git != nil &&
-		build.Parameters.Revision.Git.Commit != "" {
-		envVars["OPENSHIFT_BUILD_COMMIT"] = build.Parameters.Revision.Git.Commit
-	}
-	return envVars
+	return ""
 }

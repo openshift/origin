@@ -1,8 +1,15 @@
 package webhook
 
 import (
-	"github.com/openshift/origin/pkg/build/api"
+	"fmt"
 	"strings"
+
+	"github.com/openshift/origin/pkg/build/api"
+)
+
+var (
+	ErrSecretMismatch = fmt.Errorf("the provided secret does not match")
+	ErrHookNotEnabled = fmt.Errorf("the specified hook is not enabled")
 )
 
 // GitRefMatches determines if the ref from a webhook event matches a build configuration
@@ -16,9 +23,9 @@ func GitRefMatches(eventRef, configRef string) bool {
 	return configRef == eventRef
 }
 
-// FindTrigger retrieves the BuildTrigger of a given type from a build configuration
+// FindTriggerPolicy retrieves the BuildTrigger of a given type from a build configuration
 func FindTriggerPolicy(triggerType api.BuildTriggerType, config *api.BuildConfig) (*api.BuildTriggerPolicy, bool) {
-	for _, p := range config.Triggers {
+	for _, p := range config.Spec.Triggers {
 		if p.Type == triggerType {
 			return &p, true
 		}

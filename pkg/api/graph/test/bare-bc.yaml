@@ -1,0 +1,53 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: null
+    name: ruby-20-centos7
+  spec:
+    dockerImageRepository: openshift/ruby-20-centos7
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: null
+    name: ruby-hello-world
+  spec: {}
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    name: ruby-hello-world
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ruby-hello-world:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby-20-centos7:latest
+      type: Docker
+    triggers:
+    - github:
+        secret: faSaQS1VY-gdRMwge4eV
+      type: GitHub
+    - generic:
+        secret: u-_J-vtKR5K3GykKwCuK
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+kind: List
+metadata: {}

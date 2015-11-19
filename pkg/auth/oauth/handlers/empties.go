@@ -5,8 +5,8 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	authapi "github.com/openshift/origin/pkg/auth/api"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 type EmptyAuth struct{}
@@ -25,11 +25,11 @@ func (EmptySuccess) AuthenticationSucceeded(user user.Info, state string, w http
 type EmptyError struct{}
 
 func (EmptyError) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
-	glog.V(4).Infof("AuthenticationError: %v", err)
+	glog.Errorf("AuthenticationError: %v", err)
 	return false, err
 }
 
 func (EmptyError) GrantError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
-	glog.V(4).Infof("GrantError: %v", err)
+	glog.Errorf("GrantError: %v", err)
 	return false, err
 }

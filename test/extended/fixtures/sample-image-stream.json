@@ -1,7 +1,12 @@
 {
-  "apiVersion": "v1beta1",
   "kind": "ImageStream",
+  "apiVersion": "v1beta3",
   "metadata": {
-    "name": "samplerepository"
+    "name": "samplerepository",
+    "creationTimestamp": null
+  },
+  "spec": {},
+  "status": {
+    "dockerImageRepository": ""
   }
 }

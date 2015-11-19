@@ -2,12 +2,13 @@ package admin
 
 import (
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
@@ -19,39 +20,54 @@ type CreateSignerCertOptions struct {
 	KeyFile    string
 	SerialFile string
 	Name       string
+	Output     io.Writer
 
 	Overwrite bool
 }
 
-func BindSignerCertOptions(options *CreateSignerCertOptions, flags *pflag.FlagSet, prefix string) {
-	flags.StringVar(&options.CertFile, prefix+"cert", "openshift.local.certificates/ca/cert.crt", "The certificate file.")
-	flags.StringVar(&options.KeyFile, prefix+"key", "openshift.local.certificates/ca/key.key", "The key file.")
-	flags.StringVar(&options.SerialFile, prefix+"serial", "openshift.local.certificates/ca/serial.txt", "The serial file that keeps track of how many certs have been signed.")
+func BindCreateSignerCertOptions(options *CreateSignerCertOptions, flags *pflag.FlagSet, prefix string) {
+	flags.StringVar(&options.CertFile, prefix+"cert", "openshift.local.config/master/ca.crt", "The certificate file.")
+	flags.StringVar(&options.KeyFile, prefix+"key", "openshift.local.config/master/ca.key", "The key file.")
+	flags.StringVar(&options.SerialFile, prefix+"serial", "openshift.local.config/master/ca.serial.txt", "The serial file that keeps track of how many certs have been signed.")
 	flags.StringVar(&options.Name, prefix+"name", DefaultSignerName(), "The name of the signer.")
 	flags.BoolVar(&options.Overwrite, prefix+"overwrite", options.Overwrite, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
+
+	// autocompletion hints
+	cobra.MarkFlagFilename(flags, prefix+"cert")
+	cobra.MarkFlagFilename(flags, prefix+"key")
+	cobra.MarkFlagFilename(flags, prefix+"serial")
 }
 
+const createSignerLong = `
+Create a self-signed CA key/cert
+
+Create a self-signed CA key/cert for signing certificates used by server
+components.
+
+This is mainly intended for development/trial deployments as production
+deployments should utilize properly signed certificates (generated
+separately) or start with a properly signed CA.
+`
+
 func NewCommandCreateSignerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateSignerCertOptions{Overwrite: true}
+	options := &CreateSignerCertOptions{Overwrite: true, Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create signer certificate",
-		Run: func(c *cobra.Command, args []string) {
+		Short: "Create a signer (certificate authority/CA) certificate and key",
+		Long:  createSignerLong,
+		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.Out(), err.Error())
-				c.Help()
-				return
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			if _, err := options.CreateSignerCert(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
-	BindSignerCertOptions(options, cmd.Flags(), "")
+	BindCreateSignerCertOptions(options, cmd.Flags(), "")
 
 	return cmd
 }
@@ -77,11 +93,19 @@ func (o CreateSignerCertOptions) Validate(args []string) error {
 }
 
 func (o CreateSignerCertOptions) CreateSignerCert() (*crypto.CA, error) {
-	glog.V(2).Infof("Creating a signer cert with: %#v", o)
-
+	glog.V(4).Infof("Creating a signer cert with: %#v", o)
+	var ca *crypto.CA
+	var err error
+	written := true
 	if o.Overwrite {
-		return crypto.MakeCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name)
+		ca, err = crypto.MakeCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name)
 	} else {
-		return crypto.EnsureCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name)
+		ca, written, err = crypto.EnsureCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name)
 	}
+	if written {
+		glog.V(3).Infof("Generated new CA for %s: cert in %s and key in %s\n", o.Name, o.CertFile, o.KeyFile)
+	} else {
+		glog.V(3).Infof("Keeping existing CA cert at %s and key at %s\n", o.CertFile, o.KeyFile)
+	}
+	return ca, err
 }

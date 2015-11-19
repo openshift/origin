@@ -1,160 +1,294 @@
 package api
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"time"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
-// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
-const BuildLabel = "build"
+const (
+	// BuildAnnotation is an annotation that identifies a Pod as being for a Build
+	BuildAnnotation = "openshift.io/build.name"
+	// BuildNumberAnnotation is an annotation whose value is the sequential number for this Build
+	BuildNumberAnnotation = "openshift.io/build.number"
+	// BuildCloneAnnotation is an annotation whose value is the name of the build this build was cloned from
+	BuildCloneAnnotation = "openshift.io/build.clone-of"
+	// BuildPodNameAnnotation is an annotation whose value is the name of the pod running this build
+	BuildPodNameAnnotation = "openshift.io/build.pod-name"
+	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
+	BuildLabel = "openshift.io/build.name"
+	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
+	DefaultDockerLabelNamespace = "io.openshift."
+)
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta
+	kapi.ObjectMeta
 
-	// Parameters are all the inputs used to create the build pod.
-	Parameters BuildParameters `json:"parameters,omitempty"`
+	// Spec is all the inputs used to execute the build.
+	Spec BuildSpec
 
 	// Status is the current status of the build.
-	Status BuildStatus `json:"status,omitempty"`
+	Status BuildStatus
+}
 
-	// A human readable message indicating details about why the build has this status
-	Message string `json:"message,omitempty"`
+// BuildSpec encapsulates all the inputs necessary to represent a build.
+type BuildSpec struct {
+	// ServiceAccount is the name of the ServiceAccount to use to run the pod
+	// created by this build.
+	// The pod will be allowed to use secrets referenced by the ServiceAccount
+	ServiceAccount string
+
+	// Source describes the SCM in use.
+	Source BuildSource
+
+	// Revision is the information from the source for a specific repo snapshot.
+	// This is optional.
+	Revision *SourceRevision
+
+	// Strategy defines how to perform a build.
+	Strategy BuildStrategy
+
+	// Output describes the Docker image the Strategy should produce.
+	Output BuildOutput
+
+	// Compute resource requirements to execute the build
+	Resources kapi.ResourceRequirements
+
+	// Optional duration in seconds, counted from the time when a build pod gets
+	// scheduled in the system, that the build may be active on a node before the
+	// system actively tries to terminate the build; value must be positive integer
+	CompletionDeadlineSeconds *int64
+}
+
+// BuildStatus contains the status of a build
+type BuildStatus struct {
+	// Phase is the point in the build lifecycle.
+	Phase BuildPhase
 
 	// Cancelled describes if a cancelling event was triggered for the build.
-	Cancelled bool `json:"cancelled,omitempty"`
+	Cancelled bool
+
+	// Reason is a brief CamelCase string that describes any failure and is meant for machine parsing and tidy display in the CLI.
+	Reason StatusReason
+
+	// Message is a human-readable message indicating details about why the build has this status.
+	Message string
 
 	// StartTimestamp is a timestamp representing the server time when this Build started
 	// running in a Pod.
 	// It is represented in RFC3339 form and is in UTC.
-	StartTimestamp *util.Time `json:"startTimestamp,omitempty"`
+	StartTimestamp *unversioned.Time
 
 	// CompletionTimestamp is a timestamp representing the server time when this Build was
 	// finished, whether that build failed or succeeded.  It reflects the time at which
 	// the Pod running the Build terminated.
 	// It is represented in RFC3339 form and is in UTC.
-	CompletionTimestamp *util.Time `json:"completionTimestamp,omitempty"`
+	CompletionTimestamp *unversioned.Time
+
+	// Duration contains time.Duration object describing build time.
+	Duration time.Duration
+
+	// OutputDockerImageReference contains a reference to the Docker image that
+	// will be built by this build. It's value is computed from
+	// Build.Spec.Output.To, and should include the registry address, so that
+	// it can be used to push and pull the image.
+	OutputDockerImageReference string
 
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
-	Config *kapi.ObjectReference `json:"config,omitempty"`
+	Config *kapi.ObjectReference
 }
 
-// BuildParameters encapsulates all the inputs necessary to represent a build.
-type BuildParameters struct {
-	// Source describes the SCM in use.
-	Source BuildSource `json:"source,omitempty"`
+// BuildPhase represents the status of a build at a point in time.
+type BuildPhase string
 
-	// Revision is the information from the source for a specific repo snapshot.
-	// This is optional.
-	Revision *SourceRevision `json:"revision,omitempty"`
-
-	// Strategy defines how to perform a build.
-	Strategy BuildStrategy `json:"strategy"`
-
-	// Output describes the Docker image the Strategy should produce.
-	Output BuildOutput `json:"output,omitempty"`
-}
-
-// BuildStatus represents the status of a build at a point in time.
-type BuildStatus string
-
-// Valid values for BuildStatus.
+// Valid values for BuildPhase.
 const (
-	// BuildStatusNew is automatically assigned to a newly created build.
-	BuildStatusNew BuildStatus = "New"
+	// BuildPhaseNew is automatically assigned to a newly created build.
+	BuildPhaseNew BuildPhase = "New"
 
-	// BuildStatusPending indicates that a pod name has been assigned and a build is
+	// BuildPhasePending indicates that a pod name has been assigned and a build is
 	// about to start running.
-	BuildStatusPending BuildStatus = "Pending"
+	BuildPhasePending BuildPhase = "Pending"
 
-	// BuildStatusRunning indicates that a pod has been created and a build is running.
-	BuildStatusRunning BuildStatus = "Running"
+	// BuildPhaseRunning indicates that a pod has been created and a build is running.
+	BuildPhaseRunning BuildPhase = "Running"
 
-	// BuildStatusComplete indicates that a build has been successful.
-	BuildStatusComplete BuildStatus = "Complete"
+	// BuildPhaseComplete indicates that a build has been successful.
+	BuildPhaseComplete BuildPhase = "Complete"
 
-	// BuildStatusFailed indicates that a build has executed and failed.
-	BuildStatusFailed BuildStatus = "Failed"
+	// BuildPhaseFailed indicates that a build has executed and failed.
+	BuildPhaseFailed BuildPhase = "Failed"
 
-	// BuildStatusError indicates that an error prevented the build from executing.
-	BuildStatusError BuildStatus = "Error"
+	// BuildPhaseError indicates that an error prevented the build from executing.
+	BuildPhaseError BuildPhase = "Error"
 
-	// BuildStatusCancelled indicates that a running/pending build was stopped from executing.
-	BuildStatusCancelled BuildStatus = "Cancelled"
+	// BuildPhaseCancelled indicates that a running/pending build was stopped from executing.
+	BuildPhaseCancelled BuildPhase = "Cancelled"
 )
 
-// BuildSourceType is the type of SCM used
+// StatusReason is a brief CamelCase string that describes a temporary or
+// permanent build error condition, meant for machine parsing and tidy display
+// in the CLI.
+type StatusReason string
+
+// These are the valid reasons of build statuses.
+const (
+	// StatusReasonError is a generic reason for a build error condition.
+	StatusReasonError StatusReason = "Error"
+
+	// StatusReasonCannotCreateBuildPodSpec is an error condition when the build
+	// strategy cannot create a build pod spec.
+	StatusReasonCannotCreateBuildPodSpec = "CannotCreateBuildPodSpec"
+
+	// StatusReasonCannotCreateBuildPod is an error condition when a build pod
+	// cannot be created.
+	StatusReasonCannotCreateBuildPod = "CannotCreateBuildPod"
+
+	// StatusReasonInvalidOutputReference is an error condition when the build
+	// output is an invalid reference.
+	StatusReasonInvalidOutputReference = "InvalidOutputReference"
+
+	// StatusReasonCancelBuildFailed is an error condition when cancelling a build
+	// fails.
+	StatusReasonCancelBuildFailed = "CancelBuildFailed"
+
+	// StatusReasonBuildPodDeleted is an error condition when the build pod is
+	// deleted before build completion.
+	StatusReasonBuildPodDeleted = "BuildPodDeleted"
+
+	// StatusReasonExceededRetryTimeout is an error condition when the build has
+	// not completed and retrying the build times out.
+	StatusReasonExceededRetryTimeout = "ExceededRetryTimeout"
+)
+
+// BuildSourceType is the type of SCM used.
 type BuildSourceType string
 
 // Valid values for BuildSourceType.
 const (
-	//BuildSourceGit is a Git SCM
+	//BuildSourceGit instructs a build to use a Git source control repository as the build input.
 	BuildSourceGit BuildSourceType = "Git"
+	// BuildSourceDockerfile uses a Dockerfile as the start of a build
+	BuildSourceDockerfile BuildSourceType = "Dockerfile"
+	// BuildSourceBinary indicates the build will accept a Binary file as input.
+	BuildSourceBinary BuildSourceType = "Binary"
 )
 
-// BuildSource is the SCM used for the build
+// BuildSource is the input used for the build.
 type BuildSource struct {
-	Type BuildSourceType `json:"type,omitempty"`
-	Git  *GitBuildSource `json:"git,omitempty"`
+	// Type of build input to accept
+	Type BuildSourceType
 
-	// Specify the sub-directory where the source code for the application exists.
+	// Binary builds accept a binary as their input. The binary is generally assumed to be a tar,
+	// gzipped tar, or zip file depending on the strategy. For Docker builds, this is the build
+	// context and an optional Dockerfile may be specified to override any Dockerfile in the
+	// build context. For Source builds, this is assumed to be an archive as described above. For
+	// Source and Docker builds, if binary.asFile is set the build will receive a directory with
+	// a single file. contextDir may be used when an archive is provided. Custom builds will
+	// receive this binary as input on STDIN.
+	Binary *BinaryBuildSource
+
+	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is
+	// specified, the FROM may be modified based on your strategy base image and additional ENV
+	// stanzas from your strategy environment will be added after the FROM, but before the rest
+	// of your Dockerfile stanzas. The Dockerfile source type may be used with other options like
+	// git - in those cases the Git repo will have any innate Dockerfile replaced in the context
+	// dir.
+	Dockerfile *string
+
+	// Git contains optional information about git build source
+	Git *GitBuildSource
+
+	// ContextDir specifies the sub-directory where the source code for the application exists.
 	// This allows to have buildable sources in directory other than root of
 	// repository.
-	ContextDir string `json:"contextDir,omitempty"`
+	ContextDir string
+
+	// SourceSecret is the name of a Secret that would be used for setting
+	// up the authentication for cloning private repository.
+	// The secret contains valid credentials for remote repository, where the
+	// data's key represent the authentication method to be used and value is
+	// the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
+	SourceSecret *kapi.LocalObjectReference
+}
+
+type BinaryBuildSource struct {
+	// AsFile indicates that the provided binary input should be considered a single file
+	// within the build input. For example, specifying "webapp.war" would place the provided
+	// binary as `/webapp.war` for the builder. If left empty, the Docker and Source build
+	// strategies assume this file is a zip, tar, or tar.gz file and extract it as the source.
+	// The custom strategy receives this binary as standard input. This filename may not
+	// contain slashes or be '..' or '.'.
+	AsFile string
 }
 
 // SourceRevision is the revision or commit information from the source for the build
 type SourceRevision struct {
-	Type BuildSourceType    `json:"type,omitempty"`
-	Git  *GitSourceRevision `json:"git,omitempty"`
+	// Type of the build source
+	Type BuildSourceType
+
+	// Git contains information about git-based build source
+	Git *GitSourceRevision
 }
 
 // GitSourceRevision is the commit information from a git source for a build
 type GitSourceRevision struct {
 	// Commit is the commit hash identifying a specific commit
-	Commit string `json:"commit,omitempty"`
+	Commit string
 
 	// Author is the author of a specific commit
-	Author SourceControlUser `json:"author,omitempty"`
+	Author SourceControlUser
 
 	// Committer is the committer of a specific commit
-	Committer SourceControlUser `json:"committer,omitempty"`
+	Committer SourceControlUser
 
 	// Message is the description of a specific commit
-	Message string `json:"message,omitempty"`
+	Message string
 }
 
 // GitBuildSource defines the parameters of a Git SCM
 type GitBuildSource struct {
 	// URI points to the source that will be built. The structure of the source
 	// will depend on the type of build to run
-	URI string `json:"uri,omitempty"`
+	URI string
 
 	// Ref is the branch/tag/ref to build.
-	Ref string `json:"ref,omitempty"`
+	Ref string
+
+	// HTTPProxy is a proxy used to reach the git repository over http
+	HTTPProxy string
+
+	// HTTPSProxy is a proxy used to reach the git repository over https
+	HTTPSProxy string
 }
 
 // SourceControlUser defines the identity of a user of source control
 type SourceControlUser struct {
-	Name  string `json:"name,omitempty"`
-	Email string `json:"email,omitempty"`
+	// Name of the source control user
+	Name string
+
+	// Email of the source control user
+	Email string
 }
 
 // BuildStrategy contains the details of how to perform a build.
 type BuildStrategy struct {
 	// Type is the kind of build strategy.
-	Type BuildStrategyType `json:"type"`
+	Type BuildStrategyType
 
 	// DockerStrategy holds the parameters to the Docker build strategy.
-	DockerStrategy *DockerBuildStrategy `json:"dockerStrategy,omitempty"`
+	DockerStrategy *DockerBuildStrategy
 
-	// STIStrategy holds the parameters to the STI build strategy.
-	STIStrategy *STIBuildStrategy `json:"stiStrategy,omitempty"`
+	// SourceStrategy holds the parameters to the Source build strategy.
+	SourceStrategy *SourceBuildStrategy
 
-	// CustomStrategy holds the parameters to the Custom build strategy.
-	CustomStrategy *CustomBuildStrategy `json:"customStrategy,omitempty"`
+	// CustomStrategy holds the parameters to the Custom build strategy
+	CustomStrategy *CustomBuildStrategy
 }
 
 // BuildStrategyType describes a particular way of performing a build.
@@ -165,11 +299,11 @@ const (
 	// DockerBuildStrategyType performs builds using a Dockerfile.
 	DockerBuildStrategyType BuildStrategyType = "Docker"
 
-	// STIBuildStrategyType performs builds build using Source To Images with a Git repository
+	// SourceBuildStrategyType performs builds build using Source To Images with a Git repository
 	// and a builder image.
-	STIBuildStrategyType BuildStrategyType = "STI"
+	SourceBuildStrategyType BuildStrategyType = "Source"
 
-	// CustomBuildStrategyType performs builds using the custom builder Docker image.
+	// CustomBuildStrategyType performs builds using custom builder Docker image.
 	CustomBuildStrategyType BuildStrategyType = "Custom"
 )
 
@@ -177,204 +311,347 @@ const (
 	// CustomBuildStrategyBaseImageKey is the environment variable that indicates the base image to be used when
 	// performing a custom build, if needed.
 	CustomBuildStrategyBaseImageKey = "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE"
-
-	// DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
-	DefaultImageTag string = "latest"
 )
 
 // CustomBuildStrategy defines input parameters specific to Custom build.
 type CustomBuildStrategy struct {
-	// Image is the image required to execute the build. If not specified
-	// a validation error is returned.
-	Image string `json:"image"`
+	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// the docker image should be pulled
+	From kapi.ObjectReference
 
-	// Additional environment variables you want to pass into a builder container
-	Env []kapi.EnvVar `json:"env,omitempty"`
+	// PullSecret is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecret *kapi.LocalObjectReference
+
+	// Env contains additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar
 
 	// ExposeDockerSocket will allow running Docker commands (and build Docker images) from
 	// inside the Docker container.
 	// TODO: Allow admins to enforce 'false' for this option
-	ExposeDockerSocket bool `json:"exposeDockerSocket,omitempty"`
+	ExposeDockerSocket bool
+
+	// ForcePull describes if the controller should configure the build pod to always pull the images
+	// for the builder or only pull if it is not present locally
+	ForcePull bool
+
+	// Secrets is a list of additional secrets that will be included in the custom build pod
+	Secrets []SecretSpec
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
 type DockerBuildStrategy struct {
+	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// the docker image should be pulled
+	// the resulting image will be used in the FROM line of the Dockerfile for this build.
+	From *kapi.ObjectReference
+
+	// PullSecret is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecret *kapi.LocalObjectReference
+
 	// NoCache if set to true indicates that the docker build must be executed with the
 	// --no-cache=true flag
-	NoCache bool `json:"noCache,omitempty"`
+	NoCache bool
 
-	// Image is optional and indicates the image that the dockerfile for this
-	// build should "FROM".  If present, the build process will substitute this value
-	// into the FROM line of the dockerfile.
-	Image string `json:"image,omitempty"`
+	// Env contains additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar
+
+	// ForcePull describes if the builder should pull the images from registry prior to building.
+	ForcePull bool
 }
 
-// STIBuildStrategy defines input parameters specific to an STI build.
-type STIBuildStrategy struct {
-	// Image is the image used to execute the build.
-	// Only valid if From is not present.
-	Image string `json:"image,omitempty"`
+// SourceBuildStrategy defines input parameters specific to an Source build.
+type SourceBuildStrategy struct {
+	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// the docker image should be pulled
+	From kapi.ObjectReference
 
-	// From is reference to an image stream from where the docker image should be pulled
-	From *kapi.ObjectReference `json:"from,omitempty"`
+	// PullSecret is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecret *kapi.LocalObjectReference
 
-	// Tag is the name of image stream tag to be used as the build image, it only
-	// applies when From is specified.
-	Tag string `json:"tag,omitempty`
+	// Env contains additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar
 
-	// Additional environment variables you want to pass into a builder container
-	Env []kapi.EnvVar `json:"env,omitempty"`
+	// Scripts is the location of Source scripts
+	Scripts string
 
-	// Scripts is the location of STI scripts
-	Scripts string `json:"scripts,omitempty"`
+	// Incremental flag forces the Source build to do incremental builds if true.
+	Incremental bool
 
-	// Incremental flag forces the STI build to do incremental builds if true.
-	Incremental bool `json:"incremental,omitempty"`
+	// ForcePull describes if the builder should pull the images from registry prior to building.
+	ForcePull bool
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy
 // should produce.
 type BuildOutput struct {
-	// To defines an optional ImageStream to push the output of this build to. The namespace
-	// may be empty, in which case the named ImageStream will be retrieved from the namespace
-	// of the build. Kind must be set to 'ImageStream' and is the only supported value. If set,
-	// this field takes priority over DockerImageReference. This value will be used to look up
-	// a Docker image repository to push to. Failure to find the To will result in a build error.
-	To *kapi.ObjectReference `json:"to,omitempty"`
+	// To defines an optional location to push the output of this build to.
+	// Kind must be one of 'ImageStreamTag' or 'DockerImage'.
+	// This value will be used to look up a Docker image repository to push to.
+	// In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of
+	// the build unless Namespace is specified.
+	To *kapi.ObjectReference
 
-	// pushSecretName is the name of a Secret that would be used for setting
+	// PushSecret is the name of a Secret that would be used for setting
 	// up the authentication for executing the Docker push to authentication
 	// enabled Docker Registry (or Docker Hub).
-	PushSecretName string `json:"pushSecretName,omitempty"`
-
-	// Tag is the "version name" that will be associated with the output image. This
-	// field is only used if the To field is set, and is ignored when DockerImageReference is used.
-	// This value represents a consistent name for a set of related changes (v1, 5.x, 5.5, dev, stable)
-	// and defaults to the preferred tag for "To" if not specified.
-	Tag string `json:"tag,omitempty"`
-
-	// DockerImageReference is the full name of an image ([registry/]name[:tag]), and will be the
-	// value sent to Docker push at the end of a build if the To field is not defined.
-	DockerImageReference string `json:"dockerImageReference,omitempty"`
+	PushSecret *kapi.LocalObjectReference
 }
 
-// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
-// on which the Build is based.
-const BuildConfigLabel = "buildconfig"
+const (
+	// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
+	// on which the Build is based.
+	BuildConfigLabel = "openshift.io/build-config.name"
+	// BuildConfigLabelDeprecated was used as BuildConfigLabel before adding namespaces.
+	// We keep it for backward compatibility.
+	BuildConfigLabelDeprecated = "buildconfig"
+)
 
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta
+	kapi.ObjectMeta
 
+	// Spec holds all the input necessary to produce a new build, and the conditions when
+	// to trigger them.
+	Spec BuildConfigSpec
+	// Status holds any relevant information about a build config
+	Status BuildConfigStatus
+}
+
+// BuildConfigSpec describes when and how builds are created
+type BuildConfigSpec struct {
 	// Triggers determine how new Builds can be launched from a BuildConfig. If no triggers
 	// are defined, a new build can only occur as a result of an explicit client build creation.
-	Triggers []BuildTriggerPolicy `json:"triggers,omitempty"`
+	Triggers []BuildTriggerPolicy
 
+	// BuildSpec is the desired build specification
+	BuildSpec
+}
+
+// BuildConfigStatus contains current state of the build config object.
+type BuildConfigStatus struct {
 	// LastVersion is used to inform about number of last triggered build.
-	LastVersion int `json:"lastVersion,omitempty"`
-
-	// Parameters holds all the input necessary to produce a new build. A build config may only
-	// define either the Output.To or Output.DockerImageReference fields, but not both.
-	Parameters BuildParameters `json:"parameters,omitempty"`
+	LastVersion int
 }
 
 // WebHookTrigger is a trigger that gets invoked using a webhook type of post
 type WebHookTrigger struct {
 	// Secret used to validate requests.
-	Secret string `json:"secret,omitempty"`
+	Secret string
 }
 
 // ImageChangeTrigger allows builds to be triggered when an ImageStream changes
 type ImageChangeTrigger struct {
-	// Image is used to specify the value in the BuildConfig to replace with the
-	// immutable image id supplied by the ImageStream when this trigger fires.
-	Image string `json:"image"`
-	// From is a reference to an image stream to watch for changes. This field takes
-	// precedence over ImageRepositoryRef, which is deprecated and will be removed in v1beta2. The
-	// Kind may be left blank, in which case it defaults to "ImageStream". The "Name" is
-	// the only required subfield - if Namespace is blank, the namespace of the current build
-	// trigger will be used.
-	From kapi.ObjectReference `json:"from"`
-	// Tag is the name of an image stream tag to watch for changes.
-	Tag string `json:"tag,omitempty"`
 	// LastTriggeredImageID is used internally by the ImageChangeController to save last
 	// used image ID for build
-	LastTriggeredImageID string `json:"lastTriggeredImageID,omitempty"`
+	LastTriggeredImageID string
+
+	// From is a reference to an ImageStreamTag that will trigger a build when updated
+	// It is optional. If no From is specified, the From image from the build strategy
+	// will be used. Only one ImageChangeTrigger with an empty From reference is allowed in
+	// a build configuration.
+	From *kapi.ObjectReference
 }
 
 // BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.
 type BuildTriggerPolicy struct {
 	// Type is the type of build trigger
-	Type BuildTriggerType `json:"type,omitempty"`
+	Type BuildTriggerType
 
-	// GithubWebHook contains the parameters for a GitHub webhook type of trigger
-	GithubWebHook *WebHookTrigger `json:"github,omitempty"`
+	// GitHubWebHook contains the parameters for a GitHub webhook type of trigger
+	GitHubWebHook *WebHookTrigger
 
 	// GenericWebHook contains the parameters for a Generic webhook type of trigger
-	GenericWebHook *WebHookTrigger `json:"generic,omitempty"`
+	GenericWebHook *WebHookTrigger
 
 	// ImageChange contains parameters for an ImageChange type of trigger
-	ImageChange *ImageChangeTrigger `json:"imageChange,omitempty"`
+	ImageChange *ImageChangeTrigger
 }
 
 // BuildTriggerType refers to a specific BuildTriggerPolicy implementation.
 type BuildTriggerType string
 
+//NOTE: Adding a new trigger type requires adding the type to KnownTriggerTypes
+var KnownTriggerTypes = sets.NewString(
+	string(GitHubWebHookBuildTriggerType),
+	string(GenericWebHookBuildTriggerType),
+	string(ImageChangeBuildTriggerType),
+	string(ConfigChangeBuildTriggerType),
+)
+
 const (
-	// GithubWebHookBuildTriggerType represents a trigger that launches builds on
+	// GitHubWebHookBuildTriggerType represents a trigger that launches builds on
 	// GitHub webhook invocations
-	GithubWebHookBuildTriggerType BuildTriggerType = "github"
+	GitHubWebHookBuildTriggerType           BuildTriggerType = "GitHub"
+	GitHubWebHookBuildTriggerTypeDeprecated BuildTriggerType = "github"
 
 	// GenericWebHookBuildTriggerType represents a trigger that launches builds on
 	// generic webhook invocations
-	GenericWebHookBuildTriggerType BuildTriggerType = "generic"
+	GenericWebHookBuildTriggerType           BuildTriggerType = "Generic"
+	GenericWebHookBuildTriggerTypeDeprecated BuildTriggerType = "generic"
 
 	// ImageChangeBuildTriggerType represents a trigger that launches builds on
 	// availability of a new version of an image
-	ImageChangeBuildTriggerType BuildTriggerType = "imageChange"
+	ImageChangeBuildTriggerType           BuildTriggerType = "ImageChange"
+	ImageChangeBuildTriggerTypeDeprecated BuildTriggerType = "imageChange"
+
+	// ConfigChangeBuildTriggerType will trigger a build on an initial build config creation
+	// WARNING: In the future the behavior will change to trigger a build on any config change
+	ConfigChangeBuildTriggerType BuildTriggerType = "ConfigChange"
 )
 
 // BuildList is a collection of Builds.
 type BuildList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Build `json:"items"`
+	unversioned.TypeMeta
+	unversioned.ListMeta
+
+	// Items is a list of builds
+	Items []Build
 }
 
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []BuildConfig `json:"items"`
+	unversioned.TypeMeta
+	unversioned.ListMeta
+
+	// Items is a list of build configs
+	Items []BuildConfig
 }
 
 // GenericWebHookEvent is the payload expected for a generic webhook post
 type GenericWebHookEvent struct {
 	// Type is the type of source repository
-	Type BuildSourceType `json:"type,omitempty"`
+	Type BuildSourceType
 
 	// Git is the git information if the Type is BuildSourceGit
-	Git *GitInfo `json:"git,omitempty"`
+	Git *GitInfo
 }
 
 // GitInfo is the aggregated git information for a generic webhook post
 type GitInfo struct {
-	GitBuildSource    `json:",inline"`
-	GitSourceRevision `json:",inline"`
+	GitBuildSource
+	GitSourceRevision
+
+	// Refs is a list of GitRefs for the provided repo - generally sent
+	// when used from a post-receive hook. This field is optional and is
+	// used when sending multiple refs
+	Refs []GitRefInfo
+}
+
+// GitRefInfo is a single ref
+type GitRefInfo struct {
+	GitBuildSource
+	GitSourceRevision
 }
 
 // BuildLog is the (unused) resource associated with the build log redirector
 type BuildLog struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta
 }
 
 // BuildRequest is the resource used to pass parameters to build generator
 type BuildRequest struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta
+	// TODO: build request should allow name generation via Name and GenerateName, build config
+	// name should be provided as a separate field
+	kapi.ObjectMeta
 
 	// Revision is the information from the source for a specific repo snapshot.
-	Revision *SourceRevision `json:"revision,omitempty"`
+	Revision *SourceRevision
+
+	// TriggeredByImage is the Image that triggered this build.
+	TriggeredByImage *kapi.ObjectReference
+
+	// From is the reference to the ImageStreamTag that triggered the build.
+	From *kapi.ObjectReference
+
+	// Binary indicates a request to build from a binary provided to the builder
+	Binary *BinaryBuildSource
+
+	// LastVersion (optional) is the LastVersion of the BuildConfig that was used
+	// to generate the build. If the BuildConfig in the generator doesn't match, a build will
+	// not be generated.
+	LastVersion *int
+}
+
+type BinaryBuildRequestOptions struct {
+	unversioned.TypeMeta
+	kapi.ObjectMeta
+
+	AsFile string
+
+	// TODO: support structs in query arguments in the future (inline and nested fields)
+
+	// Commit is the value identifying a specific commit
+	Commit string
+
+	// Message is the description of a specific commit
+	Message string
+
+	// AuthorName of the source control user
+	AuthorName string
+
+	// AuthorEmail of the source control user
+	AuthorEmail string
+
+	// CommitterName of the source control user
+	CommitterName string
+
+	// CommitterEmail of the source control user
+	CommitterEmail string
+}
+
+// BuildLogOptions is the REST options for a build log
+type BuildLogOptions struct {
+	unversioned.TypeMeta
+
+	// Container for which to return logs
+	Container string
+	// Follow if true indicates that the build log should be streamed until
+	// the build terminates.
+	Follow bool
+	// If true, return previous terminated container logs
+	Previous bool
+	// A relative time in seconds before the current time from which to show logs. If this value
+	// precedes the time a pod was started, only logs since the pod start will be returned.
+	// If this value is in the future, no logs will be returned.
+	// Only one of sinceSeconds or sinceTime may be specified.
+	SinceSeconds *int64
+	// An RFC3339 timestamp from which to show logs. If this value
+	// preceeds the time a pod was started, only logs since the pod start will be returned.
+	// If this value is in the future, no logs will be returned.
+	// Only one of sinceSeconds or sinceTime may be specified.
+	SinceTime *unversioned.Time
+	// If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line
+	// of log output.
+	Timestamps bool
+	// If set, the number of lines from the end of the logs to show. If not specified,
+	// logs are shown from the creation of the container or sinceSeconds or sinceTime
+	TailLines *int64
+	// If set, the number of bytes to read from the server before terminating the
+	// log output. This may not display a complete final line of logging, and may return
+	// slightly more or slightly less than the specified limit.
+	LimitBytes *int64
+
+	// NoWait if true causes the call to return immediately even if the build
+	// is not available yet. Otherwise the server will wait until the build has started.
+	NoWait bool
+
+	// Version of the build for which to view logs.
+	Version *int64
+}
+
+// SecretSpec specifies a secret to be included in a build pod and its corresponding mount point
+type SecretSpec struct {
+	// SecretSource is a reference to the secret
+	SecretSource kapi.LocalObjectReference
+
+	// MountPath is the path at which to mount the secret
+	MountPath string
 }

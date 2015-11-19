@@ -29,6 +29,9 @@ func TestAddr(t *testing.T) {
 	if a := (Addr{Value: "somehost:90", DefaultScheme: "https"}).Default(); a.URL.Scheme != "https" {
 		t.Errorf("scheme is incorrect: %#v", a)
 	}
+	if a := (Addr{Value: "http://somehost/var", DefaultPort: 100}).Default(); a.Port != 80 {
+		t.Errorf("port is incorrect: %#v", a)
+	}
 	if a := (Addr{Value: "somehost:90", DefaultScheme: "https"}).Default(); a.Port != 90 {
 		t.Errorf("port is incorrect: %#v", a)
 	}

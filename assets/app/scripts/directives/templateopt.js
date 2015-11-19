@@ -5,6 +5,24 @@ angular.module('openshiftConsole')
   .directive('templateOptions', function() {
     return {
       restrict: 'E',
-      templateUrl: 'views/_templateopt.html'
+      templateUrl: 'views/_templateopt.html',
+      scope: {
+        parameters: "=",
+        expand: "=?",
+        canToggle: "=?"
+      },
+      link: function(scope, element, attrs) {
+        if (!angular.isDefined(attrs.canToggle)) {
+          scope.canToggle = true;
+        }
+
+        scope.isOnlyWhitespace = function(value) {
+          return /^\s+$/.test(value);
+        };
+
+        scope.focus = function(id) {
+          angular.element('#' + id).focus();
+        };
+      }
     };
   });

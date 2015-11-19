@@ -7,5 +7,6 @@
 FROM centos:centos7
 
 # components from EPEL must be installed in a separate yum install step
-RUN yum install -y git tar wget socat hostname epel-release && \
+RUN yum install -y git tar wget hostname sysvinit-tools util-linux bsdtar epel-release \
+    socat ethtool device-mapper iptables && \
     yum clean all

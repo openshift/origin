@@ -1,14 +1,22 @@
 package test
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func OkStrategy() deployapi.DeploymentStrategy {
 	return deployapi.DeploymentStrategy{
 		Type: deployapi.DeploymentStrategyTypeRecreate,
+		Resources: kapi.ResourceRequirements{
+			Limits: kapi.ResourceList{
+				kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+				kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+			},
+		},
 	}
 }
 
@@ -16,6 +24,12 @@ func OkCustomStrategy() deployapi.DeploymentStrategy {
 	return deployapi.DeploymentStrategy{
 		Type:         deployapi.DeploymentStrategyTypeCustom,
 		CustomParams: OkCustomParams(),
+		Resources: kapi.ResourceRequirements{
+			Limits: kapi.ResourceList{
+				kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+				kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+			},
+		},
 	}
 }
 
@@ -29,6 +43,27 @@ func OkCustomParams() *deployapi.CustomDeploymentStrategyParams {
 			},
 		},
 		Command: []string{"/bin/echo", "hello", "world"},
+	}
+}
+
+func OkRollingStrategy() deployapi.DeploymentStrategy {
+	mkintp := func(i int) *int64 {
+		v := int64(i)
+		return &v
+	}
+	return deployapi.DeploymentStrategy{
+		Type: deployapi.DeploymentStrategyTypeRolling,
+		RollingParams: &deployapi.RollingDeploymentStrategyParams{
+			UpdatePeriodSeconds: mkintp(1),
+			IntervalSeconds:     mkintp(1),
+			TimeoutSeconds:      mkintp(20),
+		},
+		Resources: kapi.ResourceRequirements{
+			Limits: kapi.ResourceList{
+				kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+				kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+			},
+		},
 	}
 }
 
@@ -96,10 +131,10 @@ func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
 				"container1",
 			},
 			From: kapi.ObjectReference{
-				Kind: "ImageRepository",
-				Name: "test-image-repo",
+				Kind: "ImageStream",
+				Name: "test-image-stream",
 			},
-			Tag: "latest",
+			Tag: imageapi.DefaultImageTag,
 		},
 	}
 }
@@ -113,7 +148,7 @@ func OkImageChangeTriggerDeprecated() deployapi.DeploymentTriggerPolicy {
 				"container1",
 			},
 			RepositoryName: "registry:8080/repo1:ref1",
-			Tag:            "latest",
+			Tag:            imageapi.DefaultImageTag,
 		},
 	}
 }

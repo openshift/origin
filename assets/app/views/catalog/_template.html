@@ -1,49 +1,26 @@
-<div class="col-md-4">
-  <div class="tile tile-template tile-click label-tags" id="" title="">
-    <div class="tile-table">
-      <div class="tile-table-cell template-icon">
-        <span aria-hidden="true" class="font-icon {{template | iconClass : 'template'}}" title="{{template.metadata.name}}"></span>
-      </div>
-      <div class="tile-table-cell">
-        <h3>
-        <a href="javascript:;" class="tile-target" data-toggle="modal" data-target="#{{template.metadata.namespace}}_{{template.metadata.name}}">{{template.metadata.name}}</a>
-        </h3>
-        <p ng-if="template | description">{{template | description}}</p>
-      </div>
+<div class="tile tile-compact tile-template tile-click label-tags" ng-attr-title="{{(template | description) || template.metadata.name}}">
+  <div row cross-axis="center" class="tile-flex">
+    <div row main-axis="center" class="image-icon">
+      <custom-icon resource="template" kind="template" ></custom-icon>
     </div>
-  </div>
-  <div class="modal modal-create fade" id="{{template.metadata.namespace}}_{{template.metadata.name}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
-            <span class="pficon pficon-close"></span>
-          </button>
-          <h4 class="modal-title" id="myModalLabel">{{template.metadata.name}}</h4>
-        </div>
-        <div class="modal-body label-tags">
-          <div class="row">
-            <div class="template-icon col-xs-4 col-sm-4 col-md-4">
-              <span class="{{template | iconClass : 'template'}}"></span>
-            </div>
-            <div class="col-xs-8 col-sm-8 col-md-8">
-              <p ng-if="template | description">{{template | description}}</p>
-              <p>
-                <div ng-if="template | provider">
-                  <label style="margin-right: 5px;">Provider:</label>{{template | provider}}
-                </div>
-                <div ng-if="template | annotation : 'version'">
-                  <label style="margin-right: 5px;">Version:</label>{{template | annotation : 'version'}}
-                </div>
-              </p>
-              <span ng-repeat="tag in (template | tags)" class="label label-default">{{tag.toUpperCase()}}</span>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-block btn-primary btn-lg select-template">Select template...</button>
-        </div>
+    <div flex>
+      <h3><a class="tile-target" ng-href="{{template | createFromTemplateURL : project}}">{{template.metadata.name}}</a></h3>
+      <div ng-if="template | annotation : 'provider'">
+        <label style="margin-right: 5px;">Provider:</label>
+        {{template | annotation : 'provider'}}
       </div>
+      <!-- Only show the namespace if it's not in the shared openshift namespace -->
+      <div ng-if="template.metadata.namespace !== 'openshift'">
+        <label style="margin-right: 5px;">Namespace:</label>
+        {{template.metadata.namespace}}
+      </div>
+      <div ng-if="template | annotation : 'version'">
+        <label style="margin-right: 5px;">Version:</label>
+        {{template | annotation : 'version'}}
+      </div>
+      <a href="" ng-click="filterTag(tag)" ng-repeat="tag in (template | tags)" class="tag small">
+        {{tag}}
+      </a>
     </div>
   </div>
 </div>

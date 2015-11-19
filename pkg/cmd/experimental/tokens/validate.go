@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -16,14 +17,14 @@ import (
 func NewCmdValidateToken(f *clientcmd.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "validate-token",
-		Short: "validate an access token",
-		Long:  `validate an access token`,
+		Short: "Validate an access token",
+		Long:  `Validate an access token`,
 		Run: func(cmd *cobra.Command, args []string) {
 			tokenValue := getFlagString(cmd, "token")
 
 			clientCfg, err := f.OpenShiftClientConfig.ClientConfig()
 			if err != nil {
-				fmt.Errorf("%v\n", err)
+				cmdutil.CheckErr(fmt.Errorf("%v", err))
 			}
 
 			validateToken(tokenValue, clientCfg)
@@ -72,24 +73,24 @@ func validateToken(token string, clientConfig *kclient.Config) {
 func getTokenInfo(token string, osClient *osclient.Client) (string, *osintypes.InfoResponseData, error) {
 	osResult := osClient.Get().AbsPath("oauth", "info").Param("code", token).Do()
 	if osResult.Error() != nil {
-		return "", nil, fmt.Errorf("Error making info request: %v", osResult.Error())
+		return "", nil, fmt.Errorf("error making info request: %v", osResult.Error())
 	}
 	body, err := osResult.Raw()
 	if err != nil {
-		return "", nil, fmt.Errorf("Error reading info response: %v\n", err)
+		return "", nil, fmt.Errorf("error reading info response: %v", err)
 	}
-	glog.V(1).Infof("Raw JSON: %v\n", string(body))
+	glog.V(1).Infof("Raw JSON: %s", string(body))
 
 	var accessData osintypes.InfoResponseData
 	err = json.Unmarshal(body, &accessData)
 	if err != nil {
-		return "", nil, fmt.Errorf("Error while unmarshalling info response: %v %v", err, string(body))
+		return "", nil, fmt.Errorf("error while unmarshalling info response: %v %v", err, string(body))
 	}
 	if accessData.Error == "invalid_request" {
-		return "", nil, fmt.Errorf("\"%v\" is not a valid token.\n", token)
+		return "", nil, fmt.Errorf("%q is not a valid token.", token)
 	}
 	if len(accessData.ErrorDescription) != 0 {
-		return "", nil, fmt.Errorf("%v\n", accessData.ErrorDescription)
+		return "", nil, fmt.Errorf("%s", accessData.ErrorDescription)
 	}
 
 	return string(body), &accessData, nil

@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"strings"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/version"
@@ -19,28 +19,39 @@ type Interface interface {
 	BuildConfigsNamespacer
 	BuildLogsNamespacer
 	ImagesInterfacer
-	ImageRepositoriesNamespacer
-	ImageRepositoryMappingsNamespacer
-	ImageRepositoryTagsNamespacer
 	ImageStreamsNamespacer
 	ImageStreamMappingsNamespacer
 	ImageStreamTagsNamespacer
 	ImageStreamImagesNamespacer
-	DeploymentsNamespacer
 	DeploymentConfigsNamespacer
+	DeploymentLogsNamespacer
 	RoutesNamespacer
+	HostSubnetsInterface
+	NetNamespacesInterface
+	ClusterNetworkingInterface
 	IdentitiesInterface
 	UsersInterface
+	GroupsInterface
 	UserIdentityMappingsInterface
 	ProjectsInterface
+	ProjectRequestsInterface
+	LocalSubjectAccessReviewsImpersonator
+	SubjectAccessReviewsImpersonator
+	LocalResourceAccessReviewsNamespacer
+	ResourceAccessReviews
+	SubjectAccessReviews
+	LocalSubjectAccessReviewsNamespacer
+	TemplatesNamespacer
+	TemplateConfigsNamespacer
+	OAuthAccessTokensInterface
 	PoliciesNamespacer
+	PolicyBindingsNamespacer
 	RolesNamespacer
 	RoleBindingsNamespacer
-	PolicyBindingsNamespacer
-	ResourceAccessReviewsNamespacer
-	RootResourceAccessReviews
-	SubjectAccessReviewsNamespacer
-	TemplatesNamespacer
+	ClusterPoliciesInterface
+	ClusterPolicyBindingsInterface
+	ClusterRolesInterface
+	ClusterRoleBindingsInterface
 }
 
 // Builds provides a REST client for Builds
@@ -63,21 +74,6 @@ func (c *Client) Images() ImageInterface {
 	return newImages(c)
 }
 
-// ImageRepositories provides a REST client for ImageRepository
-func (c *Client) ImageRepositories(namespace string) ImageRepositoryInterface {
-	return newImageRepositories(c, namespace)
-}
-
-// ImageRepositoryMappings provides a REST client for ImageRepositoryMapping
-func (c *Client) ImageRepositoryMappings(namespace string) ImageRepositoryMappingInterface {
-	return newImageRepositoryMappings(c, namespace)
-}
-
-// ImageRepositoryTags provides a REST client for ImageRepositoryTag
-func (c *Client) ImageRepositoryTags(namespace string) ImageRepositoryTagInterface {
-	return newImageRepositoryTags(c, namespace)
-}
-
 // ImageStreams provides a REST client for ImageStream
 func (c *Client) ImageStreams(namespace string) ImageStreamInterface {
 	return newImageStreams(c, namespace)
@@ -98,19 +94,34 @@ func (c *Client) ImageStreamImages(namespace string) ImageStreamImageInterface {
 	return newImageStreamImages(c, namespace)
 }
 
-// Deployments provides a REST client for Deployment
-func (c *Client) Deployments(namespace string) DeploymentInterface {
-	return newDeployments(c, namespace)
-}
-
 // DeploymentConfigs provides a REST client for DeploymentConfig
 func (c *Client) DeploymentConfigs(namespace string) DeploymentConfigInterface {
 	return newDeploymentConfigs(c, namespace)
 }
 
+// DeploymentLogs provides a REST client for DeploymentLog
+func (c *Client) DeploymentLogs(namespace string) DeploymentLogInterface {
+	return newDeploymentLogs(c, namespace)
+}
+
 // Routes provides a REST client for Route
 func (c *Client) Routes(namespace string) RouteInterface {
 	return newRoutes(c, namespace)
+}
+
+// HostSubnets provides a REST client for HostSubnet
+func (c *Client) HostSubnets() HostSubnetInterface {
+	return newHostSubnet(c)
+}
+
+// NetNamespaces provides a REST client for NetNamespace
+func (c *Client) NetNamespaces() NetNamespaceInterface {
+	return newNetNamespace(c)
+}
+
+// ClusterNetwork provides a REST client for ClusterNetworking
+func (c *Client) ClusterNetwork() ClusterNetworkInterface {
+	return newClusterNetwork(c)
 }
 
 // Users provides a REST client for User
@@ -128,9 +139,19 @@ func (c *Client) UserIdentityMappings() UserIdentityMappingInterface {
 	return newUserIdentityMappings(c)
 }
 
+// Groups provides a REST client for Groups
+func (c *Client) Groups() GroupInterface {
+	return newGroups(c)
+}
+
 // Projects provides a REST client for Projects
 func (c *Client) Projects() ProjectInterface {
 	return newProjects(c)
+}
+
+// ProjectRequests provides a REST client for Projects
+func (c *Client) ProjectRequests() ProjectRequestInterface {
+	return newProjectRequests(c)
 }
 
 // TemplateConfigs provides a REST client for TemplateConfig
@@ -163,23 +184,55 @@ func (c *Client) RoleBindings(namespace string) RoleBindingInterface {
 	return newRoleBindings(c, namespace)
 }
 
-// ResourceAccessReviews provides a REST client for ResourceAccessReviews
-func (c *Client) ResourceAccessReviews(namespace string) ResourceAccessReviewInterface {
-	return newResourceAccessReviews(c, namespace)
+// LocalResourceAccessReviews provides a REST client for LocalResourceAccessReviews
+func (c *Client) LocalResourceAccessReviews(namespace string) LocalResourceAccessReviewInterface {
+	return newLocalResourceAccessReviews(c, namespace)
 }
 
-// RootResourceAccessReviews provides a REST client for RootResourceAccessReviews
-func (c *Client) RootResourceAccessReviews() ResourceAccessReviewInterface {
-	return newRootResourceAccessReviews(c)
+// ClusterResourceAccessReviews provides a REST client for ClusterResourceAccessReviews
+func (c *Client) ResourceAccessReviews() ResourceAccessReviewInterface {
+	return newResourceAccessReviews(c)
+}
+
+// ImpersonateSubjectAccessReviews provides a REST client for SubjectAccessReviews
+func (c *Client) ImpersonateSubjectAccessReviews(token string) SubjectAccessReviewInterface {
+	return newImpersonatingSubjectAccessReviews(c, token)
+}
+
+// ImpersonateLocalSubjectAccessReviews provides a REST client for SubjectAccessReviews
+func (c *Client) ImpersonateLocalSubjectAccessReviews(namespace, token string) LocalSubjectAccessReviewInterface {
+	return newImpersonatingLocalSubjectAccessReviews(c, namespace, token)
+}
+
+// LocalSubjectAccessReviews provides a REST client for LocalSubjectAccessReviews
+func (c *Client) LocalSubjectAccessReviews(namespace string) LocalSubjectAccessReviewInterface {
+	return newLocalSubjectAccessReviews(c, namespace)
 }
 
 // SubjectAccessReviews provides a REST client for SubjectAccessReviews
-func (c *Client) SubjectAccessReviews(namespace string) SubjectAccessReviewInterface {
-	return newSubjectAccessReviews(c, namespace)
+func (c *Client) SubjectAccessReviews() SubjectAccessReviewInterface {
+	return newSubjectAccessReviews(c)
 }
 
-func (c *Client) RootSubjectAccessReviews() SubjectAccessReviewInterface {
-	return newRootSubjectAccessReviews(c)
+// OAuthAccessTokens provides a REST client for OAuthAccessTokens
+func (c *Client) OAuthAccessTokens() OAuthAccessTokenInterface {
+	return newOAuthAccessTokens(c)
+}
+
+func (c *Client) ClusterPolicies() ClusterPolicyInterface {
+	return newClusterPolicies(c)
+}
+
+func (c *Client) ClusterPolicyBindings() ClusterPolicyBindingInterface {
+	return newClusterPolicyBindings(c)
+}
+
+func (c *Client) ClusterRoles() ClusterRoleInterface {
+	return newClusterRoles(c)
+}
+
+func (c *Client) ClusterRoleBindings() ClusterRoleBindingInterface {
+	return newClusterRoleBindings(c)
 }
 
 // Client is an OpenShift client object
@@ -199,22 +252,22 @@ func New(c *kclient.Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &Client{client}, nil
 }
 
 // SetOpenShiftDefaults sets the default settings on the passed
 // client configuration
 func SetOpenShiftDefaults(config *kclient.Config) error {
-	if config.Prefix == "" {
-		config.Prefix = "/osapi"
-	}
 	if len(config.UserAgent) == 0 {
 		config.UserAgent = DefaultOpenShiftUserAgent()
 	}
 	if config.Version == "" {
 		// Clients default to the preferred code API version
-		// TODO: implement version negotiation (highest version supported by server)
 		config.Version = latest.Version
+	}
+	if config.Prefix == "" {
+		config.Prefix = "/oapi"
 	}
 	version := config.Version
 	versionInterfaces, err := latest.InterfacesFor(version)
@@ -224,7 +277,6 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 	if config.Codec == nil {
 		config.Codec = versionInterfaces.Codec
 	}
-	config.LegacyBehavior = (config.Version == "v1beta1")
 	return nil
 }
 

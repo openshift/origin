@@ -8,7 +8,7 @@ import (
 
 func TestInitializeOpenshiftAPIVersionRouteHandler(t *testing.T) {
 	service := new(restful.WebService)
-	initAPIVersionRoute(service, "v1beta1")
+	initAPIVersionRoute(service, "osapi", "v1beta3")
 
 	if len(service.Routes()) != 1 {
 		t.Fatalf("Exp. the OSAPI route but found none")

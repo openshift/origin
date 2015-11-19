@@ -5,6 +5,7 @@
 package server
 
 import (
+	"crypto"
 	"fmt"
 	"net"
 	"os"
@@ -24,6 +25,8 @@ const (
 type Config struct {
 	// The ip:port SkyDNS should be listening on for incoming DNS requests.
 	DnsAddr string `json:"dns_addr,omitempty"`
+	// The network used to bind DNS - can be 'ip' (both ipv4 and ipv6), 'ipv4', or 'ipv6', defaults to 'ip'
+	BindNetwork string `json:"bind_network,omitempty"`
 	// bind to port(s) activated by systemd. If set to true, this overrides DnsAddr.
 	Systemd bool `json:"systemd,omitempty"`
 	// The domain SkyDNS is authoritative for, defaults to skydns.local.
@@ -37,7 +40,9 @@ type Config struct {
 	// Round robin A/AAAA replies. Default is true.
 	RoundRobin bool `json:"round_robin,omitempty"`
 	// List of ip:port, seperated by commas of recursive nameservers to forward queries to.
-	Nameservers []string      `json:"nameservers,omitempty"`
+	Nameservers []string `json:"nameservers,omitempty"`
+	// Never provide a recursive service.
+	NoRec       bool          `json:"no_rec,omitempty"`
 	ReadTimeout time.Duration `json:"read_timeout,omitempty"`
 	// Default priority on SRV records when none is given. Defaults to 10.
 	Priority uint16 `json:"priority"`
@@ -55,15 +60,19 @@ type Config struct {
 	Ndots int `json:"ndot,omitempty"`
 
 	// DNSSEC key material
-	PubKey  *dns.DNSKEY    `json:"-"`
-	KeyTag  uint16         `json:"-"`
-	PrivKey dns.PrivateKey `json:"-"`
+	PubKey  *dns.DNSKEY   `json:"-"`
+	KeyTag  uint16        `json:"-"`
+	PrivKey crypto.Signer `json:"-"`
 
 	Verbose bool `json:"-"`
 
 	// some predefined string "constants"
 	localDomain string // "local.dns." + config.Domain
-	dnsDomain   string // "dns". + config.Domain
+	dnsDomain   string // "ns.dns". + config.Domain
+
+	// Stub zones support. Pointer to a map that we refresh when we see
+	// an update. Map contains domainname -> nameserver:port
+	stub *map[string][]string
 }
 
 func SetDefaults(config *Config) error {
@@ -72,6 +81,9 @@ func SetDefaults(config *Config) error {
 	}
 	if config.DnsAddr == "" {
 		config.DnsAddr = "127.0.0.1:53"
+	}
+	if config.BindNetwork == "" {
+		config.BindNetwork = "ip"
 	}
 	if config.Domain == "" {
 		config.Domain = "skydns.local."
@@ -104,20 +116,21 @@ func SetDefaults(config *Config) error {
 		config.Ndots = 2
 	}
 
+	switch config.BindNetwork {
+	case "ip", "ipv4", "ipv6":
+	default:
+		return fmt.Errorf("%s is not an accepted value for BindNetwork", config.BindNetwork)
+	}
+
 	if len(config.Nameservers) == 0 {
 		c, err := dns.ClientConfigFromFile("/etc/resolv.conf")
-		if os.IsNotExist(err) {
-			c = &dns.ClientConfig{
-				Port:     "53",
-				Ndots:    1,
-				Timeout:  1,
-				Attempts: 2,
+		if !os.IsNotExist(err) {
+			if err != nil {
+				return err
 			}
-		} else if err != nil {
-			return err
-		}
-		for _, s := range c.Servers {
-			config.Nameservers = append(config.Nameservers, net.JoinHostPort(s, c.Port))
+			for _, s := range c.Servers {
+				config.Nameservers = append(config.Nameservers, net.JoinHostPort(s, c.Port))
+			}
 		}
 	}
 	config.Domain = dns.Fqdn(strings.ToLower(config.Domain))
@@ -137,7 +150,9 @@ func SetDefaults(config *Config) error {
 		config.PrivKey = p
 	}
 	config.localDomain = appendDomain("local.dns", config.Domain)
-	config.dnsDomain = appendDomain("dns", config.Domain)
+	config.dnsDomain = appendDomain("ns.dns", config.Domain)
+	stubmap := make(map[string][]string)
+	config.stub = &stubmap
 	return nil
 }
 

@@ -1,25 +1,26 @@
 package clientcmd
 
 import (
-	"net/http"
 	"strings"
 
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 )
 
 const (
 	unknownReason                     = 0
 	noServerFoundReason               = 1
 	certificateAuthorityUnknownReason = 2
+	configurationInvalidReason        = 3
 
 	certificateAuthorityUnknownMsg = "The server uses a certificate signed by unknown authority. You may need to use the --certificate-authority flag to provide the path to a certificate file for the certificate authority, or --insecure-skip-tls-verify to bypass the certificate check and use insecure connections."
-	notConfiguredMsg               = `OpenShift is not configured. You need to run the login command in order to create a default config for your server and credentials:
-  osc login
-You can also run this command again providing the path to a config file directly, either through the --config flag of the OPENSHIFTCONFIG environment variable.
+	notConfiguredMsg               = `The client is not configured. You need to run the login command in order to create a default config for your server and credentials:
+  oc login
+You can also run this command again providing the path to a config file directly, either through the --config flag of the KUBECONFIG environment variable.
 `
 )
 
+// GetPrettyMessageFor prettifys the message of the provided error
 func GetPrettyMessageFor(err error) string {
 	if err == nil {
 		return ""
@@ -38,22 +39,24 @@ func GetPrettyMessageFor(err error) string {
 	return err.Error()
 }
 
+// IsNoServerFound checks whether the provided error is a 'no server found' error or not
 func IsNoServerFound(err error) bool {
 	return detectReason(err) == noServerFoundReason
 }
 
+// IsConfigurationInvalid checks whether the provided error is a 'invalid configuration' error or not
+func IsConfigurationInvalid(err error) bool {
+	return detectReason(err) == configurationInvalidReason
+}
+
+// IsCertificateAuthorityUnknown checks whether the provided error is a 'certificate authority unknown' error or not
 func IsCertificateAuthorityUnknown(err error) bool {
 	return detectReason(err) == certificateAuthorityUnknownReason
 }
 
+// IsForbidden checks whether the provided error is a 'forbidden' error or not
 func IsForbidden(err error) bool {
-	if kerrors.IsForbidden(err) {
-		return true
-	}
-	if e, ok := err.(*kclient.UnexpectedStatusError); ok {
-		return e.Response != nil && e.Response.StatusCode == http.StatusForbidden
-	}
-	return false
+	return kerrors.IsForbidden(err)
 }
 
 func detectReason(err error) int {
@@ -61,9 +64,10 @@ func detectReason(err error) int {
 		switch {
 		case strings.Contains(err.Error(), "certificate signed by unknown authority"):
 			return certificateAuthorityUnknownReason
-
-		case strings.Contains(err.Error(), "no server found for"):
+		case strings.Contains(err.Error(), "no server defined"):
 			return noServerFoundReason
+		case clientcmd.IsConfigurationInvalid(err):
+			return configurationInvalidReason
 		}
 	}
 	return unknownReason

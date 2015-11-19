@@ -1,29 +1,17 @@
 language: go
 
 go:
-  - 1.3
   - 1.4
-
-env:
- - TEST_ASSETS=true
- - TEST_ASSETS=false
-
-matrix:
-  exclude:
-    - go: 1.3
-      env: TEST_ASSETS=true
+  - 1.5.1
 
 install:
-  - ./hack/verify-jsonformat.sh
-  - ./hack/install-etcd.sh
-  - ./hack/install-std-race.sh
-  - ./hack/install-tools.sh
-  - ./hack/build-go.sh
-  - ./hack/install-assets.sh
+  - export PATH=$GOPATH/bin:./_tools/etcd/bin:$PATH
+  - make install-travis
 
 script:
-  - PATH=$HOME/gopath/bin:./_output/etcd/bin:$PATH make check-test WHAT="''" TESTFLAGS="-p=4"
-  - ./hack/test-assets.sh
+  - make verify
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"
+
+sudo: false

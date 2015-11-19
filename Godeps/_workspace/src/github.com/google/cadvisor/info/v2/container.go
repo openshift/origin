@@ -64,19 +64,36 @@ type ContainerSpec struct {
 	// An example of a namespace is "docker" for Docker containers.
 	Namespace string `json:"namespace,omitempty"`
 
+	// Metadata labels associated with this container.
+	Labels map[string]string `json:"labels,omitempty"`
+
 	HasCpu bool    `json:"has_cpu"`
 	Cpu    CpuSpec `json:"cpu,omitempty"`
 
 	HasMemory bool       `json:"has_memory"`
 	Memory    MemorySpec `json:"memory,omitempty"`
+
+	HasCustomMetrics bool            `json:"has_custom_metrics"`
+	CustomMetrics    []v1.MetricSpec `json:"custom_metrics,omitempty"`
+
+	// Following resources have no associated spec, but are being isolated.
+	HasNetwork    bool `json:"has_network"`
+	HasFilesystem bool `json:"has_filesystem"`
+	HasDiskIo     bool `json:"has_diskio"`
+
+	// Image name used for this container.
+	Image string `json:"image,omitempty"`
 }
 
 type ContainerStats struct {
 	// The time of this stat point.
 	Timestamp time.Time `json:"timestamp"`
 	// CPU statistics
-	HasCpu bool        `json:"has_cpu"`
-	Cpu    v1.CpuStats `json:"cpu,omitempty"`
+	HasCpu bool `json:"has_cpu"`
+	// In nanoseconds (aggregated)
+	Cpu v1.CpuStats `json:"cpu,omitempty"`
+	// In nanocores per second (instantaneous)
+	CpuInst *CpuInstStats `json:"cpu_inst,omitempty"`
 	// Disk IO statistics
 	HasDiskIo bool           `json:"has_diskio"`
 	DiskIo    v1.DiskIoStats `json:"diskio,omitempty"`
@@ -84,14 +101,17 @@ type ContainerStats struct {
 	HasMemory bool           `json:"has_memory"`
 	Memory    v1.MemoryStats `json:"memory,omitempty"`
 	// Network statistics
-	HasNetwork bool              `json:"has_network"`
-	Network    []v1.NetworkStats `json:"network,omitempty"`
+	HasNetwork bool         `json:"has_network"`
+	Network    NetworkStats `json:"network,omitempty"`
 	// Filesystem statistics
 	HasFilesystem bool         `json:"has_filesystem"`
 	Filesystem    []v1.FsStats `json:"filesystem,omitempty"`
 	// Task load statistics
 	HasLoad bool         `json:"has_load"`
 	Load    v1.LoadStats `json:"load_stats,omitempty"`
+	// Custom Metrics
+	HasCustomMetrics bool                      `json:"has_custom_metrics"`
+	CustomMetrics    map[string][]v1.MetricVal `json:"custom_metrics,omitempty"`
 }
 
 type Percentiles struct {
@@ -102,8 +122,12 @@ type Percentiles struct {
 	Mean uint64 `json:"mean"`
 	// Max seen over the collected sample.
 	Max uint64 `json:"max"`
+	// 50th percentile over the collected sample.
+	Fifty uint64 `json:"fifty"`
 	// 90th percentile over the collected sample.
 	Ninety uint64 `json:"ninety"`
+	// 95th percentile over the collected sample.
+	NinetyFive uint64 `json:"ninetyfive"`
 }
 
 type Usage struct {
@@ -148,6 +172,9 @@ type FsInfo struct {
 	// Filesystem usage in bytes.
 	Capacity uint64 `json:"capacity"`
 
+	// Bytes available for non-root use.
+	Available uint64 `json:"available"`
+
 	// Number of bytes used on this filesystem.
 	Usage uint64 `json:"usage"`
 
@@ -162,4 +189,66 @@ type RequestOptions struct {
 	Count int `json:"count"`
 	// Whether to include stats for child subcontainers.
 	Recursive bool `json:"recursive"`
+}
+
+type ProcessInfo struct {
+	User          string  `json:"user"`
+	Pid           int     `json:"pid"`
+	Ppid          int     `json:"parent_pid"`
+	StartTime     string  `json:"start_time"`
+	PercentCpu    float32 `json:"percent_cpu"`
+	PercentMemory float32 `json:"percent_mem"`
+	RSS           uint64  `json:"rss"`
+	VirtualSize   uint64  `json:"virtual_size"`
+	Status        string  `json:"status"`
+	RunningTime   string  `json:"running_time"`
+	CgroupPath    string  `json:"cgroup_path"`
+	Cmd           string  `json:"cmd"`
+}
+
+type TcpStat struct {
+	Established uint64
+	SynSent     uint64
+	SynRecv     uint64
+	FinWait1    uint64
+	FinWait2    uint64
+	TimeWait    uint64
+	Close       uint64
+	CloseWait   uint64
+	LastAck     uint64
+	Listen      uint64
+	Closing     uint64
+}
+
+type NetworkStats struct {
+	// Network stats by interface.
+	Interfaces []v1.InterfaceStats `json:"interfaces,omitempty"`
+	// TCP connection stats (Established, Listen...)
+	Tcp TcpStat `json:"tcp"`
+	// TCP6 connection stats (Established, Listen...)
+	Tcp6 TcpStat `json:"tcp6"`
+}
+
+// Instantaneous CPU stats
+type CpuInstStats struct {
+	Usage CpuInstUsage `json:"usage"`
+}
+
+// CPU usage time statistics.
+type CpuInstUsage struct {
+	// Total CPU usage.
+	// Units: nanocores per second
+	Total uint64 `json:"total"`
+
+	// Per CPU/core usage of the container.
+	// Unit: nanocores per second
+	PerCpu []uint64 `json:"per_cpu_usage,omitempty"`
+
+	// Time spent in user space.
+	// Unit: nanocores per second
+	User uint64 `json:"user"`
+
+	// Time spent in kernel space.
+	// Unit: nanocores per second
+	System uint64 `json:"system"`
 }

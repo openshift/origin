@@ -70,14 +70,19 @@ func (c *ManagerMock) GetRequestedContainersInfo(containerName string, options v
 	return args.Get(0).(map[string]*info.ContainerInfo), args.Error(1)
 }
 
-func (c *ManagerMock) WatchForEvents(queryuest *events.Request, passedChannel chan *events.Event) error {
+func (c *ManagerMock) Exists(name string) bool {
+	args := c.Called(name)
+	return args.Get(0).(bool)
+}
+
+func (c *ManagerMock) WatchForEvents(queryuest *events.Request, passedChannel chan *info.Event) error {
 	args := c.Called(queryuest, passedChannel)
 	return args.Error(0)
 }
 
-func (c *ManagerMock) GetPastEvents(queryuest *events.Request) (events.EventSlice, error) {
+func (c *ManagerMock) GetPastEvents(queryuest *events.Request) ([]*info.Event, error) {
 	args := c.Called(queryuest)
-	return args.Get(0).(events.EventSlice), args.Error(1)
+	return args.Get(0).([]*info.Event), args.Error(1)
 }
 
 func (c *ManagerMock) GetMachineInfo() (*info.MachineInfo, error) {
@@ -93,4 +98,19 @@ func (c *ManagerMock) GetVersionInfo() (*info.VersionInfo, error) {
 func (c *ManagerMock) GetFsInfo() ([]v2.FsInfo, error) {
 	args := c.Called()
 	return args.Get(0).([]v2.FsInfo), args.Error(1)
+}
+
+func (c *ManagerMock) GetProcessList(name string, options v2.RequestOptions) ([]v2.ProcessInfo, error) {
+	args := c.Called()
+	return args.Get(0).([]v2.ProcessInfo), args.Error(1)
+}
+
+func (c *ManagerMock) DockerInfo() (DockerStatus, error) {
+	args := c.Called()
+	return args.Get(0).(DockerStatus), args.Error(1)
+}
+
+func (c *ManagerMock) DockerImages() ([]DockerImage, error) {
+	args := c.Called()
+	return args.Get(0).([]DockerImage), args.Error(1)
 }

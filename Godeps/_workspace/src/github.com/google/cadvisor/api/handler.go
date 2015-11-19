@@ -67,7 +67,7 @@ const (
 func handleRequest(supportedApiVersions map[string]ApiVersion, m manager.Manager, w http.ResponseWriter, r *http.Request) error {
 	start := time.Now()
 	defer func() {
-		glog.V(2).Infof("Request took %s", time.Since(start))
+		glog.V(4).Infof("Request took %s", time.Since(start))
 	}()
 
 	request := r.URL.Path
@@ -133,7 +133,7 @@ func writeResult(res interface{}, w http.ResponseWriter) error {
 
 }
 
-func streamResults(results chan *events.Event, w http.ResponseWriter, r *http.Request) error {
+func streamResults(eventChannel *events.EventChannel, w http.ResponseWriter, r *http.Request, m manager.Manager) error {
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
 		return errors.New("could not access http.CloseNotifier")
@@ -151,9 +151,9 @@ func streamResults(results chan *events.Event, w http.ResponseWriter, r *http.Re
 	for {
 		select {
 		case <-cn.CloseNotify():
+			m.CloseEventChannel(eventChannel.GetWatchId())
 			return nil
-		case ev := <-results:
-			glog.V(3).Infof("Received event from watch channel in api: %v", ev)
+		case ev := <-eventChannel.GetChannel():
 			err := enc.Encode(ev)
 			if err != nil {
 				glog.Errorf("error encoding message %+v for result stream: %v", ev, err)
@@ -178,19 +178,19 @@ func getContainerInfoRequest(body io.ReadCloser) (*info.ContainerInfoRequest, er
 // with any twice defined arguments being assigned the first value.
 // If the value type for the argument is wrong the field will be assumed to be
 // unassigned
-// bools: historical, subcontainers, oom_events, creation_events, deletion_events
+// bools: stream, subcontainers, oom_events, creation_events, deletion_events
 // ints: max_events, start_time (unix timestamp), end_time (unix timestamp)
-// example r.URL: http://localhost:8080/api/v1.3/events?oom_events=true&historical=true&max_events=10
+// example r.URL: http://localhost:8080/api/v1.3/events?oom_events=true&stream=true
 func getEventRequest(r *http.Request) (*events.Request, bool, error) {
 	query := events.NewRequest()
-	getHistoricalEvents := false
+	stream := false
 
 	urlMap := r.URL.Query()
 
-	if val, ok := urlMap["historical"]; ok {
+	if val, ok := urlMap["stream"]; ok {
 		newBool, err := strconv.ParseBool(val[0])
 		if err == nil {
-			getHistoricalEvents = newBool
+			stream = newBool
 		}
 	}
 	if val, ok := urlMap["subcontainers"]; ok {
@@ -199,22 +199,27 @@ func getEventRequest(r *http.Request) (*events.Request, bool, error) {
 			query.IncludeSubcontainers = newBool
 		}
 	}
-	if val, ok := urlMap["oom_events"]; ok {
+	eventTypes := map[string]info.EventType{
+		"oom_events":      info.EventOom,
+		"oom_kill_events": info.EventOomKill,
+		"creation_events": info.EventContainerCreation,
+		"deletion_events": info.EventContainerDeletion,
+	}
+	allEventTypes := false
+	if val, ok := urlMap["all_events"]; ok {
 		newBool, err := strconv.ParseBool(val[0])
 		if err == nil {
-			query.EventType[events.TypeOom] = newBool
+			allEventTypes = newBool
 		}
 	}
-	if val, ok := urlMap["creation_events"]; ok {
-		newBool, err := strconv.ParseBool(val[0])
-		if err == nil {
-			query.EventType[events.TypeContainerCreation] = newBool
-		}
-	}
-	if val, ok := urlMap["deletion_events"]; ok {
-		newBool, err := strconv.ParseBool(val[0])
-		if err == nil {
-			query.EventType[events.TypeContainerDeletion] = newBool
+	for opt, eventType := range eventTypes {
+		if allEventTypes {
+			query.EventType[eventType] = true
+		} else if val, ok := urlMap[opt]; ok {
+			newBool, err := strconv.ParseBool(val[0])
+			if err == nil {
+				query.EventType[eventType] = newBool
+			}
 		}
 	}
 	if val, ok := urlMap["max_events"]; ok {
@@ -236,10 +241,7 @@ func getEventRequest(r *http.Request) (*events.Request, bool, error) {
 		}
 	}
 
-	glog.V(2).Infof(
-		"%v was returned in api/handler.go:getEventRequest from the url rawQuery %v",
-		query, r.URL.RawQuery)
-	return query, getHistoricalEvents, nil
+	return query, stream, nil
 }
 
 func getContainerName(request []string) string {

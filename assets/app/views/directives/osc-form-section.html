@@ -1,0 +1,21 @@
+<div class="flow">
+  <div class="flow-block">
+    <h2>{{header}}</h2>
+  </div>
+  <div class="flow-block right">
+    <ul class="list-inline">
+        <li ng-if="canToggle">
+          <a class="action action-inline" href ng-click="toggle()" ng-hide="expand"><i class="pficon pficon-edit"></i>{{editText}} {{aboutTitle}}</a>
+          <a class="action action-inline" href ng-click="toggle()" ng-show="expand"><i class="pficon pficon-remove"></i>Collapse</a>
+        </li>
+        <li>
+          <span class="help action-inline">
+            <i class="pficon pficon-help"></i>
+            <a href data-toggle="tooltip" data-placement="bottom" data-original-title="{{about}}">About {{aboutTitle}}</a>
+          </span>
+        </li>
+    </ul>
+  </div>
+</div>
+
+<div ng-transclude></div>

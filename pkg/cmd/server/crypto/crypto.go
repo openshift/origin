@@ -18,16 +18,45 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
+
+// SecureTLSConfig enforces the default minimum security settings for the
+// cluster.
+// TODO: allow override
+func SecureTLSConfig(config *tls.Config) *tls.Config {
+	// Recommendations from https://wiki.mozilla.org/Security/Server_Side_TLS
+	// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
+	config.MinVersion = tls.VersionTLS10
+	// In a legacy environment, allow cipher control to be disabled.
+	if len(os.Getenv("OPENSHIFT_ALLOW_DANGEROUS_TLS_CIPHER_SUITES")) == 0 {
+		config.PreferServerCipherSuites = true
+		config.CipherSuites = []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+			tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+		}
+	} else {
+		glog.Warningf("Potentially insecure TLS cipher suites are allowed in client connections because environment variable OPENSHIFT_ALLOW_DANGEROUS_TLS_CIPHER_SUITES is set")
+	}
+	return config
+}
 
 type TLSCertificateConfig struct {
 	Certs []*x509.Certificate
@@ -102,8 +131,11 @@ func GetTLSCertificateConfig(certFile, keyFile string) (*TLSCertificateConfig, e
 }
 
 var (
-	// Default templates to last for a year
-	lifetime = time.Hour * 24 * 365
+	// Default ca certs to be long-lived
+	caLifetime = time.Hour * 24 * 365 * 5
+
+	// Default templates to last for two years
+	lifetime = time.Hour * 24 * 365 * 2
 
 	// Default keys are 2048 bits
 	keyBits = 2048
@@ -111,16 +143,20 @@ var (
 
 type CA struct {
 	SerialFile string
-	Serial     int64
 	Config     *TLSCertificateConfig
+
+	// lock guards access to the Serial field
+	lock   sync.Mutex
+	Serial int64
 }
 
-func EnsureCA(certFile, keyFile, serialFile, name string) (*CA, error) {
+// EnsureCA returns a CA, whether it was created (as opposed to pre-existing), and any error
+func EnsureCA(certFile, keyFile, serialFile, name string) (*CA, bool, error) {
 	if ca, err := GetCA(certFile, keyFile, serialFile); err == nil {
-		return ca, nil
+		return ca, false, err
 	}
-
-	return MakeCA(certFile, keyFile, serialFile, name)
+	ca, err := MakeCA(certFile, keyFile, serialFile, name)
+	return ca, true, err
 }
 
 func GetCA(certFile, keyFile, serialFile string) (*CA, error) {
@@ -181,16 +217,17 @@ func MakeCA(certFile, keyFile, serialFile, name string) (*CA, error) {
 	}, nil
 }
 
-func (ca *CA) EnsureServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, error) {
+func (ca *CA) EnsureServerCert(certFile, keyFile string, hostnames sets.String) (*TLSCertificateConfig, bool, error) {
 	certConfig, err := GetServerCert(certFile, keyFile, hostnames)
 	if err != nil {
-		return ca.MakeServerCert(certFile, keyFile, hostnames)
+		certConfig, err = ca.MakeServerCert(certFile, keyFile, hostnames)
+		return certConfig, true, err
 	}
 
-	return certConfig, nil
+	return certConfig, false, nil
 }
 
-func GetServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, error) {
+func GetServerCert(certFile, keyFile string, hostnames sets.String) (*TLSCertificateConfig, error) {
 	server, err := GetTLSCertificateConfig(certFile, keyFile)
 	if err != nil {
 		return nil, err
@@ -201,15 +238,15 @@ func GetServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCert
 	missingIps := ipsNotInSlice(ips, cert.IPAddresses)
 	missingDns := stringsNotInSlice(dns, cert.DNSNames)
 	if len(missingIps) == 0 && len(missingDns) == 0 {
-		glog.V(2).Infof("Found existing server certificate in %s", certFile)
+		glog.V(4).Infof("Found existing server certificate in %s", certFile)
 		return server, nil
 	}
 
 	return nil, fmt.Errorf("Existing server certificate in %s was missing some hostnames (%v) or IP addresses (%v).", certFile, missingDns, missingIps)
 }
 
-func (ca *CA) MakeServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, error) {
-	glog.V(2).Infof("Generating server certificate in %s, key in %s", certFile, keyFile)
+func (ca *CA) MakeServerCert(certFile, keyFile string, hostnames sets.String) (*TLSCertificateConfig, error) {
+	glog.V(4).Infof("Generating server certificate in %s, key in %s", certFile, keyFile)
 
 	serverPublicKey, serverPrivateKey, _ := NewKeyPair()
 	serverTemplate, _ := newServerCertificateTemplate(pkix.Name{CommonName: hostnames.List()[0]}, hostnames.List())
@@ -224,17 +261,18 @@ func (ca *CA) MakeServerCert(certFile, keyFile string, hostnames util.StringSet)
 	return server, nil
 }
 
-func (ca *CA) EnsureClientCertificate(certFile, keyFile string, u user.Info) (*TLSCertificateConfig, error) {
+func (ca *CA) EnsureClientCertificate(certFile, keyFile string, u user.Info) (*TLSCertificateConfig, bool, error) {
 	certConfig, err := GetTLSCertificateConfig(certFile, keyFile)
 	if err != nil {
-		return ca.MakeClientCertificate(certFile, keyFile, u)
+		certConfig, err = ca.MakeClientCertificate(certFile, keyFile, u)
+		return certConfig, true, err // true indicates we wrote the files.
 	}
 
-	return certConfig, nil
+	return certConfig, false, nil
 }
 
 func (ca *CA) MakeClientCertificate(certFile, keyFile string, u user.Info) (*TLSCertificateConfig, error) {
-	glog.V(2).Infof("Generating client cert in %s and key in %s", certFile, keyFile)
+	glog.V(4).Infof("Generating client cert in %s and key in %s", certFile, keyFile)
 	// ensure parent dirs
 	if err := os.MkdirAll(filepath.Dir(certFile), os.FileMode(0755)); err != nil {
 		return nil, err
@@ -266,13 +304,26 @@ func (ca *CA) MakeClientCertificate(certFile, keyFile string, u user.Info) (*TLS
 	return GetTLSCertificateConfig(certFile, keyFile)
 }
 
+// nextSerial returns a unique, monotonically increasing serial number and ensures the CA on
+// disk records that value.
+func (ca *CA) nextSerial() (int64, error) {
+	ca.lock.Lock()
+	defer ca.lock.Unlock()
+	next := ca.Serial + 1
+	ca.Serial = next
+	if err := ioutil.WriteFile(ca.SerialFile, []byte(fmt.Sprintf("%d", next)), os.FileMode(0640)); err != nil {
+		return 0, err
+	}
+	return next, nil
+}
+
 func (ca *CA) signCertificate(template *x509.Certificate, requestKey crypto.PublicKey) (*x509.Certificate, error) {
 	// Increment and persist serial
-	ca.Serial = ca.Serial + 1
-	if err := ioutil.WriteFile(ca.SerialFile, []byte(fmt.Sprintf("%d", ca.Serial)), os.FileMode(0640)); err != nil {
+	serial, err := ca.nextSerial()
+	if err != nil {
 		return nil, err
 	}
-	template.SerialNumber = big.NewInt(ca.Serial)
+	template.SerialNumber = big.NewInt(serial)
 	return signCertificate(template, requestKey, ca.Config.Certs[0], ca.Config.Key)
 }
 
@@ -292,7 +343,7 @@ func newSigningCertificateTemplate(subject pkix.Name) (*x509.Certificate, error)
 		SignatureAlgorithm: x509.SHA256WithRSA,
 
 		NotBefore:    time.Now().Add(-1 * time.Second),
-		NotAfter:     time.Now().Add(lifetime),
+		NotAfter:     time.Now().Add(caLifetime),
 		SerialNumber: big.NewInt(1),
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
@@ -328,10 +379,18 @@ func IPAddressesDNSNames(hosts []string) ([]net.IP, []string) {
 	for _, host := range hosts {
 		if ip := net.ParseIP(host); ip != nil {
 			ips = append(ips, ip)
+		} else {
+			dns = append(dns, host)
 		}
-		// Include IP addresses as DNS names in the cert, for Python's sake
-		dns = append(dns, host)
 	}
+
+	// Include IP addresses as DNS subjectAltNames in the cert as well, for the sake of Python, Windows (< 10), and unnamed other libraries
+	// Ensure these technically invalid DNS subjectAltNames occur after the valid ones, to avoid triggering cert errors in Firefox
+	// See https://bugzilla.mozilla.org/show_bug.cgi?id=1148766
+	for _, ip := range ips {
+		dns = append(dns, ip.String())
+	}
+
 	return ips, dns
 }
 

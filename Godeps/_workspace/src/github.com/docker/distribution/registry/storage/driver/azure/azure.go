@@ -15,7 +15,7 @@ import (
 	"github.com/docker/distribution/registry/storage/driver/base"
 	"github.com/docker/distribution/registry/storage/driver/factory"
 
-	azure "github.com/MSOpenTech/azure-sdk-for-go/clients/storage"
+	azure "github.com/MSOpenTech/azure-sdk-for-go/storage"
 )
 
 const driverName = "azure"
@@ -24,6 +24,7 @@ const (
 	paramAccountName = "accountname"
 	paramAccountKey  = "accountkey"
 	paramContainer   = "container"
+	paramRealm       = "realm"
 )
 
 type driver struct {
@@ -64,12 +65,17 @@ func FromParameters(parameters map[string]interface{}) (*Driver, error) {
 		return nil, fmt.Errorf("No %s parameter provided", paramContainer)
 	}
 
-	return New(fmt.Sprint(accountName), fmt.Sprint(accountKey), fmt.Sprint(container))
+	realm, ok := parameters[paramRealm]
+	if !ok || fmt.Sprint(realm) == "" {
+		realm = azure.DefaultBaseUrl
+	}
+
+	return New(fmt.Sprint(accountName), fmt.Sprint(accountKey), fmt.Sprint(container), fmt.Sprint(realm))
 }
 
 // New constructs a new Driver with the given Azure Storage Account credentials
-func New(accountName, accountKey, container string) (*Driver, error) {
-	api, err := azure.NewBasicClient(accountName, accountKey)
+func New(accountName, accountKey, container, realm string) (*Driver, error) {
+	api, err := azure.NewClient(accountName, accountKey, realm, azure.DefaultApiVersion, true)
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +94,9 @@ func New(accountName, accountKey, container string) (*Driver, error) {
 }
 
 // Implement the storagedriver.StorageDriver interface.
+func (d *driver) Name() string {
+	return driverName
+}
 
 // GetContent retrieves the content stored at "path" as a []byte.
 func (d *driver) GetContent(path string) ([]byte, error) {
@@ -343,5 +352,5 @@ func (d *driver) listBlobs(container, virtPath string) ([]string, error) {
 
 func is404(err error) bool {
 	e, ok := err.(azure.StorageServiceError)
-	return ok && e.StatusCode == 404
+	return ok && e.StatusCode == http.StatusNotFound
 }

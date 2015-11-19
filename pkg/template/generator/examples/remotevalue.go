@@ -28,7 +28,7 @@ func NewRemoteValueGenerator() RemoteValueGenerator {
 func (g RemoteValueGenerator) GenerateValue(expression string) (interface{}, error) {
 	matches := remoteExp.FindAllStringIndex(expression, -1)
 	if len(matches) < 1 {
-		return expression, fmt.Errorf("No matches found.")
+		return expression, fmt.Errorf("no matches found.")
 	}
 	for _, r := range matches {
 		response, err := http.Get(expression[5 : len(expression)-1])

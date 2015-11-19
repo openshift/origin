@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"path/filepath"
 
+	dockerClient "github.com/fsouza/go-dockerclient"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"
@@ -17,12 +18,13 @@ type Installer interface {
 }
 
 // NewInstaller returns a new instance of the default Installer implementation
-func NewInstaller(image string, scriptsURL string, docker docker.Docker) Installer {
+func NewInstaller(image string, scriptsURL string, docker docker.Docker, auth dockerClient.AuthConfiguration) Installer {
 	return &installer{
 		image:      image,
 		scriptsURL: scriptsURL,
 		docker:     docker,
 		downloader: NewDownloader(),
+		pullAuth:   auth,
 		fs:         util.NewFileSystem(),
 	}
 }
@@ -31,12 +33,13 @@ type installer struct {
 	image      string
 	scriptsURL string
 	docker     docker.Docker
+	pullAuth   dockerClient.AuthConfiguration
 	downloader Downloader
 	fs         util.FileSystem
 }
 
 // locationsOrder defines locations in which scripts are searched for in the following order:
-// - script found at the --scripts URL
+// - script found at the --scripts-url URL
 // - script found in the application source .sti/bin directory
 // - script found at the default image URL
 var locationsOrder = []string{api.UserScripts, api.SourceScripts, api.DefaultScripts}
@@ -53,7 +56,7 @@ func (i *installer) InstallRequired(scripts []string, dstDir string) (results []
 		}
 	}
 	if len(failedScripts) > 0 {
-		err = errors.NewInstallRequiredError(failedScripts)
+		err = errors.NewInstallRequiredError(failedScripts, docker.ScriptsURLLabel)
 	}
 
 	return
@@ -107,7 +110,7 @@ func (i *installer) download(scriptsURL string, scripts []string, dstDir string)
 			result[script].err = err
 			continue
 		}
-		result[script].err = i.downloader.Download(url, filepath.Join(dstDir, script))
+		_, result[script].err = i.downloader.Download(url, filepath.Join(dstDir, script))
 	}
 
 	return result
@@ -163,7 +166,7 @@ func (i *installer) install(scripts []string, userResults, sourceResults, defaul
 				continue
 			}
 			// set appropriate permissions
-			if err := i.fs.Chmod(dst, 0700); err != nil {
+			if err := i.fs.Chmod(dst, 0755); err != nil {
 				result.Error = err
 				continue
 			}

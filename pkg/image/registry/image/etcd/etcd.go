@@ -3,15 +3,15 @@ package etcd
 import (
 	"errors"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
 // REST implements a RESTStorage for images against etcd.
@@ -20,7 +20,7 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(h tools.EtcdHelper) *REST {
+func NewREST(s storage.Interface) *REST {
 	prefix := "/images"
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.Image{} },
@@ -31,7 +31,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
 			// images are not namespace scoped
-			return prefix + "/" + name, nil
+			return etcdgeneric.NoNamespaceKeyFunc(ctx, prefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Image).Name, nil
@@ -39,10 +39,11 @@ func NewREST(h tools.EtcdHelper) *REST {
 		EndpointName: "image",
 
 		CreateStrategy: image.Strategy,
+		UpdateStrategy: image.Strategy,
 
 		ReturnDeletedObject: false,
 
-		Helper: h,
+		Storage: s,
 	}
 	return &REST{store: store}
 }
@@ -78,6 +79,11 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 // Create creates an image based on a specification.
 func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	return r.store.Create(ctx, obj)
+}
+
+// Update alters an existing image.
+func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, obj)
 }
 
 // Delete deletes an existing image specified by its ID.

@@ -6,9 +6,9 @@ import (
 	"github.com/RangelReale/osin"
 	"github.com/golang/glog"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 // AuthorizeAuthenticator implements osinserver.AuthorizeHandler to ensure requests are authenticated
@@ -79,6 +79,8 @@ func (h *AccessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.Respon
 	}
 
 	if ok {
+		// Disable refresh_token generation
+		ar.GenerateRefresh = false
 		ar.Authorized = true
 		if info != nil {
 			ar.AccessData.UserData = info

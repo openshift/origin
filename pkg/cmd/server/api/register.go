@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
 var Scheme = runtime.NewScheme()
@@ -17,11 +17,15 @@ func init() {
 		&AllowAllPasswordIdentityProvider{},
 		&DenyAllPasswordIdentityProvider{},
 		&HTPasswdPasswordIdentityProvider{},
+		&LDAPPasswordIdentityProvider{},
+		&KeystonePasswordIdentityProvider{},
 		&RequestHeaderIdentityProvider{},
-		&OAuthRedirectingIdentityProvider{},
+		&GitHubIdentityProvider{},
+		&GoogleIdentityProvider{},
+		&OpenIDIdentityProvider{},
 		&GrantConfig{},
-		&GoogleOAuthProvider{},
-		&GitHubOAuthProvider{},
+
+		&LDAPSyncConfig{},
 	)
 }
 
@@ -30,12 +34,16 @@ func (*BasicAuthPasswordIdentityProvider) IsAnAPIObject() {}
 func (*AllowAllPasswordIdentityProvider) IsAnAPIObject()  {}
 func (*DenyAllPasswordIdentityProvider) IsAnAPIObject()   {}
 func (*HTPasswdPasswordIdentityProvider) IsAnAPIObject()  {}
+func (*LDAPPasswordIdentityProvider) IsAnAPIObject()      {}
+func (*KeystonePasswordIdentityProvider) IsAnAPIObject()  {}
 func (*RequestHeaderIdentityProvider) IsAnAPIObject()     {}
-func (*OAuthRedirectingIdentityProvider) IsAnAPIObject()  {}
+func (*GitHubIdentityProvider) IsAnAPIObject()            {}
+func (*GoogleIdentityProvider) IsAnAPIObject()            {}
+func (*OpenIDIdentityProvider) IsAnAPIObject()            {}
 func (*GrantConfig) IsAnAPIObject()                       {}
-func (*GoogleOAuthProvider) IsAnAPIObject()               {}
-func (*GitHubOAuthProvider) IsAnAPIObject()               {}
 
 func (*MasterConfig) IsAnAPIObject()   {}
 func (*NodeConfig) IsAnAPIObject()     {}
 func (*SessionSecrets) IsAnAPIObject() {}
+
+func (*LDAPSyncConfig) IsAnAPIObject() {}

@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: 2015-10-13T10:13:11Z
+    labels:
+      test: missing-route-port
+    name: frontend
+    resourceVersion: "259"
+    selfLink: /api/v1/namespaces/test/services/frontend
+    uid: 024d82eb-7193-11e5-b84d-080027c5bfa9
+  spec:
+    clusterIP: 172.30.182.32
+    portalIP: 172.30.182.32
+    ports:
+    - name: web
+      port: 5432
+      protocol: TCP
+      targetPort: 8080
+    - name: web2
+      port: 5433
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: frontend
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    creationTimestamp: 2015-10-13T10:13:11Z
+    labels:
+      test: missing-route-port
+    name: route-edge
+    resourceVersion: "260"
+    selfLink: /oapi/v1/namespaces/test/routes/route-edge
+    uid: 025407f7-7193-11e5-b84d-080027c5bfa9
+  spec:
+    host: www.example.com
+    to:
+      kind: Service
+      name: frontend
+  status: {}

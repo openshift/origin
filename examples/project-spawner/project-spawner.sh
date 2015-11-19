@@ -7,5 +7,5 @@ set -o pipefail
 #!/bin/bash
 for i in {1..500}
 do
-  openshift ex new-project projects-${i}
+  oc new-project projects-${i}
 done

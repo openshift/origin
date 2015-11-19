@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/cache"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
-// Service Accessor is the interface used by the ServiceResolver to access
+// ServiceAccessor is the interface used by the ServiceResolver to access
 // services.
 type ServiceAccessor interface {
 	client.ServicesNamespacer
@@ -53,7 +53,7 @@ func NewCachedServiceAccessor(client *client.Client, stopCh <-chan struct{}) Ser
 // ServiceByPortalIP returns the first service that matches the provided portalIP value.
 // errors.IsNotFound(err) will be true if no such service exists.
 func (a *cachedServiceAccessor) ServiceByPortalIP(ip string) (*api.Service, error) {
-	items, err := a.store.Index("portalIP", &api.Service{Spec: api.ServiceSpec{PortalIP: ip}})
+	items, err := a.store.Index("portalIP", &api.Service{Spec: api.ServiceSpec{ClusterIP: ip}})
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +65,8 @@ func (a *cachedServiceAccessor) ServiceByPortalIP(ip string) (*api.Service, erro
 
 // indexServiceByPortalIP creates an index between a portalIP and the service that
 // uses it.
-func indexServiceByPortalIP(obj interface{}) (string, error) {
-	return obj.(*api.Service).Spec.PortalIP, nil
+func indexServiceByPortalIP(obj interface{}) ([]string, error) {
+	return []string{obj.(*api.Service).Spec.ClusterIP}, nil
 }
 
 func (a *cachedServiceAccessor) Services(namespace string) client.ServiceInterface {
@@ -92,7 +92,7 @@ func (a cachedServiceNamespacer) Get(name string) (*api.Service, error) {
 	return item.(*api.Service), nil
 }
 
-func (a cachedServiceNamespacer) List(label labels.Selector) (*api.ServiceList, error) {
+func (a cachedServiceNamespacer) List(label labels.Selector, field fields.Selector) (*api.ServiceList, error) {
 	if !label.Empty() {
 		return nil, fmt.Errorf("label selection on the cache is not currently implemented")
 	}
@@ -121,4 +121,7 @@ func (a cachedServiceNamespacer) Delete(name string) error {
 }
 func (a cachedServiceNamespacer) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return nil, fmt.Errorf("not implemented")
+}
+func (a cachedServiceNamespacer) ProxyGet(scheme, name, port, path string, params map[string]string) client.ResponseWrapper {
+	return nil
 }

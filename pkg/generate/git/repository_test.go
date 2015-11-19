@@ -1,6 +1,7 @@
 package git
 
 import (
+	"io"
 	"testing"
 )
 
@@ -16,7 +17,7 @@ func TestGetRootDir(t *testing.T) {
 		{"", true, ""},                                     // When blank is returned, this is not a git repository
 	}
 	for _, test := range tests {
-		r := &repository{exec: makeExecFunc(test.stdout, nil)}
+		r := &repository{git: makeExecFunc(test.stdout, nil)}
 		result, err := r.GetRootDir(curDir)
 		if !test.err && err != nil {
 			t.Errorf("Unexpected error: %v", err)
@@ -32,7 +33,7 @@ func TestGetRootDir(t *testing.T) {
 
 func TestGetOriginURL(t *testing.T) {
 	url := "remote.origin.url https://test.com/a/repository/url"
-	r := &repository{exec: makeExecFunc(url, nil)}
+	r := &repository{git: makeExecFunc(url, nil)}
 	result, ok, err := r.GetOriginURL("/test/dir")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -47,7 +48,7 @@ func TestGetOriginURL(t *testing.T) {
 
 func TestGetAlterativeOriginURL(t *testing.T) {
 	url := "remote.foo.url https://test.com/a/repository/url\nremote.upstream.url https://test.com/b/repository/url"
-	r := &repository{exec: makeExecFunc(url, nil)}
+	r := &repository{git: makeExecFunc(url, nil)}
 	result, ok, err := r.GetOriginURL("/test/dir")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -62,7 +63,7 @@ func TestGetAlterativeOriginURL(t *testing.T) {
 
 func TestGetMissingOriginURL(t *testing.T) {
 	url := "remote.foo.url https://test.com/a/repository/url\nremote.bar.url https://test.com/b/repository/url"
-	r := &repository{exec: makeExecFunc(url, nil)}
+	r := &repository{git: makeExecFunc(url, nil)}
 	result, ok, err := r.GetOriginURL("/test/dir")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -77,7 +78,7 @@ func TestGetMissingOriginURL(t *testing.T) {
 
 func TestGetRef(t *testing.T) {
 	ref := "branch1"
-	r := &repository{exec: makeExecFunc(ref, nil)}
+	r := &repository{git: makeExecFunc(ref, nil)}
 	result := r.GetRef("/test/dir")
 	if result != ref {
 		t.Errorf("Unexpected result: %s. Expected: %s", result, ref)
@@ -85,7 +86,7 @@ func TestGetRef(t *testing.T) {
 }
 
 func TestClone(t *testing.T) {
-	r := &repository{exec: makeExecFunc("", nil)}
+	r := &repository{git: makeExecFunc("", nil)}
 	err := r.Clone("/test/dir", "https://test/url/to/repository")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -93,15 +94,15 @@ func TestClone(t *testing.T) {
 }
 
 func TestCheckout(t *testing.T) {
-	r := &repository{exec: makeExecFunc("", nil)}
+	r := &repository{git: makeExecFunc("", nil)}
 	err := r.Checkout("/test/dir", "branch2")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
-func makeExecFunc(output string, err error) execCmdFunc {
-	return func(dir, name string, args ...string) (out string, errout string, resultErr error) {
+func makeExecFunc(output string, err error) execGitFunc {
+	return func(w io.Writer, dir string, args ...string) (out string, errout string, resultErr error) {
 		out = output
 		resultErr = err
 		return

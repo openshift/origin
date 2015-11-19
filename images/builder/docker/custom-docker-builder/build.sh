@@ -20,7 +20,7 @@ if [[ "${SOURCE_REPOSITORY}" != "git://"* ]] && [[ "${SOURCE_REPOSITORY}" != "gi
   fi
   curl --head --silent --fail --location --max-time 16 $URL > /dev/null
   if [ $? != 0 ]; then
-    echo "Not found: ${SOURCE_REPOSITORY}"
+    echo "Could not access source url: ${SOURCE_REPOSITORY}"
     exit 1
   fi
 fi
@@ -33,17 +33,19 @@ if [ -n "${SOURCE_REF}" ]; then
     exit 1
   fi
   pushd "${BUILD_DIR}"
-  if [ -n "${SOURCE_REF}" ]; then
-    git checkout "${SOURCE_REF}"
-    if [ $? != 0 ]; then
-      echo "Error trying to checkout branch: ${SOURCE_REF}"
-      exit 1
-    fi
+  git checkout "${SOURCE_REF}"
+  if [ $? != 0 ]; then
+    echo "Error trying to checkout branch: ${SOURCE_REF}"
+    exit 1
   fi
   popd
   docker build --rm -t "${TAG}" "${BUILD_DIR}"
 else
   docker build --rm -t "${TAG}" "${SOURCE_REPOSITORY}"
+fi
+
+if [[ -d /var/run/secrets/openshift.io/push ]] && [[ ! -e /root/.dockercfg ]]; then
+  cp /var/run/secrets/openshift.io/push/.dockercfg /root/.dockercfg
 fi
 
 if [ -n "${OUTPUT_IMAGE}" ] || [ -s "/root/.dockercfg" ]; then

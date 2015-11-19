@@ -5,12 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+
 	"github.com/openshift/origin/pkg/project/api"
 )
 
@@ -31,9 +33,7 @@ func TestListProjects(t *testing.T) {
 			},
 		},
 	}
-	mockClient := &kclient.Fake{
-		NamespacesList: namespaceList,
-	}
+	mockClient := testclient.NewSimpleFake(&namespaceList)
 	storage := REST{
 		client: mockClient.Namespaces(),
 		lister: &mockLister{&namespaceList},
@@ -71,10 +71,12 @@ func TestCreateProjectBadObject(t *testing.T) {
 }
 
 func TestCreateInvalidProject(t *testing.T) {
-	mockClient := &kclient.Fake{}
+	mockClient := &testclient.Fake{}
 	storage := NewREST(mockClient.Namespaces(), &mockLister{})
 	_, err := storage.Create(nil, &api.Project{
-		DisplayName: "h\t\ni",
+		ObjectMeta: kapi.ObjectMeta{
+			Annotations: map[string]string{"openshift.io/display-name": "h\t\ni"},
+		},
 	})
 	if !errors.IsInvalid(err) {
 		t.Errorf("Expected 'invalid' error, got %v", err)
@@ -82,7 +84,7 @@ func TestCreateInvalidProject(t *testing.T) {
 }
 
 func TestCreateProjectOK(t *testing.T) {
-	mockClient := &kclient.Fake{}
+	mockClient := &testclient.Fake{}
 	storage := NewREST(mockClient.Namespaces(), &mockLister{})
 	_, err := storage.Create(kapi.NewContext(), &api.Project{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
@@ -90,16 +92,16 @@ func TestCreateProjectOK(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
-	if len(mockClient.Actions) != 1 {
+	if len(mockClient.Actions()) != 1 {
 		t.Errorf("Expected client action for create")
 	}
-	if mockClient.Actions[0].Action != "create-namespace" {
+	if !mockClient.Actions()[0].Matches("create", "namespaces") {
 		t.Errorf("Expected call to create-namespace")
 	}
 }
 
 func TestGetProjectOK(t *testing.T) {
-	mockClient := &kclient.Fake{}
+	mockClient := testclient.NewSimpleFake(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
 	storage := NewREST(mockClient.Namespaces(), &mockLister{})
 	project, err := storage.Get(kapi.NewContext(), "foo")
 	if project == nil {
@@ -114,7 +116,7 @@ func TestGetProjectOK(t *testing.T) {
 }
 
 func TestDeleteProject(t *testing.T) {
-	mockClient := &kclient.Fake{}
+	mockClient := &testclient.Fake{}
 	storage := REST{
 		client: mockClient.Namespaces(),
 	}
@@ -125,17 +127,17 @@ func TestDeleteProject(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
-	status, ok := obj.(*kapi.Status)
+	status, ok := obj.(*unversioned.Status)
 	if !ok {
 		t.Errorf("Expected status type, got: %#v", obj)
 	}
-	if status.Status != kapi.StatusSuccess {
+	if status.Status != unversioned.StatusSuccess {
 		t.Errorf("Expected status=success, got: %#v", status)
 	}
-	if len(mockClient.Actions) != 1 {
+	if len(mockClient.Actions()) != 1 {
 		t.Errorf("Expected client action for delete")
 	}
-	if mockClient.Actions[0].Action != "delete-namespace" {
+	if !mockClient.Actions()[0].Matches("delete", "namespaces") {
 		t.Errorf("Expected call to delete-namespace")
 	}
 }

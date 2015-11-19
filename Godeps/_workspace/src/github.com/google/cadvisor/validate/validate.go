@@ -19,15 +19,15 @@ package validate
 
 import (
 	"fmt"
-	"github.com/google/cadvisor/manager"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"path"
 	"strings"
 
+	"github.com/google/cadvisor/manager"
+
 	"github.com/docker/libcontainer/cgroups"
-	dclient "github.com/fsouza/go-dockerclient"
 	"github.com/google/cadvisor/container/docker"
 	"github.com/google/cadvisor/utils"
 )
@@ -185,7 +185,7 @@ func validateCgroups() (string, string) {
 }
 
 func validateDockerInfo() (string, string) {
-	client, err := dclient.NewClient(*docker.ArgDockerEndpoint)
+	client, err := docker.Client()
 	if err == nil {
 		info, err := client.Info()
 		if err == nil {
@@ -313,6 +313,13 @@ func HandleRequest(w http.ResponseWriter, containerManager manager.Manager) erro
 
 	ioSchedulerValidation, desc := validateIoScheduler(containerManager)
 	out += fmt.Sprintf(OutputFormat, "Block device setup", ioSchedulerValidation, desc)
+
+	// Output debug info.
+	debugInfo := containerManager.DebugInfo()
+	for category, lines := range debugInfo {
+		out += fmt.Sprintf(OutputFormat, category, "", strings.Join(lines, "\n\t"))
+	}
+
 	_, err = w.Write([]byte(out))
 	return err
 }

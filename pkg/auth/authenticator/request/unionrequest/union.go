@@ -3,10 +3,10 @@ package unionrequest
 import (
 	"net/http"
 
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 // TODO remove this in favor of kubernetes types
@@ -38,5 +38,9 @@ func (authHandler *Authenticator) AuthenticateRequest(req *http.Request) (user.I
 		}
 	}
 
+	if len(errors) == 1 {
+		// Avoid wrapping an error if possible
+		return nil, false, errors[0]
+	}
 	return nil, false, kerrors.NewAggregate(errors)
 }

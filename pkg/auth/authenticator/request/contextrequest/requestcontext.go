@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 type Context interface {

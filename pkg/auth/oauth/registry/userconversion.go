@@ -3,7 +3,7 @@ package registry
 import (
 	"errors"
 
-	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+	kuser "k8s.io/kubernetes/pkg/auth/user"
 
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 )

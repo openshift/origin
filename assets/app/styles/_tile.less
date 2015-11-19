@@ -5,13 +5,34 @@
 .tile {
   background: @console-panel-color;
   .panel_default_boxshadow();
-  padding: 10px 20px; 
+  .box-shadow-hover-transition();
+  padding: 10px 20px;
   margin-bottom: 20px;
   word-wrap: break-word;
-  width: 100%;
   .box-sizing(border-box);
+  // Prevent long, unbroken words from extending outside the tile.
+  overflow-x: hidden;
   h1, h2, h3 {
     margin: (@line-height-computed / 2) 0px;
+  }
+  h3 .tile-timestamp {
+    .text-muted;
+    .small;
+    @media (min-width: @screen-sm-min) {
+      .pull-right();
+    }
+    @media (max-width: @screen-sm-min) {
+      &:before {
+        // em dash and non-breaking space
+        content: '\2014\00a0'
+      }
+    }
+  }
+  &:hover {
+    // give primary tile link hover state
+    a.tile-target {
+      color: @link-hover-color;
+    }
   }
   .tile-table {
     display: table;
@@ -20,9 +41,14 @@
     .box-sizing(border-box);
     .tile-table-cell {
       display: table-cell;
-      vertical-align: middle;
+      vertical-align: top;
       &:first-child {
         width:55px;
+
+        img {
+          max-width: @tileHeadingIconFontSize;
+          max-height: 78px;
+        }
       }
       > p {
         margin-bottom: 5px;
@@ -44,6 +70,9 @@
       font-size: inherit;
     }
   }
+  &.tile-compact {
+    margin-bottom: 12px;
+  }
 }
 .tile.tile-template {
   a.label {
@@ -51,6 +80,7 @@
   }
 }
 .tile.tile-project {
+  min-height: 75px;
   h2 {
     margin: 10px 0;
   }
@@ -58,6 +88,7 @@
 .tile.tile-status {
   background-color: @status-bg-color;
   border-top: 5px solid @status-border-color;
+  margin-top: @grid-gutter-width;
 }
 
 .tile-click {
@@ -69,7 +100,7 @@
       color: #000 !important;
     }
     .tile-target {
-      color: $openshiftBrightRed;
+      color: @link-hover-color;
       &:hover {
         text-decoration: none;
       }
@@ -77,6 +108,34 @@
     .tile-table-cell > .font-icon, .font-icon.logo {
       opacity: .75;
     }
+  }
+}
+
+.tile-flex {
+  .box-shadow-hover-transition;
+  div:nth-child(3n) {
+    .fa, .pficon {
+      cursor: help;
+      font-size: @font-size-base;
+      opacity: .38;
+    }
+  }
+  .image-icon, .template-icon {
+    width: 30px;
+    margin-right: 20px;
+    font-size: 33px;
+    opacity: .38;
+  }
+  &:hover {
+    .image-icon, .template-icon, div:nth-child(3n) .font-icon {
+      opacity: .75;
+    }
+    a.tile-target {
+      color: @link-hover-color;
+    }
+  }
+  h3 {
+    margin: 3px 0px 2px;
   }
 }
 
