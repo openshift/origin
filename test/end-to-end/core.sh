@@ -101,18 +101,37 @@ oc login -u e2e-user -p pass
 # make sure viewers can see oc status
 oc status -n default
 
+# check to make sure a project admin can push an image
 oc project cache
-token=$(oc config view --flatten -o template --template='{{with index .users 0}}{{.user.token}}{{end}}')
-[[ -n ${token} ]]
+e2e_user_token=$(oc config view --flatten --minify -o template --template='{{with index .users 0}}{{.user.token}}{{end}}')
+[[ -n ${e2e_user_token} ]]
 
 echo "[INFO] Docker login as e2e-user to ${DOCKER_REGISTRY}"
-docker login -u e2e-user -p ${token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}
+docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}
 echo "[INFO] Docker login successful"
 
 echo "[INFO] Tagging and pushing ruby-20-centos7 to ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest"
 docker tag -f openshift/ruby-20-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
 docker push ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
 echo "[INFO] Pushed ruby-20-centos7"
+
+# check to make sure an image-pusher can push an image
+oc policy add-role-to-user system:image-pusher pusher
+oc login -u pusher -p pass
+pusher_token=$(oc config view --flatten --minify -o template --template='{{with index .users 0}}{{.user.token}}{{end}}')
+[[ -n ${pusher_token} ]]
+
+echo "[INFO] Docker login as pusher to ${DOCKER_REGISTRY}"
+docker login -u e2e-user -p ${pusher_token} -e pusher@openshift.com ${DOCKER_REGISTRY}
+echo "[INFO] Docker login successful"
+
+echo "[INFO] Tagging and pushing ruby-20-centos7 to ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest"
+docker tag -f openshift/ruby-20-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
+docker push ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
+echo "[INFO] Pushed ruby-20-centos7"
+
+# log back into docker as e2e-user again
+docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}
 
 echo "[INFO] Back to 'default' project with 'admin' user..."
 oc project ${CLUSTER_ADMIN_CONTEXT}
