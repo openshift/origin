@@ -215,7 +215,7 @@ oc process -f examples/sample-app/application-template-stibuild.json -l build=st
 # Test both the type/name resource syntax and the fact that istag/origin-ruby-sample:latest is still
 # not created but due to a buildConfig pointing to it, we get back its graph of deps.
 [ "$(oadm build-chain istag/origin-ruby-sample | grep 'imagestreamtag/origin-ruby-sample:latest')" ]
-[ "$(oadm build-chain ruby-20-centos7 -o dot | grep 'graph')" ]
+[ "$(oadm build-chain ruby-22-centos7 -o dot | grep 'graph')" ]
 oc delete all -l build=sti
 echo "ex build-chain: ok"
 

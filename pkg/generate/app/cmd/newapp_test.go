@@ -788,7 +788,7 @@ func TestRunAll(t *testing.T) {
 
 				dockerSearcher: app.DockerClientSearcher{
 					Client: &dockertools.FakeDockerClient{
-						Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
+						Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-22-centos7"}}},
 						Image:  dockerBuilderImage(),
 					},
 					Insecure: true,
@@ -1000,7 +1000,7 @@ func TestRunBuilds(t *testing.T) {
 			name: "successful ruby app generation",
 			config: &AppConfig{
 				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
-				DockerImages:       []string{"openshift/ruby-20-centos7", "openshift/mongodb-24-centos7"},
+				DockerImages:       []string{"centos/ruby-22-centos7", "centos/mongodb-26-centos7"},
 				OutputDocker:       true,
 
 				dockerSearcher: dockerSearcher,
@@ -1032,7 +1032,7 @@ func TestRunBuilds(t *testing.T) {
 				// TODO: this test used to silently ignore components that were not builders (i.e. user input)
 				//   That's bad, so the code should either error in this case or be a bit smarter.
 				"buildConfig": {"ruby-hello-world", "ruby-hello-world-1"},
-				"imageStream": {"mongodb-24-centos7", "ruby-20-centos7"},
+				"imageStream": {"mongodb-26-centos7", "ruby-22-centos7"},
 			},
 		},
 		{
@@ -1161,7 +1161,7 @@ func TestNewBuildEnvVars(t *testing.T) {
 			config: &AppConfig{
 				AddEnvironmentToBuild: true,
 				SourceRepositories:    []string{"https://github.com/openshift/ruby-hello-world"},
-				DockerImages:          []string{"openshift/ruby-20-centos7", "openshift/mongodb-24-centos7"},
+				DockerImages:          []string{"centos/ruby-22-centos7", "centos/mongodb-26-centos7"},
 				OutputDocker:          true,
 				Environment:           []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
 				dockerSearcher:        dockerSearcher,
@@ -1222,7 +1222,7 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 			name: "explicit environment variables for buildConfig and deploymentConfig",
 			config: &AppConfig{
 				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
-				DockerImages:       []string{"openshift/ruby-20-centos7", "openshift/mongodb-24-centos7"},
+				DockerImages:       []string{"centos/ruby-22-centos7", "centos/mongodb-26-centos7"},
 				OutputDocker:       true,
 				Environment:        []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
 				dockerSearcher:     dockerSearcher,
@@ -1428,7 +1428,7 @@ func fakeDockerSearcher() app.Searcher {
 func fakeSimpleDockerSearcher() app.Searcher {
 	return app.DockerClientSearcher{
 		Client: &dockertools.FakeDockerClient{
-			Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
+			Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-22-centos7"}}},
 			Image: &docker.Image{
 				ID: "ruby",
 				Config: &docker.Config{

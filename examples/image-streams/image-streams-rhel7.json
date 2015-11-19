@@ -16,7 +16,7 @@
             "name": "latest",
             "from": {
               "Kind": "ImageStreamTag",
-              "Name": "2.0"
+              "Name": "2.2"
             }
           },
           {
@@ -99,7 +99,7 @@
             "name": "latest",
             "from": {
               "Kind": "ImageStreamTag",
-              "Name": "5.16"
+              "Name": "5.20"
             }
           },
           {
@@ -149,7 +149,7 @@
             "name": "latest",
             "from": {
               "Kind": "ImageStreamTag",
-              "Name": "5.5"
+              "Name": "5.6"
             }
           },
           {
@@ -198,7 +198,7 @@
             "name": "latest",
             "from": {
               "Kind": "ImageStreamTag",
-              "Name": "3.3"
+              "Name": "3.4"
             }
           },
           {
@@ -262,7 +262,7 @@
             "name": "latest",
             "from": {
               "Kind": "ImageStreamTag",
-              "Name": "5.5"
+              "Name": "5.6"
             }
           },
           {
@@ -295,7 +295,7 @@
             "name": "latest",
             "from": {
               "Kind": "ImageStreamTag",
-              "Name": "9.2"
+              "Name": "9.4"
             }
           },
           {
@@ -328,7 +328,7 @@
             "name": "latest",
             "from": {
               "Kind": "ImageStreamTag",
-              "Name": "2.4"
+              "Name": "2.6"
             }
           },
           {
