@@ -16,10 +16,11 @@ const (
 	ProjectDisplayNameParam = "PROJECT_DISPLAYNAME"
 	ProjectDescriptionParam = "PROJECT_DESCRIPTION"
 	ProjectAdminUserParam   = "PROJECT_ADMIN_USER"
+	ProjectRequesterParam   = "PROJECT_REQUESTING_USER"
 )
 
 var (
-	parameters = []string{ProjectNameParam, ProjectDisplayNameParam, ProjectDescriptionParam, ProjectAdminUserParam}
+	parameters = []string{ProjectNameParam, ProjectDisplayNameParam, ProjectDescriptionParam, ProjectAdminUserParam, ProjectRequesterParam}
 )
 
 func DefaultTemplate() *templateapi.Template {
@@ -33,6 +34,7 @@ func DefaultTemplate() *templateapi.Template {
 	project.Annotations = map[string]string{
 		projectapi.ProjectDescription: "${" + ProjectDescriptionParam + "}",
 		projectapi.ProjectDisplayName: "${" + ProjectDisplayNameParam + "}",
+		projectapi.ProjectRequester:   "${" + ProjectRequesterParam + "}",
 	}
 	ret.Objects = append(ret.Objects, project)
 
