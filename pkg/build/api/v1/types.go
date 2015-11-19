@@ -496,6 +496,9 @@ type BuildRequest struct {
 	// to generate the build. If the BuildConfig in the generator doesn't match, a build will
 	// not be generated.
 	LastVersion *int `json:"lastVersion,omitempty" description:"LastVersion of the BuildConfig that triggered this build"`
+
+	// Env contains additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
 }
 
 type BinaryBuildRequestOptions struct {
