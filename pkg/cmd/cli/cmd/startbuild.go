@@ -74,6 +74,7 @@ base image changes will use the source specified on the build config.
 func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
 	webhooks := util.StringFlag{}
 	webhooks.Default("none")
+	env := []string{}
 
 	cmd := &cobra.Command{
 		Use:        "start-build (BUILDCONFIG | --from-build=BUILD)",
@@ -82,10 +83,12 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 		Example:    fmt.Sprintf(startBuildExample, fullName),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunStartBuild(f, in, out, cmd, args, webhooks)
+			err := RunStartBuild(f, in, out, cmd, env, args, webhooks)
 			cmdutil.CheckErr(err)
 		},
 	}
+	cmd.Flags().String("build-loglevel", "", "Specify the log level for the build log output")
+	cmd.Flags().StringSliceVarP(&env, "env", "e", env, "Specify key value pairs of environment variables to set for the build container.")
 	cmd.Flags().String("from-build", "", "Specify the name of a build which should be re-run")
 
 	cmd.Flags().Bool("follow", false, "Start a build and watch its logs until it completes or fails")
@@ -107,7 +110,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 }
 
 // RunStartBuild contains all the necessary functionality for the OpenShift cli start-build command
-func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, webhooks util.StringFlag) error {
+func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, envParams []string, args []string, webhooks util.StringFlag) error {
 	webhook := cmdutil.GetFlagString(cmd, "from-webhook")
 	buildName := cmdutil.GetFlagString(cmd, "from-build")
 	follow := cmdutil.GetFlagBool(cmd, "follow")
@@ -116,6 +119,7 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 	fromFile := cmdutil.GetFlagString(cmd, "from-file")
 	fromDir := cmdutil.GetFlagString(cmd, "from-dir")
 	fromRepo := cmdutil.GetFlagString(cmd, "from-repo")
+	buildLogLevel := cmdutil.GetFlagString(cmd, "build-loglevel")
 
 	switch {
 	case len(webhook) > 0:
@@ -168,8 +172,20 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 		return err
 	}
 
+	env, _, err := ParseEnv(envParams, in)
+	if err != nil {
+		return err
+	}
+
+	if len(buildLogLevel) > 0 {
+		env = append(env, kapi.EnvVar{Name: "BUILD_LOGLEVEL", Value: buildLogLevel})
+	}
+
 	request := &buildapi.BuildRequest{
 		ObjectMeta: kapi.ObjectMeta{Name: name},
+	}
+	if len(env) > 0 {
+		request.Env = env
 	}
 	if len(commit) > 0 {
 		request.Revision = &buildapi.SourceRevision{
