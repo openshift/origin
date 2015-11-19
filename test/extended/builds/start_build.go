@@ -86,7 +86,26 @@ var _ = g.Describe("builds: parallel: oc start-build", func() {
 			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", fmt.Sprintf("--from-repo=%s", exampleBuild)).Output()
 			g.By(fmt.Sprintf("verifying the build %q status", out))
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("Uploading Git repository"))
+			o.Expect(out).To(o.ContainSubstring("Uploading"))
+			o.Expect(out).To(o.ContainSubstring(`at commit "HEAD"`))
+			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
+			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
+
+			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
+		})
+
+		g.It("should accept --from-repo with --commit as input", func() {
+			g.By("starting the build with a Git repository")
+			// NOTE: This actually takes the commit from the origin repository. If the
+			// test-build-app changes, this commit has to be bumped.
+			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--commit=4b7de05", "--wait", fmt.Sprintf("--from-repo=%s", exampleBuild)).Output()
+			g.By(fmt.Sprintf("verifying the build %q status", out))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("Uploading"))
+			o.Expect(out).To(o.ContainSubstring(`at commit "4b7de05"`))
+			o.Expect(out).To(o.ContainSubstring(`"commit":"4b7de05d4abb7570fc03f8ac2e27e5bba1e9c390"`))
 			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
 			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
 
