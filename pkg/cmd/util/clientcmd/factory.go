@@ -131,8 +131,11 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		loader:  clientConfig,
 	}
 
-	generators := map[string]kubectl.Generator{
-		"route/v1":          routegen.RouteGenerator{},
+	generators := map[string]map[string]kubectl.Generator{}
+	generators["expose"] = map[string]kubectl.Generator{
+		"route/v1": routegen.RouteGenerator{},
+	}
+	generators["run"] = map[string]kubectl.Generator{
 		"run/v1":            deploygen.BasicDeploymentConfigController{},
 		"run-controller/v1": kubectl.BasicReplicationController{},
 	}
@@ -232,12 +235,14 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kReaperFunc(mapping)
 	}
-	kGeneratorFunc := w.Factory.Generator
-	w.Generator = func(name string) (kubectl.Generator, bool) {
-		if generator, ok := generators[name]; ok {
-			return generator, true
+	kGeneratorsFunc := w.Factory.Generators
+	w.Generators = func(name string) map[string]kubectl.Generator {
+		kgenerators := kGeneratorsFunc(name)
+		// Add (and override with) our own generators
+		for k, v := range generators[name] {
+			kgenerators[k] = v
 		}
-		return kGeneratorFunc(name)
+		return kgenerators
 	}
 	kPodSelectorForObjectFunc := w.Factory.PodSelectorForObject
 	w.PodSelectorForObject = func(object runtime.Object) (string, error) {

@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -50,6 +49,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	// when validating the use of it (invalid for routes)
 	cmd.Flags().Set("protocol", "")
 	cmd.Flag("protocol").DefValue = ""
+	cmd.Flag("protocol").Changed = false
 	defRun := cmd.Run
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		err := validate(cmd, f, args)
@@ -99,18 +99,15 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			// Set default protocol back for generating services
 			if len(cmdutil.GetFlagString(cmd, "protocol")) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
+				cmd.Flag("protocol").Changed = false
 			}
-			return validateFlags(cmd, generator)
+			return nil
 		case "":
 			// Default exposing services as a route
 			generator = "route/v1"
 			cmd.Flags().Set("generator", generator)
 			fallthrough
 		case "route/v1":
-			// We need to validate services exposed as routes
-			if err := validateFlags(cmd, generator); err != nil {
-				return err
-			}
 			svc, err := kc.Services(info.Namespace).Get(info.Name)
 			if err != nil {
 				return err
@@ -122,6 +119,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 					if len(port.Name) > 0 {
 						// Pass service port name as the route target port, if it is named
 						cmd.Flags().Set("target-port", port.Name)
+						cmd.Flag("port").Changed = false
 					}
 					supportsTCP = true
 					break
@@ -145,69 +143,10 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			// Set default protocol back for generating services
 			if len(cmdutil.GetFlagString(cmd, "protocol")) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
+				cmd.Flag("protocol").Changed = false
 			}
-			return validateFlags(cmd, generator)
+			return nil
 		}
 	}
-
 	return nil
-}
-
-// validateFlags filters out flags that are not supposed to be used
-// when exposing a resource; depends on the provided generator
-func validateFlags(cmd *cobra.Command, generator string) error {
-	invalidFlags := []string{}
-
-	switch generator {
-	case "service/v1", "service/v2":
-		if len(cmdutil.GetFlagString(cmd, "hostname")) != 0 {
-			invalidFlags = append(invalidFlags, "--hostname")
-		}
-	case "route/v1":
-		if len(cmdutil.GetFlagString(cmd, "protocol")) != 0 {
-			invalidFlags = append(invalidFlags, "--protocol")
-		}
-		if len(cmdutil.GetFlagString(cmd, "type")) != 0 {
-			invalidFlags = append(invalidFlags, "--type")
-		}
-		if len(cmdutil.GetFlagString(cmd, "selector")) != 0 {
-			invalidFlags = append(invalidFlags, "--selector")
-		}
-		if len(cmdutil.GetFlagString(cmd, "container-port")) != 0 {
-			invalidFlags = append(invalidFlags, "--container-port")
-		}
-		if len(cmdutil.GetFlagString(cmd, "target-port")) != 0 {
-			invalidFlags = append(invalidFlags, "--target-port")
-		}
-		if len(cmdutil.GetFlagString(cmd, "external-ip")) != 0 {
-			invalidFlags = append(invalidFlags, "--external-ip")
-		}
-		if len(cmdutil.GetFlagString(cmd, "port")) != 0 {
-			invalidFlags = append(invalidFlags, "--port")
-		}
-		if len(cmdutil.GetFlagString(cmd, "load-balancer-ip")) != 0 {
-			invalidFlags = append(invalidFlags, "--load-balancer-ip")
-		}
-		if len(cmdutil.GetFlagString(cmd, "session-affinity")) != 0 {
-			invalidFlags = append(invalidFlags, "--session-affinity")
-		}
-		if cmdutil.GetFlagBool(cmd, "create-external-load-balancer") {
-			invalidFlags = append(invalidFlags, "--create-external-load-balancer")
-		}
-	}
-
-	msg := ""
-	switch len(invalidFlags) {
-	case 0:
-		return nil
-
-	case 1:
-		msg = invalidFlags[0]
-
-	default:
-		commaSeparated, last := invalidFlags[:len(invalidFlags)-1], invalidFlags[len(invalidFlags)-1]
-		msg = fmt.Sprintf("%s or %s", strings.Join(commaSeparated, ", "), last)
-	}
-
-	return fmt.Errorf("cannot use %s when generating a %s", msg, strings.Split(generator, "/")[0])
 }
