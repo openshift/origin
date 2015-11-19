@@ -722,6 +722,10 @@ os::log::warn() {
   os::log::with-severity "${1}" "WARNING"
 }
 
+os::log::error() {
+  os::log::with-severity "${1}" "ERROR"
+}
+
 find_files() {
 	find . -not \( \
 		\( \
@@ -734,52 +738,6 @@ find_files() {
 		-o -wholename '*/Godeps/*' \
 		\) -prune \
 	\) -name '*.go' | sort -u
-}
-
-os::util::run-extended-tests() {
-  local config_root=$1
-  local focus_regex=$2
-  local binary_name=${3:-extended.test}
-  local skip_regex=${4:-}
-  local log_path=${5:-}
-
-  export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
-  export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
-
-  local ginkgo_cmd="${OS_ROOT}/_output/local/go/bin/ginkgo"
-  local test_cmd="${ginkgo_cmd} -progress -stream -v \
--focus=\"${focus_regex}\" -skip=\"${skip_regex}\" \
-${OS_OUTPUT_BINPATH}/${binary_name}"
-  if [ "${log_path}" != "" ]; then
-    test_cmd="${test_cmd} | tee ${log_path}"
-  fi
-
-  pushd "${EXTENDED_TEST_PATH}" > /dev/null
-    eval "${test_cmd}; "'exit_status=${PIPESTATUS[0]}'
-  popd > /dev/null
-
-  return ${exit_status}
-}
-
-os::util::run-net-extended-tests() {
-  local config_root=$1
-  local focus_regex=${2:-.etworking[:]*}
-  local skip_regex=${3:-}
-  local log_path=${4:-}
-
-  if [ -z "${skip_regex}" ]; then
-      # The intra-pod test is currently broken for origin.
-      skip_regex='Networking.*intra-pod'
-      local conf_path="${config_root}/openshift.local.config"
-      # Only the multitenant plugin can pass the isolation test
-      if ! grep -q 'redhat/openshift-ovs-multitenant' \
-           $(find "${conf_path}" -name 'node-config.yaml' | head -n 1); then
-        skip_regex="(${skip_regex}|networking: isolation)"
-      fi
-  fi
-
-  os::util::run-extended-tests "${config_root}" "${focus_regex}" \
-    networking.test "${skip_regex}" "${log_path}"
 }
 
 # Asks golang what it thinks the host platform is.  The go tool chain does some
