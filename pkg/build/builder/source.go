@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,6 +24,17 @@ const (
 	// not proceed further and stop
 	urlCheckTimeout = 16 * time.Second
 )
+
+type gitAuthError string
+type gitNotFoundError string
+
+func (e gitAuthError) Error() string {
+	return fmt.Sprintf("failed to fetch requested repository %q with provided credentials", string(e))
+}
+
+func (e gitNotFoundError) Error() string {
+	return fmt.Sprintf("requested repository %q not found", string(e))
+}
 
 // fetchSource retrieves the inputs defined by the build source into the
 // provided directory, or returns an error if retrieval is not possible.
@@ -56,38 +65,52 @@ func fetchSource(dir string, build *api.Build, urlTimeout time.Duration, in io.R
 	return nil
 }
 
+// checkRemoteGit validates the specified Git URL. It returns GitNotFoundError
+// when the remote repository not found and GitAuthenticationError when the
+// remote repository failed to authenticate.
+// Since this is calling the 'git' binary, the proxy settings should be
+// available for this command.
+func checkRemoteGit(url string, timeout time.Duration) error {
+	glog.V(4).Infof("git ls-remote --heads %q", url)
+	cmd := exec.Command("git", "ls-remote", "--heads", url)
+	cmd.Env = []string{"GIT_ASKPASS=/bin/true"}
+
+	var (
+		out []byte
+		err error
+	)
+
+	finish := make(chan struct{}, 1)
+	go func() {
+		out, err = cmd.CombinedOutput()
+		close(finish)
+	}()
+	select {
+	case <-finish:
+	case <-time.After(timeout):
+		return fmt.Errorf("timeout while waiting for remote repository %q", url)
+	}
+
+	glog.V(4).Infof(string(out))
+
+	switch {
+	case strings.Contains(string(out), "Authentication failed"):
+		return gitAuthError(url)
+	case strings.Contains(string(out), "not found"):
+		return gitNotFoundError(url)
+	}
+
+	return err
+}
+
 // checkSourceURI performs a check on the URI associated with the build
 // to make sure that it is valid.  It also optionally tests the connection
 // to the source uri.
-func checkSourceURI(git git.Git, rawurl string, testConnection bool, timeout time.Duration) error {
+func checkSourceURI(git git.Git, rawurl string, timeout time.Duration) error {
 	if !git.ValidCloneSpec(rawurl) {
 		return fmt.Errorf("Invalid git source url: %s", rawurl)
 	}
-	if strings.HasPrefix(rawurl, "git@") || strings.HasPrefix(rawurl, "git://") {
-		return nil
-	}
-	srcURL, err := url.Parse(rawurl)
-	if err != nil {
-		return err
-	}
-	if !testConnection {
-		return nil
-	}
-	host := srcURL.Host
-	if strings.Index(host, ":") == -1 {
-		switch srcURL.Scheme {
-		case "http":
-			host += ":80"
-		case "https":
-			host += ":443"
-		}
-	}
-	dialer := net.Dialer{Timeout: timeout}
-	conn, err := dialer.Dial("tcp", host)
-	if err != nil {
-		return err
-	}
-	return conn.Close()
+	return checkRemoteGit(rawurl, timeout)
 }
 
 // extractInputBinary processes the provided input stream as directed by BinaryBuildSource
@@ -137,8 +160,7 @@ func extractGitSource(git git.Git, gitSource *api.GitBuildSource, revision *api.
 	defer resetHTTPProxy(originalProxies)
 
 	// Check source URI, trying to connect to the server only if not using a proxy.
-	usingProxy := len(originalProxies) > 0
-	if err := checkSourceURI(git, gitSource.URI, !usingProxy, timeout); err != nil {
+	if err := checkSourceURI(git, gitSource.URI, timeout); err != nil {
 		return true, err
 	}
 
