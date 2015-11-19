@@ -325,24 +325,40 @@ func generateSecretsConfig(cfg *RouterConfig, kClient *kclient.Client,
 	return secrets, volumes, mounts, nil
 }
 
-func generateLivenessProbeConfig(cfg *RouterConfig,
-	ports []kapi.ContainerPort) *kapi.Probe {
+func generateProbeConfigForRoute(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
 	var probe *kapi.Probe
 
 	if cfg.Type == "haproxy-router" {
-		probe = &kapi.Probe{
-			Handler: kapi.Handler{
-				TCPSocket: &kapi.TCPSocketAction{
-					Port: kutil.IntOrString{
-						IntVal: ports[0].ContainerPort,
-					},
+		probe = &kapi.Probe{}
+		if cfg.StatsPort > 0 {
+			probe.Handler.HTTPGet = &kapi.HTTPGetAction{
+				Path: "/healthz",
+				Port: kutil.IntOrString{
+					IntVal: cfg.StatsPort,
 				},
-			},
-			InitialDelaySeconds: 10,
+			}
+		} else {
+			probe.Handler.TCPSocket = &kapi.TCPSocketAction{
+				Port: kutil.IntOrString{
+					IntVal: ports[0].ContainerPort,
+				},
+			}
 		}
 	}
 
 	return probe
+}
+
+func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
+	probe := generateProbeConfigForRoute(cfg, ports)
+	if probe != nil {
+		probe.InitialDelaySeconds = 10
+	}
+	return probe
+}
+
+func generateReadinessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
+	return generateProbeConfigForRoute(cfg, ports)
 }
 
 func generateMetricsExporterContainer(cfg *RouterConfig, env app.Environment) *kapi.Container {
@@ -545,6 +561,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		}
 
 		livenessProbe := generateLivenessProbeConfig(cfg, ports)
+		readinessProbe := generateReadinessProbeConfig(cfg, ports)
 
 		containers := []kapi.Container{
 			{
@@ -553,6 +570,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 				Ports:           ports,
 				Env:             env.List(),
 				LivenessProbe:   livenessProbe,
+				ReadinessProbe:  readinessProbe,
 				ImagePullPolicy: kapi.PullIfNotPresent,
 				VolumeMounts:    mounts,
 			},

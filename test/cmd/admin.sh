@@ -180,6 +180,7 @@ oc get scc privileged -o yaml | sed '/users:/ a\
 [ "$(oadm router -o yaml --credentials="${KUBECONFIG}" --service-account=router -n default | egrep 'image:.*-haproxy-router:')" ]
 oadm router --credentials="${KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router -n default
 [ "$(oadm router -n default | grep 'service exists')" ]
+[ "$(oc get dc/router -o yaml -n default | grep 'readinessProbe')" ]
 echo "router: ok"
 
 # Test running a registry
