@@ -135,9 +135,10 @@ func Run(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer, cmd *cob
 			generatorName = "run-pod/v1"
 		}
 	}
-	generator, found := f.Generator(generatorName)
+	generators := f.Generators("run")
+	generator, found := generators[generatorName]
 	if !found {
-		return cmdutil.UsageError(cmd, fmt.Sprintf("Generator: %s not found.", generatorName))
+		return cmdutil.UsageError(cmd, fmt.Sprintf("generator %q not found.", generatorName))
 	}
 	names := generator.ParamNames()
 	params := kubectl.MakeParams(cmd, names)
