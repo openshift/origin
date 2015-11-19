@@ -16,7 +16,6 @@ export GOPATH
 
 ALL_TESTS="
 pkg/netutils
-pkg/netutils/server
 "
 for test in ${WHAT:-${ALL_TESTS}}; do
     go test -v github.com/openshift/openshift-sdn/${test}
