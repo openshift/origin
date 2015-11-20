@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/openshift/openshift-sdn/plugins/osdn"
