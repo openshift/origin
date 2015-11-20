@@ -241,7 +241,7 @@ function tryuntil {
 # complete or times out after max_wait.
 #
 # $1 - The command to execute (e.g. curl -fs http://redhat.com)
-# $2 - Optional maximum time to wait before giving up (Default: 10s)
+# $2 - Optional maximum time to wait in ms before giving up (Default: 10000ms)
 # $3 - Optional alternate command to determine if the wait should
 #		exit before the max_wait
 function wait_for_command {
