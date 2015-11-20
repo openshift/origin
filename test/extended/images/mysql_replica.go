@@ -32,18 +32,18 @@ func CreateMySQLReplicationHelpers(c kclient.PodInterface, masterDeployment, sla
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Create MySQL helper for master
-	master := exutil.NewMysql(c, masterPod, "")
+	master := exutil.NewMysql(masterPod, "")
 
 	// Create MySQL helpers for slaves
 	slaves := make([]exutil.Database, len(slavePods))
 	for i := range slavePods {
-		slave := exutil.NewMysql(c, slavePods[i], masterPod)
+		slave := exutil.NewMysql(slavePods[i], masterPod)
 		slaves[i] = slave
 	}
 
 	helperNames, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", helperDeployment)), exutil.CheckPodIsRunningFn, 1, 60*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	helper := exutil.NewMysql(c, helperNames[0], masterPod)
+	helper := exutil.NewMysql(helperNames[0], masterPod)
 
 	return master, slaves, helper
 }
