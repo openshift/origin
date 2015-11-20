@@ -24,5 +24,5 @@ func NewPlugin(pluginType string, osClient *osclient.Client, kClient *kclient.Cl
 		return multitenant.CreatePlugin(osdn.NewRegistry(osClient, kClient), hostname, selfIP, ready)
 	}
 
-	return nil, nil, fmt.Errorf("unknown network plugin type: %v", pluginType)
+	return nil, nil, nil
 }
