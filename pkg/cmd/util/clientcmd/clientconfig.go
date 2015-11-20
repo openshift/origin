@@ -18,6 +18,10 @@ func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 	overrideFlags.ContextOverrideFlags.Namespace.ShortName = "n"
 	overrideFlags.AuthOverrideFlags.Username.LongName = ""
 	overrideFlags.AuthOverrideFlags.Password.LongName = ""
+
+	// for compatibility with kubernetes, it is still provided
+	overrideFlags.ClusterOverrideFlags.APIServer.ShortName = "s"
+
 	clientcmd.BindOverrideFlags(overrides, flags, overrideFlags)
 	cobra.MarkFlagFilename(flags, overrideFlags.AuthOverrideFlags.ClientCertificate.LongName)
 	cobra.MarkFlagFilename(flags, overrideFlags.AuthOverrideFlags.ClientKey.LongName)
