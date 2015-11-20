@@ -109,7 +109,7 @@ frontend public_ssl
 # traffic
 ##########################################################################
 backend be_sni
-  server fe_sni 127.0.0.1:10444 weight 1 send-proxy
+  server fe_sni 127.0.0.1:10444 weight 1 send-proxy-v2-ssl
 
 frontend fe_sni
   # terminate ssl on edge
