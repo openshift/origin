@@ -2,8 +2,7 @@
 %global debug_package %{nil}
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
-%global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
-%global sdn_import_path github.com/openshift/openshift-sdn/pkg
+%global sdn_import_path github.com/openshift/openshift-sdn
 
 # docker_version is the version of docker requires by packages
 %global docker_version 1.8.2
@@ -224,14 +223,13 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
 
 # Install sdn scripts
-install -d -m 0755 %{buildroot}%{kube_plugin_path}
 install -d -m 0755 %{buildroot}%{_unitdir}/docker.service.d
 install -p -m 0644 contrib/systemd/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
-pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/kube/bin
-   install -p -m 755 openshift-ovs-subnet %{buildroot}%{kube_plugin_path}/openshift-ovs-subnet
+pushd _thirdpartyhacks/src/%{sdn_import_path}/plugins/osdn/flatsdn/bin
+   install -p -m 755 openshift-ovs-subnet %{buildroot}%{_bindir}/openshift-ovs-subnet
    install -p -m 755 openshift-sdn-kube-subnet-setup.sh %{buildroot}%{_bindir}/openshift-sdn-kube-subnet-setup.sh
 popd
-pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/multitenant/bin
+pushd _thirdpartyhacks/src/%{sdn_import_path}/plugins/osdn/multitenant/bin
    install -p -m 755 openshift-ovs-multitenant %{buildroot}%{_bindir}/openshift-ovs-multitenant
    install -p -m 755 openshift-sdn-multitenant-setup.sh %{buildroot}%{_bindir}/openshift-sdn-multitenant-setup.sh
 popd
@@ -355,7 +353,7 @@ fi
 %{_bindir}/openshift-sdn-kube-subnet-setup.sh
 %{_bindir}/openshift-ovs-multitenant
 %{_bindir}/openshift-sdn-multitenant-setup.sh
-%{kube_plugin_path}/openshift-ovs-subnet
+%{_bindir}/openshift-ovs-subnet
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 %{_unitdir}/docker.service.d/docker-sdn-ovs.conf
 

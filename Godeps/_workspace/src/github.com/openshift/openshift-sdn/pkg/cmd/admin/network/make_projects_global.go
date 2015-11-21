@@ -9,7 +9,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
-	"github.com/openshift/openshift-sdn/pkg/ovssubnet"
+	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/multitenant"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -71,7 +71,7 @@ func (m *MakeGlobalOptions) Run() error {
 
 	errList := []error{}
 	for _, project := range projects {
-		err = m.Options.CreateOrUpdateNetNamespace(project.ObjectMeta.Name, ovssubnet.AdminVNID)
+		err = m.Options.CreateOrUpdateNetNamespace(project.ObjectMeta.Name, osdn.AdminVNID)
 		if err != nil {
 			errList = append(errList, fmt.Errorf("Removing network isolation for project '%s' failed, error: %v", project.ObjectMeta.Name, err))
 		}
