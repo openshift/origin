@@ -36,7 +36,9 @@ import (
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn/factory"
+	"github.com/openshift/openshift-sdn/plugins/osdn"
+	"github.com/openshift/openshift-sdn/plugins/osdn/flatsdn"
+	"github.com/openshift/openshift-sdn/plugins/osdn/multitenant"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
@@ -328,17 +330,12 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 
 // RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
-	oClient, kClient := c.SDNControllerClients()
-	controller, _, err := factory.NewPlugin(c.Options.NetworkConfig.NetworkPluginName, oClient, kClient, "", "", nil)
-	if err != nil {
-		glog.Fatalf("SDN initialization failed: %v", err)
-	}
-
-	if controller != nil {
-		err = controller.StartMaster(c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength, c.Options.NetworkConfig.ServiceNetworkCIDR)
-		if err != nil {
-			glog.Fatalf("SDN initialization failed: %v", err)
-		}
+	registry := osdn.NewOsdnRegistryInterface(c.SDNControllerClients())
+	switch c.Options.NetworkConfig.NetworkPluginName {
+	case flatsdn.NetworkPluginName():
+		flatsdn.Master(registry, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength, c.Options.NetworkConfig.ServiceNetworkCIDR)
+	case multitenant.NetworkPluginName():
+		multitenant.Master(registry, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength, c.Options.NetworkConfig.ServiceNetworkCIDR)
 	}
 }
 
