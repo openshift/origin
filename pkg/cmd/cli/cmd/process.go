@@ -15,7 +15,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -257,8 +256,8 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 
 // injectUserVars injects user specified variables into the Template
 func injectUserVars(cmd *cobra.Command, t *api.Template) {
-	values := util.StringList{}
-	values.Set(kcmdutil.GetFlagString(cmd, "value"))
+	values := []string{}
+	values = append(values, kcmdutil.GetFlagString(cmd, "value"))
 	for _, keypair := range values {
 		p := strings.SplitN(keypair, "=", 2)
 		if len(p) != 2 {

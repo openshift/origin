@@ -13,7 +13,6 @@ import (
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/spf13/cobra"
@@ -52,7 +51,7 @@ type CreateSecretOptions struct {
 
 	// Files/Directories to read from.
 	// Directory sources are listed and any direct file children included (but subfolders are not traversed)
-	Sources util.StringList
+	Sources []string
 
 	SecretsInterface kclient.SecretsInterface
 
@@ -106,7 +105,7 @@ func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writ
 func NewCreateSecretOptions() *CreateSecretOptions {
 	return &CreateSecretOptions{
 		Stderr:  os.Stderr,
-		Sources: util.StringList{},
+		Sources: []string{},
 	}
 }
 

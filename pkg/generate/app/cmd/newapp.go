@@ -16,7 +16,6 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
@@ -52,18 +51,18 @@ var invalidNameCharactersRegexp = regexp.MustCompile("[^-a-z0-9]")
 
 // AppConfig contains all the necessary configuration for an application
 type AppConfig struct {
-	SourceRepositories util.StringList
+	SourceRepositories []string
 	ContextDir         string
 
-	Components    util.StringList
-	ImageStreams  util.StringList
-	DockerImages  util.StringList
-	Templates     util.StringList
-	TemplateFiles util.StringList
+	Components    []string
+	ImageStreams  []string
+	DockerImages  []string
+	Templates     []string
+	TemplateFiles []string
 
-	TemplateParameters util.StringList
-	Groups             util.StringList
-	Environment        util.StringList
+	TemplateParameters []string
+	Groups             []string
+	Environment        []string
 	Labels             map[string]string
 
 	AddEnvironmentToBuild bool
@@ -887,7 +886,7 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 		if c.HasArguments() {
 			return nil, fmt.Errorf("--list can't be used with arguments")
 		}
-		c.Components.Set("*")
+		c.Components = append(c.Components, "*")
 	}
 
 	components, repositories, environment, parameters, err := c.validate()

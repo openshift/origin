@@ -94,11 +94,11 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 		},
 	}
 
-	cmd.Flags().Var(&config.SourceRepositories, "code", "Source code in the build configuration.")
-	cmd.Flags().VarP(&config.ImageStreams, "image", "i", "Name of an image stream to to use as a builder.")
-	cmd.Flags().Var(&config.DockerImages, "docker-image", "Name of a Docker image to use as a builder.")
+	cmd.Flags().StringSliceVar(&config.SourceRepositories, "code", config.SourceRepositories, "Source code in the build configuration.")
+	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image", "i", config.ImageStreams, "Name of an image stream to to use as a builder.")
+	cmd.Flags().StringSliceVar(&config.DockerImages, "docker-image", config.DockerImages, "Name of a Docker image to use as a builder.")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated build artifacts")
-	cmd.Flags().VarP(&config.Environment, "env", "e", "Specify key value pairs of environment variables to set into resulting image.")
+	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set into resulting image.")
 	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
 	cmd.Flags().StringVarP(&config.Dockerfile, "dockerfile", "D", "", "Specify the contents of a Dockerfile to build directly, implies --strategy=docker. Pass '-' to read from STDIN.")
 	cmd.Flags().BoolVar(&config.BinaryBuild, "binary", false, "Instead of expecting a source URL, set the build to expect binary contents. Will disable triggers.")

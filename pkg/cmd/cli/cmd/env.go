@@ -12,7 +12,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -59,8 +58,8 @@ syntax.`
 
 // NewCmdEnv implements the OpenShift cli env command
 func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
-	var filenames kutil.StringList
-	var env kutil.StringList
+	var filenames []string
+	var env []string
 	cmd := &cobra.Command{
 		Use:     "env RESOURCE/NAME KEY_1=VAL_1 ... KEY_N=VAL_N",
 		Short:   "Update the environment on a resource with a pod template",
@@ -75,11 +74,11 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Write
 		},
 	}
 	cmd.Flags().StringP("containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
-	cmd.Flags().VarP(&env, "env", "e", "Specify key value pairs of environment variables to set into each container.")
+	cmd.Flags().StringSliceVarP(&env, "env", "e", env, "Specify key value pairs of environment variables to set into each container.")
 	cmd.Flags().Bool("list", false, "Display the environment and any changes in the standard format")
 	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on")
 	cmd.Flags().Bool("all", false, "select all resources in the namespace of the specified resource types")
-	cmd.Flags().VarP(&filenames, "filename", "f", "Filename, directory, or URL to file to use to edit the resource.")
+	cmd.Flags().StringSliceVarP(&filenames, "filename", "f", filenames, "Filename, directory, or URL to file to use to edit the resource.")
 	cmd.Flags().Bool("overwrite", true, "If true, allow environment to be overwritten, otherwise reject updates that overwrite existing environment.")
 	cmd.Flags().String("resource-version", "", "If non-empty, the labels update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource.")
 	cmd.Flags().StringP("output", "o", "", "Display the changed objects instead of updating them. One of: json|yaml.")
@@ -165,7 +164,7 @@ func readEnv(r io.Reader) ([]kapi.EnvVar, error) {
 }
 
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
-func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, envParams, filenames kutil.StringList) error {
+func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, envParams, filenames []string) error {
 	resources, envArgs := []string{}, []string{}
 	first := true
 	for _, s := range args {

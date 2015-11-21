@@ -58,12 +58,12 @@ type MasterArgs struct {
 
 	// NodeList contains the hostnames of each node. This currently must be specified
 	// up front. Comma delimited list
-	NodeList util.StringList
+	NodeList []string
 
 	// CORSAllowedOrigins is a list of allowed origins for CORS, comma separated.
 	// An allowed origin can be a regular expression to support subdomain matching.
 	// CORS is enabled for localhost, 127.0.0.1, and the asset server by default.
-	CORSAllowedOrigins util.StringList
+	CORSAllowedOrigins []string
 
 	ListenArg          *ListenArg
 	ImageFormatArgs    *ImageFormatArgs
@@ -86,8 +86,8 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 
 	flags.StringVar(&args.EtcdDir, prefix+"etcd-dir", "openshift.local.etcd", "The etcd data directory.")
 
-	flags.Var(&args.NodeList, prefix+"nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
-	flags.Var(&args.CORSAllowedOrigins, prefix+"cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
+	flags.StringSliceVar(&args.NodeList, prefix+"nodes", []string{}, "The hostnames of each node. This currently must be specified up front. Comma delimited list")
+	flags.StringSliceVar(&args.CORSAllowedOrigins, prefix+"cors-allowed-origins", []string{}, "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
 
 	// autocompletion hints
 	cobra.MarkFlagFilename(flags, prefix+"etcd-dir")

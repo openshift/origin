@@ -191,7 +191,7 @@ func (c *MasterConfig) ensureCORSAllowedOrigins() []*regexp.Regexp {
 	if len(c.Options.CORSAllowedOrigins) == 0 {
 		return []*regexp.Regexp{}
 	}
-	allowedOriginRegexps, err := util.CompileRegexps(util.StringList(c.Options.CORSAllowedOrigins))
+	allowedOriginRegexps, err := util.CompileRegexps(c.Options.CORSAllowedOrigins)
 	if err != nil {
 		glog.Fatalf("Invalid --cors-allowed-origins: %v", err)
 	}
