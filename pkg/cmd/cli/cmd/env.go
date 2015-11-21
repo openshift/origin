@@ -99,7 +99,8 @@ func validateNoOverwrites(meta *kapi.ObjectMeta, labels map[string]string) error
 	return nil
 }
 
-func parseEnv(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, []string, error) {
+// ParseEnv parses the list of environment variables into kubernetes EnvVar
+func ParseEnv(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, []string, error) {
 	env := []kapi.EnvVar{}
 	exists := sets.NewString()
 	var remove []string
@@ -208,7 +209,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		return err
 	}
 
-	env, remove, err := parseEnv(append(envParams, envArgs...), in)
+	env, remove, err := ParseEnv(append(envParams, envArgs...), in)
 	if err != nil {
 		return err
 	}
