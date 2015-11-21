@@ -12,7 +12,7 @@ OUT_DIR = _output
 OUT_PKG_DIR = Godeps/_workspace/pkg
 
 export GOFLAGS
-export TESTFLAGS
+export TESTFLAGS="-p=4"
 
 # Build code.
 #
