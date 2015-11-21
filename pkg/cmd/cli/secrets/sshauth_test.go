@@ -15,7 +15,7 @@ func TestValidateSSHAuth(t *testing.T) {
 			testName: "validArgs",
 			args:     []string{"testSecret"},
 			params: CreateSSHAuthSecretOptions{
-				PrivateKeyPath: "./bsFixtures/valid/ssh-privatekey",
+				PrivateKeyPath: "../../../../test/fixtures/placeholders/valid/ssh-privatekey",
 			},
 			expErr: false,
 		},
@@ -23,8 +23,8 @@ func TestValidateSSHAuth(t *testing.T) {
 			testName: "validArgsWithCertificate",
 			args:     []string{"testSecret"},
 			params: CreateSSHAuthSecretOptions{
-				PrivateKeyPath:  "./bsFixtures/valid/ssh-privatekey",
-				CertificatePath: "./bsFixtures/valid/ca.crt",
+				PrivateKeyPath:  "../../../../test/fixtures/placeholders/valid/ssh-privatekey",
+				CertificatePath: "../../../../test/fixtures/placeholders/valid/ca.crt",
 			},
 			expErr: false,
 		},
@@ -32,8 +32,8 @@ func TestValidateSSHAuth(t *testing.T) {
 			testName: "noName",
 			args:     []string{},
 			params: CreateSSHAuthSecretOptions{
-				PrivateKeyPath:  "./bsFixtures/valid/ssh-privatekey",
-				CertificatePath: "./bsFixtures/valid/ca.crt",
+				PrivateKeyPath:  "../../../../test/fixtures/placeholders/valid/ssh-privatekey",
+				CertificatePath: "../../../../test/fixtures/placeholders/valid/ca.crt",
 			},
 			expErr: true, //"Must have exactly one argument: secret name"
 		},

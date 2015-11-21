@@ -23,7 +23,7 @@ oc get templates
 # TODO: create directly from template
 echo "templates: ok"
 
-oc process -f test/templates/fixtures/guestbook.json -l app=guestbook | oc create -f -
+oc process -f test/fixtures/templates/guestbook.json -l app=guestbook | oc create -f -
 oc status
 [ "$(oc status | grep frontend-service)" ]
 echo "template+config: ok"
