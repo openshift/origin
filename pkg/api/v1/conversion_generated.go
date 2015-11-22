@@ -1376,16 +1376,6 @@ func autoconvert_api_BuildRequest_To_v1_BuildRequest(in *buildapi.BuildRequest, 
 	} else {
 		out.LastVersion = nil
 	}
-	if in.Env != nil {
-		out.Env = make([]pkgapiv1.EnvVar, len(in.Env))
-		for i := range in.Env {
-			if err := convert_api_EnvVar_To_v1_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Env = nil
-	}
 	return nil
 }
 
@@ -2104,16 +2094,6 @@ func autoconvert_v1_BuildRequest_To_api_BuildRequest(in *apiv1.BuildRequest, out
 		*out.LastVersion = *in.LastVersion
 	} else {
 		out.LastVersion = nil
-	}
-	if in.Env != nil {
-		out.Env = make([]pkgapi.EnvVar, len(in.Env))
-		for i := range in.Env {
-			if err := convert_v1_EnvVar_To_api_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Env = nil
 	}
 	return nil
 }

@@ -578,9 +578,6 @@ type BuildRequest struct {
 	// to generate the build. If the BuildConfig in the generator doesn't match, a build will
 	// not be generated.
 	LastVersion *int
-
-	// Env contains additional environment variables you want to pass into a builder container
-	Env []kapi.EnvVar
 }
 
 type BinaryBuildRequestOptions struct {
