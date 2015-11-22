@@ -11,7 +11,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn/factory"
+	"github.com/openshift/openshift-sdn/plugins/osdn"
+	"github.com/openshift/openshift-sdn/plugins/osdn/flatsdn"
+	"github.com/openshift/openshift-sdn/plugins/osdn/multitenant"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -253,27 +255,22 @@ func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeCo
 	if err != nil {
 		glog.Fatal("Failed to get kube client for SDN")
 	}
+	registry := osdn.NewOsdnRegistryInterface(oclient, config.Client)
 
-	ch := make(chan struct{})
-
-	controller, endpointFilter, err := factory.NewPlugin(nodeConfig.NetworkConfig.NetworkPluginName, oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP, ch)
-	if err != nil {
-		glog.Fatalf("SDN initialization failed: %v", err)
-	}
-
-	if controller != nil {
+	switch nodeConfig.NetworkConfig.NetworkPluginName {
+	case flatsdn.NetworkPluginName():
+		ch := make(chan struct{})
 		config.KubeletConfig.StartUpdates = ch
-		config.KubeletConfig.NetworkPlugins = append(config.KubeletConfig.NetworkPlugins, controller)
-
-		go func() {
-			err := controller.StartNode(nodeConfig.NetworkConfig.MTU)
-			if err != nil {
-				glog.Fatalf("SDN Node failed: %v", err)
-			}
-		}()
+		go flatsdn.Node(registry, nodeConfig.NodeName, nodeConfig.NodeIP, ch, nodeConfig.NetworkConfig.MTU)
+	case multitenant.NetworkPluginName():
+		ch := make(chan struct{})
+		config.KubeletConfig.StartUpdates = ch
+		plugin := multitenant.GetKubeNetworkPlugin()
+		config.KubeletConfig.NetworkPlugins = append(config.KubeletConfig.NetworkPlugins, plugin)
+		go multitenant.Node(registry, nodeConfig.NodeName, nodeConfig.NodeIP, ch, plugin, nodeConfig.NetworkConfig.MTU)
+		return registry
 	}
-
-	return endpointFilter
+	return nil
 }
 
 func StartNode(nodeConfig configapi.NodeConfig) error {
