@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
@@ -18,7 +19,7 @@ type CreateClientCertOptions struct {
 	KeyFile  string
 
 	User   string
-	Groups []string
+	Groups util.StringList
 
 	Overwrite bool
 	Output    io.Writer

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 func TestValidate(t *testing.T) {
@@ -135,7 +136,7 @@ func TestSecretTypeSpecified(t *testing.T) {
 	options := CreateSecretOptions{
 		Name:           "any",
 		SecretTypeName: string(kapi.SecretTypeDockercfg),
-		Sources:        []string{"./bsFixtures/www.google.com"},
+		Sources:        util.StringList([]string{"./bsFixtures/www.google.com"}),
 		Stderr:         ioutil.Discard,
 	}
 
@@ -150,7 +151,7 @@ func TestSecretTypeSpecified(t *testing.T) {
 func TestSecretTypeDiscovered(t *testing.T) {
 	options := CreateSecretOptions{
 		Name:    "any",
-		Sources: []string{"./bsFixtures/leadingdot/.dockercfg"},
+		Sources: util.StringList([]string{"./bsFixtures/leadingdot/.dockercfg"}),
 		Stderr:  ioutil.Discard,
 	}
 

@@ -10,6 +10,7 @@ import (
 	flag "github.com/spf13/pflag"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -25,7 +26,7 @@ import (
 // other objects generated for the command to operate.
 type DiagnosticsOptions struct {
 	// list of diagnostic names to limit what is run
-	RequestedDiagnostics []string
+	RequestedDiagnostics util.StringList
 	// specify locations of host config files
 	MasterConfigLocation string
 	NodeConfigLocation   string
@@ -78,7 +79,7 @@ different direction.
 // NewCommandDiagnostics is the base command for running any diagnostics.
 func NewCommandDiagnostics(name string, fullName string, out io.Writer) *cobra.Command {
 	o := &DiagnosticsOptions{
-		RequestedDiagnostics: []string{},
+		RequestedDiagnostics: util.StringList{},
 		LogOptions:           &log.LoggerOptions{Out: out},
 	}
 

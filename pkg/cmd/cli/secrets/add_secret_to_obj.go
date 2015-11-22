@@ -13,9 +13,11 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 const (
@@ -57,7 +59,7 @@ type AddSecretOptions struct {
 // NewCmdAddSecret creates a command object for adding a secret reference to a service account
 func NewCmdAddSecret(name, fullName string, f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &AddSecretOptions{Out: out}
-	var typeFlags []string
+	var typeFlags util.StringList
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s serviceaccounts/sa-name secrets/secret-name [secrets/another-secret-name]...", name),
@@ -80,7 +82,13 @@ func NewCmdAddSecret(name, fullName string, f *cmdutil.Factory, out io.Writer) *
 		},
 	}
 
-	cmd.Flags().StringSliceVar(&typeFlags, "for", []string{"mount"}, "type of secret to add: mount or pull")
+	forFlag := &pflag.Flag{
+		Name:     "for",
+		Usage:    "type of secret to add: mount or pull",
+		Value:    &typeFlags,
+		DefValue: "mount",
+	}
+	cmd.Flags().AddFlag(forFlag)
 
 	return cmd
 }

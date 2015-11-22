@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -22,7 +23,7 @@ type CreateServerCertOptions struct {
 	CertFile string
 	KeyFile  string
 
-	Hostnames []string
+	Hostnames util.StringList
 	Overwrite bool
 	Output    io.Writer
 }
@@ -68,7 +69,7 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 	flags.StringVar(&options.CertFile, "cert", "", "The certificate file. Choose a name that indicates what the service is.")
 	flags.StringVar(&options.KeyFile, "key", "", "The key file. Choose a name that indicates what the service is.")
 
-	flags.StringSliceVar(&options.Hostnames, "hostnames", options.Hostnames, "Every hostname or IP you want server certs to be valid for. Comma delimited list")
+	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP you want server certs to be valid for. Comma delimited list")
 	flags.BoolVar(&options.Overwrite, "overwrite", true, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
 
 	// autocompletion hints

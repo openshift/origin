@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -66,8 +67,8 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Fact
 		Union: true,
 	}
 
-	excludeUsers := []string{}
-	excludeGroups := []string{}
+	excludeUsers := util.StringList{}
+	excludeGroups := util.StringList{}
 
 	cmd := &cobra.Command{
 		Use:     name,
@@ -91,8 +92,8 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Fact
 
 	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "Specify that cluster role bindings should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")
 	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "Preserves extra subjects in cluster role bindings.")
-	cmd.Flags().StringSliceVar(&excludeUsers, "exclude-users", excludeUsers, "Do not add cluster role bindings for these user names.")
-	cmd.Flags().StringSliceVar(&excludeGroups, "exclude-groups", excludeGroups, "Do not add cluster role bindings for these group names.")
+	cmd.Flags().Var(&excludeUsers, "exclude-users", "Do not add cluster role bindings for these user names.")
+	cmd.Flags().Var(&excludeGroups, "exclude-groups", "Do not add cluster role bindings for these group names.")
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().Lookup("output").DefValue = "yaml"
 	cmd.Flags().Lookup("output").Value.Set("yaml")
@@ -100,7 +101,7 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Fact
 	return cmd
 }
 
-func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string, excludeUsers, excludeGroups []string) error {
+func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string, excludeUsers, excludeGroups util.StringList) error {
 	if len(args) != 0 {
 		return kcmdutil.UsageError(cmd, "no arguments are allowed")
 	}
