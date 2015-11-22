@@ -9,6 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -64,7 +65,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 // NewCmdAddRoleToUser implements the OpenShift cli add-role-to-user command
 func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
-	saNames := []string{}
+	saNames := util.StringList{}
 
 	cmd := &cobra.Command{
 		Use:   name + " ROLE USER [USER ...]",
@@ -82,7 +83,7 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 	}
 
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
-	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
+	cmd.Flags().VarP(&saNames, "serviceaccount", "z", "service account in the current namespace to use as a user")
 
 	return cmd
 }
@@ -114,7 +115,7 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 // NewCmdRemoveRoleFromUser implements the OpenShift cli remove-role-from-user command
 func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
-	saNames := []string{}
+	saNames := util.StringList{}
 
 	cmd := &cobra.Command{
 		Use:   name + " ROLE USER [USER ...]",
@@ -132,7 +133,7 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 	}
 
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
-	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
+	cmd.Flags().VarP(&saNames, "serviceaccount", "z", "service account in the current namespace to use as a user")
 
 	return cmd
 }
@@ -225,7 +226,7 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 	return cmd
 }
 
-func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args []string, saNames []string) error {
+func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args []string, saNames util.StringList) error {
 	if (len(args) < 2) && (len(saNames) == 0) {
 		return errors.New("you must specify at least two arguments: <role> <user> [user]...")
 	}

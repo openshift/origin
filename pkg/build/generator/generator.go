@@ -160,35 +160,6 @@ func describeBuildRequest(request *buildapi.BuildRequest) string {
 	return desc
 }
 
-// updateBuildEnv updates the strategy environment
-// This will replace the existing variable definitions with provided env
-func updateBuildEnv(strategy *buildapi.BuildStrategy, env []kapi.EnvVar) {
-	var buildEnv *[]kapi.EnvVar
-	switch strategy.Type {
-	case buildapi.SourceBuildStrategyType:
-		buildEnv = &strategy.SourceStrategy.Env
-	case buildapi.DockerBuildStrategyType:
-		buildEnv = &strategy.DockerStrategy.Env
-	case buildapi.CustomBuildStrategyType:
-		buildEnv = &strategy.CustomStrategy.Env
-	}
-	newEnv := []kapi.EnvVar{}
-	for _, e := range *buildEnv {
-		exists := false
-		for _, n := range env {
-			if e.Name == n.Name {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			newEnv = append(newEnv, e)
-		}
-	}
-	newEnv = append(newEnv, env...)
-	*buildEnv = newEnv
-}
-
 // Instantiate returns new Build object based on a BuildRequest object
 func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	glog.V(4).Infof("Generating Build from %s", describeBuildRequest(request))
@@ -208,10 +179,6 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	newBuild, err := g.generateBuildFromConfig(ctx, bc, request.Revision, request.Binary)
 	if err != nil {
 		return nil, err
-	}
-
-	if len(request.Env) > 0 {
-		updateBuildEnv(&newBuild.Spec.Strategy, request.Env)
 	}
 	glog.V(4).Infof("Build %s/%s has been generated from %s/%s BuildConfig", newBuild.Namespace, newBuild.ObjectMeta.Name, bc.Namespace, bc.ObjectMeta.Name)
 

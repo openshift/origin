@@ -3,6 +3,8 @@ package options
 import (
 	"github.com/spf13/pflag"
 
+	"k8s.io/kubernetes/pkg/util"
+
 	"github.com/openshift/origin/pkg/diagnostics/log"
 )
 
@@ -29,6 +31,6 @@ func NewRecommendedDiagnosticFlag() FlagInfo {
 }
 
 // BindLoggerOptionFlags binds a flag on a diagnostics command per the flagInfo.
-func BindDiagnosticFlag(cmdFlags *pflag.FlagSet, diagnostics *[]string, flagInfo FlagInfo) {
+func BindDiagnosticFlag(cmdFlags *pflag.FlagSet, diagnostics *util.StringList, flagInfo FlagInfo) {
 	flagInfo.BindListFlag(cmdFlags, diagnostics)
 }

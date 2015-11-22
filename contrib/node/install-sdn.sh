@@ -11,12 +11,18 @@ os::provision::install-sdn() {
   fi
 
   local osdn_base_path="${deployed_root}/Godeps/_workspace/src/github.com/openshift/openshift-sdn"
-  local osdn_plugin_path="${osdn_base_path}/plugins/osdn"
+  local osdn_controller_path="${osdn_base_path}/pkg/ovssubnet/controller"
+  local kube_osdn_path="${target}/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet"
+  mkdir -p "${kube_osdn_path}"
   mkdir -p "${target}/bin/"
-  pushd "${osdn_plugin_path}" > /dev/null
-    cp -f flatsdn/bin/openshift-ovs-subnet "${target}/bin/"
-    cp -f flatsdn/bin/openshift-sdn-kube-subnet-setup.sh "${target}/bin/"
 
+  pushd "${osdn_controller_path}" > /dev/null
+    # The subnet plugin is discovered via the kube network plugin path.
+    cp -f kube/bin/openshift-ovs-subnet "${kube_osdn_path}/"
+    cp -f kube/bin/openshift-sdn-kube-subnet-setup.sh "${target}/bin/"
+
+    # The multitenant plugin only needs to be in PATH because the
+    # origin multitenant plugin knows how to discover it.
     cp -f multitenant/bin/openshift-ovs-multitenant "${target}/bin/"
     cp -f multitenant/bin/openshift-sdn-multitenant-setup.sh "${target}/bin/"
   popd > /dev/null

@@ -52,36 +52,6 @@ var _ = g.Describe("builds: parallel: oc start-build", func() {
 		})
 	})
 
-	g.Describe("override environment", func() {
-		g.It("should accept environment variables", func() {
-			g.By("starting the build with -e FOO=bar")
-			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", "-e", "FOO=bar,VAR=test").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By(fmt.Sprintf("verifying the build output contains the env var"))
-			o.Expect(out).To(o.ContainSubstring("FOO=bar"))
-			// This variable is not set and thus inherited from the original build
-			// config
-			o.Expect(out).To(o.ContainSubstring("BAR=test"))
-			o.Expect(out).To(o.ContainSubstring("VAR=test"))
-			g.By(fmt.Sprintf("verifying the build %q status", out))
-			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
-		})
-
-		g.It("should allow to change build log level", func() {
-			g.By("starting the build with --build-loglevel=1")
-			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", "--build-loglevel=1").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By(fmt.Sprintf("verifying the build output is not verbose"))
-			o.Expect(out).NotTo(o.ContainSubstring("Creating a new S2I builder"))
-			g.By(fmt.Sprintf("verifying the build %q status", out))
-			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
-		})
-	})
-
 	g.Describe("binary builds", func() {
 		g.It("should accept --from-file as input", func() {
 			g.By("starting the build with a Dockerfile")

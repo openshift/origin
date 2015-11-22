@@ -222,9 +222,7 @@ func TestGetAPIRequestInfo(t *testing.T) {
 
 		{"GET", "/api/v1/namespaces/other/pods", "list", "api", "", "v1", "other", "pods", "", "", []string{"pods"}},
 		{"GET", "/api/v1/namespaces/other/pods/foo", "get", "api", "", "v1", "other", "pods", "", "foo", []string{"pods", "foo"}},
-		{"HEAD", "/api/v1/namespaces/other/pods/foo", "get", "api", "", "v1", "other", "pods", "", "foo", []string{"pods", "foo"}},
 		{"GET", "/api/v1/pods", "list", "api", "", "v1", api.NamespaceAll, "pods", "", "", []string{"pods"}},
-		{"HEAD", "/api/v1/pods", "list", "api", "", "v1", api.NamespaceAll, "pods", "", "", []string{"pods"}},
 		{"GET", "/api/v1/namespaces/other/pods/foo", "get", "api", "", "v1", "other", "pods", "", "foo", []string{"pods", "foo"}},
 		{"GET", "/api/v1/namespaces/other/pods", "list", "api", "", "v1", "other", "pods", "", "", []string{"pods"}},
 

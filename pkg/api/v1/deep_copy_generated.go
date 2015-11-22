@@ -952,18 +952,6 @@ func deepCopy_v1_BuildRequest(in apiv1.BuildRequest, out *apiv1.BuildRequest, c 
 	} else {
 		out.LastVersion = nil
 	}
-	if in.Env != nil {
-		out.Env = make([]pkgapiv1.EnvVar, len(in.Env))
-		for i := range in.Env {
-			if newVal, err := c.DeepCopy(in.Env[i]); err != nil {
-				return err
-			} else {
-				out.Env[i] = newVal.(pkgapiv1.EnvVar)
-			}
-		}
-	} else {
-		out.Env = nil
-	}
 	return nil
 }
 
