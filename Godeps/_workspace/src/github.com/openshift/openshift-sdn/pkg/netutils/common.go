@@ -2,7 +2,6 @@ package netutils
 
 import (
 	"encoding/binary"
-	"fmt"
 	"net"
 
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -57,24 +56,4 @@ CheckValidInterfaces:
 		}
 	}
 	return hostIPNets, kerrors.NewAggregate(errList)
-}
-
-func GetNodeIP(nodeName string) (string, error) {
-	ip := net.ParseIP(nodeName)
-	if ip == nil {
-		addrs, err := net.LookupIP(nodeName)
-		if err != nil {
-			return "", fmt.Errorf("Failed to lookup IP address for node %s: %v", nodeName, err)
-		}
-		for _, addr := range addrs {
-			if addr.String() != "127.0.0.1" {
-				ip = addr
-				break
-			}
-		}
-	}
-	if ip == nil || len(ip.String()) == 0 {
-		return "", fmt.Errorf("Failed to obtain IP address from node name: %s", nodeName)
-	}
-	return ip.String(), nil
 }

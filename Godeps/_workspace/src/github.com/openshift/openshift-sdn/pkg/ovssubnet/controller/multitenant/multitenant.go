@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	"github.com/openshift/openshift-sdn/plugins/osdn/api"
+	"github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
 )
 
 type FlowController struct {
