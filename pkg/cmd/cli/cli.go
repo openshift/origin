@@ -147,7 +147,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	groups.Add(cmds)
 	changeSharedFlagDefaults(cmds)
 	templates.ActsAsRootCommand(cmds, groups...).
-		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify")
+		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify", "token")
 
 	if name == fullName {
 		cmds.AddCommand(version.NewVersionCommand(fullName, false))
