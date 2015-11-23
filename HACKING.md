@@ -151,6 +151,11 @@ working against the API. Run it with:
 
     $ hack/test-cmd.sh
 
+This suite comprises many smaller suites, which are found under `test/cmd` and can be run individually by
+specifying them using a regex filter, passed through `grep -E` like with integration tests above:
+
+    $ hack/test-cmd.sh <regex>
+
 ### End-to-End (e2e) Tests
 
 The final test category is end to end tests (e2e) which should verify a long set of flows in the

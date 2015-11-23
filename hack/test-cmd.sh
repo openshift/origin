@@ -9,6 +9,7 @@ set -o pipefail
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+cd "${OS_ROOT}"
 source "${OS_ROOT}/hack/util.sh"
 os::log::install_errexit
 
@@ -48,10 +49,9 @@ trap "cleanup" EXIT
 set -e
 
 function find_tests {
-  cd "${OS_ROOT}"
-  find "${1}" -name '*.sh' | sort -u
+  find "${OS_ROOT}/test/cmd" -name '*.sh' | grep -E "${1}" | sort -u
 }
-tests=( $(find_tests ${1:-test/cmd}) )
+tests=( $(find_tests ${1:-.*}) )
 
 # Setup environment
 
