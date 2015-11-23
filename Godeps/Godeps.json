@@ -435,10 +435,6 @@
 			"Rev": "73d445a93680fa1a78ae23a5839bad48f32ba1ee"
 		},
 		{
-			"ImportPath": "github.com/go-ldap/ldap",
-			"Rev": "b4c9518ccf0d85087c925e4a3c9d5802c9bc7025"
-		},
-		{
 			"ImportPath": "github.com/godbus/dbus",
 			"Comment": "0-7-g939230d",
 			"Rev": "939230d2086a4f1870e04c52e0a376c25bae0ec4"
@@ -933,6 +929,10 @@
 			"ImportPath": "gopkg.in/asn1-ber.v1",
 			"Comment": "v1",
 			"Rev": "9eae18c3681ae3d3c677ac2b80a8fe57de45fc09"
+		},
+		{
+			"ImportPath": "gopkg.in/ldap.v2",
+			"Rev": "b4c9518ccf0d85087c925e4a3c9d5802c9bc7025"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
