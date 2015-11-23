@@ -1,6 +1,8 @@
 package util
 
 import (
+	"fmt"
+
 	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 )
@@ -43,7 +45,9 @@ func GenerateLabelsFromSourceInfo(labels map[string]string, info *api.SourceInfo
 		return labels
 	}
 
-	addBuildLabel(labels, "commit.author", info.Author, namespace)
+	author := fmt.Sprintf("%s <%s>", info.AuthorName, info.AuthorEmail)
+
+	addBuildLabel(labels, "commit.author", author, namespace)
 	addBuildLabel(labels, "commit.date", info.Date, namespace)
 	addBuildLabel(labels, "commit.id", info.CommitID, namespace)
 	addBuildLabel(labels, "commit.ref", info.Ref, namespace)

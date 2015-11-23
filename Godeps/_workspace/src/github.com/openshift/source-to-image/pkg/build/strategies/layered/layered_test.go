@@ -12,7 +12,7 @@ import (
 
 type FakeExecutor struct{}
 
-func (f *FakeExecutor) Execute(string, *api.Config) error {
+func (f *FakeExecutor) Execute(string, string, *api.Config) error {
 	return nil
 }
 

@@ -11,7 +11,7 @@ import (
 
 // CallbackInvoker posts results to a callback URL when a STI build is done.
 type CallbackInvoker interface {
-	ExecuteCallback(callbackURL string, success bool, messages []string) []string
+	ExecuteCallback(callbackURL string, success bool, labels map[string]string, messages []string) []string
 }
 
 // NewCallbackInvoker creates an instance of the default CallbackInvoker implementation
@@ -26,7 +26,7 @@ type callbackInvoker struct {
 }
 
 // ExecuteCallback prepares a JSON payload and posts it to the specified callback URL
-func (c *callbackInvoker) ExecuteCallback(callbackURL string, success bool, messages []string) []string {
+func (c *callbackInvoker) ExecuteCallback(callbackURL string, success bool, labels map[string]string, messages []string) []string {
 	buf := new(bytes.Buffer)
 	writer := bufio.NewWriter(buf)
 	for _, message := range messages {
@@ -35,6 +35,7 @@ func (c *callbackInvoker) ExecuteCallback(callbackURL string, success bool, mess
 	writer.Flush()
 
 	d := map[string]interface{}{
+		"labels":  labels,
 		"payload": buf.String(),
 		"success": success,
 	}

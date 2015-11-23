@@ -25,7 +25,7 @@ func (f *File) Download(config *api.Config) (*api.SourceInfo, error) {
 	}
 
 	glog.V(1).Infof("Copying sources from %q to %q", sourceDir, targetSourceDir)
-	err := f.Copy(sourceDir, targetSourceDir)
+	err := f.CopyContents(sourceDir, targetSourceDir)
 	if err != nil {
 		return nil, err
 	}

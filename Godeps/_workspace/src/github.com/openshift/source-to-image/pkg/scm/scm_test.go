@@ -44,12 +44,18 @@ func TestDownloaderForSource(t *testing.T) {
 	}
 
 	for s, expected := range tc {
-		r, _, err := DownloaderForSource(s)
+		r, filePathUpdate, err := DownloaderForSource(s)
 		if err != nil {
 			if expected != "error" {
 				t.Errorf("Unexpected error %q for %q, expected %q", err, s, expected)
 			}
 			continue
+		}
+
+		if s == gitLocalDir || s == localDir {
+			if !strings.HasPrefix(filePathUpdate, "file://") {
+				t.Errorf("input %s should have produced a file path update starting with file:// but produced:  %s", s, filePathUpdate)
+			}
 		}
 
 		expected = "*" + expected
