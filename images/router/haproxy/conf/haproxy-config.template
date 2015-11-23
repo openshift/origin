@@ -38,16 +38,18 @@ defaults
   # Long timeout for WebSocket connections.
   timeout tunnel 1h
 
-{{ if and (and (ne .StatsUser "") (ne .StatsPassword "")) (gt .StatsPort 0) }}
+{{ if (gt .StatsPort 0) }}
 listen stats :{{.StatsPort}}
+{{ else }}
+listen stats :1936
+{{ end }}
     mode http
-
     # Health check monitoring uri.
     monitor-uri /healthz
 
+{{ if and (and (ne .StatsUser "") (ne .StatsPassword "")) (gt .StatsPort 0) }}
     # Add your custom health check monitoring failure condition here.
     # monitor fail if <condition>
-
     stats enable
     stats hide-version
     stats realm Haproxy\ Statistics
