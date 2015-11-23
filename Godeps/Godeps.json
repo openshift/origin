@@ -928,7 +928,7 @@
 		{
 			"ImportPath": "gopkg.in/asn1-ber.v1",
 			"Comment": "v1",
-			"Rev": "9eae18c3681ae3d3c677ac2b80a8fe57de45fc09"
+			"Rev": "4e86f4367175e39f69d9358a5f17b4dda270378d"
 		},
 		{
 			"ImportPath": "gopkg.in/ldap.v2",
