@@ -3,7 +3,7 @@ package ldaputil
 import (
 	"testing"
 
-	"github.com/go-ldap/ldap"
+	"gopkg.in/ldap.v2"
 )
 
 func TestGetAttributeValue(t *testing.T) {

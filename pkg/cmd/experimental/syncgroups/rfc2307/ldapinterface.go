@@ -3,7 +3,7 @@ package rfc2307
 import (
 	"fmt"
 
-	"github.com/go-ldap/ldap"
+	"gopkg.in/ldap.v2"
 
 	"k8s.io/kubernetes/pkg/util/sets"
 

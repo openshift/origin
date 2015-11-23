@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-ldap/ldap"
+	"gopkg.in/ldap.v2"
 
 	"k8s.io/kubernetes/pkg/util/sets"
 

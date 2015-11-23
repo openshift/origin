@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/util"
 
-	"github.com/go-ldap/ldap"
+	"gopkg.in/ldap.v2"
 )
 
 // NewLDAPClientConfig returns a new LDAPClientConfig

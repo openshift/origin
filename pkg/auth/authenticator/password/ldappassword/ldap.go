@@ -8,8 +8,8 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/go-ldap/ldap"
 	"github.com/golang/glog"
+	"gopkg.in/ldap.v2"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
