@@ -3,6 +3,22 @@
 This document describes how a developer can write a new extended test for
 OpenShift and the structure of extended tests.
 
+Running tests
+-------------
+
+From the top-level origin directory, run
+
+	$ test/extended/<some_script>.sh
+
+Where \<some_script\>.sh is one of the bucket scripts such as "core.sh".
+
+You can further narrow the set of tests being run by passing `--ginkgo.focus="some string"` where "some string" corresponds to
+the description of the test you want to run.  For example one of the s2i tests (sti_incremental.go) defines:
+
+	var _ = g.Describe("builds: s2i incremental build with push and pull to authenticated registry", func() {
+
+So you can write a focus filter that includes this test by passing `--ginkgo.focus="s2i incremental"`.
+
 Prerequisites
 -----------
 

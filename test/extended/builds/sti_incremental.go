@@ -82,6 +82,10 @@ var _ = g.Describe("builds: s2i incremental build with push and pull to authenti
 
 			g.By("expecting the pod container has saved artifacts")
 			out, err := oc.Run("exec").Args("-p", pod.Name, "--", "curl", "http://0.0.0.0:8080").Output()
+			if err != nil {
+				logs, _ = oc.Run("logs").Args(pod.Name).Output()
+				e2e.Failf("Failed to curl in application container: \n%q, pod logs: \n%q", out, logs)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			if !strings.Contains(out, "artifacts exist") {
