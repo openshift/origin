@@ -111,15 +111,13 @@ function exectest() {
 
 	os::text::clear_last_line
 
-	if [[ "$1" = "TestBasicUserBasedGroupManipulation" ]]; then
-		result=1
-	fi
-
 	if [[ ${result} -eq 0 ]]; then
 		os::text::print_green "ok      $1"
+		exit 0
 	else
-		os::text::print_red_bold "failed  $1"
+		os::text::print_red "failed  $1"
 		echo "${out}"
+		exit 1
 	fi
 }
 
@@ -138,9 +136,12 @@ pushd "./${package}" &>/dev/null
 # hack/test-integration.sh "(WatchBuilds|Template)"
 tests=( $(go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testdir}" | grep -E "${1-Test}") )
 # run each test as its own process
+ret=0
 for test in "${tests[@]}"; do
-	(exectest "${test}" ${@:2})
+	if ! (exectest "${test}" ${@:2}); then 
+		ret=1
+	fi
 done
 popd &>/dev/null
 
-ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
+ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
