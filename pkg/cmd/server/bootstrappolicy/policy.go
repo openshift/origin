@@ -210,6 +210,22 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 		},
 		{
+			// This role looks like a duplicate of ImageBuilderRole, but the ImageBuilder role is specifically for our builder service accounts
+			// if we found another permission needed by them, we'd add it there so the intent is different if you used the ImageBuilderRole
+			// you could end up accidentally granting more permissions than you intended.  This is intended to only grant enough powers to
+			// push an image to our registry
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ImagePusherRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs: sets.NewString("get", "update"),
+					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
+					Resources: sets.NewString("imagestreams/layers"),
+				},
+			},
+		},
+		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: ImageBuilderRoleName,
 			},
