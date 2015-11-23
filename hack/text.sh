@@ -3,21 +3,57 @@
 # This file contains helpful aliases for manipulating the output text to the terminal as
 # well as functions for one-command augmented printing.
 
-shopt -s expand_aliases
+# os::text::reset resets the terminal output to default if it is called in a TTY
+function os::text::reset() {
+	if [ -t 1 ]; then
+		tput sgr0
+	fi
+}
 
-# The following aliases provide more readable accessors to `tput`
-alias  os::text::reset='tput sgr0'
-alias   os::text::bold='tput bold'
-alias    os::text::red='tput setaf 1'
-alias  os::text::green='tput setaf 2'
-alias   os::text::blue='tput setaf 4'
-alias os::text::yellow='tput setaf 11'
+# os::text::bold sets the terminal output to bold text if it is called in a TTY
+function os::text::bold() {
+	if [ -t 1 ]; then
+		tput bold
+	fi
+}
+
+# os::text::red sets the terminal output to red text if it is called in a TTY
+function os::text::red() {
+	if [ -t 1 ]; then
+		tput setaf 1
+	fi
+}
+
+# os::text::green sets the terminal output to green text if it is called in a TTY
+function os::text::green() {
+	if [ -t 1 ]; then
+		tput setaf 2
+	fi
+}
+
+# os::text::blue sets the terminal output to blue text if it is called in a TTY
+function os::text::blue() {
+	if [ -t 1 ]; then
+		tput setaf 4
+	fi
+}
+
+# os::text::yellow sets the terminal output to yellow text if it is called in a TTY
+function os::text::yellow() {
+	if [ -t 1 ]; then
+		tput setaf 11
+	fi
+}
 
 # os::text::clear_last_line clears the text from the last line of output to the
 # terminal and leaves the cursor on that line to allow for overwriting that text
-alias os::text::clear_last_line='tput cuu 1; tput el'
-
-# The following functions wrap the above aliases to allow one-command printing of augmented text
+# if it is called in a TTY
+function os::text::clear_last_line() {
+	if [ -t 1 ]; then 
+		tput cuu 1
+		tput el
+	fi
+}
 
 # os::text::print_bold prints all input in bold text
 function os::text::print_bold() {
