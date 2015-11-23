@@ -68,38 +68,35 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 		return nil, errors.NewNotFound("imageStreamImage", imageID)
 	}
 
-	set := api.ResolveImageID(repo, imageID)
-	switch len(set) {
-	case 1:
-		imageName := set.List()[0]
-		image, err := r.imageRegistry.GetImage(ctx, imageName)
-		if err != nil {
-			return nil, err
-		}
-		imageWithMetadata, err := api.ImageWithMetadata(*image)
-		if err != nil {
-			return nil, err
-		}
-
-		if d, err := digest.ParseDigest(imageName); err == nil {
-			imageName = d.Hex()
-		}
-		if len(imageName) > 7 {
-			imageName = imageName[:7]
-		}
-
-		isi := api.ImageStreamImage{
-			ObjectMeta: kapi.ObjectMeta{
-				Namespace: kapi.NamespaceValue(ctx),
-				Name:      fmt.Sprintf("%s@%s", name, imageName),
-			},
-			Image: *imageWithMetadata,
-		}
-
-		return &isi, nil
-	case 0:
-		return nil, errors.NewNotFound("imageStreamImage", imageID)
-	default:
-		return nil, errors.NewConflict("imageStreamImage", imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
+	event, err := api.ResolveImageID(repo, imageID)
+	if err != nil {
+		return nil, err
 	}
+
+	imageName := event.Image
+	image, err := r.imageRegistry.GetImage(ctx, imageName)
+	if err != nil {
+		return nil, err
+	}
+	imageWithMetadata, err := api.ImageWithMetadata(*image)
+	if err != nil {
+		return nil, err
+	}
+
+	if d, err := digest.ParseDigest(imageName); err == nil {
+		imageName = d.Hex()
+	}
+	if len(imageName) > 7 {
+		imageName = imageName[:7]
+	}
+
+	isi := api.ImageStreamImage{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: kapi.NamespaceValue(ctx),
+			Name:      fmt.Sprintf("%s@%s", name, imageName),
+		},
+		Image: *imageWithMetadata,
+	}
+
+	return &isi, nil
 }
