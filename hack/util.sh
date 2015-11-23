@@ -66,6 +66,8 @@ function configure_os_server {
 	if [[ -z "${ALL_IP_ADDRESSES-}" ]]; then
 		ALL_IP_ADDRESSES="$(openshift start --print-ip)"
 		SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost,172.30.0.1"
+                SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},kubernetes.default.svc.cluster.local,kubernetes.default.svc,kubernetes.default,kubernetes"
+                SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},openshift.default.svc.cluster.local,openshift.default.svc,openshift.default,openshift"
 
 		while read -r IP_ADDRESS
 		do

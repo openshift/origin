@@ -8,6 +8,8 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 )
 
+const OriginalSourceURLAnnotationKey = "openshift.io/original-source-url"
+
 // A KeyValue can be used to build ordered lists of key-value pairs.
 type KeyValue struct {
 	Key   string
@@ -22,7 +24,11 @@ func buildInfo(build *api.Build) []KeyValue {
 		{"OPENSHIFT_BUILD_NAMESPACE", build.Namespace},
 	}
 	if build.Spec.Source.Git != nil {
-		kv = append(kv, KeyValue{"OPENSHIFT_BUILD_SOURCE", build.Spec.Source.Git.URI})
+		sourceURL := build.Spec.Source.Git.URI
+		if originalURL, ok := build.Annotations[OriginalSourceURLAnnotationKey]; ok {
+			sourceURL = originalURL
+		}
+		kv = append(kv, KeyValue{"OPENSHIFT_BUILD_SOURCE", sourceURL})
 		if build.Spec.Source.Git.Ref != "" {
 			kv = append(kv, KeyValue{"OPENSHIFT_BUILD_REFERENCE", build.Spec.Source.Git.Ref})
 		}

@@ -59,7 +59,7 @@ objects:
           # stored in this app.
           # TOOD: support HTTPS
           - name: PUBLIC_URL
-            value: http://gitserver.$(POD_NAMESPACE).svc.cluster.local:8080
+            value: http://gitserver-tokenauth.$(POD_NAMESPACE).svc.cluster.local:8080
           # The directory to store Git repositories in. If not backed
           # by a persistent volume, repositories will be lost when
           # deployments occur. Use INITIAL_GIT_CLONE and AUTOLINK_*
@@ -94,8 +94,8 @@ objects:
           # should be used to authorize against the server. The value
           # '-' will use the pod's service account.
           # May not be used in combination with REQUIRE_GIT_AUTH
-          #- name: REQUIRE_SERVER_AUTH
-          #  value: "-"
+          - name: REQUIRE_SERVER_AUTH
+            value: "-"
           
           # The namespace to check authorization against when
           # REQUIRE_SERVICE_AUTH is used. Users must have 'get' on
@@ -105,8 +105,8 @@ objects:
           # Require BASIC authentication with a username and password
           # to push or pull.
           # May not be used in combination with REQUIRE_SERVER_AUTH
-          - name: REQUIRE_GIT_AUTH
-            value: gituser:gituserpassword
+          #- name: REQUIRE_GIT_AUTH
+          #  value: gituser:gituserpassword
 
           # Autolinking:
           #
@@ -158,7 +158,7 @@ objects:
 - apiVersion: v1
   kind: Service
   metadata:
-    name: gitserver
+    name: gitserver-tokenauth
     labels:
       app: gitserver
   spec:
@@ -170,13 +170,13 @@ objects:
 - apiVersion: v1
   kind: Route
   metadata:
-    name: gitserver
+    name: gitserver-tokenauth
     labels:
       app: gitserver
   spec:
-    host: gitserver.${ROUTE_SUFFIX}
+    host: gitserver-tokenauth.${ROUTE_SUFFIX}
     tls:
       termination: edge
     to:
       kind: Service
-      name: gitserver
+      name: gitserver-tokenauth
