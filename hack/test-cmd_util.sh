@@ -333,3 +333,47 @@ echo "${output}" | grep -q '; the output content test failed'
 echo "${output}" | grep -q 'hello' 
 
 echo "output tests: ok"
+
+function current_time_millis_mod_1000() {
+	mod=$(expr $(date +%s000) % 1000)
+	if [ $mod -eq 0 ]; then
+		echo "success"
+		return 0
+	else
+		echo "failure"
+		return 1
+	fi
+}
+os::cmd::try_until_text 'current_time_millis_mod_1000' 'success' $(( 2 * second )) '0'
+
+# force a time-out fail
+if os::cmd::try_until_text 'current_time_millis_mod_1000' 'typo' $(( 1 * second )); then
+	exit 1
+fi
+
+os::cmd::try_until_success 'current_time_millis_mod_1000' $(( 2 * second )) '0'
+
+# force a time-out fail
+if os::cmd::try_until_success 'exit 1' $(( 1 * second )); then
+	exit 1
+fi
+
+
+function not_current_time_millis_mod_1000() {
+	mod=$(expr $(date +%s000) % 1000)
+	if [ $mod -eq 0 ]; then
+		echo "failure"
+		return 1
+	else
+		echo "success"
+		return 0
+	fi
+}
+os::cmd::try_until_failure 'not_current_time_millis_mod_1000' $(( 2 * second )) '0'
+
+# force a timeout
+if os::cmd::try_until_failure 'exit 0' $(( 1 * second )); then
+	exit 1
+fi
+
+echo "try_until: ok"
