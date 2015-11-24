@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/go-ldap/ldap"
 	"github.com/golang/glog"
+	"gopkg.in/ldap.v2"
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 

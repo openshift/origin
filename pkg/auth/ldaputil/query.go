@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-ldap/ldap"
 	"github.com/golang/glog"
+	"gopkg.in/ldap.v2"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )

@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/go-ldap/ldap"
+	"gopkg.in/ldap.v2"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	ldapinterfaces "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"

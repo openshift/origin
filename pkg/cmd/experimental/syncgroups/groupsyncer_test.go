@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
+	"gopkg.in/ldap.v2"
 	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
-	"github.com/go-ldap/ldap"
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
