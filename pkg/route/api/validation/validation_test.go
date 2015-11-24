@@ -186,11 +186,15 @@ func TestValidateRoute(t *testing.T) {
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Host:        "www.example.com",
-				Path:        "/test",
-				ServiceName: "serviceName",
-				TLS: &api.TLSConfig{
-					Termination: api.TLSTerminationPassthrough,
+				Spec: api.RouteSpec{
+					Host: "www.example.com",
+					Path: "/test",
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
+					TLS: &api.TLSConfig{
+						Termination: api.TLSTerminationPassthrough,
+					},
 				},
 			},
 			expectedErrors: 1,
