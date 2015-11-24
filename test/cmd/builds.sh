@@ -58,11 +58,21 @@ frombuild=$(oc start-build --from-build="${started}")
 os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'openshift/ruby-20-centos7$'
 echo "start-build: ok"
 
-os::cmd::expect_success "oc cancel-build ${started} --dump-logs --restart"
+os::cmd::expect_success "oc cancel-build ${started} --dump-logs --restart | grep 'Restarted build ${started}.'"
 os::cmd::expect_success 'oc delete all --all'
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -'
 os::cmd::expect_success "tryuntil 'oc get build/ruby-sample-build-1'"
-# Uses type/name resource syntax
-os::cmd::expect_success 'oc cancel-build build/ruby-sample-build-1'
+# Uses type/name resource syntax to cancel the build and check for proper message
+os::cmd::expect_success "oc cancel-build build/ruby-sample-build-1 | grep 'Build build/ruby-sample-build-1 was cancelled.'"
+# Make sure canceling already cancelled build returns proper message
+os::cmd::expect_success "tryuntil $(oc cancel-build build/ruby-sample-build-1 | grep 'A cancellation event was already triggered for the build build/ruby-sample-build-1.')"
+os::cmd::expect_success 'oc delete all --all'
+
+# Make sure failed build returns proper message when cancelled
+os::cmd::expect_success 'oc create -f test/fixtures/failing-bc.json'
+os::cmd::expect_success "tryuntil 'oc get bc failing-build'"
+os::cmd::expect_success 'oc start-build failing-build'
+os::cmd::expect_success "tryuntil $(oc get build failing-build-1 | grep Failed)"
+os::cmd::expect_success "tryuntil $(oc cancel-build build/failing-build-1 | grep 'A build can be cancelled only if it has new/pending/running status.')"
 os::cmd::expect_success 'oc delete all --all'
 echo "cancel-build: ok"
