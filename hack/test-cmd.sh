@@ -71,6 +71,9 @@ mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
 
+# test wrapper functions
+${OS_ROOT}/hack/test-cmd_util.sh > ${BASETMPDIR}/wrappers.txt 2>&1
+
 
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
