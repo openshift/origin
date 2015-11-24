@@ -34,7 +34,7 @@ func ValidateRoute(route *routeapi.Route) fielderrors.ValidationErrorList {
 
 	if len(route.Spec.Path) > 0 && route.Spec.TLS != nil &&
 		route.Spec.TLS.Termination == routeapi.TLSTerminationPassthrough {
-		result = append(result, fielderrors.NewFieldInvalid("path", route.Spec.Path, "paththrough termination does not support paths"))
+		result = append(result, fielderrors.NewFieldInvalid("path", route.Spec.Path, "passthrough termination does not support paths"))
 	}
 
 	if len(route.Spec.To.Name) == 0 {
