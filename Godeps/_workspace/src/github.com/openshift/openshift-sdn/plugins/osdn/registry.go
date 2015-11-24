@@ -2,7 +2,6 @@ package osdn
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"net"
 	"strconv"
 	"strings"
@@ -119,7 +118,9 @@ func newSDNPod(kPod *kapi.Pod) osdnapi.Pod {
 	containerID := ""
 	if len(kPod.Status.ContainerStatuses) > 0 {
 		// Extract only container ID, pod.Status.ContainerStatuses[0].ContainerID is of the format: docker://<containerID>
-		containerID = strings.Split(kPod.Status.ContainerStatuses[0].ContainerID, "://")[1]
+		if parts := strings.Split(kPod.Status.ContainerStatuses[0].ContainerID, "://"); len(parts) > 1 {
+			containerID = parts[1]
+		}
 	}
 	return osdnapi.Pod{
 		Name:        kPod.ObjectMeta.Name,
@@ -623,17 +624,17 @@ EndpointLoop:
 			for _, addr := range ss.Addresses {
 				IP := net.ParseIP(addr.IP)
 				if registry.serviceNetwork.Contains(IP) {
-					glog.Warningf("Service '%s' in namespace '%s' has an Endpoint inside the service network (%s)", ep.ObjectMeta.Name, ns, addr.IP)
+					log.Warningf("Service '%s' in namespace '%s' has an Endpoint inside the service network (%s)", ep.ObjectMeta.Name, ns, addr.IP)
 					continue EndpointLoop
 				}
 				if registry.clusterNetwork.Contains(IP) {
 					podNamespace, ok := registry.namespaceOfPodIP[addr.IP]
 					if !ok {
-						glog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to non-existent pod (%s)", ep.ObjectMeta.Name, ns, addr.IP)
+						log.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to non-existent pod (%s)", ep.ObjectMeta.Name, ns, addr.IP)
 						continue EndpointLoop
 					}
 					if podNamespace != ns {
-						glog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to pod %s in namespace '%s'", ep.ObjectMeta.Name, ns, addr.IP, podNamespace)
+						log.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to pod %s in namespace '%s'", ep.ObjectMeta.Name, ns, addr.IP, podNamespace)
 						continue EndpointLoop
 					}
 				}
