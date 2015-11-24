@@ -67,11 +67,11 @@ Steps
  
 6. Open the Jenkins service ip:port from step 4 in your browser.  Once it is available, login using username `admin` and password `password`.
    
-7. Select the the `OpenShift Sample` job and click `Configure`
+7. Select the the `OpenShift Sample` job and click `Configure`.  You'll see a series of Jenkins build steps defined.  These build steps are from the Jenkins plugin for V3 Openshift.  Read about the [OpenShift Jenkins plugin](https://github.com/openshift/jenkins-plugin) for details on the various functionality provided.  The default values for each of the various build steps listed for the sample job should work as is.  You can save your changes to the job, click `Build` and skip to step 11.
 
-8. Optional (if the default value does not resolve to your OpenShift api endpoint): Fill in the `OPENSHIFT_API_URL` value with `https://hostname:port` where hostname/ip and port are for your OpenShift api endpoint.
+8. Optional (if the default values are no longer applicable based on how your OpenShift environment was constructed): change the settings for each build step as needed.  For example, update the "URL of the OpenShift api endpoint" field with `https://hostname:port` where hostname/ip and port are for your OpenShift api endpoint, or update the "The authorization token for interacting with OpenShift" field with the token value retrieved in step 3.  You can save your changes to the job, click `Build` and skip to step 11.
 
-9. Optional (if not running Jenkins in the same OpenShift deployment as your application project): Fill in the `AUTH_TOKEN` value with the token value retrieved in step 3.
+9. Optional (if you would like to set the build step fields via Jenkins build parameters): Set any given build step field with the name of the build parameter you will specify.  Then check `This build is parameterized` and add  String parameters, defining those build parameters.  The README for the [OpenShift Jenkins plugin](https://github.com/openshift/jenkins-plugin) has an example for doing this with screenshots.
 
 10. Save your changes to the job and click `Build with Parameters` and then `Build`.
 
