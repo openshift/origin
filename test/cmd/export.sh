@@ -6,29 +6,30 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
 # This test validates the export command
 
-oc new-app -f examples/sample-app/application-template-stibuild.json --name=sample
+os::cmd::expect_success 'oc new-app -f examples/sample-app/application-template-stibuild.json --name=sample'
 
 # this checks to make sure that the generated tokens and dockercfg secrets are excluded by default
 # and included when --exact is requested
-oc export sa/default --template='{{ .secrets }}' | grep -q "<no value>"
-oc export sa/default --exact --template='{{ .secrets }}' | grep "default-token"
+os::cmd::expect_success_and_text "oc export sa/default --template='{{ .secrets }}'" '<no value>'
+os::cmd::expect_success_and_text "oc export sa/default --exact --template='{{ .secrets }}'" 'default-token'
 
-[ "$(oc export all --all-namespaces)" ]
+os::cmd::expect_success 'oc export all --all-namespaces'
 # make sure the deprecated flag doesn't fail
-[ "$(oc export all --all)" ]
+os::cmd::expect_success 'oc export all --all'
 
-[ "$(oc export svc --template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | wc -l)" -ne 0 ]
-[ "$(oc export svc --as-template=template | grep 'kind: Template')" ]
-[ ! "$(oc export svc | grep 'clusterIP')" ]
-[ ! "$(oc export svc --exact | grep 'clusterIP: ""')" ]
-[ ! "$(oc export svc --raw | grep 'clusterIP: ""')" ]
-[ ! "$(oc export svc --raw --exact)" ]
-[ ! "$(oc export svc -l a=b)" ] # return error if no items match selector
-[ "$(oc export svc -l a=b 2>&1 | grep 'no resources found')" ]
-[ "$(oc export svc -l app=sample)" ]
-[ "$(oc export -f examples/sample-app/application-template-stibuild.json --raw --output-version=v1 | grep 'apiVersion: v1')" ]
+os::cmd::expect_success_and_not_text "oc export svc --template='{{range .items}}{{.metadata.name}}{{\"\n\"}}{{end}}' | wc -l" '^0' # don't expect a leading zero, i.e. expect non-zero count
+os::cmd::expect_success_and_text 'oc export svc --as-template=template' 'kind: Template'
+os::cmd::expect_success_and_not_text 'oc export svc' 'clusterIP'
+os::cmd::expect_success_and_not_text 'oc export svc --exact' 'clusterIP: ""'
+os::cmd::expect_success_and_not_text 'oc export svc --raw' 'clusterIP: ""'
+os::cmd::expect_failure 'oc export svc --raw --exact'
+os::cmd::expect_failure 'oc export svc -l a=b' # return error if no items match selector
+os::cmd::expect_failure_and_text 'oc export svc -l a=b' 'no resources found'
+os::cmd::expect_success 'oc export svc -l app=sample'
+os::cmd::expect_success_and_text 'oc export -f examples/sample-app/application-template-stibuild.json --raw --output-version=v1' 'apiVersion: v1'
 echo "export: ok"
