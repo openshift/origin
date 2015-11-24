@@ -22,7 +22,7 @@
 %global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.0.1 -X github.com/openshift/origin/pkg/version.commitFromGit 86b5e46 -X k8s.io/kubernetes/pkg/version.gitCommit 6241a21 -X k8s.io/kubernetes/pkg/version.gitVersion v0.11.0-330-g6241a21
 }
 
-%if 0%{?fedora} > 0
+ %if 0%{?fedora} || 0%{?epel}
 %global make_redistributable 0
 %else
 %global make_redistributable 1
