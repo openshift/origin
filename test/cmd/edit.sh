@@ -11,7 +11,7 @@ os::log::install_errexit
 
 # This test validates the edit command
 
-os::cmd::expect_success 'oc create -f examples/hello-openshift/hello-pod.json'
+os::cmd::expect_failure 'oc create -f examples/hello-openshift/hello-pod.json'
 
 os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit pod/hello-openshift' 'Edit cancelled'
 os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit pod/hello-openshift' 'name: hello-openshift'
