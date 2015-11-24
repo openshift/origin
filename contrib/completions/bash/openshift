@@ -8776,6 +8776,7 @@ _openshift_cli_secrets_new()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--confirm")
     flags+=("--no-headers")
     flags+=("--output=")
     two_word_flags+=("-o")
