@@ -10,6 +10,7 @@
 
 // Patternfly overrides
 @dropdown-divider-margin: 4px 0;
+@navbar-pf-alt-navbar-brand-padding: 20px 0;
 @navbar-pf-bg-color: @navbar-os-bg-color;
 @sidebar-pf-bg: @body-bg;
 
@@ -38,7 +39,7 @@
 @navbar-os-project-border-color: lighten(@navbar-os-bg-color, 8%);
 @navbar-os-project-menu-bg: #fff;
 @navbar-os-project-menu-border: 1px solid @btn-default-border;
-@navbar-os-project-menu-color: #333;
+@navbar-os-project-menu-color: @sidebar-os-active-color;
 @navbar-project-input-height: 41px;
 @navbar-project-label-color: @sidebar-os-color;
 @osc-object-active-color: @console-bright-blue;
@@ -54,20 +55,20 @@
 @sidebar-os-active-bg: #393f44;
 @sidebar-os-active-color: lighten(@sidebar-os-color, 13%);
 @sidebar-os-hover-bg: darken(@sidebar-os-bg,3%);
-@sidebar-os-icon-color: #72767b;
+@sidebar-os-icon-color: rgba(200,200,200, .8);
 @sidebar-os-padding-x: 15px;
 @sidebar-os-padding-y: 10px;
 @sidebar-os-active: @console-bright-blue;
 @sidebar-os-transition: 150ms cubic-bezier(0.4, 0, 0.2, 1) all;
-@sidebar-left-width-lg: 160px;
-@sidebar-left-width-md: 100px;
-@sidebar-left-width-sm: 80px;
-@sidebar-left-width-open-lg: 420px;
-@sidebar-left-width-open-md: 340px;
-@sidebar-left-width-open-sm: 260px;
-@sidebar-right-width-lg: 33%;
-@sidebar-right-width-md: 30%;
-@sidebar-right-width-sm: 27%;
+@sidebar-left-width-lg: 200px;
+@sidebar-left-width-md: 110px;
+// @sidebar-left-width-sm: 110px;
+// @sidebar-left-width-open-lg: 420px;
+// @sidebar-left-width-open-md: 340px;
+// @sidebar-left-width-open-sm: 260px;
+@sidebar-right-width-lg: 360px;
+@sidebar-right-width-md: 260px;
+// @sidebar-right-width-sm: 27%;
 @screen-lg-max: (@screen-xlg-min - 1);
 @screen-xlg-min: 1600px;
 @status-bg-color: #E6ECF1;

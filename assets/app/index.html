@@ -1,5 +1,5 @@
 <!doctype html>
-<html class="no-js">
+<html class="no-js layout-pf-alt layout-pf-alt-fixed transitions">
   <head>
     <meta charset="utf-8">
     <base href="/">
@@ -33,49 +33,8 @@
   </head>
 <body class="console-os">
     <!-- Add your site or application content here -->
-    <nav class="navbar navbar-default navbar-pf" role="navigation">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse-1">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand" id="openshift-logo" href="./">
-          <div id="header-logo"></div>
-        </a>
-      </div>
-      <div class="collapse navbar-collapse navbar-collapse-1">
-        <ul class="nav navbar-nav navbar-utility">
-          <li>
-            <a href="http://docs.openshift.org/latest/welcome/index.html">
-            <span class="fa fa-files-o fa-fw"></span> Documentation</a>
-          </li>
-          <li uib-dropdown ng-cloak ng-if="user">
-            <a href="" uib-dropdown-toggle id="user-dropdown">
-              <span class="pficon pficon-user"></span>
-              <span class="username">{{user.fullName || user.metadata.name}}</span> <b class="caret"></b>
-            </a>
-            <ul class="uib-dropdown-menu" aria-labelledby="user-dropdown">
-              <!--
-              <li>
-                <a href="#">Account</a>
-              </li>
-              <li>
-                <a href="#">Settings</a>
-              </li>
-              <li class="divider"></li>
-              -->
-              <li>
-                <a href="logout">Log out</a>
-              </li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-    </nav>
 
-    <div ng-view id="content-wrap"></div>
+    <div ng-view id="wrap"></div>
 
     <noscript class="attention-message"><h1>To use OpenShift, please enable JavaScript.</h1></noscript>
 
@@ -144,6 +103,7 @@
     <script src="scripts/templates.js"></script>
 
         <!-- build:js({.tmp,app}) scripts/scripts.js -->
+        <script src="scripts/nav-off-canvas.js"></script>
         <script src="scripts/app.js"></script>
         <script src="scripts/services/logger.js"></script>
         <script src="scripts/services/ws.js"></script>

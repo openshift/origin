@@ -21,8 +21,205 @@
 //     background: @navbar-os-sidebar-border-color !important;
 // }
 
+
+
+// -----------------------------------------
 // TEMP hide filter widget
 .create-button-container,
 .navbar-filter-widget-collapse {
     display: none;
+}
+
+//---------- below to be shipped -------- //
+// override patternfly
+.layout-pf-alt.layout-pf-alt-fixed body {
+  overflow-x:hidden;
+  padding-top: 0;
+}
+.navbar-pf-alt {
+  background: @navbar-os-bg-color;
+  border-bottom: 1px solid @navbar-os-sidebar-border-color;
+  border-top: 0;
+  height: 60px; // set height
+  .nav {
+    .nav-item-iconic {
+      color: @navbar-pf-alt-color;
+      max-height: none;
+      padding: 21px;
+      &:hover, &:focus {
+        color: @navbar-pf-alt-active-color;
+      }
+    }
+  }
+  .navbar-brand {
+    border: 0;
+    margin-left: 20px;
+    padding: 20px 0;
+  }
+}
+.nav-pf-vertical-alt {
+  .list-group-item a {
+    font-size: @font-size-base;
+  }
+}
+
+.navbar-pf-alt {
+  // .navbar-header {
+  //   border-bottom: 1px solid @navbar-os-sidebar-border-color;  CLEANUP NOT NEEDED?
+  // }
+  @media (max-width: @screen-xs-max) {
+    .navbar-utility {
+      border-top: 1px solid @navbar-pf-alt-border-color; // CLEANUP used to be @navbar-pf-alt-navbar-header-border-color
+    }
+  }
+}
+
+
+@media (min-width: @screen-sm-min) {
+  // Sidebar left
+  .layout-pf-alt-fixed .nav-pf-vertical-alt.collapsed {
+    width: @sidebar-left-width-md !important;
+  }
+}
+
+
+
+// OpenShift specific
+.top-header {
+  display:flex;
+  position:relative;
+  z-index:10;
+  height:59px; /* top offset height */
+}
+
+.main-wrap { //Container
+    display: block;
+    overflow: visible;
+}
+.sidebar-left,.middle,.sidebar-right { //Left,Middle,Right
+    display: block;
+    flex: 0 0 auto; /* none */
+    width: 100%;
+}
+.sidebar-right {
+  border-left: 1px solid #dadada;
+}
+
+@media (min-width: @screen-sm-min) {
+  .main-wrap {
+      display:flex;
+      overflow:hidden;
+      height:100vh;
+      margin-top:-60px; /* top offset height */
+      padding-top:60px; /* top offset height */
+      position:relative;
+      width:100%;
+      -webkit-backface-visibility:hidden;
+      backface-visibility:hidden;
+  }
+  .sidebar-left,.middle,.sidebar-right{
+      overflow-y:auto;
+      height:auto;
+      -webkit-overflow-scrolling:touch;
+  }
+  .sidebar-left {
+      flex: 0 0 @sidebar-left-width-lg; /* mimic patternfly */
+      overflow-y: visible;
+  }
+    .layout-pf-alt-fixed .nav-pf-vertical-alt {
+      position: fixed;
+      bottom:0;
+      overflow: visible;
+      /* width: inherit; used if parent is using width: can't use 100% or auto */
+    }
+  .middle{
+      flex:1 1 0%;
+  }
+  .sidebar-right{
+      flex: 0 0 @sidebar-right-width-lg;
+  }
+}
+
+@media (min-width: @screen-sm-min) {
+  .layout-pf-alt-fixed .nav-pf-vertical-alt.collapsed {
+    width: @sidebar-left-width-md !important;
+  }
+  .navbar-header .navbar-toggle {
+    display: none;
+  }
+}
+
+@media (min-width: @screen-sm-min) and (max-width: @screen-lg-min) {
+  .sidebar-left{
+    flex: 0 0 @sidebar-left-width-md;
+  }
+  .sidebar-right {
+    flex: 0 0 @sidebar-right-width-md;
+  }
+  .layout-pf-alt-fixed .nav-pf-vertical-alt.collapsed .list-group-item .list-group-item-value {
+      opacity: 1; /* keep text visible */
+  }
+  .nav-pf-vertical-alt .list-group-item a {
+      display: block;
+      font-size: 12px;
+      height: initial;
+      padding: 20px 5px;
+      white-space: nowrap;
+      text-align: center;
+  }
+  .nav-pf-vertical-alt .list-group-item .fa, .nav-pf-vertical-alt .list-group-item .glyphicon, .nav-pf-vertical-alt .list-group-item .pficon {
+      float: none;
+      font-size: 18px;
+      line-height: 30px;
+      margin-right: 0;
+      text-align: center;
+      width: 18px;
+  }
+  .nav-pf-vertical-alt .list-group-item .list-group-item-value {
+      display: block;
+      line-height: inherit;
+      opacity: 1;
+      width: auto;
+  }
+}
+.layout-pf-alt.layout-pf-alt-fixed .container-pf-alt-nav-pf-vertical-alt {
+  margin-left: 0 !important; // removes unneccessary pf margin
+}
+
+@media (min-width: @screen-lg-min) {
+  .layout-pf-alt-fixed .nav-pf-vertical-alt {
+    width: @sidebar-left-width-lg !important;
+  }
+}
+
+/* apply transitions to right column */
+.layout-pf-alt-fixed.transitions .nav-pf-vertical-alt, .layout-pf-alt.layout-pf-alt-fixed.transitions .sidebar-left, .layout-pf-alt.layout-pf-alt-fixed.transitions .sidebar-right {
+    transition: @sidebar-os-transition;
+}
+
+// Nice scrollbar
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar {
+  height: 11px;
+  overflow: visible;
+  width: 11px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,.08);
+  background-clip: padding-box;
+  border: solid transparent;
+  border-width: 1px 1px 1px 1px;
+  min-height: 28px;
+  padding: 100px 0 0;
+  -webkit-box-shadow: inset 1px 1px 0 rgba(0,0,0,.1),inset 0 -1px 0 rgba(0,0,0,.07);
+  box-shadow: inset 1px 1px 0 rgba(0,0,0,.1),inset 0 -1px 0 rgba(0,0,0,.07);
+}
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background-color: rgba(0,0,0,.18);
+}
+::-webkit-scrollbar-track-piece {
+  background-color: rgba(0,0,0,.03);
 }
