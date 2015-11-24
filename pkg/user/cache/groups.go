@@ -33,6 +33,22 @@ func ByUserIndexKeys(obj interface{}) ([]string, error) {
 	return group.Users, nil
 }
 
+type GroupNameRetriever struct {
+	*GroupCache
+}
+
+func (r GroupNameRetriever) GroupsFor(username string) ([]string, error) {
+	groups, err := r.GroupCache.GroupsFor(username)
+	if err != nil {
+		return nil, err
+	}
+	names := []string{}
+	for _, g := range groups {
+		names = append(names, g.Name)
+	}
+	return names, nil
+}
+
 func NewGroupCache(groupRegistry groupregistry.Registry) *GroupCache {
 	allNamespaceContext := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 

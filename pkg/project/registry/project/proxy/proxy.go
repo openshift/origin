@@ -7,6 +7,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	authuser "k8s.io/kubernetes/pkg/auth/user"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -31,14 +32,27 @@ type REST struct {
 	updateStrategy rest.RESTUpdateStrategy
 }
 
+type UserRetriever interface {
+	User(name string) (authuser.Info, error)
+}
+
+type UserREST struct {
+	// lister can enumerate project lists that enforce policy
+	lister projectauth.Lister
+	users  UserRetriever
+}
+
 // NewREST returns a RESTStorage object that will work against Project resources
-func NewREST(client kclient.NamespaceInterface, lister projectauth.Lister) *REST {
+func NewREST(client kclient.NamespaceInterface, lister projectauth.Lister, users UserRetriever) (*REST, *UserREST) {
 	return &REST{
-		client:         client,
-		lister:         lister,
-		createStrategy: projectregistry.Strategy,
-		updateStrategy: projectregistry.Strategy,
-	}
+			client:         client,
+			lister:         lister,
+			createStrategy: projectregistry.Strategy,
+			updateStrategy: projectregistry.Strategy,
+		}, &UserREST{
+			lister: lister,
+			users:  users,
+		}
 }
 
 // New returns a new Project
@@ -194,7 +208,47 @@ func filterList(list runtime.Object, m generic.Matcher, d decoratorFunc) (filter
 	}
 	err = runtime.SetList(list, filteredItems)
 	if err != nil {
-		return nil, err
+		return nil, kerrors.NewInternalError(err)
 	}
 	return list, nil
+}
+
+// Get retrieves the projects that the provided user has access to.
+func (s *UserREST) Get(ctx kapi.Context, name string, options runtime.Object) (runtime.Object, error) {
+	listOptions, _ := options.(*kapi.ListOptions)
+	if listOptions == nil {
+		listOptions = &kapi.ListOptions{}
+	}
+
+	var user authuser.Info
+	if ctxUser, ok := kapi.UserFrom(ctx); ok && ctxUser.GetName() == name {
+		user = ctxUser
+	}
+	if user == nil {
+		retrievedUser, err := s.users.User(name)
+		if err != nil {
+			return nil, err
+		}
+		user = retrievedUser
+	}
+
+	namespaceList, err := s.lister.List(user)
+	if err != nil {
+		return nil, err
+	}
+
+	m := nsregistry.MatchNamespace(listOptions.LabelSelector, listOptions.FieldSelector)
+	list, err := filterList(namespaceList, m, nil)
+	if err != nil {
+		return nil, err
+	}
+	return convertNamespaceList(list.(*kapi.NamespaceList)), nil
+}
+
+func (s *UserREST) New() runtime.Object {
+	return &projectapi.ProjectList{}
+}
+
+func (s *UserREST) NewGetOptions() (runtime.Object, bool, string) {
+	return &kapi.ListOptions{}, false, ""
 }

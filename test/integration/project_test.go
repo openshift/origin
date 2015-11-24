@@ -3,11 +3,19 @@
 package integration
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/client"
+	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -143,4 +151,120 @@ func TestProjectMustExist(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected an error on creation of a Origin resource because namespace does not exist")
 	}
+}
+
+// TestProjectsForUser verifies that projects for users can be retrieved
+func TestProjectsForUser(t *testing.T) {
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := kubeClient.Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: "first"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	adminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	haroldClient, err := testserver.CreateNewProject(adminClient, *clusterAdminClientConfig, "second", "harold")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	addViewer := policy.RoleModificationOptions{
+		RoleName:            bootstrappolicy.ViewRoleName,
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("second", haroldClient),
+		Users:               []string{"valerie"},
+		Groups:              []string{"my-group"},
+	}
+
+	if err := addViewer.AddRole(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+		p, err := adminClient.Projects().List(nil, nil)
+		if err != nil {
+			return false, nil
+		}
+		return projectNames(p).HasAll("first", "second"), nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	testCases := []struct {
+		client  *client.Client
+		user    string
+		expects []string
+		exact   []string
+		errFn   func(err error) bool
+	}{
+		{
+			client:  adminClient,
+			user:    "system:admin",
+			expects: []string{"first", "second"},
+		},
+		{
+			client: adminClient,
+			user:   "harold",
+			exact:  []string{"second"},
+		},
+		{
+			client: adminClient,
+			user:   "valerie",
+			exact:  []string{"second"},
+		},
+		{
+			client: haroldClient,
+			user:   "harold",
+			errFn: func(err error) bool {
+				return errors.IsForbidden(err)
+			},
+		},
+	}
+	for i, test := range testCases {
+		// self
+		err := wait.PollImmediate(100*time.Millisecond, 5*time.Second, func() (bool, error) {
+			results, err := test.client.Projects().ListForUser(test.user, nil, nil)
+			if err != nil {
+				if test.errFn == nil && !test.errFn(err) {
+					return false, fmt.Errorf("unexpected error: %v", err)
+				}
+				return true, nil
+			}
+			actual := projectNames(results)
+			if !actual.HasAll(test.expects...) {
+				t.Logf("%d: unexpected projects: %#v", i, results)
+				return false, nil
+			}
+			if test.exact != nil && !actual.Equal(sets.NewString(test.exact...)) {
+				t.Logf("%d: unexpected projects: %#v", i, results)
+				return false, nil
+			}
+			return true, nil
+		})
+		if err != nil {
+			t.Errorf("%d: failed: %v", i, err)
+		}
+	}
+}
+
+func projectNames(projects *projectapi.ProjectList) sets.String {
+	names := sets.NewString()
+	for _, p := range projects.Items {
+		names.Insert(p.Name)
+	}
+	return names
 }

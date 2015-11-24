@@ -32,6 +32,15 @@ func (c *FakeProjects) List(label labels.Selector, field fields.Selector) (*proj
 	return obj.(*projectapi.ProjectList), err
 }
 
+func (c *FakeProjects) ListForUser(username string, label labels.Selector, field fields.Selector) (result *projectapi.ProjectList, err error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("user-projects", label, field), &projectapi.ProjectList{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*projectapi.ProjectList), err
+}
+
 func (c *FakeProjects) Create(inObj *projectapi.Project) (*projectapi.Project, error) {
 	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("projects", inObj), inObj)
 	if obj == nil {
