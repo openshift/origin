@@ -24,8 +24,15 @@ func DownloaderForSource(s string) (build.Downloader, string, error) {
 	}
 
 	if details.FileExists && mods != nil {
-		glog.V(4).Infof("new path from parse file %s", mods.Path)
-		s = mods.Path
+		glog.V(4).Infof("new source from parse file %s", mods.Path)
+		if details.ProtoSpecified {
+			s = mods.Path
+		} else {
+			// prepending with file:// is a precautionary step which previous incarnations of this code did; we
+			// preserve that behavior (it is more explicit, if not absolutely necessary; but we do it here as was done before
+			// vs. down in our generic git layer (which is leveraged separately in origin)
+			s = "file://" + mods.Path
+		}
 	}
 
 	if details.FileExists && details.UseCopy {

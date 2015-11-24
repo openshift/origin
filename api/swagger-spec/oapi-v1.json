@@ -1637,6 +1637,65 @@
     ]
    },
    {
+    "path": "/oapi/v1/namespaces/{namespace}/builds/{name}/details",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.Build",
+      "method": "PUT",
+      "summary": "replace details of the specified Build",
+      "nickname": "replaceNamespacedBuildDetails",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.Build",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Build",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Build"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/namespaces/{namespace}/builds/{name}/log",
     "description": "OpenShift REST API, version v1",
     "operations": [

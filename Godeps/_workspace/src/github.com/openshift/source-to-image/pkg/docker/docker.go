@@ -115,12 +115,14 @@ type RunContainerOptions struct {
 	PostExec        PostExecutor
 	TargetImage     bool
 	NetworkMode     string
+	User            string
 }
 
 // CommitContainerOptions are options passed in to the CommitContainer method
 type CommitContainerOptions struct {
 	ContainerID string
 	Repository  string
+	User        string
 	Command     []string
 	Env         []string
 	Labels      map[string]string
@@ -174,6 +176,7 @@ func (d *stiDocker) GetImageUser(name string) (string, error) {
 	name = getImageName(name)
 	image, err := d.client.InspectImage(name)
 	if err != nil {
+		glog.V(4).Infof("error inspecting image %s: %v", name, err)
 		return "", errors.NewInspectImageError(name, err)
 	}
 	user := image.ContainerConfig.User
@@ -227,6 +230,7 @@ func (d *stiDocker) CheckImage(name string) (*docker.Image, error) {
 	name = getImageName(name)
 	image, err := d.client.InspectImage(name)
 	if err != nil {
+		glog.V(4).Infof("error inspecting image %s: %v", name, err)
 		return nil, errors.NewInspectImageError(name, err)
 	}
 	return image, nil
@@ -243,6 +247,7 @@ func (d *stiDocker) PullImage(name string) (*docker.Image, error) {
 	}
 	image, err := d.client.InspectImage(name)
 	if err != nil {
+		glog.V(4).Infof("error inspecting image %s: %v", name, err)
 		return nil, errors.NewInspectImageError(name, err)
 	}
 	return image, nil
@@ -263,6 +268,7 @@ func (d *stiDocker) GetLabels(name string) (map[string]string, error) {
 	name = getImageName(name)
 	image, err := d.client.InspectImage(name)
 	if err != nil {
+		glog.V(4).Infof("error inspecting image %s: %v", name, err)
 		return nil, errors.NewInspectImageError(name, err)
 	}
 	return image.Config.Labels, nil
@@ -504,6 +510,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 
 	config := docker.Config{
 		Image: image,
+		User:  opts.User,
 	}
 
 	config, tarDestination := runContainerTar(opts, config, imageMetadata)
@@ -593,6 +600,7 @@ func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error)
 			Cmd:    opts.Command,
 			Env:    opts.Env,
 			Labels: opts.Labels,
+			User:   opts.User,
 		}
 		dockerOpts.Run = &config
 		glog.V(2).Infof("Committing container with config: %+v", config)

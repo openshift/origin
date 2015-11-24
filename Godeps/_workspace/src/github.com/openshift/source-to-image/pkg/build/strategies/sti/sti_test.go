@@ -33,6 +33,7 @@ type FakeSTI struct {
 	FetchSourceCalled      bool
 	FetchSourceError       error
 	ExecuteCommand         string
+	ExecuteUser            string
 	ExecuteError           error
 	ExpectedError          bool
 	LayeredBuildCalled     bool
@@ -111,8 +112,9 @@ func (f *FakeSTI) Download(*api.Config) (*api.SourceInfo, error) {
 	return nil, f.DownloadError
 }
 
-func (f *FakeSTI) Execute(command string, r *api.Config) error {
+func (f *FakeSTI) Execute(command string, user string, r *api.Config) error {
 	f.ExecuteCommand = command
+	f.ExecuteUser = user
 	return f.ExecuteError
 }
 
@@ -716,7 +718,7 @@ func TestExecuteOK(t *testing.T) {
 	fd.RunContainerContainerID = "1234"
 	fd.RunContainerCmd = []string{"one", "two"}
 
-	err := rh.Execute("test-command", rh.config)
+	err := rh.Execute("test-command", "foo", rh.config)
 	if err != nil {
 		t.Errorf("Unexpected error returned: %v", err)
 	}
@@ -738,6 +740,10 @@ func TestExecuteOK(t *testing.T) {
 		t.Errorf("Tar file was opened.")
 	}
 	ro := fd.RunContainerOpts
+
+	if ro.User != "foo" {
+		t.Errorf("Expected user to be foo, got %q", ro.User)
+	}
 
 	if ro.Image != rh.config.BuilderImage {
 		t.Errorf("Unexpected Image passed to RunContainer")
@@ -764,7 +770,7 @@ func TestExecuteOK(t *testing.T) {
 func TestExecuteErrorCreateTarFile(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
 	rh.tar.(*test.FakeTar).CreateTarError = errors.New("CreateTarError")
-	err := rh.Execute("test-command", rh.config)
+	err := rh.Execute("test-command", "", rh.config)
 	if err != nil {
 		t.Errorf("An error was expected for CreateTarFile, but got different: %v", err)
 	}

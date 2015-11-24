@@ -145,7 +145,7 @@ func (b *Layered) Build(config *api.Config) (*api.Result, error) {
 	b.config.ScriptsURL = "image://" + path.Join(getDestination(config), "scripts")
 
 	glog.V(2).Infof("Building %s using sti-enabled image", b.config.Tag)
-	if err := b.scripts.Execute(api.Assemble, b.config); err != nil {
+	if err := b.scripts.Execute(api.Assemble, config.AssembleUser, b.config); err != nil {
 		switch e := err.(type) {
 		case errors.ContainerError:
 			return nil, errors.NewAssembleError(b.config.Tag, e.Output, e)

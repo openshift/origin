@@ -1,10 +1,12 @@
 package util
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -20,6 +22,7 @@ type FileSystem interface {
 	Mkdir(dirname string) error
 	Exists(file string) bool
 	Copy(sourcePath, targetPath string) error
+	CopyContents(sourcePath, targetPath string) error
 	RemoveDirectory(dir string) error
 	CreateWorkingDirectory() (string, error)
 	Open(file string) (io.ReadCloser, error)
@@ -90,8 +93,23 @@ func (h *fs) Copy(sourcePath string, targetPath string) error {
 
 		targetPath = filepath.Join(targetPath, filepath.Base(sourcePath))
 	}
+	// TODO: Use the appropriate command for Windows
 	glog.V(5).Infof("cp -a %s %s", sourcePath, targetPath)
 	return h.runner.Run("cp", "-a", sourcePath, targetPath)
+}
+
+func (h *fs) CopyContents(sourcePath string, targetPath string) error {
+	info, err := os.Stat(sourcePath)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("source path %s is not a directory", sourcePath)
+	}
+	if !strings.HasSuffix(sourcePath, string(filepath.Separator)) {
+		sourcePath += string(filepath.Separator)
+	}
+	return h.Copy(sourcePath, targetPath)
 }
 
 // RemoveDirectory removes the specified directory and all its contents

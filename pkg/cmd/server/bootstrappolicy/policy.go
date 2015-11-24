@@ -235,6 +235,10 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
 					Resources: sets.NewString("imagestreams/layers"),
 				},
+				{
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("builds/details"),
+				},
 			},
 		},
 		{

@@ -158,8 +158,12 @@ func (b *STI) Build(config *api.Config) (*api.Result, error) {
 		}
 	}
 
-	glog.V(1).Infof("Running S2I script in %s", config.Tag)
-	if err := b.scripts.Execute(api.Assemble, config); err != nil {
+	if len(config.AssembleUser) > 0 {
+		glog.V(1).Infof("Running %q in %q as %q user", api.Assemble, config.Tag, config.AssembleUser)
+	} else {
+		glog.V(1).Infof("Running %q in %q", api.Assemble, config.Tag)
+	}
+	if err := b.scripts.Execute(api.Assemble, config.AssembleUser, config); err != nil {
 		switch e := err.(type) {
 		case errors.ContainerError:
 			if !isMissingRequirements(e.Output) {
@@ -198,7 +202,7 @@ func (b *STI) Prepare(config *api.Config) error {
 		}
 	}
 
-	// fetch sources, for theirs .sti/bin might contain sti scripts
+	// fetch sources, for their .sti/bin might contain sti scripts
 	if len(config.Source) > 0 {
 		if b.sourceInfo, err = b.source.Download(config); err != nil {
 			return err
@@ -284,12 +288,19 @@ func (b *STI) PostExecute(containerID, location string) error {
 		glog.Errorf("Unable to read existing labels from current builder image %s", b.config.BuilderImage)
 	}
 
+	buildImageUser, err := b.docker.GetImageUser(b.config.BuilderImage)
+	if err != nil {
+		return err
+	}
+
+	resultLabels := mergeLabels(util.GenerateOutputImageLabels(b.sourceInfo, b.config), existingLabels)
 	opts := dockerpkg.CommitContainerOptions{
 		Command:     append([]string{}, runCmd),
 		Env:         buildEnv,
 		ContainerID: containerID,
 		Repository:  b.config.Tag,
-		Labels:      mergeLabels(util.GenerateOutputImageLabels(b.sourceInfo, b.config), existingLabels),
+		User:        buildImageUser,
+		Labels:      resultLabels,
 	}
 
 	imageID, err := b.docker.CommitContainer(opts)
@@ -315,7 +326,7 @@ func (b *STI) PostExecute(containerID, location string) error {
 
 	if b.config.CallbackURL != "" {
 		b.result.Messages = b.callbackInvoker.ExecuteCallback(b.config.CallbackURL,
-			b.result.Success, b.result.Messages)
+			b.result.Success, resultLabels, b.result.Messages)
 	}
 
 	return nil
@@ -362,8 +373,20 @@ func (b *STI) Save(config *api.Config) (err error) {
 		return b.tar.ExtractTarStream(artifactTmpDir, outReader)
 	}
 
+	user := config.AssembleUser
+	if len(user) == 0 {
+		user, err = b.docker.GetImageUser(image)
+		if err != nil {
+			return err
+		}
+		glog.V(3).Infof("The assemble user is not set, defaulting to %q user", user)
+	} else {
+		glog.V(3).Infof("Using assemble user %q to extract artifacts", user)
+	}
+
 	opts := dockerpkg.RunContainerOptions{
 		Image:           image,
+		User:            user,
 		ExternalScripts: b.externalScripts[api.SaveArtifacts],
 		ScriptsURL:      config.ScriptsURL,
 		Destination:     config.Destination,
@@ -385,7 +408,7 @@ func (b *STI) Save(config *api.Config) (err error) {
 }
 
 // Execute runs the specified STI script in the builder image.
-func (b *STI) Execute(command string, config *api.Config) error {
+func (b *STI) Execute(command string, user string, config *api.Config) error {
 	glog.V(2).Infof("Using image name %s", config.BuilderImage)
 
 	env, err := scripts.GetEnvironment(config)
@@ -420,6 +443,7 @@ func (b *STI) Execute(command string, config *api.Config) error {
 		Destination:     config.Destination,
 		Command:         command,
 		Env:             buildEnv,
+		User:            user,
 		PostExec:        b.postExecutor,
 		NetworkMode:     string(config.DockerNetworkMode),
 	}

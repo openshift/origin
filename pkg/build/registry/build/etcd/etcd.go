@@ -19,8 +19,22 @@ type REST struct {
 	*etcdgeneric.Etcd
 }
 
+type DetailsREST struct {
+	store *etcdgeneric.Etcd
+}
+
+// New returns an empty object that can be used with Update after request data has been put into it.
+func (r *DetailsREST) New() runtime.Object {
+	return r.store.New()
+}
+
+// Update finds a resource in the storage and updates it.
+func (r *DetailsREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, obj)
+}
+
 // NewStorage returns a RESTStorage object that will work against Build objects.
-func NewStorage(s storage.Interface) *REST {
+func NewStorage(s storage.Interface) (buildStorage *REST, detailsStorage *DetailsREST) {
 	store := &etcdgeneric.Etcd{
 		NewFunc:      func() runtime.Object { return &api.Build{} },
 		NewListFunc:  func() runtime.Object { return &api.BuildList{} },
@@ -45,5 +59,10 @@ func NewStorage(s storage.Interface) *REST {
 		Storage:             s,
 	}
 
-	return &REST{store}
+	buildStorage = &REST{store}
+	detailsStore := *store
+	detailsStore.UpdateStrategy = build.DetailsStrategy
+	detailsStorage = &DetailsREST{&detailsStore}
+
+	return
 }

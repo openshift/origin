@@ -71,3 +71,12 @@ func (c *FakeBuilds) Clone(request *buildapi.BuildRequest) (result *buildapi.Bui
 
 	return obj.(*buildapi.Build), err
 }
+
+func (c *FakeBuilds) UpdateDetails(inObj *buildapi.Build) (*buildapi.Build, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("builds/details", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*buildapi.Build), err
+}

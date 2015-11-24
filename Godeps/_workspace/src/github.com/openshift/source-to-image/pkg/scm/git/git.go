@@ -25,6 +25,7 @@ type Git interface {
 	MungeNoProtocolURL(source string, url *url.URL) error
 	Clone(source, target string, opts api.CloneConfig) error
 	Checkout(repo, ref string) error
+	SubmoduleUpdate(repo string, init, recursive bool) error
 	GetInfo(string) *api.SourceInfo
 }
 
@@ -236,7 +237,7 @@ func ParseFile(source string) (details *FileProtoDetails, mods *URLMods) {
 		}
 		mods = &URLMods{
 			Scheme: "file",
-			Path:   "file://" + makePathAbsolute(strings.TrimPrefix(source, "file://")),
+			Path:   makePathAbsolute(strings.TrimPrefix(source, "file://")),
 		}
 		return
 	}
@@ -279,7 +280,7 @@ func ParseFile(source string) (details *FileProtoDetails, mods *URLMods) {
 		}
 		mods = &URLMods{
 			Scheme: "file",
-			Path:   "file://" + makePathAbsolute(strings.TrimPrefix(source, "file://")),
+			Path:   makePathAbsolute(strings.TrimPrefix(source, "file://")),
 			Ref:    ref,
 		}
 		return
@@ -423,6 +424,35 @@ func (h *stiGit) Checkout(repo, ref string) error {
 	return h.runner.RunWithOptions(opts, "git", "checkout", ref)
 }
 
+// SubmoduleInit initializes/clones submodules
+func (h *stiGit) SubmoduleInit(repo string) error {
+	opts := util.CommandOpts{
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+		Dir:    repo,
+	}
+	return h.runner.RunWithOptions(opts, "git", "submodule", "init")
+}
+
+// SubmoduleUpdate checks out submodules to their correct version.
+// Optionally also inits submodules, optionally operates recursively.
+func (h *stiGit) SubmoduleUpdate(repo string, init, recursive bool) error {
+	updateArgs := []string{"submodule", "update"}
+	if init {
+		updateArgs = append(updateArgs, "--init")
+	}
+	if recursive {
+		updateArgs = append(updateArgs, "--recursive")
+	}
+
+	opts := util.CommandOpts{
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+		Dir:    repo,
+	}
+	return h.runner.RunWithOptions(opts, "git", updateArgs...)
+}
+
 // GetInfo retrieves the informations about the source code and commit
 func (h *stiGit) GetInfo(repo string) *api.SourceInfo {
 	git := func(arg ...string) string {
@@ -436,12 +466,15 @@ func (h *stiGit) GetInfo(repo string) *api.SourceInfo {
 		return strings.TrimSpace(string(out))
 	}
 	return &api.SourceInfo{
-		Location: git("config", "--get", "remote.origin.url"),
-		Ref:      git("rev-parse", "--abbrev-ref", "HEAD"),
-		CommitID: git("rev-parse", "--verify", "HEAD"),
-		Author:   git("--no-pager", "show", "-s", "--format=%an <%ae>", "HEAD"),
-		Date:     git("--no-pager", "show", "-s", "--format=%ad", "HEAD"),
-		Message:  git("--no-pager", "show", "-s", "--format=%<(80,trunc)%s", "HEAD"),
+		Location:       git("config", "--get", "remote.origin.url"),
+		Ref:            git("rev-parse", "--abbrev-ref", "HEAD"),
+		CommitID:       git("rev-parse", "--verify", "HEAD"),
+		AuthorName:     git("--no-pager", "show", "-s", "--format=%an", "HEAD"),
+		AuthorEmail:    git("--no-pager", "show", "-s", "--format=%ae", "HEAD"),
+		CommitterName:  git("--no-pager", "show", "-s", "--format=%cn", "HEAD"),
+		CommitterEmail: git("--no-pager", "show", "-s", "--format=%ce", "HEAD"),
+		Date:           git("--no-pager", "show", "-s", "--format=%ad", "HEAD"),
+		Message:        git("--no-pager", "show", "-s", "--format=%<(80,trunc)%s", "HEAD"),
 	}
 }
 
