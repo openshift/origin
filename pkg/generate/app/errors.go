@@ -52,4 +52,4 @@ The argument %[1]q could apply to the following Docker images or OpenShift image
 
 // ErrNameRequired is the error returned by new-app when a name cannot be
 // suggested and the user needs to provide one explicitly.
-var ErrNameRequired = fmt.Errorf("you must specify a name for your app with --name")
+var ErrNameRequired = fmt.Errorf("you must specify a name for your app")

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -15,34 +16,69 @@ import (
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
 	route "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
-// Pipeline holds components.
-type Pipeline struct {
-	From string
-
-	InputImage *ImageRef
-	Build      *BuildRef
-	Image      *ImageRef
-	Deployment *DeploymentConfigRef
-	Labels     map[string]string
+// A PipelineBuilder creates Pipeline instances.
+type PipelineBuilder interface {
+	NewBuildPipeline(string, *ComponentMatch, *SourceRepository) (*Pipeline, error)
+	NewImagePipeline(string, *ComponentMatch) (*Pipeline, error)
 }
 
-// NewImagePipeline creates a new pipeline with components that are not expected
-// to be built.
-func NewImagePipeline(from string, image *ImageRef) (*Pipeline, error) {
-	return &Pipeline{
-		From:  from,
-		Image: image,
-	}, nil
+// NewPipelineBuilder returns a PipelineBuilder using name as a base name. A
+// PipelineBuilder always creates pipelines with unique names, so that the
+// actual name of a pipeline (Pipeline.Name) might differ from the base name.
+// The pipelines created with a PipelineBuilder will have access to the given
+// environment. The boolean outputDocker controls whether builds will output to
+// an image stream tag or docker image reference.
+func NewPipelineBuilder(name string, environment Environment, outputDocker bool) PipelineBuilder {
+	return &pipelineBuilder{NewUniqueNameGenerator(name), environment, outputDocker}
+}
+
+type pipelineBuilder struct {
+	nameGenerator UniqueNameGenerator
+	environment   Environment
+	outputDocker  bool
 }
 
 // NewBuildPipeline creates a new pipeline with components that are expected to
 // be built.
-func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy *BuildStrategyRef, env Environment, source *SourceRef) (*Pipeline, error) {
-	name, ok := NameSuggestions{source, input}.SuggestName()
-	if !ok {
-		return nil, ErrNameRequired
+func (pb *pipelineBuilder) NewBuildPipeline(from string, resolvedMatch *ComponentMatch, sourceRepository *SourceRepository) (*Pipeline, error) {
+	input, err := InputImageFromMatch(resolvedMatch)
+	if err != nil {
+		return nil, fmt.Errorf("can't build %q: %v", from, err)
+	}
+	if !input.AsImageStream {
+		msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed."
+		glog.Warningf(msg, resolvedMatch.Value)
+	}
+
+	strategy, source, err := StrategyAndSourceForRepository(sourceRepository, input)
+	if err != nil {
+		return nil, fmt.Errorf("can't build %q: %v", from, err)
+	}
+
+	name, err := pb.nameGenerator.Generate(NameSuggestions{source, input})
+	if err != nil {
+		return nil, err
+	}
+	source.Name = name
+
+	// Append any exposed ports from Dockerfile to input image
+	if sourceRepository.IsDockerBuild() && sourceRepository.Info() != nil {
+		node := sourceRepository.Info().Dockerfile.AST()
+		ports := dockerfile.LastExposedPorts(node)
+		if len(ports) > 0 {
+			if input.Info == nil {
+				input.Info = &image.DockerImage{
+					Config: &image.DockerConfig{},
+				}
+			}
+			input.Info.Config.ExposedPorts = map[string]struct{}{}
+			for _, p := range ports {
+				input.Info.Config.ExposedPorts[p] = struct{}{}
+			}
+		}
 	}
 
 	output := &ImageRef{
@@ -51,7 +87,7 @@ func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy 
 			Tag:  image.DefaultImageTag,
 		},
 		OutputImage:   true,
-		AsImageStream: !outputDocker,
+		AsImageStream: !pb.outputDocker,
 	}
 	if input != nil {
 		// TODO: assumes that build doesn't change the image metadata. In the future
@@ -64,10 +100,11 @@ func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy 
 		Input:    input,
 		Strategy: strategy,
 		Output:   output,
-		Env:      env,
+		Env:      pb.environment,
 	}
 
 	return &Pipeline{
+		Name:       name,
 		From:       from,
 		InputImage: input,
 		Image:      output,
@@ -75,13 +112,46 @@ func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy 
 	}, nil
 }
 
+// NewImagePipeline creates a new pipeline with components that are not expected
+// to be built.
+func (pb *pipelineBuilder) NewImagePipeline(from string, resolvedMatch *ComponentMatch) (*Pipeline, error) {
+	input, err := InputImageFromMatch(resolvedMatch)
+	if err != nil {
+		return nil, fmt.Errorf("can't include %q: %v", from, err)
+	}
+
+	name, err := pb.nameGenerator.Generate(input)
+	if err != nil {
+		return nil, err
+	}
+	input.ObjectName = name
+
+	return &Pipeline{
+		Name:  name,
+		From:  from,
+		Image: input,
+	}, nil
+}
+
+// Pipeline holds components.
+type Pipeline struct {
+	Name string
+	From string
+
+	InputImage *ImageRef
+	Build      *BuildRef
+	Image      *ImageRef
+	Deployment *DeploymentConfigRef
+	Labels     map[string]string
+}
+
 // NeedsDeployment sets the pipeline for deployment.
-func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, name string) error {
+func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string) error {
 	if p.Deployment != nil {
 		return nil
 	}
 	p.Deployment = &DeploymentConfigRef{
-		Name: name,
+		Name: p.Name,
 		Images: []*ImageRef{
 			p.Image,
 		},
