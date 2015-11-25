@@ -266,6 +266,7 @@ func getMarkerScanners() []osgraph.MarkerScanner {
 		buildanalysis.FindCircularBuilds,
 		deployanalysis.FindDeploymentConfigTriggerErrors,
 		routeanalysis.FindMissingPortMapping,
+		routeanalysis.FindMissingTLSTerminationType,
 	}
 }
 

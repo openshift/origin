@@ -17,6 +17,9 @@ const (
 	MissingRoutePortWarning = "MissingRoutePort"
 	// MissingServiceWarning is returned when there is no service for the specific route.
 	MissingServiceWarning = "MissingService"
+	// MissingTLSTerminationTypeWarning is returned when a route with a tls config doesn't
+	// specify a tls termination type.
+	MissingTLSTerminationTypeWarning = "MissingTLSTermination"
 )
 
 // FindMissingPortMapping checks all routes and reports those that don't specify a port while
@@ -58,6 +61,25 @@ route:
 
 				continue route
 			}
+		}
+	}
+
+	return markers
+}
+
+func FindMissingTLSTerminationType(g osgraph.Graph) []osgraph.Marker {
+	markers := []osgraph.Marker{}
+
+	for _, uncastRouteNode := range g.NodesByKind(routegraph.RouteNodeKind) {
+		routeNode := uncastRouteNode.(*routegraph.RouteNode)
+
+		if routeNode.Spec.TLS != nil && len(routeNode.Spec.TLS.Termination) == 0 {
+			markers = append(markers, osgraph.Marker{
+				Node: routeNode,
+
+				Severity: osgraph.WarningSeverity,
+				Key:      MissingTLSTerminationTypeWarning,
+				Message:  fmt.Sprintf("%s has a tls configuration but no termination type specified.", routeNode.ResourceString())})
 		}
 	}
 
