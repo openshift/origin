@@ -3,6 +3,8 @@ package app
 import (
 	"bytes"
 	"fmt"
+
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // ErrNoMatch is the error returned by new-app when no match is found for a
@@ -53,3 +55,13 @@ The argument %[1]q could apply to the following Docker images or OpenShift image
 // ErrNameRequired is the error returned by new-app when a name cannot be
 // suggested and the user needs to provide one explicitly.
 var ErrNameRequired = fmt.Errorf("you must specify a name for your app")
+
+// CircularOutputReferenceError is the error returned by new-app when the input
+// and output image stream tags are identical.
+type CircularOutputReferenceError struct {
+	Reference imageapi.DockerImageReference
+}
+
+func (e CircularOutputReferenceError) Error() string {
+	return fmt.Sprintf("the input and output image stream tags are identical (%q)", e.Reference.DockerClientDefaults())
+}

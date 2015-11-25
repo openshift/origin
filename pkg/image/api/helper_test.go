@@ -1011,3 +1011,82 @@ func TestResolveImageID(t *testing.T) {
 		}
 	}
 }
+
+func TestDockerImageReferenceEquality(t *testing.T) {
+	equalityTests := []struct {
+		a, b    DockerImageReference
+		isEqual bool
+	}{
+		{
+			a:       DockerImageReference{},
+			b:       DockerImageReference{},
+			isEqual: true,
+		},
+		{
+			a: DockerImageReference{
+				Name: "openshift",
+			},
+			b: DockerImageReference{
+				Name: "openshift",
+			},
+			isEqual: true,
+		},
+		{
+			a: DockerImageReference{
+				Name: "openshift",
+			},
+			b: DockerImageReference{
+				Name: "openshift3",
+			},
+			isEqual: false,
+		},
+		{
+			a: DockerImageReference{
+				Name: "openshift",
+			},
+			b: DockerImageReference{
+				Registry:  DockerDefaultRegistry,
+				Namespace: DockerDefaultNamespace,
+				Name:      "openshift",
+				Tag:       DefaultImageTag,
+			},
+			isEqual: true,
+		},
+		{
+			a: DockerImageReference{
+				Name: "openshift",
+			},
+			b: DockerImageReference{
+				Registry:  DockerDefaultRegistry,
+				Namespace: DockerDefaultNamespace,
+				Name:      "openshift",
+				Tag:       "v1.0",
+			},
+			isEqual: false,
+		},
+		{
+			a: DockerImageReference{
+				Name: "openshift",
+			},
+			b: DockerImageReference{
+				Registry:  DockerDefaultRegistry,
+				Namespace: DockerDefaultNamespace,
+				Name:      "openshift",
+				Tag:       DefaultImageTag,
+				ID:        "d0a28ab59a",
+			},
+			isEqual: false,
+		},
+	}
+	for i, test := range equalityTests {
+		if isEqual := test.a.Equal(test.b); isEqual != test.isEqual {
+			t.Errorf("test %d: %#v.Equal(%#v) = %t; want %t",
+				i, test.a, test.b, isEqual, test.isEqual)
+		}
+		// commutativeness sanity check
+		if x, y := test.a.Equal(test.b), test.b.Equal(test.a); x != y {
+			t.Errorf("test %[1]d: %[2]q.Equal(%[3]q) = %[4]t != %[3]q.Equal(%[2]q) = %[5]t",
+				i, test.a, test.b, x, y)
+		}
+	}
+}

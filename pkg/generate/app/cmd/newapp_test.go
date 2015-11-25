@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -996,6 +997,7 @@ func TestRunBuilds(t *testing.T) {
 		expected    map[string][]string
 		expectedErr func(error) bool
 		checkResult func(*AppResult) error
+		checkOutput func(stdout, stderr io.Reader) error
 	}{
 		{
 			name: "successful ruby app generation",
@@ -1252,6 +1254,53 @@ func TestRunBuilds(t *testing.T) {
 			},
 		},
 		{
+			name: "successful build from dockerfile with identical input and output image references with warning",
+			config: &AppConfig{
+				Dockerfile: "FROM centos\nRUN yum install -y httpd",
+				To:         "centos",
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"centos"},
+				"imageStream": {"centos"},
+			},
+			checkOutput: func(stdout, stderr io.Reader) error {
+				got, err := ioutil.ReadAll(stderr)
+				if err != nil {
+					return err
+				}
+				want := "--> WARNING: the input and output image stream tags are identical (\"docker.io/library/centos:latest\")\n"
+				if string(got) != want {
+					return fmt.Errorf("stderr: got %q; want %q", got, want)
+				}
+				return nil
+			},
+		},
+		{
 			name: "unsuccessful build from dockerfile due to strategy conflict",
 			config: &AppConfig{
 				Dockerfile: "FROM openshift/origin-base\nUSER foo",
@@ -1279,11 +1328,51 @@ func TestRunBuilds(t *testing.T) {
 				return err.Error() == "the Dockerfile in the repository \"\" has no FROM instruction"
 			},
 		},
+		{
+			name: "unsuccessful build from dockerfile due to identical input and output image references",
+			config: &AppConfig{
+				Dockerfile: "FROM centos\nRUN yum install -y httpd",
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expectedErr: func(err error) bool {
+				e := app.CircularOutputReferenceError{
+					Reference: imageapi.DockerImageReference{
+						Name: "centos",
+					}.DockerClientDefaults(),
+				}
+				return err.Error() == fmt.Errorf("%v, please specify a different output reference with --to", e).Error()
+			},
+		},
 	}
 
 	for _, test := range tests {
+		var stdout, stderr bytes.Buffer
 		test.config.refBuilder = &app.ReferenceBuilder{}
-		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
+		test.config.Out, test.config.ErrOut = &stdout, &stderr
 		test.config.ExpectToBuild = true
 		res, err := test.config.Run()
 		if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
@@ -1292,6 +1381,12 @@ func TestRunBuilds(t *testing.T) {
 		}
 		if err != nil {
 			continue
+		}
+		if test.checkOutput != nil {
+			if err := test.checkOutput(&stdout, &stderr); err != nil {
+				t.Error(err)
+				continue
+			}
 		}
 		got := map[string][]string{}
 		for _, obj := range res.List.Items {

@@ -97,7 +97,7 @@ os::cmd::expect_success 'oc delete all -l app=ruby'
 
 # check new-build
 os::cmd::expect_failure_and_text 'oc new-build mysql -o yaml' 'you must specify at least one source repository URL'
-os::cmd::expect_success_and_text 'oc new-build mysql --binary -o yaml' 'type: Binary'
+os::cmd::expect_success_and_text 'oc new-build mysql --binary -o yaml --to mysql:bin' 'type: Binary'
 os::cmd::expect_success_and_text 'oc new-build mysql https://github.com/openshift/ruby-hello-world --strategy=docker -o yaml' 'type: Docker'
 os::cmd::expect_failure_and_text 'oc new-build mysql https://github.com/openshift/ruby-hello-world --binary' 'specifying binary builds and source repositories at the same time is not allowed'
 

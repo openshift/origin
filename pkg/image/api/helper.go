@@ -106,6 +106,15 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 	return ref, nil
 }
 
+// Equal returns true if the other DockerImageReference is equivalent to the
+// reference r. The comparison applies defaults to the Docker image reference,
+// so that e.g., "foobar" equals "docker.io/library/foobar:latest".
+func (r DockerImageReference) Equal(other DockerImageReference) bool {
+	defaultedRef := r.DockerClientDefaults()
+	otherDefaultedRef := other.DockerClientDefaults()
+	return defaultedRef == otherDefaultedRef
+}
+
 // DockerClientDefaults sets the default values used by the Docker client.
 func (r DockerImageReference) DockerClientDefaults() DockerImageReference {
 	if len(r.Namespace) == 0 {
