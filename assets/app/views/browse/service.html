@@ -1,4 +1,4 @@
-<div ng-controller="ServiceController" class="content">
+<div class="content">
   <project-page>
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
@@ -9,11 +9,11 @@
           <div class="tile">
             <h1>
               {{service.metadata.name}}
-              <delete-button 
+              <delete-button
                 class="pull-right fa-lg"
-                resource-type="service" 
-                resource-name="{{service.metadata.name}}" 
-                project-name="{{service.metadata.namespace}}" 
+                resource-type="service"
+                resource-name="{{service.metadata.name}}"
+                project-name="{{service.metadata.namespace}}"
                 alerts="alerts">
               </delete-button>
               <small class="meta">created <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></small>
@@ -79,7 +79,7 @@
                   </span>
                 </dd>
               </dl>
-              <annotations annotations="service.metadata.annotations"></annotations>            
+              <annotations annotations="service.metadata.annotations"></annotations>
             </div>
           </div> <!-- /tile -->
         </div> <!-- /col -->

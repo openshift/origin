@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .factory('project', [
+  .factory('ProjectsService', [
     '$location',
     '$q',
     '$routeParams',
@@ -13,17 +13,22 @@ angular.module('openshiftConsole')
           return  AuthService
                     .withUser()
                     .then(function() {
+                      // basic compatibility w/previous impl with a controller
                       var context = {
                         // TODO: swap $.Deferred() for $q.defer()
+                        projectPromise: $.Deferred(),
                         projectName: projectName,
-                        projectPromise: $.Deferred()
+                        project: undefined
                       };
                       return DataService
-                              .get('projects', context.projectName, context, {errorNotification: false})
+                              .get('projects', projectName, context, {errorNotification: false})
                               .then(function(project) {
+                                context.project = project;
+                                // backwards compat
                                 context.projectPromise.resolve(project);
                                 // TODO: ideally would just return project, but DataService expects
-                                // context.projectPromise as a separate Deferred at this point.
+                                // context.projectPromise as a separate Deferred at this point
+                                // and ties mutliple requests together via this obj
                                 return [project, context];
                               }, function(e) {
                                 context.projectPromise.reject(e);
@@ -50,7 +55,6 @@ angular.module('openshiftConsole')
         };
     }
   ]);
-
 
 
 

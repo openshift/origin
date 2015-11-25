@@ -69,7 +69,7 @@ angular.module('openshiftConsole')
       $scope.unfilteredBuildConfigs = buildConfigs.by("metadata.name");
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredBuildConfigs, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-      $scope.buildConfigs = LabelFilter.getLabelSelector().select($scope.unfilteredBuildConfigs);      
+      $scope.buildConfigs = LabelFilter.getLabelSelector().select($scope.unfilteredBuildConfigs);
       associateBuildsToBuildConfig();
       updateFilterWarning();
       Logger.log("buildconfigs (subscribe)", $scope.buildConfigs);
@@ -130,15 +130,15 @@ angular.module('openshiftConsole')
     }
 
     $scope.startBuild = function(buildConfigName) {
-      BuildsService.startBuild(buildConfigName, $scope);
+      BuildsService.startBuild(buildConfigName, $scope, $scope); // FIXME
     };
 
     $scope.cancelBuild = function(build, buildConfigName) {
-      BuildsService.cancelBuild(build, buildConfigName, $scope);
+      BuildsService.cancelBuild(build, buildConfigName, $scope, $scope); // FIXME
     };
 
     $scope.cloneBuild = function(buildName) {
-      BuildsService.cloneBuild(buildName, $scope);
+      BuildsService.cloneBuild(buildName, $scope, $scope); // FIXME
     };
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {

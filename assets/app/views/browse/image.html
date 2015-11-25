@@ -1,4 +1,4 @@
-<div ng-controller="ImageController" class="content">
+<div class="content">
   <project-page>
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
@@ -6,11 +6,11 @@
     <div class="tile" ng-if="imageStream">
       <h1>
         {{imageStream.metadata.name}}
-        <delete-button 
+        <delete-button
           class="pull-right fa-lg"
-          resource-type="imagestream" 
-          resource-name="{{imageStream.metadata.name}}" 
-          project-name="{{imageStream.metadata.namespace}}" 
+          resource-type="imagestream"
+          resource-name="{{imageStream.metadata.name}}"
+          project-name="{{imageStream.metadata.namespace}}"
           alerts="alerts">
         </delete-button>
         <small class="meta">created <relative-timestamp timestamp="imageStream.metadata.creationTimestamp"></relative-timestamp></small>
@@ -41,7 +41,7 @@
           <tr ng-repeat-start="tag in tagsByName | orderBy : 'name'">
             <td>{{tag.name}}</td>
             <td>
-              <!-- this value can get long when its an ImageStreamImage. Use max width and class truncate to elide some 
+              <!-- this value can get long when its an ImageStreamImage. Use max width and class truncate to elide some
                    of the SHA1 for long values. They can still be copied even when elided. -->
               <div style="max-width: 400px;" class="truncate">
                 <span ng-if="!tag.spec.from"><em>pushed</em></span>
@@ -64,7 +64,7 @@
                   <span ng-if="!tag.spec.from">Not yet synced</span>
                   <!-- We have no idea why in this case -->
                   <span ng-if="tag.spec.from">Unresolved</span>
-                </div>              
+                </div>
               </div>
               <div ng-if="tag.status">
                 <span ng-if="tag.status.items.length && tag.status.items[0].image">
@@ -85,7 +85,7 @@
               <div ng-if="tag.status.items.length && tag.status.items[0].dockerImageReference" style="max-width: 400px;" class="truncate"
                      ng-attr-title="{{tag.items[0].dockerImageReference}}">
                  {{tag.status.items[0].dockerImageReference}}
-              </div>              
+              </div>
             </td>
           </tr>
           <tr ng-repeat="item in tag.status.items" ng-if="tagShowOlder[tag.name] && !$first && item.image">
@@ -101,7 +101,7 @@
               <div ng-if="item.dockerImageReference" style="max-width: 400px;" class="truncate"
                      ng-attr-title="{{item.dockerImageReference}}">
                  {{item.dockerImageReference}}
-              </div>              
+              </div>
             </td>
           </tr>
           <tr ng-repeat-end style="display: none;"></tr>

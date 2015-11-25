@@ -5,7 +5,7 @@ angular.module("openshiftConsole")
     function BuildsService() {}
 
     // Function which will 'instantiate' new build from given buildConfigName
-    BuildsService.prototype.startBuild = function(buildConfigName, $scope) {
+    BuildsService.prototype.startBuild = function(buildConfigName, context, $scope) {
       var req = {
         kind: "BuildRequest",
         apiVersion: "v1",
@@ -13,10 +13,10 @@ angular.module("openshiftConsole")
           name: buildConfigName
         }
       };
-      DataService.create("buildconfigs/instantiate", buildConfigName, req, $scope).then(
+      DataService.create("buildconfigs/instantiate", buildConfigName, req, context).then(
         function(build) { //success
             $scope.alerts = $scope.alerts || {};
-            $scope.alerts["create"] = 
+            $scope.alerts["create"] =
               {
                 type: "success",
                 message: "Build " + build.metadata.name + " has started.",
@@ -25,7 +25,7 @@ angular.module("openshiftConsole")
         },
         function(result) { //failure
           $scope.alerts = $scope.alerts || {};
-          $scope.alerts["create"] = 
+          $scope.alerts["create"] =
             {
               type: "error",
               message: "An error occurred while starting the build.",
@@ -35,13 +35,13 @@ angular.module("openshiftConsole")
       );
     };
 
-    BuildsService.prototype.cancelBuild = function(build, buildConfigName, $scope) {
+    BuildsService.prototype.cancelBuild = function(build, buildConfigName, context, $scope) {
       var canceledBuild = angular.copy(build);
       canceledBuild.status.cancelled = true;
-      DataService.update("builds", canceledBuild.metadata.name, canceledBuild, $scope).then(
+      DataService.update("builds", canceledBuild.metadata.name, canceledBuild, context).then(
         function() {
           $scope.alerts = $scope.alerts || {};
-          $scope.alerts["cancel"] = 
+          $scope.alerts["cancel"] =
             {
               type: "success",
               message: "Cancelling build " + build.metadata.name + " of " + buildConfigName + "."
@@ -49,7 +49,7 @@ angular.module("openshiftConsole")
         },
         function(result) {
           $scope.alerts = $scope.alerts || {};
-          $scope.alerts["cancel"] = 
+          $scope.alerts["cancel"] =
             {
               type: "error",
               message: "An error occurred cancelling the build.",
@@ -60,7 +60,7 @@ angular.module("openshiftConsole")
     };
 
     // Function which will 'clone' build from given buildName
-    BuildsService.prototype.cloneBuild = function(buildName, $scope) {
+    BuildsService.prototype.cloneBuild = function(buildName, context, $scope) {
       var req = {
         kind: "BuildRequest",
         apiVersion: "v1",
@@ -68,10 +68,10 @@ angular.module("openshiftConsole")
           name: buildName
         }
       };
-      DataService.create("builds/clone", buildName, req, $scope).then(
+      DataService.create("builds/clone", buildName, req, context).then(
         function(build) { //success
             $scope.alerts = $scope.alerts || {};
-            $scope.alerts["rebuild"] = 
+            $scope.alerts["rebuild"] =
             {
               type: "success",
               message: "Build " + buildName + " is being rebuilt as " + build.metadata.name + ".",
@@ -80,7 +80,7 @@ angular.module("openshiftConsole")
         },
         function(result) { //failure
           $scope.alerts = $scope.alerts || {};
-          $scope.alerts["rebuild"] = 
+          $scope.alerts["rebuild"] =
             {
               type: "error",
               message: "An error occurred while rerunning the build.",
@@ -101,6 +101,6 @@ angular.module("openshiftConsole")
       });
       return buildConfigBuildsInProgress;
     };
-    
+
     return new BuildsService();
   });
