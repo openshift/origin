@@ -114,6 +114,8 @@ fi
 
 if os::cmd::expect_code_and_not_text 'echo "goodbye" && exit 0' '1' 'hello'; then
 	exit 1
+
+exit 1
 fi
 
 if os::cmd::expect_code_and_not_text 'echo "hello" && exit 1' '1' 'hello'; then
