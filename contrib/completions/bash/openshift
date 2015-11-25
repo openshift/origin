@@ -14025,9 +14025,12 @@ _openshift_ex_diagnostics()
     flags+=("--diagnostics=")
     two_word_flags+=("-d")
     flags+=("--host")
+    flags+=("--images=")
+    flags+=("--latest-images")
     flags+=("--loglevel=")
     flags+=("--master-config=")
     flags+=("--node-config=")
+    flags+=("--prevent-modification")
     flags+=("--alsologtostderr")
     flags+=("--api-version=")
     flags+=("--boot-id-file=")
@@ -14665,6 +14668,27 @@ _openshift_infra_docker-build()
     must_have_one_noun=()
 }
 
+_openshift_infra_diagnostic-pod()
+{
+    last_command="openshift_infra_diagnostic-pod"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--diaglevel=")
+    two_word_flags+=("-l")
+    flags+=("--diagnostics=")
+    two_word_flags+=("-d")
+    flags+=("--google-json-key=")
+    flags+=("--log-flush-frequency=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_infra()
 {
     last_command="openshift_infra"
@@ -14674,6 +14698,7 @@ _openshift_infra()
     commands+=("deploy")
     commands+=("sti-build")
     commands+=("docker-build")
+    commands+=("diagnostic-pod")
 
     flags=()
     two_word_flags=()

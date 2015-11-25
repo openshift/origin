@@ -154,24 +154,25 @@ var (
 	invalidCertNameRx = regexp.MustCompile("x509: certificate is valid for (\\S+, )+not (\\S+)")
 )
 
+// Name is part of the Diagnostic interface and just returns name.
 func (d ConfigContext) Name() string {
 	return fmt.Sprintf("%s[%s]", ConfigContextsName, d.ContextName)
 }
 
+// Description is part of the Diagnostic interface and provides a user-focused description of what the diagnostic does.
 func (d ConfigContext) Description() string {
 	return "Validate client config context is complete and has connectivity"
 }
 
+// CanRun is part of the Diagnostic interface; it determines if the conditions are right to run this diagnostic.
 func (d ConfigContext) CanRun() (bool, error) {
 	if d.RawConfig == nil {
 		// TODO make prettier?
 		return false, errors.New("There is no client config file")
 	}
-
 	if len(d.ContextName) == 0 {
 		return false, errors.New("There is no current context")
 	}
-
 	return true, nil
 }
 

@@ -124,6 +124,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		deployer.NewCommandDeployer("deploy"),
 		builder.NewCommandSTIBuilder("sti-build"),
 		builder.NewCommandDockerBuilder("docker-build"),
+		diagnostics.NewCommandPodDiagnostics("diagnostic-pod", out),
 	)
 	root.AddCommand(infra)
 

@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/experimental/diagnostics/options"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
@@ -34,6 +35,10 @@ type DiagnosticsOptions struct {
 	ClientClusterContext string
 	// indicate this is an openshift host despite lack of other indicators
 	IsHost bool
+	// specify the image template to use for DiagnosticPod
+	ImageTemplate variable.ImageTemplate
+	// When true, prevent diagnostics from changing API state (e.g. creating something)
+	PreventModification bool
 	// We need a factory for creating clients. Creating a factory
 	// creates flags as a byproduct, most of which we don't want.
 	// The command creates these and binds only the flags we want.
@@ -85,6 +90,7 @@ func NewCommandDiagnostics(name string, fullName string, out io.Writer) *cobra.C
 	o := &DiagnosticsOptions{
 		RequestedDiagnostics: []string{},
 		LogOptions:           &log.LoggerOptions{Out: out},
+		ImageTemplate:        variable.NewDefaultImageTemplate(),
 	}
 
 	cmd := &cobra.Command{
@@ -110,10 +116,13 @@ func NewCommandDiagnostics(name string, fullName string, out io.Writer) *cobra.C
 	o.Factory = osclientcmd.New(o.ClientFlags)                      // that would otherwise be added to this command
 	cmd.Flags().AddFlag(o.ClientFlags.Lookup(config.OpenShiftConfigFlagName))
 	cmd.Flags().AddFlag(o.ClientFlags.Lookup("context")) // TODO: find k8s constant
-	cmd.Flags().StringVar(&o.ClientClusterContext, options.FlagClusterContextName, "", "client context to use for cluster administrator")
-	cmd.Flags().StringVar(&o.MasterConfigLocation, options.FlagMasterConfigName, "", "path to master config file (implies --host)")
-	cmd.Flags().StringVar(&o.NodeConfigLocation, options.FlagNodeConfigName, "", "path to node config file (implies --host)")
-	cmd.Flags().BoolVar(&o.IsHost, options.FlagIsHostName, false, "look for systemd and journald units even without master/node config")
+	cmd.Flags().StringVar(&o.ClientClusterContext, options.FlagClusterContextName, "", "Client context to use for cluster administrator")
+	cmd.Flags().StringVar(&o.MasterConfigLocation, options.FlagMasterConfigName, "", "Path to master config file (implies --host)")
+	cmd.Flags().StringVar(&o.NodeConfigLocation, options.FlagNodeConfigName, "", "Path to node config file (implies --host)")
+	cmd.Flags().BoolVar(&o.IsHost, options.FlagIsHostName, false, "Look for systemd and journald units even without master/node config")
+	cmd.Flags().StringVar(&o.ImageTemplate.Format, options.FlagImageTemplateName, o.ImageTemplate.Format, "Image template for DiagnosticPod to use in creating a pod")
+	cmd.Flags().BoolVar(&o.ImageTemplate.Latest, options.FlagLatestImageName, false, "When expanding the image template, use latest version, not release version")
+	cmd.Flags().BoolVar(&o.PreventModification, options.FlagPreventModificationName, false, "May be set to prevent diagnostics making any changes via the API")
 	flagtypes.GLog(cmd.Flags())
 	options.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, options.RecommendedLoggerOptionFlags())
 	options.BindDiagnosticFlag(cmd.Flags(), &o.RequestedDiagnostics, options.NewRecommendedDiagnosticFlag())

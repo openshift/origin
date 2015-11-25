@@ -21,8 +21,9 @@ import (
 
 // ClusterRegistry is a Diagnostic to check that there is a working Docker registry.
 type ClusterRegistry struct {
-	KubeClient *kclient.Client
-	OsClient   *osclient.Client
+	KubeClient          *kclient.Client
+	OsClient            *osclient.Client
+	PreventModification bool
 }
 
 const (
@@ -292,6 +293,10 @@ func (d *ClusterRegistry) checkRegistryEndpoints(pods []*kapi.Pod, r types.Diagn
 }
 
 func (d *ClusterRegistry) verifyRegistryImageStream(service *kapi.Service, r types.DiagnosticResult) {
+	if d.PreventModification {
+		r.Info("DClu1021", "Skipping creating an ImageStream to test registry service address, because you requested no API modifications.")
+		return
+	}
 	imgStream, err := d.OsClient.ImageStreams(kapi.NamespaceDefault).Create(&osapi.ImageStream{ObjectMeta: kapi.ObjectMeta{GenerateName: "diagnostic-test"}})
 	if err != nil {
 		r.Error("DClu1015", err, fmt.Sprintf("Creating test ImageStream failed. Error: (%T) %[1]v", err))
