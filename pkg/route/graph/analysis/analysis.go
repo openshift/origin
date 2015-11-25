@@ -7,6 +7,7 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 	routeedges "github.com/openshift/origin/pkg/route/graph"
 	routegraph "github.com/openshift/origin/pkg/route/graph/nodes"
 )
@@ -20,6 +21,9 @@ const (
 	// MissingTLSTerminationTypeErr is returned when a route with a tls config doesn't
 	// specify a tls termination type.
 	MissingTLSTerminationTypeErr = "MissingTLSTermination"
+	// PathBasedPassthroughErr is returned when a path based route is passthrough
+	// terminated.
+	PathBasedPassthroughErr = "PathBasedPassthrough"
 )
 
 // FindMissingPortMapping checks all routes and reports those that don't specify a port while
@@ -81,6 +85,27 @@ func FindMissingTLSTerminationType(g osgraph.Graph, f osgraph.Namer) []osgraph.M
 				Key:        MissingTLSTerminationTypeErr,
 				Message:    fmt.Sprintf("%s has a TLS configuration but no termination type specified.", f.ResourceName(routeNode)),
 				Suggestion: osgraph.Suggestion(fmt.Sprintf("oc patch %s -p '{\"spec\":{\"tls\":{\"termination\":\"<type>\"}}}' (replace <type> with a valid termination type: edge, passthrough, reencrypt)", f.ResourceName(routeNode)))})
+		}
+	}
+
+	return markers
+}
+
+func FindPathBasedPassthroughRoutes(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
+	markers := []osgraph.Marker{}
+
+	for _, uncastRouteNode := range g.NodesByKind(routegraph.RouteNodeKind) {
+		routeNode := uncastRouteNode.(*routegraph.RouteNode)
+
+		if len(routeNode.Spec.Path) > 0 && routeNode.Spec.TLS != nil && routeNode.Spec.TLS.Termination == routeapi.TLSTerminationPassthrough {
+			markers = append(markers, osgraph.Marker{
+				Node: routeNode,
+
+				Severity:   osgraph.ErrorSeverity,
+				Key:        PathBasedPassthroughErr,
+				Message:    fmt.Sprintf("%s is path-based and uses passthrough termination, which is an invalid combination.", f.ResourceName(routeNode)),
+				Suggestion: osgraph.Suggestion(fmt.Sprintf("1. use spec.tls.termination=edge or 2. use spec.tls.termination=reencrypt and specify spec.tls.destinationCACertificate or 3. remove spec.path")),
+			})
 		}
 	}
 
