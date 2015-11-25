@@ -101,10 +101,12 @@ angular
         }
       })
       .when('/project/:project/overview', {
-        templateUrl: 'views/project.html'
+        templateUrl: 'views/project.html',
+        controller: 'OverviewController'
       })
       .when('/project/:project/settings', {
-        templateUrl: 'views/settings.html'
+        templateUrl: 'views/settings.html',
+        controller: 'SettingsController'
       })
       .when('/project/:project/browse', {
         redirectTo: function(params) {
@@ -112,7 +114,8 @@ angular
         }
       })
       .when('/project/:project/browse/builds', {
-        templateUrl: 'views/builds.html'
+        templateUrl: 'views/builds.html',
+        controller: 'BuildsController'
       })
       .when('/project/:project/browse/builds/:buildconfig', {
         templateUrl: 'views/browse/build-config.html',
@@ -135,7 +138,8 @@ angular
         controller: 'BuildController'
       })
       .when('/project/:project/browse/deployments', {
-        templateUrl: 'views/deployments.html'
+        templateUrl: 'views/deployments.html',
+        controller: 'DeploymentsController'
       })
       .when('/project/:project/browse/deployments/:deploymentconfig', {
         templateUrl: 'views/browse/deployment-config.html',
@@ -157,17 +161,20 @@ angular
         controller: 'DeploymentController'
       })
       .when('/project/:project/browse/events', {
-        templateUrl: 'views/events.html'
+        templateUrl: 'views/events.html',
+        controller: 'EventsController'
       })
       .when('/project/:project/browse/images', {
-        templateUrl: 'views/images.html'
+        templateUrl: 'views/images.html',
+        controller: 'ImagesController'
       })
       .when('/project/:project/browse/images/:image', {
         templateUrl: 'views/browse/image.html',
         controller: 'ImageController'
       })
       .when('/project/:project/browse/pods', {
-        templateUrl: 'views/pods.html'
+        templateUrl: 'views/pods.html',
+        controller: 'PodsController'
       })
       .when('/project/:project/browse/pods/:pod', {
         templateUrl: function(params) {
@@ -180,30 +187,36 @@ angular
         controller: 'PodController'
       })
       .when('/project/:project/browse/services', {
-        templateUrl: 'views/services.html'
+        templateUrl: 'views/services.html',
+        controller: 'ServicesController'
       })
       .when('/project/:project/browse/services/:service', {
         templateUrl: 'views/browse/service.html',
         controller: 'ServiceController'
       })
       .when('/project/:project/browse/routes', {
-        templateUrl: 'views/browse/routes.html'
+        templateUrl: 'views/browse/routes.html',
+        controller: 'RoutesController'
       })
       .when('/project/:project/browse/routes/:route', {
         templateUrl: 'views/browse/route.html',
         controller: 'RouteController'
       })
       .when('/project/:project/create', {
-        templateUrl: 'views/create.html'
+        templateUrl: 'views/create.html',
+        controller: 'CreateController'
       })
       .when('/project/:project/create/fromtemplate', {
-        templateUrl: 'views/newfromtemplate.html'
+        templateUrl: 'views/newfromtemplate.html',
+        controller: 'NewFromTemplateController'
       })
       .when('/project/:project/create/fromimage', {
-        templateUrl: 'views/create/fromimage.html'
+        templateUrl: 'views/create/fromimage.html',
+        controller: 'CreateFromImageController'
       })
       .when('/project/:project/create/next', {
-        templateUrl: 'views/create/nextSteps.html'
+        templateUrl: 'views/create/nextSteps.html',
+        controller: 'NextStepsController'
       })
       .when('/oauth', {
         templateUrl: 'views/util/oauth.html',
