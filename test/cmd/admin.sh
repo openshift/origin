@@ -6,6 +6,7 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
 # Cleanup cluster resources created by this test
@@ -99,15 +100,16 @@ oadm policy remove-scc-from-user privileged -z fake-sa
 [ ! "$(oc get scc/privileged -o yaml | grep 'system:serviceaccount:$(oc project -q):fake-sa')" ]
 oadm policy remove-scc-from-group privileged fake-group
 [ ! "$(oadm policy add-scc-to-group privileged fake-group)" ]
+echo "admin-scc: ok"
 
-oc delete clusterrole/cluster-status
+oc delete clusterrole/cluster-status --cascade=false
 [ ! "$(oc get clusterrole/cluster-status)" ]
 oadm policy reconcile-cluster-roles
 [ ! "$(oc get clusterrole/cluster-status)" ]
 oadm policy reconcile-cluster-roles --confirm
 oc get clusterrole/cluster-status
 # check the reconcile again with a specific cluster role name
-oc delete clusterrole/cluster-status
+oc delete clusterrole/cluster-status --cascade=false
 [ ! "$(oc get clusterrole/cluster-status)" ]
 oadm policy reconcile-cluster-roles cluster-admin --confirm 
 [ ! "$(oc get clusterrole/cluster-status)" ]
@@ -125,6 +127,7 @@ oadm policy reconcile-cluster-roles --additive-only --confirm
 [ "$(oc get clusterroles/basic-user -o json | grep groups)" ]
 oadm policy reconcile-cluster-roles --confirm
 [ ! "$(oc get clusterroles/basic-user -o yaml | grep groups)" ]
+echo "admin-reconcile-cluster-roles: ok"
 
 # Ensure a removed binding gets re-added
 oc delete clusterrolebinding/cluster-status-binding
@@ -148,6 +151,22 @@ oadm policy reconcile-cluster-role-bindings --confirm
 # Ensure --additive-only=false removes customized users from the binding
 oadm policy reconcile-cluster-role-bindings --additive-only=false --confirm
 [ ! "$(oc get clusterrolebindings/basic-users -o json | grep custom-user)" ]
+echo "admin-reconcile-cluster-role-bindings: ok"
+
+os::cmd::expect_success "oc create -f test/extended/fixtures/roles/policy-roles.yaml"
+os::cmd::expect_success "oc get rolebinding/basic-users"
+os::cmd::expect_success "oc delete role/basic-user"
+os::cmd::expect_failure "oc get rolebinding/basic-users)"
+os::cmd::expect_success "oc create -f test/extended/fixtures/roles/policy-clusterroles.yaml"
+os::cmd::expect_success "oc get clusterrolebinding/basic-users2"
+os::cmd::expect_success "oc delete clusterrole/basic-user2"
+os::cmd::expect_failure "oc get clusterrolebinding/basic-users2)"
+os::cmd::expect_success "oc policy add-role-to-user edit foo"
+os::cmd::expect_success "oc get rolebinding/edit"
+os::cmd::expect_success "oc delete clusterrole/edit"
+os::cmd::expect_failure "oc get rolebinding/edit"
+os::cmd::expect_success "oadm policy reconcile-cluster-roles --confirm"
+echo "admin-role-reapers: ok"
 
 echo "admin-policy: ok"
 
