@@ -333,5 +333,3 @@ echo "${output}" | grep -q '; the output content test failed'
 echo "${output}" | grep -q 'hello' 
 
 echo "output tests: ok"
-
-rm -rf /tmp/openshift-cmd/
