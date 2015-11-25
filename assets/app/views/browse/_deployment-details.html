@@ -1,15 +1,7 @@
 <dl class="dl-horizontal left">
   <dt>Status:</dt>
   <dd>
-    <span ng-switch="deployment | deploymentStatus" class="hide-ng-leave">
-      <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>
-      <span ng-switch-when="Deployed" class="fa fa-check text-success" aria-hidden="true"></span>
-      <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
-      <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
-      <span ng-switch-when="New" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-      <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-      <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true"></span>
-    </span>
+    <status-icon status="deployment | deploymentStatus"></status-icon>
     {{deployment | deploymentStatus}}
     <span style="margin-left: 7px;">
       <button ng-show="!rollBackCollapsed && (deployment | deploymentStatus) == 'Complete' && !(deployment | deploymentIsLatest : deploymentConfig) && !deployment.metadata.deletionTimestamp" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" type="button" class="btn btn-default btn-xs" ng-click="rollBackCollapsed = !rollBackCollapsed">Roll Back</button>
