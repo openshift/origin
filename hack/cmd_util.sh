@@ -3,11 +3,11 @@
 # in a sub-shell and redirect all output. Tests in test-cmd *must* use these functions for testing.
 
 # We assume ${OS_ROOT} is set
-source "${OS_ROOT}/hack/text.sh" # text manipulation functions
+source "${OS_ROOT}/hack/text.sh" 
 
 # expect_success runs the cmd and expects an exit code of 0
 function os::cmd::expect_success() {
-	if [[ $# -ne 1 ]]; then echo "os::cmd::expect_success expects only one argumment, got $#"; exit 1; fi
+	if [[ $# -ne 1 ]]; then echo "os::cmd::expect_success expects only one argument, got $#"; exit 1; fi
 	cmd=$1
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}"
@@ -15,7 +15,7 @@ function os::cmd::expect_success() {
 
 # expect_failure runs the cmd and expects a non-zero exit code
 function os::cmd::expect_failure() {
-	if [[ $# -ne 1 ]]; then echo "os::cmd::expect_failure expects only one argumment, got $#"; exit 1; fi
+	if [[ $# -ne 1 ]]; then echo "os::cmd::expect_failure expects only one argument, got $#"; exit 1; fi
 	cmd=$1
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::failure_func"
@@ -24,7 +24,7 @@ function os::cmd::expect_failure() {
 # expect_success_and_text runs the cmd and expects an exit code of 0
 # as well as running a grep test to find the given string in the output
 function os::cmd::expect_success_and_text() {
-	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_success_and_text expects two argumments, got $#"; exit 1; fi
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_success_and_text expects two arguments, got $#"; exit 1; fi
 	cmd=$1
 	expected_text=$2
 
@@ -34,7 +34,7 @@ function os::cmd::expect_success_and_text() {
 # expect_failure_and_text runs the cmd and expects a non-zero exit code
 # as well as running a grep test to find the given string in the output
 function os::cmd::expect_failure_and_text() {
-	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_failure_and_text expects two argumments, got $#"; exit 1; fi
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_failure_and_text expects two arguments, got $#"; exit 1; fi
 	cmd=$1
 	expected_text=$2
 
@@ -44,7 +44,7 @@ function os::cmd::expect_failure_and_text() {
 # expect_success_and_not_text runs the cmd and expects an exit code of 0
 # as well as running a grep test to ensure the given string is not in the output
 function os::cmd::expect_success_and_not_text() {
-	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_success_and_not_text expects two argumments, got $#"; exit 1; fi
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_success_and_not_text expects two arguments, got $#"; exit 1; fi
 	cmd=$1
 	expected_text=$2
 
@@ -54,7 +54,7 @@ function os::cmd::expect_success_and_not_text() {
 # expect_failure_and_not_text runs the cmd and expects a non-zero exit code
 # as well as running a grep test to ensure the given string is not in the output
 function os::cmd::expect_failure_and_not_text() {
-	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_failure_and_not_text expects two argumments, got $#"; exit 1; fi
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_failure_and_not_text expects two arguments, got $#"; exit 1; fi
 	cmd=$1
 	expected_text=$2
 
@@ -63,7 +63,7 @@ function os::cmd::expect_failure_and_not_text() {
 
 # expect_code runs the cmd and expects a given exit code
 function os::cmd::expect_code() {
-	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_code expects two argumments, got $#"; fi
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_code expects two arguments, got $#"; exit 1; fi
 	cmd=$1
 	expected_cmd_code=$2
 
@@ -73,7 +73,7 @@ function os::cmd::expect_code() {
 # expect_code_and_text runs the cmd and expects the given exit code
 # as well as running a grep test to find the given string in the output
 function os::cmd::expect_code_and_text() {
-	if [[ $# -ne 3 ]]; then echo "os::cmd::expect_code_and_text expects three argumments, got $#"; fi
+	if [[ $# -ne 3 ]]; then echo "os::cmd::expect_code_and_text expects three arguments, got $#"; exit 1; fi
 	cmd=$1
 	expected_cmd_code=$2
 	expected_text=$3
@@ -84,12 +84,53 @@ function os::cmd::expect_code_and_text() {
 # expect_code_and_not_text runs the cmd and expects the given exit code
 # as well as running a grep test to ensure the given string is not in the output
 function os::cmd::expect_code_and_not_text() {
-	if [[ $# -ne 3 ]]; then echo "os::cmd::expect_code_and_not_text expects three argumments, got $#"; fi
+	if [[ $# -ne 3 ]]; then echo "os::cmd::expect_code_and_not_text expects three arguments, got $#"; exit 1; fi
 	cmd=$1
 	expected_cmd_code=$2
 	expected_text=$3
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::specific_code_func ${expected_cmd_code}" "${expected_text}" "os::cmd::internal::failure_func"
+}
+
+millisecond=1
+second=$(( 1000 * millisecond ))
+minute=$(( 60 * second ))
+
+# os::cmd::try_until_success runs the cmd in a small interval until either the command succeeds or times out
+# the default time-out for os::cmd::try_until_success is 60 seconds.
+# the default interval for os::cmd::try_until_success is 200ms
+function os::cmd::try_until_success() {
+	if [[ $# -lt 1 ]]; then echo "os::cmd::try_until_success expects at least one arguments, got $#"; exit 1; fi
+	cmd=$1
+	duration=${2:-minute}
+	interval=${3:-0.2}
+
+	os::cmd::internal::run_until_exit_code "${cmd}" "os::cmd::internal::success_func" "${duration}" "${interval}"
+}
+
+# os::cmd::try_until_failure runs the cmd until either the command fails or times out
+# the default time-out for os::cmd::try_until_failure is 60 seconds.
+function os::cmd::try_until_failure() {
+	if [[ $# -lt 1 ]]; then echo "os::cmd::try_until_success expects at least one argument, got $#"; exit 1; fi
+	cmd=$1
+	duration=${2:-$minute}
+	interval=${3:-0.2}
+
+	os::cmd::internal::run_until_exit_code "${cmd}" "os::cmd::internal::failure_func" "${duration}" "${interval}"
+}
+
+# os::cmd::try_until_text runs the cmd until either the command outputs the desired text or times out
+# the default time-out for os::cmd::try_until_text is 60 seconds.
+function os::cmd::try_until_text() {
+	if [[ $# -lt 2 ]]; then echo "os::cmd::try_until_success expects at least two arguments, got $#"; exit 1; fi
+	cmd=$1
+	text=$2
+	duration=${3:-minute}
+	interval=${4:-0.2}
+
+	echo os::cmd::internal::run_until_text "${cmd}" "${text}" "${duration}" "${interval}"
+
+	os::cmd::internal::run_until_text "${cmd}" "${text}" "${duration}" "${interval}"
 }
 
 # Functions in the os::cmd::internal namespace are discouraged from being used outside of os::cmd
@@ -229,6 +270,127 @@ function os::cmd::internal::assemble_causes() {
 	fi
 	if (( ! test_succeeded )); then
 		causes+=("the output content test failed")
+	fi
+
+	list=$(printf '; %s' "${causes[@]}")
+	echo "${list:2}"
+}
+
+
+# os::cmd::internal::run_until_exit_code runs the provided command until the exit code test given 
+# succeeds or the timeout given runs out. Output from the command to be tested is suppressed unless
+# either `VERBOSE=1` or the test fails. This function bypasses any error exiting settings or traps
+# set by upstream callers by masking the return code of the command with the return code of setting
+# the result variable on failure.
+function os::cmd::internal::run_until_exit_code() {
+	cmd=$1
+	cmd_eval_func=$2
+	duration=$3
+	interval=$4
+
+	os::cmd::internal::init_tempdir
+
+	echo "Waiting on ${cmd}..."
+	
+	deadline=$(( $(date +%s000) + $duration ))
+	while [ $(date +%s000) -lt $deadline ]; do	
+		cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
+		cmd_succeeded=$( ${cmd_eval_func} "${cmd_result}"; echo $? )
+		if (( cmd_succeeded )); then
+			break
+		fi
+		sleep "${interval}"
+	done
+
+	os::text::clear_last_line
+
+	if (( cmd_succeeded )); then
+
+		os::text::print_green_bold "SUCCESS: ${cmd}"
+		if [[ -n ${VERBOSE-} ]]; then
+			os::cmd::internal::print_results
+		fi
+		return 0
+	else
+		cause=$(os::cmd::internal::assemble_try_until_code_causes "${cmd_succeeded}")
+
+		os::text::print_red_bold "FAILURE: ${cmd}: ${cause}"
+		os::text::print_red "$(os::cmd::internal::print_results)"
+		return 1
+	fi
+}
+
+# os::cmd::internal::assemble_try_until_code_causes determines from the input boolean which part of the try untik
+# failed and generates a nice delimited list of failure causes
+function os::cmd::internal::assemble_try_until_code_causes() {
+	cmd_succeeded=$1
+
+	causes=()
+	if (( ! cmd_succeeded )); then
+		causes+=("the command returned the wrong error code")
+	else
+		causes+=("the command timed out")
+	fi
+
+	list=$(printf '; %s' "${causes[@]}")
+	echo "${list:2}"
+}
+
+# os::cmd::internal::run_until_text runs the provided command until the command output contains the
+# given text or the timeout given runs out. Output from the command to be tested is suppressed unless
+# either `VERBOSE=1` or the test fails. This function bypasses any error exiting settings or traps
+# set by upstream callers by masking the return code of the command with the return code of setting
+# the result variable on failure.
+function os::cmd::internal::run_until_text() {
+	cmd=$1
+	text=$2
+	duration=$3
+	interval=$4
+
+	os::cmd::internal::init_tempdir
+
+	echo "Waiting on ${cmd}..."
+	
+	deadline=$(( $(date +%s000) + $duration ))
+	while [ $(date +%s000) -lt $deadline ]; do	
+		cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
+		test_result=$( os::cmd::internal::run_collecting_output 'os::cmd::internal::get_results | grep -Eq "${text}"'; echo $? )
+		test_succeeded=$( ${test_eval_func} "${test_result}"; echo $? )
+
+		if (( test_succeeded )); then
+			break
+		fi
+		sleep "${interval}"
+	done
+
+	os::text::clear_last_line
+
+	if (( test_succeeded )); then
+
+		os::text::print_green_bold "SUCCESS: ${cmd}"
+		if [[ -n ${VERBOSE-} ]]; then
+			os::cmd::internal::print_results
+		fi
+		return 0
+	else
+		cause=$(os::cmd::internal::assemble_try_until_text_causes "${test_succeeded}")
+		
+		os::text::print_red_bold "FAILURE: ${cmd}: ${cause}"
+		os::text::print_red "$(os::cmd::internal::print_results)"
+		return 1
+	fi
+}
+
+# os::cmd::internal::assemble_try_until_text_causes determines from the input boolean which part of the try untik
+# failed and generates a nice delimited list of failure causes
+function os::cmd::internal::assemble_try_until_text_causes() {
+	test_succeeded=$1
+
+	causes=()
+	if (( ! test_succeeded )); then
+		causes+=("the output content test failed")
+	else
+		causes+=("the command timed out")
 	fi
 
 	list=$(printf '; %s' "${causes[@]}")
