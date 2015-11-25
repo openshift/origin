@@ -77,7 +77,7 @@ exports.config = {
 
   // Spec patterns are relative to the location of this config.
   specs: [
-    'e2e/*.js'
+    'integration/**/*.js'
   ],
 
   // Patterns to exclude.
@@ -89,7 +89,8 @@ exports.config = {
   // run.
   suites: {
     // smoke: 'spec/smoketests/*.js',
-    full: 'e2e/*.js'
+    rest_api: 'integration/rest_api/*.js', // This suite of tests should only require a running master api, it should not require a node
+    e2e: 'integration/e2e.js'
   },
 
   // ---------------------------------------------------------------------------

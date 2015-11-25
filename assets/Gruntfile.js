@@ -528,6 +528,7 @@ module.exports = function (grunt) {
         noColor: false, // If true, protractor will not use colors in its output.
         args: {
           // Arguments passed to the command
+          suite: grunt.option('suite') || 'full'
         }
       },
       chrome: {
@@ -592,7 +593,7 @@ module.exports = function (grunt) {
     // 'coverage' - add back if we want to enforce coverage percentages
   ]);
 
-  grunt.registerTask('test-e2e', [
+  grunt.registerTask('test-integration', [
     'clean:server',
     'concurrent:server',
     'autoprefixer',

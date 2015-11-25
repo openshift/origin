@@ -337,7 +337,7 @@ if [[ "$TEST_ASSETS" == "true" ]]; then
   echo "[INFO] Running UI e2e tests at time..."
   echo `date`
   pushd ${OS_ROOT}/assets > /dev/null
-    grunt test-e2e
+    grunt test-integration
   echo "UI  e2e done at time "
   echo `date`
 

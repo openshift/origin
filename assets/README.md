@@ -52,8 +52,9 @@ not tracked and will be used instead if it exists.
 #### Before opening a pull request
 1. If needed, run `hack/build-assets.sh` to update bindata.go
 2. Run the spec tests with `hack/test-assets.sh`
-3. Run the end to end tests with `TEST_ASSETS=true hack/test-end-to-end.sh`
-4. Rebase and squash changes to a single commit
+3. Run the integrations tests (your api server must be running).  cd into the assets directory and run `grunt test-integration --suite rest_api`
+4. (Optional) Run the end to end tests with `TEST_ASSETS=true hack/test-end-to-end.sh`
+5. Rebase and squash changes to a single commit
 
 Note: in order to run the end to end tests you must have [Chrome](http://www.google.com/chrome/) and [chromedriver](https://sites.google.com/a/chromium.org/chromedriver/) installed.  The script below will set this up for you on linux systems.
 
