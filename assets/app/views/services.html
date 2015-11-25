@@ -21,7 +21,7 @@
         </tbody>
         <tbody ng-repeat="service in services | orderObjectsByDate : true">
           <tr>
-            <td data-title="Name"><a href="project/{{projectName}}/browse/services/{{service.metadata.name}}">{{service.metadata.name}}</a></td>
+            <td data-title="Name"><a href="{{service | navigateResourceURL}}">{{service.metadata.name}}</a></td>
             <td data-title="Cluster IP">{{service.spec.clusterIP}}</td>
             <td data-title="External IP">
               <span ng-if="!service.status.loadBalancer.ingress.length"><em>none</em></span>
@@ -39,7 +39,7 @@
             </td>
             <td data-title="Selector">
               <span ng-if="!service.spec.selector"><em>none</em></span>
-              <span ng-repeat="(selectorLabel, selectorValue) in service.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></span>              
+              <span ng-repeat="(selectorLabel, selectorValue) in service.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></span>
             </td>
             <td data-title="Age"><relative-timestamp timestamp="service.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
           </tr>

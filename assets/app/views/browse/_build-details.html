@@ -38,7 +38,7 @@
           </span>
         </dd>
       </dl>
-      <h3>Configuration <span class="small" ng-if="buildConfigName">created from <a href="project/{{build.metadata.namespace}}/browse/builds/{{buildConfigName}}">{{buildConfigName}}</a></span></h3>        
+      <h3>Configuration <span class="small" ng-if="buildConfigName">created from <a href="{{buildConfigName | navigateResourceURL : 'BuildConfig' : build.metadata.namespace}}">{{buildConfigName}}</a></span></h3>
       <dl class="dl-horizontal left">
         <dt>Build strategy:</dt>
         <dd>{{build.spec.strategy.type}}</dd>
@@ -63,7 +63,7 @@
           <dt ng-repeat-start="envVar in (build | buildStrategy).env">{{envVar.name}}:</dt>
           <dd ng-repeat-end>{{envVar.value}}</dd>
         </dl>
-      </div>       
+      </div>
     </div>
   </div>
   <annotations annotations="build.metadata.annotations"></annotations>
