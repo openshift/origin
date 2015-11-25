@@ -7,7 +7,11 @@ angular.module('openshiftConsole')
         restrict: 'E',
         templateUrl: 'views/directives/_status-icon.html',
         scope: {
-          status: '='
+          status: '=',
+          disableAnimation: "="
+        },
+        link: function($scope, $elem, $attrs) {
+          $scope.spinning = !angular.isDefined($attrs.disableAnimation);
         }
       };
     }

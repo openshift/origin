@@ -2,7 +2,7 @@
   <dt>Status:</dt>
   <dd>
     <span ng-switch="deployment | deploymentStatus" class="hide-ng-leave">
-      <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>              
+      <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>
       <span ng-switch-when="Deployed" class="fa fa-check text-success" aria-hidden="true"></span>
       <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
       <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
@@ -10,11 +10,11 @@
       <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
       <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true"></span>
     </span>
-    {{deployment | deploymentStatus}} 
+    {{deployment | deploymentStatus}}
     <span style="margin-left: 7px;">
       <button ng-show="!rollBackCollapsed && (deployment | deploymentStatus) == 'Complete' && !(deployment | deploymentIsLatest : deploymentConfig) && !deployment.metadata.deletionTimestamp" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" type="button" class="btn btn-default btn-xs" ng-click="rollBackCollapsed = !rollBackCollapsed">Roll Back</button>
       <div ng-show="rollBackCollapsed" class="well well-sm">
-        Use the following settings from {{deployment.metadata.name}} when rolling back: 
+        Use the following settings from {{deployment.metadata.name}} when rolling back:
         <div class="checkbox">
           <label>
             <input type="checkbox" ng-model="changeScaleSettings" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0"> replica count and selector
@@ -36,11 +36,11 @@
       <button ng-show="(deployment | deploymentStatus) == 'Failed'" type="button" ng-click="retryFailedDeployment(deployment)" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" class="btn btn-default btn-xs" ng-if="(deployment | deploymentIsLatest : deploymentConfig) && !deployment.metadata.deletionTimestamp">Retry</button>
       -->
       <button ng-show="(deployment | deploymentIsInProgress) && !deployment.metadata.deletionTimestamp" type="button" ng-click="cancelRunningDeployment(deployment)" class="btn btn-default btn-xs">Cancel</button>
-    </span>                
+    </span>
   </dd>
   <dt ng-if="deployment | isDeployment">Deployment config:</dt>
   <dd ng-if="deployment | isDeployment">
-    <a href="project/{{deployment.metadata.namespace}}/browse/deployments/{{deploymentConfigName}}">{{deploymentConfigName}}</a>
+    <a href="{{deploymentConfigName | navigateResourceURL : 'DeploymentConfig' : projectName }}">{{deploymentConfigName}}</a>
   </dd>
   <dt ng-if="deployment | annotation:'deploymentStatusReason'">Status reason:</dt>
   <dd ng-if="deployment | annotation:'deploymentStatusReason'">

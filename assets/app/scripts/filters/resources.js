@@ -482,8 +482,12 @@ angular.module('openshiftConsole')
     };
   })
   .filter('projectOverviewURL', function(Navigate) {
-    return function(projectName) {
-      return Navigate.projectOverviewURL(projectName);
+    return function(project) {
+      return angular.isString(project) ?
+              Navigate.projectOverviewURL(project) :
+              angular.isObject(project) ?
+                Navigate.projectOverviewURL(project.metadata && project.metadata.name):
+                Navigate.projectOverviewURL(''); // fail case will invoke default route (projects list)
     };
   })
   .filter('createFromSourceURL', function() {

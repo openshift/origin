@@ -7,13 +7,15 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('BuildController', function ($scope, $routeParams, DataService, project, BuildsService, $filter) {
+  .controller('BuildController', function ($scope, $routeParams, DataService, ProjectsService, BuildsService, $filter) {
+    $scope.projectName = $routeParams.project;
     $scope.build = null;
     $scope.buildConfigName = $routeParams.buildconfig;
     $scope.builds = {};
     $scope.alerts = {};
-    $scope.renderOptions = $scope.renderOptions || {};
-    $scope.renderOptions.hideFilterWidget = true;
+    $scope.renderOptions = {
+      hideFilterWidget: true
+    };
     $scope.breadcrumbs = [
       {
         title: "Builds",
@@ -40,17 +42,16 @@ angular.module('openshiftConsole')
 
     var watches = [];
 
-    project.get($routeParams.project).then(function(resp) {
-      var context = {
-        project: resp[0],
-        projectPromise: resp[1].projectPromise
-      };
-      angular.extend($scope, context);
+    ProjectsService
+      .get($routeParams.project)
+      .then(_.spread(function(project, context) {
+        $scope.project = project;
+
       // FIXME: DataService.createStream() requires a scope with a
       // projectPromise rather than just a namespace, so we have to pass the
       // context into the log-viewer directive.
       $scope.logContext = context;
-      DataService.get("builds", $routeParams.build, $scope).then(
+      DataService.get("builds", $routeParams.build, context).then(
         // success
         function(build) {
           $scope.loaded = true;
@@ -61,7 +62,7 @@ angular.module('openshiftConsole')
           }
 
           // If we found the item successfully, watch for changes on it
-          watches.push(DataService.watchObject("builds", $routeParams.build, $scope, function(build, action) {
+          watches.push(DataService.watchObject("builds", $routeParams.build, context, function(build, action) {
             if (action === "DELETED") {
               $scope.alerts["deleted"] = {
                 type: "warning",
@@ -82,7 +83,7 @@ angular.module('openshiftConsole')
         }
       );
 
-      watches.push(DataService.watch("builds", $scope, function(builds, action, build) {
+      watches.push(DataService.watch("builds", context, function(builds, action, build) {
         $scope.builds = {};
         // TODO we should send the ?labelSelector=buildconfig=<name> on the API request
         // to only load the buildconfig's builds, but this requires some DataService changes
@@ -114,21 +115,61 @@ angular.module('openshiftConsole')
           }
         }
       }));
-    });
 
-    $scope.startBuild = function(buildConfigName) {
-      BuildsService.startBuild(buildConfigName, $scope);
-    };
+      $scope.startBuild = function(buildConfigName) {
+        BuildsService
+          .startBuild(buildConfigName, context)
+          .then(function(build) { //success
+            $scope.alerts["create"] = {
+              type: "success",
+              message: "Build " + build.metadata.name + " has started."
+            };
+          }, function(result) { //failure
+            $scope.alerts["create"] = {
+              type: "error",
+              message: "An error occurred while starting the build.",
+              details: $filter('getErrorDetails')(result)
+            };
+          });
+      };
 
-    $scope.cancelBuild = function(build, buildConfigName) {
-      BuildsService.cancelBuild(build, buildConfigName, $scope);
-    };
+      $scope.cancelBuild = function(build, buildConfigName) {
+        BuildsService
+          .cancelBuild(build, buildConfigName, context)
+          .then(function() {
+            $scope.alerts["cancel"] = {
+              type: "success",
+              message: "Cancelling build " + build.metadata.name + " of " + buildConfigName + "."
+            };
+          }, function(result) {
+            $scope.alerts["cancel"] = {
+              type: "error",
+              message: "An error occurred cancelling the build.",
+              details: $filter('getErrorDetails')(result)
+            };
+          });
+      };
 
-    $scope.cloneBuild = function(buildName) {
-      BuildsService.cloneBuild(buildName, $scope);
-    };
+      $scope.cloneBuild = function(buildName) {
+        BuildsService
+          .cloneBuild(buildName, context)
+          .then(function(build) {
+              $scope.alerts["rebuild"] = {
+                type: "success",
+                message: "Build " + buildName + " is being rebuilt as " + build.metadata.name + "."
+              };
+          }, function(result) {
+            $scope.alerts["rebuild"] = {
+              type: "error",
+              message: "An error occurred while rerunning the build.",
+              details: $filter('getErrorDetails')(result)
+            };
+          });
+      };
 
-    $scope.$on('$destroy', function(){
-      DataService.unwatchAll(watches);
-    });
+      $scope.$on('$destroy', function(){
+        DataService.unwatchAll(watches);
+      });
+
+    }));
   });
