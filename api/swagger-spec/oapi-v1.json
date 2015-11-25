@@ -18705,10 +18705,13 @@
    },
    "v1.TLSConfig": {
     "id": "v1.TLSConfig",
+    "required": [
+     "termination"
+    ],
     "properties": {
      "termination": {
       "type": "string",
-      "description": "indicates termination type.  if not set, any termination config will be ignored"
+      "description": "indicates termination type"
      },
      "certificate": {
       "type": "string",
