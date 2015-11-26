@@ -65,7 +65,7 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 		},
 	}
 	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to read a template")
-	cmd.Flags().StringP("value", "v", "", "Specify a list of key-value pairs (eg. -v FOO=BAR,BAR=FOO) to set/override parameter values")
+	cmd.Flags().StringSliceP("value", "v", nil, "Specify a list of key-value pairs (eg. -v FOO=BAR,BAR=FOO) to set/override parameter values")
 	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
 
@@ -256,8 +256,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 
 // injectUserVars injects user specified variables into the Template
 func injectUserVars(cmd *cobra.Command, t *api.Template) {
-	values := []string{}
-	values = append(values, kcmdutil.GetFlagString(cmd, "value"))
+	values := kcmdutil.GetFlagStringSlice(cmd, "value")
 	for _, keypair := range values {
 		p := strings.SplitN(keypair, "=", 2)
 		if len(p) != 2 {
