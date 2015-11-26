@@ -27,6 +27,13 @@ os::cmd::expect_success 'oc process -f test/templates/fixtures/guestbook.json -l
 os::cmd::expect_success_and_text 'oc status' 'frontend-service'
 echo "template+config: ok"
 
+# Joined parameter values are honored
+os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json -v ADMIN_USERNAME=myuser,ADMIN_PASSWORD=mypassword'    '"myuser"'
+os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json -v ADMIN_USERNAME=myuser,ADMIN_PASSWORD=mypassword'    '"mypassword"'
+# Individually specified parameter values are honored
+os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json -v ADMIN_USERNAME=myuser -v ADMIN_PASSWORD=mypassword' '"myuser"'
+os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json -v ADMIN_USERNAME=myuser -v ADMIN_PASSWORD=mypassword' '"mypassword"'
+echo "template+parameters: ok"
 
 # Run as cluster-admin to allow choosing any supplemental groups we want
 # Ensure large integers survive unstructured JSON creation
