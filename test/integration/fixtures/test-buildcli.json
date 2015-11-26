@@ -11,7 +11,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/ruby-20-centos7",
+        "dockerImageRepository": "centos/ruby-22-centos7",
         "tags": [
           {
             "name": "valid"
@@ -47,9 +47,9 @@
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/ruby-20-centos7"
+              "name": "centos/ruby-22-centos7"
             },
-            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos7/master/.sti/bin",
+            "scripts": "https://raw.githubusercontent.com/centos/ruby-22-centos7/master/.sti/bin",
             "incremental": true
           }
         },
@@ -90,7 +90,7 @@
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/ruby-20-centos7"
+              "name": "centos/ruby-22-centos7"
             },
             "scripts": "https://raw.githubusercontent.com/openshift/sti-ruby/master/2.0/.sti/bin",
             "incremental": true

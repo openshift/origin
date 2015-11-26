@@ -14,7 +14,7 @@ project="$(oc project -q)"
 
 # This test validates builds and build related commands
 
-os::cmd::expect_success 'oc new-build openshift/ruby-20-centos7 https://github.com/openshift/ruby-hello-world.git'
+os::cmd::expect_success 'oc new-build centos/ruby-22-centos7 https://github.com/openshift/ruby-hello-world.git'
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
 os::cmd::expect_success 'cat "${OS_ROOT}/Dockerfile" | oc new-build -D - --name=test'
 os::cmd::expect_success 'oc get bc/test'
@@ -28,7 +28,7 @@ os::cmd::expect_success 'oc get bc'
 os::cmd::expect_success 'oc get builds'
 
 # make sure the imagestream has the latest tag before starting a build or the build will immediately fail.
-os::cmd::expect_success "tryuntil 'oc get is ruby-20-centos7 | grep latest'"
+os::cmd::expect_success "tryuntil 'oc get is ruby-22-centos7 | grep latest'"
 
 REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}')
 os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"output\":{\"to\":{\"name\":\"different:tag1\"}}}}'"
@@ -53,9 +53,9 @@ os::cmd::expect_success 'oc create -f test/integration/fixtures/test-buildcli.js
 # a build for which there is not an upstream tag in the corresponding imagerepo, so
 # the build should use the image field as defined in the buildconfig
 started=$(oc start-build ruby-sample-build-invalidtag)
-os::cmd::expect_success_and_text "oc describe build ${started}" 'openshift/ruby-20-centos7$'
+os::cmd::expect_success_and_text "oc describe build ${started}" 'centos/ruby-22-centos7$'
 frombuild=$(oc start-build --from-build="${started}")
-os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'openshift/ruby-20-centos7$'
+os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'centos/ruby-22-centos7$'
 echo "start-build: ok"
 
 os::cmd::expect_success "oc cancel-build ${started} --dump-logs --restart"

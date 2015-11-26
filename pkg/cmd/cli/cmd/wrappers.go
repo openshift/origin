@@ -195,8 +195,8 @@ const (
 This command joins many API calls together to form a detailed description of a
 given resource.`
 
-	describeExample = `  # Provide details about the ruby-20-centos7 image repository
-  $ %[1]s describe imageRepository ruby-20-centos7
+	describeExample = `  # Provide details about the ruby-22-centos7 image repository
+  $ %[1]s describe imageRepository ruby-22-centos7
 
   # Provide details about the ruby-sample-build build configuration
   $ %[1]s describe bc ruby-sample-build`

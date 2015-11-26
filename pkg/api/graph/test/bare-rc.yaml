@@ -7,7 +7,7 @@ items:
       openshift.io/deployment-config.latest-version: "1"
       openshift.io/deployment-config.name: database
       openshift.io/deployment.phase: Complete
-      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"database","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/database","uid":"4725b5d3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"271","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ConfigChange"}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"database"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld-database","image":"openshift/mysql-55-centos7","ports":[{"containerPort":3306,"protocol":"TCP"}],"env":[{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"database","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ConfigChange"}]}}'
+      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"database","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/database","uid":"4725b5d3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"271","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ConfigChange"}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"database"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld-database","image":"centos/mysql-56-centos7","ports":[{"containerPort":3306,"protocol":"TCP"}],"env":[{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"database","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ConfigChange"}]}}'
       pod: deploy-database-19m1he
     creationTimestamp: 2015-07-14T14:31:01Z
     generation: 1
@@ -45,7 +45,7 @@ items:
             value: FfyXmsGG
           - name: MYSQL_DATABASE
             value: root
-          image: openshift/mysql-55-centos7
+          image: centos/mysql-56-centos7
           imagePullPolicy: IfNotPresent
           name: ruby-helloworld-database
           ports:
@@ -167,7 +167,7 @@ items:
         value: FfyXmsGG
       - name: MYSQL_DATABASE
         value: root
-      image: openshift/mysql-55-centos7
+      image: centos/mysql-56-centos7
       imagePullPolicy: IfNotPresent
       name: ruby-helloworld-database
       ports:
@@ -202,7 +202,7 @@ items:
     - status: "False"
       type: Ready
     containerStatuses:
-    - image: openshift/mysql-55-centos7
+    - image: centos/mysql-56-centos7
       imageID: ""
       lastState: {}
       name: ruby-helloworld-database
@@ -210,7 +210,7 @@ items:
       restartCount: 0
       state:
         waiting:
-          reason: 'Image: openshift/mysql-55-centos7 is ready, container is creating'
+          reason: 'Image: centos/mysql-56-centos7 is ready, container is creating'
     phase: Pending
     startTime: 2015-07-14T14:31:01Z
 - apiVersion: v1
