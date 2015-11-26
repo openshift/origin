@@ -67,6 +67,7 @@ func NewCmdProject(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 		Short:   "Switch to another project",
 		Long:    projectLong,
 		Example: fmt.Sprintf(projectExample, fullName),
+		Aliases: []string{"projects"},
 		Run: func(cmd *cobra.Command, args []string) {
 			options.PathOptions = cliconfig.NewPathOptions(cmd)
 

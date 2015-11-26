@@ -6486,9 +6486,9 @@ _openshift_cli_env()
     must_have_one_noun=()
 }
 
-_openshift_cli_volume()
+_openshift_cli_volumes()
 {
-    last_command="openshift_cli_volume"
+    last_command="openshift_cli_volumes"
     commands=()
 
     flags=()
@@ -10085,7 +10085,7 @@ _openshift_cli()
     commands+=("describe")
     commands+=("edit")
     commands+=("env")
-    commands+=("volume")
+    commands+=("volumes")
     commands+=("label")
     commands+=("annotate")
     commands+=("expose")

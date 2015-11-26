@@ -137,10 +137,11 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	addOpts := &AddVolumeOptions{}
 	opts := &VolumeOptions{AddOpts: addOpts}
 	cmd := &cobra.Command{
-		Use:     "volume RESOURCE/NAME --add|--remove|--list",
+		Use:     "volumes RESOURCE/NAME --add|--remove|--list",
 		Short:   "Update volume on a resource with a pod template",
 		Long:    volumeLong,
 		Example: fmt.Sprintf(volumeExample, fullName),
+		Aliases: []string{"volume"},
 		Run: func(cmd *cobra.Command, args []string) {
 			addOpts.TypeChanged = cmd.Flag("type").Changed
 

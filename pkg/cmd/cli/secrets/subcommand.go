@@ -37,10 +37,11 @@ Docker registries.`
 func NewCmdSecrets(name, fullName string, f *clientcmd.Factory, reader io.Reader, out io.Writer, ocEditFullName string) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
-		Use:   name,
-		Short: "Manage secrets",
-		Long:  secretsLong,
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Use:     name,
+		Short:   "Manage secrets",
+		Long:    secretsLong,
+		Aliases: []string{"secret"},
+		Run:     cmdutil.DefaultSubCommandRun(out),
 	}
 
 	newSecretFullName := fullName + " " + NewSecretRecommendedCommandName
