@@ -1074,6 +1074,56 @@ func TestRunBuilds(t *testing.T) {
 			},
 		},
 		{
+			name: "successful build with no output",
+			config: &AppConfig{
+				Dockerfile: "FROM centos",
+				NoOutput:   true,
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"centos"},
+				"imageStream": {"centos"},
+			},
+			checkResult: func(res *AppResult) error {
+				for _, item := range res.List.Items {
+					switch t := item.(type) {
+					case *buildapi.BuildConfig:
+						got := t.Spec.Output.To
+						want := (*kapi.ObjectReference)(nil)
+						if !reflect.DeepEqual(got, want) {
+							return fmt.Errorf("build.Spec.Output.To = %v; want %v", got, want)
+						}
+						return nil
+					}
+				}
+				return fmt.Errorf("BuildConfig not found; got %v", res.List.Items)
+			},
+		},
+		{
 			name: "successful build from dockerfile with custom name",
 			config: &AppConfig{
 				Dockerfile: "FROM openshift/origin-base\nUSER foo",

@@ -50,6 +50,11 @@ os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}
 os::cmd::expect_failure_and_text 'oc new-build centos/ruby-22-centos7~https://github.com/openshift/ruby-ex centos/php-56-centos7~https://github.com/openshift/cakephp-ex --to invalid/argument' 'error: only one component or source repository can be used when specifying an output image reference'
 
 os::cmd::expect_success 'oc delete all --all'
+
+os::cmd::expect_success "oc new-build -D \$'FROM centos:7' --no-output"
+os::cmd::expect_success_and_text 'oc get bc/centos -o=jsonpath="{.spec.output.to}"' '^<nil>$'
+
+os::cmd::expect_success 'oc delete all --all'
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -'
 os::cmd::expect_success 'oc get buildConfigs'
 os::cmd::expect_success 'oc get bc'
