@@ -17,9 +17,9 @@ const (
 	MissingRoutePortWarning = "MissingRoutePort"
 	// MissingServiceWarning is returned when there is no service for the specific route.
 	MissingServiceWarning = "MissingService"
-	// MissingTLSTerminationTypeWarning is returned when a route with a tls config doesn't
+	// MissingTLSTerminationTypeErr is returned when a route with a tls config doesn't
 	// specify a tls termination type.
-	MissingTLSTerminationTypeWarning = "MissingTLSTermination"
+	MissingTLSTerminationTypeErr = "MissingTLSTermination"
 )
 
 // FindMissingPortMapping checks all routes and reports those that don't specify a port while
@@ -77,9 +77,10 @@ func FindMissingTLSTerminationType(g osgraph.Graph) []osgraph.Marker {
 			markers = append(markers, osgraph.Marker{
 				Node: routeNode,
 
-				Severity: osgraph.WarningSeverity,
-				Key:      MissingTLSTerminationTypeWarning,
-				Message:  fmt.Sprintf("%s has a tls configuration but no termination type specified.", routeNode.ResourceString())})
+				Severity:   osgraph.ErrorSeverity,
+				Key:        MissingTLSTerminationTypeErr,
+				Message:    fmt.Sprintf("%s has a TLS configuration but no termination type specified.", routeNode.ResourceString()),
+				Suggestion: osgraph.Suggestion(fmt.Sprintf("oc patch %s -p '{\"spec\":{\"tls\":{\"termination\":\"<type>\"}}}' (replace <type> with a valid termination type: edge, passthrough, reencrypt)", routeNode.ResourceString()))})
 		}
 	}
 

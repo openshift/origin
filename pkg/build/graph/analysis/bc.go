@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	MissingRequiredRegistryWarning = "MissingRequiredRegistry"
-	MissingImageStreamWarning      = "MissingImageStream"
-	CyclicBuildConfigWarning       = "CyclicBuildConfig"
+	MissingRequiredRegistryErr = "MissingRequiredRegistry"
+	MissingImageStreamErr      = "MissingImageStream"
+	CyclicBuildConfigWarning   = "CyclicBuildConfig"
 )
 
 // FindUnpushableBuildConfigs checks all build configs that will output to an IST backed by an ImageStream and checks to make sure their builds can push.
@@ -35,8 +35,8 @@ bc:
 						Node:         bcNode,
 						RelatedNodes: []graph.Node{istNode},
 
-						Severity: osgraph.WarningSeverity,
-						Key:      MissingImageStreamWarning,
+						Severity: osgraph.ErrorSeverity,
+						Key:      MissingImageStreamErr,
 						Message: fmt.Sprintf("%s is pushing to %s that is using %s, but that image stream does not exist.",
 							bcNode.(*buildgraph.BuildConfigNode).ResourceString(), istNode.(*imagegraph.ImageStreamTagNode).ResourceString(), imageStreamNode.ResourceString()),
 					})
@@ -49,8 +49,8 @@ bc:
 						Node:         bcNode,
 						RelatedNodes: []graph.Node{istNode},
 
-						Severity: osgraph.WarningSeverity,
-						Key:      MissingRequiredRegistryWarning,
+						Severity: osgraph.ErrorSeverity,
+						Key:      MissingRequiredRegistryErr,
 						Message: fmt.Sprintf("%s is pushing to %s that is using %s, but the administrator has not configured the integrated Docker registry.  (oadm registry)",
 							bcNode.(*buildgraph.BuildConfigNode).ResourceString(), istNode.(*imagegraph.ImageStreamTagNode).ResourceString(), imageStreamNode.ResourceString()),
 					})

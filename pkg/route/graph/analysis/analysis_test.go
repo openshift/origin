@@ -50,7 +50,7 @@ func TestMissingTLSTerminationType(t *testing.T) {
 	if expected, got := 1, len(markers); expected != got {
 		t.Fatalf("expected %d markers, got %d", expected, got)
 	}
-	if expected, got := MissingTLSTerminationTypeWarning, markers[0].Key; expected != got {
+	if expected, got := MissingTLSTerminationTypeErr, markers[0].Key; expected != got {
 		t.Fatalf("expected %s marker key, got %s", expected, got)
 	}
 }

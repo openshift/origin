@@ -48,9 +48,10 @@ const ForbiddenListWarning = "Forbidden"
 
 // ProjectStatusDescriber generates extended information about a Project
 type ProjectStatusDescriber struct {
-	K      kclient.Interface
-	C      client.Interface
-	Server string
+	K       kclient.Interface
+	C       client.Interface
+	Server  string
+	Suggest bool
 }
 
 func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, sets.String, error) {
@@ -210,32 +211,66 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 		sort.Stable(osgraph.ByKey(allMarkers))
 		sort.Stable(osgraph.ByNodeID(allMarkers))
-		if errorMarkers := allMarkers.BySeverity(osgraph.ErrorSeverity); len(errorMarkers) > 0 {
+
+		errorMarkers := allMarkers.BySeverity(osgraph.ErrorSeverity)
+		if len(errorMarkers) > 0 {
 			fmt.Fprintln(out, "Errors:")
 			for _, marker := range errorMarkers {
 				fmt.Fprintln(out, indent+"* "+marker.Message)
+				if len(marker.Suggestion) > 0 && d.Suggest {
+					fmt.Fprintln(out, indent+"  "+marker.Suggestion.String())
+				}
 			}
 		}
-		if warningMarkers := allMarkers.BySeverity(osgraph.WarningSeverity); len(warningMarkers) > 0 {
-			fmt.Fprintln(out, "Warnings:")
+
+		warningMarkers := allMarkers.BySeverity(osgraph.WarningSeverity)
+		if len(warningMarkers) > 0 {
+			if d.Suggest {
+				fmt.Fprintln(out, "Warnings:")
+			}
 			for _, marker := range warningMarkers {
-				fmt.Fprintln(out, indent+"* "+marker.Message)
-			}
-		}
-		if infoMarkers := allMarkers.BySeverity(osgraph.InfoSeverity); len(infoMarkers) > 0 {
-			fmt.Fprintln(out, "Info:")
-			for _, marker := range infoMarkers {
-				fmt.Fprintln(out, indent+"* "+marker.Message)
+				if d.Suggest {
+					fmt.Fprintln(out, indent+"* "+marker.Message)
+					if len(marker.Suggestion) > 0 {
+						fmt.Fprintln(out, indent+"  "+marker.Suggestion.String())
+					}
+				}
 			}
 		}
 
-		fmt.Fprintln(out)
+		// We print errors by default and warnings if -v is used. If we get none,
+		// this would be an extra new line.
+		if len(errorMarkers) != 0 || (d.Suggest && len(warningMarkers) != 0) {
+			fmt.Fprintln(out)
+		}
 
-		if (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneImages) == 0) {
+		errors, warnings := "", ""
+		if len(errorMarkers) == 1 {
+			errors = "1 error"
+		} else if len(errorMarkers) > 1 {
+			errors = fmt.Sprintf("%d errors", len(errorMarkers))
+		}
+		if len(warningMarkers) == 1 {
+			warnings = "1 warning"
+		} else if len(warningMarkers) > 1 {
+			warnings = fmt.Sprintf("%d warnings", len(warningMarkers))
+		}
+
+		switch {
+		case !d.Suggest && len(errorMarkers) > 0 && len(warningMarkers) > 0:
+			fmt.Fprintf(out, "%s and %s identified, use 'oc status -v' to see details.\n", errors, warnings)
+
+		case !d.Suggest && len(errorMarkers) > 0:
+			fmt.Fprintf(out, "%s identified, use 'oc status -v' to see details.\n", errors)
+
+		case !d.Suggest && len(warningMarkers) > 0:
+			fmt.Fprintf(out, "%s identified, use 'oc status -v' to see details.\n", warnings)
+
+		case (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneImages) == 0):
 			fmt.Fprintln(out, "You have no services, deployment configs, or build configs.")
 			fmt.Fprintln(out, "Run 'oc new-app' to create an application.")
 
-		} else {
+		default:
 			fmt.Fprintln(out, "To see more, use 'oc describe <resource>/<name>'.")
 			fmt.Fprintln(out, "You can use 'oc get all' to see a list of other objects.")
 		}

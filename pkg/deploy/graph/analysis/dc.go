@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	ImageStreamTagNotAvailableInfo = "ImageStreamTagNotAvailable"
-	MissingImageStreamWarning      = "MissingImageStream"
-	MissingImageStreamTagWarning   = "MissingImageStreamTag"
+	TagNotAvailableWarning   = "ImageStreamTagNotAvailable"
+	MissingImageStreamErr    = "MissingImageStream"
+	MissingImageStreamTagErr = "MissingImageStreamTag"
 )
 
 // FindDeploymentConfigTriggerErrors checks for possible failures in deployment config
@@ -42,8 +42,8 @@ dc:
 						Node:         uncastDcNode,
 						RelatedNodes: []graph.Node{uncastIstNode, isNode},
 
-						Severity: osgraph.WarningSeverity,
-						Key:      MissingImageStreamWarning,
+						Severity: osgraph.ErrorSeverity,
+						Key:      MissingImageStreamErr,
 						Message: fmt.Sprintf("The image trigger for %s will have no effect because %s does not exist.",
 							dcNode.ResourceString(), isNode.(*imagegraph.ImageStreamNode).ResourceString()),
 					})
@@ -56,8 +56,8 @@ dc:
 						Node:         uncastDcNode,
 						RelatedNodes: []graph.Node{uncastIstNode, bcNode},
 
-						Severity: osgraph.InfoSeverity,
-						Key:      ImageStreamTagNotAvailableInfo,
+						Severity: osgraph.WarningSeverity,
+						Key:      TagNotAvailableWarning,
 						Message: fmt.Sprintf("The image trigger for %s will have no effect because %s does not exist but %s points to %s.",
 							dcNode.ResourceString(), istNode.ResourceString(), bcNode.(*buildgraph.BuildConfigNode).ResourceString(), istNode.ResourceString()),
 					})
@@ -69,8 +69,8 @@ dc:
 					Node:         uncastDcNode,
 					RelatedNodes: []graph.Node{uncastIstNode},
 
-					Severity: osgraph.WarningSeverity,
-					Key:      MissingImageStreamTagWarning,
+					Severity: osgraph.ErrorSeverity,
+					Key:      MissingImageStreamTagErr,
 					Message: fmt.Sprintf("The image trigger for %s will have no effect because %s does not exist.",
 						dcNode.ResourceString(), istNode.ResourceString()),
 				})
