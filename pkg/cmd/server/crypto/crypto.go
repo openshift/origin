@@ -168,7 +168,7 @@ func GetCA(certFile, keyFile, serialFile string) (*CA, error) {
 	// read serial file
 	var serial int64
 	if serialData, err := ioutil.ReadFile(serialFile); err == nil {
-		serial, _ = strconv.ParseInt(string(serialData), 10, 64)
+		serial, _ = strconv.ParseInt(string(serialData), 16, 64)
 	} else {
 		return nil, err
 	}
@@ -311,7 +311,14 @@ func (ca *CA) nextSerial() (int64, error) {
 	defer ca.lock.Unlock()
 	next := ca.Serial + 1
 	ca.Serial = next
-	if err := ioutil.WriteFile(ca.SerialFile, []byte(fmt.Sprintf("%d", next)), os.FileMode(0640)); err != nil {
+
+	// Output in hex, padded to multiples of two characters for OpenSSL's sake
+	serialText := fmt.Sprintf("%X", next)
+	if len(serialText)%2 == 1 {
+		serialText = "0" + serialText
+	}
+
+	if err := ioutil.WriteFile(ca.SerialFile, []byte(serialText), os.FileMode(0640)); err != nil {
 		return 0, err
 	}
 	return next, nil
