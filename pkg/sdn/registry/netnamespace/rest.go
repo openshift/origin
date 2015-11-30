@@ -46,7 +46,7 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, er
 		return nil, err
 	}
 
-	err := rs.assignNetID(netns)
+	err := rs.assignNetID(netns, true)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bo
 	createdNetID := false
 	changedNetID := true
 	if netns.NetID == nil {
-		err = rs.assignNetID(netns)
+		err = rs.assignNetID(netns, false)
 		if err != nil {
 			return nil, false, err
 		}
@@ -130,9 +130,9 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bo
 	} else if *oldNetns.NetID == *netns.NetID {
 		changedNetID = false
 	} else if *netns.NetID != vnid.GlobalVNID {
-		err = rs.vnids.Allocate(*netns.NetID)
-		if err != vnidallocator.ErrAllocated {
-			return nil, false, fmt.Errorf("NetID %d is not allocated, you can only use existing NetID during update")
+		err = rs.checkNetID(netns)
+		if err != nil {
+			return nil, false, err
 		}
 	}
 
@@ -158,8 +158,9 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bo
 	return out, false, nil
 }
 
-func (rs *REST) assignNetID(netns *api.NetNamespace) error {
-	if rs.isGlobalNamespace(netns) {
+func (rs *REST) assignNetID(netns *api.NetNamespace, checkGlobalNs bool) error {
+	// checkGlobalNs is set to true in case of Create() and false in case of Update()
+	if checkGlobalNs && rs.isGlobalNamespace(netns) {
 		netns.NetID = new(uint)
 		*netns.NetID = vnid.GlobalVNID
 	} else if netns.NetID != nil {
@@ -203,6 +204,13 @@ func (rs *REST) revokeNetID(netns *api.NetNamespace) error {
 		}
 	}
 	return rs.vnids.Release(*netns.NetID)
+}
+
+func (rs *REST) checkNetID(netns *api.NetNamespace) error {
+	if !rs.vnids.Has(*netns.NetID) {
+		return fmt.Errorf("NetID %d is not allocated, you can only use existing NetID during update", *netns.NetID)
+	}
+	return nil
 }
 
 // isGlobalNamespace returns true in these cases:
