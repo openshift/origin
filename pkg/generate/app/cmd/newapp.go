@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/source"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/template"
 	outil "github.com/openshift/origin/pkg/util"
 	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
@@ -61,6 +62,7 @@ type AppConfig struct {
 	Dockerfile string
 
 	Name             string
+	To               string
 	Strategy         string
 	InsecureRegistry bool
 	OutputDocker     bool
@@ -573,9 +575,16 @@ func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
 	return errors.NewAggregate(errs)
 }
 
-func (c *AppConfig) validateEnforcedName() error {
-	if ok, _ := validation.ValidateServiceName(c.Name, false); !ok {
-		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", c.Name)
+func validateEnforcedName(name string) error {
+	if ok, _ := validation.ValidateServiceName(name, false); !ok {
+		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", name)
+	}
+	return nil
+}
+
+func validateOutputImageReference(ref string) error {
+	if _, err := imageapi.ParseDockerImageReference(ref); err != nil {
+		return fmt.Errorf("invalid output image reference: %s", ref)
 	}
 	return nil
 }
@@ -583,7 +592,7 @@ func (c *AppConfig) validateEnforcedName() error {
 // buildPipelines converts a set of resolved, valid references into pipelines.
 func (c *AppConfig) buildPipelines(components app.ComponentReferences, environment app.Environment) (app.PipelineGroup, error) {
 	pipelines := app.PipelineGroup{}
-	pipelineBuilder := app.NewPipelineBuilder(c.Name, c.GetBuildEnvironment(environment), c.OutputDocker)
+	pipelineBuilder := app.NewPipelineBuilder(c.Name, c.GetBuildEnvironment(environment), c.OutputDocker).To(c.To)
 	for _, group := range components.Group() {
 		glog.V(4).Infof("found group: %#v", group)
 		common := app.PipelineGroup{}
@@ -886,7 +895,13 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	}
 
 	if len(c.Name) > 0 {
-		if err := c.validateEnforcedName(); err != nil {
+		if err := validateEnforcedName(c.Name); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(c.To) > 0 {
+		if err := validateOutputImageReference(c.To); err != nil {
 			return nil, err
 		}
 	}
@@ -894,6 +909,9 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	imageRefs := components.ImageComponentRefs()
 	if len(imageRefs) > 1 && len(c.Name) > 0 {
 		return nil, fmt.Errorf("only one component or source repository can be used when specifying a name")
+	}
+	if len(imageRefs) > 1 && len(c.To) > 0 {
+		return nil, fmt.Errorf("only one component or source repository can be used when specifying an output image reference")
 	}
 
 	env := app.Environment(environment)
