@@ -488,11 +488,9 @@ function dump_container_logs()
 # delete_large_and_empty_logs deletes empty logs and logs over 20MB
 function delete_large_and_empty_logs()
 {
-	# clean up zero byte log files
+	# Clean up zero byte log files
 	# Clean up large log files so they don't end up on jenkins
-	find ${ARTIFACT_DIR} -name *.log -size +20M -exec -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size +20M -exec -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size 0 -exec rm -f {} \;
+	find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -empty -or -size +20M \) -delete
 }
 
 ######
