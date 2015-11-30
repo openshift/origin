@@ -66,6 +66,7 @@ type AppConfig struct {
 	Strategy         string
 	InsecureRegistry bool
 	OutputDocker     bool
+	NoOutput         bool
 
 	ExpectToBuild      bool
 	BinaryBuild        bool
@@ -618,6 +619,9 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				if err := pipeline.NeedsDeployment(environment, c.Labels); err != nil {
 					return nil, fmt.Errorf("can't set up a deployment for %q: %v", refInput, err)
 				}
+			}
+			if c.NoOutput {
+				pipeline.Build.Output = nil
 			}
 			common = append(common, pipeline)
 			if err := common.Reduce(); err != nil {
