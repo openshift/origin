@@ -406,6 +406,32 @@ angular.module('openshiftConsole')
         topologyItems[makeId(service)] = service;
       });
 
+      var isRecentDeployment = $filter('isRecentDeployment');
+      $scope.isVisibleDeployment = function(deployment) {
+        // If this is a replication controller and not a deployment, then it's visible.
+        var dcName = annotationFilter(deployment, 'deploymentConfig');
+        if (!dcName) {
+          return true;
+        }
+
+        // If the deployment is active, it's visible.
+        if (hashSizeFilter($scope.podsByDeployment[deployment.metadata.name]) > 0) {
+          return true;
+        }
+
+        // Otherwise, show the deployment only if it's the latest.
+        if (!$scope.deploymentConfigs) {
+          return false;
+        }
+
+        var dc = $scope.deploymentConfigs[dcName];
+        if (!dc) {
+          return false;
+        }
+
+        return isRecentDeployment(deployment, dc);
+      };
+
       // Add everything related to services, each of these tables are in
       // standard form with string keys, pointing to a map of further
       // name -> resource mappings.
@@ -420,9 +446,16 @@ angular.module('openshiftConsole')
           var service = $scope.services[serviceName];
           if (!serviceName || service) {
             angular.forEach(resources, function(resource) {
-              if (map !== $scope.monopodsByService || showMonopod(resource)) {
-                topologyItems[makeId(resource)] = resource;
+              // Filter some items to be consistent with the tiles view.
+              if (map === $scope.monopodsByService && !showMonopod(resource)) {
+                return;
               }
+
+              if (map === $scope.deploymentsByService && !$scope.isVisibleDeployment(resource)) {
+                return;
+              }
+
+              topologyItems[makeId(resource)] = resource;
             });
           }
         });
