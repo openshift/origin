@@ -123,6 +123,9 @@ angular.module('openshiftConsole')
           } else {
             chart.load(data);
           }
+
+          // Add to scope for sr-only text.
+          $scope.podStatusData = data.columns;
         }
 
         function countPodPhases() {
