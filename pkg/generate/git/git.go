@@ -30,11 +30,6 @@ func ParseRepository(s string) (*url.URL, error) {
 	if err != nil {
 		return nil, err
 	}
-	//TODO temporary work around for s2i's MungeNoProtocolURL (which is not used in s2i at the moment)
-	// there is some overloaded usage between the uri Path and the Path needed for DownloaderForSource
-	// this temporary work around  can sit here even after the s2i change (including duplicating tests in this dir's git_test.go  to source-to-image/pkg/scm/git/git_test.go)
-	// gets Godeps into origin, and then we can remove this
-	uri.Path = strings.TrimPrefix(uri.Path, "file://")
 
 	return uri, nil
 }
