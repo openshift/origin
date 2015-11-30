@@ -623,6 +623,19 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			if c.NoOutput {
 				pipeline.Build.Output = nil
 			}
+			if err := pipeline.Validate(); err != nil {
+				switch err.(type) {
+				case app.CircularOutputReferenceError:
+					if len(c.To) == 0 {
+						// Output reference was generated, return error.
+						return nil, err
+					}
+					// Output reference was explicitly provided, print warning.
+					fmt.Fprintf(c.ErrOut, "--> WARNING: %v\n", err)
+				default:
+					return nil, err
+				}
+			}
 			common = append(common, pipeline)
 			if err := common.Reduce(); err != nil {
 				return nil, fmt.Errorf("can't create a pipeline from %s: %v", common, err)
@@ -938,9 +951,11 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	pipelines, err := c.buildPipelines(imageRefs, env)
 	if err != nil {
 		if err == app.ErrNameRequired {
-			err = fmt.Errorf("can't suggest a valid name, please specify a name with --name")
+			return nil, fmt.Errorf("can't suggest a valid name, please specify a name with --name")
 		}
-		return nil, err
+		if err, ok := err.(app.CircularOutputReferenceError); ok {
+			return nil, fmt.Errorf("%v, please specify a different output reference with --to", err)
+		}
 	}
 
 	objects := app.Objects{}
