@@ -9,20 +9,20 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-var _ SyncBuilder = &RFC2307SyncBuilder{}
+var _ SyncBuilder = &RFC2307Builder{}
 
-type RFC2307SyncBuilder struct {
+type RFC2307Builder struct {
 	ClientConfig ldapclient.Config
 	Config       *api.RFC2307Config
 
 	rfc2307LDAPInterface *rfc2307.LDAPInterface
 }
 
-func (b *RFC2307SyncBuilder) GetGroupLister() (interfaces.LDAPGroupLister, error) {
+func (b *RFC2307Builder) GetGroupLister() (interfaces.LDAPGroupLister, error) {
 	return b.getRFC2307LDAPInterface()
 }
 
-func (b *RFC2307SyncBuilder) GetGroupNameMapper() (interfaces.LDAPGroupNameMapper, error) {
+func (b *RFC2307Builder) GetGroupNameMapper() (interfaces.LDAPGroupNameMapper, error) {
 	ldapInterface, err := b.getRFC2307LDAPInterface()
 	if err != nil {
 		return nil, err
@@ -34,15 +34,15 @@ func (b *RFC2307SyncBuilder) GetGroupNameMapper() (interfaces.LDAPGroupNameMappe
 	return nil, nil
 }
 
-func (b *RFC2307SyncBuilder) GetUserNameMapper() (interfaces.LDAPUserNameMapper, error) {
+func (b *RFC2307Builder) GetUserNameMapper() (interfaces.LDAPUserNameMapper, error) {
 	return syncgroups.NewUserNameMapper(b.Config.UserNameAttributes), nil
 }
 
-func (b *RFC2307SyncBuilder) GetGroupMemberExtractor() (interfaces.LDAPMemberExtractor, error) {
+func (b *RFC2307Builder) GetGroupMemberExtractor() (interfaces.LDAPMemberExtractor, error) {
 	return b.getRFC2307LDAPInterface()
 }
 
-func (b *RFC2307SyncBuilder) getRFC2307LDAPInterface() (*rfc2307.LDAPInterface, error) {
+func (b *RFC2307Builder) getRFC2307LDAPInterface() (*rfc2307.LDAPInterface, error) {
 	if b.rfc2307LDAPInterface != nil {
 		return b.rfc2307LDAPInterface, nil
 	}
