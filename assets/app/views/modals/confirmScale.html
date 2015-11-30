@@ -1,0 +1,13 @@
+<div class="modal-confirm-scale">
+  <div class="modal-body">
+    <h1>Scale down {{type}} <strong>{{resource | displayName}}</strong>?</h1>
+    <p>
+      Are you sure you want to scale <strong>{{resource | displayName}}</strong> to 0
+      replicas? This will stop all pods for the {{type}}.
+    </p>
+  </div>
+  <div class="modal-footer">
+      <button class="btn btn-lg btn-danger" type="button" ng-click="confirmScale()">Scale Down</button>
+      <button class="btn btn-lg btn-default" type="button" ng-click="cancel()">Cancel</button>
+  </div>
+</div>

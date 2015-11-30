@@ -87,6 +87,15 @@
               ng-click="viewPodsForDeployment(rc)"
               ng-class="{ clickable: (pods | hashSize) > 0 }">
           </pod-status-chart>
+
+          <!-- Add a link for screen readers. -->
+          <a href=""
+             class="sr-only"
+             ng-click="viewPodsForDeployment(rc)"
+             ng-if="(pods | hashSize) > 0"
+             role="button">
+             View pods for {{rc | displayName}}
+          </a>
         </div>
 
         <div column class="scaling-controls">
@@ -94,7 +103,7 @@
           <div flex></div>
           <div column>
             <div>
-              <a href="" ng-click="scaleUp()" title="Scale up">
+              <a href="" ng-click="scaleUp()" title="Scale up" role="button">
                 <i class="fa fa-chevron-up"></i>
                 <span class="sr-only">Scale up</span>
               </a>
@@ -104,7 +113,9 @@
               <a href=""
                  ng-click="scaleDown()"
                  ng-class="{ disabled: getDesiredReplicas() === 0 }"
-                 ng-attr-title="{{(getDesiredReplicas() === 0) ? undefined : 'Scale down'}}">
+                 ng-attr-title="{{(getDesiredReplicas() === 0) ? undefined : 'Scale down'}}"
+                 ng-attr-aria-disabled="{{(getDesiredReplicas() === 0) ? 'true' : undefined}}"
+                 role="button">
                 <i class="fa fa-chevron-down"></i>
                 <span class="sr-only">Scale down</span>
               </a>
