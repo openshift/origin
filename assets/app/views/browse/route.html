@@ -10,6 +10,13 @@
             <h1>
               {{route.metadata.name}}
               <small class="meta">created <relative-timestamp timestamp="route.metadata.creationTimestamp"></relative-timestamp></small>
+              <delete-button
+                class="pull-right fa-lg"
+                resource-type="route"
+                resource-name="{{route.metadata.name}}"
+                project-name="{{route.metadata.namespace}}"
+                alerts="alerts">
+              </delete-button>
             </h1>
             <labels labels="route.metadata.labels" clickable="true" kind="routes" project-name="{{route.metadata.namespace}}" limit="3"></labels>
             <div class="resource-details">
