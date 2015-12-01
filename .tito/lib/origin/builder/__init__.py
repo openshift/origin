@@ -3,6 +3,7 @@ Code for building Origin
 """
 
 import sys
+import json
 
 from tito.common import (
     get_latest_commit,
@@ -64,6 +65,28 @@ class OriginBuilder(Builder):
                     )
             # FIXME - output is never used
             output = run_command(update_ldflags)
+
+            # Add bundled deps for Fedora Guidelines as per:
+            # https://fedoraproject.org/wiki/Packaging:Guidelines#Bundling_and_Duplication_of_system_libraries
+            provides_list = []
+            with open("./Godeps/Godeps.json") as godeps:
+                depdict = json.load(godeps)
+                for bdep in [
+                    (dep[u'ImportPath'], dep[u'Rev'])
+                    for dep in depdict[u'Deps']
+                ]:
+                    provides_list.append(
+                        "Provides: bundled(golang({0})) = {1}".format(
+                            bdep[0],
+                            bdep[1]
+                        )
+                    )
+            update_provides_list = \
+                "sed -i 's|^### AUTO-BUNDLED-GEN-ENTRY-POINT|{0}|' {1}".format(
+                    '\\n'.join(provides_list),
+                    self.spec_file
+                )
+            print(run_command(update_provides_list))
 
             self.build_version += ".git." + \
                 str(self.commit_count) + \
