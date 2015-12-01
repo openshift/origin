@@ -19,12 +19,9 @@ import (
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kmaster "k8s.io/kubernetes/pkg/master"
-	"k8s.io/kubernetes/pkg/registry/service/allocator"
-	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	sdnfactory "github.com/openshift/openshift-sdn/plugins/osdn/factory"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
@@ -63,9 +60,6 @@ import (
 	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
 	"github.com/openshift/origin/pkg/sdn/registry/netnamespace"
-	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
-	"github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnid"
-	"github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnidallocator"
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
@@ -497,25 +491,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		storage["builds/details"] = buildDetailsStorage
 	}
 
-	if sdnfactory.IsMultitenantNetworkPlugin(c.Options.NetworkConfig.NetworkPluginName) {
-		netNamespaceStorage := netnamespaceetcd.NewREST(c.EtcdHelper)
-		netNamespaceRegistry := netnamespace.NewRegistry(netNamespaceStorage)
-		c.MultitenantNetworkConfig.NetNamespaceRegistry = netNamespaceRegistry
-
-		netIDRange, err := vnid.NewVNIDRange(vnid.MinVNID, vnid.MaxVNID-vnid.MinVNID+1)
-		if err != nil {
-			glog.Fatalf("Unable to create NetID range: %v", err)
-		}
-		c.MultitenantNetworkConfig.NetIDRange = *netIDRange
-
-		netIDAllocator := vnidallocator.NewAllocatorCustom(*netIDRange, func(max int, rangeSpec string) allocator.Interface {
-			mem := allocator.NewContiguousAllocationMap(max, rangeSpec)
-			etcd := etcdallocator.NewEtcd(mem, "/ranges/namespacevnids", "namespacevnidallocation", c.EtcdHelper)
-			c.MultitenantNetworkConfig.NetIDRegistry = etcd
-			return etcd
-		})
-
-		storage["netNamespaces"] = netnamespace.NewStorage(netNamespaceRegistry, netIDAllocator, []string{"default"})
+	if c.MultitenantNetworkConfig != nil {
+		storage["netNamespaces"] = netnamespace.NewStorage(c.MultitenantNetworkConfig.NetNamespaceRegistry, c.MultitenantNetworkConfig.NetIDAllocator, []string{kapi.NamespaceDefault})
 	}
 
 	return storage
