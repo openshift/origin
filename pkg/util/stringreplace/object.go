@@ -9,11 +9,11 @@ import (
 // VisitObjectStrings visits recursively all string fields in the object and call the
 // visitor function on them. The visitor function can be used to modify the
 // value of the string fields.
-func VisitObjectStrings(obj interface{}, visitor func(string) string) {
+func VisitObjectStrings(obj interface{}, visitor func(string) interface{}) {
 	visitValue(reflect.ValueOf(obj), visitor)
 }
 
-func visitValue(v reflect.Value, visitor func(string) string) {
+func visitValue(v reflect.Value, visitor func(string) interface{}) {
 	switch v.Kind() {
 
 	case reflect.Ptr:
@@ -44,7 +44,7 @@ func visitValue(v reflect.Value, visitor func(string) string) {
 			glog.Infof("Unable to set String value '%v'", v)
 			return
 		}
-		v.SetString(visitor(v.String()))
+		v.SetString(visitor(v.String()).(string))
 
 	default:
 		glog.V(5).Infof("Unknown field type '%s': %v", v.Kind(), v)
@@ -52,7 +52,7 @@ func visitValue(v reflect.Value, visitor func(string) string) {
 }
 
 // visitUnsettableValues creates a copy of the object you want to modify and returns the modified result
-func visitUnsettableValues(typeOf reflect.Type, original reflect.Value, visitor func(string) string) reflect.Value {
+func visitUnsettableValues(typeOf reflect.Type, original reflect.Value, visitor func(string) interface{}) reflect.Value {
 	val := reflect.New(typeOf).Elem()
 	existing := original
 	// if the value type is interface, we must resolve it to a concrete value prior to setting it back.

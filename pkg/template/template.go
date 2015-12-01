@@ -1,8 +1,10 @@
 package template
 
 import (
+	"encoding/base64"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -15,7 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/util/stringreplace"
 )
 
-var parameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+)\}`)
+var parameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+)(?:\s*\|\s*(int|bool|float|string|base64))?\}`)
 
 // Processor process the Template into the List with substituted parameters
 type Processor struct {
@@ -124,16 +126,60 @@ func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Ob
 		paramMap[param.Name] = param.Value
 	}
 
-	stringreplace.VisitObjectStrings(item, func(in string) string {
+	errors := []error{}
+
+	stringreplace.VisitObjectStrings(item, func(in string) interface{} {
+		var out interface{} = in
+
 		for _, match := range parameterExp.FindAllStringSubmatch(in, -1) {
 			if len(match) > 1 {
 				if paramValue, found := paramMap[match[1]]; found {
-					in = strings.Replace(in, match[0], paramValue, 1)
+					if len(match) > 2 && len(match[2]) > 0 {
+						if in != match[0] {
+							errors = append(errors, fmt.Errorf("variable declaration must be the entire value when using formatters"))
+						}
+
+						switch match[2] {
+						case "int":
+							// 54 bits == 53 bits precision, 1 bit sign
+							i, err := strconv.ParseInt(paramValue, 10, 54)
+							if err != nil {
+								errors = append(errors, fmt.Errorf("parameter %s could not be output as an integer: %v", match[1], err))
+							}
+							out = i
+						case "bool":
+							b, err := strconv.ParseBool(paramValue)
+							if err != nil {
+								errors = append(errors, fmt.Errorf("parameter %s could not be output as a boolean: %v", match[1], err))
+							}
+							out = b
+						case "base64":
+							in = base64.StdEncoding.EncodeToString([]byte(paramValue))
+							out = in
+						case "float":
+							f, err := strconv.ParseFloat(paramValue, 64)
+							if err != nil {
+								errors = append(errors, fmt.Errorf("parameter %s could not be output as a float: %v", match[1], err))
+							}
+							out = f
+						case "string":
+							// no-op
+							in = paramValue
+							out = in
+						}
+					} else {
+						in = strings.Replace(in, match[0], paramValue, 1)
+						out = in
+					}
 				}
 			}
 		}
-		return in
+		return out
 	})
+
+	if len(errors) > 0 {
+		return nil, fmt.Errorf("%v", errors)
+	}
 
 	return item, nil
 }

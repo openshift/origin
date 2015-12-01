@@ -332,6 +332,165 @@ func TestEvaluateLabels(t *testing.T) {
 	}
 }
 
+func TestFormatParams(t *testing.T) {
+	testCases := map[string]struct {
+		ParamValue         string
+		FieldValue         string
+		ExpectedFieldValue string
+		ExpectedError      bool
+	}{
+		"no formatting": {
+			ParamValue:         `0`,
+			FieldValue:         `"${foo}"`,
+			ExpectedFieldValue: `"0"`,
+		},
+
+		"empty": {
+			ParamValue:         ``,
+			FieldValue:         `"${foo}"`,
+			ExpectedFieldValue: `""`,
+		},
+		"empty int": {
+			ParamValue:    ``,
+			FieldValue:    `"${foo | int}"`,
+			ExpectedError: true,
+		},
+		"empty float": {
+			ParamValue:    ``,
+			FieldValue:    `"${foo | float}"`,
+			ExpectedError: true,
+		},
+		"empty bool": {
+			ParamValue:    ``,
+			FieldValue:    `"${foo | bool}"`,
+			ExpectedError: true,
+		},
+		"empty base64": {
+			ParamValue:         ``,
+			FieldValue:         `"${foo | base64}"`,
+			ExpectedFieldValue: `""`,
+		},
+
+		"formatter with surrounding info": {
+			ParamValue:    ``,
+			FieldValue:    `" ${foo | int} "`,
+			ExpectedError: true,
+		},
+
+		"max int": {
+			ParamValue:         `9007199254740991`,
+			FieldValue:         `"${foo | int}"`,
+			ExpectedFieldValue: `9007199254740991`,
+		},
+		"int overflow": {
+			ParamValue:    `9007199254740992`,
+			FieldValue:    `"${foo | int}"`,
+			ExpectedError: true,
+		},
+
+		"unknown formatter": {
+			ParamValue:         ``,
+			FieldValue:         `"${foo | bar}"`,
+			ExpectedFieldValue: `"${foo | bar}"`,
+		},
+
+		"int formatting": {
+			ParamValue:         `0`,
+			FieldValue:         `"${foo | int}"`,
+			ExpectedFieldValue: `0`,
+		},
+		"string formatting": {
+			ParamValue:         `0`,
+			FieldValue:         `"${foo | string}"`,
+			ExpectedFieldValue: `"0"`,
+		},
+		"float formatting": {
+			ParamValue:         `1.5`,
+			FieldValue:         `"${foo | float}"`,
+			ExpectedFieldValue: `1.5`,
+		},
+		"bool formatting": {
+			ParamValue:         `true`,
+			FieldValue:         `"${foo | bool}"`,
+			ExpectedFieldValue: `true`,
+		},
+		"base64 formatting": {
+			ParamValue:         `password`,
+			FieldValue:         `"${foo | base64}"`,
+			ExpectedFieldValue: `"cGFzc3dvcmQ="`,
+		},
+	}
+
+	for k, testCase := range testCases {
+		paramValue := ""
+		if len(testCase.ParamValue) > 0 {
+			paramValue = fmt.Sprintf(`,"value":"%s"`, testCase.ParamValue)
+		}
+		input := fmt.Sprintf(`{
+			"kind":"Template", "apiVersion":"v1",
+			"objects": [
+				{
+					"kind": "Service",
+					"apiVersion": "v1",
+					"metadata":{"labels":{"key":%[1]s}},
+					"values":[1,%[1]s,2]
+				}
+			],
+			"parameters":[{"name":"foo"%[2]s}]
+		}`, testCase.FieldValue, paramValue)
+
+		output := fmt.Sprintf(`{
+			"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
+			"objects":[
+				{
+					"apiVersion":"v1","kind":"Service",
+					"metadata":{"labels":{"key":%[1]s}},
+					"values":[1,%[1]s,2]
+				}
+			],
+			"parameters":[{"name":"foo"%s}]
+		}`, testCase.ExpectedFieldValue, paramValue)
+
+		var template api.Template
+		if err := latest.Codec.DecodeInto([]byte(input), &template); err != nil {
+			t.Errorf("%s: unexpected error: %v", k, err)
+			continue
+		}
+
+		generators := map[string]generator.Generator{
+			"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(1337))),
+		}
+		processor := NewProcessor(generators)
+
+		// Transform the template config into the result config
+		errs := processor.Process(&template)
+		if len(errs) > 0 {
+			if testCase.ExpectedError {
+				continue
+			}
+			t.Errorf("%s: unexpected error: %v", k, errs)
+			continue
+		}
+		if testCase.ExpectedError {
+			t.Errorf("%s: expected error, got none", k)
+			continue
+		}
+
+		result, err := latest.Codec.Encode(&template)
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", k, err)
+			continue
+		}
+		expect := output
+		expect = trailingWhitespace.ReplaceAllString(expect, "")
+		stringResult := strings.TrimSpace(string(result))
+		if expect != stringResult {
+			t.Errorf("%s: unexpected output: %s", k, util.StringDiff(expect, stringResult))
+			continue
+		}
+	}
+}
+
 func TestProcessTemplateParameters(t *testing.T) {
 	var template, expectedTemplate api.Template
 	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
