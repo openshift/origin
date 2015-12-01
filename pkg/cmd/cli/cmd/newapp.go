@@ -226,6 +226,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 		}
 	}
 	if config.DryRun {
+		fmt.Fprintf(out, "--> Success (DRY RUN)\n")
 		return nil
 	}
 
