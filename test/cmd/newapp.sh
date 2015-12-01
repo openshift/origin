@@ -18,13 +18,13 @@ os::cmd::expect_failure 'oc new-app unknownhubimage -o yaml'
 # verify we can generate a Docker image based component "mongodb" directly
 os::cmd::expect_success_and_text 'oc new-app mongo -o yaml' 'library/mongo'
 # the local image repository takes precedence over the Docker Hub "mysql" image
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags mysql:latest'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags mysql:5.5'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags mysql:5.6'"
+os::cmd::try_until_success 'oc get imagestreamtags mysql:latest'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'
 os::cmd::expect_success_and_text 'oc new-app mysql -o yaml' 'mysql'
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags php:latest'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags php:5.5'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags php:5.6'"
+os::cmd::try_until_success 'oc get imagestreamtags php:latest'
+os::cmd::try_until_success 'oc get imagestreamtags php:5.5'
+os::cmd::try_until_success 'oc get imagestreamtags php:5.6'
 
 # check label creation
 os::cmd::expect_success 'oc new-app php mysql -l no-source=php-mysql'
@@ -58,32 +58,32 @@ os::cmd::expect_failure 'oc new-app -S --template=nodejs'
 os::cmd::expect_failure 'oc new-app -S --template=perl'
 # check search - filtered, exact matches
 # make sure the imagestreams are imported first.
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags mongodb:latest'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags mongodb:2.4'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags mongodb:2.6'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags mysql:latest'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags mysql:5.5'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags mysql:5.6'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags nodejs:latest'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags nodejs:0.10'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags perl:latest'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags perl:5.16'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags perl:5.20'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags php:latest'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags php:5.5'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags php:5.6'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags postgresql:latest'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags postgresql:9.2'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags postgresql:9.4'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags python:latest'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags python:2.7'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags python:3.3'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags python:3.4'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags ruby:latest'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags ruby:2.0'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags ruby:2.2'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags wildfly:latest'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags wildfly:8.1'"
+os::cmd::try_until_success 'oc get imagestreamtags mongodb:latest'
+os::cmd::try_until_success 'oc get imagestreamtags mongodb:2.4'
+os::cmd::try_until_success 'oc get imagestreamtags mongodb:2.6'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:latest'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:latest'
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:0.10'
+os::cmd::try_until_success 'oc get imagestreamtags perl:latest'
+os::cmd::try_until_success 'oc get imagestreamtags perl:5.16'
+os::cmd::try_until_success 'oc get imagestreamtags perl:5.20'
+os::cmd::try_until_success 'oc get imagestreamtags php:latest'
+os::cmd::try_until_success 'oc get imagestreamtags php:5.5'
+os::cmd::try_until_success 'oc get imagestreamtags php:5.6'
+os::cmd::try_until_success 'oc get imagestreamtags postgresql:latest'
+os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.2'
+os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.4'
+os::cmd::try_until_success 'oc get imagestreamtags python:latest'
+os::cmd::try_until_success 'oc get imagestreamtags python:2.7'
+os::cmd::try_until_success 'oc get imagestreamtags python:3.3'
+os::cmd::try_until_success 'oc get imagestreamtags python:3.4'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:latest'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.0'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.2'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:8.1'
 
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "Tags:\s+2.4, 2.6, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.5, 5.6, latest"
@@ -139,11 +139,11 @@ os::cmd::expect_success 'oc create -f test/fixtures/installable-stream.yaml'
 project=$(oc project -q)
 os::cmd::expect_success 'oc policy add-role-to-user edit test-user'
 os::cmd::expect_success 'oc login -u test-user -p anything'
-os::cmd::expect_success "tryuntil 'oc project ${project}'"
+os::cmd::try_until_success 'oc project ${project}'
 
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags installable:file'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags installable:token'"
-os::cmd::expect_success "tryuntil 'oc get imagestreamtags installable:serviceaccount'"
+os::cmd::try_until_success 'oc get imagestreamtags installable:file'
+os::cmd::try_until_success 'oc get imagestreamtags installable:token'
+os::cmd::try_until_success 'oc get imagestreamtags installable:serviceaccount'
 os::cmd::expect_failure 'oc new-app installable:file'
 os::cmd::expect_failure_and_text 'oc new-app installable:file' 'requires that you grant the image access'
 os::cmd::expect_failure_and_text 'oc new-app installable:serviceaccount' "requires an 'installer' service account with project editor access"

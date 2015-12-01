@@ -68,7 +68,7 @@ sleep 1
 os::cmd::expect_success 'oc delete all --all'
 
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l app=dockerbuild | oc create -f -'
-tryuntil "os::cmd::expect_success 'oc get rc/database-1'"
+os::cmd::try_until_success 'oc get rc/database-1'
 
 os::cmd::expect_success 'oc rollback database --to-version=1 -o=yaml'
 os::cmd::expect_success 'oc rollback dc/database --to-version=1 -o=yaml'

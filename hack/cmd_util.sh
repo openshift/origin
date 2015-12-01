@@ -128,8 +128,6 @@ function os::cmd::try_until_text() {
 	local duration=${3:-minute}
 	local interval=${4:-0.2}
 
-	echo os::cmd::internal::run_until_text "${cmd}" "${text}" "${duration}" "${interval}"
-
 	os::cmd::internal::run_until_text "${cmd}" "${text}" "${duration}" "${interval}"
 }
 
