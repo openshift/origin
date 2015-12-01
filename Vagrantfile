@@ -126,6 +126,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Start an OpenShift cluster
     # Currently this only works with the (default) VirtualBox provider.
 
+    # Remove stale configuration when provisioning a dev cluster to
+    # prevent nfs locks on the stale config from breaking the cluster.
+    if ARGV[0] =~ /^up|provision$/i and not ARGV.include?("--no-provision")
+      system('rm -rf ./openshift.local.*')
+    end
+
     instance_prefix = "openshift"
 
     # The number of minions to provision.
