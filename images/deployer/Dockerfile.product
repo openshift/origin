@@ -9,4 +9,13 @@
 #
 FROM openshift3/ose
 
+LABEL BZComponent="openshift-enterprise-deployer-docker"
+LABEL Name="openshift3/ose-deployer"
+LABEL Version="v3.1.0.4"
+LABEL Release="1"
+LABEL Architecture="x86_64"
+
+# The deployer doesn't require a privileged user.
+USER 1001
+
 ENTRYPOINT ["/usr/bin/openshift-deploy"]

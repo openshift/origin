@@ -1,30 +1,38 @@
-FROM rhel7
+#
+# This is an OpenShift Origin node image with integrated OpenvSwitch SDN
+# If you do not require OVS SDN you should just use the origin image
+#
+# The standard name for this image is openshift/node
+#
+
+FROM openshift3/ose
 
 # Based on work by: Peter Schiffer <pschiffe@redhat.com>
 MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
-LABEL Name="aos3/aos-node"
+LABEL Name="openshift3/node"
 LABEL Vendor="Red Hat" License=GPLv2+
-LABEL Version=v3.0.2.100
-LABEL Release="5"
-LABEL BZComponent="aos3-node-docker"
+LABEL Version=v3.1.0.4
+LABEL Release="3"
+LABEL BZComponent="openshift-enterprise-node-docker"
 LABEL Architecture="x86_64"
 
+# We need to install openvswitch for the client portions, the daemons are expected
+# to run in another container
+
 RUN yum-config-manager --enable RH7-RHAOS-3.1 --enable rhel-7-server-extras-rpms
-# TODO: beta rpms being used here to get tuned versions to survive an install:
-#RUN rpm -e --nodeps systemd-container-libs systemd-container
-RUN yum install -y atomic-openshift-node atomic-openshift-sdn-ovs libmnl libnetfilter_conntrack \
+RUN yum install -y openvswitch atomic-openshift-sdn-ovs libmnl libnetfilter_conntrack \
     libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
     binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
     && yum clean all
 
-COPY openshift-sdn-kube-subnet-setup.sh /usr/bin/
-RUN chmod +x /usr/bin/openshift-sdn-kube-subnet-setup.sh
+RUN mkdir -p /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet \
+    /usr/lib/systemd/system/origin-node.service.d \
+    /usr/lib/systemd/system/docker.service.d
 
-COPY openshift-sdn-multitenant-setup.sh /usr/bin/
-RUN chmod +x /usr/bin/openshift-sdn-multitenant-setup.sh
-
-COPY aos-node-run.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/aos-node-run.sh
+# All of the following are placed in images/node by hack/build-images.sh
+# They won't exist in the git checkout
+ADD scripts/* /usr/local/bin/
+RUN chmod +x /usr/local/bin/*
 
 VOLUME [ "/etc/origin/node", "/var/lib/origin" ]
 WORKDIR /var/lib/origin
@@ -32,8 +40,4 @@ WORKDIR /var/lib/origin
 ENV HOME /root
 ENV OPENSHIFT_CONTAINERIZED true
 ENV KUBECONFIG /etc/origin/node/node.kubeconfig
-
-CMD [ "/usr/local/bin/aos-node-run.sh" ]
-
-LABEL RUN docker run -d --name NAME --privileged --net=host --pid=host --restart=always -v /:/rootfs:ro -e HOST=/rootfs -v /etc/systemd/system:/host-etc/systemd/system -e HOST_ETC=/host-etc -v /etc/localtime:/etc/localtime:ro -v /etc/machine-id:/etc/machine-id:ro -v /lib/modules:/lib/modules -v /run:/run -v /sys:/sys:ro -v /usr/bin/docker:/usr/bin/docker:ro -v /var/lib/docker:/var/lib/docker -v /etc/origin/node:/etc/origin/node:z -v /etc/origin/openvswitch:/etc/openvswitch:Z -v /etc/origin/sdn:/etc/openshift-sdn:Z -v /var/lib/origin:/var/lib/origin:z IMAGE
-
+ENTRYPOINT [ "/usr/local/bin/origin-node-run.sh" ]

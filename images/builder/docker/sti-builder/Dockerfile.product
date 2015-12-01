@@ -12,5 +12,11 @@
 #
 FROM openshift3/ose
 
+LABEL BZComponent="openshift-enterprise-sti-builder-docker"
+LABEL Name="openshift3/ose-sti-builder"
+LABEL Version="v3.1.0.4"
+LABEL Release="1"
+LABEL Architecture="x86_64"
+
 ENV HOME /root
 ENTRYPOINT ["/usr/bin/openshift-sti-build"]
