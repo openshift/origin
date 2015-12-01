@@ -2,7 +2,6 @@ package build
 
 import (
 	"fmt"
-	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
@@ -30,7 +29,7 @@ var Decorator = func(obj runtime.Object) error {
 		return errors.NewBadRequest(fmt.Sprintf("not a build: %v", build))
 	}
 	if build.Status.StartTimestamp == nil {
-		build.Status.Duration = time.Duration(0)
+		build.Status.Duration = 0
 	} else {
 		completionTimestamp := build.Status.CompletionTimestamp
 		if completionTimestamp == nil {
