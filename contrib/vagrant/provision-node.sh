@@ -13,12 +13,14 @@ if ! os::provision::in-container; then
   os::provision::wait-for-node-config "${CONFIG_ROOT}" "${NODE_NAME}"
 fi
 
+os::provision::copy-config "${CONFIG_ROOT}"
+
 # openshift is assumed to have been built before node deployment
 os::provision::install-cmds "${ORIGIN_ROOT}"
 
 os::provision::install-sdn "${ORIGIN_ROOT}"
 
 echo "Launching openshift daemon"
-os::provision::start-node-service "${CONFIG_ROOT}" "${NODE_NAME}"
+os::provision::start-node-service "${DEPLOYED_CONFIG_ROOT}" "${NODE_NAME}"
 
-os::provision::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
+os::provision::set-os-env "${ORIGIN_ROOT}" "${DEPLOYED_CONFIG_ROOT}"
