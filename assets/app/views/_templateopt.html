@@ -27,9 +27,10 @@
           ng-trim="false"
           autocorrect="off"
           autocapitalize="off"
-          spellcheck="false">
+          spellcheck="false"
+          ng-attr-aria-describedby="{{parameter.description ? (paramID + '-description') : undefined}}">
     </span>
-    <div class="help-block" ng-if="parameter.description">{{parameter.description}}</div>
+    <div class="help-block" ng-if="parameter.description" ng-attr-id="{{paramID}}-description">{{parameter.description}}</div>
     <div ng-show="paramForm[paramID].$error.required && paramForm[paramID].$touched && !cleared" class="has-error">
       <div class="help-block">{{parameter.displayName || parameter.name}} is required.</div>
     </div>

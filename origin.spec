@@ -54,6 +54,16 @@ Requires:       %{name}-clients = %{version}-%{release}
 Requires:       iptables
 Obsoletes:      openshift < %{package_refector_version}
 
+#
+# The following Bundled Provides entries are populated automatically by the
+# OpenShift Origin tito custom builder found here:
+#   https://github.com/openshift/origin/blob/master/.tito/lib/origin/builder/
+#
+# These are defined as per:
+# https://fedoraproject.org/wiki/Packaging:Guidelines#Bundling_and_Duplication_of_system_libraries
+#
+### AUTO-BUNDLED-GEN-ENTRY-POINT
+
 %description
 %{summary}
 
@@ -210,9 +220,22 @@ install -d -m 0755 %{buildroot}%{_unitdir}
 
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
-for cmd in openshift-router openshift-deploy openshift-sti-build openshift-docker-build origin atomic-enterprise \
-  oadm kubernetes kubelet kube-proxy kube-apiserver kube-controller-manager kube-scheduler ; do
-    ln -s openshift %{buildroot}%{_bindir}/$cmd
+for cmd in \
+    openshift-router \
+    openshift-deploy \
+    openshift-sti-build \
+    openshift-docker-build \
+    origin \
+    atomic-enterprise \
+    oadm \
+    kubernetes \
+    kubelet \
+    kube-proxy \
+    kube-apiserver \
+    kube-controller-manager \
+    kube-scheduler
+do
+    ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/$cmd
 done
 
 ln -s oc %{buildroot}%{_bindir}/kubectl
