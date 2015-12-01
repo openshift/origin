@@ -154,7 +154,7 @@ func describeBuildDuration(build *buildapi.Build) string {
 		(build.Status.Phase == buildapi.BuildPhaseCancelled ||
 			build.Status.Phase == buildapi.BuildPhaseFailed ||
 			build.Status.Phase == buildapi.BuildPhaseError) {
-		// time a build waited for its pod before ultimately being canceled before that pod was created
+		// time a build waited for its pod before ultimately being cancelled before that pod was created
 		return fmt.Sprintf("waited for %s", build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
 	} else if build.Status.StartTimestamp == nil && build.Status.Phase != buildapi.BuildPhaseCancelled {
 		// time a new build has been waiting for its pod to be created so it can run

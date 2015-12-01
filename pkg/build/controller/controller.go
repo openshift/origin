@@ -75,7 +75,7 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 	return nil
 }
 
-// HandleBuild deletes pods for canceled builds and takes new builds and puts
+// HandleBuild deletes pods for cancelled builds and takes new builds and puts
 // them in the pending state after creating a corresponding pod
 func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	glog.V(4).Infof("Handling build %s/%s", build.Namespace, build.Name)

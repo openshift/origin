@@ -70,7 +70,7 @@ type BuildStatus struct {
 	// Phase is the point in the build lifecycle.
 	Phase BuildPhase
 
-	// Cancelled describes if a cancelling event was triggered for the build.
+	// Cancelled describes if a cancel event was triggered for the build.
 	Cancelled bool
 
 	// Reason is a brief CamelCase string that describes any failure and is meant for machine parsing and tidy display in the CLI.

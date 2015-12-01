@@ -34,7 +34,7 @@ func retryWhenUnreachable(t *testing.T, f func() error) error {
 		//   Get https://registry.com/v2/: dial tcp: lookup registry.com: no such host
 		//   Get https://registry.com/v2/: dial tcp registry.com:443: getsockopt: connection refused
 		//   Get https://registry.com/v2/: read tcp 127.0.0.1:39849->registry.com:443: read: connection reset by peer
-		//   Get https://registry.com/v2/: net/http: request canceled while waiting for connection
+		//   Get https://registry.com/v2/: net/http: request cancelled while waiting for connection
 		//   Get https://registry.com/v2/: net/http: TLS handshake timeout
 		//   the registry "https://registry.com/v2/ " could not be reached
 		reachable := true
