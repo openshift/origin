@@ -7,9 +7,15 @@
 # The standard name for this image is openshift3/ose-pod
 #
 # Pulp can't handle the scratch later currently
-#FROM scratch
-FROM registry.access.redhat.com/rhel
+FROM rhel7:latest
 
-ADD bin/pod /pod
+LABEL BZComponent="openshift-enterprise-pod-docker"
+LABEL Name="openshift3/ose-pod"
+LABEL Version="v3.1.0.4"
+LABEL Release="1"
+LABEL Architecture="x86_64"
+
+RUN yum install -y --enablerepo=RH7-RHAOS-3.1 atomic-openshift-pod && yum clean all
+RUN ln -s /usr/bin/pod /pod
 
 ENTRYPOINT ["/pod"]

@@ -6,23 +6,24 @@
 #
 FROM openshift3/ose-base
 
-RUN yum install -y openshift && \
+LABEL BZComponent="openshift-enterprise-docker"
+LABEL Name="openshift3/ose"
+LABEL Version="v3.1.0.4"
+LABEL Release="1"
+LABEL Architecture="x86_64"
+
+RUN yum install -y atomic-openshift iptables --enablerepo=RH7-RHAOS-3.1 && \
     yum clean all
 
-RUN ln -s /usr/bin/openshift /usr/bin/osc && \
-    ln -s /usr/bin/openshift /usr/bin/osadm && \
-    ln -s /usr/bin/openshift /usr/bin/kubectl && \
-    ln -s /usr/bin/openshift /usr/bin/openshift-deploy && \
-    ln -s /usr/bin/openshift /usr/bin/openshift-docker-build && \
-    ln -s /usr/bin/openshift /usr/bin/openshift-sti-build && \
-    ln -s /usr/bin/openshift /usr/bin/openshift-router && \
-    setcap 'cap_net_bind_service=ep' /usr/bin/openshift
+RUN mkdir -p /var/lib/origin
+
+RUN setcap 'cap_net_bind_service=ep' /usr/bin/openshift
 
 ADD scripts/recycler.sh /usr/share/openshift/scripts/volumes/recycler.sh
 
 ENV HOME /root
 ENV OPENSHIFT_CONTAINERIZED true
-ENV KUBECONFIG /var/lib/openshift/openshift.local.config/master/admin.kubeconfig
-WORKDIR /var/lib/openshift
+ENV KUBECONFIG /var/lib/origin/openshift.local.config/master/admin.kubeconfig
+WORKDIR /var/lib/origin
 EXPOSE 8443 53
 ENTRYPOINT ["/usr/bin/openshift"]

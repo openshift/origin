@@ -5,7 +5,13 @@
 #
 FROM openshift3/ose-haproxy-router-base
 
-RUN yum -y install openshift && yum clean all
+LABEL BZComponent="openshift-enterprise-haproxy-router-docker"
+LABEL Name="openshift3/ose-haproxy-router"
+LABEL Version="v3.1.0.4"
+LABEL Release="1"
+LABEL Architecture="x86_64"
+
+RUN yum -y install --enablerepo=RH7-RHAOS-3.1 atomic-openshift && yum clean all
 
 ADD conf/ /var/lib/haproxy/conf/
 ADD reload-haproxy /var/lib/haproxy/reload-haproxy
@@ -15,10 +21,11 @@ ADD reload-haproxy /var/lib/haproxy/reload-haproxy
 #       with gid support.
 # Note2: cap_net_bind_service must be granted to haproxy to allow a non-root uid to bind to low ports
 #
-RUN ln -s /usr/bin/openshift /usr/bin/openshift-router && \
-    chmod -R 777 /var && \
+RUN chmod -R 777 /var && \
     setcap 'cap_net_bind_service=ep' /usr/sbin/haproxy
 WORKDIR /var/lib/haproxy/conf
 
 EXPOSE 80
-ENTRYPOINT ["/usr/bin/openshift-router", "--template=/var/lib/haproxy/conf/haproxy-config.template", "--reload=/var/lib/haproxy/reload-haproxy"]
+ENV TEMPLATE_FILE=/var/lib/haproxy/conf/haproxy-config.template \
+    RELOAD_SCRIPT=/var/lib/haproxy/reload-haproxy
+ENTRYPOINT ["/usr/bin/openshift-router"]
