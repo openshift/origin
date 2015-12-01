@@ -275,7 +275,7 @@ func WaitUntilUp(oc *CLI, d Database, timeout time.Duration) error {
 // WaitUntilAllHelpersAreUp waits until all helpers are ready to serve requests
 func WaitUntilAllHelpersAreUp(oc *CLI, helpers []Database) error {
 	for _, m := range helpers {
-		if err := WaitUntilUp(oc, m, 180*time.Second); err != nil {
+		if err := WaitUntilUp(oc, m, 3*time.Minute); err != nil {
 			return err
 		}
 	}
