@@ -377,10 +377,11 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	buildList, err := d.Builds(namespace).List(labels.SelectorFromSet(labels.Set{buildapi.DeprecatedBuildConfigLabel: name}), fields.Everything())
+	buildList, err := d.Builds(namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return "", err
 	}
+	buildList.Items = buildapi.FilterBuilds(buildList.Items, buildapi.ByBuildConfigLabelPredicate(name))
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)
@@ -980,7 +981,7 @@ func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 	})
 }
 
-const policyRuleHeadings = "Verbs\tResources\tResource Names\tNon-Resource URLs\tExtension"
+const policyRuleHeadings = "Verbs\tNon-Resource URLs\tExtension\tResource Names\tAPI Groups\tResources"
 
 func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
 	extensionString := ""
@@ -994,12 +995,14 @@ func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule,
 		}
 	}
 
-	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\t%v\n",
+	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\t%v\t%v\n",
 		rule.Verbs.List(),
-		rule.Resources.List(),
-		rule.ResourceNames.List(),
 		rule.NonResourceURLs.List(),
-		extensionString)
+		extensionString,
+		rule.ResourceNames.List(),
+		rule.APIGroups,
+		rule.Resources.List(),
+	)
 }
 
 // RoleDescriber generates information about a Project

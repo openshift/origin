@@ -16,6 +16,11 @@ func ValidateConfig(config *api.Config) []ValidationError {
 	if len(config.BuilderImage) == 0 {
 		allErrs = append(allErrs, NewFieldRequired("builderImage"))
 	}
+	switch config.BuilderPullPolicy {
+	case api.PullNever, api.PullAlways, api.PullIfNotPresent:
+	default:
+		allErrs = append(allErrs, NewFieldInvalidValue("builderPullPolicy"))
+	}
 	if config.DockerConfig == nil || len(config.DockerConfig.Endpoint) == 0 {
 		allErrs = append(allErrs, NewFieldRequired("dockerConfig.endpoint"))
 	}
@@ -69,5 +74,12 @@ type ValidationError struct {
 }
 
 func (v ValidationError) Error() string {
-	return fmt.Sprintf("%s: %s", v.Field, v.Type)
+	switch v.Type {
+	case ValidationErrorInvalidValue:
+		return fmt.Sprintf("Invalid value specified for %q", v.Field)
+	case ValidationErrorTypeRequired:
+		return fmt.Sprintf("Required value not specified for %q", v.Field)
+	default:
+		return fmt.Sprintf("%s: %s", v.Type, v.Field)
+	}
 }

@@ -435,11 +435,6 @@
 			"Rev": "73d445a93680fa1a78ae23a5839bad48f32ba1ee"
 		},
 		{
-			"ImportPath": "github.com/go-ldap/ldap",
-			"Comment": "v1-22-gc265aaa",
-			"Rev": "c265aaa27b1c60c66f6d4695c6f33eb8b28989ad"
-		},
-		{
 			"ImportPath": "github.com/godbus/dbus",
 			"Comment": "0-7-g939230d",
 			"Rev": "939230d2086a4f1870e04c52e0a376c25bae0ec4"
@@ -685,57 +680,57 @@
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg",
 			"Comment": "v0.1-164-g9d342eb",
-			"Rev": "d5965ee039bb85c5ec9ef7f455a8c03ac0ff0214"
+			"Rev": "c3fefe01ae87a2e54c6ee02379679d3eaaf2c45d"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/plugins",
 			"Comment": "v0.1-164-g9d342eb",
-			"Rev": "d5965ee039bb85c5ec9ef7f455a8c03ac0ff0214"
+			"Rev": "c3fefe01ae87a2e54c6ee02379679d3eaaf2c45d"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.4-4-g7597eaa",
+			"Rev": "7597eaa168a670767bf2b271035d29b92ab13b5c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.4-4-g7597eaa",
+			"Rev": "7597eaa168a670767bf2b271035d29b92ab13b5c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/docker",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.4-4-g7597eaa",
+			"Rev": "7597eaa168a670767bf2b271035d29b92ab13b5c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/errors",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.4-4-g7597eaa",
+			"Rev": "7597eaa168a670767bf2b271035d29b92ab13b5c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/ignore",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.4-4-g7597eaa",
+			"Rev": "7597eaa168a670767bf2b271035d29b92ab13b5c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scm",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.4-4-g7597eaa",
+			"Rev": "7597eaa168a670767bf2b271035d29b92ab13b5c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scripts",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.4-4-g7597eaa",
+			"Rev": "7597eaa168a670767bf2b271035d29b92ab13b5c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/tar",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.4-4-g7597eaa",
+			"Rev": "7597eaa168a670767bf2b271035d29b92ab13b5c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util",
-			"Comment": "v1.0.3-16-g9728b53",
-			"Rev": "65d46436ab599633b76e570311a05f46a818389b"
+			"Comment": "v1.0.4-4-g7597eaa",
+			"Rev": "7597eaa168a670767bf2b271035d29b92ab13b5c"
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",
@@ -933,7 +928,11 @@
 		{
 			"ImportPath": "gopkg.in/asn1-ber.v1",
 			"Comment": "v1",
-			"Rev": "9eae18c3681ae3d3c677ac2b80a8fe57de45fc09"
+			"Rev": "4e86f4367175e39f69d9358a5f17b4dda270378d"
+		},
+		{
+			"ImportPath": "gopkg.in/ldap.v2",
+			"Rev": "e9a325d64989e2844be629682cb085d2c58eef8d"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

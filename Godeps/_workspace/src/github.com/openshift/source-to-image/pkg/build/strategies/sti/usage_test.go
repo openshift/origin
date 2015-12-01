@@ -14,6 +14,7 @@ type FakeUsageHandler struct {
 	setupOptional  []string
 	setupError     error
 	executeCommand string
+	executeUser    string
 	executeError   error
 }
 
@@ -34,8 +35,9 @@ func (f *FakeUsageHandler) SetScripts(r, o []string) {
 	f.setupOptional = o
 }
 
-func (f *FakeUsageHandler) Execute(command string, r *api.Config) error {
+func (f *FakeUsageHandler) Execute(command string, user string, r *api.Config) error {
 	f.executeCommand = command
+	f.executeUser = user
 	return f.executeError
 }
 

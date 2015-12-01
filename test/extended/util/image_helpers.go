@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 )
@@ -72,7 +73,7 @@ func VerifyImagesDifferent(comp1, comp2, strategy string) {
 //WaitForBuild is a wrapper for WaitForABuild in this package that takes in an oc/cli client; some ginkgo based debug along with ginkgo error checking
 func WaitForBuild(context, buildName string, oc *CLI) {
 	g.By(fmt.Sprintf("%s:   waiting for %s", context, buildName))
-	WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, CheckBuildSuccessFunc, CheckBuildFailedFunc)
+	WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, CheckBuildSuccessFn, CheckBuildFailedFn)
 	// do not care if build returned an error ... entirely possible ... we only check if the image was updated or left the same appropriately
 	g.By(fmt.Sprintf("%s   done waiting for %s", context, buildName))
 }

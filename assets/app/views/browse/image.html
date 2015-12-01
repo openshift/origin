@@ -6,6 +6,13 @@
     <div class="tile" ng-if="imageStream">
       <h1>
         {{imageStream.metadata.name}}
+        <delete-button 
+          class="pull-right fa-lg"
+          resource-type="imagestream" 
+          resource-name="{{imageStream.metadata.name}}" 
+          project-name="{{imageStream.metadata.namespace}}" 
+          alerts="alerts">
+        </delete-button>
         <small class="meta">created <relative-timestamp timestamp="imageStream.metadata.creationTimestamp"></relative-timestamp></small>
       </h1>
       <labels labels="imageStream.metadata.labels" clickable="true" kind="images" project-name="{{imageStream.metadata.namespace}}" limit="3"></labels>

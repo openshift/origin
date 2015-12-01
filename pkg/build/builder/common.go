@@ -4,9 +4,13 @@ import (
 	"os"
 
 	"github.com/golang/glog"
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
 
 	"github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/client"
 )
+
+const OriginalSourceURLAnnotationKey = "openshift.io/original-source-url"
 
 // A KeyValue can be used to build ordered lists of key-value pairs.
 type KeyValue struct {
@@ -22,7 +26,11 @@ func buildInfo(build *api.Build) []KeyValue {
 		{"OPENSHIFT_BUILD_NAMESPACE", build.Namespace},
 	}
 	if build.Spec.Source.Git != nil {
-		kv = append(kv, KeyValue{"OPENSHIFT_BUILD_SOURCE", build.Spec.Source.Git.URI})
+		sourceURL := build.Spec.Source.Git.URI
+		if originalURL, ok := build.Annotations[OriginalSourceURLAnnotationKey]; ok {
+			sourceURL = originalURL
+		}
+		kv = append(kv, KeyValue{"OPENSHIFT_BUILD_SOURCE", sourceURL})
 		if build.Spec.Source.Git.Ref != "" {
 			kv = append(kv, KeyValue{"OPENSHIFT_BUILD_REFERENCE", build.Spec.Source.Git.Ref})
 		}
@@ -80,5 +88,35 @@ func resetHTTPProxy(originalProxies map[string]string) {
 	if proxy, ok := originalProxies["https_proxy"]; ok {
 		glog.V(4).Infof("Resetting https_proxy to %s", proxy)
 		os.Setenv("https_proxy", proxy)
+	}
+}
+
+func updateBuildRevision(c client.BuildInterface, build *api.Build, sourceInfo *s2iapi.SourceInfo) {
+	if build.Spec.Revision != nil {
+		return
+	}
+	build.Spec.Revision = &api.SourceRevision{
+		Type: api.BuildSourceGit,
+		Git: &api.GitSourceRevision{
+			Commit:  sourceInfo.CommitID,
+			Message: sourceInfo.Message,
+			Author: api.SourceControlUser{
+				Name:  sourceInfo.AuthorName,
+				Email: sourceInfo.AuthorEmail,
+			},
+			Committer: api.SourceControlUser{
+				Name:  sourceInfo.CommitterName,
+				Email: sourceInfo.CommitterEmail,
+			},
+		},
+	}
+
+	// Reset ResourceVersion to avoid a conflict with other updates to the build
+	build.ResourceVersion = ""
+
+	glog.V(4).Infof("Setting build revision to %#v", build.Spec.Revision.Git)
+	_, err := c.UpdateDetails(build)
+	if err != nil {
+		glog.Warningf("An error occurred saving build revision: %v", err)
 	}
 }

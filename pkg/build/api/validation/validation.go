@@ -31,6 +31,9 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) fielderro
 
 	allErrs = append(allErrs, ValidateBuild(build)...)
 
+	if buildutil.IsBuildComplete(older) && older.Status.Phase != build.Status.Phase {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("status.Phase", build.Status.Phase, "phase cannot be updated from a terminal state"))
+	}
 	if !kapi.Semantic.DeepEqual(build.Spec, older.Spec) {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec", "content of spec is not printed out, please refer to the \"details\"", "spec is immutable"))
 	}
@@ -142,6 +145,10 @@ func validateBuildSpec(spec *buildapi.BuildSpec) fielderrors.ValidationErrorList
 
 const maxDockerfileLengthBytes = 60 * 1000
 
+func hasProxy(source *buildapi.GitBuildSource) bool {
+	return len(source.HTTPProxy) > 0 || len(source.HTTPSProxy) > 0
+}
+
 func validateSource(input *buildapi.BuildSource) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	switch input.Type {
@@ -186,6 +193,8 @@ func validateSource(input *buildapi.BuildSource) fielderrors.ValidationErrorList
 		}
 	case "":
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("type"))
+	default:
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("type", input.Type, fmt.Sprintf("source type must be one of Git, Dockerfile, or Binary")))
 	}
 	allErrs = append(allErrs, validateSecretRef(input.SourceSecret).Prefix("sourceSecret")...)
 
@@ -223,6 +232,14 @@ func validateSecretRef(ref *kapi.LocalObjectReference) fielderrors.ValidationErr
 	return allErrs
 }
 
+func isHTTPScheme(in string) bool {
+	u, err := url.Parse(in)
+	if err != nil {
+		return false
+	}
+	return u.Scheme == "http" || u.Scheme == "https"
+}
+
 func validateGitSource(git *buildapi.GitBuildSource) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	if len(git.URI) == 0 {
@@ -235,6 +252,9 @@ func validateGitSource(git *buildapi.GitBuildSource) fielderrors.ValidationError
 	}
 	if len(git.HTTPSProxy) != 0 && !isValidURL(git.HTTPSProxy) {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("httpsproxy", git.HTTPSProxy, "proxy is not a valid url"))
+	}
+	if hasProxy(git) && !isHTTPScheme(git.URI) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("uri", git.URI, "only http:// and https:// GIT protocols are allowed with HTTP or HTTPS proxy set"))
 	}
 	return allErrs
 }

@@ -87,7 +87,7 @@
               <div class="component">
                 <div ng-attr-title="{{service | serviceImplicitDNSName}}" class="component-label">
                   <!-- "service" class is present for e2e tests to check   -->
-                  Service <span ng-if="displayRouteByService[serviceId]">: <a class="subtle-link service" href="project/{{service.metadata.namespace}}/browse/services/{{serviceId}}">{{serviceId}}</a></span>
+                  Service <span ng-if="displayRouteByService[serviceId]">: <a class="subtle-link service" href="{{service | navigateResourceURL}}">{{serviceId}}</a></span>
                 </div>
 
                 <!-- Show the route if present -->
@@ -102,7 +102,7 @@
                   </span>
                   <span class="small" ng-if="otherRoutes">
                     (and
-                    <a href="project/{{projectName}}/browse/services#service-{{serviceId}}">
+                    <a href="{{service | navigateResourceURL}}">
                       {{otherRoutes}} other {{(otherRoutes == 1) ? 'route' : 'routes'}}
                     </a>)
                   </span>
@@ -111,7 +111,7 @@
                 <!-- If no route is present, show the service name large -->
                 <!-- "service" class is present for e2e tests to check   -->
                 <h2 ng-if="!displayRouteByService[serviceId]">
-                  <a class="service" href="project/{{service.metadata.namespace}}/browse/services/{{serviceId}}">{{serviceId}}</a>
+                  <a class="service" href="{{service | navigateResourceURL}}">{{serviceId}}</a>
                 </h2>
               </div>
 
@@ -145,7 +145,7 @@
             Pods in deployments created from this deployment config will be routed to by this service.
             Show things related to triggers that are about to create stuff, like builds.
             -->
-            <triggers triggers="deploymentConfig.spec.triggers"></triggers>
+            <triggers triggers="deploymentConfig.spec.triggers" builds-by-output-image="recentBuildsByOutputImage" namespace="projectName"></triggers>
           </div>
           <!--
           Iterate over all deployments for this service grouped by deploymentConfig (or lack thereof)
@@ -162,7 +162,7 @@
               Pods in deployments created from this deployment config will be routed to by this service.
               Show things related to triggers that are about to create stuff, like builds.
               -->
-              <triggers triggers="deploymentConfigsByService[serviceId][deploymentConfigId].spec.triggers"></triggers>
+              <triggers triggers="deploymentConfigsByService[serviceId][deploymentConfigId].spec.triggers" builds-by-output-image="recentBuildsByOutputImage" namespace="projectName"></triggers>
             </div>
 
             <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)"
@@ -213,7 +213,7 @@
               Pods in deployments created from this deployment config will not be routed to by any service.
               Show things related to triggers that are about to create stuff, like builds.
               -->
-              <triggers triggers="deploymentConfigs[deploymentConfigId].spec.triggers"></triggers>
+              <triggers triggers="deploymentConfigs[deploymentConfigId].spec.triggers" builds-by-output-image="recentBuildsByOutputImage" namespace="projectName"></triggers>
             </div>
 
             <!-- Make sure deploymentConfigs are loaded before testing if the deployment config is missing. -->

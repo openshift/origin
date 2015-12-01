@@ -42,6 +42,7 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 				return func() *kapi.Pod { return nil }
 			},
 		},
+		codec: kapi.Codec,
 	}
 
 	err := executor.executeExecNewPod(hook, deployment, "hook")
@@ -81,6 +82,7 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 		podLogStream: func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error) {
 			return ioutil.NopCloser(strings.NewReader("test")), nil
 		},
+		codec: kapi.Codec,
 	}
 
 	err := executor.executeExecNewPod(hook, deployment, "hook")
@@ -132,6 +134,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 		podLogStream: func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error) {
 			return nil, fmt.Errorf("can't access logs")
 		},
+		codec: kapi.Codec,
 	}
 
 	err := executor.executeExecNewPod(hook, deployment, "hook")
@@ -150,9 +153,10 @@ func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 		},
 	}
 
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	config := deploytest.OkDeploymentConfig(1)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 
-	_, err := makeHookPod(hook, deployment, "hook")
+	_, err := makeHookPod(hook, deployment, &config.Template.Strategy, "hook")
 
 	if err == nil {
 		t.Fatalf("expected an error")
@@ -166,9 +170,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
 
 	tests := []struct {
-		name     string
-		hook     *deployapi.LifecycleHook
-		expected *kapi.Pod
+		name                string
+		hook                *deployapi.LifecycleHook
+		expected            *kapi.Pod
+		strategyLabels      map[string]string
+		strategyAnnotations map[string]string
 	}{
 		{
 			name: "overrides",
@@ -309,11 +315,74 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "labels and annotations",
+			hook: &deployapi.LifecycleHook{
+				FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &deployapi.ExecNewPodHook{
+					ContainerName: "container1",
+				},
+			},
+			expected: &kapi.Pod{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: namer.GetPodName(deploymentName, "hook"),
+					Labels: map[string]string{
+						deployapi.DeployerPodForDeploymentLabel: deploymentName,
+						"label1": "value1",
+					},
+					Annotations: map[string]string{
+						deployapi.DeploymentAnnotation: deploymentName,
+						"annotation2":                  "value2",
+					},
+				},
+				Spec: kapi.PodSpec{
+					RestartPolicy:         kapi.RestartPolicyNever,
+					ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
+					Containers: []kapi.Container{
+						{
+							Name:  "lifecycle",
+							Image: "registry:8080/repo1:ref1",
+							Env: []kapi.EnvVar{
+								{
+									Name:  "ENV1",
+									Value: "VAL1",
+								},
+								{
+									Name:  "OPENSHIFT_DEPLOYMENT_NAME",
+									Value: deploymentName,
+								},
+								{
+									Name:  "OPENSHIFT_DEPLOYMENT_NAMESPACE",
+									Value: deploymentNamespace,
+								},
+							},
+							Resources: kapi.ResourceRequirements{
+								Limits: kapi.ResourceList{
+									kapi.ResourceCPU:    resource.MustParse("10"),
+									kapi.ResourceMemory: resource.MustParse("10M"),
+								},
+							},
+						},
+					},
+					ImagePullSecrets: []kapi.LocalObjectReference{
+						{
+							Name: "secret-1",
+						},
+					},
+				},
+			},
+			strategyLabels: map[string]string{
+				deployapi.DeployerPodForDeploymentLabel: "ignoredValue",
+				"label1": "value1",
+			},
+			strategyAnnotations: map[string]string{"annotation2": "value2"},
+		},
 	}
 
 	for _, test := range tests {
 		t.Logf("evaluating test: %s", test.name)
-		pod, err := makeHookPod(test.hook, deployment("deployment", "test"), "hook")
+		config, deployment := deployment("deployment", "test", test.strategyLabels, test.strategyAnnotations)
+		pod, err := makeHookPod(test.hook, deployment, &config.Template.Strategy, "hook")
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -337,9 +406,10 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 		},
 	}
 
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	config := deploytest.OkDeploymentConfig(1)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 
-	pod, err := makeHookPod(hook, deployment, "hook")
+	pod, err := makeHookPod(hook, deployment, &config.Template.Strategy, "hook")
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -456,7 +526,7 @@ func TestAcceptNewlyObservedReadyPods_scenarios(t *testing.T) {
 	}
 }
 
-func deployment(name, namespace string) *kapi.ReplicationController {
+func deployment(name, namespace string, strategyLabels, strategyAnnotations map[string]string) (*deployapi.DeploymentConfig, *kapi.ReplicationController) {
 	config := &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      name,
@@ -472,6 +542,8 @@ func deployment(name, namespace string) *kapi.ReplicationController {
 						kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
 					},
 				},
+				Labels:      strategyLabels,
+				Annotations: strategyAnnotations,
 			},
 			ControllerTemplate: kapi.ReplicationControllerSpec{
 				Replicas: 1,
@@ -534,7 +606,7 @@ func deployment(name, namespace string) *kapi.ReplicationController {
 	}
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 	deployment.Namespace = namespace
-	return deployment
+	return config, deployment
 }
 
 type envByNameAsc []kapi.EnvVar

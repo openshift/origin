@@ -3,11 +3,17 @@ package docker
 import (
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"bufio"
+
 	client "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/errors"
+	"github.com/openshift/source-to-image/pkg/util/user"
 )
 
 // DockerImageReference points to a Docker image.
@@ -154,4 +160,108 @@ func parseRepositoryTag(repos string) (string, string, string) {
 		return repos[:n], tag, ""
 	}
 	return repos, "", ""
+}
+
+// PullImage pulls the Docker image specifies by name taking the pull policy
+// into the account.
+// TODO: The 'force' option will be removed
+func PullImage(name string, d Docker, policy api.PullPolicy, force bool) (*PullResult, error) {
+	// TODO: Remove this after we deprecate --force-pull
+	if force {
+		policy = api.PullAlways
+	}
+
+	if len(policy) == 0 {
+		return nil, fmt.Errorf("the policy for pull image must be set")
+	}
+
+	var (
+		image *client.Image
+		err   error
+	)
+	switch policy {
+	case api.PullIfNotPresent:
+		image, err = d.CheckAndPullImage(name)
+		return &PullResult{Image: image, OnBuild: d.IsImageOnBuild(name)}, err
+	case api.PullAlways:
+		image, err = d.PullImage(name)
+		if err == nil {
+			return &PullResult{Image: image, OnBuild: d.IsImageOnBuild(name)}, nil
+		}
+		fallthrough
+	case api.PullNever:
+		image, err = d.CheckImage(name)
+	}
+	return &PullResult{Image: image, OnBuild: d.IsImageOnBuild(name)}, err
+}
+
+// CheckAllowedUser checks if the Docker image contains allowed users
+// FIXME: @cswong this need better godoc
+func CheckAllowedUser(d Docker, imageName string, uids user.RangeList, isOnbuild bool) error {
+	if uids == nil || uids.Empty() {
+		return nil
+	}
+	imageUser, err := d.GetImageUser(imageName)
+	if err != nil {
+		return err
+	}
+	if !user.IsUserAllowed(imageUser, &uids) {
+		return errors.NewBuilderUserNotAllowedError(imageName, false)
+	}
+	if isOnbuild {
+		cmds, err := d.GetOnBuild(imageName)
+		if err != nil {
+			return err
+		}
+		if !user.IsOnbuildAllowed(cmds, &uids) {
+			return errors.NewBuilderUserNotAllowedError(imageName, true)
+		}
+	}
+	return nil
+}
+
+// IsReachable returns true if the Docker daemon is reachable from s2i
+func IsReachable(config *api.Config) bool {
+	d, err := New(config.DockerConfig, config.PullAuthentication)
+	if err != nil {
+		return false
+	}
+	return d.Ping() == nil
+}
+
+// GetBuilderImage processes the config and performs operations necessary to make
+// the Docker image specified as BuilderImage available locally.
+// It returns information about the base image, containing metadata necessary
+// for choosing the right STI build strategy.
+func GetBuilderImage(config *api.Config) (*PullResult, error) {
+	d, err := New(config.DockerConfig, config.PullAuthentication)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := PullImage(config.BuilderImage, d, config.BuilderPullPolicy, config.ForcePull)
+	if err != nil {
+		return nil, err
+	}
+
+	err = CheckAllowedUser(d, config.BuilderImage, config.AllowedUIDs, r.OnBuild)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+func GetDefaultDockerConfig() *api.DockerConfig {
+	cfg := &api.DockerConfig{}
+	if cfg.Endpoint = os.Getenv("DOCKER_HOST"); cfg.Endpoint == "" {
+		cfg.Endpoint = "unix:///var/run/docker.sock"
+	}
+	if os.Getenv("DOCKER_TLS_VERIFY") == "1" {
+		certPath := os.Getenv("DOCKER_CERT_PATH")
+		cfg.CertFile = filepath.Join(certPath, "cert.pem")
+		cfg.KeyFile = filepath.Join(certPath, "key.pem")
+		cfg.CAFile = filepath.Join(certPath, "ca.pem")
+	}
+	return cfg
 }

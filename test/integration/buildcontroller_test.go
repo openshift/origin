@@ -81,12 +81,11 @@ func TestConcurrentBuildControllers(t *testing.T) {
 				break
 			}
 			// If unexpected status, throw error
-			if build.Status.Phase != buildapi.BuildPhasePending {
+			if build.Status.Phase != buildapi.BuildPhasePending && build.Status.Phase != buildapi.BuildPhaseNew {
 				errChan <- fmt.Errorf("received unexpected build status: %s", build.Status.Phase)
 				break
-			} else {
-				atomic.AddInt32(&buildModifiedCount, 1)
 			}
+			atomic.AddInt32(&buildModifiedCount, 1)
 		}
 	}()
 
@@ -108,8 +107,8 @@ func TestConcurrentBuildControllers(t *testing.T) {
 	case err := <-errChan:
 		t.Errorf("Error: %v", err)
 	case <-time.After(ConcurrentBuildControllersTestWait):
-		if atomic.LoadInt32(&buildModifiedCount) != 1 {
-			t.Errorf("The build was modified an unexpected number of times. Got: %d, Expected: 1", buildModifiedCount)
+		if atomic.LoadInt32(&buildModifiedCount) < 1 {
+			t.Errorf("The build was modified an unexpected number of times. Got: %d, Expected: >= 1", buildModifiedCount)
 		}
 		if atomic.LoadInt32(&podAddedCount) != 1 {
 			t.Errorf("The build pod was created an unexpected number of times. Got: %d, Expected: 1", podAddedCount)

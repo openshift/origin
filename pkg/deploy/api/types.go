@@ -36,6 +36,10 @@ type DeploymentStrategy struct {
 	RollingParams *RollingDeploymentStrategyParams
 	// Resources contains resource requirements to execute the deployment
 	Resources kapi.ResourceRequirements
+	// Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
+	Labels map[string]string
+	// Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
+	Annotations map[string]string
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.

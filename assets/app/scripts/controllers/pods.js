@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('PodsController', function ($scope, DataService, $filter, LabelFilter, Logger) {
+  .controller('PodsController', function ($scope, DataService, AlertMessageService, $filter, LabelFilter, Logger) {
     $scope.pods = {};
     $scope.unfilteredPods = {};
     // TODO should we add links to the image streams the pod is using
@@ -18,6 +18,13 @@ angular.module('openshiftConsole')
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
+
+    // get and clear any alerts
+    AlertMessageService.getAlerts().forEach(function(alert) {
+      $scope.alerts[alert.name] = alert.data;
+    });
+    AlertMessageService.clearAlerts();
+
     var watches = [];
 
     watches.push(DataService.watch("pods", $scope, function(pods) {

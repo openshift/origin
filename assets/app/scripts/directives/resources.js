@@ -83,7 +83,9 @@ angular.module('openshiftConsole')
     return {
       restrict: 'E',
       scope: {
-        triggers: '='
+        triggers: '=',
+        buildsByOutputImage: '=',
+        namespace: '='
       },
       link: function(scope) {
         scope.isBuildHidden = function(build) {

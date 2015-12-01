@@ -2,8 +2,7 @@
 %global debug_package %{nil}
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
-%global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
-%global sdn_import_path github.com/openshift/openshift-sdn/pkg
+%global sdn_import_path github.com/openshift/openshift-sdn
 
 # docker_version is the version of docker requires by packages
 %global docker_version 1.8.2
@@ -24,6 +23,12 @@
 %{!?ldflags:
 %global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.0.3-16-gcf75fd9 -X github.com/openshift/origin/pkg/version.commitFromGit cf75fd9 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
 }
+
+ %if 0%{?fedora} || 0%{?epel}
+%global make_redistributable 0
+%else
+%global make_redistributable 1
+%endif
 
 %if "%{dist}" == ".el7aos"
 %global package_name atomic-openshift
@@ -95,6 +100,7 @@ Obsoletes:      openshift-clients < %{package_refector_version}
 %description clients
 %{summary}
 
+%if 0%{?make_redistributable}
 %package clients-redistributable
 Summary:        %{product_name} Client binaries for Linux, Mac OSX, and Windows
 BuildRequires:  golang-pkg-darwin-amd64
@@ -103,6 +109,7 @@ Obsoletes:      openshift-clients-redistributable < %{package_refector_version}
 
 %description clients-redistributable
 %{summary}
+%endif
 
 %package dockerregistry
 Summary:        Docker Registry v2 for %{product_name}
@@ -116,6 +123,13 @@ Summary:        %{product_name} Pod
 Requires:       %{name} = %{version}-%{release}
 
 %description pod
+%{summary}
+
+%package recycle
+Summary:        %{product_name} Recycler
+Requires:       %{name} = %{version}-%{release}
+
+%description recycle
 %{summary}
 
 %package sdn-ovs
@@ -154,14 +168,16 @@ pushd _thirdpartyhacks
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
 # Build all linux components we care about
-for cmd in oc openshift dockerregistry
+for cmd in oc openshift dockerregistry recycle
 do
         go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
 done
 
+%if 0%{?make_redistributable}
 # Build clients for other platforms
 GOOS=windows GOARCH=386 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
 GOOS=darwin GOARCH=amd64 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
+%endif
 
 #Build our pod
 pushd images/pod/
@@ -173,17 +189,19 @@ popd
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc openshift dockerregistry
+for bin in oc openshift dockerregistry recycle
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
 done
 
+%if 0%{?make_redistributable}
 # Install client executable for windows and mac
 install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
 install -p -m 755 _build/bin/oc %{buildroot}%{_datadir}/%{name}/linux/oc
 install -p -m 755 _build/bin/darwin_amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
 install -p -m 755 _build/bin/windows_386/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
+%endif
 
 #Install pod
 install -p -m 755 images/pod/pod %{buildroot}%{_bindir}/
@@ -194,10 +212,10 @@ mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
 for cmd in openshift-router openshift-deploy openshift-sti-build openshift-docker-build origin atomic-enterprise \
   oadm kubernetes kubelet kube-proxy kube-apiserver kube-controller-manager kube-scheduler ; do
-    ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/$cmd
+    ln -s openshift %{buildroot}%{_bindir}/$cmd
 done
 
-ln -s %{_bindir}/oc %{buildroot}%{_bindir}/kubectl
+ln -s oc %{buildroot}%{_bindir}/kubectl
 
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
@@ -217,14 +235,13 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
 
 # Install sdn scripts
-install -d -m 0755 %{buildroot}%{kube_plugin_path}
 install -d -m 0755 %{buildroot}%{_unitdir}/docker.service.d
 install -p -m 0644 contrib/systemd/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
-pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/kube/bin
-   install -p -m 755 openshift-ovs-subnet %{buildroot}%{kube_plugin_path}/openshift-ovs-subnet
+pushd _thirdpartyhacks/src/%{sdn_import_path}/plugins/osdn/flatsdn/bin
+   install -p -m 755 openshift-ovs-subnet %{buildroot}%{_bindir}/openshift-ovs-subnet
    install -p -m 755 openshift-sdn-kube-subnet-setup.sh %{buildroot}%{_bindir}/openshift-sdn-kube-subnet-setup.sh
 popd
-pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/multitenant/bin
+pushd _thirdpartyhacks/src/%{sdn_import_path}/plugins/osdn/multitenant/bin
    install -p -m 755 openshift-ovs-multitenant %{buildroot}%{_bindir}/openshift-ovs-multitenant
    install -p -m 755 openshift-sdn-multitenant-setup.sh %{buildroot}%{_bindir}/openshift-sdn-multitenant-setup.sh
 popd
@@ -348,7 +365,7 @@ fi
 %{_bindir}/openshift-sdn-kube-subnet-setup.sh
 %{_bindir}/openshift-ovs-multitenant
 %{_bindir}/openshift-sdn-multitenant-setup.sh
-%{kube_plugin_path}/openshift-ovs-subnet
+%{_bindir}/openshift-ovs-subnet
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 %{_unitdir}/docker.service.d/docker-sdn-ovs.conf
 
@@ -379,10 +396,12 @@ fi
 %{_bindir}/kubectl
 %{_sysconfdir}/bash_completion.d/oc
 
+%if 0%{?make_redistributable}
 %files clients-redistributable
 %{_datadir}/%{name}/linux/oc
 %{_datadir}/%{name}/macosx/oc
 %{_datadir}/%{name}/windows/oc.exe
+%endif
 
 %files dockerregistry
 %defattr(-,root,root,-)
@@ -391,6 +410,10 @@ fi
 %files pod
 %defattr(-,root,root,-)
 %{_bindir}/pod
+
+%files recycle
+%defattr(-,root,root,-)
+%{_bindir}/recycle
 
 
 %changelog

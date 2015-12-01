@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -77,7 +78,7 @@ func TestParseDockerImageReference(t *testing.T) {
 		{
 			From:      "bar:5000/baz",
 			Registry:  "bar:5000",
-			Namespace: "library",
+			Namespace: DockerDefaultNamespace,
 			Name:      "baz",
 		},
 		{
@@ -97,13 +98,13 @@ func TestParseDockerImageReference(t *testing.T) {
 		{
 			From:      "myregistry.io/foo",
 			Registry:  "myregistry.io",
-			Namespace: "library",
+			Namespace: DockerDefaultNamespace,
 			Name:      "foo",
 		},
 		{
 			From:      "localhost/bar",
 			Registry:  "localhost",
-			Namespace: "library",
+			Namespace: DockerDefaultNamespace,
 			Name:      "bar",
 		},
 		// TODO: test cases if ParseDockerImageReference validates segment length and allowed chars
@@ -120,7 +121,7 @@ func TestParseDockerImageReference(t *testing.T) {
 		// 	// namespace/name == 255 chars with implicit namespace
 		// 	From:      fmt.Sprintf("bar:5000/%s:tag", strings.Repeat("b", 247)),
 		// 	Registry:  "bar:5000",
-		// 	Namespace: "library",
+		// 	Namespace: DockerDefaultNamespace,
 		// 	Name:      strings.Repeat("b", 247),
 		// 	Tag:       "tag",
 		// },
@@ -904,5 +905,188 @@ func TestJoinImageStreamTag(t *testing.T) {
 	}
 	if e, a := "foo:"+DefaultImageTag, JoinImageStreamTag("foo", ""); e != a {
 		t.Errorf("Unexpected value: %s", a)
+	}
+}
+
+func TestResolveImageID(t *testing.T) {
+	tests := map[string]struct {
+		tags     map[string]TagEventList
+		imageID  string
+		expErr   string
+		expEvent TagEvent
+	}{
+		"single tag, match ID prefix": {
+			tags: map[string]TagEventList{
+				"tag1": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "repo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+							Image:                "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+						},
+					},
+				},
+			},
+			imageID: "3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			expErr:  "",
+			expEvent: TagEvent{
+				DockerImageReference: "repo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+				Image:                "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			},
+		},
+		"single tag, match string prefix": {
+			tags: map[string]TagEventList{
+				"tag1": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "repo:mytag",
+							Image:                "mytag",
+						},
+					},
+				},
+			},
+			imageID: "mytag",
+			expErr:  "",
+			expEvent: TagEvent{
+				DockerImageReference: "repo:mytag",
+				Image:                "mytag",
+			},
+		},
+		"single tag, ID error": {
+			tags: map[string]TagEventList{
+				"tag1": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "repo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b2",
+							Image:                "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b2",
+						},
+					},
+				},
+			},
+			imageID:  "3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			expErr:   "not found",
+			expEvent: TagEvent{},
+		},
+		"no tag": {
+			tags:     map[string]TagEventList{},
+			imageID:  "3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			expErr:   "not found",
+			expEvent: TagEvent{},
+		},
+		"multiple match": {
+			tags: map[string]TagEventList{
+				"tag1": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "repo@mytag",
+							Image:                "mytag",
+						},
+						{
+							DockerImageReference: "repo@mytag",
+							Image:                "mytag2",
+						},
+					},
+				},
+			},
+			imageID:  "mytag",
+			expErr:   "multiple images match the prefix",
+			expEvent: TagEvent{},
+		},
+	}
+
+	for name, test := range tests {
+		stream := &ImageStream{}
+		stream.Status.Tags = test.tags
+		event, err := ResolveImageID(stream, test.imageID)
+		if len(test.expErr) > 0 {
+			if err == nil || !strings.Contains(err.Error(), test.expErr) {
+				t.Errorf("%s: unexpected error, expected %v, got %v", name, test.expErr, err)
+			}
+			continue
+		} else if err != nil {
+			t.Errorf("%s: unexpected error, got %v", name, err)
+			continue
+		}
+		if test.expEvent.Image != event.Image || test.expEvent.DockerImageReference != event.DockerImageReference {
+			t.Errorf("%s: unexpected tag, expected %#v, got %#v", name, test.expEvent, event)
+		}
+	}
+}
+
+func TestDockerImageReferenceEquality(t *testing.T) {
+	equalityTests := []struct {
+		a, b    DockerImageReference
+		isEqual bool
+	}{
+		{
+			a:       DockerImageReference{},
+			b:       DockerImageReference{},
+			isEqual: true,
+		},
+		{
+			a: DockerImageReference{
+				Name: "openshift",
+			},
+			b: DockerImageReference{
+				Name: "openshift",
+			},
+			isEqual: true,
+		},
+		{
+			a: DockerImageReference{
+				Name: "openshift",
+			},
+			b: DockerImageReference{
+				Name: "openshift3",
+			},
+			isEqual: false,
+		},
+		{
+			a: DockerImageReference{
+				Name: "openshift",
+			},
+			b: DockerImageReference{
+				Registry:  DockerDefaultRegistry,
+				Namespace: DockerDefaultNamespace,
+				Name:      "openshift",
+				Tag:       DefaultImageTag,
+			},
+			isEqual: true,
+		},
+		{
+			a: DockerImageReference{
+				Name: "openshift",
+			},
+			b: DockerImageReference{
+				Registry:  DockerDefaultRegistry,
+				Namespace: DockerDefaultNamespace,
+				Name:      "openshift",
+				Tag:       "v1.0",
+			},
+			isEqual: false,
+		},
+		{
+			a: DockerImageReference{
+				Name: "openshift",
+			},
+			b: DockerImageReference{
+				Registry:  DockerDefaultRegistry,
+				Namespace: DockerDefaultNamespace,
+				Name:      "openshift",
+				Tag:       DefaultImageTag,
+				ID:        "d0a28ab59a",
+			},
+			isEqual: false,
+		},
+	}
+	for i, test := range equalityTests {
+		if isEqual := test.a.Equal(test.b); isEqual != test.isEqual {
+			t.Errorf("test %d: %#v.Equal(%#v) = %t; want %t",
+				i, test.a, test.b, isEqual, test.isEqual)
+		}
+		// commutativeness sanity check
+		if x, y := test.a.Equal(test.b), test.b.Equal(test.a); x != y {
+			t.Errorf("test %[1]d: %[2]q.Equal(%[3]q) = %[4]t != %[3]q.Equal(%[2]q) = %[5]t",
+				i, test.a, test.b, x, y)
+		}
 	}
 }

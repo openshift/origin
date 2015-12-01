@@ -16,7 +16,7 @@ var _ = g.Describe("images: s2i: perl", func() {
 		dancerTemplate = "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json"
 		oc             = exutil.NewCLI("s2i-perl", exutil.KubeConfigPath())
 		modifyCommand  = []string{"sed", "-ie", `s/data => \$data\[0\]/data => "1337"/`, "lib/default.pm"}
-		pageCountFunc  = func(count int) string { return fmt.Sprintf(`<span class="code" id="count-value">%d</span>`, count) }
+		pageCountFn    = func(count int) string { return fmt.Sprintf(`<span class="code" id="count-value">%d</span>`, count) }
 		dcName         = "dancer-mysql-example-1"
 		dcLabel        = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
 	)
@@ -30,7 +30,7 @@ var _ = g.Describe("images: s2i: perl", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "dancer-mysql-example-1", exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "dancer-mysql-example-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")
@@ -38,10 +38,10 @@ var _ = g.Describe("images: s2i: perl", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			assertPageCountIs := func(i int) {
-				_, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFunc, 1, 120*time.Second)
+				_, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 120*time.Second)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				result, err := CheckPageContains(oc, "dancer-mysql-example", "", pageCountFunc(i))
+				result, err := CheckPageContains(oc, "dancer-mysql-example", "", pageCountFn(i))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(result).To(o.BeTrue())
 			}

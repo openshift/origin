@@ -233,12 +233,3 @@ func TestAddServices(t *testing.T) {
 		}
 	}
 }
-
-func TestNewBuildPipeline(t *testing.T) {
-	// If we cannot infer a name from user input, NewBuildPipeline should return
-	// ErrNameRequired.
-	_, err := NewBuildPipeline("test", nil, false, nil, nil, nil)
-	if err != ErrNameRequired {
-		t.Errorf("err = %#v; want %#v", err, ErrNameRequired)
-	}
-}

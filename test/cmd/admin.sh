@@ -6,6 +6,7 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
 # Cleanup cluster resources created by this test
@@ -70,6 +71,14 @@ oadm policy who-can get pods --all-namespaces
 
 oadm policy add-role-to-group cluster-admin system:unauthenticated
 oadm policy add-role-to-user cluster-admin system:no-user
+oadm policy add-role-to-user admin -z fake-sa
+oc get rolebinding/admins -o jsonpath={.subjects} | grep "fake-sa"
+oadm policy remove-role-from-user admin -z fake-sa
+[ ! "$(oc get rolebinding/admins -o jsonpath={.subjects} | grep 'fake-sa')" ]
+oadm policy add-role-to-user admin -z fake-sa
+oc get rolebinding/admins -o jsonpath={.subjects} | grep "fake-sa"
+oadm policy remove-role-from-user admin "system:serviceaccount:$(oc project -q):fake-sa"
+[ ! "$(oc get rolebinding/admins -o jsonpath={.subjects} | grep 'fake-sa')" ]
 oadm policy remove-role-from-group cluster-admin system:unauthenticated
 oadm policy remove-role-from-user cluster-admin system:no-user
 oadm policy remove-group system:unauthenticated
@@ -91,13 +100,22 @@ oadm policy remove-scc-from-user privileged -z fake-sa
 [ ! "$(oc get scc/privileged -o yaml | grep 'system:serviceaccount:$(oc project -q):fake-sa')" ]
 oadm policy remove-scc-from-group privileged fake-group
 [ ! "$(oadm policy add-scc-to-group privileged fake-group)" ]
+echo "admin-scc: ok"
 
-oc delete clusterrole/cluster-status
+oc delete clusterrole/cluster-status --cascade=false
 [ ! "$(oc get clusterrole/cluster-status)" ]
 oadm policy reconcile-cluster-roles
 [ ! "$(oc get clusterrole/cluster-status)" ]
 oadm policy reconcile-cluster-roles --confirm
 oc get clusterrole/cluster-status
+# check the reconcile again with a specific cluster role name
+oc delete clusterrole/cluster-status --cascade=false
+[ ! "$(oc get clusterrole/cluster-status)" ]
+oadm policy reconcile-cluster-roles cluster-admin --confirm 
+[ ! "$(oc get clusterrole/cluster-status)" ]
+oadm policy reconcile-cluster-roles clusterrole/cluster-status --confirm
+oc get clusterrole/cluster-status
+
 oc replace --force -f ./test/fixtures/basic-user.json
 # display shows customized labels/annotations
 [ "$(oadm policy reconcile-cluster-roles | grep custom-label)" ]
@@ -109,6 +127,7 @@ oadm policy reconcile-cluster-roles --additive-only --confirm
 [ "$(oc get clusterroles/basic-user -o json | grep groups)" ]
 oadm policy reconcile-cluster-roles --confirm
 [ ! "$(oc get clusterroles/basic-user -o yaml | grep groups)" ]
+echo "admin-reconcile-cluster-roles: ok"
 
 # Ensure a removed binding gets re-added
 oc delete clusterrolebinding/cluster-status-binding
@@ -132,6 +151,23 @@ oadm policy reconcile-cluster-role-bindings --confirm
 # Ensure --additive-only=false removes customized users from the binding
 oadm policy reconcile-cluster-role-bindings --additive-only=false --confirm
 [ ! "$(oc get clusterrolebindings/basic-users -o json | grep custom-user)" ]
+echo "admin-reconcile-cluster-role-bindings: ok"
+
+os::cmd::expect_success "oc create -f test/extended/fixtures/roles/policy-roles.yaml"
+os::cmd::expect_success "oc get rolebinding/basic-users"
+os::cmd::expect_success "oc delete role/basic-user"
+os::cmd::expect_failure "oc get rolebinding/basic-users"
+os::cmd::expect_success "oc create -f test/extended/fixtures/roles/policy-clusterroles.yaml"
+os::cmd::expect_success "oc get clusterrolebinding/basic-users2"
+os::cmd::expect_success "oc delete clusterrole/basic-user2"
+os::cmd::expect_failure "oc get clusterrolebinding/basic-users2"
+os::cmd::expect_success "oc policy add-role-to-user edit foo"
+os::cmd::expect_success "oc get rolebinding/edit"
+os::cmd::expect_success "oc delete clusterrole/edit"
+os::cmd::expect_failure "oc get rolebinding/edit"
+os::cmd::expect_success "oadm policy reconcile-cluster-roles --confirm"
+os::cmd::expect_success "oadm policy reconcile-cluster-role-bindings --confirm"
+echo "admin-role-reapers: ok"
 
 echo "admin-policy: ok"
 
@@ -164,6 +200,7 @@ oc get scc privileged -o yaml | sed '/users:/ a\
 [ "$(oadm router -o yaml --credentials="${KUBECONFIG}" --service-account=router -n default | egrep 'image:.*-haproxy-router:')" ]
 oadm router --credentials="${KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router -n default
 [ "$(oadm router -n default | grep 'service exists')" ]
+[ "$(oc get dc/router -o yaml -n default | grep 'readinessProbe')" ]
 echo "router: ok"
 
 # Test running a registry
@@ -171,6 +208,7 @@ echo "router: ok"
 [ "$(oadm registry -o yaml --credentials="${KUBECONFIG}" | egrep 'image:.*-docker-registry')" ]
 oadm registry --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
 [ "$(oadm registry | grep 'service exists')" ]
+[ "$(oc describe svc/docker-registry | grep 'Session Affinity:\s*ClientIP')" ]
 echo "registry: ok"
 
 # Test building a dependency tree
@@ -178,7 +216,7 @@ oc process -f examples/sample-app/application-template-stibuild.json -l build=st
 # Test both the type/name resource syntax and the fact that istag/origin-ruby-sample:latest is still
 # not created but due to a buildConfig pointing to it, we get back its graph of deps.
 [ "$(oadm build-chain istag/origin-ruby-sample | grep 'imagestreamtag/origin-ruby-sample:latest')" ]
-[ "$(oadm build-chain ruby-20-centos7 -o dot | grep 'graph')" ]
+[ "$(oadm build-chain ruby-22-centos7 -o dot | grep 'graph')" ]
 oc delete all -l build=sti
 echo "ex build-chain: ok"
 

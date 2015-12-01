@@ -66,6 +66,8 @@ function configure_os_server {
 	if [[ -z "${ALL_IP_ADDRESSES-}" ]]; then
 		ALL_IP_ADDRESSES="$(openshift start --print-ip)"
 		SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost,172.30.0.1"
+                SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},kubernetes.default.svc.cluster.local,kubernetes.default.svc,kubernetes.default,kubernetes"
+                SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},openshift.default.svc.cluster.local,openshift.default.svc,openshift.default,openshift"
 
 		while read -r IP_ADDRESS
 		do
@@ -217,7 +219,7 @@ function ensure_iptables_or_die {
 	set -e
 }
 
-# tryuntil loops, retrying an action until it succeeds a 90
+# tryuntil loops, retrying an action until it succeeds or times out after 90 seconds.
 function tryuntil {
 	timeout=$(($(date +%s) + 90))
 	echo "++ Retrying until success or timeout: ${@}"
@@ -241,7 +243,7 @@ function tryuntil {
 # complete or times out after max_wait.
 #
 # $1 - The command to execute (e.g. curl -fs http://redhat.com)
-# $2 - Optional maximum time to wait before giving up (Default: 10s)
+# $2 - Optional maximum time to wait in ms before giving up (Default: 10000ms)
 # $3 - Optional alternate command to determine if the wait should
 #		exit before the max_wait
 function wait_for_command {
@@ -486,11 +488,9 @@ function dump_container_logs()
 # delete_large_and_empty_logs deletes empty logs and logs over 20MB
 function delete_large_and_empty_logs()
 {
-	# clean up zero byte log files
+	# Clean up zero byte log files
 	# Clean up large log files so they don't end up on jenkins
-	find ${ARTIFACT_DIR} -name *.log -size +20M -exec -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size +20M -exec -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size 0 -exec rm -f {} \;
+	find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -empty -or -size +20M \) -delete
 }
 
 ######
@@ -515,6 +515,7 @@ function cleanup_openshift {
 	dump_container_logs
 	
 	echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
+	oc login -u system:admin -n default --config=${ADMIN_KUBECONFIG}
 	oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
 
 	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
@@ -721,6 +722,10 @@ os::log::warn() {
   os::log::with-severity "${1}" "WARNING"
 }
 
+os::log::error() {
+  os::log::with-severity "${1}" "ERROR"
+}
+
 find_files() {
 	find . -not \( \
 		\( \
@@ -733,52 +738,6 @@ find_files() {
 		-o -wholename '*/Godeps/*' \
 		\) -prune \
 	\) -name '*.go' | sort -u
-}
-
-os::util::run-extended-tests() {
-  local config_root=$1
-  local focus_regex=$2
-  local binary_name=${3:-extended.test}
-  local skip_regex=${4:-}
-  local log_path=${5:-}
-
-  export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
-  export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
-
-  local ginkgo_cmd="${OS_ROOT}/_output/local/go/bin/ginkgo"
-  local test_cmd="${ginkgo_cmd} -progress -stream -v \
--focus=\"${focus_regex}\" -skip=\"${skip_regex}\" \
-${OS_OUTPUT_BINPATH}/${binary_name}"
-  if [ "${log_path}" != "" ]; then
-    test_cmd="${test_cmd} | tee ${log_path}"
-  fi
-
-  pushd "${EXTENDED_TEST_PATH}" > /dev/null
-    eval "${test_cmd}; "'exit_status=${PIPESTATUS[0]}'
-  popd > /dev/null
-
-  return ${exit_status}
-}
-
-os::util::run-net-extended-tests() {
-  local config_root=$1
-  local focus_regex=${2:-.etworking[:]*}
-  local skip_regex=${3:-}
-  local log_path=${4:-}
-
-  if [ -z "${skip_regex}" ]; then
-      # The intra-pod test is currently broken for origin.
-      skip_regex='Networking.*intra-pod'
-      local conf_path="${config_root}/openshift.local.config"
-      # Only the multitenant plugin can pass the isolation test
-      if ! grep -q 'redhat/openshift-ovs-multitenant' \
-           $(find "${conf_path}" -name 'node-config.yaml' | head -n 1); then
-        skip_regex="(${skip_regex}|networking: isolation)"
-      fi
-  fi
-
-  os::util::run-extended-tests "${config_root}" "${focus_regex}" \
-    networking.test "${skip_regex}" "${log_path}"
 }
 
 # Asks golang what it thinks the host platform is.  The go tool chain does some

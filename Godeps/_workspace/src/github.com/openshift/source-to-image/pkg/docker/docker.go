@@ -3,17 +3,18 @@ package docker
 import (
 	"fmt"
 	"io"
-	"path/filepath"
+	"path"
 	"strings"
 	"sync"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
-	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/errors"
 	"os"
 	"os/signal"
+
+	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/errors"
 )
 
 const (
@@ -62,6 +63,7 @@ type Docker interface {
 	BuildImage(opts BuildImageOptions) error
 	GetImageUser(name string) (string, error)
 	GetLabels(name string) (map[string]string, error)
+	Ping() error
 }
 
 // Client contains all methods called on the go Docker
@@ -79,6 +81,7 @@ type Client interface {
 	CopyFromContainer(opts docker.CopyFromContainerOptions) error
 	BuildImage(opts docker.BuildImageOptions) error
 	InspectContainer(id string) (*docker.Container, error)
+	Ping() error
 }
 
 type stiDocker struct {
@@ -112,12 +115,14 @@ type RunContainerOptions struct {
 	PostExec        PostExecutor
 	TargetImage     bool
 	NetworkMode     string
+	User            string
 }
 
 // CommitContainerOptions are options passed in to the CommitContainer method
 type CommitContainerOptions struct {
 	ContainerID string
 	Repository  string
+	User        string
 	Command     []string
 	Env         []string
 	Labels      map[string]string
@@ -171,6 +176,7 @@ func (d *stiDocker) GetImageUser(name string) (string, error) {
 	name = getImageName(name)
 	image, err := d.client.InspectImage(name)
 	if err != nil {
+		glog.V(4).Infof("error inspecting image %s: %v", name, err)
 		return "", errors.NewInspectImageError(name, err)
 	}
 	user := image.ContainerConfig.User
@@ -178,6 +184,11 @@ func (d *stiDocker) GetImageUser(name string) (string, error) {
 		user = image.Config.User
 	}
 	return user, nil
+}
+
+// Ping determines if the Docker daemon is reachable
+func (d *stiDocker) Ping() error {
+	return d.client.Ping()
 }
 
 // IsImageOnBuild provides information about whether the Docker image has
@@ -219,6 +230,7 @@ func (d *stiDocker) CheckImage(name string) (*docker.Image, error) {
 	name = getImageName(name)
 	image, err := d.client.InspectImage(name)
 	if err != nil {
+		glog.V(4).Infof("error inspecting image %s: %v", name, err)
 		return nil, errors.NewInspectImageError(name, err)
 	}
 	return image, nil
@@ -227,7 +239,7 @@ func (d *stiDocker) CheckImage(name string) (*docker.Image, error) {
 // PullImage pulls an image into the local registry
 func (d *stiDocker) PullImage(name string) (*docker.Image, error) {
 	name = getImageName(name)
-	glog.V(1).Infof("Pulling image %s", name)
+	glog.V(1).Infof("Pulling Docker image %s ...", name)
 	// TODO: Add authentication support
 	if err := d.client.PullImage(docker.PullImageOptions{Repository: name}, d.pullAuth); err != nil {
 		glog.V(3).Infof("An error was received from the PullImage call: %v", err)
@@ -235,6 +247,7 @@ func (d *stiDocker) PullImage(name string) (*docker.Image, error) {
 	}
 	image, err := d.client.InspectImage(name)
 	if err != nil {
+		glog.V(4).Infof("error inspecting image %s: %v", name, err)
 		return nil, errors.NewInspectImageError(name, err)
 	}
 	return image, nil
@@ -255,6 +268,7 @@ func (d *stiDocker) GetLabels(name string) (map[string]string, error) {
 	name = getImageName(name)
 	image, err := d.client.InspectImage(name)
 	if err != nil {
+		glog.V(4).Infof("error inspecting image %s: %v", name, err)
 		return nil, errors.NewInspectImageError(name, err)
 	}
 	return image.Config.Labels, nil
@@ -370,7 +384,9 @@ func runContainerTar(opts RunContainerOptions, config docker.Config, imageMetada
 	if opts.ExternalScripts {
 		// for external scripts we must always append 'scripts' because this is
 		// the default subdirectory inside tar for them
-		commandBaseDir = filepath.Join(tarDestination, "scripts")
+		// NOTE: We use path.Join instead of filepath.Join to avoid converting the
+		// path to UNC (Windows) format as we always run this inside container.
+		commandBaseDir = path.Join(tarDestination, "scripts")
 		glog.V(2).Infof("Both scripts and untarred source will be placed in '%s'", tarDestination)
 	} else {
 		// for internal scripts we can have separate path for scripts and untar operation destination
@@ -383,12 +399,14 @@ func runContainerTar(opts RunContainerOptions, config docker.Config, imageMetada
 			commandBaseDir, tarDestination)
 	}
 
-	cmd := []string{filepath.Join(commandBaseDir, string(opts.Command))}
+	// NOTE: We use path.Join instead of filepath.Join to avoid converting the
+	// path to UNC (Windows) format as we always run this inside container.
+	cmd := []string{path.Join(commandBaseDir, string(opts.Command))}
 	// when calling assemble script with Stdin parameter set (the tar file)
 	// we need to first untar the whole archive and only then call the assemble script
 	if opts.Stdin != nil && (opts.Command == api.Assemble || opts.Command == api.Usage) {
 		cmd = []string{"/bin/sh", "-c", fmt.Sprintf("tar -C %s -xf - && %s",
-			tarDestination, filepath.Join(commandBaseDir, string(opts.Command)))}
+			tarDestination, path.Join(commandBaseDir, string(opts.Command)))}
 	}
 	config.Cmd = cmd
 	return config, tarDestination
@@ -492,6 +510,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 
 	config := docker.Config{
 		Image: image,
+		User:  opts.User,
 	}
 
 	config, tarDestination := runContainerTar(opts, config, imageMetadata)
@@ -581,6 +600,7 @@ func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error)
 			Cmd:    opts.Command,
 			Env:    opts.Env,
 			Labels: opts.Labels,
+			User:   opts.User,
 		}
 		dockerOpts.Run = &config
 		glog.V(2).Infof("Committing container with config: %+v", config)

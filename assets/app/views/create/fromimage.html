@@ -18,7 +18,7 @@
                 <div class="clearfix visible-xs-block"></div>
                 <form class="" ng-show="imageStream" novalidate name="form">
                   <div style="margin-bottom: 15px;">
-                    <div class="form-group form-group-lg">
+                    <div class="form-group">
                      <label for="appname" class="required">Name</label>
                      <!--
                        Only validate the name pattern and minlength if the field has both been changed and blurred.  This
@@ -39,7 +39,10 @@
                               name="appname"
                               ng-change="nameTaken = false"
                               ng-blur="shouldValidateName = form.appname.$dirty"
-                              class="form-control form-control-md">
+                              class="form-control form-control-md"
+                              autocorrect="off"
+                              autocapitalize="off"
+                              spellcheck="false">
                       </div>
                       <div class="help-block">Used to uniquely identify within this project all the resources created to support the application.</div>
                       <div class="has-error" ng-show="form.appname.$error.required && form.appname.$dirty">
@@ -62,13 +65,17 @@
                   <div class="form-group">
                     <label for="sourceUrl" class="required">Git Repository URL</label>
                     <div ng-class="{'has-warning': form.sourceUrl.$dirty && !sourceURLPattern.test(buildConfig.sourceUrl), 'has-error': (form.sourceUrl.$error.required && form.sourceUrl.$dirty)}">
-                       <input class="form-control"
-                         id="sourceUrl"
-                         name="sourceUrl"
-                         type="text"
-                         required
-                         aria-describedby="from_source_help"
-                         ng-model="buildConfig.sourceUrl">
+                      <!-- Unfortunately, we can't set type="url" because some valid values don't pass browser validation. -->
+                      <input class="form-control"
+                        id="sourceUrl"
+                        name="sourceUrl"
+                        type="text"
+                        required
+                        aria-describedby="from_source_help"
+                        ng-model="buildConfig.sourceUrl"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        spellcheck="false">
                     </div>
                     <div ng-if="image.metadata.annotations.sampleRepo" class="help-block">
                       Sample repository for {{imageName}}: {{image.metadata.annotations.sampleRepo}}<span ng-if="image.metadata.annotations.sampleRef">,
@@ -89,14 +96,30 @@
                     <div class="form-group">
                       <label for="gitref">Git Reference</label>
                       <div>
-                        <input id="gitref" ng-model="buildConfig.gitRef" type="text" placeholder="master" class="form-control form-control-md">
+                        <input
+                          id="gitref"
+                          ng-model="buildConfig.gitRef"
+                          type="text"
+                          placeholder="master"
+                          autocorrect="off"
+                          autocapitalize="off"
+                          spellcheck="false"
+                          class="form-control form-control-md">
                       </div>
                       <div class="help-block">Optional branch, tag, or commit.</div>
                     </div>
                     <div class="form-group">
                       <label for="contextdir">Context Dir</label>
                       <div>
-                        <input id="contextdir" ng-model="buildConfig.contextDir" type="text" placeholder="/" class="form-control form-control-md">
+                        <input
+                          id="contextdir"
+                          ng-model="buildConfig.contextDir"
+                          type="text"
+                          placeholder="/"
+                          autocorrect="off"
+                          autocapitalize="off"
+                          spellcheck="false"
+                          class="form-control form-control-md">
                       </div>
                       <div class="help-block">Optional subdirectory for the application source code, used as the context directory for the build.</div> </div>
 
@@ -143,71 +166,6 @@
                     <!-- /routing -->
 
                     <osc-form-section
-                      header="Deployment Configuration"
-                      about-title="Deployment Configuration"
-                      about="Deployment configurations describe how your application is configured
-                        by the cluster and under what conditions it should be recreated (e.g. when the image changes)."
-                      expand="true"
-                      can-toggle="false"
-                      >
-                      <div ng-hide="$parent.expand">
-                        <h3>Autodeploy when</h3>
-                        <div>
-                          <label>New image is available: </label>
-                          <span>{{deploymentConfig.deployOnNewImage | yesNo}}</span>
-                        </div>
-                        <div>
-                          <label>Deployment configuration changes: </label>
-                          <span>{{deploymentConfig.deployOnConfigChange | yesNo}}</span>
-                        </div>
-                        <h3>Environment Variables <span class="help action-inline">
-                          <a href data-toggle="tooltip" data-placement="right"
-                             data-original-title="Environment variables are used to configure and pass information to running containers.">
-                            <i class="pficon pficon-help"></i>
-                          </a>
-                        </span></h3>
-
-                        <osc-key-values
-                          entries="deploymentConfig.envVars"
-                          delimiter="="
-                          key-validator="env"
-                          delete-policy="added"
-                          editable="true"></osc-key-values>
-                      </div>
-                      <div class="animate-drawer" ng-show="$parent.expand">
-                        <h3>Autodeploy when</h3>
-                        <div class="checkbox">
-                          <label>
-                            <input type="checkbox" ng-model="deploymentConfig.deployOnNewImage">
-                            New image is available
-                          </label>
-                        </div>
-                        <div class="checkbox">
-                        <label>
-                          <input type="checkbox" ng-model="deploymentConfig.deployOnConfigChange">
-                          Deployment configuration changes
-                        </label>
-                        </div>
-                        <div>
-                          <h3>Environment Variables <span class="help action-inline">
-                            <a href data-toggle="tooltip" data-placement="right"
-                               data-original-title="Environment variables are used to configure and pass information to images.">
-                              <i class="pficon pficon-help"></i>
-                            </a>
-                          </span></h3>
-                          <osc-key-values
-                            entries="deploymentConfig.envVars"
-                            delimiter="="
-                            key-validator="env"
-                            delete-policy="added"
-                            key-validation-tooltip="A valid environment variable name is an alphanumeric (a-z and 0-9) string beginning with a letter that may contain underscores."></osc-key-values>
-                        </div>
-                      </div>
-                    </osc-form-section>
-
-                    <!-- /deployment config -->
-
-                    <osc-form-section
                       header="Build Configuration"
                       about-title="Build Configuration"
                       about="A build configuration describes how to build your deployable image.  This includes
@@ -244,9 +202,62 @@
                           Automatically build a new image when the build configuration changes
                         </label>
                       </div>
+                      <h3>Environment Variables (Build and Runtime) <span class="help action-inline">
+                        <a href data-toggle="tooltip" data-placement="right"
+                           data-original-title="Environment variables are used to configure and pass information to running containers.  These environment variables will be available during your build and at runtime.">
+                          <i class="pficon pficon-help"></i>
+                        </a>
+                      </span></h3>
+                      <osc-key-values
+                        entries="buildConfig.envVars"
+                        delimiter="="
+                        key-validator="env"
+                        delete-policy="added"
+                        key-validation-tooltip="A valid environment variable name is an alphanumeric (a-z and 0-9) string beginning with a letter that may contain underscores."></osc-key-values>                      
                     </osc-form-section>
 
                     <!-- /build config -->
+
+                    <osc-form-section
+                      header="Deployment Configuration"
+                      about-title="Deployment Configuration"
+                      about="Deployment configurations describe how your application is configured
+                        by the cluster and under what conditions it should be recreated (e.g. when the image changes)."
+                      expand="true"
+                      can-toggle="false"
+                      >
+                      <div class="animate-drawer" ng-show="$parent.expand">
+                        <h3>Autodeploy when</h3>
+                        <div class="checkbox">
+                          <label>
+                            <input type="checkbox" ng-model="deploymentConfig.deployOnNewImage">
+                            New image is available
+                          </label>
+                        </div>
+                        <div class="checkbox">
+                        <label>
+                          <input type="checkbox" ng-model="deploymentConfig.deployOnConfigChange">
+                          Deployment configuration changes
+                        </label>
+                        </div>
+                        <div>
+                          <h3>Environment Variables (Runtime only) <span class="help action-inline">
+                            <a href data-toggle="tooltip" data-placement="right"
+                               data-original-title="Environment variables are used to configure and pass information to running containers.  These environment variables will only be available at runtime.">
+                              <i class="pficon pficon-help"></i>
+                            </a>
+                          </span></h3>
+                          <osc-key-values
+                            entries="deploymentConfig.envVars"
+                            delimiter="="
+                            key-validator="env"
+                            delete-policy="added"
+                            key-validation-tooltip="A valid environment variable name is an alphanumeric (a-z and 0-9) string beginning with a letter that may contain underscores."></osc-key-values>
+                        </div>
+                      </div>
+                    </osc-form-section>
+
+                    <!-- /deployment config -->
 
                     <osc-form-section
                       header="Scaling"

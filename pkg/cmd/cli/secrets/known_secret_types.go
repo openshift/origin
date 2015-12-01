@@ -23,5 +23,6 @@ func (ks KnownSecretType) Matches(secretContent map[string][]byte) bool {
 var (
 	KnownSecretTypes = []KnownSecretType{
 		{kapi.SecretTypeDockercfg, sets.NewString(kapi.DockerConfigKey)},
+		{kapi.SecretTypeDockerConfigJson, sets.NewString(kapi.DockerConfigJsonKey)},
 	}
 )

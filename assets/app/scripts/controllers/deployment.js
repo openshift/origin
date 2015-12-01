@@ -25,6 +25,7 @@ angular.module('openshiftConsole')
         link: "project/" + $routeParams.project + "/browse/deployments"
       }
     ];
+
     // if this is an RC it won't have deploymentconfig
     if ($routeParams.deploymentconfig){
       $scope.breadcrumbs.push({
@@ -40,13 +41,26 @@ angular.module('openshiftConsole')
       editing: false
     };
 
+    // Check for a ?tab=<name> query param to allow linking directly to a tab.
+    if ($routeParams.tab) {
+      $scope.selectedTab = {};
+      $scope.selectedTab[$routeParams.tab] = true;
+    }
+
+    $scope.logOptions = {};
+
     var watches = [];
 
     project.get($routeParams.project).then(function(resp) {
-      angular.extend($scope, {
+      var context = {
         project: resp[0],
         projectPromise: resp[1].projectPromise
-      });
+      };
+      angular.extend($scope, context);
+      // FIXME: DataService.createStream() requires a scope with a
+      // projectPromise rather than just a namespace, so we have to pass the
+      // context into the log-viewer directive.
+      $scope.logContext = context;
       DataService.get("replicationcontrollers", $routeParams.deployment || $routeParams.replicationcontroller, $scope).then(
         // success
         function(deployment) {
@@ -55,6 +69,7 @@ angular.module('openshiftConsole')
           var deploymentVersion = $filter("annotation")(deployment, "deploymentVersion");
           if (deploymentVersion) {
             $scope.breadcrumbs[2].title = "#" + deploymentVersion;
+            $scope.logOptions.version = deploymentVersion;
           }
           $scope.deploymentConfigName = $filter("annotation") (deployment, "deploymentConfig");
 

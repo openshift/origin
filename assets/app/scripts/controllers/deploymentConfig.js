@@ -83,45 +83,44 @@ angular.module('openshiftConsole')
         // extractPodTemplates();
         // ImageStreamResolver.fetchReferencedImageStreamImages($scope.podTemplates, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
         $scope.emptyMessage = "No deployments to show";
-        var deploymentsByDeploymentConfig = DeploymentsService.associateDeploymentsToDeploymentConfig(deployments.by("metadata.name"));
-
-        $scope.unfilteredDeployments = deploymentsByDeploymentConfig[$routeParams.deploymentconfig] || {};
-        LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredDeployments, $scope.labelSuggestions);
-        LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-        $scope.deployments = LabelFilter.getLabelSelector().select($scope.unfilteredDeployments);      
-        updateFilterWarning(); 
-
-        var deploymentConfigName;
-        var deploymentName;
-        if (deployment) {
-          deploymentConfigName = $filter('annotation')(deployment, 'deploymentConfig');
-          deploymentName = deployment.metadata.name;
-        }
+ 
         if (!action) {
-          // Loading of the page that will create deploymentConfigDeploymentsInProgress structure, which will associate running deployment to his deploymentConfig.
-          $scope.deploymentConfigDeploymentsInProgress = DeploymentsService.associateRunningDeploymentToDeploymentConfig(deploymentsByDeploymentConfig);
-        } else if (action === 'ADDED' || (action === 'MODIFIED' && ['New', 'Pending', 'Running'].indexOf($filter('deploymentStatus')(deployment)) > -1)) {
-          // When new deployment id instantiated/cloned, or in case of a retry, associate him to his deploymentConfig and add him into deploymentConfigDeploymentsInProgress structure.
-          $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] = $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] || {};
-          $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName] = deployment;
-        } else if (action === 'MODIFIED') {
-          // After the deployment ends remove him from the deploymentConfigDeploymentsInProgress structure.
-          if (!$filter('deploymentIsInProgress')(deployment)){
-            delete $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName];
-          }
-        }
-
-        // Extract the causes from the encoded deployment config
-        if (deployment) {
-          if (action !== "DELETED") {
-            deployment.causes = $filter('deploymentCauses')(deployment);
-          }
-        }
-        else {
-          angular.forEach($scope.deployments, function(deployment) {
+          var deploymentsByDeploymentConfig = DeploymentsService.associateDeploymentsToDeploymentConfig(deployments.by("metadata.name"));
+          $scope.unfilteredDeployments = deploymentsByDeploymentConfig[$routeParams.deploymentconfig] || {};
+          angular.forEach($scope.unfilteredDeployments, function(deployment) {
             deployment.causes = $filter('deploymentCauses')(deployment);
           });
-        }        
+          // Loading of the page that will create deploymentConfigDeploymentsInProgress structure, which will associate running deployment to his deploymentConfig.
+          $scope.deploymentConfigDeploymentsInProgress = DeploymentsService.associateRunningDeploymentToDeploymentConfig(deploymentsByDeploymentConfig);
+        } else if (DeploymentsService.deploymentBelongsToConfig(deployment, $routeParams.deploymentconfig)) {
+          var deploymentName = deployment.metadata.name;
+          var deploymentConfigName = $routeParams.deploymentconfig;
+          switch (action) {
+            case 'ADDED':
+            case 'MODIFIED':
+              $scope.unfilteredDeployments[deploymentName] = deployment;
+              // When deployment is retried, associate him to his deploymentConfig and add him into deploymentConfigDeploymentsInProgress structure.
+              if ($filter('deploymentIsInProgress')(deployment)){
+                $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] = $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] || {};
+                $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName] = deployment;                
+              } else if ($scope.deploymentConfigDeploymentsInProgress[deploymentConfigName]) { // After the deployment ends remove him from the deploymentConfigDeploymentsInProgress structure.
+                delete $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName];
+              }
+              deployment.causes = $filter('deploymentCauses')(deployment);
+              break;
+            case 'DELETED':
+              delete $scope.unfilteredDeployments[deploymentName];
+              if ($scope.deploymentConfigDeploymentsInProgress[deploymentConfigName]) {
+                delete $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName];
+              }
+              break;
+          }
+        }
+
+        $scope.deployments = LabelFilter.getLabelSelector().select($scope.unfilteredDeployments);      
+        updateFilterWarning();
+        LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredDeployments, $scope.labelSuggestions);
+        LabelFilter.setLabelSuggestions($scope.labelSuggestions);
       }));
 
       watches.push(DataService.watch("imagestreams", $scope, function(imageStreams) {

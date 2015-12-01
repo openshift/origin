@@ -91,6 +91,13 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) fielderr
 		}
 	}
 
+	if strategy.Labels != nil {
+		errs = append(errs, validation.ValidateLabels(strategy.Labels, "labels")...)
+	}
+	if strategy.Annotations != nil {
+		errs = append(errs, validation.ValidateAnnotations(strategy.Annotations, "annotations")...)
+	}
+
 	// TODO: validate resource requirements (prereq: https://github.com/kubernetes/kubernetes/pull/7059)
 
 	return errs

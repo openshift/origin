@@ -8,8 +8,8 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	testutil "github.com/openshift/origin/test/util"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/util/rand"
 )
 
 var (
@@ -24,26 +24,26 @@ var (
 // CreateMySQLReplicationHelpers creates a set of MySQL helpers for master,
 // slave an en extra helper that is used for remote login test.
 func CreateMySQLReplicationHelpers(c kclient.PodInterface, masterDeployment, slaveDeployment, helperDeployment string, slaveCount int) (exutil.Database, []exutil.Database, exutil.Database) {
-	podNames, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", masterDeployment)), exutil.CheckPodIsRunningFunc, 1, 60*time.Second)
+	podNames, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", masterDeployment)), exutil.CheckPodIsRunningFn, 1, 60*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	masterPod := podNames[0]
 
-	slavePods, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", slaveDeployment)), exutil.CheckPodIsRunningFunc, slaveCount, 120*time.Second)
+	slavePods, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", slaveDeployment)), exutil.CheckPodIsRunningFn, slaveCount, 120*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Create MySQL helper for master
-	master := exutil.NewMysql(c, masterPod, "")
+	master := exutil.NewMysql(masterPod, "")
 
 	// Create MySQL helpers for slaves
 	slaves := make([]exutil.Database, len(slavePods))
 	for i := range slavePods {
-		slave := exutil.NewMysql(c, slavePods[i], masterPod)
+		slave := exutil.NewMysql(slavePods[i], masterPod)
 		slaves[i] = slave
 	}
 
-	helperNames, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", helperDeployment)), exutil.CheckPodIsRunningFunc, 1, 60*time.Second)
+	helperNames, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", helperDeployment)), exutil.CheckPodIsRunningFn, 1, 60*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	helper := exutil.NewMysql(c, helperNames[0], masterPod)
+	helper := exutil.NewMysql(helperNames[0], masterPod)
 
 	return master, slaves, helper
 }
@@ -62,6 +62,9 @@ func replicationTestFactory(oc *exutil.CLI, template string) func() {
 		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeREST().PersistentVolumes(), oc.Namespace(), "512Mi", 1)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		err = testutil.WaitForPolicyUpdate(oc.REST(), oc.Namespace(), "create", "templates", true)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		err = oc.Run("new-app").Args("-f", template).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -70,8 +73,10 @@ func replicationTestFactory(oc *exutil.CLI, template string) func() {
 		err = oc.KubeFramework().WaitForAnEndpoint(helperName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		tableCounter := 0
 		assertReplicationIsWorking := func(masterDeployment, slaveDeployment string, slaveCount int) (exutil.Database, []exutil.Database, exutil.Database) {
-			table := fmt.Sprintf("table_%s", rand.String(10))
+			tableCounter++
+			table := fmt.Sprintf("table_%0.2d", tableCounter)
 
 			master, slaves, helper := CreateMySQLReplicationHelpers(oc.KubeREST().Pods(oc.Namespace()), masterDeployment, slaveDeployment, fmt.Sprintf("%s-1", helperName), slaveCount)
 			o.Expect(exutil.WaitUntilAllHelpersAreUp(oc, []exutil.Database{master, helper})).NotTo(o.HaveOccurred())

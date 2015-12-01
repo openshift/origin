@@ -70,7 +70,7 @@ You can use '%[1]s status' to check the progress.`
   $ %[1]s new-app . --docker-image=repo/langimage
 
   # Create a Ruby application based on the provided [image]~[source code] combination
-  $ %[1]s new-app openshift/ruby-20-centos7~https://github.com/openshift/ruby-hello-world.git
+  $ %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-hello-world.git
 
   # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
   $ %[1]s new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
@@ -139,16 +139,16 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 		},
 	}
 
-	cmd.Flags().Var(&config.SourceRepositories, "code", "Source code to use to build this application.")
+	cmd.Flags().StringSliceVar(&config.SourceRepositories, "code", config.SourceRepositories, "Source code to use to build this application.")
 	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
-	cmd.Flags().VarP(&config.ImageStreams, "image", "", "Name of an image stream to use in the app. (deprecated)")
-	cmd.Flags().VarP(&config.ImageStreams, "image-stream", "i", "Name of an image stream to use in the app.")
-	cmd.Flags().Var(&config.DockerImages, "docker-image", "Name of a Docker image to include in the app.")
-	cmd.Flags().Var(&config.Templates, "template", "Name of a stored template to use in the app.")
-	cmd.Flags().VarP(&config.TemplateFiles, "file", "f", "Path to a template file to use for the app.")
-	cmd.Flags().VarP(&config.TemplateParameters, "param", "p", "Specify a list of key value pairs (eg. -p FOO=BAR,BAR=FOO) to set/override parameter values in the template.")
-	cmd.Flags().Var(&config.Groups, "group", "Indicate components that should be grouped together as <comp1>+<comp2>.")
-	cmd.Flags().VarP(&config.Environment, "env", "e", "Specify key value pairs of environment variables to set into each container.")
+	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image", "", config.ImageStreams, "Name of an image stream to use in the app. (deprecated)")
+	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image-stream", "i", config.ImageStreams, "Name of an image stream to use in the app.")
+	cmd.Flags().StringSliceVar(&config.DockerImages, "docker-image", config.DockerImages, "Name of a Docker image to include in the app.")
+	cmd.Flags().StringSliceVar(&config.Templates, "template", config.Templates, "Name of a stored template to use in the app.")
+	cmd.Flags().StringSliceVarP(&config.TemplateFiles, "file", "f", config.TemplateFiles, "Path to a template file to use for the app.")
+	cmd.Flags().StringSliceVarP(&config.TemplateParameters, "param", "p", config.TemplateParameters, "Specify a list of key value pairs (e.g., -p FOO=BAR,BAR=FOO) to set/override parameter values in the template.")
+	cmd.Flags().StringSliceVar(&config.Groups, "group", config.Groups, "Indicate components that should be grouped together as <comp1>+<comp2>.")
+	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set into each container.")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated application artifacts")
 	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")

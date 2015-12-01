@@ -20,7 +20,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: openshift/ruby-20-centos7
+          name: centos/ruby-22-centos7
       type: Source
     triggers:
     - github:
@@ -71,7 +71,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: openshift/ruby-20-centos7
+          name: centos/ruby-22-centos7
       type: Source
   status:
     phase: Running

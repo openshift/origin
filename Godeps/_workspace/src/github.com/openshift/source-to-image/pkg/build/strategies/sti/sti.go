@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -102,8 +103,11 @@ func New(req *api.Config, overrides build.Overrides) (*STI, error) {
 
 	// The sources are downloaded using the GIT downloader.
 	// TODO: Add more SCM in future.
+	// TODO: explicit decision made to customize processing for usage specifically vs.
+	// leveraging overrides; also, we ultimately want to simplify s2i usage a good bit,
+	// which would lead to replacing this quick short circuit (so this change is tactical)
 	b.source = overrides.Downloader
-	if b.source == nil {
+	if b.source == nil && !req.Usage {
 		downloader, sourceURL, err := scm.DownloaderForSource(req.Source)
 		if err != nil {
 			return nil, err
@@ -154,8 +158,12 @@ func (b *STI) Build(config *api.Config) (*api.Result, error) {
 		}
 	}
 
-	glog.V(1).Infof("Running S2I script in %s", config.Tag)
-	if err := b.scripts.Execute(api.Assemble, config); err != nil {
+	if len(config.AssembleUser) > 0 {
+		glog.V(1).Infof("Running %q in %q as %q user", api.Assemble, config.Tag, config.AssembleUser)
+	} else {
+		glog.V(1).Infof("Running %q in %q", api.Assemble, config.Tag)
+	}
+	if err := b.scripts.Execute(api.Assemble, config.AssembleUser, config); err != nil {
 		switch e := err.(type) {
 		case errors.ContainerError:
 			if !isMissingRequirements(e.Output) {
@@ -194,7 +202,7 @@ func (b *STI) Prepare(config *api.Config) error {
 		}
 	}
 
-	// fetch sources, for theirs .sti/bin might contain sti scripts
+	// fetch sources, for their .sti/bin might contain sti scripts
 	if len(config.Source) > 0 {
 		if b.sourceInfo, err = b.source.Download(config); err != nil {
 			return err
@@ -267,23 +275,32 @@ func (b *STI) PostExecute(containerID, location string) error {
 	runCmd := b.scriptsURL[api.Run]
 	if strings.HasPrefix(runCmd, "image://") {
 		// scripts from inside of the image, we need to strip the image part
-		runCmd = filepath.Join(strings.TrimPrefix(runCmd, "image://"), api.Run)
+		// NOTE: We use path.Join instead of filepath.Join to avoid converting the
+		// path to UNC (Windows) format as we always run this inside container.
+		runCmd = path.Join(strings.TrimPrefix(runCmd, "image://"), api.Run)
 	} else {
 		// external scripts, in which case we're taking the directory to which they
 		// were extracted and append scripts dir and name
-		runCmd = filepath.Join(location, "scripts", api.Run)
+		runCmd = path.Join(location, "scripts", api.Run)
 	}
 	existingLabels, err := b.docker.GetLabels(b.config.BuilderImage)
 	if err != nil {
 		glog.Errorf("Unable to read existing labels from current builder image %s", b.config.BuilderImage)
 	}
 
+	buildImageUser, err := b.docker.GetImageUser(b.config.BuilderImage)
+	if err != nil {
+		return err
+	}
+
+	resultLabels := mergeLabels(util.GenerateOutputImageLabels(b.sourceInfo, b.config), existingLabels)
 	opts := dockerpkg.CommitContainerOptions{
 		Command:     append([]string{}, runCmd),
 		Env:         buildEnv,
 		ContainerID: containerID,
 		Repository:  b.config.Tag,
-		Labels:      mergeLabels(util.GenerateOutputImageLabels(b.sourceInfo, b.config), existingLabels),
+		User:        buildImageUser,
+		Labels:      resultLabels,
 	}
 
 	imageID, err := b.docker.CommitContainer(opts)
@@ -309,7 +326,7 @@ func (b *STI) PostExecute(containerID, location string) error {
 
 	if b.config.CallbackURL != "" {
 		b.result.Messages = b.callbackInvoker.ExecuteCallback(b.config.CallbackURL,
-			b.result.Success, b.result.Messages)
+			b.result.Success, resultLabels, b.result.Messages)
 	}
 
 	return nil
@@ -323,15 +340,18 @@ func (b *STI) Exists(config *api.Config) bool {
 		return false
 	}
 
-	// can only do incremental build if runtime image exists, so always pull image
-	previousImageExists, _ := b.docker.IsImageInLocalRegistry(config.Tag)
-	if !previousImageExists || config.ForcePull {
-		if image, _ := b.incrementalDocker.PullImage(config.Tag); image != nil {
-			previousImageExists = true
-		}
+	policy := config.PreviousImagePullPolicy
+	if len(policy) == 0 {
+		policy = api.DefaultPreviousImagePullPolicy
 	}
 
-	return previousImageExists && b.installedScripts[api.SaveArtifacts]
+	result, err := dockerpkg.PullImage(config.Tag, b.incrementalDocker, policy, false)
+	if err != nil {
+		glog.V(2).Infof("Unable to pull previously build %q image: %v", config.Tag, err)
+		return false
+	}
+
+	return result.Image != nil && b.installedScripts[api.SaveArtifacts]
 }
 
 // Save extracts and restores the build artifacts from the previous build to a
@@ -353,11 +373,24 @@ func (b *STI) Save(config *api.Config) (err error) {
 		return b.tar.ExtractTarStream(artifactTmpDir, outReader)
 	}
 
+	user := config.AssembleUser
+	if len(user) == 0 {
+		user, err = b.docker.GetImageUser(image)
+		if err != nil {
+			return err
+		}
+		glog.V(3).Infof("The assemble user is not set, defaulting to %q user", user)
+	} else {
+		glog.V(3).Infof("Using assemble user %q to extract artifacts", user)
+	}
+
 	opts := dockerpkg.RunContainerOptions{
 		Image:           image,
+		User:            user,
 		ExternalScripts: b.externalScripts[api.SaveArtifacts],
 		ScriptsURL:      config.ScriptsURL,
 		Destination:     config.Destination,
+		PullImage:       false,
 		Command:         api.SaveArtifacts,
 		Stdout:          outWriter,
 		Stderr:          errWriter,
@@ -375,7 +408,7 @@ func (b *STI) Save(config *api.Config) (err error) {
 }
 
 // Execute runs the specified STI script in the builder image.
-func (b *STI) Execute(command string, config *api.Config) error {
+func (b *STI) Execute(command string, user string, config *api.Config) error {
 	glog.V(2).Infof("Using image name %s", config.BuilderImage)
 
 	env, err := scripts.GetEnvironment(config)
@@ -397,16 +430,20 @@ func (b *STI) Execute(command string, config *api.Config) error {
 	if config.LayeredBuild {
 		externalScripts = false
 	}
+
 	opts := dockerpkg.RunContainerOptions{
-		Image:           config.BuilderImage,
-		Stdout:          outWriter,
-		Stderr:          errWriter,
-		PullImage:       config.ForcePull,
+		Image:  config.BuilderImage,
+		Stdout: outWriter,
+		Stderr: errWriter,
+		// The PullImage is false because the PullImage function should be called
+		// before we run the container
+		PullImage:       false,
 		ExternalScripts: externalScripts,
 		ScriptsURL:      config.ScriptsURL,
 		Destination:     config.Destination,
 		Command:         command,
 		Env:             buildEnv,
+		User:            user,
 		PostExec:        b.postExecutor,
 		NetworkMode:     string(config.DockerNetworkMode),
 	}

@@ -79,6 +79,9 @@ func imageRefNode(g osgraph.MutableUniqueGraph, ref *kapi.ObjectReference, bc *b
 
 // AddOutputEdges links the build config to its output image node.
 func AddOutputEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigNode) {
+	if node.BuildConfig.Spec.Output.To == nil {
+		return
+	}
 	out := imageRefNode(g, node.BuildConfig.Spec.Output.To, node.BuildConfig)
 	g.AddEdge(node, out, BuildOutputEdgeKind)
 }

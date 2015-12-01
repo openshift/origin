@@ -81,9 +81,9 @@ func GetContextNicknameFromConfig(namespace string, clientCfg *client.Config) (s
 	return namespace + "/" + clusterNick + "/" + userInfo.Name, nil
 }
 
-func GetContextNickname(namespace, clusterNick, userNick string) (string, error) {
+func GetContextNickname(namespace, clusterNick, userNick string) string {
 	tokens := strings.SplitN(userNick, "/", 2)
-	return namespace + "/" + clusterNick + "/" + tokens[0], nil
+	return namespace + "/" + clusterNick + "/" + tokens[0]
 }
 
 // CreateConfig takes a clientCfg and builds a config (kubeconfig style) from it.

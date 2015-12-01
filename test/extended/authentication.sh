@@ -63,7 +63,7 @@ is_event_template=(               \
 )
 is_event_template=$(IFS=""; echo "${is_event_template[*]}") # re-formats template for use
 
-# wait until the last event that occured on the imagestream was the successful pull of the latest image
+# wait until the last event that occurred on the imagestream was the successful pull of the latest image
 wait_for_command 'oc get imagestream openldap --template="${is_event_template}" | grep latest' $((60*TIME_SEC))
 
 # kick off a build and wait for it to finish
@@ -86,7 +86,7 @@ server_ready_template=(                                  \
 server_ready_template=$(IFS=$""; echo "${server_ready_template[*]}") # re-formats template for use
 
 # wait for LDAP server to be ready
-wait_for_command 'oc get pods -l deploymentconfig=openldap-server --template="${server_ready_template}" | grep "ReadyTrue "' $((60*TIME_SEC)) 
+wait_for_command 'oc get pods -l deploymentconfig=openldap-server --template="${server_ready_template}" | grep "ReadyTrue "' $((60*TIME_SEC))
 
 # TODO(skuznets): readiness check is premature
 sleep 10
@@ -99,7 +99,7 @@ LDAP_SERVICE_IP=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP 
 function compare_and_cleanup() {
 	validation_file=$1
 	actual_file=actual-${validation_file}.yaml
-	rm -f ${WORKINGDIR}/${actual_file} 
+	rm -f ${WORKINGDIR}/${actual_file}
 	oc get groups --no-headers | awk '{print $1}' | sort | xargs -I{} oc export group {} -o yaml >> ${WORKINGDIR}/${actual_file}
 	os::util::sed '/sync-time/d' ${WORKINGDIR}/${actual_file}
 	diff ${validation_file} ${WORKINGDIR}/${actual_file}
@@ -122,13 +122,13 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	WORKINGDIR=${BASETMPDIR}/${current_schema}
 	mkdir ${WORKINGDIR}
 
-	# create a temp copy of the test files 
+	# create a temp copy of the test files
 	cp test/extended/authentication/ldap/${current_schema}/* ${WORKINGDIR}
 	pushd ${WORKINGDIR} > /dev/null
 
 	# load OpenShift and LDAP group UIDs, needed for literal whitelists
 	# use awk instead of sed for compatibility (see os::util::sed)
-	group1_ldapuid=$(awk 'NR == 1 {print $0}' ldapgroupuids.txt) 
+	group1_ldapuid=$(awk 'NR == 1 {print $0}' ldapgroupuids.txt)
 	group2_ldapuid=$(awk 'NR == 2 {print $0}' ldapgroupuids.txt)
 	group3_ldapuid=$(awk 'NR == 3 {print $0}' ldapgroupuids.txt)
 
@@ -167,14 +167,14 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	oc patch group ${group1_osuid} -p 'users: []'
 	openshift ex sync-groups --type=openshift --whitelist=whitelist_openshift.txt --sync-config=sync-config.yaml --confirm
 	compare_and_cleanup valid_whitelist_sync.txt
-	
+
 	echo -e "\tTEST: Sync subset of OpenShift groups from LDAP server using literal whitelist"
 	# sync group from LDAP
 	openshift ex sync-groups ${group1_ldapuid} --sync-config=sync-config.yaml --confirm
 	oc patch group ${group1_osuid} -p 'users: []'
 	openshift ex sync-groups --type=openshift ${group1_osuid} --sync-config=sync-config.yaml --confirm
 	compare_and_cleanup valid_whitelist_sync.txt
-	
+
 	echo -e "\tTEST: Sync subset of OpenShift groups from LDAP server using union of literal whitelist and whitelist file"
 	# sync groups from LDAP
 	openshift ex sync-groups ${group1_ldapuid} ${group2_ldapuid} --sync-config=sync-config.yaml --confirm
@@ -182,7 +182,7 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	oc patch group ${group2_osuid} -p 'users: []'
 	openshift ex sync-groups --type=openshift group/${group2_osuid} --whitelist=whitelist_openshift.txt --sync-config=sync-config.yaml --confirm
 	compare_and_cleanup valid_whitelist_union_sync.txt
-	
+
 
 	# BLACKLISTS
 	echo -e "\tTEST: Sync subset of LDAP groups from LDAP server using whitelist and blacklist file"
@@ -201,7 +201,7 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	# openshift ex sync-groups --type=openshift --whitelist=osgroupuids.txt --blacklist=blacklist_openshift.txt --blacklist-group=${group1_osuid} --sync-config=sync-config.yaml --confirm
 	openshift ex sync-groups --type=openshift --whitelist=osgroupuids.txt --blacklist=blacklist_openshift.txt --sync-config=sync-config.yaml --confirm
 	compare_and_cleanup valid_all_openshift_blacklist_sync.txt
-	
+
 
 	# MAPPINGS
 	echo -e "\tTEST: Sync all LDAP groups from LDAP server using a user-defined mapping"

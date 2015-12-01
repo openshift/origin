@@ -6,111 +6,121 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
 # This test validates the help commands and output text
 
 # verify some default commands
-[ "$(openshift 2>&1)" ]
-[ "$(openshift cli)" ]
-[ "$(openshift ex)" ]
-[ "$(openshift admin config 2>&1)" ]
-[ "$(openshift cli config 2>&1)" ]
-[ "$(openshift ex tokens)" ]
-[ "$(openshift admin policy  2>&1)" ]
-[ "$(openshift kubectl 2>&1)" ]
-[ "$(openshift kube 2>&1)" ]
-[ "$(openshift admin 2>&1)" ]
-[ "$(openshift start kubernetes 2>&1)" ]
-[ "$(kubernetes 2>&1)" ]
-[ "$(kubectl 2>&1)" ]
-[ "$(oc 2>&1)" ]
-[ "$(osc 2>&1)" ]
-[ "$(oadm 2>&1)" ]
-[ "$(oadm 2>&1)" ]
-[ "$(origin 2>&1)" ]
+os::cmd::expect_success 'openshift'
+os::cmd::expect_success 'openshift cli'
+os::cmd::expect_success 'openshift ex'
+os::cmd::expect_success 'openshift admin config'
+os::cmd::expect_success 'openshift cli config'
+os::cmd::expect_success 'openshift ex tokens'
+os::cmd::expect_success 'openshift admin policy '
+os::cmd::expect_success 'openshift kubectl'
+os::cmd::expect_success 'openshift kube'
+os::cmd::expect_success 'openshift admin'
+os::cmd::expect_success 'openshift start kubernetes'
+os::cmd::expect_success 'kubernetes'
+os::cmd::expect_success 'kubectl'
+os::cmd::expect_success 'oc'
+os::cmd::expect_success 'osc'
+os::cmd::expect_success 'oadm'
+os::cmd::expect_success 'oadm'
+os::cmd::expect_success 'origin'
 
 # help for root commands must be consistent
-[ "$(openshift | grep 'Application Platform')" ]
-[ "$(oc | grep 'Developer and Administrator Client')" ]
-[ "$(oc | grep 'Build and Deploy Commands:')" ]
-[ "$(oc | grep 'Other Commands:')" ]
-[ "$(oc policy --help 2>&1 | grep 'add-role-to-user')" ]
-[ ! "$(oc policy --help 2>&1 | grep 'Other Commands')" ]
-[ ! "$(oc 2>&1 | grep 'Options')" ]
-[ ! "$(oc 2>&1 | grep 'Global Options')" ]
-[ "$(openshift cli 2>&1 | grep 'Developer and Administrator Client')" ]
-[ "$(oc types | grep 'Deployment Config')" ]
-[ "$(openshift kubectl 2>&1 | grep 'Kubernetes cluster')" ]
-[ "$(oadm 2>&1 | grep 'Administrative Commands')" ]
-[ "$(openshift admin 2>&1 | grep 'Administrative Commands')" ]
-[ "$(oadm | grep 'Basic Commands:')" ]
-[ "$(oadm | grep 'Install Commands:')" ]
-[ "$(oadm ca | grep 'Manage certificates')" ]
-[ "$(openshift start kubernetes 2>&1 | grep 'Kubernetes server components')" ]
+os::cmd::expect_success_and_text 'openshift' 'Application Platform'
+os::cmd::expect_success_and_text 'oc' 'Developer and Administrator Client'
+os::cmd::expect_success_and_text 'oc' 'Build and Deploy Commands:'
+os::cmd::expect_success_and_text 'oc' 'Other Commands:'
+os::cmd::expect_success_and_text 'oc policy --help' 'add-role-to-user'
+os::cmd::expect_success_and_not_text 'oc policy --help' 'Other Commands'
+os::cmd::expect_success_and_not_text 'oc' 'Options'
+os::cmd::expect_success_and_not_text 'oc' 'Global Options'
+os::cmd::expect_success_and_text 'openshift cli' 'Developer and Administrator Client'
+os::cmd::expect_success_and_text 'oc types' 'Deployment Config'
+os::cmd::expect_success_and_text 'openshift kubectl' 'Kubernetes cluster'
+os::cmd::expect_success_and_text 'oadm' 'Administrative Commands'
+os::cmd::expect_success_and_text 'openshift admin' 'Administrative Commands'
+os::cmd::expect_success_and_text 'oadm' 'Basic Commands:'
+os::cmd::expect_success_and_text 'oadm' 'Install Commands:'
+os::cmd::expect_success_and_text 'oadm ca' 'Manage certificates'
+os::cmd::expect_success_and_text 'openshift start kubernetes' 'Kubernetes server components'
 # check deprecated admin cmds for backward compatibility
-[ "$(oadm create-master-certs -h 2>&1 | grep 'Create keys and certificates')" ]
-[ "$(oadm create-key-pair -h 2>&1 | grep 'Create an RSA key pair')" ]
-[ "$(oadm create-server-cert -h 2>&1 | grep 'Create a key and server certificate')" ]
-[ "$(oadm create-signer-cert -h 2>&1 | grep 'Create a self-signed CA')" ]
+os::cmd::expect_success_and_text 'oadm create-master-certs -h' 'Create keys and certificates'
+os::cmd::expect_success_and_text 'oadm create-key-pair -h' 'Create an RSA key pair'
+os::cmd::expect_success_and_text 'oadm create-server-cert -h' 'Create a key and server certificate'
+os::cmd::expect_success_and_text 'oadm create-signer-cert -h' 'Create a self-signed CA'
 # check whether product is recognized
-[ "$(origin | grep -i 'Origin Application Platform')" ]
-[ "$(origin | grep -i 'Origin distribution of Kubernetes')" ]
-[ ! "$(origin | grep -i '\(Atomic\|OpenShift\)')" ]
-[ "$(openshift | grep -i 'OpenShift Application Platform')" ]
-[ "$(openshift | grep -i 'OpenShift distribution of Kubernetes')" ]
-[ ! "$(openshift | grep -i 'Atomic')" ]
-[ "$(atomic-enterprise | grep -i 'Atomic Enterprise Platform')" ]
-[ "$(atomic-enterprise | grep -i 'Atomic distribution of Kubernetes')" ]
-[ ! "$(atomic-enterprise | grep -i 'OpenShift')" ]
+os::cmd::expect_success_and_text 'origin' 'Origin Application Platform'
+os::cmd::expect_success_and_text 'origin' 'Origin distribution of Kubernetes'
+os::cmd::expect_success_and_not_text 'origin' '(Atomic|OpenShift)'
+os::cmd::expect_success_and_text 'openshift' 'OpenShift Application Platform'
+os::cmd::expect_success_and_text 'openshift' 'OpenShift distribution of Kubernetes'
+os::cmd::expect_success_and_not_text 'openshift' 'Atomic'
+os::cmd::expect_success_and_text 'atomic-enterprise' 'Atomic Enterprise Platform'
+os::cmd::expect_success_and_text 'atomic-enterprise' 'Atomic distribution of Kubernetes'
+os::cmd::expect_success_and_not_text 'atomic-enterprise' 'OpenShift'
 
 # help for root commands with --help flag must be consistent
-[ "$(openshift --help 2>&1 | grep 'OpenShift Application Platform')" ]
-[ "$(oc --help 2>&1 | grep 'Developer and Administrator Client')" ]
-[ "$(oc login --help 2>&1 | grep 'Options')" ]
-[ ! "$(oc login --help 2>&1 | grep 'Global Options')" ]
-[ "$(oc login --help 2>&1 | grep 'insecure-skip-tls-verify')" ]
-[ "$(openshift cli --help 2>&1 | grep 'Developer and Administrator Client')" ]
-[ "$(openshift kubectl --help 2>&1 | grep 'Kubernetes cluster')" ]
-[ "$(oadm --help 2>&1 | grep 'Administrative Commands')" ]
-[ "$(openshift admin --help 2>&1 | grep 'Administrative Commands')" ]
+os::cmd::expect_success_and_text 'openshift --help' 'OpenShift Application Platform'
+os::cmd::expect_success_and_text 'oc --help' 'Developer and Administrator Client'
+os::cmd::expect_success_and_text 'oc login --help' 'Options'
+os::cmd::expect_success_and_not_text 'oc login --help' 'Global Options'
+os::cmd::expect_success_and_text 'oc login --help' 'insecure-skip-tls-verify'
+os::cmd::expect_success_and_text 'openshift cli --help' 'Developer and Administrator Client'
+os::cmd::expect_success_and_text 'openshift kubectl --help' 'Kubernetes cluster'
+os::cmd::expect_success_and_text 'oadm --help' 'Administrative Commands'
+os::cmd::expect_success_and_text 'openshift admin --help' 'Administrative Commands'
 
 # help for root commands through help command must be consistent
-[ "$(openshift help cli 2>&1 | grep 'Developer and Administrator Client')" ]
-[ "$(openshift help kubectl 2>&1 | grep 'Kubernetes cluster')" ]
-[ "$(openshift help admin 2>&1 | grep 'Administrative Commands')" ]
+os::cmd::expect_success_and_text 'openshift help cli' 'Developer and Administrator Client'
+os::cmd::expect_success_and_text 'openshift help kubectl' 'Kubernetes cluster'
+os::cmd::expect_success_and_text 'openshift help admin' 'Administrative Commands'
 
 # help for given command with --help flag must be consistent
-[ "$(oc get --help 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift cli get --help 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift kubectl get --help 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift start --help 2>&1 | grep 'Start an all-in-one server')" ]
-[ "$(openshift start master --help 2>&1 | grep 'Start a master')" ]
-[ "$(openshift start node --help 2>&1 | grep 'Start a node')" ]
-[ "$(oc get --help 2>&1 | grep 'oc')" ]
+os::cmd::expect_success_and_text 'oc get --help' 'Display one or many resources'
+os::cmd::expect_success_and_text 'openshift cli get --help' 'Display one or many resources'
+os::cmd::expect_success_and_text 'openshift kubectl get --help' 'Display one or many resources'
+os::cmd::expect_success_and_text 'openshift start --help' 'Start an all-in-one server'
+os::cmd::expect_success_and_text 'openshift start master --help' 'Start a master'
+os::cmd::expect_success_and_text 'openshift start node --help' 'Start a node'
+os::cmd::expect_success_and_text 'oc project --help' 'Switch to another project'
+os::cmd::expect_success_and_text 'oc projects --help' 'Switch to another project'
+os::cmd::expect_success_and_text 'openshift cli project --help' 'Switch to another project'
+os::cmd::expect_success_and_text 'openshift cli projects --help' 'Switch to another project'
+os::cmd::expect_success_and_text 'oc get --help' 'oc'
 
 # help for given command through help command must be consistent
-[ "$(oc help get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift help cli get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift help kubectl get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift help start 2>&1 | grep 'Start an all-in-one server')" ]
-[ "$(openshift help start master 2>&1 | grep 'Start a master')" ]
-[ "$(openshift help start node 2>&1 | grep 'Start a node')" ]
-[ "$(openshift cli help update 2>&1 | grep 'openshift')" ]
-[ "$(openshift cli help replace 2>&1 | grep 'openshift')" ]
-[ "$(openshift cli help patch 2>&1 | grep 'openshift')" ]
+os::cmd::expect_success_and_text 'oc help get' 'Display one or many resources'
+os::cmd::expect_success_and_text 'openshift help cli get' 'Display one or many resources'
+os::cmd::expect_success_and_text 'openshift help kubectl get' 'Display one or many resources'
+os::cmd::expect_success_and_text 'openshift help start' 'Start an all-in-one server'
+os::cmd::expect_success_and_text 'openshift help start master' 'Start a master'
+os::cmd::expect_success_and_text 'openshift help start node' 'Start a node'
+os::cmd::expect_success_and_text 'oc help project' 'Switch to another project'
+os::cmd::expect_success_and_text 'oc help projects' 'Switch to another project'
+# TODO: fix these tests
+# os::cmd::expect_success_and_text 'openshift cli help update' 'Update a resource'
+# os::cmd::expect_success_and_text 'openshift cli help replace' 'Replace a resource'
+# os::cmd::expect_success_and_text 'openshift cli help patch' 'Update field\(s\) of a resource'
+# os::cmd::expect_success_and_text 'openshift cli help project' 'Switch to another project'
+# os::cmd::expect_success_and_text 'openshift cli help projects' 'Switch to another project'
 
 # runnable commands with required flags must error consistently
-[ "$(oc get 2>&1 | grep 'Required resource not specified')" ]
-[ "$(openshift cli get 2>&1 | grep 'Required resource not specified')" ]
-[ "$(openshift kubectl get 2>&1 | grep 'Required resource not specified')" ]
+os::cmd::expect_failure_and_text 'oc get' 'Required resource not specified'
+os::cmd::expect_failure_and_text 'openshift cli get' 'Required resource not specified'
+os::cmd::expect_failure_and_text 'openshift kubectl get' 'Required resource not specified'
 
 # commands that expect file paths must validate and error out correctly
-[ "$(oc login --certificate-authority=/path/to/invalid 2>&1 | grep 'no such file or directory')" ]
+os::cmd::expect_failure_and_text 'oc login --certificate-authority=/path/to/invalid' 'no such file or directory'
 
 # make sure that typoed commands come back with non-zero return codes
-[ "$(openshift admin policy TYPO; echo $? | grep '1')" ]
-[ "$(openshift admin TYPO; echo $? | grep '1')" ]
-[ "$(openshift cli TYPO; echo $? | grep '1')" ]
-[ "$(oc policy TYPO; echo $? | grep '1')" ]
-[ "$(oc secrets TYPO; echo $? | grep '1')" ]
+os::cmd::expect_failure 'openshift admin policy TYPO'
+os::cmd::expect_failure 'openshift admin TYPO'
+os::cmd::expect_failure 'openshift cli TYPO'
+os::cmd::expect_failure 'oc policy TYPO'
+os::cmd::expect_failure 'oc secrets TYPO'

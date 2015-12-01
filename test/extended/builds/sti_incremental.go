@@ -39,7 +39,7 @@ var _ = g.Describe("builds: s2i incremental build with push and pull to authenti
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build using the image produced by the last build")
@@ -47,7 +47,7 @@ var _ = g.Describe("builds: s2i incremental build with push and pull to authenti
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the Docker image reference from ImageStream")
@@ -70,14 +70,22 @@ var _ = g.Describe("builds: s2i incremental build with push and pull to authenti
 			// so wait until webrick output is complete before curling.
 			logs := ""
 			count := 0
-			for strings.Contains(logs, "8080") && count < 10 {
+			maxCount := 30
+			for strings.Contains(logs, "8080") && count < maxCount {
 				logs, _ = oc.Run("logs").Args(pod.Name).Output()
 				time.Sleep(time.Second)
 				count++
 			}
+			if count == maxCount {
+				e2e.Failf("Never saw port 8080 open in pod logs")
+			}
 
 			g.By("expecting the pod container has saved artifacts")
 			out, err := oc.Run("exec").Args("-p", pod.Name, "--", "curl", "http://0.0.0.0:8080").Output()
+			if err != nil {
+				logs, _ = oc.Run("logs").Args(pod.Name).Output()
+				e2e.Failf("Failed to curl in application container: \n%q, pod logs: \n%q", out, logs)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			if !strings.Contains(out, "artifacts exist") {

@@ -71,6 +71,9 @@ mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
 
+# test wrapper functions
+${OS_ROOT}/hack/test-cmd_util.sh > ${BASETMPDIR}/wrappers.txt 2>&1
+
 
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
@@ -287,7 +290,8 @@ done
 # Done
 echo
 echo
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/metrics" "metrics: " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/metrics" "metrics: " 0.25 80 > "${LOG_DIR}/metrics.log"
+grep "request_count" "${LOG_DIR}/metrics.log"
 echo
 echo
 echo "test-cmd: ok"

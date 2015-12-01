@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-ldap/ldap"
+	"gopkg.in/ldap.v2"
 )
 
 // Scheme is a valid ldap scheme

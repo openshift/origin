@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	// Assemble is the name of the script responsible for build process of the resulting image.
+	// Assemble is the name of the script responsible for the build process of the resulting image.
 	Assemble = "assemble"
 	// Run is the name of the script responsible for running the final application.
 	Run = "run"

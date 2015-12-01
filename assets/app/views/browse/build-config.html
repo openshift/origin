@@ -7,6 +7,13 @@
       <div>
         <h1>
           {{buildConfig.metadata.name}}
+          <delete-button
+            class="pull-right fa-lg"
+            resource-type="buildconfig"
+            resource-name="{{buildConfig.metadata.name}}"
+            project-name="{{buildConfig.metadata.namespace}}"
+            alerts="alerts">
+          </delete-button>
           <small class="meta">created <relative-timestamp timestamp="buildConfig.metadata.creationTimestamp"></relative-timestamp></small>
         </h1>
         <labels labels="buildConfig.metadata.labels" clickable="true" kind="builds" title-kind="build configs" project-name="{{buildConfig.metadata.namespace}}" limit="3"></labels>
@@ -47,7 +54,7 @@
                     <dt ng-if="buildConfig.spec.source.git.ref">Source ref:</dt>
                     <dd ng-if="buildConfig.spec.source.git.ref">{{buildConfig.spec.source.git.ref}}</dd>
                     <dt ng-if="buildConfig.spec.source.contextDir">Source context dir:</dt>
-                    <dd ng-if="buildConfig.spec.source.contextDir">{{buildConfig.spec.source.contextDir}}</dd>            
+                    <dd ng-if="buildConfig.spec.source.contextDir">{{buildConfig.spec.source.contextDir}}</dd>
                   </div>
                 </div>
                 <div ng-if="buildConfig.spec.output.to">
@@ -55,6 +62,13 @@
                   <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
                 </div>
               </dl>
+              <div ng-if="(buildConfig | buildStrategy).env">
+                <h3>Environment Variables</h3>
+                <dl class="dl-horizontal left">
+                  <dt ng-repeat-start="envVar in (buildConfig | buildStrategy).env">{{envVar.name}}:</dt>
+                  <dd ng-repeat-end>{{envVar.value}}</dd>
+                </dl>
+              </div>
             </div>
             <div class="col-lg-6">
               <h3>Triggers</h3>
@@ -159,10 +173,10 @@
             <td data-title="Build">
               <!-- Build number and link -->
               <span ng-if="build | annotation : 'buildNumber'">
-                <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{buildConfig.metadata.name}}/{{build.metadata.name}}">#{{build | annotation : 'buildNumber'}}</a>
+                <a ng-href="{{build | navigateResourceURL}}">#{{build | annotation : 'buildNumber'}}</a>
               </span>
               <span ng-if="!(build | annotation : 'buildNumber')">
-                <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{buildConfig.metadata.name}}/{{build.metadata.name}}">{{build.metadata.name}}</a>
+                <a ng-href="{{build | navigateResourceURL}}">{{build.metadata.name}}</a>
               </span>
               <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
             </td>
@@ -183,7 +197,7 @@
                   <span ng-switch="build.status.phase" class="hide-ng-leave">
                     <span ng-switch-when="Complete"> in {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
                     <span ng-switch-when="Failed">after {{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
-                    <span ng-switch-when="Cancelled"> after {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>                  
+                    <span ng-switch-when="Cancelled"> after {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
                     <span ng-switch-when="Running"> for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
                     <span ng-switch-when="New">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
                     <span ng-switch-when="Pending">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>

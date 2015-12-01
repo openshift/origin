@@ -73,6 +73,7 @@ const (
 	PersistentVolumeControllerRoleName = "system:pv-controller"
 
 	ImagePullerRoleName       = "system:image-puller"
+	ImagePusherRoleName       = "system:image-pusher"
 	ImageBuilderRoleName      = "system:image-builder"
 	ImagePrunerRoleName       = "system:image-pruner"
 	DeployerRoleName          = "system:deployer"

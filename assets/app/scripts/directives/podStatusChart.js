@@ -1,7 +1,7 @@
 "use strict";
 
 angular.module('openshiftConsole')
-  .directive('podStatusChart', function($timeout, hashSizeFilter, isTroubledPodFilter, Logger) {
+  .directive('podStatusChart', function($timeout, hashSizeFilter, isTroubledPodFilter, numContainersReadyFilter, Logger) {
     // Make sure our charts always have unique IDs even if the same deployment
     // or monopod is shown on the overview more than once.
     var lastId = 0;
@@ -17,7 +17,7 @@ angular.module('openshiftConsole')
         var chart, config;
 
         // The phases to show (in order).
-        var phases = ["Running", "Warning", "Failed", "Pending", "Succeeded", "Unknown"];
+        var phases = ["Running", "Not Ready", "Warning", "Failed", "Pending", "Succeeded", "Unknown"];
 
         lastId++;
         $scope.chartId = 'pods-donut-chart-' + lastId;
@@ -88,6 +88,7 @@ angular.module('openshiftConsole')
               // Dummy group for an empty chart. Gray outline added in CSS.
               Empty: "#ffffff",
               Running: "#00b9e4",
+              "Not Ready": "#beedf9",
               Warning: "#f9d67a",
               Failed: "#d9534f",
               Pending: "#e8e8e8",
@@ -130,15 +131,29 @@ angular.module('openshiftConsole')
             countByPhase[phase] = (countByPhase[phase] || 0) + 1;
           };
 
+          var isReady = function(pod) {
+            var numReady = numContainersReadyFilter(pod);
+            var total = pod.spec.containers.length;
+
+            return numReady === total;
+          };
+
           angular.forEach($scope.pods, function(pod) {
             // Count 'Warning' as its own phase, even if not strictly accurate,
             // so it appears in the donut chart. Warnings are too important not
             // to call out.
             if (isTroubledPodFilter(pod)) {
               incrementCount('Warning');
-            } else {
-              incrementCount(pod.status.phase);
+              return;
             }
+
+            // Also count running, but not ready, as its own phase.
+            if (pod.status.phase === 'Running' && !isReady(pod)) {
+              incrementCount('Not Ready');
+              return;
+            }
+
+            incrementCount(pod.status.phase);
           });
 
           return countByPhase;

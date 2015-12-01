@@ -22,10 +22,12 @@
   </div>
 
   <div class="row" ng-if="!chromeless">
-    <div ng-if="status" class="col-md-6 col-sm-12 status">
-      <span>Status:&nbsp;&nbsp;</span>
-      <status-icon status="status"></status-icon>
-      <span>&nbsp;&nbsp;{{status}}</span>
+    <div class="col-md-6 col-sm-12 status">
+      <span ng-if="status">
+        <span>Status:&nbsp;&nbsp;</span>
+        <status-icon status="status"></status-icon>
+        <span>&nbsp;&nbsp;{{status}}</span>
+      </span>
     </div>
     <div class="log-link-external col-md-6 col-sm-12 text-right">
       <a href=""  ng-click="goChromeless(options)">

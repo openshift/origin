@@ -219,7 +219,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 
-	buildStorage := buildetcd.NewStorage(etcdHelper)
+	buildStorage, buildDetailsStorage := buildetcd.NewStorage(etcdHelper)
 	buildRegistry := buildregistry.NewRegistry(buildStorage)
 	buildConfigStorage := buildconfigetcd.NewStorage(etcdHelper)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
@@ -265,6 +265,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	storage := map[string]rest.Storage{
 		"builds":                   buildStorage,
+		"builds/details":           buildDetailsStorage,
 		"buildConfigs":             buildConfigStorage,
 		"buildConfigs/webhooks":    buildConfigWebHooks,
 		"builds/clone":             buildclonestorage.NewStorage(buildGenerator),

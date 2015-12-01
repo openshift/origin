@@ -195,8 +195,8 @@ const (
 This command joins many API calls together to form a detailed description of a
 given resource.`
 
-	describeExample = `  # Provide details about the ruby-20-centos7 image repository
-  $ %[1]s describe imageRepository ruby-20-centos7
+	describeExample = `  # Provide details about the ruby-22-centos7 image repository
+  $ %[1]s describe imageRepository ruby-22-centos7
 
   # Provide details about the ruby-sample-build build configuration
   $ %[1]s describe bc ruby-sample-build`
@@ -258,6 +258,7 @@ func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 	cmd.Short = "Change the number of pods in a deployment"
 	cmd.Long = scaleLong
 	cmd.Example = fmt.Sprintf(scaleExample, fullName)
+	cmd.ValidArgs = []string{"deploymentconfig", "job", "replicationcontroller"}
 	return cmd
 }
 
@@ -343,7 +344,7 @@ terminal session. Can be used to debug containers and invoke interactive command
   $ %[1]s attach 123456-7890
 
   # Get output from ruby-container from pod 123456-7890
-  $ %[1]s attach 123456-7890 -c ruby-container date
+  $ %[1]s attach 123456-7890 -c ruby-container
 
   # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780
   # and sends stdout/stderr from 'bash' back to the client

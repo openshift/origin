@@ -218,6 +218,8 @@ func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler)
 		dbus := utildbus.New()
 		iptables := iptables.New(kexec.New(), dbus, protocol)
 		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables, util.PortRange{}, syncPeriod)
+		iptables.AddReloadFunc(proxier.Sync)
+
 		if err != nil {
 			switch {
 			// conflicting use of iptables, retry

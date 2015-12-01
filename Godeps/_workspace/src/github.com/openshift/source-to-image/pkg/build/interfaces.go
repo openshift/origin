@@ -33,7 +33,7 @@ type IncrementalBuilder interface {
 
 // ScriptsHandler provides an interface for executing the scripts
 type ScriptsHandler interface {
-	Execute(string, *api.Config) error
+	Execute(string, string, *api.Config) error
 }
 
 // Downloader provides methods for downloading the application source code

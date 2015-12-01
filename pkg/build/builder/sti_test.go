@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/client/testclient"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/validation"
 	s2ibuild "github.com/openshift/source-to-image/pkg/build"
@@ -66,12 +67,13 @@ func makeStiBuilder(
 	errPushImage error,
 	getStrategyErr error,
 	buildError error,
-	validationErrors []validation.ValidationError) STIBuilder {
-	return *newSTIBuilder(
+	validationErrors []validation.ValidationError) S2IBuilder {
+	return *newS2IBuilder(
 		testDockerClient{
 			errPushImage: errPushImage,
 		},
 		"/docker.socket",
+		testclient.NewSimpleFake().Builds(""),
 		makeBuild(),
 		testStiBuilderFactory{getStrategyErr: getStrategyErr, buildError: buildError},
 		testStiConfigValidator{errors: validationErrors},
