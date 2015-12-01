@@ -33,7 +33,7 @@
               </a>
             </span>
           </span>
-        </div>      
+        </div>
         <div class="has-error" ng-show="form.value.$error.oscValueValid">
           <span class="help-block">Please enter a valid value
             <span class="help action-inline" ng-if="keyValidationTooltip">
@@ -43,8 +43,9 @@
               </a>
             </span>
           </span>
-        </div>      
+        </div>
       </form>
+
       <ul class="list-unstyled label-list">
         <li ng-repeat="(key,value) in entries | valuesIn:readonlyKeys">
           <span class="key truncate" ng-attr-title="{{key}}">{{key}}</span>
@@ -71,10 +72,10 @@
                        autocorrect="off"
                        autocapitalize="off"
                        spellcheck="false">
-                <a href="" ng-click="update(key, value, $parent.entries)" class="btn btn-default" style="vertical-align: middle" title="Submit">
+                <a href="" ng-click="update(key, value, $parent.entries)" class="btn btn-xs btn-default" style="vertical-align: middle" title="Submit">
                   <i class="icon icon-ok"></i>
                 </a>
-                <a href="" ng-click="cancel()" class="btn btn-default" style="vertical-align: middle" title="Cancel">
+                <a href="" ng-click="cancel()" class="btn btn-xs btn-default" style="vertical-align: middle" title="Cancel">
                   <i class="icon icon-remove"></i>
                 </a>
               </div>
