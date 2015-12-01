@@ -184,7 +184,7 @@ describe('', function() {
 
         it('should delete a project', function() {
           h.goToPage('/project/' + project['name'] + '/settings');
-          element(by.css(".action-button .fa-trash-o")).click();
+          element(by.css(".action-button.fa-trash-o")).click();
           element(by.cssContainingText(".modal-dialog .btn", "Delete")).click();
           h.waitForPresence(".alert-success", "marked for deletion");
         });
