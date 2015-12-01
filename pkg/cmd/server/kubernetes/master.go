@@ -132,6 +132,9 @@ func attemptToLoadRecycler(path string, config *volume.VolumeConfig) error {
 	if err != nil {
 		return err
 	}
+	if len(recyclerPod.Spec.Volumes) != 1 {
+		return fmt.Errorf("Recycler pod is expected to have exactly 1 volume to scrub, but found %d", len(recyclerPod.Spec.Volumes))
+	}
 	config.RecyclerPodTemplate = recyclerPod
 	glog.V(5).Infof("Recycler set to %s/%s", config.RecyclerPodTemplate.Namespace, config.RecyclerPodTemplate.Name)
 	return nil
