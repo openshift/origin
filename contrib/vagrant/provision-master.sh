@@ -27,19 +27,32 @@ fi
 os::provision::init-certs "${CONFIG_ROOT}" "${NETWORK_PLUGIN}" \
   "${MASTER_NAME}" "${MASTER_IP}" NODE_NAMES NODE_IPS
 
+# Copy configuration to local storage when the configuration path is
+# mounted over nfs to prevent etcd from experiencing nfs-related
+# locking errors.
+CONFIG_MOUNT_TYPE=$(df -P -T "${CONFIG_ROOT}" | tail -n +2 | awk '{print $2}')
+if [[ "${CONFIG_MOUNT_TYPE}" = "nfs" ]]; then
+  DEPLOYED_CONFIG_ROOT="/"
+  os::provision::copy-config "${CONFIG_ROOT}"
+else
+  DEPLOYED_CONFIG_ROOT="${CONFIG_ROOT}"
+fi
+
 echo "Launching openshift daemons"
 NODE_LIST=$(os::provision::join , ${NODE_NAMES[@]})
 cmd="/usr/bin/openshift start master --loglevel=${LOG_LEVEL} \
  --master=https://${MASTER_IP}:8443 \
  --network-plugin=${NETWORK_PLUGIN}"
-os::provision::start-os-service "openshift-master" "OpenShift Master" "${cmd}"
+os::provision::start-os-service "openshift-master" "OpenShift Master" \
+    "${cmd}" "${DEPLOYED_CONFIG_ROOT}"
 
 if [ "${SDN_NODE}" = "true" ]; then
-  os::provision::start-node-service "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
+  os::provision::start-node-service "${DEPLOYED_CONFIG_ROOT}" \
+      "${SDN_NODE_NAME}"
 
   # Disable scheduling for the sdn node - it's purpose is only to ensure
   # pod network connectivity on the master.
-  os::provision::disable-sdn-node "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
+  os::provision::disable-sdn-node "${DEPLOYED_CONFIG_ROOT}" "${SDN_NODE_NAME}"
 fi
 
-os::provision::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
+os::provision::set-os-env "${ORIGIN_ROOT}" "${DEPLOYED_CONFIG_ROOT}"
