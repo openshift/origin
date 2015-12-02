@@ -13,11 +13,6 @@ angular.module("openshiftConsole")
       },
       templateUrl: "views/directives/delete-button.html",
       link: function(scope, element, attrs) {
-        // make resource types available in the modal
-        scope.resourceType = attrs.resourceType;
-        scope.resourceName = attrs.resourceName;
-        scope.projectName = attrs.projectName;
-        scope.displayName = attrs.displayName;
 
         if (attrs.resourceType === 'project') {
           scope.isProject = true;
@@ -39,8 +34,9 @@ angular.module("openshiftConsole")
             var resourceName = scope.resourceName;
             var projectName = scope.projectName;
             var formattedResource = $filter('humanizeResourceType')(resourceType) + ' ' + "\'"  + (scope.displayName ? scope.displayName : resourceName) + "\'";
+            var context = (scope.resourceType === 'project') ? {} : {namespace: scope.projectName};
 
-            DataService.delete(resourceType + 's', resourceName, scope.$parent)
+            DataService.delete(resourceType + 's', resourceName, context)
             .then(function() {
               if (resourceType !== 'project') {
                 AlertMessageService.addAlert({

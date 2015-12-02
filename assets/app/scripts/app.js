@@ -115,7 +115,8 @@ angular
         templateUrl: 'views/builds.html'
       })
       .when('/project/:project/browse/builds/:buildconfig', {
-        templateUrl: 'views/browse/build-config.html'
+        templateUrl: 'views/browse/build-config.html',
+        controller: 'BuildConfigController'
       })
       .when('/project/:project/browse/builds/:buildconfig/:build', {
         templateUrl: function(params) {
@@ -130,13 +131,15 @@ angular
       // For when a build is missing a buildconfig label
       // Needs to still be prefixed with browse/builds so the secondary nav active state is correct
       .when('/project/:project/browse/builds-noconfig/:build', {
-        templateUrl: 'views/browse/build.html'
+        templateUrl: 'views/browse/build.html',
+        controller: 'BuildController'
       })
       .when('/project/:project/browse/deployments', {
         templateUrl: 'views/deployments.html'
       })
       .when('/project/:project/browse/deployments/:deploymentconfig', {
-        templateUrl: 'views/browse/deployment-config.html'
+        templateUrl: 'views/browse/deployment-config.html',
+        controller: 'DeploymentConfigController'
       })
       .when('/project/:project/browse/deployments/:deploymentconfig/:deployment', {
         templateUrl: function(params) {
@@ -160,7 +163,8 @@ angular
         templateUrl: 'views/images.html'
       })
       .when('/project/:project/browse/images/:image', {
-        templateUrl: 'views/browse/image.html'
+        templateUrl: 'views/browse/image.html',
+        controller: 'ImageController'
       })
       .when('/project/:project/browse/pods', {
         templateUrl: 'views/pods.html'
@@ -179,14 +183,16 @@ angular
         templateUrl: 'views/services.html'
       })
       .when('/project/:project/browse/services/:service', {
-        templateUrl: 'views/browse/service.html'
+        templateUrl: 'views/browse/service.html',
+        controller: 'ServiceController'
       })
       .when('/project/:project/browse/routes', {
         templateUrl: 'views/browse/routes.html'
       })
       .when('/project/:project/browse/routes/:route', {
-        templateUrl: 'views/browse/route.html'
-      })      
+        templateUrl: 'views/browse/route.html',
+        controller: 'RouteController'
+      })
       .when('/project/:project/create', {
         templateUrl: 'views/create.html'
       })
