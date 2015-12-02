@@ -141,7 +141,7 @@ os_cmd_internal_tmpdir="/tmp/openshift/test/cmd"
 os_cmd_internal_tmpout="${os_cmd_internal_tmpdir}/tmp_stdout.log"
 os_cmd_internal_tmperr="${os_cmd_internal_tmpdir}/tmp_stderr.log"
 
-# os::cmd::internal::expect_exit_code_and_text runs the provided test command and expects a specific 
+# os::cmd::internal::expect_exit_code_run_grep runs the provided test command and expects a specific 
 # exit code from that command as well as the success of a specified `grep` invocation. Output from the 
 # command to be tested is suppressed unless either `VERBOSE=1` or the test fails. This function bypasses
 # any error exiting settings or traps set by upstream callers by masking the return code of the command 
