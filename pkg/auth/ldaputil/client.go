@@ -12,13 +12,15 @@ import (
 )
 
 // NewLDAPClientConfig returns a new LDAP client config
-func NewLDAPClientConfig(URL, bindDN, bindPassword, CA string, insecure bool) (ldapclient.Config, error) {
+func NewLDAPClientConfig(URL, bindDN, bindPassword, CA string, insecureSkipVerify bool, insecure bool) (ldapclient.Config, error) {
 	url, err := ParseURL(URL)
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing URL: %v", err)
 	}
 
-	tlsConfig := &tls.Config{}
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: insecureSkipVerify,
+	}
 	if len(CA) > 0 {
 		roots, err := util.CertPoolFromFile(CA)
 		if err != nil {

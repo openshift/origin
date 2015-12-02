@@ -12,7 +12,7 @@ import (
 )
 
 func ValidateLDAPSyncConfig(config *api.LDAPSyncConfig) ValidationResults {
-	validationResults := ValidateLDAPClientConfig(config.URL, config.BindDN, config.BindPassword, config.CA, config.Insecure)
+	validationResults := ValidateLDAPClientConfig(config.URL, config.BindDN, config.BindPassword, config.CA, config.InsecureSkipVerify, config.Insecure)
 
 	schemaConfigsFound := []string{}
 
@@ -45,7 +45,7 @@ func ValidateLDAPSyncConfig(config *api.LDAPSyncConfig) ValidationResults {
 	return validationResults
 }
 
-func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure bool) ValidationResults {
+func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecureSkipVerify bool, insecure bool) ValidationResults {
 	validationResults := ValidationResults{}
 
 	if len(url) == 0 {
@@ -77,6 +77,10 @@ func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure boo
 		if len(CA) > 0 {
 			validationResults.AddErrors(fielderrors.NewFieldInvalid("ca", CA,
 				"Cannot specify a ca with insecure=true"))
+		}
+		if insecureSkipVerify {
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("insecureSkipVerify", insecureSkipVerify,
+				"Cannot set the insecureSkipVerify flag with insecure=true"))
 		}
 	} else {
 		if len(CA) > 0 {

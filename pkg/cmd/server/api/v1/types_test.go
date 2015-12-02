@@ -200,6 +200,7 @@ oauthConfig:
       bindPassword: ""
       ca: ""
       insecure: false
+      insecureSkipVerify: false
       kind: LDAPPasswordIdentityProvider
       url: ""
   - challenge: false

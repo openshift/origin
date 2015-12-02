@@ -584,6 +584,10 @@ type LDAPPasswordIdentityProvider struct {
 	// Cannot be set to true with a URL scheme of "ldaps://"
 	// If false, "ldaps://" URLs connect using TLS, and "ldap://" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830
 	Insecure bool
+	// InsecureSkipVerify, if true, indicates that any certificate will be accepted,
+	// regardless of the host name in the certificate.
+	// In this mode, TLS is susceptible to man-in-the-middle attacks.
+	InsecureSkipVerify bool
 	// CA is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
 	CA string
@@ -821,6 +825,10 @@ type LDAPSyncConfig struct {
 	// Cannot be set to true with a URL scheme of "ldaps://"
 	// If false, "ldaps://" URLs connect using TLS, and "ldap://" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830
 	Insecure bool
+	// InsecureSkipVerify, if true, indicates that any certificate will be accepted,
+	// regardless of the host name in the certificate.
+	// In this mode, TLS is susceptible to man-in-the-middle attacks.
+	InsecureSkipVerify bool
 	// CA is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
 	CA string
