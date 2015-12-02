@@ -384,9 +384,7 @@ var _ = Describe("Density", func() {
 
 				// Test whether e2e pod startup time is acceptable.
 				podStartupLatency := PodStartupLatency{Latency: extractLatencyMetrics(e2eLag)}
-				// TODO: Switch it to 5 seconds once we are sure our tests are passing.
-				podStartupThreshold := 8 * time.Second
-				expectNoError(VerifyPodStartupLatency(podStartupLatency, podStartupThreshold))
+				expectNoError(VerifyPodStartupLatency(podStartupLatency))
 
 				// Log suspicious latency metrics/docker errors from all nodes that had slow startup times
 				for _, l := range startupLag {
