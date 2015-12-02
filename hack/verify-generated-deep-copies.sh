@@ -20,7 +20,7 @@ else
   echo "$buildout" | sed 's/^/   /'
 fi
 
-gendeepcopy="${OS_ROOT}/_output/local/bin/$(os::build::host_platform)/gendeepcopy"
+gendeepcopy="$(os::build::find-binary gendeepcopy)"
 
 echo "   Verifying gendeepcopy binary..."
 if [[ ! -x "$gendeepcopy" ]]; then
