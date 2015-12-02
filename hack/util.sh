@@ -96,6 +96,47 @@ function configure_os_server {
 	echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
 }
 
+# check_for_running_openshift is a shortcut for check_for_running "openshift"
+function check_for_running_openshift {
+	check_for_running "openshift"
+}
+# check_for_running_etcd is a shortcut for check_for_running "etcd"
+function check_for_running_etcd {
+	check_for_running "etcd"
+}
+
+# check_for_running displays the parent process for anything that has launched
+# the $1 command.  Existing processes may cause subsequent starts to fail.
+# This function will help identify what is not cleaning up properly.
+function check_for_running {
+	# don't fail for anything, this is just a check
+	set +e
+	echo "[INFO] Scanning for $1 related processes already up"
+	local pids=$(ps h -oppid -C $1)
+
+	# trim any lead space
+	pids="$(echo -e "${pids}" | sed -e 's/^[[:space:]]*//')"
+	if [[ -n "${pids}" ]]; then
+		echo "[WARNING] Existing $1 processes were detected, this may cause unexpected failures : "
+		echo "[WARNING] $1 processes detected : "
+		ps ww -opid,ppid,cmd -C $1
+		show_parent_processes "${pids}"
+	fi
+	set -e
+}
+
+# show_parent_processes is a helper for showing two levels of parent processes.
+function show_parent_processes {
+	echo "[WARNING] Parent processes : "
+	ps ww -opid,ppid,cmd --pid="${1}"
+
+	# try to show one more level.  Wish there was a nicer way to show the forest
+	local parentsParents=$(ps h -oppid --pid="${1}")
+	parentsParents="$(echo -e "${parentsParents}" | sed -e 's/^[[:space:]]*//')"
+	if [[ -n "${parentsParents}" && "${parentsParents}" -ne "0" ]]; then
+		ps h ww -opid,ppid,cmd --pid="${parentsParents}"
+	fi
+}
 
 # start_os_server starts the OpenShift server, exports the PID of the OpenShift server and waits until openshift server endpoints are available
 # It is advised to use this function after a successful run of 'configure_os_server'
@@ -133,8 +174,7 @@ function start_os_server {
 
 	mkdir -p ${LOG_DIR}
 
-	echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
-	ps -ef | grep openshift
+	check_for_running_openshift
 	echo "[INFO] Starting OpenShift server"
 	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
 	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
@@ -185,8 +225,7 @@ function start_os_master {
 
 	mkdir -p ${LOG_DIR}
 
-	echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
-	ps -ef | grep openshift
+	check_for_running_openshift
 	echo "[INFO] Starting OpenShift server"
 	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \
 	 --config=${MASTER_CONFIG_DIR}/master-config.yaml \
@@ -367,6 +406,9 @@ function wait_for_url {
 	echo "ERROR: gave up waiting for ${url}"
 	echo $(${cmd})
 	set -e
+
+	# if we failed waiting for something try ensuring OS is still running
+	check_for_running_openshift
 	return 1
 }
 

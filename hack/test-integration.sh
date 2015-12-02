@@ -66,6 +66,10 @@ popd &>/dev/null
 os::log::start_system_logger
 
 configure_os_server
+
+check_for_running_openshift
+check_for_running_etcd
+
 openshift start etcd --config=${MASTER_CONFIG_DIR}/master-config.yaml &> ${LOG_DIR}/etcd.log &
 
 wait_for_url "http://${API_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160
