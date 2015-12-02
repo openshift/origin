@@ -6,6 +6,7 @@ angular.module("openshiftConsole")
       restrict: "E",
       scope: {
         resourceType: "@",
+        typeDisplayName: "@?",
         resourceName: "@",
         projectName: "@",
         alerts: "=",
@@ -33,7 +34,8 @@ angular.module("openshiftConsole")
             var resourceType = scope.resourceType;
             var resourceName = scope.resourceName;
             var projectName = scope.projectName;
-            var formattedResource = $filter('humanizeResourceType')(resourceType) + ' ' + "\'"  + (scope.displayName ? scope.displayName : resourceName) + "\'";
+            var typeDisplayName = scope.typeDisplayName || $filter('humanizeResourceType')(resourceType);
+            var formattedResource = typeDisplayName + ' ' + "\'"  + (scope.displayName ? scope.displayName : resourceName) + "\'";
             var context = (scope.resourceType === 'project') ? {} : {namespace: scope.projectName};
 
             DataService.delete(resourceType + 's', resourceName, context)

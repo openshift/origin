@@ -763,13 +763,16 @@ angular.module('openshiftConsole')
   .filter('humanizeResourceType', function() {
     return function(resourceType) {
       var nameFormatMap = {
+        'build': 'Build',
+        'buildconfig': 'Build Config',
+        'deployment': 'Deployment',
+        'deploymentconfig': 'Deployment Config',
         'imagestream': 'Image Stream',
         'pod': 'Pod',
-        'service': 'Service',
-        'buildconfig': 'Build Config',
-        'deploymentconfig': 'Deployment Config',
         'project': 'Project',
-        'route': 'Route'
+        'replicationcontroller': 'Replication Controller',
+        'route': 'Route',
+        'service': 'Service'
       };
       return nameFormatMap[resourceType] || resourceType;
     };
