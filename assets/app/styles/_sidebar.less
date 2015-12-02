@@ -1,5 +1,5 @@
 //
-// Sidebar Sidenav & Sidebar-drawer
+// Sidebar Sidenav & Secondary hover menu
 // --------------------------------------------------
 
 .console-os {
@@ -41,7 +41,7 @@
         max-height: none;
         .box-shadow(none);
       }
-      ul.nav-sidenav > li {
+      ul.nav-sidenav-primary> li {
         outline: 1px solid @navbar-os-sidebar-border-color;
         margin-bottom: 1px;
         &.active {
@@ -141,18 +141,13 @@
 
 @media (min-width: @screen-sm-min) {
   .console-os {
-    // .flex-display(@display: flex); CLEANUP
-    // .flex(@columns: 1 0 auto);
-    // .flex-direction(@direction: row);
-    // min-height: 100%; Required for flex to extend on short content pages
     .sidebar-left {
       transition:@sidebar-os-transition;
-      .flex(@columns: 0 0 @sidebar-left-width-md);
+      .flex(@columns: 0 0 @sidebar-left-width-lg);
       .navbar-sidebar {
-        font-size: @font-size-base - 2;
         border-right: 1px solid @navbar-os-sidebar-border-color;
         border-bottom: 0;
-        width: @sidebar-left-width-md;
+        width: @sidebar-left-width-sm;
         position: absolute;
         top:0;
         right:0;
@@ -160,7 +155,7 @@
         left:0;
         margin-bottom: 0;
         .sidebar-header {
-            display: none;
+          display: none;
         }
         // Sidebar hover menu
         .hover-nav.dropdown-menu {
@@ -173,7 +168,7 @@
           position: absolute;
           top: 0;
         }
-        ul.nav-sidenav > li {
+        ul.nav-sidenav-primary> li {
           position: static;
           &.active.open > a {
             background-color: @sidebar-os-active-bg;
@@ -208,12 +203,12 @@
         }
       }
     }
-    // .show-sidebar-right { CLEANUP
-    //   .sidebar-right {
-    //     display: block;
-    //     .flex(@columns: 0 0 @sidebar-right-width-sm);
-    //   }
-    // }
+    .show-sidebar-right {
+      .sidebar-right {
+        display: block;
+        .flex(@columns: 0 0 @sidebar-right-width-sm);
+      }
+    }
   }
 }
 
@@ -238,7 +233,7 @@
 
 @media (min-width: @screen-sm-min) and (max-width: @screen-lg-max) {
   //Ensure icon and text stack
-  ul.nav-sidenav > li {
+  ul.nav-sidenav-primary> li {
     > a {
       span {
         padding: 0 10px;
@@ -250,26 +245,21 @@
 @media (min-width: @screen-lg-min) {
   .console-os {
     .sidebar-left {
-      .flex(@columns: 0 0 @sidebar-left-width-lg);
+      .flex(@columns: 0 0 @sidebar-left-width-md);
       .navbar-sidebar {
         width: @sidebar-left-width-md;
         font-size: @font-size-base + 1;
         .nav-sidenav-secondary.hover-nav.dropdown-menu {
           font-size:  @font-size-base + 1;
         }
-        ul.nav-sidenav > li {
+        ul.nav-sidenav-primary> li {
           &.open > a {
             // padding-right: @sidebar-os-padding-y + 6;
-          }
-          > a {
-            padding: 20px 15px;
-            .fa {}
-            span {}
           }
         }
       }
     }
-    &.show-sidebar-right {
+    .show-sidebar-right {
       .sidebar-right {
         .flex(@columns: 0 0 @sidebar-right-width-md);
       }
@@ -279,37 +269,37 @@
 
 @media (min-width: @screen-xlg-min) {
   .console-os {
-      .sidebar-left {
-        .navbar-sidebar {
-          width: @sidebar-left-width-lg;
-          .sidebar-header {}
-          ul.nav-sidenav > li {
-            > a {
-              text-align: left;
-              padding: (@sidebar-os-padding-y * 2);
-              .fa {
-                margin-right: 10px;
-              }
-              span {
-                display: inline;
-              }
+    .sidebar-left {
+      .flex(@columns: 0 0 @sidebar-left-width-lg);
+      .navbar-sidebar {
+        width: @sidebar-left-width-lg;
+        .sidebar-header {}
+        ul.nav-sidenav-primary> li {
+          > a {
+            text-align: left;
+            padding: (@sidebar-os-padding-y * 1.5);
+            .fa {
+              margin-right: 10px;
+            }
+            span {
+              display: inline;
             }
           }
         }
       }
-      .show-sidebar-right {
-        .sidebar-right {
-          .flex(@columns: 0 0 @sidebar-right-width-lg);
-            .dl-horizontal {
-              dt {
-                width: 49%;
-              }
-              dd {
-                margin-left: 50%;
-              }
+    }
+    .show-sidebar-right {
+      .sidebar-right {
+        .flex(@columns: 0 0 @sidebar-right-width-lg);
+          .dl-horizontal {
+            dt {
+              width: 49%;
             }
-        }
+            dd {
+              margin-left: 50%;
+            }
+          }
       }
-
+    }
   }
 }

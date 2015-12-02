@@ -79,58 +79,6 @@ html, body {
 }
 
 .console-os .navbar-project-menu {
-  // border-bottom: 1px solid @navbar-os-sidebar-border-color; CLEANUP
-  // padding-bottom: 5px;
-  padding-top: 5px;
-  position: relative;
-  background: #fff;
-  // label.control-label {  CLEANUP
-  //   color: @navbar-project-label-color;
-  //   font-size: @font-size-small;
-  //   font-weight: 300;
-  //   margin: 8px 0 0 0;
-  // }
-  .bootstrap-select.btn-group .btn {
-    width: 100%;
-    padding: 7px 25px 7px 10px;
-    font-size: @font-size-large;
-    line-height: @line-height-base;
-    color: @navbar-os-project-menu-color;
-    font-weight: 300;
-    background: @sidebar-os-bg;
-    border-bottom: 0;
-    border-left:1px solid #4d5258;
-    border-right:1px solid #4d5258;
-    // border-left:1px solid @navbar-os-sidebar-border-color; dark borders
-    // border-right:1px solid @navbar-os-sidebar-border-color;
-    border-top: 0;
-    transition: none;
-    &:hover, &:focus {
-      border-color: @input-border-hover;
-    }
-    &:before {
-      content: 'Projects';
-      font-size: @font-size-xsmall;
-      left: 10px;
-      position: absolute;
-      top: 5px;
-    }
-    .caret {
-      font-size: @font-size-large + 5;
-      margin-top: -4px;
-    }
-    .filter-option {
-      text-overflow: ellipsis;
-      vertical-align: middle;
-    }
-  }
-  .bootstrap-select.btn-group {
-    .dropdown-menu {
-      li a {
-        padding: 10px;
-      }
-    }
-  }
   .navbar-project-search {
     display: inline-block;
   }
@@ -151,35 +99,7 @@ html, body {
     margin-top: 15px;
   }
 }
-@media (max-width: @screen-xs-max) {
-  // Project nav at mobile widths
-  .console-os {
-    .navbar-project-menu {
-      .form-group {
-        display: inline;
-      }
-      .project-actions {
-        margin-right: -10px;
-        margin-left: 10px;
-        a {
-          color: lighten(@navbar-os-project-menu-color, 20%);
-          cursor: pointer;
-          display: inline-block;
-          font-size: 18px;
-          padding: 4px 14px 5px;
-          &:hover, &:active, &:focus {
-            background-color: @sidebar-os-active-bg;
-            color: @navbar-os-project-menu-color;
-          }
-        }
-      }
-      .navbar-filter-widget {
-        margin-top: 10px;
-        white-space: nowrap;
-      }
-    }
-  }
-}
+
  @media (min-width: @screen-sm-min) {
   .console-os {
     .navbar-pf-alt {
@@ -192,12 +112,6 @@ html, body {
       }
     }
     .navbar-project-menu {
-      background: @navbar-os-project-bg;
-      padding-top: 0;
-      .bootstrap-select .dropdown-toggle {
-        height: 60px;
-        min-width: 200px;
-      }
       .navbar-filter-widget-collapse.collapse {
         // Prevent filter field from being hidden when going from mobile to desktop width
         display: block;
@@ -946,4 +860,31 @@ h1 small.meta, .build-config-summary .meta {
 
 .action-divider {
   color: @gray-light;
+}
+
+// Nice scrollbar
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar {
+  height: 11px;
+  overflow: visible;
+  width: 11px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,.08);
+  background-clip: padding-box;
+  border: solid transparent;
+  border-width: 1px 1px 1px 1px;
+  min-height: 28px;
+  padding: 100px 0 0;
+  -webkit-box-shadow: inset 1px 1px 0 rgba(0,0,0,.1),inset 0 -1px 0 rgba(0,0,0,.07);
+  box-shadow: inset 1px 1px 0 rgba(0,0,0,.1),inset 0 -1px 0 rgba(0,0,0,.07);
+}
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background-color: rgba(0,0,0,.18);
+}
+::-webkit-scrollbar-track-piece {
+  background-color: rgba(0,0,0,.03);
 }
