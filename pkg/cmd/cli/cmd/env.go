@@ -100,7 +100,9 @@ func validateNoOverwrites(meta *kapi.ObjectMeta, labels map[string]string) error
 	return nil
 }
 
-// ParseEnv parses the list of environment variables into kubernetes EnvVar
+// ParseEnv parses the list of environment variables into kubernetes EnvVar.
+// Returns map of environment variables to be added with their values, array
+// of environment variables to be removed and error.
 func ParseEnv(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, []string, error) {
 	env := []kapi.EnvVar{}
 	exists := sets.NewString()
@@ -252,7 +254,10 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	}
 
 	skipped := 0
-	for _, info := range infos {
+	var envUpdated bool
+	var updated = make([]bool, len(infos))
+	for i, info := range infos {
+		updated[i] = false
 		ok, err := f.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
 			containers, _ := selectContainers(spec.Containers, containerMatch)
 			if len(containers) == 0 {
@@ -260,7 +265,10 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 				return nil
 			}
 			for _, c := range containers {
-				c.Env = updateEnv(c.Env, env, remove)
+				c.Env, envUpdated = updateEnv(c.Env, env, remove)
+				if envUpdated {
+					updated[i] = true
+				}
 
 				if list {
 					fmt.Fprintf(out, "# %s %s, container %s\n", info.Mapping.Resource, info.Name, c.Name)
@@ -324,6 +332,11 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 
 	failed := false
 	for i, info := range infos {
+		shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
+		if !updated[i] {
+			cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "not updated")
+			continue
+		}
 		newData, err := json.Marshal(objects[i])
 		if err != nil {
 			return err
@@ -338,9 +351,8 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 			failed = true
 			continue
 		}
-		info.Refresh(obj, true)
 
-		shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
+		info.Refresh(obj, true)
 		cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "updated")
 	}
 	if failed {
@@ -349,36 +361,38 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	return nil
 }
 
-func updateEnv(existing []kapi.EnvVar, env []kapi.EnvVar, remove []string) []kapi.EnvVar {
+func updateEnv(existing []kapi.EnvVar, env []kapi.EnvVar, remove []string) ([]kapi.EnvVar, bool) {
 	out := []kapi.EnvVar{}
-	covered := sets.NewString(remove...)
+	envUpdated := false
+	toDelete := sets.NewString(remove...)
+
 	for _, e := range existing {
-		if covered.Has(e.Name) {
+		if toDelete.Has(e.Name) {
+			envUpdated = true
 			continue
 		}
-		newer, ok := findEnv(env, e.Name)
+		newer, ok := findEnv(env, e)
 		if ok {
-			covered.Insert(e.Name)
-			out = append(out, newer)
-			continue
+			envUpdated = true
 		}
-		out = append(out, e)
+		out = append(out, newer)
 	}
+
 	for _, e := range env {
-		if covered.Has(e.Name) {
+		if toDelete.Has(e.Name) {
 			continue
 		}
-		covered.Insert(e.Name)
 		out = append(out, e)
+		envUpdated = true
 	}
-	return out
+	return out, envUpdated
 }
 
-func findEnv(env []kapi.EnvVar, name string) (kapi.EnvVar, bool) {
-	for _, e := range env {
-		if e.Name == name {
+func findEnv(envs []kapi.EnvVar, env kapi.EnvVar) (kapi.EnvVar, bool) {
+	for _, e := range envs {
+		if e.Name == env.Name {
 			return e, true
 		}
 	}
-	return kapi.EnvVar{}, false
+	return env, false
 }
