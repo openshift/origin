@@ -493,6 +493,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 			provider.BindDN,
 			provider.BindPassword,
 			provider.CA,
+			provider.InsecureSkipVerify,
 			provider.Insecure)
 		if err != nil {
 			return nil, err

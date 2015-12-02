@@ -311,7 +311,7 @@ func (o *SyncGroupsOptions) Validate() error {
 // Run creates the GroupSyncer specified and runs it to sync groups
 // the arguments are only here because its the only way to get the printer we need
 func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
-	clientConfig, err := ldaputil.NewLDAPClientConfig(o.Config.URL, o.Config.BindDN, o.Config.BindPassword, o.Config.CA, o.Config.Insecure)
+	clientConfig, err := ldaputil.NewLDAPClientConfig(o.Config.URL, o.Config.BindDN, o.Config.BindPassword, o.Config.CA, o.Config.InsecureSkipVerify, o.Config.Insecure)
 	if err != nil {
 		return fmt.Errorf("could not determine LDAP client configuration: %v", err)
 	}
