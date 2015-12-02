@@ -135,16 +135,14 @@ function setup() {
 	ovs-ofctl -O OpenFlow13 add-flow br0 "table=0, actions=learn(table=8, priority=200, hard_timeout=900, NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[], load:NXM_NX_TUN_IPV4_SRC[]->NXM_NX_TUN_IPV4_DST[], output:NXM_OF_IN_PORT[]), goto_table:1"
 
 	# Table 1; initial dispatch
-	ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, arp, actions=goto_table:8"
-	ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=1, actions=goto_table:2" # vxlan0
-	ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=2, actions=goto_table:5" # tun0
-	ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=3, actions=goto_table:5" # vovsbr
-	ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, actions=goto_table:3"            # container
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, priority=200, arp, actions=goto_table:8"
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, priority=100, in_port=1, actions=goto_table:2" # vxlan0
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, priority=100, in_port=2, actions=goto_table:5" # tun0
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, priority=100, in_port=3, actions=goto_table:5" # vovsbr
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, priority=0, actions=goto_table:3"              # container
 
 	# Table 2; incoming from vxlan
-	ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, arp, actions=goto_table:8"
 	ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=200, ip, nw_dst=${local_subnet_gateway}, actions=output:2"
-	ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, tun_id=0, actions=goto_table:5"
 	ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=100, ip, nw_dst=${local_subnet_cidr}, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[], goto_table:6"
 
 	# Table 3; incoming from container; filled in by openshift-sdn-ovs
