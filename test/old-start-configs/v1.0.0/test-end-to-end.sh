@@ -306,9 +306,9 @@ openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-ro
 echo "[INFO] Installing the registry"
 openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --images="${USE_IMAGES}"
 
-echo "[INFO] Pre-pulling and pushing ruby-20-centos7"
+echo "[INFO] Pre-pulling and pushing ruby-22-centos7"
 docker pull centos/ruby-22-centos7:latest
-echo "[INFO] Pulled ruby-20-centos7"
+echo "[INFO] Pulled ruby-22-centos7"
 
 echo "[INFO] Waiting for Docker registry pod to start"
 # TODO: simplify when #4702 is fixed upstream
