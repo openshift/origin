@@ -3,12 +3,15 @@ package rsync
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -24,13 +27,19 @@ type rsyncStrategy struct {
 	RemoteExecutor executor
 }
 
+var rshExcludeFlags = sets.NewString("delete", "strategy", "quiet")
+
 func newRsyncStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
 	// Determine the rsh command to pass to the local rsync command
 	rsh := siblingCommand(c, "rsh")
-	rshCmd := []string{rsh, "-n", o.Namespace}
-	if len(o.ContainerName) > 0 {
-		rshCmd = append(rshCmd, "-c", o.ContainerName)
-	}
+	rshCmd := []string{rsh}
+	// Append all original flags to rsh command
+	c.Flags().Visit(func(flag *pflag.Flag) {
+		if rshExcludeFlags.Has(flag.Name) {
+			return
+		}
+		rshCmd = append(rshCmd, fmt.Sprintf("--%s=%s", flag.Name, flag.Value.String()))
+	})
 	rshCmdStr := strings.Join(rshCmd, " ")
 	glog.V(4).Infof("Rsh command: %s", rshCmdStr)
 
