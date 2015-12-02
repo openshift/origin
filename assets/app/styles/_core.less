@@ -322,6 +322,12 @@ label.checkbox {
   font-weight: normal;
 }
 
+.form-group .checkbox {
+  // Use the default form-group margin for consistency. Otherwise the
+  // checkboxes are closer than other form elements.
+  margin-bottom: inherit;
+}
+
 // Make sure icons are the same size so headings align.
 .add-to-project {
   .filter-group {
@@ -346,6 +352,15 @@ label.checkbox {
       }
     }
   }
+}
+
+.icon-xl {
+  font-size: 128px;
+}
+
+.create-route-icon {
+  padding-top: 0;
+  text-align: right;
 }
 
 .create-from-template,
@@ -490,9 +505,6 @@ label.checkbox {
         // float: right;
         text-align: right;
       }
-    }
-    .form-control-md {
-      width: @create-form-md-width;
     }
     .labels .form-group {
       // Show name/value fields like labels and env vars side by side at wide screen sizes.

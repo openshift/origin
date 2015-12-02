@@ -32,7 +32,7 @@
           </p>
 
           <p class="gutter-top">
-            <a href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
+            <a ng-href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
               Add to Project
             </a>
           </p>
@@ -102,9 +102,7 @@
                   </span>
                   <span class="small" ng-if="otherRoutes">
                     (and
-                    <a href="{{service | navigateResourceURL}}">
-                      {{otherRoutes}} other {{(otherRoutes == 1) ? 'route' : 'routes'}}
-                    </a>)
+                    <a href="{{service | navigateResourceURL}}">{{otherRoutes}} other {{(otherRoutes == 1) ? 'route' : 'routes'}}</a>)
                   </span>
                 </h2>
 
@@ -116,7 +114,7 @@
               </div>
 
               <div class="component meta-data">
-                <div ng-if="numPorts">
+                <span ng-if="numPorts">
                   <!--
                   Show only the first two ports if there are many since we don't have much space here.
                   The full list is visible elsewhere.
@@ -129,6 +127,9 @@
                   <span ng-if="numPorts > 2" ng-init="numRemaining = numPorts - 2">
                     and {{numRemaining}} {{numRemaining == 1 ? "other" : "others"}}
                   </span>
+                </span>
+                <div ng-if="!displayRouteByService[serviceId]" class="component-label add-route-link">
+                  <a ng-href="project/{{project.metadata.name}}/createRoute?service={{service.metadata.name}}">Create Route</a>
                 </div>
               </div>
             </div>

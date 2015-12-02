@@ -193,6 +193,10 @@ angular
         templateUrl: 'views/browse/route.html',
         controller: 'RouteController'
       })
+      .when('/project/:project/createRoute', {
+        templateUrl: 'views/createRoute.html',
+        controller: 'CreateRouteController'
+      })
       .when('/project/:project/create', {
         templateUrl: 'views/create.html'
       })
