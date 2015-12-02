@@ -28,13 +28,7 @@
             </td>
             <td data-title="Status">
               <div row class="status">
-                <span ng-switch="pod.status.phase" class="status-icon">
-                  <span ng-switch-when="Succeeded" class="fa fa-check text-success" aria-hidden="true"></span>
-                  <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
-                  <span ng-switch-when="Terminated" class="fa fa-times text-danger" aria-hidden="true"></span>
-                  <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-                  <span ng-switch-when="Running" class="fa fa-refresh" aria-hidden="true"></span>
-                </span>
+                <status-icon ng-switch="pod.status.phase" disable-animation></status-icon>
                 <span flex>{{pod.status.phase}}</span>
               </div>
             </td>
