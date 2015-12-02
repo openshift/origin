@@ -129,4 +129,7 @@ os::cmd::expect_success_and_text 'oc new-app installable:serviceaccount --grant-
 os::cmd::expect_success_and_text 'oc new-app installable:serviceaccount --grant-install-rights -o yaml' 'fieldPath: metadata.namespace'
 os::cmd::expect_success_and_text 'oc new-app installable:serviceaccount --grant-install-rights -o yaml A=B' 'name: A'
 
+# Ensure output is valid JSON
+os::cmd::expect_success 'oc new-app mongo -o json | python -m json.tool'
+
 echo "new-app: ok"

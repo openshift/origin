@@ -179,9 +179,6 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	if err := setupAppConfig(f, out, c, args, config); err != nil {
 		return err
 	}
-	if shortOutput || len(output) != 0 {
-		config.Out = ioutil.Discard
-	}
 
 	if config.Querying() {
 		result, err := config.RunQuery()
@@ -421,7 +418,15 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 	}
 	config.KubeClient = kclient
 	config.SetOpenShiftClient(osclient, namespace)
-	config.Out = out
+
+	// Only output="" should print descriptions of intermediate steps. Everything
+	// else should print only some specific output (json, yaml, go-template, ...)
+	output := cmdutil.GetFlagString(c, "output")
+	if len(output) == 0 {
+		config.Out = out
+	} else {
+		config.Out = ioutil.Discard
+	}
 	config.ErrOut = c.Out()
 
 	if config.AllowSecretUse {

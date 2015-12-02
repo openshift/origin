@@ -54,6 +54,9 @@ os::cmd::expect_success 'oc delete all --all'
 os::cmd::expect_success "oc new-build -D \$'FROM centos:7' --no-output"
 os::cmd::expect_success_and_text 'oc get bc/centos -o=jsonpath="{.spec.output.to}"' '^<nil>$'
 
+# Ensure output is valid JSON
+os::cmd::expect_success 'oc new-build -D "FROM centos:7" -o json | python -m json.tool'
+
 os::cmd::expect_success 'oc delete all --all'
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -'
 os::cmd::expect_success 'oc get buildConfigs'
