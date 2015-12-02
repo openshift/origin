@@ -46,9 +46,14 @@
               <div style="max-width: 400px;" class="truncate">
                 <span ng-if="!tag.spec.from"><em>pushed</em></span>
                 <span ng-if="tag.spec.from">
-                  <span ng-if="tag.spec.from._imageStreamName === imageStream.metadata.name">{{tag.spec.from._completeName}}</span>
-                  <span ng-if="tag.spec.from._imageStreamName !== imageStream.metadata.name" >
-                    <a href="project/{{tag.spec.from.namespace || imageStream.metadata.namespace}}/browse/images/{{tag.spec.from._imageStreamName}}"><span ng-if="tag.spec.from.namespace && tag.spec.from.namespace !== imageStream.metadata.namespace" >{{tag.spec.from.namespace}}/</span>{{tag.spec.from._imageStreamName}}</a>{{tag.spec.from._nameConnector}}{{tag.spec.from._idOrTag}}
+                  <span ng-if="!tag.spec.from._imageStreamName">
+                    {{tag.spec.from.name}}
+                  </span>
+                  <span ng-if="tag.spec.from._imageStreamName">
+                    <span ng-if="tag.spec.from._imageStreamName === imageStream.metadata.name">{{tag.spec.from._completeName}}</span>
+                    <span ng-if="tag.spec.from._imageStreamName !== imageStream.metadata.name" >
+                      <a ng-href="{{tag.spec.from._imageStreamName | navigateResourceURL : 'ImageStream' : (tag.spec.from.namespace || imageStream.metadata.namespace)}}"><span ng-if="tag.spec.from.namespace && tag.spec.from.namespace !== imageStream.metadata.namespace" >{{tag.spec.from.namespace}}/</span>{{tag.spec.from._imageStreamName}}</a>{{tag.spec.from._nameConnector}}{{tag.spec.from._idOrTag}}
+                    </span>
                   </span>
                 </span>
               </div>
