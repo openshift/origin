@@ -526,20 +526,20 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunSecurityAllocationController()
 
 	if kc != nil {
-		_, rcClient, err := oc.GetServiceAccountClients(oc.ReplicationControllerServiceAccount)
+		_, rcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicationControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for replication controller: %v", err)
 		}
-		_, jobClient, err := oc.GetServiceAccountClients(oc.JobControllerServiceAccount)
+		_, jobClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraJobControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)
 		}
-		hpaOClient, hpaKClient, err := oc.GetServiceAccountClients(oc.HPAControllerServiceAccount)
+		hpaOClient, hpaKClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraHPAControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for HPA controller: %v", err)
 		}
 
-		_, pvKClient, err := oc.GetServiceAccountClients(oc.PersistentVolumeControllerServiceAccount)
+		_, pvKClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for persistent volume controller: %v", err)
 		}
