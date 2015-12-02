@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module("openshiftConsole")
-  .directive("deleteButton", function ($modal, $location, $filter, hashSizeFilter, DataService, AlertMessageService, Navigate, Logger) {
+  .directive("deleteButton", function ($modal, $location, $filter, hashSizeFilter, DataService, AlertMessageService, Navigate, Logger, pubsub) {
     return {
       restrict: "E",
       scope: {
@@ -39,12 +39,9 @@ angular.module("openshiftConsole")
             DataService.delete(resourceType + 's', resourceName, context)
             .then(function() {
               if (resourceType !== 'project') {
-                AlertMessageService.addAlert({
-                  name: resourceName,
-                  data: {
-                    type: "success",
-                    message: formattedResource + " was marked for deletion."
-                  }
+                pubsub.publishAsync('alert', {
+                  type: "success",
+                  message: formattedResource + " was marked for deletion."
                 });
                 Navigate.toResourceList(resourceType, projectName);
               }
@@ -54,12 +51,9 @@ angular.module("openshiftConsole")
                 }
                 else if ($location.path().indexOf('settings') > '-1') {
                   var homeRedirect = URI('/');
-                  AlertMessageService.addAlert({
-                    name: resourceName,
-                    data: {
-                      type: "success",
-                      message: formattedResource + " was marked for deletion."
-                    }
+                  pubsub.publishAsync('alert', {
+                    type: "success",
+                    message: formattedResource + " was marked for deletion."
                   });
                   $location.url(homeRedirect);
                 }
@@ -67,11 +61,11 @@ angular.module("openshiftConsole")
             })
             .catch(function(err) {
               // called if failure to delete
-              scope.alerts[resourceName] = {
+              pubsub.publishAsync('alert', {
                 type: "error",
                 message: formattedResource + "\'" + " could not be deleted.",
                 details: $filter('getErrorDetails')(err)
-              };
+              });
               Logger.error(formattedResource + " could not be deleted.", err);
             });
           });
