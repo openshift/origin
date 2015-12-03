@@ -92,7 +92,7 @@
         width: 100%;
         @media (min-width: @screen-sm-min) {
           // assign flex properties when >768 for proper layout then .component divs will stack at mobile by default
-          .flex(@columns: 1);
+          .flex(@columns: 2 1 0%);
         }
         h2,h3 {
           margin: 0 0 5px;
@@ -101,7 +101,7 @@
         &.meta-data {
           @media (min-width: @screen-sm-min) {
             // assign flex properties when >768 for proper layout then .component divs will stack at mobile by default
-            .flex(@columns: 1);
+            .flex(@columns: 1 1 0%);
           }
           font-size: @component-label + 1;
           text-align: right;
