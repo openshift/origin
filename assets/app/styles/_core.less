@@ -2,10 +2,6 @@
 // Core
 // --------------------------------------------------
 
-html, body {
-  // height: 100%; CLEANUP
-}
-
 // See https://docs.angularjs.org/api/ng/directive/ngCloak
 [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
   display: none !important;
@@ -34,22 +30,7 @@ html, body {
 }
 
 .console-os {
-  background-color: @body-bg;
-  // height: ~"calc(100% - 121px)"; removes scrollbar on pages with less than full viewport content
-  #wrap {
-    // height: 100%; CLEANUP
-    .content {
-      // height: 100%; CLEANUP
-    }
-  }
-  .container-main {
-    background-color: @body-bg;
-    .flex(@columns: 1);
-    h1 {
-      word-wrap: break-word;
-    }
-  }
-  #wrap > .container {
+  .wrap > .container { // For projects list page
     margin-top: 35px;
     margin-bottom: @grid-gutter-width * 2;
     h1 {
@@ -59,8 +40,6 @@ html, body {
 }
 .console-os {
   .navbar {
-    // border: none; CLEANUP
-    margin-bottom: 0;
   }
   .page-header {
     margin-top: 22px;
@@ -78,54 +57,26 @@ html, body {
   width: 200px;
 }
 
-.console-os .navbar-project-menu {
-  .navbar-project-search {
-    display: inline-block;
-  }
-  .form-group {
-    margin-bottom: 0;
-    .form-control {
-      // height: @navbar-project-input-height;  CLEANUP
-      margin-bottom: 0;
-      height: auto;
-    }
-  }
-  .active-filters {
-    /* If line-height is set, the active-filters div takes up space even
-       when no filters are active. */
-    line-height: 0;
-  }
-  .create-button-container {
-    margin-top: 15px;
-  }
-}
+
 
  @media (min-width: @screen-sm-min) {
   .console-os {
-    .navbar-pf-alt {
-      .navbar-header {
-        .navbar-brand {
-          margin-left: 20px;
-          margin-right: 30px;
-          margin-top: 0;
-        }
-      }
-    }
-    .navbar-project-menu {
-      .navbar-filter-widget-collapse.collapse {
-        // Prevent filter field from being hidden when going from mobile to desktop width
-        display: block;
-      }
-      .navbar-filter-widget {
-        /* Prevent the filter button from wrapping at wide screen sizes. */
-        min-width: 340px;
-      }
-      .create-button-container {
-        text-align: right;
-        /* Align button with other navbar controls that have a label above. */
-        margin-top: 30px;
-      }
-    }
+
+    // .navbar-project-menu { CLEANUP
+    //   .navbar-filter-widget-collapse.collapse {
+    //     // Prevent filter field from being hidden when going from mobile to desktop width
+    //     display: block;
+    //   }
+    //   .navbar-filter-widget {
+    //     /* Prevent the filter button from wrapping at wide screen sizes. */
+    //     min-width: 340px;
+    //   }
+    //   .create-button-container {
+    //     text-align: right;
+    //     /* Align button with other navbar controls that have a label above. */
+    //     margin-top: 30px;
+    //   }
+    // }
   }
 }
 
@@ -860,31 +811,4 @@ h1 small.meta, .build-config-summary .meta {
 
 .action-divider {
   color: @gray-light;
-}
-
-// Nice scrollbar
-::-webkit-scrollbar-corner {
-  background: transparent;
-}
-::-webkit-scrollbar {
-  height: 11px;
-  overflow: visible;
-  width: 11px;
-}
-::-webkit-scrollbar-thumb {
-  background-color: rgba(0,0,0,.08);
-  background-clip: padding-box;
-  border: solid transparent;
-  border-width: 1px 1px 1px 1px;
-  min-height: 28px;
-  padding: 100px 0 0;
-  -webkit-box-shadow: inset 1px 1px 0 rgba(0,0,0,.1),inset 0 -1px 0 rgba(0,0,0,.07);
-  box-shadow: inset 1px 1px 0 rgba(0,0,0,.1),inset 0 -1px 0 rgba(0,0,0,.07);
-}
-::-webkit-scrollbar-thumb:hover,
-::-webkit-scrollbar-thumb:active {
-  background-color: rgba(0,0,0,.18);
-}
-::-webkit-scrollbar-track-piece {
-  background-color: rgba(0,0,0,.03);
 }

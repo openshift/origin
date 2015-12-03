@@ -1,0 +1,78 @@
+//
+// Project list menu
+// -----------------------------------------------
+
+.navbar-project-menu {
+  .navbar-project-search {
+    display: inline-block;
+  }
+  .form-group {
+    margin-bottom: 0;
+    .form-control {
+      // height: @navbar-project-input-height;  CLEANUP
+      margin-bottom: 0;
+      height: auto;
+    }
+  }
+  .bootstrap-select.btn-group {
+      .btn {
+      color: @navbar-os-project-menu-color;
+      font-size: @font-size-large + 4;
+      font-weight: 300;
+      background: @sidebar-os-bg;
+      border-bottom: 0;
+      border-left:1px solid #4d5258;
+      border-right:1px solid #4d5258;
+      box-shadow: none;
+      // border-left:1px solid @navbar-os-sidebar-border-color; dark borders
+      // border-right:1px solid @navbar-os-sidebar-border-color;
+      border-top: 0;
+      line-height: @line-height-base;
+      padding: 7px 30px 7px 30px;
+      transition: none;
+      width: 100%;
+      &:hover, &:focus {
+        background-color: @sidebar-os-hover-bg;
+        color: @sidebar-os-active-color;
+      }
+      &:focus {
+        .focus-outline;
+      }
+      &:before {
+        color: @gray-light;
+        content: 'Projects';
+        font-size: @font-size-xsmall;
+        left: 30px;
+        position: absolute;
+        top: 7px;
+      }
+    }
+    .dropdown-toggle .caret {
+     right: 30px;
+    }
+    .dropdown-menu {
+      li a {
+        padding: 10px;
+      }
+    }
+  }
+}
+@media (max-width: @screen-xs-max) {
+  // Project nav at mobile widths
+  .navbar-project-menu {
+    .form-group {
+      display: inline;
+    }
+  }
+}
+
+@media (min-width: @screen-sm-min) {
+  .navbar-project-menu {
+    background: @navbar-os-project-bg;
+    padding-top: 0;
+    .bootstrap-select .dropdown-toggle {
+      height: 60px;
+      min-width: 270px;
+    }
+  }
+}

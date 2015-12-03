@@ -31,7 +31,7 @@
     3px 3px 0 @color,
     4px 4px 0 rgba(0, 0, 0, 0.2),
     6px 6px 0 @color,
-    7px 7px 0 rgba(0, 0, 0, 0.2);  
+    7px 7px 0 rgba(0, 0, 0, 0.2);
 }
 
 .font-family-monospace() {
@@ -46,7 +46,7 @@
   overflow-wrap: break-word; // new name as per the CSS3 spec
   }
 
-// Linear-gradient stripes 
+// Linear-gradient stripes
 .striped(@color: rgba(255,255,255,.15); @angle: 45deg) {
   background-image: -webkit-linear-gradient(@angle, @color 25%, transparent 25%, transparent 50%, @color 50%, @color 75%, transparent 75%, transparent);
   background-image: linear-gradient(@angle, @color 25%, transparent 25%, transparent 50%, @color 50%, @color 75%, transparent 75%, transparent);
@@ -56,4 +56,8 @@
   -moz-user-select: none;
   -webkit-user-select: none;
   -ms-user-select: none;
+}
+
+.focus-outline() {
+  outline: thin dotted !important;
 }

@@ -1,0 +1,162 @@
+//
+// Substructure
+// ------------------------------------
+html,body {
+  margin:0;
+  padding:0;
+}
+
+.layout-pf-alt.layout-pf-alt-fixed body {
+  // overflow-x:hidden;
+  padding-top: 0;
+}
+.console-os {
+  background-color: @body-bg;
+  .top-header {
+    .flex-display(@display: flex);
+    position:relative;
+    z-index:10;
+    height:60px; /* top offset height */
+  }
+  .wrap {
+    display: block;
+    overflow: visible;
+  }
+  .sidebar-left,.middle,.sidebar-right {
+    display: block;
+    .flex(@columns: 0 0 auto);
+    width: 100%;
+  }
+  .sidebar-left {
+    background: @sidebar-os-bg;
+    position:relative;
+    transition:@sidebar-os-transition;
+  }
+  .middle {
+    background-color: @body-bg;
+  }
+  .sidebar-right {
+    display: none;
+  }
+  .wrap.show-sidebar-right {
+    .sidebar-right {
+      display: block;
+      .sidebar-header {
+        border-color: @page-header-border-color;
+        margin-top: 32px;
+      }
+      h3 {
+        border-top: 1px solid darken(@page-header-border-color, 2%);
+        padding-top: @line-height-computed;
+        &:last-child {
+          border-top: 0;
+          padding-top: 0;
+        }
+      }
+      .dl-horizontal {
+        margin: 0 0 @line-height-computed;
+        dt {
+          text-align: left;
+        }
+        dd {
+          .word-break();
+        }
+      }
+      .sidebar-help {
+        color: @gray-light;
+      }
+    }
+  }
+}
+
+@media (min-width: @screen-sm-min) {
+  .layout-pf-alt-fixed .nav-pf-vertical-alt {
+    position: fixed;
+    bottom:0;
+    overflow: visible;
+    /* width: inherit; used if parent is using width: can't use 100% or auto */
+  }
+  .console-os {
+    .wrap {
+      .flex-display(@display: flex);
+      overflow:hidden;
+      height:100vh;
+      margin-top:-60px; /* top offset height */
+      padding-top:60px; /* top offset height */
+      position:relative;
+      width:100%;
+      -webkit-backface-visibility:hidden;
+      backface-visibility:hidden;
+    }
+    .sidebar-left,.middle,.sidebar-right {
+      overflow-y:auto;
+      height:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+    .sidebar-left {
+      .flex(@columns: 0 0 @sidebar-left-width-sm);
+      overflow-y: visible;
+      transition:@sidebar-os-transition;
+    }
+    .middle{
+      .flex(@columns: 1 1 0%);
+    }
+    .sidebar-right {
+      border-left: 1px solid #dadada;
+      .flex(@columns: 0 0 @sidebar-right-width-sm);
+    }
+  }
+}
+
+// @media (min-width: @screen-sm-min) and (max-width: @screen-md-max) {
+//   .console-os {
+//     .sidebar-left{
+//       .flex(@columns: 0 0 @sidebar-left-width-md);
+//     }
+//     .sidebar-right {
+//       .flex(@columns: 0 0 @sidebar-left-width-md);
+//       .dl-horizontal {
+//         dt {
+//           float: none;
+//           width: auto;
+//         }
+//         dd {
+//           margin-left: 0;
+//           margin-bottom: (@line-height-computed / 2);
+//         }
+//       }
+//     }
+//   }
+// }
+
+@media (min-width: @screen-lg-min) {
+  .console-os {
+    .sidebar-left {
+      .flex(@columns: 0 0 @sidebar-left-width-md);
+      .navbar-sidebar {
+        width: @sidebar-left-width-md;
+      }
+    }
+    .wrap.show-sidebar-right {
+      .sidebar-right {
+        .flex(@columns: 0 0 @sidebar-right-width-md);
+      }
+    }
+  }
+}
+
+@media (min-width: @screen-xlg-min) {
+  .console-os {
+    .sidebar-left {
+      .flex(@columns: 0 0 @sidebar-left-width-lg);
+      .navbar-sidebar {
+        width: @sidebar-left-width-lg;
+      }
+    }
+    .wrap.show-sidebar-right {
+      .sidebar-right {
+        .flex(@columns: 0 0 @sidebar-right-width-lg);
+      }
+    }
+  }
+}

@@ -1,51 +1,16 @@
 //
-// navbar-alt (top bar nav)
-// -----------------------------------------------
-
-
-// PF overrides
-.btn-group.bootstrap-select.form-control {
-    background-color: transparent;
-    box-shadow: none;
-}
-.console-os .navbar-project .bootstrap-select.btn-group .btn {
-    background-color: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    color: @sidebar-os-active-color;
-    &:focus {
-      border-color: @input-border-hover;
-    }
-}
-// .bootstrap-select.btn-group .dropdown-menu {
-//     background-color: @sidebar-os-bg; // #292e34
-//     border-color: @navbar-os-project-border-color; // #1E2126
-// }
-// .bootstrap-select.btn-group .dropdown-menu .divider {
-//     background: @navbar-os-sidebar-border-color !important;
-// }
-
-
-
-// -----------------------------------------
-// TEMP hide filter widget
-.create-button-container,
-.navbar-filter-widget-collapse {
-    display: none;
-}
+// navbar-alt (top bar with project menu and utility nav)
+// ------------------------------------------------------
 
 // override patternfly
-.layout-pf-alt.layout-pf-alt-fixed body {
-  overflow-x:hidden;
-  padding-top: 0;
-}
+
 .navbar-pf-alt {
   background: @navbar-os-bg-color;
   border-bottom: 1px solid @navbar-os-sidebar-border-color;
   border-top: 0;
-  height: 60px; // set height
   .nav {
     .nav-item-iconic {
+      // utiltity links
       color: @navbar-pf-alt-color;
       max-height: none;
       padding: 21px;
@@ -77,134 +42,107 @@
   }
 }
 
+ @media (min-width: @screen-sm-min) {
+  .navbar-pf-alt {
+    .navbar-header {
+      .navbar-brand {
+        margin-left: 20px;
+        margin-right: 30px;
+        margin-top: 0;
+      }
+    }
+  }
+}
+
 
 
 
 
 // OpenShift specific
 
-.console-os .navbar-project-menu {
-  .bootstrap-select.btn-group .btn {
-    width: 100%;
-    padding: 7px 25px 7px 10px;
-    font-size: @font-size-large + 2;
-    line-height: @line-height-base;
-    color: @navbar-os-project-menu-color;
-    font-weight: 300;
-    background: @sidebar-os-bg;
-    border-bottom: 0;
-    border-left:1px solid #4d5258;
-    border-right:1px solid #4d5258;
-    // border-left:1px solid @navbar-os-sidebar-border-color; dark borders
-    // border-right:1px solid @navbar-os-sidebar-border-color;
-    border-top: 0;
-    transition: none;
-    &:hover, &:focus {
-      border-color: @input-border-hover;
-    }
-    &:before {
-      content: 'Projects';
-      font-size: @font-size-xsmall;
-      left: 10px;
-      position: absolute;
-      top: 5px;
-    }
-    .filter-option {
-      text-overflow: ellipsis;
-      vertical-align: middle;
-    }
-  }
-  .bootstrap-select.btn-group {
-    .dropdown-menu {
-      li a {
-        padding: 10px;
-      }
-    }
-  }
-}
 
 
-@media (max-width: @screen-xs-max) {
-  // Project nav at mobile widths
-  .console-os {
-    .navbar-project-menu {
-      .form-group {
-        display: inline;
-      }
-      .project-actions {
-        margin-right: -10px;
-        margin-left: 10px;
-        a {
-          color: lighten(@navbar-os-project-menu-color, 20%);
-          cursor: pointer;
-          display: inline-block;
-          font-size: 18px;
-          padding: 4px 14px 5px;
-          &:hover, &:active, &:focus {
-            background-color: @sidebar-os-active-bg;
-            color: @navbar-os-project-menu-color;
-          }
-        }
-      }
-      .navbar-filter-widget {
-        margin-top: 10px;
-        white-space: nowrap;
-      }
-    }
-  }
-}
-
-@media (min-width: @screen-sm-min) {
-  .navbar-project-menu {
-    background: @navbar-os-project-bg;
-    padding-top: 0;
-    .bootstrap-select .dropdown-toggle {
-      height: 60px;
-      min-width: 200px;
-    }
-  }
-}
-
-
-
-@media (min-width: @screen-sm-min) and (max-width: @screen-md-max) {
-  .layout-pf-alt-fixed .nav-pf-vertical-alt.collapsed .list-group-item .list-group-item-value {
-      opacity: 1; /* keep text visible */
-  }
-  .nav-pf-vertical-alt .list-group-item a {
-      display: block;
-      font-size: 12px;
-      height: initial;
-      padding: 20px 5px;
-      white-space: nowrap;
-      text-align: center;
-  }
-  .nav-pf-vertical-alt .list-group-item .fa, .nav-pf-vertical-alt .list-group-item .glyphicon, .nav-pf-vertical-alt .list-group-item .pficon {
-      float: none;
-      font-size: 18px;
-      line-height: 30px;
-      margin-right: 0;
-      text-align: center;
-      width: 18px;
-  }
-  .nav-pf-vertical-alt .list-group-item .list-group-item-value {
-      display: block;
-      line-height: inherit;
-      opacity: 1;
-      width: auto;
-  }
-}
-.layout-pf-alt.layout-pf-alt-fixed .container-pf-alt-nav-pf-vertical-alt {
-  margin-left: 0 !important; // removes unneccessary pf margin
-}
-
-@media (min-width: @screen-lg-min) {
-  .layout-pf-alt-fixed .nav-pf-vertical-alt {
-    width: @sidebar-left-width-lg !important;
-  }
-}
-
-/* apply transitions to right column */
-.layout-pf-alt-fixed.transitions .nav-pf-vertical-alt, .layout-pf-alt.layout-pf-alt-fixed.transitions .sidebar-left, .layout-pf-alt.layout-pf-alt-fixed.transitions .sidebar-right {
-    transition: @sidebar-os-transition;
-}
+// @media (max-width: @screen-xs-max) {
+//   // Project nav at mobile widths
+//   .console-os {
+//     .navbar-project-menu {
+//       .form-group {
+//         display: inline;
+//       }
+//       .project-actions {
+//         margin-right: -10px;
+//         margin-left: 10px;
+//         a {
+//           color: lighten(@navbar-os-project-menu-color, 20%);
+//           cursor: pointer;
+//           display: inline-block;
+//           font-size: 18px;
+//           padding: 4px 14px 5px;
+//           &:hover, &:active, &:focus {
+//             background-color: @sidebar-os-active-bg;
+//             color: @navbar-os-project-menu-color;
+//           }
+//         }
+//       }
+//       .navbar-filter-widget {
+//         margin-top: 10px;
+//         white-space: nowrap;
+//       }
+//     }
+//   }
+// }
+//
+// @media (min-width: @screen-sm-min) {
+//   .navbar-project-menu {
+//     background: @navbar-os-project-bg;
+//     padding-top: 0;
+//     .bootstrap-select .dropdown-toggle {
+//       height: 60px;
+//       min-width: 200px;
+//     }
+//   }
+// }
+//
+//
+//
+// @media (min-width: @screen-sm-min) and (max-width: @screen-md-max) {
+//   .layout-pf-alt-fixed .nav-pf-vertical-alt.collapsed .list-group-item .list-group-item-value {
+//       opacity: 1; /* keep text visible */
+//   }
+//   .nav-pf-vertical-alt .list-group-item a {
+//       display: block;
+//       font-size: 12px;
+//       height: initial;
+//       padding: 20px 5px;
+//       white-space: nowrap;
+//       text-align: center;
+//   }
+//   .nav-pf-vertical-alt .list-group-item .fa, .nav-pf-vertical-alt .list-group-item .glyphicon, .nav-pf-vertical-alt .list-group-item .pficon {
+//       float: none;
+//       font-size: 18px;
+//       line-height: 30px;
+//       margin-right: 0;
+//       text-align: center;
+//       width: 18px;
+//   }
+//   .nav-pf-vertical-alt .list-group-item .list-group-item-value {
+//       display: block;
+//       line-height: inherit;
+//       opacity: 1;
+//       width: auto;
+//   }
+// }
+// .layout-pf-alt.layout-pf-alt-fixed .container-pf-alt-nav-pf-vertical-alt {
+//   margin-left: 0 !important; // removes unneccessary pf margin
+// }
+//
+// @media (min-width: @screen-lg-min) {
+//   .layout-pf-alt-fixed .nav-pf-vertical-alt {
+//     width: @sidebar-left-width-lg !important;
+//   }
+// }
+//
+// /* apply transitions to right column */
+// .layout-pf-alt-fixed.transitions .nav-pf-vertical-alt, .layout-pf-alt.layout-pf-alt-fixed.transitions .sidebar-left, .layout-pf-alt.layout-pf-alt-fixed.transitions .sidebar-right {
+//     transition: @sidebar-os-transition;
+// }
