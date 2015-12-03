@@ -30,7 +30,7 @@ type OvsController struct {
 	hostName        string
 	subnetAllocator *netutils.SubnetAllocator
 	sig             chan struct{}
-	ready           chan struct{}
+	podNetworkReady chan struct{}
 	flowController  FlowController
 	VNIDMap         map[string]uint
 	netIDManager    *netutils.NetIDAllocator
@@ -51,7 +51,7 @@ type FlowController interface {
 }
 
 // Called by plug factory functions to initialize the generic plugin instance
-func (oc *OvsController) BaseInit(registry *Registry, flowController FlowController, pluginHooks PluginHooks, hostname string, selfIP string, ready chan struct{}) error {
+func (oc *OvsController) BaseInit(registry *Registry, flowController FlowController, pluginHooks PluginHooks, hostname string, selfIP string) error {
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
 		if err != nil {
@@ -76,7 +76,7 @@ func (oc *OvsController) BaseInit(registry *Registry, flowController FlowControl
 	oc.hostName = hostname
 	oc.VNIDMap = make(map[string]uint)
 	oc.sig = make(chan struct{})
-	oc.ready = ready
+	oc.podNetworkReady = make(chan struct{})
 	oc.adminNamespaces = make([]string, 0)
 	oc.services = make(map[string]api.Service)
 
@@ -214,10 +214,23 @@ func (oc *OvsController) StartNode(mtu uint) error {
 		return fmt.Errorf("Failed to start plugin: %v", err)
 	}
 
-	if oc.ready != nil {
-		close(oc.ready)
-	}
+	oc.markPodNetworkReady()
 
+	return nil
+}
+
+func (oc *OvsController) markPodNetworkReady() {
+	close(oc.podNetworkReady)
+}
+
+func (oc *OvsController) WaitForPodNetworkReady() error {
+	timeout := 2 * time.Minute
+	select {
+	case <-oc.podNetworkReady:
+		// Wait for StartNode() to finish SDN setup
+	case <-time.After(timeout):
+		return fmt.Errorf("SDN pod network is not ready(timeout: %v)", timeout)
+	}
 	return nil
 }
 
