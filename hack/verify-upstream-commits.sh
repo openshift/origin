@@ -7,7 +7,7 @@ set -o pipefail
 cd $(dirname "${BASH_SOURCE}")/..
 
 ok_revert_pat='UPSTREAM: [0-9]{4,}: revert origin [a-f0-9]{7,}:'
-ok_upstream_pat='UPSTREAM: ([0-9]{4,}:|<carry>:|<drop>:)'
+ok_upstream_pat='UPSTREAM: (([a-z0-9-_]+: )?[0-9]{4,}:|<carry>:|<drop>:)'
 
 echo "===== Verifying UPSTREAM Commits ====="
 
