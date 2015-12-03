@@ -60,7 +60,9 @@ __handle_reply()
     __debug "${FUNCNAME}"
     case $cur in
         -*)
-            compopt -o nospace
+            if [[ $(type -t compopt) = "builtin" ]]; then
+                compopt -o nospace
+            fi
             local allflags
             if [ ${#must_have_one_flag[@]} -ne 0 ]; then
                 allflags=("${must_have_one_flag[@]}")
@@ -68,7 +70,9 @@ __handle_reply()
                 allflags=("${flags[*]} ${two_word_flags[*]}")
             fi
             COMPREPLY=( $(compgen -W "${allflags[*]}" -- "$cur") )
-            [[ $COMPREPLY == *= ]] || compopt +o nospace
+            if [[ $(type -t compopt) = "builtin" ]]; then
+                [[ $COMPREPLY == *= ]] || compopt +o nospace
+            fi
             return 0;
             ;;
     esac
@@ -175,11 +179,11 @@ __handle_word()
 {
     if [[ $c -ge $cword ]]; then
         __handle_reply
-	return
+        return
     fi
     __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
     if [[ "${words[c]}" == -* ]]; then
-	__handle_flag
+        __handle_flag
     elif __contains_word "${words[c]}" "${commands[@]}"; then
         __handle_command
     else
@@ -216,7 +220,13 @@ func postscript(out *bytes.Buffer, name string) {
 }
 
 `, name)
-	fmt.Fprintf(out, "complete -F __start_%s %s\n", name, name)
+	fmt.Fprintf(out, `if [[ $(type -t compopt) = "builtin" ]]; then
+    complete -F __start_%s %s
+else
+    complete -o nospace -F __start_%s %s
+fi
+
+`, name, name, name, name)
 	fmt.Fprintf(out, "# ex: ts=4 sw=4 et filetype=sh\n")
 }
 
