@@ -130,8 +130,13 @@ function setup() {
     ovs-vsctl del-port br0 vovsbr || true
     ovs-vsctl add-port br0 vovsbr -- set Interface vovsbr ofport_request=3
 
-    # Table 0; learn MAC addresses and continue with table 2
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=0, actions=learn(table=9, priority=200, hard_timeout=900, NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[], load:NXM_NX_TUN_IPV4_SRC[]->NXM_NX_TUN_IPV4_DST[], output:NXM_OF_IN_PORT[]), goto_table:2"
+    # Table 0; VXLAN filtering; the first rule sends un-tunnelled packets
+    # to table 1. Additional per-node rules are filled in by controller.go
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=0, tun_src=0.0.0.0, actions=goto_table:1"
+    # eg, "table=0, tun_src=${remote_node}, actions=goto_table:1"
+
+    # Table 1; learn MAC addresses and continue with table 2
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, actions=learn(table=9, priority=200, hard_timeout=900, NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[], load:NXM_NX_TUN_IPV4_SRC[]->NXM_NX_TUN_IPV4_DST[], output:NXM_OF_IN_PORT[]), goto_table:2"
 
     # Table 2; initial dispatch
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=200, arp, actions=goto_table:9"
@@ -149,18 +154,25 @@ function setup() {
     fi
 
     # Table 4; incoming from container; filled in by openshift-sdn-ovs
-    # eg, "table=4, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:5"
+    # eg, single-tenant: "table=4, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, goto_table:6"
+    # multitenant: "table=4, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:5"
 
     # Table 5; service isolation; mostly filled in by controller.go
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=200, reg0=0, ip, nw_dst=${service_network_cidr}, actions=output:2"
-    # eg, "table=5, priority=200, ${service_proto}, nw_dst=${service_ip}, tp_dst=${service_port}, actions=output:2"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=100, ip, nw_dst=${service_network_cidr}, actions=drop"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=0, actions=goto_table:6"
+    if [ "$multitenant" = "true" ]; then
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=200, reg0=0, ip, nw_dst=${service_network_cidr}, actions=output:2"
+	# eg, "table=5, priority=200, ${service_proto}, nw_dst=${service_ip}, tp_dst=${service_port}, actions=output:2"
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=100, ip, nw_dst=${service_network_cidr}, actions=drop"
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=0, actions=goto_table:6"
+    fi
 
     # Table 6; general routing
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=200, ip, nw_dst=${local_subnet_gateway}, actions=output:2"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=150, ip, reg0=0, nw_dst=${local_subnet_cidr}, actions=goto_table:9"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=150, ip, nw_dst=${local_subnet_cidr}, actions=goto_table:7"
+    if [ "$multitenant" = "true" ]; then
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=150, ip, reg0=0, nw_dst=${local_subnet_cidr}, actions=goto_table:9"
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=150, ip, nw_dst=${local_subnet_cidr}, actions=goto_table:7"
+    else
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=150, ip, nw_dst=${local_subnet_cidr}, actions=goto_table:9"
+    fi
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=100, ip, nw_dst=${cluster_network_cidr}, actions=goto_table:8"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=0, ip, actions=output:2"
 
