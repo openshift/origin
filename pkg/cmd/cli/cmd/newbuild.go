@@ -164,6 +164,7 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 		}
 	}
 	if config.DryRun {
+		fmt.Fprintf(out, "--> Success (DRY RUN)\n")
 		return nil
 	}
 
