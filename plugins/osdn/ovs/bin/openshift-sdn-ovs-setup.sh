@@ -74,9 +74,9 @@ function setup_required() {
         return 0
     fi
     if [ "$multitenant" = "true" ]; then
-	flow_rule='table=2.*NXM_NX_TUN_ID'
+	flow_rule='table=3.*NXM_NX_TUN_ID'
     else
-	flow_rule='table=2.*goto_table:8'
+	flow_rule='table=3.*goto_table:9'
     fi
     if ! ovs-ofctl -O OpenFlow13 dump-flows br0 | grep -q $flow_rule; then
         return 0
@@ -130,50 +130,50 @@ function setup() {
     ovs-vsctl del-port br0 vovsbr || true
     ovs-vsctl add-port br0 vovsbr -- set Interface vovsbr ofport_request=3
 
-    # Table 0; learn MAC addresses and continue with table 1
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=0, actions=learn(table=8, priority=200, hard_timeout=900, NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[], load:NXM_NX_TUN_IPV4_SRC[]->NXM_NX_TUN_IPV4_DST[], output:NXM_OF_IN_PORT[]), goto_table:1"
+    # Table 0; learn MAC addresses and continue with table 2
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=0, actions=learn(table=9, priority=200, hard_timeout=900, NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[], load:NXM_NX_TUN_IPV4_SRC[]->NXM_NX_TUN_IPV4_DST[], output:NXM_OF_IN_PORT[]), goto_table:2"
 
-    # Table 1; initial dispatch
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, priority=200, arp, actions=goto_table:8"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, priority=100, in_port=1, actions=goto_table:2" # vxlan0
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, priority=100, in_port=2, actions=goto_table:5" # tun0
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, priority=100, in_port=3, actions=goto_table:5" # vovsbr
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, priority=0, actions=goto_table:3"              # container
+    # Table 2; initial dispatch
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=200, arp, actions=goto_table:9"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=100, in_port=1, actions=goto_table:3" # vxlan0
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=100, in_port=2, actions=goto_table:6" # tun0
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=100, in_port=3, actions=goto_table:6" # vovsbr
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=0, actions=goto_table:4"              # container
 
-    # Table 2; incoming from vxlan
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=200, ip, nw_dst=${local_subnet_gateway}, actions=output:2"
+    # Table 3; incoming from vxlan
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=3, priority=200, ip, nw_dst=${local_subnet_gateway}, actions=output:2"
     if [ "$multitenant" = "true" ]; then
-	ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=100, ip, nw_dst=${local_subnet_cidr}, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[], goto_table:6"
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=3, priority=100, ip, nw_dst=${local_subnet_cidr}, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[], goto_table:7"
     else
-	ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=100, ip, nw_dst=${local_subnet_cidr}, actions=goto_table:8"
+	ovs-ofctl -O OpenFlow13 add-flow br0 "table=3, priority=100, ip, nw_dst=${local_subnet_cidr}, actions=goto_table:9"
     fi
 
-    # Table 3; incoming from container; filled in by openshift-sdn-ovs
-    # eg, "table=3, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:4"
+    # Table 4; incoming from container; filled in by openshift-sdn-ovs
+    # eg, "table=4, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:5"
 
-    # Table 4; service isolation; mostly filled in by controller.go
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, priority=200, reg0=0, ip, nw_dst=${service_network_cidr}, actions=output:2"
-    # eg, "table=4, priority=200, ${service_proto}, nw_dst=${service_ip}, tp_dst=${service_port}, actions=output:2"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, priority=100, ip, nw_dst=${service_network_cidr}, actions=drop"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, priority=0, actions=goto_table:5"
+    # Table 5; service isolation; mostly filled in by controller.go
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=200, reg0=0, ip, nw_dst=${service_network_cidr}, actions=output:2"
+    # eg, "table=5, priority=200, ${service_proto}, nw_dst=${service_ip}, tp_dst=${service_port}, actions=output:2"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=100, ip, nw_dst=${service_network_cidr}, actions=drop"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=0, actions=goto_table:6"
 
-    # Table 5; general routing
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=200, ip, nw_dst=${local_subnet_gateway}, actions=output:2"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=150, ip, reg0=0, nw_dst=${local_subnet_cidr}, actions=goto_table:8"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=150, ip, nw_dst=${local_subnet_cidr}, actions=goto_table:6"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=100, ip, nw_dst=${cluster_network_cidr}, actions=goto_table:7"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=0, ip, actions=output:2"
+    # Table 6; general routing
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=200, ip, nw_dst=${local_subnet_gateway}, actions=output:2"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=150, ip, reg0=0, nw_dst=${local_subnet_cidr}, actions=goto_table:9"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=150, ip, nw_dst=${local_subnet_cidr}, actions=goto_table:7"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=100, ip, nw_dst=${cluster_network_cidr}, actions=goto_table:8"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=6, priority=0, ip, actions=output:2"
 
-    # Table 6; to local container with isolation; filled in by openshift-sdn-ovs
-    # eg, "table=6, priority=100, ip, nw_dst=${ipaddr}, reg0=${tenant_id}, actions=output:${ovs_port}"
+    # Table 7; to local container with isolation; filled in by openshift-sdn-ovs
+    # eg, "table=7, priority=100, ip, nw_dst=${ipaddr}, reg0=${tenant_id}, actions=output:${ovs_port}"
 
-    # Table 7; to remote container; filled in by controller.go
-    # eg, "table=7, priority=100, ip, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
+    # Table 8; to remote container; filled in by controller.go
+    # eg, "table=8, priority=100, ip, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
 
-    # Table 8; MAC dispatch / ARP, filled in by Table 0's learn() rule
+    # Table 9; MAC dispatch / ARP, filled in by Table 0's learn() rule
     # and with per-node vxlan ARP rules by controller.go
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=8, priority=0, arp, actions=flood"
-    # eg, "table=8, priority=100, arp, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=9, priority=0, arp, actions=flood"
+    # eg, "table=9, priority=100, arp, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
 
     # setup tun address
     ip addr add ${local_subnet_gateway}/${local_subnet_mask_len} dev ${TUN}
