@@ -20,6 +20,19 @@ type VNIDRange struct {
 	Size uint
 }
 
+func ValidVNID(vnid uint) error {
+	if vnid == GlobalVNID {
+		return nil
+	}
+	if vnid < MinVNID {
+		return fmt.Errorf("must be greater than or equal to %d", MinVNID)
+	}
+	if vnid > MaxVNID {
+		return fmt.Errorf("must be less than or equal to %d", MaxVNID)
+	}
+	return nil
+}
+
 // Contains tests whether a given vnid falls within the Range.
 func (r *VNIDRange) Contains(vnid uint) bool {
 	return (vnid >= r.Base) && ((vnid - r.Base) < r.Size)
