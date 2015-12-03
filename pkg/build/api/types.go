@@ -438,6 +438,10 @@ type BuildConfigSpec struct {
 type BuildConfigStatus struct {
 	// LastVersion is used to inform about number of last triggered build.
 	LastVersion int
+
+	// CanDelete indicates that the BuildConfig has no outstanding instantiated
+	// Builds and can be removed.
+	CanDelete bool
 }
 
 // WebHookTrigger is a trigger that gets invoked using a webhook type of post

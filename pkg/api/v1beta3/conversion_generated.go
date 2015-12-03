@@ -1216,6 +1216,7 @@ func autoconvert_api_BuildConfigStatus_To_v1beta3_BuildConfigStatus(in *buildapi
 		defaulting.(func(*buildapi.BuildConfigStatus))(in)
 	}
 	out.LastVersion = in.LastVersion
+	out.CanDelete = in.CanDelete
 	return nil
 }
 
@@ -1945,6 +1946,7 @@ func autoconvert_v1beta3_BuildConfigStatus_To_api_BuildConfigStatus(in *apiv1bet
 		defaulting.(func(*apiv1beta3.BuildConfigStatus))(in)
 	}
 	out.LastVersion = in.LastVersion
+	out.CanDelete = in.CanDelete
 	return nil
 }
 

@@ -250,8 +250,16 @@ func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 // RunBuildConfigChangeController starts the build config change trigger controller process.
 func (c *MasterConfig) RunBuildConfigChangeController() {
 	bcClient, _ := c.BuildConfigChangeControllerClients()
-	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient)
-	factory := buildcontrollerfactory.BuildConfigControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator}
+	buildConfigClient := buildclient.NewOSClientBuildConfigClient(bcClient)
+	buildClient := buildclient.NewOSClientBuildClient(bcClient)
+	factory := buildcontrollerfactory.BuildConfigControllerFactory{
+		Client:                  bcClient,
+		BuildConfigInstantiator: buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
+		BuildConfigUpdater:      buildConfigClient,
+		BuildConfigDeleter:      buildConfigClient,
+		BuildDeleter:            buildClient,
+		BuildLister:             buildClient,
+	}
 	factory.Create().Run()
 }
 

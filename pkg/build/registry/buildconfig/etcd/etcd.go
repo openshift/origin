@@ -1,7 +1,11 @@
 package etcd
 
 import (
+	"fmt"
+
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -46,4 +50,33 @@ func NewStorage(s storage.Interface) *REST {
 	}
 
 	return &REST{store}
+}
+
+func (r *REST) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
+	bcObj, err := r.Get(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	bc := bcObj.(*api.BuildConfig)
+
+	// Just update DeletionTimestamp so Builds get deleted
+	if bc.DeletionTimestamp.IsZero() {
+		now := unversioned.Now()
+		bc.DeletionTimestamp = &now
+		bcObj, _, err = r.Update(ctx, bc)
+		return bcObj, err
+	}
+
+	if !bc.Status.CanDelete {
+		err = kapierrors.NewConflict("BuildConfig", fmt.Sprintf("%s/%s", bc.Namespace, bc.Name), fmt.Errorf("The system is ensuring all Builds instantiated from this BuildConfig are removed. Upon completion, this BuildConfig will automatically be purged by the system."))
+		return nil, err
+	}
+
+	key, err := r.KeyFunc(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	out := r.NewFunc()
+	err = r.Storage.Delete(ctx, key, out)
+	return out, err
 }

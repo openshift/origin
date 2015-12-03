@@ -772,6 +772,7 @@ func deepCopy_api_BuildConfigSpec(in buildapi.BuildConfigSpec, out *buildapi.Bui
 
 func deepCopy_api_BuildConfigStatus(in buildapi.BuildConfigStatus, out *buildapi.BuildConfigStatus, c *conversion.Cloner) error {
 	out.LastVersion = in.LastVersion
+	out.CanDelete = in.CanDelete
 	return nil
 }
 

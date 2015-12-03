@@ -197,6 +197,10 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 		return nil, err
 	}
 
+	if bc.DeletionTimestamp != nil {
+		return nil, errors.NewConflict("BuildConfig", bc.Name, fmt.Errorf("Cannot generate Build from BuildConfig %s/%s because it is being deleted", bc.Namespace, bc.Name))
+	}
+
 	if err := g.checkLastVersion(bc, request.LastVersion); err != nil {
 		return nil, err
 	}
