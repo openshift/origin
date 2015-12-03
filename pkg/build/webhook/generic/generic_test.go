@@ -14,7 +14,6 @@ import (
 )
 
 var mockBuildStrategy = api.BuildStrategy{
-	Type: "STI",
 	SourceStrategy: &api.SourceBuildStrategy{
 		From: kapi.ObjectReference{
 			Name: "repository/image",
@@ -127,7 +126,6 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 			},
 			BuildSpec: api.BuildSpec{
 				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
 					Git: &api.GitBuildSource{
 						Ref: "master",
 					},
@@ -163,7 +161,6 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 			},
 			BuildSpec: api.BuildSpec{
 				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
 					Git: &api.GitBuildSource{
 						Ref: "asdfkasdfasdfasdfadsfkjhkhkh",
 					},
@@ -200,7 +197,6 @@ func TestExtractWithGitPayload(t *testing.T) {
 			},
 			BuildSpec: api.BuildSpec{
 				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
 					Git: &api.GitBuildSource{
 						Ref: "master",
 					},
@@ -237,7 +233,6 @@ func TestExtractWithGitRefsPayload(t *testing.T) {
 			},
 			BuildSpec: api.BuildSpec{
 				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
 					Git: &api.GitBuildSource{
 						Ref: "master",
 					},
@@ -274,7 +269,6 @@ func TestExtractWithUnmatchedGitRefsPayload(t *testing.T) {
 			},
 			BuildSpec: api.BuildSpec{
 				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
 					Git: &api.GitBuildSource{
 						Ref: "other",
 					},
@@ -311,7 +305,7 @@ func TestGitlabPush(t *testing.T) {
 			},
 			BuildSpec: api.BuildSpec{
 				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{},
 				},
 				Strategy: mockBuildStrategy,
 			},
@@ -343,7 +337,7 @@ func TestNonJsonPush(t *testing.T) {
 			},
 			BuildSpec: api.BuildSpec{
 				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{},
 				},
 				Strategy: mockBuildStrategy,
 			},
@@ -382,7 +376,6 @@ func TestExtractWithUnmarshalError(t *testing.T) {
 			},
 			BuildSpec: api.BuildSpec{
 				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
 					Git: &api.GitBuildSource{
 						Ref: "other",
 					},

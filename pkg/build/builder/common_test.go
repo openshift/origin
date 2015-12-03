@@ -23,7 +23,6 @@ func TestBuildInfo(t *testing.T) {
 				},
 			},
 			Strategy: api.BuildStrategy{
-				Type: api.SourceBuildStrategyType,
 				SourceStrategy: &api.SourceBuildStrategy{
 					Env: []kapi.EnvVar{
 						{Name: "RAILS_ENV", Value: "production"},

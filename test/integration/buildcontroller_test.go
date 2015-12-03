@@ -382,24 +382,25 @@ func runImageChangeTriggerTest(t *testing.T, clusterAdminClient *client.Client, 
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild := event.Object.(*buildapi.Build)
-	switch newBuild.Spec.Strategy.Type {
-	case buildapi.SourceBuildStrategyType:
-		if newBuild.Spec.Strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
+	strategy := newBuild.Spec.Strategy
+	switch {
+	case strategy.SourceStrategy != nil:
+		if strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 		}
-	case buildapi.DockerBuildStrategyType:
-		if newBuild.Spec.Strategy.DockerStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
+	case strategy.DockerStrategy != nil:
+		if strategy.DockerStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 		}
-	case buildapi.CustomBuildStrategyType:
-		if newBuild.Spec.Strategy.CustomStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
+	case strategy.CustomStrategy != nil:
+		if strategy.CustomStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, strategy.CustomStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 		}
 	}
 	// Wait for an update on the specific build that was added
@@ -475,24 +476,25 @@ WaitLoop2:
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	switch newBuild.Spec.Strategy.Type {
-	case buildapi.SourceBuildStrategyType:
-		if newBuild.Spec.Strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
+	strategy = newBuild.Spec.Strategy
+	switch {
+	case strategy.SourceStrategy != nil:
+		if strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 		}
-	case buildapi.DockerBuildStrategyType:
-		if newBuild.Spec.Strategy.DockerStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
+	case strategy.DockerStrategy != nil:
+		if strategy.DockerStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 		}
-	case buildapi.CustomBuildStrategyType:
-		if newBuild.Spec.Strategy.CustomStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
+	case strategy.CustomStrategy != nil:
+		if strategy.CustomStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", strategy.CustomStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 		}
 	}
 
@@ -748,10 +750,8 @@ func configChangeBuildConfig() *buildapi.BuildConfig {
 	bc := &buildapi.BuildConfig{}
 	bc.Name = "testcfgbc"
 	bc.Namespace = testutil.Namespace()
-	bc.Spec.BuildSpec.Source.Type = buildapi.BuildSourceGit
 	bc.Spec.BuildSpec.Source.Git = &buildapi.GitBuildSource{}
 	bc.Spec.BuildSpec.Source.Git.URI = "git://github.com/openshift/ruby-hello-world.git"
-	bc.Spec.BuildSpec.Strategy.Type = buildapi.DockerBuildStrategyType
 	bc.Spec.BuildSpec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
 	configChangeTrigger := buildapi.BuildTriggerPolicy{Type: buildapi.ConfigChangeBuildTriggerType}
 	bc.Spec.Triggers = append(bc.Spec.Triggers, configChangeTrigger)

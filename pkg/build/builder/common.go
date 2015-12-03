@@ -38,7 +38,7 @@ func buildInfo(build *api.Build) []KeyValue {
 			kv = append(kv, KeyValue{"OPENSHIFT_BUILD_COMMIT", build.Spec.Revision.Git.Commit})
 		}
 	}
-	if build.Spec.Strategy.Type == api.SourceBuildStrategyType {
+	if build.Spec.Strategy.SourceStrategy != nil {
 		env := build.Spec.Strategy.SourceStrategy.Env
 		for _, e := range env {
 			kv = append(kv, KeyValue{e.Name, e.Value})
@@ -96,7 +96,6 @@ func updateBuildRevision(c client.BuildInterface, build *api.Build, sourceInfo *
 		return
 	}
 	build.Spec.Revision = &api.SourceRevision{
-		Type: api.BuildSourceGit,
 		Git: &api.GitSourceRevision{
 			Commit:  sourceInfo.CommitID,
 			Message: sourceInfo.Message,

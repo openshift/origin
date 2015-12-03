@@ -153,7 +153,7 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	podSpec, err := bc.BuildStrategy.CreateBuildPod(buildCopy)
 	if err != nil {
 		build.Status.Reason = buildapi.StatusReasonCannotCreateBuildPodSpec
-		return fmt.Errorf("failed to create a build pod spec with strategy %q: %v", build.Spec.Strategy.Type, err)
+		return fmt.Errorf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err)
 	}
 	glog.V(4).Infof("Pod %s for build %s/%s is about to be created", podSpec.Name, build.Namespace, build.Name)
 

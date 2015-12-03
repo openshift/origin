@@ -437,15 +437,15 @@ func describeImageTagInPipeline(image graphview.ImageTagLocation, namespace stri
 }
 
 func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphview.ImageTagLocation) string {
-	switch build.Spec.Strategy.Type {
-	case buildapi.DockerBuildStrategyType:
+	switch {
+	case build.Spec.Strategy.DockerStrategy != nil:
 		// TODO: handle case where no source repo
 		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
 			return fmt.Sprintf("bc/%s unconfigured docker build - no source set", build.Name)
 		}
 		return fmt.Sprintf("bc/%s docker build of %s", build.Name, source)
-	case buildapi.SourceBuildStrategyType:
+	case build.Spec.Strategy.SourceStrategy != nil:
 		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
 			return fmt.Sprintf("bc/%s unconfigured source build", build.Name)
@@ -454,7 +454,7 @@ func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphview.Im
 			return fmt.Sprintf("bc/%s %s; no image set", build.Name, source)
 		}
 		return fmt.Sprintf("bc/%s builds %s with %s", build.Name, source, baseImage.ImageSpec())
-	case buildapi.CustomBuildStrategyType:
+	case build.Spec.Strategy.CustomStrategy != nil:
 		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
 			return fmt.Sprintf("bc/%s custom build ", build.Name)
@@ -602,14 +602,14 @@ func buildTimestamp(build *buildapi.Build) unversioned.Time {
 }
 
 func describeSourceInPipeline(source *buildapi.BuildSource) (string, bool) {
-	switch source.Type {
-	case buildapi.BuildSourceDockerfile:
-		return "Dockerfile", true
-	case buildapi.BuildSourceGit:
+	switch {
+	case source.Git != nil:
 		if len(source.Git.Ref) == 0 {
 			return source.Git.URI, true
 		}
 		return fmt.Sprintf("%s#%s", source.Git.URI, source.Git.Ref), true
+	case source.Dockerfile != nil:
+		return "Dockerfile", true
 	}
 	return "", false
 }

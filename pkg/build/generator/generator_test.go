@@ -211,7 +211,6 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 			Spec: buildapi.BuildConfigSpec{
 				BuildSpec: buildapi.BuildSpec{
 					Strategy: buildapi.BuildStrategy{
-						Type: buildapi.SourceBuildStrategyType,
 						SourceStrategy: &buildapi.SourceBuildStrategy{
 							From: kapi.ObjectReference{
 								Name: "image3:tag3",
@@ -340,7 +339,6 @@ func TestFindImageTrigger(t *testing.T) {
 		Spec: buildapi.BuildConfigSpec{
 			BuildSpec: buildapi.BuildSpec{
 				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.SourceBuildStrategyType,
 					SourceStrategy: &buildapi.SourceBuildStrategy{
 						From: kapi.ObjectReference{
 							Name: "image3:tag3",
@@ -550,7 +548,6 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 			BuildSpec: buildapi.BuildSpec{
 				Source: source,
 				Revision: &buildapi.SourceRevision{
-					Type: buildapi.BuildSourceGit,
 					Git: &buildapi.GitSourceRevision{
 						Commit: "1234",
 					},
@@ -565,7 +562,6 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 		},
 	}
 	revision := &buildapi.SourceRevision{
-		Type: buildapi.BuildSourceGit,
 		Git: &buildapi.GitSourceRevision{
 			Commit: "abcd",
 		},
@@ -624,7 +620,6 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 			BuildSpec: buildapi.BuildSpec{
 				Source: source,
 				Revision: &buildapi.SourceRevision{
-					Type: buildapi.BuildSourceGit,
 					Git: &buildapi.GitSourceRevision{
 						Commit: "1234",
 					},
@@ -703,7 +698,6 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 			BuildSpec: buildapi.BuildSpec{
 				Source: source,
 				Revision: &buildapi.SourceRevision{
-					Type: buildapi.BuildSourceGit,
 					Git: &buildapi.GitSourceRevision{
 						Commit: "1234",
 					},
@@ -781,7 +775,6 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 			BuildSpec: buildapi.BuildSpec{
 				Source: source,
 				Revision: &buildapi.SourceRevision{
-					Type: buildapi.BuildSourceGit,
 					Git: &buildapi.GitSourceRevision{
 						Commit: "1234",
 					},
@@ -858,7 +851,6 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 		Spec: buildapi.BuildSpec{
 			Source: source,
 			Revision: &buildapi.SourceRevision{
-				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitSourceRevision{
 					Commit: "1234",
 				},
@@ -891,7 +883,6 @@ func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {
 		Spec: buildapi.BuildSpec{
 			Source: source,
 			Revision: &buildapi.SourceRevision{
-				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitSourceRevision{
 					Commit: "1234",
 				},
@@ -907,7 +898,6 @@ func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {
 		Spec: buildapi.BuildSpec{
 			Source: source,
 			Revision: &buildapi.SourceRevision{
-				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitSourceRevision{
 					Commit: "1234",
 				},
@@ -1228,7 +1218,6 @@ func mockResources() kapi.ResourceRequirements {
 
 func mockDockerStrategyForNilImage() buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
-		Type: buildapi.DockerBuildStrategyType,
 		DockerStrategy: &buildapi.DockerBuildStrategy{
 			NoCache: true,
 		},
@@ -1237,7 +1226,6 @@ func mockDockerStrategyForNilImage() buildapi.BuildStrategy {
 
 func mockDockerStrategyForDockerImage(name string) buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
-		Type: buildapi.DockerBuildStrategyType,
 		DockerStrategy: &buildapi.DockerBuildStrategy{
 			NoCache: true,
 			From: &kapi.ObjectReference{
@@ -1250,7 +1238,6 @@ func mockDockerStrategyForDockerImage(name string) buildapi.BuildStrategy {
 
 func mockDockerStrategyForImageRepository() buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
-		Type: buildapi.DockerBuildStrategyType,
 		DockerStrategy: &buildapi.DockerBuildStrategy{
 			NoCache: true,
 			From: &kapi.ObjectReference{
@@ -1264,7 +1251,6 @@ func mockDockerStrategyForImageRepository() buildapi.BuildStrategy {
 
 func mockCustomStrategyForDockerImage(name string) buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
-		Type: buildapi.CustomBuildStrategyType,
 		CustomStrategy: &buildapi.CustomBuildStrategy{
 			From: kapi.ObjectReference{
 				Kind: "DockerImage",
@@ -1276,7 +1262,6 @@ func mockCustomStrategyForDockerImage(name string) buildapi.BuildStrategy {
 
 func mockCustomStrategyForImageRepository() buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
-		Type: buildapi.CustomBuildStrategyType,
 		CustomStrategy: &buildapi.CustomBuildStrategy{
 			From: kapi.ObjectReference{
 				Kind:      "ImageStreamTag",
@@ -1304,7 +1289,6 @@ func mockBuild(source buildapi.BuildSource, strategy buildapi.BuildStrategy, out
 		Spec: buildapi.BuildSpec{
 			Source: source,
 			Revision: &buildapi.SourceRevision{
-				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitSourceRevision{
 					Commit: "1234",
 				},
@@ -1399,7 +1383,6 @@ func mockBuildGenerator() *BuildGenerator {
 func TestGenerateBuildFromConfigWithSecrets(t *testing.T) {
 	source := mocks.MockSource()
 	revision := &buildapi.SourceRevision{
-		Type: buildapi.BuildSourceGit,
 		Git: &buildapi.GitSourceRevision{
 			Commit: "abcd",
 		},

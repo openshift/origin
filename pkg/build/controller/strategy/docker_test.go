@@ -113,7 +113,6 @@ func mockDockerBuild() *buildapi.Build {
 				SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{
 					PullSecret: &kapi.LocalObjectReference{Name: "bar"},
 					Env: []kapi.EnvVar{

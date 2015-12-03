@@ -22,14 +22,12 @@ func TestBuildStrategy(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
 		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
 					URI: "http://github.com/my/repository",
 				},
 				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
@@ -66,14 +64,12 @@ func TestBuildDecorator(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
 		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
 					URI: "http://github.com/my/repository",
 				},
 				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
