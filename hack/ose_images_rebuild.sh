@@ -20,44 +20,48 @@
 
 BRANCH_RELEASE=2.0
 
-#set -ex
 # format:
-# dist-git_name	image_dependency dist-git_branch
+# dist-git_name	image_dependency dist-git_branch git_repo git_path
 base_images_list="
-openshift-enterprise-base-docker None rhaos-3.1-rhel-7
-openshift-enterprise-pod-docker None rhaos-3.1-rhel-7
-openshift-enterprise-keepalived-ipfailover-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7
-openshift-enterprise-dockerregistry-docker None openshift-enterprise-base-docker-3.1-rhel-7
-openshift-enterprise-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7
-openshift-enterprise-haproxy-router-base-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7
-openshift-enterprise-deployer-docker openshift-enterprise-docker rhaos-3.1-rhel-7
-openshift-enterprise-sti-builder-docker openshift-enterprise-docker rhaos-3.1-rhel-7
-openshift-enterprise-docker-builder-docker openshift-enterprise-docker rhaos-3.1-rhel-7
-openshift-enterprise-haproxy-router-docker openshift-enterprise-haproxy-router-base-docker rhaos-3.1-rhel-7
+openshift-enterprise-base-docker None rhaos-3.1-rhel-7 https://github.com/openshift/ose.git ose/images/base
+openshift-enterprise-pod-docker None rhaos-3.1-rhel-7 https://github.com/openshift/ose.git ose/images/pod
+openshift-enterprise-keepalived-ipfailover-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/ose.git ose/images/ipfailover/keepalived
+openshift-enterprise-dockerregistry-docker None openshift-enterprise-base-docker-3.1-rhel-7 https://github.com/openshift/ose.git ose/images/dockerregistry
+openshift-enterprise-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/ose.git ose/images/ose
+openshift-enterprise-haproxy-router-base-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/ose.git ose/images/router/haproxy-base
+openshift-enterprise-deployer-docker openshift-enterprise-docker rhaos-3.1-rhel-7 https://github.com/openshift/ose.git ose/images/deployer
+openshift-enterprise-sti-builder-docker openshift-enterprise-docker rhaos-3.1-rhel-7 https://github.com/openshift/ose.git ose/images/builder/docker/sti-builder
+openshift-enterprise-docker-builder-docker openshift-enterprise-docker rhaos-3.1-rhel-7 https://github.com/openshift/ose.git ose/images/builder/docker/docker-builder
+openshift-enterprise-haproxy-router-docker openshift-enterprise-haproxy-router-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/ose.git ose/images/router/haproxy
 "
 
+# format:
+# dist-git_name	image_dependency dist-git_branch git_repo git_path
 s2i_images_list="
-rh-php56	php-56-rhel7		rh-php56-docker		rhscl-${BRANCH_RELEASE}-rh-php56-rhel-7
-rh-python34	python-34-rhel7		rh-python34-docker	rhscl-${BRANCH_RELEASE}-rh-python34-rhel-7
-python27	python-27-rhel7		python27-docker		rhscl-${BRANCH_RELEASE}-python27-rhel-7
-rh-perl520	perl-520-rhel7		rh-perl520-docker	rhscl-${BRANCH_RELEASE}-rh-perl520-rhel-7
-rh-ruby22	ruby-22-rhel7		rh-ruby22-docker	rhscl-${BRANCH_RELEASE}-rh-ruby22-rhel-7
-rh-passenger40	passenger-40-rhel7	rh-passenger40-docker	rhscl-${BRANCH_RELEASE}-rh-passenger40-rhel-7
+openshift-sti-base-docker None rhaos-3.1-rhel-7 https://github.com/openshift/sti-base sti-base
+openshift-mongodb-docker None rhaos-3.1-rhel-7 https://github.com/openshift/mongodb mongodb/2.4
+openshift-mysql-docker None rhaos-3.1-rhel-7 https://github.com/openshift/mysql mysql/5.5
+openshift-postgresql-docker None rhaos-3.1-rhel-7 https://github.com/openshift/postgresql postgresql/9.2
+openshift-sti-nodejs-docker openshift-sti-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/sti-nodejs sti-nodejs/0.10
+openshift-sti-perl-docker openshift-sti-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/sti-perl sti-perl/5.16
+openshift-sti-php-docker openshift-sti-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/sti-php sti-php/5.5
+openshift-sti-python-docker openshift-sti-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/sti-python sti-python/3.3
+openshift-sti-ruby-docker openshift-sti-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/sti-ruby sti-ruby/2.0
 "
 
 usage() {
-  echo "Usage `basename $0` <action> <base>" >&2
+  echo "Usage `basename $0` <action> <version>" >&2
   echo >&2
   echo "Actions:" >&2
-  echo "  rebase_base     - Clone dist-git, bump release, commit, push, build in brew (non s2i images)" >&2
-  echo "  rebase_s2i      - Clone dist-git, bump release, commit, push, build in brew (s2i images)" >&2
-  echo "  testrebase_base - Clone dist-git, bump release, commit (non-s2i images)" >&2
-  echo "  testrebase_s2i  - Clone dist-git, bump release, commit (s2i images)" >&2
-  echo "  createbz        - Creates tracker BZ and cloned BZs for every component" >&2
-  echo "  testcreatebz    - Reports what BZs would be created" >&2
+  echo "  everything_base  - git_update, build_image (non s2i images)" >&2
+  echo "  everything_s2i   - git_update, build_image (s2i images)" >&2
+  echo "  git_update_base  - Clone dist-git, bump release, commit (non-s2i images)" >&2
+  echo "  git_update_s2i   - Clone dist-git, bump release, commit (s2i images)" >&2
+  echo "  build_image_base - Clone dist-git, bump release, commit (non-s2i images)" >&2
+  echo "  build_image_s2i  - Clone dist-git, bump release, commit (s2i images)" >&2
   echo >&2
-  echo "Base:" >&2
-  echo "  specific rhel-base release, e.g. rhel7:7.2-30 (won't be used if FROM does not include rhel)" >&2
+  echo "Version:" >&2
+  echo "  specific image version, e.g. 3.1.1.2 or 1.1 (What should be in LABEL Version)" >&2
   popd &>/dev/null
   exit 1
 }
@@ -124,7 +128,7 @@ check_builds() {
 }
 
 wait_for_all_builds() {
-  buildcheck=`ls -1 ${workingdir}/logs/*buildlog`
+  buildcheck=`ls -1 ${workingdir}/logs/*buildlog 2>/dev/null`
   while ! [ "${buildcheck}" == "" ]
   do
     echo "=== waiting for these builds ==="
@@ -132,7 +136,7 @@ wait_for_all_builds() {
     echo "${buildcheck}"
     sleep 120
     check_builds
-    buildcheck=`ls -1 ${workingdir}/logs/*buildlog`
+    buildcheck=`ls -1 ${workingdir}/logs/*buildlog 2>/dev/null`
   done
 }
 
