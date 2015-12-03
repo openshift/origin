@@ -252,7 +252,15 @@ install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/%{name}-node-{guest,host}
 install -m 0644 contrib/tuned/origin-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-guest/tuned.conf
 install -m 0644 contrib/tuned/origin-node-host/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-host/tuned.conf
 install -d -m 0755 %{buildroot}%{_mandir}/man7
+
+# Patch the manpage for tuned profiles on aos
+%if "%{dist}" == ".el7aos"
+%{__sed} -e 's|origin-node|atomic-openshift-node|g' \
+ -e 's|ORIGIN_NODE|ATOMIC_OPENSHIFT_NODE|' \
+ contrib/tuned/man/tuned-profiles-origin-node.7 > %{buildroot}%{_mandir}/man7/tuned-profiles-%{name}-node.7
+%else
 install -m 0644 contrib/tuned/man/tuned-profiles-origin-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-%{name}-node.7
+%endif
 
 mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
