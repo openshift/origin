@@ -26,7 +26,7 @@ base_images_list="
 openshift-enterprise-base-docker None rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/base
 openshift-enterprise-pod-docker None rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/pod
 openshift-enterprise-keepalived-ipfailover-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/ipfailover/keepalived
-openshift-enterprise-dockerregistry-docker None openshift-enterprise-base-docker-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/dockerregistry
+openshift-enterprise-dockerregistry-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/dockerregistry
 openshift-enterprise-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/ose
 openshift-enterprise-haproxy-router-base-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/router/haproxy-base
 openshift-enterprise-deployer-docker openshift-enterprise-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/deployer
@@ -143,6 +143,7 @@ check_build_dependencies() {
 }
 
 build_image() {
+  pushd "${workingdir}/${container}" >/dev/null
   check_build_dependencies
   rhpkg container-build --scratch --repo http://file.rdu.redhat.com/sdodson/aos-unsigned.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
   echo -n "  Waiting for createContainer taskid ."
@@ -161,12 +162,12 @@ build_image() {
   done
   echo " "
   brew watch-logs ${taskid} >> ${workingdir}/logs/${container}.watchlog 2>&1 &
-
+  popd >/dev/null
 }
 
 show_git_diffs() {
   pushd "${workingdir}/${container}" >/dev/null
-  find . -name ".git*" -prune -o -name ".osbs*" -prune -o -type f -print | while read line
+  find . -name "Dockerfile*" -type f -print | while read line
   do
     updatetime=`git log --date=iso -n 1 --pretty="%ad" ${line}`
     pushd "${workingdir}/${path}" >/dev/null
@@ -178,6 +179,11 @@ show_git_diffs() {
     fi
     popd >/dev/null
   done
+  find . -name ".git*" -prune -o -name ".osbs*" -prune -o -name "Dockerfile*" -prune -o -type f -print | while read line
+  do
+    diff -u ${line} ${workingdir}/${path}/${line}
+  done
+  diff --brief -r ${workingdir}/${container} ${workingdir}/${path} | grep -v -e Dockerfile -e git -e osbs-repo-config
   popd >/dev/null
 
 }
