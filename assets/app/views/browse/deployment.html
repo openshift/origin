@@ -16,7 +16,9 @@
                 type-display-name="Deployment"
                 resource-name="{{deployment.metadata.name}}"
                 project-name="{{deployment.metadata.namespace}}"
-                alerts="alerts">
+                alerts="alerts"
+                disable-delete="!!deployment.status.replicas"
+                disabled-tooltip="You must scale the deployment to 0 before deleting.">
               </delete-button>
             </h1>
             <labels ng-if="deploymentConfigName" labels="deployment.metadata.labels" clickable="true" kind="deployments" title-kind="deployments for deployment config {{deploymentConfigName}}" project-name="{{deployment.metadata.namespace}}" limit="3" navigate-url="project/{{deployment.metadata.namespace}}/browse/deployments/{{deploymentConfigName}}"></labels>

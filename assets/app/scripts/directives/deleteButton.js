@@ -6,11 +6,16 @@ angular.module("openshiftConsole")
       restrict: "E",
       scope: {
         resourceType: "@",
+        // Optional display name for resourceType. If not specified, humanizeResourceTypeFilter is used.
         typeDisplayName: "@?",
         resourceName: "@",
         projectName: "@",
         alerts: "=",
-        displayName: "@"
+        displayName: "@",
+        // Set to true to disable the delete button.
+        disableDelete: "=?",
+        // Optional tooltip displayed when disableDelete is true.
+        disabledTooltip: "@?"
       },
       templateUrl: "views/directives/delete-button.html",
       link: function(scope, element, attrs) {
@@ -21,6 +26,10 @@ angular.module("openshiftConsole")
         }
 
         scope.openDeleteModal = function() {
+          if (scope.disableDelete) {
+            return;
+          }
+
           // opening the modal with settings scope as parent
           var modalInstance = $modal.open({
             animation: true,

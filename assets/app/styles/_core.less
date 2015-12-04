@@ -704,6 +704,17 @@ a.action-button {
   }
 }
 
+// Use with aria-disabled="true" and role="button"
+a.disabled-link {
+  color: #bbbbbb;
+  cursor: not-allowed;
+  opacity: 0.4;
+  &:hover, &:active, &:focus {
+    color: #bbbbbb;
+    text-decoration: none;
+  }
+}
+
 .modal-resource-delete, .modal-confirm-scale {
   background-color: @gray-lighter;
   h1 {

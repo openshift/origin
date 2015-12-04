@@ -15,10 +15,12 @@
                 resource-type="replicationcontroller"
                 resource-name="{{deployment.metadata.name}}"
                 project-name="{{deployment.metadata.namespace}}"
-                alerts="alerts">
+                alerts="alerts"
+                disable-delete="!!deployment.status.replicas"
+                disabled-tooltip="You must scale the replication controller to 0 before deleting.">
               </delete-button>
             </h1>
-            <labels labels="deployment.metadata.labels" clickable="true" kind="deployments" project-name="{{deployment.metadata.namespace}}" limit="3"></labels> 
+            <labels labels="deployment.metadata.labels" clickable="true" kind="deployments" project-name="{{deployment.metadata.namespace}}" limit="3"></labels>
             <div class="resource-details">
               <ng-include src=" 'views/browse/_deployment-details.html' "></ng-include>
             </div>
