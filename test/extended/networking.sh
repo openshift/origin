@@ -21,6 +21,8 @@ source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 os::log::install_errexit
 
+NETWORKING_DEBUG=${NETWORKING_DEBUG:-false}
+
 # These strings filter the available tests.
 NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
@@ -154,8 +156,15 @@ function run-extended-tests() {
   export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
   export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
-  local test_cmd="${TEST_BINARY} --test.v '--ginkgo.skip=${skip_regex}' \
+  local test_args="--test.v '--ginkgo.skip=${skip_regex}' \
 '--ginkgo.focus=${focus_regex}' ${TEST_EXTRA_ARGS}"
+
+  if [ "${NETWORKING_DEBUG}" = 'true' ]; then
+    local test_cmd="dlv exec ${TEST_BINARY} -- ${test_args}"
+  else
+    local test_cmd="${TEST_BINARY} ${test_args}"
+  fi
+
   if [ "${log_path}" != "" ]; then
     test_cmd="${test_cmd} | tee ${log_path}"
   fi
