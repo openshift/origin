@@ -10,7 +10,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/openshift-sdn/plugins/osdn"
-	"github.com/openshift/openshift-sdn/plugins/osdn/multitenant"
+	"github.com/openshift/openshift-sdn/plugins/osdn/ovs"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -40,7 +40,7 @@ func NewCmdMakeGlobalProjectsNetwork(commandName, fullName string, f *clientcmd.
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Make project network global",
-		Long:    fmt.Sprintf(makeGlobalProjectsNetworkLong, multitenant.NetworkPluginName()),
+		Long:    fmt.Sprintf(makeGlobalProjectsNetworkLong, ovs.MultiTenantPluginName()),
 		Example: fmt.Sprintf(makeGlobalProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := opts.Complete(f, c, args, out); err != nil {

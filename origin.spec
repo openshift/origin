@@ -268,13 +268,9 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 # Install sdn scripts
 install -d -m 0755 %{buildroot}%{_unitdir}/docker.service.d
 install -p -m 0644 contrib/systemd/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
-pushd _thirdpartyhacks/src/%{sdn_import_path}/plugins/osdn/flatsdn/bin
-   install -p -m 755 openshift-ovs-subnet %{buildroot}%{_bindir}/openshift-ovs-subnet
-   install -p -m 755 openshift-sdn-kube-subnet-setup.sh %{buildroot}%{_bindir}/openshift-sdn-kube-subnet-setup.sh
-popd
-pushd _thirdpartyhacks/src/%{sdn_import_path}/plugins/osdn/multitenant/bin
-   install -p -m 755 openshift-ovs-multitenant %{buildroot}%{_bindir}/openshift-ovs-multitenant
-   install -p -m 755 openshift-sdn-multitenant-setup.sh %{buildroot}%{_bindir}/openshift-sdn-multitenant-setup.sh
+pushd _thirdpartyhacks/src/%{sdn_import_path}/plugins/osdn/ovs/bin
+   install -p -m 755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
+   install -p -m 755 openshift-sdn-ovs-setup.sh %{buildroot}%{_bindir}/openshift-sdn-ovs-setup.sh
 popd
 install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
 install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
@@ -393,10 +389,8 @@ fi
 
 %files sdn-ovs
 %defattr(-,root,root,-)
-%{_bindir}/openshift-sdn-kube-subnet-setup.sh
-%{_bindir}/openshift-ovs-multitenant
-%{_bindir}/openshift-sdn-multitenant-setup.sh
-%{_bindir}/openshift-ovs-subnet
+%{_bindir}/openshift-sdn-ovs
+%{_bindir}/openshift-sdn-ovs-setup.sh
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 %{_unitdir}/docker.service.d/docker-sdn-ovs.conf
 
