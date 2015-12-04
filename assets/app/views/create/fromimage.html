@@ -1,5 +1,5 @@
-<div ng-controller="ProjectController">
-  <div ng-controller="CreateFromImageController" class="container">
+<div>
+  <div class="container">
     <ol class="breadcrumb">
       <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
       <li><a href="project/{{projectName}}/create">Add to Project</a></li>
@@ -194,7 +194,7 @@
                         delimiter="="
                         key-validator="env"
                         delete-policy="added"
-                        key-validation-tooltip="A valid environment variable name is an alphanumeric (a-z and 0-9) string beginning with a letter that may contain underscores."></osc-key-values>                      
+                        key-validation-tooltip="A valid environment variable name is an alphanumeric (a-z and 0-9) string beginning with a letter that may contain underscores."></osc-key-values>
                     </osc-form-section>
 
                     <!-- /build config -->

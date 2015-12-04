@@ -57,7 +57,7 @@ var waitForUri = function(uri) {
     return browser.getCurrentUrl().then(function(url) {
       return url.indexOf(uri) > -1;
     });
-  }, 5000, "URL hasn't changed to " + uri); 
+  }, 5000, "URL hasn't changed to " + uri);
 };
 exports.waitForUri = waitForUri;
 

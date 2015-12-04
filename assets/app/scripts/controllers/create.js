@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CreateController', function ($scope, DataService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, Logger) {
+  .controller('CreateController', function ($routeParams, $scope, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, Logger) {
     var projectImageStreams,
         openshiftImageStreams,
         projectTemplates,
@@ -17,6 +17,7 @@ angular.module('openshiftConsole')
         templatesByCategory = {},
         nonBuilderImages = [];
 
+    $scope.projectName = $routeParams.project;
     // The tags to use for categories in the order we want to display.
     $scope.categoryTags = [
       "instant-app",
@@ -76,32 +77,6 @@ angular.module('openshiftConsole')
     $scope.filterTag = function(tag) {
       $scope.filter.tag = tag;
     };
-
-    // List templates in the project namespace as well as the shared `openshift` namespace.
-    DataService.list("templates", $scope, function(templates) {
-      projectTemplates = templates.by("metadata.name");
-      categorizeTemplates(projectTemplates);
-      updateState();
-    });
-
-    DataService.list("templates", {namespace: "openshift"}, function(templates) {
-      openshiftTemplates = templates.by("metadata.name");
-      categorizeTemplates(openshiftTemplates);
-      updateState();
-    });
-
-    // List image streams in the project namespace as well as the shared `openshift` namespace.
-    DataService.list("imagestreams", $scope, function(imageStreams) {
-      projectImageStreams = imageStreams.by("metadata.name");
-      categorizeImages(projectImageStreams);
-      updateState();
-    });
-
-    DataService.list("imagestreams", {namespace: "openshift"}, function(imageStreams) {
-      openshiftImageStreams = imageStreams.by("metadata.name");
-      categorizeImages(openshiftImageStreams);
-      updateState();
-    });
 
     // Check if tag in is in the array of tags. Substring matching is optional
     // and useful for typeahead search. Typing "jav" should match tag "java".
@@ -309,4 +284,35 @@ angular.module('openshiftConsole')
         Logger.info("non-builder images", nonBuilderImages);
       }
     }
+
+    ProjectsService
+      .get($routeParams.project)
+      .then(_.spread(function(project, context) {
+        $scope.project = project;
+        // List templates in the project namespace as well as the shared `openshift` namespace.
+        DataService.list("templates", context, function(templates) {
+          projectTemplates = templates.by("metadata.name");
+          categorizeTemplates(projectTemplates);
+          updateState();
+        });
+
+        DataService.list("templates", {namespace: "openshift"}, function(templates) {
+          openshiftTemplates = templates.by("metadata.name");
+          categorizeTemplates(openshiftTemplates);
+          updateState();
+        });
+
+        // List image streams in the project namespace as well as the shared `openshift` namespace.
+        DataService.list("imagestreams", context, function(imageStreams) {
+          projectImageStreams = imageStreams.by("metadata.name");
+          categorizeImages(projectImageStreams);
+          updateState();
+        });
+
+        DataService.list("imagestreams", {namespace: "openshift"}, function(imageStreams) {
+          openshiftImageStreams = imageStreams.by("metadata.name");
+          categorizeImages(openshiftImageStreams);
+          updateState();
+        });
+      }));
   });
