@@ -41,7 +41,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.0.4
+Version:        3.1.0.900
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -442,6 +442,331 @@ fi
 
 
 %changelog
+* Fri Dec 04 2015 Scott Dodson <sdodson@redhat.com> 3.1.0.900
+- Update liveness/readiness probe to always use the /healthz endpoint (on the
+  stats port or on port 1936 if the stats are disabled). (smitram@gmail.com)
+- Fix incorrect status icon on pods page (spadgett@redhat.com)
+- Update rest of controllers to use new ProjectsService controller, remove ng-
+  controller directives in templates, all controllers defined in routes, minor
+  update to tests (admin@benjaminapetersen.me)
+- Remove the tooltip from the delete button (spadgett@redhat.com)
+- Add success line to dry run (rhcarvalho@gmail.com)
+- Add integration test for router healthz endpoint as per @smarterclayton
+  review comments. (smitram@gmail.com)
+- UPSTREAM: drop: part of upstream kube PR #15843. (avagarwa@redhat.com)
+- UPSTREAM: drop: Fix kube e2e tests in origin. This commit is part of upstream
+  kube PR 16360. (avagarwa@redhat.com)
+- Bug 1285626 - need to handle IS tag with a from of kind DockerImage
+  (jforrest@redhat.com)
+- Fix for Bug 1285647 and issue 6025  - Border width will be expanded when long
+  value added in Environment Variables for project  - Route link on overview is
+  truncated even at wide browser widths (sgoodwin@redhat.com)
+- Patch AOS tuned-profiles manpage during build (sdodson@redhat.com)
+- Do not print steps for alternative output formats (rhcarvalho@gmail.com)
+- UPSTREAM: 17920: Fix frequent kubernetes endpoint updates during cluster
+  start (abutcher@redhat.com)
+- Add additional route settings to UI (spadgett@redhat.com)
+- switch hello-world tests to expect ruby-22 (bparees@redhat.com)
+- Upstream: 16728: lengthened pv controller sync period to 10m
+  (mturansk@redhat.com)
+- Support deleting routes in web console (spadgett@redhat.com)
+- oc rsync: pass-thru global command line options (cewong@redhat.com)
+- Sync Dockerfile.product from dist-git (sdodson@redhat.com)
+- add namespace to field selectors (pweil@redhat.com)
+- Use minutes instead of seconds where possible. (vsemushi@redhat.com)
+- added volume length check for overriden recycler (mturansk@redhat.com)
+- make adding infrastructure SAs easier (deads@redhat.com)
+- fixed origin recycler volume config w/ upstream cli flags
+  (mturansk@redhat.com)
+- oc: Make env use PATCH instead of PUT (mkargaki@redhat.com)
+- Prompt before scaling deployments to 0 in UI (spadgett@redhat.com)
+- UPSTREAM: 18000: Fix test failure due to days-in-month check. Issue #17998.
+  (mkargaki@redhat.com)
+- Update install for osdn plugin reorg (danw@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  0d3440e224aeb26a056c0c4c91c30fdbb59588f9 (danw@redhat.com)
+- Update various templates to use status-icon (admin@benjaminapetersen.me)
+- UPSTREAM: 17973: Validate pod spec.nodeName (jliggitt@redhat.com)
+- Rename project service to ProjectsService, update all pre-existing occurances
+  (admin@benjaminapetersen.me)
+- Hide old deployments in the topology view (spadgett@redhat.com)
+- refactored constructors to allow for better code resue with prune-groups
+  (skuznets@redhat.com)
+- Prevent identical input/output IST in oc new-build (rhcarvalho@gmail.com)
+- Add aria-describedby attributes to template parameter inputs
+  (spadgett@redhat.com)
+- remove url workaround (now at correct s2i level) (gmontero@redhat.com)
+- New flag to oc new-build to produce no output (rhcarvalho@gmail.com)
+- Fix sr-only text for pod status chart (spadgett@redhat.com)
+- Add README.md to examples/db-templates (rhcarvalho@gmail.com)
+- Fix test registry resource location (ffranz@redhat.com)
+- UPSTREAM: 17886: pod log location must validate container if provided
+  (ffranz@redhat.com)
+- Background the node service so we handle SIGTERM (sdodson@redhat.com)
+- hack/util.sh(delete_large_and_empty_logs): optimize find usage.
+  (vsemushi@redhat.com)
+- Bug 1281928 - fix image stream tagging for DockerImage type images.
+  (maszulik@redhat.com)
+- Remove type conversion (rhcarvalho@gmail.com)
+- Bug1277420 - show friendly prompt when cancelling a completed build
+  (jhadvig@redhat.com)
+- Add new-build flag to set output image reference (rhcarvalho@gmail.com)
+- Output uppercase, hex, 2-character padded serial.txt (jliggitt@redhat.com)
+- Fix test/cmd/admin.shwq (jliggitt@redhat.com)
+- Fix template processing multiple values (jliggitt@redhat.com)
+- CLI usability - proposed aliases (ffranz@redhat.com)
+- overhaul imagestream definitions and update latest (bparees@redhat.com)
+- refactored test/cmd/images to use wrapper methods (skuznets@redhat.com)
+- added unit testing to existing LDAP sync code (skuznets@redhat.com)
+- fix macro order for bundled listing in tito custom builder
+  (admiller@redhat.com)
+- refactor fedora packaging additions with tito custom builder updates
+  (admiller@redhat.com)
+- Fedora packaging: (admiller@redhat.com)
+- Typo fixes (jhadvig@redhat.com)
+- Update templates to use navigateResourceURL filter where appropriate
+  (admin@benjaminapetersen.me)
+- Update completions (ffranz@redhat.com)
+- bump(github.com/spf13/pflag): 08b1a584251b5b62f458943640fc8ebd4d50aaa5
+  (ffranz@redhat.com)
+- bump(github.com/spf13/cobra): 1c44ec8d3f1552cac48999f9306da23c4d8a288b
+  (ffranz@redhat.com)
+- Adds .docker/config.json secret example (ffranz@redhat.com)
+- refactored test/cmd/basicresources to use wrapper functions
+  (skuznets@redhat.com)
+- added os::cmd::try_until* (skuznets@redhat.com)
+- no redistributable for either fedora or epel (tdawson@redhat.com)
+- Skip Daemonset and DaemonRestart as these are not enabled yet and keep
+  failing. (avagarwa@redhat.com)
+- Retry failed attempts to talk to remote registry (miminar@redhat.com)
+- Split UI tests into e2e vs rest_api integration suites (jforrest@redhat.com)
+- refactored test/cmd/templates to use wrapper methods (skuznets@redhat.com)
+- refactored test/cmd/policy to use wrapper methods (skuznets@redhat.com)
+- refactored test/cmd/builds to use wrapper methods (skuznets@redhat.com)
+- refactored test/cmd/newapp to use wrapper functions (skuznets@redhat.com)
+- refactored test/cmd/help to use wrapper functions (skuznets@redhat.com)
+- avoid: no such file error in test-cmd (deads@redhat.com)
+- added ldap test client and query tests (skuznets@redhat.com)
+- Link in the alert for the newly triggered build (jhadvig@redhat.com)
+- reorganized ldaputil error and query code (skuznets@redhat.com)
+- refactored test/cmd/export to use wrapper functions (skuznets@redhat.com)
+- refactored test/cmd/deployments to use wrapper methods (skuznets@redhat.com)
+- refactored test/cmd/volumes to use helper methods (skuznets@redhat.com)
+- Update build revision information when building (cewong@redhat.com)
+- Enable /healthz irrespective of stats port being enabled/disabled. /healthz
+  is available on the stats port or the default stats port 1936 (if stats are
+  turned off via --stats-port=0). (smitram@gmail.com)
+- refactored test/cmd/secrets to use helper methods (skuznets@redhat.com)
+- added cmd util function test to CI (skuznets@redhat.com)
+- bump(gopkg.in/asn1-ber.v1): 4e86f4367175e39f69d9358a5f17b4dda270378d
+  (jliggitt@redhat.com)
+- bump(gopkg.in/ldap.v2): e9a325d64989e2844be629682cb085d2c58eef8d
+  (jliggitt@redhat.com)
+- Rename github.com/go-ldap/ldap to gopkg.in/ldap.v2 (jliggitt@redhat.com)
+- bump(gopkg.in/ldap.v2): b4c9518ccf0d85087c925e4a3c9d5802c9bc7025 (package
+  rename) (jliggitt@redhat.com)
+- add role reaper (deads@redhat.com)
+- Exposes the --token flag in login command help (ffranz@redhat.com)
+- allow unknown secret types (deads@redhat.com)
+- allow startup of API server only for integration tests (deads@redhat.com)
+- bump(github.com/openshift/source-to-image)
+  7597eaa168a670767bf2b271035d29b92ab13b5c (cewong@redhat.com)
+- refactored hack/test to not use aliases, detect tty (skuznets@redhat.com)
+- Refactor pkg/generate/app (rhcarvalho@gmail.com)
+- add image-pusher role (deads@redhat.com)
+- refactored test-cmd/edit to use new helper methods (skuznets@redhat.com)
+- remove db tag from jenkins template (bparees@redhat.com)
+- Change default instance size (dmcphers@redhat.com)
+- bump the wait for images timeout (bparees@redhat.com)
+- dump container logs when s2i incremental tests fail (bparees@redhat.com)
+- test non-db sample templates also (bparees@redhat.com)
+- Use correct homedir on Windows (ffranz@redhat.com)
+- UPSTREAM: 17590: correct homedir on windows (ffranz@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  919e0142fe594ab5115ecf7fa3f7ad4f5810f009 (dcbw@redhat.com)
+- Update to new osdn plugin API (dcbw@redhat.com)
+- Accept CamelCase versions of TLS config (ccoleman@redhat.com)
+- fix git-ls to leverage GIT_SSH for non-git, secret/token access
+  (gmontero@redhat.com)
+- Bug 1277046 - fixed tagging ImageStreamImage from the same ImageStream to
+  point to original pull spec instead of the internal registry.
+  (maszulik@redhat.com)
+- Get rid of util.StringList (ffranz@redhat.com)
+- UPSTREAM: revert: 199adb7: <drop>: add back flag types to reduce noise during
+  this rebase (ffranz@redhat.com)
+- added start-build parameters to cli.md (ipalade@redhat.com)
+- UPSTREAM: 17567: handle the HEAD verb correctly for authorization
+  (deads@redhat.com)
+- examples/sample-app/README.md: fix commands to simplify user experience.
+  (vsemushi@redhat.com)
+- Add PostgreSQL replication tests (nagy.martin@gmail.com)
+- Allow to override environment and build log level in oc start-build
+  (mfojtik@redhat.com)
+- Remove hook directory by default in gitserver example (cewong@redhat.com)
+- wait for imagestream import before running a build in tests
+  (bparees@redhat.com)
+- extended tests for docker and sti bc with no outputname defined
+  (ipalade@redhat.com)
+- The git:// protocol with proxy is not allowed (mfojtik@redhat.com)
+- Fix build controller integration test flake (cewong@redhat.com)
+- add requester username to project template (deads@redhat.com)
+- Fix extended test for start-build (mfojtik@redhat.com)
+- prevent go panic when output not specified for build config
+  (gmontero@redhat.com)
+- fix start-build --from-webhook (cewong@redhat.com)
+- SCMAuth: use local proxy when password length exceeds 255 chars
+  (cewong@redhat.com)
+- Use constants for defaults instead of strings (rhcarvalho@gmail.com)
+- Add extended test for proxy (mfojtik@redhat.com)
+- Cleanup extended test output some more (nagy.martin@gmail.com)
+- Use router's /healtz route for health checks (miminar@redhat.com)
+- Unflake MySQL extended test (nagy.martin@gmail.com)
+- Add git ls-remote to validate the remote GIT repository (mfojtik@redhat.com)
+- Handle openshift.io/build-config.name label as well as buildconfig.
+  (vsemushi@redhat.com)
+- update the readme (haoran@dhcp-129-204.nay.redhat.com)
+- Completions for persistent flags (ffranz@redhat.com)
+- UPSTREAM: spf13/cobra 180: fixes persistent flags completions
+  (ffranz@redhat.com)
+- Generated docs must use the short command name (ffranz@redhat.com)
+- UPSTREAM: 17033: Fix default value for StreamingConnectionIdleTimeout
+  (avagarwa@redhat.com)
+- Fixes bug 1275518 https://bugzilla.redhat.com/show_bug.cgi?id=1275518
+  (avagarwa@redhat.com)
+- tito builder/tagger cleanup: (admiller@redhat.com)
+- stop oc export from exporting SA secrets that aren't round-trippable
+  (deads@redhat.com)
+- accept new dockercfg format (deads@redhat.com)
+- Fix alignment of icon on settings page by overriding patternfly rule
+  (sgoodwin@redhat.com)
+- spec: Use relative symlinks in bin/ (walters@verbum.org)
+- Added readiness probe for Router (miminar@redhat.com)
+- Add openshift/origin-gitserver to push-release.sh (cewong@redhat.com)
+- To replace Func postfixed identifier with Fn postfixed in e2e extended
+  (salvatore-dario.minonne@amadeus.com)
+- to add a job test to extended test (salvatore-dario.minonne@amadeus.com)
+- Allow kubelet to be configured for dind compat (marun@redhat.com)
+- Force network tests to wait until cluster is ready (marun@redhat.com)
+- Update dind docs to configure more vagrant memory (marun@redhat.com)
+- Run networking sanity checks separately. (marun@redhat.com)
+- Add 'redeploy' command to dind cluster script (marun@redhat.com)
+- Fix networking extended test suite declaration (marun@redhat.com)
+- Skip internet check in network extended test suite (marun@redhat.com)
+- Skip sdn node during dev cluster deploy (marun@redhat.com)
+- Fix handling of network plugin arg in deployment (marun@redhat.com)
+- Ensure deltarpm is used for devcluster deployment. (marun@redhat.com)
+- Rename OPENSHIFT_SDN env var (marun@redhat.com)
+- Refactor extended networking test script (marun@redhat.com)
+- Increase verbosity of networking test setup (marun@redhat.com)
+- Deploy ssh by default on dind cluster nodes (marun@redhat.com)
+- Fix numeric comparison bug in cluster provisioning (marun@redhat.com)
+- Make provisioning output less noisy (marun@redhat.com)
+- Retain systemd logs from extended networking tests (marun@redhat.com)
+- Allow networking tests to target existing cluster (marun@redhat.com)
+- Optionally skip builds during cluster provision (marun@redhat.com)
+- Enable parallel dev cluster deployment (marun@redhat.com)
+- Disable scheduling for sdn node when provisioning (marun@redhat.com)
+- Rename bash functions used for provisioning (marun@redhat.com)
+- Doc and env var cleanup for dind refactor (marun@redhat.com)
+- Switch docker-in-docker to use systemd (marun@redhat.com)
+- fix merge conflicts in filters/resources.js, update bindata
+  (gabriel_ruiz@symantec.com)
+- add tests for variable expansion (bparees@redhat.com)
+- Use assets/config.local.js if present for development config
+  (spadgett@redhat.com)
+- Fix typos (dmcphers@redhat.com)
+- Allow tag already exist when pushing a release (ccoleman@redhat.com)
+- Fixes attach example (ffranz@redhat.com)
+- UPSTREAM: 17239: debug filepath in config loader (ffranz@redhat.com)
+- Allow setting build config environment variables, show env vars on build
+  config page (jforrest@redhat.com)
+- UPSTREAM: 17236: fixes attach example (ffranz@redhat.com)
+- Remove failing Docker Registry client test (ccoleman@redhat.com)
+- leverage new source-to-image API around git clone spec validation/correction
+  (gmontero@redhat.com)
+- Reload proxy rules on firewalld restart, etc (danw@redhat.com)
+- Fix serviceaccount in gitserver example yaml (cewong@redhat.com)
+- gitserver: return appropriate error when auth fails (cewong@redhat.com)
+- provide validation for build source type (bparees@redhat.com)
+- Show less output in test-cmd.sh (ccoleman@redhat.com)
+- Change the image workdir to be /var/lib/origin (ccoleman@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  c9985b5443c4a0a0ffb38b3478031dcc2dc8638d (gmontero@redhat.com)
+- Add deployment logs to UI (spadgett@redhat.com)
+- Push recycler image (jliggitt@redhat.com)
+- Prevent sending username containing colon via basic auth
+  (jliggitt@redhat.com)
+- added test-cmd test wrapper functions and tests (skuznets@redhat.com)
+- Dont loop over all the builds / deployments for the config when we get an
+  update for one (jforrest@redhat.com)
+- Avoid mobile Safari zoom on input focus (spadgett@redhat.com)
+- add build pod name annotation to builds (bparees@redhat.com)
+- Prevent autocorrect and autocapitilization for some inputs
+  (spadgett@redhat.com)
+- bump rails test retry timeout (bparees@redhat.com)
+- Adding the recycle tool to the specfile (bleanhar@redhat.com)
+- Prevent route from overflowing box in mobile Safari (spadgett@redhat.com)
+- Update recycler image to use binary (jliggitt@redhat.com)
+- bump(go-ldap/ldap): b4c9518ccf0d85087c925e4a3c9d5802c9bc7025
+  (skuznets@redhat.com)
+- status: Warn about transient deployment trigger errors (mkargaki@redhat.com)
+- Updated pv recycler to work with uid:gid (mturansk@redhat.com)
+- Set registry service's session affinity (miminar@redhat.com)
+- Several auto-completion fixes (ffranz@redhat.com)
+- Fixes auto-completion for build config names (ffranz@redhat.com)
+- show warning when pod's containers are restarting (deads@redhat.com)
+- Change how we store association between builds and ICTs on DCs for the
+  console overview (jforrest@redhat.com)
+- Point docs at docs.openshift.com/enterprise/latest (sdodson@redhat.com)
+- eliminate double bc reporting in status (deads@redhat.com)
+- Use a different donut color for pods not ready (spadgett@redhat.com)
+- disable --validate flag by default (deads@redhat.com)
+- Update CONTRIBUTING.adoc (bpeterse@redhat.com)
+- Show deployment status on overview when failed or cancelled
+  (spadgett@redhat.com)
+- UPSTREAM: revert: 0048df4: <carry>: Disable --validate by default
+  (deads@redhat.com)
+- add reconcile-cluster-role arg for specifying specific roles
+  (deads@redhat.com)
+- Reduce number of tick labels in metrics sparkline (spadgett@redhat.com)
+- fix openshift client cache for different versions (deads@redhat.com)
+- UPSTREAM: 17058: fix client cache for different versions (deads@redhat.com)
+- make export-all work in failures (deads@redhat.com)
+- Fix build-waiting logic to use polling instead of watcher
+  (nagy.martin@gmail.com)
+- add APIGroup to role describer (deads@redhat.com)
+- UPSTREAM: 17017: stop jsonpath panicing on bad array length
+  (deads@redhat.com)
+- don't update the build phase once it reaches a terminal state
+  (bparees@redhat.com)
+- Run registry as non-root user (ironcladlou@gmail.com)
+- warn on missing log and metric URLs for console (deads@redhat.com)
+- don't show context nicknames that users don't recognize (deads@redhat.com)
+- Allow non-alphabetic characters in expression generator (mfojtik@redhat.com)
+- WIP - try out upstream e2e (ccoleman@redhat.com)
+- add a wordpress template (bparees@redhat.com)
+- UPSTREAM: 16945: kubelet: Fallback to api server for pod status
+  (mkargaki@redhat.com)
+- Bug 1278007 - Use commit instead of HEAD when streaming in start-build
+  (mfojtik@redhat.com)
+- Move os::util:install-sdn to contrib/node/install-sdn.sh (sdodson@redhat.com)
+- Drop selinux relabeling for volumes, add images to push-release
+  (sdodson@redhat.com)
+- Build controller - set build status only if pod creation succeeds
+  (cewong@redhat.com)
+- Let users to select log content without line numbers (spadgett@redhat.com)
+- pre-set the SA namespaces (deads@redhat.com)
+- Add labels and annotations to DeploymentStrategy. (roque@juniper.net)
+- containerized-installs -> containerized (sdodson@redhat.com)
+- Add example systemd units for running as container (sdodson@redhat.com)
+- Add sdn ovs enabled node image (sdodson@redhat.com)
+- fix case for events (deads@redhat.com)
+- prune: Remove deployer pods when pruning failed deployments
+  (mkargaki@redhat.com)
+- reenable static building of hello pod (bparees@redhat.com)
+- do not make redistributable in fedora (tdawson@redhat.com)
+- Make building clients for other architectures optional (tdawson@redhat.com)
+
 * Tue Nov 10 2015 Scott Dodson <sdodson@redhat.com> 3.1.0.4
 - change OS bootstrap SCCs to use RunAsAny for fsgroup and sup groups
   (pweil@redhat.com)
