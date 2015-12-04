@@ -75,7 +75,7 @@ func (o *ValidateNodeConfigOptions) Complete(args []string) error {
 }
 
 // Run runs the node config validation and returns the result of the validation as a boolean as well as any errors
-// that occured trying to validate the file
+// that occurred trying to validate the file
 func (o *ValidateNodeConfigOptions) Run() (ok bool, err error) {
 	nodeConfig, err := configapilatest.ReadAndResolveNodeConfig(o.NodeConfigFile)
 	if err != nil {

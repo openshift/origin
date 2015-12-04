@@ -4,7 +4,7 @@ angular.module("openshiftConsole")
   .factory("DeploymentsService", function(DataService, $filter, LabelFilter){
     function DeploymentsService() {}
 
-    DeploymentsService.prototype.startLatestDeployment = function(deploymentConfig, $scope) {
+    DeploymentsService.prototype.startLatestDeployment = function(deploymentConfig, context, $scope) {
       // increase latest version by one so starts new deployment based on latest
       var req = {
         kind: "DeploymentConfig",
@@ -19,10 +19,10 @@ angular.module("openshiftConsole")
       req.status.latestVersion++;
 
       // update the deployment config
-      DataService.update("deploymentconfigs", deploymentConfig.metadata.name, req, $scope).then(
+      DataService.update("deploymentconfigs", deploymentConfig.metadata.name, req, context).then(
         function() {
           $scope.alerts = $scope.alerts || {};
-          $scope.alerts["deploy"] = 
+          $scope.alerts["deploy"] =
             {
               type: "success",
               message: "Deployment #" + req.status.latestVersion + " of " + deploymentConfig.metadata.name + " has started.",
@@ -30,7 +30,7 @@ angular.module("openshiftConsole")
         },
         function(result) {
           $scope.alerts = $scope.alerts || {};
-          $scope.alerts["deploy"] = 
+          $scope.alerts["deploy"] =
             {
               type: "error",
               message: "An error occurred while starting the deployment.",
@@ -40,14 +40,14 @@ angular.module("openshiftConsole")
       );
     };
 
-    DeploymentsService.prototype.retryFailedDeployment = function(deployment, $scope) {
+    DeploymentsService.prototype.retryFailedDeployment = function(deployment, context, $scope) {
       var req = angular.copy(deployment);
       var deploymentName = deployment.metadata.name;
       var deploymentConfigName = $filter('annotation')(deployment, 'deploymentConfig');
       // TODO: we need a "retry" api endpoint so we don't have to do this manually
 
       // delete the deployer pod as well as the deployment hooks pods, if any
-      DataService.list("pods", $scope, function(list) {
+      DataService.list("pods", context, function(list) {
         var pods = list.by("metadata.name");
         var deleteDeployerPod = function(pod) {
           var deployerPodForAnnotation = $filter('annotationName')('deployerPodFor');
@@ -57,8 +57,8 @@ angular.module("openshiftConsole")
                 Logger.info("Deployer pod " + pod.metadata.name + " deleted");
               },
               function(result) {
-                $scope.alerts = $scope.alerts || {};                
-                $scope.alerts["retrydeployer"] = 
+                $scope.alerts = $scope.alerts || {};
+                $scope.alerts["retrydeployer"] =
                   {
                     type: "error",
                     message: "An error occurred while deleting the deployer pod.",
@@ -80,10 +80,10 @@ angular.module("openshiftConsole")
       delete req.metadata.annotations[deploymentCancelledAnnotation];
 
       // update the deployment
-      DataService.update("replicationcontrollers", deploymentName, req, $scope).then(
+      DataService.update("replicationcontrollers", deploymentName, req, context).then(
         function() {
           $scope.alerts = $scope.alerts || {};
-          $scope.alerts["retry"] = 
+          $scope.alerts["retry"] =
             {
               type: "success",
               message: "Retrying deployment " + deploymentName + " of " + deploymentConfigName + ".",
@@ -91,7 +91,7 @@ angular.module("openshiftConsole")
         },
         function(result) {
           $scope.alerts = $scope.alerts || {};
-          $scope.alerts["retry"] = 
+          $scope.alerts["retry"] =
             {
               type: "error",
               message: "An error occurred while retrying the deployment.",
@@ -101,9 +101,9 @@ angular.module("openshiftConsole")
       );
     };
 
-    DeploymentsService.prototype.rollbackToDeployment = function(deployment, changeScaleSettings, changeStrategy, changeTriggers, $scope) {
+    DeploymentsService.prototype.rollbackToDeployment = function(deployment, changeScaleSettings, changeStrategy, changeTriggers, context, $scope) {
       var deploymentName = deployment.metadata.name;
-      var deploymentConfigName = $filter('annotation')(deployment, 'deploymentConfig');        
+      var deploymentConfigName = $filter('annotation')(deployment, 'deploymentConfig');
       // put together a new rollback request
       var req = {
         kind: "DeploymentConfigRollback",
@@ -121,14 +121,14 @@ angular.module("openshiftConsole")
 
       // TODO: we need a "rollback" api endpoint so we don't have to do this manually
 
-      // create the deployment config rollback 
-      DataService.create("deploymentconfigrollbacks", null, req, $scope).then(
+      // create the deployment config rollback
+      DataService.create("deploymentconfigrollbacks", null, req, context).then(
         function(newDeploymentConfig) {
           // update the deployment config based on the one returned by the rollback
-          DataService.update("deploymentconfigs", deploymentConfigName, newDeploymentConfig, $scope).then(
+          DataService.update("deploymentconfigs", deploymentConfigName, newDeploymentConfig, context).then(
             function(rolledBackDeploymentConfig) {
               $scope.alerts = $scope.alerts || {};
-              $scope.alerts["rollback"] = 
+              $scope.alerts["rollback"] =
                 {
                   type: "success",
                   message: "Deployment #" + rolledBackDeploymentConfig.status.latestVersion + " is rolling back " + deploymentConfigName + " to " + deploymentName + ".",
@@ -136,7 +136,7 @@ angular.module("openshiftConsole")
             },
             function(result) {
               $scope.alerts = $scope.alerts || {};
-              $scope.alerts["rollback"] = 
+              $scope.alerts["rollback"] =
                 {
                   type: "error",
                   message: "An error occurred while rolling back the deployment.",
@@ -146,8 +146,8 @@ angular.module("openshiftConsole")
           );
         },
         function(result) {
-          $scope.alerts = $scope.alerts || {};          
-          $scope.alerts["rollback"] = 
+          $scope.alerts = $scope.alerts || {};
+          $scope.alerts["rollback"] =
             {
               type: "error",
               message: "An error occurred while rolling back the deployment.",
@@ -157,9 +157,9 @@ angular.module("openshiftConsole")
       );
     };
 
-    DeploymentsService.prototype.cancelRunningDeployment = function(deployment, $scope) {
+    DeploymentsService.prototype.cancelRunningDeployment = function(deployment, context, $scope) {
       var deploymentName = deployment.metadata.name;
-      var deploymentConfigName = $filter('annotation')(deployment, 'deploymentConfig');        
+      var deploymentConfigName = $filter('annotation')(deployment, 'deploymentConfig');
       var req = angular.copy(deployment);
 
       // TODO: we need a "cancel" api endpoint so we don't have to do this manually
@@ -171,10 +171,10 @@ angular.module("openshiftConsole")
       req.metadata.annotations[deploymentStatusReasonAnnotation] = "The deployment was cancelled by the user";
 
       // update the deployment with cancellation annotations
-      DataService.update("replicationcontrollers", deploymentName, req, $scope).then(
+      DataService.update("replicationcontrollers", deploymentName, req, context).then(
         function() {
           $scope.alerts = $scope.alerts || {};
-          $scope.alerts["cancel"] = 
+          $scope.alerts["cancel"] =
             {
               type: "success",
               message: "Cancelling deployment " + deploymentName + " of " + deploymentConfigName + ".",
@@ -182,7 +182,7 @@ angular.module("openshiftConsole")
         },
         function(result) {
           $scope.alerts = $scope.alerts || {};
-          $scope.alerts["cancel"] = 
+          $scope.alerts["cancel"] =
             {
               type: "error",
               message: "An error occurred while cancelling the deployment.",
@@ -210,6 +210,13 @@ angular.module("openshiftConsole")
         deploymentsByDeploymentConfig[deploymentConfigName] = deploymentsByDeploymentConfig[deploymentConfigName] || {};
       });
       return deploymentsByDeploymentConfig;
+    };
+
+    DeploymentsService.prototype.deploymentBelongsToConfig = function(deployment, deploymentConfigName) {
+      if (!deployment || !deploymentConfigName) {
+        return false;
+      }
+      return deploymentConfigName === $filter('annotation')(deployment, 'deploymentConfig');
     };
 
     DeploymentsService.prototype.associateRunningDeploymentToDeploymentConfig = function(deploymentsByDeploymentConfig) {

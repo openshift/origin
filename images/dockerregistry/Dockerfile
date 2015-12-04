@@ -9,6 +9,9 @@ FROM openshift/origin-base
 RUN yum install -y tree findutils epel-release && \
     yum clean all
 
+# The registry doesn't require a privileged user.
+USER 1001
+
 ENV REGISTRY_CONFIGURATION_PATH=/config.yml
 
 EXPOSE 5000

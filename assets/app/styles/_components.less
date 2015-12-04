@@ -88,11 +88,11 @@
         margin: 4px 0 6px;
       }
       .component {
+        // prevent content from overflowing the parent in Safari
+        width: 100%;
         @media (min-width: @screen-sm-min) {
           // assign flex properties when >768 for proper layout then .component divs will stack at mobile by default
-          .flex(@columns: 1);
-          // needed to enable truncation on Safari
-          width: 100%;
+          .flex(@columns: 2 1 0%);
         }
         h2,h3 {
           margin: 0 0 5px;
@@ -101,29 +101,34 @@
         &.meta-data {
           @media (min-width: @screen-sm-min) {
             // assign flex properties when >768 for proper layout then .component divs will stack at mobile by default
-            .flex(@columns: 1);
+            .flex(@columns: 1 1 0%);
           }
           font-size: @component-label + 1;
           text-align: right;
           line-height: @line-height-base;
           .align-self(@align: left);
           color: @gray-light;
-          @media (min-width: @screen-sm-min) and (max-width: @screen-sm-max), (max-width: 380px) {
+          @media (min-width: @screen-sm-min) and (max-width: @screen-sm-max) {
             // block display multiple port mappings at specific widths to prevent breaking of layout, but also prevent wrapping when not needed
-            // 380px is the min width at which 2 port mappings can be displayed inline without extending beyond their box, so stack them when viewport is <380
             .port-mappings {
               display: block;
             }
           }
         }
-
+        .add-route-link {
+          text-transform: none;
+        }
         @media (max-width: @screen-sm-min) {
+          // display side-by-side at mobile resolutions
+          .port-mappings, .add-route-link {
+            display: inline-block;
+            margin-right: 5px;
+          }
           &.meta-data {
             /* Left align for vertical layout at small sizes */
             text-align: left;
           }
         }
-
       }
     }
     &.service {

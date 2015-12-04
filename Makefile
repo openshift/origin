@@ -101,7 +101,8 @@ ifeq ($(TEST_ASSETS), true)
 check-test:
 	hack/test-assets.sh
 else
-check-test: check-verify
+check-test: 
+	check-verify
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration.sh
 endif

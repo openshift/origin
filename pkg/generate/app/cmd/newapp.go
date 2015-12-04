@@ -3,9 +3,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"regexp"
-	"strconv"
-	"strings"
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -16,9 +13,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
-	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -32,7 +27,6 @@ import (
 	"github.com/openshift/origin/pkg/template"
 	outil "github.com/openshift/origin/pkg/util"
 	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
-	"github.com/openshift/origin/pkg/util/namer"
 )
 
 const (
@@ -47,23 +41,20 @@ const (
 // and no Dockerfile is detected in the repository.
 var ErrNoDockerfileDetected = fmt.Errorf("No Dockerfile was found in the repository and the requested build strategy is 'docker'")
 
-// the opposite of kvalidation.DNS1123LabelFmt
-var invalidNameCharactersRegexp = regexp.MustCompile("[^-a-z0-9]")
-
 // AppConfig contains all the necessary configuration for an application
 type AppConfig struct {
-	SourceRepositories util.StringList
+	SourceRepositories []string
 	ContextDir         string
 
-	Components    util.StringList
-	ImageStreams  util.StringList
-	DockerImages  util.StringList
-	Templates     util.StringList
-	TemplateFiles util.StringList
+	Components    []string
+	ImageStreams  []string
+	DockerImages  []string
+	Templates     []string
+	TemplateFiles []string
 
-	TemplateParameters util.StringList
-	Groups             util.StringList
-	Environment        util.StringList
+	TemplateParameters []string
+	Groups             []string
+	Environment        []string
 	Labels             map[string]string
 
 	AddEnvironmentToBuild bool
@@ -71,9 +62,11 @@ type AppConfig struct {
 	Dockerfile string
 
 	Name             string
+	To               string
 	Strategy         string
 	InsecureRegistry bool
 	OutputDocker     bool
+	NoOutput         bool
 
 	ExpectToBuild      bool
 	BinaryBuild        bool
@@ -583,145 +576,72 @@ func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
 	return errors.NewAggregate(errs)
 }
 
-func (c *AppConfig) validateEnforcedName() error {
-	if ok, _ := validation.ValidateServiceName(c.Name, false); !ok {
-		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", c.Name)
+func validateEnforcedName(name string) error {
+	if ok, _ := validation.ValidateServiceName(name, false); !ok {
+		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", name)
 	}
 	return nil
 }
 
-func ensureValidUniqueName(names map[string]int, name string) (string, error) {
-	// Ensure that name meets length requirements
-	if len(name) < 2 {
-		return "", fmt.Errorf("invalid name: %s", name)
+func validateOutputImageReference(ref string) error {
+	if _, err := imageapi.ParseDockerImageReference(ref); err != nil {
+		return fmt.Errorf("invalid output image reference: %s", ref)
 	}
-
-	// Make all names lowercase
-	name = strings.ToLower(name)
-
-	// Remove everything except [-0-9a-z]
-	name = invalidNameCharactersRegexp.ReplaceAllString(name, "")
-
-	// Remove leading hyphen(s) that may be introduced by the previous step
-	name = strings.TrimLeft(name, "-")
-
-	if len(name) > kvalidation.DNS1123SubdomainMaxLength {
-		glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, kvalidation.DNS1123SubdomainMaxLength)
-		name = name[:kvalidation.DNS1123SubdomainMaxLength]
-	}
-
-	count, existing := names[name]
-	if !existing {
-		names[name] = 0
-		return name, nil
-	}
-	count++
-	names[name] = count
-	newName := namer.GetName(name, strconv.Itoa(count), kvalidation.DNS1123SubdomainMaxLength)
-	return newName, nil
+	return nil
 }
 
 // buildPipelines converts a set of resolved, valid references into pipelines.
 func (c *AppConfig) buildPipelines(components app.ComponentReferences, environment app.Environment) (app.PipelineGroup, error) {
 	pipelines := app.PipelineGroup{}
-	names := map[string]int{}
+	pipelineBuilder := app.NewPipelineBuilder(c.Name, c.GetBuildEnvironment(environment), c.OutputDocker).To(c.To)
 	for _, group := range components.Group() {
 		glog.V(4).Infof("found group: %#v", group)
 		common := app.PipelineGroup{}
 		for _, ref := range group {
 			refInput := ref.Input()
-
-			var pipeline *app.Pipeline
-			var name string
-
+			from := refInput.String()
+			var (
+				pipeline *app.Pipeline
+				err      error
+			)
 			if refInput.ExpectToBuild {
 				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)
-				input, err := app.InputImageFromMatch(refInput.ResolvedMatch)
-				if err != nil {
+				if pipeline, err = pipelineBuilder.NewBuildPipeline(from, refInput.ResolvedMatch, refInput.Uses); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", refInput, err)
 				}
-				if !input.AsImageStream {
-					glog.Warningf("Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed.", refInput.ResolvedMatch.Value)
-				}
-
-				strategy, source, err := app.StrategyAndSourceForRepository(refInput.Uses, input)
-				if err != nil {
-					return nil, fmt.Errorf("can't build %q: %v", refInput, err)
-				}
-
-				// Override resource names from the cli
-				name = c.Name
-				if len(name) == 0 {
-					var ok bool
-					name, ok = (app.NameSuggestions{source, input}).SuggestName()
-					if !ok {
-						return nil, fmt.Errorf("can't suggest a valid name, please specify a name with --name")
-					}
-				}
-				name, err = ensureValidUniqueName(names, name)
-				source.Name = name
-				if err != nil {
-					return nil, err
-				}
-
-				// Append any exposed ports from Dockerfile to input image
-				if refInput.Uses.IsDockerBuild() && refInput.Uses.Info() != nil {
-					node := refInput.Uses.Info().Dockerfile.AST()
-					ports := dockerfileutil.LastExposedPorts(node)
-					if len(ports) > 0 {
-						if input.Info == nil {
-							input.Info = &imageapi.DockerImage{
-								Config: &imageapi.DockerConfig{},
-							}
-						}
-						input.Info.Config.ExposedPorts = map[string]struct{}{}
-						for _, p := range ports {
-							input.Info.Config.ExposedPorts[p] = struct{}{}
-						}
-					}
-				}
-				if pipeline, err = app.NewBuildPipeline(refInput.String(), input, c.OutputDocker, strategy, c.GetBuildEnvironment(environment), source); err != nil {
-					return nil, fmt.Errorf("can't build %q: %v", refInput, err)
-				}
-
 			} else {
 				glog.V(4).Infof("will include %q", ref)
-				input, err := app.InputImageFromMatch(refInput.ResolvedMatch)
-				if err != nil {
-					return nil, fmt.Errorf("can't include %q: %v", refInput, err)
-				}
-				name = c.Name
-				if len(name) == 0 {
-					var ok bool
-					name, ok = input.SuggestName()
-					if !ok {
-						return nil, fmt.Errorf("can't suggest a valid name, please specify a name with --name")
-					}
-				}
-				name, err = ensureValidUniqueName(names, name)
-				if err != nil {
-					return nil, err
-				}
-				input.ObjectName = name
-				if pipeline, err = app.NewImagePipeline(refInput.String(), input); err != nil {
+				if pipeline, err = pipelineBuilder.NewImagePipeline(from, refInput.ResolvedMatch); err != nil {
 					return nil, fmt.Errorf("can't include %q: %v", refInput, err)
 				}
 			}
-
 			if c.Deploy {
-				if err := pipeline.NeedsDeployment(environment, c.Labels, name); err != nil {
+				if err := pipeline.NeedsDeployment(environment, c.Labels); err != nil {
 					return nil, fmt.Errorf("can't set up a deployment for %q: %v", refInput, err)
 				}
 			}
+			if c.NoOutput {
+				pipeline.Build.Output = nil
+			}
+			if err := pipeline.Validate(); err != nil {
+				switch err.(type) {
+				case app.CircularOutputReferenceError:
+					if len(c.To) == 0 {
+						// Output reference was generated, return error.
+						return nil, err
+					}
+					// Output reference was explicitly provided, print warning.
+					fmt.Fprintf(c.ErrOut, "--> WARNING: %v\n", err)
+				default:
+					return nil, err
+				}
+			}
 			common = append(common, pipeline)
-
 			if err := common.Reduce(); err != nil {
 				return nil, fmt.Errorf("can't create a pipeline from %s: %v", common, err)
 			}
-
 			describeBuildPipelineWithImage(c.Out, ref, pipeline, c.originNamespace)
 		}
-
 		pipelines = append(pipelines, common...)
 	}
 	return pipelines, nil
@@ -887,7 +807,7 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 		if c.HasArguments() {
 			return nil, fmt.Errorf("--list can't be used with arguments")
 		}
-		c.Components.Set("*")
+		c.Components = append(c.Components, "*")
 	}
 
 	components, repositories, environment, parameters, err := c.validate()
@@ -992,7 +912,13 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	}
 
 	if len(c.Name) > 0 {
-		if err := c.validateEnforcedName(); err != nil {
+		if err := validateEnforcedName(c.Name); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(c.To) > 0 {
+		if err := validateOutputImageReference(c.To); err != nil {
 			return nil, err
 		}
 	}
@@ -1000,6 +926,9 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	imageRefs := components.ImageComponentRefs()
 	if len(imageRefs) > 1 && len(c.Name) > 0 {
 		return nil, fmt.Errorf("only one component or source repository can be used when specifying a name")
+	}
+	if len(imageRefs) > 1 && len(c.To) > 0 {
+		return nil, fmt.Errorf("only one component or source repository can be used when specifying an output image reference")
 	}
 
 	env := app.Environment(environment)
@@ -1021,7 +950,12 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 
 	pipelines, err := c.buildPipelines(imageRefs, env)
 	if err != nil {
-		return nil, err
+		if err == app.ErrNameRequired {
+			return nil, fmt.Errorf("can't suggest a valid name, please specify a name with --name")
+		}
+		if err, ok := err.(app.CircularOutputReferenceError); ok {
+			return nil, fmt.Errorf("%v, please specify a different output reference with --to", err)
+		}
 	}
 
 	objects := app.Objects{}

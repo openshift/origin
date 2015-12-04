@@ -24,15 +24,28 @@ describe("ApplicationGenerator", function(){
       routing: {
         include: true,
         targetPort: {
-          containerPort: 80,
-          protocol: "TCP"
+          containerPort: 443,
+          protocol: "TCP",
+        },
+        host: "www.example.com",
+        path: "/test",
+        tls: {
+          termination: "edge",
+          insecureEdgeTerminationPolicy: "Redirect",
+          certificate: "dummy-cert",
+          key: "dummy-key",
+          caCertificate: "dummy-ca-cert"
         }
       },
       buildConfig: {
         sourceUrl: "https://github.com/openshift/ruby-hello-world.git",
         buildOnSourceChange: true,
         buildOnImageChange: true,
-        buildOnConfigChange: true
+        buildOnConfigChange: true,
+        envVars: {
+          "BUILD_ENV_1" : "someValue",
+          "BUILD_ENV_2" : "anotherValue"
+        }
       },
       deploymentConfig: {
         deployOnConfigChange: true,
@@ -174,8 +187,17 @@ describe("ApplicationGenerator", function(){
             kind: "Service",
             name: "theServiceName"
           },
+          host: "www.example.com",
+          path: "/test",
           port: {
-            targetPort: 80
+            targetPort: 443
+          },
+          tls: {
+            termination: "edge",
+            insecureEdgeTerminationPolicy: "Redirect",
+            certificate: "dummy-cert",
+            key: "dummy-key",
+            caCertificate: "dummy-ca-cert"
           }
         }
       });
@@ -224,7 +246,17 @@ describe("ApplicationGenerator", function(){
                       "from": {
                         "kind": "ImageStreamTag",
                         "name": "origin-ruby-sample:latest"
-                      }
+                      },
+                      "env": [
+                        {
+                          "name": "BUILD_ENV_1",
+                          "value": "someValue"
+                        },
+                        {
+                          "name": "BUILD_ENV_2",
+                          "value": "anotherValue"
+                        }                        
+                      ]
                     }
                 },
                 "triggers": [

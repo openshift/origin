@@ -68,7 +68,7 @@ func TestExternalKube(t *testing.T) {
 	cluster2MasterConfig.DNSConfig = nil
 
 	// Start cluster 2 (without clearing etcd) and get admin client configs and clients
-	cluster2Options := testserver.TestOptions{DeleteAllEtcdKeys: false}
+	cluster2Options := testserver.TestOptions{DeleteAllEtcdKeys: false, EnableControllers: true}
 	cluster2AdminConfigFile, err := testserver.StartConfiguredMasterWithOptions(cluster2MasterConfig, cluster2Options)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -78,6 +78,14 @@ func TestUnprivilegedNewProject(t *testing.T) {
 
 	waitForProject(t, valerieOpenshiftClient, "new-project", 5*time.Second, 10)
 
+	actualProject, err := valerieOpenshiftClient.Projects().Get("new-project")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if e, a := "valerie", actualProject.Annotations[projectapi.ProjectRequester]; e != a {
+		t.Errorf("incorrect project requester: expected %v, got %v", e, a)
+	}
+
 	if err := requestProject.Run(); !kapierrors.IsAlreadyExists(err) {
 		t.Fatalf("expected an already exists error, but got %v", err)
 	}

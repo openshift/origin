@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
@@ -27,6 +28,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
 )
 
 var ErrExportOmit = fmt.Errorf("object is omitted")
@@ -113,6 +115,30 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 		}
 	case *kapi.ServiceAccount:
 		serviceaccount.Strategy.PrepareForCreate(obj)
+		if exact {
+			return nil
+		}
+
+		dockercfgSecretPrefix := osautil.GetDockercfgSecretNamePrefix(t)
+		newImagePullSecrets := []kapi.LocalObjectReference{}
+		for _, secretRef := range t.ImagePullSecrets {
+			if strings.HasPrefix(secretRef.Name, dockercfgSecretPrefix) {
+				continue
+			}
+			newImagePullSecrets = append(newImagePullSecrets, secretRef)
+		}
+		t.ImagePullSecrets = newImagePullSecrets
+
+		tokenSecretPrefix := osautil.GetTokenSecretNamePrefix(t)
+		newMountableSecrets := []kapi.ObjectReference{}
+		for _, secretRef := range t.Secrets {
+			if strings.HasPrefix(secretRef.Name, dockercfgSecretPrefix) ||
+				strings.HasPrefix(secretRef.Name, tokenSecretPrefix) {
+				continue
+			}
+			newMountableSecrets = append(newMountableSecrets, secretRef)
+		}
+		t.Secrets = newMountableSecrets
 
 	case *deployapi.DeploymentConfig:
 		// TODO: when internal refactor is completed use status reset

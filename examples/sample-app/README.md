@@ -34,7 +34,6 @@ At this stage of OpenShift 3 development, there are a few things that you will n
 **VAGRANT USERS**:
 If you haven't already, fire up a Vagrant instance, where since a OpenShift compile is occurring in a subsequent step below, you need to override the default amount of memory assigned to the VM.
 
-	$ export OPENSHIFT_MEMORY=2096
 	$ vagrant up
 	$ vagrant ssh
 
@@ -95,10 +94,12 @@ This section covers how to perform all the steps of building, deploying, and upd
 - - -
 **NOTE**
 
-* All commands assume the `oc` binary/symlink is in your path.
+* All commands assume the `oc`/`oadm` binaries/symlinks are in your path.
+    * **VAGRANT USERS**: `export PATH="/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$PATH"`
 * All commands assume that you are working from the `sample-app` directory in your local environment.
     * If you are working from a local git repo, this might be `$GOPATH/src/github.com/<username>/origin/examples/sample-app`
     * **VAGRANT USERS**: `cd /data/src/github.com/openshift/origin/examples/sample-app`
+* **VAGRANT USERS**: when you are inside of vagrant environment, you have pre-setted `$KUBECONFIG` environment variable. It may interferes with subsequent commands, so we are recommending to unset it: `unset KUBECONFIG`
 
 - - -
 
@@ -118,7 +119,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
        **VAGRANT USERS**: Instead of the above command, use
 
-        $ sudo /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
+        $ sudo `which openshift` start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
 
     Note: sudo is required so the kubernetes proxy can manipulate iptables rules to expose service ports.
 
@@ -160,11 +161,15 @@ This section covers how to perform all the steps of building, deploying, and upd
 
     You should see:
 
-        Name:       docker-registry
-        Labels:     docker-registry=default
-        Selector:   docker-registry=default
-        Port:       5000
-        Endpoints:  172.17.0.60:5000
+        Name:                docker-registry
+        Namespace:           default
+        Labels:              docker-registry=default
+        Selector:            docker-registry=default
+        Type:                ClusterIP
+        IP:                  172.30.163.205
+        Port:                5000-tcp    5000/TCP
+        Endpoints:           172.17.0.50:5000
+        Session Affinity:    ClientIP
         No events.
 
     If "Endpoints" is listed as `<none>`, your registry hasn't started yet.  You can run `oc get pods` to
@@ -174,10 +179,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 6. Login as `test-admin` using any password
 
-        $ oc login --certificate-authority=openshift.local.config/master/ca.crt
-
-       **VAGRANT USERS**: If subsequent commands fail because of a config validation error, log out, unset the $KUBECONFIG environment variable (if it is set) and then log in again.
-
+        $ oc login --certificate-authority=openshift.local.config/master/ca.crt -u test-admin
 
 
 7. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.

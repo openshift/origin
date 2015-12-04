@@ -81,7 +81,9 @@ angular.module('openshiftConsole')
               },
               tick: {
                 count: 30,
-                culling: true,
+                culling: {
+                  max: 7
+                },
                 fit: true,
                 type: 'timeseries',
                 format: '%H:%M'

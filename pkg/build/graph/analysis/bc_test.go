@@ -72,6 +72,16 @@ func TestPushableBuild(t *testing.T) {
 	}
 }
 
+func TestBuildConfigNoOutput(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/bc-missing-output.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// we were getting go panics with nil refs cause output destinations are not required for BuildConfigs
+	buildedges.AddAllInputOutputEdges(g)
+}
+
 func TestCircularDeps(t *testing.T) {
 	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/circular.yaml")
 	if err != nil {

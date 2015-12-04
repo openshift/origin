@@ -25,7 +25,7 @@ func GetImageLabels(c client.ImageStreamImageInterface, imageRepoName, imageRef 
 
 // RunInPodContainer will run provided command in the specified pod container.
 func RunInPodContainer(oc *exutil.CLI, selector labels.Selector, cmd []string) error {
-	pods, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), selector, exutil.CheckPodIsRunningFunc, 1, 120*time.Second)
+	pods, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), selector, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func CheckPageContains(oc *exutil.CLI, endpoint, path, contents string) (bool, e
 		return false, err
 	}
 
-	response, err := exutil.FetchURL(fmt.Sprintf("http://%s/%s", address, path), 60*time.Second)
+	response, err := exutil.FetchURL(fmt.Sprintf("http://%s/%s", address, path), 3*time.Minute)
 	if err != nil {
 		return false, err
 	}

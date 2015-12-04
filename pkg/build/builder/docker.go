@@ -21,6 +21,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
@@ -32,16 +33,18 @@ type DockerBuilder struct {
 	tar          tar.Tar
 	build        *api.Build
 	urlTimeout   time.Duration
+	client       client.BuildInterface
 }
 
 // NewDockerBuilder creates a new instance of DockerBuilder
-func NewDockerBuilder(dockerClient DockerClient, build *api.Build) *DockerBuilder {
+func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterface, build *api.Build) *DockerBuilder {
 	return &DockerBuilder{
 		dockerClient: dockerClient,
 		build:        build,
 		git:          git.New(),
 		tar:          tar.New(),
 		urlTimeout:   urlCheckTimeout,
+		client:       buildsClient,
 	}
 }
 
@@ -53,8 +56,12 @@ func (d *DockerBuilder) Build() error {
 	if err != nil {
 		return err
 	}
-	if err := fetchSource(buildDir, d.build, d.urlTimeout, os.Stdin, d.git); err != nil {
+	sourceInfo, err := fetchSource(buildDir, d.build, d.urlTimeout, os.Stdin, d.git)
+	if err != nil {
 		return err
+	}
+	if sourceInfo != nil {
+		updateBuildRevision(d.client, d.build, sourceInfo)
 	}
 	if err := d.addBuildParameters(buildDir); err != nil {
 		return err

@@ -20,10 +20,10 @@ items:
         labels:
           run-container: gitserver
       spec:
+        serviceAccountName: gitserver
         containers:
         - name: gitserver
           image: openshift/origin-gitserver
-          serviceAccountName: gitserver
           ports:
           - containerPort: 8080
 
@@ -58,10 +58,11 @@ items:
           # to remove the need to use a persistent volume.
           - name: GIT_HOME
             value: /var/lib/git
+
           # The directory to use as the default hook directory for any
           # cloned or autolinked directories.
           - name: HOOK_PATH
-            value: /var/lib/git-hooks
+          # value: /var/lib/git-hooks
 
           # Authentication and authorization
 

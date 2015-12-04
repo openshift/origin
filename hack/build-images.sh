@@ -15,6 +15,7 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/contrib/node/install-sdn.sh"
 os::log::install_errexit
 
 # Go to the top of the tree.
@@ -48,6 +49,12 @@ cp -pf "${imagedir}/hello-openshift" examples/hello-openshift/bin
 cp -pf "${imagedir}/deployment"      examples/deployment/bin
 cp -pf "${imagedir}/gitserver"       examples/gitserver/bin
 cp -pf "${imagedir}/dockerregistry"  images/dockerregistry/bin
+cp -pf "${imagedir}/recycle"         images/recycler/bin
+
+# Copy SDN scripts into images/node
+os::provision::install-sdn "${OS_ROOT}" "${OS_ROOT}/images/node"
+mkdir -p images/node/conf/
+cp -pf "${OS_ROOT}/contrib/systemd/openshift-sdn-ovs.conf" images/node/conf/
 
 # builds an image and tags it two ways - with latest, and with the release tag
 function image {
@@ -56,8 +63,9 @@ function image {
   docker tag -f $1:latest $1:${OS_RELEASE_COMMIT}
 }
 
-# images that depend on scratch
+# images that depend on scratch / centos
 image openshift/origin-pod                   images/pod
+image openshift/openvswitch                  images/openvswitch
 # images that depend on openshift/origin-base
 image openshift/origin                       images/origin
 image openshift/origin-haproxy-router        images/router/haproxy
@@ -65,10 +73,12 @@ image openshift/origin-keepalived-ipfailover images/ipfailover/keepalived
 image openshift/origin-docker-registry       images/dockerregistry
 # images that depend on openshift/origin
 image openshift/origin-deployer              images/deployer
+image openshift/origin-recycler              images/recycler
 image openshift/origin-docker-builder        images/builder/docker/docker-builder
 image openshift/origin-gitserver             examples/gitserver
 image openshift/origin-sti-builder           images/builder/docker/sti-builder
 image openshift/origin-f5-router             images/router/f5
+image openshift/node                         images/node
 # unpublished images
 image openshift/origin-custom-docker-builder images/builder/docker/custom-docker-builder
 

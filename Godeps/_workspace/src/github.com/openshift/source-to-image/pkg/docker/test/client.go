@@ -49,6 +49,10 @@ func (d *FakeDockerClient) RemoveImage(name string) error {
 	return d.RemoveImageErr
 }
 
+func (d *FakeDockerClient) Ping() error {
+	return nil
+}
+
 // InspectImage inspects the fake image
 func (d *FakeDockerClient) InspectImage(name string) (*docker.Image, error) {
 	d.InspectImageName = append(d.InspectImageName, name)

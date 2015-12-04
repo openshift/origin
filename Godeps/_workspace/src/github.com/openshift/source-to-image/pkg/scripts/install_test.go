@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/test"
 )
@@ -14,7 +15,7 @@ func getFakeInstaller() *installer {
 	return &installer{
 		image:      "test-image",
 		scriptsURL: "http://the.scripts.url/scripts",
-		docker:     &test.FakeDocker{},
+		docker:     &docker.FakeDocker{},
 		downloader: &test.FakeDownloader{},
 		fs:         &test.FakeFileSystem{},
 	}
@@ -35,7 +36,7 @@ func TestInstallRequiredError(t *testing.T) {
 func TestRun(t *testing.T) {
 	inst := getFakeInstaller()
 	defaultURL := "http://the.default.url"
-	inst.docker.(*test.FakeDocker).DefaultURLResult = defaultURL
+	inst.docker.(*docker.FakeDocker).DefaultURLResult = defaultURL
 	scriptsURL := "http://the.scripts.url"
 	inst.scriptsURL = scriptsURL
 	workingDir := "/working-dir/"

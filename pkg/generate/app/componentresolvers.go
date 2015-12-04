@@ -39,7 +39,7 @@ type PerfectMatchWeightedResolver []WeightedResolver
 // Resolve resolves the provided input and returns only exact matches
 func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, error) {
 	imperfect := ScoredComponentMatches{}
-	group := []WeightedResolver{}
+	var group WeightedResolvers
 	for i, resolver := range r {
 		if len(group) == 0 || resolver.Weight == group[0].Weight {
 			group = append(group, resolver)
@@ -47,7 +47,7 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 				continue
 			}
 		}
-		exact, inexact, err := resolveExact(WeightedResolvers(group), value)
+		exact, inexact, err := resolveExact(group, value)
 		switch {
 		case exact != nil:
 			if exact.Score == 0.0 {

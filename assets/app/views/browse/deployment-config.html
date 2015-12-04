@@ -1,4 +1,4 @@
-<div ng-controller="DeploymentConfigController" class="content">
+<div class="content">
   <project-page>
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
@@ -6,14 +6,21 @@
     <div class="tile" ng-if="deploymentConfig">
       <h1>
         {{deploymentConfig.metadata.name}}
-        <span ng-if="deploymentConfig.status.details.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{deploymentConfig.status.details.message}}"></span>        
+        <delete-button
+          class="pull-right fa-lg"
+          resource-type="deploymentconfig"
+          resource-name="{{deploymentConfig.metadata.name}}"
+          project-name="{{deploymentConfig.metadata.namespace}}"
+          alerts="alerts">
+        </delete-button>
+        <span ng-if="deploymentConfig.status.details.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{deploymentConfig.status.details.message}}"></span>
         <small class="meta">created <relative-timestamp timestamp="deploymentConfig.metadata.creationTimestamp"></relative-timestamp></small>
       </h1>
       <labels labels="deploymentConfig.metadata.labels" clickable="true" kind="deployments" title-kind="deployment configs" project-name="{{deploymentConfig.metadata.namespace}}" limit="3"></labels>
       <div class="resource-details">
         <div class="row">
           <div class="col-lg-6">
-            <h3>Configuration</h3>    
+            <h3>Configuration</h3>
             <dl class="dl-horizontal left">
               <div ng-if="deploymentConfig.spec.strategy.type">
                   <dt>Strategy:</dt>
@@ -29,7 +36,7 @@
                 <dt>Max Unavailable:</dt>
                 <dd>{{deploymentConfig.spec.strategy.rollingParams.maxUnavailable}}</dd>
                 <dt>Max Surge:</dt>
-                <dd>{{deploymentConfig.spec.strategy.rollingParams.maxSurge}}</dd>              
+                <dd>{{deploymentConfig.spec.strategy.rollingParams.maxSurge}}</dd>
               </div>
               <!-- TODO: Surface the parameters for the recreate and custom strategies -->
             </dl>
@@ -47,8 +54,8 @@
                     pod-template="deploymentConfig.spec.template"
                     images-by-docker-reference="imagesByDockerReference"
                     builds="builds"
-                    detailed="true"></pod-template>            
-            </dl>          
+                    detailed="true"></pod-template>
+            </dl>
           </div>
           <div class="col-lg-6">
             <h3>Triggers</h3>
@@ -75,14 +82,14 @@
                     <dt>New image for:</dt>
                     <dd>{{trigger.imageChangeParams.from | imageObjectRef : deploymentConfig.metadata.namespace}}</dd>
                   </span>
-                  <span ng-switch-when="ConfigChange">  
+                  <span ng-switch-when="ConfigChange">
                     <dt>Change of:</dt>
                     <dd>Config</dd>
                   </span>
                 </span>
               </div>
             </dl>
-          </div>        
+          </div>
         </div>
         <annotations annotations="deploymentConfig.metadata.annotations"></annotations>
       </div>
@@ -105,24 +112,15 @@
             <td data-title="Deployment">
               <!-- Deployment number and link -->
               <span ng-if="deployment | annotation : 'deploymentVersion'">
-                <a ng-href="project/{{deployment.metadata.namespace}}/browse/deployments/{{deploymentConfig.metadata.name}}/{{deployment.metadata.name}}">#{{deployment | annotation : 'deploymentVersion'}}</a>
+                <a ng-href="{{deployment | navigateResourceURL}}">#{{deployment | annotation : 'deploymentVersion'}}</a>
                 <span ng-if="deploymentConfig.status.latestVersion == (deployment | annotation : 'deploymentVersion')">(latest)</span>
               </span>
             </td>
             <td data-title="Status">
               <div row class="status">
-                <!-- Deployment status -->
-                <span ng-switch="deployment | deploymentStatus" class="hide-ng-leave status-icon">
-                  <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>              
-                  <span ng-switch-when="Deployed" class="fa fa-check text-success" aria-hidden="true"></span>
-                  <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
-                  <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
-                  <span ng-switch-when="New" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-                  <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-                  <span ng-switch-default class="fa fa-refresh" aria-hidden="true"></span>
-                </span>
+                <status-icon status="deployment | deploymentStatus" disable-animation></status-icon>
                 <span flex>
-                  {{deployment | deploymentStatus}}<span ng-if="(deployment | deploymentStatus) == 'Deployed' || (deployment | deploymentStatus) == 'Running'">, 
+                  {{deployment | deploymentStatus}}<span ng-if="(deployment | deploymentStatus) == 'Deployed' || (deployment | deploymentStatus) == 'Running'">,
                   <span ng-if="deployment.spec.replicas !== deployment.status.replicas">{{deployment.status.replicas}}/</span>{{deployment.spec.replicas}} replica<span ng-if="deployment.spec.replicas != 1">s</span></span>
                 </span>
                 <!-- TODO would be nice to have the deploymentStatusReason in a popup, when there is one -->
@@ -130,7 +128,7 @@
             </td>
             <td data-title="Createed">
               <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
-              <span>- {{deployment.metadata.creationTimestamp | date : 'short'}}</span>            
+              <span>- {{deployment.metadata.creationTimestamp | date : 'short'}}</span>
             </td>
             <td data-title="Trigger">
               <span ng-if="!deployment.causes.length">Unknown</span>
@@ -146,11 +144,11 @@
                     <span ng-switch-default>{{cause.type}}</span>
                   </span>
                 </span>
-              </span>              
+              </span>
           </td>
         </tr>
       </tbody>
       </table>
     </div>
   </project-page>
-</div>    
+</div>

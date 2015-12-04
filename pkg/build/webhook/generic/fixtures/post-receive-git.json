@@ -15,7 +15,7 @@
           "name": "Joe Smith",
           "email": "joe.smith@gmail.com"
         },
-        "message": "Merge pull request #31 from mnagy/prepare_for_new_mysql_image\n\nPrepare for new openshift/mysql-55-centos7 image"
+        "message": "Merge pull request #31 from mnagy/prepare_for_new_mysql_image\n\nPrepare for new centos/mysql-56-centos7 image"
       }
     ]
   }

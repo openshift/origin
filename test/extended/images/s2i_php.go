@@ -17,7 +17,7 @@ var _ = g.Describe("images: s2i: php", func() {
 		oc              = exutil.NewCLI("s2i-php", exutil.KubeConfigPath())
 		hotDeployParam  = "OPCACHE_REVALIDATE_FREQ=0"
 		modifyCommand   = []string{"sed", "-ie", `s/\$result\['c'\]/1337/`, "app/View/Layouts/default.ctp"}
-		pageCountFunc   = func(count int) string { return fmt.Sprintf(`<span class="code" id="count-value">%d</span>`, count) }
+		pageCountFn     = func(count int) string { return fmt.Sprintf(`<span class="code" id="count-value">%d</span>`, count) }
 		dcName          = "cakephp-mysql-example-1"
 		dcLabel         = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
 	)
@@ -30,7 +30,7 @@ var _ = g.Describe("images: s2i: php", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), dcName, exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), dcName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")
@@ -38,10 +38,10 @@ var _ = g.Describe("images: s2i: php", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			assertPageCountIs := func(i int) {
-				_, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFunc, 1, 120*time.Second)
+				_, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				result, err := CheckPageContains(oc, "cakephp-mysql-example", "", pageCountFunc(i))
+				result, err := CheckPageContains(oc, "cakephp-mysql-example", "", pageCountFn(i))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(result).To(o.BeTrue())
 			}

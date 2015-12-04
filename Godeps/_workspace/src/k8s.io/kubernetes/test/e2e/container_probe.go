@@ -34,11 +34,8 @@ var _ = Describe("Probing container", func() {
 	probe := webserverProbeBuilder{}
 
 	BeforeEach(func() {
-		framework.beforeEach()
 		podClient = framework.Client.Pods(framework.Namespace.Name)
 	})
-
-	AfterEach(framework.afterEach)
 
 	It("with readiness probe should not be ready before initial delay and never restart [Conformance]", func() {
 		p, err := podClient.Create(makePodSpec(probe.withInitialDelay().build(), nil))

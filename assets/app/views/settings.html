@@ -1,14 +1,15 @@
-<div ng-controller="ProjectController" class="content">
+<div class="content">
   <project-page>
-    <div ng-controller="SettingsController">
+    <div>
       <div class="page-header page-header-bleed-right">
-        <div class="actions action-button pull-right">
-          <i class="fa fa-trash-o fa-2x" 
-            ng-click="openDeleteModal()"
-            data-toggle="tooltip" 
-            data-placement="left" 
-            title="Delete Project"></i>
-        </div>
+        <delete-button
+          class="pull-right fa-lg"
+          resource-type="project"
+          resource-name="{{project.metadata.name}}"
+          project-name="{{project.metadata.name}}"
+          display-name="{{(project | displayName)}}"
+          alerts="alerts">
+        </delete-button>
         <h1>Project Settings</h1>
       </div>
 

@@ -19,7 +19,7 @@ items:
           name: rc-1
       spec:
         containers:
-        - image: openshift/mysql-55-centos7
+        - image: centos/mysql-56-centos7
           imagePullPolicy: IfNotPresent
           name: ruby-helloworld-database
           resources: {}
@@ -50,7 +50,7 @@ items:
           notname: rc-2
       spec:
         containers:
-        - image: openshift/mysql-55-centos7
+        - image: centos/mysql-56-centos7
           imagePullPolicy: IfNotPresent
           name: ruby-helloworld-database
           resources: {}
@@ -75,7 +75,7 @@ items:
       notname: rc-2
   spec:
     containers:
-    - image: openshift/mysql-55-centos7
+    - image: centos/mysql-56-centos7
       imagePullPolicy: IfNotPresent
       name: ruby-helloworld-database
       resources: {}

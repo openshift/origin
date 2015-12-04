@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -77,6 +78,11 @@ func (c *BasicChallengeHandler) HandleChallenge(headers http.Header) (http.Heade
 	}
 
 	if len(username) > 0 || len(password) > 0 {
+		// Basic auth does not support usernames containing colons
+		// http://tools.ietf.org/html/rfc2617#section-2
+		if strings.Contains(username, ":") {
+			return nil, false, fmt.Errorf("username %s is invalid for basic auth", username)
+		}
 		responseHeaders := http.Header{}
 		responseHeaders.Set("Authorization", getBasicHeader(username, password))
 		// remember so we don't re-handle non-interactively

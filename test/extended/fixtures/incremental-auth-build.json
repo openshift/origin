@@ -48,7 +48,7 @@
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/ruby-20-centos7:latest"
+              "name": "centos/ruby-22-centos7:latest"
             }
           }
         },

@@ -1,6 +1,6 @@
 package interfaces
 
-import "github.com/go-ldap/ldap"
+import "gopkg.in/ldap.v2"
 
 // LDAPGroupLister lists the LDAP groups that need to be synced by a job. The LDAPGroupLister needs to
 // be paired with an LDAPMemberExtractor that understands the format of the unique identifiers returned

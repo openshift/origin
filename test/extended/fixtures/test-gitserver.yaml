@@ -29,7 +29,6 @@ objects:
         containers:
         - name: gitserver
           image: openshift/origin-gitserver
-          serviceAccountName: gitserver
           readinessProbe:
             tcpSocket:
               port: 8080

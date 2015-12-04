@@ -12,6 +12,16 @@ func init() {
 		func(obj *RouteSpec) {
 			obj.To.Kind = "Service"
 		},
+		func(obj *TLSConfig) {
+			switch obj.Termination {
+			case TLSTerminationType("Reencrypt"):
+				obj.Termination = TLSTerminationReencrypt
+			case TLSTerminationType("Edge"):
+				obj.Termination = TLSTerminationEdge
+			case TLSTerminationType("Passthrough"):
+				obj.Termination = TLSTerminationPassthrough
+			}
+		},
 	)
 	if err != nil {
 		panic(err)

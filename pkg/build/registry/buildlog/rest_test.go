@@ -26,15 +26,15 @@ func (p *testPodGetter) Get(ctx kapi.Context, name string) (runtime.Object, erro
 	pod := &kapi.Pod{}
 	switch name {
 	case "pending-build":
-		pod = mockPod(kapi.PodPending)
+		pod = mockPod(kapi.PodPending, name)
 	case "running-build":
-		pod = mockPod(kapi.PodRunning)
+		pod = mockPod(kapi.PodRunning, name)
 	case "succeeded-build":
-		pod = mockPod(kapi.PodSucceeded)
+		pod = mockPod(kapi.PodSucceeded, name)
 	case "failed-build":
-		pod = mockPod(kapi.PodFailed)
+		pod = mockPod(kapi.PodFailed, name)
 	case "unknown-build":
-		pod = mockPod(kapi.PodUnknown)
+		pod = mockPod(kapi.PodUnknown, name)
 	}
 	return pod, nil
 }
@@ -228,10 +228,10 @@ func resourceLocationHelper(BuildPhase api.BuildPhase, podPhase string, ctx kapi
 
 }
 
-func mockPod(podPhase kapi.PodPhase) *kapi.Pod {
+func mockPod(podPhase kapi.PodPhase, podName string) *kapi.Pod {
 	return &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      "foo-pod",
+			Name:      podName,
 			Namespace: kapi.NamespaceDefault,
 		},
 		Spec: kapi.PodSpec{

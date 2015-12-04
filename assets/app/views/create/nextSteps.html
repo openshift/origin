@@ -1,5 +1,5 @@
-<div ng-controller="ProjectController">
-  <div ng-controller="NextStepsController" class="container next-steps">
+<div>
+  <div class="container next-steps">
     <ol class="breadcrumb"><!-- TODO use the breadcrumb directive -->
       <li><a href="{{projectName | projectOverviewURL}}">{{projectDisplayName()}}</a></li>
       <li><a href="project/{{projectName}}/create">Add to Project</a></li>
@@ -31,7 +31,7 @@
             <div ng-switch-when="success" class="alert alert-success">
               <span class="pficon pficon-ok"></span>
               <span ng-if="alert.message">{{alert.message}}</span><span ng-if="alert.details">{{alert.details}}</span>
-            </div>  
+            </div>
           </div>
         </div>
       </div>
@@ -46,9 +46,9 @@
         <p>You may want to use the <code>oc</code> command line tool to help with troubleshooting. After <a target="_blank" href="{{'get_started_cli' | helpLink}}">downloading and installing</a> it, you can log in, switch to this particular project, and try some commands :</p>
 
         <pre class="code prettyprint">oc login {{loginBaseUrl}}
-oc project {{projectName}}
-oc build-logs -h
-oc logs -h</pre>
+  oc project {{projectName}}
+  oc build-logs -h
+  oc logs -h</pre>
 
         <p>For more information about the command line tools, check the <a target="_blank" href="{{'cli' | helpLink}}">CLI Reference</a> and <a target="_blank" href="{{'basic_cli_operations' | helpLink}}">Basic CLI Operations</a>.</p>
       </div>
@@ -56,13 +56,13 @@ oc logs -h</pre>
       <div ng-if="allTasksSuccessful(tasks())" ng-class="createdBuildConfigWithGitHubTrigger() ? 'col-md-6' : 'col-md-12'">
         <h2>Manage your app</h2>
         <p>The web console is convenient, but if you need deeper control you may want to try our command line tools.</p>
-        
+
         <h3>Command line tools</h3>
         <p><a target="_blank" href="{{'get_started_cli' | helpLink}}">Download and install</a> the <code>oc</code> command line tool. After that, you can start by logging in, switching to this particular project, and displaying an overview of it, by doing:</p>
 
         <pre class="code prettyprint">oc login {{loginBaseUrl}}
-oc project {{projectName}}
-oc status</pre>
+  oc project {{projectName}}
+  oc status</pre>
 
         <p>For more information about the command line tools, check the <a target="_blank" href="{{'cli' | helpLink}}">CLI Reference</a> and <a target="_blank" href="{{'basic_cli_operations' | helpLink}}">Basic CLI Operations</a>.</p>
       </div>

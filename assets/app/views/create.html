@@ -1,5 +1,5 @@
-<div ng-controller="ProjectController">
-  <div ng-controller="CreateController" class="add-to-project">
+<div>
+  <div class="add-to-project">
     <div class="container">
       <ol class="breadcrumb">
         <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
@@ -44,7 +44,10 @@
                  type="search"
                  id="search"
                  placeholder="Filter by keyword"
-                 class="search-input form-control">
+                 class="search-input form-control"
+                 autocorrect="off"
+                 autocapitalize="off"
+                 spellcheck="false">
 
               <!-- Filter by tag -->
               <div dropdown keyboard-nav class="filter-btn btn-group">

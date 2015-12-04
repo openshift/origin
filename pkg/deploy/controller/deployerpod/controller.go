@@ -49,7 +49,7 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 	// If the deployment for this pod has disappeared, we should clean up this
 	// and any other deployer pods, then bail out.
 	if err != nil {
-		// Some retrieval error occured. Retry.
+		// Some retrieval error occurred. Retry.
 		if !kerrors.IsNotFound(err) {
 			return fmt.Errorf("couldn't get deployment %s/%s which owns deployer pod %s/%s", pod.Namespace, deploymentName, pod.Name, pod.Namespace)
 		}

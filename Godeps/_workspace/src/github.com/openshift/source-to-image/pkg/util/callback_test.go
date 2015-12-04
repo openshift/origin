@@ -27,9 +27,13 @@ func TestExecuteCallback(t *testing.T) {
 		postFunc: fp.post,
 	}
 
-	cb.ExecuteCallback("http://the.callback.url/test", true, []string{"msg1", "msg2"})
+	labels := map[string]string{
+		"foo": "bar",
+	}
+	cb.ExecuteCallback("http://the.callback.url/test", true, labels, []string{"msg1", "msg2"})
 
 	type postBody struct {
+		Labels  map[string]string
 		Payload string
 		Success bool
 	}
@@ -37,6 +41,12 @@ func TestExecuteCallback(t *testing.T) {
 	json.Unmarshal(fp.body, &pb)
 	if pb.Payload != "msg1\nmsg2\n" {
 		t.Errorf("Unexpected payload: %s", pb.Payload)
+	}
+	if len(pb.Labels) == 0 {
+		t.Errorf("Expected labels to be present in payload")
+	}
+	if pb.Labels["foo"] != "bar" {
+		t.Errorf("Expected 'foo' to be 'bar', got %q", pb.Labels["foo"])
 	}
 	if pb.Success != true {
 		t.Errorf("Unexpected success flag: %v", pb.Success)

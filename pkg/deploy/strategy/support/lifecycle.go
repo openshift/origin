@@ -21,6 +21,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	"github.com/openshift/origin/pkg/util"
 	namer "github.com/openshift/origin/pkg/util/namer"
 )
 
@@ -34,10 +35,12 @@ type HookExecutor struct {
 	podLogDestination io.Writer
 	// podLogStream provides a reader for a pod's logs.
 	podLogStream func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error)
+	// Codec is used for encoding/decoding.
+	codec runtime.Codec
 }
 
 // NewHookExecutor makes a HookExecutor from a client.
-func NewHookExecutor(client kclient.Interface, podLogDestination io.Writer) *HookExecutor {
+func NewHookExecutor(client kclient.Interface, podLogDestination io.Writer, codec runtime.Codec) *HookExecutor {
 	return &HookExecutor{
 		podClient: &HookExecutorPodClientImpl{
 			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
@@ -55,6 +58,7 @@ func NewHookExecutor(client kclient.Interface, podLogDestination io.Writer) *Hoo
 			return req.Stream()
 		},
 		podLogDestination: podLogDestination,
+		codec:             codec,
 	}
 }
 
@@ -93,8 +97,13 @@ func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.R
 //   * Working directory
 //   * Resources
 func (e *HookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
+	config, err := deployutil.DecodeDeploymentConfig(deployment, e.codec)
+	if err != nil {
+		return err
+	}
+
 	// Build a pod spec from the hook config and deployment
-	podSpec, err := makeHookPod(hook, deployment, label)
+	podSpec, err := makeHookPod(hook, deployment, &config.Template.Strategy, label)
 	if err != nil {
 		return err
 	}
@@ -164,7 +173,7 @@ func (e *HookExecutor) readPodLogs(pod *kapi.Pod, wg *sync.WaitGroup) {
 }
 
 // makeHookPod makes a pod spec from a hook and deployment.
-func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) (*kapi.Pod, error) {
+func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, strategy *deployapi.DeploymentStrategy, label string) (*kapi.Pod, error) {
 	exec := hook.ExecNewPod
 	var baseContainer *kapi.Container
 	for _, container := range deployment.Spec.Template.Spec.Containers {
@@ -268,6 +277,9 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 			ImagePullSecrets: imagePullSecrets,
 		},
 	}
+
+	util.MergeInto(pod.Labels, strategy.Labels, 0)
+	util.MergeInto(pod.Annotations, strategy.Annotations, 0)
 
 	return pod, nil
 }

@@ -86,7 +86,7 @@ func TestPassword(t *testing.T) {
 
 	for k, tc := range testcases {
 		u, _ := url.Parse(tc.URL)
-		sourceURL, configURL, err := doSetup(*u, tc.Username, tc.Password, tc.Token)
+		sourceURL, configURL, err := doSetup(*u, tc.Username, tc.Password, tc.Token, removeCredentials)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", k, err)
 			continue

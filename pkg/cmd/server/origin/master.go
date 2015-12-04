@@ -326,7 +326,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		glog.Fatalf("Unable to configure Kubelet client: %v", err)
 	}
 
-	buildStorage := buildetcd.NewStorage(c.EtcdHelper)
+	buildStorage, buildDetailsStorage := buildetcd.NewStorage(c.EtcdHelper)
 	buildRegistry := buildregistry.NewRegistry(buildStorage)
 
 	buildConfigStorage := buildconfigetcd.NewStorage(c.EtcdHelper)
@@ -490,6 +490,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		storage["buildConfigs/instantiate"] = buildconfiginstantiate.NewStorage(buildGenerator)
 		storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient(), kubeletClient)
 		storage["builds/log"] = buildlogregistry.NewREST(buildStorage, buildStorage, c.BuildLogClient(), kubeletClient)
+		storage["builds/details"] = buildDetailsStorage
 	}
 
 	return storage

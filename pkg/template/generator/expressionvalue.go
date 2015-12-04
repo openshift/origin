@@ -30,13 +30,14 @@ type ExpressionValueGenerator struct {
 const (
 	Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	Numerals = "0123456789"
-	ASCII    = Alphabet + Numerals + "~!@#$%^&*()-_+={}[]\\|<,>.?/\"';:`"
+	Symbols  = "~!@#$%^&*()-_+={}[]\\|<,>.?/\"';:`"
+	ASCII    = Alphabet + Numerals + Symbols
 )
 
 var (
 	rangeExp      = regexp.MustCompile(`([\\]?[a-zA-Z0-9]\-?[a-zA-Z0-9]?)`)
 	generatorsExp = regexp.MustCompile(`\[([a-zA-Z0-9\-\\]+)\](\{([0-9]+)\})`)
-	expressionExp = regexp.MustCompile(`\[(\\w|\\d|\\a)|([a-zA-Z0-9]\-[a-zA-Z0-9])+\]`)
+	expressionExp = regexp.MustCompile(`\[(\\w|\\d|\\a|\\A)|([a-zA-Z0-9]\-[a-zA-Z0-9])+\]`)
 )
 
 // NewExpressionValueGenerator creates new ExpressionValueGenerator.
@@ -94,6 +95,8 @@ func replaceWithGenerated(s *string, expression string, ranges [][]byte, length 
 			alphabet += Numerals
 		case `\a`:
 			alphabet += Alphabet + Numerals
+		case `\A`:
+			alphabet += Symbols
 		default:
 			slice, err := alphabetSlice(r[0], r[1])
 			if err != nil {
@@ -103,11 +106,29 @@ func replaceWithGenerated(s *string, expression string, ranges [][]byte, length 
 		}
 	}
 	result := make([]byte, length)
+	alphabet = removeDuplicateChars(alphabet)
 	for i := 0; i < length; i++ {
 		result[i] = alphabet[seed.Intn(len(alphabet))]
 	}
 	*s = strings.Replace(*s, expression, string(result), 1)
 	return nil
+}
+
+// removeDuplicateChars removes the duplicate characters from the data slice
+func removeDuplicateChars(input string) string {
+	data := []byte(input)
+	length := len(data) - 1
+	for i := 0; i < length; i++ {
+		for j := i + 1; j <= length; j++ {
+			if data[i] == data[j] {
+				data[j] = data[length]
+				data = data[0:length]
+				length--
+				j--
+			}
+		}
+	}
+	return string(data)
 }
 
 // findExpressionPos searches the given string for the valid expressions

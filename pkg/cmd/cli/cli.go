@@ -34,9 +34,9 @@ To create a new application, you can use the example app source. Login to your s
 run new-app:
 
   $ %[1]s login
-  $ %[1]s new-app openshift/ruby-20-centos7~https://github.com/openshift/ruby-hello-world.git
+  $ %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-hello-world.git
 
-This will create an application based on the Docker image 'openshift/ruby-20-centos7' that builds
+This will create an application based on the Docker image 'centos/ruby-22-centos7' that builds
 the source code at 'github.com/openshift/ruby-hello-world.git'. A build will start automatically and
 a deployment will start as soon as the build finishes.
 
@@ -147,7 +147,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	groups.Add(cmds)
 	changeSharedFlagDefaults(cmds)
 	templates.ActsAsRootCommand(cmds, groups...).
-		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify")
+		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify", "token")
 
 	if name == fullName {
 		cmds.AddCommand(version.NewVersionCommand(fullName, false))
@@ -172,6 +172,14 @@ func changeSharedFlagDefaults(rootCmd *cobra.Command) {
 			showAllFlag.Value.Set("true")
 			showAllFlag.Changed = false
 			showAllFlag.Usage = "When printing, show all resources (false means hide terminated pods.)"
+		}
+
+		// we want to disable the --validate flag by default when we're running kube commands from oc.  We want to make sure
+		// that we're only getting the upstream --validate flags, so check both the flag and the usage
+		if validateFlag := currCmd.Flags().Lookup("validate"); (validateFlag != nil) && (validateFlag.Usage == "If true, use a schema to validate the input before sending it") {
+			validateFlag.DefValue = "false"
+			validateFlag.Value.Set("false")
+			validateFlag.Changed = false
 		}
 	}
 }

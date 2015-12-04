@@ -95,6 +95,15 @@ angular.module("openshiftConsole")
       return resources;
     };
 
+    // Public method for creating a route.
+    // Expects routeOptions from the osc-routing directive.
+    scope.createRoute = function(routeOptions, serviceName, labels) {
+      return scope._generateRoute({
+        labels: labels || {},
+        routing: angular.extend({ include: true }, routeOptions)
+      }, routeOptions.name, serviceName);
+    };
+
     scope._generateRoute = function(input, name, serviceName){
       if(!input.routing.include) {
         return null;
@@ -116,10 +125,43 @@ angular.module("openshiftConsole")
         }
       };
 
+      if (input.routing.host) {
+        route.spec.host = input.routing.host;
+      }
+
+      if (input.routing.path) {
+        route.spec.path = input.routing.path;
+      }
+
       if (input.routing.targetPort) {
         route.spec.port = {
           targetPort: input.routing.targetPort.containerPort
         };
+      }
+
+      var tls = input.routing.tls;
+      if (tls && tls.termination) {
+        route.spec.tls = {
+          termination: tls.termination
+        };
+
+        if (tls.termination !== 'passthrough') {
+          if (tls.termination === 'edge' && tls.insecureEdgeTerminationPolicy) {
+            route.spec.tls.insecureEdgeTerminationPolicy = tls.insecureEdgeTerminationPolicy;
+          }
+          if (tls.certificate) {
+            route.spec.tls.certificate = tls.certificate;
+          }
+          if (tls.key) {
+            route.spec.tls.key = tls.key;
+          }
+          if (tls.caCertificate) {
+            route.spec.tls.caCertificate = tls.caCertificate;
+          }
+          if (tls.destinationCACertificate && tls.termination === 'reencrypt') {
+            route.spec.tls.destinationCACertificate = tls.destinationCACertificate;
+          }
+        }
       }
 
       return route;
@@ -188,6 +230,10 @@ angular.module("openshiftConsole")
     };
 
     scope._generateBuildConfig = function(input, imageSpec){
+      var env = [];
+      angular.forEach(input.buildConfig.envVars, function(value, key){
+        env.push({name: key, value: value});
+      });
       var triggers = [
         {
           generic: {
@@ -255,7 +301,8 @@ angular.module("openshiftConsole")
                 kind: "ImageStreamTag",
                 name: input.imageName + ":" + input.imageTag,
                 namespace: input.namespace
-              }
+              },
+              env: env
             }
           },
           triggers: triggers

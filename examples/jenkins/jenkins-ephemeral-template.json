@@ -7,7 +7,7 @@
     "annotations": {
       "description": "Jenkins service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-jenkins",
-      "tags": "database,jenkins"
+      "tags": "instant-app,jenkins"
     }
   },
   "objects": [
@@ -70,6 +70,21 @@
         },
         "triggers": [
           {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": false,
+              "containerNames": [
+                "jenkins"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "jenkins:latest",
+                "namespace": "openshift"
+              },
+              "lastTriggeredImage": ""
+            }
+          },
+          {
             "type": "ConfigChange"
           }
         ],
@@ -131,11 +146,6 @@
       "name": "JENKINS_SERVICE_NAME",
       "description": "Jenkins service name",
       "value": "jenkins"
-    },
-    {
-      "name": "JENKINS_IMAGE",
-      "description": "Jenkins Docker image to use",
-      "value": "openshift/jenkins-1-centos7"
     },
     {
       "name": "JENKINS_PASSWORD",

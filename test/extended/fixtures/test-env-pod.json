@@ -11,8 +11,37 @@
     "containers":[
       {
         "name":"test",
-        "image":"test:latest",
-        "imagePullPolicy":"Never"
+        "image":"centos:centos7",
+        "env": [
+          {
+            "name":"podname",
+            "valueFrom": {
+              "fieldRef": {
+                "fieldPath":"metadata.name"
+              }
+            }
+          },
+          {
+            "name":"podname_composed",
+            "value":"$(podname)_composed"
+          },
+          {
+            "name":"var1",
+            "value":"value1"
+          },
+          {
+            "name":"var2",
+            "value":"$(var1)"
+          },
+          {
+            "name":"var3",
+            "value":"120"
+          }
+        ],
+        "command": [
+          "sleep",
+          "$(var3)"
+        ]
       }
     ],
     "restartPolicy":"Never",

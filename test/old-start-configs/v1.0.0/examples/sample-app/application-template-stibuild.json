@@ -81,7 +81,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/ruby-20-centos7"
+        "dockerImageRepository": "centos/ruby-22-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -364,7 +364,7 @@
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "openshift/mysql-55-centos7:latest",
+                "image": "centos/mysql-56-centos7:latest",
                 "ports": [
                   {
                     "containerPort": 3306,

@@ -11,13 +11,19 @@ angular.module('openshiftConsole')
     'logLinks',
     function($sce, $timeout, $window, AuthService, APIDiscovery, DataService, logLinks) {
 
-      // Create a template for each log line that we clone below.
-      var logLineTemplate = $('<div row class="log-line"/>');
-      $('<div class="log-line-number"><div row flex main-axis="end"></div></div>').appendTo(logLineTemplate);
-      $('<div flex class="log-line-text"/>').appendTo(logLineTemplate);
-
       // Keep a reference the DOM node rather than the jQuery object for cloneNode.
-      logLineTemplate = logLineTemplate.get(0);
+      var logLineTemplate =
+        $('<tr class="log-line">' +
+          '<td class="log-line-number"></td>' +
+          '<td class="log-line-text"></td>' +
+          '</tr>').get(0);
+      var buildLogLineNode = function(lineNumber, text) {
+        var line = logLineTemplate.cloneNode(true);
+        line.firstChild.appendChild(document.createTextNode(lineNumber));
+        line.lastChild.appendChild(document.createTextNode(text));
+
+        return line;
+      };
 
       return {
         restrict: 'AE',
@@ -154,13 +160,8 @@ angular.module('openshiftConsole')
               var lastLineNumber = 0;
               var addLine = function(text) {
                 lastLineNumber++;
-
                 // Append the line to the document fragment buffer.
-                var line = logLineTemplate.cloneNode(true);
-                line.childNodes[0].childNodes[0].appendChild(document.createTextNode(lastLineNumber));
-                line.lastChild.appendChild(document.createTextNode(text));
-                buffer.appendChild(line);
-
+                buffer.appendChild(buildLogLineNode(lastLineNumber, text));
                 update();
               };
 

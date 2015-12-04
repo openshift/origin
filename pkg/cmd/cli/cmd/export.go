@@ -12,7 +12,6 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -52,7 +51,7 @@ to generate the API structure for a template to which you can add parameters and
 
 func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
 	exporter := &defaultExporter{}
-	var filenames util.StringList
+	var filenames []string
 	cmd := &cobra.Command{
 		Use:     "export RESOURCE/NAME ... [options]",
 		Short:   "Export resources so they can be used elsewhere",
@@ -71,7 +70,7 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 	cmd.Flags().Bool("raw", false, "If true, do not alter the resources in any way after they are loaded.")
 	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on")
 	cmd.Flags().Bool("all-namespaces", false, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
-	cmd.Flags().VarP(&filenames, "filename", "f", "Filename, directory, or URL to file to use to edit the resource.")
+	cmd.Flags().StringSliceVarP(&filenames, "filename", "f", filenames, "Filename, directory, or URL to file to use to edit the resource.")
 
 	cmd.Flags().Bool("all", true, "Select all resources in the namespace of the specified resource types")
 	cmd.Flags().MarkDeprecated("all", "all is ignored because specifying a resource without a name selects all the instances of that resource")
@@ -79,7 +78,7 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 	return cmd
 }
 
-func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, filenames util.StringList) error {
+func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, filenames []string) error {
 	selector := cmdutil.GetFlagString(cmd, "selector")
 	allNamespaces := cmdutil.GetFlagBool(cmd, "all-namespaces")
 	exact := cmdutil.GetFlagBool(cmd, "exact")

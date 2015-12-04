@@ -10,10 +10,14 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
 )
 
 func TestExport(t *testing.T) {
 	exporter := &defaultExporter{}
+
+	baseSA := &kapi.ServiceAccount{}
+	baseSA.Name = "my-sa"
 
 	tests := []struct {
 		name        string
@@ -80,6 +84,68 @@ func TestExport(t *testing.T) {
 					Tags: map[string]imageapi.TagEventList{},
 				},
 			},
+			expectedErr: nil,
+		},
+		{
+			name: "remove unexportable SA secrets",
+			object: &kapi.ServiceAccount{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: baseSA.Name,
+				},
+				ImagePullSecrets: []kapi.LocalObjectReference{
+					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA) + "-foo"},
+					{Name: "another-pull-secret"},
+				},
+				Secrets: []kapi.ObjectReference{
+					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA) + "-foo"},
+					{Name: osautil.GetTokenSecretNamePrefix(baseSA) + "-foo"},
+					{Name: "another-mountable-secret"},
+				},
+			},
+			expectedObj: &kapi.ServiceAccount{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: baseSA.Name,
+				},
+				ImagePullSecrets: []kapi.LocalObjectReference{
+					{Name: "another-pull-secret"},
+				},
+				Secrets: []kapi.ObjectReference{
+					{Name: "another-mountable-secret"},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "do not remove unexportable SA secrets with exact",
+			object: &kapi.ServiceAccount{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: baseSA.Name,
+				},
+				ImagePullSecrets: []kapi.LocalObjectReference{
+					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA) + "-foo"},
+					{Name: "another-pull-secret"},
+				},
+				Secrets: []kapi.ObjectReference{
+					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA) + "-foo"},
+					{Name: osautil.GetTokenSecretNamePrefix(baseSA) + "-foo"},
+					{Name: "another-mountable-secret"},
+				},
+			},
+			expectedObj: &kapi.ServiceAccount{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: baseSA.Name,
+				},
+				ImagePullSecrets: []kapi.LocalObjectReference{
+					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA) + "-foo"},
+					{Name: "another-pull-secret"},
+				},
+				Secrets: []kapi.ObjectReference{
+					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA) + "-foo"},
+					{Name: osautil.GetTokenSecretNamePrefix(baseSA) + "-foo"},
+					{Name: "another-mountable-secret"},
+				},
+			},
+			exact:       true,
 			expectedErr: nil,
 		},
 	}

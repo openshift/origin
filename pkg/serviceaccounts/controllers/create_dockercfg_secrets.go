@@ -24,7 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
-	"github.com/openshift/origin/pkg/util/namer"
+	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
 )
 
 const ServiceAccountTokenSecretNameKey = "openshift.io/token-secret.name"
@@ -117,20 +117,6 @@ func (e *DockercfgController) serviceAccountUpdated(oldObj interface{}, newObj i
 	if err := e.createDockercfgSecretIfNeeded(newServiceAccount); err != nil {
 		util.HandleError(err)
 	}
-}
-
-const (
-	// These constants are here to create a name that is short enough to survive chopping by generate name
-	maxNameLength             = 63
-	randomLength              = 5
-	maxSecretPrefixNameLength = maxNameLength - randomLength
-)
-
-func getDockercfgSecretNamePrefix(serviceAccount *api.ServiceAccount) string {
-	return namer.GetName(serviceAccount.Name, "dockercfg-", maxSecretPrefixNameLength)
-}
-func getTokenSecretNamePrefix(serviceAccount *api.ServiceAccount) string {
-	return namer.GetName(serviceAccount.Name, "token-", maxSecretPrefixNameLength)
 }
 
 // createDockercfgSecretIfNeeded makes sure at least one ServiceAccountToken secret exists, and is included in the serviceAccount's Secrets list
@@ -241,7 +227,7 @@ const (
 func (e *DockercfgController) createTokenSecret(serviceAccount *api.ServiceAccount) (*api.Secret, error) {
 	tokenSecret := &api.Secret{
 		ObjectMeta: api.ObjectMeta{
-			Name:      secret.Strategy.GenerateName(getTokenSecretNamePrefix(serviceAccount)),
+			Name:      secret.Strategy.GenerateName(osautil.GetTokenSecretNamePrefix(serviceAccount)),
 			Namespace: serviceAccount.Namespace,
 			Annotations: map[string]string{
 				api.ServiceAccountNameKey: serviceAccount.Name,
@@ -290,7 +276,7 @@ func (e *DockercfgController) createDockerPullSecret(serviceAccount *api.Service
 
 	dockercfgSecret := &api.Secret{
 		ObjectMeta: api.ObjectMeta{
-			Name:      secret.Strategy.GenerateName(getDockercfgSecretNamePrefix(serviceAccount)),
+			Name:      secret.Strategy.GenerateName(osautil.GetDockercfgSecretNamePrefix(serviceAccount)),
 			Namespace: tokenSecret.Namespace,
 			Annotations: map[string]string{
 				api.ServiceAccountNameKey:        serviceAccount.Name,
@@ -337,7 +323,7 @@ func getGeneratedDockercfgSecretNames(serviceAccount *api.ServiceAccount) (sets.
 	mountableDockercfgSecrets := sets.String{}
 	imageDockercfgPullSecrets := sets.String{}
 
-	secretNamePrefix := getDockercfgSecretNamePrefix(serviceAccount)
+	secretNamePrefix := osautil.GetDockercfgSecretNamePrefix(serviceAccount)
 
 	for _, s := range serviceAccount.Secrets {
 		if strings.HasPrefix(s.Name, secretNamePrefix) {

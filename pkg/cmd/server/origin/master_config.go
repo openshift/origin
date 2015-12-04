@@ -118,19 +118,6 @@ type MasterConfig struct {
 	// To apply different access control to a system component, create a separate client/config specifically
 	// for that component.
 	PrivilegedLoopbackOpenShiftClient *osclient.Client
-
-	// BuildControllerServiceAccount is the name of the service account in the infra namespace to use to run the build controller
-	BuildControllerServiceAccount string
-	// DeploymentControllerServiceAccount is the name of the service account in the infra namespace to use to run the deployment controller
-	DeploymentControllerServiceAccount string
-	// ReplicationControllerServiceAccount is the name of the service account in the infra namespace to use to run the replication controller
-	ReplicationControllerServiceAccount string
-	// JobControllerServiceAccount is the name of the service account in the infra namespace to use to run the job controller
-	JobControllerServiceAccount string
-	// HPAControllerServiceAccount is the name of the service account in the infra namespace to use to run the hpa controller
-	HPAControllerServiceAccount string
-	// PersistentVolumeControllerServiceAccount is the name of the service account in the infra namespace to use to run the persistent volume controller
-	PersistentVolumeControllerServiceAccount string
 }
 
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the
@@ -220,15 +207,6 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PrivilegedLoopbackClientConfig:     *privilegedLoopbackClientConfig,
 		PrivilegedLoopbackOpenShiftClient:  privilegedLoopbackOpenShiftClient,
 		PrivilegedLoopbackKubernetesClient: privilegedLoopbackKubeClient,
-
-		// NOTE: if these become configurable we will need to update the reconcile-scc and
-		// scc bootstrap access code to use MasterConfig to pass the values.
-		BuildControllerServiceAccount:            bootstrappolicy.InfraBuildControllerServiceAccountName,
-		DeploymentControllerServiceAccount:       bootstrappolicy.InfraDeploymentControllerServiceAccountName,
-		ReplicationControllerServiceAccount:      bootstrappolicy.InfraReplicationControllerServiceAccountName,
-		JobControllerServiceAccount:              bootstrappolicy.InfraJobControllerServiceAccountName,
-		HPAControllerServiceAccount:              bootstrappolicy.InfraHPAControllerServiceAccountName,
-		PersistentVolumeControllerServiceAccount: bootstrappolicy.InfraPersistentVolumeControllerServiceAccountName,
 	}
 
 	return config, nil
@@ -414,7 +392,7 @@ func (c *MasterConfig) BuildConfigWebHookClient() *osclient.Client {
 
 // BuildControllerClients returns the build controller client objects
 func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Client) {
-	osClient, kClient, err := c.GetServiceAccountClients(c.BuildControllerServiceAccount)
+	osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -453,7 +431,7 @@ func (c *MasterConfig) DeploymentConfigScaleClient() *kclient.Client {
 
 // DeploymentControllerClients returns the deployment controller client objects
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
-	osClient, kClient, err := c.GetServiceAccountClients(c.DeploymentControllerServiceAccount)
+	osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
 	}

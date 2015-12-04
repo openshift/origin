@@ -651,6 +651,74 @@ func TestHandle_deployerPodDisappeared(t *testing.T) {
 	}
 }
 
+func expectMapContains(t *testing.T, exists, expected map[string]string, what string) {
+	if expected == nil {
+		return
+	}
+	for k, v := range expected {
+		value, ok := exists[k]
+		if ok && value != v {
+			t.Errorf("expected %s[%s]=%s, got %s", what, k, v, value)
+		} else if !ok {
+			t.Errorf("expected %s %s: not present", what, k)
+		}
+	}
+}
+
+func TestDeployerCustomLabelsAndAnnotations(t *testing.T) {
+	controller := &DeploymentController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+		},
+		podClient: &podClientImpl{
+			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+				return pod, nil
+			},
+		},
+		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
+			return okContainer(), nil
+		},
+	}
+
+	testCases := []struct {
+		name         string
+		strategy     deployapi.DeploymentStrategy
+		labels       map[string]string
+		annotations  map[string]string
+		verifyLabels bool
+	}{
+		{name: "labels and annotations", strategy: deploytest.OkStrategy(), labels: map[string]string{"label1": "value1"}, annotations: map[string]string{"annotation1": "value1"}, verifyLabels: true},
+		{name: "custom strategy, no annotations", strategy: deploytest.OkCustomStrategy(), labels: map[string]string{"label2": "value2", "label3": "value3"}, verifyLabels: true},
+		{name: "custom strategy, no labels", strategy: deploytest.OkCustomStrategy(), annotations: map[string]string{"annotation3": "value3"}, verifyLabels: true},
+		{name: "no overrride", strategy: deploytest.OkStrategy(), labels: map[string]string{deployapi.DeployerPodForDeploymentLabel: "ignored"}, verifyLabels: false},
+	}
+
+	for _, test := range testCases {
+		t.Logf("evaluating test case %s", test.name)
+		config := deploytest.OkDeploymentConfig(1)
+		config.Template.Strategy = test.strategy
+		config.Template.Strategy.Labels = test.labels
+		config.Template.Strategy.Annotations = test.annotations
+
+		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+		podTemplate, err := controller.makeDeployerPod(deployment)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		nameLabel, ok := podTemplate.Labels[deployapi.DeployerPodForDeploymentLabel]
+		if ok && nameLabel != deployment.Name {
+			t.Errorf("label %s expected %s, got %s", deployapi.DeployerPodForDeploymentLabel, deployment.Name, nameLabel)
+		} else if !ok {
+			t.Errorf("label %s not present", deployapi.DeployerPodForDeploymentLabel)
+		}
+		if test.verifyLabels {
+			expectMapContains(t, podTemplate.Labels, test.labels, "labels")
+		}
+		expectMapContains(t, podTemplate.Annotations, test.annotations, "annotations")
+	}
+}
+
 func okContainer() *kapi.Container {
 	return &kapi.Container{
 		Image:   "test/image",

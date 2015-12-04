@@ -52,6 +52,36 @@ var _ = g.Describe("builds: parallel: oc start-build", func() {
 		})
 	})
 
+	g.Describe("override environment", func() {
+		g.It("should accept environment variables", func() {
+			g.By("starting the build with -e FOO=bar")
+			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", "-e", "FOO=bar,VAR=test").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("verifying the build output contains the env var"))
+			o.Expect(out).To(o.ContainSubstring("FOO=bar"))
+			// This variable is not set and thus inherited from the original build
+			// config
+			o.Expect(out).To(o.ContainSubstring("BAR=test"))
+			o.Expect(out).To(o.ContainSubstring("VAR=test"))
+			g.By(fmt.Sprintf("verifying the build %q status", out))
+			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
+		})
+
+		g.It("should allow to change build log level", func() {
+			g.By("starting the build with --build-loglevel=1")
+			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", "--build-loglevel=1").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("verifying the build output is not verbose"))
+			o.Expect(out).NotTo(o.ContainSubstring("Creating a new S2I builder"))
+			g.By(fmt.Sprintf("verifying the build %q status", out))
+			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
+		})
+	})
+
 	g.Describe("binary builds", func() {
 		g.It("should accept --from-file as input", func() {
 			g.By("starting the build with a Dockerfile")
@@ -86,7 +116,26 @@ var _ = g.Describe("builds: parallel: oc start-build", func() {
 			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", fmt.Sprintf("--from-repo=%s", exampleBuild)).Output()
 			g.By(fmt.Sprintf("verifying the build %q status", out))
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("Uploading Git repository"))
+			o.Expect(out).To(o.ContainSubstring("Uploading"))
+			o.Expect(out).To(o.ContainSubstring(`at commit "HEAD"`))
+			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
+			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
+
+			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
+		})
+
+		g.It("should accept --from-repo with --commit as input", func() {
+			g.By("starting the build with a Git repository")
+			// NOTE: This actually takes the commit from the origin repository. If the
+			// test-build-app changes, this commit has to be bumped.
+			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--commit=4b7de05", "--wait", fmt.Sprintf("--from-repo=%s", exampleBuild)).Output()
+			g.By(fmt.Sprintf("verifying the build %q status", out))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("Uploading"))
+			o.Expect(out).To(o.ContainSubstring(`at commit "4b7de05"`))
+			o.Expect(out).To(o.ContainSubstring(`"commit":"4b7de05d4abb7570fc03f8ac2e27e5bba1e9c390"`))
 			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
 			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
 
@@ -111,7 +160,7 @@ var _ = g.Describe("builds: parallel: oc start-build", func() {
 
 			g.By("getting the build name")
 			var buildName string
-			wait.Poll(time.Duration(100*time.Millisecond), time.Duration(60*time.Second), func() (bool, error) {
+			wait.Poll(time.Duration(100*time.Millisecond), 1*time.Minute, func() (bool, error) {
 				out, err := oc.Run("get").
 					Args("build", "--template", "{{ (index .items 0).metadata.name }}").Output()
 				// Give it second chance in case the build resource was not created yet

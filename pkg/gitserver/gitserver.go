@@ -18,6 +18,7 @@ import (
 	"github.com/AaronO/go-git-http/auth"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/healthz"
 
@@ -105,6 +106,14 @@ type Config struct {
 type Clone struct {
 	URL   url.URL
 	Hooks map[string]string
+}
+
+type statusError struct {
+	*errors.StatusError
+}
+
+func (e *statusError) StatusCode() int {
+	return e.StatusError.Status().Code
 }
 
 // NewDefaultConfig returns a default server config.
@@ -214,6 +223,9 @@ func NewEnviromentConfig() (*Config, error) {
 			}
 			res, err := osc.ImpersonateLocalSubjectAccessReviews(namespace, info.Password).Create(req)
 			if err != nil {
+				if se, ok := err.(*errors.StatusError); ok {
+					return false, &statusError{se}
+				}
 				return false, err
 			}
 			//log.Printf("debug: server response allowed=%t message=%s", res.Allowed, res.Reason)

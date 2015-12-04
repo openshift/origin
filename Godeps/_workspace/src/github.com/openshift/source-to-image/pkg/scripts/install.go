@@ -3,8 +3,10 @@ package scripts
 import (
 	"net/url"
 	"path/filepath"
+	"strings"
 
 	dockerClient "github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"
@@ -88,6 +90,10 @@ func (i *installer) run(scripts []string, dstDir string) []api.InstallResult {
 		file := filepath.Join(dstDir, api.SourceScripts, script)
 		if !i.fs.Exists(file) {
 			sourceResults[script].err = errors.NewDownloadError(file, -1)
+		}
+		checkLocation := filepath.Join(dstDir, strings.TrimSuffix(api.SourceScripts, "/bin"), script)
+		if i.fs.Exists(checkLocation) {
+			glog.Warningf("The %q script found in .sti/%s, should be in .sti/bin/%s.", script, script, script)
 		}
 	}
 

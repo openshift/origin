@@ -1,4 +1,4 @@
-<div ng-controller="CreateProjectController">
+<div>
   <div class="container">
     <div class="col-md-12">
       <h1>New Project</h1>
@@ -20,7 +20,10 @@
                   aria-describedby="nameHelp"
                   ng-model="name"
                   ng-model-options="{ updateOn: 'default blur' }"
-                  ng-change="nameTaken = false">
+                  ng-change="nameTaken = false"
+                  autocorrect="off"
+                  autocapitalize="off"
+                  spellcheck="false">
             </span>
             <div>
               <span class="help-block">A unique name for the project.</span>
