@@ -38,55 +38,58 @@ type UsernamePassword struct {
 
 // Setup creates a gitconfig fragment that includes a substitution URL with the username/password
 // included in the URL. Returns source URL stripped of username/password credentials.
-func (u UsernamePassword) Setup(baseDir string) (*url.URL, error) {
+func (u UsernamePassword) Setup(baseDir string, context SCMAuthContext) error {
 	// Only apply to https and http URLs
 	if scheme := strings.ToLower(u.SourceURL.Scheme); scheme != "http" && scheme != "https" {
-		return nil, nil
+		return nil
 	}
 
 	// Read data from secret files
 	usernameSecret, err := readSecret(baseDir, UsernameSecret)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	passwordSecret, err := readSecret(baseDir, PasswordSecret)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	tokenSecret, err := readSecret(baseDir, TokenSecret)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Determine overrides
 	overrideFn := longPasswordOverride(baseDir, removeCredentials)
 	overrideSourceURL, gitconfigURL, err := doSetup(u.SourceURL, usernameSecret, passwordSecret, tokenSecret, overrideFn)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	if overrideSourceURL != nil {
+		if err := context.SetOverrideURL(overrideSourceURL); err != nil {
+			return err
+		}
 	}
 
 	// Write git config if needed
 	if gitconfigURL != nil {
 		gitcredentials, err := ioutil.TempFile("", "gitcredentials.")
 		if err != nil {
-			return nil, err
+			return err
 		}
 		defer gitcredentials.Close()
 		gitconfig, err := ioutil.TempFile("", "gitcredentialscfg.")
 		if err != nil {
-			return nil, err
+			return err
 		}
 		defer gitconfig.Close()
 
 		fmt.Fprintf(gitconfig, UserPassGitConfig, gitcredentials.Name())
 		fmt.Fprintf(gitcredentials, "%s", gitconfigURL.String())
 
-		if err := ensureGitConfigIncludes(gitconfig.Name()); err != nil {
-			return nil, err
-		}
+		return ensureGitConfigIncludes(gitconfig.Name(), context)
 	}
 
-	return overrideSourceURL, nil
+	return nil
 }
 
 type overrideURLFunc func(sourceURL *url.URL, username, password string) (*url.URL, error)

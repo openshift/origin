@@ -12,10 +12,10 @@ import (
 
 	"github.com/golang/glog"
 
-	s2iapi "github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/scm/git"
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 
 	"github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/generate/git"
 )
 
 const (
@@ -38,7 +38,7 @@ func (e gitNotFoundError) Error() string {
 
 // fetchSource retrieves the inputs defined by the build source into the
 // provided directory, or returns an error if retrieval is not possible.
-func fetchSource(dir string, build *api.Build, urlTimeout time.Duration, in io.Reader, git git.Git) (*s2iapi.SourceInfo, error) {
+func fetchSource(dir string, build *api.Build, urlTimeout time.Duration, in io.Reader, gitClient GitClient) (*git.SourceInfo, error) {
 	hasGitSource := false
 
 	// expect to receive input from STDIN
@@ -47,13 +47,19 @@ func fetchSource(dir string, build *api.Build, urlTimeout time.Duration, in io.R
 	}
 
 	// may retrieve source from Git
-	hasGitSource, err := extractGitSource(git, build.Spec.Source.Git, build.Spec.Revision, dir, urlTimeout)
+	hasGitSource, err := extractGitSource(gitClient, build.Spec.Source.Git, build.Spec.Revision, dir, urlTimeout)
 	if err != nil {
 		return nil, err
 	}
-	var sourceInfo *s2iapi.SourceInfo
+	var sourceInfo *git.SourceInfo
 	if hasGitSource {
-		sourceInfo = git.GetInfo(dir)
+		var errs []error
+		sourceInfo, errs = gitClient.GetInfo(dir)
+		if len(errs) > 0 {
+			for _, e := range errs {
+				glog.Warningf("Error getting git info: %v", e)
+			}
+		}
 	}
 
 	// a Dockerfile has been specified, create or overwrite into the destination
@@ -74,19 +80,18 @@ func fetchSource(dir string, build *api.Build, urlTimeout time.Duration, in io.R
 // remote repository failed to authenticate.
 // Since this is calling the 'git' binary, the proxy settings should be
 // available for this command.
-func checkRemoteGit(url string, timeout time.Duration) error {
-	glog.V(4).Infof("git ls-remote --heads %q", url)
-	cmd := exec.Command("git", "ls-remote", "--heads", url)
-	cmd.Env = []string{"GIT_ASKPASS=/bin/true", "GIT_SSH=" + os.Getenv("GIT_SSH")}
+func checkRemoteGit(gitClient GitClient, url string, timeout time.Duration) error {
+	glog.V(4).Infof("git ls-remote %s --heads", url)
 
 	var (
-		out []byte
-		err error
+		out    string
+		errOut string
+		err    error
 	)
 
 	finish := make(chan struct{}, 1)
 	go func() {
-		out, err = cmd.CombinedOutput()
+		out, errOut, err = gitClient.ListRemote(url, "--heads")
 		close(finish)
 	}()
 	select {
@@ -95,12 +100,14 @@ func checkRemoteGit(url string, timeout time.Duration) error {
 		return fmt.Errorf("timeout while waiting for remote repository %q", url)
 	}
 
-	glog.V(4).Infof(string(out))
+	glog.V(4).Infof(out)
+	glog.V(4).Infof(errOut)
 
+	combinedOut := out + errOut
 	switch {
-	case strings.Contains(string(out), "Authentication failed"):
+	case strings.Contains(combinedOut, "Authentication failed"):
 		return gitAuthError(url)
-	case strings.Contains(string(out), "not found"):
+	case strings.Contains(combinedOut, "not found"):
 		return gitNotFoundError(url)
 	}
 
@@ -108,13 +115,12 @@ func checkRemoteGit(url string, timeout time.Duration) error {
 }
 
 // checkSourceURI performs a check on the URI associated with the build
-// to make sure that it is valid.  It also optionally tests the connection
-// to the source uri.
-func checkSourceURI(git git.Git, rawurl string, timeout time.Duration) error {
-	if !git.ValidCloneSpec(rawurl) {
+// to make sure that it is valid.
+func checkSourceURI(gitClient GitClient, rawurl string, timeout time.Duration) error {
+	if !s2igit.New().ValidCloneSpec(rawurl) {
 		return fmt.Errorf("Invalid git source url: %s", rawurl)
 	}
-	return checkRemoteGit(rawurl, timeout)
+	return checkRemoteGit(gitClient, rawurl, timeout)
 }
 
 // extractInputBinary processes the provided input stream as directed by BinaryBuildSource
@@ -154,22 +160,21 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 	return nil
 }
 
-func extractGitSource(git git.Git, gitSource *api.GitBuildSource, revision *api.SourceRevision, dir string, timeout time.Duration) (bool, error) {
+func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revision *api.SourceRevision, dir string, timeout time.Duration) (bool, error) {
 	if gitSource == nil {
 		return false, nil
 	}
 
-	// Set the HTTP and HTTPS proxies to be used by git clone.
-	originalProxies := setHTTPProxy(gitSource.HTTPProxy, gitSource.HTTPSProxy)
-	defer resetHTTPProxy(originalProxies)
-
 	// Check source URI, trying to connect to the server only if not using a proxy.
-	if err := checkSourceURI(git, gitSource.URI, timeout); err != nil {
+	if err := checkSourceURI(gitClient, gitSource.URI, timeout); err != nil {
 		return true, err
 	}
 
 	glog.V(2).Infof("Cloning source from %s", gitSource.URI)
-	if err := git.Clone(gitSource.URI, dir, s2iapi.CloneConfig{Recursive: true, Quiet: true}); err != nil {
+
+	// Only use the quiet flag if Verbosity is not 5 or greater
+	quiet := !bool(glog.V(5))
+	if err := gitClient.CloneWithOptions(dir, gitSource.URI, git.CloneOptions{Recursive: true, Quiet: quiet}); err != nil {
 		return true, err
 	}
 
@@ -179,7 +184,7 @@ func extractGitSource(git git.Git, gitSource *api.GitBuildSource, revision *api.
 		if revision != nil && revision.Git != nil && revision.Git.Commit != "" {
 			commit = revision.Git.Commit
 		}
-		if err := git.Checkout(dir, commit); err != nil {
+		if err := gitClient.Checkout(dir, commit); err != nil {
 			return true, err
 		}
 	}

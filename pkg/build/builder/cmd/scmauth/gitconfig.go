@@ -1,7 +1,6 @@
 package scmauth
 
 import (
-	"net/url"
 	"path/filepath"
 )
 
@@ -11,8 +10,8 @@ const GitConfigName = ".gitconfig"
 type GitConfig struct{}
 
 // Setup adds the secret .gitconfig as an include to the .gitconfig file to be used in the build
-func (_ GitConfig) Setup(baseDir string) (*url.URL, error) {
-	return nil, ensureGitConfigIncludes(filepath.Join(baseDir, GitConfigName))
+func (_ GitConfig) Setup(baseDir string, context SCMAuthContext) error {
+	return ensureGitConfigIncludes(filepath.Join(baseDir, GitConfigName), context)
 }
 
 // Name returns the name of this auth method.
