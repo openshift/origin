@@ -162,8 +162,7 @@ func (c *MasterConfig) RunDNSServer() {
 	}
 
 	if ok, err := cmdutil.TryListen(c.Options.DNSConfig.BindNetwork, c.Options.DNSConfig.BindAddress); !ok {
-		glog.Warningf("Could not start DNS: %v", err)
-		return
+		glog.Fatalf("Could not start DNS: %v", err)
 	}
 
 	go func() {
