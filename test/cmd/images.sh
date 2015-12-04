@@ -72,7 +72,7 @@ os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Image Created
 os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Image Name:'
 name=$(oc get istag/mysql:latest --template='{{ .image.metadata.name }}')
 imagename="isimage/mysql@${name:0:15}"
-os::cmd::expect_success 'oc describe "${imagename}"'
+os::cmd::expect_success "oc describe ${imagename}"
 os::cmd::expect_success_and_text "oc describe ${imagename}" 'Environment:'
 os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Created:'
 os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Name:'
@@ -87,7 +87,7 @@ echo "import-image: ok"
 os::cmd::expect_success 'oc tag mysql:latest tagtest:tag1 --alias'
 os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
 
-os::cmd::expect_success 'oc tag mysql@${name} tagtest:tag2 --alias'
+os::cmd::expect_success "oc tag mysql@${name} tagtest:tag2 --alias"
 os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 1).from.kind}}'" 'ImageStreamImage'
 
 os::cmd::expect_success 'oc tag mysql:notfound tagtest:tag3 --alias'
@@ -99,10 +99,10 @@ os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.t
 os::cmd::expect_success 'oc tag --source=istag mysql:latest tagtest:tag5 --alias'
 os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 4).from.kind}}'" 'ImageStreamTag'
 
-os::cmd::expect_success 'oc tag --source=imagestreamimage mysql@${name} tagtest:tag6 --alias'
+os::cmd::expect_success "oc tag --source=imagestreamimage mysql@${name} tagtest:tag6 --alias"
 os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 5).from.kind}}'" 'ImageStreamImage'
 
-os::cmd::expect_success 'oc tag --source=isimage mysql@${name} tagtest:tag7 --alias'
+os::cmd::expect_success "oc tag --source=isimage mysql@${name} tagtest:tag7 --alias"
 os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 6).from.kind}}'" 'ImageStreamImage'
 
 os::cmd::expect_success 'oc tag --source=docker mysql:latest tagtest:tag8 --alias'
