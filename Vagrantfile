@@ -56,6 +56,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
     "memory"            => ENV['OPENSHIFT_MEMORY'] || 2560,
     "fixup_net_udev"    => ENV['OPENSHIFT_FIXUP_NET_UDEV'] || true,
+    "skip_build"        => ENV['OPENSHIFT_SKIP_BUILD'] || false,
     "sync_folders_type" => nil,
     "master_ip"         => ENV['OPENSHIFT_MASTER_IP'] || "10.245.2.2",
     "minion_ip_base"    => ENV['OPENSHIFT_MINION_IP_BASE'] || "10.245.2.",
@@ -126,6 +127,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Start an OpenShift cluster
     # Currently this only works with the (default) VirtualBox provider.
 
+    # Tag configuration as stale when provisioning a dev cluster to
+    # ensure that nodes can wait for fresh configuration to be generated.
+    if ARGV[0] =~ /^up|provision$/i and not ARGV.include?("--no-provision")
+      system('test -d ./openshift.local.config && touch ./openshift.local.config/.stale')
+    end
+
     instance_prefix = "openshift"
 
     # The number of minions to provision.
@@ -145,12 +152,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     if network_plugin != ''
       network_plugin = "-n #{network_plugin}"
     end
+    skip_build = ''
+    if vagrant_openshift_config['skip_build']
+      skip_build = '-s'
+    end
 
     # OpenShift master
     config.vm.define "#{VM_NAME_PREFIX}master" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
-      config.vm.provision "shell", inline: "/bin/bash -x /vagrant/contrib/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{network_plugin} #{fixup_net_udev}"
+      config.vm.provision "shell", inline: "/bin/bash -x /vagrant/contrib/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{network_plugin} #{fixup_net_udev} #{skip_build}"
       config.vm.network "private_network", ip: "#{master_ip}"
       config.vm.hostname = "openshift-master"
       config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
@@ -163,7 +174,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         minion_ip = minion_ips[n]
         minion.vm.box = kube_box[kube_os]["name"]
         minion.vm.box_url = kube_box[kube_os]["box_url"]
-        minion.vm.provision "shell", inline: "/bin/bash -x /vagrant/contrib/vagrant/provision-node.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} -i #{minion_index} #{network_plugin} #{fixup_net_udev}"
+        minion.vm.provision "shell", inline: "/bin/bash -x /vagrant/contrib/vagrant/provision-node.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} -i #{minion_index} #{network_plugin} #{fixup_net_udev} #{skip_build}"
         minion.vm.network "private_network", ip: "#{minion_ip}"
         minion.vm.hostname = "openshift-minion-#{minion_index}"
         config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
