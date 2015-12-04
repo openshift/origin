@@ -17,9 +17,6 @@
 #   krb5-workstation
 #   git
 
-
-BRANCH_RELEASE=2.0
-
 # format:
 # dist-git_name	image_dependency dist-git_branch git_repo git_path
 base_images_list="
@@ -167,23 +164,40 @@ build_image() {
 
 show_git_diffs() {
   pushd "${workingdir}/${container}" >/dev/null
-  find . -name "Dockerfile*" -type f -print | while read line
+  find . -name ".osbs*" -prune -o -name "Dockerfile*" -type f -print | while read line
   do
-    updatetime=`git log --date=iso -n 1 --pretty="%ad" ${line}`
-    pushd "${workingdir}/${path}" >/dev/null
-    newupdates=`git log --oneline --after="${updatetime}" ${line} | wc -l`
-    if [ ${newupdates} -gt 0 ] ; then
-      echo "=== Change in ${container}/${line} ==="
-      lastgit=`git log -1 --pretty="%H" --before="${updatetime}" ${line}`
-      git diff ${lastgit} ${line}
+    diff --label ${line} --label ${path}/${line} -u ${line} ${workingdir}/${path}/${line} >> .osbs-logs/${line}.diff.new
+    newdiff=`diff .osbs-logs/${line}.diff .osbs-logs/${line}.diff.new`
+    if [ "${newdiff}" == "" ] ; then
+      rm -f .osbs-logs/${line}.diff.new
+    else
+      echo "${newdiff}"
+      echo " "
+      echo "(c)ontinue [replace old diff], (i)gnore [leave old diff], (q)uit [exit script] : "
+      read choice < /dev/tty
+      case ${choice} in
+        c | C | continue ) mv -f .osbs-logs/${line}.diff.new .osbs-logs/${line}.diff ; git add .osbs-logs/${line}.diff ; rhpkg commit -p -m "Updating dockerfile diff" ;;
+        i | I | ignore ) rm -f .osbs-logs/${line}.diff.new ;;
+        q | Q | quit ) exit 55 ;;
+        * ) echo "${choice} not and option.  Assuming ignore" ; rm -f .osbs-logs/${line}.diff.new ;;
+        #* ) echo "${choice} not and option.  Assuming continue" ;  mv -f .osbs-logs/${line}.diff.new .osbs-logs/${line}.diff ; git add .osbs-logs/${line}.diff ; rhpkg commit -p -m "Updating dockerfile diff" ;;
+      esac
     fi
-    popd >/dev/null
+    # updatetime=`git log --date=iso -n 1 --pretty="%ad" ${line}`
+    # pushd "${workingdir}/${path}" >/dev/null
+    # newupdates=`git log --oneline --after="${updatetime}" ${line} | wc -l`
+    # if [ ${newupdates} -gt 0 ] ; then
+    #   echo "=== Change in ${container}/${line} ==="
+    #   lastgit=`git log -1 --pretty="%H" --before="${updatetime}" ${line}`
+    #   git diff ${lastgit} ${line}
+    # fi
+    # popd >/dev/null
   done
   find . -name ".git*" -prune -o -name ".osbs*" -prune -o -name "Dockerfile*" -prune -o -type f -print | while read line
   do
     diff -u ${line} ${workingdir}/${path}/${line}
   done
-  diff --brief -r ${workingdir}/${container} ${workingdir}/${path} | grep -v -e Dockerfile -e git -e osbs-repo-config
+  diff --brief -r ${workingdir}/${container} ${workingdir}/${path} | grep -v -e Dockerfile -e git -e osbs
   popd >/dev/null
 
 }
