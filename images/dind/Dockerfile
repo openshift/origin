@@ -11,7 +11,9 @@ ENV container=docker
 
 RUN systemctl mask systemd-remount-fs.service dev-hugepages.mount \
   sys-fs-fuse-connections.mount systemd-logind.service getty.target \
-  console-getty.service dnf-makecache.service
+  console-getty.service dnf-makecache.service lvm2-lvmetad.service \
+  systemd-udevd.service systemd-udev-hwdb-update.service \
+  systemd-udev-trigger.service docker-storage-setup.service
 RUN cp /usr/lib/systemd/system/dbus.service /etc/systemd/system/; \
   sed -i 's/OOMScoreAdjust=-900//' /etc/systemd/system/dbus.service
 
@@ -28,14 +30,13 @@ RUN yum -y update && yum -y install git golang hg tar make \
 RUN systemctl disable sshd.service
 
 ## Configure dind
-ENV DIND_COMMIT 4e899d64e020a67ca05f913d354aa8d99a341a7b
+ENV DIND_COMMIT 81aa1b507f51901eafcfaad70a656da376cf937d
 RUN curl -fL "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" \
   -o /usr/local/bin/dind && chmod +x /usr/local/bin/dind
+RUN mkdir -p /etc/systemd/system/docker.service.d
+COPY dind.conf /etc/systemd/system/docker.service.d/
 
-RUN mv /lib/systemd/system/docker.service /lib/systemd/system/docker.service.bak
-COPY docker.service /lib/systemd/system/
-
-RUN systemctl enable docker.service
+RUN systemctl enable docker
 
 VOLUME /var/lib/docker
 
