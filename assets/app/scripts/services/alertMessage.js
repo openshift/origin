@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module("openshiftConsole")
-  .service("AlertMessageService", function(){
+  .service("AlertMessageService", function() {
     var alerts = [];
     return {
       addAlert: function(alert) {
