@@ -232,6 +232,21 @@ ${DEPLOYED_CONFIG_ROOT}"
       ${DOCKER_CMD} exec -t "${cid}" systemctl start sshd
     fi
   done
+
+  local rc_file="dind-${INSTANCE_PREFIX}.rc"
+  local admin_config=$(os::provision::get-admin-config ${CONFIG_ROOT})
+  echo "export KUBECONFIG=${admin_config}
+export PATH=\$PATH:${ORIGIN_ROOT}/_output/local/bin/linux/amd64" > "${rc_file}"
+
+  if [ "${KUBECONFIG:-}" != "${admin_config}" ]; then
+    echo ""
+    echo "Before invoking the openshift cli, make sure to source the
+cluster's rc file to configure the bash environment:
+
+  $ . ${rc_file}
+  $ oc get nodes
+"
+  fi
 }
 
 function stop() {
