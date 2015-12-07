@@ -307,7 +307,7 @@ func generateSecretsConfig(cfg *RouterConfig, kClient *kclient.Client,
 	}
 
 	// We need a secrets volume and mount iff we have secrets.
-	if len(secrets) != 0 {
+	if len(secrets) > 0 {
 		secretsVolume := kapi.Volume{
 			Name: secretsVolumeName,
 			VolumeSource: kapi.VolumeSource{
@@ -652,13 +652,13 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		}
 
 		if needsSCC {
-			fmt.Fprintf(os.Stderr, "WARNING: Router service account %q is not privileged to open ports on the host IP\n", cfg.ServiceAccount)
+			fmt.Fprintf(os.Stderr, "WARNING: Router service account %q is not privileged to open ports on the host IP, add the account to the privileged SCC.\n", cfg.ServiceAccount)
 		}
 
-		if sobjects, err := associateSecrets(kClient, secrets, namespace, cfg.ServiceAccount, objects); err != nil {
+		if sobjects, err := associateSecrets(kClient, secrets, namespace, cfg.ServiceAccount); err != nil {
 			return err
 		} else {
-			objects = sobjects
+			objects = append(objects, sobjects...)
 		}
 
 		return nil
@@ -681,9 +681,10 @@ func generateStatsPassword() string {
 }
 
 // associate the secrets with the account given (within the namespace)
-func associateSecrets(kClient *kclient.Client, secrets []*kapi.Secret, ns string,
-	sa string, objects []runtime.Object) ([]runtime.Object, error) {
-	if len(secrets) != 0 {
+func associateSecrets(kClient *kclient.Client, secrets []*kapi.Secret, ns string, sa string) ([]runtime.Object, error) {
+	var objects []runtime.Object
+
+	if len(secrets) > 0 {
 		serviceAccount, err := kClient.ServiceAccounts(ns).Get(sa)
 		if err != nil {
 			return nil, fmt.Errorf("error looking up service account %s: %v", sa, err)
