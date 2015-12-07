@@ -156,15 +156,15 @@ type defaultRegistryPinger struct {
 }
 
 func (drp *defaultRegistryPinger) ping(registry string) error {
-	healthzCheck := func(proto, registry string) error {
-		healthzResponse, err := drp.client.Get(fmt.Sprintf("%s://%s/healthz", proto, registry))
+	healthCheck := func(proto, registry string) error {
+		healthResponse, err := drp.client.Get(fmt.Sprintf("%s://%s/", proto, registry))
 		if err != nil {
 			return err
 		}
-		defer healthzResponse.Body.Close()
+		defer healthResponse.Body.Close()
 
-		if healthzResponse.StatusCode != http.StatusOK {
-			return fmt.Errorf("unexpected status code %d", healthzResponse.StatusCode)
+		if healthResponse.StatusCode != http.StatusOK {
+			return fmt.Errorf("unexpected status code %d", healthResponse.StatusCode)
 		}
 
 		return nil
@@ -173,7 +173,7 @@ func (drp *defaultRegistryPinger) ping(registry string) error {
 	var err error
 	for _, proto := range []string{"https", "http"} {
 		glog.V(4).Infof("Trying %s for %s", proto, registry)
-		err = healthzCheck(proto, registry)
+		err = healthCheck(proto, registry)
 		if err == nil {
 			break
 		}

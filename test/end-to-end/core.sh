@@ -88,7 +88,7 @@ registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short
 [[ -n "${registry}" && "${registry}:5000" == "${DOCKER_REGISTRY}" ]]
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
-wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry says: " $((2*TIME_MIN))
+wait_for_url_timed "http://${DOCKER_REGISTRY}/" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
 [ "$(dig @${API_HOST} "docker-registry.default.local." A)" ]
 
