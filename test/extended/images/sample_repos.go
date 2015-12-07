@@ -53,7 +53,6 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 					logs, _ := oc.Run("build-logs").Args(buildName).Output()
 					e2e.Failf("build failed: %s", logs)
 				}
-				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the deployment to be complete")
 				err = exutil.WaitForADeployment(oc.KubeREST().ReplicationControllers(oc.Namespace()), c.deploymentConfigName, exutil.CheckDeploymentCompletedFn, exutil.CheckDeploymentFailedFn)
