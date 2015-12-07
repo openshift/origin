@@ -1432,6 +1432,11 @@ func deepCopy_api_DeploymentDetails(in deployapi.DeploymentDetails, out *deploya
 	} else {
 		out.Causes = nil
 	}
+	if newVal, err := c.DeepCopy(in.LastMessageUpdatedTime); err != nil {
+		return err
+	} else {
+		out.LastMessageUpdatedTime = newVal.(unversioned.Time)
+	}
 	return nil
 }
 

@@ -5,20 +5,29 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/util"
 
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
+
+// DefaultMessageUpdatePeriod is how often to regenerate a config's detail
+// message.
+const DefaultMessageUpdatePeriod = 1 * time.Minute
+
+// defaultNow is the default time.Now implementation.
+var defaultNow = func() time.Time { return time.Now() }
 
 // DeploymentConfigController is responsible for creating a new deployment when:
 //
@@ -39,6 +48,12 @@ type DeploymentConfigController struct {
 	osClient osclient.Interface
 	// makeDeployment knows how to make a deployment from a config.
 	makeDeployment func(*deployapi.DeploymentConfig) (*kapi.ReplicationController, error)
+	// buildConfigs is a cache of buildConfigs for generating status.
+	buildConfigs cache.Store
+	// messageUpdatePeriod is how often to recompute the config status message.
+	messageUpdatePeriod time.Duration
+	// now returns the current time.
+	now func() time.Time
 }
 
 // fatalError is an error which can't be retried.
@@ -56,7 +71,28 @@ func (e transientError) Error() string {
 
 // Handle processes config and creates a new deployment if necessary.
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
-	// TODO(danmace): Don't use findDetails yet. See: https://github.com/openshift/origin/pull/5530
+	// Defer deployment lookups; if it's not time time to recalculate details
+	// and the config version is still 0, the call is unnecessary overhead.
+	var existingDeployments *kapi.ReplicationControllerList
+	var err error
+
+	// Inspect a deployment configuration every time the controller reconciles it
+	if config.Details == nil ||
+		config.Details.LastMessageUpdatedTime.IsZero() ||
+		c.now().After(config.Details.LastMessageUpdatedTime.Add(c.messageUpdatePeriod)) {
+		existingDeployments, err = c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
+		if err != nil {
+			return err
+		}
+		details, err := c.findDetails(config, existingDeployments)
+		if err != nil {
+			return err
+		}
+		config, err = c.updateDetails(config, details)
+		if err != nil {
+			return transientError(err.Error())
+		}
+	}
 
 	// Only deploy when the version has advanced past 0.
 	if config.LatestVersion == 0 {
@@ -64,14 +100,16 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		return nil
 	}
 
-	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
-	if err != nil {
-		return err
+	// Reuse any list already loaded during details update.
+	if existingDeployments == nil {
+		existingDeployments, err = c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
+		if err != nil {
+			return err
+		}
 	}
 
 	var inflightDeployment *kapi.ReplicationController
 	for _, deployment := range existingDeployments.Items {
-
 		deploymentStatus := deployutil.DeploymentStatusFor(&deployment)
 		switch deploymentStatus {
 		case deployapi.DeploymentStatusFailed,
@@ -182,31 +220,20 @@ func (i *deploymentClientImpl) updateDeployment(namespace string, deployment *ka
 
 // findDetails inspects the given deployment configuration for any failure causes
 // and returns any found details about it
-// TODO(danmace): Don't use findDetails yet. See: https://github.com/openshift/origin/pull/5530
-func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentConfig) (string, *kapi.ReplicationControllerList, bool, error) {
-	// Check if any existing inflight deployments (any non-terminal state).
-	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
-	if err != nil {
-		return "", nil, false, fmt.Errorf("couldn't list deployments for deployment config %q: %v", deployutil.LabelForDeploymentConfig(config), err)
-	}
+func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentConfig, existingDeployments *kapi.ReplicationControllerList) (string, error) {
 	// check if the latest deployment exists
 	// we'll return after we've dealt with the multiple-active-deployments case
 	latestDeploymentExists, latestDeploymentStatus := deployutil.LatestDeploymentInfo(config, existingDeployments)
 	if latestDeploymentExists && latestDeploymentStatus != deployapi.DeploymentStatusFailed {
 		// If the latest deployment exists and is not failed, clear the dc message
-		return "", existingDeployments, latestDeploymentExists, nil
+		return "", nil
 	}
 
 	// Rest of the code will handle non-existing or failed latest deployment causes
 	// TODO: Inspect pod logs in case of failed latest
-
-	details := ""
-	allDetails := []string{}
-	if config.Details != nil && len(config.Details.Message) > 0 {
-		// Populate details with the previous message so that in case we stumble upon
-		// an unexpected client error, the message won't be overwritten
-		details = config.Details.Message
-	}
+	invalidIsTags := []string{}
+	isTagsMissingStreams := map[string]string{}
+	isTagBuilds := map[string]string{}
 	// Look into image change triggers and find out possible deployment failures such as
 	// missing image stream tags with or without build configurations pointing at them
 	for _, trigger := range config.Triggers {
@@ -220,28 +247,21 @@ func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentCon
 		// Check if the image stream tag pointed by the trigger exists
 		if _, err := c.osClient.ImageStreamTags(config.Namespace).Get(name, tag); err != nil {
 			if !errors.IsNotFound(err) {
-				glog.V(2).Infof("Error while trying to get image stream tag %q: %v", istag, err)
-				return details, existingDeployments, latestDeploymentExists, nil
+				return "", fmt.Errorf("couldn't get image stream tag %q: %v", istag, err)
 			}
 			// In case the image stream tag was not found, then it either doesn't exist or doesn't exist yet
 			// (a build configuration output points to it so it's going to be populated at some point in the
 			// future)
-			details = fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream tag %q does not exist.", istag, istag)
-			bcList, err := c.osClient.BuildConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
-			if err != nil {
-				glog.V(2).Infof("Error while trying to list build configs: %v", err)
-				return details, existingDeployments, latestDeploymentExists, nil
-			}
-
-			for _, bc := range bcList.Items {
+			invalidIsTags = append(invalidIsTags, istag)
+			for _, obj := range c.buildConfigs.List() {
+				bc := obj.(*buildapi.BuildConfig)
 				if bc.Spec.Output.To != nil && bc.Spec.Output.To.Kind == "ImageStreamTag" {
 					parts := strings.Split(bc.Spec.Output.To.Name, ":")
 					if len(parts) != 2 {
-						glog.V(2).Infof("Invalid image stream tag: %q", bc.Spec.Output.To.Name)
-						return details, existingDeployments, latestDeploymentExists, nil
+						return "", fmt.Errorf("invalid image stream tag: %q", bc.Spec.Output.To.Name)
 					}
 					if parts[0] == name && parts[1] == tag {
-						details = fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream tag %q does not exist.\n\tIf image stream tag %q is expected, check build config %q which produces image stream tag %q.", istag, istag, istag, bc.Name, istag)
+						isTagBuilds[istag] = bc.Name
 						break
 					}
 				}
@@ -249,25 +269,37 @@ func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentCon
 			// Try to see if the image stream exists, if not then the build will never be able to update the
 			// tag in question
 			if _, err := c.osClient.ImageStreams(config.Namespace).Get(name); err != nil {
-				glog.V(2).Infof("Error while trying to get image stream %q: %v", name, err)
-				if errors.IsNotFound(err) {
-					details = fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream %q does not exist.", istag, name)
+				if !errors.IsNotFound(err) {
+					return "", fmt.Errorf("couldn't get image stream %q: %v", name, err)
 				}
+				isTagsMissingStreams[istag] = name
 			}
 		}
-		allDetails = append(allDetails, details)
 	}
 
-	if len(allDetails) > 1 {
-		for i := range allDetails {
-			allDetails[i] = fmt.Sprintf("\t* %s", allDetails[i])
+	details := []string{}
+	for _, isTagName := range invalidIsTags {
+		if streamName, missingStream := isTagsMissingStreams[isTagName]; missingStream {
+			details = append(details, fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream %q does not exist.", isTagName, streamName))
+			continue
+		}
+		if buildName, hasBuild := isTagBuilds[isTagName]; hasBuild {
+			details = append(details, fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream tag %q does not exist.\n\tIf image stream tag %q is expected, check build config %q which produces image stream tag %q.", isTagName, isTagName, isTagName, buildName, isTagName))
+		} else {
+			details = append(details, fmt.Sprintf("The image trigger for image stream tag %q will have no effect because image stream tag %q does not exist.", isTagName, isTagName))
+		}
+	}
+
+	if len(details) > 1 {
+		for i := range details {
+			details[i] = fmt.Sprintf("\t* %s", details[i])
 		}
 		// Prepend multiple errors warning
 		multipleErrWarning := fmt.Sprintf("Deployment config %q blocked by multiple errors:\n", config.Name)
-		allDetails = append([]string{multipleErrWarning}, allDetails...)
+		details = append([]string{multipleErrWarning}, details...)
 	}
 
-	return strings.Join(allDetails, "\n"), existingDeployments, latestDeploymentExists, nil
+	return strings.Join(details, "\n"), nil
 }
 
 // updateDetails updates a deployment configuration with the provided details
@@ -275,9 +307,7 @@ func (c *DeploymentConfigController) updateDetails(config *deployapi.DeploymentC
 	if config.Details == nil {
 		config.Details = new(deployapi.DeploymentDetails)
 	}
-	if details != config.Details.Message {
-		config.Details.Message = details
-		return c.osClient.DeploymentConfigs(config.Namespace).Update(config)
-	}
-	return config, nil
+	config.Details.Message = details
+	config.Details.LastMessageUpdatedTime = unversioned.NewTime(c.now())
+	return c.osClient.DeploymentConfigs(config.Namespace).Update(config)
 }

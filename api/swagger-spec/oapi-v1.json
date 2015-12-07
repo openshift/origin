@@ -17061,6 +17061,10 @@
        "$ref": "v1.DeploymentCause"
       },
       "description": "extended data associated with all the causes for creating a new deployment"
+     },
+     "lastMessageUpdatedTime": {
+      "type": "string",
+      "description": "the last time message was updated"
      }
     }
    },

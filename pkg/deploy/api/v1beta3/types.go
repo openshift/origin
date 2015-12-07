@@ -319,6 +319,8 @@ type DeploymentDetails struct {
 	Message string `json:"message,omitempty" description:"a user specified change message"`
 	// Extended data associated with all the causes for creating a new deployment
 	Causes []*DeploymentCause `json:"causes,omitempty" description:"extended data associated with all the causes for creating a new deployment"`
+	// LastMessageUpdatedTime is the last time message was updated.
+	LastMessageUpdatedTime unversioned.Time `json:"lastMessageUpdatedTime,omitempty" description:"the last time message was updated"`
 }
 
 // DeploymentCause captures information about a particular cause of a deployment.
