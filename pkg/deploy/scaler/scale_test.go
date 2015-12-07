@@ -5,127 +5,79 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-func mkdeployment(version int) kapi.ReplicationController {
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codec)
-	return *deployment
-}
-
-func mkDeploymentList(versions ...int) *kapi.ReplicationControllerList {
-	list := &kapi.ReplicationControllerList{}
-	for _, v := range versions {
-		list.Items = append(list.Items, mkdeployment(v))
-	}
-	return list
-}
-
 func TestScale(t *testing.T) {
 	tests := []struct {
-		testName               string
-		namespace              string
-		name                   string
-		count                  uint
-		preconditions          *kubectl.ScalePrecondition
-		retry, waitForReplicas *kubectl.RetryParams
-		oc                     *testclient.Fake
-		kc                     *ktestclient.Fake
-		expected               []ktestclient.Action
-		kexpected              []ktestclient.Action
-		expectedErr            error
+		name        string
+		size        uint
+		wait        bool
+		errExpected bool
 	}{
 		{
-			testName:  "simple scale",
-			namespace: "default",
-			name:      "foo",
-			count:     uint(3),
-			oc:        testclient.NewSimpleFake(deploytest.OkDeploymentConfig(1)),
-			kc:        ktestclient.NewSimpleFake(mkDeploymentList(1)),
-			expected: []ktestclient.Action{
-				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
-			},
-			kexpected: []ktestclient.Action{
-				ktestclient.NewGetAction("replicationcontrollers", "default", "config-1"),
-				ktestclient.NewUpdateAction("replicationcontrollers", "default", nil),
-			},
-			expectedErr: nil,
+			name:        "simple scale",
+			size:        2,
+			wait:        false,
+			errExpected: false,
 		},
 		{
-			testName:        "wait for replicas",
-			namespace:       "default",
-			name:            "foo",
-			count:           uint(3),
-			waitForReplicas: &kubectl.RetryParams{Interval: time.Millisecond, Timeout: time.Millisecond},
-			oc:              testclient.NewSimpleFake(deploytest.OkDeploymentConfig(1)),
-			kc:              ktestclient.NewSimpleFake(mkDeploymentList(1)),
-			expected: []ktestclient.Action{
-				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
-				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
-			},
-			kexpected: []ktestclient.Action{
-				ktestclient.NewGetAction("replicationcontrollers", "default", "config-1"),
-				ktestclient.NewUpdateAction("replicationcontrollers", "default", nil),
-				ktestclient.NewGetAction("replicationcontrollers", "default", "config-1"),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
-			},
-			expectedErr: nil,
-		},
-		{
-			testName:  "no deployment - dc scale",
-			namespace: "default",
-			name:      "foo",
-			count:     uint(3),
-			oc:        testclient.NewSimpleFake(deploytest.OkDeploymentConfig(1)),
-			kc:        ktestclient.NewSimpleFake(),
-			expected: []ktestclient.Action{
-				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
-				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
-				ktestclient.NewUpdateAction("deploymentconfigs", "default", nil),
-			},
-			kexpected: []ktestclient.Action{
-				ktestclient.NewGetAction("replicationcontrollers", "default", "config-1"),
-			},
-			expectedErr: nil,
+			name:        "scale with wait",
+			size:        2,
+			wait:        true,
+			errExpected: false,
 		},
 	}
 
 	for _, test := range tests {
-		scaler := NewDeploymentConfigScaler(test.oc, test.kc)
-		got := scaler.Scale(test.namespace, test.name, test.count, test.preconditions, test.retry, test.waitForReplicas)
-		if got != test.expectedErr {
-			t.Errorf("%s: error mismatch: expected %v, got %v", test.testName, test.expectedErr, got)
+		t.Logf("evaluating test %q", test.name)
+		oc := &testclient.Fake{}
+		kc := &ktestclient.Fake{}
+		scaler := NewDeploymentConfigScaler(oc, kc)
+
+		config := deploytest.OkDeploymentConfig(1)
+		config.Template.ControllerTemplate.Replicas = 1
+		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+
+		var wait *kubectl.RetryParams
+		if test.wait {
+			wait = &kubectl.RetryParams{Interval: time.Millisecond, Timeout: time.Second}
 		}
 
-		if len(test.oc.Actions()) != len(test.expected) {
-			t.Fatalf("%s: unexpected OpenShift actions amount: %d, expected %d", test.testName, len(test.oc.Actions()), len(test.expected))
-		}
-		for j, actualAction := range test.oc.Actions() {
-			e, a := test.expected[j], actualAction
-			if e.GetVerb() != a.GetVerb() ||
-				e.GetNamespace() != a.GetNamespace() ||
-				e.GetResource() != a.GetResource() ||
-				e.GetSubresource() != a.GetSubresource() {
-				t.Errorf("%s: unexpected OpenShift action[%d]: %s, expected %s", test.testName, j, a, e)
+		oc.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			return true, config, nil
+		})
+		oc.AddReactor("update", "deploymentconfigs/scale", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			// Simulate the asynchronous update of the RC replicas based on the
+			// scale replica count.
+			scale := action.(ktestclient.UpdateAction).GetObject().(*extensions.Scale)
+			scale.Status.Replicas = scale.Spec.Replicas
+			config.Template.ControllerTemplate.Replicas = scale.Spec.Replicas
+			deployment.Spec.Replicas = scale.Spec.Replicas
+			deployment.Status.Replicas = deployment.Spec.Replicas
+			return true, scale, nil
+		})
+		kc.AddReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			return true, deployment, nil
+		})
+
+		err := scaler.Scale("default", config.Name, test.size, nil, nil, wait)
+		if err != nil {
+			if !test.errExpected {
+				t.Errorf("unexpected error: %s", err)
+				continue
 			}
 		}
 
-		if len(test.kc.Actions()) != len(test.kexpected) {
-			t.Fatalf("%s: unexpected Kubernetes actions amount: %d, expected %d", test.testName, len(test.kc.Actions()), len(test.kexpected))
-		}
-		for j, actualAction := range test.kc.Actions() {
-			e, a := test.kexpected[j], actualAction
-			if e.GetVerb() != a.GetVerb() ||
-				e.GetNamespace() != a.GetNamespace() ||
-				e.GetResource() != a.GetResource() ||
-				e.GetSubresource() != a.GetSubresource() {
-				t.Errorf("%s: unexpected Kubernetes action[%d]: %s, expected %s", test.testName, j, a, e)
-			}
+		if e, a := config.Template.ControllerTemplate.Replicas, deployment.Spec.Replicas; e != a {
+			t.Errorf("expected rc/%s replicas %d, got %d", deployment.Name, e, a)
 		}
 	}
 }

@@ -215,6 +215,9 @@ const (
 	// DeploymentCancelledAnnotation indicates that the deployment has been cancelled
 	// The annotation value does not matter and its mere presence indicates cancellation
 	DeploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
+	// DeploymentReplicasAnnotation is for internal use only and is for
+	// detecting external modifications to deployment replica counts.
+	DeploymentReplicasAnnotation = "openshift.io/deployment.replicas"
 )
 
 // These constants represent the various reasons for cancelling a deployment
