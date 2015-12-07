@@ -736,6 +736,7 @@ find_files() {
 		-o -wholename './pkg/assets/*/bindata.go' \
 		-o -wholename './openshift.local.*' \
 		-o -wholename '*/Godeps/*' \
+		-o -wholename './assets/bower_components/*' \
 		\) -prune \
 	\) -name '*.go' | sort -u
 }

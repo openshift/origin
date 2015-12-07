@@ -7,13 +7,43 @@
       <div>
         <h1>
           {{buildConfig.metadata.name}}
-          <delete-button
-            class="pull-right fa-lg"
-            resource-type="buildconfig"
-            resource-name="{{buildConfig.metadata.name}}"
-            project-name="{{buildConfig.metadata.namespace}}"
-            alerts="alerts">
-          </delete-button>
+          <div class="pull-right dropdown">
+            <!-- Primary Actions -->
+            <button
+                class="btn btn-default hidden-xs"
+                ng-click="startBuild()"
+                ng-disabled="!canBuild()">
+              Start Build
+            </button>
+
+            <!-- Secondary Actions -->
+            <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+            <ul class="dropdown-menu actions action-button">
+              <li class="visible-xs-inline" ng-class="{ disabled: !canBuild() }">
+                <a href=""
+                  role="button"
+                  ng-attr-aria-disabled="{{canBuild() ? undefined : 'true'}}"
+                  ng-class="{ 'disabled-link': !canBuild() }"
+                  ng-click="startBuild()"
+                ><i class="fa fa-play fa-fw" aria-hidden="true"></i> Start Build</a>
+              </li>
+              <li>
+                <edit-link
+                  resource="buildConfig"
+                  kind="buildconfigs"
+                  alerts="alerts">
+                </edit-link>
+              </li>
+              <li>
+                <delete-link
+                  resource-type="buildconfig"
+                  resource-name="{{buildConfig.metadata.name}}"
+                  project-name="{{buildConfig.metadata.namespace}}"
+                  alerts="alerts">
+                </delete-link>
+              </li>
+            </ul>
+          </div>
           <small class="meta">created <relative-timestamp timestamp="buildConfig.metadata.creationTimestamp"></relative-timestamp></small>
         </h1>
         <labels labels="buildConfig.metadata.labels" clickable="true" kind="builds" title-kind="build configs" project-name="{{buildConfig.metadata.namespace}}" limit="3"></labels>
@@ -52,10 +82,6 @@
 
             <!-- Show the latest build and a chart of the recent build duration and status. -->
             <div ng-if="builds && (builds | hashSize) > 0" class="build-config-summary">
-              <div class="actions pull-right">
-                <button class="btn btn-default pull-right" ng-click="startBuild(buildConfig.metadata.name)" ng-disabled="buildConfig.metadata.deletionTimestamp || (buildConfigBuildsInProgress[buildConfig.metadata.name] | hashSize) > 0">Start Build</button>
-              </div>
-
               <!-- Show the latest build status first. -->
               <div class="h3" style="margin-bottom: 0;">
                 <span class="latest-build-status">

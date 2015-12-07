@@ -2,14 +2,15 @@
   <project-page>
     <div>
       <div class="page-header page-header-bleed-right">
-        <delete-button
+        <delete-link
           class="pull-right fa-lg"
           resource-type="project"
           resource-name="{{project.metadata.name}}"
           project-name="{{project.metadata.name}}"
           display-name="{{(project | displayName)}}"
-          alerts="alerts">
-        </delete-button>
+          alerts="alerts"
+          button-only>
+        </delete-link>
         <h1>Project Settings</h1>
       </div>
 

@@ -11,13 +11,26 @@
               {{build.metadata.name}}
               <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
               <small class="meta">created <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></small>
-              <delete-button
-                class="pull-right fa-lg"
-                resource-type="build"
-                resource-name="{{build.metadata.name}}"
-                project-name="{{build.metadata.namespace}}"
-                alerts="alerts">
-              </delete-button>
+              <div class="pull-right dropdown">
+                <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                <ul class="dropdown-menu actions action-button">
+                  <li>
+                    <edit-link
+                      resource="build"
+                      kind="builds"
+                      alerts="alerts">
+                    </edit-link>
+                  </li>
+                  <li>
+                    <delete-link
+                      resource-type="build"
+                      resource-name="{{build.metadata.name}}"
+                      project-name="{{build.metadata.namespace}}"
+                      alerts="alerts">
+                    </delete-link>
+                  </li>
+                </ul>
+              </div>
             </h1>
             <labels ng-if="buildConfigName" labels="build.metadata.labels" clickable="true" kind="builds" title-kind="builds for build config {{buildConfigName}}" project-name="{{build.metadata.namespace}}" limit="3" navigate-url="project/{{build.metadata.namespace}}/browse/builds/{{buildConfigName}}"></labels>
             <labels ng-if="!buildConfigName" labels="build.metadata.labels" limit="3"></labels>
