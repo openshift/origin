@@ -67,23 +67,6 @@ os::cmd::expect_success 'oc delete all --all'
 sleep 1
 os::cmd::expect_success 'oc delete all --all'
 
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.json'
-tryuntil "os::cmd::expect_success 'oc get rc/test-deployment-config-1'"
-# oc deploy test-deployment-config --cancel # TODO: does not block until success
-# oc deploy test-deployment-config --latest
-# tryuntil oc get rc/test-deployment-config-2
-
-# scale rc via deployment configuration
-os::cmd::expect_success 'oc scale dc test-deployment-config --replicas=1'
-os::cmd::expect_success 'oc scale dc test-deployment-config --replicas=2 --timeout=10m'
-# scale directly
-os::cmd::expect_success 'oc scale rc test-deployment-config-1 --replicas=4'
-os::cmd::expect_success 'oc scale rc test-deployment-config-1 --replicas=5 --timeout=10m'
-os::cmd::expect_success 'oc delete all --all'
-echo "scale: ok"
-
-os::cmd::expect_success 'oc delete all --all'
-
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l app=dockerbuild | oc create -f -'
 tryuntil "os::cmd::expect_success 'oc get rc/database-1'"
 

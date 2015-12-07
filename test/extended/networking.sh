@@ -101,6 +101,7 @@ function test-osdn-plugin() {
   save-artifacts "${name}" "${OPENSHIFT_CONFIG_ROOT}"
 
   os::log::info "Running networking e2e tests against the ${name} plugin"
+  export TEST_REPORT_FILE_NAME="${name}-junit"
   local log_dir="${LOG_DIR}/${name}"
   mkdir -p "${log_dir}"
 

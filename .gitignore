@@ -9,6 +9,7 @@
 /assets/nbproject
 /examples/sample-app/openshift.local.*
 /examples/sample-app/logs/openshift.log
+/dind-*.rc
 *.swp
 .vimrc
 .vagrant-openshift.json*

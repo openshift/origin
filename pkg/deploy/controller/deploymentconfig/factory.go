@@ -46,29 +46,9 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
+	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deploymentconfig-controller"})
 
-	configController := &DeploymentConfigController{
-		deploymentClient: &deploymentClientImpl{
-			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).Create(deployment)
-			},
-			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				sel := deployutil.ConfigSelector(configName)
-				list, err := factory.KubeClient.ReplicationControllers(namespace).List(sel, fields.Everything())
-				if err != nil {
-					return nil, err
-				}
-				return list, nil
-			},
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).Update(deployment)
-			},
-		},
-		osClient: factory.Client,
-		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
-			return deployutil.MakeDeployment(config, factory.Codec)
-		},
-	}
+	configController := NewDeploymentConfigController(factory.KubeClient, factory.Client, factory.Codec, recorder)
 
 	return &controller.RetryController{
 		Queue: queue,
