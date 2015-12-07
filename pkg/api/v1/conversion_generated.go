@@ -1418,6 +1418,14 @@ func autoconvert_api_BuildSource_To_v1_BuildSource(in *buildapi.BuildSource, out
 	} else {
 		out.Git = nil
 	}
+	if in.Image != nil {
+		out.Image = new(apiv1.ImageSource)
+		if err := convert_api_ImageSource_To_v1_ImageSource(in.Image, out.Image, s); err != nil {
+			return err
+		}
+	} else {
+		out.Image = nil
+	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {
 		out.SourceSecret = new(pkgapiv1.LocalObjectReference)
@@ -1694,6 +1702,51 @@ func autoconvert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *buildapi.Im
 
 func convert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *buildapi.ImageChangeTrigger, out *apiv1.ImageChangeTrigger, s conversion.Scope) error {
 	return autoconvert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in, out, s)
+}
+
+func autoconvert_api_ImageSource_To_v1_ImageSource(in *buildapi.ImageSource, out *apiv1.ImageSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.ImageSource))(in)
+	}
+	if err := convert_api_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
+		return err
+	}
+	if in.Paths != nil {
+		out.Paths = make([]apiv1.ImageSourcePath, len(in.Paths))
+		for i := range in.Paths {
+			if err := convert_api_ImageSourcePath_To_v1_ImageSourcePath(&in.Paths[i], &out.Paths[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Paths = nil
+	}
+	if in.PullSecret != nil {
+		out.PullSecret = new(pkgapiv1.LocalObjectReference)
+		if err := convert_api_LocalObjectReference_To_v1_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
+			return err
+		}
+	} else {
+		out.PullSecret = nil
+	}
+	return nil
+}
+
+func convert_api_ImageSource_To_v1_ImageSource(in *buildapi.ImageSource, out *apiv1.ImageSource, s conversion.Scope) error {
+	return autoconvert_api_ImageSource_To_v1_ImageSource(in, out, s)
+}
+
+func autoconvert_api_ImageSourcePath_To_v1_ImageSourcePath(in *buildapi.ImageSourcePath, out *apiv1.ImageSourcePath, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.ImageSourcePath))(in)
+	}
+	out.SourcePath = in.SourcePath
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func convert_api_ImageSourcePath_To_v1_ImageSourcePath(in *buildapi.ImageSourcePath, out *apiv1.ImageSourcePath, s conversion.Scope) error {
+	return autoconvert_api_ImageSourcePath_To_v1_ImageSourcePath(in, out, s)
 }
 
 func autoconvert_api_SecretSpec_To_v1_SecretSpec(in *buildapi.SecretSpec, out *apiv1.SecretSpec, s conversion.Scope) error {
@@ -2132,6 +2185,14 @@ func autoconvert_v1_BuildSource_To_api_BuildSource(in *apiv1.BuildSource, out *b
 	} else {
 		out.Git = nil
 	}
+	if in.Image != nil {
+		out.Image = new(buildapi.ImageSource)
+		if err := convert_v1_ImageSource_To_api_ImageSource(in.Image, out.Image, s); err != nil {
+			return err
+		}
+	} else {
+		out.Image = nil
+	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {
 		out.SourceSecret = new(pkgapi.LocalObjectReference)
@@ -2409,6 +2470,51 @@ func autoconvert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger(in *apiv1.Image
 
 func convert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger(in *apiv1.ImageChangeTrigger, out *buildapi.ImageChangeTrigger, s conversion.Scope) error {
 	return autoconvert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger(in, out, s)
+}
+
+func autoconvert_v1_ImageSource_To_api_ImageSource(in *apiv1.ImageSource, out *buildapi.ImageSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1.ImageSource))(in)
+	}
+	if err := convert_v1_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
+		return err
+	}
+	if in.Paths != nil {
+		out.Paths = make([]buildapi.ImageSourcePath, len(in.Paths))
+		for i := range in.Paths {
+			if err := convert_v1_ImageSourcePath_To_api_ImageSourcePath(&in.Paths[i], &out.Paths[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Paths = nil
+	}
+	if in.PullSecret != nil {
+		out.PullSecret = new(pkgapi.LocalObjectReference)
+		if err := convert_v1_LocalObjectReference_To_api_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
+			return err
+		}
+	} else {
+		out.PullSecret = nil
+	}
+	return nil
+}
+
+func convert_v1_ImageSource_To_api_ImageSource(in *apiv1.ImageSource, out *buildapi.ImageSource, s conversion.Scope) error {
+	return autoconvert_v1_ImageSource_To_api_ImageSource(in, out, s)
+}
+
+func autoconvert_v1_ImageSourcePath_To_api_ImageSourcePath(in *apiv1.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1.ImageSourcePath))(in)
+	}
+	out.SourcePath = in.SourcePath
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func convert_v1_ImageSourcePath_To_api_ImageSourcePath(in *apiv1.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
+	return autoconvert_v1_ImageSourcePath_To_api_ImageSourcePath(in, out, s)
 }
 
 func autoconvert_v1_SecretSpec_To_api_SecretSpec(in *apiv1.SecretSpec, out *buildapi.SecretSpec, s conversion.Scope) error {
@@ -5289,6 +5395,8 @@ func init() {
 		autoconvert_api_Identity_To_v1_Identity,
 		autoconvert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger,
 		autoconvert_api_ImageList_To_v1_ImageList,
+		autoconvert_api_ImageSourcePath_To_v1_ImageSourcePath,
+		autoconvert_api_ImageSource_To_v1_ImageSource,
 		autoconvert_api_ImageStreamImage_To_v1_ImageStreamImage,
 		autoconvert_api_ImageStreamList_To_v1_ImageStreamList,
 		autoconvert_api_ImageStreamMapping_To_v1_ImageStreamMapping,
@@ -5398,6 +5506,8 @@ func init() {
 		autoconvert_v1_Identity_To_api_Identity,
 		autoconvert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger,
 		autoconvert_v1_ImageList_To_api_ImageList,
+		autoconvert_v1_ImageSourcePath_To_api_ImageSourcePath,
+		autoconvert_v1_ImageSource_To_api_ImageSource,
 		autoconvert_v1_ImageStreamImage_To_api_ImageStreamImage,
 		autoconvert_v1_ImageStreamList_To_api_ImageStreamList,
 		autoconvert_v1_ImageStreamMapping_To_api_ImageStreamMapping,

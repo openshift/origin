@@ -92,7 +92,11 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	if strategy.ExposeDockerSocket {
 		setupDockerSocket(pod)
-		setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret)
+		var sourceImageSecret *kapi.LocalObjectReference
+		if build.Spec.Source.Image != nil {
+			sourceImageSecret = build.Spec.Source.Image.PullSecret
+		}
+		setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret, sourceImageSecret)
 	}
 	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
 	setupAdditionalSecrets(pod, build.Spec.Strategy.CustomStrategy.Secrets)

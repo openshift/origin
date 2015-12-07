@@ -1427,6 +1427,14 @@ func autoconvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource
 	} else {
 		out.Git = nil
 	}
+	if in.Image != nil {
+		out.Image = new(apiv1beta3.ImageSource)
+		if err := convert_api_ImageSource_To_v1beta3_ImageSource(in.Image, out.Image, s); err != nil {
+			return err
+		}
+	} else {
+		out.Image = nil
+	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {
 		out.SourceSecret = new(pkgapiv1beta3.LocalObjectReference)
@@ -1703,6 +1711,51 @@ func autoconvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in *builda
 
 func convert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in *buildapi.ImageChangeTrigger, out *apiv1beta3.ImageChangeTrigger, s conversion.Scope) error {
 	return autoconvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in, out, s)
+}
+
+func autoconvert_api_ImageSource_To_v1beta3_ImageSource(in *buildapi.ImageSource, out *apiv1beta3.ImageSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.ImageSource))(in)
+	}
+	if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(&in.From, &out.From, s); err != nil {
+		return err
+	}
+	if in.Paths != nil {
+		out.Paths = make([]apiv1beta3.ImageSourcePath, len(in.Paths))
+		for i := range in.Paths {
+			if err := convert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(&in.Paths[i], &out.Paths[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Paths = nil
+	}
+	if in.PullSecret != nil {
+		out.PullSecret = new(pkgapiv1beta3.LocalObjectReference)
+		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
+			return err
+		}
+	} else {
+		out.PullSecret = nil
+	}
+	return nil
+}
+
+func convert_api_ImageSource_To_v1beta3_ImageSource(in *buildapi.ImageSource, out *apiv1beta3.ImageSource, s conversion.Scope) error {
+	return autoconvert_api_ImageSource_To_v1beta3_ImageSource(in, out, s)
+}
+
+func autoconvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in *buildapi.ImageSourcePath, out *apiv1beta3.ImageSourcePath, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.ImageSourcePath))(in)
+	}
+	out.SourcePath = in.SourcePath
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func convert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in *buildapi.ImageSourcePath, out *apiv1beta3.ImageSourcePath, s conversion.Scope) error {
+	return autoconvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in, out, s)
 }
 
 func autoconvert_api_SecretSpec_To_v1beta3_SecretSpec(in *buildapi.SecretSpec, out *apiv1beta3.SecretSpec, s conversion.Scope) error {
@@ -2141,6 +2194,14 @@ func autoconvert_v1beta3_BuildSource_To_api_BuildSource(in *apiv1beta3.BuildSour
 	} else {
 		out.Git = nil
 	}
+	if in.Image != nil {
+		out.Image = new(buildapi.ImageSource)
+		if err := convert_v1beta3_ImageSource_To_api_ImageSource(in.Image, out.Image, s); err != nil {
+			return err
+		}
+	} else {
+		out.Image = nil
+	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {
 		out.SourceSecret = new(pkgapi.LocalObjectReference)
@@ -2418,6 +2479,51 @@ func autoconvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in *apiv1b
 
 func convert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in *apiv1beta3.ImageChangeTrigger, out *buildapi.ImageChangeTrigger, s conversion.Scope) error {
 	return autoconvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in, out, s)
+}
+
+func autoconvert_v1beta3_ImageSource_To_api_ImageSource(in *apiv1beta3.ImageSource, out *buildapi.ImageSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1beta3.ImageSource))(in)
+	}
+	if err := convert_v1beta3_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
+		return err
+	}
+	if in.Paths != nil {
+		out.Paths = make([]buildapi.ImageSourcePath, len(in.Paths))
+		for i := range in.Paths {
+			if err := convert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(&in.Paths[i], &out.Paths[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Paths = nil
+	}
+	if in.PullSecret != nil {
+		out.PullSecret = new(pkgapi.LocalObjectReference)
+		if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
+			return err
+		}
+	} else {
+		out.PullSecret = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_ImageSource_To_api_ImageSource(in *apiv1beta3.ImageSource, out *buildapi.ImageSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_ImageSource_To_api_ImageSource(in, out, s)
+}
+
+func autoconvert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in *apiv1beta3.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1beta3.ImageSourcePath))(in)
+	}
+	out.SourcePath = in.SourcePath
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func convert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in *apiv1beta3.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
+	return autoconvert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in, out, s)
 }
 
 func autoconvert_v1beta3_SecretSpec_To_api_SecretSpec(in *apiv1beta3.SecretSpec, out *buildapi.SecretSpec, s conversion.Scope) error {
@@ -5264,6 +5370,8 @@ func init() {
 		autoconvert_api_Identity_To_v1beta3_Identity,
 		autoconvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger,
 		autoconvert_api_ImageList_To_v1beta3_ImageList,
+		autoconvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath,
+		autoconvert_api_ImageSource_To_v1beta3_ImageSource,
 		autoconvert_api_ImageStreamImage_To_v1beta3_ImageStreamImage,
 		autoconvert_api_ImageStreamList_To_v1beta3_ImageStreamList,
 		autoconvert_api_ImageStreamMapping_To_v1beta3_ImageStreamMapping,
@@ -5373,6 +5481,8 @@ func init() {
 		autoconvert_v1beta3_Identity_To_api_Identity,
 		autoconvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger,
 		autoconvert_v1beta3_ImageList_To_api_ImageList,
+		autoconvert_v1beta3_ImageSourcePath_To_api_ImageSourcePath,
+		autoconvert_v1beta3_ImageSource_To_api_ImageSource,
 		autoconvert_v1beta3_ImageStreamImage_To_api_ImageStreamImage,
 		autoconvert_v1beta3_ImageStreamList_To_api_ImageStreamList,
 		autoconvert_v1beta3_ImageStreamMapping_To_api_ImageStreamMapping,

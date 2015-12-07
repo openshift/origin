@@ -35,6 +35,10 @@ type DockerClient interface {
 	BuildImage(opts docker.BuildImageOptions) error
 	PushImage(opts docker.PushImageOptions, auth docker.AuthConfiguration) error
 	RemoveImage(name string) error
+	CreateContainer(opts docker.CreateContainerOptions) (*docker.Container, error)
+	DownloadFromContainer(id string, opts docker.DownloadFromContainerOptions) error
+	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
+	RemoveContainer(opts docker.RemoveContainerOptions) error
 }
 
 // pushImage pushes a docker image to the registry specified in its tag.

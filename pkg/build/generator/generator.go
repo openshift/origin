@@ -397,6 +397,19 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	}
 	strategyImageChangeTrigger := getStrategyImageChangeTrigger(bc)
 
+	// Resolve image source if present
+	if build.Spec.Source.Image != nil {
+		if build.Spec.Source.Image.PullSecret == nil {
+			build.Spec.Source.Image.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &build.Spec.Source.Image.From, bc.Namespace)
+		}
+		sourceImage, err := g.resolveImageStreamReference(ctx, build.Spec.Source.Image.From, bc.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		build.Spec.Source.Image.From.Kind = "DockerImage"
+		build.Spec.Source.Image.From.Name = sourceImage
+	}
+
 	// If the Build is using a From reference instead of a resolved image, we need to resolve that From
 	// reference to a valid image so we can run the build.  Builds do not consume ImageStream references,
 	// only image specs.
@@ -404,6 +417,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	if strategyImageChangeTrigger != nil {
 		image = strategyImageChangeTrigger.LastTriggeredImageID
 	}
+
 	switch {
 	case build.Spec.Strategy.SourceStrategy != nil:
 		if image == "" {
