@@ -14,10 +14,6 @@ items:
     labels:
       template: application-template-stibuild
     name: database-1
-    namespace: example
-    resourceVersion: "2791"
-    selfLink: /api/v1/namespaces/example/replicationcontrollers/database-1
-    uid: f33231fb-2a34-11e5-a0e9-28d2447dc82b
   spec:
     replicas: 1
     selector:
@@ -69,10 +65,6 @@ items:
     labels:
       template: ruby-helloworld-sample
     name: frontend-rc-1
-    namespace: example
-    resourceVersion: "2754"
-    selfLink: /api/v1/namespaces/example/replicationcontrollers/frontend-rc-1
-    uid: f2c6e6ed-2a34-11e5-a0e9-28d2447dc82b
   spec:
     replicas: 3
     selector:
@@ -119,10 +111,6 @@ items:
     labels:
       template: application-template-stibuild
     name: database
-    namespace: example
-    resourceVersion: "2800"
-    selfLink: /api/v1/namespaces/example/services/database
-    uid: f3abfe9c-2a34-11e5-a0e9-28d2447dc82b
   spec:
     clusterIP: 172.30.17.240
     portalIP: 172.30.17.240
@@ -141,7 +129,7 @@ items:
   kind: Pod
   metadata:
     annotations:
-      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","namespace":"example","name":"database-1","uid":"f33231fb-2a34-11e5-a0e9-28d2447dc82b","apiVersion":"v1","resourceVersion":"2757"}}'
+      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","name":"database-1","apiVersion":"v1"}}'
       openshift.io/deployment-config.latest-version: "1"
       openshift.io/deployment-config.name: database
       openshift.io/deployment.name: database-1
@@ -154,10 +142,6 @@ items:
       name: database
       template: application-template-stibuild
     name: database-1-z3y1m
-    namespace: example
-    resourceVersion: "2790"
-    selfLink: /api/v1/namespaces/example/pods/database-1-z3y1m
-    uid: f356014e-2a34-11e5-a0e9-28d2447dc82b
   spec:
     containers:
     - env:
@@ -226,10 +210,6 @@ items:
       name: frontend
       template: ruby-helloworld-sample
     name: frontend-rc-1-b9pm8
-    namespace: example
-    resourceVersion: "2756"
-    selfLink: /api/v1/namespaces/example/pods/frontend-rc-1-b9pm8
-    uid: f2dc8661-2a34-11e5-a0e9-28d2447dc82b
   spec:
     containers:
     - env:
@@ -291,7 +271,7 @@ items:
   kind: Pod
   metadata:
     annotations:
-      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","namespace":"example","name":"frontend-rc-1","uid":"f2c6e6ed-2a34-11e5-a0e9-28d2447dc82b","apiVersion":"v1","resourceVersion":"2717"}}'
+      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","name":"frontend-rc-1","apiVersion":"v1"}}'
       openshift.io/scc: restricted
     creationTimestamp: 2015-07-14T14:31:00Z
     generateName: frontend-rc-1-
@@ -300,10 +280,6 @@ items:
       name: frontend
       template: ruby-helloworld-sample
     name: frontend-rc-1-rs910
-    namespace: example
-    resourceVersion: "2751"
-    selfLink: /api/v1/namespaces/example/pods/frontend-rc-1-rs910
-    uid: f2d541c4-2a34-11e5-a0e9-28d2447dc82b
   spec:
     containers:
     - env:
@@ -365,7 +341,7 @@ items:
   kind: Pod
   metadata:
     annotations:
-      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","namespace":"example","name":"frontend-rc-1","uid":"f2c6e6ed-2a34-11e5-a0e9-28d2447dc82b","apiVersion":"v1","resourceVersion":"2717"}}'
+      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","name":"frontend-rc-1","apiVersion":"v1"}}'
       openshift.io/scc: restricted
     creationTimestamp: 2015-07-14T14:31:00Z
     generateName: frontend-rc-1-
@@ -374,10 +350,6 @@ items:
       name: frontend
       template: ruby-helloworld-sample
     name: frontend-rc-1-wr3ll
-    namespace: example
-    resourceVersion: "2766"
-    selfLink: /api/v1/namespaces/example/pods/frontend-rc-1-wr3ll
-    uid: f2e959cb-2a34-11e5-a0e9-28d2447dc82b
   spec:
     containers:
     - env:

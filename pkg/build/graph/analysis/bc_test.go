@@ -6,7 +6,9 @@ import (
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
+	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	imageedges "github.com/openshift/origin/pkg/image/graph"
+	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
 func TestUnpushableBuild(t *testing.T) {
@@ -102,5 +104,48 @@ func TestCircularDeps(t *testing.T) {
 	if len(FindCircularBuilds(not)) != 0 {
 		t.Fatalf("expected not having circular dependencies")
 	}
+}
 
+func TestPendingImageStreamTag(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/unpushable-build.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	buildedges.AddAllInputOutputEdges(g)
+	buildedges.AddAllBuildEdges(g)
+	imageedges.AddAllImageStreamRefEdges(g)
+
+	// Drop the build to showcase a TagNotAvailable warning (should happen when no
+	// build is new, pending, or running currently)
+	nodeFn := osgraph.NodesOfKind(imagegraph.ImageStreamTagNodeKind, buildgraph.BuildConfigNodeKind)
+	edgeFn := osgraph.EdgesOfKind(buildedges.BuildInputImageEdgeKind, buildedges.BuildOutputEdgeKind)
+	g = g.Subgraph(nodeFn, edgeFn)
+
+	markers := FindPendingTags(g)
+	if e, a := 1, len(markers); e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+
+	if got, expected := markers[0].Key, TagNotAvailableWarning; got != expected {
+		t.Fatalf("expected marker key %q, got %q", expected, got)
+	}
+}
+
+func TestLatestBuildFailed(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/failed-build.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	buildedges.AddAllInputOutputEdges(g)
+	buildedges.AddAllBuildEdges(g)
+	imageedges.AddAllImageStreamRefEdges(g)
+
+	markers := FindPendingTags(g)
+	if e, a := 1, len(markers); e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+
+	if got, expected := markers[0].Key, LatestBuildFailedErr; got != expected {
+		t.Fatalf("expected marker key %q, got %q", expected, got)
+	}
 }

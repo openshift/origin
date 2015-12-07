@@ -300,6 +300,7 @@ func getMarkerScanners() []osgraph.MarkerScanner {
 		kubeanalysis.FindMissingSecrets,
 		buildanalysis.FindUnpushableBuildConfigs,
 		buildanalysis.FindCircularBuilds,
+		buildanalysis.FindPendingTags,
 		deployanalysis.FindDeploymentConfigTriggerErrors,
 		routeanalysis.FindMissingPortMapping,
 		routeanalysis.FindMissingTLSTerminationType,
