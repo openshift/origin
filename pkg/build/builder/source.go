@@ -77,7 +77,7 @@ func fetchSource(dir string, build *api.Build, urlTimeout time.Duration, in io.R
 func checkRemoteGit(url string, timeout time.Duration) error {
 	glog.V(4).Infof("git ls-remote --heads %q", url)
 	cmd := exec.Command("git", "ls-remote", "--heads", url)
-	cmd.Env = []string{"GIT_ASKPASS=/bin/true", "GIT_SSH=" + os.Getenv("GIT_SSH")}
+	cmd.Env = []string{"GIT_ASKPASS=/usr/bin/true", "GIT_SSH=" + os.Getenv("GIT_SSH")}
 
 	var (
 		out []byte
