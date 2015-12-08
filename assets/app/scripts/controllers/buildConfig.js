@@ -10,8 +10,6 @@ angular.module('openshiftConsole')
   .controller('BuildConfigController', function ($scope, $routeParams, DataService, ProjectsService, BuildsService, $filter, LabelFilter) {
     $scope.projectName = $routeParams.project;
     $scope.buildConfig = null;
-    $scope.builds = {};
-    $scope.unfilteredBuilds = {};
     $scope.labelSuggestions = {};
     $scope.alerts = {};
     $scope.breadcrumbs = [
@@ -59,11 +57,11 @@ angular.module('openshiftConsole')
           }
         );
 
+        var orderByDate = $filter('orderObjectsByDate');
         watches.push(DataService.watch("builds", context, function(builds, action, build) {
           $scope.emptyMessage = "No builds to show";
           // TODO we should send the ?labelSelector=buildconfig=<name> on the API request
           // to only load the buildconfig's builds, but this requires some DataService changes
-
           if (!action) {
             $scope.unfilteredBuilds = {};
             var allBuilds = builds.by("metadata.name");
@@ -103,6 +101,10 @@ angular.module('openshiftConsole')
           updateFilterWarning();
           LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredBuilds, $scope.labelSuggestions);
           LabelFilter.setLabelSuggestions($scope.labelSuggestions);
+
+          // Sort now to avoid sorting on every digest loop.
+          $scope.orderedBuilds = orderByDate($scope.builds, true);
+          $scope.latestBuild = $scope.orderedBuilds.length ? $scope.orderedBuilds[0] : null;
         }));
 
         function updateFilterWarning() {
@@ -121,6 +123,8 @@ angular.module('openshiftConsole')
           // trigger a digest loop
           $scope.$apply(function() {
             $scope.builds = labelSelector.select($scope.unfilteredBuilds);
+            $scope.orderedBuilds = orderByDate($scope.builds, true);
+            $scope.latestBuild = $scope.orderedBuilds.length ? $scope.orderedBuilds[0] : null;
             updateFilterWarning();
           });
         });
