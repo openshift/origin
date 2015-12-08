@@ -50,12 +50,12 @@ usage() {
   echo "Usage `basename $0` <action> <version>" >&2
   echo >&2
   echo "Actions:" >&2
-  echo "  everything_base  - git_update,  build_container (non s2i images)" >&2
-  echo "  everything_s2i   - git_update,  build_container (s2i images)" >&2
   echo "  git_update_base  - Clone git and dist-git, bump release, compare (non-s2i images)" >&2
   echo "  git_update_s2i   - Clone git and dist-git, bump release, compare (s2i images)" >&2
   echo "  build_container_base - Clone dist-git, build containers (non-s2i images)" >&2
   echo "  build_container_s2i  - Clone dist-git, build containers (s2i images)" >&2
+  echo "  everything_base  - git_update,  build_container (non s2i images)" >&2
+  echo "  everything_s2i   - git_update,  build_container (s2i images)" >&2
   echo >&2
   echo "Version:" >&2
   echo "  specific image version, e.g. 3.1.1.2 or 1.1 (What should be in LABEL Version)" >&2
@@ -63,11 +63,17 @@ usage() {
   exit 1
 }
 
-bump_release() {
-  sed -i -e "s/FROM rhel7.*/FROM $base_image/" Dockerfile
-  cur=$(grep -e 'Release="\([0-9]*\)"' Dockerfile | head -n 1 | sed -e 's/^.*Release="\([0-9]*\)".*$/\1/')
-  (( cur++ ))
-  sed -i -e "s/Release=\"[0-9]*\"/Release=\"$cur\"/" Dockerfile
+update_version() {
+  pushd "${workingdir}/${container}" >/dev/null
+  find . -name ".osbs*" -prune -o -name "Dockerfile*" -type f -print | while read line
+  do
+    if [ "${updatestyle}" == "Version" ] ; then
+      sed -i -e "s/${updatestyle}=\"v[0-9]*.[0-9]*.[0-9]*.[0-9]*\"/${updatestyle}=\"v${base_image}\"/" ${line}
+    else
+      sed -i -e "s/${updatestyle}=\"[0-9]*\"/${updatestyle}=\"${base_image}\"/" ${line}
+    fi
+  done
+  popd >/dev/null
 }
 
 setup_dist_git() {
@@ -142,7 +148,8 @@ check_build_dependencies() {
 build_image() {
   pushd "${workingdir}/${container}" >/dev/null
   check_build_dependencies
-  rhpkg container-build --scratch --repo http://file.rdu.redhat.com/sdodson/aos-unsigned.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+  rhpkg container-build --repo http://file.rdu.redhat.com/sdodson/aos-unsigned.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+  #rhpkg container-build --scratch --repo http://file.rdu.redhat.com/sdodson/aos-unsigned.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
   echo -n "  Waiting for createContainer taskid ."
   taskid=`grep createContainer ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
   while [ "${taskid}" == "" ]
@@ -178,20 +185,11 @@ show_git_diffs() {
       case ${choice} in
         c | C | continue ) mv -f .osbs-logs/${line}.diff.new .osbs-logs/${line}.diff ; git add .osbs-logs/${line}.diff ; rhpkg commit -p -m "Updating dockerfile diff" ;;
         i | I | ignore ) rm -f .osbs-logs/${line}.diff.new ;;
-        q | Q | quit ) exit 55 ;;
+        q | Q | quit ) break 5 ;;
         * ) echo "${choice} not and option.  Assuming ignore" ; rm -f .osbs-logs/${line}.diff.new ;;
         #* ) echo "${choice} not and option.  Assuming continue" ;  mv -f .osbs-logs/${line}.diff.new .osbs-logs/${line}.diff ; git add .osbs-logs/${line}.diff ; rhpkg commit -p -m "Updating dockerfile diff" ;;
       esac
     fi
-    # updatetime=`git log --date=iso -n 1 --pretty="%ad" ${line}`
-    # pushd "${workingdir}/${path}" >/dev/null
-    # newupdates=`git log --oneline --after="${updatetime}" ${line} | wc -l`
-    # if [ ${newupdates} -gt 0 ] ; then
-    #   echo "=== Change in ${container}/${line} ==="
-    #   lastgit=`git log -1 --pretty="%H" --before="${updatetime}" ${line}`
-    #   git diff ${lastgit} ${line}
-    # fi
-    # popd >/dev/null
   done
   find . -name ".git*" -prune -o -name ".osbs*" -prune -o -name "Dockerfile*" -prune -o -type f -print | while read line
   do
@@ -213,6 +211,7 @@ git_update() {
   pushd "${workingdir}" >/dev/null
   setup_dist_git
   setup_git_repo
+  update_version
   show_git_diffs
   popd >/dev/null
 }
@@ -232,10 +231,8 @@ export action="$1"
 export base_image="$2"
 
 case "$action" in
-  everything_base|git_update_base|build_container_base) list="${base_images_list}" ;;
-  everything_s2i|git_update_s2i|build_container_s2i) list="${s2i_images_list}" ;;
-  everything_all|git_update_all|build_container_all) create_tracker ; list="${base_images_list}
-${s2i_images_list}" ;;
+  everything_base|git_update_base|build_container_base) export updatestyle="Version" ; list="${base_images_list}" ;;
+  everything_s2i|git_update_s2i|build_container_s2i) export updatestyle="Release" ; list="${s2i_images_list}" ;;
   *) usage ;;
 esac
 
