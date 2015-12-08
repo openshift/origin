@@ -27,7 +27,7 @@ describe('', function() {
       }, 3000);
 
       expect(browser.driver.getCurrentUrl()).toMatch(/\/login/);
-      expect(browser.driver.getTitle()).toEqual('Login - OpenShift Origin');
+      expect(browser.driver.getTitle()).toMatch(/Login -/);
 
       h.login(true);
 
