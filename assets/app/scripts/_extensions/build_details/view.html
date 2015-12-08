@@ -1,0 +1,38 @@
+<div class="content">
+  <project-page>
+    <breadcrumbs breadcrumbs="[{}]"></breadcrumbs>
+    <alerts></alerts>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="tile">
+          <h1>{{build.metadata.name}} Git Commits</h1>
+
+          <table id="git" class="table table-bordered table-hover table-mobile">
+          <thead>
+            <tr>
+              <th class="sha">SHA</th>
+              <th class="author">Author</th>
+              <th class="date">Date</th>
+              <th class="message">Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="gitLink in githubLinks">
+              <td class="sha">
+                <a href="{{gitLink.html_url}}" target="_blank">
+                  <span class="truncate">{{gitLink.sha}}</span>
+                </a>
+              </td>
+              <td class="author">
+                <a href="mailto:{{gitLink.commit.author.email}}">{{gitLink.commit.author.name}}</a>
+              </td>
+              <td class="date">{{gitLink.commit.author.date | date : short }}</td>
+              <td class="message">{{gitLink.commit.message}}</td>
+            </tr>
+          </tbody>
+
+        </div>
+      </div>
+    </div>
+  </project-page>
+</div>

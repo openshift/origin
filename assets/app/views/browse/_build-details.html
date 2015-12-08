@@ -60,4 +60,14 @@
     </div>
   </div>
   <annotations annotations="build.metadata.annotations"></annotations>
+  <!--
+    prototype extension management component
+    - args passed should have a consistent schema, need to do some thinking here
+  -->
+  <div
+    extension-output
+    extension-name="build_details"
+    extension-types="text link select html"
+    extension-args="[ build, buildConfigName ]"
+    extension-limit="3"></div>
 </div>
