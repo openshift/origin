@@ -155,8 +155,26 @@ $ oc project
 ### oc start-build
 
 This manually starts a build, using either the specified buildConfig or a build name with the `--from-build` option.
-There is also the option of streaming
-the logs of the build if the `--follow` flag is specified.
+
+Other options:  
+
+| Name       |  Description                                                                                             |
+|:-----------|:---------------------------------------------------------------------------------------------------------|
+|`--env`, *(-e)* FOO=bar | Explicitly set or override environment variables for the current build. Does not change the BuildConfig. |
+|`--build-loglevel` | Set or override the build log level output [0-5] during the build. |
+|`--commit`  | Specify the source code commit identifier the build should use; requires a build based on a Git repository. |
+|`--follow`  | Start a build and watch its logs until it completes or fails. |
+| `--wait` | Wait for a build to complete and exit with a non-zero return code if the build fails. |
+|`--from-build` | Specify the name of a build which should be re-run. |
+|`--from-dir` | A directory to archive and use as the binary input for a build. |
+|`--from-file` | A file use as the binary input for the build; example a pom.xml or Dockerfile. Will be the only file in the build source. |
+|`--from-repo` | The path to a local source code repository to use as the binary input for a build. |
+|`--from-webhook` | Specify a webhook URL for an existing build config to trigger. |
+| `--git-post-receive` | The contents of the post-receive hook to trigger a build. |
+| `--git-repository` | The path to the git repository for post-receive; defaults to the current directory. |
+| `--list-webhooks` | List the webhooks for the specified build config or build; accepts 'all', 'generic', or 'github'. |
+
+Stream the logs of the build if the `--follow` flag is specified.
 
 ```bash
 $ oc start-build ruby-sample-build

@@ -6,6 +6,7 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
 # Cleanup cluster resources created by this test
@@ -25,10 +26,10 @@ USE_IMAGES=${USE_IMAGES:-$defaultimage}
 # This test validates admin level commands including system policy
 
 # Test admin manage-node operations
-[ "$(openshift admin manage-node --help 2>&1 | grep 'Manage nodes')" ]
+os::cmd::expect_success_and_text 'openshift admin manage-node --help' 'Manage nodes'
 
 # create a node object to mess with
-echo 'apiVersion: v1
+os::cmd::expect_success "echo 'apiVersion: v1
 kind: Node
 metadata:
   labels:
@@ -41,170 +42,211 @@ status:
   - lastHeartbeatTime: 2015-09-08T16:58:02Z
     lastTransitionTime: 2015-09-04T11:49:06Z
     reason: kubelet is posting ready status
-    status: "True"
+    status: \"True\"
     type: Ready
-' | oc create -f -
+' | oc create -f -"
 
-[ "$(oadm manage-node --selector='' --schedulable=true | grep --text 'Ready' | grep -v 'Sched')" ]
-oc create -f examples/hello-openshift/hello-pod.json
-#[ "$(oadm manage-node --list-pods | grep 'hello-openshift' | grep -E '(unassigned|assigned)')" ]
-#[ "$(oadm manage-node --evacuate --dry-run | grep 'hello-openshift')" ]
-#[ "$(oadm manage-node --schedulable=false | grep 'SchedulingDisabled')" ]
-#[ "$(oadm manage-node --evacuate 2>&1 | grep 'Unable to evacuate')" ]
-#[ "$(oadm manage-node --evacuate --force | grep 'hello-openshift')" ]
-#[ ! "$(oadm manage-node --list-pods | grep 'hello-openshift')" ]
-oc delete pods hello-openshift
+os::cmd::expect_success_and_text 'oadm manage-node --selector= --schedulable=true' 'Ready'
+os::cmd::expect_success_and_not_text 'oadm manage-node --selector= --schedulable=true' 'Sched'
+
+os::cmd::expect_success 'oc create -f examples/hello-openshift/hello-pod.json'
+# os::cmd::expect_success_and_text 'oadm manage-node --list-pods' 'hello-openshift'
+# os::cmd::expect_success_and_text 'oadm manage-node --list-pods' '(unassigned|assigned)'
+# os::cmd::expect_success_and_text 'oadm manage-node --evacuate --dry-run' 'hello-openshift'
+# os::cmd::expect_success_and_text 'oadm manage-node --schedulable=false' 'SchedulingDisabled'
+# os::cmd::expect_failure_and_text 'oadm manage-node --evacuate' 'Unable to evacuate'
+# os::cmd::expect_success_and_text 'oadm manage-node --evacuate --force' 'hello-openshift'
+# os::cmd::expect_success_and_text 'oadm manage-node --list-pods' 'hello-openshift'
+os::cmd::expect_success 'oc delete pods hello-openshift'
 echo "manage-node: ok"
 
-oadm groups new group1 foo bar
-oc get groups/group1 --no-headers | grep -q "foo, bar"
-oadm groups add-users group1 baz
-oc get groups/group1 --no-headers | grep -q "baz"
-oadm groups remove-users group1 bar
-[ ! "$(oc get groups/group1 --no-headers | grep -q "bar")" ]
+os::cmd::expect_success 'oadm groups new group1 foo bar'
+os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'foo, bar'
+os::cmd::expect_success 'oadm groups add-users group1 baz'
+os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'baz'
+os::cmd::expect_success 'oadm groups remove-users group1 bar'
+os::cmd::expect_success_and_not_text 'oc get groups/group1 --no-headers' 'bar'
 echo "groups: ok"
 
-oadm policy who-can get pods
-oadm policy who-can get pods -n default
-oadm policy who-can get pods --all-namespaces
+os::cmd::expect_success 'oadm policy who-can get pods'
+os::cmd::expect_success 'oadm policy who-can get pods -n default'
+os::cmd::expect_success 'oadm policy who-can get pods --all-namespaces'
 
-oadm policy add-role-to-group cluster-admin system:unauthenticated
-oadm policy add-role-to-user cluster-admin system:no-user
-oadm policy remove-role-from-group cluster-admin system:unauthenticated
-oadm policy remove-role-from-user cluster-admin system:no-user
-oadm policy remove-group system:unauthenticated
-oadm policy remove-user system:no-user
-oadm policy add-cluster-role-to-group cluster-admin system:unauthenticated
-oadm policy remove-cluster-role-from-group cluster-admin system:unauthenticated
-oadm policy add-cluster-role-to-user cluster-admin system:no-user
-oadm policy remove-cluster-role-from-user cluster-admin system:no-user
+os::cmd::expect_success 'oadm policy add-role-to-group cluster-admin system:unauthenticated'
+os::cmd::expect_success 'oadm policy add-role-to-user cluster-admin system:no-user'
+os::cmd::expect_success 'oadm policy add-role-to-user admin -z fake-sa'
+os::cmd::expect_success_and_text 'oc get rolebinding/admins -o jsonpath={.subjects}' 'fake-sa'
+os::cmd::expect_success 'oadm policy remove-role-from-user admin -z fake-sa'
+os::cmd::expect_success_and_not_text 'oc get rolebinding/admins -o jsonpath={.subjects}' 'fake-sa'
+os::cmd::expect_success 'oadm policy add-role-to-user admin -z fake-sa'
+os::cmd::expect_success_and_text 'oc get rolebinding/admins -o jsonpath={.subjects}' 'fake-sa'
+os::cmd::expect_success "oadm policy remove-role-from-user admin system:serviceaccount:$(oc project -q):fake-sa"
+os::cmd::expect_success_and_not_text 'oc get rolebinding/admins -o jsonpath={.subjects}' 'fake-sa'
+os::cmd::expect_success 'oadm policy remove-role-from-group cluster-admin system:unauthenticated'
+os::cmd::expect_success 'oadm policy remove-role-from-user cluster-admin system:no-user'
+os::cmd::expect_success 'oadm policy remove-group system:unauthenticated'
+os::cmd::expect_success 'oadm policy remove-user system:no-user'
+os::cmd::expect_success 'oadm policy add-cluster-role-to-group cluster-admin system:unauthenticated'
+os::cmd::expect_success 'oadm policy remove-cluster-role-from-group cluster-admin system:unauthenticated'
+os::cmd::expect_success 'oadm policy add-cluster-role-to-user cluster-admin system:no-user'
+os::cmd::expect_success 'oadm policy remove-cluster-role-from-user cluster-admin system:no-user'
 
-oadm policy add-scc-to-user privileged fake-user
-oc get scc/privileged -o yaml | grep fake-user
-oadm policy add-scc-to-user privileged -z fake-sa
-oc get scc/privileged -o yaml | grep "system:serviceaccount:$(oc project -q):fake-sa"
-oadm policy add-scc-to-group privileged fake-group
-oc get scc/privileged -o yaml | grep fake-group
-oadm policy remove-scc-from-user privileged fake-user
-[ ! "$(oc get scc/privileged -o yaml | grep fake-user)" ]
-oadm policy remove-scc-from-user privileged -z fake-sa
-[ ! "$(oc get scc/privileged -o yaml | grep 'system:serviceaccount:$(oc project -q):fake-sa')" ]
-oadm policy remove-scc-from-group privileged fake-group
-[ ! "$(oadm policy add-scc-to-group privileged fake-group)" ]
+os::cmd::expect_success 'oadm policy add-scc-to-user privileged fake-user'
+os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' 'fake-user'
+os::cmd::expect_success 'oadm policy add-scc-to-user privileged -z fake-sa'
+os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' "system:serviceaccount:$(oc project -q):fake-sa"
+os::cmd::expect_success 'oadm policy add-scc-to-group privileged fake-group'
+os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' 'fake-group'
+os::cmd::expect_success 'oadm policy remove-scc-from-user privileged fake-user'
+os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-user'
+os::cmd::expect_success 'oadm policy remove-scc-from-user privileged -z fake-sa'
+os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' "system:serviceaccount:$(oc project -q):fake-sa"
+os::cmd::expect_success 'oadm policy remove-scc-from-group privileged fake-group'
+os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-group'
+echo "admin-scc: ok"
 
-oc delete clusterrole/cluster-status
-[ ! "$(oc get clusterrole/cluster-status)" ]
-oadm policy reconcile-cluster-roles
-[ ! "$(oc get clusterrole/cluster-status)" ]
-oadm policy reconcile-cluster-roles --confirm
-oc get clusterrole/cluster-status
-oc replace --force -f ./test/fixtures/basic-user.json
+os::cmd::expect_success 'oc delete clusterrole/cluster-status --cascade=false'
+os::cmd::expect_failure 'oc get clusterrole/cluster-status'
+os::cmd::expect_success 'oadm policy reconcile-cluster-roles'
+os::cmd::expect_failure 'oc get clusterrole/cluster-status'
+os::cmd::expect_success 'oadm policy reconcile-cluster-roles --confirm'
+os::cmd::expect_success 'oc get clusterrole/cluster-status'
+# check the reconcile again with a specific cluster role name
+os::cmd::expect_success 'oc delete clusterrole/cluster-status --cascade=false'
+os::cmd::expect_failure 'oc get clusterrole/cluster-status'
+os::cmd::expect_success 'oadm policy reconcile-cluster-roles cluster-admin --confirm'
+os::cmd::expect_failure 'oc get clusterrole/cluster-status'
+os::cmd::expect_success 'oadm policy reconcile-cluster-roles clusterrole/cluster-status --confirm'
+os::cmd::expect_success 'oc get clusterrole/cluster-status'
+
+os::cmd::expect_success 'oc replace --force -f ./test/fixtures/basic-user.json'
 # display shows customized labels/annotations
-[ "$(oadm policy reconcile-cluster-roles | grep custom-label)" ]
-[ "$(oadm policy reconcile-cluster-roles | grep custom-annotation)" ]
-oadm policy reconcile-cluster-roles --additive-only --confirm
+os::cmd::expect_success_and_text 'oadm policy reconcile-cluster-roles' 'custom-label'
+os::cmd::expect_success_and_text 'oadm policy reconcile-cluster-roles' 'custom-annotation'
+os::cmd::expect_success 'oadm policy reconcile-cluster-roles --additive-only --confirm'
 # reconcile preserves added rules, labels, and annotations
-[ "$(oc get clusterroles/basic-user -o json | grep custom-label)" ]
-[ "$(oc get clusterroles/basic-user -o json | grep custom-annotation)" ]
-[ "$(oc get clusterroles/basic-user -o json | grep groups)" ]
-oadm policy reconcile-cluster-roles --confirm
-[ ! "$(oc get clusterroles/basic-user -o yaml | grep groups)" ]
+os::cmd::expect_success_and_text 'oc get clusterroles/basic-user -o json' 'custom-label'
+os::cmd::expect_success_and_text 'oc get clusterroles/basic-user -o json' 'custom-annotation'
+os::cmd::expect_success_and_text 'oc get clusterroles/basic-user -o json' 'groups'
+os::cmd::expect_success 'oadm policy reconcile-cluster-roles --confirm'
+os::cmd::expect_success_and_not_text 'oc get clusterroles/basic-user -o yaml' 'groups'
+echo "admin-reconcile-cluster-roles: ok"
 
 # Ensure a removed binding gets re-added
-oc delete clusterrolebinding/cluster-status-binding
-[ ! "$(oc get clusterrolebinding/cluster-status-binding)" ]
-oadm policy reconcile-cluster-role-bindings
-[ ! "$(oc get clusterrolebinding/cluster-status-binding)" ]
-oadm policy reconcile-cluster-role-bindings --confirm
-oc get clusterrolebinding/cluster-status-binding
+os::cmd::expect_success 'oc delete clusterrolebinding/cluster-status-binding'
+os::cmd::expect_failure 'oc get clusterrolebinding/cluster-status-binding'
+os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings'
+os::cmd::expect_failure 'oc get clusterrolebinding/cluster-status-binding'
+os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings --confirm'
+os::cmd::expect_success 'oc get clusterrolebinding/cluster-status-binding'
 # Customize a binding
-oc replace --force -f ./test/fixtures/basic-users-binding.json
+os::cmd::expect_success 'oc replace --force -f ./test/fixtures/basic-users-binding.json'
 # display shows customized labels/annotations
-[ "$(oadm policy reconcile-cluster-role-bindings | grep custom-label)" ]
-[ "$(oadm policy reconcile-cluster-role-bindings | grep custom-annotation)" ]
-oadm policy reconcile-cluster-role-bindings --confirm
+os::cmd::expect_success_and_text 'oadm policy reconcile-cluster-role-bindings' 'custom-label'
+os::cmd::expect_success_and_text 'oadm policy reconcile-cluster-role-bindings' 'custom-annotation'
+os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings --confirm'
 # Ensure a customized binding's subjects, labels, annotations are retained by default
-[ "$(oc get clusterrolebindings/basic-users -o json | grep custom-label)" ]
-[ "$(oc get clusterrolebindings/basic-users -o json | grep custom-annotation)" ]
-[ "$(oc get clusterrolebindings/basic-users -o json | grep custom-user)" ]
+os::cmd::expect_success_and_text 'oc get clusterrolebindings/basic-users -o json' 'custom-label'
+os::cmd::expect_success_and_text 'oc get clusterrolebindings/basic-users -o json' 'custom-annotation'
+os::cmd::expect_success_and_text 'oc get clusterrolebindings/basic-users -o json' 'custom-user'
 # Ensure a customized binding's roleref is corrected
-[ ! "$(oc get clusterrolebindings/basic-users -o json | grep cluster-status)" ]
+os::cmd::expect_success_and_not_text 'oc get clusterrolebindings/basic-users -o json' 'cluster-status'
 # Ensure --additive-only=false removes customized users from the binding
-oadm policy reconcile-cluster-role-bindings --additive-only=false --confirm
-[ ! "$(oc get clusterrolebindings/basic-users -o json | grep custom-user)" ]
+os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings --additive-only=false --confirm'
+os::cmd::expect_success_and_not_text 'oc get clusterrolebindings/basic-users -o json' 'custom-user'
+echo "admin-reconcile-cluster-role-bindings: ok"
+
+os::cmd::expect_success "oc create -f test/extended/fixtures/roles/policy-roles.yaml"
+os::cmd::expect_success "oc get rolebinding/basic-users"
+os::cmd::expect_success "oc delete role/basic-user"
+os::cmd::expect_failure "oc get rolebinding/basic-users"
+os::cmd::expect_success "oc create -f test/extended/fixtures/roles/policy-clusterroles.yaml"
+os::cmd::expect_success "oc get clusterrolebinding/basic-users2"
+os::cmd::expect_success "oc delete clusterrole/basic-user2"
+os::cmd::expect_failure "oc get clusterrolebinding/basic-users2"
+os::cmd::expect_success "oc policy add-role-to-user edit foo"
+os::cmd::expect_success "oc get rolebinding/edit"
+os::cmd::expect_success "oc delete clusterrole/edit"
+os::cmd::expect_failure "oc get rolebinding/edit"
+os::cmd::expect_success "oadm policy reconcile-cluster-roles --confirm"
+os::cmd::expect_success "oadm policy reconcile-cluster-role-bindings --confirm"
+echo "admin-role-reapers: ok"
 
 echo "admin-policy: ok"
 
 # Test the commands the UI projects page tells users to run
 # These should match what is described in projects.html
-oadm new-project ui-test-project --admin="createuser"
-oadm policy add-role-to-user admin adduser -n ui-test-project
+os::cmd::expect_success 'oadm new-project ui-test-project --admin="createuser"'
+os::cmd::expect_success 'oadm policy add-role-to-user admin adduser -n ui-test-project'
 # Make sure project can be listed by oc (after auth cache syncs)
-tryuntil '[ "$(oc get projects | grep "ui-test-project")" ]'
+os::cmd::try_until_text 'oc get projects' 'ui\-test\-project'
 # Make sure users got added
-[ "$(oc describe policybinding ':default' -n ui-test-project | grep createuser)" ]
-[ "$(oc describe policybinding ':default' -n ui-test-project | grep adduser)" ]
+os::cmd::expect_success_and_text "oc describe policybinding ':default' -n ui-test-project" 'createuser'
+os::cmd::expect_success_and_text "oc describe policybinding ':default' -n ui-test-project" 'adduser'
 echo "ui-project-commands: ok"
 
 
 # Test deleting and recreating a project
-oadm new-project recreated-project --admin="createuser1"
-oc delete project recreated-project
-tryuntil '! oc get project recreated-project'
-oadm new-project recreated-project --admin="createuser2"
-oc describe policybinding ':default' -n recreated-project | grep createuser2
+os::cmd::expect_success 'oadm new-project recreated-project --admin="createuser1"'
+os::cmd::expect_success 'oc delete project recreated-project'
+os::cmd::try_until_failure 'oc get project recreated-project'
+os::cmd::expect_success 'oadm new-project recreated-project --admin="createuser2"'
+os::cmd::expect_success_and_text "oc describe policybinding ':default' -n recreated-project" 'createuser2'
 echo "new-project: ok"
 
 # Test running a router
-[ ! "$(oadm router --dry-run | grep 'does not exist')" ]
-echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f - -n default
-oc get scc privileged -o yaml | sed '/users:/ a\
+os::cmd::expect_failure_and_text 'oadm router --dry-run' 'does not exist'
+encoded_json='{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}'
+os::cmd::expect_success "echo '${encoded_json}' | oc create -f - -n default"
+os::cmd::expect_success "oc get scc privileged -o yaml | sed '/users:/ a\
 - system:serviceaccount:default:router\
-' | oc replace scc privileged -f -
-[ "$(oadm router -o yaml --credentials="${KUBECONFIG}" --service-account=router -n default | egrep 'image:.*-haproxy-router:')" ]
-oadm router --credentials="${KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router -n default
-[ "$(oadm router -n default | grep 'service exists')" ]
+' | oc replace scc privileged -f -"
+os::cmd::expect_success_and_text "oadm router -o yaml --credentials=${KUBECONFIG} --service-account=router -n default" 'image:.*-haproxy-router:'
+os::cmd::expect_success "oadm router --credentials=${KUBECONFIG} --images='${USE_IMAGES}' --service-account=router -n default"
+os::cmd::expect_success_and_text 'oadm router -n default' 'service exists'
+os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'readinessProbe'
 echo "router: ok"
 
 # Test running a registry
-[ ! "$(oadm registry --dry-run | grep 'does not exist')"]
-[ "$(oadm registry -o yaml --credentials="${KUBECONFIG}" | egrep 'image:.*-docker-registry')" ]
-oadm registry --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
-[ "$(oadm registry | grep 'service exists')" ]
+os::cmd::expect_failure_and_text 'oadm registry --dry-run' 'does not exist'
+os::cmd::expect_success_and_text "oadm registry -o yaml --credentials=${KUBECONFIG}" 'image:.*-docker-registry'
+os::cmd::expect_success "oadm registry --credentials=${KUBECONFIG} --images='${USE_IMAGES}'"
+os::cmd::expect_success_and_text 'oadm registry' 'service exists'
+os::cmd::expect_success_and_text 'oc describe svc/docker-registry' 'Session Affinity:\s*ClientIP'
 echo "registry: ok"
 
 # Test building a dependency tree
-oc process -f examples/sample-app/application-template-stibuild.json -l build=sti | oc create -f -
+os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l build=sti | oc create -f -'
 # Test both the type/name resource syntax and the fact that istag/origin-ruby-sample:latest is still
 # not created but due to a buildConfig pointing to it, we get back its graph of deps.
-[ "$(oadm build-chain istag/origin-ruby-sample | grep 'imagestreamtag/origin-ruby-sample:latest')" ]
-[ "$(oadm build-chain ruby-20-centos7 -o dot | grep 'graph')" ]
-oc delete all -l build=sti
+os::cmd::expect_success_and_text 'oadm build-chain istag/origin-ruby-sample' 'imagestreamtag/origin-ruby-sample:latest'
+os::cmd::expect_success_and_text 'oadm build-chain ruby-22-centos7 -o dot' 'graph'
+os::cmd::expect_success 'oc delete all -l build=sti'
 echo "ex build-chain: ok"
 
-oadm new-project example --admin="createuser"
-oc project example
-tryuntil oc get serviceaccount default
-oc create -f test/fixtures/app-scenarios
-oc status
-oc status -o dot
+os::cmd::expect_success 'oadm new-project example --admin="createuser"'
+os::cmd::expect_success 'oc project example'
+os::cmd::try_until_success 'oc get serviceaccount default'
+os::cmd::expect_success 'oc create -f test/fixtures/app-scenarios'
+os::cmd::expect_success 'oc status'
+os::cmd::expect_success 'oc status -o dot'
 echo "complex-scenarios: ok"
 
 # Test reconciling SCCs
-oc delete scc/restricted
-[ ! "$(oc get scc/restricted)" ]
-oadm policy reconcile-sccs
-[ ! "$(oc get scc/restricted)" ]
-oadm policy reconcile-sccs --confirm
-oc get scc/restricted
+os::cmd::expect_success 'oc delete scc/restricted'
+os::cmd::expect_failure 'oc get scc/restricted'
+os::cmd::expect_success 'oadm policy reconcile-sccs'
+os::cmd::expect_failure 'oc get scc/restricted'
+os::cmd::expect_success 'oadm policy reconcile-sccs --confirm'
+os::cmd::expect_success 'oc get scc/restricted'
 
-oadm policy add-scc-to-user restricted my-restricted-user
-[ "$(oc get scc/restricted -o yaml | grep my-restricted-user)" ]
-oadm policy reconcile-sccs --confirm
-[ "$(oc get scc/restricted -o yaml | grep my-restricted-user)" ]
+os::cmd::expect_success 'oadm policy add-scc-to-user restricted my-restricted-user'
+os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'my-restricted-user'
+os::cmd::expect_success 'oadm policy reconcile-sccs --confirm'
+os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'my-restricted-user'
 
-oadm policy remove-scc-from-group restricted system:authenticated
-[ ! "$(oc get scc/restricted -o yaml | grep system:authenticated)" ]
-oadm policy reconcile-sccs --confirm
-[ "$(oc get scc/restricted -o yaml | grep system:authenticated)" ]
+os::cmd::expect_success 'oadm policy remove-scc-from-group restricted system:authenticated'
+os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'system:authenticated'
+os::cmd::expect_success 'oadm policy reconcile-sccs --confirm'
+os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'system:authenticated'
 echo "reconcile-scc: ok"

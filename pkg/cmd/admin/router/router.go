@@ -174,6 +174,10 @@ const (
 
 	// Default port numbers to expose and bind/listen on.
 	defaultPorts = "80:80,443:443"
+
+	// Default stats and healthz port.
+	defaultStatsPort   = 1936
+	defaultHealthzPort = defaultStatsPort
 )
 
 // NewCmdRouter implements the OpenShift CLI router command.
@@ -186,7 +190,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 		Replicas: 1,
 
 		StatsUsername: "admin",
-		StatsPort:     1936,
+		StatsPort:     defaultStatsPort,
 		HostNetwork:   true,
 	}
 
@@ -325,24 +329,37 @@ func generateSecretsConfig(cfg *RouterConfig, kClient *kclient.Client,
 	return secrets, volumes, mounts, nil
 }
 
-func generateLivenessProbeConfig(cfg *RouterConfig,
-	ports []kapi.ContainerPort) *kapi.Probe {
+func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
 	var probe *kapi.Probe
 
 	if cfg.Type == "haproxy-router" {
-		probe = &kapi.Probe{
-			Handler: kapi.Handler{
-				TCPSocket: &kapi.TCPSocketAction{
-					Port: kutil.IntOrString{
-						IntVal: ports[0].ContainerPort,
-					},
-				},
+		probe = &kapi.Probe{}
+		healthzPort := defaultHealthzPort
+		if cfg.StatsPort > 0 {
+			healthzPort = cfg.StatsPort
+		}
+
+		probe.Handler.HTTPGet = &kapi.HTTPGetAction{
+			Path: "/healthz",
+			Port: kutil.IntOrString{
+				IntVal: healthzPort,
 			},
-			InitialDelaySeconds: 10,
 		}
 	}
 
 	return probe
+}
+
+func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
+	probe := generateProbeConfigForRouter(cfg, ports)
+	if probe != nil {
+		probe.InitialDelaySeconds = 10
+	}
+	return probe
+}
+
+func generateReadinessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
+	return generateProbeConfigForRouter(cfg, ports)
 }
 
 func generateMetricsExporterContainer(cfg *RouterConfig, env app.Environment) *kapi.Container {
@@ -545,6 +562,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		}
 
 		livenessProbe := generateLivenessProbeConfig(cfg, ports)
+		readinessProbe := generateReadinessProbeConfig(cfg, ports)
 
 		containers := []kapi.Container{
 			{
@@ -553,6 +571,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 				Ports:           ports,
 				Env:             env.List(),
 				LivenessProbe:   livenessProbe,
+				ReadinessProbe:  readinessProbe,
 				ImagePullPolicy: kapi.PullIfNotPresent,
 				VolumeMounts:    mounts,
 			},

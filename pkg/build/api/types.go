@@ -15,6 +15,8 @@ const (
 	BuildNumberAnnotation = "openshift.io/build.number"
 	// BuildCloneAnnotation is an annotation whose value is the name of the build this build was cloned from
 	BuildCloneAnnotation = "openshift.io/build.clone-of"
+	// BuildPodNameAnnotation is an annotation whose value is the name of the pod running this build
+	BuildPodNameAnnotation = "openshift.io/build.pod-name"
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
 	BuildLabel = "openshift.io/build.name"
 	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
@@ -68,7 +70,7 @@ type BuildStatus struct {
 	// Phase is the point in the build lifecycle.
 	Phase BuildPhase
 
-	// Cancelled describes if a cancelling event was triggered for the build.
+	// Cancelled describes if a cancel event was triggered for the build.
 	Cancelled bool
 
 	// Reason is a brief CamelCase string that describes any failure and is meant for machine parsing and tidy display in the CLI.
@@ -405,9 +407,9 @@ const (
 	// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
 	// on which the Build is based.
 	BuildConfigLabel = "openshift.io/build-config.name"
-	// DeprecatedBuildConfigLabel was used as BuildConfigLabel before adding namespaces.
+	// BuildConfigLabelDeprecated was used as BuildConfigLabel before adding namespaces.
 	// We keep it for backward compatibility.
-	DeprecatedBuildConfigLabel = "buildconfig"
+	BuildConfigLabelDeprecated = "buildconfig"
 )
 
 // BuildConfig is a template which can be used to create new builds.
@@ -576,6 +578,9 @@ type BuildRequest struct {
 	// to generate the build. If the BuildConfig in the generator doesn't match, a build will
 	// not be generated.
 	LastVersion *int
+
+	// Env contains additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar
 }
 
 type BinaryBuildRequestOptions struct {

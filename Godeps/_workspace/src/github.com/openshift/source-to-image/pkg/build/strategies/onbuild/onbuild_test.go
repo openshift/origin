@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/builder/parser"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/test"
 )
 
@@ -33,7 +34,7 @@ func (*fakeCleaner) Cleanup(*api.Config) {}
 
 func newFakeOnBuild() *OnBuild {
 	return &OnBuild{
-		docker:  &test.FakeDocker{},
+		docker:  &docker.FakeDocker{},
 		git:     &test.FakeGit{},
 		fs:      &test.FakeFileSystem{},
 		tar:     &test.FakeTar{},

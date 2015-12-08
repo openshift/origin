@@ -2,13 +2,11 @@ package deployerpod
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kutil "k8s.io/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -49,7 +47,7 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 	// If the deployment for this pod has disappeared, we should clean up this
 	// and any other deployer pods, then bail out.
 	if err != nil {
-		// Some retrieval error occured. Retry.
+		// Some retrieval error occurred. Retry.
 		if !kerrors.IsNotFound(err) {
 			return fmt.Errorf("couldn't get deployment %s/%s which owns deployer pod %s/%s", pod.Namespace, deploymentName, pod.Name, pod.Namespace)
 		}
@@ -92,21 +90,14 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 				break
 			}
 		}
+		// Sync the internal replica annotation with the target so that we can
+		// distinguish deployer updates from other scaling events.
+		deployment.Annotations[deployapi.DeploymentReplicasAnnotation] = deployment.Annotations[deployapi.DesiredReplicasAnnotation]
 		if nextStatus == deployapi.DeploymentStatusComplete {
 			delete(deployment.Annotations, deployapi.DesiredReplicasAnnotation)
 		}
 	case kapi.PodFailed:
-		// if the deployment is already marked Failed, do not attempt clean up again
-		if currentStatus != deployapi.DeploymentStatusFailed {
-			// clean up will also update the deployment status to Failed
-			// failure to clean up will result in retries and
-			// the deployment will not be marked Failed
-			// Note: this will prevent new deployments from being created for this config
-			err := c.cleanupFailedDeployment(deployment)
-			if err != nil {
-				return transientError(fmt.Sprintf("couldn't clean up failed deployment: %v", err))
-			}
-		}
+		nextStatus = deployapi.DeploymentStatusFailed
 	}
 
 	if currentStatus != nextStatus {
@@ -119,68 +110,6 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 		}
 		glog.V(4).Infof("Updated Deployment %s status from %s to %s", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus)
 	}
-
-	return nil
-}
-
-func (c *DeployerPodController) cleanupFailedDeployment(deployment *kapi.ReplicationController) error {
-	// Scale down the current failed deployment
-	configName := deployutil.DeploymentConfigNameFor(deployment)
-	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(deployment.Namespace, configName)
-	if err != nil {
-		return fmt.Errorf("couldn't list Deployments for DeploymentConfig %s: %v", configName, err)
-	}
-
-	desiredReplicas, ok := deployutil.DeploymentDesiredReplicas(deployment)
-	if !ok {
-		// if desired replicas could not be found, then log the error
-		// and update the failed deployment
-		// this cannot be treated as a transient error
-		kutil.HandleError(fmt.Errorf("Could not determine desired replicas from %s to reset replicas for last completed deployment", deployutil.LabelForDeployment(deployment)))
-	}
-
-	if ok && len(existingDeployments.Items) > 0 {
-		sort.Sort(deployutil.ByLatestVersionDesc(existingDeployments.Items))
-		for index, existing := range existingDeployments.Items {
-			// if a newer deployment exists:
-			// - set the replicas for the current failed deployment to 0
-			// - there is no point in scaling up the last completed deployment
-			// since that will be scaled down by the later deployment
-			if index == 0 && existing.Name != deployment.Name {
-				break
-			}
-
-			// the latest completed deployment is the one that needs to be scaled back up
-			if deployutil.DeploymentStatusFor(&existing) == deployapi.DeploymentStatusComplete {
-				if existing.Spec.Replicas == desiredReplicas {
-					break
-				}
-
-				// scale back the completed deployment to the target of the failed deployment
-				existing.Spec.Replicas = desiredReplicas
-				if _, err := c.deploymentClient.updateDeployment(existing.Namespace, &existing); err != nil {
-					if kerrors.IsNotFound(err) {
-						return nil
-					}
-					return fmt.Errorf("couldn't update replicas to %d for deployment %s: %v", desiredReplicas, deployutil.LabelForDeployment(&existing), err)
-				}
-				glog.V(4).Infof("Updated replicas to %d for deployment %s", desiredReplicas, deployutil.LabelForDeployment(&existing))
-
-				break
-			}
-		}
-	}
-	// set the replicas for the failed deployment to 0
-	// and set the status to Failed
-	deployment.Spec.Replicas = 0
-	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusFailed)
-	if _, err := c.deploymentClient.updateDeployment(deployment.Namespace, deployment); err != nil {
-		if kerrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("couldn't scale down the deployment %s and mark it as failed: %v", deployutil.LabelForDeployment(deployment), err)
-	}
-	glog.V(4).Infof("Scaled down the deployment %s and marked it as failed", deployutil.LabelForDeployment(deployment))
 
 	return nil
 }

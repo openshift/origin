@@ -13,7 +13,6 @@ import (
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/spf13/cobra"
@@ -30,17 +29,20 @@ with a name and file path, in which case the given name will be used. Specifying
 using with all valid keys in that directory.
 `
 
-	newExample = `  // Create a new secret named my-secret with a key named ssh-privatekey
+	newExample = `  # Create a new secret named my-secret with a key named ssh-privatekey
   $ %[1]s my-secret ~/.ssh/ssh-privatekey
 
-  // Create a new secret named my-secret with keys named ssh-privatekey and ssh-publickey instead of the names of the keys on disk
+  # Create a new secret named my-secret with keys named ssh-privatekey and ssh-publickey instead of the names of the keys on disk
   $ %[1]s my-secret ssh-privatekey=~/.ssh/id_rsa ssh-publickey=~/.ssh/id_rsa.pub
 
-  // Create a new secret named my-secret with keys for each file in the folder "bar"
+  # Create a new secret named my-secret with keys for each file in the folder "bar"
   $ %[1]s my-secret path/to/bar
 
-  // Create a new .dockercfg secret named my-secret
-  $ %[1]s my-secret path/to/.dockercfg`
+  # Create a new .dockercfg secret named my-secret
+  $ %[1]s my-secret path/to/.dockercfg
+
+  # Create a new .docker/config.json secret named my-secret
+  $ %[1]s my-secret .dockerconfigjson=path/to/.docker/config.json`
 )
 
 type CreateSecretOptions struct {
@@ -52,7 +54,7 @@ type CreateSecretOptions struct {
 
 	// Files/Directories to read from.
 	// Directory sources are listed and any direct file children included (but subfolders are not traversed)
-	Sources util.StringList
+	Sources []string
 
 	SecretsInterface kclient.SecretsInterface
 
@@ -63,6 +65,8 @@ type CreateSecretOptions struct {
 
 	// Controls whether to output warnings
 	Quiet bool
+
+	AllowUnknownTypes bool
 }
 
 func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -97,6 +101,7 @@ func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writ
 	}
 
 	cmd.Flags().BoolVarP(&options.Quiet, "quiet", "q", options.Quiet, "Suppress warnings")
+	cmd.Flags().BoolVar(&options.AllowUnknownTypes, "confirm", options.AllowUnknownTypes, "Allow unknown secret types.")
 	cmd.Flags().StringVar(&options.SecretTypeName, "type", "", "The type of secret")
 	cmdutil.AddPrinterFlags(cmd)
 
@@ -106,7 +111,7 @@ func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writ
 func NewCreateSecretOptions() *CreateSecretOptions {
 	return &CreateSecretOptions{
 		Stderr:  os.Stderr,
-		Sources: util.StringList{},
+		Sources: []string{},
 	}
 }
 
@@ -144,18 +149,22 @@ func (o *CreateSecretOptions) Validate() error {
 		return errors.New("at least one source file or directory must be specified")
 	}
 
-nameCheck:
-	switch o.SecretTypeName {
-	case string(kapi.SecretTypeOpaque), "":
-		// this is ok
-	default:
-		// TODO this probably isn't a good idea.  It limits the power of this command.  Maybe allow unknown names with a force?
-		for _, secretType := range KnownSecretTypes {
-			if o.SecretTypeName == string(secretType.Type) {
-				break nameCheck
+	if !o.AllowUnknownTypes {
+		switch o.SecretTypeName {
+		case string(kapi.SecretTypeOpaque), "":
+			// this is ok
+		default:
+			found := false
+			for _, secretType := range KnownSecretTypes {
+				if o.SecretTypeName == string(secretType.Type) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return fmt.Errorf("unknown secret type %q; use --confirm to use it anyway", o.SecretTypeName)
 			}
 		}
-		return fmt.Errorf("unknown secret type: %v", o.SecretTypeName)
 	}
 
 	return nil

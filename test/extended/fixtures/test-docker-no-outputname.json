@@ -1,0 +1,35 @@
+{
+  "kind":"BuildConfig",
+  "apiVersion":"v1",
+  "metadata":{
+    "name":"test-docker",
+    "labels":{
+      "name":"test-docker"
+    }
+  },
+  "spec":{
+    "triggers":[],
+    "source":{
+      "type":"Git",
+      "git":{
+        "uri":"https://github.com/openshift/origin"
+      },
+      "contextDir":"test/extended/fixtures/test-build-app"
+    },
+    "strategy":{
+      "type":"Docker",
+      "env": [
+        {
+          "name": "BUILD_LOGLEVEL",
+          "value": "5"
+        }
+      ],
+      "dockerStrategy":{
+        "from":{
+          "kind":"DockerImage",
+          "name":"centos/ruby-22-centos7"
+        }
+      }
+    }
+  }
+}

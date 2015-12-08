@@ -6,6 +6,7 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
 # Cleanup cluster resources created by this test
@@ -20,125 +21,126 @@ USE_IMAGES=${USE_IMAGES:-$defaultimage}
 
 # This test validates images and image streams along with the tag and import-image commands
 
-oc get images
-oc create -f test/integration/fixtures/test-image.json
-oc delete images test
+os::cmd::expect_success 'oc get images'
+os::cmd::expect_success 'oc create -f test/integration/fixtures/test-image.json'
+os::cmd::expect_success 'oc delete images test'
 echo "images: ok"
 
-oc get imageStreams
-oc create -f test/integration/fixtures/test-image-stream.json
+os::cmd::expect_success 'oc get imageStreams'
+os::cmd::expect_success 'oc create -f test/integration/fixtures/test-image-stream.json'
 # verify that creating a registry fills out .status.dockerImageRepository
-if [ -z "$(oc get imageStreams test --template="{{.status.dockerImageRepository}}")" ]; then
+if os::cmd::expect_success_and_not_text "oc get imageStreams test --template='{{.status.dockerImageRepository}}'" '.'; then
   # create the registry
-  oadm registry --credentials="${KUBECONFIG}" --images="${USE_IMAGES}" -n default
+  os::cmd::expect_success "oadm registry --credentials=${KUBECONFIG} --images='${USE_IMAGES}' -n default"
   # make sure stream.status.dockerImageRepository IS set
-  [ -n "$(oc get imageStreams test --template="{{.status.dockerImageRepository}}")" ]
+  os::cmd::expect_success_and_text "oc get imageStreams test --template='{{.status.dockerImageRepository}}'" 'test'
 fi
-oc delete imageStreams test
-[ -z "$(oc get imageStreams test --template="{{.status.dockerImageRepository}}")" ]
+os::cmd::expect_success 'oc delete imageStreams test'
+os::cmd::expect_failure 'oc get imageStreams test'
 
-oc create -f examples/image-streams/image-streams-centos7.json
-[ -n "$(oc get imageStreams ruby --template="{{.status.dockerImageRepository}}")" ]
-[ -n "$(oc get imageStreams nodejs --template="{{.status.dockerImageRepository}}")" ]
-[ -n "$(oc get imageStreams wildfly --template="{{.status.dockerImageRepository}}")" ]
-[ -n "$(oc get imageStreams mysql --template="{{.status.dockerImageRepository}}")" ]
-[ -n "$(oc get imageStreams postgresql --template="{{.status.dockerImageRepository}}")" ]
-[ -n "$(oc get imageStreams mongodb --template="{{.status.dockerImageRepository}}")" ]
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::expect_success_and_text "oc get imageStreams ruby --template='{{.status.dockerImageRepository}}'" 'ruby'
+os::cmd::expect_success_and_text "oc get imageStreams nodejs --template='{{.status.dockerImageRepository}}'" 'nodejs'
+os::cmd::expect_success_and_text "oc get imageStreams wildfly --template='{{.status.dockerImageRepository}}'" 'wildfly'
+os::cmd::expect_success_and_text "oc get imageStreams mysql --template='{{.status.dockerImageRepository}}'" 'mysql'
+os::cmd::expect_success_and_text "oc get imageStreams postgresql --template='{{.status.dockerImageRepository}}'" 'postgresql'
+os::cmd::expect_success_and_text "oc get imageStreams mongodb --template='{{.status.dockerImageRepository}}'" 'mongodb'
 # verify the image repository had its tags populated
-tryuntil oc get imagestreamtags wildfly:latest
-[ -n "$(oc get imageStreams wildfly --template="{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
-oc get istag | grep -q "wildfly"
-oc annotate istag/wildfly:latest foo=bar
-oc get istag/wildfly:latest -o jsonpath={.metadata.annotations.foo} | grep -q "bar"
-oc annotate istag/wildfly:latest foo-
-[ ! "$(oc get istag/wildfly:latest -o jsonpath={.metadata.annotations} | grep -q 'bar')" ]
-oc delete imageStreams ruby
-oc delete imageStreams nodejs
-oc delete imageStreams wildfly
-oc delete imageStreams postgresql
-oc delete imageStreams mongodb
-[ -z "$(oc get imageStreams ruby --template="{{.status.dockerImageRepository}}")" ]
-[ -z "$(oc get imageStreams nodejs --template="{{.status.dockerImageRepository}}")" ]
-[ -z "$(oc get imageStreams postgresql --template="{{.status.dockerImageRepository}}")" ]
-[ -z "$(oc get imageStreams mongodb --template="{{.status.dockerImageRepository}}")" ]
-[ -z "$(oc get imageStreams wildfly --template="{{.status.dockerImageRepository}}")" ]
-tryuntil oc get imagestreamTags mysql:latest
-[ -n "$(oc get imagestreams mysql --template="{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
-oc describe istag/mysql:latest
-[ "$(oc describe istag/mysql:latest | grep "Environment:")" ]
-[ "$(oc describe istag/mysql:latest | grep "Image Created:")" ]
-[ "$(oc describe istag/mysql:latest | grep "Image Name:")" ]
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
+os::cmd::expect_success_and_text "oc get imageStreams wildfly --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'" '[0-9]{4}\-[0-9]{2}\-[0-9]{2}' # expect a date like YYYY-MM-DD
+os::cmd::expect_success_and_text 'oc get istag' 'wildfly'
+os::cmd::expect_success 'oc annotate istag/wildfly:latest foo=bar'
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.metadata.annotations.foo}' 'bar'
+os::cmd::expect_success 'oc annotate istag/wildfly:latest foo-'
+os::cmd::expect_success_and_not_text 'oc get istag/wildfly:latest -o jsonpath={.metadata.annotations}' 'bar'
+os::cmd::expect_success 'oc delete imageStreams ruby'
+os::cmd::expect_success 'oc delete imageStreams nodejs'
+os::cmd::expect_success 'oc delete imageStreams wildfly'
+os::cmd::expect_success 'oc delete imageStreams postgresql'
+os::cmd::expect_success 'oc delete imageStreams mongodb'
+os::cmd::expect_failure 'oc get imageStreams ruby'
+os::cmd::expect_failure 'oc get imageStreams nodejs'
+os::cmd::expect_failure 'oc get imageStreams postgresql'
+os::cmd::expect_failure 'oc get imageStreams mongodb'
+os::cmd::expect_failure 'oc get imageStreams wildfly'
+os::cmd::try_until_success 'oc get imagestreamTags mysql:5.5'
+os::cmd::try_until_success 'oc get imagestreamTags mysql:5.6'
+os::cmd::expect_success_and_text "oc get imagestreams mysql --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'" '[0-9]{4}\-[0-9]{2}\-[0-9]{2}' # expect a date like YYYY-MM-DD
+os::cmd::expect_success 'oc describe istag/mysql:latest'
+os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Environment:'
+os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Image Created:'
+os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Image Name:'
 name=$(oc get istag/mysql:latest --template='{{ .image.metadata.name }}')
 imagename="isimage/mysql@${name:0:15}"
-oc describe "${imagename}"
-[ "$(oc describe ${imagename} | grep "Environment:")" ]
-[ "$(oc describe ${imagename} | grep "Image Created:")" ]
-[ "$(oc describe ${imagename} | grep "Image Name:")" ]
+os::cmd::expect_success "oc describe ${imagename}"
+os::cmd::expect_success_and_text "oc describe ${imagename}" 'Environment:'
+os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Created:'
+os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Name:'
 echo "imageStreams: ok"
 
-[ ! "$(oc import-image mysql --from=mysql)" ]
-[ "$(oc import-image mysql --from=mysql --confirm | grep "sha256:")" ]
-oc describe is/mysql
+os::cmd::expect_failure 'oc import-image mysql --from=mysql'
+os::cmd::expect_success_and_text 'oc import-image mysql --from=mysql --confirm' 'sha256:'
+os::cmd::expect_success 'oc describe is/mysql'
 echo "import-image: ok"
 
 # oc tag
-oc tag mysql:latest tagtest:tag1 --alias
-[ "$(oc get is/tagtest --template='{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
+os::cmd::expect_success 'oc tag mysql:latest tagtest:tag1 --alias'
+os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
 
-oc tag mysql@${name} tagtest:tag2 --alias
-[ "$(oc get is/tagtest --template='{{(index .spec.tags 1).from.kind}}')" == "ImageStreamImage" ]
+os::cmd::expect_success "oc tag mysql@${name} tagtest:tag2 --alias"
+os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 1).from.kind}}'" 'ImageStreamImage'
 
-oc tag mysql:notfound tagtest:tag3 --alias
-[ "$(oc get is/tagtest --template='{{(index .spec.tags 2).from.kind}}')" == "ImageStreamTag" ]
+os::cmd::expect_success 'oc tag mysql:notfound tagtest:tag3 --alias'
+os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
 
-oc tag --source=imagestreamtag mysql:latest tagtest:tag4 --alias
-[ "$(oc get is/tagtest --template='{{(index .spec.tags 3).from.kind}}')" == "ImageStreamTag" ]
+os::cmd::expect_success 'oc tag --source=imagestreamtag mysql:latest tagtest:tag4 --alias'
+os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 3).from.kind}}'" 'ImageStreamTag'
 
-oc tag --source=istag mysql:latest tagtest:tag5 --alias
-[ "$(oc get is/tagtest --template='{{(index .spec.tags 4).from.kind}}')" == "ImageStreamTag" ]
+os::cmd::expect_success 'oc tag --source=istag mysql:latest tagtest:tag5 --alias'
+os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 4).from.kind}}'" 'ImageStreamTag'
 
-oc tag --source=imagestreamimage mysql@${name} tagtest:tag6 --alias
-[ "$(oc get is/tagtest --template='{{(index .spec.tags 5).from.kind}}')" == "ImageStreamImage" ]
+os::cmd::expect_success "oc tag --source=imagestreamimage mysql@${name} tagtest:tag6 --alias"
+os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 5).from.kind}}'" 'ImageStreamImage'
 
-oc tag --source=isimage mysql@${name} tagtest:tag7 --alias
-[ "$(oc get is/tagtest --template='{{(index .spec.tags 6).from.kind}}')" == "ImageStreamImage" ]
+os::cmd::expect_success "oc tag --source=isimage mysql@${name} tagtest:tag7 --alias"
+os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 6).from.kind}}'" 'ImageStreamImage'
 
-oc tag --source=docker mysql:latest tagtest:tag8 --alias
-[ "$(oc get is/tagtest --template='{{(index .spec.tags 7).from.kind}}')" == "DockerImage" ]
+os::cmd::expect_success 'oc tag --source=docker mysql:latest tagtest:tag8 --alias'
+os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 7).from.kind}}'" 'DockerImage'
 
-oc tag mysql:latest tagtest:zzz tagtest2:zzz --alias
-[ "$(oc get is/tagtest --template='{{(index .spec.tags 8).from.kind}}')" == "ImageStreamTag" ]
-[ "$(oc get is/tagtest2 --template='{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
+os::cmd::expect_success 'oc tag mysql:latest tagtest:zzz tagtest2:zzz --alias'
+os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 8).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/tagtest2 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
 
-oc tag registry-1.docker.io/openshift/origin:v1.0.4 newrepo:latest
-[ "$(oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}')" == "DockerImage" ]
-oc tag mysql:5.5 newrepo:latest
-[ "$(oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}')" == "ImageStreamImage" ]
-oc tag mysql:5.5 newrepo:latest --alias
-[ "$(oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
+os::cmd::expect_success 'oc tag registry-1.docker.io/openshift/origin:v1.0.4 newrepo:latest'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'DockerImage'
+os::cmd::expect_success 'oc tag mysql:5.5 newrepo:latest'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success 'oc tag mysql:5.5 newrepo:latest --alias'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
 
 # test creating streams that don't exist
-[ -z "$(oc get imageStreams tagtest3 --template="{{.status.dockerImageRepository}}")" ]
-[ -z "$(oc get imageStreams tagtest4 --template="{{.status.dockerImageRepository}}")" ]
-oc tag mysql:latest tagtest3:latest tagtest4:latest --alias
-[ "$(oc get is/tagtest3 --template='{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
-[ "$(oc get is/tagtest4 --template='{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
-oc delete is/tagtest is/tagtest2 is/tagtest3 is/tagtest4
-[ "$(oc tag mysql:latest tagtest:new1 --alias | grep "Tag tagtest:new1 set up to track mysql:latest.")" ]
-[ "$(oc tag mysql:latest tagtest:new1 | grep "Tag tagtest:new1 set to mysql@sha256:")" ]
+os::cmd::expect_failure_and_text 'oc get imageStreams tagtest3' 'not found'
+os::cmd::expect_failure_and_text 'oc get imageStreams tagtest4' 'not found'
+os::cmd::expect_success 'oc tag mysql:latest tagtest3:latest tagtest4:latest --alias'
+os::cmd::expect_success_and_text "oc get is/tagtest3 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/tagtest4 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success 'oc delete is/tagtest is/tagtest2 is/tagtest3 is/tagtest4'
+os::cmd::expect_success_and_text 'oc tag mysql:latest tagtest:new1 --alias' 'Tag tagtest:new1 set up to track mysql:latest.'
+os::cmd::expect_success_and_text 'oc tag mysql:latest tagtest:new1' 'Tag tagtest:new1 set to mysql@sha256:'
 
 # test deleting a spec tag using oc tag
-oc create -f test/fixtures/test-stream.yaml
-[ "$(oc tag test-stream:latest -d | grep "Deleted")" ]
-oc delete is/test-stream
+os::cmd::expect_success 'oc create -f test/fixtures/test-stream.yaml'
+os::cmd::expect_success_and_text 'oc tag test-stream:latest -d' 'Deleted'
+os::cmd::expect_success 'oc delete is/test-stream'
 echo "tag: ok"
 
 # test deleting a tag using oc delete
-os::util::get_object_assert 'is perl' "{{(index .spec.tags 0).name}}" '5.16'
-os::util::get_object_assert 'is perl' "{{(index .status.tags 0).tag}}" '5.16'
-oc delete istag/perl:5.16
-[ ! "$(oc get is/perl --template={{.spec.tags}} | grep 'version:5.16')" ]
-[ ! "$(oc get is/perl --template={{.status.tags}} | grep 'version:5.16')" ]
-oc delete all --all
+os::cmd::expect_success_and_text "oc get is perl --template '{{(index .spec.tags 0).name}}'" '5.16'
+os::cmd::expect_success_and_text "oc get is perl --template '{{(index .status.tags 0).tag}}'" '5.16'
+os::cmd::expect_success 'oc delete istag/perl:5.16'
+os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.spec.tags}}' 'version:5.16'
+os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.status.tags}}' 'version:5.16'
+os::cmd::expect_success 'oc delete all --all'
 
 echo "delete istag: ok"

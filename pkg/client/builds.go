@@ -22,6 +22,7 @@ type BuildInterface interface {
 	Delete(name string) error
 	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 	Clone(request *buildapi.BuildRequest) (*buildapi.Build, error)
+	UpdateDetails(build *buildapi.Build) (*buildapi.Build, error)
 }
 
 // builds implements BuildsNamespacer interface
@@ -94,5 +95,14 @@ func (c *builds) Watch(label labels.Selector, field fields.Selector, resourceVer
 func (c *builds) Clone(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
 	result = &buildapi.Build{}
 	err = c.r.Post().Namespace(c.ns).Resource("builds").Name(request.Name).SubResource("clone").Body(request).Do().Into(result)
+	return
+}
+
+// UpdateDetails updates the build details for a given build.
+// Currently only the Spec.Revision is allowed to be updated.
+// Returns the server's representation of the build and error if one occurs.
+func (c *builds) UpdateDetails(build *buildapi.Build) (result *buildapi.Build, err error) {
+	result = &buildapi.Build{}
+	err = c.r.Put().Namespace(c.ns).Resource("builds").Name(build.Name).SubResource("details").Body(build).Do().Into(result)
 	return
 }

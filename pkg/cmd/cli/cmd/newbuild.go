@@ -94,19 +94,21 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 		},
 	}
 
-	cmd.Flags().Var(&config.SourceRepositories, "code", "Source code in the build configuration.")
-	cmd.Flags().VarP(&config.ImageStreams, "image", "i", "Name of an image stream to to use as a builder.")
-	cmd.Flags().Var(&config.DockerImages, "docker-image", "Name of a Docker image to use as a builder.")
-	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated build artifacts")
-	cmd.Flags().VarP(&config.Environment, "env", "e", "Specify key value pairs of environment variables to set into resulting image.")
+	cmd.Flags().StringSliceVar(&config.SourceRepositories, "code", config.SourceRepositories, "Source code in the build configuration.")
+	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image", "i", config.ImageStreams, "Name of an image stream to to use as a builder.")
+	cmd.Flags().StringSliceVar(&config.DockerImages, "docker-image", config.DockerImages, "Name of a Docker image to use as a builder.")
+	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated build artifacts.")
+	cmd.Flags().StringVar(&config.To, "to", "", "Push built images to this image stream tag (or Docker image repository if --to-docker is set).")
+	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")
+	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set into resulting image.")
 	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
 	cmd.Flags().StringVarP(&config.Dockerfile, "dockerfile", "D", "", "Specify the contents of a Dockerfile to build directly, implies --strategy=docker. Pass '-' to read from STDIN.")
 	cmd.Flags().BoolVar(&config.BinaryBuild, "binary", false, "Instead of expecting a source URL, set the build to expect binary contents. Will disable triggers.")
-	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all generated resources.")
 	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
 	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
 	cmd.Flags().BoolVar(&config.DryRun, "dry-run", false, "If true, do not actually create resources.")
+	cmd.Flags().BoolVar(&config.NoOutput, "no-output", false, "If true, the build output will not be pushed anywhere.")
 	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd
@@ -162,6 +164,7 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 		}
 	}
 	if config.DryRun {
+		fmt.Fprintf(out, "--> Success (DRY RUN)\n")
 		return nil
 	}
 

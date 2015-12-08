@@ -46,7 +46,7 @@ func TestBuildValidationFailure(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: ""},
 		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
+				Type: "Git123",
 				Git: &buildapi.GitBuildSource{
 					URI: "http://github.com/my/repository",
 				},
@@ -67,7 +67,7 @@ func TestBuildValidationFailure(t *testing.T) {
 			Phase: buildapi.BuildPhaseNew,
 		},
 	}
-	if result := ValidateBuild(build); len(result) != 2 {
+	if result := ValidateBuild(build); len(result) != 3 {
 		t.Errorf("Unexpected validation result: %v", result)
 	}
 }
@@ -94,16 +94,24 @@ func newDefaultParameters() buildapi.BuildSpec {
 	}
 }
 
+func newNonDefaultParameters() buildapi.BuildSpec {
+	o := newDefaultParameters()
+	o.Source.Git.URI = "changed"
+	return o
+}
+
 func TestValidateBuildUpdate(t *testing.T) {
 	old := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 		Spec:       newDefaultParameters(),
+		Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
 	}
 
 	errs := ValidateBuildUpdate(
 		&buildapi.Build{
 			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 			Spec:       newDefaultParameters(),
+			Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseComplete},
 		},
 		old,
 	)
@@ -112,25 +120,85 @@ func TestValidateBuildUpdate(t *testing.T) {
 	}
 
 	errorCases := map[string]struct {
-		A *buildapi.Build
-		T fielderrors.ValidationErrorType
-		F string
+		Old    *buildapi.Build
+		Update *buildapi.Build
+		T      fielderrors.ValidationErrorType
+		F      string
 	}{
 		"changed spec": {
-			A: &buildapi.Build{
+			Old: &buildapi.Build{
 				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newNonDefaultParameters(),
 			},
 			T: fielderrors.ValidationErrorTypeInvalid,
 			F: "spec",
 		},
+		"update from terminal1": {
+			Old: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseComplete},
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "status.Phase",
+		},
+		"update from terminal2": {
+			Old: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseCancelled},
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "status.Phase",
+		},
+		"update from terminal3": {
+			Old: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseError},
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "status.Phase",
+		},
+		"update from terminal4": {
+			Old: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseFailed},
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "status.Phase",
+		},
 	}
-	errorCases["changed spec"].A.Spec.Source.Git.URI = "different"
 
 	for k, v := range errorCases {
-		errs := ValidateBuildUpdate(v.A, old)
+		errs := ValidateBuildUpdate(v.Update, v.Old)
 		if len(errs) == 0 {
-			t.Errorf("expected failure %s for %v", k, v.A)
+			t.Errorf("expected failure %s for %v", k, v.Update)
 			continue
 		}
 		for i := range errs {
@@ -141,6 +209,45 @@ func TestValidateBuildUpdate(t *testing.T) {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}
+	}
+}
+
+func TestBuildConfigGitSourceWithProxyFailure(t *testing.T) {
+	buildConfig := &buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI:        "git://github.com/my/repository",
+						HTTPProxy:  "127.0.0.1:3128",
+						HTTPSProxy: "127.0.0.1:3128",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+	}
+	errors := ValidateBuildConfig(buildConfig)
+	if len(errors) != 1 {
+		t.Errorf("Expected one error, got %d", len(errors))
+	}
+	err := errors[0].(*fielderrors.ValidationError)
+	if err.Type != fielderrors.ValidationErrorTypeInvalid {
+		t.Errorf("Expected invalid value validation error, got %q", err.Type)
+	}
+	if err.Detail != "only http:// and https:// GIT protocols are allowed with HTTP or HTTPS proxy set" {
+		t.Errorf("Exptected git:// protocol with proxy validation error, got: %q", err.Detail)
 	}
 }
 
@@ -647,6 +754,21 @@ func TestValidateSource(t *testing.T) {
 				Binary: &buildapi.BinaryBuildSource{AsFile: "/././file"},
 			},
 			ok: true,
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "type",
+			source: &buildapi.BuildSource{
+				Type:   "invalidType",
+				Binary: &buildapi.BinaryBuildSource{AsFile: "/././file"},
+			},
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeRequired,
+			path: "type",
+			source: &buildapi.BuildSource{
+				Binary: &buildapi.BinaryBuildSource{AsFile: "/././file"},
+			},
 		},
 	}
 	for i, tc := range errorCases {

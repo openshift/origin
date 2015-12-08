@@ -317,12 +317,16 @@ func ValidateAssetConfig(config *api.AssetConfig) ValidationResults {
 		if _, loggingURLErrs := ValidateSecureURL(config.LoggingPublicURL, "loggingPublicURL"); len(loggingURLErrs) > 0 {
 			validationResults.AddErrors(loggingURLErrs...)
 		}
+	} else {
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("loggingPublicURL", "", "required to view aggregated container logs in the console"))
 	}
 
 	if len(config.MetricsPublicURL) > 0 {
 		if _, metricsURLErrs := ValidateSecureURL(config.MetricsPublicURL, "metricsPublicURL"); len(metricsURLErrs) > 0 {
 			validationResults.AddErrors(metricsURLErrs...)
 		}
+	} else {
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("metricsPublicURL", "", "required to view cluster metrics in the console"))
 	}
 
 	for i, scriptFile := range config.ExtensionScripts {

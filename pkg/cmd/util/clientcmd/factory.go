@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
@@ -202,8 +203,14 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return nil, err
 		}
 
-		if mapping.Kind == "DeploymentConfig" {
+		switch mapping.Kind {
+		case "DeploymentConfig":
 			return deployreaper.NewDeploymentConfigReaper(oc, kc), nil
+		case "Role":
+			return authorizationreaper.NewRoleReaper(oc, oc), nil
+		case "ClusterRole":
+			return authorizationreaper.NewClusterRoleReaper(oc, oc, oc), nil
+
 		}
 		return kReaperFunc(mapping)
 	}
@@ -261,11 +268,11 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if !ok {
 				return nil, errors.New("provided options object is not a BuildLogOptions")
 			}
-			buildsForBCSelector := labels.SelectorFromSet(map[string]string{buildapi.DeprecatedBuildConfigLabel: t.Name})
-			builds, err := oc.Builds(t.Namespace).List(buildsForBCSelector, fields.Everything())
+			builds, err := oc.Builds(t.Namespace).List(labels.Everything(), fields.Everything())
 			if err != nil {
 				return nil, err
 			}
+			builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigLabelPredicate(t.Name))
 			if len(builds.Items) == 0 {
 				return nil, fmt.Errorf("no builds found for %s", t.Name)
 			}
@@ -488,6 +495,11 @@ func (c *clientCache) ClientConfigForVersion(version string) (*kclient.Config, e
 	config.Version = negotiatedVersion
 	client.SetOpenShiftDefaults(&config)
 	c.configs[version] = &config
+
+	// `version` does not necessarily equal `config.Version`.  However, we know that we call this method again with
+	// `config.Version`, we should get the the config we've just built.
+	configCopy := config
+	c.configs[config.Version] = &configCopy
 
 	return &config, nil
 }

@@ -10,8 +10,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"k8s.io/kubernetes/pkg/util"
 )
 
 const CreateClientCommandName = "create-api-client-config"
@@ -23,7 +21,7 @@ type CreateClientOptions struct {
 	BaseName  string
 
 	User   string
-	Groups util.StringList
+	Groups []string
 
 	APIServerCAFile    string
 	APIServerURL       string
@@ -65,7 +63,7 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 	flags.StringVar(&options.BaseName, "basename", "", "The base filename to use for the .crt, .key, and .kubeconfig files. Defaults to the username.")
 
 	flags.StringVar(&options.User, "user", "", "The scope qualified username.")
-	flags.Var(&options.Groups, "groups", "The list of groups this user belongs to. Comma delimited list")
+	flags.StringSliceVar(&options.Groups, "groups", options.Groups, "The list of groups this user belongs to. Comma delimited list")
 
 	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
 	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")

@@ -36,6 +36,10 @@ type DeploymentStrategy struct {
 	RollingParams *RollingDeploymentStrategyParams `json:"rollingParams,omitempty" description:"input to the Rolling deployment strategy"`
 	// Compute resource requirements to execute the deployment
 	Resources kapi.ResourceRequirements `json:"resources,omitempty" description:"resource requirements to execute the deployment"`
+	// Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
+	Labels map[string]string `json:"labels,omitempty" description:"labels for deployer and hook pods"`
+	// Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
+	Annotations map[string]string `json:"annotations,omitempty" description:"annotations for deployer and hook pods"`
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.

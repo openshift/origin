@@ -138,6 +138,8 @@ angular.module('openshiftConsole')
           return "http://docs.openshift.com/enterprise/latest/dev_guide/builds.html#starting-a-build";
         case "deployment-operations":
           return "http://docs.openshift.com/enterprise/latest/cli_reference/basic_cli_operations.html#build-and-deployment-cli-operations";
+        case "route-types":
+          return "https://docs.openshift.com/enterprise/latest/architecture/core_concepts/routes.html#route-types";
         default:
           return "http://docs.openshift.com/enterprise/latest/welcome/index.html";
       }

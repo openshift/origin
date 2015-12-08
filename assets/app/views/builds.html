@@ -1,6 +1,6 @@
-<div ng-controller="ProjectController" class="content">
+<div class="content">
   <project-page>
-    <div ng-controller="BuildsController">
+    <div>
       <div class="page-header page-header-bleed-right">
         <h1>Builds</h1>
       </div>
@@ -24,7 +24,7 @@
           <!-- Build config with no builds-->
           <tr ng-if="(buildConfigBuilds | hashSize) == 0">
             <td data-title="Name">
-              <a href="project/{{projectName}}/browse/builds/{{buildConfigName}}">{{buildConfigName}}</a>
+              <a href="{{buildConfigName | navigateResourceURL : 'BuildConfig' : projectName}}">{{buildConfigName}}</a>
             </td>
             <td data-title="Last Build"><em>No builds</em></td>
             <td class="hidden-xs">&nbsp;</td>
@@ -36,43 +36,35 @@
           <!-- We only show the first build from a build config for now-->
           <tr ng-repeat="build in buildConfigBuilds | orderObjectsByDate : true | limitTo : 1" ng-if="buildConfigs[buildConfigName] || !unfilteredBuildConfigs[buildConfigName]">
             <td data-title="Name">
-              <a ng-if="buildConfigs[buildConfigName]" href="project/{{projectName}}/browse/builds/{{buildConfigName}}">{{buildConfigName}}</a>
+              <a ng-if="buildConfigs[buildConfigName]" href="{{buildConfigName | navigateResourceURL : 'BuildConfig' : projectName}}">{{buildConfigName}}</a>
               <span ng-if="buildConfigs && !buildConfigs[buildConfigName] && buildConfigName != ''">
                 {{buildConfigName}}
-                <span class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-placement="right" title="This build config no longer exists" style="cursor: help;"></span>                    
+                <span class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-placement="right" title="This build config no longer exists" style="cursor: help;"></span>
               </span>
               <span ng-if="buildConfigName == ''"><em>none</em></span>
             </td>
             <td data-title="Last Build">
               <!-- Build number and link -->
               <span ng-if="(build | annotation : 'buildNumber') && buildConfigName != ''">
-                <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{buildConfigName}}/{{build.metadata.name}}">#{{build | annotation : 'buildNumber'}}</a>
+                <a ng-href="{{build | navigateResourceURL}}">#{{build | annotation : 'buildNumber'}}</a>
               </span>
               <span ng-if="!(build | annotation : 'buildNumber') && buildConfigName != ''">
-                <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{buildConfigName}}/{{build.metadata.name}}">{{build.metadata.name}}</a>
+                <a ng-href="{{build | navigateResourceURL}}">{{build.metadata.name}}</a>
               </span>
               <span ng-if="buildConfigName == ''">
-                <a ng-href="project/{{build.metadata.namespace}}/browse/builds-noconfig/{{build.metadata.name}}">{{build.metadata.name}}</a>
-              </span>                
+                <a ng-href="{{build | navigateResourceURL}}">{{build.metadata.name}}</a>
+              </span>
             </td>
             <td data-title="Status">
               <div row class="status">
-                <!-- Build status -->
-                <span ng-switch="build.status.phase" class="hide-ng-leave status-icon">
-                  <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
-                  <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
-                  <span ng-switch-when="Error" class="fa fa-times text-danger" aria-hidden="true"></span>
-                  <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>
-                  <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-                  <span ng-switch-default class="fa fa-refresh" aria-hidden="true"></span>
-                </span>
+                <status-icon status="build.status.phase" disable-animation></status-icon>
                 <span flex>
                   <span>{{build.status.phase}}</span>
                   <!-- Build duration -->
                   <span ng-switch="build.status.phase" class="hide-ng-leave">
                     <span ng-switch-when="Complete"> in {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
                     <span ng-switch-when="Failed">after {{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
-                    <span ng-switch-when="Cancelled"> after {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>                  
+                    <span ng-switch-when="Cancelled"> after {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
                     <span ng-switch-when="Running"> for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
                     <span ng-switch-when="New">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
                     <span ng-switch-when="Pending"> for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
@@ -86,9 +78,9 @@
             </td>
             <td data-title="Started">
               <relative-timestamp timestamp="build.status.startTimestamp || build.metadata.creationTimestamp"></relative-timestamp>
-              <span>- {{(build.status.startTimestamp || build.metadata.creationTimestamp) | date : 'short'}}</span>            
+              <span>- {{(build.status.startTimestamp || build.metadata.creationTimestamp) | date : 'short'}}</span>
             </td>
-            <td data-title="Type">{{build.spec.strategy.type}}</td>            
+            <td data-title="Type">{{build.spec.strategy.type}}</td>
             <td data-title="Source">
               <span ng-if="build.spec.source">
                 <span ng-if="build.spec.source.type == 'Git'" ng-bind-html='build.spec.source.git.uri | githubLink : build.spec.source.git.ref : build.spec.source.contextDir | linky' class="word-break"></span>

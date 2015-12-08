@@ -43,8 +43,6 @@ var _ = Describe("Etcd failure", func() {
 		SkipUnlessProviderIs("gce")
 		skipped = false
 
-		framework.beforeEach()
-
 		Expect(RunRC(RCConfig{
 			Client:    framework.Client,
 			Name:      "baz",
@@ -52,14 +50,6 @@ var _ = Describe("Etcd failure", func() {
 			Image:     "beta.gcr.io/google_containers/pause:2.0",
 			Replicas:  1,
 		})).NotTo(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		if skipped {
-			return
-		}
-
-		framework.afterEach()
 	})
 
 	It("should recover from network partition with master", func() {

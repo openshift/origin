@@ -1,0 +1,24 @@
+<!-- aria-hidden since we have the build table below with the same details -->
+<!-- Wrap the content in a scrollable div for mobile -->
+<div class="build-trends-responsive" aria-hidden="true">
+  <div class="build-trends-container">
+    <!-- Build trends chart -->
+    <div ng-attr-id="{{chartID}}" class="build-trends-chart"></div>
+
+    <!-- Average duration -->
+    <div ng-if="averageDurationText" class="avg-duration pull-right">
+      <a href="" ng-click="toggleAvgLine()" title="Toggle average line" role="button" class="action-button">
+        <span class="avg-duration-text text-muted">
+          <svg width="25" height="20">
+            <line class="build-trends-avg-line" x1="0" y1="10" x2="25" y2="10" />
+          </svg>
+          <span style="vertical-align: top;">Average: {{averageDurationText}}</span>
+        </span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<div ng-if="averageDurationText" class="sr-only">
+  Average build duration {{averageDurationText}}
+</div>

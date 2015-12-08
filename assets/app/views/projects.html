@@ -16,11 +16,14 @@
           </div>
         </div>
         <div row main-axis="end" ng-if="project.status.phase == 'Active'">
-          <i class="fa fa-trash-o fa-2x action-button"
-            ng-click="$event.stopPropagation(); openDeleteModal(project);"
-            data-toggle="tooltip"
-            data-placement="left"
-            title="Delete Project"></i>
+          <delete-button 
+            class="fa-lg"
+            resource-type="project" 
+            resource-name="{{project.metadata.name}}" 
+            project-name="{{project.metadata.name}}" 
+            display-name="{{(project | displayName)}}"
+            alerts="alerts">
+          </delete-button>
         </div>
       </div>
     </div>
@@ -36,7 +39,7 @@
   </div>
 </div>
 
-<div ng-if="showGetStarted" class="empty-state-message text-center">
+<div ng-if="showGetStarted" class="empty-state-message empty-state-full-page text-center">
   <h1>Welcome to OpenShift.</h1>
 
   <p>

@@ -9,24 +9,25 @@ import (
 	"path/filepath"
 
 	"github.com/golang/glog"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/build/api"
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
+	"github.com/openshift/origin/pkg/client"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/generate/git"
 )
 
 type builder interface {
-	Build() error
+	Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build) error
 }
-
-type factoryFunc func(client bld.DockerClient, dockerSocket string, build *api.Build) builder
 
 // run is responsible for preparing environment for actual build.
 // It accepts factoryFunc and an ordered array of SCMAuths.
-func run(builderFactory factoryFunc) {
-	client, endpoint, err := dockerutil.NewHelper().GetClient()
+func run(b builder) {
+	dockerClient, endpoint, err := dockerutil.NewHelper().GetClient()
 	if err != nil {
 		glog.Fatalf("Error obtaining docker client: %v", err)
 	}
@@ -50,12 +51,22 @@ func run(builderFactory factoryFunc) {
 				glog.Fatalf("Cannot setup secret file for accessing private repository: %v", err)
 			}
 			if sourceURL != nil {
+				build.Annotations[bld.OriginalSourceURLAnnotationKey] = build.Spec.Source.Git.URI
 				build.Spec.Source.Git.URI = sourceURL.String()
 			}
 		}
 	}
-	b := builderFactory(client, endpoint, &build)
-	if err = b.Build(); err != nil {
+	config, err := kclient.InClusterConfig()
+	if err != nil {
+		glog.Fatalf("Failed to get client config: %v", err)
+	}
+	osClient, err := client.New(config)
+	if err != nil {
+		glog.Fatalf("Error obtaining OpenShift client: %v", err)
+	}
+	buildsClient := osClient.Builds(build.Namespace)
+
+	if err = b.Build(dockerClient, endpoint, buildsClient, &build); err != nil {
 		glog.Fatalf("Build error: %v", err)
 	}
 
@@ -146,16 +157,26 @@ func auths(sourceURL *url.URL) []scmauth.SCMAuth {
 	return auths
 }
 
+type dockerBuilder struct{}
+
+// Build starts a Docker build.
+func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build) error {
+	return bld.NewDockerBuilder(dockerClient, buildsClient, build).Build()
+}
+
+type s2iBuilder struct{}
+
+// Build starts an S2I build.
+func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build) error {
+	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build).Build()
+}
+
 // RunDockerBuild creates a docker builder and runs its build
 func RunDockerBuild() {
-	run(func(client bld.DockerClient, sock string, build *api.Build) builder {
-		return bld.NewDockerBuilder(client, build)
-	})
+	run(dockerBuilder{})
 }
 
 // RunSTIBuild creates a STI builder and runs its build
 func RunSTIBuild() {
-	run(func(client bld.DockerClient, sock string, build *api.Build) builder {
-		return bld.NewSTIBuilder(client, sock, build)
-	})
+	run(s2iBuilder{})
 }

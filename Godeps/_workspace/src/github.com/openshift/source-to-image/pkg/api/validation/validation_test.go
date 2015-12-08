@@ -14,9 +14,10 @@ func TestValidation(t *testing.T) {
 	}{
 		{
 			&api.Config{
-				Source:       "http://github.com/openshift/source",
-				BuilderImage: "openshift/builder",
-				DockerConfig: &api.DockerConfig{Endpoint: "/var/run/docker.socket"},
+				Source:            "http://github.com/openshift/source",
+				BuilderImage:      "openshift/builder",
+				DockerConfig:      &api.DockerConfig{Endpoint: "/var/run/docker.socket"},
+				BuilderPullPolicy: api.DefaultBuilderPullPolicy,
 			},
 			[]ValidationError{},
 		},
@@ -26,6 +27,7 @@ func TestValidation(t *testing.T) {
 				BuilderImage:      "openshift/builder",
 				DockerConfig:      &api.DockerConfig{Endpoint: "/var/run/docker.socket"},
 				DockerNetworkMode: "foobar",
+				BuilderPullPolicy: api.DefaultBuilderPullPolicy,
 			},
 			[]ValidationError{{ValidationErrorInvalidValue, "dockerNetworkMode"}},
 		},
@@ -35,6 +37,7 @@ func TestValidation(t *testing.T) {
 				BuilderImage:      "openshift/builder",
 				DockerConfig:      &api.DockerConfig{Endpoint: "/var/run/docker.socket"},
 				DockerNetworkMode: api.NewDockerNetworkModeContainer("8d873e496bc3e80a1cb22e67f7de7be5b0633e27916b1144978d1419c0abfcdb"),
+				BuilderPullPolicy: api.DefaultBuilderPullPolicy,
 			},
 			[]ValidationError{},
 		},

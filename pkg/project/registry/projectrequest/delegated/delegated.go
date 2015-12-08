@@ -67,8 +67,10 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	projectName := projectRequest.Name
 	projectAdmin := ""
+	projectRequester := ""
 	if userInfo, exists := kapi.UserFrom(ctx); exists {
 		projectAdmin = userInfo.GetName()
+		projectRequester = userInfo.GetName()
 	}
 
 	template, err := r.getTemplate()
@@ -86,6 +88,8 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 			template.Parameters[i].Value = projectRequest.DisplayName
 		case ProjectNameParam:
 			template.Parameters[i].Value = projectName
+		case ProjectRequesterParam:
+			template.Parameters[i].Value = projectRequester
 		}
 	}
 

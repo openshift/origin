@@ -2,38 +2,39 @@ package cli
 
 import (
 	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/ad"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-var _ SyncBuilder = &ADSyncBuilder{}
+var _ SyncBuilder = &ADBuilder{}
 
-type ADSyncBuilder struct {
-	ClientConfig *ldaputil.LDAPClientConfig
+type ADBuilder struct {
+	ClientConfig ldapclient.Config
 	Config       *api.ActiveDirectoryConfig
 
 	adLDAPInterface *ad.ADLDAPInterface
 }
 
-func (b *ADSyncBuilder) GetGroupLister() (interfaces.LDAPGroupLister, error) {
+func (b *ADBuilder) GetGroupLister() (interfaces.LDAPGroupLister, error) {
 	return b.getADLDAPInterface()
 }
 
-func (b *ADSyncBuilder) GetGroupNameMapper() (interfaces.LDAPGroupNameMapper, error) {
+func (b *ADBuilder) GetGroupNameMapper() (interfaces.LDAPGroupNameMapper, error) {
 	return &syncgroups.DNLDAPGroupNameMapper{}, nil
 }
 
-func (b *ADSyncBuilder) GetUserNameMapper() (interfaces.LDAPUserNameMapper, error) {
+func (b *ADBuilder) GetUserNameMapper() (interfaces.LDAPUserNameMapper, error) {
 	return syncgroups.NewUserNameMapper(b.Config.UserNameAttributes), nil
 }
 
-func (b *ADSyncBuilder) GetGroupMemberExtractor() (interfaces.LDAPMemberExtractor, error) {
+func (b *ADBuilder) GetGroupMemberExtractor() (interfaces.LDAPMemberExtractor, error) {
 	return b.getADLDAPInterface()
 }
 
-func (b *ADSyncBuilder) getADLDAPInterface() (*ad.ADLDAPInterface, error) {
+func (b *ADBuilder) getADLDAPInterface() (*ad.ADLDAPInterface, error) {
 	if b.adLDAPInterface != nil {
 		return b.adLDAPInterface, nil
 	}

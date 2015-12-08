@@ -45,5 +45,5 @@ func (u *Usage) Show() error {
 		return err
 	}
 
-	return b.Execute(api.Usage, u.config)
+	return b.Execute(api.Usage, "", u.config)
 }

@@ -139,3 +139,23 @@ func TestSSCalledTwice(t *testing.T) {
 		}
 	}
 }
+
+func TestSSWithComma(t *testing.T) {
+	var ss []string
+	f := setUpSSFlagSet(&ss)
+
+	in := []string{`"one,two"`, `"three"`}
+	expected := []string{"one,two", "three"}
+	argfmt := "--ss=%s"
+	arg1 := fmt.Sprintf(argfmt, in[0])
+	arg2 := fmt.Sprintf(argfmt, in[1])
+	err := f.Parse([]string{arg1, arg2})
+	if err != nil {
+		t.Fatal("expected no error; got", err)
+	}
+	for i, v := range ss {
+		if expected[i] != v {
+			t.Fatalf("expected ss[%d] to be %s but got: %s", i, expected[i], v)
+		}
+	}
+}

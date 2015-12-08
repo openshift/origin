@@ -74,6 +74,7 @@ base image changes will use the source specified on the build config.
 func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
 	webhooks := util.StringFlag{}
 	webhooks.Default("none")
+	env := []string{}
 
 	cmd := &cobra.Command{
 		Use:        "start-build (BUILDCONFIG | --from-build=BUILD)",
@@ -82,10 +83,12 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 		Example:    fmt.Sprintf(startBuildExample, fullName),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunStartBuild(f, in, out, cmd, args, webhooks)
+			err := RunStartBuild(f, in, out, cmd, env, args, webhooks)
 			cmdutil.CheckErr(err)
 		},
 	}
+	cmd.Flags().String("build-loglevel", "", "Specify the log level for the build log output")
+	cmd.Flags().StringSliceVarP(&env, "env", "e", env, "Specify key value pairs of environment variables to set for the build container.")
 	cmd.Flags().String("from-build", "", "Specify the name of a build which should be re-run")
 
 	cmd.Flags().Bool("follow", false, "Start a build and watch its logs until it completes or fails")
@@ -107,7 +110,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 }
 
 // RunStartBuild contains all the necessary functionality for the OpenShift cli start-build command
-func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, webhooks util.StringFlag) error {
+func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, envParams []string, args []string, webhooks util.StringFlag) error {
 	webhook := cmdutil.GetFlagString(cmd, "from-webhook")
 	buildName := cmdutil.GetFlagString(cmd, "from-build")
 	follow := cmdutil.GetFlagBool(cmd, "follow")
@@ -116,6 +119,7 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 	fromFile := cmdutil.GetFlagString(cmd, "from-file")
 	fromDir := cmdutil.GetFlagString(cmd, "from-dir")
 	fromRepo := cmdutil.GetFlagString(cmd, "from-repo")
+	buildLogLevel := cmdutil.GetFlagString(cmd, "build-loglevel")
 
 	switch {
 	case len(webhook) > 0:
@@ -168,8 +172,20 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 		return err
 	}
 
+	env, _, err := ParseEnv(envParams, in)
+	if err != nil {
+		return err
+	}
+
+	if len(buildLogLevel) > 0 {
+		env = append(env, kapi.EnvVar{Name: "BUILD_LOGLEVEL", Value: buildLogLevel})
+	}
+
 	request := &buildapi.BuildRequest{
 		ObjectMeta: kapi.ObjectMeta{Name: name},
+	}
+	if len(env) > 0 {
+		request.Env = env
 	}
 	if len(commit) > 0 {
 		request.Revision = &buildapi.SourceRevision{
@@ -383,7 +399,12 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 			return nil, err
 		}
 		if stat.IsDir() {
-			info, gitErr := gitRefInfo(git, clean, "HEAD")
+			commit := "HEAD"
+			if len(options.Commit) > 0 {
+				commit = options.Commit
+			}
+			fmt.Fprintf(out, "Uploading %q at commit %q as binary input for the build ...\n", clean, commit)
+			info, gitErr := gitRefInfo(git, clean, commit)
 			if gitErr == nil {
 				options.Commit = info.GitSourceRevision.Commit
 				options.Message = info.GitSourceRevision.Message
@@ -399,17 +420,9 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 				if gitErr != nil {
 					return nil, fmt.Errorf("the directory %q is not a valid Git repository: %v", clean, gitErr)
 				}
-				commit := options.Commit
-				if len(commit) > 0 {
-					fmt.Fprintf(out, "Uploading Git repository %q at commit %q as binary input for the build ...\n", clean, commit)
-				} else {
-					commit = "HEAD"
-					fmt.Fprintf(out, "Uploading Git repository %q as binary input for the build ...\n", clean)
-				}
-
 				pr, pw := io.Pipe()
 				go func() {
-					if err := git.Archive(clean, commit, "tar.gz", pw); err != nil {
+					if err := git.Archive(clean, options.Commit, "tar.gz", pw); err != nil {
 						pw.CloseWithError(fmt.Errorf("unable to create Git archive of %q for build: %v", clean, err))
 					} else {
 						pw.CloseWithError(io.EOF)
@@ -496,9 +509,12 @@ func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, p
 	}
 
 	// TODO: should be a versioned struct
-	data, err := json.Marshal(event)
-	if err != nil {
-		return err
+	var data []byte
+	if event != nil {
+		data, err = json.Marshal(event)
+		if err != nil {
+			return err
+		}
 	}
 
 	httpClient := http.DefaultClient
@@ -532,7 +548,7 @@ func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, p
 }
 
 // hookEventFromPostReceive creates a GenericWebHookEvent from the provided git repository and
-// post receive input. If no inputs are available will return an empty event.
+// post receive input. If no inputs are available, it will return nil.
 func hookEventFromPostReceive(repo git.Repository, path, postReceivePath string) (*buildapi.GenericWebHookEvent, error) {
 	// TODO: support other types of refs
 	event := &buildapi.GenericWebHookEvent{
@@ -560,6 +576,9 @@ func hookEventFromPostReceive(repo git.Repository, path, postReceivePath string)
 			return nil, err
 		}
 		refs = r
+	}
+	if len(refs) == 0 {
+		return nil, nil
 	}
 	for _, ref := range refs {
 		if len(ref.New) == 0 || ref.New == ref.Old {

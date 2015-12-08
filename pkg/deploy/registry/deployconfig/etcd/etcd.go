@@ -105,7 +105,7 @@ func (r *ScaleREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 		return nil, err
 	}
 
-	scaleRet := &extensions.Scale{
+	return &extensions.Scale{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              name,
 			Namespace:         deploymentConfig.Namespace,
@@ -118,23 +118,7 @@ func (r *ScaleREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 			Replicas: totalReplicas,
 			Selector: deploymentConfig.Template.ControllerTemplate.Selector,
 		},
-	}
-
-	// current replicas reflects either the scale of the current deployment,
-	// or the scale of the RC template if no current deployment exists
-	controller, err := r.rcNamespacer.ReplicationControllers(deploymentConfig.Namespace).Get(util.LatestDeploymentNameForConfig(deploymentConfig))
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return nil, err
-		}
-
-		return scaleRet, nil
-
-	}
-
-	scaleRet.Spec.Replicas = controller.Spec.Replicas
-	return scaleRet, nil
-
+	}, nil
 }
 
 // Update scales the DeploymentConfig for the given Scale subresource, returning the updated Scale.
@@ -168,25 +152,6 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 		return nil, false, errors.NewNotFound("scale", scale.Name)
 	}
 
-	// This code tries to mitigate any race conditions caused by the DC controller
-	// not actually basing RC replicas on the template after the first deploy.
-	//
-	// If the DC controller isn't doing anything, and isn't about to start anything,
-	// then we'll have updated the DC or deployment RC correctly (the easy case)
-	//
-	// If we are dealing with a deployment, the following happens on updates to resources:
-	// 1. The DC controller catches an update to a DC, and creates a new RC, naming it based on the value of dc.LatestVersion
-	// 2. The Deployment Controller then picks up a change to the RC, launches a deployer pod, and updates the status annotation of the RC to pending
-	// 3a. The Deployer Pod Controller picks up the change to the pod, and updates the status annotation of the RC to running
-	// 3b. The deployer pod itself runs the deployment strategy
-	// 4. the deployer pod finishes or errors out, and the Deployer Pod Controller picks this up and updates the status annotation of the RC to either complete or failed
-	//
-	// We try to refuse to scale while a deployment is in progress, based on the annotation of the latest RC.
-	// Unfortunately, we can have a case where we pick up a DC, calculate the name of the latest DC using its
-	// LatestVersion field, and then someone updates that before twe run the scale.  In this case, it is possible
-	// that we may try to scale the wrong RC.  However, since /scale is used mainly by the HPA,
-	// we should see the updated values and annotations the next HPA cycle, and cease the incorrect behavior.
-
 	scaleRet := &extensions.Scale{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              deploymentConfig.Name,
@@ -197,30 +162,8 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 			Replicas: scale.Spec.Replicas,
 		},
 		Status: extensions.ScaleStatus{
-			Replicas: 0,
 			Selector: deploymentConfig.Template.ControllerTemplate.Selector,
 		},
-	}
-
-	// this tries to update the current deployment RC first, since updating
-	// Replicas on a DeploymentConfig doesn't do anything after the first deployment
-	// has been made
-	controller, err := r.rcNamespacer.ReplicationControllers(deploymentConfig.Namespace).Get(util.LatestDeploymentNameForConfig(deploymentConfig))
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return nil, false, err
-		}
-
-		deploymentConfig.Template.ControllerTemplate.Replicas = scale.Spec.Replicas
-		if err = r.registry.UpdateDeploymentConfig(ctx, deploymentConfig); err != nil {
-			return nil, false, err
-		}
-
-		return scaleRet, false, nil
-	}
-
-	if deploymentStatus := util.DeploymentStatusFor(controller); deploymentStatus != api.DeploymentStatusComplete {
-		return nil, false, err
 	}
 
 	// TODO(directxman12): this is going to be a bit out of sync, since we are calculating it
@@ -230,9 +173,9 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 		return nil, false, err
 	}
 
-	oldReplicas := controller.Spec.Replicas
-	controller.Spec.Replicas = scale.Spec.Replicas
-	if _, err = r.rcNamespacer.ReplicationControllers(deploymentConfig.Namespace).Update(controller); err != nil {
+	oldReplicas := deploymentConfig.Template.ControllerTemplate.Replicas
+	deploymentConfig.Template.ControllerTemplate.Replicas = scale.Spec.Replicas
+	if err := r.registry.UpdateDeploymentConfig(ctx, deploymentConfig); err != nil {
 		return nil, false, err
 	}
 	scaleRet.Status.Replicas = totalReplicas + (scale.Spec.Replicas - oldReplicas)
@@ -240,13 +183,9 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 	return scaleRet, false, nil
 }
 
-func (r *ScaleREST) deploymentsForConfig(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-	selector := util.ConfigSelector(configName)
-	return r.rcNamespacer.ReplicationControllers(namespace).List(selector, fields.Everything())
-}
-
 func (r *ScaleREST) replicasForDeploymentConfig(namespace, configName string) (int, error) {
-	rcList, err := r.deploymentsForConfig(namespace, configName)
+	selector := util.ConfigSelector(configName)
+	rcList, err := r.rcNamespacer.ReplicationControllers(namespace).List(selector, fields.Everything())
 	if err != nil {
 		return 0, err
 	}

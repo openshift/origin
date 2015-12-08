@@ -266,10 +266,11 @@ func StartTestAllInOne() (*configapi.MasterConfig, *configapi.NodeConfig, string
 
 type TestOptions struct {
 	DeleteAllEtcdKeys bool
+	EnableControllers bool
 }
 
 func DefaultTestOptions() TestOptions {
-	return TestOptions{true}
+	return TestOptions{true, true}
 }
 
 func StartConfiguredNode(nodeConfig *configapi.NodeConfig) error {
@@ -297,12 +298,18 @@ func StartConfiguredMaster(masterConfig *configapi.MasterConfig) (string, error)
 	return StartConfiguredMasterWithOptions(masterConfig, DefaultTestOptions())
 }
 
+func StartConfiguredMasterAPI(masterConfig *configapi.MasterConfig) (string, error) {
+	options := DefaultTestOptions()
+	options.EnableControllers = false
+	return StartConfiguredMasterWithOptions(masterConfig, options)
+}
+
 func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, testOptions TestOptions) (string, error) {
 	if testOptions.DeleteAllEtcdKeys {
 		util.DeleteAllEtcdKeys()
 	}
 
-	if err := start.NewMaster(masterConfig, true, true).Start(); err != nil {
+	if err := start.NewMaster(masterConfig, testOptions.EnableControllers, true).Start(); err != nil {
 		return "", err
 	}
 	adminKubeConfigFile := util.KubeConfigPath()
@@ -341,6 +348,16 @@ func StartTestMaster() (*configapi.MasterConfig, string, error) {
 	}
 
 	adminKubeConfigFile, err := StartConfiguredMaster(master)
+	return master, adminKubeConfigFile, err
+}
+
+func StartTestMasterAPI() (*configapi.MasterConfig, string, error) {
+	master, err := DefaultMasterOptions()
+	if err != nil {
+		return nil, "", err
+	}
+
+	adminKubeConfigFile, err := StartConfiguredMasterAPI(master)
 	return master, adminKubeConfigFile, err
 }
 

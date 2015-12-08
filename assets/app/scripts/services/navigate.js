@@ -107,6 +107,25 @@ angular.module("openshiftConsole")
             url += kind.toLowerCase() + "s/" + encodedName;
         }
         return url;
+      },
+      /**
+       * Navigate to a list view for a resource type
+       * 
+       * @param {String} resourceType  the resource type
+       * @param {String} projectName   the project name
+       * @returns {undefined}
+       */
+      toResourceList: function(resourceType, projectName) {
+        var routeMap = {
+          'imagestream': 'images',
+          'pod': 'pods',
+          'service': 'services',
+          'buildconfig': 'builds',
+          'deploymentconfig': 'deployments',
+          'route': 'routes'
+        };
+        var redirect = URI('project/' + encodeURIComponent(projectName) + '/browse/' + routeMap[resourceType]);
+        $location.url(redirect);
       }
     };
   });

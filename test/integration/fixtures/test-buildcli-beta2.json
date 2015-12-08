@@ -7,11 +7,11 @@
       "kind": "ImageStream",
       "apiVersion": "v1beta3",
       "metadata": {
-        "name": "ruby-20-centos-buildcli",
+        "name": "ruby-22-centos-buildcli",
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/ruby-20-centos",
+        "dockerImageRepository": "centos/ruby-22-centos",
         "tags": [
           {
             "name": "valid"
@@ -47,9 +47,9 @@
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-20-centos-buildcli:valid"
+              "name": "ruby-22-centos-buildcli:valid"
             },
-            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin",
+            "scripts": "https://raw.githubusercontent.com/openshift/ruby-22-centos/master/.sti/bin",
             "incremental": true
           }
         },
@@ -90,9 +90,9 @@
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-20-centos-buildcli:invalid"
+              "name": "ruby-22-centos-buildcli:invalid"
             },
-            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin",
+            "scripts": "https://raw.githubusercontent.com/openshift/ruby-22-centos/master/.sti/bin",
             "incremental": true
           }
         },

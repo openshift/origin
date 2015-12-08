@@ -75,7 +75,7 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 	return nil
 }
 
-// HandleBuild deletes pods for canceled builds and takes new builds and puts
+// HandleBuild deletes pods for cancelled builds and takes new builds and puts
 // them in the pending state after creating a corresponding pod
 func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	glog.V(4).Infof("Handling build %s/%s", build.Namespace, build.Name)
@@ -128,11 +128,6 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	}
 	build.Status.OutputDockerImageReference = ref
 
-	// Set the build phase, which will be persisted if no error occurs.
-	build.Status.Phase = buildapi.BuildPhasePending
-	build.Status.Reason = ""
-	build.Status.Message = ""
-
 	// Make a copy to avoid mutating the build from this point on.
 	copy, err := kapi.Scheme.Copy(build)
 	if err != nil {
@@ -164,16 +159,25 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 
 	if _, err := bc.PodManager.CreatePod(build.Namespace, podSpec); err != nil {
 		if errors.IsAlreadyExists(err) {
+			bc.Recorder.Eventf(build, "failedCreate", "Pod already exists: %s/%s", podSpec.Namespace, podSpec.Name)
 			glog.V(4).Infof("Build pod already existed: %#v", podSpec)
 			return nil
 		}
 		// Log an event if the pod is not created (most likely due to quota denial).
-		bc.Recorder.Eventf(build, "failedCreate", "Error creating: %v", err)
+		bc.Recorder.Eventf(build, "FailedCreate", "Error creating: %v", err)
 		build.Status.Reason = buildapi.StatusReasonCannotCreateBuildPod
 		return fmt.Errorf("failed to create build pod: %v", err)
 	}
-
+	if build.Annotations == nil {
+		build.Annotations = make(map[string]string)
+	}
+	build.Annotations[buildapi.BuildPodNameAnnotation] = podSpec.Name
 	glog.V(4).Infof("Created pod for build: %#v", podSpec)
+
+	// Set the build phase, which will be persisted.
+	build.Status.Phase = buildapi.BuildPhasePending
+	build.Status.Reason = ""
+	build.Status.Message = ""
 	return nil
 }
 
@@ -268,7 +272,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		nextStatus = buildapi.BuildPhaseFailed
 	}
 
-	if build.Status.Phase != nextStatus {
+	if build.Status.Phase != nextStatus && !buildutil.IsBuildComplete(build) {
 		glog.V(4).Infof("Updating build %s/%s status %s -> %s", build.Namespace, build.Name, build.Status.Phase, nextStatus)
 		build.Status.Phase = nextStatus
 		build.Status.Reason = ""

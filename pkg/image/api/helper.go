@@ -5,13 +5,20 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/util/sets"
+
 	"github.com/docker/distribution/digest"
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
-// DockerDefaultNamespace is the value for namespace when a single segment name is provided.
-const DockerDefaultNamespace = "library"
+const (
+	// DockerDefaultNamespace is the value for namespace when a single segment name is provided.
+	DockerDefaultNamespace = "library"
+	// DockerDefaultRegistry is the value for the registry when none was provided.
+	DockerDefaultRegistry = "docker.io"
+)
 
 // TODO remove (base, tag, id)
 func parseRepositoryTag(repos string) (string, string, string) {
@@ -99,13 +106,22 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 	return ref, nil
 }
 
+// Equal returns true if the other DockerImageReference is equivalent to the
+// reference r. The comparison applies defaults to the Docker image reference,
+// so that e.g., "foobar" equals "docker.io/library/foobar:latest".
+func (r DockerImageReference) Equal(other DockerImageReference) bool {
+	defaultedRef := r.DockerClientDefaults()
+	otherDefaultedRef := other.DockerClientDefaults()
+	return defaultedRef == otherDefaultedRef
+}
+
 // DockerClientDefaults sets the default values used by the Docker client.
 func (r DockerImageReference) DockerClientDefaults() DockerImageReference {
 	if len(r.Namespace) == 0 {
-		r.Namespace = "library"
+		r.Namespace = DockerDefaultNamespace
 	}
 	if len(r.Registry) == 0 {
-		r.Registry = "docker.io"
+		r.Registry = DockerDefaultRegistry
 	}
 	if len(r.Tag) == 0 {
 		r.Tag = DefaultImageTag
@@ -436,23 +452,38 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 	return updated
 }
 
-// ResolveImageID returns a sets.String of all the image IDs in stream that start with imageID.
-func ResolveImageID(stream *ImageStream, imageID string) sets.String {
+// ResolveImageID returns latest TagEvent for specified imageID and an error if
+// there's more than one image matching the ID or when one does not exist.
+func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
+	var event *TagEvent
 	set := sets.NewString()
 	for _, history := range stream.Status.Tags {
 		for _, tagging := range history.Items {
 			if d, err := digest.ParseDigest(tagging.Image); err == nil {
 				if strings.HasPrefix(d.Hex(), imageID) || strings.HasPrefix(tagging.Image, imageID) {
+					event = &tagging
 					set.Insert(tagging.Image)
 				}
 				continue
 			}
 			if strings.HasPrefix(tagging.Image, imageID) {
+				event = &tagging
 				set.Insert(tagging.Image)
 			}
 		}
 	}
-	return set
+	switch len(set) {
+	case 1:
+		return &TagEvent{
+			Created:              unversioned.Now(),
+			DockerImageReference: event.DockerImageReference,
+			Image:                event.Image,
+		}, nil
+	case 0:
+		return nil, errors.NewNotFound("imageStreamImage", imageID)
+	default:
+		return nil, errors.NewConflict("imageStreamImage", imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
+	}
 }
 
 // ShortDockerImageID returns a short form of the provided DockerImage ID for display

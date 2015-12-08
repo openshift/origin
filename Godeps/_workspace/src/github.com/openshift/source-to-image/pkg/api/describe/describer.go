@@ -39,7 +39,7 @@ func DescribeConfig(config *api.Config) string {
 			fmt.Fprintf(out, "Incremental Image Pull User:\t%s\n", config.IncrementalAuthentication.Username)
 		}
 		fmt.Fprintf(out, "Remove Old Build:\t%s\n", printBool(config.RemovePreviousImage))
-		fmt.Fprintf(out, "Force Pull:\t%s\n", printBool(config.ForcePull))
+		fmt.Fprintf(out, "Builder Pull Policy:\t%s\n", config.BuilderPullPolicy)
 		fmt.Fprintf(out, "Quiet:\t%s\n", printBool(config.Quiet))
 		fmt.Fprintf(out, "Layered Build:\t%s\n", printBool(config.LayeredBuild))
 		if len(config.Destination) > 0 {
@@ -76,7 +76,7 @@ func describeBuilderImage(config *api.Config, image string, out io.Writer) {
 		DockerConfig:       config.DockerConfig,
 		PullAuthentication: config.PullAuthentication,
 		BuilderImage:       config.BuilderImage,
-		ForcePull:          config.ForcePull,
+		BuilderPullPolicy:  config.BuilderPullPolicy,
 		Tag:                config.Tag,
 		IncrementalAuthentication: config.IncrementalAuthentication,
 	}

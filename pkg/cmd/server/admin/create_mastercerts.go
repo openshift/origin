@@ -11,7 +11,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/util/parallel"
@@ -68,7 +67,7 @@ type CreateMasterCertsOptions struct {
 	CertDir    string
 	SignerName string
 
-	Hostnames util.StringList
+	Hostnames []string
 
 	APIServerURL       string
 	PublicAPIServerURL string
@@ -102,7 +101,7 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 
 	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
 	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")
-	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP that server certs should be valid for (comma-delimited list)")
+	flags.StringSliceVar(&options.Hostnames, "hostnames", options.Hostnames, "Every hostname or IP that server certs should be valid for (comma-delimited list)")
 	flags.BoolVar(&options.Overwrite, "overwrite", false, "Overwrite all existing cert/key/config files (WARNING: includes signer/CA)")
 
 	// autocompletion hints
@@ -230,7 +229,7 @@ func (o CreateMasterCertsOptions) createClientCert(clientCertInfo ClientCertInfo
 		KeyFile:  clientCertInfo.CertLocation.KeyFile,
 
 		User:      clientCertInfo.User,
-		Groups:    util.StringList(clientCertInfo.Groups.List()),
+		Groups:    clientCertInfo.Groups.List(),
 		Overwrite: o.Overwrite,
 		Output:    o.Output,
 	}

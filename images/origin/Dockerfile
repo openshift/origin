@@ -6,7 +6,7 @@
 #
 FROM openshift/origin-base
 
-RUN mkdir -p /var/lib/openshift
+RUN mkdir -p /var/lib/origin
 
 ADD bin/openshift /usr/bin/openshift
 RUN ln -s /usr/bin/openshift /usr/bin/oc && \
@@ -20,11 +20,9 @@ RUN ln -s /usr/bin/openshift /usr/bin/oc && \
     ln -s /usr/bin/openshift /usr/bin/openshift-f5-router && \
     setcap 'cap_net_bind_service=ep' /usr/bin/openshift
 
-ADD scripts/recycler.sh /usr/share/openshift/scripts/volumes/recycler.sh
-
 ENV HOME /root
 ENV OPENSHIFT_CONTAINERIZED true
-ENV KUBECONFIG /var/lib/openshift/openshift.local.config/master/admin.kubeconfig
-WORKDIR /var/lib/openshift
+ENV KUBECONFIG /var/lib/origin/openshift.local.config/master/admin.kubeconfig
+WORKDIR /var/lib/origin
 EXPOSE 8443 53
 ENTRYPOINT ["/usr/bin/openshift"]

@@ -21,14 +21,30 @@ func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
 }
 
 // LatestDeploymentInfo returns info about the latest deployment for a config,
-// if it exists and its current status
-func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments *api.ReplicationControllerList) (bool, deployapi.DeploymentStatus) {
+// or nil if there is no latest deployment. The latest deployment is not
+// always the same as the active deployment.
+func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments *api.ReplicationControllerList) (bool, *api.ReplicationController) {
 	if config.LatestVersion == 0 || len(deployments.Items) == 0 {
-		return false, deployapi.DeploymentStatus("")
+		return false, nil
 	}
 	sort.Sort(ByLatestVersionDesc(deployments.Items))
 	candidate := &deployments.Items[0]
-	return DeploymentVersionFor(candidate) == config.LatestVersion, DeploymentStatusFor(candidate)
+	return DeploymentVersionFor(candidate) == config.LatestVersion, candidate
+}
+
+// ActiveDeployment returns the latest complete deployment, or nil if there is
+// no such deployment. The active deployment is not always the same as the
+// latest deployment.
+func ActiveDeployment(config *deployapi.DeploymentConfig, deployments *api.ReplicationControllerList) *api.ReplicationController {
+	sort.Sort(ByLatestVersionDesc(deployments.Items))
+	var activeDeployment *api.ReplicationController
+	for _, deployment := range deployments.Items {
+		if DeploymentStatusFor(&deployment) == deployapi.DeploymentStatusComplete {
+			activeDeployment = &deployment
+			break
+		}
+	}
+	return activeDeployment
 }
 
 // DeployerPodSuffix is the suffix added to pods created from a deployment
@@ -172,6 +188,9 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 				deployapi.DeploymentStatusAnnotation:        string(deployapi.DeploymentStatusNew),
 				deployapi.DeploymentEncodedConfigAnnotation: encodedConfig,
 				deployapi.DeploymentVersionAnnotation:       strconv.Itoa(config.LatestVersion),
+				// This is the target replica count for the new deployment.
+				deployapi.DesiredReplicasAnnotation:    strconv.Itoa(config.Template.ControllerTemplate.Replicas),
+				deployapi.DeploymentReplicasAnnotation: strconv.Itoa(0),
 			},
 			Labels: controllerLabels,
 		},
@@ -228,15 +247,11 @@ func DeploymentStatusReasonFor(obj runtime.Object) string {
 }
 
 func DeploymentDesiredReplicas(obj runtime.Object) (int, bool) {
-	s := annotationFor(obj, deployapi.DesiredReplicasAnnotation)
-	if len(s) == 0 {
-		return 0, false
-	}
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		return 0, false
-	}
-	return i, true
+	return intAnnotationFor(obj, deployapi.DesiredReplicasAnnotation)
+}
+
+func DeploymentReplicas(obj runtime.Object) (int, bool) {
+	return intAnnotationFor(obj, deployapi.DeploymentReplicasAnnotation)
 }
 
 func EncodedDeploymentConfigFor(obj runtime.Object) string {
@@ -272,6 +287,18 @@ func annotationFor(obj runtime.Object, key string) string {
 	return meta.Annotations[key]
 }
 
+func intAnnotationFor(obj runtime.Object, key string) (int, bool) {
+	s := annotationFor(obj, key)
+	if len(s) == 0 {
+		return 0, false
+	}
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, false
+	}
+	return i, true
+}
+
 // ByLatestVersionAsc sorts deployments by LatestVersion ascending.
 type ByLatestVersionAsc []api.ReplicationController
 
@@ -288,4 +315,13 @@ func (d ByLatestVersionDesc) Len() int      { return len(d) }
 func (d ByLatestVersionDesc) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
 func (d ByLatestVersionDesc) Less(i, j int) bool {
 	return DeploymentVersionFor(&d[j]) < DeploymentVersionFor(&d[i])
+}
+
+// ByMostRecent sorts deployments by most recently created.
+type ByMostRecent []*api.ReplicationController
+
+func (s ByMostRecent) Len() int      { return len(s) }
+func (s ByMostRecent) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s ByMostRecent) Less(i, j int) bool {
+	return !s[i].CreationTimestamp.Before(s[j].CreationTimestamp)
 }

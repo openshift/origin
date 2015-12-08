@@ -17,7 +17,6 @@ import (
 	klatest "k8s.io/kubernetes/pkg/api/latest"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/master/ports"
-	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -34,7 +33,7 @@ type CreateNodeConfigOptions struct {
 	NodeConfigDir string
 
 	NodeName            string
-	Hostnames           util.StringList
+	Hostnames           []string
 	VolumeDir           string
 	ImageTemplate       variable.ImageTemplate
 	AllowDisabledDocker bool
@@ -78,7 +77,7 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 	flags.StringVar(&options.NodeConfigDir, "node-dir", "", "The client data directory.")
 
 	flags.StringVar(&options.NodeName, "node", "", "The name of the node as it appears in etcd.")
-	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP you want server certs to be valid for. Comma delimited list")
+	flags.StringSliceVar(&options.Hostnames, "hostnames", options.Hostnames, "Every hostname or IP you want server certs to be valid for. Comma delimited list")
 	flags.StringVar(&options.VolumeDir, "volume-dir", options.VolumeDir, "The volume storage directory.  This path is not relativized.")
 	flags.StringVar(&options.ImageTemplate.Format, "images", options.ImageTemplate.Format, "When fetching the network container image, use this format. The latest release will be used by default.")
 	flags.BoolVar(&options.ImageTemplate.Latest, "latest-images", options.ImageTemplate.Latest, "If true, attempt to use the latest images for the cluster instead of the latest release.")
@@ -262,7 +261,7 @@ func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile st
 			KeyFile:  clientKeyFile,
 
 			User:   "system:node:" + o.NodeName,
-			Groups: util.StringList([]string{bootstrappolicy.NodesGroup}),
+			Groups: []string{bootstrappolicy.NodesGroup},
 			Output: o.Output,
 		}
 

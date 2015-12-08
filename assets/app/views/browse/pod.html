@@ -9,6 +9,13 @@
           <div class="tile">
             <h1>
               {{pod.metadata.name}}
+              <delete-button
+                class="pull-right fa-lg" 
+                resource-type="pod" 
+                resource-name="{{pod.metadata.name}}" 
+                project-name="{{pod.metadata.namespace}}" 
+                alerts="alerts">
+              </delete-button>
               <span ng-if="pod | isTroubledPod">
                 <pod-warnings pod="pod" style="vertical-align: middle;"></pod-warnings>
               </span>

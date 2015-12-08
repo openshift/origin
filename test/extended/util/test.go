@@ -26,10 +26,13 @@ import (
 
 var reportDir string
 
+var reportFileName string
+
 // init initialize the extended testing suite.
 // You can set these environment variables to configure extended tests:
 // KUBECONFIG - Path to kubeconfig containing embedded authinfo
 // TEST_REPORT_DIR - If set, JUnit output will be written to this directory for each test
+// TEST_REPORT_FILE_NAME - If set, will determine the name of the file that JUnit output is written to
 func InitTest() {
 	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
 	os.MkdirAll(extendedOutputDir, 0777)
@@ -41,6 +44,11 @@ func InitTest() {
 	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
 
 	reportDir = os.Getenv("TEST_REPORT_DIR")
+
+	reportFileName = os.Getenv("TEST_REPORT_FILE_NAME")
+	if reportFileName == "" {
+		reportFileName = "junit"
+	}
 
 	//flag.StringVar(&TestContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, KubeConfigPath(), "Path to kubeconfig containing embedded authinfo.")
 	flag.StringVar(&TestContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
@@ -70,7 +78,7 @@ func ExecuteTest(t *testing.T, suite string) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
 	if reportDir != "" {
-		r = append(r, reporters.NewJUnitReporter(path.Join(reportDir, fmt.Sprintf("junit_%02d.xml", config.GinkgoConfig.ParallelNode))))
+		r = append(r, reporters.NewJUnitReporter(path.Join(reportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, config.GinkgoConfig.ParallelNode))))
 	}
 
 	r = append(r, NewSimpleReporter())

@@ -158,10 +158,7 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 	if err != nil {
 		return nil, err
 	}
-	contextNick, err := cliconfig.GetContextNickname(o.ContextNamespace, clusterNick, userNick)
-	if err != nil {
-		return nil, err
-	}
+	contextNick := cliconfig.GetContextNickname(o.ContextNamespace, clusterNick, userNick)
 
 	credentials := make(map[string]*clientcmdapi.AuthInfo)
 	credentials[userNick] = &clientcmdapi.AuthInfo{
@@ -184,10 +181,7 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 		if err != nil {
 			return nil, err
 		}
-		publicContextNick, err := cliconfig.GetContextNickname(o.ContextNamespace, publicClusterNick, userNick)
-		if err != nil {
-			return nil, err
-		}
+		publicContextNick := cliconfig.GetContextNickname(o.ContextNamespace, publicClusterNick, userNick)
 
 		clusters[publicClusterNick] = &clientcmdapi.Cluster{
 			Server: o.PublicAPIServerURL,

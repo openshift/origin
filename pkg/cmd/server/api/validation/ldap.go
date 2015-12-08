@@ -3,7 +3,7 @@ package validation
 import (
 	"fmt"
 
-	"github.com/go-ldap/ldap"
+	"gopkg.in/ldap.v2"
 
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 
@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-func ValidateLDAPSyncConfig(config api.LDAPSyncConfig) ValidationResults {
+func ValidateLDAPSyncConfig(config *api.LDAPSyncConfig) ValidationResults {
 	validationResults := ValidateLDAPClientConfig(config.URL, config.BindDN, config.BindPassword, config.CA, config.Insecure)
 
 	schemaConfigsFound := []string{}

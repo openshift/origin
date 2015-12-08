@@ -10,11 +10,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	osutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -22,6 +24,10 @@ import (
 const ReconcileClusterRolesRecommendedName = "reconcile-cluster-roles"
 
 type ReconcileClusterRolesOptions struct {
+	// RolesToReconcile says which roles should be reconciled.  An empty or nil slice means
+	// reconcile all of them.
+	RolesToReconcile []string
+
 	Confirmed bool
 	Union     bool
 
@@ -56,7 +62,7 @@ func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, ou
 	o := &ReconcileClusterRolesOptions{Out: out}
 
 	cmd := &cobra.Command{
-		Use:     name,
+		Use:     name + " [ClusterRoleName]...",
 		Short:   "Replace cluster roles to match the recommended bootstrap policy",
 		Long:    reconcileLong,
 		Example: fmt.Sprintf(reconcileExample, fullName),
@@ -85,10 +91,6 @@ func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, ou
 }
 
 func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
-	if len(args) != 0 {
-		return kcmdutil.UsageError(cmd, "no arguments are allowed")
-	}
-
 	oclient, _, err := f.Clients()
 	if err != nil {
 		return err
@@ -96,6 +98,22 @@ func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f *clientcmd
 	o.RoleClient = oclient.ClusterRoles()
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
+
+	mapper, _ := f.Object()
+	for _, resourceString := range args {
+		resource, name, err := osutil.ResolveResource("clusterroles", resourceString, mapper)
+		if err != nil {
+			return err
+		}
+		if resource != "clusterroles" {
+			return fmt.Errorf("%s is not a valid resource type for this command", resource)
+		}
+		if len(name) == 0 {
+			return fmt.Errorf("%s did not contain a name", resourceString)
+		}
+
+		o.RolesToReconcile = append(o.RolesToReconcile, name)
+	}
 
 	return nil
 }
@@ -144,9 +162,15 @@ func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Comma
 func (o *ReconcileClusterRolesOptions) ChangedClusterRoles() ([]*authorizationapi.ClusterRole, error) {
 	changedRoles := []*authorizationapi.ClusterRole{}
 
+	rolesToReconcile := sets.NewString(o.RolesToReconcile...)
+	rolesNotFound := sets.NewString(o.RolesToReconcile...)
 	bootstrapClusterRoles := bootstrappolicy.GetBootstrapClusterRoles()
 	for i := range bootstrapClusterRoles {
 		expectedClusterRole := &bootstrapClusterRoles[i]
+		if (len(rolesToReconcile) > 0) && !rolesToReconcile.Has(expectedClusterRole.Name) {
+			continue
+		}
+		rolesNotFound.Delete(expectedClusterRole.Name)
 
 		actualClusterRole, err := o.RoleClient.Get(expectedClusterRole.Name)
 		if kapierrors.IsNotFound(err) {
@@ -170,6 +194,11 @@ func (o *ReconcileClusterRolesOptions) ChangedClusterRoles() ([]*authorizationap
 			}
 			changedRoles = append(changedRoles, expectedClusterRole)
 		}
+	}
+
+	if len(rolesNotFound) != 0 {
+		// return the known changes and the error so that a caller can decide if he wants a partial update
+		return changedRoles, fmt.Errorf("did not find requested cluster role %s", rolesNotFound.List())
 	}
 
 	return changedRoles, nil

@@ -100,3 +100,40 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 		},
 	}
 }
+
+type detailsStrategy struct {
+	strategy
+}
+
+// Prepares a build for update by only allowing an update to build details.
+// For now, this is the Spec.Revision field
+func (detailsStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newBuild := obj.(*api.Build)
+	oldBuild := old.(*api.Build)
+	revision := newBuild.Spec.Revision
+	*newBuild = *oldBuild
+	newBuild.Spec.Revision = revision
+}
+
+// Validates that an update is valid by ensuring that no Revision exists and that it's not getting updated to blank
+func (detailsStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+	newBuild := obj.(*api.Build)
+	oldBuild := old.(*api.Build)
+	errors := fielderrors.ValidationErrorList{}
+	if oldBuild.Spec.Revision != nil {
+		// If there was already a revision, then return an error
+		errors = append(errors, fielderrors.NewFieldDuplicate("status.Revision", oldBuild.Spec.Revision))
+	}
+	if newBuild.Spec.Revision == nil {
+		errors = append(errors, fielderrors.NewFieldInvalid("status.Revision", nil, "cannot set an empty revision in build status"))
+	}
+	return errors
+}
+
+// AllowUnconditionalUpdate returns true to allow a Build with an empty resourceVersion to update the Revision
+func (detailsStrategy) AllowUnconditionalUpdate() bool {
+	return true
+}
+
+// DetailsStrategy is the strategy used to manage updates to a Build revision
+var DetailsStrategy = detailsStrategy{Strategy}

@@ -44,20 +44,18 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				err := oc.Run("new-app").Args("-f", c.templateURL).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("starting a build")
-				buildName, err := oc.Run("start-build").Args(c.buildConfigName).Output()
-				o.Expect(err).NotTo(o.HaveOccurred())
+				// all the templates automatically start a build.
+				buildName := c.buildConfigName + "-1"
 
 				g.By("expecting the build is in the Complete phase")
-				err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
+				err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 				if err != nil {
 					logs, _ := oc.Run("build-logs").Args(buildName).Output()
 					e2e.Failf("build failed: %s", logs)
 				}
-				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the deployment to be complete")
-				err = exutil.WaitForADeployment(oc.KubeREST().ReplicationControllers(oc.Namespace()), c.deploymentConfigName, exutil.CheckDeploymentCompletedFunc, exutil.CheckDeploymentFailedFunc)
+				err = exutil.WaitForADeployment(oc.KubeREST().ReplicationControllers(oc.Namespace()), c.deploymentConfigName, exutil.CheckDeploymentCompletedFn, exutil.CheckDeploymentFailedFn)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the service is available")
@@ -69,7 +67,7 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				err = oc.KubeFramework().WaitForAnEndpoint(c.serviceName)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				response, err := exutil.FetchURL("http://"+serviceIP+":8080"+c.appPath, time.Duration(10*time.Second))
+				response, err := exutil.FetchURL("http://"+serviceIP+":8080"+c.appPath, time.Duration(30*time.Second))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(response).Should(o.ContainSubstring(c.expectedString))
 			})
@@ -79,7 +77,7 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 
 var _ = g.Describe("samplerepo: test the sample application repositories", func() {
 
-	g.Describe("samplerepo: images: parallel: test ruby images with rails-ex repo", NewSampleRepoTest(
+	g.Describe("samplerepo: images: parallel: test ruby images with rails-ex db repo", NewSampleRepoTest(
 		SampleRepoConfig{
 			"rails",
 			"https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json",
@@ -91,7 +89,7 @@ var _ = g.Describe("samplerepo: test the sample application repositories", func(
 		},
 	))
 
-	g.Describe("samplerepo: images: parallel: test python images with django-ex repo", NewSampleRepoTest(
+	g.Describe("samplerepo: images: parallel: test python images with django-ex db repo", NewSampleRepoTest(
 		SampleRepoConfig{
 			"django",
 			"https://raw.githubusercontent.com/openshift/django-ex/master/openshift/templates/django-postgresql.json",
@@ -103,7 +101,7 @@ var _ = g.Describe("samplerepo: test the sample application repositories", func(
 		},
 	))
 
-	g.Describe("samplerepo: images: parallel: test nodejs images with nodejs-ex repo", NewSampleRepoTest(
+	g.Describe("samplerepo: images: parallel: test nodejs images with nodejs-ex db repo", NewSampleRepoTest(
 		SampleRepoConfig{
 			"nodejs",
 			"https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs-mongodb.json",
@@ -115,7 +113,7 @@ var _ = g.Describe("samplerepo: test the sample application repositories", func(
 		},
 	))
 
-	var _ = g.Describe("samplerepo: images: parallel: test php images with cakephp-ex repo", NewSampleRepoTest(
+	var _ = g.Describe("samplerepo: images: parallel: test php images with cakephp-ex db repo", NewSampleRepoTest(
 		SampleRepoConfig{
 			"cakephp",
 			"https://raw.githubusercontent.com/openshift/cakephp-ex/master/openshift/templates/cakephp-mysql.json",
@@ -127,7 +125,7 @@ var _ = g.Describe("samplerepo: test the sample application repositories", func(
 		},
 	))
 
-	var _ = g.Describe("samplerepo: images: parallel: test perl images with dancer-ex repo", NewSampleRepoTest(
+	var _ = g.Describe("samplerepo: images: parallel: test perl images with dancer-ex db repo", NewSampleRepoTest(
 		SampleRepoConfig{
 			"dancer",
 			"https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json",
@@ -135,6 +133,55 @@ var _ = g.Describe("samplerepo: test the sample application repositories", func(
 			"dancer-mysql-example",
 			"dancer-mysql-example",
 			"<span class=\"code\" id=\"count-value\">1</span>",
+			"",
+		},
+	))
+
+	// test the no-db templates too
+	g.Describe("samplerepo: images: parallel: test python images with django-ex repo", NewSampleRepoTest(
+		SampleRepoConfig{
+			"django",
+			"https://raw.githubusercontent.com/openshift/django-ex/master/openshift/templates/django.json",
+			"django-example",
+			"django-example",
+			"django-example",
+			"Welcome",
+			"",
+		},
+	))
+
+	g.Describe("samplerepo: images: parallel: test nodejs images with nodejs-ex repo", NewSampleRepoTest(
+		SampleRepoConfig{
+			"nodejs",
+			"https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs.json",
+			"nodejs-example",
+			"nodejs-example",
+			"nodejs-example",
+			"Welcome",
+			"",
+		},
+	))
+
+	var _ = g.Describe("samplerepo: images: parallel: test php images with cakephp-ex repo", NewSampleRepoTest(
+		SampleRepoConfig{
+			"cakephp",
+			"https://raw.githubusercontent.com/openshift/cakephp-ex/master/openshift/templates/cakephp.json",
+			"cakephp-example",
+			"cakephp-example",
+			"cakephp-example",
+			"Welcome",
+			"",
+		},
+	))
+
+	var _ = g.Describe("samplerepo: images: parallel: test perl images with dancer-ex repo", NewSampleRepoTest(
+		SampleRepoConfig{
+			"dancer",
+			"https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer.json",
+			"dancer-example",
+			"dancer-example",
+			"dancer-example",
+			"Welcome",
 			"",
 		},
 	))

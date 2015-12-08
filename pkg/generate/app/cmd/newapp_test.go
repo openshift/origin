@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -17,9 +18,7 @@ import (
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
-	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
@@ -30,7 +29,6 @@ import (
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
-	"github.com/openshift/origin/pkg/util/namer"
 )
 
 func skipExternalGit(t *testing.T) {
@@ -54,32 +52,32 @@ func TestAddArguments(t *testing.T) {
 
 	tests := map[string]struct {
 		args       []string
-		env        util.StringList
-		parms      util.StringList
-		repos      util.StringList
-		components util.StringList
+		env        []string
+		parms      []string
+		repos      []string
+		components []string
 		unknown    []string
 	}{
 		"components": {
 			args:       []string{"one", "two+three", "four~five"},
-			components: util.StringList([]string{"one", "two+three", "four~five"}),
+			components: []string{"one", "two+three", "four~five"},
 			unknown:    []string{},
 		},
 		"source": {
-			args:    []string{".", testDir, "git://server/repo.git"},
-			repos:   util.StringList([]string{".", testDir, "git://server/repo.git"}),
+			args:    []string{".", testDir, "git://github.com/openshift/origin.git"},
+			repos:   []string{".", testDir, "git://github.com/openshift/origin.git"},
 			unknown: []string{},
 		},
 		"env": {
 			args:    []string{"first=one", "second=two", "third=three"},
-			env:     util.StringList([]string{"first=one", "second=two", "third=three"}),
+			env:     []string{"first=one", "second=two", "third=three"},
 			unknown: []string{},
 		},
 		"mix 1": {
-			args:       []string{"git://server/repo.git", "mysql+ruby~git@test.server/repo.git", "env1=test", "ruby-helloworld-sample"},
-			repos:      util.StringList([]string{"git://server/repo.git"}),
-			components: util.StringList([]string{"mysql+ruby~git@test.server/repo.git", "ruby-helloworld-sample"}),
-			env:        util.StringList([]string{"env1=test"}),
+			args:       []string{"git://github.com/openshift/origin.git", "mysql+ruby~git@github.com/openshift/origin.git", "env1=test", "ruby-helloworld-sample"},
+			repos:      []string{"git://github.com/openshift/origin.git"},
+			components: []string{"mysql+ruby~git@github.com/openshift/origin.git", "ruby-helloworld-sample"},
+			env:        []string{"env1=test"},
 			unknown:    []string{},
 		},
 	}
@@ -113,7 +111,7 @@ func TestValidate(t *testing.T) {
 	}{
 		"components": {
 			cfg: AppConfig{
-				Components: util.StringList([]string{"one", "two", "three/four"}),
+				Components: []string{"one", "two", "three/four"},
 			},
 			componentValues:     []string{"one", "two", "three/four"},
 			sourceRepoLocations: []string{},
@@ -122,7 +120,7 @@ func TestValidate(t *testing.T) {
 		},
 		"envs": {
 			cfg: AppConfig{
-				Environment: util.StringList([]string{"one=first", "two=second", "three=third"}),
+				Environment: []string{"one=first", "two=second", "three=third"},
 			},
 			componentValues:     []string{},
 			sourceRepoLocations: []string{},
@@ -131,7 +129,7 @@ func TestValidate(t *testing.T) {
 		},
 		"component+source": {
 			cfg: AppConfig{
-				Components: util.StringList([]string{"one~https://server/repo.git"}),
+				Components: []string{"one~https://server/repo.git"},
 			},
 			componentValues:     []string{"one"},
 			sourceRepoLocations: []string{"https://server/repo.git"},
@@ -140,7 +138,7 @@ func TestValidate(t *testing.T) {
 		},
 		"components+source": {
 			cfg: AppConfig{
-				Components: util.StringList([]string{"mysql+ruby~git://github.com/namespace/repo.git"}),
+				Components: []string{"mysql+ruby~git://github.com/namespace/repo.git"},
 			},
 			componentValues:     []string{"mysql", "ruby"},
 			sourceRepoLocations: []string{"git://github.com/namespace/repo.git"},
@@ -149,8 +147,8 @@ func TestValidate(t *testing.T) {
 		},
 		"components+parms": {
 			cfg: AppConfig{
-				Components:         util.StringList([]string{"ruby-helloworld-sample"}),
-				TemplateParameters: util.StringList([]string{"one=first", "two=second"}),
+				Components:         []string{"ruby-helloworld-sample"},
+				TemplateParameters: []string{"one=first", "two=second"},
 			},
 			componentValues:     []string{"ruby-helloworld-sample"},
 			sourceRepoLocations: []string{},
@@ -217,9 +215,9 @@ func TestBuildTemplates(t *testing.T) {
 		appCfg.KubeClient = ktestclient.NewSimpleFake()
 		appCfg.templateSearcher = fakeTemplateSearcher()
 		appCfg.AddArguments([]string{c.templateName})
-		appCfg.TemplateParameters = util.StringList{}
+		appCfg.TemplateParameters = []string{}
 		for k, v := range c.parms {
-			appCfg.TemplateParameters.Set(fmt.Sprintf("%v=%v", k, v))
+			appCfg.TemplateParameters = append(appCfg.TemplateParameters, fmt.Sprintf("%v=%v", k, v))
 		}
 
 		components, _, _, parms, err := appCfg.validate()
@@ -256,6 +254,9 @@ func TestBuildTemplates(t *testing.T) {
 }
 
 func TestEnsureHasSource(t *testing.T) {
+	gitLocalDir := createLocalGitDirectory(t)
+	defer os.RemoveAll(gitLocalDir)
+
 	tests := []struct {
 		name              string
 		cfg               AppConfig
@@ -271,7 +272,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: MockSourceRepositories(t),
+			repositories: MockSourceRepositories(t, gitLocalDir),
 			expectedErr:  "there are multiple code locations provided - use one of the following suggestions",
 		},
 		{
@@ -284,7 +285,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: MockSourceRepositories(t),
+			repositories: MockSourceRepositories(t, gitLocalDir),
 			expectedErr:  "Use '[image]~[repo]' to declare which code goes with which image",
 		},
 		{
@@ -319,7 +320,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: false,
 				}),
 			},
-			repositories: MockSourceRepositories(t)[:1],
+			repositories: MockSourceRepositories(t, gitLocalDir)[:1],
 			expectedErr:  "",
 		},
 		{
@@ -329,7 +330,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: false,
 				}),
 			},
-			repositories: MockSourceRepositories(t),
+			repositories: MockSourceRepositories(t, gitLocalDir),
 			expectedErr:  "",
 		},
 	}
@@ -421,10 +422,13 @@ func TestResolve(t *testing.T) {
 
 func TestDetectSource(t *testing.T) {
 	skipExternalGit(t)
+	gitLocalDir := createLocalGitDirectory(t)
+	defer os.RemoveAll(gitLocalDir)
+
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
-	mocks := MockSourceRepositories(t)
+	mocks := MockSourceRepositories(t, gitLocalDir)
 	tests := []struct {
 		name         string
 		cfg          *AppConfig
@@ -441,7 +445,7 @@ func TestDetectSource(t *testing.T) {
 				},
 				dockerSearcher: dockerSearcher,
 			},
-			repositories: []*app.SourceRepository{mocks[1]},
+			repositories: []*app.SourceRepository{mocks[0]},
 			expectedLang: "ruby",
 			expectedErr:  "",
 		},
@@ -516,7 +520,7 @@ func TestRunAll(t *testing.T) {
 		{
 			name: "successful ruby app generation",
 			config: &AppConfig{
-				SourceRepositories: util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
+				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
 
 				dockerSearcher: fakeDockerSearcher(),
 				imageStreamSearcher: app.ImageStreamSearcher{
@@ -552,7 +556,7 @@ func TestRunAll(t *testing.T) {
 		{
 			name: "successful ruby app generation with labels",
 			config: &AppConfig{
-				SourceRepositories: util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
+				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
 
 				dockerSearcher: fakeDockerSearcher(),
 				imageStreamSearcher: app.ImageStreamSearcher{
@@ -589,7 +593,7 @@ func TestRunAll(t *testing.T) {
 		{
 			name: "successful docker app generation",
 			config: &AppConfig{
-				SourceRepositories: util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
+				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
 
 				dockerSearcher: fakeSimpleDockerSearcher(),
 				imageStreamSearcher: app.ImageStreamSearcher{
@@ -614,7 +618,7 @@ func TestRunAll(t *testing.T) {
 			},
 			checkPort: "8080",
 			expected: map[string][]string{
-				"imageStream":      {"ruby-hello-world", "ruby-20-centos7"},
+				"imageStream":      {"ruby-hello-world", "ruby-22-centos7"},
 				"buildConfig":      {"ruby-hello-world"},
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
@@ -625,7 +629,7 @@ func TestRunAll(t *testing.T) {
 		{
 			name: "app generation using context dir",
 			config: &AppConfig{
-				SourceRepositories:              util.StringList([]string{"https://github.com/openshift/sti-ruby"}),
+				SourceRepositories:              []string{"https://github.com/openshift/sti-ruby"},
 				ContextDir:                      "2.0/test/rack-test-app",
 				dockerSearcher:                  dockerSearcher,
 				imageStreamSearcher:             fakeImageStreamSearcher(),
@@ -657,8 +661,8 @@ func TestRunAll(t *testing.T) {
 		{
 			name: "insecure registry generation",
 			config: &AppConfig{
-				Components:         util.StringList([]string{"myrepo:5000/myco/example"}),
-				SourceRepositories: util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
+				Components:         []string{"myrepo:5000/myco/example"},
+				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
 				Strategy:           "source",
 				dockerSearcher: app.DockerClientSearcher{
 					Client: &dockertools.FakeDockerClient{
@@ -702,7 +706,7 @@ func TestRunAll(t *testing.T) {
 		{
 			name: "emptyDir volumes",
 			config: &AppConfig{
-				DockerImages: util.StringList([]string{"mysql"}),
+				DockerImages: []string{"mysql"},
 
 				dockerSearcher: dockerSearcher,
 				imageStreamSearcher: app.ImageStreamSearcher{
@@ -740,11 +744,11 @@ func TestRunAll(t *testing.T) {
 		{
 			name: "Docker build",
 			config: &AppConfig{
-				SourceRepositories: util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
+				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
 
 				dockerSearcher: app.DockerClientSearcher{
 					Client: &dockertools.FakeDockerClient{
-						Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
+						Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-22-centos7"}}},
 						Image:  dockerBuilderImage(),
 					},
 					Insecure:         true,
@@ -770,7 +774,7 @@ func TestRunAll(t *testing.T) {
 				originNamespace: "default",
 			},
 			expected: map[string][]string{
-				"imageStream":      {"ruby-hello-world", "ruby-20-centos7"},
+				"imageStream":      {"ruby-hello-world", "ruby-22-centos7"},
 				"buildConfig":      {"ruby-hello-world"},
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
@@ -781,11 +785,11 @@ func TestRunAll(t *testing.T) {
 		{
 			name: "Docker build with no registry image",
 			config: &AppConfig{
-				SourceRepositories: util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
+				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
 
 				dockerSearcher: app.DockerClientSearcher{
 					Client: &dockertools.FakeDockerClient{
-						Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
+						Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-22-centos7"}}},
 						Image:  dockerBuilderImage(),
 					},
 					Insecure: true,
@@ -821,7 +825,7 @@ func TestRunAll(t *testing.T) {
 		{
 			name: "custom name",
 			config: &AppConfig{
-				DockerImages: util.StringList([]string{"mysql"}),
+				DockerImages: []string{"mysql"},
 				dockerSearcher: app.DockerClientSearcher{
 					Client: &dockertools.FakeDockerClient{
 						Images: []docker.APIImages{{RepoTags: []string{"mysql"}}},
@@ -992,12 +996,14 @@ func TestRunBuilds(t *testing.T) {
 		config      *AppConfig
 		expected    map[string][]string
 		expectedErr func(error) bool
+		checkResult func(*AppResult) error
+		checkOutput func(stdout, stderr io.Reader) error
 	}{
 		{
 			name: "successful ruby app generation",
 			config: &AppConfig{
-				SourceRepositories: util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
-				DockerImages:       util.StringList([]string{"openshift/ruby-20-centos7", "openshift/mongodb-24-centos7"}),
+				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
+				DockerImages:       []string{"centos/ruby-22-centos7", "centos/mongodb-26-centos7"},
 				OutputDocker:       true,
 
 				dockerSearcher: dockerSearcher,
@@ -1029,13 +1035,13 @@ func TestRunBuilds(t *testing.T) {
 				// TODO: this test used to silently ignore components that were not builders (i.e. user input)
 				//   That's bad, so the code should either error in this case or be a bit smarter.
 				"buildConfig": {"ruby-hello-world", "ruby-hello-world-1"},
-				"imageStream": {"mongodb-24-centos7", "ruby-20-centos7"},
+				"imageStream": {"mongodb-26-centos7", "ruby-22-centos7"},
 			},
 		},
 		{
 			name: "successful build from dockerfile",
 			config: &AppConfig{
-				Dockerfile: "FROM openshift/origin-base\nUSER foo",
+				Dockerfile: "FROM openshift/origin:v1.0.6\nUSER foo",
 
 				dockerSearcher: dockerSearcher,
 				imageStreamSearcher: app.ImageStreamSearcher{
@@ -1063,8 +1069,235 @@ func TestRunBuilds(t *testing.T) {
 				originNamespace: "default",
 			},
 			expected: map[string][]string{
-				"buildConfig": {"origin-base"},
+				"buildConfig": {"origin"},
+				// There's a single image stream, but different tags: input from
+				// openshift/origin:v1.0.6, output to openshift/origin:latest.
+				"imageStream": {"origin"},
+			},
+		},
+		{
+			name: "successful build with no output",
+			config: &AppConfig{
+				Dockerfile: "FROM centos",
+				NoOutput:   true,
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"centos"},
+				"imageStream": {"centos"},
+			},
+			checkResult: func(res *AppResult) error {
+				for _, item := range res.List.Items {
+					switch t := item.(type) {
+					case *buildapi.BuildConfig:
+						got := t.Spec.Output.To
+						want := (*kapi.ObjectReference)(nil)
+						if !reflect.DeepEqual(got, want) {
+							return fmt.Errorf("build.Spec.Output.To = %v; want %v", got, want)
+						}
+						return nil
+					}
+				}
+				return fmt.Errorf("BuildConfig not found; got %v", res.List.Items)
+			},
+		},
+		{
+			name: "successful build from dockerfile with custom name",
+			config: &AppConfig{
+				Dockerfile: "FROM openshift/origin-base\nUSER foo",
+				Name:       "foobar",
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"foobar"},
+				"imageStream": {"origin-base", "foobar"},
+			},
+		},
+		{
+			name: "successful build from dockerfile with --to",
+			config: &AppConfig{
+				Dockerfile: "FROM openshift/origin-base\nUSER foo",
+				Name:       "foobar",
+				To:         "destination/reference:tag",
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"foobar"},
+				"imageStream": {"origin-base", "reference"},
+			},
+		},
+		{
+			name: "successful build from dockerfile with --to and --to-docker=true",
+			config: &AppConfig{
+				Dockerfile:   "FROM openshift/origin-base\nUSER foo",
+				Name:         "foobar",
+				To:           "destination/reference:tag",
+				OutputDocker: true,
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"foobar"},
 				"imageStream": {"origin-base"},
+			},
+			checkResult: func(res *AppResult) error {
+				for _, item := range res.List.Items {
+					switch t := item.(type) {
+					case *buildapi.BuildConfig:
+						got := t.Spec.Output.To
+						want := &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "destination/reference:tag",
+						}
+						if !reflect.DeepEqual(got, want) {
+							return fmt.Errorf("build.Spec.Output.To = %v; want %v", got, want)
+						}
+						return nil
+					}
+				}
+				return fmt.Errorf("BuildConfig not found; got %v", res.List.Items)
+			},
+		},
+		{
+			name: "successful build from dockerfile with identical input and output image references with warning",
+			config: &AppConfig{
+				Dockerfile: "FROM centos\nRUN yum install -y httpd",
+				To:         "centos",
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"centos"},
+				"imageStream": {"centos"},
+			},
+			checkOutput: func(stdout, stderr io.Reader) error {
+				got, err := ioutil.ReadAll(stderr)
+				if err != nil {
+					return err
+				}
+				want := "--> WARNING: the input and output image stream tags are identical (\"docker.io/library/centos:latest\")\n"
+				if string(got) != want {
+					return fmt.Errorf("stderr: got %q; want %q", got, want)
+				}
+				return nil
 			},
 		},
 		{
@@ -1095,11 +1328,51 @@ func TestRunBuilds(t *testing.T) {
 				return err.Error() == "the Dockerfile in the repository \"\" has no FROM instruction"
 			},
 		},
+		{
+			name: "unsuccessful build from dockerfile due to identical input and output image references",
+			config: &AppConfig{
+				Dockerfile: "FROM centos\nRUN yum install -y httpd",
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expectedErr: func(err error) bool {
+				e := app.CircularOutputReferenceError{
+					Reference: imageapi.DockerImageReference{
+						Name: "centos",
+					}.DockerClientDefaults(),
+				}
+				return err.Error() == fmt.Errorf("%v, please specify a different output reference with --to", e).Error()
+			},
+		},
 	}
 
 	for _, test := range tests {
+		var stdout, stderr bytes.Buffer
 		test.config.refBuilder = &app.ReferenceBuilder{}
-		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
+		test.config.Out, test.config.ErrOut = &stdout, &stderr
 		test.config.ExpectToBuild = true
 		res, err := test.config.Run()
 		if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
@@ -1108,6 +1381,12 @@ func TestRunBuilds(t *testing.T) {
 		}
 		if err != nil {
 			continue
+		}
+		if test.checkOutput != nil {
+			if err := test.checkOutput(&stdout, &stderr); err != nil {
+				t.Error(err)
+				continue
+			}
 		}
 		got := map[string][]string{}
 		for _, obj := range res.List.Items {
@@ -1138,6 +1417,12 @@ func TestRunBuilds(t *testing.T) {
 				continue
 			}
 		}
+
+		if test.checkResult != nil {
+			if err := test.checkResult(res); err != nil {
+				t.Error(err)
+			}
+		}
 	}
 }
 
@@ -1157,10 +1442,10 @@ func TestNewBuildEnvVars(t *testing.T) {
 			name: "explicit environment variables for buildConfig and deploymentConfig",
 			config: &AppConfig{
 				AddEnvironmentToBuild: true,
-				SourceRepositories:    util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
-				DockerImages:          util.StringList([]string{"openshift/ruby-20-centos7", "openshift/mongodb-24-centos7"}),
+				SourceRepositories:    []string{"https://github.com/openshift/ruby-hello-world"},
+				DockerImages:          []string{"centos/ruby-22-centos7", "centos/mongodb-26-centos7"},
 				OutputDocker:          true,
-				Environment:           util.StringList([]string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"}),
+				Environment:           []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
 				dockerSearcher:        dockerSearcher,
 				detector: app.SourceRepositoryEnumerator{
 					Detectors: source.DefaultDetectors,
@@ -1218,10 +1503,10 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 		{
 			name: "explicit environment variables for buildConfig and deploymentConfig",
 			config: &AppConfig{
-				SourceRepositories: util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
-				DockerImages:       util.StringList([]string{"openshift/ruby-20-centos7", "openshift/mongodb-24-centos7"}),
+				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
+				DockerImages:       []string{"centos/ruby-22-centos7", "centos/mongodb-26-centos7"},
 				OutputDocker:       true,
-				Environment:        util.StringList([]string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"}),
+				Environment:        []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
 				dockerSearcher:     dockerSearcher,
 				detector: app.SourceRepositoryEnumerator{
 					Detectors: source.DefaultDetectors,
@@ -1257,72 +1542,6 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 		if !reflect.DeepEqual(test.expected, got) {
 			t.Errorf("%s: unexpected output. Expected: %#v, Got: %#v", test.name, test.expected, got)
 			continue
-		}
-	}
-}
-
-func TestEnsureValidUniqueName(t *testing.T) {
-	chars := []byte("abcdefghijk")
-	longBytes := []byte{}
-	for i := 0; i < (kvalidation.DNS1123SubdomainMaxLength + 20); i++ {
-		longBytes = append(longBytes, chars[i%len(chars)])
-	}
-	longName := string(longBytes)
-	tests := []struct {
-		name        string
-		input       []string
-		expected    []string
-		expectError bool
-	}{
-		{
-			name:     "duplicate names",
-			input:    []string{"one", "two", "three", "one", "one", "two"},
-			expected: []string{"one", "two", "three", "one-1", "one-2", "two-1"},
-		},
-		{
-			name:     "mixed case names",
-			input:    []string{"One", "ONE", "tWo"},
-			expected: []string{"one", "one-1", "two"},
-		},
-		{
-			name:     "non-standard characters",
-			input:    []string{"Emby.One", "test-_test", "_-_", "@-MyRepo"},
-			expected: []string{"embyone", "test-test", "", "myrepo"},
-		},
-		{
-			name:        "short name",
-			input:       []string{"t"},
-			expectError: true,
-		},
-		{
-			name:  "long name",
-			input: []string{longName, longName, longName},
-			expected: []string{longName[:kvalidation.DNS1123SubdomainMaxLength],
-				namer.GetName(longName[:kvalidation.DNS1123SubdomainMaxLength], "1", kvalidation.DNS1123SubdomainMaxLength),
-				namer.GetName(longName[:kvalidation.DNS1123SubdomainMaxLength], "2", kvalidation.DNS1123SubdomainMaxLength),
-			},
-		},
-	}
-
-tests:
-	for _, test := range tests {
-		result := []string{}
-		names := make(map[string]int)
-		for _, i := range test.input {
-			name, err := ensureValidUniqueName(names, i)
-			if err != nil && !test.expectError {
-				t.Errorf("%s: unexpected error: %v", test.name, err)
-			}
-			if err == nil && test.expectError {
-				t.Errorf("%s: did not get an error.", test.name)
-			}
-			if err != nil {
-				continue tests
-			}
-			result = append(result, name)
-		}
-		if !reflect.DeepEqual(result, test.expected) {
-			t.Errorf("%s: unexpected output. Expected: %#v, Got: %#v", test.name, test.expected, result)
 		}
 	}
 }
@@ -1491,7 +1710,7 @@ func fakeDockerSearcher() app.Searcher {
 func fakeSimpleDockerSearcher() app.Searcher {
 	return app.DockerClientSearcher{
 		Client: &dockertools.FakeDockerClient{
-			Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
+			Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-22-centos7"}}},
 			Image: &docker.Image{
 				ID: "ruby",
 				Config: &docker.Config{
@@ -1503,14 +1722,22 @@ func fakeSimpleDockerSearcher() app.Searcher {
 	}
 }
 
+func createLocalGitDirectory(t *testing.T) string {
+	dir, err := ioutil.TempDir(os.TempDir(), "s2i-test")
+	if err != nil {
+		t.Error(err)
+	}
+	os.Mkdir(filepath.Join(dir, ".git"), 0600)
+	return dir
+}
+
 // MockSourceRepositories is a set of mocked source repositories used for
 // testing
-func MockSourceRepositories(t *testing.T) []*app.SourceRepository {
+func MockSourceRepositories(t *testing.T, file string) []*app.SourceRepository {
 	var b []*app.SourceRepository
 	for _, location := range []string{
-		"some/location.git",
 		"https://github.com/openshift/ruby-hello-world.git",
-		"another/location.git",
+		file,
 	} {
 		s, err := app.NewSourceRepository(location)
 		if err != nil {

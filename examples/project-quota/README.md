@@ -330,8 +330,8 @@ Notice that the template exposes parameters to limit the amount of memory and cp
 
 * MYSQL_RESOURCES_LIMITS_CPU - the amount of cpu for your mysql containers
 * MYSQL_RESOURCES_LIMITS_MEMORY - the amount of memory for your mysql containers
-* FRONTEND_RESOURCES_LIMITS_CPU - the amount of cpu for your mysql containers
-* FRONTEND_RESOURCES_LIMITS_MEMORY - the amount of memory for your mysql containers
+* FRONTEND_RESOURCES_LIMITS_CPU - the amount of cpu for your frontend containers
+* FRONTEND_RESOURCES_LIMITS_MEMORY - the amount of memory for your frontend containers
 
 When you build your source code, OpenShift will create pods to execute the build in your project.  Those pods consume
 node resources, so they are subject to quota.  It is possible to customize the amount of cpu and memory used by

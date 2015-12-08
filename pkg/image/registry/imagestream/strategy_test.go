@@ -696,7 +696,7 @@ func TestTagsChanged(t *testing.T) {
 			},
 		},
 		"object reference to image stream image in same stream": {
-			stream: "registry:5000/ns/stream",
+			stream: "internalregistry:5000/ns/stream",
 			tags: map[string]api.TagReference{
 				"t1": {
 					From: &kapi.ObjectReference{
@@ -729,6 +729,45 @@ func TestTagsChanged(t *testing.T) {
 						{
 							DockerImageReference: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 							Image:                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+						},
+					},
+				},
+			},
+		},
+		"object reference to image stream image in same stream (bad digest)": {
+			stream: "internalregistry:5000/ns/stream",
+			tags: map[string]api.TagReference{
+				"t1": {
+					From: &kapi.ObjectReference{
+						Kind: "ImageStreamImage",
+						Name: "stream@12345",
+					},
+				},
+			},
+			existingTagHistory: map[string]api.TagEventList{
+				"other": {
+					Items: []api.TagEvent{
+						{
+							DockerImageReference: "registry:5000/ns/stream:12345",
+							Image:                "12345",
+						},
+					},
+				},
+			},
+			expectedTagHistory: map[string]api.TagEventList{
+				"t1": {
+					Items: []api.TagEvent{
+						{
+							DockerImageReference: "registry:5000/ns/stream:12345",
+							Image:                "12345",
+						},
+					},
+				},
+				"other": {
+					Items: []api.TagEvent{
+						{
+							DockerImageReference: "registry:5000/ns/stream:12345",
+							Image:                "12345",
 						},
 					},
 				},

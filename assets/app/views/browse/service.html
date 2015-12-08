@@ -1,4 +1,4 @@
-<div ng-controller="ServiceController" class="content">
+<div class="content">
   <project-page>
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
@@ -9,6 +9,13 @@
           <div class="tile">
             <h1>
               {{service.metadata.name}}
+              <delete-button
+                class="pull-right fa-lg"
+                resource-type="service"
+                resource-name="{{service.metadata.name}}"
+                project-name="{{service.metadata.namespace}}"
+                alerts="alerts">
+              </delete-button>
               <small class="meta">created <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></small>
             </h1>
             <labels labels="service.metadata.labels" clickable="true" kind="services" project-name="{{service.metadata.namespace}}" limit="3"></labels>
@@ -61,7 +68,8 @@
                   </tbody>
                 </table>
               </div>
-              <dl class="dl-horizontal left">
+              <!-- No bottom margin so Create Route link is close to content. -->
+              <dl class="dl-horizontal left" style="margin-bottom: 0;">
                 <dt>Routes:</dt>
                 <dd>
                   <span ng-if="!routesForService.length"><em>none</em></span>
@@ -72,11 +80,14 @@
                   </span>
                 </dd>
               </dl>
-              <annotations annotations="service.metadata.annotations"></annotations>            
+              <div class="gutter-bottom">
+                <a ng-href="project/{{project.metadata.name}}/createRoute?service={{service.metadata.name}}">Create route</a>
+              </div>
+              <annotations annotations="service.metadata.annotations"></annotations>
             </div>
           </div> <!-- /tile -->
         </div> <!-- /col -->
-      </div> <!-- /row -->        
+      </div> <!-- /row -->
     </div>
   </project-page>
 </div>

@@ -1,6 +1,8 @@
 package bootstrappolicy
 
 import (
+	"fmt"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -210,6 +212,22 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 		},
 		{
+			// This role looks like a duplicate of ImageBuilderRole, but the ImageBuilder role is specifically for our builder service accounts
+			// if we found another permission needed by them, we'd add it there so the intent is different if you used the ImageBuilderRole
+			// you could end up accidentally granting more permissions than you intended.  This is intended to only grant enough powers to
+			// push an image to our registry
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ImagePusherRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs: sets.NewString("get", "update"),
+					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
+					Resources: sets.NewString("imagestreams/layers"),
+				},
+			},
+		},
+		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: ImageBuilderRoleName,
 			},
@@ -218,6 +236,10 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs: sets.NewString("get", "update"),
 					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
 					Resources: sets.NewString("imagestreams/layers"),
+				},
+				{
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("builds/details"),
 				},
 			},
 		},
@@ -279,235 +301,6 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					APIGroups: []string{authorizationapi.APIGroupAll},
 					Verbs:     sets.NewString(authorizationapi.VerbAll),
 					Resources: sets.NewString(authorizationapi.ResourceAll),
-				},
-			},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: BuildControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				// BuildControllerFactory.buildLW
-				// BuildControllerFactory.buildDeleteLW
-				{
-					Verbs:     sets.NewString("get", "list", "watch"),
-					Resources: sets.NewString("builds"),
-				},
-				// BuildController.BuildUpdater (OSClientBuildClient)
-				{
-					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("builds"),
-				},
-				// BuildController.ImageStreamClient (ControllerClient)
-				{
-					Verbs:     sets.NewString("get"),
-					Resources: sets.NewString("imagestreams"),
-				},
-				// BuildController.PodManager (ControllerClient)
-				// BuildDeleteController.PodManager (ControllerClient)
-				// BuildControllerFactory.buildDeleteLW
-				{
-					Verbs:     sets.NewString("get", "list", "create", "delete"),
-					Resources: sets.NewString("pods"),
-				},
-				// BuildController.Recorder (EventBroadcaster)
-				{
-					Verbs:     sets.NewString("create", "update", "patch"),
-					Resources: sets.NewString("events"),
-				},
-			},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: DeploymentControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				// DeploymentControllerFactory.deploymentLW
-				{
-					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("replicationcontrollers"),
-				},
-				// DeploymentControllerFactory.deploymentClient
-				{
-					Verbs:     sets.NewString("get", "update"),
-					Resources: sets.NewString("replicationcontrollers"),
-				},
-				// DeploymentController.podClient
-				{
-					Verbs:     sets.NewString("get", "list", "create", "delete", "update"),
-					Resources: sets.NewString("pods"),
-				},
-				// DeploymentController.recorder (EventBroadcaster)
-				{
-					Verbs:     sets.NewString("create", "update", "patch"),
-					Resources: sets.NewString("events"),
-				},
-			},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: ReplicationControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				// ReplicationManager.rcController.ListWatch
-				{
-					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("replicationcontrollers"),
-				},
-				// ReplicationManager.syncReplicationController() -> updateReplicaCount()
-				{
-					// TODO: audit/remove those, 1.0 controllers needed get, update
-					Verbs:     sets.NewString("get", "update"),
-					Resources: sets.NewString("replicationcontrollers"),
-				},
-				// ReplicationManager.syncReplicationController() -> updateReplicaCount()
-				{
-					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("replicationcontrollers/status"),
-				},
-				// ReplicationManager.podController.ListWatch
-				{
-					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("pods"),
-				},
-				// ReplicationManager.podControl (RealPodControl)
-				{
-					Verbs:     sets.NewString("create", "delete"),
-					Resources: sets.NewString("pods"),
-				},
-				// ReplicationManager.podControl.recorder
-				{
-					Verbs:     sets.NewString("create", "update", "patch"),
-					Resources: sets.NewString("events"),
-				},
-			},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: JobControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				// JobController.jobController.ListWatch
-				{
-					APIGroups: []string{authorizationapi.APIGroupExtensions},
-					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("jobs"),
-				},
-				// JobController.syncJob() -> updateJobStatus()
-				{
-					APIGroups: []string{authorizationapi.APIGroupExtensions},
-					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("jobs/status"),
-				},
-				// JobController.podController.ListWatch
-				{
-					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("pods"),
-				},
-				// JobController.podControl (RealPodControl)
-				{
-					Verbs:     sets.NewString("create", "delete"),
-					Resources: sets.NewString("pods"),
-				},
-				// JobController.podControl.recorder
-				{
-					Verbs:     sets.NewString("create", "update", "patch"),
-					Resources: sets.NewString("events"),
-				},
-			},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: PersistentVolumeControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				// PersistentVolumeBinder.volumeController.ListWatch
-				{
-					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("persistentvolumes"),
-				},
-				// PersistentVolumeBinder.syncVolume()
-				{
-					Verbs:     sets.NewString("get", "update", "create", "delete"),
-					Resources: sets.NewString("persistentvolumes"),
-				},
-				// PersistentVolumeBinder.syncVolume()
-				{
-					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("persistentvolumes/status"),
-				},
-				// PersistentVolumeBinder.claimController.ListWatch
-				{
-					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("persistentvolumeclaims"),
-				},
-				// PersistentVolumeBinder.syncClaim()
-				{
-					Verbs:     sets.NewString("get", "update"),
-					Resources: sets.NewString("persistentvolumeclaims"),
-				},
-				// PersistentVolumeBinder.syncClaim()
-				{
-					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("persistentvolumeclaims/status"),
-				},
-				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
-				{
-					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("pods"),
-				},
-				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
-				{
-					Verbs:     sets.NewString("get", "create", "delete"),
-					Resources: sets.NewString("pods"),
-				},
-				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
-				{
-					Verbs:     sets.NewString("create", "update", "patch"),
-					Resources: sets.NewString("events"),
-				},
-			},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: HPAControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				// HPA Controller
-				{
-					APIGroups: []string{authorizationapi.APIGroupExtensions},
-					Verbs:     sets.NewString("get", "list"),
-					Resources: sets.NewString("horizontalpodautoscalers"),
-				},
-				{
-					APIGroups: []string{authorizationapi.APIGroupExtensions},
-					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("horizontalpodautoscalers/status"),
-				},
-				{
-					APIGroups: []string{authorizationapi.APIGroupExtensions},
-					Verbs:     sets.NewString("get", "update"),
-					Resources: sets.NewString("replicationcontrollers/scale"),
-				},
-				{
-					Verbs:     sets.NewString("get", "update"),
-					Resources: sets.NewString("deploymentconfigs/scale"),
-				},
-				{
-					Verbs:     sets.NewString("create", "update", "patch"),
-					Resources: sets.NewString("events"),
-				},
-				// Heapster MetricsClient
-				{
-					Verbs:     sets.NewString("list"),
-					Resources: sets.NewString("pods"),
-				},
-				{
-					// TODO: fix MetricsClient to no longer require root proxy access
-					// TODO: restrict this to the appropriate namespace
-					Verbs:         sets.NewString("proxy"),
-					Resources:     sets.NewString("services"),
-					ResourceNames: sets.NewString("https:heapster:"),
 				},
 			},
 		},
@@ -751,6 +544,17 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 		},
 	}
+
+	saRoles := InfraSAs.AllRoles()
+	for _, saRole := range saRoles {
+		for _, existingRole := range roles {
+			if existingRole.Name == saRole.Name {
+				panic(fmt.Sprintf("clusterrole/%s is already registered", existingRole.Name))
+			}
+		}
+	}
+
+	roles = append(roles, saRoles...)
 
 	// we don't want to expose the resourcegroups externally because it makes it very difficult for customers to learn from
 	// our default roles and hard for them to reason about what power they are granting their users

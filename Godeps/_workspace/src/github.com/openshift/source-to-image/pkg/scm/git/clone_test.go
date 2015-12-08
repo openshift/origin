@@ -16,9 +16,10 @@ func TestCloneWithContext(t *testing.T) {
 	c := &Clone{gh, fs}
 
 	fakeConfig := &api.Config{
-		Source:     "https://foo/bar.git",
-		ContextDir: "subdir",
-		Ref:        "ref1",
+		Source:           "https://foo/bar.git",
+		ContextDir:       "subdir",
+		Ref:              "ref1",
+		DisableRecursive: true,
 	}
 	info, err := c.Download(fakeConfig)
 	if err != nil {

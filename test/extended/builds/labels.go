@@ -3,6 +3,8 @@ package builds
 import (
 	"fmt"
 
+	"k8s.io/kubernetes/test/e2e"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -42,8 +44,11 @@ var _ = g.Describe("builds: labels: Check S2I and Docker build image for proper 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("o.Expecting the S2I build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				logs, _ := oc.Run("build-logs").Args(buildName).Output()
+				e2e.Failf("build failed: %s", logs)
+			}
 
 			g.By("getting the Docker image reference from ImageStream")
 			imageRef, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
@@ -75,8 +80,11 @@ var _ = g.Describe("builds: labels: Check S2I and Docker build image for proper 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("o.Expecting the Docker build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				logs, _ := oc.Run("build-logs").Args(buildName).Output()
+				e2e.Failf("build failed: %s", logs)
+			}
 
 			g.By("getting the Docker image reference from ImageStream")
 			imageRef, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")

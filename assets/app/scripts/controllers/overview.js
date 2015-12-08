@@ -9,8 +9,10 @@
  */
 angular.module('openshiftConsole')
   .controller('OverviewController',
-              function ($scope,
+              function ($routeParams,
+                        $scope,
                         DataService,
+                        ProjectsService,
                         annotationFilter,
                         hashSizeFilter,
                         imageObjectRefFilter,
@@ -20,7 +22,10 @@ angular.module('openshiftConsole')
                         Logger,
                         ImageStreamResolver,
                         ObjectDescriber,
-                        $parse) {
+                        $parse,
+                        $filter,
+                        $interval) {
+    $scope.projectName = $routeParams.project;
     $scope.pods = {};
     $scope.services = {};
     $scope.routes = {};
@@ -56,11 +61,14 @@ angular.module('openshiftConsole')
     // "" service key for deployment configs not under any service
     $scope.deploymentConfigsByService = {};
 
+    $scope.recentBuildsByOutputImage = {};
+
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
     $scope.renderOptions = $scope.renderOptions || {};
     $scope.renderOptions.showSidebarRight = false;
+    $scope.overviewMode = 'tiles';
 
     /*
      * HACK: The use of <base href="/"> that is encouraged by angular is
@@ -82,466 +90,472 @@ angular.module('openshiftConsole')
     $scope.topologyItems = { };
     $scope.topologyRelations = [ ];
 
+    var intervals = [];
     var watches = [];
 
-    watches.push(DataService.watch("pods", $scope, function(pods) {
-      $scope.pods = pods.by("metadata.name");
-      podRelationships();
-      // Must be called after podRelationships()
-      updateShowGetStarted();
-      ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
-      updateTopologyLater();
-      Logger.log("pods", $scope.pods);
-    }));
 
-    watches.push(DataService.watch("services", $scope, function(services) {
-      $scope.unfilteredServices = services.by("metadata.name");
+    ProjectsService
+      .get($routeParams.project)
+      .then(_.spread(function(project, context) {
+        $scope.project = project;
 
-      LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredServices, $scope.labelSuggestions);
-      LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-      $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
+        watches.push(DataService.watch("pods", context, function(pods) {
+          $scope.pods = pods.by("metadata.name");
+          podRelationships();
+          // Must be called after podRelationships()
+          updateShowGetStarted();
+          ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, context);
+          updateTopologyLater();
+          Logger.log("pods", $scope.pods);
+        }));
 
-      // Order is important here since podRelationships expects deploymentsByServiceByDeploymentConfig to be up to date
-      deploymentsByService();
-      deploymentConfigsByService();
-      podRelationships();
+        watches.push(DataService.watch("services", context, function(services) {
+          $scope.unfilteredServices = services.by("metadata.name");
 
-      // Must be called after deploymentConfigsByService() and podRelationships()
-      updateShowGetStarted();
+          LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredServices, $scope.labelSuggestions);
+          LabelFilter.setLabelSuggestions($scope.labelSuggestions);
+          $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
 
-      $scope.emptyMessage = "No services to show";
-      updateFilterWarning();
-      updateTopologyLater();
-      Logger.log("services (list)", $scope.services);
-    }));
+          // Order is important here since podRelationships expects deploymentsByServiceByDeploymentConfig to be up to date
+          deploymentsByService();
+          deploymentConfigsByService();
+          podRelationships();
 
-    watches.push(DataService.watch("routes", $scope, function(routes) {
-      $scope.routes = routes.by("metadata.name");
-      var routeMap = $scope.routesByService = {};
-      var displayRouteMap = $scope.displayRouteByService = {};
-      angular.forEach($scope.routes, function(route, routeName){
-        if (route.spec.to.kind !== "Service") {
-          return;
-        }
+          // Must be called after deploymentConfigsByService() and podRelationships()
+          updateShowGetStarted();
 
-        var serviceName = route.spec.to.name;
-        routeMap[serviceName] = routeMap[serviceName] || {};
-        routeMap[serviceName][routeName] = route;
+          $scope.emptyMessage = "No services to show";
+          updateFilterWarning();
+          updateTopologyLater();
+          Logger.log("services (list)", $scope.services);
+        }));
 
-        // Find the best route to display for a service. Prefer the first custom host we find.
-        if (!displayRouteMap[serviceName] ||
-            (!isGeneratedHost(route) && isGeneratedHost(displayRouteMap[serviceName]))) {
-          displayRouteMap[serviceName] = route;
-        }
-      });
-
-      updateTopologyLater();
-      Logger.log("routes (subscribe)", $scope.routesByService);
-    }));
-
-    // Expects deploymentsByServiceByDeploymentConfig to be up to date
-    function podRelationships() {
-      $scope.monopodsByService = {"": {}};
-      $scope.podsByService = {};
-      $scope.podsByDeployment = {};
-
-      // Initialize all the label selectors upfront
-      var depSelectors = {};
-      angular.forEach($scope.deployments, function(deployment, depName){
-        depSelectors[depName] = new LabelSelector(deployment.spec.selector);
-        $scope.podsByDeployment[depName] = {};
-      });
-      var svcSelectors = {};
-      angular.forEach($scope.unfilteredServices, function(service, svcName){
-        svcSelectors[svcName] = new LabelSelector(service.spec.selector);
-        $scope.podsByService[svcName] = {};
-      });
-
-
-      angular.forEach($scope.pods, function(pod, name){
-        var deployments = [];
-        var services = [];
-        angular.forEach($scope.deployments, function(deployment, depName){
-          var ls = depSelectors[depName];
-          if (ls.matches(pod)) {
-            deployments.push(depName);
-            $scope.podsByDeployment[depName][name] = pod;
-          }
-        });
-        angular.forEach($scope.unfilteredServices, function(service, svcName){
-          var ls = svcSelectors[svcName];
-          if (ls.matches(pod)) {
-            services.push(svcName);
-            $scope.podsByService[svcName][name] = pod;
-
-            var isInDepInSvc = false;
-            angular.forEach(deployments, function(depName) {
-              isInDepInSvc = isInDepInSvc || ($scope.deploymentsByService[svcName] && $scope.deploymentsByService[svcName][depName]);
-            });
-
-            if (!isInDepInSvc) {
-              $scope.monopodsByService[svcName] = $scope.monopodsByService[svcName] || {};
-              $scope.monopodsByService[svcName][name] = pod;
+        watches.push(DataService.watch("routes", context, function(routes) {
+          $scope.routes = routes.by("metadata.name");
+          var routeMap = $scope.routesByService = {};
+          var displayRouteMap = $scope.displayRouteByService = {};
+          angular.forEach($scope.routes, function(route, routeName){
+            if (route.spec.to.kind !== "Service") {
+              return;
             }
-          }
-        });
-        if (deployments.length === 0 && services.length === 0 && showMonopod(pod)) {
-          $scope.monopodsByService[""][name] = pod;
-        }
-      });
 
-      Logger.log("podsByDeployment", $scope.podsByDeployment);
-      Logger.log("podsByService", $scope.podsByService);
-      Logger.log("monopodsByService", $scope.monopodsByService);
+            var serviceName = route.spec.to.name;
+            routeMap[serviceName] = routeMap[serviceName] || {};
+            routeMap[serviceName][routeName] = route;
 
-      updateTopologyLater();
-    }
-
-    // Filter out monopods we know we don't want to see
-    function showMonopod(pod) {
-      // Hide pods in the Succeeded, Terminated, and Failed phases since these
-      // are run once pods that are done.
-      if (pod.status.phase === 'Succeeded' ||
-          pod.status.phase === 'Terminated' ||
-          pod.status.phase === 'Failed') {
-        // TODO we may want to show pods for X amount of time after they have completed
-        return false;
-      }
-
-      // Hide our deployer pods since it is obvious the deployment is
-      // happening when the new deployment appears.
-      if (labelFilter(pod, "openshift.io/deployer-pod-for.name")) {
-        return false;
-      }
-
-      // Hide our build pods since we are already showing details for
-      // currently running or recently run builds under the appropriate
-      // areas.
-      if (annotationFilter(pod, "openshift.io/build.name")) {
-        return false;
-      }
-
-      return true;
-    }
-
-    function deploymentConfigsByService() {
-      $scope.deploymentConfigsByService = {"": {}};
-      angular.forEach($scope.deploymentConfigs, function(deploymentConfig, depName){
-        var foundMatch = false;
-        var getLabels = $parse('spec.template.metadata.labels');
-        var depConfigSelector = new LabelSelector(getLabels(deploymentConfig) || {});
-        angular.forEach($scope.unfilteredServices, function(service, name){
-          $scope.deploymentConfigsByService[name] = $scope.deploymentConfigsByService[name] || {};
-
-          var serviceSelector = new LabelSelector(service.spec.selector);
-          if (serviceSelector.covers(depConfigSelector)) {
-            $scope.deploymentConfigsByService[name][depName] = deploymentConfig;
-            foundMatch = true;
-          }
-        });
-        if (!foundMatch) {
-          $scope.deploymentConfigsByService[""][depName] = deploymentConfig;
-        }
-      });
-    }
-
-    function deploymentsByService() {
-      var bySvc = $scope.deploymentsByService = {"": {}};
-      var bySvcByDepCfg = $scope.deploymentsByServiceByDeploymentConfig = {"": {}};
-
-      angular.forEach($scope.deployments, function(deployment, depName){
-        var foundMatch = false;
-        var getLabels = $parse('spec.template.metadata.labels');
-        var deploymentSelector = new LabelSelector(getLabels(deployment) || {});
-        var depConfigName = annotationFilter(deployment, 'deploymentConfig') || "";
-
-        angular.forEach($scope.unfilteredServices, function(service, name){
-          bySvc[name] = bySvc[name] || {};
-          bySvcByDepCfg[name] = bySvcByDepCfg[name] || {};
-
-          var serviceSelector = new LabelSelector(service.spec.selector);
-          if (serviceSelector.covers(deploymentSelector)) {
-            bySvc[name][depName] = deployment;
-
-            bySvcByDepCfg[name][depConfigName] = bySvcByDepCfg[name][depConfigName] || {};
-            bySvcByDepCfg[name][depConfigName][depName] = deployment;
-            foundMatch = true;
-          }
-        });
-        if (!foundMatch) {
-          bySvc[""][depName] = deployment;
-
-          bySvcByDepCfg[""][depConfigName] = bySvcByDepCfg[""][depConfigName] || {};
-          bySvcByDepCfg[""][depConfigName][depName] = deployment;
-        }
-      });
-    }
-
-    // Sets up subscription for deployments
-    watches.push(DataService.watch("replicationcontrollers", $scope, function(deployments, action, deployment) {
-      $scope.deployments = deployments.by("metadata.name");
-      if (deployment) {
-        if (action !== "DELETED") {
-          deployment.causes = deploymentCausesFilter(deployment);
-        }
-      }
-      else {
-        angular.forEach($scope.deployments, function(deployment) {
-          deployment.causes = deploymentCausesFilter(deployment);
-        });
-      }
-
-      // Order is important here since podRelationships expects deploymentsByServiceByDeploymentConfig to be up to date
-      deploymentsByService();
-      podRelationships();
-
-      // Must be called after podRelationships()
-      updateShowGetStarted();
-      updateTopologyLater();
-
-      Logger.log("deployments (subscribe)", $scope.deployments);
-    }));
-
-    // Sets up subscription for imageStreams
-    watches.push(DataService.watch("imagestreams", $scope, function(imageStreams) {
-      $scope.imageStreams = imageStreams.by("metadata.name");
-      ImageStreamResolver.buildDockerRefMapForImageStreams($scope.imageStreams, $scope.imageStreamImageRefByDockerReference);
-      ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
-      updateTopologyLater();
-      Logger.log("imagestreams (subscribe)", $scope.imageStreams);
-    }));
-
-    function associateDeploymentConfigTriggersToBuild(deploymentConfig, build) {
-      // Make sure we have both a deploymentConfig and a build
-      if (!deploymentConfig || !build) {
-        return;
-      }
-      // Make sure the deployment config has triggers.
-      if (!deploymentConfig.spec.triggers) {
-        return;
-      }
-      // Make sure we have a build output
-      if (!build.spec.output.to) {
-        return;
-      }
-      for (var i = 0; i < deploymentConfig.spec.triggers.length; i++) {
-        var trigger = deploymentConfig.spec.triggers[i];
-        if (trigger.type === "ImageChange") {
-          var buildOutputImage = imageObjectRefFilter(build.spec.output.to, build.metadata.namespace);
-          var deploymentTriggerImage = imageObjectRefFilter(trigger.imageChangeParams.from, deploymentConfig.metadata.namespace);
-          if (buildOutputImage !== deploymentTriggerImage) {
-              continue;
-          }
-
-          trigger.builds = trigger.builds || {};
-          trigger.builds[build.metadata.name] = build;
-        }
-      }
-    }
-
-    // Sets up subscription for deploymentConfigs, associates builds to triggers on deploymentConfigs
-    watches.push(DataService.watch("deploymentconfigs", $scope, function(deploymentConfigs, action, deploymentConfig) {
-      $scope.deploymentConfigs = deploymentConfigs.by("metadata.name");
-      if (!action) {
-        angular.forEach($scope.deploymentConfigs, function(depConfig) {
-          angular.forEach($scope.builds, function(build) {
-            associateDeploymentConfigTriggersToBuild(depConfig, build);
+            // Find the best route to display for a service. Prefer the first custom host we find.
+            if (!displayRouteMap[serviceName] ||
+                (!isGeneratedHost(route) && isGeneratedHost(displayRouteMap[serviceName]))) {
+              displayRouteMap[serviceName] = route;
+            }
           });
-        });
-      }
-      else if (action !== 'DELETED') {
-        angular.forEach($scope.builds, function(build) {
-          associateDeploymentConfigTriggersToBuild(deploymentConfig, build);
-        });
-      }
 
-      deploymentConfigsByService();
-      // Must be called after deploymentConfigsByService()
-      updateShowGetStarted();
-      updateTopologyLater();
+          updateTopologyLater();
+          Logger.log("routes (subscribe)", $scope.routesByService);
+        }));
 
-      Logger.log("deploymentconfigs (subscribe)", $scope.deploymentConfigs);
-    }));
+        // Expects deploymentsByServiceByDeploymentConfig to be up to date
+        function podRelationships() {
+          $scope.monopodsByService = {"": {}};
+          $scope.podsByService = {};
+          $scope.podsByDeployment = {};
 
-    // Sets up subscription for builds, associates builds to triggers on deploymentConfigs
-    watches.push(DataService.watch("builds", $scope, function(builds, action, build) {
-      $scope.builds = builds.by("metadata.name");
-      if (!action) {
-        angular.forEach($scope.builds, function(bld) {
-          angular.forEach($scope.deploymentConfigs, function(depConfig) {
-            associateDeploymentConfigTriggersToBuild(depConfig, bld);
+          // Initialize all the label selectors upfront
+          var depSelectors = {};
+          angular.forEach($scope.deployments, function(deployment, depName){
+            depSelectors[depName] = new LabelSelector(deployment.spec.selector);
+            $scope.podsByDeployment[depName] = {};
           });
-        });
-      }
-      else if (action === 'ADDED' || action === 'MODIFIED') {
-        angular.forEach($scope.deploymentConfigs, function(depConfig) {
-          associateDeploymentConfigTriggersToBuild(depConfig, build);
-        });
-      }
-      else if (action === 'DELETED'){
-        // TODO
-      }
-      updateTopologyLater();
-      Logger.log("builds (subscribe)", $scope.builds);
-    }));
+          var svcSelectors = {};
+          angular.forEach($scope.unfilteredServices, function(service, svcName){
+            svcSelectors[svcName] = new LabelSelector(service.spec.selector);
+            $scope.podsByService[svcName] = {};
+          });
 
-    // Show the "Get Started" message if the project is empty.
-    function updateShowGetStarted() {
-      var projectEmpty =
-        hashSizeFilter($scope.unfilteredServices) === 0 &&
-        hashSizeFilter($scope.pods) === 0 &&
-        hashSizeFilter($scope.deployments) === 0 &&
-        hashSizeFilter($scope.deploymentConfigs) === 0;
 
-      $scope.renderOptions.showSidebarRight = !projectEmpty;
-      $scope.renderOptions.showGetStarted = projectEmpty;
-    }
-
-    function updateFilterWarning() {
-      if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.services) && !$.isEmptyObject($scope.unfilteredServices)) {
-        $scope.alerts["services"] = {
-          type: "warning",
-          details: "The active filters are hiding all services."
-        };
-      }
-      else {
-        delete $scope.alerts["services"];
-      }
-    }
-
-    function isGeneratedHost(route) {
-      return annotationFilter(route, "openshift.io/host.generated") === "true";
-    }
-
-    LabelFilter.onActiveFiltersChanged(function(labelSelector) {
-      // trigger a digest loop
-      $scope.$apply(function() {
-        $scope.services = labelSelector.select($scope.unfilteredServices);
-        updateFilterWarning();
-        updateTopology();
-      });
-    });
-
-    var updateTimeout = null;
-
-    function updateTopology() {
-      updateTimeout = null;
-
-      var topologyRelations = [];
-      var topologyItems = { };
-
-      // Because metadata.uid is not unique among resources
-      function makeId(resource) {
-        return resource.kind + resource.metadata.uid;
-      }
-
-      // Add the services
-      angular.forEach($scope.services, function(service) {
-        topologyItems[makeId(service)] = service;
-      });
-
-      // Add everything related to services, each of these tables are in
-      // standard form with string keys, pointing to a map of further
-      // name -> resource mappings.
-      [
-        $scope.podsByService,
-        $scope.monopodsByService,
-        $scope.deploymentsByService,
-        $scope.deploymentConfigsByService,
-        $scope.routesByService
-      ].forEach(function(map) {
-        angular.forEach(map, function(resources, serviceName) {
-          var service = $scope.services[serviceName];
-          if (!serviceName || service) {
-            angular.forEach(resources, function(resource) {
-              if (map !== $scope.monopodsByService || showMonopod(resource)) {
-                topologyItems[makeId(resource)] = resource;
+          angular.forEach($scope.pods, function(pod, name){
+            var deployments = [];
+            var services = [];
+            angular.forEach($scope.deployments, function(deployment, depName){
+              var ls = depSelectors[depName];
+              if (ls.matches(pod)) {
+                deployments.push(depName);
+                $scope.podsByDeployment[depName][name] = pod;
               }
             });
-          }
-        });
-      });
+            angular.forEach($scope.unfilteredServices, function(service, svcName){
+              var ls = svcSelectors[svcName];
+              if (ls.matches(pod)) {
+                services.push(svcName);
+                $scope.podsByService[svcName][name] = pod;
 
-      // Things to link to services. Note that we can push as relations
-      // no non-existing items into the topology without ill effect
-      [
-        $scope.podsByService,
-        $scope.monopodsByService,
-        $scope.routesByService
-      ].forEach(function(map) {
-        angular.forEach(map, function(resources, serviceName) {
-          var service = $scope.services[serviceName];
-          if (service) {
-            angular.forEach(resources, function(resource) {
-              topologyRelations.push({ source: makeId(service), target: makeId(resource) });
+                var isInDepInSvc = false;
+                angular.forEach(deployments, function(depName) {
+                  isInDepInSvc = isInDepInSvc || ($scope.deploymentsByService[svcName] && $scope.deploymentsByService[svcName][depName]);
+                });
+
+                if (!isInDepInSvc) {
+                  $scope.monopodsByService[svcName] = $scope.monopodsByService[svcName] || {};
+                  $scope.monopodsByService[svcName][name] = pod;
+                }
+              }
             });
-          }
-        });
-      });
+            if (deployments.length === 0 && services.length === 0 && showMonopod(pod)) {
+              $scope.monopodsByService[""][name] = pod;
+            }
+          });
 
-      // A special case, not related to services
-      angular.forEach($scope.podsByDeployment, function(pods, deploymentName) {
-        var deployment = $scope.deployments[deploymentName];
-        if (makeId(deployment) in topologyItems) {
-          angular.forEach(pods, function(pod) {
-	    topologyItems[makeId(pod)] = pod;
-            topologyRelations.push({ source: makeId(deployment), target: makeId(pod) });
+          Logger.log("podsByDeployment", $scope.podsByDeployment);
+          Logger.log("podsByService", $scope.podsByService);
+          Logger.log("monopodsByService", $scope.monopodsByService);
+
+          updateTopologyLater();
+        }
+
+        // Filter out monopods we know we don't want to see
+        function showMonopod(pod) {
+          // Hide pods in the Succeeded, Terminated, and Failed phases since these
+          // are run once pods that are done.
+          if (pod.status.phase === 'Succeeded' ||
+              pod.status.phase === 'Terminated' ||
+              pod.status.phase === 'Failed') {
+            // TODO we may want to show pods for X amount of time after they have completed
+            return false;
+          }
+
+          // Hide our deployer pods since it is obvious the deployment is
+          // happening when the new deployment appears.
+          if (labelFilter(pod, "openshift.io/deployer-pod-for.name")) {
+            return false;
+          }
+
+          // Hide our build pods since we are already showing details for
+          // currently running or recently run builds under the appropriate
+          // areas.
+          if (annotationFilter(pod, "openshift.io/build.name")) {
+            return false;
+          }
+
+          return true;
+        }
+
+        function deploymentConfigsByService() {
+          $scope.deploymentConfigsByService = {"": {}};
+          angular.forEach($scope.deploymentConfigs, function(deploymentConfig, depName){
+            var foundMatch = false;
+            var getLabels = $parse('spec.template.metadata.labels');
+            var depConfigSelector = new LabelSelector(getLabels(deploymentConfig) || {});
+            angular.forEach($scope.unfilteredServices, function(service, name){
+              $scope.deploymentConfigsByService[name] = $scope.deploymentConfigsByService[name] || {};
+
+              var serviceSelector = new LabelSelector(service.spec.selector);
+              if (serviceSelector.covers(depConfigSelector)) {
+                $scope.deploymentConfigsByService[name][depName] = deploymentConfig;
+                foundMatch = true;
+              }
+            });
+            if (!foundMatch) {
+              $scope.deploymentConfigsByService[""][depName] = deploymentConfig;
+            }
           });
         }
-      });
 
-      // Link deployment configs to their deployment
-      angular.forEach($scope.deployments, function(deployment, deploymentName) {
-	var deploymentConfig, annotations = deployment.metadata.annotations || {};
-	var deploymentConfigName = annotations["openshift.io/deployment-config.name"] || deploymentName;
-	if (deploymentConfigName && $scope.deploymentConfigs) {
-          deploymentConfig = $scope.deploymentConfigs[deploymentConfigName];
-          if (deploymentConfig) {
-            topologyRelations.push({ source: makeId(deploymentConfig), target: makeId(deployment) });
+        function deploymentsByService() {
+          var bySvc = $scope.deploymentsByService = {"": {}};
+          var bySvcByDepCfg = $scope.deploymentsByServiceByDeploymentConfig = {"": {}};
+
+          angular.forEach($scope.deployments, function(deployment, depName){
+            var foundMatch = false;
+            var getLabels = $parse('spec.template.metadata.labels');
+            var deploymentSelector = new LabelSelector(getLabels(deployment) || {});
+            var depConfigName = annotationFilter(deployment, 'deploymentConfig') || "";
+
+            angular.forEach($scope.unfilteredServices, function(service, name){
+              bySvc[name] = bySvc[name] || {};
+              bySvcByDepCfg[name] = bySvcByDepCfg[name] || {};
+
+              var serviceSelector = new LabelSelector(service.spec.selector);
+              if (serviceSelector.covers(deploymentSelector)) {
+                bySvc[name][depName] = deployment;
+
+                bySvcByDepCfg[name][depConfigName] = bySvcByDepCfg[name][depConfigName] || {};
+                bySvcByDepCfg[name][depConfigName][depName] = deployment;
+                foundMatch = true;
+              }
+            });
+            if (!foundMatch) {
+              bySvc[""][depName] = deployment;
+
+              bySvcByDepCfg[""][depConfigName] = bySvcByDepCfg[""][depConfigName] || {};
+              bySvcByDepCfg[""][depConfigName][depName] = deployment;
+            }
+          });
+        }
+
+        // Sets up subscription for deployments
+        watches.push(DataService.watch("replicationcontrollers", context, function(deployments, action, deployment) {
+          $scope.deployments = deployments.by("metadata.name");
+          if (deployment) {
+            if (action !== "DELETED") {
+              deployment.causes = deploymentCausesFilter(deployment);
+            }
+          }
+          else {
+            angular.forEach($scope.deployments, function(deployment) {
+              deployment.causes = deploymentCausesFilter(deployment);
+            });
+          }
+
+          // Order is important here since podRelationships expects deploymentsByServiceByDeploymentConfig to be up to date
+          deploymentsByService();
+          podRelationships();
+
+          // Must be called after podRelationships()
+          updateShowGetStarted();
+          updateTopologyLater();
+
+          Logger.log("deployments (subscribe)", $scope.deployments);
+        }));
+
+        // Sets up subscription for imageStreams
+        watches.push(DataService.watch("imagestreams", context, function(imageStreams) {
+          $scope.imageStreams = imageStreams.by("metadata.name");
+          ImageStreamResolver.buildDockerRefMapForImageStreams($scope.imageStreams, $scope.imageStreamImageRefByDockerReference);
+          ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, context);
+          updateTopologyLater();
+          Logger.log("imagestreams (subscribe)", $scope.imageStreams);
+        }));
+
+        // Sets up subscription for deploymentConfigs, associates builds to triggers on deploymentConfigs
+        watches.push(DataService.watch("deploymentconfigs", context, function(deploymentConfigs) {
+          $scope.deploymentConfigs = deploymentConfigs.by("metadata.name");
+
+          deploymentConfigsByService();
+          // Must be called after deploymentConfigsByService()
+          updateShowGetStarted();
+          updateTopologyLater();
+
+          Logger.log("deploymentconfigs (subscribe)", $scope.deploymentConfigs);
+        }));
+
+        function updateRecentBuildsByOutputImage() {
+          $scope.recentBuildsByOutputImage = {};
+          angular.forEach($scope.builds, function(build) {
+            // pre-filter the list to save us some time on each digest loop later
+            if ($filter('isRecentBuild')(build) || $filter('isOscActiveObject')(build)) {
+              var buildOutputImage = imageObjectRefFilter(build.spec.output.to, build.metadata.namespace);
+              $scope.recentBuildsByOutputImage[buildOutputImage] = $scope.recentBuildsByOutputImage[buildOutputImage] || [];
+              $scope.recentBuildsByOutputImage[buildOutputImage].push(build);
+            }
+          });
+        }
+
+        // Sets up subscription for builds, associates builds to triggers on deploymentConfigs
+        watches.push(DataService.watch("builds", context, function(builds) {
+          $scope.builds = builds.by("metadata.name");
+          updateRecentBuildsByOutputImage();
+
+          intervals.push($interval(updateRecentBuildsByOutputImage, 5 * 60 * 1000)); // prune the list every 5 minutes
+
+          updateTopologyLater();
+          Logger.log("builds (subscribe)", $scope.builds);
+        }));
+
+        // Show the "Get Started" message if the project is empty.
+        function updateShowGetStarted() {
+          var projectEmpty =
+            hashSizeFilter($scope.unfilteredServices) === 0 &&
+            hashSizeFilter($scope.pods) === 0 &&
+            hashSizeFilter($scope.deployments) === 0 &&
+            hashSizeFilter($scope.deploymentConfigs) === 0;
+
+          $scope.renderOptions.showSidebarRight = !projectEmpty;
+          $scope.renderOptions.showGetStarted = projectEmpty;
+        }
+
+        function updateFilterWarning() {
+          if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.services) && !$.isEmptyObject($scope.unfilteredServices)) {
+            $scope.alerts["services"] = {
+              type: "warning",
+              details: "The active filters are hiding all services."
+            };
+          }
+          else {
+            delete $scope.alerts["services"];
           }
         }
-      });
 
-      $scope.$evalAsync(function() {
-        $scope.topologyItems = topologyItems;
-        $scope.topologyRelations = topologyRelations;
-      });
-    }
-
-    function updateTopologyLater() {
-      if (!updateTimeout) {
-        updateTimeout = window.setTimeout(updateTopology, 100);
-      }
-    }
-
-    $scope.$on("select", function(ev, resource) {
-      $scope.$apply(function() {
-        $scope.topologySelection = resource;
-        if (resource) {
-          ObjectDescriber.setObject(resource, resource.kind);
-        } else {
-          ObjectDescriber.clearObject();
+        function isGeneratedHost(route) {
+          return annotationFilter(route, "openshift.io/host.generated") === "true";
         }
-      });
-    }, true);
 
-    function selectionChanged(resource) {
-      $scope.topologySelection = resource;
-    }
+        LabelFilter.onActiveFiltersChanged(function(labelSelector) {
+          // trigger a digest loop
+          $scope.$apply(function() {
+            $scope.services = labelSelector.select($scope.unfilteredServices);
+            updateFilterWarning();
+            updateTopology();
+          });
+        });
 
-    ObjectDescriber.onResourceChanged(selectionChanged);
+        var updateTimeout = null;
 
-    // When view changes to topology, clear source of ObjectDescriber object
-    // So that selection can remain for topology view
-    $scope.$watch("overviewMode", function(value) {
-      if (value === "topology") {
-        ObjectDescriber.source = null;
-      }
-    });
+        function updateTopology() {
+          updateTimeout = null;
 
-    $scope.$on('$destroy', function(){
-      DataService.unwatchAll(watches);
-      window.clearTimeout(updateTimeout);
-      ObjectDescriber.removeResourceChangedCallback(selectionChanged);
-    });
+          var topologyRelations = [];
+          var topologyItems = { };
+
+          // Because metadata.uid is not unique among resources
+          function makeId(resource) {
+            return resource.kind + resource.metadata.uid;
+          }
+
+          // Add the services
+          angular.forEach($scope.services, function(service) {
+            topologyItems[makeId(service)] = service;
+          });
+
+          var isRecentDeployment = $filter('isRecentDeployment');
+          $scope.isVisibleDeployment = function(deployment) {
+            // If this is a replication controller and not a deployment, then it's visible.
+            var dcName = annotationFilter(deployment, 'deploymentConfig');
+            if (!dcName) {
+              return true;
+            }
+
+            // If the deployment is active, it's visible.
+            if (hashSizeFilter($scope.podsByDeployment[deployment.metadata.name]) > 0) {
+              return true;
+            }
+
+            // Otherwise, show the deployment only if it's the latest.
+            if (!$scope.deploymentConfigs) {
+              return false;
+            }
+
+            var dc = $scope.deploymentConfigs[dcName];
+            if (!dc) {
+              return false;
+            }
+
+            return isRecentDeployment(deployment, dc);
+          };
+
+          // Add everything related to services, each of these tables are in
+          // standard form with string keys, pointing to a map of further
+          // name -> resource mappings.
+          [
+            $scope.podsByService,
+            $scope.monopodsByService,
+            $scope.deploymentsByService,
+            $scope.deploymentConfigsByService,
+            $scope.routesByService
+          ].forEach(function(map) {
+            angular.forEach(map, function(resources, serviceName) {
+              var service = $scope.services[serviceName];
+              if (!serviceName || service) {
+                angular.forEach(resources, function(resource) {
+                  // Filter some items to be consistent with the tiles view.
+                  if (map === $scope.monopodsByService && !showMonopod(resource)) {
+                    return;
+                  }
+
+                  if (map === $scope.deploymentsByService && !$scope.isVisibleDeployment(resource)) {
+                    return;
+                  }
+
+                  topologyItems[makeId(resource)] = resource;
+                });
+              }
+            });
+          });
+
+          // Things to link to services. Note that we can push as relations
+          // no non-existing items into the topology without ill effect
+          [
+            $scope.podsByService,
+            $scope.monopodsByService,
+            $scope.routesByService
+          ].forEach(function(map) {
+            angular.forEach(map, function(resources, serviceName) {
+              var service = $scope.services[serviceName];
+              if (service) {
+                angular.forEach(resources, function(resource) {
+                  topologyRelations.push({ source: makeId(service), target: makeId(resource) });
+                });
+              }
+            });
+          });
+
+          // A special case, not related to services
+          angular.forEach($scope.podsByDeployment, function(pods, deploymentName) {
+            var deployment = $scope.deployments[deploymentName];
+            if (makeId(deployment) in topologyItems) {
+              angular.forEach(pods, function(pod) {
+          topologyItems[makeId(pod)] = pod;
+                topologyRelations.push({ source: makeId(deployment), target: makeId(pod) });
+              });
+            }
+          });
+
+          // Link deployment configs to their deployment
+          angular.forEach($scope.deployments, function(deployment, deploymentName) {
+      var deploymentConfig, annotations = deployment.metadata.annotations || {};
+      var deploymentConfigName = annotations["openshift.io/deployment-config.name"] || deploymentName;
+      if (deploymentConfigName && $scope.deploymentConfigs) {
+              deploymentConfig = $scope.deploymentConfigs[deploymentConfigName];
+              if (deploymentConfig) {
+                topologyRelations.push({ source: makeId(deploymentConfig), target: makeId(deployment) });
+              }
+            }
+          });
+
+          $scope.$evalAsync(function() {
+            $scope.topologyItems = topologyItems;
+            $scope.topologyRelations = topologyRelations;
+          });
+        }
+
+        function updateTopologyLater() {
+          if (!updateTimeout) {
+            updateTimeout = window.setTimeout(updateTopology, 100);
+          }
+        }
+
+        $scope.$on("select", function(ev, resource) {
+          $scope.$apply(function() {
+            $scope.topologySelection = resource;
+            if (resource) {
+              ObjectDescriber.setObject(resource, resource.kind);
+            } else {
+              ObjectDescriber.clearObject();
+            }
+          });
+        }, true);
+
+        function selectionChanged(resource) {
+          $scope.topologySelection = resource;
+        }
+
+        ObjectDescriber.onResourceChanged(selectionChanged);
+
+        // When view changes to topology, clear source of ObjectDescriber object
+        // So that selection can remain for topology view
+        $scope.$watch("overviewMode", function(value) {
+          if (value === "topology") {
+            ObjectDescriber.source = null;
+          }
+        });
+
+        $scope.$on('$destroy', function(){
+          DataService.unwatchAll(watches);
+          window.clearTimeout(updateTimeout);
+          ObjectDescriber.removeResourceChangedCallback(selectionChanged);
+          angular.forEach(intervals, function (interval){
+            $interval.cancel(interval);
+          });
+        });
+
+      }));
   });

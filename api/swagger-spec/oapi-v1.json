@@ -1637,6 +1637,65 @@
     ]
    },
    {
+    "path": "/oapi/v1/namespaces/{namespace}/builds/{name}/details",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.Build",
+      "method": "PUT",
+      "summary": "replace details of the specified Build",
+      "nickname": "replaceNamespacedBuildDetails",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.Build",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Build",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Build"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/namespaces/{namespace}/builds/{name}/log",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -15137,6 +15196,13 @@
       "type": "integer",
       "format": "int32",
       "description": "LastVersion of the BuildConfig that triggered this build"
+     },
+     "env": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.EnvVar"
+      },
+      "description": "additional environment variables you want to pass into a builder container"
      }
     }
    },
@@ -15239,7 +15305,7 @@
      },
      "cancelled": {
       "type": "boolean",
-      "description": "describes if a canceling event was triggered for the build"
+      "description": "describes if a cancel event was triggered for the build"
      },
      "reason": {
       "type": "string",
@@ -15836,6 +15902,14 @@
      "resources": {
       "$ref": "v1.ResourceRequirements",
       "description": "resource requirements to execute the deployment"
+     },
+     "labels": {
+      "type": "any",
+      "description": "labels for deployer and hook pods"
+     },
+     "annotations": {
+      "type": "any",
+      "description": "annotations for deployer and hook pods"
      }
     }
    },
