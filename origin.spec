@@ -41,7 +41,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.0.900
+Version:        3.1.0.901
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -442,6 +442,20 @@ fi
 
 
 %changelog
+* Tue Dec 08 2015 Scott Dodson <sdodson@redhat.com> 3.1.0.901
+- Show build trends chart on build config page (spadgett@redhat.com)
+- fix ruby-22 scl enablement (bparees@redhat.com)
+- dump build logs on failure (bparees@redhat.com)
+- make sure imagestreams are imported before using them with new-app
+  (bparees@redhat.com)
+- increase build timeout to 60mins (bparees@redhat.com)
+- Update config of dind cluster image registry (marun@redhat.com)
+- Allow junit output filename to be overridden (marun@redhat.com)
+- improved os::cmd handling of test names, timing (skuznets@redhat.com)
+- Improve deployment scaling behavior (ironcladlou@gmail.com)
+- refactored test/cmd/admin to use wrapper functions (skuznets@redhat.com)
+- Create sourcable bash env as part of dind cluster deploy (marun@redhat.com)
+
 * Fri Dec 04 2015 Scott Dodson <sdodson@redhat.com> 3.1.0.900
 - Update liveness/readiness probe to always use the /healthz endpoint (on the
   stats port or on port 1936 if the stats are disabled). (smitram@gmail.com)
