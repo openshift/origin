@@ -196,7 +196,7 @@ angular.module('openshiftConsole')
             }
           };
 
-          var sum = 0, count = 0, foundPhases = {};
+          var sum = 0, count = 0;
           angular.forEach($scope.completeBuilds, function(build) {
             var buildNumber = getBuildNumber(build);
             if (!buildNumber) {
@@ -210,12 +210,12 @@ angular.module('openshiftConsole')
             count++;
 
             var buildData = {
-              buildNumber: buildNumber
+              buildNumber: buildNumber,
+              phase: build.status.phase
             };
             buildData[build.status.phase] = duration;
             data.json.push(buildData);
             buildByNumber[buildNumber] = build;
-            foundPhases[build.status.phase] = true;
           });
 
           // Show only the last 50 builds.
@@ -226,6 +226,15 @@ angular.module('openshiftConsole')
             data.json = data.json.slice(data.json.length - 50);
           }
 
+          // Check for found phases only after we've sliced the array.
+          var foundPhases = {};
+          angular.forEach(data.json, function(buildData) {
+            foundPhases[buildData.phase] = true;
+          });
+
+          // Calculate the average duration.
+          // TODO: Should we only show the average for the last 50 builds
+          //       instead of all builds?
           if (count) {
             averageDuration = sum / count;
             $scope.averageDurationText = humanize(averageDuration);
@@ -234,9 +243,17 @@ angular.module('openshiftConsole')
             $scope.averageDurationText = null;
           }
 
-          // Only show found phases in the legend.
-          var groups = _.filter(completePhases, function(phase) {
-            return foundPhases[phase];
+          var groups = [], unload = [];
+          angular.forEach(completePhases, function(phase) {
+            if (foundPhases[phase]) {
+              // Only show found phases in the chart legend.
+              groups.push(phase);
+            } else {
+              // Unload any groups not found to remove them from the chart.
+              // This can happen for filters, deleted builds, or if a build
+              // phase is no longer in the last 50.
+              unload.push(phase);
+            }
           });
           data.keys.value = groups;
           data.groups = [groups];
@@ -245,6 +262,7 @@ angular.module('openshiftConsole')
             config.data = angular.extend(data, config.data);
             chart = c3.generate(config);
           } else {
+            data.unload = unload;
             chart.load(data);
           }
 
