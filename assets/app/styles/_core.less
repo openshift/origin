@@ -268,27 +268,77 @@ html, body {
   .btn {
     margin: 10px 0 20px;
   }
+}
+
+.empty-state-full-page {
   @media (min-height: 500px) {
     margin-top: 150px;
   }
 }
 
-  .service-table {
-    border: 0;
-    margin: 10px 0 5px;
-    table {
-      .table;
-      .table-condensed;
-      .text-center;
-      .small;
-      margin-bottom: 0;
-      thead {
-        tr th {
-          .text-center;
-        }
+.service-table {
+  border: 0;
+  margin: 10px 0 5px;
+  table {
+    .table;
+    .table-condensed;
+    .text-center;
+    .small;
+    margin-bottom: 0;
+    thead {
+      tr th {
+        .text-center;
       }
     }
   }
+}
+
+.build-config-summary {
+  .latest-build-status {
+    margin-right: 5px;
+    .status-icon {
+      width: 20px;
+    }
+  }
+  // Indent icon width to align with text above.
+  .latest-build-timestamp {
+    margin-left: 25px;
+  }
+}
+
+// The chart gets too compressed at narrow widths. Use an approach
+// similar to table-responsive on mobile where the user can scroll.
+.build-trends-responsive {
+  width: 100%;
+  margin-top: 20px;
+  overflow: scroll;
+  .build-trends-container {
+    min-width: 600px;
+    height: 235px;
+    // Disable the gray vertical line when hover over a bar.
+    .c3-xgrid-focus {
+      display: none;
+    }
+    .build-trends-avg-line {
+      stroke: #d1d1d1;
+      stroke-dasharray: 8,5;
+      stroke-width: 1;
+    }
+    .avg-duration {
+      margin-right: 30px;
+    }
+    .avg-duration-text {
+      vertical-align: top;
+      // same as c3-legend
+      font-size: 12px;
+    }
+    @media (max-width: @screen-xs-max) {
+      // Show a border at mobile screen widths so it's obvious you can scroll.
+      border: 1px solid #d1d1d1;
+      padding: 10px 0;
+    }
+  }
+}
 
 .pod-metrics {
   .metrics-options {
@@ -802,8 +852,12 @@ labels + .resource-details {
   border-bottom: 1px solid #eee;
 }
 
-h1 small.meta {
+h1 small.meta, .build-config-summary .meta {
   font-size: 12px;
+  @media (max-width: @screen-xs-min) {
+    display: block;
+    margin-top: 5px;
+  }
 }
 
 .action-divider {
