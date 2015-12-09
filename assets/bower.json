@@ -27,7 +27,7 @@
     "zeroclipboard": "2.2.0",
     "messenger": "1.4.1",
     "kubernetes-label-selector": "0.0.16",
-    "kubernetes-topology-graph": "0.0.19",
+    "kubernetes-topology-graph": "0.0.20",
     "kubernetes-container-terminal": "0.0.7",
     "openshift-object-describer": "1.1.1",
     "layout.attrs": "1.1.2",
