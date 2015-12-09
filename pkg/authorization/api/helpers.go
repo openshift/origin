@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"unicode"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -13,7 +14,25 @@ import (
 	// uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
-func ExpandResources(rawResources sets.String) sets.String {
+// NormalizeResources expands all resource groups and forces all resources to lower case.
+// If the rawResources are already normalized, it returns the original set to avoid the
+// allocation and GC cost, since this is hit multiple times for every REST call.
+// That means you should NEVER MODIFY THE RESULT of this call.
+func NormalizeResources(rawResources sets.String) sets.String {
+	// we only need to expand groups if the exist and we don't create them with groups
+	// by default.  Only accept the cost of expansion if we're doing work.
+	needsNormalization := false
+	for currResource := range rawResources {
+		if needsNormalizing(currResource) {
+			needsNormalization = true
+			break
+		}
+
+	}
+	if !needsNormalization {
+		return rawResources
+	}
+
 	ret := sets.String{}
 	toVisit := rawResources.List()
 	visited := sets.String{}
@@ -25,7 +44,7 @@ func ExpandResources(rawResources sets.String) sets.String {
 		}
 		visited.Insert(currResource)
 
-		if strings.Index(currResource, ResourceGroupPrefix+":") != 0 {
+		if !strings.HasPrefix(currResource, ResourceGroupPrefix) {
 			ret.Insert(strings.ToLower(currResource))
 			continue
 		}
@@ -36,6 +55,18 @@ func ExpandResources(rawResources sets.String) sets.String {
 	}
 
 	return ret
+}
+
+func needsNormalizing(in string) bool {
+	if strings.HasPrefix(in, ResourceGroupPrefix) {
+		return true
+	}
+	for _, r := range in {
+		if unicode.IsUpper(r) {
+			return true
+		}
+	}
+	return false
 }
 
 func (r PolicyRule) String() string {
