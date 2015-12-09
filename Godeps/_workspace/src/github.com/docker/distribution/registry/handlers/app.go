@@ -158,7 +158,7 @@ func NewApp(ctx context.Context, configuration *configuration.Configuration) *Ap
 		e, ok := d["enabled"]
 		if ok {
 			if deleteEnabled, ok := e.(bool); ok && deleteEnabled {
-				options = append(options, storage.EnableDelete)
+				options = append(options, storage.EnableDelete, storage.RemoveParentsOnDelete)
 			}
 		}
 	}
