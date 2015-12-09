@@ -254,15 +254,12 @@ func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeCo
 		glog.Fatal("Failed to get kube client for SDN")
 	}
 
-	ch := make(chan struct{})
-
-	controller, endpointFilter, err := factory.NewPlugin(nodeConfig.NetworkConfig.NetworkPluginName, oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP, ch)
+	controller, endpointFilter, err := factory.NewPlugin(nodeConfig.NetworkConfig.NetworkPluginName, oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
 
 	if controller != nil {
-		config.KubeletConfig.StartUpdates = ch
 		config.KubeletConfig.NetworkPlugins = append(config.KubeletConfig.NetworkPlugins, controller)
 
 		go func() {

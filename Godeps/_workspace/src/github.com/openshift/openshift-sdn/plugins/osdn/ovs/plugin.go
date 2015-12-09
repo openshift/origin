@@ -29,10 +29,10 @@ func MultiTenantPluginName() string {
 	return "redhat/openshift-ovs-multitenant"
 }
 
-func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string, ready chan struct{}) (api.OsdnPlugin, oskserver.FilteringEndpointsConfigHandler, error) {
+func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, oskserver.FilteringEndpointsConfigHandler, error) {
 	plugin := &ovsPlugin{multitenant: multitenant}
 
-	err := plugin.BaseInit(registry, NewFlowController(multitenant), plugin, hostname, selfIP, ready)
+	err := plugin.BaseInit(registry, NewFlowController(multitenant), plugin, hostname, selfIP)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -85,7 +85,9 @@ func (plugin *ovsPlugin) getExecutable() string {
 }
 
 func (plugin *ovsPlugin) Init(host knetwork.Host) error {
-	return nil
+	err := plugin.WaitForPodNetworkReady()
+	glog.V(5).Infof("Init network plugin, error: %v", err)
+	return err
 }
 
 func (plugin *ovsPlugin) Name() string {
