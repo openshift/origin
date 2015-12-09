@@ -27,6 +27,9 @@ var _ = g.Describe("builds: no name specified for the output image", func() {
 
 			g.By("expecting build to pass without an output image reference specified")
 			out, err := oc.Run("start-build").Args("test-docker", "--follow", "--wait").Output()
+			if err != nil {
+				fmt.Fprintln(g.GinkgoWriter, out)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(out).Should(o.ContainSubstring(`Build does not have an Output defined, no output image was pushed to a registry.`))
 		})
@@ -37,6 +40,9 @@ var _ = g.Describe("builds: no name specified for the output image", func() {
 
 			g.By("expecting build to pass without an output image reference specified")
 			out, err := oc.Run("start-build").Args("test-sti", "--follow", "--wait").Output()
+			if err != nil {
+				fmt.Fprintln(g.GinkgoWriter, out)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(out).Should(o.ContainSubstring(`Build does not have an Output defined, no output image was pushed to a registry.`))
 		})
