@@ -85,9 +85,7 @@ func (plugin *ovsPlugin) getExecutable() string {
 }
 
 func (plugin *ovsPlugin) Init(host knetwork.Host) error {
-	err := plugin.WaitForPodNetworkReady()
-	glog.V(5).Infof("Init network plugin, error: %v", err)
-	return err
+	return nil
 }
 
 func (plugin *ovsPlugin) Name() string {
@@ -99,6 +97,11 @@ func (plugin *ovsPlugin) Name() string {
 }
 
 func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
+	err := plugin.WaitForPodNetworkReady()
+	if err != nil {
+		return err
+	}
+
 	var vnidstr string
 	if plugin.multitenant {
 		vnid, found := plugin.VNIDMap[namespace]
