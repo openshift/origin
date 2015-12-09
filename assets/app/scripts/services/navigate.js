@@ -5,7 +5,7 @@ angular.module("openshiftConsole")
     return {
       /**
        * Navigate and display the error page.
-       * 
+       *
        * @param {type} message    The message to display to the user
        * @param {type} errorCode  An optional error code to display
        * @returns {undefined}
@@ -20,7 +20,7 @@ angular.module("openshiftConsole")
 
       /**
        * Navigate and display the project overview page.
-       * 
+       *
        * @param {type} projectName  the project name
        * @returns {undefined}
        */
@@ -30,7 +30,7 @@ angular.module("openshiftConsole")
 
       /**
        * Return the URL for the project overview
-       * 
+       *
        * @param {type}     projectName
        * @returns {String} a URL string for the project overview
        */
@@ -40,7 +40,7 @@ angular.module("openshiftConsole")
 
       /**
        * Navigate and display the next steps after creation page.
-       * 
+       *
        * @param {type} projectName  the project name
        * @returns {undefined}
        */
@@ -51,7 +51,7 @@ angular.module("openshiftConsole")
       // Resource is either a resource object, or a name.  If resource is a name, kind and namespace must be specified
       // Note that builds and deployments can only have their URL built correctly (including their config in the URL)
       // if resource is an object, otherwise they will fall back to the non-nested URL.
-      // TODO - if we do ever need to create a build URL without the build object but with a known build (deployment) 
+      // TODO - if we do ever need to create a build URL without the build object but with a known build (deployment)
       // name and buildConfig (deploymentConfig) name, then we will need either a specialized method for that, or an
       // additional opts param for extra opts.
       resourceURL: function(resource, kind, namespace) {
@@ -64,7 +64,7 @@ angular.module("openshiftConsole")
           kind = resource.kind;
         }
         if (!namespace) {
-          namespace = resource.metadata.namespace; 
+          namespace = resource.metadata.namespace;
         }
         var encodedNamespace = encodeURIComponent(namespace);
 
@@ -99,7 +99,7 @@ angular.module("openshiftConsole")
             else {
               url += "deployments-replicationcontrollers/" + encodedName;
             }
-            break;  
+            break;
           case "ImageStream":
             url += "images/" + encodedName;
             break;
@@ -110,21 +110,30 @@ angular.module("openshiftConsole")
       },
       /**
        * Navigate to a list view for a resource type
-       * 
+       *
        * @param {String} resourceType  the resource type
        * @param {String} projectName   the project name
+       * @param {String} parentName    the parent resource name (build config for builds or deployment config for deployments)
        * @returns {undefined}
        */
       toResourceList: function(resourceType, projectName) {
         var routeMap = {
+          'build': 'builds',
+          'buildconfig': 'builds',
+          'deployment': 'deployments',
+          'deploymentconfig': 'deployments',
           'imagestream': 'images',
           'pod': 'pods',
-          'service': 'services',
-          'buildconfig': 'builds',
-          'deploymentconfig': 'deployments',
-          'route': 'routes'
+          'replicationcontroller': 'deployments',
+          'route': 'routes',
+          'service': 'services'
         };
-        var redirect = URI('project/' + encodeURIComponent(projectName) + '/browse/' + routeMap[resourceType]);
+
+        var redirect = URI.expand("project/{projectName}/browse/{browsePath}", {
+          projectName: projectName,
+          browsePath: routeMap[resourceType]
+        });
+
         $location.url(redirect);
       }
     };
