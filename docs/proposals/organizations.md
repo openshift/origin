@@ -1,18 +1,17 @@
 # Organizations
 
 ## Problems
- 1.  We need to be able to allocate quota to a group of projects.
- 2.  We need to be able to limit a particular project's usage of shared quota (think htb rate/ceil for tc qdisc classes).
- 3.  We need to be able to manage groups across related projects, but not across the entire cluster.
- 4.  We need to be able to limit how many projects a given User/Organization can have.  (limits provisioning)
+ 1.  Cluster administrators want to allocate a pool of resources to a subset of their company, and delegate the authority to manage how that pool is assigned to an organization administrator.
+ 2.  An organization administrator needs to be able to limit a particular project's usage of shared quota (think htb rate/ceil for tc qdisc classes).
+ 3.  Cluster administrators want to delegate control over groups of users to an organization administrator - that organization administrator should be able to manage the access of a set of users to individual projects under that organization umbrella.
+ 4.  Cluster administrators want to allow self-service of users on the cluster, but the total allocated resources those self service users can get access to is limited (to prevent abuse / unfair use of resources).
 
 We can do this with an Organization entity that can manage multiple projects.  An Organization can have multiple org-admins who are allowed to manage quota allocation to owned projects and OrgGroups (groups that scoped to projects owned by an Organization).  A project is owned by at most one Organization, an Organization can own muliple projects.
 
 ### Open Questions
- 1.  Should we have a two layer scoping `/api/v1/organization/<org name>/namespace/<namespace name>` or keep the current namespace structure?
+ 1.  Should we have a two layer scoping `/api/v1/organization/<org name>/namespace/<namespace name>` or keep the current namespace structure?  No, we should not. (yay!)
 
      Keeping the current namespace structure mitigates changes, but prevents two orgs from having the same namespace and makes storing additional org-scoped resources like quota and groups more difficult.
-     I'm in favor of keeping the current structure, but allowing deeper nesting of subresources and having named subresources.
 
  2.  Should we allow projects to be owned by Users or only allow ownership by Organizations?
 
@@ -27,6 +26,13 @@ We can do this with an Organization entity that can manage multiple projects.  A
 
      An org-admin shouldn't be able to take a project from someone else and they shouldn't be allowed to orphan their own project.  That means we'd need an offer/request/approval flow.
 
+ 5.  Should cluster/org admins be able to force projects to be created with a name prefix to guarantee uniqueness.
+
+     This would make it impossible to reasonably transfer a project to new organization.  I'd be more interested in allowing namespaces to have a local name under an organization that must be unique, but can collide across the cluster.  Then essentially proxying `/api/v1/organization/<org name>/namespace/<local alias>/pods` to `/api/v1/namespace/<actual namespace name>/pods`.
+
+ 6.  What things can org-admins do?
+
+ 	There's a list below proposing things.
 
 
 ## Organizations
@@ -37,19 +43,13 @@ type Organization struct {
 	kapi.TypeMeta
 	kapi.ObjectMeta
 
-	// AdminUsers is a list of Users that can administer this Organization.  By default a policy rule exists
+	// Owners is a list of Subjects that can administer this Organization.  By default a policy rule exists
 	// that allows all Users to inspect and modify OrgGroups of Organizations that they are an Admin for.
 	// Admins may NOT modify Organization membership.
-	AdminUsers util.StringSet
-	// AdminGroups is a list of Groups that can administer this Organization.  By default a policy rule exists
-	// that allows all Users to inspect and modify OrgGroups of Organizations that they are an Admin for.
-	// Admins may NOT modify Organization membership.
-	AdminGroups util.StringSet
+	Owners []kapi.ObjectReference
 
-	// MemberUsers is a list of Users that are members of the Organization.  Only members may be assigned to OrgGroups.
-	MemberUsers util.StringSet
-	// MemberGroups is a list of Groups whose constituent users are considered members of the Organization.  Only members may be assigned to OrgGroups.
-	MemberGroups util.StringSet
+	// Members is a list of Subjects that are members of the Organization.  Only members may be assigned to OrgGroups.
+	Members []kapi.ObjectReference
 }
 ```
 
