@@ -117,8 +117,6 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	current_schema=${schema[$i]}
 	echo "[INFO] Testing schema: ${current_schema}"
 
-	oc delete groups --all
-
 	WORKINGDIR=${BASETMPDIR}/${current_schema}
 	mkdir ${WORKINGDIR}
 
@@ -223,6 +221,13 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	echo -e "\tTEST: Sync all LDAP groups from LDAP server using DN as attribute whenever possible"
     openshift ex sync-groups --sync-config=sync-config-dn-everywhere.yaml --confirm
 	compare_and_cleanup valid_all_ldap_sync_dn_everywhere.txt
+
+	# PRUNING
+	echo -e "\tTEST: Sync all LDAP groups from LDAP server, change LDAP UID, then prune OpenShift groups"
+	openshift ex sync-groups --sync-config=sync-config.yaml --confirm
+	oc patch group ${group2_osuid} -p "{\"metadata\":{\"annotations\":{\"openshift.io/ldap.uid\":\"cn=garbage,${group2_ldapuid}\"}}}"
+	openshift ex prune-groups --sync-config=sync-config.yaml --confirm
+	compare_and_cleanup valid_all_ldap_sync_prune.txt
 
     popd > /dev/null
 done
