@@ -50,7 +50,9 @@ angular.module('openshiftConsole')
         var config = {
           bindto: '#' + $scope.chartID,
           padding: {
-            right: 30
+            right: 30,
+            // Prevent problems with the y-axis label getting cut off on updates.
+            left: 80
           },
           axis: {
             x: {
@@ -58,9 +60,6 @@ angular.module('openshiftConsole')
               label: {
                 text: 'Build Number',
                 position: 'outer-right'
-              },
-              padding: {
-                bottom: 0
               },
               tick: {
                 culling: true,
@@ -77,7 +76,6 @@ angular.module('openshiftConsole')
               },
               min: 0,
               padding: {
-                left: 0,
                 bottom: 0
               },
               tick: {
@@ -91,6 +89,12 @@ angular.module('openshiftConsole')
           bar: {
             width: {
               max: 50
+            }
+          },
+          legend: {
+            item: {
+              // Disable clicking to filter groups
+              onclick: _.noop
             }
           },
           size: {
@@ -264,6 +268,11 @@ angular.module('openshiftConsole')
           } else {
             data.unload = unload;
             chart.load(data);
+            setTimeout(function() {
+              // Call flush to work around a c3.js bug where the y-axis label
+              // overlaps the tick values when the data changes.
+              chart.flush();
+            }, 10);
           }
 
           // Update average line.
