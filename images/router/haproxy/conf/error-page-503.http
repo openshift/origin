@@ -1,0 +1,12 @@
+HTTP/1.0 503 Service Unavailable
+Pragma: no-cache
+Cache-Control: private, max-age=0, no-cache, no-store
+Connection: close
+Content-Type: text/html
+
+<html>
+  <body>
+    <h1>503 Service Unavailable</h1>
+    No server available to handle the request.
+  </body>
+</html>
