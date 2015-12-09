@@ -87,7 +87,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 
 	// ensure hosts can only be claimed by one namespace at a time
 	// TODO: this could be abstracted above this layer?
-	if old, ok := p.hostToRoute[host]; ok {
+	if old, ok := p.hostToRoute[host]; ok && len(old) > 0 {
 		oldest := old[0]
 
 		// multiple paths can be added from the namespace of the oldest route
@@ -153,7 +153,11 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 						next = append(next, old[i])
 					}
 				}
-				p.hostToRoute[host] = next
+				if len(next) > 0 {
+					p.hostToRoute[host] = next
+				} else {
+					delete(p.hostToRoute, host)
+				}
 			}
 		}
 		delete(p.routeToHost, routeName)
