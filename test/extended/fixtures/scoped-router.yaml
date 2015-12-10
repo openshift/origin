@@ -1,6 +1,7 @@
 apiVersion: v1
 kind: List
 items:
+# a scoped router
 - apiVersion: v1
   kind: Pod
   metadata:
@@ -24,6 +25,32 @@ items:
         name: stats
         protocol: TCP
     serviceAccountName: default
+
+# a router that overrides host
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: router-override
+    labels:
+      test: router-override
+  spec:
+    containers:
+    - name: router
+      image: openshift/origin-haproxy-router
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-hostname", "--hostname-template='${name}-${namespace}.myapps.mycompany.com'"]
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+
 
 # ensure the router can access routes and endpoints
 - apiVersion: v1
@@ -88,7 +115,7 @@ items:
   spec:
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: openshift/deployment-example:v1
       ports:
       - containerPort: 8080
         name: http
