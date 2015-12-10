@@ -224,14 +224,19 @@ func (oc *OvsController) markPodNetworkReady() {
 }
 
 func (oc *OvsController) WaitForPodNetworkReady() error {
-	timeout := 2 * time.Minute
-	select {
-	case <-oc.podNetworkReady:
+	logInterval := 10 * time.Second
+	numIntervals := 12 // timeout: 2 mins
+
+	for i := 0; i < numIntervals; i++ {
+		select {
 		// Wait for StartNode() to finish SDN setup
-	case <-time.After(timeout):
-		return fmt.Errorf("SDN pod network is not ready(timeout: %v)", timeout)
+		case <-oc.podNetworkReady:
+			return nil
+		case <-time.After(logInterval):
+			log.Infof("Waiting for SDN pod network to be ready...")
+		}
 	}
-	return nil
+	return fmt.Errorf("SDN pod network is not ready(timeout: 2 mins)")
 }
 
 func (oc *OvsController) Stop() {

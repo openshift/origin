@@ -262,12 +262,10 @@ func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeCo
 	if controller != nil {
 		config.KubeletConfig.NetworkPlugins = append(config.KubeletConfig.NetworkPlugins, controller)
 
-		go func() {
-			err := controller.StartNode(nodeConfig.NetworkConfig.MTU)
-			if err != nil {
-				glog.Fatalf("SDN Node failed: %v", err)
-			}
-		}()
+		err := controller.StartNode(nodeConfig.NetworkConfig.MTU)
+		if err != nil {
+			glog.Fatalf("SDN Node failed: %v", err)
+		}
 	}
 
 	return endpointFilter
@@ -280,11 +278,11 @@ func StartNode(nodeConfig configapi.NodeConfig) error {
 	}
 	glog.Infof("Starting node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
 
-	endpointFilter := RunSDNController(config, nodeConfig)
 	config.EnsureVolumeDir()
 	config.EnsureDocker(docker.NewHelper())
-	config.RunProxy(endpointFilter)
 	config.RunKubelet()
+	endpointFilter := RunSDNController(config, nodeConfig)
+	config.RunProxy(endpointFilter)
 
 	return nil
 }
