@@ -16,7 +16,9 @@ import (
 	"github.com/onsi/gomega"
 	flag "github.com/spf13/pflag"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/test/e2e"
@@ -87,7 +89,7 @@ func ExecuteTest(t *testing.T, suite string) {
 }
 
 // ensureKubeE2EPrivilegedSA ensures that all namespaces prefixed with 'e2e-' have their
-// service accounts in the privileged SCC
+// service accounts in the privileged and anyuid SCCs
 func ensureKubeE2EPrivilegedSA() {
 	desc := ginkgo.CurrentGinkgoTestDescription()
 	if strings.Contains(desc.FileName, "/kubernetes/test/e2e/") {
@@ -96,31 +98,42 @@ func ensureKubeE2EPrivilegedSA() {
 		if err != nil {
 			FatalErr(err)
 		}
-		priv, err := c.SecurityContextConstraints().Get("privileged")
-		if err != nil {
-			if apierrs.IsNotFound(err) {
-				return
-			}
-			FatalErr(err)
-		}
 		namespaces, err := c.Namespaces().List(labels.Everything(), fields.Everything())
 		if err != nil {
 			FatalErr(err)
 		}
-		groups := []string{}
-		for _, name := range priv.Groups {
-			if !strings.Contains(name, "e2e-") {
-				groups = append(groups, name)
-			}
+		// add to the "privileged" scc to ensure pods that explicitly
+		// request extra capabilities are not rejected
+		addE2EServiceAccountsToSCC(c, namespaces, "privileged")
+		// add to the "anyuid" scc to ensure pods that don't specify a
+		// uid don't get forced into a range (mimics upstream
+		// behavior)
+		addE2EServiceAccountsToSCC(c, namespaces, "anyuid")
+	}
+}
+
+func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces *kapi.NamespaceList, sccName string) {
+	scc, err := c.SecurityContextConstraints().Get(sccName)
+	if err != nil {
+		if apierrs.IsNotFound(err) {
+			return
 		}
-		for _, ns := range namespaces.Items {
-			if strings.HasPrefix(ns.Name, "e2e-") {
-				groups = append(groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
-			}
+		FatalErr(err)
+	}
+
+	groups := []string{}
+	for _, name := range scc.Groups {
+		if !strings.Contains(name, "e2e-") {
+			groups = append(groups, name)
 		}
-		priv.Groups = groups
-		if _, err := c.SecurityContextConstraints().Update(priv); err != nil {
-			FatalErr(err)
+	}
+	for _, ns := range namespaces.Items {
+		if strings.HasPrefix(ns.Name, "e2e-") {
+			groups = append(groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
 		}
+	}
+	scc.Groups = groups
+	if _, err := c.SecurityContextConstraints().Update(scc); err != nil {
+		FatalErr(err)
 	}
 }
