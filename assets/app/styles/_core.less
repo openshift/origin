@@ -39,8 +39,6 @@
   }
 }
 .console-os {
-  .navbar {
-  }
   .page-header {
     margin-top: 22px;
     .actions {
@@ -48,15 +46,6 @@
     }
   }
 }
-#header-logo {
-  background-image: url('@{image-path}/logo-origin-thin.svg');
-  background-repeat: no-repeat;
-  background-position: center left;
-  background-size: contain;
-  height: 20px;
-  width: 160px;
-}
-
 
 
  @media (min-width: @screen-sm-min) {
@@ -133,9 +122,6 @@
   .btn {
     margin: 10px 0 20px;
   }
-}
-
-.empty-state-full-page {
   @media (min-height: 500px) {
     margin-top: 150px;
   }
@@ -212,6 +198,7 @@
   }
 }
 
+
 .pod-metrics {
   .metrics-options {
     .form-group {
@@ -236,6 +223,7 @@
     padding-top: 5px;
   }
 }
+
 
 // Create App
 // --------------------------------------------------
@@ -801,12 +789,8 @@ labels + .resource-details {
   border-bottom: 1px solid #eee;
 }
 
-h1 small.meta, .build-config-summary .meta {
+h1 small.meta {
   font-size: 12px;
-  @media (max-width: @screen-xs-min) {
-    display: block;
-    margin-top: 5px;
-  }
 }
 
 .action-divider {

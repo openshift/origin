@@ -14,13 +14,19 @@ html,body {
   background-color: @body-bg;
   .top-header {
     .flex-display(@display: flex);
-    height:110px; /* top offset height */
     position:relative;
     z-index:10;
+    height:107px; /* top offset height */
   }
   .wrap {
     display: block;
     overflow: visible;
+    > .container { // Pages without project nav
+      margin-bottom: @grid-gutter-width * 2;
+      h1 {
+        margin: 10px 0 20px;
+      }
+    }
   }
   .sidebar-left,.middle,.sidebar-right {
     display: block;

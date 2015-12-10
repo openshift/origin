@@ -4,6 +4,8 @@
 
 .navbar-project-menu {
   background: @sidebar-os-bg;
+  border-bottom: 1px solid @navbar-os-sidebar-border-color;
+  border-top: 1px solid @navbar-os-sidebar-border-color;
   margin: 0 -@navbar-padding-horizontal;
   .navbar-project-search {
     display: inline-block;
@@ -29,7 +31,7 @@
       box-shadow: none;
       border-top: 0;
       line-height: @line-height-base;
-      padding: 7px 30px 7px 30px;
+      padding: 7px 45px 7px 20px;
       transition: none;
       width: 100%;
       &:hover, &:focus {
@@ -38,6 +40,9 @@
       }
       &:focus {
         .tab-focus();
+        &:active {
+          outline: none !important;
+        }
       }
     }
     .dropdown-toggle .caret {
@@ -59,6 +64,9 @@
       &:hover {
         background-color: @sidebar-os-hover-bg;
         color: @sidebar-os-active-color;
+      }
+      &:last-child {
+        border-left: 1px solid @navbar-os-sidebar-border-color;
       }
     }
   }
@@ -88,20 +96,24 @@
 @media (min-width: @screen-sm-min) {
   .navbar-project-menu {
     background: @navbar-os-project-bg;
+    border-bottom:0;
+    border-top:0;
     float: left;
+    margin: 0;
     padding-top: 0;
     .bootstrap-select.btn-group .btn {
       border-left:1px solid #4d5258;
       border-right:1px solid #4d5258;
       // border-left:1px solid @navbar-os-sidebar-border-color; dark borders
       // border-right:1px solid @navbar-os-sidebar-border-color;
+      padding: 9px 30px 7px 30px;
       &:before {
         color: @gray-light;
         content: 'Projects';
         font-size: @font-size-xsmall;
         left: 30px;
         position: absolute;
-        top: 7px;
+        top: 8px;
       }
     }
     .bootstrap-select .dropdown-toggle {
