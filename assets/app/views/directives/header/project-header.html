@@ -1,13 +1,24 @@
 <nav class="navbar navbar-pf-alt" role="navigation">
   <navbar-logo></navbar-logo>
-  <nav class="collapse navbar-collapse">
-    <div class="nav navbar-nav navbar-project-menu">
-      <div flex class="form-group">
-        <!-- TODO add multiple attribute back to the select tag when we support selecting multiple -->
-        <!-- Use title="" to prevent "Nothing selected" from briefly flashing while the projects are still loading. -->
-        <select class="selectpicker form-control" data-selected-text-format="count>3" id="boostrapSelect" title=""></select>
+  <nav class="container-fluid">
+    <div class="nav navbar-project-menu">
+      <div row>
+        <div flex grow="5" class="form-group">
+          <!-- TODO add multiple attribute back to the select tag when we support selecting multiple -->
+          <!-- Use title="" to prevent "Nothing selected" from briefly flashing while the projects are still loading. -->
+          <select class="selectpicker form-control" data-selected-text-format="count>3" id="boostrapSelect" title=""></select>
+        </div>
+        <!-- Filter and create buttons show at mobile -->
+        <div row flex class="project-actions">
+          <a class="project-action-btn" href="javascript:;" role="button" data-toggle="collapse" data-target=".navbar-collapse-3" aria-expanded="false" title="Filter by labels" aria-pressed="false" ng-if="!renderOptions || !renderOptions.hideFilterWidget">
+            <i class="fa fa-filter"></i>
+          </a>
+          <a class="project-action-btn" href="project/{{project.metadata.name}}/create" ng-disabled="project.status.phase != 'Active'" title="Add to project">
+            <i class="fa fa-plus"></i>
+          </a>
+        </div>
       </div>
     </div> <!-- /navbar-project-menu -->
-    <navbar-utility></navbar-utility>
+    <navbar-utility class="hidden-xs"></navbar-utility>
   </nav>
 </nav>

@@ -14,9 +14,9 @@ html,body {
   background-color: @body-bg;
   .top-header {
     .flex-display(@display: flex);
+    height:110px; /* top offset height */
     position:relative;
     z-index:10;
-    height:60px; /* top offset height */
   }
   .wrap {
     display: block;
@@ -87,6 +87,9 @@ html,body {
       width:100%;
       -webkit-backface-visibility:hidden;
       backface-visibility:hidden;
+    }
+    .top-header {
+      height:60px; /* top offset height */
     }
     .sidebar-left,.middle,.sidebar-right {
       overflow-y:auto;

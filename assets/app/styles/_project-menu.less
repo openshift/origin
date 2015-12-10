@@ -3,6 +3,8 @@
 // -----------------------------------------------
 
 .navbar-project-menu {
+  background: @sidebar-os-bg;
+  margin: 0 -@navbar-padding-horizontal;
   .navbar-project-search {
     display: inline-block;
   }
@@ -16,16 +18,15 @@
   }
   .bootstrap-select.btn-group {
       .btn {
+      border-color: @navbar-os-sidebar-border-color;
+      border-width: 0 1px 0 0;
+      border-radius: 0;
       color: @navbar-os-project-menu-color;
       font-size: @font-size-large + 4;
       font-weight: 300;
       background: @sidebar-os-bg;
       border-bottom: 0;
-      border-left:1px solid #4d5258;
-      border-right:1px solid #4d5258;
       box-shadow: none;
-      // border-left:1px solid @navbar-os-sidebar-border-color; dark borders
-      // border-right:1px solid @navbar-os-sidebar-border-color;
       border-top: 0;
       line-height: @line-height-base;
       padding: 7px 30px 7px 30px;
@@ -36,15 +37,7 @@
         color: @sidebar-os-active-color;
       }
       &:focus {
-        .focus-outline;
-      }
-      &:before {
-        color: @gray-light;
-        content: 'Projects';
-        font-size: @font-size-xsmall;
-        left: 30px;
-        position: absolute;
-        top: 7px;
+        .tab-focus();
       }
     }
     .dropdown-toggle .caret {
@@ -56,6 +49,19 @@
       }
     }
   }
+  .project-actions {
+    a.project-action-btn {
+      color: @navbar-os-project-menu-color;
+      text-decoration: none;
+      .align-items(@align: center);
+      .flex(@columns: 1 0 0%);
+      .justify-content(@justify: center);
+      &:hover {
+        background-color: @sidebar-os-hover-bg;
+        color: @sidebar-os-active-color;
+      }
+    }
+  }
 }
 @media (max-width: @screen-xs-max) {
   // Project nav at mobile widths
@@ -63,16 +69,47 @@
     .form-group {
       display: inline;
     }
+    .project-actions {
+      a {
+        color: lighten(@navbar-os-project-menu-color, 20%);
+        cursor: pointer;
+        display: flex;
+        font-size: 18px;
+        // padding: 4px 14px 5px; CLEANUP
+        &:hover, &:active, &:focus {
+          background-color: @sidebar-os-active-bg;
+          color: @navbar-os-project-menu-color;
+        }
+      }
+    }
   }
 }
 
 @media (min-width: @screen-sm-min) {
   .navbar-project-menu {
     background: @navbar-os-project-bg;
+    float: left;
     padding-top: 0;
+    .bootstrap-select.btn-group .btn {
+      border-left:1px solid #4d5258;
+      border-right:1px solid #4d5258;
+      // border-left:1px solid @navbar-os-sidebar-border-color; dark borders
+      // border-right:1px solid @navbar-os-sidebar-border-color;
+      &:before {
+        color: @gray-light;
+        content: 'Projects';
+        font-size: @font-size-xsmall;
+        left: 30px;
+        position: absolute;
+        top: 7px;
+      }
+    }
     .bootstrap-select .dropdown-toggle {
       height: 60px;
       min-width: 270px;
+    }
+    .project-actions {
+      display: none;
     }
   }
 }
