@@ -56,13 +56,17 @@ func (pb *pipelineBuilder) To(name string) PipelineBuilder {
 // NewBuildPipeline creates a new pipeline with components that are expected to
 // be built.
 func (pb *pipelineBuilder) NewBuildPipeline(from string, resolvedMatch *ComponentMatch, sourceRepository *SourceRepository) (*Pipeline, error) {
-	input, err := InputImageFromMatch(resolvedMatch)
-	if err != nil {
-		return nil, fmt.Errorf("can't build %q: %v", from, err)
-	}
-	if !input.AsImageStream {
-		msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed."
-		glog.Warningf(msg, resolvedMatch.Value)
+	var input *ImageRef
+	if resolvedMatch != nil {
+		inputImage, err := InputImageFromMatch(resolvedMatch)
+		if err != nil {
+			return nil, fmt.Errorf("can't build %q: %v", from, err)
+		}
+		input = inputImage
+		if !input.AsImageStream {
+			msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed."
+			glog.Warningf(msg, resolvedMatch.Value)
+		}
 	}
 
 	strategy, source, err := StrategyAndSourceForRepository(sourceRepository, input)

@@ -82,6 +82,9 @@ func (r ComponentReferences) NeedsSource() (refs ComponentReferences) {
 // ImageComponentRefs returns the list of component references to images
 func (r ComponentReferences) ImageComponentRefs() (refs ComponentReferences) {
 	return r.filter(func(ref ComponentReference) bool {
+		if ref.Input().ScratchImage {
+			return true
+		}
 		return ref.Input() != nil && ref.Input().ResolvedMatch != nil && ref.Input().ResolvedMatch.IsImage()
 	})
 }
@@ -262,6 +265,7 @@ type ComponentInput struct {
 	Value    string
 
 	ExpectToBuild bool
+	ScratchImage  bool
 
 	Uses          *SourceRepository
 	ResolvedMatch *ComponentMatch
