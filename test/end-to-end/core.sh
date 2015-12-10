@@ -171,7 +171,7 @@ echo "[INFO] Streaming the logs from a deployment twice..."
 oc create -f test/fixtures/failing-dc.yaml
 tryuntil oc get rc/failing-dc-1
 oc logs -f dc/failing-dc
-wait_for_command "oc get rc/failing-dc-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((20*TIME_SEC))
+wait_for_command "oc get rc/failing-dc-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((60*TIME_SEC))
 oc logs dc/failing-dc | grep 'test pre hook executed'
 oc deploy failing-dc --latest
 oc logs --version=1 dc/failing-dc
