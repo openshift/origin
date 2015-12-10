@@ -41,6 +41,8 @@ Getting Started
 
 ### Installation
 
+If you have downloaded the client tools, place the included binaries in your PATH.
+
 * For a quick install of Origin, see the [Getting Started Install guide](https://docs.openshift.org/latest/getting_started/administrators.html).
 * For an advanced installation using [Ansible](https://github.com/openshift/openshift-ansible), follow the [Advanced Installation guide](https://docs.openshift.org/latest/install_config/install/advanced_install.html)
 * To build and run from source, see [CONTRIBUTING.adoc](CONTRIBUTING.adoc)
