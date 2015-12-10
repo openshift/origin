@@ -6,7 +6,7 @@ ORIGIN_ROOT=${1:-/vagrant}
 
 yum install -y deltarpm
 yum update -y
-yum install -y docker-io go git
+yum install -y docker-io go git bash-completion
 
 # It should be safe to bypass security to access docker in a dev
 # environment.  This also allows bash completion, which doesn't work

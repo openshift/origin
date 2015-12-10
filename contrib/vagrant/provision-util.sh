@@ -128,6 +128,9 @@ os::provision::set-os-env() {
   fi
   os::provision::set-bash-env "${origin_root}" "${config_root}" \
 "/root/${file_target}"
+
+  # Make symlinks to the bash completions for the openshift commands
+  ln -s ${origin_root}/contrib/completions/bash/* /etc/bash_completion.d/
 }
 
 os::provision::get-admin-config() {
@@ -215,7 +218,7 @@ os::provision::install-pkgs() {
   if ! os::provision::in-container; then
     yum install -y deltarpm
     yum update -y
-    yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils which ethtool
+    yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils which ethtool bash-completion
 
     systemctl enable docker
     systemctl start docker
