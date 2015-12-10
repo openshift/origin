@@ -5336,6 +5336,8 @@ _openshift_cli_status()
 
     flags+=("--output=")
     two_word_flags+=("-o")
+    flags+=("--verbose")
+    flags+=("-v")
     flags+=("--alsologtostderr")
     flags+=("--api-version=")
     flags+=("--boot-id-file=")
