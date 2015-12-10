@@ -116,7 +116,7 @@ middleware:
 	os.Setenv("OPENSHIFT_CERT_DATA", string(clusterAdminClientConfig.CertData))
 	os.Setenv("OPENSHIFT_KEY_DATA", string(clusterAdminClientConfig.KeyData))
 	os.Setenv("OPENSHIFT_MASTER", clusterAdminClientConfig.Host)
-	os.Setenv("REGISTRY_URL", "127.0.0.1:5000")
+	os.Setenv("DOCKER_REGISTRY_URL", "127.0.0.1:5000")
 
 	go dockerregistry.Execute(strings.NewReader(config))
 

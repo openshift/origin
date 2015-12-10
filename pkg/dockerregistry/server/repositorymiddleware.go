@@ -39,9 +39,9 @@ var _ distribution.ManifestService = &repository{}
 
 // newRepository returns a new repository middleware.
 func newRepository(ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
-	registryAddr := os.Getenv("REGISTRY_URL")
+	registryAddr := os.Getenv("DOCKER_REGISTRY_URL")
 	if len(registryAddr) == 0 {
-		return nil, errors.New("REGISTRY_URL is required")
+		return nil, errors.New("DOCKER_REGISTRY_URL is required")
 	}
 
 	registryClient, err := NewRegistryOpenShiftClient()
