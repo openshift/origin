@@ -6,7 +6,7 @@
  3.  Cluster administrators want to delegate control over groups of users to an organization administrator - that organization administrator should be able to manage the access of a set of users to individual projects under that organization umbrella.
  4.  Cluster administrators want to allow self-service of users on the cluster, but the total allocated resources those self service users can get access to is limited (to prevent abuse / unfair use of resources).
 
-We can do this with an Organization entity that can manage multiple projects.  An Organization can have multiple org-admins who are allowed to manage quota allocation to owned projects and OrgGroups (groups that scoped to projects owned by an Organization).  A project is owned by at most one Organization, an Organization can own muliple projects.
+We can do this with an Organization entity that can manage multiple projects.  An Organization can have multiple org-owners who are allowed to manage quota allocation to owned projects and OrgGroups (groups that scoped to projects owned by an Organization).  A project is owned by at most one Organization, an Organization can own muliple projects.
 
 ### Open Questions
  1.  Should we have a two layer scoping `/api/v1/organization/<org name>/namespace/<namespace name>` or keep the current namespace structure?  No, we should not. (yay!)
@@ -24,20 +24,20 @@ We can do this with an Organization entity that can manage multiple projects.  A
 
  4.  Can we punt on project transfering?
 
-     An org-admin shouldn't be able to take a project from someone else and they shouldn't be allowed to orphan their own project.  That means we'd need an offer/request/approval flow.
+     An org-owner shouldn't be able to take a project from someone else and they shouldn't be allowed to orphan their own project.  That means we'd need an offer/request/approval flow.
 
  5.  Should cluster/org admins be able to force projects to be created with a name prefix to guarantee uniqueness.
 
      This would make it impossible to reasonably transfer a project to new organization.  I'd be more interested in allowing namespaces to have a local name under an organization that must be unique, but can collide across the cluster.  Then essentially proxying `/api/v1/organization/<org name>/namespace/<local alias>/pods` to `/api/v1/namespace/<actual namespace name>/pods`.
 
- 6.  What things can org-admins do?
+ 6.  What things can org-owners do?
 
  	There's a list below proposing things.
 
 
 ## Organizations
 An Organization is a cluster scoped API object that references Users and has subresources for accessing and modifying Organization scoped OrgGroups.
-```
+```go
 // Organization contains the set of Users that are members of the Organization.
 type Organization struct {
 	kapi.TypeMeta
@@ -76,7 +76,7 @@ I'm sure there will be complaints no matter what we do.
 
 
 ## Default Policy
-org-admins should have power somewhere between a cluster-admin and a project-admin.  Since the idea of an Organization doesn't scope cleanly, we can make use of the `attributeRestrictions` to run custom logic for a cluster-scoped rule.  We can create a `ClusterRoleBinding` to `system:authenticated` that allows a `ClusterRole` with the correct access to every project that the is owned by a Organization that the user is an org-admin for.  That makes it impossible for an org-admin to accidentally (or intentionally) remove his powers on a project.
+org-owners should have power somewhere between a cluster-admin and a project-admin.  Since the idea of an Organization doesn't scope cleanly, we can make use of the `attributeRestrictions` to run custom logic for a cluster-scoped rule.  We can create a `ClusterRoleBinding` to `system:authenticated` that allows a `ClusterRole` with the correct access to every project that the is owned by a Organization that the user is an org-owner for.  That makes it impossible for an org-owner to accidentally (or intentionally) remove his powers on a project.
 
 
 ## Project ownership
@@ -90,17 +90,16 @@ A given user can:
 
 
 ## OrgGroups Overview
-Project administrators need to be able to define groups so they can efficiently manage policy on their projects, however a project administrator is unlikely to be allowed to manage cluster-scoped group membership across all projects.  A single project administrator (or set of project administrators) is likely to own multiple related projects (think single department running multiple projects).  To allow cluster-scoped group definitions to be shared across multiple related projects, we'll introduce the concept of OrgGroups (scoped sets of users) and Organizations (things that reference Users and own OrgGroups).
+Organization owner need to be able to define groups so they can efficiently manage policy on their projects, however a organization owner is unlikely to be allowed to manage cluster-scoped group membership across all projects.  A single organization owner (or set of organization owners) is likely to own multiple related projects (think single department running multiple projects).  To allow cluster-scoped group definitions to be shared across multiple related projects, we'll introduce the concept of OrgGroups (scoped sets of users) that are logicaly owned by Organizations.
 
-Organizations are cluster-scoped resources that contains a set of OrgGroups, a list of admins (users that can manage the groups), and a list of members (users that can be part of the OrgGroups).  Groups are cluster-scoped sets of users that are managed by a cluster-admin.  OrgGroups are organization scoped sets of users that are managed by the Organization.AdminUsers.  Projects may have at most one owning Organization.  OrgGroups may only be referenced in RoleBindings of Projects owned by the Organization.
+OrgGroups look a lot like Groups, but they are always logically scoped to a particular Organization and they behave differently.  They will be cluster scoped resources, but we'll indicate the Organization scope of an OrgGroup by prefixing every OrgGroup name with Organization name.  This prefixing allows two organizations to have groups with the same name.  OrgGroups are managed by Organization.Owners (Groups are managed by cluster admins), OrgGroups can only contain Users that are Organization.Members (Groups can contain any user), OrgGroups can only be bound to roles in projects owned by the Organization (Groups can be bound to roles in any project).
 
 
 ### Use Cases
  1.  I want to enable a subset of users to be able to organize sets of Users into OrgGroups, but I only want those changes to affect policy evaluation across some projects.
 
 ### OrgGroups
-OrgGroups look a lot like Groups, but they are always scoped to a particular Organization and they behave differently.  OrgGroups are managed by Organization.Admins (Groups are managed by cluster admins), OrgGroups can only contain Users that are Organization.Members (Groups can contain any user), OrgGroups can only be bound to roles in projects owned by the Organization (Groups can be bound to roles in any project).  They will be cluster scoped resources, but we'll indicate the Organization scope of an OrgGroup by prefixing every OrgGroup name with Organization name.  This prefixing allows two organizations to have groups with the same name.
-```
+```go
 // OrgGroup contains the set of Users that belong to a given OrgGroup.  The name of a OrgGroup is required to 
 // to be in the form of "OrganizationName:OrgGroupName".
 type OrgGroup struct {
@@ -108,7 +107,7 @@ type OrgGroup struct {
 	kapi.ObjectMeta
 
 	// Users is a list of Users that are members of the OrgGroup
-	Users util.StringSet
+	Users []string
 }
 ```
 
