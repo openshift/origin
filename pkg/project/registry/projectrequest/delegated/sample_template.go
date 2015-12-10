@@ -39,7 +39,7 @@ func DefaultTemplate() *templateapi.Template {
 	ret.Objects = append(ret.Objects, project)
 
 	binding := &authorizationapi.RoleBinding{}
-	binding.Name = "admins"
+	binding.Name = bootstrappolicy.AdminRoleName
 	binding.Namespace = ns
 	binding.Subjects = []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "${" + ProjectAdminUserParam + "}"}}
 	binding.RoleRef.Name = bootstrappolicy.AdminRoleName
