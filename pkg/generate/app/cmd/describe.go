@@ -43,6 +43,8 @@ func extractFirstImageStreamTag(newOnly bool, images ...*app.ImageRef) string {
 func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) string {
 	match := refInput.ResolvedMatch
 	switch {
+	case match == nil:
+		return ""
 	case match.ImageStream != nil:
 		if image := match.Image; image != nil {
 			shortID := imageapi.ShortDockerImageID(image, 7)
@@ -72,11 +74,16 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 		fmt.Fprintf(out, "--> %s\n", locatedImage)
 	}
 
-	trackedImage := extractFirstImageStreamTag(true, pipeline.InputImage, pipeline.Image)
-	if len(trackedImage) > 0 {
-		fmt.Fprintf(out, "    * An image stream will be created as %q that will track this image\n", trackedImage)
-	}
-	if pipeline.Build != nil {
+	if pipeline.Build == nil {
+		trackedImage := extractFirstImageStreamTag(true, pipeline.InputImage, pipeline.Image)
+		if len(trackedImage) > 0 {
+			fmt.Fprintf(out, "    * An image stream will be created as %q that will track this image\n", trackedImage)
+		}
+	} else {
+		trackedImage := extractFirstImageStreamTag(true, pipeline.InputImage)
+		if len(trackedImage) > 0 {
+			fmt.Fprintf(out, "    * An image stream will be created as %q that will track the source image\n", trackedImage)
+		}
 		if refInput.Uses != nil && refInput.Uses.Info() != nil {
 			matches := []string{}
 			for _, t := range refInput.Uses.Info().Types {
@@ -137,7 +144,7 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 			fmt.Fprintf(out, "      You can add persistent volumes later by running 'volume dc/%s --add ...'\n", pipeline.Deployment.Name)
 		}
 	}
-	if match.Image != nil {
+	if match != nil && match.Image != nil {
 		if pipeline.Deployment != nil {
 			ports := sets.NewString()
 			if match.Image.Config != nil {

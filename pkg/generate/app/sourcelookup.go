@@ -349,10 +349,6 @@ func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, e
 // TODO: user should be able to choose whether to download a remote source ref for
 // more info
 func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*BuildStrategyRef, *SourceRef, error) {
-	if image == nil {
-		return nil, nil, fmt.Errorf("an image ref is required to generate a strategy and sourceref")
-	}
-
 	strategy := &BuildStrategyRef{
 		Base:          image,
 		IsDockerBuild: repo.IsDockerBuild(),

@@ -166,14 +166,19 @@ type BuildStrategyRef struct {
 // BuildStrategy builds an OpenShift BuildStrategy from a BuildStrategyRef
 func (s *BuildStrategyRef) BuildStrategy(env Environment) (*buildapi.BuildStrategy, []buildapi.BuildTriggerPolicy) {
 	if s.IsDockerBuild {
-		dockerFrom := s.Base.ObjectReference()
+		var triggers []buildapi.BuildTriggerPolicy
+		strategy := &buildapi.DockerBuildStrategy{
+			Env: env.List(),
+		}
+		if s.Base != nil {
+			ref := s.Base.ObjectReference()
+			strategy.From = &ref
+			triggers = s.Base.BuildTriggers()
+		}
 		return &buildapi.BuildStrategy{
-			Type: buildapi.DockerBuildStrategyType,
-			DockerStrategy: &buildapi.DockerBuildStrategy{
-				From: &dockerFrom,
-				Env:  env.List(),
-			},
-		}, s.Base.BuildTriggers()
+			Type:           buildapi.DockerBuildStrategyType,
+			DockerStrategy: strategy,
+		}, triggers
 	}
 
 	return &buildapi.BuildStrategy{
