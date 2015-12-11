@@ -86,9 +86,23 @@ readonly OPENSHIFT_BINARY_COPY=(
 readonly OC_BINARY_COPY=(
   kubectl
 )
-readonly OS_BINARY_RELEASE_WINDOWS=(
+readonly OS_BINARY_RELEASE_CLIENT_WINDOWS=(
   oc.exe
-  kubectl.exe
+  README.md
+)
+readonly OS_BINARY_RELEASE_CLIENT_MAC=(
+  oc
+  README.md
+)
+readonly OS_BINARY_RELEASE_CLIENT_LINUX=(
+  ./oc
+  ./README.md
+)
+readonly OS_BINARY_RELEASE_SERVER_LINUX=(
+  './*'
+)
+readonly OS_BINARY_RELEASE_CLIENT_EXTRA=(
+  ${OS_ROOT}/README.md
 )
 
 # os::build::binaries_from_targets take a list of build targets and return the
@@ -290,7 +304,6 @@ os::build::place_bins() {
     fi
 
     os::build::export_targets "$@"
-
     for platform in "${platforms[@]}"; do
       # The substitution on platform_src below will replace all slashes with
       # underscores.  It'll transform darwin/amd64 -> darwin_amd64.
@@ -354,20 +367,53 @@ os::build::place_bins() {
 
       # Create the release archive.
       local platform_segment="${platform//\//-}"
-      if [[ $platform == "windows/amd64" ]]; then
-        local archive_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.zip"
-        echo "++ Creating ${archive_name}"
-        for file in "${OS_BINARY_RELEASE_WINDOWS[@]}"; do
-          zip "${OS_LOCAL_RELEASEPATH}/${archive_name}" -qj "${release_binpath}/${file}"
+      if [[ ${OS_RELEASE_ARCHIVE} == "openshift-origin" ]]; then
+        for file in "${OS_BINARY_RELEASE_CLIENT_EXTRA[@]}"; do
+          cp "${file}" "${release_binpath}/"
         done
+        if [[ $platform == "windows/amd64" ]]; then
+          platform="windows" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_zip "${OS_BINARY_RELEASE_CLIENT_WINDOWS[@]}"
+        elif [[ $platform == "darwin/amd64" ]]; then
+          platform="mac" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_zip "${OS_BINARY_RELEASE_CLIENT_MAC[@]}"
+        elif [[ $platform == "linux/386" ]]; then
+          platform="linux/32bit" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
+        elif [[ $platform == "linux/amd64" ]]; then
+          platform="linux/64bit" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
+          platform="linux/64bit" OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive_tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
+        else
+          echo "++ ERROR: No release type defined for $platform"
+        fi
       else
-        local archive_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.tar.gz"
-        echo "++ Creating ${archive_name}"
-        tar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" -C "${release_binpath}" .
+        if [[ $platform == "linux/amd64" ]]; then
+          platform="linux/64bit" os::build::archive_tar "./*"
+        else
+          echo "++ ERROR: No release type defined for $platform"
+        fi
       fi
       rm -rf "${release_binpath}"
     done
   )
+}
+
+os::build::archive_zip() {
+  local platform_segment="${platform//\//-}"
+  local default_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.zip"
+  local archive_name="${archive_name:-$default_name}"
+  echo "++ Creating ${archive_name}"
+  for file in "$@"; do
+    zip "${OS_LOCAL_RELEASEPATH}/${archive_name}" -qj "${release_binpath}/${file}"
+  done
+}
+
+os::build::archive_tar() {
+  local platform_segment="${platform//\//-}"
+  local base_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}"
+  local default_name="${base_name}.tar.gz"
+  local archive_name="${archive_name:-$default_name}"
+  echo "++ Creating ${archive_name}"
+  pushd "${release_binpath}" &> /dev/null
+  tar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" --transform="s,^\.,${base_name}," $@
+  popd &>/dev/null
 }
 
 # os::build::make_openshift_binary_symlinks makes symlinks for the openshift
@@ -400,14 +446,14 @@ os::build::detect_local_release_tars() {
     echo "There is no release .commit identifier ${OS_LOCAL_RELEASEPATH}"
     exit 2
   fi
-  local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-*-${platform}* | grep -v image)
-  if [[ $(echo "${primary}" | wc -l) -ne 1 ]]; then
-    echo "There should be exactly one ${platform} primary tar in $OS_LOCAL_RELEASEPATH"
+  local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-server-*-${platform}*)
+  if [[ $(echo "${primary}" | wc -l) -ne 1 || -z "${primary}" ]]; then
+    echo "There should be exactly one ${platform} server tar in $OS_LOCAL_RELEASEPATH"
     exit 2
   fi
 
   local image=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}*)
-  if [[ $(echo "${image}" | wc -l) -ne 1 ]]; then
+  if [[ $(echo "${image}" | wc -l) -ne 1 || -z "${image}" ]]; then
     echo "There should be exactly one ${platform} image tar in $OS_LOCAL_RELEASEPATH"
     exit 3
   fi
