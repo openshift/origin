@@ -14,6 +14,7 @@ import (
 
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
+	"github.com/docker/distribution/manifest/schema1"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/docker/libtrust"
 
@@ -36,14 +37,14 @@ func signedManifest(name string) ([]byte, digest.Digest, error) {
 		return []byte{}, "", fmt.Errorf("error generating EC key: %s", err)
 	}
 
-	mappingManifest := manifest.Manifest{
+	mappingManifest := schema1.Manifest{
 		Versioned: manifest.Versioned{
 			SchemaVersion: 1,
 		},
 		Name:         name,
 		Tag:          imageapi.DefaultImageTag,
 		Architecture: "amd64",
-		History: []manifest.History{
+		History: []schema1.History{
 			{
 				V1Compatibility: `{"id": "foo"}`,
 			},
@@ -170,7 +171,7 @@ middleware:
 		t.Fatalf("unexpected status code: %d", resp.StatusCode)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
-	var retrievedManifest manifest.Manifest
+	var retrievedManifest schema1.Manifest
 	if err := json.Unmarshal(body, &retrievedManifest); err != nil {
 		t.Fatalf("error unmarshaling retrieved manifest")
 	}
@@ -275,7 +276,7 @@ func putManifest(name, user, token string) (digest.Digest, error) {
 		return "", fmt.Errorf("error putting manifest: %s", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusAccepted {
+	if resp.StatusCode != http.StatusCreated {
 		return "", fmt.Errorf("unexpected put status code: %d", resp.StatusCode)
 	}
 	return dgst, nil

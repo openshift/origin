@@ -235,13 +235,6 @@ func TestValidateImageStream(t *testing.T) {
 				fielderrors.NewFieldInvalid("metadata.namespace", "!$", `must be a DNS label (at most 63 characters, matching regex [a-z0-9]([-a-z0-9]*[a-z0-9])?): e.g. "my-name"`),
 			},
 		},
-		"short namespace": {
-			namespace: "f",
-			name:      "foo",
-			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldInvalid("metadata.namespace", "f", `must be at least 2 characters long`),
-			},
-		},
 		"invalid dockerImageRepository": {
 			namespace: "namespace",
 			name:      "foo",
@@ -308,6 +301,11 @@ func TestValidateImageStream(t *testing.T) {
 				},
 			},
 			expected: fielderrors.ValidationErrorList{},
+		},
+		"shortest name components": {
+			namespace: "f",
+			name:      "g",
+			expected:  fielderrors.ValidationErrorList{},
 		},
 		"all possible characters used": {
 			namespace: "abcdefghijklmnopqrstuvwxyz-1234567890",
