@@ -106,6 +106,11 @@ func (rs *revisionStore) put(ctx context.Context, sm *schema1.SignedManifest) (d
 	return revision, nil
 }
 
+// enumerate returns an array of digests of all found manifest revisions.
+func (rs *revisionStore) enumerate() ([]digest.Digest, error) {
+	return enumerateAllBlobs(rs.blobStore, rs.ctx)
+}
+
 func (rs *revisionStore) delete(ctx context.Context, revision digest.Digest) error {
 	return rs.blobStore.Delete(ctx, revision)
 }

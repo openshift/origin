@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
@@ -17,6 +18,7 @@ type manifestStore struct {
 	tagStore                   *tagStore
 	ctx                        context.Context
 	skipDependencyVerification bool
+	enumerateAllDigests        bool
 }
 
 var _ distribution.ManifestService = &manifestStore{}
@@ -49,6 +51,16 @@ func SkipLayerVerification(ms distribution.ManifestService) error {
 		return nil
 	}
 	return fmt.Errorf("skip layer verification only valid for manifestStore")
+}
+
+// EnumerateAllDigests causes Enumerate method to include all the digests found
+// without checking whether they exist and belong to manifest revisions or not.
+func EnumerateAllDigests(ms distribution.ManifestService) error {
+	if ms, ok := ms.(*manifestStore); ok {
+		ms.enumerateAllDigests = true
+		return nil
+	}
+	return fmt.Errorf("enumerate all digests only valid for manifeststore")
 }
 
 func (ms *manifestStore) Put(manifest *schema1.SignedManifest) error {
@@ -99,6 +111,26 @@ func (ms *manifestStore) GetByTag(tag string, options ...distribution.ManifestSe
 	}
 
 	return ms.revisionStore.get(ms.ctx, dgst)
+}
+
+// Enumerate retuns an array of digests of all manifest revisions in repository.
+// Returned digests may not be resolvable to actual data.
+func (ms *manifestStore) Enumerate() ([]digest.Digest, error) {
+	context.GetLogger(ms.ctx).Debug("(*manifestStore).Enumerate")
+	dgsts, err := ms.revisionStore.enumerate()
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+	if ms.enumerateAllDigests {
+		return dgsts, nil
+	}
+	res := make([]digest.Digest, 0, len(dgsts))
+	for _, dgst := range dgsts {
+		if _, err := ms.Get(dgst); err == nil {
+			res = append(res, dgst)
+		}
+	}
+	return res, nil
 }
 
 // verifyManifest ensures that the manifest content is valid from the
