@@ -191,7 +191,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 
 		ServiceAccount: "router",
 		StatsUsername:  "admin",
-		StatsPort:      1936,
+		StatsPort:      defaultStatsPort,
 		HostNetwork:    true,
 	}
 
