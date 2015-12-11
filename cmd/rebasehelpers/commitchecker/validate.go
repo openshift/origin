@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"strings"
 	"text/template"
 
 	"github.com/openshift/origin/cmd/rebasehelpers/util"
@@ -16,7 +17,7 @@ The following UPSTREAM commits have invalid summaries:
 {{ end }}
 UPSTREAM commit summaries should look like:
 
-  UPSTREAM: [non-kube-account/repo[/path]: ]<PR number>|'<carry>'|'<drop>': description
+  UPSTREAM: [non-kube-repo/name: ]<PR number|carry|drop>: description
 
 UPSTREAM commits which revert previous UPSTREAM commits should look like:
 
@@ -28,18 +29,19 @@ UPSTREAM commits are validated against the following regular expression:
 
 Examples of valid summaries:
 
-  UPSTREAM: 12345: An origin change
-  UPSTREAM: docker/docker: 12345: A docker change
+  UPSTREAM: 12345: A kube fix
+  UPSTREAM: coreos/etcd: 12345: An etcd fix
   UPSTREAM: <carry>: A carried kube change
   UPSTREAM: <drop>: A dropped kube change
-  UPSTREAM: revert: abcd123: docker/docker: 12345: A docker change
+  UPSTREAM: revert: abcd123: coreos/etcd: 12345: An etcd fix
+  UPSTREAM: k8s.io/heapster: 12345: A heapster fix
 
 `
 
 var AllValidators = []func([]util.Commit) error{
+	ValidateUpstreamCommitSummaries,
 	ValidateUpstreamCommitsWithoutGodepsChanges,
 	ValidateUpstreamCommitModifiesSingleGodepsRepo,
-	ValidateUpstreamCommitSummaries,
 	ValidateUpstreamCommitModifiesOnlyGodeps,
 	ValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo,
 }
@@ -54,7 +56,7 @@ func ValidateUpstreamCommitsWithoutGodepsChanges(commits []util.Commit) error {
 		}
 	}
 	if len(problemCommits) > 0 {
-		label := "The following commits contain Godeps changes but aren't declared as UPSTREAM:"
+		label := "The following commits contain Godeps changes but aren't declared as UPSTREAM"
 		msg := renderGodepFilesError(label, problemCommits, RenderOnlyGodepsFiles)
 		return fmt.Errorf(msg)
 	}
@@ -139,8 +141,7 @@ func ValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo(commits []util.Commit) 
 				return err
 			}
 			for _, changedRepo := range reposChanged {
-				if changedRepo != declaredRepo {
-					fmt.Printf("changedRepo=%s, declaredRepo=%s\n", changedRepo, declaredRepo)
+				if !strings.Contains(changedRepo, declaredRepo) {
 					problemCommits = append(problemCommits, commit)
 				}
 			}

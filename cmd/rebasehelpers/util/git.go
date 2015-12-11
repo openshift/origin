@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var UpstreamSummaryPattern = regexp.MustCompile(`UPSTREAM: (revert: [a-f0-9]{7,}: )?(([\w\.-]+\/[\w-]+)(\/[\w-]+)?: )?([0-9]{4,}:|<carry>:|<drop>:)`)
+var UpstreamSummaryPattern = regexp.MustCompile(`UPSTREAM: (revert: [a-f0-9]{7,}: )?(([\w\.-]+\/[\w-]+)?: )?(\d+:|<carry>:|<drop>:)`)
 
 // supportedHosts maps source hosts to the number of path segments that
 // represent the account/repo for that host. This is necessary because we
@@ -54,24 +54,6 @@ func (c Commit) DeclaredUpstreamRepo() (string, error) {
 	repo := groups[3]
 	if len(repo) == 0 {
 		repo = "k8s.io/kubernetes"
-	}
-	// Do a simple special casing for repos which use 3 path segments to
-	// identify the repo. The only repos ever seen use either 2 or 3 so don't
-	// bother trying to make it too generic.
-	segments := -1
-	for host, count := range SupportedHosts {
-		if strings.HasPrefix(repo, host) {
-			segments = count
-			break
-		}
-	}
-	if segments == -1 {
-		fmt.Printf("commit modifies unsupported repo %q\n", repo)
-		return "", fmt.Errorf("commit modifies unsupported repo %q", repo)
-	}
-	fmt.Printf("repo=%s, segments=%d\n", repo, segments)
-	if segments == 3 {
-		repo += groups[4]
 	}
 	return repo, nil
 }
