@@ -13,6 +13,7 @@ import (
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/health"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/auth"
 	"github.com/docker/distribution/registry/handlers"
@@ -42,10 +43,6 @@ func Execute(configFile io.Reader) {
 	ctx := context.Background()
 
 	app := handlers.NewApp(ctx, config)
-
-	// register OpenShift routes
-	// TODO: change this to an anonymous Access record
-	app.RegisterRoute(app.NewRoute().Path("/healthz"), server.HealthzHandler, handlers.NameNotRequired, handlers.NoCustomAccessRecords)
 
 	// TODO add https scheme
 	adminRouter := app.NewRoute().PathPrefix("/admin/").Subrouter()
@@ -94,7 +91,11 @@ func Execute(configFile io.Reader) {
 		pruneAccessRecords,
 	)
 
-	handler := gorillahandlers.CombinedLoggingHandler(os.Stdout, app)
+	app.RegisterHealthChecks()
+	handler := alive("/", app)
+	handler = health.Handler(handler)
+	handler = panicHandler(handler)
+	handler = gorillahandlers.CombinedLoggingHandler(os.Stdout, handler)
 
 	if config.HTTP.TLS.Certificate == "" {
 		context.GetLogger(app).Infof("listening on %v", config.HTTP.Addr)
@@ -137,4 +138,35 @@ func Execute(configFile io.Reader) {
 			context.GetLogger(app).Fatalln(err)
 		}
 	}
+}
+
+// alive simply wraps the handler with a route that always returns an http 200
+// response when the path is matched. If the path is not matched, the request
+// is passed to the provided handler. There is no guarantee of anything but
+// that the server is up. Wrap with other handlers (such as health.Handler)
+// for greater affect.
+func alive(path string, handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == path {
+			w.Header().Set("Cache-Control", "no-cache")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// panicHandler add a HTTP handler to web app. The handler recover the happening
+// panic. logrus.Panic transmits panic message to pre-config log hooks, which is
+// defined in config.yml.
+func panicHandler(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Panic(fmt.Sprintf("%v", err))
+			}
+		}()
+		handler.ServeHTTP(w, r)
+	})
 }
