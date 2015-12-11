@@ -1,12 +1,13 @@
 package driver
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/docker/distribution/context"
 )
 
 // Version is a string representing the storage driver version, of the form
@@ -42,82 +43,102 @@ type StorageDriver interface {
 
 	// GetContent retrieves the content stored at "path" as a []byte.
 	// This should primarily be used for small objects.
-	GetContent(path string) ([]byte, error)
+	GetContent(ctx context.Context, path string) ([]byte, error)
 
 	// PutContent stores the []byte content at a location designated by "path".
 	// This should primarily be used for small objects.
-	PutContent(path string, content []byte) error
+	PutContent(ctx context.Context, path string, content []byte) error
 
 	// ReadStream retrieves an io.ReadCloser for the content stored at "path"
 	// with a given byte offset.
 	// May be used to resume reading a stream by providing a nonzero offset.
-	ReadStream(path string, offset int64) (io.ReadCloser, error)
+	ReadStream(ctx context.Context, path string, offset int64) (io.ReadCloser, error)
 
 	// WriteStream stores the contents of the provided io.ReadCloser at a
 	// location designated by the given path.
 	// May be used to resume writing a stream by providing a nonzero offset.
 	// The offset must be no larger than the CurrentSize for this path.
-	WriteStream(path string, offset int64, reader io.Reader) (nn int64, err error)
+	WriteStream(ctx context.Context, path string, offset int64, reader io.Reader) (nn int64, err error)
 
 	// Stat retrieves the FileInfo for the given path, including the current
 	// size in bytes and the creation time.
-	Stat(path string) (FileInfo, error)
+	Stat(ctx context.Context, path string) (FileInfo, error)
 
 	// List returns a list of the objects that are direct descendants of the
 	//given path.
-	List(path string) ([]string, error)
+	List(ctx context.Context, path string) ([]string, error)
 
 	// Move moves an object stored at sourcePath to destPath, removing the
 	// original object.
 	// Note: This may be no more efficient than a copy followed by a delete for
 	// many implementations.
-	Move(sourcePath string, destPath string) error
+	Move(ctx context.Context, sourcePath string, destPath string) error
 
 	// Delete recursively deletes all objects stored at "path" and its subpaths.
-	Delete(path string) error
+	Delete(ctx context.Context, path string) error
 
 	// URLFor returns a URL which may be used to retrieve the content stored at
 	// the given path, possibly using the given options.
 	// May return an ErrUnsupportedMethod in certain StorageDriver
 	// implementations.
-	URLFor(path string, options map[string]interface{}) (string, error)
+	URLFor(ctx context.Context, path string, options map[string]interface{}) (string, error)
 }
 
 // PathRegexp is the regular expression which each file path must match. A
 // file path is absolute, beginning with a slash and containing a positive
 // number of path components separated by slashes, where each component is
-// restricted to lowercase alphanumeric characters or a period, underscore, or
+// restricted to alphanumeric characters or a period, underscore, or
 // hyphen.
 var PathRegexp = regexp.MustCompile(`^(/[A-Za-z0-9._-]+)+$`)
 
 // ErrUnsupportedMethod may be returned in the case where a StorageDriver implementation does not support an optional method.
-var ErrUnsupportedMethod = errors.New("unsupported method")
+type ErrUnsupportedMethod struct {
+	DriverName string
+}
+
+func (err ErrUnsupportedMethod) Error() string {
+	return fmt.Sprintf("%s: unsupported method", err.DriverName)
+}
 
 // PathNotFoundError is returned when operating on a nonexistent path.
 type PathNotFoundError struct {
-	Path string
+	Path       string
+	DriverName string
 }
 
 func (err PathNotFoundError) Error() string {
-	return fmt.Sprintf("Path not found: %s", err.Path)
+	return fmt.Sprintf("%s: Path not found: %s", err.DriverName, err.Path)
 }
 
 // InvalidPathError is returned when the provided path is malformed.
 type InvalidPathError struct {
-	Path string
+	Path       string
+	DriverName string
 }
 
 func (err InvalidPathError) Error() string {
-	return fmt.Sprintf("Invalid path: %s", err.Path)
+	return fmt.Sprintf("%s: invalid path: %s", err.DriverName, err.Path)
 }
 
 // InvalidOffsetError is returned when attempting to read or write from an
 // invalid offset.
 type InvalidOffsetError struct {
-	Path   string
-	Offset int64
+	Path       string
+	Offset     int64
+	DriverName string
 }
 
 func (err InvalidOffsetError) Error() string {
-	return fmt.Sprintf("Invalid offset: %d for path: %s", err.Offset, err.Path)
+	return fmt.Sprintf("%s: invalid offset: %d for path: %s", err.DriverName, err.Offset, err.Path)
+}
+
+// Error is a catch-all error type which captures an error string and
+// the driver type on which it occured.
+type Error struct {
+	DriverName string
+	Enclosed   error
+}
+
+func (err Error) Error() string {
+	return fmt.Sprintf("%s: %s", err.DriverName, err.Enclosed)
 }

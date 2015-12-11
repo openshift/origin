@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/docker/distribution"
+	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
 	"github.com/gorilla/handlers"
 )
@@ -33,16 +34,19 @@ type tagsAPIResponse struct {
 // GetTags returns a json list of tags for a specific image name.
 func (th *tagsHandler) GetTags(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	manifests := th.Repository.Manifests()
+	manifests, err := th.Repository.Manifests(th)
+	if err != nil {
+		th.Errors = append(th.Errors, err)
+		return
+	}
 
-	tags, err := manifests.Tags(th.Context)
+	tags, err := manifests.Tags()
 	if err != nil {
 		switch err := err.(type) {
 		case distribution.ErrRepositoryUnknown:
-			w.WriteHeader(404)
-			th.Errors.Push(v2.ErrorCodeNameUnknown, map[string]string{"name": th.Repository.Name()})
+			th.Errors = append(th.Errors, v2.ErrorCodeNameUnknown.WithDetail(map[string]string{"name": th.Repository.Name()}))
 		default:
-			th.Errors.PushErr(err)
+			th.Errors = append(th.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
 		}
 		return
 	}
@@ -54,7 +58,7 @@ func (th *tagsHandler) GetTags(w http.ResponseWriter, r *http.Request) {
 		Name: th.Repository.Name(),
 		Tags: tags,
 	}); err != nil {
-		th.Errors.PushErr(err)
+		th.Errors = append(th.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
 		return
 	}
 }

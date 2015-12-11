@@ -3,11 +3,13 @@ package storage
 import (
 	"errors"
 	"fmt"
+	"sort"
 
+	"github.com/docker/distribution/context"
 	storageDriver "github.com/docker/distribution/registry/storage/driver"
 )
 
-// SkipDir is used as a return value from onFileFunc to indicate that
+// ErrSkipDir is used as a return value from onFileFunc to indicate that
 // the directory named in the call is to be skipped. It is not returned
 // as an error by any function.
 var ErrSkipDir = errors.New("skip this directory")
@@ -20,13 +22,18 @@ type WalkFn func(fileInfo storageDriver.FileInfo) error
 
 // Walk traverses a filesystem defined within driver, starting
 // from the given path, calling f on each file
-func Walk(driver storageDriver.StorageDriver, from string, f WalkFn) error {
-	children, err := driver.List(from)
+func Walk(ctx context.Context, driver storageDriver.StorageDriver, from string, f WalkFn) error {
+	children, err := driver.List(ctx, from)
 	if err != nil {
 		return err
 	}
+	sort.Stable(sort.StringSlice(children))
 	for _, child := range children {
-		fileInfo, err := driver.Stat(child)
+		// TODO(stevvooe): Calling driver.Stat for every entry is quite
+		// expensive when running against backends with a slow Stat
+		// implementation, such as s3. This is very likely a serious
+		// performance bottleneck.
+		fileInfo, err := driver.Stat(ctx, child)
 		if err != nil {
 			return err
 		}
@@ -37,7 +44,9 @@ func Walk(driver storageDriver.StorageDriver, from string, f WalkFn) error {
 		}
 
 		if fileInfo.IsDir() && !skipDir {
-			Walk(driver, child, f)
+			if err := Walk(ctx, driver, child, f); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
