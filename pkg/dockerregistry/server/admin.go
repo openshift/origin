@@ -4,10 +4,14 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Sirupsen/logrus"
+	"github.com/docker/distribution"
 	ctxu "github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/handlers"
+	"github.com/docker/distribution/registry/storage"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	gorillahandlers "github.com/gorilla/handlers"
 )
@@ -40,22 +44,20 @@ func (bh *blobHandler) Delete(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	if len(bh.Digest) == 0 {
-		bh.Errors.Push(v2.ErrorCodeBlobUnknown)
-		w.WriteHeader(http.StatusNotFound)
+		bh.Errors = append(bh.Errors, v2.ErrorCodeBlobUnknown)
 		return
 	}
 
-	err := bh.Registry().Blobs().Delete(bh.Digest)
+	bd, err := storage.RegistryBlobDeleter(bh.Namespace())
 	if err != nil {
-		// Ignore PathNotFoundError
-		if _, ok := err.(storagedriver.PathNotFoundError); !ok {
-			bh.Errors.PushErr(fmt.Errorf("error deleting blob %q: %v", bh.Digest, err))
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+		bh.Errors = append(bh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	err = bd.Delete(bh, bh.Digest)
+	if ignoreNotFoundError(bh.Context, err, fmt.Sprintf("error deleting blob %q", bh.Digest)) == nil {
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 // LayerDispatcher takes the request context and builds the appropriate handler
@@ -86,22 +88,14 @@ func (lh *layerHandler) Delete(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	if len(lh.Digest) == 0 {
-		lh.Errors.Push(v2.ErrorCodeBlobUnknown)
-		w.WriteHeader(http.StatusNotFound)
+		lh.Errors = append(lh.Errors, v2.ErrorCodeBlobUnknown)
 		return
 	}
 
-	err := lh.Repository.Layers().Delete(lh.Digest)
-	if err != nil {
-		// Ignore PathNotFoundError
-		if _, ok := err.(storagedriver.PathNotFoundError); !ok {
-			lh.Errors.PushErr(fmt.Errorf("error unlinking layer %q from repo %q: %v", lh.Digest, lh.Repository.Name(), err))
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+	err := lh.Repository.Blobs(lh).Delete(lh, lh.Digest)
+	if ignoreNotFoundError(lh.Context, err, fmt.Sprintf("error unlinking layer %q from repo %q", lh.Digest, lh.Repository.Name())) == nil {
+		w.WriteHeader(http.StatusNoContent)
 	}
-
-	w.WriteHeader(http.StatusNoContent)
 }
 
 // ManifestDispatcher takes the request context and builds the appropriate
@@ -133,20 +127,44 @@ func (mh *manifestHandler) Delete(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	if len(mh.Digest) == 0 {
-		mh.Errors.Push(v2.ErrorCodeManifestUnknown)
-		w.WriteHeader(http.StatusNotFound)
+		mh.Errors = append(mh.Errors, v2.ErrorCodeManifestUnknown)
 		return
 	}
 
-	err := mh.Repository.Manifests().Delete(mh.Context, mh.Digest)
+	manService, err := mh.Repository.Manifests(mh)
 	if err != nil {
-		// Ignore PathNotFoundError
-		if _, ok := err.(storagedriver.PathNotFoundError); !ok {
-			mh.Errors.PushErr(fmt.Errorf("error deleting repo %q, manifest %q: %v", mh.Repository.Name(), mh.Digest, err))
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+		mh.Errors = append(mh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	err = manService.Delete(mh.Digest)
+	if ignoreNotFoundError(mh.Context, err, fmt.Sprintf("error deleting repo %q, manifest %q", mh.Repository.Name(), mh.Digest)) == nil {
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// ignoreNotFoundError logs and ignores unknown manifest or blob errors. All
+// the other errors will be appended to a list of context errors and returned.
+// In case of unexpected error, unknownErrorDetail will be used to create
+// ErrorCodeUnknown error with the original err appended.
+func ignoreNotFoundError(ctx *handlers.Context, err error, unknownErrorDetail string) error {
+	if err != nil {
+		switch t := err.(type) {
+		case storagedriver.PathNotFoundError:
+		case errcode.Error:
+			if t.Code != v2.ErrorCodeBlobUnknown {
+				ctx.Errors = append(ctx.Errors, err)
+				return err
+			}
+		default:
+			if err != distribution.ErrBlobUnknown {
+				err = errcode.ErrorCodeUnknown.WithDetail(fmt.Sprintf("%s: %v", unknownErrorDetail, err))
+				ctx.Errors = append(ctx.Errors, err)
+				return err
+			}
+		}
+		logrus.Infof("%T: ignoring %T error: %v", ctx, err, err)
+	}
+
+	return nil
 }
