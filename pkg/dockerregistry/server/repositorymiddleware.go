@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
@@ -112,13 +111,13 @@ func (r *repository) ExistsByTag(tag string) (bool, error) {
 // Get retrieves the manifest with digest `dgst`.
 func (r *repository) Get(dgst digest.Digest) (*schema1.SignedManifest, error) {
 	if _, err := r.getImageStreamImage(dgst); err != nil {
-		log.Errorf("Error retrieving ImageStreamImage %s/%s@%s: %v", r.namespace, r.name, dgst.String(), err)
+		context.GetLogger(r.ctx).Errorf("Error retrieving ImageStreamImage %s/%s@%s: %v", r.namespace, r.name, dgst.String(), err)
 		return nil, err
 	}
 
 	image, err := r.getImage(dgst)
 	if err != nil {
-		log.Errorf("Error retrieving image %s: %v", dgst.String(), err)
+		context.GetLogger(r.ctx).Errorf("Error retrieving image %s: %v", dgst.String(), err)
 		return nil, err
 	}
 
@@ -139,20 +138,20 @@ func (r *repository) GetByTag(tag string, options ...distribution.ManifestServic
 	}
 	imageStreamTag, err := r.getImageStreamTag(tag)
 	if err != nil {
-		log.Errorf("Error getting ImageStreamTag %q: %v", tag, err)
+		context.GetLogger(r.ctx).Errorf("Error getting ImageStreamTag %q: %v", tag, err)
 		return nil, err
 	}
 	image := &imageStreamTag.Image
 
 	dgst, err := digest.ParseDigest(imageStreamTag.Image.Name)
 	if err != nil {
-		log.Errorf("Error parsing digest %q: %v", imageStreamTag.Image.Name, err)
+		context.GetLogger(r.ctx).Errorf("Error parsing digest %q: %v", imageStreamTag.Image.Name, err)
 		return nil, err
 	}
 
 	image, err = r.getImage(dgst)
 	if err != nil {
-		log.Errorf("Error getting image %q: %v", dgst.String(), err)
+		context.GetLogger(r.ctx).Errorf("Error getting image %q: %v", dgst.String(), err)
 		return nil, err
 	}
 
@@ -196,13 +195,13 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 		// if the error was that the image stream wasn't found, try to auto provision it
 		statusErr, ok := err.(*kerrors.StatusError)
 		if !ok {
-			log.Errorf("Error creating ImageStreamMapping: %s", err)
+			context.GetLogger(r.ctx).Errorf("Error creating ImageStreamMapping: %s", err)
 			return err
 		}
 
 		status := statusErr.ErrStatus
 		if status.Code != http.StatusNotFound || status.Details.Kind != "imageStream" || status.Details.Name != r.name {
-			log.Errorf("Error creating ImageStreamMapping: %s", err)
+			context.GetLogger(r.ctx).Errorf("Error creating ImageStreamMapping: %s", err)
 			return err
 		}
 
@@ -214,18 +213,18 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 
 		client, ok := UserClientFrom(r.ctx)
 		if !ok {
-			log.Errorf("Error creating user client to auto provision image stream: Origin user client unavailable")
+			context.GetLogger(r.ctx).Errorf("Error creating user client to auto provision image stream: Origin user client unavailable")
 			return statusErr
 		}
 
 		if _, err := client.ImageStreams(r.namespace).Create(&stream); err != nil {
-			log.Errorf("Error auto provisioning image stream: %s", err)
+			context.GetLogger(r.ctx).Errorf("Error auto provisioning image stream: %s", err)
 			return statusErr
 		}
 
 		// try to create the ISM again
 		if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
-			log.Errorf("Error creating image stream mapping: %s", err)
+			context.GetLogger(r.ctx).Errorf("Error creating image stream mapping: %s", err)
 			return err
 		}
 	}
@@ -238,7 +237,7 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 
 	for _, signature := range signatures {
 		if err := r.Signatures().Put(dgst, signature); err != nil {
-			log.Errorf("Error storing signature: %s", err)
+			context.GetLogger(r.ctx).Errorf("Error storing signature: %s", err)
 			return err
 		}
 	}

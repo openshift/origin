@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/distribution"
+	"github.com/docker/distribution/context"
 	ctxu "github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/registry/api/errcode"
@@ -163,7 +163,7 @@ func ignoreNotFoundError(ctx *handlers.Context, err error, unknownErrorDetail st
 				return err
 			}
 		}
-		logrus.Infof("%T: ignoring %T error: %v", ctx, err, err)
+		context.GetLogger(ctx).Infof("%T: ignoring %T error: %v", ctx, err, err)
 	}
 
 	return nil

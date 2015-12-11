@@ -8,8 +8,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus/formatters/logstash"
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
@@ -19,6 +21,7 @@ import (
 	"github.com/docker/distribution/registry/handlers"
 	_ "github.com/docker/distribution/registry/storage/driver/filesystem"
 	_ "github.com/docker/distribution/registry/storage/driver/s3"
+	"github.com/docker/distribution/uuid"
 	"github.com/docker/distribution/version"
 	gorillahandlers "github.com/gorilla/handlers"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -32,15 +35,15 @@ func Execute(configFile io.Reader) {
 		log.Fatalf("Error parsing configuration file: %s", err)
 	}
 
-	logLevel, err := log.ParseLevel(string(config.Log.Level))
-	if err != nil {
-		log.Errorf("Error parsing log level %q: %s", config.Log.Level, err)
-		logLevel = log.InfoLevel
-	}
-	log.SetLevel(logLevel)
-
-	log.Infof("version=%s", version.Version)
 	ctx := context.Background()
+	ctx, err = configureLogging(ctx, config)
+	if err != nil {
+		log.Fatalf("error configuring logger: %v", err)
+	}
+	log.Infof("version=%s", version.Version)
+	// inject a logger into the uuid library. warns us if there is a problem
+	// with uuid generation under low entropy.
+	uuid.Loggerf = context.GetLogger(ctx).Warnf
 
 	app := handlers.NewApp(ctx, config)
 
@@ -138,6 +141,71 @@ func Execute(configFile io.Reader) {
 			context.GetLogger(app).Fatalln(err)
 		}
 	}
+}
+
+// configureLogging prepares the context with a logger using the
+// configuration.
+func configureLogging(ctx context.Context, config *configuration.Configuration) (context.Context, error) {
+	if config.Log.Level == "" && config.Log.Formatter == "" {
+		// If no config for logging is set, fallback to deprecated "Loglevel".
+		log.SetLevel(logLevel(config.Loglevel))
+		ctx = context.WithLogger(ctx, context.GetLogger(ctx))
+		return ctx, nil
+	}
+
+	log.SetLevel(logLevel(config.Log.Level))
+
+	formatter := config.Log.Formatter
+	if formatter == "" {
+		formatter = "text" // default formatter
+	}
+
+	switch formatter {
+	case "json":
+		log.SetFormatter(&log.JSONFormatter{
+			TimestampFormat: time.RFC3339Nano,
+		})
+	case "text":
+		log.SetFormatter(&log.TextFormatter{
+			TimestampFormat: time.RFC3339Nano,
+		})
+	case "logstash":
+		log.SetFormatter(&logstash.LogstashFormatter{
+			TimestampFormat: time.RFC3339Nano,
+		})
+	default:
+		// just let the library use default on empty string.
+		if config.Log.Formatter != "" {
+			return ctx, fmt.Errorf("unsupported logging formatter: %q", config.Log.Formatter)
+		}
+	}
+
+	if config.Log.Formatter != "" {
+		log.Debugf("using %q logging formatter", config.Log.Formatter)
+	}
+
+	if len(config.Log.Fields) > 0 {
+		// build up the static fields, if present.
+		var fields []interface{}
+		for k := range config.Log.Fields {
+			fields = append(fields, k)
+		}
+
+		ctx = context.WithValues(ctx, config.Log.Fields)
+		ctx = context.WithLogger(ctx, context.GetLogger(ctx, fields...))
+	}
+
+	return ctx, nil
+}
+
+func logLevel(level configuration.Loglevel) log.Level {
+	l, err := log.ParseLevel(string(level))
+	if err != nil {
+		l = log.InfoLevel
+		log.Warnf("error parsing level %q: %v, using %q	", level, err, l)
+	}
+
+	return l
 }
 
 // alive simply wraps the handler with a route that always returns an http 200
