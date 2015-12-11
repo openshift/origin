@@ -175,8 +175,16 @@ func (s *signatures) Get(dgst digest.Digest) ([][]byte, error) {
 	return m.Signatures()
 }
 
+func (s *signatures) Enumerate(dgst digest.Digest) ([]digest.Digest, error) {
+	return nil, distribution.ErrUnsupported
+}
+
 func (s *signatures) Put(dgst digest.Digest, signatures ...[]byte) error {
 	panic("not implemented")
+}
+
+func (s *signatures) Delete(revision digest.Digest) error {
+	return distribution.ErrUnsupported
 }
 
 type manifests struct {
@@ -298,6 +306,10 @@ func (ms *manifests) GetByTag(tag string, options ...distribution.ManifestServic
 		return &sm, nil
 	}
 	return nil, handleErrorResponse(resp)
+}
+
+func (ms *manifests) Enumerate() ([]digest.Digest, error) {
+	return nil, distribution.ErrUnsupported
 }
 
 func (ms *manifests) Put(m *schema1.SignedManifest) error {
@@ -466,6 +478,10 @@ func (bs *blobs) Resume(ctx context.Context, id string) (distribution.BlobWriter
 
 func (bs *blobs) Delete(ctx context.Context, dgst digest.Digest) error {
 	return bs.statter.Clear(ctx, dgst)
+}
+
+func (bs *blobs) Enumerate(ctx context.Context, ingester func(digest.Digest) error) error {
+	return distribution.ErrUnsupported
 }
 
 type blobStatter struct {
