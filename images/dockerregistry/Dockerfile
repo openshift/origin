@@ -12,8 +12,6 @@ RUN yum install -y tree findutils epel-release && \
 # The registry doesn't require a privileged user.
 USER 1001
 
-ENV REGISTRY_CONFIGURATION_PATH=/config.yml
-
 EXPOSE 5000
 VOLUME /registry
 ENV REGISTRY_CONFIGURATION_PATH /config.yml
