@@ -71,7 +71,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Commands: []*cobra.Command{
 				cmd.NewCmdTypes(fullName, f, out),
 				loginCmd,
-				cmd.NewCmdRequestProject("new-project", fullName+" new-project", fullName+" login", fullName+" project", f, out),
+				cmd.NewCmdRequestProject(fullName, "new-project", fullName+" login", fullName+" project", f, out),
 				cmd.NewCmdNewApplication(fullName, f, out),
 				cmd.NewCmdStatus(cmd.StatusRecommendedName, fullName+" "+cmd.StatusRecommendedName, f, out),
 				cmd.NewCmdProject(fullName+" project", f, out),
