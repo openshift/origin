@@ -684,3 +684,11 @@ os::build::gen-docs() {
 
   echo "Assets generated in ${dest}"
 }
+
+# os::build::find-binary locates a locally built binary for the current
+# platform and returns the path to the binary.
+os::build::find-binary() {
+  local bin="$1"
+  local path=$( (ls -t _output/local/bin/$(os::build::host_platform)/${bin}) 2>/dev/null || true | head -1 )
+  echo "$path"
+}
