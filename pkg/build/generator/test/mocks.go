@@ -72,7 +72,6 @@ func MockBuildConfig(source buildapi.BuildSource, strategy buildapi.BuildStrateg
 			BuildSpec: buildapi.BuildSpec{
 				Source: source,
 				Revision: &buildapi.SourceRevision{
-					Type: buildapi.BuildSourceGit,
 					Git: &buildapi.GitSourceRevision{
 						Commit: "1234",
 					},
@@ -86,7 +85,6 @@ func MockBuildConfig(source buildapi.BuildSource, strategy buildapi.BuildStrateg
 
 func MockSource() buildapi.BuildSource {
 	return buildapi.BuildSource{
-		Type: buildapi.BuildSourceGit,
 		Git: &buildapi.GitBuildSource{
 			URI: "http://test.repository/namespace/name",
 			Ref: "test-tag",
@@ -96,7 +94,6 @@ func MockSource() buildapi.BuildSource {
 
 func MockSourceStrategyForImageRepository() buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
-		Type: buildapi.SourceBuildStrategyType,
 		SourceStrategy: &buildapi.SourceBuildStrategy{
 			From: kapi.ObjectReference{
 				Kind:      "ImageStreamTag",

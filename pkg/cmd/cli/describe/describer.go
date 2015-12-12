@@ -172,18 +172,8 @@ type BuildConfigDescriber struct {
 	host string
 }
 
-// TODO: remove when internal SourceBuildStrategyType is refactored to "Source"
-func describeStrategy(strategyType buildapi.BuildStrategyType) buildapi.BuildStrategyType {
-	if strategyType == buildapi.SourceBuildStrategyType {
-		strategyType = buildapi.BuildStrategyType("Source")
-	}
-	return strategyType
-}
-
 func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
-	formatString(out, "Strategy", describeStrategy(p.Strategy.Type))
-
-	formatString(out, "Source Type", p.Source.Type)
+	formatString(out, "Strategy", buildapi.StrategyType(p.Strategy))
 	if p.Source.Dockerfile != nil {
 		if len(strings.TrimSpace(*p.Source.Dockerfile)) == 0 {
 			formatString(out, "Dockerfile", "")
@@ -225,12 +215,12 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		}
 	}
 
-	switch p.Strategy.Type {
-	case buildapi.DockerBuildStrategyType:
+	switch {
+	case p.Strategy.DockerStrategy != nil:
 		describeDockerStrategy(p.Strategy.DockerStrategy, out)
-	case buildapi.SourceBuildStrategyType:
+	case p.Strategy.SourceStrategy != nil:
 		describeSourceStrategy(p.Strategy.SourceStrategy, out)
-	case buildapi.CustomBuildStrategyType:
+	case p.Strategy.CustomStrategy != nil:
 		describeCustomStrategy(p.Strategy.CustomStrategy, out)
 	}
 
@@ -246,7 +236,7 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		formatString(out, "Push Secret", p.Output.PushSecret.Name)
 	}
 
-	if p.Revision != nil && p.Revision.Type == buildapi.BuildSourceGit && p.Revision.Git != nil {
+	if p.Revision != nil && p.Revision.Git != nil {
 		buildDescriber := &BuildDescriber{}
 
 		formatString(out, "Git Commit", p.Revision.Git.Commit)

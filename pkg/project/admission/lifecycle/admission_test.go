@@ -47,14 +47,12 @@ func TestAdmissionExists(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
 		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
 					URI: "http://github.com/my/repository",
 				},
 				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
@@ -94,14 +92,12 @@ func TestAdmissionLifecycle(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "other"},
 		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
 					URI: "http://github.com/my/repository",
 				},
 				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{

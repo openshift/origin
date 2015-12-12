@@ -20,7 +20,6 @@ func (*okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error
 		Spec: api.BuildConfigSpec{
 			BuildSpec: api.BuildSpec{
 				Strategy: api.BuildStrategy{
-					Type: "Source",
 					SourceStrategy: &api.SourceBuildStrategy{
 						From: kapi.ObjectReference{
 							Kind: "DockerImage",
@@ -259,7 +258,6 @@ func TestInvokeWebhookOK(t *testing.T) {
 		Spec: api.BuildConfigSpec{
 			BuildSpec: api.BuildSpec{
 				Strategy: api.BuildStrategy{
-					Type: "Source",
 					SourceStrategy: &api.SourceBuildStrategy{
 						From: kapi.ObjectReference{
 							Kind: "DockerImage",

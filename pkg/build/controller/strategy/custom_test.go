@@ -118,7 +118,6 @@ func mockCustomBuild(forcePull bool) *buildapi.Build {
 				Git: &buildapi.GitSourceRevision{},
 			},
 			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.build.com/the/dockerbuild/Dockerfile",
 					Ref: "master",
@@ -127,7 +126,6 @@ func mockCustomBuild(forcePull bool) *buildapi.Build {
 				SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.CustomBuildStrategyType,
 				CustomStrategy: &buildapi.CustomBuildStrategy{
 					From: kapi.ObjectReference{
 						Kind: "DockerImage",

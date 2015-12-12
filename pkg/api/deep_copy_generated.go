@@ -944,7 +944,6 @@ func deepCopy_api_BuildRequest(in buildapi.BuildRequest, out *buildapi.BuildRequ
 }
 
 func deepCopy_api_BuildSource(in buildapi.BuildSource, out *buildapi.BuildSource, c *conversion.Cloner) error {
-	out.Type = in.Type
 	if in.Binary != nil {
 		out.Binary = new(buildapi.BinaryBuildSource)
 		if err := deepCopy_api_BinaryBuildSource(*in.Binary, out.Binary, c); err != nil {
@@ -1051,7 +1050,6 @@ func deepCopy_api_BuildStatus(in buildapi.BuildStatus, out *buildapi.BuildStatus
 }
 
 func deepCopy_api_BuildStrategy(in buildapi.BuildStrategy, out *buildapi.BuildStrategy, c *conversion.Cloner) error {
-	out.Type = in.Type
 	if in.DockerStrategy != nil {
 		out.DockerStrategy = new(buildapi.DockerBuildStrategy)
 		if err := deepCopy_api_DockerBuildStrategy(*in.DockerStrategy, out.DockerStrategy, c); err != nil {
@@ -1270,7 +1268,6 @@ func deepCopy_api_SourceControlUser(in buildapi.SourceControlUser, out *buildapi
 }
 
 func deepCopy_api_SourceRevision(in buildapi.SourceRevision, out *buildapi.SourceRevision, c *conversion.Cloner) error {
-	out.Type = in.Type
 	if in.Git != nil {
 		out.Git = new(buildapi.GitSourceRevision)
 		if err := deepCopy_api_GitSourceRevision(*in.Git, out.Git, c); err != nil {

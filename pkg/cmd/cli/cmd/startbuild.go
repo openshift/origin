@@ -190,7 +190,6 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 	}
 	if len(commit) > 0 {
 		request.Revision = &buildapi.SourceRevision{
-			Type: buildapi.BuildSourceGit,
 			Git: &buildapi.GitSourceRevision{
 				Commit: commit,
 			},
@@ -567,8 +566,7 @@ func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, p
 func hookEventFromPostReceive(repo git.Repository, path, postReceivePath string) (*buildapi.GenericWebHookEvent, error) {
 	// TODO: support other types of refs
 	event := &buildapi.GenericWebHookEvent{
-		Type: buildapi.BuildSourceGit,
-		Git:  &buildapi.GitInfo{},
+		Git: &buildapi.GitInfo{},
 	}
 
 	// attempt to extract a post receive body

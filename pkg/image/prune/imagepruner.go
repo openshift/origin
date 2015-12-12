@@ -494,8 +494,6 @@ func addBuildsToGraph(g graph.Graph, builds *buildapi.BuildList) {
 // to the image specified by strategy.from, as long as the image is managed by
 // OpenShift.
 func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.BuildStrategy, predecessor gonum.Node) {
-	glog.V(4).Infof("Examining build strategy with type %q", strategy.Type)
-
 	from := buildutil.GetImageStreamForStrategy(strategy)
 	if from == nil {
 		glog.V(4).Infof("Unable to determine 'from' reference - skipping")

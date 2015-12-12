@@ -166,24 +166,8 @@ const (
 	StatusReasonExceededRetryTimeout = "ExceededRetryTimeout"
 )
 
-// BuildSourceType is the type of SCM used.
-type BuildSourceType string
-
-// Valid values for BuildSourceType.
-const (
-	//BuildSourceGit instructs a build to use a Git source control repository as the build input.
-	BuildSourceGit BuildSourceType = "Git"
-	// BuildSourceDockerfile uses a Dockerfile as the start of a build
-	BuildSourceDockerfile BuildSourceType = "Dockerfile"
-	// BuildSourceBinary indicates the build will accept a Binary file as input.
-	BuildSourceBinary BuildSourceType = "Binary"
-)
-
 // BuildSource is the input used for the build.
 type BuildSource struct {
-	// Type of build input to accept
-	Type BuildSourceType
-
 	// Binary builds accept a binary as their input. The binary is generally assumed to be a tar,
 	// gzipped tar, or zip file depending on the strategy. For Docker builds, this is the build
 	// context and an optional Dockerfile may be specified to override any Dockerfile in the
@@ -229,9 +213,6 @@ type BinaryBuildSource struct {
 
 // SourceRevision is the revision or commit information from the source for the build
 type SourceRevision struct {
-	// Type of the build source
-	Type BuildSourceType
-
 	// Git contains information about git-based build source
 	Git *GitSourceRevision
 }
@@ -278,9 +259,6 @@ type SourceControlUser struct {
 
 // BuildStrategy contains the details of how to perform a build.
 type BuildStrategy struct {
-	// Type is the kind of build strategy.
-	Type BuildStrategyType
-
 	// DockerStrategy holds the parameters to the Docker build strategy.
 	DockerStrategy *DockerBuildStrategy
 
@@ -293,19 +271,6 @@ type BuildStrategy struct {
 
 // BuildStrategyType describes a particular way of performing a build.
 type BuildStrategyType string
-
-// Valid values for BuildStrategyType.
-const (
-	// DockerBuildStrategyType performs builds using a Dockerfile.
-	DockerBuildStrategyType BuildStrategyType = "Docker"
-
-	// SourceBuildStrategyType performs builds build using Source To Images with a Git repository
-	// and a builder image.
-	SourceBuildStrategyType BuildStrategyType = "Source"
-
-	// CustomBuildStrategyType performs builds using custom builder Docker image.
-	CustomBuildStrategyType BuildStrategyType = "Custom"
-)
 
 const (
 	// CustomBuildStrategyBaseImageKey is the environment variable that indicates the base image to be used when
@@ -526,10 +491,7 @@ type BuildConfigList struct {
 
 // GenericWebHookEvent is the payload expected for a generic webhook post
 type GenericWebHookEvent struct {
-	// Type is the type of source repository
-	Type BuildSourceType
-
-	// Git is the git information if the Type is BuildSourceGit
+	// Git is the git information, if any.
 	Git *GitInfo
 }
 

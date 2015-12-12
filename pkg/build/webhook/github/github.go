@@ -72,7 +72,6 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 	}
 
 	revision = &api.SourceRevision{
-		Type: api.BuildSourceGit,
 		Git: &api.GitSourceRevision{
 			Commit:    event.HeadCommit.ID,
 			Author:    event.HeadCommit.Author,

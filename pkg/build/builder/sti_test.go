@@ -89,12 +89,10 @@ func makeBuild() *api.Build {
 	return &api.Build{
 		Spec: api.BuildSpec{
 			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
 				Git: &api.GitBuildSource{
 					URI: "http://localhost/123",
 				}},
 			Strategy: api.BuildStrategy{
-				Type: api.SourceBuildStrategyType,
 				SourceStrategy: &api.SourceBuildStrategy{
 					From: kapi.ObjectReference{
 						Kind: "DockerImage",

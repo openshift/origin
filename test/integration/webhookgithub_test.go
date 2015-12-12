@@ -296,14 +296,12 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 			},
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
-					Type: buildapi.BuildSourceGit,
 					Git: &buildapi.GitBuildSource{
 						URI: "http://my.docker/build",
 					},
 					ContextDir: "context",
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
 					DockerStrategy: &buildapi.DockerBuildStrategy{
 						From: &kapi.ObjectReference{
 							Kind: "DockerImage",
@@ -338,14 +336,12 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 			},
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
-					Type: buildapi.BuildSourceGit,
 					Git: &buildapi.GitBuildSource{
 						URI: "http://my.docker/build",
 					},
 					ContextDir: "context",
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.SourceBuildStrategyType,
 					SourceStrategy: &buildapi.SourceBuildStrategy{
 						From: kapi.ObjectReference{
 							Kind: "ImageStreamTag",
