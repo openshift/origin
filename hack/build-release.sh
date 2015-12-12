@@ -36,11 +36,15 @@ echo "++ Building release ${OS_GIT_VERSION}"
 # Create the input archive.
 git archive --format=tar -o "${context}/archive.tar" "${OS_GIT_COMMIT}"
 tar -rf "${context}/archive.tar" -C "${context}" os-version-defs
+if [[ -n "${OVERRIDE_BUILD-}" ]]; then
+  tar -rf "${context}/archive.tar" -C "${context}" ${OVERRIDE_BUILD[@]}
+fi
 gzip -f "${context}/archive.tar"
 
 # Perform the build and release in Docker.
 cat "${context}/archive.tar.gz" | docker run -i --cidfile="${context}/cid" openshift/origin-release
 docker cp $(cat ${context}/cid):/go/src/github.com/openshift/origin/_output/local/releases "${OS_OUTPUT}"
 echo "${OS_GIT_COMMIT}" > "${OS_LOCAL_RELEASEPATH}/.commit"
+docker rm $(cat ${context}/cid)
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
