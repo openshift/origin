@@ -208,14 +208,14 @@ func TestValidateUpstreamCommitSummaries(t *testing.T) {
 		{valid: true, summary: "UPSTREAM: k8s.io/heapster: 12345: a change"},
 		{valid: true, summary: "UPSTREAM: <carry>: a change"},
 		{valid: true, summary: "UPSTREAM: <drop>: a change"},
-		{valid: true, summary: "UPSTREAM: github.com/coreos/etcd: <carry>: a change"},
-		{valid: true, summary: "UPSTREAM: github.com/coreos/etcd: <drop>: a change"},
+		{valid: true, summary: "UPSTREAM: coreos/etcd: <carry>: a change"},
+		{valid: true, summary: "UPSTREAM: coreos/etcd: <drop>: a change"},
 		{valid: true, summary: "UPSTREAM: revert: abcd123: 12345: a change"},
 		{valid: true, summary: "UPSTREAM: revert: abcd123: k8s.io/heapster: 12345: a change"},
 		{valid: true, summary: "UPSTREAM: revert: abcd123: <carry>: a change"},
 		{valid: true, summary: "UPSTREAM: revert: abcd123: <drop>: a change"},
-		{valid: true, summary: "UPSTREAM: revert: abcd123: github.com/coreos/etcd: <carry>: a change"},
-		{valid: true, summary: "UPSTREAM: revert: abcd123: github.com/coreos/etcd: <drop>: a change"},
+		{valid: true, summary: "UPSTREAM: revert: abcd123: coreos/etcd: <carry>: a change"},
+		{valid: true, summary: "UPSTREAM: revert: abcd123: coreos/etcd: <drop>: a change"},
 		{valid: false, summary: "UPSTREAM: whoopsie daisy"},
 	}
 	for _, test := range tests {
@@ -251,7 +251,7 @@ func TestValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo(t *testing.T) {
 				},
 				{
 					Sha:     "aaa0001",
-					Summary: "UPSTREAM: github.com/coreos/etcd: 12345: a change",
+					Summary: "UPSTREAM: coreos/etcd: 12345: a change",
 					Files: []util.File{
 						"Godeps/_workspace/src/k8s.io/kubernetes/file1",
 						"Godeps/_workspace/src/k8s.io/kubernetes/file2",
@@ -266,7 +266,7 @@ func TestValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo(t *testing.T) {
 			commits: []util.Commit{
 				{
 					Sha:     "aaa0001",
-					Summary: "UPSTREAM: github.com/coreos/etcd: 12345: a change",
+					Summary: "UPSTREAM: coreos/etcd: 12345: a change",
 					Files: []util.File{
 						"Godeps/_workspace/src/github.com/coreos/etcd/file1",
 						"Godeps/_workspace/src/github.com/coreos/etcd/file2",
@@ -280,7 +280,7 @@ func TestValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo(t *testing.T) {
 			commits: []util.Commit{
 				{
 					Sha:     "aaa0001",
-					Summary: "UPSTREAM: github.com/coreos/etcd: 12345: a change",
+					Summary: "UPSTREAM: coreos/etcd: 12345: a change",
 					Files: []util.File{
 						"Godeps/_workspace/src/github.com/coreos/etcd/a/file1",
 						"Godeps/_workspace/src/github.com/coreos/etcd/b/file2",
@@ -336,7 +336,7 @@ func TestValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo(t *testing.T) {
 			commits: []util.Commit{
 				{
 					Sha:     "aaa0001",
-					Summary: "UPSTREAM: revert: abcd000: github.com/coreos/etcd: 12345: a change",
+					Summary: "UPSTREAM: revert: abcd000: coreos/etcd: 12345: a change",
 					Files: []util.File{
 						"Godeps/_workspace/src/k8s.io/kubernetes/file1",
 						"Godeps/_workspace/src/k8s.io/kubernetes/file2",
@@ -350,7 +350,7 @@ func TestValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo(t *testing.T) {
 			commits: []util.Commit{
 				{
 					Sha:     "aaa0001",
-					Summary: "UPSTREAM: revert: abcd000: github.com/coreos/etcd: 12345: a change",
+					Summary: "UPSTREAM: revert: abcd000: coreos/etcd: 12345: a change",
 					Files: []util.File{
 						"Godeps/_workspace/src/github.com/coreos/etcd/file1",
 						"Godeps/_workspace/src/github.com/coreos/etcd/file2",

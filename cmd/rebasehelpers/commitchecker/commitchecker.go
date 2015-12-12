@@ -21,9 +21,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	// TODO: Filter out bump commits for now until we decide how to deal with
+	// them correctly.
+	nonbumpCommits := []util.Commit{}
+	for _, commit := range commits {
+		if commit.DeclaresUpstreamChange() &&
+			!strings.HasPrefix(commit.Summary, "bump(") {
+			nonbumpCommits = append(nonbumpCommits, commit)
+		}
+	}
+
 	errs := []string{}
 	for _, validate := range AllValidators {
-		err := validate(commits)
+		err := validate(nonbumpCommits)
 		if err != nil {
 			errs = append(errs, err.Error())
 		}
