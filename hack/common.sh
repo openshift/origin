@@ -89,20 +89,24 @@ readonly OC_BINARY_COPY=(
 readonly OS_BINARY_RELEASE_CLIENT_WINDOWS=(
   oc.exe
   README.md
+  ./LICENSE
 )
 readonly OS_BINARY_RELEASE_CLIENT_MAC=(
   oc
   README.md
+  ./LICENSE
 )
 readonly OS_BINARY_RELEASE_CLIENT_LINUX=(
   ./oc
   ./README.md
+  ./LICENSE
 )
 readonly OS_BINARY_RELEASE_SERVER_LINUX=(
   './*'
 )
 readonly OS_BINARY_RELEASE_CLIENT_EXTRA=(
   ${OS_ROOT}/README.md
+  ${OS_ROOT}/LICENSE
 )
 
 # os::build::binaries_from_targets take a list of build targets and return the
