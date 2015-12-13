@@ -13,7 +13,7 @@ type FakeDocker struct {
 }
 
 func (d *FakeDocker) BuildImage(opts docker.BuildImageOptions) error {
-	if d.pushImageFunc != nil {
+	if d.buildImageFunc != nil {
 		return d.buildImageFunc(opts)
 	}
 	return nil

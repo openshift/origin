@@ -355,6 +355,22 @@ func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy) fielderrors.
 	}
 
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret).Prefix("pullSecret")...)
+
+	if len(strategy.DockerfilePath) != 0 {
+		cleaned := path.Clean(strategy.DockerfilePath)
+		switch {
+		case strings.HasPrefix(cleaned, "/"):
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerfilePath", strategy.DockerfilePath, "dockerfilePath must not be an absolute path"))
+		case strings.HasPrefix(cleaned, ".."):
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerfilePath", strategy.DockerfilePath, "dockerfilePath must not start with .."))
+		default:
+			if cleaned == "." {
+				cleaned = ""
+			}
+			strategy.DockerfilePath = cleaned
+		}
+	}
+
 	return allErrs
 }
 
