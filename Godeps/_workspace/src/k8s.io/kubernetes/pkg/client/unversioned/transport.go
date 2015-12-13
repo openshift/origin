@@ -26,6 +26,10 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 )
 
+type requestCanceler interface {
+	CancelRequest(req *http.Request)
+}
+
 type userAgentRoundTripper struct {
 	agent string
 	rt    http.RoundTripper
@@ -48,6 +52,12 @@ var _ = util.RoundTripperWrapper(&userAgentRoundTripper{})
 
 func (rt *userAgentRoundTripper) WrappedRoundTripper() http.RoundTripper {
 	return rt.rt
+}
+
+func (rt *userAgentRoundTripper) CancelRequest(req *http.Request) {
+	if canceler, ok := rt.rt.(requestCanceler); ok {
+		canceler.CancelRequest(req)
+	}
 }
 
 type basicAuthRoundTripper struct {

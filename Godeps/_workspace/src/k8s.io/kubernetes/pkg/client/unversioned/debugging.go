@@ -135,6 +135,14 @@ func (rt *DebuggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, e
 	return response, err
 }
 
+func (rt *DebuggingRoundTripper) CancelRequest(req *http.Request) {
+	if canceler, ok := rt.delegatedRoundTripper.(requestCanceler); ok {
+		canceler.CancelRequest(req)
+	} else {
+		glog.Errorf("CancelRequest not implemented")
+	}
+}
+
 var _ = util.RoundTripperWrapper(&DebuggingRoundTripper{})
 
 func (rt *DebuggingRoundTripper) WrappedRoundTripper() http.RoundTripper {
