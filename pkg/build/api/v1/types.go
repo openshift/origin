@@ -309,6 +309,10 @@ type DockerBuildStrategy struct {
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool `json:"forcePull,omitempty" description:"forces the source build to pull the image if true"`
+
+	// DockerfilePath is the path of the Dockerfile that will be used to build the Docker image,
+	// relative to the root of the context (contextDir).
+	DockerfilePath string `json:"dockerfilePath,omitempty" description:"path of the Dockerfile to use for building the Docker image, relative to the contextDir, if set"`
 }
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
