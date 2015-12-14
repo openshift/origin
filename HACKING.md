@@ -69,6 +69,10 @@ or an individual package unit test with:
 
     $ hack/test-go.sh pkg/build
 
+or an individual package and all packages nested under it:
+
+    $ hack/test-go.sh pkg/build/...
+
 To run only a certain regex of tests in a package, use:
 
     $ hack/test-go.sh pkg/build -test.run=SynchronizeBuildRunning
