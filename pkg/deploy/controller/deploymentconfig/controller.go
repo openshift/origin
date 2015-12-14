@@ -166,44 +166,45 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 	// should be assigned to the config, to allow the replica propagation to
 	// flow downward from the config.
 	//
-	// This takes into account resources predating the propagation behavior
-	// change, as well as external modifications to the deployments (e.g.
-	// scalers).
+	// By default we'll assume the config replicas should be used to update the
+	// active deployment except in special cases (like first sync or externally
+	// updated deployments.)
 	activeReplicas := config.Template.ControllerTemplate.Replicas
 	source := "the deploymentConfig itself (no change)"
-	if activeDeployment != nil {
-		activeDeploymentIsLatest := activeDeployment.Name == latestDeployment.Name
+
+	activeDeploymentExists := activeDeployment != nil
+	activeDeploymentIsLatest := activeDeploymentExists && activeDeployment.Name == latestDeployment.Name
+	latestDesiredReplicas, latestHasDesiredReplicas := deployutil.DeploymentDesiredReplicas(latestDeployment)
+
+	switch {
+	case activeDeploymentExists && activeDeploymentIsLatest:
+		// The active/latest deployment follows the config unless this is its first
+		// sync or if an external change to the deployment replicas is detected.
 		lastActiveReplicas, hasLastActiveReplicas := deployutil.DeploymentReplicas(activeDeployment)
-		if activeDeploymentIsLatest {
-			if !hasLastActiveReplicas || lastActiveReplicas != activeDeployment.Spec.Replicas {
-				activeReplicas = activeDeployment.Spec.Replicas
-				source = fmt.Sprintf("the latest/active deployment %q which was scaled directly or has not previously been synced", deployutil.LabelForDeployment(activeDeployment))
-			}
-		} else {
-			if hasLastActiveReplicas {
-				if lastActiveReplicas != activeDeployment.Spec.Replicas && activeDeployment.Spec.Replicas > 0 {
-					activeReplicas = activeDeployment.Spec.Replicas
-					source = fmt.Sprintf("the active deployment %q which was scaled directly", deployutil.LabelForDeployment(activeDeployment))
-				}
-			} else {
-				if activeDeployment.Spec.Replicas > 0 {
-					activeReplicas = activeDeployment.Spec.Replicas
-					source = fmt.Sprintf("the active deployment %q which has not been previously synced", deployutil.LabelForDeployment(activeDeployment))
-				} else {
-					latestDesiredReplicas, latestHasDesiredReplicas := deployutil.DeploymentDesiredReplicas(latestDeployment)
-					if latestHasDesiredReplicas {
-						activeReplicas = latestDesiredReplicas
-						source = fmt.Sprintf("the desired replicas of latest deployment %q which has not been previously synced", deployutil.LabelForDeployment(latestDeployment))
-					}
-				}
-			}
+		if !hasLastActiveReplicas || lastActiveReplicas != activeDeployment.Spec.Replicas {
+			activeReplicas = activeDeployment.Spec.Replicas
+			source = fmt.Sprintf("the latest/active deployment %q which was scaled directly or has not previously been synced", deployutil.LabelForDeployment(activeDeployment))
 		}
-	} else {
-		latestDesiredReplicas, latestHasDesiredReplicas := deployutil.DeploymentDesiredReplicas(latestDeployment)
+	case activeDeploymentExists && !activeDeploymentIsLatest:
+		// The active/non-latest deployment follows the config if it was
+		// previously synced; if this is the first sync, infer what the config
+		// value should be based on either the latest desired or whatever the
+		// deployment is currently scaled to.
+		_, hasLastActiveReplicas := deployutil.DeploymentReplicas(activeDeployment)
+		if hasLastActiveReplicas {
+			break
+		}
 		if latestHasDesiredReplicas {
 			activeReplicas = latestDesiredReplicas
-			source = fmt.Sprintf("the desired replicas of latest deployment %q with no active deployment", deployutil.LabelForDeployment(latestDeployment))
+			source = fmt.Sprintf("the desired replicas of latest deployment %q which has not been previously synced", deployutil.LabelForDeployment(latestDeployment))
+		} else if activeDeployment.Spec.Replicas > 0 {
+			activeReplicas = activeDeployment.Spec.Replicas
+			source = fmt.Sprintf("the active deployment %q which has not been previously synced", deployutil.LabelForDeployment(activeDeployment))
 		}
+	case !activeDeploymentExists && latestHasDesiredReplicas:
+		// If there's no active deployment, use the latest desired, if available.
+		activeReplicas = latestDesiredReplicas
+		source = fmt.Sprintf("the desired replicas of latest deployment %q with no active deployment", deployutil.LabelForDeployment(latestDeployment))
 	}
 	// Bring the config in sync with the deployment. Once we know the config
 	// accurately represents the desired replica count of the active deployment,

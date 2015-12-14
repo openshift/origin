@@ -139,11 +139,9 @@ func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTrigge
 	source := &buildapi.BuildSource{}
 
 	if len(r.DockerfileContents) != 0 {
-		source.Type = buildapi.BuildSourceDockerfile
 		source.Dockerfile = &r.DockerfileContents
 	}
 	if r.URL != nil {
-		source.Type = buildapi.BuildSourceGit
 		source.Git = &buildapi.GitBuildSource{
 			URI: urlWithoutRef(*r.URL),
 			Ref: r.Ref,
@@ -151,7 +149,6 @@ func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTrigge
 		source.ContextDir = r.ContextDir
 	}
 	if r.Binary {
-		source.Type = buildapi.BuildSourceBinary
 		source.Binary = &buildapi.BinaryBuildSource{}
 	}
 	return source, triggers
@@ -166,18 +163,21 @@ type BuildStrategyRef struct {
 // BuildStrategy builds an OpenShift BuildStrategy from a BuildStrategyRef
 func (s *BuildStrategyRef) BuildStrategy(env Environment) (*buildapi.BuildStrategy, []buildapi.BuildTriggerPolicy) {
 	if s.IsDockerBuild {
-		dockerFrom := s.Base.ObjectReference()
+		var triggers []buildapi.BuildTriggerPolicy
+		strategy := &buildapi.DockerBuildStrategy{
+			Env: env.List(),
+		}
+		if s.Base != nil {
+			ref := s.Base.ObjectReference()
+			strategy.From = &ref
+			triggers = s.Base.BuildTriggers()
+		}
 		return &buildapi.BuildStrategy{
-			Type: buildapi.DockerBuildStrategyType,
-			DockerStrategy: &buildapi.DockerBuildStrategy{
-				From: &dockerFrom,
-				Env:  env.List(),
-			},
-		}, s.Base.BuildTriggers()
+			DockerStrategy: strategy,
+		}, triggers
 	}
 
 	return &buildapi.BuildStrategy{
-		Type: buildapi.SourceBuildStrategyType,
 		SourceStrategy: &buildapi.SourceBuildStrategy{
 			From: s.Base.ObjectReference(),
 			Env:  env.List(),

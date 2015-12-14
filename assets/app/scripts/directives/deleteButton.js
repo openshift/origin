@@ -6,10 +6,16 @@ angular.module("openshiftConsole")
       restrict: "E",
       scope: {
         resourceType: "@",
+        // Optional display name for resourceType. If not specified, humanizeResourceTypeFilter is used.
+        typeDisplayName: "@?",
         resourceName: "@",
         projectName: "@",
         alerts: "=",
-        displayName: "@"
+        displayName: "@",
+        // Set to true to disable the delete button.
+        disableDelete: "=?",
+        // Optional tooltip displayed when disableDelete is true.
+        disabledTooltip: "@?"
       },
       templateUrl: "views/directives/delete-button.html",
       link: function(scope, element, attrs) {
@@ -20,6 +26,10 @@ angular.module("openshiftConsole")
         }
 
         scope.openDeleteModal = function() {
+          if (scope.disableDelete) {
+            return;
+          }
+
           // opening the modal with settings scope as parent
           var modalInstance = $modal.open({
             animation: true,
@@ -33,7 +43,8 @@ angular.module("openshiftConsole")
             var resourceType = scope.resourceType;
             var resourceName = scope.resourceName;
             var projectName = scope.projectName;
-            var formattedResource = $filter('humanizeResourceType')(resourceType) + ' ' + "\'"  + (scope.displayName ? scope.displayName : resourceName) + "\'";
+            var typeDisplayName = scope.typeDisplayName || $filter('humanizeResourceType')(resourceType);
+            var formattedResource = typeDisplayName + ' ' + "\'"  + (scope.displayName ? scope.displayName : resourceName) + "\'";
             var context = (scope.resourceType === 'project') ? {} : {namespace: scope.projectName};
 
             DataService.delete(resourceType + 's', resourceName, context)

@@ -33,43 +33,43 @@ const (
 	APIGroupExtensions = "extensions"
 
 	// ResourceGroupPrefix is the prefix for indicating that a resource entry is actually a group of resources.  The groups are defined in code and indicate resources that are commonly permissioned together
-	ResourceGroupPrefix = "resourcegroup"
-	BuildGroupName      = ResourceGroupPrefix + ":builds"
-	DeploymentGroupName = ResourceGroupPrefix + ":deployments"
-	ImageGroupName      = ResourceGroupPrefix + ":images"
-	OAuthGroupName      = ResourceGroupPrefix + ":oauth"
-	UserGroupName       = ResourceGroupPrefix + ":users"
-	TemplateGroupName   = ResourceGroupPrefix + ":templates"
-	SDNGroupName        = ResourceGroupPrefix + ":sdn"
+	ResourceGroupPrefix = "resourcegroup:"
+	BuildGroupName      = ResourceGroupPrefix + "builds"
+	DeploymentGroupName = ResourceGroupPrefix + "deployments"
+	ImageGroupName      = ResourceGroupPrefix + "images"
+	OAuthGroupName      = ResourceGroupPrefix + "oauth"
+	UserGroupName       = ResourceGroupPrefix + "users"
+	TemplateGroupName   = ResourceGroupPrefix + "templates"
+	SDNGroupName        = ResourceGroupPrefix + "sdn"
 	// PolicyOwnerGroupName includes the physical resources behind the PermissionGrantingGroupName.  Unless these physical objects are created first, users with privileges to PermissionGrantingGroupName will
 	// only be able to bind to global roles
-	PolicyOwnerGroupName = ResourceGroupPrefix + ":policy"
+	PolicyOwnerGroupName = ResourceGroupPrefix + "policy"
 	// PermissionGrantingGroupName includes resources that are necessary to maintain authorization roles and bindings.  By itself, this group is insufficient to create anything except for bindings
 	// to master roles.  If a local Policy already exists, then privileges to this group will allow for modification of local roles.
-	PermissionGrantingGroupName = ResourceGroupPrefix + ":granter"
+	PermissionGrantingGroupName = ResourceGroupPrefix + "granter"
 	// OpenshiftExposedGroupName includes resources that are commonly viewed and modified by end users of the system.  It does not include any sensitive resources that control authentication or authorization
-	OpenshiftExposedGroupName = ResourceGroupPrefix + ":exposedopenshift"
-	OpenshiftAllGroupName     = ResourceGroupPrefix + ":allopenshift"
-	OpenshiftStatusGroupName  = ResourceGroupPrefix + ":allopenshift-status"
+	OpenshiftExposedGroupName = ResourceGroupPrefix + "exposedopenshift"
+	OpenshiftAllGroupName     = ResourceGroupPrefix + "allopenshift"
+	OpenshiftStatusGroupName  = ResourceGroupPrefix + "allopenshift-status"
 
-	QuotaGroupName = ResourceGroupPrefix + ":quota"
+	QuotaGroupName = ResourceGroupPrefix + "quota"
 	// KubeInternalsGroupName includes those resources that should reasonably be viewable to end users, but that most users should probably not modify.  Kubernetes herself will maintain these resources
-	KubeInternalsGroupName = ResourceGroupPrefix + ":privatekube"
+	KubeInternalsGroupName = ResourceGroupPrefix + "privatekube"
 	// KubeExposedGroupName includes resources that are commonly viewed and modified by end users of the system.
-	KubeExposedGroupName = ResourceGroupPrefix + ":exposedkube"
-	KubeAllGroupName     = ResourceGroupPrefix + ":allkube"
-	KubeStatusGroupName  = ResourceGroupPrefix + ":allkube-status"
+	KubeExposedGroupName = ResourceGroupPrefix + "exposedkube"
+	KubeAllGroupName     = ResourceGroupPrefix + "allkube"
+	KubeStatusGroupName  = ResourceGroupPrefix + "allkube-status"
 
 	// NonEscalatingResourcesGroupName contains all resources that can be viewed without exposing the risk of using view rights to locate a secret to escalate privileges.  For example, view
 	// rights on secrets could be used locate a secret that happened to be  serviceaccount token that has more privileges
-	NonEscalatingResourcesGroupName         = ResourceGroupPrefix + ":non-escalating"
-	KubeNonEscalatingViewableGroupName      = ResourceGroupPrefix + ":kube-non-escalating"
-	OpenshiftNonEscalatingViewableGroupName = ResourceGroupPrefix + ":openshift-non-escalating"
+	NonEscalatingResourcesGroupName         = ResourceGroupPrefix + "non-escalating"
+	KubeNonEscalatingViewableGroupName      = ResourceGroupPrefix + "kube-non-escalating"
+	OpenshiftNonEscalatingViewableGroupName = ResourceGroupPrefix + "openshift-non-escalating"
 
 	// EscalatingResourcesGroupName contains all resources that can be used to escalate privileges when simply viewed
-	EscalatingResourcesGroupName         = ResourceGroupPrefix + ":escalating"
-	KubeEscalatingViewableGroupName      = ResourceGroupPrefix + ":kube-escalating"
-	OpenshiftEscalatingViewableGroupName = ResourceGroupPrefix + ":openshift-escalating"
+	EscalatingResourcesGroupName         = ResourceGroupPrefix + "escalating"
+	KubeEscalatingViewableGroupName      = ResourceGroupPrefix + "kube-escalating"
+	OpenshiftEscalatingViewableGroupName = ResourceGroupPrefix + "openshift-escalating"
 )
 
 var (
@@ -107,11 +107,11 @@ var (
 
 func init() {
 	// set the non-escalating groups
-	GroupsToResources[OpenshiftNonEscalatingViewableGroupName] = ExpandResources(sets.NewString(GroupsToResources[OpenshiftAllGroupName]...)).
-		Difference(ExpandResources(sets.NewString(GroupsToResources[OpenshiftEscalatingViewableGroupName]...))).List()
+	GroupsToResources[OpenshiftNonEscalatingViewableGroupName] = NormalizeResources(sets.NewString(GroupsToResources[OpenshiftAllGroupName]...)).
+		Difference(NormalizeResources(sets.NewString(GroupsToResources[OpenshiftEscalatingViewableGroupName]...))).List()
 
-	GroupsToResources[KubeNonEscalatingViewableGroupName] = ExpandResources(sets.NewString(GroupsToResources[KubeAllGroupName]...)).
-		Difference(ExpandResources(sets.NewString(GroupsToResources[KubeEscalatingViewableGroupName]...))).List()
+	GroupsToResources[KubeNonEscalatingViewableGroupName] = NormalizeResources(sets.NewString(GroupsToResources[KubeAllGroupName]...)).
+		Difference(NormalizeResources(sets.NewString(GroupsToResources[KubeEscalatingViewableGroupName]...))).List()
 }
 
 // PolicyRule holds information that describes a policy rule, but does not contain information

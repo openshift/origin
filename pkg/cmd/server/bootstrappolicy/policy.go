@@ -35,7 +35,7 @@ func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Ro
 	// our default roles and hard for them to reason about what power they are granting their users
 	for i := range roles {
 		for j := range roles[i].Rules {
-			roles[i].Rules[j].Resources = authorizationapi.ExpandResources(roles[i].Rules[j].Resources)
+			roles[i].Rules[j].Resources = authorizationapi.NormalizeResources(roles[i].Rules[j].Resources)
 		}
 	}
 
@@ -560,7 +560,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 	// our default roles and hard for them to reason about what power they are granting their users
 	for i := range roles {
 		for j := range roles[i].Rules {
-			roles[i].Rules[j].Resources = authorizationapi.ExpandResources(roles[i].Rules[j].Resources)
+			roles[i].Rules[j].Resources = authorizationapi.NormalizeResources(roles[i].Rules[j].Resources)
 		}
 	}
 

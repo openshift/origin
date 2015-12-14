@@ -257,7 +257,7 @@ func bcList(bcs ...buildapi.BuildConfig) buildapi.BuildConfigList {
 	}
 }
 
-func bc(namespace, name string, strategyType buildapi.BuildStrategyType, fromKind, fromNamespace, fromName string) buildapi.BuildConfig {
+func bc(namespace, name, strategyType, fromKind, fromNamespace, fromName string) buildapi.BuildConfig {
 	return buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: namespace,
@@ -275,7 +275,7 @@ func buildList(builds ...buildapi.Build) buildapi.BuildList {
 	}
 }
 
-func build(namespace, name string, strategyType buildapi.BuildStrategyType, fromKind, fromNamespace, fromName string) buildapi.Build {
+func build(namespace, name, strategyType, fromKind, fromNamespace, fromName string) buildapi.Build {
 	return buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: namespace,
@@ -285,14 +285,12 @@ func build(namespace, name string, strategyType buildapi.BuildStrategyType, from
 	}
 }
 
-func buildSpec(strategyType buildapi.BuildStrategyType, fromKind, fromNamespace, fromName string) buildapi.BuildSpec {
+func buildSpec(strategyType, fromKind, fromNamespace, fromName string) buildapi.BuildSpec {
 	spec := buildapi.BuildSpec{
-		Strategy: buildapi.BuildStrategy{
-			Type: strategyType,
-		},
+		Strategy: buildapi.BuildStrategy{},
 	}
 	switch strategyType {
-	case buildapi.SourceBuildStrategyType:
+	case "source":
 		spec.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{
 			From: kapi.ObjectReference{
 				Kind:      fromKind,
@@ -300,7 +298,7 @@ func buildSpec(strategyType buildapi.BuildStrategyType, fromKind, fromNamespace,
 				Name:      fromName,
 			},
 		}
-	case buildapi.DockerBuildStrategyType:
+	case "docker":
 		spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{
 			From: &kapi.ObjectReference{
 				Kind:      fromKind,
@@ -308,7 +306,7 @@ func buildSpec(strategyType buildapi.BuildStrategyType, fromKind, fromNamespace,
 				Name:      fromName,
 			},
 		}
-	case buildapi.CustomBuildStrategyType:
+	case "custom":
 		spec.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{
 			From: kapi.ObjectReference{
 				Kind:      fromKind,
@@ -494,62 +492,62 @@ func TestImagePruning(t *testing.T) {
 		},
 		"referenced by bc - sti - ImageStreamImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", buildapi.SourceBuildStrategyType, "ImageStreamImage", "foo", "bar@id")),
+			bcs:               bcList(bc("foo", "bc1", "source", "ImageStreamImage", "foo", "bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by bc - docker - ImageStreamImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", buildapi.DockerBuildStrategyType, "ImageStreamImage", "foo", "bar@id")),
+			bcs:               bcList(bc("foo", "bc1", "docker", "ImageStreamImage", "foo", "bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by bc - custom - ImageStreamImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", buildapi.CustomBuildStrategyType, "ImageStreamImage", "foo", "bar@id")),
+			bcs:               bcList(bc("foo", "bc1", "custom", "ImageStreamImage", "foo", "bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by bc - sti - DockerImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", buildapi.SourceBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			bcs:               bcList(bc("foo", "bc1", "source", "DockerImage", "foo", registryURL+"/foo/bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by bc - docker - DockerImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", buildapi.DockerBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			bcs:               bcList(bc("foo", "bc1", "docker", "DockerImage", "foo", registryURL+"/foo/bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by bc - custom - DockerImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", buildapi.CustomBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			bcs:               bcList(bc("foo", "bc1", "custom", "DockerImage", "foo", registryURL+"/foo/bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by build - sti - ImageStreamImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", buildapi.SourceBuildStrategyType, "ImageStreamImage", "foo", "bar@id")),
+			builds:            buildList(build("foo", "build1", "source", "ImageStreamImage", "foo", "bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by build - docker - ImageStreamImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", buildapi.DockerBuildStrategyType, "ImageStreamImage", "foo", "bar@id")),
+			builds:            buildList(build("foo", "build1", "docker", "ImageStreamImage", "foo", "bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by build - custom - ImageStreamImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", buildapi.CustomBuildStrategyType, "ImageStreamImage", "foo", "bar@id")),
+			builds:            buildList(build("foo", "build1", "custom", "ImageStreamImage", "foo", "bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by build - sti - DockerImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", buildapi.SourceBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			builds:            buildList(build("foo", "build1", "source", "DockerImage", "foo", registryURL+"/foo/bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by build - docker - DockerImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", buildapi.DockerBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			builds:            buildList(build("foo", "build1", "docker", "DockerImage", "foo", registryURL+"/foo/bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by build - custom - DockerImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", buildapi.CustomBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			builds:            buildList(build("foo", "build1", "custom", "DockerImage", "foo", registryURL+"/foo/bar@id")),
 			expectedDeletions: []string{},
 		},
 		"image stream - keep most recent n images": {
@@ -624,8 +622,8 @@ func TestImagePruning(t *testing.T) {
 			rcs:                    rcList(rc("foo", "rc1", registryURL+"/foo/bar@id2")),
 			pods:                   podList(pod("foo", "pod1", kapi.PodRunning, registryURL+"/foo/bar@id2")),
 			dcs:                    dcList(dc("foo", "rc1", registryURL+"/foo/bar@id")),
-			bcs:                    bcList(bc("foo", "bc1", buildapi.SourceBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
-			builds:                 buildList(build("foo", "build1", buildapi.CustomBuildStrategyType, "ImageStreamImage", "foo", "bar@id")),
+			bcs:                    bcList(bc("foo", "bc1", "source", "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			builds:                 buildList(build("foo", "build1", "custom", "ImageStreamImage", "foo", "bar@id")),
 			expectedDeletions:      []string{},
 			expectedUpdatedStreams: []string{},
 		},

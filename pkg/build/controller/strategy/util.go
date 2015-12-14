@@ -49,8 +49,8 @@ func setupDockerSocket(podSpec *kapi.Pod) {
 func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) error {
 	vars := []kapi.EnvVar{}
 
-	switch build.Spec.Source.Type {
-	case buildapi.BuildSourceGit:
+	switch {
+	case build.Spec.Source.Git != nil:
 		vars = append(vars, kapi.EnvVar{Name: "SOURCE_URI", Value: build.Spec.Source.Git.URI})
 		vars = append(vars, kapi.EnvVar{Name: "SOURCE_REF", Value: build.Spec.Source.Git.Ref})
 	default:

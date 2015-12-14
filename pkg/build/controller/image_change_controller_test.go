@@ -309,7 +309,6 @@ func mockBuildConfig(baseImage, triggerImage, repoName, repoTag string) *buildap
 		Spec: buildapi.BuildConfigSpec{
 			BuildSpec: buildapi.BuildSpec{
 				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
 					DockerStrategy: &buildapi.DockerBuildStrategy{
 						From: &kapi.ObjectReference{
 							Kind: "ImageStreamTag",

@@ -63,7 +63,7 @@ func breakdownRule(rule authorizationapi.PolicyRule) []authorizationapi.PolicyRu
 func breadownRuleForGroup(group string, rule authorizationapi.PolicyRule) []authorizationapi.PolicyRule {
 	subrules := []authorizationapi.PolicyRule{}
 
-	for resource := range authorizationapi.ExpandResources(rule.Resources) {
+	for resource := range authorizationapi.NormalizeResources(rule.Resources) {
 		for verb := range rule.Verbs {
 			if len(rule.ResourceNames) > 0 {
 				for _, resourceName := range rule.ResourceNames.List() {
@@ -83,7 +83,7 @@ func breadownRuleForGroup(group string, rule authorizationapi.PolicyRule) []auth
 // ruleCovers determines whether the ownerRule (which may have multiple verbs, resources, and resourceNames) covers
 // the subrule (which may only contain at most one verb, resource, and resourceName)
 func ruleCovers(ownerRule, subrule authorizationapi.PolicyRule) bool {
-	allResources := authorizationapi.ExpandResources(ownerRule.Resources)
+	allResources := authorizationapi.NormalizeResources(ownerRule.Resources)
 
 	ownerGroups := sets.NewString(ownerRule.APIGroups...)
 	groupMatches := ownerGroups.Has(authorizationapi.APIGroupAll) || ownerGroups.HasAll(subrule.APIGroups...) || (len(ownerRule.APIGroups) == 0 && len(subrule.APIGroups) == 0)

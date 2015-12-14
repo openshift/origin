@@ -311,7 +311,7 @@ html, body {
 .build-trends-responsive {
   width: 100%;
   margin-top: 20px;
-  overflow: scroll;
+  overflow: auto;
   .build-trends-container {
     min-width: 600px;
     height: 235px;
@@ -750,6 +750,17 @@ select:invalid {
 
 a.action-button {
   &:hover, &:active, &:focus {
+    text-decoration: none;
+  }
+}
+
+// Use with aria-disabled="true" and role="button"
+a.disabled-link {
+  color: #bbbbbb;
+  cursor: not-allowed;
+  opacity: 0.4;
+  &:hover, &:active, &:focus {
+    color: #bbbbbb;
     text-decoration: none;
   }
 }

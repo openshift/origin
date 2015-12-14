@@ -126,7 +126,6 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	request.Name = h.name
 	if len(h.options.Commit) > 0 {
 		request.Revision = &buildapi.SourceRevision{
-			Type: buildapi.BuildSourceGit,
 			Git: &buildapi.GitSourceRevision{
 				Committer: buildapi.SourceControlUser{
 					Name:  h.options.CommitterName,

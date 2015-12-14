@@ -45,7 +45,7 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 	if a.verbMatches(rule.Verbs) {
 		if a.apiGroupMatches(rule.APIGroups) {
 
-			allowedResourceTypes := authorizationapi.ExpandResources(rule.Resources)
+			allowedResourceTypes := authorizationapi.NormalizeResources(rule.Resources)
 			if a.resourceMatches(allowedResourceTypes) {
 				if a.nameMatches(rule.ResourceNames) {
 					// this rule matches the request, so we should check the additional restrictions to be sure that it's allowed

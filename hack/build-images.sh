@@ -28,15 +28,15 @@ if [[ ! -d _output/local/releases ]]; then
 fi
 
 # Extract the release achives to a staging area.
-os::build::detect_local_release_tars "linux-amd64"
+os::build::detect_local_release_tars "linux-64bit"
 
 echo "Building images from release tars for commit ${OS_RELEASE_COMMIT}:"
 echo " primary: $(basename ${OS_PRIMARY_RELEASE_TAR})"
 echo " image:   $(basename ${OS_IMAGE_RELEASE_TAR})"
 
 imagedir="$(mktemp -d 2>/dev/null || mktemp -d -t imagedir.XXXXXX)"
-tar xzpf "${OS_PRIMARY_RELEASE_TAR}" -C "${imagedir}"
-tar xzpf "${OS_IMAGE_RELEASE_TAR}" -C "${imagedir}"
+tar xzpf "${OS_PRIMARY_RELEASE_TAR}" --strip-components=1 -C "${imagedir}"
+tar xzpf "${OS_IMAGE_RELEASE_TAR}" --strip-components=1 -C "${imagedir}"
 
 # Copy primary binaries to the appropriate locations.
 cp -pf "${imagedir}/openshift" images/origin/bin

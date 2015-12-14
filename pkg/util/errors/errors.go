@@ -2,7 +2,10 @@ package errors
 
 import "strings"
 
-import kapierrors "k8s.io/kubernetes/pkg/api/errors"
+import (
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+)
 
 // TolerateNotFoundError tolerates 'not found' errors
 func TolerateNotFoundError(err error) error {
@@ -24,4 +27,13 @@ func ErrorToSentence(err error) string {
 		msg = msg + "."
 	}
 	return msg
+}
+
+// IsTimeoutErr returns true if the error indicates timeout
+func IsTimeoutErr(err error) bool {
+	e, ok := err.(*kapierrors.StatusError)
+	if !ok {
+		return false
+	}
+	return e.ErrStatus.Reason == unversioned.StatusReasonTimeout
 }

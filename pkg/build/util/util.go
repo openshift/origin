@@ -31,21 +31,12 @@ func GetBuildName(pod *kapi.Pod) string {
 // GetImageStreamForStrategy returns the ImageStream[Tag/Image] ObjectReference associated
 // with the BuildStrategy.
 func GetImageStreamForStrategy(strategy buildapi.BuildStrategy) *kapi.ObjectReference {
-	switch strategy.Type {
-	case buildapi.SourceBuildStrategyType:
-		if strategy.SourceStrategy == nil {
-			return nil
-		}
+	switch {
+	case strategy.SourceStrategy != nil:
 		return &strategy.SourceStrategy.From
-	case buildapi.DockerBuildStrategyType:
-		if strategy.DockerStrategy == nil {
-			return nil
-		}
+	case strategy.DockerStrategy != nil:
 		return strategy.DockerStrategy.From
-	case buildapi.CustomBuildStrategyType:
-		if strategy.CustomStrategy == nil {
-			return nil
-		}
+	case strategy.CustomStrategy != nil:
 		return &strategy.CustomStrategy.From
 	default:
 		return nil

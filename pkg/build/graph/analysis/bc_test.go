@@ -24,7 +24,7 @@ func TestUnpushableBuild(t *testing.T) {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 
-	if got, expected := markers[0].Key, MissingRequiredRegistryWarning; got != expected {
+	if got, expected := markers[0].Key, MissingRequiredRegistryErr; got != expected {
 		t.Fatalf("expected marker key %q, got %q", expected, got)
 	}
 
@@ -53,7 +53,7 @@ func TestUnpushableBuild(t *testing.T) {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 
-	if got, expected := markers[0].Key, MissingImageStreamWarning; got != expected {
+	if got, expected := markers[0].Key, MissingImageStreamErr; got != expected {
 		t.Fatalf("expected marker key %q, got %q", expected, got)
 	}
 }

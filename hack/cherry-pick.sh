@@ -17,6 +17,7 @@ cd "${OS_ROOT}"
 repo="${UPSTREAM_REPO:-k8s.io/kubernetes}"
 package="${UPSTREAM_PACKAGE:-pkg/api}"
 UPSTREAM_REPO_LOCATION="${UPSTREAM_REPO_LOCATION:-../../../${repo}}"
+pr="$1"
 
 if [[ "$#" -ne 1 ]]; then
   echo "You must supply a pull request by number or a Git range in the upstream ${repo} project" 1>&2
@@ -40,7 +41,7 @@ os::build::require_clean_tree
 remote="${UPSTREAM_REMOTE:-origin}"
 git fetch ${remote}
 
-selector="$(os::build::commit_range $1 ${remote}/master)"
+selector="$(os::build::commit_range $pr ${remote}/master)"
 
 if [[ -z "${NO_REBASE-}" ]]; then
   echo "++ Generating patch for ${selector} onto ${lastrev} ..." 2>&1
@@ -80,9 +81,14 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
+commit_message="UPSTREAM: $pr: Cherry-picked"
+if [ "$repo" != "k8s.io/kubernetes" ]; then
+  commit_message="UPSTREAM: $repo: $pr: Cherry-picked"
+fi
+
 set -o errexit
 git add .
-git commit -m "UPSTREAM: $1: " > /dev/null
+git commit -m "$commit_message" > /dev/null
 git commit --amend
 echo 2>&1
 echo "++ Done" 2>&1

@@ -254,23 +254,18 @@ func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeCo
 		glog.Fatal("Failed to get kube client for SDN")
 	}
 
-	ch := make(chan struct{})
-
-	controller, endpointFilter, err := factory.NewPlugin(nodeConfig.NetworkConfig.NetworkPluginName, oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP, ch)
+	controller, endpointFilter, err := factory.NewPlugin(nodeConfig.NetworkConfig.NetworkPluginName, oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
 
 	if controller != nil {
-		config.KubeletConfig.StartUpdates = ch
 		config.KubeletConfig.NetworkPlugins = append(config.KubeletConfig.NetworkPlugins, controller)
 
-		go func() {
-			err := controller.StartNode(nodeConfig.NetworkConfig.MTU)
-			if err != nil {
-				glog.Fatalf("SDN Node failed: %v", err)
-			}
-		}()
+		err := controller.StartNode(nodeConfig.NetworkConfig.MTU)
+		if err != nil {
+			glog.Fatalf("SDN Node failed: %v", err)
+		}
 	}
 
 	return endpointFilter
@@ -283,11 +278,11 @@ func StartNode(nodeConfig configapi.NodeConfig) error {
 	}
 	glog.Infof("Starting node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
 
-	endpointFilter := RunSDNController(config, nodeConfig)
 	config.EnsureVolumeDir()
 	config.EnsureDocker(docker.NewHelper())
-	config.RunProxy(endpointFilter)
 	config.RunKubelet()
+	endpointFilter := RunSDNController(config, nodeConfig)
+	config.RunProxy(endpointFilter)
 
 	return nil
 }

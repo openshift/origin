@@ -10,6 +10,7 @@ import (
 )
 
 var _ SyncBuilder = &RFC2307Builder{}
+var _ PruneBuilder = &RFC2307Builder{}
 
 type RFC2307Builder struct {
 	ClientConfig ldapclient.Config
@@ -58,4 +59,8 @@ func (b *RFC2307Builder) getRFC2307LDAPInterface() (*rfc2307.LDAPInterface, erro
 	return rfc2307.NewLDAPInterface(b.ClientConfig,
 		groupQuery, b.Config.GroupNameAttributes, b.Config.GroupMembershipAttributes,
 		userQuery, b.Config.UserNameAttributes), nil
+}
+
+func (b *RFC2307Builder) GetGroupDetector() (interfaces.LDAPGroupDetector, error) {
+	return b.getRFC2307LDAPInterface()
 }

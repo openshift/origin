@@ -133,14 +133,12 @@ func mockBuildConfig() *buildapi.BuildConfig {
 			},
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
-					Type: buildapi.BuildSourceGit,
 					Git: &buildapi.GitBuildSource{
 						URI: "http://my.docker/build",
 					},
 					ContextDir: "context",
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type:           buildapi.DockerBuildStrategyType,
 					DockerStrategy: &buildapi.DockerBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{
@@ -179,14 +177,12 @@ func TestBuildConfigClient(t *testing.T) {
 		Spec: buildapi.BuildConfigSpec{
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
-					Type: buildapi.BuildSourceGit,
 					Git: &buildapi.GitBuildSource{
 						URI: "http://my.docker/build",
 					},
 					ContextDir: "context",
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type:           buildapi.DockerBuildStrategyType,
 					DockerStrategy: &buildapi.DockerBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{

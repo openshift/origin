@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
+	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/groupdetector"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 )
 
@@ -75,4 +76,10 @@ func (e *AugmentedADLDAPInterface) requiredGroupAttributes() []string {
 	allAttributes.Insert(e.groupQuery.QueryAttribute)         // this is used for extracting the group UID (otherwise an entry isn't self-describing)
 
 	return allAttributes.List()
+}
+
+// Exists determines if a group idenified with it's LDAP group UID exists on the LDAP server
+func (e *AugmentedADLDAPInterface) Exists(ldapGroupUID string) (bool, error) {
+	groupDetector := groupdetector.NewCompoundDetector(groupdetector.NewGroupBasedDetector(e), groupdetector.NewMemberBasedDetector(e))
+	return groupDetector.Exists(ldapGroupUID)
 }

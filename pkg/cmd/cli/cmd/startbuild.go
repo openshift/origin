@@ -30,6 +30,7 @@ import (
 	osutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/util/errors"
 	"github.com/openshift/source-to-image/pkg/tar"
 )
 
@@ -189,7 +190,6 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 	}
 	if len(commit) > 0 {
 		request.Revision = &buildapi.SourceRevision{
-			Type: buildapi.BuildSourceGit,
 			Git: &buildapi.GitSourceRevision{
 				Commit: commit,
 			},
@@ -251,19 +251,33 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 	if follow {
 		wg.Add(1)
 		go func() {
-			defer wg.Done()
+			// if --wait option is set, then don't wait for logs to finish streaming
+			// but wait for the build to reach its final state
+			if waitForComplete {
+				wg.Done()
+			} else {
+				defer wg.Done()
+			}
 			opts := buildapi.BuildLogOptions{
 				Follow: true,
 				NoWait: false,
 			}
-			rd, err := client.BuildLogs(namespace).Get(newBuild.Name, opts).Stream()
-			if err != nil {
-				fmt.Fprintf(cmd.Out(), "error getting logs: %v\n", err)
-				return
-			}
-			defer rd.Close()
-			if _, err = io.Copy(out, rd); err != nil {
-				fmt.Fprintf(cmd.Out(), "error streaming logs: %v\n", err)
+			for {
+				rd, err := client.BuildLogs(namespace).Get(newBuild.Name, opts).Stream()
+				if err != nil {
+					// if --wait options is set, then retry the connection to build logs
+					// when we hit the timeout.
+					if waitForComplete && errors.IsTimeoutErr(err) {
+						continue
+					}
+					fmt.Fprintf(cmd.Out(), "error getting logs: %v\n", err)
+					return
+				}
+				defer rd.Close()
+				if _, err = io.Copy(out, rd); err != nil {
+					fmt.Fprintf(cmd.Out(), "error streaming logs: %v\n", err)
+				}
+				break
 			}
 		}()
 	}
@@ -552,8 +566,7 @@ func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, p
 func hookEventFromPostReceive(repo git.Repository, path, postReceivePath string) (*buildapi.GenericWebHookEvent, error) {
 	// TODO: support other types of refs
 	event := &buildapi.GenericWebHookEvent{
-		Type: buildapi.BuildSourceGit,
-		Git:  &buildapi.GitInfo{},
+		Git: &buildapi.GitInfo{},
 	}
 
 	// attempt to extract a post receive body

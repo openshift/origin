@@ -23,7 +23,7 @@ func TestMissingImageStreamTag(t *testing.T) {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 
-	if got, expected := markers[0].Key, MissingImageStreamTagWarning; got != expected {
+	if got, expected := markers[0].Key, MissingImageStreamTagErr; got != expected {
 		t.Fatalf("expected marker key %q, got %q", expected, got)
 	}
 }
@@ -42,7 +42,7 @@ func TestMissingImageStream(t *testing.T) {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 
-	if got, expected := markers[0].Key, MissingImageStreamWarning; got != expected {
+	if got, expected := markers[0].Key, MissingImageStreamErr; got != expected {
 		t.Fatalf("expected marker key %q, got %q", expected, got)
 	}
 }
@@ -61,7 +61,7 @@ func TestSyntheticImageStreamTag(t *testing.T) {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 
-	if got, expected := markers[0].Key, ImageStreamTagNotAvailableInfo; got != expected {
+	if got, expected := markers[0].Key, TagNotAvailableWarning; got != expected {
 		t.Fatalf("expected marker key %q, got %q", expected, got)
 	}
 }

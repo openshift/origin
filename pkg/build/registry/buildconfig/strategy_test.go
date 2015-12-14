@@ -30,14 +30,12 @@ func TestBuildConfigStrategy(t *testing.T) {
 			},
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
-					Type: buildapi.BuildSourceGit,
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
 					},
 					ContextDir: "context",
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type:           buildapi.DockerBuildStrategyType,
 					DockerStrategy: &buildapi.DockerBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{

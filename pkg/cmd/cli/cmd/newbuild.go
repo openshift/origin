@@ -181,8 +181,10 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *buildapi.BuildConfig:
-			fmt.Fprintf(out, "%sBuild configuration %q created and build triggered.\n", indent, t.Name)
-			fmt.Fprintf(out, "%sRun '%s logs -f bc/%s' to stream the build progress.\n", indent, fullName, t.Name)
+			if len(t.Spec.Triggers) > 0 && t.Spec.Source.Binary == nil {
+				fmt.Fprintf(out, "%sBuild configuration %q created and build triggered.\n", indent, t.Name)
+				fmt.Fprintf(out, "%sRun '%s logs -f bc/%s' to stream the build progress.\n", indent, fullName, t.Name)
+			}
 		}
 	}
 
