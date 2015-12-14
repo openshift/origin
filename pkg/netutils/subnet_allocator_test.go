@@ -15,21 +15,21 @@ func TestAllocateSubnet(t *testing.T) {
 		t.Fatal("Failed to get network: ", err)
 	}
 	if sn.String() != "10.1.0.0/24" {
-		t.Fatal("Did not get expected subnet")
+		t.Fatalf("Did not get expected subnet (n=%d, sn=%s)", 0, sn.String())
 	}
 	sn, err = sna.GetNetwork()
 	if err != nil {
 		t.Fatal("Failed to get network: ", err)
 	}
 	if sn.String() != "10.1.1.0/24" {
-		t.Fatal("Did not get expected subnet")
+		t.Fatalf("Did not get expected subnet (n=%d, sn=%s)", 1, sn.String())
 	}
 	sn, err = sna.GetNetwork()
 	if err != nil {
 		t.Fatal("Failed to get network: ", err)
 	}
 	if sn.String() != "10.1.2.0/24" {
-		t.Fatal("Did not get expected subnet")
+		t.Fatalf("Did not get expected subnet (n=%d, sn=%s)", 2, sn.String())
 	}
 }
 
@@ -45,14 +45,14 @@ func TestAllocateSubnetInUse(t *testing.T) {
 		t.Fatal("Failed to get network: ", err)
 	}
 	if sn.String() != "10.1.1.0/24" {
-		t.Fatal("Did not get expected subnet")
+		t.Fatalf("Did not get expected subnet (sn=%s)", sn.String())
 	}
 	sn, err = sna.GetNetwork()
 	if err != nil {
 		t.Fatal("Failed to get network: ", err)
 	}
 	if sn.String() != "10.1.3.0/24" {
-		t.Fatal("Did not get expected subnet")
+		t.Fatalf("Did not get expected subnet (sn=%s)", sn.String())
 	}
 }
 
@@ -67,7 +67,7 @@ func TestAllocateReleaseSubnet(t *testing.T) {
 		t.Fatal("Failed to get network: ", err)
 	}
 	if sn.String() != "10.1.0.0/24" {
-		t.Fatal("Did not get expected subnet")
+		t.Fatalf("Did not get expected subnet (sn=%s)", sn.String())
 	}
 
 	if err := sna.ReleaseNetwork(sn); err != nil {
@@ -79,7 +79,7 @@ func TestAllocateReleaseSubnet(t *testing.T) {
 		t.Fatal("Failed to get network: ", err)
 	}
 	if sn.String() != "10.1.0.0/24" {
-		t.Fatal("Did not get expected subnet")
+		t.Fatalf("Did not get expected subnet (sn=%s)", sn.String())
 	}
 }
 
@@ -94,12 +94,11 @@ func TestGenerateGateway(t *testing.T) {
 		t.Fatal("Failed to get network: ", err)
 	}
 	if sn.String() != "10.1.0.0/24" {
-		t.Fatal("Did not get expected subnet")
+		t.Fatalf("Did not get expected subnet (sn=%s)", sn.String())
 	}
 
 	gatewayIP := GenerateDefaultGateway(sn)
-	t.Log(gatewayIP)
 	if gatewayIP.String() != "10.1.0.1" {
-		t.Fatal("Did not get expected gateway IP Address")
+		t.Fatalf("Did not get expected gateway IP Address (gatewayIP=%s)", gatewayIP.String())
 	}
 }
