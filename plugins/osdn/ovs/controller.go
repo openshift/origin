@@ -151,13 +151,3 @@ func generateAddServiceRule(netID uint, IP string, protocol api.ServiceProtocol,
 func generateDelServiceRule(IP string, protocol api.ServiceProtocol, port uint) string {
 	return generateBaseServiceRule(IP, protocol, port)
 }
-
-func (c *FlowController) UpdatePod(namespace, podName, containerID string, netID uint) error {
-	if !c.multitenant {
-		return nil
-	}
-
-	out, err := exec.Command("openshift-sdn-ovs", "update", namespace, podName, containerID, fmt.Sprint(netID)).CombinedOutput()
-	glog.V(5).Infof("UpdatePod network plugin output: %s, %v", string(out), err)
-	return err
-}

@@ -78,6 +78,7 @@ const (
 	setUpCmd    = "setup"
 	tearDownCmd = "teardown"
 	statusCmd   = "status"
+	updateCmd   = "update"
 )
 
 func (plugin *ovsPlugin) getExecutable() string {
@@ -96,22 +97,29 @@ func (plugin *ovsPlugin) Name() string {
 	}
 }
 
+func (plugin *ovsPlugin) getVNID(namespace string) (string, error) {
+	if plugin.multitenant {
+		vnid, found := plugin.VNIDMap[namespace]
+		if !found {
+			return "", fmt.Errorf("Error fetching VNID for namespace: %s", namespace)
+		}
+		return strconv.FormatUint(uint64(vnid), 10), nil
+	}
+
+	return "-1", nil
+}
+
 func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
 	err := plugin.WaitForPodNetworkReady()
 	if err != nil {
 		return err
 	}
 
-	var vnidstr string
-	if plugin.multitenant {
-		vnid, found := plugin.VNIDMap[namespace]
-		if !found {
-			return fmt.Errorf("Error fetching VNID for namespace: %s", namespace)
-		}
-		vnidstr = strconv.FormatUint(uint64(vnid), 10)
-	} else {
-		vnidstr = "-1"
+	vnidstr, err := plugin.getVNID(namespace)
+	if err != nil {
+		return err
 	}
+
 	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, namespace, name, string(id), vnidstr).CombinedOutput()
 	glog.V(5).Infof("SetUpPod network plugin output: %s, %v", string(out), err)
 	return err
@@ -126,4 +134,15 @@ func (plugin *ovsPlugin) TearDownPod(namespace string, name string, id kubeletTy
 
 func (plugin *ovsPlugin) Status(namespace string, name string, id kubeletTypes.DockerID) (*knetwork.PodNetworkStatus, error) {
 	return nil, nil
+}
+
+func (plugin *ovsPlugin) UpdatePod(namespace string, name string, id kubeletTypes.DockerID) error {
+	vnidstr, err := plugin.getVNID(namespace)
+	if err != nil {
+		return err
+	}
+
+	out, err := utilexec.New().Command(plugin.getExecutable(), updateCmd, namespace, name, string(id), vnidstr).CombinedOutput()
+	glog.V(5).Infof("UpdatePod network plugin output: %s, %v", string(out), err)
+	return err
 }
