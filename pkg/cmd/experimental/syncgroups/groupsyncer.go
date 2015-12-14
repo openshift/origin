@@ -75,7 +75,7 @@ func (s *LDAPGroupSyncer) Sync() ([]*userapi.Group, []error) {
 		// determine OpenShift Users' usernames for LDAP group members
 		usernames, err := s.determineUsernames(memberEntries)
 		if err != nil {
-			fmt.Fprintf(s.Err, "Error determining usernames LDAP group %q: %v.\n", ldapGroupUID, err)
+			fmt.Fprintf(s.Err, "Error determining usernames for LDAP group %q: %v.\n", ldapGroupUID, err)
 			errors = append(errors, err)
 			continue
 		}

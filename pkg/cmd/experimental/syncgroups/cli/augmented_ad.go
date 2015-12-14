@@ -56,9 +56,10 @@ func (b *AugmentedADBuilder) getAugmentedADLDAPInterface() (*ad.AugmentedADLDAPI
 	if err != nil {
 		return nil, err
 	}
-	return ad.NewAugmentedADLDAPInterface(b.ClientConfig,
+	b.augmentedADLDAPInterface = ad.NewAugmentedADLDAPInterface(b.ClientConfig,
 		userQuery, b.Config.GroupMembershipAttributes, b.Config.UserNameAttributes,
-		groupQuery, b.Config.GroupNameAttributes), nil
+		groupQuery, b.Config.GroupNameAttributes)
+	return b.augmentedADLDAPInterface, nil
 }
 
 func (b *AugmentedADBuilder) GetGroupDetector() (interfaces.LDAPGroupDetector, error) {

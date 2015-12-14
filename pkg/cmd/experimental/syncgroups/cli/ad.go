@@ -44,8 +44,9 @@ func (b *ADBuilder) getADLDAPInterface() (*ad.ADLDAPInterface, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ad.NewADLDAPInterface(b.ClientConfig,
-		userQuery, b.Config.GroupMembershipAttributes, b.Config.UserNameAttributes), nil
+	b.adLDAPInterface = ad.NewADLDAPInterface(b.ClientConfig,
+		userQuery, b.Config.GroupMembershipAttributes, b.Config.UserNameAttributes)
+	return b.adLDAPInterface, nil
 }
 
 func (b *ADBuilder) GetGroupDetector() (interfaces.LDAPGroupDetector, error) {
