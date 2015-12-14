@@ -14,7 +14,6 @@ import (
 	"github.com/Sirupsen/logrus/formatters/logstash"
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/health"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/auth"
@@ -68,28 +67,6 @@ func Execute(configFile io.Reader) {
 		server.BlobDispatcher,
 		// repo name not required in url
 		handlers.NameNotRequired,
-		// custom access records
-		pruneAccessRecords,
-	)
-
-	app.RegisterRoute(
-		// DELETE /admin/<repo>/manifests/<digest>
-		adminRouter.Path("/{name:"+reference.NameRegexp.String()+"}/manifests/{digest:"+digest.DigestRegexp.String()+"}").Methods("DELETE"),
-		// handler
-		server.ManifestDispatcher,
-		// repo name required in url
-		handlers.NameRequired,
-		// custom access records
-		pruneAccessRecords,
-	)
-
-	app.RegisterRoute(
-		// DELETE /admin/<repo>/layers/<digest>
-		adminRouter.Path("/{name:"+reference.NameRegexp.String()+"}/layers/{digest:"+digest.DigestRegexp.String()+"}").Methods("DELETE"),
-		// handler
-		server.LayerDispatcher,
-		// repo name required in url
-		handlers.NameRequired,
 		// custom access records
 		pruneAccessRecords,
 	)

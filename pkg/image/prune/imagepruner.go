@@ -910,7 +910,7 @@ func deleteFromRegistry(registryClient *http.Client, url string) error {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusNoContent {
+		if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusAccepted {
 			glog.V(1).Infof("Unexpected status code in response: %d", resp.StatusCode)
 			decoder := json.NewDecoder(resp.Body)
 			var response errcode.Errors
@@ -954,7 +954,7 @@ func NewDeletingLayerPruner() LayerPruner {
 
 func (p *deletingLayerPruner) PruneLayer(registryClient *http.Client, registryURL, repoName, layer string) error {
 	glog.V(4).Infof("Pruning registry %q, repo %q, layer %q", registryURL, repoName, layer)
-	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/admin/%s/layers/%s", registryURL, repoName, layer))
+	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/v2/%s/blobs/%s", registryURL, repoName, layer))
 }
 
 // deletingBlobPruner deletes a blob from the registry.
@@ -986,5 +986,5 @@ func NewDeletingManifestPruner() ManifestPruner {
 
 func (p *deletingManifestPruner) PruneManifest(registryClient *http.Client, registryURL, repoName, manifest string) error {
 	glog.V(4).Infof("Pruning manifest for registry %q, repo %q, manifest %q", registryURL, repoName, manifest)
-	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/admin/%s/manifests/%s", registryURL, repoName, manifest))
+	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/v2/%s/manifests/%s", registryURL, repoName, manifest))
 }
