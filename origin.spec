@@ -24,7 +24,7 @@
 %global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.0.1 -X github.com/openshift/origin/pkg/version.commitFromGit 86b5e46 -X k8s.io/kubernetes/pkg/version.gitCommit 6241a21 -X k8s.io/kubernetes/pkg/version.gitVersion v0.11.0-330-g6241a21
 }
 
- %if 0%{?fedora} || 0%{?epel}
+%if 0%{?fedora} || 0%{?epel}
 %global make_redistributable 0
 %else
 %global make_redistributable 1
@@ -65,7 +65,11 @@ Obsoletes:      openshift < %{package_refector_version}
 ### AUTO-BUNDLED-GEN-ENTRY-POINT
 
 %description
-%{summary}
+Origin is a distribution of Kubernetes optimized for enterprise application
+development and deployment, used by OpenShift 3 and Atomic Enterprise. Origin
+adds developer and operational centric tools on top of Kubernetes to enable
+rapid application development, easy deployment and scaling, and long-term
+lifecycle maintenance for small and large teams and applications.
 
 %package master
 Summary:        %{product_name} Master
@@ -148,6 +152,8 @@ Requires:         openvswitch >= %{openvswitch_version}
 Requires:         %{name}-node = %{version}-%{release}
 Requires:         bridge-utils
 Requires:         ethtool
+Requires:         procps-ng
+Requires:         iproute
 Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 
 %description sdn-ovs
@@ -169,7 +175,7 @@ popd
 
 
 # Gaming the GOPATH to include the third party bundled libs at build
-# time. This is bad and I feel bad.
+# time.
 mkdir _thirdpartyhacks
 pushd _thirdpartyhacks
     ln -s \
@@ -282,8 +288,8 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{__sed} -e "s|openshift|atomic-enterprise|g" contrib/completions/bash/openshift > %{buildroot}%{_sysconfdir}/bash_completion.d/atomic-enterprise
 
 %files
-%defattr(-,root,root,-)
-%doc README.md LICENSE
+%doc README.md
+%license LICENSE
 %{_bindir}/openshift
 %{_bindir}/openshift-router
 %{_bindir}/openshift-deploy
@@ -303,6 +309,8 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{_sysconfdir}/bash_completion.d/oadm
 %{_sysconfdir}/bash_completion.d/openshift
 %dir %config(noreplace) %{_sysconfdir}/origin
+%ghost %dir %config(noreplace) %{_sysconfdir}/origin
+%ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 
 %pre
 # If /etc/openshift exists and /etc/origin doesn't, symlink it to /etc/origin
@@ -319,7 +327,6 @@ fi
 
 
 %files master
-%defattr(-,root,root,-)
 %{_unitdir}/%{name}-master.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
 %config(noreplace) %{_sysconfdir}/origin/master
@@ -350,9 +357,10 @@ fi
 %ghost %config(noreplace) %{_sysconfdir}/origin/policy.json
 %ghost %config(noreplace) %{_sysconfdir}/origin/serviceaccounts.private.key
 %ghost %config(noreplace) %{_sysconfdir}/origin/serviceaccounts.public.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 
 %post master
-%systemd_post %{basename:%{name}-master.service}
+%systemd_post %{name}-master.service
 # Create master config and certs if both do not exist
 if [[ ! -e %{_sysconfdir}/origin/master/master-config.yaml &&
      ! -e %{_sysconfdir}/origin/master/ca.crt ]]; then
@@ -367,35 +375,36 @@ fi
 
 
 %preun master
-%systemd_preun %{basename:%{name}-master.service}
+%systemd_preun %{name}-master.service
 
 %postun master
 %systemd_postun
 
 %files node
-%defattr(-,root,root,-)
 %{_unitdir}/%{name}-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
 %config(noreplace) %{_sysconfdir}/origin/node
+%ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 
 %post node
-%systemd_post %{basename:%{name}-node.service}
+%systemd_post %{name}-node.service
 
 %preun node
-%systemd_preun %{basename:%{name}-node.service}
+%systemd_preun %{name}-node.service
 
 %postun node
 %systemd_postun
 
 %files sdn-ovs
-%defattr(-,root,root,-)
+%dir %{_unitdir}/docker.service.d/
+%dir %{_unitdir}/%{name}-node.service.d/
 %{_bindir}/openshift-sdn-ovs
 %{_bindir}/openshift-sdn-ovs-setup.sh
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 %{_unitdir}/docker.service.d/docker-sdn-ovs.conf
 
 %files -n tuned-profiles-%{name}-node
-%defattr(-,root,root,-)
+%license LICENSE
 %{_prefix}/lib/tuned/%{name}-node-host
 %{_prefix}/lib/tuned/%{name}-node-guest
 %{_mandir}/man7/tuned-profiles-%{name}-node.7*
@@ -417,27 +426,28 @@ if [ "$1" = 0 ]; then
 fi
 
 %files clients
+%license LICENSE
 %{_bindir}/oc
 %{_bindir}/kubectl
 %{_sysconfdir}/bash_completion.d/oc
 
 %if 0%{?make_redistributable}
 %files clients-redistributable
+%dir %{_datadir}/%{name}/linux/
+%dir %{_datadir}/%{name}/macosx/
+%dir %{_datadir}/%{name}/windows/
 %{_datadir}/%{name}/linux/oc
 %{_datadir}/%{name}/macosx/oc
 %{_datadir}/%{name}/windows/oc.exe
 %endif
 
 %files dockerregistry
-%defattr(-,root,root,-)
 %{_bindir}/dockerregistry
 
 %files pod
-%defattr(-,root,root,-)
 %{_bindir}/pod
 
 %files recycle
-%defattr(-,root,root,-)
 %{_bindir}/recycle
 
 
