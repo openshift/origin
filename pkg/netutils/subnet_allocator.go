@@ -8,6 +8,7 @@ import (
 type SubnetAllocator struct {
 	network  *net.IPNet
 	hostBits uint
+	next     uint32
 	allocMap map[string]bool
 }
 
@@ -35,7 +36,7 @@ func NewSubnetAllocator(network string, hostBits uint, inUse []string) (*SubnetA
 		}
 		amap[nIp.String()] = true
 	}
-	return &SubnetAllocator{network: netIP, hostBits: hostBits, allocMap: amap}, nil
+	return &SubnetAllocator{network: netIP, hostBits: hostBits, next: 0, allocMap: amap}, nil
 }
 
 func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
@@ -50,16 +51,19 @@ func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
 
 	var i uint32
 	for i = 0; i < numSubnets; i++ {
-		shifted := i << sna.hostBits
+		n := (i + sna.next) % numSubnets
+		shifted := n << sna.hostBits
 		ipu := baseipu | shifted
 		genIp := Uint32ToIP(ipu)
 		genSubnet := &net.IPNet{IP: genIp, Mask: net.CIDRMask(int(numSubnetBits)+netMaskSize, 32)}
 		if !sna.allocMap[genSubnet.String()] {
 			sna.allocMap[genSubnet.String()] = true
+			sna.next = n + 1
 			return genSubnet, nil
 		}
 	}
 
+	sna.next = 0
 	return nil, fmt.Errorf("No subnets available.")
 }
 
