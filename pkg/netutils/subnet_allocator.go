@@ -6,10 +6,14 @@ import (
 )
 
 type SubnetAllocator struct {
-	network  *net.IPNet
-	hostBits uint
-	next     uint32
-	allocMap map[string]bool
+	network    *net.IPNet
+	hostBits   uint
+	leftShift  uint
+	leftMask   uint32
+	rightShift uint
+	rightMask  uint32
+	next       uint32
+	allocMap   map[string]bool
 }
 
 func NewSubnetAllocator(network string, hostBits uint, inUse []string) (*SubnetAllocator, error) {
@@ -21,6 +25,34 @@ func NewSubnetAllocator(network string, hostBits uint, inUse []string) (*SubnetA
 	netMaskSize, _ := netIP.Mask.Size()
 	if hostBits > (32 - uint(netMaskSize)) {
 		return nil, fmt.Errorf("Subnet capacity cannot be larger than number of networks available.")
+	}
+	subnetBits := 32 - uint(netMaskSize) - hostBits
+
+	// In the simple case, the subnet part of the 32-bit IP address is just the subnet
+	// number shifted hostBits to the left. However, if hostBits isn't a multiple of
+	// 8, then it can be difficult to distinguish the subnet part and the host part
+	// visually. (Eg, given network="10.1.0.0/16" and hostBits=6, then "10.1.0.50" and
+	// "10.1.0.70" are on different networks.)
+	//
+	// To try to avoid this confusion, if the subnet extends into the next higher
+	// octet, we rotate the bits of the subnet number so that we use the subnets with
+	// all 0s in the shared octet first. So again given network="10.1.0.0/16",
+	// hostBits=6, we first allocate 10.1.0.0/26, 10.1.1.0/26, etc, through
+	// 10.1.255.0/26 (just like we would with /24s in the hostBits=8 case), and only
+	// if we use up all of those subnets do we start allocating 10.1.0.64/26,
+	// 10.1.1.64/26, etc.
+	var leftShift, rightShift uint
+	var leftMask, rightMask uint32
+	if hostBits%8 != 0 && ((hostBits-1)/8 != (hostBits+subnetBits-1)/8) {
+		leftShift = 8 - (hostBits % 8)
+		leftMask = uint32(1)<<(32-uint(netMaskSize)) - 1
+		rightShift = subnetBits - leftShift
+		rightMask = (uint32(1)<<leftShift - 1) << hostBits
+	} else {
+		leftShift = 0
+		leftMask = 0xFFFFFFFF
+		rightShift = 0
+		rightMask = 0
 	}
 
 	amap := make(map[string]bool)
@@ -36,7 +68,16 @@ func NewSubnetAllocator(network string, hostBits uint, inUse []string) (*SubnetA
 		}
 		amap[nIp.String()] = true
 	}
-	return &SubnetAllocator{network: netIP, hostBits: hostBits, next: 0, allocMap: amap}, nil
+	return &SubnetAllocator{
+		network:    netIP,
+		hostBits:   hostBits,
+		leftShift:  leftShift,
+		leftMask:   leftMask,
+		rightShift: rightShift,
+		rightMask:  rightMask,
+		next:       0,
+		allocMap:   amap,
+	}, nil
 }
 
 func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
@@ -53,7 +94,7 @@ func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
 	for i = 0; i < numSubnets; i++ {
 		n := (i + sna.next) % numSubnets
 		shifted := n << sna.hostBits
-		ipu := baseipu | shifted
+		ipu := baseipu | ((shifted << sna.leftShift) & sna.leftMask) | ((shifted >> sna.rightShift) & sna.rightMask)
 		genIp := Uint32ToIP(ipu)
 		genSubnet := &net.IPNet{IP: genIp, Mask: net.CIDRMask(int(numSubnetBits)+netMaskSize, 32)}
 		if !sna.allocMap[genSubnet.String()] {
