@@ -668,7 +668,12 @@ func pruneStreams(g graph.Graph, imageNodes []*imagegraph.ImageNode, streamPrune
 						updatedTags.Insert(tag)
 					}
 				}
-				stream.Status.Tags[tag] = newHistory
+				if len(newHistory.Items) == 0 {
+					glog.V(4).Infof("Removing tag %q from status.tags of ImageStream %s/%s", tag, stream.Namespace, stream.Name)
+					delete(stream.Status.Tags, tag)
+				} else {
+					stream.Status.Tags[tag] = newHistory
+				}
 			}
 
 			updatedStream, err := streamPruner.PruneImageStream(stream, imageNode.Image, updatedTags.List())
