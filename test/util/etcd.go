@@ -34,6 +34,7 @@ func DeleteAllEtcdKeys() {
 		glog.Fatalf("Unable to list root etcd keys: %v", err)
 	}
 	for _, node := range keys.Node.Nodes {
+		glog.Infof("Deleting child %s of node %s", keys.Node.Key, node.Key)
 		if _, err := client.Delete(node.Key, true); err != nil {
 			glog.Fatalf("Unable delete key: %v", err)
 		}
