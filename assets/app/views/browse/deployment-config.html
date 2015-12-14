@@ -1,4 +1,4 @@
-<div ng-controller="DeploymentConfigController" class="content">
+<div class="content">
   <project-page>
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
@@ -118,16 +118,7 @@
             </td>
             <td data-title="Status">
               <div row class="status">
-                <!-- Deployment status -->
-                <span ng-switch="deployment | deploymentStatus" class="hide-ng-leave status-icon">
-                  <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>
-                  <span ng-switch-when="Deployed" class="fa fa-check text-success" aria-hidden="true"></span>
-                  <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
-                  <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
-                  <span ng-switch-when="New" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-                  <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-                  <span ng-switch-default class="fa fa-refresh" aria-hidden="true"></span>
-                </span>
+                <status-icon status="deployment | deploymentStatus" disable-animation></status-icon>
                 <span flex>
                   {{deployment | deploymentStatus}}<span ng-if="(deployment | deploymentStatus) == 'Deployed' || (deployment | deploymentStatus) == 'Running'">,
                   <span ng-if="deployment.spec.replicas !== deployment.status.replicas">{{deployment.status.replicas}}/</span>{{deployment.spec.replicas}} replica<span ng-if="deployment.spec.replicas != 1">s</span></span>

@@ -389,12 +389,9 @@ var _ = Describe("Nodes", func() {
 	var ns string
 
 	BeforeEach(func() {
-		framework.beforeEach()
 		c = framework.Client
 		ns = framework.Namespace.Name
 	})
-
-	AfterEach(framework.afterEach)
 
 	Describe("Resize", func() {
 		var skipped bool

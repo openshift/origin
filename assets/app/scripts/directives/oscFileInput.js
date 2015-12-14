@@ -5,16 +5,18 @@ angular.module('openshiftConsole')
     return {
       restrict: 'E',
       scope: {
-        name: "@",
         model: "=",
-        required: "="
+        required: "=",
+        disabled: "=ngDisabled",
+        helpText: "@?"
       },
       templateUrl: 'views/directives/osc-file-input.html',
       link: function(scope, element){
+        scope.helpID = _.uniqueId('help-');
         scope.supportsFileUpload = (window.File && window.FileReader && window.FileList && window.Blob);
         scope.uploadError = false;
         $(element).change(function(){
-          var file = $('input[type=file]',this)[0].files[0];
+          var file = $('input[type=file]', this)[0].files[0];
           var reader = new FileReader();
           reader.onloadend = function(){
             scope.$apply(function(){
@@ -25,10 +27,9 @@ angular.module('openshiftConsole')
           reader.onerror = function(e){
             scope.supportsFileUpload = false;
             scope.uploadError = true;
-            Logger.error(e);
+            Logger.error("Could not read file", e);
           };
-//          reader.readAsBinaryString(file);
-          reader.onerror();
+          reader.readAsText(file);
         });
       }
     };

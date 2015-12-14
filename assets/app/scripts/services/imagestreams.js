@@ -14,24 +14,26 @@ angular.module("openshiftConsole")
           // include self-references within the same IS
           var from = tagsByName[tag.name].spec.from;
           if (from) {
-            var splitChar = "";
+            var splitChar;
             if (from.kind === "ImageStreamImage") {
               splitChar = "@";
             }
             else if (from.kind === "ImageStreamTag") {
               splitChar = ":";
             }
-            from._nameConnector = splitChar || null;
-            var parts = from.name.split(splitChar);
-            if (parts.length === 1) {
-              from._imageStreamName = imageStream.metadata.name;
-              from._idOrTag = parts[0];
-              from._completeName = from._imageStreamName + splitChar + from._idOrTag;
-            }
-            else {
-              from._imageStreamName = parts.shift();
-              from._idOrTag = parts.join(splitChar); // in case for some reason there was another @ symbol in the rest
-              from._completeName = from._imageStreamName + splitChar + from._idOrTag;
+            if (splitChar) {
+              from._nameConnector = splitChar;
+              var parts = from.name.split(splitChar);
+              if (parts.length === 1) {
+                from._imageStreamName = imageStream.metadata.name;
+                from._idOrTag = parts[0];
+                from._completeName = from._imageStreamName + splitChar + from._idOrTag;
+              }
+              else {
+                from._imageStreamName = parts.shift();
+                from._idOrTag = parts.join(splitChar); // in case for some reason there was another @ symbol in the rest
+                from._completeName = from._imageStreamName + splitChar + from._idOrTag;
+              }
             }
           }
         });

@@ -213,14 +213,9 @@ var _ = Describe("ServiceLoadBalancer", func() {
 	framework := NewFramework("servicelb")
 
 	BeforeEach(func() {
-		framework.beforeEach()
 		client = framework.Client
 		ns = framework.Namespace.Name
 		repoRoot = testContext.RepoRoot
-	})
-
-	AfterEach(func() {
-		framework.afterEach()
 	})
 
 	It("should support simple GET on Ingress ips", func() {

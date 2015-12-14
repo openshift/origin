@@ -18,26 +18,26 @@
 .\" * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 .\" */
 .\" 
-.TH TUNED_PROFILES_OPENSHIFT_NODE "7" "12 Feb 2015" "OpenShift" "tuned"
+.TH TUNED_PROFILES_ORIGIN_NODE "7" "12 Feb 2015" "OpenShift" "tuned-profiles-origin-node"
 .SH NAME
-tuned\-profiles\-openshift-node - description of profiles provided for OpenShift
+tuned\-profiles\-origin-node - description of profiles provided for OpenShift
 
 .SH DESCRIPTION
 These profiles are provided for OpenShift nodes. They provide performance
 optimizations for OpenShift Nodes running on either bare metal
-(openshift-node-host) or virtual machines (openshift-node-guest).
+(origin-node-host) or virtual machines (origin-node-guest).
 
 .SH PROFILES
 The following profiles are provided:
 
 .TP
-.BI "openshift-node\-host"
+.BI "origin-node\-host"
 Profile optimized for OpenShift hosts (bare metal). It is based on throughput\-performance
 profile. It additionally increases SELinux AVC cache, PID limit and tunes
 netfilter connections tracking.
 
 .TP
-.BI "openshift-node\-guest"
+.BI "origin-node\-guest"
 Profile optimized for virtual OpenShift guests. It is based on virtual\-guest
 profile. It additionally increases SELinux AVC cache, PID limit and tunes
 netfilter connections tracking.

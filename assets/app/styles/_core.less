@@ -268,27 +268,77 @@ html, body {
   .btn {
     margin: 10px 0 20px;
   }
+}
+
+.empty-state-full-page {
   @media (min-height: 500px) {
     margin-top: 150px;
   }
 }
 
-  .service-table {
-    border: 0;
-    margin: 10px 0 5px;
-    table {
-      .table;
-      .table-condensed;
-      .text-center;
-      .small;
-      margin-bottom: 0;
-      thead {
-        tr th {
-          .text-center;
-        }
+.service-table {
+  border: 0;
+  margin: 10px 0 5px;
+  table {
+    .table;
+    .table-condensed;
+    .text-center;
+    .small;
+    margin-bottom: 0;
+    thead {
+      tr th {
+        .text-center;
       }
     }
   }
+}
+
+.build-config-summary {
+  .latest-build-status {
+    margin-right: 5px;
+    .status-icon {
+      width: 20px;
+    }
+  }
+  // Indent icon width to align with text above.
+  .latest-build-timestamp {
+    margin-left: 25px;
+  }
+}
+
+// The chart gets too compressed at narrow widths. Use an approach
+// similar to table-responsive on mobile where the user can scroll.
+.build-trends-responsive {
+  width: 100%;
+  margin-top: 20px;
+  overflow: scroll;
+  .build-trends-container {
+    min-width: 600px;
+    height: 235px;
+    // Disable the gray vertical line when hover over a bar.
+    .c3-xgrid-focus {
+      display: none;
+    }
+    .build-trends-avg-line {
+      stroke: #d1d1d1;
+      stroke-dasharray: 8,5;
+      stroke-width: 1;
+    }
+    .avg-duration {
+      margin-right: 30px;
+    }
+    .avg-duration-text {
+      vertical-align: top;
+      // same as c3-legend
+      font-size: 12px;
+    }
+    @media (max-width: @screen-xs-max) {
+      // Show a border at mobile screen widths so it's obvious you can scroll.
+      border: 1px solid #d1d1d1;
+      padding: 10px 0;
+    }
+  }
+}
 
 .pod-metrics {
   .metrics-options {
@@ -322,6 +372,12 @@ label.checkbox {
   font-weight: normal;
 }
 
+.form-group .checkbox {
+  // Use the default form-group margin for consistency. Otherwise the
+  // checkboxes are closer than other form elements.
+  margin-bottom: inherit;
+}
+
 // Make sure icons are the same size so headings align.
 .add-to-project {
   .filter-group {
@@ -346,6 +402,15 @@ label.checkbox {
       }
     }
   }
+}
+
+.icon-xl {
+  font-size: 128px;
+}
+
+.create-route-icon {
+  padding-top: 0;
+  text-align: right;
 }
 
 .create-from-template,
@@ -491,9 +556,6 @@ label.checkbox {
         text-align: right;
       }
     }
-    .form-control-md {
-      width: @create-form-md-width;
-    }
     .labels .form-group {
       // Show name/value fields like labels and env vars side by side at wide screen sizes.
       // Align text fields with read-only values.
@@ -516,8 +578,8 @@ label.checkbox {
     margin: 0;
     width: 44%;
   }
-  .key {
-    margin-left: 2px;
+  .value {
+    max-width: 500px; // enable firefox to truncate
   }
   .btn {
     vertical-align: top;
@@ -692,7 +754,7 @@ a.action-button {
   }
 }
 
-.modal-resource-delete {
+.modal-resource-delete, .modal-confirm-scale {
   background-color: @gray-lighter;
   h1 {
     font-size: 21px;
@@ -790,8 +852,12 @@ labels + .resource-details {
   border-bottom: 1px solid #eee;
 }
 
-h1 small.meta {
+h1 small.meta, .build-config-summary .meta {
   font-size: 12px;
+  @media (max-width: @screen-xs-min) {
+    display: block;
+    margin-top: 5px;
+  }
 }
 
 .action-divider {

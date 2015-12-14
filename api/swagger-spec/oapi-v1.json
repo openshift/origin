@@ -15305,7 +15305,7 @@
      },
      "cancelled": {
       "type": "boolean",
-      "description": "describes if a canceling event was triggered for the build"
+      "description": "describes if a cancel event was triggered for the build"
      },
      "reason": {
       "type": "string",

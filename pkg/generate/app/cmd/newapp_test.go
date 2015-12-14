@@ -618,7 +618,7 @@ func TestRunAll(t *testing.T) {
 			},
 			checkPort: "8080",
 			expected: map[string][]string{
-				"imageStream":      {"ruby-hello-world", "ruby-20-centos7"},
+				"imageStream":      {"ruby-hello-world", "ruby-22-centos7"},
 				"buildConfig":      {"ruby-hello-world"},
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
@@ -748,7 +748,7 @@ func TestRunAll(t *testing.T) {
 
 				dockerSearcher: app.DockerClientSearcher{
 					Client: &dockertools.FakeDockerClient{
-						Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
+						Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-22-centos7"}}},
 						Image:  dockerBuilderImage(),
 					},
 					Insecure:         true,
@@ -774,7 +774,7 @@ func TestRunAll(t *testing.T) {
 				originNamespace: "default",
 			},
 			expected: map[string][]string{
-				"imageStream":      {"ruby-hello-world", "ruby-20-centos7"},
+				"imageStream":      {"ruby-hello-world", "ruby-22-centos7"},
 				"buildConfig":      {"ruby-hello-world"},
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},

@@ -9,7 +9,7 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
-# This test validates deployments
+# This test validates deployments and the env command
 
 os::cmd::expect_success 'oc get deploymentConfigs'
 os::cmd::expect_success 'oc get dc'
@@ -17,8 +17,16 @@ os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-
 os::cmd::expect_success 'oc describe deploymentConfigs test-deployment-config'
 os::cmd::expect_success_and_text 'oc get dc -o name' 'deploymentconfig/test-deployment-config'
 os::cmd::expect_success_and_text 'oc describe dc test-deployment-config' 'deploymentconfig=test-deployment-config'
+
+# Patch a nil list
+os::cmd::expect_success 'oc env dc/test-deployment-config TEST=value'
 os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'TEST=value'
-os::cmd::expect_success_and_not_text 'oc env dc/test-deployment-config TEST- --list' 'TEST=value'
+# Remove only env in the list
+os::cmd::expect_success 'oc env dc/test-deployment-config TEST-'
+os::cmd::expect_success_and_not_text 'oc env dc/test-deployment-config --list' 'TEST=value'
+# Add back to empty list
+os::cmd::expect_success 'oc env dc/test-deployment-config TEST=value'
+os::cmd::expect_success_and_not_text 'oc env dc/test-deployment-config TEST=foo --list' 'TEST=value'
 os::cmd::expect_success_and_text 'oc env dc/test-deployment-config TEST=foo --list' 'TEST=foo'
 os::cmd::expect_success_and_text 'oc env dc/test-deployment-config OTHER=foo --list' 'TEST=value'
 os::cmd::expect_success_and_not_text 'oc env dc/test-deployment-config OTHER=foo -c ruby --list' 'OTHER=foo'
@@ -30,7 +38,25 @@ os::cmd::expect_success_and_text 'oc env dc/test-deployment-config OTHER=foo -o 
 os::cmd::expect_success_and_text 'echo OTHER=foo | oc env dc/test-deployment-config -e - --list' 'OTHER=foo'
 os::cmd::expect_success_and_not_text 'echo #OTHER=foo | oc env dc/test-deployment-config -e - --list' 'OTHER=foo'
 os::cmd::expect_success 'oc env dc/test-deployment-config TEST=bar OTHER=baz BAR-'
-
+os::cmd::expect_success_and_not_text 'oc env -f test/integration/fixtures/test-deployment-config.json TEST=VERSION -o yaml' 'v1beta3'
+os::cmd::expect_success 'oc env dc/test-deployment-config A=a B=b C=c D=d E=e F=f G=g'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'A=a'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'B=b'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'C=c'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'D=d'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'E=e'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'F=f'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'G=g'
+os::cmd::expect_success 'oc env dc/test-deployment-config H=h G- E=updated C- A-'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'B=b'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'D=d'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'E=updated'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'F=f'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'H=h'
+os::cmd::expect_success_and_not_text 'oc env dc/test-deployment-config --list' 'A=a'
+os::cmd::expect_success_and_not_text 'oc env dc/test-deployment-config --list' 'C=c'
+os::cmd::expect_success_and_not_text 'oc env dc/test-deployment-config --list' 'G=g'
+echo "env: ok"
 os::cmd::expect_success 'oc deploy test-deployment-config'
 os::cmd::expect_success 'oc deploy dc/test-deployment-config'
 os::cmd::expect_success 'oc delete deploymentConfigs test-deployment-config'
@@ -39,23 +65,6 @@ echo "deploymentConfigs: ok"
 os::cmd::expect_success 'oc delete all --all'
 # TODO: remove, flake caused by deployment controller updating the following dc
 sleep 1
-os::cmd::expect_success 'oc delete all --all'
-
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.json'
-tryuntil "os::cmd::expect_success 'oc get rc/test-deployment-config-1'"
-# oc deploy test-deployment-config --cancel # TODO: does not block until success
-# oc deploy test-deployment-config --latest
-# tryuntil oc get rc/test-deployment-config-2
-
-# scale rc via deployment configuration
-os::cmd::expect_success 'oc scale dc test-deployment-config --replicas=1'
-os::cmd::expect_success 'oc scale dc test-deployment-config --replicas=2 --timeout=10m'
-# scale directly
-os::cmd::expect_success 'oc scale rc test-deployment-config-1 --replicas=4'
-os::cmd::expect_success 'oc scale rc test-deployment-config-1 --replicas=5 --timeout=10m'
-os::cmd::expect_success 'oc delete all --all'
-echo "scale: ok"
-
 os::cmd::expect_success 'oc delete all --all'
 
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l app=dockerbuild | oc create -f -'

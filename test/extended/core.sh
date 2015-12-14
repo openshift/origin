@@ -49,8 +49,8 @@ SKIP_TESTS=(
   Kibana                  # Not installed
   DNS                     # Can't depend on kube-dns
   kube-ui                 # Not installed by default
-  #DaemonRestart           # Experimental mode not enabled yet
-  #"Daemon set"            # Experimental mode not enabled yet
+  DaemonRestart           # Experimental mode not enabled yet
+  "Daemon set"            # Experimental mode not enabled yet
   #Job                     # Not enabled yet
   "deployment should"     # Not enabled yet
   Ingress                 # Not enabled yet

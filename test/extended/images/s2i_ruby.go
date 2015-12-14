@@ -37,7 +37,7 @@ var _ = g.Describe("images: s2i: ruby", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			assertPageContent := func(content string) {
-				_, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 120*time.Second)
+				_, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				result, err := CheckPageContains(oc, "rails-postgresql-example", "", content)
@@ -62,7 +62,7 @@ var _ = g.Describe("images: s2i: ruby", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = oc.Run("scale").Args("rc", dcName, "--replicas=0").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), pods.Items[0].Name, 60*time.Second)
+			err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), pods.Items[0].Name, 1*time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = oc.Run("scale").Args("rc", dcName, "--replicas=1").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())

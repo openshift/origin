@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .directive('overviewDeployment', function($location, $timeout, $filter, LabelFilter, DeploymentsService, hashSizeFilter) {
+  .directive('overviewDeployment', function($location, $modal, $timeout, $filter, LabelFilter, DeploymentsService, hashSizeFilter, isDeploymentFilter) {
     return {
       restrict: 'E',
       scope: {
@@ -69,10 +69,40 @@ angular.module('openshiftConsole')
 
         $scope.scaleDown = function() {
           $scope.desiredReplicas = $scope.getDesiredReplicas();
-          if ($scope.desiredReplicas > 0) {
-            $scope.desiredReplicas--;
-            scale();
+          if ($scope.desiredReplicas === 0) {
+            return;
           }
+
+          // Prompt before scaling to 0.
+          if ($scope.desiredReplicas === 1) {
+            var modalInstance = $modal.open({
+              animation: true,
+              templateUrl: 'views/modals/confirmScale.html',
+              controller: 'ConfirmScaleController',
+              resolve: {
+                resource: function() {
+                  return $scope.rc;
+                },
+                type: function() {
+                  if (isDeploymentFilter($scope.rc)) {
+                    return "deployment";
+                  }
+
+                  return "replication controller";
+                }
+              }
+            });
+
+            modalInstance.result.then(function() {
+              $scope.desiredReplicas--;
+              scale();
+            });
+
+            return;
+          }
+
+          $scope.desiredReplicas--;
+          scale();
         };
 
         $scope.getDesiredReplicas = function() {

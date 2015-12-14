@@ -57,6 +57,34 @@ os::cmd::expect_failure 'oc new-app --search --template=php'
 os::cmd::expect_failure 'oc new-app -S --template=nodejs'
 os::cmd::expect_failure 'oc new-app -S --template=perl'
 # check search - filtered, exact matches
+# make sure the imagestreams are imported first.
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags mongodb:latest'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags mongodb:2.4'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags mongodb:2.6'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags mysql:latest'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags mysql:5.5'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags mysql:5.6'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags nodejs:latest'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags nodejs:0.10'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags perl:latest'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags perl:5.16'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags perl:5.20'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags php:latest'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags php:5.5'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags php:5.6'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags postgresql:latest'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags postgresql:9.2'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags postgresql:9.4'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags python:latest'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags python:2.7'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags python:3.3'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags python:3.4'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags ruby:latest'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags ruby:2.0'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags ruby:2.2'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags wildfly:latest'"
+os::cmd::expect_success "tryuntil 'oc get imagestreamtags wildfly:8.1'"
+
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "Tags:\s+2.4, 2.6, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.5, 5.6, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nodejs' "Tags:\s+0.10, latest"
@@ -128,5 +156,8 @@ os::cmd::expect_success_and_text 'oc new-app installable:token --grant-install-r
 os::cmd::expect_success_and_text 'oc new-app installable:serviceaccount --grant-install-rights -o yaml' 'serviceAccountName: installer'
 os::cmd::expect_success_and_text 'oc new-app installable:serviceaccount --grant-install-rights -o yaml' 'fieldPath: metadata.namespace'
 os::cmd::expect_success_and_text 'oc new-app installable:serviceaccount --grant-install-rights -o yaml A=B' 'name: A'
+
+# Ensure output is valid JSON
+os::cmd::expect_success 'oc new-app mongo -o json | python -m json.tool'
 
 echo "new-app: ok"

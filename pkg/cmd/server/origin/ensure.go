@@ -51,38 +51,35 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 		return
 	}
 
-	// Ensure service accounts exist
-	serviceAccounts := []string{
-		c.BuildControllerServiceAccount, c.DeploymentControllerServiceAccount, c.ReplicationControllerServiceAccount,
-		c.JobControllerServiceAccount, c.HPAControllerServiceAccount, c.PersistentVolumeControllerServiceAccount,
-	}
-	for _, serviceAccountName := range serviceAccounts {
-		_, err := c.KubeClient().ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: serviceAccountName}})
-		if err != nil && !kapierror.IsAlreadyExists(err) {
-			glog.Errorf("Error creating service account %s/%s: %v", ns, serviceAccountName, err)
-		}
-	}
-
-	// Ensure service account cluster role bindings exist
-	clusterRolesToSubjects := map[string][]kapi.ObjectReference{
-		bootstrappolicy.BuildControllerRoleName:            {{Namespace: ns, Name: c.BuildControllerServiceAccount, Kind: "ServiceAccount"}},
-		bootstrappolicy.DeploymentControllerRoleName:       {{Namespace: ns, Name: c.DeploymentControllerServiceAccount, Kind: "ServiceAccount"}},
-		bootstrappolicy.ReplicationControllerRoleName:      {{Namespace: ns, Name: c.ReplicationControllerServiceAccount, Kind: "ServiceAccount"}},
-		bootstrappolicy.JobControllerRoleName:              {{Namespace: ns, Name: c.JobControllerServiceAccount, Kind: "ServiceAccount"}},
-		bootstrappolicy.HPAControllerRoleName:              {{Namespace: ns, Name: c.HPAControllerServiceAccount, Kind: "ServiceAccount"}},
-		bootstrappolicy.PersistentVolumeControllerRoleName: {{Namespace: ns, Name: c.PersistentVolumeControllerServiceAccount, Kind: "ServiceAccount"}},
-	}
 	roleAccessor := policy.NewClusterRoleBindingAccessor(c.ServiceAccountRoleBindingClient())
-	for clusterRole, subjects := range clusterRolesToSubjects {
+	for _, saName := range bootstrappolicy.InfraSAs.GetServiceAccounts() {
+		_, err := c.KubeClient().ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: saName}})
+		if err != nil && !kapierror.IsAlreadyExists(err) {
+			glog.Errorf("Error creating service account %s/%s: %v", ns, saName, err)
+		}
+
+		role, _ := bootstrappolicy.InfraSAs.RoleFor(saName)
+
+		reconcileRole := &policy.ReconcileClusterRolesOptions{
+			RolesToReconcile: []string{role.Name},
+			Confirmed:        true,
+			Union:            true,
+			Out:              ioutil.Discard,
+			RoleClient:       c.PrivilegedLoopbackOpenShiftClient.ClusterRoles(),
+		}
+		if err := reconcileRole.RunReconcileClusterRoles(nil, nil); err != nil {
+			glog.Errorf("Could not reconcile %v: %v\n", role.Name, err)
+		}
+
 		addRole := &policy.RoleModificationOptions{
-			RoleName:            clusterRole,
+			RoleName:            role.Name,
 			RoleBindingAccessor: roleAccessor,
-			Subjects:            subjects,
+			Subjects:            []kapi.ObjectReference{{Namespace: ns, Name: saName, Kind: "ServiceAccount"}},
 		}
 		if err := addRole.AddRole(); err != nil {
-			glog.Errorf("Could not add %v subjects to the %v cluster role: %v\n", subjects, clusterRole, err)
+			glog.Errorf("Could not add %v service accounts to the %v cluster role: %v\n", saName, role.Name, err)
 		} else {
-			glog.V(2).Infof("Added %v subjects to the %v cluster role: %v\n", subjects, clusterRole, err)
+			glog.V(2).Infof("Added %v service accounts to the %v cluster role: %v\n", saName, role.Name, err)
 		}
 	}
 

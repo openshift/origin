@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -13,6 +14,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/strategicpatch"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -77,7 +79,7 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Write
 	cmd.Flags().StringSliceVarP(&env, "env", "e", env, "Specify key value pairs of environment variables to set into each container.")
 	cmd.Flags().Bool("list", false, "Display the environment and any changes in the standard format")
 	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on")
-	cmd.Flags().Bool("all", false, "select all resources in the namespace of the specified resource types")
+	cmd.Flags().Bool("all", false, "Select all resources in the namespace of the specified resource types")
 	cmd.Flags().StringSliceVarP(&filenames, "filename", "f", filenames, "Filename, directory, or URL to file to use to edit the resource.")
 	cmd.Flags().Bool("overwrite", true, "If true, allow environment to be overwritten, otherwise reject updates that overwrite existing environment.")
 	cmd.Flags().String("resource-version", "", "If non-empty, the labels update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource.")
@@ -201,7 +203,6 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	if err != nil {
 		return err
 	}
-	outputVersion := cmdutil.OutputVersion(cmd, clientConfig.Version)
 
 	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
@@ -231,6 +232,23 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	// only apply resource version locking on a single resource
 	if !one && len(resourceVersion) > 0 {
 		return cmdutil.UsageError(cmd, "--resource-version may only be used with a single resource")
+	}
+	// Keep a copy of the original objects prior to updating their environment.
+	// Used in constructing the patch(es) that will be applied in the server.
+	oldObjects, err := resource.AsVersionedObjects(infos, clientConfig.Version)
+	if err != nil {
+		return err
+	}
+	if len(oldObjects) != len(infos) {
+		return fmt.Errorf("could not convert all objects to API version %q", clientConfig.Version)
+	}
+	oldData := make([][]byte, len(infos))
+	for i := range oldObjects {
+		old, err := json.Marshal(oldObjects[i])
+		if err != nil {
+			return err
+		}
+		oldData[i] = old
 	}
 
 	skipped := 0
@@ -268,29 +286,53 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		}
 	}
 	if one && skipped == len(infos) {
-		return fmt.Errorf("the %s %s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
+		return fmt.Errorf("%s/%s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
 	}
 
 	if list {
 		return nil
 	}
 
-	objects, err := resource.AsVersionedObject(infos, false, outputVersion)
-	if err != nil {
-		return err
-	}
-
 	if len(outputFormat) != 0 {
+		outputVersion := cmdutil.OutputVersion(cmd, clientConfig.Version)
+		objects, err := resource.AsVersionedObjects(infos, outputVersion)
+		if err != nil {
+			return err
+		}
+		if len(objects) != len(infos) {
+			return fmt.Errorf("could not convert all objects to API version %q", outputVersion)
+		}
 		p, _, err := kubectl.GetPrinter(outputFormat, "")
 		if err != nil {
 			return err
 		}
-		return p.PrintObj(objects, out)
+		for _, object := range objects {
+			if err := p.PrintObj(object, out); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	objects, err := resource.AsVersionedObjects(infos, clientConfig.Version)
+	if err != nil {
+		return err
+	}
+	if len(objects) != len(infos) {
+		return fmt.Errorf("could not convert all objects to API version %q", clientConfig.Version)
 	}
 
 	failed := false
-	for _, info := range infos {
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, true, info.Object)
+	for i, info := range infos {
+		newData, err := json.Marshal(objects[i])
+		if err != nil {
+			return err
+		}
+		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData[i], newData, objects[i])
+		if err != nil {
+			return err
+		}
+		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patchBytes)
 		if err != nil {
 			handlePodUpdateError(cmd.Out(), err, "environment variables")
 			failed = true

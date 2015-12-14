@@ -74,7 +74,7 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 		return err
 	}
 	// wait longer for the build to run to completion
-	err = wait.Poll(5*time.Second, 30*time.Minute, func() (bool, error) {
+	err = wait.Poll(5*time.Second, 60*time.Minute, func() (bool, error) {
 		list, err := c.List(labels.Everything(), fields.Set{"name": name}.AsSelector())
 		if err != nil {
 			return false, err
@@ -125,7 +125,7 @@ func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
 		}
 		return false, nil
 	}
-	return wait.Poll(time.Duration(100*time.Millisecond), time.Duration(60*time.Second), waitFn)
+	return wait.Poll(time.Duration(100*time.Millisecond), 1*time.Minute, waitFn)
 }
 
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function

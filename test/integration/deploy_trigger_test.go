@@ -277,11 +277,16 @@ func TestTriggers_configChange(t *testing.T) {
 		t.Fatal(retryErr)
 	}
 
-	event = <-watch.ResultChan()
-	if e, a := watchapi.Added, event.Type; e != a {
-		t.Fatalf("expected watch event type %s, got %s", e, a)
+	var newDeployment *kapi.ReplicationController
+	for {
+		event = <-watch.ResultChan()
+		if event.Type != watchapi.Added {
+			// Discard modifications which could be applied to the original RC, etc.
+			continue
+		}
+		newDeployment = event.Object.(*kapi.ReplicationController)
+		break
 	}
-	newDeployment := event.Object.(*kapi.ReplicationController)
 
 	assertEnvVarEquals("ENV1", "UPDATED", newDeployment, t)
 

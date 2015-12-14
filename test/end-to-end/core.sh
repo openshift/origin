@@ -200,6 +200,15 @@ oc logs buildconfigs/ruby-sample-build --loglevel=6
 oc logs buildconfig/ruby-sample-build --loglevel=6
 echo "logs: ok"
 
+echo "[INFO] Starting a deployment to test scaling..."
+oc create -f test/integration/fixtures/test-deployment-config.json
+# scaling which might conflict with the deployment should work
+oc scale dc/test-deployment-config --replicas=2
+tryuntil '[ "$(oc get rc/test-deployment-config-1 -o yaml | grep Complete)" ]'
+# scale rc via deployment configuration
+oc scale dc/test-deployment-config --replicas=3 --timeout=1m
+oc delete dc/test-deployment-config
+echo "scale: ok"
 
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} with non-existing commit..."
 set +e

@@ -1,7 +1,10 @@
-<div ng-controller="ProjectController" class="content">
+<div class="content">
   <project-page>
-    <div ng-controller="RoutesController">
+    <div>
       <div class="page-header page-header-bleed-right">
+        <div class="actions pull-right">
+          <a ng-href="project/{{project.metadata.name}}/createRoute" class="btn btn-default">Create Route</a>
+        </div>
         <h1>Routes</h1>
       </div>
       <alerts alerts="alerts"></alerts>
@@ -10,8 +13,9 @@
           <tr>
             <th>Name</th>
             <th>Hostname</th>
-            <th>Routes to</th>
-            <th>Age</th>
+            <th>Routes To</th>
+            <th>Target Port</th>
+            <th>TLS Termination</th>
           </tr>
         </thead>
         <tbody ng-if="(routes | hashSize) == 0">
@@ -28,15 +32,20 @@
                 {{route | routeLabel}}
               </div>
             </td>
-            <td data-title="Routes to">
-              <span>{{route.spec.to.kind}}: </span>
-              <span ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</span>
-              <span ng-if="route.spec.to.kind == 'Service'">
-                <a ng-href="{{route.spec.to.name | navigateResourceURL : 'Service': route.metadata.namespace}}">{{route.spec.to.name}}</a>
-                <span ng-if="route.spec.port.targetPort"> on port {{route.spec.port.targetPort}}</span>
-              </span>
+            <td data-title="Routes To">
+              <span ng-if="route.spec.to.kind !== 'Service'">{{route.spec.to.kind}}: {{route.spec.to.name}}</span>
+              <span ng-if="route.spec.to.kind === 'Service'"><a ng-href="{{route.spec.to.name | navigateResourceURL : 'Service': route.metadata.namespace}}">{{route.spec.to.name}}</a></span>
             </td>
-            <td data-title="Age"><relative-timestamp timestamp="route.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
+            <!-- Add non-breaking space to empty cells. Otherwise, table-mobile layout is broken. -->
+            <td data-title="Target Port">
+              {{route.spec.port.targetPort}}
+              <span ng-if="!route.spec.port.targetPort">&nbsp;</span>
+            </td>
+            <!-- Use shorter Termination title for table-mobile to avoid overlapping text. -->
+            <td data-title="Termination">
+              {{route.spec.tls.termination}}
+              <span ng-if="!route.spec.tls.termination">&nbsp;</span>
+            </td>
           </tr>
         </tbody>
       </table>

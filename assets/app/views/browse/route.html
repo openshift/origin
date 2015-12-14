@@ -1,4 +1,4 @@
-<div ng-controller="RouteController" class="content">
+<div class="content">
   <project-page>
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
@@ -10,6 +10,13 @@
             <h1>
               {{route.metadata.name}}
               <small class="meta">created <relative-timestamp timestamp="route.metadata.creationTimestamp"></relative-timestamp></small>
+              <delete-button
+                class="pull-right fa-lg"
+                resource-type="route"
+                resource-name="{{route.metadata.name}}"
+                project-name="{{route.metadata.namespace}}"
+                alerts="alerts">
+              </delete-button>
             </h1>
             <labels labels="route.metadata.labels" clickable="true" kind="routes" project-name="{{route.metadata.namespace}}" limit="3"></labels>
             <div class="resource-details">
@@ -34,10 +41,10 @@
                   <span ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</span>
                   <span ng-if="route.spec.to.kind == 'Service'"><a href="{{route | navigateResourceURL}}">{{route.spec.to.name}}</a></span>
                 </dd>
-                <dt>Port:</dt>
+                <dt>Target Port:</dt>
                 <dd>
                   <span ng-if="route.spec.port">{{route.spec.port.targetPort}}</span>
-                  <span ng-if="!route.spec.port">any</span>
+                  <span ng-if="!route.spec.port"><em>any</em></span>
                 </dd>
               </dl>
               <div style="margin-bottom: 10px;">
@@ -45,6 +52,8 @@
                 <dl class="dl-horizontal left" ng-if="route.spec.tls">
                   <dt>Termination type:</dt>
                   <dd>{{route.spec.tls.termination}}</dd>
+                  <dt ng-if-start="route.spec.tls.termination === 'edge'">Insecure Traffic:</dt>
+                  <dd ng-if-end>{{route.spec.tls.insecureEdgeTerminationPolicy || 'None'}}</dd>
                   <dt>Certificate:</dt>
                   <dd>
                     <span ng-if="route.spec.tls.certificate" click-to-reveal><pre class="clipped">{{route.spec.tls.certificate}}</pre></span>
