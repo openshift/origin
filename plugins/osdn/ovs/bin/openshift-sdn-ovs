@@ -4,10 +4,8 @@ set -e
 lock_file=/var/lock/openshift-sdn.lock
 
 action=$1
-pod_namespace=$2
-pod_name=$3
-net_container=$4
-tenant_id=$5
+net_container=$2
+tenant_id=$3
 
 lockwrap() {
     (
