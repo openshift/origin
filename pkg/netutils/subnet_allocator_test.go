@@ -1,6 +1,8 @@
 package netutils
 
 import (
+	"fmt"
+	"net"
 	"testing"
 )
 
@@ -57,29 +59,46 @@ func TestAllocateSubnetInUse(t *testing.T) {
 }
 
 func TestAllocateReleaseSubnet(t *testing.T) {
-	sna, err := NewSubnetAllocator("10.1.0.0/16", 8, nil)
+	sna, err := NewSubnetAllocator("10.1.0.0/16", 14, nil)
 	if err != nil {
 		t.Fatal("Failed to initialize IP allocator: ", err)
 	}
 
-	sn, err := sna.GetNetwork()
-	if err != nil {
-		t.Fatal("Failed to get network: ", err)
-	}
-	if sn.String() != "10.1.0.0/24" {
-		t.Fatalf("Did not get expected subnet (sn=%s)", sn.String())
+	var releaseSn *net.IPNet
+
+	for i := 0; i < 4; i++ {
+		sn, err := sna.GetNetwork()
+		if err != nil {
+			t.Fatal("Failed to get network: ", err)
+		}
+		if sn.String() != fmt.Sprintf("10.1.%d.0/18", i*64) {
+			t.Fatalf("Did not get expected subnet (i=%d, sn=%s)", i, sn.String())
+		}
+		if i == 2 {
+			releaseSn = sn
+		}
 	}
 
-	if err := sna.ReleaseNetwork(sn); err != nil {
-		t.Fatal("Failed to release the subnet")
+	sn, err := sna.GetNetwork()
+	if err == nil {
+		t.Fatalf("Unexpectedly succeeded in getting network (sn=%s)", sn.String())
+	}
+
+	if err := sna.ReleaseNetwork(releaseSn); err != nil {
+		t.Fatal("Failed to release the subnet: ", err)
 	}
 
 	sn, err = sna.GetNetwork()
 	if err != nil {
 		t.Fatal("Failed to get network: ", err)
 	}
-	if sn.String() != "10.1.0.0/24" {
+	if sn.String() != releaseSn.String() {
 		t.Fatalf("Did not get expected subnet (sn=%s)", sn.String())
+	}
+
+	sn, err = sna.GetNetwork()
+	if err == nil {
+		t.Fatalf("Unexpectedly succeeded in getting network (sn=%s)", sn.String())
 	}
 }
 
