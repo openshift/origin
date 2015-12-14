@@ -2,8 +2,9 @@ package factory
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"time"
+
+	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
@@ -146,9 +147,10 @@ func (factory *BuildControllerFactory) CreateDeleteController() controller.Runna
 
 // BuildPodControllerFactory construct BuildPodController objects
 type BuildPodControllerFactory struct {
-	OSClient     osclient.Interface
-	KubeClient   kclient.Interface
-	BuildUpdater buildclient.BuildUpdater
+	OSClient                osclient.Interface
+	KubeClient              kclient.Interface
+	BuildUpdater            buildclient.BuildUpdater
+	BuildConfigInstantiator buildclient.BuildConfigInstantiator
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 
@@ -187,9 +189,10 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	buildPodController := &buildcontroller.BuildPodController{
-		BuildStore:   factory.buildStore,
-		BuildUpdater: factory.BuildUpdater,
-		PodManager:   client,
+		BuildStore:              factory.buildStore,
+		BuildUpdater:            factory.BuildUpdater,
+		BuildConfigInstantiator: factory.BuildConfigInstantiator,
+		PodManager:              client,
 	}
 
 	return &controller.RetryController{

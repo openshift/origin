@@ -807,6 +807,46 @@ func deepCopy_v1beta3_BuildConfigStatus(in apiv1beta3.BuildConfigStatus, out *ap
 	return nil
 }
 
+func deepCopy_v1beta3_BuildHook(in apiv1beta3.BuildHook, out *apiv1beta3.BuildHook, c *conversion.Cloner) error {
+	if in.StartBuilds != nil {
+		out.StartBuilds = make([]pkgapiv1beta3.ObjectReference, len(in.StartBuilds))
+		for i := range in.StartBuilds {
+			if newVal, err := c.DeepCopy(in.StartBuilds[i]); err != nil {
+				return err
+			} else {
+				out.StartBuilds[i] = newVal.(pkgapiv1beta3.ObjectReference)
+			}
+		}
+	} else {
+		out.StartBuilds = nil
+	}
+	return nil
+}
+
+func deepCopy_v1beta3_BuildHookSpec(in apiv1beta3.BuildHookSpec, out *apiv1beta3.BuildHookSpec, c *conversion.Cloner) error {
+	if in.OnSuccess != nil {
+		out.OnSuccess = make([]apiv1beta3.BuildHook, len(in.OnSuccess))
+		for i := range in.OnSuccess {
+			if err := deepCopy_v1beta3_BuildHook(in.OnSuccess[i], &out.OnSuccess[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OnSuccess = nil
+	}
+	if in.OnFailure != nil {
+		out.OnFailure = make([]apiv1beta3.BuildHook, len(in.OnFailure))
+		for i := range in.OnFailure {
+			if err := deepCopy_v1beta3_BuildHook(in.OnFailure[i], &out.OnFailure[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OnFailure = nil
+	}
+	return nil
+}
+
 func deepCopy_v1beta3_BuildList(in apiv1beta3.BuildList, out *apiv1beta3.BuildList, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -1043,6 +1083,9 @@ func deepCopy_v1beta3_BuildSpec(in apiv1beta3.BuildSpec, out *apiv1beta3.BuildSp
 		return err
 	} else {
 		out.Resources = newVal.(pkgapiv1beta3.ResourceRequirements)
+	}
+	if err := deepCopy_v1beta3_BuildHookSpec(in.PostHooks, &out.PostHooks, c); err != nil {
+		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
 		out.CompletionDeadlineSeconds = new(int64)
@@ -2828,6 +2871,8 @@ func init() {
 		deepCopy_v1beta3_BuildConfigList,
 		deepCopy_v1beta3_BuildConfigSpec,
 		deepCopy_v1beta3_BuildConfigStatus,
+		deepCopy_v1beta3_BuildHook,
+		deepCopy_v1beta3_BuildHookSpec,
 		deepCopy_v1beta3_BuildList,
 		deepCopy_v1beta3_BuildLog,
 		deepCopy_v1beta3_BuildLogOptions,

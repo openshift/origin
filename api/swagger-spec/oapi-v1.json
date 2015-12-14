@@ -14594,6 +14594,10 @@
       "$ref": "v1.ResourceRequirements",
       "description": "the desired compute resources the build should have"
      },
+     "post": {
+      "$ref": "v1.BuildHookSpec",
+      "description": "a set of actions that are executed after the build is completed"
+     },
      "completionDeadlineSeconds": {
       "type": "integer",
       "format": "int64",
@@ -15075,6 +15079,37 @@
      }
     }
    },
+   "v1.BuildHookSpec": {
+    "id": "v1.BuildHookSpec",
+    "properties": {
+     "onSuccess": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.BuildHook"
+      },
+      "description": "list of actions to be executed when the build completes successfully"
+     },
+     "onFailure": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.BuildHook"
+      },
+      "description": "list of actions to be executed when the build fails"
+     }
+    }
+   },
+   "v1.BuildHook": {
+    "id": "v1.BuildHook",
+    "properties": {
+     "startBuilds": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ObjectReference"
+      },
+      "description": "start a build of each BuildConfig in the list of object references"
+     }
+    }
+   },
    "v1.BuildConfigStatus": {
     "id": "v1.BuildConfigStatus",
     "required": [
@@ -15334,6 +15369,10 @@
      "resources": {
       "$ref": "v1.ResourceRequirements",
       "description": "the desired compute resources the build should have"
+     },
+     "post": {
+      "$ref": "v1.BuildHookSpec",
+      "description": "a set of actions that are executed after the build is completed"
      },
      "completionDeadlineSeconds": {
       "type": "integer",

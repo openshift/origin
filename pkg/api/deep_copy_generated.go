@@ -775,6 +775,46 @@ func deepCopy_api_BuildConfigStatus(in buildapi.BuildConfigStatus, out *buildapi
 	return nil
 }
 
+func deepCopy_api_BuildHook(in buildapi.BuildHook, out *buildapi.BuildHook, c *conversion.Cloner) error {
+	if in.StartBuilds != nil {
+		out.StartBuilds = make([]pkgapi.ObjectReference, len(in.StartBuilds))
+		for i := range in.StartBuilds {
+			if newVal, err := c.DeepCopy(in.StartBuilds[i]); err != nil {
+				return err
+			} else {
+				out.StartBuilds[i] = newVal.(pkgapi.ObjectReference)
+			}
+		}
+	} else {
+		out.StartBuilds = nil
+	}
+	return nil
+}
+
+func deepCopy_api_BuildHookSpec(in buildapi.BuildHookSpec, out *buildapi.BuildHookSpec, c *conversion.Cloner) error {
+	if in.OnSuccess != nil {
+		out.OnSuccess = make([]buildapi.BuildHook, len(in.OnSuccess))
+		for i := range in.OnSuccess {
+			if err := deepCopy_api_BuildHook(in.OnSuccess[i], &out.OnSuccess[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OnSuccess = nil
+	}
+	if in.OnFailure != nil {
+		out.OnFailure = make([]buildapi.BuildHook, len(in.OnFailure))
+		for i := range in.OnFailure {
+			if err := deepCopy_api_BuildHook(in.OnFailure[i], &out.OnFailure[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OnFailure = nil
+	}
+	return nil
+}
+
 func deepCopy_api_BuildList(in buildapi.BuildList, out *buildapi.BuildList, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -1010,6 +1050,9 @@ func deepCopy_api_BuildSpec(in buildapi.BuildSpec, out *buildapi.BuildSpec, c *c
 		return err
 	} else {
 		out.Resources = newVal.(pkgapi.ResourceRequirements)
+	}
+	if err := deepCopy_api_BuildHookSpec(in.PostHooks, &out.PostHooks, c); err != nil {
+		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
 		out.CompletionDeadlineSeconds = new(int64)
@@ -2944,6 +2987,8 @@ func init() {
 		deepCopy_api_BuildConfigList,
 		deepCopy_api_BuildConfigSpec,
 		deepCopy_api_BuildConfigStatus,
+		deepCopy_api_BuildHook,
+		deepCopy_api_BuildHookSpec,
 		deepCopy_api_BuildList,
 		deepCopy_api_BuildLog,
 		deepCopy_api_BuildLogOptions,

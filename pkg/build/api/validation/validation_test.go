@@ -1,10 +1,12 @@
 package validation
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -1650,4 +1652,164 @@ func TestValidateToImageReference(t *testing.T) {
 	if err.Field != "namespace" {
 		t.Errorf("Error on wrong field, expected %s, got %s", "namespace", err.Field)
 	}
+}
+
+func TestValidateBuildHook(t *testing.T) {
+	tests := []struct {
+		description string
+		hook        buildapi.BuildHook
+		errList     fielderrors.ValidationErrorList
+	}{
+		{
+			description: "empty build hook should be valid",
+			errList:     fielderrors.ValidationErrorList{},
+		},
+		{
+			description: "start build from build config should be valid",
+			hook: buildapi.BuildHook{
+				StartBuilds: []kapi.ObjectReference{
+					{
+						Kind: "BuildConfig",
+						// The Namespace can be ommited, defaulting to
+						// the build namespace.
+						Name: "acme-python-base",
+					},
+				},
+			},
+			errList: fielderrors.ValidationErrorList{},
+		},
+		{
+			description: "start build from image stream should be invalid",
+			hook: buildapi.BuildHook{
+				StartBuilds: []kapi.ObjectReference{
+					{
+						Kind:      "ImageStream",
+						Namespace: "openshift",
+						Name:      "python",
+					},
+				},
+			},
+			errList: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid(
+					"startBuilds[0].kind",
+					"ImageStream",
+					"all references must be of kind \"BuildConfig\""),
+			},
+		},
+		{
+			description: "start build should require name",
+			hook: buildapi.BuildHook{
+				StartBuilds: []kapi.ObjectReference{
+					{
+						Kind: "BuildConfig",
+						Name: "",
+					},
+				},
+			},
+			errList: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldRequired("startBuilds[0].name"),
+			},
+		},
+		{
+			description: "start build should require name to be valid DNS subdomain",
+			hook: buildapi.BuildHook{
+				StartBuilds: []kapi.ObjectReference{
+					{
+						Kind: "BuildConfig",
+						Name: "$%-//-invalid-//",
+					},
+				},
+			},
+			errList: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid(
+					"startBuilds[0].name",
+					"$%-//-invalid-//",
+					validation.DNSSubdomainErrorMsg),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		if errList := validateBuildHook(test.hook); !reflect.DeepEqual(errList, test.errList) {
+			t.Errorf("%s: validateBuildHook() = %v, want %v", test.description, errList, test.errList)
+			continue
+		}
+	}
+}
+
+// TestValidateBuildHookSpec tests that validateBuildHookSpec validates all
+// BuildHook groups. For specific BuildHook validation tests, see
+// TestValidateBuildHook.
+func TestValidateBuildHookSpec(t *testing.T) {
+	hookSpec, knownErrs := invalidHookSpec()
+
+	if errList := validateBuildHookSpec(hookSpec); !reflect.DeepEqual(errList, knownErrs) {
+		t.Errorf("validateBuildHookSpec() = %v, want %v", errList, knownErrs)
+	}
+}
+
+// TestValidateBuildPostHooks tests that ValidateBuild validates post build
+// hooks. For specific BuildHook validation tests, see TestValidateBuildHook.
+func TestValidateBuildPostHooks(t *testing.T) {
+	hookSpec, knownErrs := invalidHookSpec()
+	knownErrs.Prefix("spec.post")
+
+	dockerfile := "FROM centos:7\nRUN yum install -y httpd"
+	build := buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "test",
+			Name:      "acme-base",
+		},
+		Spec: buildapi.BuildSpec{
+			Source: buildapi.BuildSource{
+				Dockerfile: &dockerfile,
+			},
+			Strategy: buildapi.BuildStrategy{
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
+			},
+			Output: buildapi.BuildOutput{
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "library/centos:latest",
+				},
+			},
+			PostHooks: hookSpec,
+		},
+	}
+
+	if errList := ValidateBuild(&build); !reflect.DeepEqual(errList, knownErrs) {
+		t.Errorf("ValidateBuild() = %v, want %v", errList, knownErrs)
+	}
+}
+
+// invalidHookSpec returns an invalid BuildHookSpec and a list of known
+// validation errors.
+func invalidHookSpec() (buildapi.BuildHookSpec, fielderrors.ValidationErrorList) {
+	hookSpec := buildapi.BuildHookSpec{}
+	hookSpec.OnSuccess = []buildapi.BuildHook{
+		{
+			StartBuilds: []kapi.ObjectReference{{}},
+		},
+		{
+			StartBuilds: []kapi.ObjectReference{{}},
+		},
+	}
+	hookSpec.OnFailure = []buildapi.BuildHook{
+		{
+			StartBuilds: []kapi.ObjectReference{{}, {}},
+		},
+	}
+	knownErrs := fielderrors.ValidationErrorList{
+		// OnSuccess errors.
+		fielderrors.NewFieldInvalid("onSuccess[0].startBuilds[0].kind", "", "all references must be of kind \"BuildConfig\""),
+		fielderrors.NewFieldRequired("onSuccess[0].startBuilds[0].name"),
+		fielderrors.NewFieldInvalid("onSuccess[1].startBuilds[0].kind", "", "all references must be of kind \"BuildConfig\""),
+		fielderrors.NewFieldRequired("onSuccess[1].startBuilds[0].name"),
+		// OnFailure errors.
+		fielderrors.NewFieldInvalid("onFailure[0].startBuilds[0].kind", "", "all references must be of kind \"BuildConfig\""),
+		fielderrors.NewFieldRequired("onFailure[0].startBuilds[0].name"),
+		fielderrors.NewFieldInvalid("onFailure[0].startBuilds[1].kind", "", "all references must be of kind \"BuildConfig\""),
+		fielderrors.NewFieldRequired("onFailure[0].startBuilds[1].name"),
+	}
+	return hookSpec, knownErrs
 }

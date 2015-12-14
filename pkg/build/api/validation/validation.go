@@ -127,6 +127,7 @@ func validateBuildSpec(spec *buildapi.BuildSpec) fielderrors.ValidationErrorList
 
 	allErrs = append(allErrs, validateOutput(&spec.Output).Prefix("output")...)
 	allErrs = append(allErrs, validateStrategy(&spec.Strategy).Prefix("strategy")...)
+	allErrs = append(allErrs, validateBuildHookSpec(spec.PostHooks).Prefix("post")...)
 
 	// TODO: validate resource requirements (prereq: https://github.com/kubernetes/kubernetes/pull/7059)
 	return allErrs
@@ -476,5 +477,46 @@ func ValidateBuildLogOptions(opts *buildapi.BuildLogOptions) fielderrors.Validat
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("version", *opts.Version, "build version must be greater than 0"))
 	}
 
+	return allErrs
+}
+
+func validateBuildHookSpec(spec buildapi.BuildHookSpec) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	for i, hook := range spec.OnSuccess {
+		allErrs = append(allErrs, validateBuildHook(hook).PrefixIndex(i).Prefix("onSuccess")...)
+	}
+	for i, hook := range spec.OnFailure {
+		allErrs = append(allErrs, validateBuildHook(hook).PrefixIndex(i).Prefix("onFailure")...)
+	}
+	return allErrs
+}
+
+func validateBuildHook(hook buildapi.BuildHook) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, validateBuildHookStartBuilds(hook.StartBuilds).Prefix("startBuilds")...)
+	return allErrs
+}
+
+func validateBuildHookStartBuilds(refs []kapi.ObjectReference) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	for i, ref := range refs {
+		refErrs := fielderrors.ValidationErrorList{}
+
+		// Validate Kind.
+		if ref.Kind != "BuildConfig" {
+			refErrs = append(refErrs, fielderrors.NewFieldInvalid("kind", ref.Kind, "all references must be of kind \"BuildConfig\""))
+		}
+
+		// Validate Name.
+		if len(ref.Name) == 0 {
+			refErrs = append(refErrs, fielderrors.NewFieldRequired("name"))
+		} else {
+			if ok, qualifier := validation.NameIsDNSSubdomain(ref.Name, false); !ok {
+				refErrs = append(refErrs, fielderrors.NewFieldInvalid("name", ref.Name, qualifier))
+			}
+		}
+
+		allErrs = append(allErrs, refErrs.PrefixIndex(i)...)
+	}
 	return allErrs
 }
