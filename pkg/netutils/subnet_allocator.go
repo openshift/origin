@@ -7,18 +7,18 @@ import (
 
 type SubnetAllocator struct {
 	network  *net.IPNet
-	capacity uint
+	hostBits uint
 	allocMap map[string]bool
 }
 
-func NewSubnetAllocator(network string, capacity uint, inUse []string) (*SubnetAllocator, error) {
+func NewSubnetAllocator(network string, hostBits uint, inUse []string) (*SubnetAllocator, error) {
 	_, netIP, err := net.ParseCIDR(network)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse network address: %q", network)
 	}
 
 	netMaskSize, _ := netIP.Mask.Size()
-	if capacity > (32 - uint(netMaskSize)) {
+	if hostBits > (32 - uint(netMaskSize)) {
 		return nil, fmt.Errorf("Subnet capacity cannot be larger than number of networks available.")
 	}
 
@@ -35,7 +35,7 @@ func NewSubnetAllocator(network string, capacity uint, inUse []string) (*SubnetA
 		}
 		amap[nIp.String()] = true
 	}
-	return &SubnetAllocator{network: netIP, capacity: capacity, allocMap: amap}, nil
+	return &SubnetAllocator{network: netIP, hostBits: hostBits, allocMap: amap}, nil
 }
 
 func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
@@ -45,12 +45,12 @@ func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
 	)
 	baseipu := IPToUint32(sna.network.IP)
 	netMaskSize, _ := sna.network.Mask.Size()
-	numSubnetBits = 32 - uint(netMaskSize) - sna.capacity
+	numSubnetBits = 32 - uint(netMaskSize) - sna.hostBits
 	numSubnets = 1 << numSubnetBits
 
 	var i uint32
 	for i = 0; i < numSubnets; i++ {
-		shifted := i << sna.capacity
+		shifted := i << sna.hostBits
 		ipu := baseipu | shifted
 		genIp := Uint32ToIP(ipu)
 		genSubnet := &net.IPNet{IP: genIp, Mask: net.CIDRMask(int(numSubnetBits)+netMaskSize, 32)}
