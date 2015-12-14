@@ -3,6 +3,8 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %global sdn_import_path github.com/openshift/openshift-sdn
+# The following should only be used for cleanup of sdn-ovs upgrades
+%global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
 
 # docker_version is the version of docker requires by packages
 %global docker_version 1.8.2
@@ -402,6 +404,14 @@ fi
 %{_bindir}/openshift-sdn-ovs-setup.sh
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 %{_unitdir}/docker.service.d/docker-sdn-ovs.conf
+
+%posttrans sdn-ovs
+# This path was installed by older packages but the directory wasn't owned by
+# RPM so we need to clean it up otherwise kubelet throws an error trying to
+# load the directory as a plugin
+if [ -d %{kube_plugin_path} ]; then
+  rmdir %{kube_plugin_path}
+fi
 
 %files -n tuned-profiles-%{name}-node
 %license LICENSE
