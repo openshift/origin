@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/generate/git"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/validation"
 	s2ibuild "github.com/openshift/source-to-image/pkg/build"
@@ -75,6 +76,7 @@ func makeStiBuilder(
 		"/docker.socket",
 		testclient.NewSimpleFake().Builds(""),
 		makeBuild(),
+		git.NewRepository(),
 		testStiBuilderFactory{getStrategyErr: getStrategyErr, buildError: buildError},
 		testStiConfigValidator{errors: validationErrors},
 	)

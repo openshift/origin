@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/openshift/origin/pkg/generate/git"
 )
 
 func TestCheckRemoteGit(t *testing.T) {
@@ -14,9 +16,10 @@ func TestCheckRemoteGit(t *testing.T) {
 		w.WriteHeader(http.StatusUnauthorized)
 	}))
 	defer server.Close()
+	gitRepo := git.NewRepositoryWithEnv([]string{"GIT_ASKPASS=true"})
 
 	var err error
-	err = checkRemoteGit(server.URL, 10*time.Second)
+	err = checkRemoteGit(gitRepo, server.URL, 10*time.Second)
 	switch v := err.(type) {
 	case gitAuthError:
 	default:
@@ -24,7 +27,7 @@ func TestCheckRemoteGit(t *testing.T) {
 	}
 
 	t0 := time.Now()
-	err = checkRemoteGit("https://254.254.254.254/foo/bar", 4*time.Second)
+	err = checkRemoteGit(gitRepo, "https://254.254.254.254/foo/bar", 4*time.Second)
 	t1 := time.Now()
 	if err == nil || (err != nil && !strings.Contains(fmt.Sprintf("%s", err), "timeout")) {
 		t.Errorf("expected timeout error, got %q", err)
@@ -33,7 +36,7 @@ func TestCheckRemoteGit(t *testing.T) {
 		t.Errorf("expected timeout in 4 seconds, it took %v", t1.Sub(t0))
 	}
 
-	err = checkRemoteGit("https://github.com/openshift/origin", 10*time.Second)
+	err = checkRemoteGit(gitRepo, "https://github.com/openshift/origin", 10*time.Second)
 	if err != nil {
 		t.Errorf("unexpected error %q", err)
 	}

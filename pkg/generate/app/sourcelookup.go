@@ -66,7 +66,7 @@ func IsRemoteRepository(s string) bool {
 		return false
 	}
 	gitRepo := git.NewRepository()
-	if err := gitRepo.ListRemote(s); err != nil {
+	if _, _, err := gitRepo.ListRemote(s); err != nil {
 		return false
 	}
 	return true

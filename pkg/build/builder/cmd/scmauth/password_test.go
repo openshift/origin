@@ -6,6 +6,22 @@ import (
 	"testing"
 )
 
+func TestPasswordHandles(t *testing.T) {
+	tests := map[string]bool{
+		"username": true,
+		"user":     false,
+		"token":    true,
+		"ca.crt":   false,
+		"password": true,
+	}
+	up := UsernamePassword{}
+	for k, v := range tests {
+		if a := up.Handles(k); a != v {
+			t.Errorf("unexpected result for %s: %v", k, a)
+		}
+	}
+}
+
 func TestPassword(t *testing.T) {
 
 	testcases := map[string]struct {
