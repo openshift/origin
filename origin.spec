@@ -43,7 +43,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.0.901
+Version:        3.1.0.902
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -462,6 +462,58 @@ fi
 
 
 %changelog
+* Mon Dec 14 2015 Troy Dawson <tdawson@redhat.com> 3.1.0.902
+- Include LICENSE in client zips (ccoleman@redhat.com)
+- Minor commit validation fixes (ironcladlou@gmail.com)
+- remove build-related type fields from internal api (bparees@redhat.com)
+- Add godeps commit verification (ironcladlou@gmail.com)
+- Retry build logs in start build when waiting for build (mfojtik@redhat.com)
+- Create proper client packages for mac and windows (ccoleman@redhat.com)
+- update jenkins tutorial for using plugin (gmontero@redhat.com)
+- Allow oc new-build to accept zero arguments (ccoleman@redhat.com)
+- Fix fallback scaling behavior (ironcladlou@gmail.com)
+- Fix deployment e2e flake (mkargaki@redhat.com)
+- UPSTREAM: 18522: Close web socket watches correctly (jliggitt@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  8a7e17c0c3eea529955229dfd7b4baefad56633b (rpenta@redhat.com)
+- Start SDN controller after running kubelet (rpenta@redhat.com)
+- [RPMs] Cleanup kubeplugin path from old sdn-ovs installs (sdodson@redhat.com)
+- Fix flakiness in builds extended tests (cewong@redhat.com)
+- Add suggestions in oc status (mkargaki@redhat.com)
+- status: Report tls routes with unspecified termination type
+  (mkargaki@redhat.com)
+- Use the dockerclient ClientFromEnv setup (ccoleman@redhat.com)
+- Don't show build trends chart scrollbars if not needed (spadgett@redhat.com)
+- Prevent y-axis label overlap when filtering build trends chart
+  (spadgett@redhat.com)
+- Packaging specfile clean up (admiller@redhat.com)
+- added prune-groups; refactored rfc2307 ldapinterface (skuznets@redhat.com)
+- only expand resources when strictly needed (deads@redhat.com)
+- added logging of output for failed builds (ipalade@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  0f33df18b9747ebfe2c337f2bf4443b520a8f2ab (rpenta@redhat.com)
+- UPSTREAM: revert: 97bd6c: <carry>: Allow pod start to be delayed in Kubelet
+  (rpenta@redhat.com)
+- Don't use KubeletConfig 'StartUpdates' channel for blocking kubelet
+  (rpenta@redhat.com)
+- after live test (tdawson@redhat.com)
+- Unload filtered groups from build config chart (spadgett@redhat.com)
+- Fix login tests for OSE variants (sdodson@redhat.com)
+- Optionally skip builds for dev cluster provision (marun@redhat.com)
+- Fix for bugz 1283952 and add a test. (smitram@gmail.com)
+- more code (tdawson@redhat.com)
+- more code (tdawson@redhat.com)
+- Disable delete button for RCs with status replicas (spadgett@redhat.com)
+- Web console support for deleting individual builds and deployments
+  (spadgett@redhat.com)
+- add new options (tdawson@redhat.com)
+- UPSTREAM: 18065: Fixed forbidden window enforcement in horizontal pod
+  autoscaler (sross@redhat.com)
+- more updating of script (tdawson@redhat.com)
+- first rough draft (tdawson@redhat.com)
+- HACKING.md: clarify meaning and provide proper usage of OUTPUT_COVERAGE
+  variable. (vsemushi@redhat.com)
+
 * Tue Dec 08 2015 Scott Dodson <sdodson@redhat.com> 3.1.0.901
 - Show build trends chart on build config page (spadgett@redhat.com)
 - fix ruby-22 scl enablement (bparees@redhat.com)
