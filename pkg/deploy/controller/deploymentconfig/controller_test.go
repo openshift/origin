@@ -302,6 +302,21 @@ func TestHandleScenarios(t *testing.T) {
 			},
 			errExpected: false,
 		},
+		{
+			name:             "fallback to last completed deployment (partial rollout)",
+			replicas:         5,
+			newVersion:       2,
+			expectedReplicas: 5,
+			before: []deployment{
+				{version: 1, replicas: 2, replicasA: newint(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 2, replicasA: newint(0), desiredA: newint(5), status: deployapi.DeploymentStatusFailed, cancelled: true},
+			},
+			after: []deployment{
+				{version: 1, replicas: 5, replicasA: newint(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(5), status: deployapi.DeploymentStatusFailed, cancelled: true},
+			},
+			errExpected: false,
+		},
 		// The cases below will exercise backwards compatibility for resources
 		// which predate the use of the replica annotation.
 		{
@@ -459,17 +474,18 @@ func TestHandleScenarios(t *testing.T) {
 			},
 			errExpected: false,
 		},
+		// No longer supported.
 		{
 			name:             "(compat) scale up active (not latest) completed deployment (RC targetted directly)",
-			replicas:         1,
+			replicas:         2,
 			newVersion:       2,
-			expectedReplicas: 5,
+			expectedReplicas: 1,
 			before: []deployment{
 				{version: 1, replicas: 5, status: deployapi.DeploymentStatusComplete, cancelled: false},
 				{version: 2, replicas: 0, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 5, replicasA: newint(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
 				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			errExpected: false,

@@ -151,14 +151,12 @@ func mockBuild() *buildapi.Build {
 		},
 		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.docker/build",
 				},
 				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{

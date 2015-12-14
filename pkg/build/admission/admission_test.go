@@ -32,7 +32,7 @@ func TestBuildAdmission(t *testing.T) {
 	}{
 		{
 			name:             "allowed source build",
-			object:           testBuild(buildapi.SourceBuildStrategyType),
+			object:           testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{}}),
 			kind:             "Build",
 			resource:         buildsResource,
 			reviewResponse:   reviewResponse(true, ""),
@@ -42,7 +42,7 @@ func TestBuildAdmission(t *testing.T) {
 		{
 			name:             "allowed source build clone",
 			object:           testBuildRequest("buildname"),
-			responseObject:   testBuild(buildapi.SourceBuildStrategyType),
+			responseObject:   testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{}}),
 			kind:             "Build",
 			resource:         buildsResource,
 			subResource:      "clone",
@@ -52,7 +52,7 @@ func TestBuildAdmission(t *testing.T) {
 		},
 		{
 			name:             "denied docker build",
-			object:           testBuild(buildapi.DockerBuildStrategyType),
+			object:           testBuild(buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{}}),
 			kind:             "Build",
 			resource:         buildsResource,
 			reviewResponse:   reviewResponse(false, "cannot create build of type docker build"),
@@ -62,7 +62,7 @@ func TestBuildAdmission(t *testing.T) {
 		{
 			name:             "denied docker build clone",
 			object:           testBuildRequest("buildname"),
-			responseObject:   testBuild(buildapi.DockerBuildStrategyType),
+			responseObject:   testBuild(buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{}}),
 			kind:             "Build",
 			resource:         buildsResource,
 			subResource:      "clone",
@@ -72,7 +72,7 @@ func TestBuildAdmission(t *testing.T) {
 		},
 		{
 			name:             "allowed custom build",
-			object:           testBuild(buildapi.CustomBuildStrategyType),
+			object:           testBuild(buildapi.BuildStrategy{CustomStrategy: &buildapi.CustomBuildStrategy{}}),
 			kind:             "Build",
 			resource:         buildsResource,
 			reviewResponse:   reviewResponse(true, ""),
@@ -81,7 +81,7 @@ func TestBuildAdmission(t *testing.T) {
 		},
 		{
 			name:             "allowed build config",
-			object:           testBuildConfig(buildapi.DockerBuildStrategyType),
+			object:           testBuildConfig(buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{}}),
 			kind:             "BuildConfig",
 			resource:         buildConfigsResource,
 			reviewResponse:   reviewResponse(true, ""),
@@ -90,7 +90,7 @@ func TestBuildAdmission(t *testing.T) {
 		},
 		{
 			name:             "allowed build config instantiate",
-			responseObject:   testBuildConfig(buildapi.DockerBuildStrategyType),
+			responseObject:   testBuildConfig(buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{}}),
 			object:           testBuildRequest("buildname"),
 			kind:             "BuildConfig",
 			resource:         buildConfigsResource,
@@ -101,7 +101,7 @@ func TestBuildAdmission(t *testing.T) {
 		},
 		{
 			name:             "forbidden build config",
-			object:           testBuildConfig(buildapi.CustomBuildStrategyType),
+			object:           testBuildConfig(buildapi.BuildStrategy{CustomStrategy: &buildapi.CustomBuildStrategy{}}),
 			kind:             "BuildConfig",
 			resource:         buildConfigsResource,
 			reviewResponse:   reviewResponse(false, ""),
@@ -110,7 +110,7 @@ func TestBuildAdmission(t *testing.T) {
 		},
 		{
 			name:             "forbidden build config instantiate",
-			responseObject:   testBuildConfig(buildapi.CustomBuildStrategyType),
+			responseObject:   testBuildConfig(buildapi.BuildStrategy{CustomStrategy: &buildapi.CustomBuildStrategy{}}),
 			object:           testBuildRequest("buildname"),
 			kind:             "BuildConfig",
 			resource:         buildConfigsResource,
@@ -182,29 +182,25 @@ func fakeClient(expectedResource string, reviewResponse *authorizationapi.Subjec
 	return fake
 }
 
-func testBuild(strategy buildapi.BuildStrategyType) *buildapi.Build {
+func testBuild(strategy buildapi.BuildStrategy) *buildapi.Build {
 	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build",
 		},
 		Spec: buildapi.BuildSpec{
-			Strategy: buildapi.BuildStrategy{
-				Type: strategy,
-			},
+			Strategy: strategy,
 		},
 	}
 }
 
-func testBuildConfig(strategy buildapi.BuildStrategyType) *buildapi.BuildConfig {
+func testBuildConfig(strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-buildconfig",
 		},
 		Spec: buildapi.BuildConfigSpec{
 			BuildSpec: buildapi.BuildSpec{
-				Strategy: buildapi.BuildStrategy{
-					Type: strategy,
-				},
+				Strategy: strategy,
 			},
 		},
 	}

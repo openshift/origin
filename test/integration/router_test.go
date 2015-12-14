@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -890,6 +891,88 @@ func TestRouterHealthzEndpoint(t *testing.T) {
 
 		if len(resp) < 1 {
 			t.Errorf("TestRouterHealthzEndpoint with %q failed! No Response body.", tc.name)
+		}
+	}
+}
+
+// TestRouterServiceUnavailable tests that the router returns valid service
+// unavailable error pages with appropriate HTTP headers.`
+func TestRouterServiceUnavailable(t *testing.T) {
+	fakeMasterAndPod := tr.NewTestHttpService()
+	err := fakeMasterAndPod.Start()
+	if err != nil {
+		t.Fatalf("Unable to start http server: %v", err)
+	}
+	defer fakeMasterAndPod.Stop()
+
+	validateServer(fakeMasterAndPod, t)
+
+	dockerCli, err := testutil.NewDockerClient()
+	if err != nil {
+		t.Fatalf("Unable to get docker client: %v", err)
+	}
+
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort)
+	if err != nil {
+		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
+	}
+	defer cleanUp(dockerCli, routerId)
+
+	schemes := []string{"http", "https"}
+	for _, scheme := range schemes {
+		uri := fmt.Sprintf("%s://%s", scheme, getRouteAddress())
+		hostAlias := fmt.Sprintf("www.route-%d.test", time.Now().UnixNano())
+		var tlsConfig *tls.Config
+		if scheme == "https" {
+			tlsConfig = &tls.Config{
+				InsecureSkipVerify: true,
+				ServerName:         hostAlias,
+			}
+		}
+
+		httpClient := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tlsConfig,
+			},
+		}
+		req, err := http.NewRequest("GET", uri, nil)
+		if err != nil {
+			t.Fatalf("Error creating %s request : %v", scheme, err)
+		}
+
+		req.Host = hostAlias
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			t.Fatalf("Error dispatching %s request : %v", scheme, err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 503 {
+			t.Fatalf("Router %s response error, got %v expected 503.", scheme, resp.StatusCode)
+		}
+
+		headerNames := []string{"Pragma", "Cache-Control"}
+		for _, k := range headerNames {
+			value := resp.Header.Get(k)
+			if len(value) == 0 {
+				t.Errorf("Router %s response empty/no header %q",
+					scheme, k)
+			}
+
+			directive := "no-cache"
+			if !strings.Contains(value, directive) {
+				t.Errorf("Router %s response header %q missing %s response directive",
+					scheme, k, directive)
+			}
+		}
+
+		respBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unable to verify router %s response: %v",
+				scheme, err)
+		}
+		if len(respBody) < 1 {
+			t.Errorf("Router %s response body was empty!", scheme)
 		}
 	}
 }

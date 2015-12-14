@@ -2,7 +2,6 @@ package docker
 
 import (
 	"os"
-	"path"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -28,14 +27,12 @@ func (_ *Helper) InstallFlags(flags *pflag.FlagSet) {
 // GetClient returns a valid Docker client, the address of the client, or an error
 // if the client couldn't be created.
 func (_ *Helper) GetClient() (client *docker.Client, endpoint string, err error) {
-	cfg := getDockerConfig("")
-	endpoint = cfg.Endpoint
-
-	if cfg.IsTLS() {
-		client, err = docker.NewTLSClient(cfg.Endpoint, cfg.Cert(), cfg.Key(), cfg.CA())
-		return
+	client, err = docker.NewClientFromEnv()
+	if len(os.Getenv("DOCKER_HOST")) > 0 {
+		endpoint = os.Getenv("DOCKER_HOST")
+	} else {
+		endpoint = "unix:///var/run/docker.sock"
 	}
-	client, err = docker.NewClient(cfg.Endpoint)
 	return
 }
 
@@ -47,41 +44,4 @@ func (h *Helper) GetClientOrExit() (*docker.Client, string) {
 		glog.Fatalf("ERROR: Couldn't connect to Docker at %s.\n%v\n.", addr, err)
 	}
 	return client, addr
-}
-
-type dockerConfig struct {
-	Endpoint string
-	CertPath string
-}
-
-func (c *dockerConfig) IsTLS() bool {
-	return len(c.CertPath) > 0
-}
-
-func (c *dockerConfig) Cert() string {
-	return path.Join(c.CertPath, "cert.pem")
-}
-
-func (c *dockerConfig) Key() string {
-	return path.Join(c.CertPath, "key.pem")
-}
-
-func (c *dockerConfig) CA() string {
-	return path.Join(c.CertPath, "ca.pem")
-}
-
-func getDockerConfig(dockerEndpoint string) *dockerConfig {
-	cfg := &dockerConfig{}
-	if len(dockerEndpoint) > 0 {
-		cfg.Endpoint = dockerEndpoint
-	} else if len(os.Getenv("DOCKER_HOST")) > 0 {
-		cfg.Endpoint = os.Getenv("DOCKER_HOST")
-	} else {
-		cfg.Endpoint = "unix:///var/run/docker.sock"
-	}
-
-	if os.Getenv("DOCKER_TLS_VERIFY") == "1" {
-		cfg.CertPath = os.Getenv("DOCKER_CERT_PATH")
-	}
-	return cfg
 }

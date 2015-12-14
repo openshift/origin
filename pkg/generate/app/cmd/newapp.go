@@ -461,7 +461,7 @@ func (c *AppConfig) search(components app.ComponentReferences) error {
 }
 
 // inferBuildTypes infers build status and mismatches between source and docker builders
-func (c *AppConfig) inferBuildTypes(components app.ComponentReferences) error {
+func (c *AppConfig) inferBuildTypes(components app.ComponentReferences) (app.ComponentReferences, error) {
 	errs := []error{}
 	for _, ref := range components {
 		input := ref.Input()
@@ -500,8 +500,21 @@ func (c *AppConfig) inferBuildTypes(components app.ComponentReferences) error {
 			continue
 		}
 	}
+	if len(components) == 0 && c.BinaryBuild {
+		if len(c.Name) == 0 {
+			return nil, fmt.Errorf("you must provide a --name when you don't specify a source repository or base image")
+		}
+		ref := &app.ComponentInput{
+			From:          "--binary",
+			Argument:      "--binary",
+			Value:         c.Name,
+			ScratchImage:  true,
+			ExpectToBuild: true,
+		}
+		components = append(components, ref)
+	}
 
-	return errors.NewAggregate(errs)
+	return components, errors.NewAggregate(errs)
 }
 
 // ensureHasSource ensure every builder component has source code associated with it. It takes a list of component references
@@ -604,12 +617,13 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				pipeline *app.Pipeline
 				err      error
 			)
-			if refInput.ExpectToBuild {
+			switch {
+			case refInput.ExpectToBuild:
 				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)
 				if pipeline, err = pipelineBuilder.NewBuildPipeline(from, refInput.ResolvedMatch, refInput.Uses); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", refInput, err)
 				}
-			} else {
+			default:
 				glog.V(4).Infof("will include %q", ref)
 				if pipeline, err = pipelineBuilder.NewImagePipeline(from, refInput.ResolvedMatch); err != nil {
 					return nil, fmt.Errorf("can't include %q: %v", refInput, err)
@@ -883,7 +897,8 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		return nil, err
 	}
 
-	if err := c.inferBuildTypes(components); err != nil {
+	components, err = c.inferBuildTypes(components)
+	if err != nil {
 		return nil, err
 	}
 
@@ -956,6 +971,7 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		if err, ok := err.(app.CircularOutputReferenceError); ok {
 			return nil, fmt.Errorf("%v, please specify a different output reference with --to", err)
 		}
+		return nil, err
 	}
 
 	objects := app.Objects{}

@@ -959,8 +959,14 @@ Show an overview of the current project
 
 [options="nowrap"]
 ----
-  # Show an overview of the current project
+  # See an overview of the current project.
   $ oc status
+
+  # Export the overview of the current project in an svg file.
+  $ oc status -o dot | dot -T svg -o project.svg
+
+  # See an overview of the current project including details for any identified issues.
+  $ oc status -v
 ----
 ====
 

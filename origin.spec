@@ -3,6 +3,8 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %global sdn_import_path github.com/openshift/openshift-sdn
+# The following should only be used for cleanup of sdn-ovs upgrades
+%global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
 
 # docker_version is the version of docker requires by packages
 %global docker_version 1.8.2
@@ -24,7 +26,7 @@
 %global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.0.3-16-gcf75fd9 -X github.com/openshift/origin/pkg/version.commitFromGit cf75fd9 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
 }
 
- %if 0%{?fedora} || 0%{?epel}
+%if 0%{?fedora} || 0%{?epel}
 %global make_redistributable 0
 %else
 %global make_redistributable 1
@@ -41,7 +43,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.0.901
+Version:        3.1.0.902
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -65,7 +67,11 @@ Obsoletes:      openshift < %{package_refector_version}
 ### AUTO-BUNDLED-GEN-ENTRY-POINT
 
 %description
-%{summary}
+Origin is a distribution of Kubernetes optimized for enterprise application
+development and deployment, used by OpenShift 3 and Atomic Enterprise. Origin
+adds developer and operational centric tools on top of Kubernetes to enable
+rapid application development, easy deployment and scaling, and long-term
+lifecycle maintenance for small and large teams and applications.
 
 %package master
 Summary:        %{product_name} Master
@@ -148,6 +154,8 @@ Requires:         openvswitch >= %{openvswitch_version}
 Requires:         %{name}-node = %{version}-%{release}
 Requires:         bridge-utils
 Requires:         ethtool
+Requires:         procps-ng
+Requires:         iproute
 Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 
 %description sdn-ovs
@@ -169,7 +177,7 @@ popd
 
 
 # Gaming the GOPATH to include the third party bundled libs at build
-# time. This is bad and I feel bad.
+# time.
 mkdir _thirdpartyhacks
 pushd _thirdpartyhacks
     ln -s \
@@ -282,8 +290,8 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{__sed} -e "s|openshift|atomic-enterprise|g" contrib/completions/bash/openshift > %{buildroot}%{_sysconfdir}/bash_completion.d/atomic-enterprise
 
 %files
-%defattr(-,root,root,-)
-%doc README.md LICENSE
+%doc README.md
+%license LICENSE
 %{_bindir}/openshift
 %{_bindir}/openshift-router
 %{_bindir}/openshift-deploy
@@ -303,6 +311,8 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{_sysconfdir}/bash_completion.d/oadm
 %{_sysconfdir}/bash_completion.d/openshift
 %dir %config(noreplace) %{_sysconfdir}/origin
+%ghost %dir %config(noreplace) %{_sysconfdir}/origin
+%ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 
 %pre
 # If /etc/openshift exists and /etc/origin doesn't, symlink it to /etc/origin
@@ -319,7 +329,6 @@ fi
 
 
 %files master
-%defattr(-,root,root,-)
 %{_unitdir}/%{name}-master.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
 %config(noreplace) %{_sysconfdir}/origin/master
@@ -350,9 +359,10 @@ fi
 %ghost %config(noreplace) %{_sysconfdir}/origin/policy.json
 %ghost %config(noreplace) %{_sysconfdir}/origin/serviceaccounts.private.key
 %ghost %config(noreplace) %{_sysconfdir}/origin/serviceaccounts.public.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 
 %post master
-%systemd_post %{basename:%{name}-master.service}
+%systemd_post %{name}-master.service
 # Create master config and certs if both do not exist
 if [[ ! -e %{_sysconfdir}/origin/master/master-config.yaml &&
      ! -e %{_sysconfdir}/origin/master/ca.crt ]]; then
@@ -367,35 +377,44 @@ fi
 
 
 %preun master
-%systemd_preun %{basename:%{name}-master.service}
+%systemd_preun %{name}-master.service
 
 %postun master
 %systemd_postun
 
 %files node
-%defattr(-,root,root,-)
 %{_unitdir}/%{name}-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
 %config(noreplace) %{_sysconfdir}/origin/node
+%ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 
 %post node
-%systemd_post %{basename:%{name}-node.service}
+%systemd_post %{name}-node.service
 
 %preun node
-%systemd_preun %{basename:%{name}-node.service}
+%systemd_preun %{name}-node.service
 
 %postun node
 %systemd_postun
 
 %files sdn-ovs
-%defattr(-,root,root,-)
+%dir %{_unitdir}/docker.service.d/
+%dir %{_unitdir}/%{name}-node.service.d/
 %{_bindir}/openshift-sdn-ovs
 %{_bindir}/openshift-sdn-ovs-setup.sh
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 %{_unitdir}/docker.service.d/docker-sdn-ovs.conf
 
+%posttrans sdn-ovs
+# This path was installed by older packages but the directory wasn't owned by
+# RPM so we need to clean it up otherwise kubelet throws an error trying to
+# load the directory as a plugin
+if [ -d %{kube_plugin_path} ]; then
+  rmdir %{kube_plugin_path}
+fi
+
 %files -n tuned-profiles-%{name}-node
-%defattr(-,root,root,-)
+%license LICENSE
 %{_prefix}/lib/tuned/%{name}-node-host
 %{_prefix}/lib/tuned/%{name}-node-guest
 %{_mandir}/man7/tuned-profiles-%{name}-node.7*
@@ -417,31 +436,84 @@ if [ "$1" = 0 ]; then
 fi
 
 %files clients
+%license LICENSE
 %{_bindir}/oc
 %{_bindir}/kubectl
 %{_sysconfdir}/bash_completion.d/oc
 
 %if 0%{?make_redistributable}
 %files clients-redistributable
+%dir %{_datadir}/%{name}/linux/
+%dir %{_datadir}/%{name}/macosx/
+%dir %{_datadir}/%{name}/windows/
 %{_datadir}/%{name}/linux/oc
 %{_datadir}/%{name}/macosx/oc
 %{_datadir}/%{name}/windows/oc.exe
 %endif
 
 %files dockerregistry
-%defattr(-,root,root,-)
 %{_bindir}/dockerregistry
 
 %files pod
-%defattr(-,root,root,-)
 %{_bindir}/pod
 
 %files recycle
-%defattr(-,root,root,-)
 %{_bindir}/recycle
 
 
 %changelog
+* Mon Dec 14 2015 Troy Dawson <tdawson@redhat.com> 3.1.0.902
+- Include LICENSE in client zips (ccoleman@redhat.com)
+- Minor commit validation fixes (ironcladlou@gmail.com)
+- remove build-related type fields from internal api (bparees@redhat.com)
+- Add godeps commit verification (ironcladlou@gmail.com)
+- Retry build logs in start build when waiting for build (mfojtik@redhat.com)
+- Create proper client packages for mac and windows (ccoleman@redhat.com)
+- update jenkins tutorial for using plugin (gmontero@redhat.com)
+- Allow oc new-build to accept zero arguments (ccoleman@redhat.com)
+- Fix fallback scaling behavior (ironcladlou@gmail.com)
+- Fix deployment e2e flake (mkargaki@redhat.com)
+- UPSTREAM: 18522: Close web socket watches correctly (jliggitt@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  8a7e17c0c3eea529955229dfd7b4baefad56633b (rpenta@redhat.com)
+- Start SDN controller after running kubelet (rpenta@redhat.com)
+- [RPMs] Cleanup kubeplugin path from old sdn-ovs installs (sdodson@redhat.com)
+- Fix flakiness in builds extended tests (cewong@redhat.com)
+- Add suggestions in oc status (mkargaki@redhat.com)
+- status: Report tls routes with unspecified termination type
+  (mkargaki@redhat.com)
+- Use the dockerclient ClientFromEnv setup (ccoleman@redhat.com)
+- Don't show build trends chart scrollbars if not needed (spadgett@redhat.com)
+- Prevent y-axis label overlap when filtering build trends chart
+  (spadgett@redhat.com)
+- Packaging specfile clean up (admiller@redhat.com)
+- added prune-groups; refactored rfc2307 ldapinterface (skuznets@redhat.com)
+- only expand resources when strictly needed (deads@redhat.com)
+- added logging of output for failed builds (ipalade@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  0f33df18b9747ebfe2c337f2bf4443b520a8f2ab (rpenta@redhat.com)
+- UPSTREAM: revert: 97bd6c: <carry>: Allow pod start to be delayed in Kubelet
+  (rpenta@redhat.com)
+- Don't use KubeletConfig 'StartUpdates' channel for blocking kubelet
+  (rpenta@redhat.com)
+- after live test (tdawson@redhat.com)
+- Unload filtered groups from build config chart (spadgett@redhat.com)
+- Fix login tests for OSE variants (sdodson@redhat.com)
+- Optionally skip builds for dev cluster provision (marun@redhat.com)
+- Fix for bugz 1283952 and add a test. (smitram@gmail.com)
+- more code (tdawson@redhat.com)
+- more code (tdawson@redhat.com)
+- Disable delete button for RCs with status replicas (spadgett@redhat.com)
+- Web console support for deleting individual builds and deployments
+  (spadgett@redhat.com)
+- add new options (tdawson@redhat.com)
+- UPSTREAM: 18065: Fixed forbidden window enforcement in horizontal pod
+  autoscaler (sross@redhat.com)
+- more updating of script (tdawson@redhat.com)
+- first rough draft (tdawson@redhat.com)
+- HACKING.md: clarify meaning and provide proper usage of OUTPUT_COVERAGE
+  variable. (vsemushi@redhat.com)
+
 * Tue Dec 08 2015 Scott Dodson <sdodson@redhat.com> 3.1.0.901
 - Show build trends chart on build config page (spadgett@redhat.com)
 - fix ruby-22 scl enablement (bparees@redhat.com)

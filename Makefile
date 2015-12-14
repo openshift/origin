@@ -56,6 +56,7 @@ verify:
 else
 verify: build
 endif
+	hack/verify-upstream-commits.sh
 	hack/verify-gofmt.sh
 	hack/verify-govet.sh
 	hack/verify-generated-deep-copies.sh

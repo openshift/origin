@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/gonum/graph/encoding/dot"
 	"github.com/spf13/cobra"
@@ -14,9 +14,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	StatusRecommendedName = "status"
+// StatusRecommendedName is the recommended command name.
+const StatusRecommendedName = "status"
 
+const (
 	statusLong = `
 Show a high level overview of the current project
 
@@ -28,36 +29,59 @@ oc describe deploymentConfig, oc describe service).
 You can specify an output format of "-o dot" to have this command output the generated status
 graph in DOT format that is suitable for use by the "dot" command.`
 
-	statusExample = `  # Show an overview of the current project
-  $ %[1]s`
+	statusExample = `  # See an overview of the current project.
+  $ %[1]s
+
+  # Export the overview of the current project in an svg file.
+  $ %[1]s -o dot | dot -T svg -o project.svg
+
+  # See an overview of the current project including details for any identified issues.
+  $ %[1]s -v`
 )
 
-// NewCmdStatus implements the OpenShift cli status command
+// StatusOptions contains all the necessary options for the Openshift cli status command.
+type StatusOptions struct {
+	namespace    string
+	outputFormat string
+	describer    *describe.ProjectStatusDescriber
+	out          io.Writer
+	verbose      bool
+}
+
+// NewCmdStatus implements the OpenShift cli status command.
 func NewCmdStatus(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	outputFormat := ""
+	opts := &StatusOptions{}
 
 	cmd := &cobra.Command{
-		Use:     "status",
+		Use:     fmt.Sprintf("%s [-o dot | -v ]", StatusRecommendedName),
 		Short:   "Show an overview of the current project",
 		Long:    statusLong,
 		Example: fmt.Sprintf(statusExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if strings.ToLower(outputFormat) == "dot" {
-				cmdutil.CheckErr(RunGraph(f, out))
-				return
+			err := opts.Complete(f, cmd, args, out)
+			cmdutil.CheckErr(err)
+
+			if err := opts.Validate(); err != nil {
+				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
 			}
 
-			cmdutil.CheckErr(RunStatus(f, out))
+			err = opts.RunStatus()
+			cmdutil.CheckErr(err)
 		},
 	}
 
-	cmd.Flags().StringVarP(&outputFormat, "output", "o", outputFormat, "Output format. One of: dot.")
+	cmd.Flags().StringVarP(&opts.outputFormat, "output", "o", opts.outputFormat, "Output format. One of: dot.")
+	cmd.Flags().BoolVarP(&opts.verbose, "verbose", "v", opts.verbose, "See details for resolving issues.")
 
 	return cmd
 }
 
-// RunStatus contains all the necessary functionality for the OpenShift cli status command
-func RunStatus(f *clientcmd.Factory, out io.Writer) error {
+// Complete completes the options for the Openshift cli status command.
+func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+	if len(args) > 0 {
+		return cmdutil.UsageError(cmd, "no arguments should be provided")
+	}
+
 	client, kclient, err := f.Clients()
 	if err != nil {
 		return err
@@ -72,45 +96,53 @@ func RunStatus(f *clientcmd.Factory, out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	o.namespace = namespace
 
-	describer := &describe.ProjectStatusDescriber{K: kclient, C: client, Server: config.Host}
-	s, err := describer.Describe(namespace, "")
-	if err != nil {
-		return err
-	}
+	o.describer = &describe.ProjectStatusDescriber{K: kclient, C: client, Server: config.Host, Suggest: o.verbose}
 
-	fmt.Fprintf(out, s)
+	o.out = out
+
 	return nil
 }
 
-// RunGraph contains all the necessary functionality for the OpenShift cli graph command
-func RunGraph(f *clientcmd.Factory, out io.Writer) error {
-	client, kclient, err := f.Clients()
-	if err != nil {
-		return err
+// Validate validates the options for the Openshift cli status command.
+func (o StatusOptions) Validate() error {
+	if len(o.outputFormat) != 0 && o.outputFormat != "dot" {
+		return fmt.Errorf("invalid output format provided: %s", o.outputFormat)
+	}
+	if len(o.outputFormat) > 0 && o.verbose {
+		return errors.New("cannot provide suggestions when output format is dot")
+	}
+	return nil
+}
+
+// RunStatus contains all the necessary functionality for the OpenShift cli status command.
+func (o StatusOptions) RunStatus() error {
+	var (
+		s   string
+		err error
+	)
+
+	switch o.outputFormat {
+	case "":
+		s, err = o.describer.Describe(o.namespace, "")
+		if err != nil {
+			return err
+		}
+	case "dot":
+		g, _, err := o.describer.MakeGraph(o.namespace)
+		if err != nil {
+			return err
+		}
+		data, err := dot.Marshal(g, o.namespace, "", "  ", false)
+		if err != nil {
+			return err
+		}
+		s = string(data)
+	default:
+		return fmt.Errorf("invalid output format provided: %s", o.outputFormat)
 	}
 
-	config, err := f.OpenShiftClientConfig.ClientConfig()
-	if err != nil {
-		return err
-	}
-
-	namespace, _, err := f.DefaultNamespace()
-	if err != nil {
-		return err
-	}
-
-	describer := &describe.ProjectStatusDescriber{K: kclient, C: client, Server: config.Host}
-	g, _, err := describer.MakeGraph(namespace)
-	if err != nil {
-		return err
-	}
-
-	data, err := dot.Marshal(g, namespace, "", "  ", false)
-	if err != nil {
-		return err
-	}
-
-	fmt.Fprintf(out, "%s", string(data))
+	fmt.Fprintf(o.out, s)
 	return nil
 }

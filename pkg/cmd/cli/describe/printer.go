@@ -218,7 +218,7 @@ func printBuild(build *buildapi.Build, w io.Writer, withNamespace, wide, showAll
 	if len(build.Status.Reason) > 0 {
 		status = fmt.Sprintf("%s (%s)", status, build.Status.Reason)
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", build.Name, describeStrategy(build.Spec.Strategy.Type), from, status, created, duration)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", build.Name, buildapi.StrategyType(build.Spec.Strategy), from, status, created, duration)
 	return err
 }
 
@@ -242,8 +242,8 @@ func describeSourceShort(spec buildapi.BuildSpec) string {
 		if rev := describeSourceGitRevision(spec); len(rev) != 0 {
 			from = fmt.Sprintf("%s@%s", from, rev)
 		}
-	case len(source.Type) > 0:
-		from = string(source.Type)
+	default:
+		from = buildapi.SourceType(source)
 	}
 	return from
 }
@@ -277,8 +277,8 @@ func printBuildList(buildList *buildapi.BuildList, w io.Writer, withNamespace, w
 }
 
 func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
-	if bc.Spec.Strategy.Type == buildapi.CustomBuildStrategyType {
-		_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), bc.Spec.Strategy.CustomStrategy.From.Name, bc.Status.LastVersion)
+	if bc.Spec.Strategy.CustomStrategy != nil {
+		_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", bc.Name, buildapi.StrategyType(bc.Spec.Strategy), bc.Spec.Strategy.CustomStrategy.From.Name, bc.Status.LastVersion)
 		return err
 	}
 
@@ -289,7 +289,7 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, withNamespace, wide
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), from, bc.Status.LastVersion)
+	_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", bc.Name, buildapi.StrategyType(bc.Spec.Strategy), from, bc.Status.LastVersion)
 	return err
 }
 

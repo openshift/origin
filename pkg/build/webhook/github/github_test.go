@@ -29,7 +29,6 @@ func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, err
 			},
 			BuildSpec: api.BuildSpec{
 				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
 					Git: &api.GitBuildSource{
 						URI: "git://github.com/my/repo.git",
 					},
@@ -41,7 +40,6 @@ func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, err
 }
 
 var mockBuildStrategy = api.BuildStrategy{
-	Type: "STI",
 	SourceStrategy: &api.SourceBuildStrategy{
 		From: kapi.ObjectReference{
 			Kind: "DockerImage",
@@ -221,7 +219,6 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 				},
 				BuildSpec: api.BuildSpec{
 					Source: api.BuildSource{
-						Type: api.BuildSourceGit,
 						Git: &api.GitBuildSource{
 							URI: "git://github.com/my/repo.git",
 						},

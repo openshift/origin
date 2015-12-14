@@ -12,7 +12,7 @@ source "${OS_ROOT}/hack/common.sh"
 "${OS_ROOT}/hack/build-go.sh" cmd/gendocs
 
 # Find binary
-gendocs=$( (ls -t _output/local/bin/$(os::build::host_platform)/gendocs) 2>/dev/null || true | head -1 )
+gendocs="$(os::build::find-binary gendocs)"
 
 if [[ -z "$gendocs" ]]; then
   {

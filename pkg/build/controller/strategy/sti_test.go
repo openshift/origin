@@ -161,7 +161,6 @@ func mockSTIBuild() *buildapi.Build {
 				SourceSecret: &kapi.LocalObjectReference{Name: "fooSecret"},
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.SourceBuildStrategyType,
 				SourceStrategy: &buildapi.SourceBuildStrategy{
 					From: kapi.ObjectReference{
 						Kind: "DockerImage",

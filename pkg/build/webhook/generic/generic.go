@@ -65,8 +65,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 			for _, ref := range data.Git.Refs {
 				if webhook.GitRefMatches(ref.Ref, git.Ref) {
 					revision = &api.SourceRevision{
-						Type: api.BuildSourceGit,
-						Git:  &ref.GitSourceRevision,
+						Git: &ref.GitSourceRevision,
 					}
 					return revision, true, nil
 				}
@@ -79,8 +78,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 			return nil, false, nil
 		}
 		revision = &api.SourceRevision{
-			Type: api.BuildSourceGit,
-			Git:  &data.Git.GitSourceRevision,
+			Git: &data.Git.GitSourceRevision,
 		}
 	}
 	return revision, true, nil

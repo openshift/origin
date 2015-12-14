@@ -61,18 +61,16 @@ func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	}
 }
 
-func resourceForStrategyType(strategyType buildapi.BuildStrategyType) string {
-	var resource string
-	switch strategyType {
-	case buildapi.DockerBuildStrategyType:
-		resource = authorizationapi.DockerBuildResource
-	case buildapi.CustomBuildStrategyType:
-		resource = authorizationapi.CustomBuildResource
-	case buildapi.SourceBuildStrategyType:
-		resource = authorizationapi.SourceBuildResource
+func resourceForStrategyType(strategy buildapi.BuildStrategy) string {
+	switch {
+	case strategy.DockerStrategy != nil:
+		return authorizationapi.DockerBuildResource
+	case strategy.CustomStrategy != nil:
+		return authorizationapi.CustomBuildResource
+	case strategy.SourceStrategy != nil:
+		return authorizationapi.SourceBuildResource
 	}
-	return resource
-
+	return ""
 }
 
 func resourceName(objectMeta kapi.ObjectMeta) string {
@@ -83,33 +81,33 @@ func resourceName(objectMeta kapi.ObjectMeta) string {
 }
 
 func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr admission.Attributes) error {
-	strategyType := build.Spec.Strategy.Type
+	strategy := build.Spec.Strategy
 	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:         "create",
-			Resource:     resourceForStrategyType(strategyType),
+			Resource:     resourceForStrategyType(strategy),
 			Content:      runtime.EmbeddedObject{Object: build},
 			ResourceName: resourceName(build.ObjectMeta),
 		},
 		User:   attr.GetUserInfo().GetName(),
 		Groups: sets.NewString(attr.GetUserInfo().GetGroups()...),
 	}
-	return a.checkAccess(strategyType, subjectAccessReview, attr)
+	return a.checkAccess(strategy, subjectAccessReview, attr)
 }
 
 func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.BuildConfig, attr admission.Attributes) error {
-	strategyType := buildConfig.Spec.Strategy.Type
+	strategy := buildConfig.Spec.Strategy
 	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:         "create",
-			Resource:     resourceForStrategyType(strategyType),
+			Resource:     resourceForStrategyType(strategy),
 			Content:      runtime.EmbeddedObject{Object: buildConfig},
 			ResourceName: resourceName(buildConfig.ObjectMeta),
 		},
 		User:   attr.GetUserInfo().GetName(),
 		Groups: sets.NewString(attr.GetUserInfo().GetGroups()...),
 	}
-	return a.checkAccess(strategyType, subjectAccessReview, attr)
+	return a.checkAccess(strategy, subjectAccessReview, attr)
 }
 
 func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequest, attr admission.Attributes) error {
@@ -131,17 +129,17 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 	}
 }
 
-func (a *buildByStrategy) checkAccess(strategyType buildapi.BuildStrategyType, subjectAccessReview *authorizationapi.LocalSubjectAccessReview, attr admission.Attributes) error {
+func (a *buildByStrategy) checkAccess(strategy buildapi.BuildStrategy, subjectAccessReview *authorizationapi.LocalSubjectAccessReview, attr admission.Attributes) error {
 	resp, err := a.client.LocalSubjectAccessReviews(attr.GetNamespace()).Create(subjectAccessReview)
 	if err != nil {
 		return err
 	}
 	if !resp.Allowed {
-		return notAllowed(strategyType, attr)
+		return notAllowed(strategy, attr)
 	}
 	return nil
 }
 
-func notAllowed(strategyType buildapi.BuildStrategyType, attr admission.Attributes) error {
-	return admission.NewForbidden(attr, fmt.Errorf("build strategy type %s is not allowed", strategyType))
+func notAllowed(strategy buildapi.BuildStrategy, attr admission.Attributes) error {
+	return admission.NewForbidden(attr, fmt.Errorf("build strategy %s is not allowed", buildapi.StrategyType(strategy)))
 }

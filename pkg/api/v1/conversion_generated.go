@@ -1339,8 +1339,7 @@ func autoconvert_api_BuildRequest_To_v1_BuildRequest(in *buildapi.BuildRequest, 
 		return err
 	}
 	if in.Revision != nil {
-		out.Revision = new(apiv1.SourceRevision)
-		if err := convert_api_SourceRevision_To_v1_SourceRevision(in.Revision, out.Revision, s); err != nil {
+		if err := s.Convert(&in.Revision, &out.Revision, 0); err != nil {
 			return err
 		}
 	} else {
@@ -1397,7 +1396,6 @@ func autoconvert_api_BuildSource_To_v1_BuildSource(in *buildapi.BuildSource, out
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildSource))(in)
 	}
-	out.Type = apiv1.BuildSourceType(in.Type)
 	if in.Binary != nil {
 		out.Binary = new(apiv1.BinaryBuildSource)
 		if err := convert_api_BinaryBuildSource_To_v1_BinaryBuildSource(in.Binary, out.Binary, s); err != nil {
@@ -1432,27 +1430,22 @@ func autoconvert_api_BuildSource_To_v1_BuildSource(in *buildapi.BuildSource, out
 	return nil
 }
 
-func convert_api_BuildSource_To_v1_BuildSource(in *buildapi.BuildSource, out *apiv1.BuildSource, s conversion.Scope) error {
-	return autoconvert_api_BuildSource_To_v1_BuildSource(in, out, s)
-}
-
 func autoconvert_api_BuildSpec_To_v1_BuildSpec(in *buildapi.BuildSpec, out *apiv1.BuildSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildSpec))(in)
 	}
 	out.ServiceAccount = in.ServiceAccount
-	if err := convert_api_BuildSource_To_v1_BuildSource(&in.Source, &out.Source, s); err != nil {
+	if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
 		return err
 	}
 	if in.Revision != nil {
-		out.Revision = new(apiv1.SourceRevision)
-		if err := convert_api_SourceRevision_To_v1_SourceRevision(in.Revision, out.Revision, s); err != nil {
+		if err := s.Convert(&in.Revision, &out.Revision, 0); err != nil {
 			return err
 		}
 	} else {
 		out.Revision = nil
 	}
-	if err := convert_api_BuildStrategy_To_v1_BuildStrategy(&in.Strategy, &out.Strategy, s); err != nil {
+	if err := s.Convert(&in.Strategy, &out.Strategy, 0); err != nil {
 		return err
 	}
 	if err := s.Convert(&in.Output, &out.Output, 0); err != nil {
@@ -1517,7 +1510,6 @@ func autoconvert_api_BuildStrategy_To_v1_BuildStrategy(in *buildapi.BuildStrateg
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildStrategy))(in)
 	}
-	out.Type = apiv1.BuildStrategyType(in.Type)
 	if in.DockerStrategy != nil {
 		if err := s.Convert(&in.DockerStrategy, &out.DockerStrategy, 0); err != nil {
 			return err
@@ -1540,10 +1532,6 @@ func autoconvert_api_BuildStrategy_To_v1_BuildStrategy(in *buildapi.BuildStrateg
 		out.CustomStrategy = nil
 	}
 	return nil
-}
-
-func convert_api_BuildStrategy_To_v1_BuildStrategy(in *buildapi.BuildStrategy, out *apiv1.BuildStrategy, s conversion.Scope) error {
-	return autoconvert_api_BuildStrategy_To_v1_BuildStrategy(in, out, s)
 }
 
 func autoconvert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in *buildapi.BuildTriggerPolicy, out *apiv1.BuildTriggerPolicy, s conversion.Scope) error {
@@ -1770,7 +1758,6 @@ func autoconvert_api_SourceRevision_To_v1_SourceRevision(in *buildapi.SourceRevi
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.SourceRevision))(in)
 	}
-	out.Type = apiv1.BuildSourceType(in.Type)
 	if in.Git != nil {
 		out.Git = new(apiv1.GitSourceRevision)
 		if err := convert_api_GitSourceRevision_To_v1_GitSourceRevision(in.Git, out.Git, s); err != nil {
@@ -1780,10 +1767,6 @@ func autoconvert_api_SourceRevision_To_v1_SourceRevision(in *buildapi.SourceRevi
 		out.Git = nil
 	}
 	return nil
-}
-
-func convert_api_SourceRevision_To_v1_SourceRevision(in *buildapi.SourceRevision, out *apiv1.SourceRevision, s conversion.Scope) error {
-	return autoconvert_api_SourceRevision_To_v1_SourceRevision(in, out, s)
 }
 
 func autoconvert_api_WebHookTrigger_To_v1_WebHookTrigger(in *buildapi.WebHookTrigger, out *apiv1.WebHookTrigger, s conversion.Scope) error {
@@ -2068,8 +2051,7 @@ func autoconvert_v1_BuildRequest_To_api_BuildRequest(in *apiv1.BuildRequest, out
 		return err
 	}
 	if in.Revision != nil {
-		out.Revision = new(buildapi.SourceRevision)
-		if err := convert_v1_SourceRevision_To_api_SourceRevision(in.Revision, out.Revision, s); err != nil {
+		if err := s.Convert(&in.Revision, &out.Revision, 0); err != nil {
 			return err
 		}
 	} else {
@@ -2126,7 +2108,7 @@ func autoconvert_v1_BuildSource_To_api_BuildSource(in *apiv1.BuildSource, out *b
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*apiv1.BuildSource))(in)
 	}
-	out.Type = buildapi.BuildSourceType(in.Type)
+	// in.Type has no peer in out
 	if in.Binary != nil {
 		out.Binary = new(buildapi.BinaryBuildSource)
 		if err := convert_v1_BinaryBuildSource_To_api_BinaryBuildSource(in.Binary, out.Binary, s); err != nil {
@@ -2161,27 +2143,22 @@ func autoconvert_v1_BuildSource_To_api_BuildSource(in *apiv1.BuildSource, out *b
 	return nil
 }
 
-func convert_v1_BuildSource_To_api_BuildSource(in *apiv1.BuildSource, out *buildapi.BuildSource, s conversion.Scope) error {
-	return autoconvert_v1_BuildSource_To_api_BuildSource(in, out, s)
-}
-
 func autoconvert_v1_BuildSpec_To_api_BuildSpec(in *apiv1.BuildSpec, out *buildapi.BuildSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*apiv1.BuildSpec))(in)
 	}
 	out.ServiceAccount = in.ServiceAccount
-	if err := convert_v1_BuildSource_To_api_BuildSource(&in.Source, &out.Source, s); err != nil {
+	if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
 		return err
 	}
 	if in.Revision != nil {
-		out.Revision = new(buildapi.SourceRevision)
-		if err := convert_v1_SourceRevision_To_api_SourceRevision(in.Revision, out.Revision, s); err != nil {
+		if err := s.Convert(&in.Revision, &out.Revision, 0); err != nil {
 			return err
 		}
 	} else {
 		out.Revision = nil
 	}
-	if err := convert_v1_BuildStrategy_To_api_BuildStrategy(&in.Strategy, &out.Strategy, s); err != nil {
+	if err := s.Convert(&in.Strategy, &out.Strategy, 0); err != nil {
 		return err
 	}
 	if err := s.Convert(&in.Output, &out.Output, 0); err != nil {
@@ -2246,7 +2223,7 @@ func autoconvert_v1_BuildStrategy_To_api_BuildStrategy(in *apiv1.BuildStrategy, 
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*apiv1.BuildStrategy))(in)
 	}
-	out.Type = buildapi.BuildStrategyType(in.Type)
+	// in.Type has no peer in out
 	if in.DockerStrategy != nil {
 		if err := s.Convert(&in.DockerStrategy, &out.DockerStrategy, 0); err != nil {
 			return err
@@ -2269,10 +2246,6 @@ func autoconvert_v1_BuildStrategy_To_api_BuildStrategy(in *apiv1.BuildStrategy, 
 		out.CustomStrategy = nil
 	}
 	return nil
-}
-
-func convert_v1_BuildStrategy_To_api_BuildStrategy(in *apiv1.BuildStrategy, out *buildapi.BuildStrategy, s conversion.Scope) error {
-	return autoconvert_v1_BuildStrategy_To_api_BuildStrategy(in, out, s)
 }
 
 func autoconvert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *apiv1.BuildTriggerPolicy, out *buildapi.BuildTriggerPolicy, s conversion.Scope) error {
@@ -2499,7 +2472,7 @@ func autoconvert_v1_SourceRevision_To_api_SourceRevision(in *apiv1.SourceRevisio
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*apiv1.SourceRevision))(in)
 	}
-	out.Type = buildapi.BuildSourceType(in.Type)
+	// in.Type has no peer in out
 	if in.Git != nil {
 		out.Git = new(buildapi.GitSourceRevision)
 		if err := convert_v1_GitSourceRevision_To_api_GitSourceRevision(in.Git, out.Git, s); err != nil {
@@ -2509,10 +2482,6 @@ func autoconvert_v1_SourceRevision_To_api_SourceRevision(in *apiv1.SourceRevisio
 		out.Git = nil
 	}
 	return nil
-}
-
-func convert_v1_SourceRevision_To_api_SourceRevision(in *apiv1.SourceRevision, out *buildapi.SourceRevision, s conversion.Scope) error {
-	return autoconvert_v1_SourceRevision_To_api_SourceRevision(in, out, s)
 }
 
 func autoconvert_v1_WebHookTrigger_To_api_WebHookTrigger(in *apiv1.WebHookTrigger, out *buildapi.WebHookTrigger, s conversion.Scope) error {

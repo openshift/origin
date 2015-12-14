@@ -335,16 +335,17 @@ type typeBasedFactoryStrategy struct {
 func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	var pod *kapi.Pod
 	var err error
-	switch build.Spec.Strategy.Type {
-	case buildapi.DockerBuildStrategyType:
+	switch {
+	case build.Spec.Strategy.DockerStrategy != nil:
 		pod, err = f.DockerBuildStrategy.CreateBuildPod(build)
-	case buildapi.SourceBuildStrategyType:
+	case build.Spec.Strategy.SourceStrategy != nil:
 		pod, err = f.SourceBuildStrategy.CreateBuildPod(build)
-	case buildapi.CustomBuildStrategyType:
+	case build.Spec.Strategy.CustomStrategy != nil:
 		pod, err = f.CustomBuildStrategy.CreateBuildPod(build)
 	default:
-		return nil, fmt.Errorf("no supported build strategy defined for Build %s/%s with type %s", build.Namespace, build.Name, build.Spec.Strategy.Type)
+		return nil, fmt.Errorf("no supported build strategy defined for Build %s/%s", build.Namespace, build.Name)
 	}
+
 	if pod != nil {
 		if pod.Annotations == nil {
 			pod.Annotations = map[string]string{}

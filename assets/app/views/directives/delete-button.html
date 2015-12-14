@@ -1,6 +1,15 @@
 <div class="actions">
   <!-- Avoid whitespace inside the link -->
-  <a href="" ng-click="$event.stopPropagation(); openDeleteModal()" role="button"
-    ><i class="fa fa-trash-o action-button" aria-hidden="true"
+  <a href=""
+     ng-click="$event.stopPropagation(); openDeleteModal()"
+     role="button"
+     class="action-button"
+     ng-attr-aria-disabled="{{disableDelete ? 'true' : undefined}}"
+     ng-class="{ 'disabled-link': disableDelete }"
+     data-toggle="tooltip"
+     data-placement="left"
+     data-trigger="hover"
+     dynamic-content="{{disableDelete ? disabledTooltip : undefined}}"
+    ><i class="fa fa-trash-o" aria-hidden="true"
     ></i><span class="sr-only">Delete {{resourceType | humanizeResourceType}} {{resourceName}}</span></a>
 </div>

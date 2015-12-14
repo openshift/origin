@@ -164,14 +164,16 @@ func describeBuildRequest(request *buildapi.BuildRequest) string {
 // This will replace the existing variable definitions with provided env
 func updateBuildEnv(strategy *buildapi.BuildStrategy, env []kapi.EnvVar) {
 	var buildEnv *[]kapi.EnvVar
-	switch strategy.Type {
-	case buildapi.SourceBuildStrategyType:
+
+	switch {
+	case strategy.SourceStrategy != nil:
 		buildEnv = &strategy.SourceStrategy.Env
-	case buildapi.DockerBuildStrategyType:
-		buildEnv = &strategy.DockerStrategy.Env
-	case buildapi.CustomBuildStrategyType:
-		buildEnv = &strategy.CustomStrategy.Env
+	case strategy.DockerStrategy != nil:
+		buildEnv = &strategy.SourceStrategy.Env
+	case strategy.CustomStrategy != nil:
+		buildEnv = &strategy.SourceStrategy.Env
 	}
+
 	newEnv := []kapi.EnvVar{}
 	for _, e := range *buildEnv {
 		exists := false
@@ -370,7 +372,6 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	if binary != nil {
 		build.Spec.Source.Git = nil
 		build.Spec.Source.Binary = binary
-		build.Spec.Source.Type = buildapi.BuildSourceBinary
 		if build.Spec.Source.Dockerfile != nil && binary.AsFile == "Dockerfile" {
 			build.Spec.Source.Dockerfile = nil
 		}
@@ -404,7 +405,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		image = strategyImageChangeTrigger.LastTriggeredImageID
 	}
 	switch {
-	case build.Spec.Strategy.Type == buildapi.SourceBuildStrategyType:
+	case build.Spec.Strategy.SourceStrategy != nil:
 		if image == "" {
 			image, err = g.resolveImageStreamReference(ctx, build.Spec.Strategy.SourceStrategy.From, build.Status.Config.Namespace)
 			if err != nil {
@@ -418,7 +419,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		if build.Spec.Strategy.SourceStrategy.PullSecret == nil {
 			build.Spec.Strategy.SourceStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &build.Spec.Strategy.SourceStrategy.From, bc.Namespace)
 		}
-	case build.Spec.Strategy.Type == buildapi.DockerBuildStrategyType &&
+	case build.Spec.Strategy.DockerStrategy != nil &&
 		build.Spec.Strategy.DockerStrategy.From != nil:
 		if image == "" {
 			image, err = g.resolveImageStreamReference(ctx, *build.Spec.Strategy.DockerStrategy.From, build.Status.Config.Namespace)
@@ -433,7 +434,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		if build.Spec.Strategy.DockerStrategy.PullSecret == nil {
 			build.Spec.Strategy.DockerStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, build.Spec.Strategy.DockerStrategy.From, bc.Namespace)
 		}
-	case build.Spec.Strategy.Type == buildapi.CustomBuildStrategyType:
+	case build.Spec.Strategy.CustomStrategy != nil:
 		if image == "" {
 			image, err = g.resolveImageStreamReference(ctx, build.Spec.Strategy.CustomStrategy.From, build.Status.Config.Namespace)
 			if err != nil {

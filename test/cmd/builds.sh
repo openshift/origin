@@ -25,6 +25,15 @@ template='{{with .spec.output.to}}{{.kind}} {{.name}}{{end}}'
 os::cmd::expect_success "oc new-build --dockerfile=\$'FROM centos:7\nRUN yum install -y httpd'"
 os::cmd::expect_success_and_text "oc get bc/centos --template '${template}'" '^ImageStreamTag centos:latest$'
 
+# Build from a binary with no inputs requires name
+os::cmd::expect_failure_and_text "oc new-build --binary" "you must provide a --name"
+
+# Build from a binary with inputs creates a binary build
+os::cmd::expect_success "oc new-build --binary --name=binary-test"
+os::cmd::expect_success_and_text "oc get bc/binary-test" 'Binary'
+
+os::cmd::expect_success 'oc delete is/binary-test bc/binary-test'
+
 # Build from Dockerfile with output to DockerImage
 os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1' --to-docker"
 os::cmd::expect_success_and_text "oc get bc/origin --template '${template}'" '^DockerImage library/origin:latest$'

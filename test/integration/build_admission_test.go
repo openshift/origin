@@ -110,8 +110,8 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 	}
 }
 
-func buildStrategyTypes() []buildapi.BuildStrategyType {
-	return []buildapi.BuildStrategyType{buildapi.DockerBuildStrategyType, buildapi.SourceBuildStrategyType, buildapi.CustomBuildStrategyType}
+func buildStrategyTypes() []string {
+	return []string{"source", "docker", "custom"}
 }
 
 func setupBuildStrategyTest(t *testing.T) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
@@ -202,37 +202,34 @@ func removeBuildStrategyPrivileges(t *testing.T, clusterRoleInterface client.Clu
 
 }
 
-func strategyForType(strategy buildapi.BuildStrategyType) buildapi.BuildStrategy {
+func strategyForType(strategy string) buildapi.BuildStrategy {
 	buildStrategy := buildapi.BuildStrategy{}
-	buildStrategy.Type = strategy
 	switch strategy {
-	case buildapi.DockerBuildStrategyType:
+	case "docker":
 		buildStrategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
-	case buildapi.CustomBuildStrategyType:
+	case "custom":
 		buildStrategy.CustomStrategy = &buildapi.CustomBuildStrategy{}
 		buildStrategy.CustomStrategy.From.Name = "builderimage:latest"
-	case buildapi.SourceBuildStrategyType:
+	case "source":
 		buildStrategy.SourceStrategy = &buildapi.SourceBuildStrategy{}
 		buildStrategy.SourceStrategy.From.Name = "builderimage:latest"
 	}
 	return buildStrategy
 }
 
-func createBuild(t *testing.T, buildInterface client.BuildInterface, strategy buildapi.BuildStrategyType) (*buildapi.Build, error) {
+func createBuild(t *testing.T, buildInterface client.BuildInterface, strategy string) (*buildapi.Build, error) {
 	build := &buildapi.Build{}
 	build.GenerateName = strings.ToLower(string(strategy)) + "-build-"
 	build.Spec.Strategy = strategyForType(strategy)
-	build.Spec.Source.Type = buildapi.BuildSourceGit
 	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
 
 	return buildInterface.Create(build)
 }
 
-func createBuildConfig(t *testing.T, buildConfigInterface client.BuildConfigInterface, strategy buildapi.BuildStrategyType) (*buildapi.BuildConfig, error) {
+func createBuildConfig(t *testing.T, buildConfigInterface client.BuildConfigInterface, strategy string) (*buildapi.BuildConfig, error) {
 	buildConfig := &buildapi.BuildConfig{}
 	buildConfig.GenerateName = strings.ToLower(string(strategy)) + "-buildconfig-"
 	buildConfig.Spec.Strategy = strategyForType(strategy)
-	buildConfig.Spec.Source.Type = buildapi.BuildSourceGit
 	buildConfig.Spec.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
 
 	return buildConfigInterface.Create(buildConfig)
