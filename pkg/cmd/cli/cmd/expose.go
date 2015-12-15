@@ -119,8 +119,10 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			supportsTCP := false
 			for _, port := range svc.Spec.Ports {
 				if port.Protocol == kapi.ProtocolTCP {
-					// Pass service target port as the route port
-					cmd.Flags().Set("port", port.TargetPort.String())
+					if len(port.Name) > 0 {
+						// Pass service port name as the route target port, if it is named
+						cmd.Flags().Set("target-port", port.Name)
+					}
 					supportsTCP = true
 					break
 				}
