@@ -136,6 +136,42 @@ func TestContentType406PlainJson(t *testing.T) {
 	}
 }
 
+func TestRemoveRoute(t *testing.T) {
+	tearDown()
+	TraceLogger(testLogger{t})
+	ws := newGetPlainTextOrJsonService()
+	Add(ws)
+	httpRequest, _ := http.NewRequest("GET", "http://here.com/get", nil)
+	httpRequest.Header.Set("Accept", "text/plain")
+	httpWriter := httptest.NewRecorder()
+	DefaultContainer.dispatch(httpWriter, httpRequest)
+	if got, want := httpWriter.Code, 200; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// dynamic apis are disabled, should error and do nothing
+	if err := ws.RemoveRoute("/get", "GET"); err == nil {
+		t.Error("unexpected non-error")
+	}
+
+	httpWriter = httptest.NewRecorder()
+	DefaultContainer.dispatch(httpWriter, httpRequest)
+	if got, want := httpWriter.Code, 200; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	ws.SetDynamicRoutes(true)
+	if err := ws.RemoveRoute("/get", "GET"); err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
+
+	httpWriter = httptest.NewRecorder()
+	DefaultContainer.dispatch(httpWriter, httpRequest)
+	if got, want := httpWriter.Code, 404; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 // go test -v -test.run TestContentTypeOctet_Issue170 ...restful
 func TestContentTypeOctet_Issue170(t *testing.T) {
 	tearDown()
