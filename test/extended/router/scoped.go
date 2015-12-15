@@ -20,17 +20,22 @@ var _ = g.Describe("Router", func() {
 		configPath = exutil.FixturePath("fixtures", "scoped-router.yaml")
 		oc         = exutil.NewCLI("scoped-router", exutil.KubeConfigPath())
 	)
+
+	g.BeforeEach(func() {
+		// defer oc.Run("delete").Args("-f", configPath).Execute()
+		err := oc.Run("create").Args("-f", configPath).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when scoped to a single namespace and label set", func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 			g.By(fmt.Sprintf("creating a scoped router from a config file %q", configPath))
-			err := oc.Run("create").Args("-f", configPath).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
 
 			var routerIP string
-			err = wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-				pod, err := oc.KubeFramework().Client.Pods(oc.KubeFramework().Namespace.Name).Get("router")
+			err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
+				pod, err := oc.KubeFramework().Client.Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router")
 				if err != nil {
 					return false, err
 				}
@@ -44,6 +49,11 @@ var _ = g.Describe("Router", func() {
 
 			// router expected to listen on port 80
 			routerURL := fmt.Sprintf("http://%s", routerIP)
+
+			g.By("waiting for the healthz endpoint to respond")
+			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
+			err = waitForRouterOKResponse(healthzURI, routerIP, 2*time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid route to respond")
 			err = waitForRouterOKResponse(routerURL, "first.example.com", 2*time.Minute)
@@ -66,11 +76,9 @@ var _ = g.Describe("Router", func() {
 			ns := oc.KubeFramework().Namespace.Name
 
 			g.By(fmt.Sprintf("creating a scoped router from a config file %q", configPath))
-			err := oc.Run("create").Args("-f", configPath).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
 
 			var routerIP string
-			err = wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
+			err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
 				pod, err := oc.KubeFramework().Client.Pods(ns).Get("router-override")
 				if err != nil {
 					return false, err
@@ -81,11 +89,17 @@ var _ = g.Describe("Router", func() {
 				routerIP = pod.Status.PodIP
 				return true, nil
 			})
+
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// router expected to listen on port 80
 			routerURL := fmt.Sprintf("http://%s", routerIP)
 			pattern := "%s-%s.myapps.mycompany.com"
+
+			g.By("waiting for the healthz endpoint to respond")
+			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
+			err = waitForRouterOKResponse(healthzURI, routerIP, 2*time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid route to respond")
 			err = waitForRouterOKResponse(routerURL, fmt.Sprintf(pattern, "route-1", ns), 2*time.Minute)
@@ -102,7 +116,7 @@ var _ = g.Describe("Router", func() {
 				e2e.Failf("should have had a 503 status code for %s", host)
 			}
 
-			for _, host := range []string{"route-2", "route-2"} {
+			for _, host := range []string{"route-1", "route-2"} {
 				host = fmt.Sprintf(pattern, host, ns)
 				g.By(fmt.Sprintf("checking that %s does not match a route", host))
 				req, err := requestViaReverseProxy("GET", routerURL, host)
@@ -110,8 +124,8 @@ var _ = g.Describe("Router", func() {
 				resp, err := http.DefaultClient.Do(req)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				resp.Body.Close()
-				if resp.StatusCode != http.StatusServiceUnavailable {
-					e2e.Failf("should have had a 503 status code for %s", host)
+				if resp.StatusCode != http.StatusOK {
+					e2e.Failf("should have had a 200 status code for %s", host)
 				}
 			}
 		})
@@ -126,7 +140,7 @@ func waitForRouterOKResponse(url, host string, timeout time.Duration) error {
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return false, err
+			return false, nil
 		}
 		resp.Body.Close()
 		if resp.StatusCode == http.StatusServiceUnavailable {

@@ -5,9 +5,9 @@ items:
 - apiVersion: v1
   kind: Pod
   metadata:
-    name: router
+    name: scoped-router
     labels:
-      test: router
+      test: scoped-router
   spec:
     containers:
     - name: router
@@ -18,6 +18,7 @@ items:
           fieldRef:
             fieldPath: metadata.namespace
       args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first"]
+      hostNetwork: false
       ports:
       - containerPort: 80
       - containerPort: 443
@@ -42,7 +43,8 @@ items:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-hostname", "--hostname-template='${name}-${namespace}.myapps.mycompany.com'"]
+      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-hostname", "--hostname-template=${name}-${namespace}.myapps.mycompany.com"]
+      hostNetwork: false
       ports:
       - containerPort: 80
       - containerPort: 443
@@ -56,12 +58,12 @@ items:
 - apiVersion: v1
   kind: RoleBinding
   metadata:
-    name: view
+    name: system-router
   subjects:
   - kind: ServiceAccount
     name: default
   roleRef:
-    name: view
+    name: system:router
 
 # two routes that differ only by their labels and names
 - apiVersion: v1
@@ -115,7 +117,8 @@ items:
   spec:
     containers:
     - name: test
-      image: openshift/deployment-example:v1
+      image: openshift/hello-openshift
+      # image: openshift/deployment-example:v1
       ports:
       - containerPort: 8080
         name: http

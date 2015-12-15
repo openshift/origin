@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -77,7 +78,7 @@ func (o *RouterSelection) RouteSelectionFunc() controller.RouteHostFunc {
 		if err != nil {
 			return ""
 		}
-		return s
+		return strings.Trim(s, "\"'")
 	}
 }
 
