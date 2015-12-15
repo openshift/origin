@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/service"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -20,21 +21,24 @@ import (
 	"github.com/openshift/origin/pkg/sdn/registry/netnamespace/cache"
 	"github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnid"
 	"github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnidallocator"
+	"github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnidallocator/etcd"
 )
 
 // REST adapts a netnamespace registry into apiserver's RESTStorage model.
 type REST struct {
-	registry Registry
-	vnids    vnidallocator.Interface
+	registry     Registry
+	vnids        vnidallocator.Interface
+	vnidRegistry service.RangeRegistry
 	// globalNamespaces are the namespaces that have access to all pods in the cluster and vice versa.
 	globalNamespaces sets.String
 }
 
 // NewStorage returns a new REST.
-func NewStorage(registry Registry, vnids vnidallocator.Interface, globalNamespaces []string) *REST {
+func NewStorage(registry Registry, vnids vnidallocator.Interface, vnidRegistry service.RangeRegistry, globalNamespaces []string) *REST {
 	return &REST{
 		registry:         registry,
 		vnids:            vnids,
+		vnidRegistry:     vnidRegistry,
 		globalNamespaces: sets.NewString(globalNamespaces...),
 	}
 }
@@ -193,22 +197,39 @@ func (rs *REST) revokeNetID(netns *api.NetNamespace) error {
 		return err
 	}
 
-	// Don't release if this netid is used by any other namespaces
-	for _, obj := range netnsCache.Store.List() {
-		nn := obj.(*api.NetNamespace)
-		if nn.ObjectMeta.UID == netns.ObjectMeta.UID {
-			continue
+	// Retry the op if Release() returns ErrorRetryOperation
+	for i := 0; i < 2; i++ {
+		// Don't release if this netid is used by any other namespaces
+		for _, obj := range netnsCache.Store.List() {
+			nn := obj.(*api.NetNamespace)
+			if nn.ObjectMeta.UID == netns.ObjectMeta.UID {
+				continue
+			}
+			if *nn.NetID == *netns.NetID {
+				return nil
+			}
 		}
-		if *nn.NetID == *netns.NetID {
-			return nil
+		err = rs.vnids.Release(*netns.NetID)
+		if err != etcd.ErrorRetryOperation {
+			return err
 		}
 	}
-	return rs.vnids.Release(*netns.NetID)
+	return err
 }
 
 func (rs *REST) checkNetID(netns *api.NetNamespace) error {
 	if !rs.vnids.Has(*netns.NetID) {
 		return fmt.Errorf("NetID %d is not allocated, you can only use existing NetID during update", *netns.NetID)
+	}
+
+	// Update vnid allocation resource
+	// This will synchronize update and revoke vnid operations
+	latest, err := rs.vnidRegistry.Get()
+	if err != nil {
+		return err
+	}
+	if err := rs.vnidRegistry.CreateOrUpdate(latest); err != nil {
+		return fmt.Errorf("unable to persist the updated vnid allocations: %v", err)
 	}
 	return nil
 }

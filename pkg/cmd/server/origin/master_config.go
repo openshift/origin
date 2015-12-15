@@ -19,7 +19,6 @@ import (
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/service"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
-	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	kutilrand "k8s.io/kubernetes/pkg/util/rand"
@@ -61,6 +60,7 @@ import (
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
 	"github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnid"
 	"github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnidallocator"
+	etcdallocator "github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnidallocator/etcd"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
@@ -134,8 +134,8 @@ type MasterConfig struct {
 type MultitenantNetworkConfig struct {
 	NetNamespaceRegistry netnamespace.Registry
 	NetIDRange           vnid.VNIDRange
-	NetIDRegistry        service.RangeRegistry
 	NetIDAllocator       *vnidallocator.Allocator
+	NetIDRegistry        service.RangeRegistry
 }
 
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the

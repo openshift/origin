@@ -492,7 +492,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	}
 
 	if c.MultitenantNetworkConfig != nil {
-		storage["netNamespaces"] = netnamespace.NewStorage(c.MultitenantNetworkConfig.NetNamespaceRegistry, c.MultitenantNetworkConfig.NetIDAllocator, []string{kapi.NamespaceDefault})
+		nc := c.MultitenantNetworkConfig
+		storage["netNamespaces"] = netnamespace.NewStorage(nc.NetNamespaceRegistry, nc.NetIDAllocator, nc.NetIDRegistry, []string{kapi.NamespaceDefault})
 	}
 
 	return storage

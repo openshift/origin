@@ -12,7 +12,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
-	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	"k8s.io/kubernetes/pkg/util"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
@@ -41,6 +40,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	vnidcontroller "github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnidallocator/controller"
+	etcdallocator "github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnidallocator/etcd"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 )
 
@@ -366,7 +366,8 @@ func (c *MasterConfig) RunImageImportController() {
 // RunNetIDAllocationController starts the VNID allocation controller process.
 func (c *MasterConfig) RunNetIDAllocationController() {
 	if c.MultitenantNetworkConfig != nil {
-		repair := vnidcontroller.NewRepair(15*time.Minute, c.MultitenantNetworkConfig.NetNamespaceRegistry, c.MultitenantNetworkConfig.NetIDRange, c.MultitenantNetworkConfig.NetIDRegistry)
+		nc := c.MultitenantNetworkConfig
+		repair := vnidcontroller.NewRepair(15*time.Minute, nc.NetNamespaceRegistry, nc.NetIDRange, nc.NetIDRegistry)
 		if err := repair.RunOnce(); err != nil {
 			glog.Fatalf("Unable to initialize netnamespace allocation: %v", err)
 		}

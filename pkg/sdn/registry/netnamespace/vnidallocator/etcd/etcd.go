@@ -29,7 +29,6 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 
-	"github.com/golang/glog"
 	"golang.org/x/net/context"
 )
 
