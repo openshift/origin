@@ -5,8 +5,7 @@
 #
 FROM openshift/origin-base
 
-RUN yum -y install kmod keepalived iproute psmisc nc net-tools && \
-    yum clean all
+RUN install_and_verify.sh kmod keepalived iproute psmisc nmap-ncat net-tools
 
 ADD conf/ /var/lib/openshift/ipfailover/keepalived/conf/
 ADD lib/  /var/lib/openshift/ipfailover/keepalived/lib/

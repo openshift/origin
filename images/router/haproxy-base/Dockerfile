@@ -11,12 +11,11 @@ FROM openshift/origin-base
 #       this is temporary and should be removed when the container is switch to an empty-dir
 #       with gid support.
 #
-RUN yum -y install haproxy && \
+RUN install_and_verify.sh haproxy && \
     mkdir -p /var/lib/containers/router/{certs,cacerts} && \
     mkdir -p /var/lib/haproxy/{conf,run,bin,log} && \
     touch /var/lib/haproxy/conf/{{os_http_be,os_edge_http_be,os_tcp_be,os_sni_passthrough,os_reencrypt,os_edge_http_expose,os_edge_http_redirect}.map,haproxy.config} && \
-    chmod -R 777 /var && \
-    yum clean all
+    chmod -R 777 /var
 
 ADD conf/ /var/lib/haproxy/conf/
 # add the dummy cert to the app cert directory as well to avoid errors with default config

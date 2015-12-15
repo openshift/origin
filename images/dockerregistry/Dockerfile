@@ -6,8 +6,7 @@
 #
 FROM openshift/origin-base
 
-RUN yum install -y tree findutils epel-release && \
-    yum clean all
+RUN install_and_verify.sh tree findutils epel-release
 
 # The registry doesn't require a privileged user.
 USER 1001
