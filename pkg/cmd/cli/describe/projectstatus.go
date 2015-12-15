@@ -205,20 +205,22 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			allMarkers = append(allMarkers, scanner(g)...)
 		}
 
-		if len(allMarkers) > 0 {
-			fmt.Fprintln(out)
-		}
+		fmt.Fprintln(out)
 
 		sort.Stable(osgraph.ByKey(allMarkers))
 		sort.Stable(osgraph.ByNodeID(allMarkers))
 
 		errorMarkers := allMarkers.BySeverity(osgraph.ErrorSeverity)
+		errorSuggestions := 0
 		if len(errorMarkers) > 0 {
 			fmt.Fprintln(out, "Errors:")
 			for _, marker := range errorMarkers {
 				fmt.Fprintln(out, indent+"* "+marker.Message)
-				if len(marker.Suggestion) > 0 && d.Suggest {
-					fmt.Fprintln(out, indent+"  "+marker.Suggestion.String())
+				if len(marker.Suggestion) > 0 {
+					errorSuggestions++
+					if d.Suggest {
+						fmt.Fprintln(out, indent+"  "+marker.Suggestion.String())
+					}
 				}
 			}
 		}
@@ -260,7 +262,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		case !d.Suggest && len(errorMarkers) > 0 && len(warningMarkers) > 0:
 			fmt.Fprintf(out, "%s and %s identified, use 'oc status -v' to see details.\n", errors, warnings)
 
-		case !d.Suggest && len(errorMarkers) > 0:
+		case !d.Suggest && len(errorMarkers) > 0 && errorSuggestions > 0:
 			fmt.Fprintf(out, "%s identified, use 'oc status -v' to see details.\n", errors)
 
 		case !d.Suggest && len(warningMarkers) > 0:
@@ -271,8 +273,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			fmt.Fprintln(out, "Run 'oc new-app' to create an application.")
 
 		default:
-			fmt.Fprintln(out, "To see more, use 'oc describe <resource>/<name>'.")
-			fmt.Fprintln(out, "You can use 'oc get all' to see a list of other objects.")
+			fmt.Fprintln(out, "View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.")
 		}
 
 		return nil

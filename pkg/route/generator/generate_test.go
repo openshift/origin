@@ -23,6 +23,8 @@ func TestGenerateRoute(t *testing.T) {
 				"name":         "test",
 				"default-name": "someservice",
 				"port":         "80",
+				"ports":        "80,443",
+				"target-port":  "svcportname",
 				"hostname":     "www.example.com",
 			},
 			expected: routeapi.Route{
@@ -40,7 +42,7 @@ func TestGenerateRoute(t *testing.T) {
 					Port: &routeapi.RoutePort{
 						TargetPort: util.IntOrString{
 							Kind:   util.IntstrString,
-							StrVal: "80",
+							StrVal: "svcportname",
 						},
 					},
 				},
@@ -51,6 +53,7 @@ func TestGenerateRoute(t *testing.T) {
 				"labels":       "foo=bar",
 				"name":         "test",
 				"default-name": "someservice",
+				"port":         "80",
 				"ports":        "80,443",
 				"hostname":     "www.example.com",
 			},
@@ -65,12 +68,6 @@ func TestGenerateRoute(t *testing.T) {
 					Host: "www.example.com",
 					To: api.ObjectReference{
 						Name: "someservice",
-					},
-					Port: &routeapi.RoutePort{
-						TargetPort: util.IntOrString{
-							Kind:   util.IntstrString,
-							StrVal: "80",
-						},
 					},
 				},
 			},

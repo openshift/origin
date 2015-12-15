@@ -59,3 +59,29 @@ func getDockerNetworkMode() stiapi.DockerNetworkMode {
 	}
 	return ""
 }
+
+// MergeEnv will take an existing environment and merge it with a new set of
+// variables. For variables with the same name in both, only the one in the
+// new environment will be kept.
+func MergeEnv(oldEnv, newEnv []string) []string {
+	key := func(e string) string {
+		i := strings.Index(e, "=")
+		if i == -1 {
+			return e
+		}
+		return e[:i]
+	}
+	result := []string{}
+	newVars := map[string]struct{}{}
+	for _, e := range newEnv {
+		newVars[key(e)] = struct{}{}
+	}
+	result = append(result, newEnv...)
+	for _, e := range oldEnv {
+		if _, exists := newVars[key(e)]; exists {
+			continue
+		}
+		result = append(result, e)
+	}
+	return result
+}

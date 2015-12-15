@@ -49,3 +49,8 @@ func (c *FakeUsers) Update(inObj *userapi.User) (*userapi.User, error) {
 
 	return obj.(*userapi.User), err
 }
+
+func (c *FakeUsers) Delete(name string) error {
+	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("users", name), nil)
+	return err
+}

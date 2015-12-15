@@ -31,9 +31,9 @@ os::cmd::expect_success 'oc delete pods hello-openshift'
 echo "pods: ok"
 
 os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.json -o name' 'pod/hello-openshift'
-os::cmd::expect_success "tryuntil 'oc label pod/hello-openshift acustom=label'" # can race against scheduling and status updates
+os::cmd::try_until_success 'oc label pod/hello-openshift acustom=label' # can race against scheduling and status updates
 os::cmd::expect_success_and_text 'oc describe pod/hello-openshift' 'acustom=label'
-os::cmd::expect_success "tryuntil 'oc annotate pod/hello-openshift foo=bar'" # can race against scheduling and status updates
+os::cmd::try_until_success 'oc annotate pod/hello-openshift foo=bar' # can race against scheduling and status updates
 os::cmd::expect_success_and_text 'oc get -o yaml pod/hello-openshift' 'foo: bar'
 os::cmd::expect_success 'oc delete pods -l acustom=label'
 os::cmd::expect_failure 'oc get pod/hello-openshift'
@@ -68,7 +68,8 @@ os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.jso
 os::cmd::expect_failure 'oc expose service frontend --create-external-load-balancer'
 os::cmd::expect_failure 'oc expose service frontend --port=40 --type=NodePort'
 os::cmd::expect_success 'oc expose service frontend'
-os::cmd::expect_success_and_text 'oc get route frontend' 'name=frontend'
+os::cmd::expect_success_and_text "oc get route frontend --output-version=v1 --template='{{.spec.to.name}}'" "frontend"           # routes to correct service
+os::cmd::expect_success_and_text "oc get route frontend --output-version=v1 --template='{{.spec.port.targetPort}}'" "<no value>" # no target port for services with unnamed ports
 os::cmd::expect_success 'oc delete svc,route -l name=frontend'
 # Test that external services are exposable
 os::cmd::expect_success 'oc create -f test/fixtures/external-service.yaml'
@@ -79,7 +80,7 @@ os::cmd::expect_success 'oc delete svc external'
 # Expose multiport service and verify we set a port in the route
 os::cmd::expect_success 'oc create -f test/fixtures/multiport-service.yaml'
 os::cmd::expect_success 'oc expose svc/frontend --name route-with-set-port'
-os::cmd::expect_success "os::util::get_object_assert 'route route-with-set-port' '{{.spec.port.targetPort}}' '8080'"
+os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{{.spec.port.targetPort}}' --output-version=v1" "web"
 echo "expose: ok"
 
 os::cmd::expect_success 'oc delete all --all'

@@ -15,6 +15,7 @@ function absolute_path() {
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${OS_ROOT}/hack/text.sh"
 origin_path="src/github.com/openshift/origin"
 
 # TODO: Remove this check and fix the docker command instead after the
@@ -22,7 +23,7 @@ origin_path="src/github.com/openshift/origin"
 #       should be done in docker 1.6.
 if [ -d /sys/fs/selinux ]; then
     if ! ls --context "$(absolute_path $OS_ROOT)" | grep --quiet svirt_sandbox_file_t; then
-        echo "$(tput setaf 1)Warning: SELinux labels are not set correctly; run chcon -Rt svirt_sandbox_file_t $(absolute_path $OS_ROOT)$(tput sgr0)"
+        os::text::print_red "Warning: SELinux labels are not set correctly; run chcon -Rt svirt_sandbox_file_t $(absolute_path $OS_ROOT)"
         exit 1
     fi
 fi

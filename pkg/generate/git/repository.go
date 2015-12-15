@@ -11,6 +11,10 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
+
+	"github.com/golang/glog"
+
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
 )
 
 // Repository represents a git source repository
@@ -19,6 +23,7 @@ type Repository interface {
 	GetOriginURL(dir string) (string, bool, error)
 	GetRef(dir string) string
 	Clone(dir string, url string) error
+	CloneWithOptions(dir string, url string, opts CloneOptions) error
 	CloneBare(dir string, url string) error
 	CloneMirror(dir string, url string) error
 	Fetch(dir string) error
@@ -28,7 +33,19 @@ type Repository interface {
 	AddRemote(dir string, name, url string) error
 	AddLocalConfig(dir, name, value string) error
 	ShowFormat(dir, commit, format string) (string, error)
-	ListRemote(url string) error
+	ListRemote(url string, args ...string) (string, string, error)
+	GetInfo(location string) (*SourceInfo, []error)
+}
+
+// SourceInfo stores information about the source code
+type SourceInfo struct {
+	s2iapi.SourceInfo
+}
+
+// CloneOptions are options used in cloning a git repository
+type CloneOptions struct {
+	Recursive bool
+	Quiet     bool
 }
 
 // execGitFunc is a function that executes a Git command
@@ -38,11 +55,16 @@ type repository struct {
 	git execGitFunc
 }
 
-// NewRepository creates a new Repository for the given directory
+// NewRepository creates a new Repository
 func NewRepository() Repository {
+	return NewRepositoryWithEnv(nil)
+}
+
+// NewRepositoryForEnv creates a new Repository using the specified environment
+func NewRepositoryWithEnv(env []string) Repository {
 	return &repository{
 		git: func(w io.Writer, dir string, args ...string) (string, string, error) {
-			return command(w, "git", dir, args...)
+			return command(w, "git", dir, env, args...)
 		},
 	}
 }
@@ -50,9 +72,15 @@ func NewRepository() Repository {
 // NewRepositoryForBinary returns a Repository using the specified
 // git executable.
 func NewRepositoryForBinary(gitBinaryPath string) Repository {
+	return NewRepositoryForBinaryWithEnvironment(gitBinaryPath, nil)
+}
+
+// NewRepositoryForBinary returns a Repository using the specified
+// git executable and environment
+func NewRepositoryForBinaryWithEnvironment(gitBinaryPath string, env []string) Repository {
 	return &repository{
 		git: func(w io.Writer, dir string, args ...string) (string, string, error) {
-			return command(w, gitBinaryPath, dir, args...)
+			return command(w, gitBinaryPath, dir, env, args...)
 		},
 	}
 }
@@ -142,16 +170,31 @@ func (r *repository) AddLocalConfig(location, name, value string) error {
 	return err
 }
 
-// Clone clones a remote git repository to a local directory
-func (r *repository) Clone(location string, url string) error {
-	_, _, err := r.git(nil, "", "clone", "--recursive", url, location)
+// CloneWithOptions clones a remote git repository to a local directory
+func (r *repository) CloneWithOptions(location string, url string, opts CloneOptions) error {
+	args := []string{"clone"}
+	if opts.Quiet {
+		args = append(args, "--quiet")
+	}
+	if opts.Recursive {
+		args = append(args, "--recursive")
+	}
+	args = append(args, url)
+	args = append(args, location)
+	_, _, err := r.git(nil, "", args...)
 	return err
 }
 
-// LsRemote lists references in a remote repository
-func (r *repository) ListRemote(url string) error {
-	_, _, err := r.git(nil, "", "ls-remote", url)
-	return err
+// Clone clones a remote git repository to a local directory
+func (r *repository) Clone(location string, url string) error {
+	return r.CloneWithOptions(location, url, CloneOptions{Recursive: true})
+}
+
+// ListRemote lists references in a remote repository
+func (r *repository) ListRemote(url string, args ...string) (string, string, error) {
+	gitArgs := []string{"ls-remote", url}
+	gitArgs = append(gitArgs, args...)
+	return r.git(nil, "", gitArgs...)
 }
 
 // CloneMirror clones a remote git repository to a local directory as a mirror
@@ -197,13 +240,39 @@ func (r *repository) Init(location string, bare bool) error {
 	return err
 }
 
+// GetInfo retrieves the informations about the source code and commit
+func (r *repository) GetInfo(location string) (*SourceInfo, []error) {
+	errors := []error{}
+	git := func(arg ...string) string {
+		stdout, stderr, err := r.git(nil, location, arg...)
+		if err != nil {
+			errors = append(errors, fmt.Errorf("error invoking '%s': %v. Out: %s, Err: %s",
+				strings.Join(arg, " "), err, stdout, stderr))
+		}
+		return strings.TrimSpace(stdout)
+	}
+	info := &SourceInfo{}
+	info.Location = git("config", "--get", "remote.origin.url")
+	info.Ref = git("rev-parse", "--abbrev-ref", "HEAD")
+	info.CommitID = git("rev-parse", "--verify", "HEAD")
+	info.AuthorName = git("--no-pager", "show", "-s", "--format=%an", "HEAD")
+	info.AuthorEmail = git("--no-pager", "show", "-s", "--format=%ae", "HEAD")
+	info.CommitterName = git("--no-pager", "show", "-s", "--format=%cn", "HEAD")
+	info.CommitterEmail = git("--no-pager", "show", "-s", "--format=%ce", "HEAD")
+	info.Date = git("--no-pager", "show", "-s", "--format=%ad", "HEAD")
+	info.Message = git("--no-pager", "show", "-s", "--format=%<(80,trunc)%s", "HEAD")
+
+	return info, errors
+}
+
 // command executes an external command in the given directory.
 // The command's standard out and error are trimmed and returned as strings
 // It may return the type *GitError if the command itself fails.
-func command(w io.Writer, name, dir string, args ...string) (stdout, stderr string, err error) {
+func command(w io.Writer, name, dir string, env []string, args ...string) (stdout, stderr string, err error) {
 	cmdOut := &bytes.Buffer{}
 	cmdErr := &bytes.Buffer{}
 
+	glog.V(4).Infof("Executing %s %s", name, strings.Join(args, " "))
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
 	if w != nil {
@@ -212,12 +281,29 @@ func command(w io.Writer, name, dir string, args ...string) (stdout, stderr stri
 		cmd.Stdout = cmdOut
 	}
 	cmd.Stderr = cmdErr
+	cmd.Env = env
+
+	if glog.V(8) && env != nil {
+		glog.Infof("Environment:\n")
+		for _, e := range env {
+			glog.Infof("- %s", e)
+		}
+	}
 
 	err = cmd.Run()
+	if err != nil {
+		glog.V(4).Infof("Exec error: %v", err)
+	}
 	if w == nil {
 		stdout = strings.TrimFunc(cmdOut.String(), unicode.IsSpace)
+		if len(stdout) > 0 {
+			glog.V(4).Infof("Out: %s", stdout)
+		}
 	}
 	stderr = strings.TrimFunc(cmdErr.String(), unicode.IsSpace)
+	if len(stderr) > 0 {
+		glog.V(4).Infof("Err: %s", cmdErr.String())
+	}
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		err = &GitError{
 			Err:    exitErr,

@@ -2,11 +2,12 @@ package git
 
 import (
 	"bufio"
-	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 	"io"
 	"net/url"
 	"path"
 	"strings"
+
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 // ParseRepository parses a string that may be in the Git format (git@) or URL format

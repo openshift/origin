@@ -22,6 +22,8 @@ type NewProjectOptions struct {
 	DisplayName string
 	Description string
 
+	Name string
+
 	Client client.Interface
 
 	ProjectOptions *ProjectOptions
@@ -32,11 +34,10 @@ const (
 	requestProjectLong = `
 Create a new project for yourself
 
-Assuming your cluster admin has granted you permission, this command will create a new project
-for you and assign you as the project admin. If your administrator has not given you permission to
-create your own projects, contact your system administrator.
+If your administrator allows self-service, this command will create a new project for you and assign you
+as the project admin.
 
-After your project is created it will be made your default project in your config.`
+After your project is created it will become the default project in your config.`
 
 	requestProjectExample = `  # Create a new project with minimal information
   $ %[1]s web-team-dev
@@ -45,9 +46,11 @@ After your project is created it will be made your default project in your confi
   $ %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`
 )
 
-func NewCmdRequestProject(name, fullName, ocLoginName, ocProjectName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRequestProject(baseName, name, ocLoginName, ocProjectName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &NewProjectOptions{}
 	options.Out = out
+	options.Name = baseName
+	fullName := fmt.Sprintf("%s %s", baseName, name)
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]", name),
@@ -120,6 +123,14 @@ func (o *NewProjectOptions) Run() error {
 			return err
 		}
 	}
+
+	fmt.Fprintf(o.Out, `
+You can add applications to this project with the 'new-app' command. For example, try:
+
+    $ %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-hello-world.git
+
+to build a new hello-world application in Ruby.
+`, o.Name)
 
 	return nil
 }

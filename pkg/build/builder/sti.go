@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/source-to-image/pkg/api/validation"
 	s2ibuild "github.com/openshift/source-to-image/pkg/build"
 	s2i "github.com/openshift/source-to-image/pkg/build/strategies"
-	"github.com/openshift/source-to-image/pkg/scm/git"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
@@ -57,7 +56,7 @@ func (_ runtimeConfigValidator) ValidateConfig(config *s2iapi.Config) []validati
 type S2IBuilder struct {
 	builder   builderFactory
 	validator validator
-	git       git.Git
+	gitClient GitClient
 
 	dockerClient DockerClient
 	dockerSocket string
@@ -66,21 +65,20 @@ type S2IBuilder struct {
 }
 
 // NewS2IBuilder creates a new STIBuilder instance
-func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *api.Build) *S2IBuilder {
+func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *api.Build, gitClient GitClient) *S2IBuilder {
 	// delegate to internal implementation passing default implementation of builderFactory and validator
-	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, runtimeBuilderFactory{}, runtimeConfigValidator{})
+	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, gitClient, runtimeBuilderFactory{}, runtimeConfigValidator{})
 
 }
 
 // newS2IBuilder is the internal factory function to create STIBuilder based on parameters. Used for testing.
 func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *api.Build,
-	builder builderFactory, validator validator) *S2IBuilder {
+	gitClient GitClient, builder builderFactory, validator validator) *S2IBuilder {
 	// just create instance
 	return &S2IBuilder{
-		builder:   builder,
-		validator: validator,
-		git:       git.New(),
-
+		builder:      builder,
+		validator:    validator,
+		gitClient:    gitClient,
 		dockerClient: dockerClient,
 		dockerSocket: dockerSocket,
 		build:        build,
@@ -202,18 +200,9 @@ func (s *S2IBuilder) Build() error {
 
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
 
-	// Set the HTTP and HTTPS proxies to be used by the S2I build.
-	var originalProxies map[string]string
-	if git != nil {
-		originalProxies = setHTTPProxy(git.HTTPProxy, git.HTTPSProxy)
-	}
-
 	if _, err = builder.Build(config); err != nil {
 		return err
 	}
-
-	// Reset proxies back to their original value.
-	resetHTTPProxy(originalProxies)
 
 	if push {
 		// Get the Docker push authentication
@@ -267,13 +256,15 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 	}
 
 	// fetch source
-	sourceInfo, err := fetchSource(targetDir, d.s.build, d.timeout, d.in, d.s.git)
+	sourceInfo, err := fetchSource(targetDir, d.s.build, d.timeout, d.in, d.s.gitClient)
 	if err != nil {
 		return nil, err
 	}
 	if sourceInfo != nil {
-		sourceInfo.ContextDir = config.ContextDir
 		updateBuildRevision(d.s.client, d.s.build, sourceInfo)
+	}
+	if sourceInfo != nil {
+		sourceInfo.ContextDir = config.ContextDir
 	}
 
 	// if a context dir is provided, move the context dir contents into the src location
@@ -286,8 +277,10 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 			return nil, err
 		}
 	}
-
-	return sourceInfo, nil
+	if sourceInfo != nil {
+		return &sourceInfo.SourceInfo, nil
+	}
+	return nil, nil
 }
 
 // buildEnvVars returns a map with build metadata to be inserted into Docker

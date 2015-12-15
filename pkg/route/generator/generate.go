@@ -2,7 +2,6 @@ package generator
 
 import (
 	"fmt"
-	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -23,8 +22,7 @@ func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
 	return []kubectl.GeneratorParam{
 		{"labels", false},
 		{"default-name", true},
-		{"port", false},
-		{"ports", false},
+		{"target-port", false},
 		{"name", false},
 		{"hostname", false},
 	}
@@ -62,16 +60,7 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 		}
 	}
 
-	var portString string
-	portString, found = params["port"]
-	if !found || len(portString) == 0 {
-		portString = strings.Split(params["ports"], ",")[0]
-	}
-	if len(portString) == 0 {
-		return nil, fmt.Errorf("exposed service does not have any target ports specified")
-	}
-
-	return &api.Route{
+	route := &api.Route{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:   name,
 			Labels: labels,
@@ -81,9 +70,15 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 			To: kapi.ObjectReference{
 				Name: params["default-name"],
 			},
-			Port: &api.RoutePort{
-				TargetPort: util.NewIntOrStringFromString(portString),
-			},
 		},
-	}, nil
+	}
+
+	portString := params["target-port"]
+	if len(portString) > 0 {
+		route.Spec.Port = &api.RoutePort{
+			TargetPort: util.NewIntOrStringFromString(portString),
+		}
+	}
+
+	return route, nil
 }

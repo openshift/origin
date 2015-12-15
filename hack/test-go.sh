@@ -21,7 +21,7 @@ os::build::setup_env
 
 find_test_dirs() {
   cd "${OS_ROOT}"
-  find . -not \( \
+  find $1 -not \( \
       \( \
         -wholename './Godeps' \
         -o -wholename './_output' \
@@ -78,11 +78,16 @@ fi
 KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 60s}
 
 if [ "${1-}" != "" ]; then
-  test_packages="$OS_GO_PACKAGE/$1"
+  if [[ "${1}" == *"/..." ]]; then
+    # if the package name ends with /... they are intending a recursive test
+    test_packages=$(find_test_dirs "${1:0:(-4)}")
+  else
+    test_packages="$OS_GO_PACKAGE/$1"
+  fi
 elif [ -n "$TEST_KUBE" ]; then
-  test_packages=`find_test_dirs; special_upstream_test_dirs; find_upstream_test_dirs`
+  test_packages=`find_test_dirs "."; special_upstream_test_dirs; find_upstream_test_dirs`
 else
-  test_packages=`find_test_dirs; special_upstream_test_dirs`
+  test_packages=`find_test_dirs "."; special_upstream_test_dirs`
 fi
 
 if [ -n "$PRINT_PACKAGES" ]; then

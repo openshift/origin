@@ -37,7 +37,7 @@
 		},
 		"strategy": {
 		    "type": "Docker",
-		    "sourceStrategy": {
+		    "dockerStrategy": {
 			"nocache": true
 		    }
 		},

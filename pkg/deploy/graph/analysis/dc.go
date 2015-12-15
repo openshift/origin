@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	TagNotAvailableWarning   = "ImageStreamTagNotAvailable"
-	MissingImageStreamErr    = "MissingImageStream"
-	MissingImageStreamTagErr = "MissingImageStreamTag"
+	TagNotAvailableWarning       = "ImageStreamTagNotAvailable"
+	MissingImageStreamErr        = "MissingImageStream"
+	MissingImageStreamTagWarning = "MissingImageStreamTag"
 )
 
 // FindDeploymentConfigTriggerErrors checks for possible failures in deployment config
@@ -69,9 +69,9 @@ dc:
 					Node:         uncastDcNode,
 					RelatedNodes: []graph.Node{uncastIstNode},
 
-					Severity: osgraph.ErrorSeverity,
-					Key:      MissingImageStreamTagErr,
-					Message: fmt.Sprintf("The image trigger for %s will have no effect because %s does not exist.",
+					Severity: osgraph.WarningSeverity,
+					Key:      MissingImageStreamTagWarning,
+					Message: fmt.Sprintf("The image trigger for %s will have no effect until %s is imported or created.",
 						dcNode.ResourceString(), istNode.ResourceString()),
 				})
 				continue dc
