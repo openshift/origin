@@ -216,11 +216,10 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	openshift ex sync-groups --type=openshift --sync-config=sync-config.yaml --confirm
 	compare_and_cleanup valid_all_ldap_sync_user_defined.txt
 
-
-
 	echo -e "\tTEST: Sync all LDAP groups from LDAP server using DN as attribute whenever possible"
     openshift ex sync-groups --sync-config=sync-config-dn-everywhere.yaml --confirm
 	compare_and_cleanup valid_all_ldap_sync_dn_everywhere.txt
+
 
 	# PRUNING
 	echo -e "\tTEST: Sync all LDAP groups from LDAP server, change LDAP UID, then prune OpenShift groups"
@@ -231,3 +230,12 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 
     popd > /dev/null
 done
+
+# special test for ad-extended
+pushd ${BASETMPDIR}/augmented-ad > /dev/null
+echo -e "\tTEST: Sync all LDAP groups from LDAP server, remove LDAP group metadata entry, then prune OpenShift groups"
+openshift ex sync-groups --sync-config=sync-config.yaml --confirm
+ldapdelete -x -h $LDAP_SERVICE_IP -p 389 -D cn=Manager,dc=example,dc=com -w admin "${group1_ldapuid}"
+openshift ex prune-groups --sync-config=sync-config.yaml --confirm
+compare_and_cleanup valid_all_ldap_sync_delete_prune.txt		
+popd > /dev/null
