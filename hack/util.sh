@@ -141,6 +141,11 @@ function start_os_server {
 	echo "[INFO] Using images:              ${USE_IMAGES}"
 	echo "[INFO] MasterIP is:               ${MASTER_ADDR}"
 
+	SERVER_ARGS=${SERVER_ARGS:-""}
+	if [ ! -z "${SERVER_ARGS}" ]; then
+		echo "[INFO] Server arguments:          ${SERVER_ARGS}"
+	fi
+
 	mkdir -p ${LOG_DIR}
 
 	echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
@@ -149,7 +154,7 @@ function start_os_server {
 	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
 	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
-	 --loglevel=4 \
+	 --loglevel=4 "${SERVER_ARGS}" \
 	&>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
 
