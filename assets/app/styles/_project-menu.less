@@ -13,7 +13,6 @@
   .form-group {
     margin-bottom: 0;
     .form-control {
-      // height: @navbar-project-input-height;  CLEANUP
       margin-bottom: 0;
       height: auto;
     }
@@ -44,13 +43,49 @@
           outline: none !important;
         }
       }
+      .filter-option {
+        .truncate();
+      }
     }
     .dropdown-toggle .caret {
-     right: 30px;
+      font-size: 16px;
+      right: 30px;
     }
     .dropdown-menu {
-      li a {
-        padding: 10px;
+      background-color: @navbar-os-project-menu-bg;
+      border-color: @navbar-os-project-border-color;
+      color: @navbar-os-project-menu-color;
+      margin-top: 0;
+      padding: 0;
+      li {
+        &.selected a {
+          background-color: @navbar-os-project-menu-active-bg !important;
+          border-color: transparent !important;
+          color: @navbar-os-project-menu-active-color;
+          &:after {
+            content: '';
+            width: 2px;
+            height: 100%;
+            left:0;
+            top:0;
+            display: block;
+            position: absolute;
+            background-color: @sidebar-os-active;
+          }
+        }
+        a {
+          color: @sidebar-os-color;
+          padding: 10px 15px;
+          &:hover, &:focus {
+            background-color: @sidebar-os-hover-bg;
+            border-color: transparent;
+            color: @sidebar-os-active-color;
+          }
+        }
+        &.divider {
+          background-color: @navbar-os-sidebar-border-color !important;
+          margin: 0 !important;
+        }
       }
     }
   }
@@ -101,12 +136,11 @@
     float: left;
     margin: 0;
     padding-top: 0;
+    max-width: 380px;
     .bootstrap-select.btn-group .btn {
-      border-left:1px solid #4d5258;
-      border-right:1px solid #4d5258;
-      // border-left:1px solid @navbar-os-sidebar-border-color; dark borders
-      // border-right:1px solid @navbar-os-sidebar-border-color;
-      padding: 9px 30px 7px 30px;
+      border-left:1px solid @navbar-os-sidebar-border-color;
+      border-right:1px solid @navbar-os-sidebar-border-color;
+      padding: 9px 40px 7px 30px;
       &:before {
         color: @gray-light;
         content: 'Projects';

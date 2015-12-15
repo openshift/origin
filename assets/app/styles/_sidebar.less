@@ -51,6 +51,7 @@
       .box-shadow(none);
     }
     ul.nav-sidenav-primary> li {
+      // outline: 1px solid @navbar-os-sidebar-border-color;
       outline: 1px solid @navbar-os-sidebar-border-color;
       margin-bottom: 1px;
       &.active {
@@ -102,12 +103,22 @@
             color: @sidebar-os-color;
             &:hover {
               background:@sidebar-os-hover-bg;
-              color: @sidebar-os-active;
+              color: @sidebar-os-active-color;
             }
           }
           &.active a {
             background-color: @sidebar-os-active-bg;
             color: @sidebar-os-active-color !important;
+            &:after {
+              content: '';
+              width: 2px;
+              height: 100%;
+              left:0;
+              top:0;
+              display: block;
+              position: absolute;
+              background-color: @sidebar-os-active;
+            }
           }
         }
       }
