@@ -40,16 +40,6 @@ EOF
 		ip addr add ${local_subnet_gateway}/${local_subnet_mask_len} dev lbr0
 		ip link set lbr0 up
 
-	    if [ ! -f /.dockerinit ]; then
-		# disable iptables for lbr0
-		# for kernel version 3.18+, module br_netfilter needs to be loaded upfront
-		# for older ones, br_netfilter may not exist, but is covered by bridge (bridge-utils)
-		#
-		# This operation is assumed to have been performed in advance
-		# for docker-in-docker deployments.
-		modprobe br_netfilter || true
-		sysctl -w net.bridge.bridge-nf-call-iptables=0
-	    fi
 		# when using --pid=host to run docker container, systemctl inside it refuses
 		# to work because it detects that it's running in chroot. using dbus instead
 		# of systemctl is just a workaround
@@ -186,10 +176,6 @@ function setup() {
     # Cleanup docker0 since docker won't do it
     ip link set docker0 down || true
     brctl delbr docker0 || true
-
-    # enable IP forwarding for ipv4 packets
-    sysctl -w net.ipv4.ip_forward=1
-    sysctl -w net.ipv4.conf.${TUN}.forwarding=1
 
     mkdir -p /etc/openshift-sdn
     echo "export OPENSHIFT_CLUSTER_SUBNET=${cluster_network_cidr}" >> "/etc/openshift-sdn/config.env"

@@ -11,6 +11,12 @@ import (
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
+
+	"k8s.io/kubernetes/pkg/util/sysctl"
+)
+
+const (
+	TUN = "tun0"
 )
 
 type FlowController struct {
@@ -41,6 +47,26 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	} else {
 		glog.V(5).Infof("Output of setup script:\n%s", out)
 	}
+
+	// Disable iptables for linux bridges (and in particular lbr0), ignoring errors.
+	// (This has to have been performed in advance for docker-in-docker deployments,
+	// since this will fail there).
+	_, _ = exec.Command("modprobe", "br_netfilter").CombinedOutput()
+	err = sysctl.SetSysctl("net.bridge.bridge-nf-call", 0)
+	if err != nil {
+		glog.Warningf("Could not set net.bridge.bridge-nf-call sysctl: %s", err)
+	}
+
+	// Enable IP forwarding for ipv4 packets
+	err = sysctl.SetSysctl("net.ipv4.ip_forward", 1)
+	if err != nil {
+		return fmt.Errorf("Could not enable IPv4 forwarding: %s", err)
+	}
+	err = sysctl.SetSysctl(fmt.Sprintf("net.ipv4.conf.%s.forwarding", TUN), 1)
+	if err != nil {
+		return fmt.Errorf("Could not enable IPv4 forwarding on %s: %s", TUN, err)
+	}
+
 	return nil
 }
 
