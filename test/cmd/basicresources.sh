@@ -31,9 +31,9 @@ os::cmd::expect_success 'oc delete pods hello-openshift'
 echo "pods: ok"
 
 os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.json -o name' 'pod/hello-openshift'
-os::cmd::expect_success "tryuntil 'oc label pod/hello-openshift acustom=label'" # can race against scheduling and status updates
+os::cmd::try_until_success 'oc label pod/hello-openshift acustom=label' # can race against scheduling and status updates
 os::cmd::expect_success_and_text 'oc describe pod/hello-openshift' 'acustom=label'
-os::cmd::expect_success "tryuntil 'oc annotate pod/hello-openshift foo=bar'" # can race against scheduling and status updates
+os::cmd::try_until_success 'oc annotate pod/hello-openshift foo=bar' # can race against scheduling and status updates
 os::cmd::expect_success_and_text 'oc get -o yaml pod/hello-openshift' 'foo: bar'
 os::cmd::expect_success 'oc delete pods -l acustom=label'
 os::cmd::expect_failure 'oc get pod/hello-openshift'
