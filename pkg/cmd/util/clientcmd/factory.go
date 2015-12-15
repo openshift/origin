@@ -36,6 +36,7 @@ import (
 	deployscaler "github.com/openshift/origin/pkg/deploy/scaler"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	routegen "github.com/openshift/origin/pkg/route/generator"
+	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
 )
 
 // New creates a default Factory for commands that should share identical server
@@ -210,7 +211,21 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return authorizationreaper.NewRoleReaper(oc, oc), nil
 		case "ClusterRole":
 			return authorizationreaper.NewClusterRoleReaper(oc, oc, oc), nil
-
+		case "User":
+			return authenticationreaper.NewUserReaper(
+				client.UsersInterface(oc),
+				client.GroupsInterface(oc),
+				client.ClusterRoleBindingsInterface(oc),
+				client.RoleBindingsNamespacer(oc),
+				kclient.SecurityContextConstraintsInterface(kc),
+			), nil
+		case "Group":
+			return authenticationreaper.NewGroupReaper(
+				client.GroupsInterface(oc),
+				client.ClusterRoleBindingsInterface(oc),
+				client.RoleBindingsNamespacer(oc),
+				kclient.SecurityContextConstraintsInterface(kc),
+			), nil
 		}
 		return kReaperFunc(mapping)
 	}
