@@ -384,7 +384,8 @@ func (m *Master) Start() error {
 		return err
 	}
 
-	if m.api {
+	switch {
+	case m.api:
 		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
 		glog.Infof("Public master address is %s", m.config.AssetConfig.MasterPublicURL)
 		if len(m.config.DisabledFeatures) > 0 {
@@ -395,18 +396,8 @@ func (m *Master) Start() error {
 		if err := startAPI(openshiftConfig, kubeMasterConfig); err != nil {
 			return err
 		}
-		if m.controllers {
-			// run controllers asynchronously (not required to be "ready")
-			go func() {
-				if err := startControllers(openshiftConfig, kubeMasterConfig); err != nil {
-					glog.Fatal(err)
-				}
-			}()
-		}
-		return nil
-	}
 
-	if m.controllers {
+	case m.controllers:
 		glog.Infof("Starting controllers on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
 		if len(m.config.DisabledFeatures) > 0 {
 			glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
@@ -416,9 +407,15 @@ func (m *Master) Start() error {
 		if err := startHealth(openshiftConfig); err != nil {
 			return err
 		}
-		if err := startControllers(openshiftConfig, kubeMasterConfig); err != nil {
-			return err
-		}
+	}
+
+	if m.controllers {
+		// run controllers asynchronously (not required to be "ready")
+		go func() {
+			if err := startControllers(openshiftConfig, kubeMasterConfig); err != nil {
+				glog.Fatal(err)
+			}
+		}()
 	}
 
 	return nil

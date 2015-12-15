@@ -14,14 +14,13 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	s2iapi "github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
@@ -29,7 +28,7 @@ import (
 // DockerBuilder builds Docker images given a git repository URL
 type DockerBuilder struct {
 	dockerClient DockerClient
-	git          git.Git
+	gitClient    GitClient
 	tar          tar.Tar
 	build        *api.Build
 	urlTimeout   time.Duration
@@ -37,11 +36,11 @@ type DockerBuilder struct {
 }
 
 // NewDockerBuilder creates a new instance of DockerBuilder
-func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterface, build *api.Build) *DockerBuilder {
+func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterface, build *api.Build, gitClient GitClient) *DockerBuilder {
 	return &DockerBuilder{
 		dockerClient: dockerClient,
 		build:        build,
-		git:          git.New(),
+		gitClient:    gitClient,
 		tar:          tar.New(),
 		urlTimeout:   urlCheckTimeout,
 		client:       buildsClient,
@@ -56,7 +55,7 @@ func (d *DockerBuilder) Build() error {
 	if err != nil {
 		return err
 	}
-	sourceInfo, err := fetchSource(buildDir, d.build, d.urlTimeout, os.Stdin, d.git)
+	sourceInfo, err := fetchSource(buildDir, d.build, d.urlTimeout, os.Stdin, d.gitClient)
 	if err != nil {
 		return err
 	}
@@ -176,14 +175,20 @@ func (d *DockerBuilder) buildInfo() []dockerfile.KeyValue {
 func (d *DockerBuilder) buildLabels(dir string) []dockerfile.KeyValue {
 	labels := map[string]string{}
 	// TODO: allow source info to be overriden by build
-	sourceInfo := &s2iapi.SourceInfo{}
+	sourceInfo := &git.SourceInfo{}
 	if d.build.Spec.Source.Git != nil {
-		sourceInfo = d.git.GetInfo(dir)
+		var errors []error
+		sourceInfo, errors = d.gitClient.GetInfo(dir)
+		if len(errors) > 0 {
+			for _, e := range errors {
+				glog.Warningf("Error getting git info: %v", e.Error())
+			}
+		}
 	}
 	if len(d.build.Spec.Source.ContextDir) > 0 {
 		sourceInfo.ContextDir = d.build.Spec.Source.ContextDir
 	}
-	labels = util.GenerateLabelsFromSourceInfo(labels, sourceInfo, api.DefaultDockerLabelNamespace)
+	labels = util.GenerateLabelsFromSourceInfo(labels, &sourceInfo.SourceInfo, api.DefaultDockerLabelNamespace)
 	kv := make([]dockerfile.KeyValue, 0, len(labels))
 	for k, v := range labels {
 		kv = append(kv, dockerfile.KeyValue{Key: k, Value: v})

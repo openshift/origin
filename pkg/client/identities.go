@@ -17,6 +17,7 @@ type IdentityInterface interface {
 	Get(name string) (*userapi.Identity, error)
 	Create(identity *userapi.Identity) (*userapi.Identity, error)
 	Update(identity *userapi.Identity) (*userapi.Identity, error)
+	Delete(name string) error
 }
 
 // identities implements IdentityInterface interface
@@ -62,4 +63,9 @@ func (c *identities) Update(identity *userapi.Identity) (result *userapi.Identit
 	result = &userapi.Identity{}
 	err = c.r.Put().Resource("identities").Name(identity.Name).Body(identity).Do().Into(result)
 	return
+}
+
+// Delete deletes the identity on server. Returns an error if one occurs.
+func (c *identities) Delete(name string) (err error) {
+	return c.r.Delete().Resource("identities").Name(name).Do().Error()
 }

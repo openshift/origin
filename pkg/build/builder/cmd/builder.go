@@ -3,11 +3,11 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
@@ -21,162 +21,177 @@ import (
 )
 
 type builder interface {
-	Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build) error
+	Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient) error
 }
 
-// run is responsible for preparing environment for actual build.
-// It accepts factoryFunc and an ordered array of SCMAuths.
-func run(b builder) {
-	dockerClient, endpoint, err := dockerutil.NewHelper().GetClient()
-	if err != nil {
-		glog.Fatalf("Error obtaining docker client: %v", err)
-	}
+type builderConfig struct {
+	build           *api.Build
+	sourceSecretDir string
+	dockerClient    *docker.Client
+	dockerEndpoint  string
+	buildsClient    client.BuildInterface
+}
+
+func newBuilderConfigFromEnvironment() (*builderConfig, error) {
+	cfg := &builderConfig{}
+	var err error
+
+	// build (BUILD)
 	buildStr := os.Getenv("BUILD")
 	glog.V(4).Infof("$BUILD env var is %s \n", buildStr)
-	build := api.Build{}
-	if err := latest.Codec.DecodeInto([]byte(buildStr), &build); err != nil {
-		glog.Fatalf("Unable to parse build: %v", err)
+	cfg.build = &api.Build{}
+	if err = latest.Codec.DecodeInto([]byte(buildStr), cfg.build); err != nil {
+		return nil, fmt.Errorf("unable to parse build: %v", err)
 	}
-	if build.Spec.Source.SourceSecret != nil {
-		if build.Spec.Source.Git != nil {
-			// TODO: this should be refactored to let each source type manage which secrets
-			//   it accepts
-			sourceURL, err := git.ParseRepository(build.Spec.Source.Git.URI)
-			if err != nil {
-				glog.Fatalf("Cannot parse build URL: %s", build.Spec.Source.Git.URI)
-			}
-			scmAuths := auths(sourceURL)
-			sourceURL, err = setupSourceSecret(build.Spec.Source.SourceSecret.Name, scmAuths)
-			if err != nil {
-				glog.Fatalf("Cannot setup secret file for accessing private repository: %v", err)
-			}
-			if sourceURL != nil {
-				build.Annotations[bld.OriginalSourceURLAnnotationKey] = build.Spec.Source.Git.URI
-				build.Spec.Source.Git.URI = sourceURL.String()
-			}
+
+	// sourceSecretsDir (SOURCE_SECRET_PATH)
+	cfg.sourceSecretDir = os.Getenv("SOURCE_SECRET_PATH")
+
+	// dockerClient and dockerEndpoint (DOCKER_HOST)
+	// usually not set, defaults to docker socket
+	cfg.dockerClient, cfg.dockerEndpoint, err = dockerutil.NewHelper().GetClient()
+	if err != nil {
+		return nil, fmt.Errorf("error obtaining docker client: %v", err)
+	}
+
+	// buildsClient (KUBERNETES_SERVICE_HOST, KUBERNETES_SERVICE_PORT)
+	clientConfig, err := kclient.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client config: %v", err)
+	}
+	osClient, err := client.New(clientConfig)
+	if err != nil {
+		return nil, fmt.Errorf("error obtaining OpenShift client: %v", err)
+	}
+	cfg.buildsClient = osClient.Builds(cfg.build.Namespace)
+
+	return cfg, nil
+}
+
+func (c *builderConfig) setupGitEnvironment() ([]string, error) {
+
+	gitSource := c.build.Spec.Source.Git
+
+	// For now, we only handle git. If not specified, we're done
+	if gitSource == nil {
+		return []string{}, nil
+	}
+
+	sourceSecret := c.build.Spec.Source.SourceSecret
+	gitEnv := []string{"GIT_ASKPASS=true"}
+	// If a source secret is present, set it up and add its environment variables
+	if sourceSecret != nil {
+		// TODO: this should be refactored to let each source type manage which secrets
+		//   it accepts
+		sourceURL, err := git.ParseRepository(gitSource.URI)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse build URL: %s", gitSource.URI)
 		}
-	}
-	config, err := kclient.InClusterConfig()
-	if err != nil {
-		glog.Fatalf("Failed to get client config: %v", err)
-	}
-	osClient, err := client.New(config)
-	if err != nil {
-		glog.Fatalf("Error obtaining OpenShift client: %v", err)
-	}
-	buildsClient := osClient.Builds(build.Namespace)
+		scmAuths := scmauth.GitAuths(sourceURL)
 
-	if err = b.Build(dockerClient, endpoint, buildsClient, &build); err != nil {
-		glog.Fatalf("Build error: %v", err)
+		// TODO: remove when not necessary to fix up the secret dir permission
+		sourceSecretDir, err := fixSecretPermissions(c.sourceSecretDir)
+		if err != nil {
+			return nil, fmt.Errorf("cannot fix source secret permissions: %v", err)
+		}
+
+		secretsEnv, overrideURL, err := scmAuths.Setup(sourceSecretDir)
+		if err != nil {
+			return nil, fmt.Errorf("cannot setup source secret: %v", err)
+		}
+		if overrideURL != nil {
+			c.build.Annotations[bld.OriginalSourceURLAnnotationKey] = gitSource.URI
+			gitSource.URI = overrideURL.String()
+		}
+		gitEnv = append(gitEnv, secretsEnv...)
+	}
+	if len(gitSource.HTTPProxy) > 0 {
+		gitEnv = append(gitEnv, fmt.Sprintf("HTTP_PROXY=%s", gitSource.HTTPProxy))
+		gitEnv = append(gitEnv, fmt.Sprintf("http_proxy=%s", gitSource.HTTPProxy))
+	}
+	if len(gitSource.HTTPSProxy) > 0 {
+		gitEnv = append(gitEnv, fmt.Sprintf("HTTPS_PROXY=%s", gitSource.HTTPSProxy))
+		gitEnv = append(gitEnv, fmt.Sprintf("https_proxy=%s", gitSource.HTTPSProxy))
+	}
+	return bld.MergeEnv(os.Environ(), gitEnv), nil
+}
+
+// execute is responsible for running a build
+func (c *builderConfig) execute(b builder) error {
+
+	gitEnv, err := c.setupGitEnvironment()
+	if err != nil {
+		return err
+	}
+	gitClient := git.NewRepositoryWithEnv(gitEnv)
+
+	if err := b.Build(c.dockerClient, c.dockerEndpoint, c.buildsClient, c.build, gitClient); err != nil {
+		return fmt.Errorf("build error: %v", err)
 	}
 
-	if build.Spec.Output.To == nil || len(build.Spec.Output.To.Name) == 0 {
+	if c.build.Spec.Output.To == nil || len(c.build.Spec.Output.To.Name) == 0 {
 		glog.Warning("Build does not have an Output defined, no output image was pushed to a registry.")
 	}
 
+	return nil
 }
 
 // fixSecretPermissions loweres access permissions to very low acceptable level
 // TODO: this method should be removed as soon as secrets permissions are fixed upstream
-func fixSecretPermissions() error {
+// Kubernetes issue: https://github.com/kubernetes/kubernetes/issues/4789
+func fixSecretPermissions(secretsDir string) (string, error) {
 	secretTmpDir, err := ioutil.TempDir("", "tmpsecret")
 	if err != nil {
-		return err
+		return "", err
 	}
 	cmd := exec.Command("cp", "-R", ".", secretTmpDir)
-	cmd.Dir = os.Getenv("SOURCE_SECRET_PATH")
+	cmd.Dir = secretsDir
 	if err := cmd.Run(); err != nil {
-		return err
+		return "", err
 	}
 	secretFiles, err := ioutil.ReadDir(secretTmpDir)
 	if err != nil {
-		return err
+		return "", err
 	}
 	for _, file := range secretFiles {
 		if err := os.Chmod(filepath.Join(secretTmpDir, file.Name()), 0600); err != nil {
-			return err
+			return "", err
 		}
 	}
-	os.Setenv("SOURCE_SECRET_PATH", secretTmpDir)
-	return nil
-}
-
-func setupSourceSecret(sourceSecretName string, scmAuths []scmauth.SCMAuth) (*url.URL, error) {
-	fixSecretPermissions()
-	sourceSecretDir := os.Getenv("SOURCE_SECRET_PATH")
-	files, err := ioutil.ReadDir(sourceSecretDir)
-	if err != nil {
-		return nil, err
-	}
-
-	// Filter the list of SCMAuths based on the secret files that are present
-	scmAuthsPresent := map[string]scmauth.SCMAuth{}
-	for _, file := range files {
-		glog.V(3).Infof("Finding auth for %q in secret %q", file.Name(), sourceSecretName)
-		for _, scmAuth := range scmAuths {
-			if scmAuth.Handles(file.Name()) {
-				glog.V(3).Infof("Found SCMAuth %q to handle %q", scmAuth.Name(), file.Name())
-				scmAuthsPresent[scmAuth.Name()] = scmAuth
-			}
-		}
-	}
-
-	if len(scmAuthsPresent) == 0 {
-		return nil, fmt.Errorf("no auth handler was found for the provided secret %q",
-			sourceSecretName)
-	}
-
-	var urlOverride *url.URL = nil
-	for name, auth := range scmAuthsPresent {
-		glog.V(3).Infof("Setting up SCMAuth %q", name)
-		u, err := auth.Setup(sourceSecretDir)
-		if err != nil {
-			// If an error occurs during setup, fail the build
-			return nil, fmt.Errorf("cannot set up source authentication method %q: %v", name, err)
-		}
-
-		if u != nil {
-			if urlOverride == nil {
-				urlOverride = u
-			} else if urlOverride.String() != u.String() {
-				return nil, fmt.Errorf("secret handler %s set a conflicting override URL %q (conflicts with earlier override URL %q)", auth.Name(), u.String(), urlOverride.String())
-			}
-		}
-	}
-
-	return urlOverride, nil
-}
-
-func auths(sourceURL *url.URL) []scmauth.SCMAuth {
-	auths := []scmauth.SCMAuth{
-		&scmauth.SSHPrivateKey{},
-		&scmauth.UsernamePassword{SourceURL: *sourceURL},
-		&scmauth.CACert{SourceURL: *sourceURL},
-		&scmauth.GitConfig{},
-	}
-	return auths
+	return secretTmpDir, nil
 }
 
 type dockerBuilder struct{}
 
 // Build starts a Docker build.
-func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build) error {
-	return bld.NewDockerBuilder(dockerClient, buildsClient, build).Build()
+func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient) error {
+	return bld.NewDockerBuilder(dockerClient, buildsClient, build, gitClient).Build()
 }
 
 type s2iBuilder struct{}
 
 // Build starts an S2I build.
-func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build) error {
-	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build).Build()
+func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient) error {
+	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build, gitClient).Build()
+}
+
+func runBuild(builder builder) {
+	cfg, err := newBuilderConfigFromEnvironment()
+	if err != nil {
+		glog.Fatalf("Cannot setup builder configuration: %v", err)
+	}
+	err = cfg.execute(builder)
+	if err != nil {
+		glog.Fatalf("Error: %v", err)
+	}
 }
 
 // RunDockerBuild creates a docker builder and runs its build
 func RunDockerBuild() {
-	run(dockerBuilder{})
+	runBuild(dockerBuilder{})
 }
 
 // RunSTIBuild creates a STI builder and runs its build
 func RunSTIBuild() {
-	run(s2iBuilder{})
+	runBuild(s2iBuilder{})
 }

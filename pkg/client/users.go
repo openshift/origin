@@ -17,6 +17,7 @@ type UserInterface interface {
 	Get(name string) (*userapi.User, error)
 	Create(user *userapi.User) (*userapi.User, error)
 	Update(user *userapi.User) (*userapi.User, error)
+	Delete(name string) error
 }
 
 // users implements UserInterface interface
@@ -62,4 +63,9 @@ func (c *users) Update(user *userapi.User) (result *userapi.User, err error) {
 	result = &userapi.User{}
 	err = c.r.Put().Resource("users").Name(user.Name).Body(user).Do().Into(result)
 	return
+}
+
+// Delete deletes the user on server. Returns an error if one occurs.
+func (c *users) Delete(name string) (err error) {
+	return c.r.Delete().Resource("users").Name(name).Do().Error()
 }

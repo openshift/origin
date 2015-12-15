@@ -108,7 +108,7 @@ func (m MySQL) IsReady(oc *CLI) (bool, error) {
 			return false, err
 		}
 	}
-	return out == "mysqld is alive", nil
+	return strings.Contains(out, "mysqld is alive"), nil
 }
 
 // Query executes an SQL query as an ordinary user and returns the result.
@@ -175,7 +175,7 @@ func (m PostgreSQL) IsReady(oc *CLI) (bool, error) {
 			return false, err
 		}
 	}
-	return out == "-[ RECORD 1 ]\n?column? | 1", nil
+	return strings.Contains(out, "-[ RECORD 1 ]\n?column? | 1"), nil
 }
 
 // Query executes an SQL query as an ordinary user and returns the result.

@@ -92,11 +92,11 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 		opts := buildapi.BuildLogOptions{
 			NoWait: true,
 		}
-		response, err := client.BuildLogs(namespace).Get(buildName, opts).Do().Raw()
+		response, err := client.BuildLogs(namespace).Get(build.Name, opts).Do().Raw()
 		if err != nil {
-			glog.Errorf("Could not fetch build logs for %s: %v", buildName, err)
+			glog.Errorf("Could not fetch build logs for %s: %v", build.Name, err)
 		} else {
-			glog.Infof("Build logs for %s:\n%v", buildName, string(response))
+			glog.Infof("Build logs for %s:\n%v", build.Name, string(response))
 		}
 	}
 
@@ -104,7 +104,7 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 	for {
 		build.Status.Cancelled = true
 		if _, err = buildClient.Update(build); err != nil && errors.IsConflict(err) {
-			build, err = buildClient.Get(buildName)
+			build, err = buildClient.Get(build.Name)
 			if err != nil {
 				return err
 			}
@@ -115,7 +115,7 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 		}
 		break
 	}
-	fmt.Fprintf(out, "Build %s was cancelled.\n", buildName)
+	fmt.Fprintf(out, "Build %s was cancelled.\n", build.Name)
 
 	// mapper, typer := f.Object()
 	// resourceMapper := &resource.Mapper{ObjectTyper: typer, RESTMapper: mapper, ClientMapper: f.ClientMapperForCommand()}
@@ -130,7 +130,7 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "Restarted build %s.\n", buildName)
+		fmt.Fprintf(out, "Restarted build %s.\n", build.Name)
 		fmt.Fprintf(out, "%s\n", newBuild.Name)
 		// fmt.Fprintf(out, "%s\n", newBuild.Name)
 		// info, err := resourceMapper.InfoForObject(newBuild)

@@ -158,7 +158,7 @@ If you want to run the test suite, make sure you have your environment set up, a
 # run the unit tests
 $ make check
 
-# run a simple server integration test
+# run a command-line integration test suite
 $ hack/test-cmd.sh
 
 # run the integration server test suite

@@ -69,6 +69,10 @@ or an individual package unit test with:
 
     $ hack/test-go.sh pkg/build
 
+or an individual package and all packages nested under it:
+
+    $ hack/test-go.sh pkg/build/...
+
 To run only a certain regex of tests in a package, use:
 
     $ hack/test-go.sh pkg/build -test.run=SynchronizeBuildRunning
@@ -152,6 +156,11 @@ There is a CLI integration test suite which covers general non-Docker functional
 working against the API. Run it with:
 
     $ hack/test-cmd.sh
+
+This suite comprises many smaller suites, which are found under `test/cmd` and can be run individually by
+specifying them using a regex filter, passed through `grep -E` like with integration tests above:
+
+    $ hack/test-cmd.sh <regex>
 
 ### End-to-End (e2e) Tests
 
