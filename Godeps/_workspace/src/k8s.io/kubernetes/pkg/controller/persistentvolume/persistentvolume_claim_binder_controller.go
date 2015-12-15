@@ -27,8 +27,8 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -330,8 +330,8 @@ func syncClaim(volumeIndex *persistentVolumeOrderedIndex, binderClient binderCli
 		}
 
 	case api.ClaimBound:
-		// no-op.  Claim is bound, values from PV are set.  PVCs are technically mutable in the API server
-		// and we don't want to handle those changes at this time.
+	// no-op.  Claim is bound, values from PV are set.  PVCs are technically mutable in the API server
+	// and we don't want to handle those changes at this time.
 
 	default:
 		return fmt.Errorf("Unknown state for PVC: %#v", claim)
