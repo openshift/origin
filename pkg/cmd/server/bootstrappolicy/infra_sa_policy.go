@@ -25,8 +25,14 @@ const (
 	InfraHPAControllerServiceAccountName = "hpa-controller"
 	HPAControllerRoleName                = "system:hpa-controller"
 
-	InfraPersistentVolumeControllerServiceAccountName = "pv-controller"
-	PersistentVolumeControllerRoleName                = "system:pv-controller"
+	InfraPersistentVolumeBinderControllerServiceAccountName = "pv-binder-controller"
+	PersistentVolumeBinderControllerRoleName                = "system:pv-binder-controller"
+
+	InfraPersistentVolumeRecyclerControllerServiceAccountName = "pv-recycler-controller"
+	PersistentVolumeRecyclerControllerRoleName                = "system:pv-recycler-controller"
+
+	InfraPersistentVolumeProvisionerControllerServiceAccountName = "pv-provisioner-controller"
+	PersistentVolumeProvisionerControllerRoleName                = "system:pv-provisioner-controller"
 )
 
 type InfraServiceAccounts struct {
@@ -287,10 +293,69 @@ func init() {
 	}
 
 	err = InfraSAs.addServiceAccount(
-		InfraPersistentVolumeControllerServiceAccountName,
+		InfraPersistentVolumeRecyclerControllerServiceAccountName,
 		authorizationapi.ClusterRole{
 			ObjectMeta: kapi.ObjectMeta{
-				Name: PersistentVolumeControllerRoleName,
+				Name: PersistentVolumeRecyclerControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// PersistentVolumeRecycler.volumeController.ListWatch
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("persistentvolumes"),
+				},
+				// PersistentVolumeRecycler.syncVolume()
+				{
+					Verbs:     sets.NewString("get", "update", "create", "delete"),
+					Resources: sets.NewString("persistentvolumes"),
+				},
+				// PersistentVolumeRecycler.syncVolume()
+				{
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("persistentvolumes/status"),
+				},
+				// PersistentVolumeRecycler.claimController.ListWatch
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("persistentvolumeclaims"),
+				},
+				// PersistentVolumeRecycler.syncClaim()
+				{
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("persistentvolumeclaims"),
+				},
+				// PersistentVolumeRecycler.syncClaim()
+				{
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("persistentvolumeclaims/status"),
+				},
+				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("pods"),
+				},
+				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
+				{
+					Verbs:     sets.NewString("get", "create", "delete"),
+					Resources: sets.NewString("pods"),
+				},
+				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
+				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraPersistentVolumeBinderControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: PersistentVolumeBinderControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				// PersistentVolumeBinder.volumeController.ListWatch
@@ -323,21 +388,6 @@ func init() {
 					Verbs:     sets.NewString("update"),
 					Resources: sets.NewString("persistentvolumeclaims/status"),
 				},
-				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
-				{
-					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("pods"),
-				},
-				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
-				{
-					Verbs:     sets.NewString("get", "create", "delete"),
-					Resources: sets.NewString("pods"),
-				},
-				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
-				{
-					Verbs:     sets.NewString("create", "update", "patch"),
-					Resources: sets.NewString("events"),
-				},
 			},
 		},
 	)
@@ -345,4 +395,47 @@ func init() {
 		panic(err)
 	}
 
+	err = InfraSAs.addServiceAccount(
+		InfraPersistentVolumeProvisionerControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: PersistentVolumeProvisionerControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// PersistentVolumeProvisioner.volumeController.ListWatch
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("persistentvolumes"),
+				},
+				// PersistentVolumeProvisioner.syncVolume()
+				{
+					Verbs:     sets.NewString("get", "update", "create", "delete"),
+					Resources: sets.NewString("persistentvolumes"),
+				},
+				// PersistentVolumeProvisioner.syncVolume()
+				{
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("persistentvolumes/status"),
+				},
+				// PersistentVolumeProvisioner.claimController.ListWatch
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("persistentvolumeclaims"),
+				},
+				// PersistentVolumeProvisioner.syncClaim()
+				{
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("persistentvolumeclaims"),
+				},
+				// PersistentVolumeProvisioner.syncClaim()
+				{
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("persistentvolumeclaims/status"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
 }
