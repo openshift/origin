@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
+	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
@@ -20,6 +21,7 @@ import (
 type PluginHooks interface {
 	PluginStartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
 	PluginStartNode(mtu uint) error
+	UpdatePod(namespace string, name string, id kubetypes.DockerID) error
 }
 
 type OvsController struct {
@@ -46,8 +48,6 @@ type FlowController interface {
 
 	AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
 	DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
-
-	UpdatePod(namespace, podName, containerID string, netID uint) error
 }
 
 // Called by plug factory functions to initialize the generic plugin instance
