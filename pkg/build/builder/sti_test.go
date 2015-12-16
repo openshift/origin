@@ -51,6 +51,9 @@ func (client testDockerClient) PullImage(opts docker.PullImageOptions, auth dock
 func (client testDockerClient) RemoveContainer(opts docker.RemoveContainerOptions) error {
 	return nil
 }
+func (client testDockerClient) InspectImage(name string) (*docker.Image, error) {
+	return nil, nil
+}
 
 type testStiBuilderFactory struct {
 	getStrategyErr error

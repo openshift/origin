@@ -84,7 +84,7 @@ func (r DockerClientSearcher) Search(terms ...string) (ComponentMatches, error) 
 				if tags := matchTag(image, term, ref.Registry, ref.Namespace, ref.Name, ref.Tag); len(tags) > 0 {
 					for i := range tags {
 						tags[i].LocalOnly = true
-						glog.V(5).Infof("Found local docker image match %q for %q", tags[i].Value, term)
+						glog.V(5).Infof("Found local docker image match %q with score %f", tags[i].Value, tags[i].Score)
 					}
 					termMatches = append(termMatches, tags...)
 				}
@@ -129,7 +129,6 @@ func (r DockerClientSearcher) Search(terms ...string) (ComponentMatches, error) 
 	if len(errs) != 0 {
 		return nil, utilerrors.NewAggregate(errs)
 	}
-
 	return componentMatches, nil
 }
 

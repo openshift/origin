@@ -1,10 +1,13 @@
 package strategy
 
 import (
+	"fmt"
 	"path/filepath"
+	"strconv"
 
 	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/namer"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -78,8 +81,8 @@ func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) error {
 
 // mountSecretVolume is a helper method responsible for actual mounting secret
 // volumes into a pod.
-func mountSecretVolume(pod *kapi.Pod, secretName, mountPath, volumePrefix string) {
-	volumeName := namer.GetName(secretName, volumePrefix, kvalidation.DNS1123SubdomainMaxLength)
+func mountSecretVolume(pod *kapi.Pod, secretName, mountPath, volumeSuffix string) {
+	volumeName := namer.GetName(secretName, volumeSuffix, kvalidation.DNS1123SubdomainMaxLength)
 	volume := kapi.Volume{
 		Name: volumeName,
 		VolumeSource: kapi.VolumeSource{
@@ -99,7 +102,7 @@ func mountSecretVolume(pod *kapi.Pod, secretName, mountPath, volumePrefix string
 
 // setupDockerSecrets mounts Docker Registry secrets into Pod running the build,
 // allowing Docker to authenticate against private registries or Docker Hub.
-func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret, sourceImageSecret *kapi.LocalObjectReference) {
+func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret *kapi.LocalObjectReference, imageSources []buildapi.ImageSource) {
 	if pushSecret != nil {
 		mountSecretVolume(pod, pushSecret.Name, DockerPushSecretMountPath, "push")
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
@@ -116,12 +119,16 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret, sourceImageSecret
 		glog.V(3).Infof("%s will be used for docker pull in %s", DockerPullSecretMountPath, pod.Name)
 	}
 
-	if sourceImageSecret != nil {
-		mountSecretVolume(pod, sourceImageSecret.Name, SourceImagePullSecretMountPath, "source-image")
+	for i, imageSource := range imageSources {
+		if imageSource.PullSecret == nil {
+			continue
+		}
+		mountPath := filepath.Join(SourceImagePullSecretMountPath, strconv.Itoa(i))
+		mountSecretVolume(pod, imageSource.PullSecret.Name, mountPath, "source-image")
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
-			{Name: "PULL_SOURCE_DOCKERCFG_PATH", Value: filepath.Join(SourceImagePullSecretMountPath, kapi.DockerConfigKey)},
+			{Name: fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, i), Value: filepath.Join(mountPath, kapi.DockerConfigKey)},
 		}...)
-		glog.V(3).Infof("%s will be used for docker pull in %s", SourceImagePullSecretMountPath, pod.Name)
+		glog.V(3).Infof("%s will be used for docker pull in %s", mountPath, pod.Name)
 
 	}
 }

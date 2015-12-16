@@ -966,13 +966,15 @@ func deepCopy_api_BuildSource(in buildapi.BuildSource, out *buildapi.BuildSource
 	} else {
 		out.Git = nil
 	}
-	if in.Image != nil {
-		out.Image = new(buildapi.ImageSource)
-		if err := deepCopy_api_ImageSource(*in.Image, out.Image, c); err != nil {
-			return err
+	if in.Images != nil {
+		out.Images = make([]buildapi.ImageSource, len(in.Images))
+		for i := range in.Images {
+			if err := deepCopy_api_ImageSource(in.Images[i], &out.Images[i], c); err != nil {
+				return err
+			}
 		}
 	} else {
-		out.Image = nil
+		out.Images = nil
 	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {

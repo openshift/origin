@@ -1002,6 +1002,7 @@ func TestRunBuilds(t *testing.T) {
 		checkResult func(*AppResult) error
 		checkOutput func(stdout, stderr io.Reader) error
 	}{
+
 		{
 			name: "successful ruby app generation",
 			config: &AppConfig{
@@ -1210,6 +1211,116 @@ func TestRunBuilds(t *testing.T) {
 				return err.Error() == "--dockerfile cannot be used with multiple source repositories"
 			},
 		},
+
+		{
+			name: "successful input image source build with a repository",
+			config: &AppConfig{
+				SourceRepositories: []string{
+					"https://github.com/openshift/ruby-hello-world",
+				},
+				SourceImage:     "centos/mongodb-26-centos7",
+				SourceImagePath: "/src:dst",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"ruby-hello-world"},
+				"imageStream": {"mongodb-26-centos7", "ruby-22-centos7", "ruby-hello-world"},
+			},
+			checkResult: func(res *AppResult) error {
+				var bc *buildapi.BuildConfig
+				for _, item := range res.List.Items {
+					switch v := item.(type) {
+					case *buildapi.BuildConfig:
+						if bc != nil {
+							return fmt.Errorf("want one BuildConfig got multiple: %#v", res.List.Items)
+						}
+						bc = v
+					}
+				}
+				if bc == nil {
+					return fmt.Errorf("want one BuildConfig got none: %#v", res.List.Items)
+				}
+				var got string
+
+				want := "mongodb-26-centos7:latest"
+				got = bc.Spec.Source.Images[0].From.Name
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.From.Name = %q; want %q", got, want)
+				}
+
+				want = "ImageStreamTag"
+				got = bc.Spec.Source.Images[0].From.Kind
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.From.Kind = %q; want %q", got, want)
+				}
+
+				want = "/src"
+				got = bc.Spec.Source.Images[0].Paths[0].SourcePath
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.Paths[0].SourcePath = %q; want %q", got, want)
+				}
+
+				want = "dst"
+				got = bc.Spec.Source.Images[0].Paths[0].DestinationDir
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.Paths[0].DestinationDir = %q; want %q", got, want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "successful input image source build with no repository",
+			config: &AppConfig{
+				Components:      []string{"centos/mysql-56-centos7"},
+				To:              "outputimage",
+				SourceImage:     "centos/mongodb-26-centos7",
+				SourceImagePath: "/src:dst",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"outputimage"},
+				"imageStream": {"mongodb-26-centos7", "mysql-56-centos7", "outputimage"},
+			},
+			checkResult: func(res *AppResult) error {
+				var bc *buildapi.BuildConfig
+				for _, item := range res.List.Items {
+					switch v := item.(type) {
+					case *buildapi.BuildConfig:
+						if bc != nil {
+							return fmt.Errorf("want one BuildConfig got multiple: %#v", res.List.Items)
+						}
+						bc = v
+					}
+				}
+				if bc == nil {
+					return fmt.Errorf("want one BuildConfig got none: %#v", res.List.Items)
+				}
+				var got string
+
+				want := "mongodb-26-centos7:latest"
+				got = bc.Spec.Source.Images[0].From.Name
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.From.Name = %q; want %q", got, want)
+				}
+
+				want = "ImageStreamTag"
+				got = bc.Spec.Source.Images[0].From.Kind
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.From.Kind = %q; want %q", got, want)
+				}
+
+				want = "/src"
+				got = bc.Spec.Source.Images[0].Paths[0].SourcePath
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.Paths[0].SourcePath = %q; want %q", got, want)
+				}
+
+				want = "dst"
+				got = bc.Spec.Source.Images[0].Paths[0].DestinationDir
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.Paths[0].DestinationDir = %q; want %q", got, want)
+				}
+				return nil
+			},
+		},
 	}
 	for _, test := range tests {
 		stdout, stderr := PrepareAppConfig(test.config)
@@ -1280,11 +1391,7 @@ func PrepareAppConfig(config *AppConfig) (stdout, stderr *bytes.Buffer) {
 	config.dockerSearcher = app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(10 * time.Second),
 	}
-	config.imageStreamByAnnotationSearcher = &app.ImageStreamByAnnotationSearcher{
-		Client:            &client.Fake{},
-		ImageStreamImages: &client.Fake{},
-		Namespaces:        []string{"default"},
-	}
+	config.imageStreamByAnnotationSearcher = fakeImageStreamSearcher()
 	config.imageStreamSearcher = fakeImageStreamSearcher()
 	config.originNamespace = "default"
 	config.osclient = &client.Fake{}

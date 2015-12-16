@@ -456,6 +456,13 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 	if config.AllowMissingImages && config.AsSearch {
 		return cmdutil.UsageError(c, "--allow-missing-images and --search are mutually exclusive.")
 	}
+
+	if len(config.SourceImage) != 0 && len(config.SourceImagePath) == 0 {
+		return cmdutil.UsageError(c, "--source-image-path must be specified when --source-image is specified.")
+	}
+	if len(config.SourceImage) == 0 && len(config.SourceImagePath) != 0 {
+		return cmdutil.UsageError(c, "--source-image must be specified when --source-image-path is specified.")
+	}
 	return nil
 }
 

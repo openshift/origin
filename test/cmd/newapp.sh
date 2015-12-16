@@ -132,6 +132,9 @@ os::cmd::expect_failure_and_text 'oc new-build mysql -o yaml' 'you must specify 
 os::cmd::expect_success_and_text 'oc new-build mysql --binary -o yaml --to mysql:bin' 'type: Binary'
 os::cmd::expect_success_and_text 'oc new-build mysql https://github.com/openshift/ruby-hello-world --strategy=docker -o yaml' 'type: Docker'
 os::cmd::expect_failure_and_text 'oc new-build mysql https://github.com/openshift/ruby-hello-world --binary' 'specifying binary builds and source repositories at the same time is not allowed'
+# new-build image source tests
+os::cmd::expect_failure_and_text 'oc new-build mysql --source-image centos' 'error: --source-image-path must be specified when --source-image is specified.'
+os::cmd::expect_failure_and_text 'oc new-build mysql --source-image-path foo' 'error: --source-image must be specified when --source-image-path is specified.'
 
 # do not allow use of non-existent image (should fail)
 os::cmd::expect_failure_and_text 'oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml' "no match for"

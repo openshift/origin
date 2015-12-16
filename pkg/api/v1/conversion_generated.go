@@ -1418,13 +1418,15 @@ func autoconvert_api_BuildSource_To_v1_BuildSource(in *buildapi.BuildSource, out
 	} else {
 		out.Git = nil
 	}
-	if in.Image != nil {
-		out.Image = new(apiv1.ImageSource)
-		if err := convert_api_ImageSource_To_v1_ImageSource(in.Image, out.Image, s); err != nil {
-			return err
+	if in.Images != nil {
+		out.Images = make([]apiv1.ImageSource, len(in.Images))
+		for i := range in.Images {
+			if err := convert_api_ImageSource_To_v1_ImageSource(&in.Images[i], &out.Images[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
-		out.Image = nil
+		out.Images = nil
 	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {
@@ -2210,13 +2212,15 @@ func autoconvert_v1_BuildSource_To_api_BuildSource(in *apiv1.BuildSource, out *b
 	} else {
 		out.Git = nil
 	}
-	if in.Image != nil {
-		out.Image = new(buildapi.ImageSource)
-		if err := convert_v1_ImageSource_To_api_ImageSource(in.Image, out.Image, s); err != nil {
-			return err
+	if in.Images != nil {
+		out.Images = make([]buildapi.ImageSource, len(in.Images))
+		for i := range in.Images {
+			if err := convert_v1_ImageSource_To_api_ImageSource(&in.Images[i], &out.Images[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
-		out.Image = nil
+		out.Images = nil
 	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {
