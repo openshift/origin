@@ -37,9 +37,8 @@
                 </dd>
                 <dt>Routes to:</dt>
                 <dd>
-                  <span>{{route.spec.to.kind}}: </span>
-                  <span ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</span>
-                  <span ng-if="route.spec.to.kind == 'Service'"><a href="{{route | navigateResourceURL}}">{{route.spec.to.name}}</a></span>
+                  {{route.spec.to.kind}}
+                  <a ng-href="{{route.spec.to.name | navigateResourceURL : route.spec.to.kind : route.metadata.namespace}}">{{route.spec.to.name}}</a>
                 </dd>
                 <dt>Target Port:</dt>
                 <dd>
