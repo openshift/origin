@@ -1,5 +1,5 @@
 <project-header class="top-header"></project-header>
-  <project-page>
+<project-page>
 
   <!-- Middle section -->
   <div class="middle-section">
@@ -12,6 +12,10 @@
           <div ng-if="route">
             <h1>
               {{route.metadata.name}}
+              <route-warnings ng-if="route.spec.to.kind !== 'Service' || services"
+                              route="route"
+                              service="services[route.spec.to.name]">
+              </route-warnings>
               <small class="meta">created <relative-timestamp timestamp="route.metadata.creationTimestamp"></relative-timestamp></small>
               <div class="pull-right dropdown">
                 <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
@@ -58,16 +62,20 @@
                     <span ng-if="route.spec.path">{{route.spec.path}}</span>
                     <span ng-if="!route.spec.path"><em>none</em></span>
                   </dd>
-                  <dt>Routes to:</dt>
+                  <dt>{{route.spec.to.kind || "Routes to"}}:</dt>
                   <dd>
-                    {{route.spec.to.kind}}
                     <a ng-href="{{route.spec.to.name | navigateResourceURL : route.spec.to.kind : route.metadata.namespace}}">{{route.spec.to.name}}</a>
                   </dd>
                   <dt>Target Port:</dt>
                   <dd>
-                    <span ng-if="route.spec.port">{{route.spec.port.targetPort}}</span>
-                    <span ng-if="!route.spec.port"><em>any</em></span>
+                    <span ng-if="route.spec.port.targetPort">
+                      {{route.spec.port.targetPort}}
+                    </span>
+                    <span ng-if="!route.spec.port.targetPort"><em>any</em></span>
                   </dd>
+                  <div ng-if="route.spec.port.targetPort && route.spec.to.kind === 'Service' && (route | routeTargetPortMapping : services[route.spec.to.name])" class="help-block">
+                    This target port will route to {{route | routeTargetPortMapping : services[route.spec.to.name]}}.
+                  </div>
                 </dl>
                 <div style="margin-bottom: 10px;">
                   <h4>TLS Settings</h4>
@@ -107,4 +115,4 @@
       </div><!-- /middle-content -->
     </div><!-- /middle-container -->
   </div><!-- /middle-section -->
-  </project-page>
+</project-page>

@@ -1,5 +1,5 @@
 <project-header class="top-header"></project-header>
-  <project-page>
+<project-page>
 
   <!-- Middle section -->
   <div class="middle-section">
@@ -39,7 +39,7 @@
                     <td data-title="Name">
                       <a href="{{pod | navigateResourceURL}}">{{pod.metadata.name}}</a>
                       <span ng-if="pod | isTroubledPod">
-                        <pod-warnings pod="pod" style="vertical-align: middle;"></pod-warnings>
+                        <pod-warnings pod="pod"></pod-warnings>
                       </span>
                     </td>
                     <td data-title="Status">
@@ -60,4 +60,4 @@
       </div><!-- /middle-content -->
     </div><!-- /middle-container -->
   </div><!-- /middle-section -->
-  </project-page>
+</project-page>
