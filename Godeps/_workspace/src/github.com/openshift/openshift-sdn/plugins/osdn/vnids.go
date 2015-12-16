@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
+	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 const (
@@ -222,7 +223,7 @@ func (oc *OvsController) updatePodNetwork(namespace string, netID, oldNetID uint
 		return err
 	}
 	for _, pod := range pods {
-		err := oc.flowController.UpdatePod(pod.Namespace, pod.Name, pod.ContainerID, netID)
+		err := oc.pluginHooks.UpdatePod(pod.Namespace, pod.Name, kubetypes.DockerID(pod.ContainerID))
 		if err != nil {
 			return err
 		}

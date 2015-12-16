@@ -8,7 +8,6 @@ import (
 
 	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
-	oskserver "github.com/openshift/origin/pkg/cmd/server/kubernetes"
 
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -29,7 +28,7 @@ func MultiTenantPluginName() string {
 	return "redhat/openshift-ovs-multitenant"
 }
 
-func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, oskserver.FilteringEndpointsConfigHandler, error) {
+func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, api.FilteringEndpointsConfigHandler, error) {
 	plugin := &ovsPlugin{multitenant: multitenant}
 
 	err := plugin.BaseInit(registry, NewFlowController(multitenant), plugin, hostname, selfIP)
@@ -78,6 +77,7 @@ const (
 	setUpCmd    = "setup"
 	tearDownCmd = "teardown"
 	statusCmd   = "status"
+	updateCmd   = "update"
 )
 
 func (plugin *ovsPlugin) getExecutable() string {
@@ -96,34 +96,52 @@ func (plugin *ovsPlugin) Name() string {
 	}
 }
 
+func (plugin *ovsPlugin) getVNID(namespace string) (string, error) {
+	if plugin.multitenant {
+		vnid, found := plugin.VNIDMap[namespace]
+		if !found {
+			return "", fmt.Errorf("Error fetching VNID for namespace: %s", namespace)
+		}
+		return strconv.FormatUint(uint64(vnid), 10), nil
+	}
+
+	return "-1", nil
+}
+
 func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
 	err := plugin.WaitForPodNetworkReady()
 	if err != nil {
 		return err
 	}
 
-	var vnidstr string
-	if plugin.multitenant {
-		vnid, found := plugin.VNIDMap[namespace]
-		if !found {
-			return fmt.Errorf("Error fetching VNID for namespace: %s", namespace)
-		}
-		vnidstr = strconv.FormatUint(uint64(vnid), 10)
-	} else {
-		vnidstr = "-1"
+	vnidstr, err := plugin.getVNID(namespace)
+	if err != nil {
+		return err
 	}
-	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, namespace, name, string(id), vnidstr).CombinedOutput()
+
+	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, string(id), vnidstr).CombinedOutput()
 	glog.V(5).Infof("SetUpPod network plugin output: %s, %v", string(out), err)
 	return err
 }
 
 func (plugin *ovsPlugin) TearDownPod(namespace string, name string, id kubeletTypes.DockerID) error {
 	// The script's teardown functionality doesn't need the VNID
-	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, namespace, name, string(id), "-1").CombinedOutput()
+	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, string(id), "-1").CombinedOutput()
 	glog.V(5).Infof("TearDownPod network plugin output: %s, %v", string(out), err)
 	return err
 }
 
 func (plugin *ovsPlugin) Status(namespace string, name string, id kubeletTypes.DockerID) (*knetwork.PodNetworkStatus, error) {
 	return nil, nil
+}
+
+func (plugin *ovsPlugin) UpdatePod(namespace string, name string, id kubeletTypes.DockerID) error {
+	vnidstr, err := plugin.getVNID(namespace)
+	if err != nil {
+		return err
+	}
+
+	out, err := utilexec.New().Command(plugin.getExecutable(), updateCmd, string(id), vnidstr).CombinedOutput()
+	glog.V(5).Infof("UpdatePod network plugin output: %s, %v", string(out), err)
+	return err
 }

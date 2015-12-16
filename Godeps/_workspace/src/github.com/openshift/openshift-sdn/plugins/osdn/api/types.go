@@ -2,6 +2,7 @@ package api
 
 import (
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 )
 
 type EventType string
@@ -85,4 +86,9 @@ type OsdnPlugin interface {
 
 	StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
 	StartNode(mtu uint) error
+}
+
+type FilteringEndpointsConfigHandler interface {
+	pconfig.EndpointsConfigHandler
+	SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler)
 }
