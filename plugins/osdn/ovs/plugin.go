@@ -8,7 +8,6 @@ import (
 
 	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
-	oskserver "github.com/openshift/origin/pkg/cmd/server/kubernetes"
 
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -29,7 +28,7 @@ func MultiTenantPluginName() string {
 	return "redhat/openshift-ovs-multitenant"
 }
 
-func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, oskserver.FilteringEndpointsConfigHandler, error) {
+func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, api.FilteringEndpointsConfigHandler, error) {
 	plugin := &ovsPlugin{multitenant: multitenant}
 
 	err := plugin.BaseInit(registry, NewFlowController(multitenant), plugin, hostname, selfIP)
