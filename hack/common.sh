@@ -128,9 +128,11 @@ os::build::build_binaries() {
     for platform in "${platforms[@]}"; do
       os::build::set_platform_envs "${platform}"
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
-      go install "${goflags[@]:+${goflags[@]}}" \
-          -ldflags "${version_ldflags}" \
-          "${binaries[@]}"
+      set -x
+      go install "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "${binaries[@]}"
+
+      # TODO: Pick a good output location for these tests, without hardcoding to _output/...
+      go test -c "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" github.com/openshift/origin/test/e2e
       os::build::unset_platform_envs "${platform}"
     done
   )
