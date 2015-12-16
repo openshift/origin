@@ -41,6 +41,12 @@ AWS_CRED_FILE       = "~/.awscred"
 AWS_BOX_URL         = "https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box"
 VM_NAME_PREFIX      = ENV['OPENSHIFT_VM_NAME_PREFIX'] || ""
 
+
+def providerconfig
+
+
+end
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # these are the default settings, overrides are in .vagrant-openshift.json
@@ -53,7 +59,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
     "rebuild_yum_cache" => false,
     "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
-    "memory"            => ENV['OPENSHIFT_MEMORY'] || 2560,
+    "memory"            => ENV['OPENSHIFT_MEMORY'] || 4096,
     "fixup_net_udev"    => ENV['OPENSHIFT_FIXUP_NET_UDEV'] || true,
     "sync_folders_type" => nil,
     "master_ip"         => ENV['OPENSHIFT_MASTER_IP'] || "10.245.2.2",
@@ -171,6 +177,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       if vagrant_openshift_config['rebuild_yum_cache']
         config.vm.provision "shell", inline: "yum clean all && yum makecache"
       end
+      # Memory settings are set via the openshift json config file above.
       config.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-minimal.sh"
 
       config.vm.synced_folder ".", "/vagrant", disabled: true
@@ -213,7 +220,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       override.vm.box     = vagrant_openshift_config['virtualbox']['box_name'] unless dev_cluster
       override.vm.box_url = vagrant_openshift_config['virtualbox']['box_url'] unless dev_cluster
       override.ssh.insert_key = vagrant_openshift_config['insert_key']
-
+      puts "set prov"
       v.memory            = vagrant_openshift_config['memory'].to_i
       v.cpus              = vagrant_openshift_config['cpus'].to_i
       v.customize ["modifyvm", :id, "--cpus", vagrant_openshift_config['cpus'].to_s]
@@ -256,40 +263,41 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     # ###############################
     # Set OpenStack provider settings
-    config.vm.provider "openstack" do |os, override|
-      # load creds file, which you should really have
-      creds_file_path = [nil, ''].include?(ENV['OPENSTACK_CREDS']) ? OPENSTACK_CRED_FILE : ENV['OPENSTACK_CREDS']
+    # No need to do this if openstack credentials are missing, as it might lead to errors.
+    if ENV['OPENSTACK_CREDS'] != nil
+	    config.vm.provider "openstack" do |os, override|
+	      # load creds file, which you should really have
+	      creds_file_path = [nil, ''].include?(ENV['OPENSTACK_CREDS']) ? OPENSTACK_CRED_FILE : ENV['OPENSTACK_CREDS']
+	      # read in all the lines that look like FOO=BAR as a hash
+	      creds = File.exist?(creds_file_path = File.expand_path(creds_file_path)) ?
+		Hash[*(File.open(creds_file_path).readlines.map{ |l| l.strip!; l.split('=') }.flatten)] : {}
+	      voc = vagrant_openshift_config['openstack']
 
-      # read in all the lines that look like FOO=BAR as a hash
-      creds = File.exist?(creds_file_path = File.expand_path(creds_file_path)) ?
-        Hash[*(File.open(creds_file_path).readlines.map{ |l| l.strip!; l.split('=') }.flatten)] : {}
-      voc = vagrant_openshift_config['openstack']
+	      override.vm.box = voc["box_name"] || "openstack-dummy-box"
+	      override.vm.box_url = voc["box_url"] || OPENSTACK_BOX_URL
+	      # Make sure the private key from the key pair is provided
+	      override.ssh.private_key_path = creds['OSPrivateKeyPath'] || "~/.ssh/id_rsa"
 
-      override.vm.box = voc["box_name"] || "openstack-dummy-box"
-      override.vm.box_url = voc["box_url"] || OPENSTACK_BOX_URL
-      # Make sure the private key from the key pair is provided
-      override.ssh.private_key_path = creds['OSPrivateKeyPath'] || "~/.ssh/id_rsa"
+	      os.endpoint     = ENV['OS_AUTH_URL'] ? "#{ENV['OS_AUTH_URL']}/tokens" : creds['OSEndpoint']
+	      os.tenant       = ENV['OS_TENANT_NAME'] || creds['OSTenant']
+	      os.username     = ENV['OS_USERNAME']    || creds['OSUsername']
+	      os.api_key      = ENV['OS_PASSWORD']    || creds['OSAPIKey']
+	      os.keypair_name = voc['key_pair']       || creds['OSKeyPairName'] || "<OSKeypair>" # as stored in Nova
+	      os.flavor       = vagrant_openshift_config['instance_type']  || creds['OSFlavor']   || /m1.small/       # Regex or String
+	      os.image        = voc['image']          || creds['OSImage']    || /Fedora/         # Regex or String
+	      os.ssh_username = user = voc['ssh_user']|| creds['OSSshUser']  || "root"           # login for the VM instance
+	      os.server_name  = ENV['OS_HOSTNAME']    || vagrant_openshift_config['instance_name'] # name for the instance created
+	      if single_vm_cluster
+		override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh", args: user
+	      end
 
-      os.endpoint     = ENV['OS_AUTH_URL'] ? "#{ENV['OS_AUTH_URL']}/tokens" : creds['OSEndpoint']
-      os.tenant       = ENV['OS_TENANT_NAME'] || creds['OSTenant']
-      os.username     = ENV['OS_USERNAME']    || creds['OSUsername']
-      os.api_key      = ENV['OS_PASSWORD']    || creds['OSAPIKey']
-      os.keypair_name = voc['key_pair']       || creds['OSKeyPairName'] || "<OSKeypair>" # as stored in Nova
-      os.flavor       = vagrant_openshift_config['instance_type']  || creds['OSFlavor']   || /m1.small/       # Regex or String
-      os.image        = voc['image']          || creds['OSImage']    || /Fedora/         # Regex or String
-      os.ssh_username = user = voc['ssh_user']|| creds['OSSshUser']  || "root"           # login for the VM instance
-      os.server_name  = ENV['OS_HOSTNAME']    || vagrant_openshift_config['instance_name'] # name for the instance created
-      if single_vm_cluster
-        override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh", args: user
-      end
-
-      # floating ip usually needed for accessing machines
-      floating_ip     = creds['OSFloatingIP'] || ENV['OS_FLOATING_IP']
-      os.floating_ip  = floating_ip == ":auto" ? :auto : floating_ip
-      floating_ip_pool = creds['OSFloatingIPPool'] || ENV['OS_FLOATING_IP_POOL']
-      os.floating_ip_pool = floating_ip_pool == "false" ? false : floating_ip_pool
-    end if vagrant_openshift_config['openstack']
-
+	      # floating ip usually needed for accessing machines
+	      floating_ip     = creds['OSFloatingIP'] || ENV['OS_FLOATING_IP']
+	      os.floating_ip  = floating_ip == ":auto" ? :auto : floating_ip
+	      floating_ip_pool = creds['OSFloatingIPPool'] || ENV['OS_FLOATING_IP_POOL']
+	      os.floating_ip_pool = floating_ip_pool == "false" ? false : floating_ip_pool
+	    end if vagrant_openshift_config['openstack']
+    end
 
     # #########################
     # Set AWS provider settings
