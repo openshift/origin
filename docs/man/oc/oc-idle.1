@@ -3,25 +3,39 @@
 
 .SH NAME
 .PP
-oc \- Command line tools for managing applications
+oc idle \- Idle scalable resources
 
 
 .SH SYNOPSIS
 .PP
-\fBoc\fP [OPTIONS]
+\fBoc idle\fP [OPTIONS]
 
 
 .SH DESCRIPTION
 .PP
-OpenShift Client
+Idle scalable resources.
 
 .PP
-This client helps you develop, build, deploy, and run your applications on any OpenShift or
-Kubernetes compatible platform. It also includes the administrative commands for managing a
-cluster under the 'adm' subcommand.
+This command idles the provides list of resources by scaling scalable resources (e.g. RCs and
+DCs) down to zero replicas, and then marking associated services so that that the scalables
+will be "woken up" when traffic occurs on those services.
+
+.PP
+Only DCs and RCs with associated services will be idled \-\- services that only point to pods,
+as well as RCs and DCs with no services, will not be idled.
 
 
 .SH OPTIONS
+.PP
+\fB\-\-dry\-run\fP=false
+    If true, only print the annotations that would be written, without annotating or idling the relevant objects
+
+.PP
+\fB\-f\fP, \fB\-\-filename\fP=""
+    file containing list of services whose scalables will be idled
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
 \fB\-\-api\-version\fP=""
     DEPRECATED: The API version to use when talking to the server
@@ -87,9 +101,21 @@ cluster under the 'adm' subcommand.
     The name of the kubeconfig user to use
 
 
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Idle the scalable controllers associated with some services listed in to\-idle.txt
+  $ oc idle \-f to\-idle.txt
+
+.fi
+.RE
+
+
 .SH SEE ALSO
 .PP
-\fBoc\-types(1)\fP, \fBoc\-login(1)\fP, \fBoc\-new\-project(1)\fP, \fBoc\-new\-app(1)\fP, \fBoc\-status(1)\fP, \fBoc\-project(1)\fP, \fBoc\-projects(1)\fP, \fBoc\-explain(1)\fP, \fBoc\-cluster(1)\fP, \fBoc\-idle(1)\fP, \fBoc\-rollout(1)\fP, \fBoc\-deploy(1)\fP, \fBoc\-rollback(1)\fP, \fBoc\-new\-build(1)\fP, \fBoc\-start\-build(1)\fP, \fBoc\-cancel\-build(1)\fP, \fBoc\-import\-image(1)\fP, \fBoc\-tag(1)\fP, \fBoc\-get(1)\fP, \fBoc\-describe(1)\fP, \fBoc\-edit(1)\fP, \fBoc\-set(1)\fP, \fBoc\-label(1)\fP, \fBoc\-annotate(1)\fP, \fBoc\-expose(1)\fP, \fBoc\-delete(1)\fP, \fBoc\-scale(1)\fP, \fBoc\-autoscale(1)\fP, \fBoc\-secrets(1)\fP, \fBoc\-serviceaccounts(1)\fP, \fBoc\-logs(1)\fP, \fBoc\-rsh(1)\fP, \fBoc\-rsync(1)\fP, \fBoc\-port\-forward(1)\fP, \fBoc\-debug(1)\fP, \fBoc\-exec(1)\fP, \fBoc\-proxy(1)\fP, \fBoc\-attach(1)\fP, \fBoc\-run(1)\fP, \fBoc\-adm(1)\fP, \fBoc\-create(1)\fP, \fBoc\-replace(1)\fP, \fBoc\-apply(1)\fP, \fBoc\-patch(1)\fP, \fBoc\-process(1)\fP, \fBoc\-export(1)\fP, \fBoc\-extract(1)\fP, \fBoc\-policy(1)\fP, \fBoc\-convert(1)\fP, \fBoc\-import(1)\fP, \fBoc\-logout(1)\fP, \fBoc\-config(1)\fP, \fBoc\-whoami(1)\fP, \fBoc\-completion(1)\fP, \fBoc\-env(1)\fP, \fBoc\-volumes(1)\fP, \fBoc\-build\-logs(1)\fP, \fBoc\-ex(1)\fP, \fBoc\-version(1)\fP, \fBoc\-options(1)\fP,
+\fBoc(1)\fP,
 
 
 .SH HISTORY

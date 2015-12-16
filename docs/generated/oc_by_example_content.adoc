@@ -1568,6 +1568,19 @@ Display one or many resources
 ====
 
 
+== oc idle
+Idle scalable resources
+
+====
+
+[options="nowrap"]
+----
+  # Idle the scalable controllers associated with the services listed in to-idle.txt
+  $ oc idle -f to-idle.txt
+----
+====
+
+
 == oc import app.json
 Import an app.json definition into OpenShift (experimental)
 
