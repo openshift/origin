@@ -43,8 +43,14 @@ func TestGroupBasedDetectorExists(t *testing.T) {
 			expectedExists: false,
 		},
 		{
-			name:           "no error",
+			name:           "no error, no entries",
 			groupGetter:    &puppetGetterExtractor{},
+			expectedErr:    nil,
+			expectedExists: false,
+		},
+		{
+			name:           "no error, has entries",
+			groupGetter:    &puppetGetterExtractor{returnVal: []*ldap.Entry{dummyEntry}},
 			expectedErr:    nil,
 			expectedExists: true,
 		},
@@ -127,9 +133,15 @@ func TestCompoundDetectorExists(t *testing.T) {
 		expectedExists bool
 	}{
 		{
+			name:           "no detectors",
+			locators:       []interfaces.LDAPGroupDetector{},
+			expectedErr:    nil,
+			expectedExists: false,
+		},
+		{
 			name: "none fail to locate",
 			locators: []interfaces.LDAPGroupDetector{
-				NewGroupBasedDetector(&puppetGetterExtractor{}),
+				NewGroupBasedDetector(&puppetGetterExtractor{returnVal: []*ldap.Entry{dummyEntry}}),
 				NewMemberBasedDetector(&puppetGetterExtractor{returnVal: []*ldap.Entry{dummyEntry}}),
 			},
 			expectedErr:    nil,
@@ -142,13 +154,22 @@ func TestCompoundDetectorExists(t *testing.T) {
 				NewMemberBasedDetector(&puppetGetterExtractor{returnVal: []*ldap.Entry{dummyEntry}}),
 			},
 			expectedErr:    nil,
-			expectedExists: true,
+			expectedExists: false,
 		},
 		{
-			name: "all fail to locate",
+			name: "all fail to locate because of errors",
 			locators: []interfaces.LDAPGroupDetector{
 				NewGroupBasedDetector(&errEntryNotFoundGetterExtractor{}),
 				NewMemberBasedDetector(&errOutOfBoundsGetterExtractor{}),
+			},
+			expectedErr:    nil,
+			expectedExists: false,
+		},
+		{
+			name: "all locate no entries",
+			locators: []interfaces.LDAPGroupDetector{
+				NewGroupBasedDetector(&puppetGetterExtractor{}),
+				NewMemberBasedDetector(&puppetGetterExtractor{}),
 			},
 			expectedErr:    nil,
 			expectedExists: false,
