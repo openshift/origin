@@ -6,6 +6,7 @@ angular.module("openshiftConsole")
       $q,
       $routeParams,
       DataService,
+      APIService,
       ProjectsService,
       Navigate,
       ApplicationGenerator,
@@ -120,14 +121,15 @@ angular.module("openshiftConsole")
           }
 
           resources.forEach(function(resource) {
-            var resourceName = DataService.kindToResource(resource.kind);
-            if (!resourceName) {
+            var resourcePath = APIService.kindToResource(resource.kind);
+            var derived = APIService.deriveResource(resource);
+            if (!resourcePath) {
               failureResults.push({data: {message: "Unrecognized kind: " + resource.kind + "."}});
               remaining--;
               _checkDone();
               return;
             }
-            DataService.get(resourceName, resource.metadata.name, {namespace: (namespace || $routeParams.project)}, {errorNotification: false}).then(
+            DataService.get(derived, resource.metadata.name, {namespace: (namespace || $routeParams.project)}, {errorNotification: false}).then(
               function (data) {
                 successResults.push(data);
                 remaining--;
@@ -167,7 +169,7 @@ angular.module("openshiftConsole")
                           alerts.push({
                             type: "error",
                             message: "Cannot create " + humanize(objectName).toLowerCase() + ". ",
-                            details: failure.data.message
+                            details: failure.data && failure.data.message
                           });
                         }
                       );
@@ -226,4 +228,3 @@ angular.module("openshiftConsole")
         };
       }));
   });
-

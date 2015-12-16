@@ -5,6 +5,13 @@
 // To change configuration for local development, copy this file to
 // assets/app/config.local.js and edit the copy.
 window.OPENSHIFT_CONFIG = {
+  // TODO: depending on PR https://github.com/openshift/origin/pull/6762
+  // to generate this appropriately.
+  apiGroups:{
+    hostPort:"localhost:8443",
+    prefix:"/apis"
+  },
+
   api: {
     openshift: {
       hostPort: "localhost:8443",

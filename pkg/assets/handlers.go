@@ -143,6 +143,10 @@ func HTML5ModeHandler(contextRoot string, subcontextMap map[string]string, h htt
 
 var configTemplate = template.Must(template.New("webConsoleConfig").Parse(`
 window.OPENSHIFT_CONFIG = {
+	apiGroups:{
+		hostPort:"localhost:8443",
+		prefix:"/apis"
+	},
   api: {
     openshift: {
       hostPort: "{{ .MasterAddr | js}}",

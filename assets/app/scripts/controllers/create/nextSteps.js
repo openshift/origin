@@ -9,13 +9,13 @@
  * Controller of the openshiftConsole
  */
 angular.module("openshiftConsole")
-  .controller("NextStepsController", function($scope, $http, $routeParams, DataService, $q, $location, TaskList, $parse, Navigate, $filter, imageObjectRefFilter, failureObjectNameFilter, ProjectsService) {
+  .controller("NextStepsController", function($scope, $http, $routeParams, DataService, APIService,  $q, $location, TaskList, $parse, Navigate, $filter, imageObjectRefFilter, failureObjectNameFilter, ProjectsService) {
     var displayNameFilter = $filter('displayName');
     var watches = [];
 
     $scope.emptyMessage = "Loading...";
     $scope.alerts = [];
-    $scope.loginBaseUrl = DataService.openshiftAPIBaseUrl();
+    $scope.loginBaseUrl = APIService.openshiftAPIBaseUrl();
     $scope.projectName = $routeParams.project;
     $scope.buildConfigs = {};
 

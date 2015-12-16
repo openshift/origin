@@ -71,7 +71,7 @@ angular.module('openshiftConsole')
     });
 
     var loadProjects = function() {
-      DataService.list("projects", $scope, function(projects) {
+      DataService.list("projects", {}, function(projects) {
         $scope.projects = projects.by("metadata.name");
         $scope.showGetStarted = hashSizeFilter($scope.projects) === 0;
       });
