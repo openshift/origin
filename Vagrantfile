@@ -41,12 +41,6 @@ AWS_CRED_FILE       = "~/.awscred"
 AWS_BOX_URL         = "https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box"
 VM_NAME_PREFIX      = ENV['OPENSHIFT_VM_NAME_PREFIX'] || ""
 
-
-def providerconfig
-
-
-end
-
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # these are the default settings, overrides are in .vagrant-openshift.json
@@ -220,7 +214,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       override.vm.box     = vagrant_openshift_config['virtualbox']['box_name'] unless dev_cluster
       override.vm.box_url = vagrant_openshift_config['virtualbox']['box_url'] unless dev_cluster
       override.ssh.insert_key = vagrant_openshift_config['insert_key']
-      puts "set prov"
       v.memory            = vagrant_openshift_config['memory'].to_i
       v.cpus              = vagrant_openshift_config['cpus'].to_i
       v.customize ["modifyvm", :id, "--cpus", vagrant_openshift_config['cpus'].to_s]
