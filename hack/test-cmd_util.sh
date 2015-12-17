@@ -358,6 +358,8 @@ if os::cmd::try_until_success 'exit 1' $(( 1 * second )); then
 	exit 1
 fi
 
+output=$(os::cmd::try_until_success 'exit 1' $(( 1 * second ))) || true
+echo "${output}" | grep -q 'the command timed out'
 
 function not_current_time_millis_mod_1000() {
 	mod=$(expr $(date +%s000) % 1000)
