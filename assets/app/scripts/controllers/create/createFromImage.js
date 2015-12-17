@@ -91,11 +91,19 @@ angular.module("openshiftConsole")
                     scope.deploymentConfig.envVars[pair[0]] = pair[1];
                   });
 
-                  scope.routing.portOptions = ApplicationGenerator.parsePorts(imageStreamTag.image);
-                  if (scope.routing.portOptions.length){
-                    scope.routing.targetPort = scope.routing.portOptions[0];
-                  } else {
+                  var ports = ApplicationGenerator.parsePorts(imageStreamTag.image);
+                  if (ports.length === 0) {
                     scope.routing.include = false;
+                    scope.routing.portOptions = [];
+                  } else {
+                    scope.routing.portOptions = _.map(ports, function(portSpec) {
+                      var servicePort = ApplicationGenerator.getServicePort(portSpec);
+                      return {
+                        port: servicePort.name,
+                        label: servicePort.targetPort + "/" + servicePort.protocol
+                      };
+                    });
+                    scope.routing.targetPort = scope.routing.portOptions[0];
                   }
                 }, function(){
                     Navigate.toErrorPage("Cannot create from source: the specified image could not be retrieved.");
