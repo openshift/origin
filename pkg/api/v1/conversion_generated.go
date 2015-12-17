@@ -1638,6 +1638,7 @@ func autoconvert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *buildapi.
 		out.Env = nil
 	}
 	out.ForcePull = in.ForcePull
+	out.DockerfilePath = in.DockerfilePath
 	return nil
 }
 
@@ -2352,6 +2353,7 @@ func autoconvert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *apiv1.Doc
 		out.Env = nil
 	}
 	out.ForcePull = in.ForcePull
+	out.DockerfilePath = in.DockerfilePath
 	return nil
 }
 

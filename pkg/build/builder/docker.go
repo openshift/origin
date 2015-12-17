@@ -25,6 +25,9 @@ import (
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
+// defaultDockerfilePath is the default path of the Dockerfile
+const defaultDockerfilePath = "Dockerfile"
+
 // DockerBuilder builds Docker images given a git repository URL
 type DockerBuilder struct {
 	dockerClient DockerClient
@@ -102,9 +105,18 @@ func (d *DockerBuilder) Build() error {
 // If that's the case then change the Dockerfile to make the build with the given image.
 // Also append the environment variables and labels in the Dockerfile.
 func (d *DockerBuilder) addBuildParameters(dir string) error {
-	dockerfilePath := filepath.Join(dir, "Dockerfile")
+	var contextDirPath string
 	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Source.ContextDir) > 0 {
-		dockerfilePath = filepath.Join(dir, d.build.Spec.Source.ContextDir, "Dockerfile")
+		contextDirPath = filepath.Join(dir, d.build.Spec.Source.ContextDir)
+	} else {
+		contextDirPath = dir
+	}
+
+	var dockerfilePath string
+	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Strategy.DockerStrategy.DockerfilePath) > 0 {
+		dockerfilePath = filepath.Join(contextDirPath, d.build.Spec.Strategy.DockerStrategy.DockerfilePath)
+	} else {
+		dockerfilePath = filepath.Join(contextDirPath, defaultDockerfilePath)
 	}
 
 	f, err := os.Open(dockerfilePath)
@@ -213,9 +225,13 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 func (d *DockerBuilder) dockerBuild(dir string) error {
 	var noCache bool
 	var forcePull bool
+	dockerfilePath := defaultDockerfilePath
 	if d.build.Spec.Strategy.DockerStrategy != nil {
 		if d.build.Spec.Source.ContextDir != "" {
 			dir = filepath.Join(dir, d.build.Spec.Source.ContextDir)
+		}
+		if d.build.Spec.Strategy.DockerStrategy.DockerfilePath != "" {
+			dockerfilePath = d.build.Spec.Strategy.DockerStrategy.DockerfilePath
 		}
 		noCache = d.build.Spec.Strategy.DockerStrategy.NoCache
 		forcePull = d.build.Spec.Strategy.DockerStrategy.ForcePull
@@ -224,7 +240,7 @@ func (d *DockerBuilder) dockerBuild(dir string) error {
 	if err != nil {
 		return err
 	}
-	return buildImage(d.dockerClient, dir, noCache, d.build.Status.OutputDockerImageReference, d.tar, auth, forcePull)
+	return buildImage(d.dockerClient, dir, dockerfilePath, noCache, d.build.Status.OutputDockerImageReference, d.tar, auth, forcePull)
 }
 
 // replaceLastFrom changes the last FROM instruction of node to point to the

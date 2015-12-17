@@ -326,6 +326,10 @@ type DockerBuildStrategy struct {
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool
+
+	// DockerfilePath is the path of the Dockerfile that will be used to build the Docker image,
+	// relative to the root of the context (contextDir).
+	DockerfilePath string
 }
 
 // SourceBuildStrategy defines input parameters specific to an Source build.

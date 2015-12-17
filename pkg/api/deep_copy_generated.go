@@ -1181,6 +1181,7 @@ func deepCopy_api_DockerBuildStrategy(in buildapi.DockerBuildStrategy, out *buil
 		out.Env = nil
 	}
 	out.ForcePull = in.ForcePull
+	out.DockerfilePath = in.DockerfilePath
 	return nil
 }
 
