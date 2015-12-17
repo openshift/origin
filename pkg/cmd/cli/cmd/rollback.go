@@ -249,8 +249,8 @@ func (o *RollbackOptions) Run() error {
 	}
 
 	// Print warnings about any image triggers disabled during the rollback.
-	fmt.Fprintf(o.out, "#%d rolled back to %s\n", rolledback.LatestVersion, rollback.Spec.From.Name)
-	for _, trigger := range rolledback.Triggers {
+	fmt.Fprintf(o.out, "#%d rolled back to %s\n", rolledback.Status.LatestVersion, rollback.Spec.From.Name)
+	for _, trigger := range rolledback.Spec.Triggers {
 		disabled := []string{}
 		if trigger.Type == deployapi.DeploymentTriggerOnImageChange && !trigger.ImageChangeParams.Automatic {
 			disabled = append(disabled, trigger.ImageChangeParams.From.Name)
@@ -327,7 +327,7 @@ func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfi
 				break
 			}
 		} else {
-			if version < config.LatestVersion && deployutil.DeploymentStatusFor(&deployment) == deployapi.DeploymentStatusComplete {
+			if version < config.Status.LatestVersion && deployutil.DeploymentStatusFor(&deployment) == deployapi.DeploymentStatusComplete {
 				target = &deployment
 				break
 			}

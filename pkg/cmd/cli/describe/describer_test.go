@@ -170,18 +170,17 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	podList.Items = []kapi.Pod{*mkPod(kapi.PodRunning, 0)}
 	describe()
 
-	config.Triggers = append(config.Triggers, deployapitest.OkConfigChangeTrigger())
+	config.Spec.Triggers = append(config.Spec.Triggers, deployapitest.OkConfigChangeTrigger())
 	describe()
 
-	config.Template.Strategy = deployapitest.OkCustomStrategy()
+	config.Spec.Strategy = deployapitest.OkCustomStrategy()
 	describe()
 
-	config.Triggers[0].ImageChangeParams.RepositoryName = ""
-	config.Triggers[0].ImageChangeParams.From = kapi.ObjectReference{Name: "imageRepo"}
+	config.Spec.Triggers[0].ImageChangeParams.From = kapi.ObjectReference{Name: "imageRepo"}
 	describe()
 
-	config.Template.Strategy = deployapitest.OkStrategy()
-	config.Template.Strategy.RecreateParams = &deployapi.RecreateDeploymentStrategyParams{
+	config.Spec.Strategy = deployapitest.OkStrategy()
+	config.Spec.Strategy.RecreateParams = &deployapi.RecreateDeploymentStrategyParams{
 		Pre: &deployapi.LifecycleHook{
 			FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
 			ExecNewPod: &deployapi.ExecNewPodHook{

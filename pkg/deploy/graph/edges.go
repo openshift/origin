@@ -6,6 +6,7 @@ import (
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
@@ -17,13 +18,13 @@ const (
 
 // AddTriggerEdges creates edges that point to named Docker image repositories for each image used in the deployment.
 func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *deploygraph.DeploymentConfigNode) *deploygraph.DeploymentConfigNode {
-	rcTemplate := node.DeploymentConfig.Template.ControllerTemplate.Template
-	if rcTemplate == nil {
+	podTemplate := node.DeploymentConfig.Spec.Template
+	if podTemplate == nil {
 		return node
 	}
 
 	EachTemplateImage(
-		&rcTemplate.Spec,
+		&podTemplate.Spec,
 		DeploymentConfigHasTrigger(node.DeploymentConfig),
 		func(image TemplateImage, err error) {
 			if err != nil {
@@ -33,8 +34,8 @@ func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *deploygraph.DeploymentC
 				if len(image.From.Name) == 0 {
 					return
 				}
-
-				in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(image.From.Namespace, image.From.Name, image.FromTag))
+				name, tag, _ := imageapi.SplitImageStreamTag(image.From.Name)
+				in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(image.From.Namespace, name, tag))
 				g.AddEdge(in, node, TriggersDeploymentEdgeKind)
 				return
 			}

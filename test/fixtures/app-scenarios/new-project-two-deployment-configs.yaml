@@ -5,7 +5,6 @@ items:
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
     name: sinatra-app-example
-    namespace: example
   spec:
     output:
       to:
@@ -36,7 +35,6 @@ items:
   metadata:
     creationTimestamp: 2015-04-06T21:18:56Z
     name: sinatra-app-example
-    namespace: example
   spec: {}
   status:
     dockerImageRepository: ""
@@ -47,7 +45,6 @@ items:
     labels:
       buildconfig: sinatra-app-example
     name: sinatra-app-example-1
-    namespace: example
   spec:
     output:
       to:
@@ -81,7 +78,6 @@ items:
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
     name: sinatra-app-example-a
-    namespace: example
   spec:
     replicas: 1
     selector:
@@ -118,8 +114,8 @@ items:
         containerNames:
         - sinatra-app-example
         from:
-          kind: ImageRepository
-          name: sinatra-app-example
+          kind: ImageStreamTag
+          name: sinatra-app-example:latest
         lastTriggeredImage: ""
       type: ImageChange
   status: {}
@@ -128,7 +124,6 @@ items:
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
     name: sinatra-app-example-b
-    namespace: example
   spec:
     replicas: 1
     selector:
@@ -165,8 +160,8 @@ items:
         containerNames:
         - sinatra-app-example
         from:
-          kind: ImageRepository
-          name: sinatra-app-example
+          kind: ImageStreamTag
+          name: sinatra-app-example:latest
         lastTriggeredImage: ""
       type: ImageChange
   status: {}
@@ -175,7 +170,6 @@ items:
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
     name: sinatra-app-example
-    namespace: example
   spec:
     portalIP: 172.30.17.49
     ports:

@@ -908,7 +908,7 @@ func TestRunAll(t *testing.T) {
 				imageStreams = append(imageStreams, tp)
 			case *deployapi.DeploymentConfig:
 				got["deploymentConfig"] = append(got["deploymentConfig"], tp.Name)
-				if podTemplate := tp.Template.ControllerTemplate.Template; podTemplate != nil {
+				if podTemplate := tp.Spec.Template; podTemplate != nil {
 					for _, volume := range podTemplate.Spec.Volumes {
 						if volume.VolumeSource.EmptyDir != nil {
 							gotVolumes[volume.Name] = "EmptyDir"
@@ -923,9 +923,9 @@ func TestRunAll(t *testing.T) {
 					}
 				}
 				if test.config.Labels != nil {
-					if !mapContains(test.config.Labels, tp.Template.ControllerTemplate.Selector) {
+					if !mapContains(test.config.Labels, tp.Spec.Selector) {
 						t.Errorf("%s: did not get expected deployment config rc selector. Expected: %v. Got: %v",
-							test.name, test.config.Labels, tp.Template.ControllerTemplate.Selector)
+							test.name, test.config.Labels, tp.Spec.Selector)
 					}
 				}
 			}

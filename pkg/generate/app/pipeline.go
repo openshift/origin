@@ -330,12 +330,12 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 					Labels:       t.Labels,
 				},
 				Spec: kapi.ServiceSpec{
-					Selector: t.Template.ControllerTemplate.Selector,
+					Selector: t.Spec.Selector,
 				},
 			}
 
 			svcPorts := map[string]struct{}{}
-			for _, container := range t.Template.ControllerTemplate.Template.Spec.Containers {
+			for _, container := range t.Spec.Template.Spec.Containers {
 				ports := sortablePorts(container.Ports)
 				sort.Sort(&ports)
 				for _, p := range ports {

@@ -19,10 +19,7 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 	}
 	deploymentConfig := &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "default"},
-		Template: deployapi.DeploymentTemplate{
-			Strategy:           deploytest.OkStrategy(),
-			ControllerTemplate: deploytest.OkControllerTemplate(),
-		},
+		Spec:       deploytest.OkDeploymentConfigSpec(),
 	}
 	Strategy.PrepareForCreate(deploymentConfig)
 	errs := Strategy.Validate(ctx, deploymentConfig)
@@ -31,10 +28,7 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 	}
 	updatedDeploymentConfig := &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "default"},
-		Template: deployapi.DeploymentTemplate{
-			Strategy:           deploytest.OkStrategy(),
-			ControllerTemplate: deploytest.OkControllerTemplate(),
-		},
+		Spec:       deploytest.OkDeploymentConfigSpec(),
 	}
 	errs = Strategy.ValidateUpdate(ctx, updatedDeploymentConfig, deploymentConfig)
 	if len(errs) == 0 {

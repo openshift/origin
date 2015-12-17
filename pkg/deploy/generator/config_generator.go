@@ -33,7 +33,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 	configChanged := false
 	errs := fielderrors.ValidationErrorList{}
 	causes := []*deployapi.DeploymentCause{}
-	for i, trigger := range config.Triggers {
+	for i, trigger := range config.Spec.Triggers {
 		params := trigger.ImageChangeParams
 
 		// Only process image change triggers
@@ -41,29 +41,31 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 			continue
 		}
 
+		name, tag, ok := imageapi.SplitImageStreamTag(params.From.Name)
+		if !ok {
+			f := fmt.Sprintf("triggers[%d].imageChange.from", i)
+			errs = append(errs, fielderrors.NewFieldInvalid(f, name, err.Error()))
+			continue
+		}
+
 		// Find the image repo referred to by the trigger params
 		imageStream, err := g.findImageStream(config, params)
 		if err != nil {
 			f := fmt.Sprintf("triggers[%d].imageChange.from", i)
-			v := params.From.Name
-			if len(params.RepositoryName) > 0 {
-				f = fmt.Sprintf("triggers[%d].imageChange.repositoryName", i)
-				v = params.RepositoryName
-			}
-			errs = append(errs, fielderrors.NewFieldInvalid(f, v, err.Error()))
+			errs = append(errs, fielderrors.NewFieldInvalid(f, name, err.Error()))
 			continue
 		}
 
 		// Find the latest tag event for the trigger tag
-		latestEvent := imageapi.LatestTaggedImage(imageStream, params.Tag)
+		latestEvent := imageapi.LatestTaggedImage(imageStream, tag)
 		if latestEvent == nil {
 			f := fmt.Sprintf("triggers[%d].imageChange.tag", i)
-			errs = append(errs, fielderrors.NewFieldInvalid(f, params.Tag, fmt.Sprintf("no image recorded for %s/%s:%s", imageStream.Namespace, imageStream.Name, params.Tag)))
+			errs = append(errs, fielderrors.NewFieldInvalid(f, tag, fmt.Sprintf("no image recorded for %s/%s:%s", imageStream.Namespace, imageStream.Name, tag)))
 			continue
 		}
 
 		// Update containers
-		template := config.Template.ControllerTemplate.Template
+		template := config.Spec.Template
 		names := sets.NewString(params.ContainerNames...)
 		containerChanged := false
 		for i := range template.Spec.Containers {
@@ -88,8 +90,10 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 				&deployapi.DeploymentCause{
 					Type: deployapi.DeploymentTriggerOnImageChange,
 					ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
-						RepositoryName: latestEvent.DockerImageReference,
-						Tag:            params.Tag,
+						From: kapi.ObjectReference{
+							Name: imageapi.JoinImageStreamTag(imageStream.Name, tag),
+							Kind: "ImageStreamTag",
+						},
 					},
 				})
 		}
@@ -101,37 +105,27 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 
 	// Bump the version if we updated containers or if this is an initial
 	// deployment
-	if configChanged || config.LatestVersion == 0 {
-		config.Details = &deployapi.DeploymentDetails{
+	if configChanged || config.Status.LatestVersion == 0 {
+		config.Status.Details = &deployapi.DeploymentDetails{
 			Causes: causes,
 		}
-		config.LatestVersion++
+		config.Status.LatestVersion++
 	}
 
 	return config, nil
 }
 
 func (g *DeploymentConfigGenerator) findImageStream(config *deployapi.DeploymentConfig, params *deployapi.DeploymentTriggerImageChangeParams) (*imageapi.ImageStream, error) {
-	// Try to find the repo by ObjectReference
 	if len(params.From.Name) > 0 {
 		namespace := params.From.Namespace
 		if len(namespace) == 0 {
 			namespace = config.Namespace
 		}
-
-		return g.Client.GetImageStream(kapi.WithNamespace(kapi.NewContext(), namespace), params.From.Name)
-	}
-
-	// Fall back to a list based lookup on RepositoryName
-	repos, err := g.Client.ListImageStreams(kapi.WithNamespace(kapi.NewContext(), config.Namespace))
-	if err != nil {
-		return nil, err
-	}
-	for _, repo := range repos.Items {
-		if len(repo.Status.DockerImageRepository) > 0 &&
-			params.RepositoryName == repo.Status.DockerImageRepository {
-			return &repo, nil
+		name, _, ok := imageapi.SplitImageStreamTag(params.From.Name)
+		if !ok {
+			return nil, fmt.Errorf("invalid ImageStreamTag: %s", params.From.Name)
 		}
+		return g.Client.GetImageStream(kapi.WithNamespace(kapi.NewContext(), namespace), name)
 	}
 	return nil, fmt.Errorf("couldn't find image stream for config %s trigger params", deployutil.LabelForDeploymentConfig(config))
 }

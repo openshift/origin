@@ -29,40 +29,40 @@ func (g *RollbackGenerator) GenerateRollback(from, to *deployapi.DeploymentConfi
 
 	// construct the candidate deploymentConfig based on the rollback spec
 	if spec.IncludeTemplate {
-		if err := kapi.Scheme.Convert(&to.Template.ControllerTemplate.Template, &rollback.Template.ControllerTemplate.Template); err != nil {
+		if err := kapi.Scheme.Convert(&to.Spec.Template, &rollback.Spec.Template); err != nil {
 			return nil, fmt.Errorf("couldn't copy template to rollback:: %v", err)
 		}
 	}
 
 	if spec.IncludeReplicationMeta {
-		rollback.Template.ControllerTemplate.Replicas = to.Template.ControllerTemplate.Replicas
-		rollback.Template.ControllerTemplate.Selector = map[string]string{}
-		for k, v := range to.Template.ControllerTemplate.Selector {
-			rollback.Template.ControllerTemplate.Selector[k] = v
+		rollback.Spec.Replicas = to.Spec.Replicas
+		rollback.Spec.Selector = map[string]string{}
+		for k, v := range to.Spec.Selector {
+			rollback.Spec.Selector[k] = v
 		}
 	}
 
 	if spec.IncludeTriggers {
-		if err := kapi.Scheme.Convert(&to.Triggers, &rollback.Triggers); err != nil {
+		if err := kapi.Scheme.Convert(&to.Spec.Triggers, &rollback.Spec.Triggers); err != nil {
 			return nil, fmt.Errorf("couldn't copy triggers to rollback:: %v", err)
 		}
 	}
 
 	if spec.IncludeStrategy {
-		if err := kapi.Scheme.Convert(&to.Template.Strategy, &rollback.Template.Strategy); err != nil {
+		if err := kapi.Scheme.Convert(&to.Spec.Strategy, &rollback.Spec.Strategy); err != nil {
 			return nil, fmt.Errorf("couldn't copy strategy to rollback:: %v", err)
 		}
 	}
 
 	// Disable any image change triggers.
-	for _, trigger := range rollback.Triggers {
+	for _, trigger := range rollback.Spec.Triggers {
 		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
 			trigger.ImageChangeParams.Automatic = false
 		}
 	}
 
 	// TODO: add a new cause?
-	rollback.LatestVersion++
+	rollback.Status.LatestVersion++
 
 	return rollback, nil
 }

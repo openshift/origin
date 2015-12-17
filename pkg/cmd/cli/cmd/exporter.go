@@ -142,10 +142,10 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 
 	case *deployapi.DeploymentConfig:
 		// TODO: when internal refactor is completed use status reset
-		t.LatestVersion = 0
-		t.Details = nil
-		for i := range t.Triggers {
-			if p := t.Triggers[i].ImageChangeParams; p != nil {
+		t.Status.LatestVersion = 0
+		t.Status.Details = nil
+		for i := range t.Spec.Triggers {
+			if p := t.Spec.Triggers[i].ImageChangeParams; p != nil {
 				p.LastTriggeredImage = ""
 			}
 		}

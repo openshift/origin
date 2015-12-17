@@ -59,7 +59,7 @@ func TestTriggers_manual(t *testing.T) {
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
-	config.Triggers = []deployapi.DeploymentTriggerPolicy{
+	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{
 		{
 			Type: deployapi.DeploymentTriggerManual,
 		},
@@ -81,7 +81,7 @@ func TestTriggers_manual(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if config.LatestVersion != 1 {
+		if config.Status.LatestVersion != 1 {
 			t.Fatalf("Generated deployment should have version 1: %#v", config)
 		}
 		t.Logf("config(1): %#v", config)
@@ -199,8 +199,8 @@ waitForNewConfig:
 				newConfig = event.Object.(*deployapi.DeploymentConfig)
 				// Multiple updates to the config can be expected (e.g. status
 				// updates), so wait for a significant update (e.g. version).
-				if newConfig.LatestVersion > 0 {
-					if e, a := updatedPullSpec, newConfig.Template.ControllerTemplate.Template.Spec.Containers[0].Image; e != a {
+				if newConfig.Status.LatestVersion > 0 {
+					if e, a := updatedPullSpec, newConfig.Spec.Template.Spec.Containers[0].Image; e != a {
 						t.Fatalf("unexpected image for pod template container 0; expected %q, got %q", e, a)
 					}
 					break waitForNewConfig
@@ -218,7 +218,7 @@ func TestTriggers_configChange(t *testing.T) {
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
-	config.Triggers[0] = deploytest.OkConfigChangeTrigger()
+	config.Spec.Triggers[0] = deploytest.OkConfigChangeTrigger()
 	var err error
 
 	watch, err := openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
@@ -253,7 +253,7 @@ func TestTriggers_configChange(t *testing.T) {
 			return err
 		}
 
-		config.Template.ControllerTemplate.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
+		config.Spec.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
 
 		// before we update the config, we need to update the state of the existing deployment
 		// this is required to be done manually since the deployment and deployer pod controllers are not run in this test

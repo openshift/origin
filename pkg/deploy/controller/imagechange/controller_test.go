@@ -31,7 +31,7 @@ func TestHandle_changeForNonAutomaticTag(t *testing.T) {
 			},
 			listDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
 				config := deployapitest.OkDeploymentConfig(1)
-				config.Triggers[0].ImageChangeParams.Automatic = false
+				config.Spec.Triggers[0].ImageChangeParams.Automatic = false
 
 				return []*deployapi.DeploymentConfig{config}, nil
 			},
@@ -93,43 +93,31 @@ func TestHandle_matchScenarios(t *testing.T) {
 		"params.1": {
 			Automatic:          true,
 			ContainerNames:     []string{"container-1"},
-			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: "repoA"},
-			Tag:                imageapi.DefaultImageTag,
+			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag("repoA", imageapi.DefaultImageTag)},
 			LastTriggeredImage: "",
 		},
 		"params.2": {
 			Automatic:          true,
 			ContainerNames:     []string{"container-1"},
-			From:               kapi.ObjectReference{Name: "repoA"},
-			Tag:                imageapi.DefaultImageTag,
+			From:               kapi.ObjectReference{Name: imageapi.JoinImageStreamTag("repoA", imageapi.DefaultImageTag)},
 			LastTriggeredImage: "",
 		},
 		"params.3": {
 			Automatic:          false,
 			ContainerNames:     []string{"container-1"},
-			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: "repoA"},
-			Tag:                imageapi.DefaultImageTag,
+			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag("repoA", imageapi.DefaultImageTag)},
 			LastTriggeredImage: "",
 		},
-		// This tests the deprecated RepositoryName reference
 		"params.4": {
-			Automatic:      true,
-			ContainerNames: []string{"container-1"},
-			RepositoryName: "registry:8080/openshift/test-image",
-			Tag:            imageapi.DefaultImageTag,
+			Automatic:          true,
+			ContainerNames:     []string{"container-1"},
+			From:               kapi.ObjectReference{Name: imageapi.JoinImageStreamTag("repoA", imageapi.DefaultImageTag)},
+			LastTriggeredImage: "registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
 		},
 		"params.5": {
 			Automatic:          true,
 			ContainerNames:     []string{"container-1"},
-			From:               kapi.ObjectReference{Name: "repoA"},
-			Tag:                imageapi.DefaultImageTag,
-			LastTriggeredImage: "registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
-		},
-		"params.6": {
-			Automatic:          true,
-			ContainerNames:     []string{"container-1"},
-			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: "repoC"},
-			Tag:                imageapi.DefaultImageTag,
+			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag("repoC", imageapi.DefaultImageTag)},
 			LastTriggeredImage: "",
 		},
 	}
@@ -158,19 +146,6 @@ func TestHandle_matchScenarios(t *testing.T) {
 				),
 			},
 		},
-		// This one includes a Status.DockerImageRepository for testing params
-		// which use the deprecated RepositoryName reference
-		"update.2": {
-			ObjectMeta: kapi.ObjectMeta{Name: "repoA", Namespace: kapi.NamespaceDefault},
-			Status: imageapi.ImageStreamStatus{
-				DockerImageRepository: "registry:8080/openshift/test-image",
-				Tags: tagHistoryFor(
-					imageapi.DefaultImageTag,
-					"registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
-					"00000000000000000000000000000001",
-				),
-			},
-		},
 	}
 
 	scenarios := []struct {
@@ -184,22 +159,16 @@ func TestHandle_matchScenarios(t *testing.T) {
 		{"params.2", "update.1", true},
 		// Update from empty last image ID to a new one, but not marked automatic
 		{"params.3", "update.1", false},
-		// Deprecated RepositoryName reference where the update's
-		// Status.DockerImageRepository field isn't yet available
-		{"params.4", "update.1", false},
-		// Deprecated RepositoryName reference with Status.DockerImageRepository
-		// now available
-		{"params.4", "update.2", true},
 		// Updated image ID is equal to the last triggered ID
-		{"params.5", "update.1", false},
+		{"params.4", "update.1", false},
 		// Trigger repo reference doesn't match
-		{"params.6", "update.1", false},
+		{"params.5", "update.1", false},
 	}
 
 	for _, s := range scenarios {
 		config := deployapitest.OkDeploymentConfig(0)
 		config.Namespace = kapi.NamespaceDefault
-		config.Triggers = []deployapi.DeploymentTriggerPolicy{
+		config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{
 			{
 				Type:              deployapi.DeploymentTriggerOnImageChange,
 				ImageChangeParams: params[s.param],
@@ -224,9 +193,9 @@ func TestHandle_matchScenarios(t *testing.T) {
 					}
 					generated = true
 					// simulate a generation
-					newConfig := deployapitest.OkDeploymentConfig(config.LatestVersion + 1)
+					newConfig := deployapitest.OkDeploymentConfig(config.Status.LatestVersion + 1)
 					newConfig.Namespace = config.Namespace
-					newConfig.Triggers = config.Triggers
+					newConfig.Spec.Triggers = config.Spec.Triggers
 					return newConfig, nil
 				},
 				listDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {

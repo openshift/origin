@@ -590,28 +590,26 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 					Name:   name,
 					Labels: label,
 				},
-				Triggers: []dapi.DeploymentTriggerPolicy{
-					{Type: dapi.DeploymentTriggerOnConfigChange},
-				},
-				Template: dapi.DeploymentTemplate{
+				Spec: dapi.DeploymentConfigSpec{
 					Strategy: dapi.DeploymentStrategy{
 						Type:          dapi.DeploymentStrategyTypeRolling,
 						RollingParams: &dapi.RollingDeploymentStrategyParams{UpdatePercent: &updatePercent},
 					},
-					ControllerTemplate: kapi.ReplicationControllerSpec{
-						Replicas: cfg.Replicas,
-						Selector: label,
-						Template: &kapi.PodTemplateSpec{
-							ObjectMeta: kapi.ObjectMeta{Labels: label},
-							Spec: kapi.PodSpec{
-								SecurityContext: &kapi.PodSecurityContext{
-									HostNetwork: cfg.HostNetwork,
-								},
-								ServiceAccountName: cfg.ServiceAccount,
-								NodeSelector:       nodeSelector,
-								Containers:         containers,
-								Volumes:            volumes,
+					Replicas: cfg.Replicas,
+					Selector: label,
+					Triggers: []dapi.DeploymentTriggerPolicy{
+						{Type: dapi.DeploymentTriggerOnConfigChange},
+					},
+					Template: &kapi.PodTemplateSpec{
+						ObjectMeta: kapi.ObjectMeta{Labels: label},
+						Spec: kapi.PodSpec{
+							SecurityContext: &kapi.PodSecurityContext{
+								HostNetwork: cfg.HostNetwork,
 							},
+							ServiceAccountName: cfg.ServiceAccount,
+							NodeSelector:       nodeSelector,
+							Containers:         containers,
+							Volumes:            volumes,
 						},
 					},
 				},

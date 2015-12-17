@@ -100,17 +100,17 @@ func TestSimpleDeploymentConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if config.Name != "origin" || len(config.Triggers) != 2 || config.Template.ControllerTemplate.Template.Spec.Containers[0].Image != image.Reference.String() {
+	if config.Name != "origin" || len(config.Spec.Triggers) != 2 || config.Spec.Template.Spec.Containers[0].Image != image.Reference.String() {
 		t.Errorf("unexpected value: %#v", config)
 	}
-	for _, trigger := range config.Triggers {
+	for _, trigger := range config.Spec.Triggers {
 		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
 			from := trigger.ImageChangeParams.From
-			if from.Kind != "ImageStream" {
-				t.Errorf("unexpected from kind in image change trigger")
+			if from.Kind != "ImageStreamTag" {
+				t.Errorf("unexpected from.kind in image change trigger: %s", from.Kind)
 			}
-			if from.Name != "origin" && from.Namespace != "openshift" {
-				t.Errorf("unexpected  from name and namespace in image change trigger: %s, %s", from.Name, from.Namespace)
+			if from.Name != "origin:latest" && from.Namespace != "openshift" {
+				t.Errorf("unexpected from.name %q and from.namespace %q in image change trigger", from.Name, from.Namespace)
 			}
 		}
 	}

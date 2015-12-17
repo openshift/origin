@@ -67,7 +67,7 @@ func NewDeploymentConfigController(kubeClient kclient.Interface, osClient osclie
 
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
 	// There's nothing to reconcile until the version is nonzero.
-	if config.LatestVersion == 0 {
+	if config.Status.LatestVersion == 0 {
 		glog.V(5).Infof("Waiting for first version of %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
@@ -96,9 +96,9 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 				deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
 				_, err := c.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
 				if err != nil {
-					c.recorder.Eventf(config, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.LatestVersion, err)
+					c.recorder.Eventf(config, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.Status.LatestVersion, err)
 				} else {
-					c.recorder.Eventf(config, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.LatestVersion)
+					c.recorder.Eventf(config, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.Status.LatestVersion)
 				}
 			}
 		}
@@ -106,7 +106,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	// Wait for deployment cancellations before reconciling or creating a new
 	// deployment to avoid competing with existing deployment processes.
 	if awaitingCancellations {
-		c.recorder.Eventf(config, "DeploymentAwaitingCancellation", "Deployment of version %d awaiting cancellation of older running deployments", config.LatestVersion)
+		c.recorder.Eventf(config, "DeploymentAwaitingCancellation", "Deployment of version %d awaiting cancellation of older running deployments", config.Status.LatestVersion)
 		// raise a transientError so that the deployment config can be re-queued
 		return transientError(fmt.Sprintf("found previous inflight deployment for %s - requeuing", deployutil.LabelForDeploymentConfig(config)))
 	}
@@ -133,10 +133,10 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		if errors.IsAlreadyExists(err) {
 			return nil
 		}
-		c.recorder.Eventf(config, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.LatestVersion, err)
+		c.recorder.Eventf(config, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
-	c.recorder.Eventf(config, "DeploymentCreated", "Created new deployment %q for version %d", created.Name, config.LatestVersion)
+	c.recorder.Eventf(config, "DeploymentCreated", "Created new deployment %q for version %d", created.Name, config.Status.LatestVersion)
 	return nil
 }
 
@@ -169,7 +169,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 	// By default we'll assume the config replicas should be used to update the
 	// active deployment except in special cases (like first sync or externally
 	// updated deployments.)
-	activeReplicas := config.Template.ControllerTemplate.Replicas
+	activeReplicas := config.Spec.Replicas
 	source := "the deploymentConfig itself (no change)"
 
 	activeDeploymentExists := activeDeployment != nil
@@ -209,9 +209,9 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 	// Bring the config in sync with the deployment. Once we know the config
 	// accurately represents the desired replica count of the active deployment,
 	// we can safely reconcile deployments.
-	if config.Template.ControllerTemplate.Replicas != activeReplicas {
-		oldReplicas := config.Template.ControllerTemplate.Replicas
-		config.Template.ControllerTemplate.Replicas = activeReplicas
+	if config.Spec.Replicas != activeReplicas {
+		oldReplicas := config.Spec.Replicas
+		config.Spec.Replicas = activeReplicas
 		_, err := c.osClient.DeploymentConfigs(config.Namespace).Update(config)
 		if err != nil {
 			return err

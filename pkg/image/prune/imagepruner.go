@@ -459,7 +459,7 @@ func addDeploymentConfigsToGraph(g graph.Graph, dcs *deployapi.DeploymentConfigL
 		dc := &dcs.Items[i]
 		glog.V(4).Infof("Examining DeploymentConfig %s/%s", dc.Namespace, dc.Name)
 		dcNode := deploygraph.EnsureDeploymentConfigNode(g, dc)
-		addPodSpecToGraph(g, &dc.Template.ControllerTemplate.Template.Spec, dcNode)
+		addPodSpecToGraph(g, &dc.Spec.Template.Spec, dcNode)
 	}
 }
 

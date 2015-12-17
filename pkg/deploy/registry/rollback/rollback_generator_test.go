@@ -11,14 +11,14 @@ import (
 
 func TestGeneration(t *testing.T) {
 	from := deploytest.OkDeploymentConfig(2)
-	from.Template.Strategy = deployapi.DeploymentStrategy{
+	from.Spec.Strategy = deployapi.DeploymentStrategy{
 		Type: deployapi.DeploymentStrategyTypeCustom,
 	}
-	from.Triggers = append(from.Triggers, deployapi.DeploymentTriggerPolicy{Type: deployapi.DeploymentTriggerOnConfigChange})
-	from.Triggers = append(from.Triggers, deploytest.OkImageChangeTrigger())
-	from.Template.ControllerTemplate.Template.Spec.Containers[0].Name = "changed"
-	from.Template.ControllerTemplate.Replicas = 5
-	from.Template.ControllerTemplate.Selector = map[string]string{
+	from.Spec.Triggers = append(from.Spec.Triggers, deployapi.DeploymentTriggerPolicy{Type: deployapi.DeploymentTriggerOnConfigChange})
+	from.Spec.Triggers = append(from.Spec.Triggers, deploytest.OkImageChangeTrigger())
+	from.Spec.Template.Spec.Containers[0].Name = "changed"
+	from.Spec.Replicas = 5
+	from.Spec.Selector = map[string]string{
 		"new1": "new2",
 		"new2": "new2",
 	}
@@ -66,7 +66,7 @@ func TestGeneration(t *testing.T) {
 				t.Fatalf("unexpected replication meta diff: from=%v, rollback=%v", from, rollback)
 			}
 
-			for i, trigger := range rollback.Triggers {
+			for i, trigger := range rollback.Spec.Triggers {
 				if trigger.Type == deployapi.DeploymentTriggerOnImageChange && trigger.ImageChangeParams.Automatic {
 					t.Errorf("image change trigger %d should be disabled", i)
 				}
@@ -76,17 +76,17 @@ func TestGeneration(t *testing.T) {
 }
 
 func hasStrategyDiff(a, b *deployapi.DeploymentConfig) bool {
-	return a.Template.Strategy.Type != b.Template.Strategy.Type
+	return a.Spec.Strategy.Type != b.Spec.Strategy.Type
 }
 
 func hasTriggerDiff(a, b *deployapi.DeploymentConfig) bool {
-	if len(a.Triggers) != len(b.Triggers) {
+	if len(a.Spec.Triggers) != len(b.Spec.Triggers) {
 		return true
 	}
 
-	for _, triggerA := range a.Triggers {
+	for _, triggerA := range a.Spec.Triggers {
 		bHasTrigger := false
-		for _, triggerB := range b.Triggers {
+		for _, triggerB := range b.Spec.Triggers {
 			if triggerB.Type == triggerA.Type {
 				bHasTrigger = true
 				break
@@ -102,12 +102,12 @@ func hasTriggerDiff(a, b *deployapi.DeploymentConfig) bool {
 }
 
 func hasReplicationMetaDiff(a, b *deployapi.DeploymentConfig) bool {
-	if a.Template.ControllerTemplate.Replicas != b.Template.ControllerTemplate.Replicas {
+	if a.Spec.Replicas != b.Spec.Replicas {
 		return true
 	}
 
-	for keyA, valueA := range a.Template.ControllerTemplate.Selector {
-		if valueB, exists := b.Template.ControllerTemplate.Selector[keyA]; !exists || valueA != valueB {
+	for keyA, valueA := range a.Spec.Selector {
+		if valueB, exists := b.Spec.Selector[keyA]; !exists || valueA != valueB {
 			return true
 		}
 	}
@@ -116,6 +116,6 @@ func hasReplicationMetaDiff(a, b *deployapi.DeploymentConfig) bool {
 }
 
 func hasPodTemplateDiff(a, b *deployapi.DeploymentConfig) bool {
-	specA, specB := a.Template.ControllerTemplate.Template.Spec, b.Template.ControllerTemplate.Template.Spec
+	specA, specB := a.Spec.Template.Spec, b.Spec.Template.Spec
 	return !kapi.Semantic.DeepEqual(specA, specB)
 }

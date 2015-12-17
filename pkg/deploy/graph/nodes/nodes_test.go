@@ -3,32 +3,60 @@ package nodes
 import (
 	"testing"
 
+	"github.com/gonum/graph/topo"
+
 	osgraph "github.com/openshift/origin/pkg/api/graph"
+	kubetypes "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	"github.com/openshift/origin/pkg/deploy/api/test"
 )
 
-func TestDCRCSpecNode(t *testing.T) {
+func TestDCPodTemplateSpecNode(t *testing.T) {
 	g := osgraph.New()
 
 	dc := &deployapi.DeploymentConfig{}
 	dc.Namespace = "ns"
 	dc.Name = "foo"
+	dc.Spec.Template = test.OkPodTemplate()
 
-	dcNode := EnsureDeploymentConfigNode(g, dc)
+	_ = EnsureDeploymentConfigNode(g, dc)
 
-	if len(g.Nodes()) != 2 {
-		t.Errorf("expected 2 nodes, got %v", g.Nodes())
+	edges := g.Edges()
+	if len(edges) != 2 {
+		t.Errorf("expected 2 edges, got %d", len(edges))
+		return
+	}
+	for i := range edges {
+		if !g.EdgeKinds(edges[i]).Has(osgraph.ContainsEdgeKind) {
+			t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, g.EdgeKinds(edges[i]))
+			return
+		}
 	}
 
-	if len(g.Edges()) != 1 {
-		t.Errorf("expected 2 edge, got %v", g.Edges())
+	nodes := g.Nodes()
+	if len(nodes) != 3 {
+		t.Errorf("expected 3 nodes, got %d", len(nodes))
+		return
 	}
-
-	edge := g.Edges()[0]
-	if !g.EdgeKinds(edge).Has(osgraph.ContainsEdgeKind) {
-		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, g.EdgeKinds(edge))
+	sorted, err := topo.Sort(g)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+		return
 	}
-	if edge.From().ID() != dcNode.ID() {
-		t.Errorf("expected %v, got %v", dcNode.ID(), edge.From())
+	// Just to be sure
+	if len(sorted) != 3 {
+		t.Errorf("expected 3 nodes, got %d", len(sorted))
+		return
+	}
+	if _, ok := sorted[0].(*DeploymentConfigNode); !ok {
+		t.Errorf("expected first node to be a DeploymentConfigNode")
+		return
+	}
+	if _, ok := sorted[1].(*kubetypes.PodTemplateSpecNode); !ok {
+		t.Errorf("expected second node to be a PodTemplateSpecNode")
+		return
+	}
+	if _, ok := sorted[2].(*kubetypes.PodSpecNode); !ok {
+		t.Errorf("expected third node to be a PodSpecNode")
 	}
 }

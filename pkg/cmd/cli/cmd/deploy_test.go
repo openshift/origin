@@ -60,7 +60,7 @@ func TestCmdDeploy_latestOk(t *testing.T) {
 			t.Fatalf("expected updated config")
 		}
 
-		if e, a := 2, updatedConfig.LatestVersion; e != a {
+		if e, a := 2, updatedConfig.Status.LatestVersion; e != a {
 			t.Fatalf("expected updated config version %d, got %d", e, a)
 		}
 	}
@@ -292,10 +292,10 @@ func TestDeploy_reenableTriggers(t *testing.T) {
 	})
 
 	config := deploytest.OkDeploymentConfig(1)
-	config.Triggers = []deployapi.DeploymentTriggerPolicy{}
+	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{}
 	count := 3
 	for i := 0; i < count; i++ {
-		config.Triggers = append(config.Triggers, mktrigger())
+		config.Spec.Triggers = append(config.Spec.Triggers, mktrigger())
 	}
 
 	o := &DeployOptions{osClient: osClient}
@@ -308,10 +308,10 @@ func TestDeploy_reenableTriggers(t *testing.T) {
 		t.Fatalf("expected an updated config")
 	}
 
-	if e, a := count, len(config.Triggers); e != a {
+	if e, a := count, len(config.Spec.Triggers); e != a {
 		t.Fatalf("expected %d triggers, got %d", e, a)
 	}
-	for _, trigger := range config.Triggers {
+	for _, trigger := range config.Spec.Triggers {
 		if !trigger.ImageChangeParams.Automatic {
 			t.Errorf("expected trigger to be enabled: %#v", trigger.ImageChangeParams)
 		}

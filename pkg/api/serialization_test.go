@@ -220,16 +220,16 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *deploy.DeploymentConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}
+			j.Spec.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}
 			if forVersion == "v1beta3" {
 				// v1beta3 does not contain the PodSecurityContext type.  For this API version, only fuzz
 				// the host namespace fields.  The fields set to nil here are the other fields of the
 				// PodSecurityContext that will not roundtrip correctly from internal->v1beta3->internal.
-				j.Template.ControllerTemplate.Template.Spec.SecurityContext.SELinuxOptions = nil
-				j.Template.ControllerTemplate.Template.Spec.SecurityContext.RunAsUser = nil
-				j.Template.ControllerTemplate.Template.Spec.SecurityContext.RunAsNonRoot = nil
-				j.Template.ControllerTemplate.Template.Spec.SecurityContext.SupplementalGroups = nil
-				j.Template.ControllerTemplate.Template.Spec.SecurityContext.FSGroup = nil
+				j.Spec.Template.Spec.SecurityContext.SELinuxOptions = nil
+				j.Spec.Template.Spec.SecurityContext.RunAsUser = nil
+				j.Spec.Template.Spec.SecurityContext.RunAsNonRoot = nil
+				j.Spec.Template.Spec.SecurityContext.SupplementalGroups = nil
+				j.Spec.Template.Spec.SecurityContext.FSGroup = nil
 			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
@@ -283,12 +283,10 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		func(j *deploy.DeploymentCauseImageTrigger, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			specs := []string{"", "a/b", "a/b/c", "a:5000/b/c", "a/b", "a/b"}
-			tags := []string{"", "stuff", "other"}
-			j.RepositoryName = specs[c.Intn(len(specs))]
-			if len(j.RepositoryName) > 0 {
-				j.Tag = tags[c.Intn(len(tags))]
-			} else {
-				j.Tag = ""
+			tags := []string{"stuff", "other"}
+			j.From.Name = specs[c.Intn(len(specs))]
+			if len(j.From.Name) > 0 {
+				j.From.Name = image.JoinImageStreamTag(j.From.Name, tags[c.Intn(len(tags))])
 			}
 		},
 		func(j *deploy.DeploymentTriggerImageChangeParams, c fuzz.Continue) {
@@ -296,11 +294,6 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			specs := []string{"a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
 			j.From.Kind = "DockerImage"
 			j.From.Name = specs[c.Intn(len(specs))]
-			if ref, err := image.ParseDockerImageReference(j.From.Name); err == nil {
-				j.Tag = ref.Tag
-				ref.Tag, ref.ID = "", ""
-				j.RepositoryName = ref.String()
-			}
 		},
 		func(j *runtime.EmbeddedObject, c fuzz.Continue) {
 			// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.

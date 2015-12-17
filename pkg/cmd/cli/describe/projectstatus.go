@@ -390,7 +390,7 @@ func describeRouteInServiceGroup(routeNode *routegraph.RouteNode) []string {
 }
 
 func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
-	if len(dc.Triggers) == 0 {
+	if len(dc.Spec.Triggers) == 0 {
 		return "(manual)"
 	}
 
@@ -624,10 +624,10 @@ func describeDeployments(dcNode *deploygraph.DeploymentConfigNode, activeDeploym
 
 	if activeDeployment == nil {
 		on, auto := describeDeploymentConfigTriggers(dcNode.DeploymentConfig)
-		if dcNode.DeploymentConfig.LatestVersion == 0 {
+		if dcNode.DeploymentConfig.Status.LatestVersion == 0 {
 			out = append(out, fmt.Sprintf("#1 deployment waiting %s", on))
 		} else if auto {
-			out = append(out, fmt.Sprintf("#%d deployment pending %s", dcNode.DeploymentConfig.LatestVersion, on))
+			out = append(out, fmt.Sprintf("#%d deployment pending %s", dcNode.DeploymentConfig.Status.LatestVersion, on))
 		}
 		// TODO: detect new image available?
 	} else {
@@ -714,7 +714,7 @@ func describePodSummary(rc *kapi.ReplicationController, includeEmpty bool) strin
 
 func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (string, bool) {
 	hasConfig, hasImage := false, false
-	for _, t := range config.Triggers {
+	for _, t := range config.Spec.Triggers {
 		switch t.Type {
 		case deployapi.DeploymentTriggerOnConfigChange:
 			hasConfig = true
