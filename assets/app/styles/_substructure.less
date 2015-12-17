@@ -84,18 +84,17 @@ html,body {
   }
   .console-os {
     .wrap {
-      > .container { // Pages without project nav
-        margin-top: 30px;
-      }
-      .flex-display(@display: flex);
       overflow:hidden;
       height:100vh;
       margin-top:-60px; /* top offset height */
       padding-top:60px; /* top offset height */
       position:relative;
       width:100%;
-      -webkit-backface-visibility:hidden;
-      backface-visibility:hidden;
+      .backface-visibility(hidden);
+      .flex-display(@display: flex);
+      > .container { // Pages without project nav
+        margin-top: 30px;
+      }
     }
     .top-header {
       height:60px; /* top offset height */
@@ -141,6 +140,14 @@ html,body {
 //   }
 // }
 
+@media (min-width: @screen-md-min) {
+  .console-os {
+    .sidebar-right {
+      .flex(@columns: 0 0 @sidebar-right-width-md);
+    }
+  }
+}
+
 @media (min-width: @screen-lg-min) {
   .console-os {
     .sidebar-left {
@@ -151,7 +158,7 @@ html,body {
     }
     .wrap.show-sidebar-right {
       .sidebar-right {
-        .flex(@columns: 0 0 @sidebar-right-width-md);
+        .flex(@columns: 0 0 @sidebar-right-width-lg);
       }
     }
   }
@@ -167,7 +174,7 @@ html,body {
     }
     .wrap.show-sidebar-right {
       .sidebar-right {
-        .flex(@columns: 0 0 @sidebar-right-width-lg);
+        .flex(@columns: 0 0 @sidebar-right-width-xlg);
       }
     }
   }
