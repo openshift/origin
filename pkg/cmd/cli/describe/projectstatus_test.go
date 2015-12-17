@@ -171,6 +171,19 @@ func TestProjectStatus(t *testing.T) {
 				"bc/ruby-hello-world is pushing to imagestreamtag/ruby-hello-world:latest that is using is/ruby-hello-world, but the administrator has not configured the integrated Docker registry.",
 			},
 		},
+		"bare-bc-can-push": {
+			Path: "../../../../pkg/api/graph/test/bare-bc-can-push.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				// this makes sure that status knows this can push
+				"#8 build running for 2 hours\n",
+			},
+		},
 		"cyclical build": {
 			Path: "../../../../pkg/api/graph/test/circular.yaml",
 			Extra: []runtime.Object{
