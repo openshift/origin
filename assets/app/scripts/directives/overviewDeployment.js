@@ -94,7 +94,10 @@ angular.module('openshiftConsole')
             });
 
             modalInstance.result.then(function() {
-              $scope.desiredReplicas--;
+              // It's possible $scope.desiredReplicas was set to null if
+              // rc.spec.replicas changed since the dialog was shown, so call
+              // getDesiredReplicas() again.
+              $scope.desiredReplicas = $scope.getDesiredReplicas() - 1;
               scale();
             });
 
