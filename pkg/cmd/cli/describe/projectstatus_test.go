@@ -180,8 +180,8 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				// this makes sure that status knows this can push
-				"#8 build running for 2 hours\n",
+				// this makes sure that status knows this can push.  If it fails, there's a "(can't push image)" next to like #8
+				" hours\n  #7",
 			},
 		},
 		"cyclical build": {

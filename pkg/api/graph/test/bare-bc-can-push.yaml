@@ -7,7 +7,6 @@ items:
     labels:
       app: repo-base
     name: repo-base
-    namespace: repo
     resourceVersion: "1154628"
     selfLink: /oapi/v1/namespaces/repo/buildconfigs/repo-base
     uid: 8c7335e2-a390-11e5-94ad-74d43587d03d
@@ -27,7 +26,6 @@ items:
         from:
           kind: ImageStreamTag
           name: fedora:23
-          namespace: openshift
       type: Docker
     triggers:
     - github:
@@ -54,7 +52,6 @@ items:
       buildconfig: repo-base
       openshift.io/build-config.name: repo-base
     name: repo-base-7
-    namespace: repo
     resourceVersion: "1149556"
     selfLink: /oapi/v1/namespaces/repo/builds/repo-base-7
     uid: a5ac0818-a461-11e5-9268-74d43587d03d
@@ -86,7 +83,6 @@ items:
     config:
       kind: BuildConfig
       name: repo-base
-      namespace: repo
     duration: 96000000000
     outputDockerImageReference: 172.30.201.81:5000/repo/repo-base:latest
     phase: Failed
@@ -103,7 +99,6 @@ items:
       buildconfig: repo-base
       openshift.io/build-config.name: repo-base
     name: repo-base-8
-    namespace: repo
     resourceVersion: "1154645"
     selfLink: /oapi/v1/namespaces/repo/builds/repo-base-8
     uid: 8704b83b-a4cb-11e5-9268-74d43587d03d
@@ -131,7 +126,6 @@ items:
     config:
       kind: BuildConfig
       name: repo-base
-      namespace: repo
     duration: 1000000000
     outputDockerImageReference: 172.30.201.81:5000/repo/repo-base:latest
     phase: Running
@@ -145,7 +139,6 @@ items:
     labels:
       app: repo-base
     name: repo-base
-    namespace: repo
     resourceVersion: "1139441"
     selfLink: /oapi/v1/namespaces/repo/imagestreams/repo-base
     uid: e8fde4ab-a390-11e5-94ad-74d43587d03d
