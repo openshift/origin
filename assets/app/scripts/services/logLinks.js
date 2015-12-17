@@ -11,12 +11,26 @@ angular.module('openshiftConsole')
       // TODO (bpeterse): a lot of these functions are generic and could be moved/renamed to
       // a navigation oriented service.
 
+      var breakpoint = {
+        'mobile': 768
+      };
+
       var scrollTop = function() {
-        $window.scrollTo(null, 0);
+        if($(window).width() < breakpoint.mobile) {
+          $window.scrollTo(null, 0);
+        } else {
+          var objDiv = document.getElementById("container-main");
+          objDiv.scrollTop = 0;
+        }
       };
 
       var scrollBottom = function() {
-        $window.scrollTo(null, $(document).height() - $(window).height());
+        if($(window).width() < breakpoint.mobile) {
+           $window.scrollTo(null, $(document).height() - $(window).height());
+        } else {
+          var objDiv = document.getElementById("container-main");
+          objDiv.scrollTop = objDiv.scrollHeight;
+        }
       };
 
       var scrollTo = function(anchor, event) {
