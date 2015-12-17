@@ -73,7 +73,7 @@ os::cmd::expect_success 'oc get bc'
 os::cmd::expect_success 'oc get builds'
 
 # make sure the imagestream has the latest tag before starting a build or the build will immediately fail.
-os::cmd::try_until_text 'oc get is ruby-22-centos7' 'latest'
+os::cmd::try_until_text 'oc get is ruby-22-centos7' 'latest' $(( 2 * minute ))
 
 REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}')
 os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"output\":{\"to\":{\"name\":\"different:tag1\"}}}}'"
