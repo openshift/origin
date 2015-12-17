@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 	ouserapi "github.com/openshift/origin/pkg/user/api"
 )
 

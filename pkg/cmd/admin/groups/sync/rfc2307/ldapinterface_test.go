@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/ldaputil/testclient"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 )
 
 func newTestLDAPInterface(client ldap.Client) *LDAPInterface {

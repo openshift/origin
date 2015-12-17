@@ -7,7 +7,7 @@ import (
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 )
 
 // NewUserDefinedGroupNameMapper returns a new UserDefinedLDAPGroupNameMapper which maps a ldapGroupUID

@@ -2,7 +2,7 @@ package groupdetector
 
 import (
 	"github.com/openshift/origin/pkg/auth/ldaputil"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 )
 
 // NewGroupBasedDetector returns an LDAPGroupDetector that determines group existence based on
