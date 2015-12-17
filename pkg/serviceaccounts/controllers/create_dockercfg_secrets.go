@@ -27,19 +27,26 @@ import (
 
 const ServiceAccountTokenSecretNameKey = "openshift.io/token-secret.name"
 
+// ServiceAccountTokenValueAnnotation stores the actual value of the token so that a dockercfg secret can be
+// made without having a value dockerURL
+const ServiceAccountTokenValueAnnotation = "openshift.io/token-secret.value"
+
 // DockercfgControllerOptions contains options for the DockercfgController
 type DockercfgControllerOptions struct {
 	// Resync is the time.Duration at which to fully re-list service accounts.
 	// If zero, re-list will be delayed as long as possible
 	Resync time.Duration
 
-	DefaultDockerURL string
+	RegistryNamespace   string
+	RegistryServiceName string
 }
 
 // NewDockercfgController returns a new *DockercfgController.
 func NewDockercfgController(cl client.Interface, options DockercfgControllerOptions) *DockercfgController {
 	e := &DockercfgController{
-		client: cl,
+		client:           cl,
+		serviceName:      options.RegistryServiceName,
+		serviceNamespace: options.RegistryNamespace,
 	}
 
 	_, e.serviceAccountController = framework.NewInformer(
@@ -59,44 +66,59 @@ func NewDockercfgController(cl client.Interface, options DockercfgControllerOpti
 		},
 	)
 
-	e.dockerURL = options.DefaultDockerURL
-
 	return e
 }
 
 // DockercfgController manages dockercfg secrets for ServiceAccount objects
 type DockercfgController struct {
-	stopChan chan struct{}
-
 	client client.Interface
 
-	dockerURL     string
+	serviceName      string
+	serviceNamespace string
+
+	dockerURLs    []string
 	dockerURLLock sync.Mutex
 
 	serviceAccountController *framework.Controller
 }
 
 // Runs controller loops and returns immediately
-func (e *DockercfgController) Run() {
-	if e.stopChan == nil {
-		e.stopChan = make(chan struct{})
-		go e.serviceAccountController.Run(e.stopChan)
+func (e *DockercfgController) Run(stopCh chan struct{}) {
+	go e.initializeDockerURLs(stopCh)
+
+	<-stopCh
+	glog.Infof("Shutting down create dockercfg secret controller")
+}
+
+// initializeDockerURLs is the entry point for the controller.  It ensures that we have located the registry service BEFORE we start
+// creating dockercfg secrets.  Otherwise we may create them improperly
+func (e *DockercfgController) initializeDockerURLs(stopCh <-chan struct{}) {
+	// don't let panics escape
+	defer utilruntime.HandleCrash()
+
+	for {
+		select {
+		case <-stopCh:
+			return
+		case <-time.After(100 * time.Millisecond):
+			service, err := e.client.Services(e.serviceNamespace).Get(e.serviceName)
+			switch {
+			case err == nil:
+				e.SetDockerURLs(getServiceLocations(service)...)
+				fallthrough
+			case kapierrors.IsNotFound(err):
+				go e.serviceAccountController.Run(stopCh)
+				return
+			}
+		}
 	}
 }
 
-// Stop gracefully shuts down this controller
-func (e *DockercfgController) Stop() {
-	if e.stopChan != nil {
-		close(e.stopChan)
-		e.stopChan = nil
-	}
-}
-
-func (e *DockercfgController) SetDockerURL(newDockerURL string) {
+func (e *DockercfgController) SetDockerURLs(newDockerURLs ...string) {
 	e.dockerURLLock.Lock()
 	defer e.dockerURLLock.Unlock()
 
-	e.dockerURL = newDockerURL
+	e.dockerURLs = newDockerURLs
 }
 
 // serviceAccountAdded reacts to a ServiceAccount creation by creating a corresponding ServiceAccountToken Secret
@@ -277,9 +299,10 @@ func (e *DockercfgController) createDockerPullSecret(serviceAccount *api.Service
 			Name:      secret.Strategy.GenerateName(osautil.GetDockercfgSecretNamePrefix(serviceAccount)),
 			Namespace: tokenSecret.Namespace,
 			Annotations: map[string]string{
-				api.ServiceAccountNameKey:        serviceAccount.Name,
-				api.ServiceAccountUIDKey:         string(serviceAccount.UID),
-				ServiceAccountTokenSecretNameKey: string(tokenSecret.Name),
+				api.ServiceAccountNameKey:          serviceAccount.Name,
+				api.ServiceAccountUIDKey:           string(serviceAccount.UID),
+				ServiceAccountTokenSecretNameKey:   string(tokenSecret.Name),
+				ServiceAccountTokenValueAnnotation: string(tokenSecret.Data[api.ServiceAccountTokenKey]),
 			},
 		},
 		Type: api.SecretTypeDockercfg,
@@ -290,14 +313,16 @@ func (e *DockercfgController) createDockerPullSecret(serviceAccount *api.Service
 	e.dockerURLLock.Lock()
 	defer e.dockerURLLock.Unlock()
 
-	dockercfg := &credentialprovider.DockerConfig{
-		e.dockerURL: credentialprovider.DockerConfigEntry{
+	dockercfg := credentialprovider.DockerConfig{}
+	for _, dockerURL := range e.dockerURLs {
+		dockercfg[dockerURL] = credentialprovider.DockerConfigEntry{
 			Username: "serviceaccount",
 			Password: string(tokenSecret.Data[api.ServiceAccountTokenKey]),
 			Email:    "serviceaccount@example.org",
-		},
+		}
 	}
-	dockercfgContent, err := json.Marshal(dockercfg)
+
+	dockercfgContent, err := json.Marshal(&dockercfg)
 	if err != nil {
 		return nil, err
 	}

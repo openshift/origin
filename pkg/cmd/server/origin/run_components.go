@@ -128,16 +128,18 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClient(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
 	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClient(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
 
-	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClient(), serviceaccountcontrollers.DockercfgControllerOptions{DefaultDockerURL: serviceaccountcontrollers.DefaultOpenshiftDockerURL})
-	dockercfgController.Run()
+	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClient(), serviceaccountcontrollers.DockercfgControllerOptions{
+		RegistryNamespace:   "default",
+		RegistryServiceName: "docker-registry",
+	})
+	go dockercfgController.Run(make(chan struct{}))
 
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
 		RegistryNamespace:   "default",
 		RegistryServiceName: "docker-registry",
 		DockercfgController: dockercfgController,
-		DefaultDockerURL:    serviceaccountcontrollers.DefaultOpenshiftDockerURL,
 	}
-	serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClient(), dockerRegistryControllerOptions).Run()
+	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClient(), dockerRegistryControllerOptions).Run(make(chan struct{}))
 }
 
 // RunPolicyCache starts the policy cache
