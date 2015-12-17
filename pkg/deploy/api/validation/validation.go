@@ -1,36 +1,44 @@
 package validation
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
-	"k8s.io/kubernetes/pkg/util/sets"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageval "github.com/openshift/origin/pkg/image/api/validation"
 )
-
-// TODO: These tests validate the ReplicationControllerState in a Deployment or DeploymentConfig.
-//       The upstream validation API isn't factored currently to allow this; we'll make a PR to
-//       upstream and fix when it goes in.
 
 func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain).Prefix("metadata")...)
 
-	for i := range config.Triggers {
-		allErrs = append(allErrs, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
+	// TODO: Refactor to validate spec and status separately
+	for i := range config.Spec.Triggers {
+		allErrs = append(allErrs, validateTrigger(&config.Spec.Triggers[i]).PrefixIndex(i).Prefix("spec.triggers")...)
 	}
-	allErrs = append(allErrs, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
-	allErrs = append(allErrs, validation.ValidateReplicationControllerSpec(&config.Template.ControllerTemplate).Prefix("template.controllerTemplate")...)
-	if config.LatestVersion < 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("latestVersion", config.LatestVersion, "latestVersion cannot be negative"))
+	allErrs = append(allErrs, validateDeploymentStrategy(&config.Spec.Strategy).Prefix("spec.strategy")...)
+	if config.Spec.Template == nil {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("spec.template"))
+	} else {
+		allErrs = append(allErrs, validation.ValidatePodTemplateSpec(config.Spec.Template).Prefix("spec.template")...)
+	}
+	if config.Status.LatestVersion < 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("status.latestVersion", config.Status.LatestVersion, "latestVersion cannot be negative"))
+	}
+	if config.Spec.Replicas < 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec.replicas", config.Spec.Replicas, "replicas cannot be negative"))
+	}
+	if config.Spec.Selector == nil || len(config.Spec.Selector) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec.selector", config.Spec.Selector, "selector cannot be empty"))
 	}
 	return allErrs
 }
@@ -39,10 +47,10 @@ func ValidateDeploymentConfigUpdate(newConfig *deployapi.DeploymentConfig, oldCo
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&newConfig.ObjectMeta, &oldConfig.ObjectMeta).Prefix("metadata")...)
 	allErrs = append(allErrs, ValidateDeploymentConfig(newConfig)...)
-	if newConfig.LatestVersion < oldConfig.LatestVersion {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("latestVersion", newConfig.LatestVersion, "latestVersion cannot be decremented"))
-	} else if newConfig.LatestVersion > (oldConfig.LatestVersion + 1) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("latestVersion", newConfig.LatestVersion, "latestVersion can only be incremented by 1"))
+	if newConfig.Status.LatestVersion < oldConfig.Status.LatestVersion {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("status.latestVersion", newConfig.Status.LatestVersion, "latestVersion cannot be decremented"))
+	} else if newConfig.Status.LatestVersion > (oldConfig.Status.LatestVersion + 1) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("status.latestVersion", newConfig.Status.LatestVersion, "latestVersion can only be incremented by 1"))
 	}
 	return allErrs
 }
@@ -254,29 +262,17 @@ func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy) fielderrors.Val
 func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangeParams) fielderrors.ValidationErrorList {
 	errs := fielderrors.ValidationErrorList{}
 
-	if len(params.From.Name) != 0 {
-		if len(params.From.Kind) == 0 {
-			params.From.Kind = "ImageStream"
+	if len(params.From.Name) == 0 {
+		errs = append(errs, fielderrors.NewFieldRequired("from"))
+	} else {
+		if params.From.Kind != "ImageStreamTag" {
+			errs = append(errs, fielderrors.NewFieldInvalid("from.kind", params.From.Kind, "kind must be an ImageStreamTag"))
 		}
-		kinds := sets.NewString("ImageRepository", "ImageStream", "ImageStreamTag")
-		if !kinds.Has(params.From.Kind) {
-			msg := fmt.Sprintf("kind must be one of: %s", strings.Join(kinds.List(), ", "))
-			errs = append(errs, fielderrors.NewFieldInvalid("from.kind", params.From.Kind, msg))
-		}
-
-		if !kvalidation.IsDNS1123Subdomain(params.From.Name) {
-			errs = append(errs, fielderrors.NewFieldInvalid("from.name", params.From.Name, "name must be a valid subdomain"))
+		if err := validateImageStreamTagName(params.From.Name); err != nil {
+			errs = append(errs, fielderrors.NewFieldInvalid("from.name", params.From.Name, err.Error()))
 		}
 		if len(params.From.Namespace) != 0 && !kvalidation.IsDNS1123Subdomain(params.From.Namespace) {
 			errs = append(errs, fielderrors.NewFieldInvalid("from.namespace", params.From.Namespace, "namespace must be a valid subdomain"))
-		}
-
-		if len(params.RepositoryName) != 0 {
-			errs = append(errs, fielderrors.NewFieldInvalid("repositoryName", params.RepositoryName, "only one of 'from', 'repository' name may be specified"))
-		}
-	} else {
-		if len(params.RepositoryName) == 0 {
-			errs = append(errs, fielderrors.NewFieldRequired("from"))
 		}
 	}
 
@@ -285,6 +281,18 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 	}
 
 	return errs
+}
+
+func validateImageStreamTagName(istag string) error {
+	name, _, ok := imageapi.SplitImageStreamTag(istag)
+	if !ok {
+		return fmt.Errorf("invalid ImageStreamTag: %s", istag)
+	}
+	ok, reason := imageval.ValidateImageStreamName(name, false)
+	if !ok {
+		return errors.New(reason)
+	}
+	return nil
 }
 
 func ValidatePositiveIntOrPercent(intOrPercent util.IntOrString, fieldName string) fielderrors.ValidationErrorList {

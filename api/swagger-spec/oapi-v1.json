@@ -16076,7 +16076,7 @@
      },
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "a reference to an ImageRepository, ImageStream, or ImageStreamTag to watch for changes"
+      "description": "a reference to an ImageStreamTag to watch for changes"
      },
      "lastTriggeredImage": {
       "type": "string",
