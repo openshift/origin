@@ -105,6 +105,21 @@ os::build::host_platform() {
   echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
 
+# Try and replicate the native binary placement of go install without
+# calling go install.
+kube::golang::output_filename_for_binary() {
+      local binary=$1
+      local output_path="${KUBE_GOPATH}/bin"
+      if [[ $platform != $host_platform ]]; then
+         output_path="${output_path}/${platform//\//_}"
+      fi
+      local bin=$(basename "${binary}")
+      if [[ ${GOOS} == "windows" ]]; then
+          bin="${bin}.exe"
+      fi
+      echo "${output_path}/${bin}"
+}
+
 # Build binaries targets specified
 #
 # Input:
@@ -127,12 +142,14 @@ os::build::build_binaries() {
     local platform
     for platform in "${platforms[@]}"; do
       os::build::set_platform_envs "${platform}"
+      echo "GOPATH [[[[[[[[ $GOPATH ]]]]]]]]"
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
       set -x
       go install "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "${binaries[@]}"
 
       # TODO: Pick a good output location for these tests, without hardcoding to _output/...
-      go test -c "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" github.com/openshift/origin/test/e2e
+      test_out="`echo $GOPATH | cut -d':' -f 1`"/bin/e2e.test
+      go test -c "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" github.com/openshift/origin/test/e2e -o $test_out
       os::build::unset_platform_envs "${platform}"
     done
   )
