@@ -44,10 +44,14 @@ readonly OS_CROSS_COMPILE_PLATFORMS=(
   windows/amd64
   linux/386
 )
+
+# e2e.test has special logic
 readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
   cmd/oc
+  test/e2e/e2e.test
 )
+
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
 readonly OS_ALL_TARGETS=(
@@ -105,21 +109,6 @@ os::build::host_platform() {
   echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
 
-# Try and replicate the native binary placement of go install without
-# calling go install.
-kube::golang::output_filename_for_binary() {
-      local binary=$1
-      local output_path="${KUBE_GOPATH}/bin"
-      if [[ $platform != $host_platform ]]; then
-         output_path="${output_path}/${platform//\//_}"
-      fi
-      local bin=$(basename "${binary}")
-      if [[ ${GOOS} == "windows" ]]; then
-          bin="${bin}.exe"
-      fi
-      echo "${output_path}/${bin}"
-}
-
 # Build binaries targets specified
 #
 # Input:
@@ -144,12 +133,19 @@ os::build::build_binaries() {
       os::build::set_platform_envs "${platform}"
       echo "GOPATH [[[[[[[[ $GOPATH ]]]]]]]]"
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
-      set -x
-      go install "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "${binaries[@]}"
-
-      # TODO: Pick a good output location for these tests, without hardcoding to _output/...
-      test_out="`echo $GOPATH | cut -d':' -f 1`"/bin/e2e.test
-      go test -c "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" github.com/openshift/origin/test/e2e -o $test_out
+      for b in ${binaries[@]}; do
+          echo "install $b"
+          if [[ "$b" == "github.com/openshift/origin/test/e2e/e2e.test" ]]; then
+              echo "test install $b"
+              bpkg="`dirname $b`"
+              echo "pkg $bpkg"
+              test_out="`echo $GOPATH | cut -d':' -f 1`"/bin/e2e.test
+              go test -c "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "$bpkg" -o $test_out
+          else
+              echo "real install $b"
+              go install "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "$b"
+          fi
+      done
       os::build::unset_platform_envs "${platform}"
     done
   )
@@ -179,7 +175,6 @@ os::build::export_targets() {
   fi
 
   binaries=($(os::build::binaries_from_targets "${targets[@]}"))
-
   platforms=("${OS_BUILD_PLATFORMS[@]:+${OS_BUILD_PLATFORMS[@]}}")
   if [[ ${#platforms[@]} -eq 0 ]]; then
     platforms=("$(os::build::host_platform)")
