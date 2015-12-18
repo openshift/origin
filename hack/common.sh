@@ -133,13 +133,14 @@ os::build::build_binaries() {
       os::build::set_platform_envs "${platform}"
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
       for b in ${binaries[@]}; do
-          echo "install $b"
+          echo "Building $b"
           if [[ "$b" == *"e2e.test"* ]]; then
+              echo "... Building test binary $b"
               bpkg="`dirname $b`"
               test_out="`echo $GOPATH | cut -d':' -f 1`"/bin/e2e.test
               go test -c "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "$bpkg" -o $test_out
           else
-              echo "real install $b"
+              echo "... Building core binary $b"
               go install "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "$b"
           fi
       done
