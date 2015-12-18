@@ -167,13 +167,16 @@ func SetFakeCadvisorInterfaceForIntegrationTest() {
 	defaultCadvisorInterface = &cadvisor.Fake{}
 }
 
-type FilteringEndpointsConfigHandler interface {
-	pconfig.EndpointsConfigHandler
-	SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler)
+func (c *NodeConfig) RunSDN() {
+	if c.SDNPlugin != nil {
+		if err := c.SDNPlugin.StartNode(c.MTU); err != nil {
+			glog.Fatalf("SDN Node failed: %v", err)
+		}
+	}
 }
 
 // RunProxy starts the proxy
-func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler) {
+func (c *NodeConfig) RunProxy() {
 	// initialize kube proxy
 	serviceConfig := pconfig.NewServiceConfig()
 	endpointsConfig := pconfig.NewEndpointsConfig()
@@ -223,11 +226,11 @@ func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler)
 		endpointsConfig.Channel("api"))
 
 	serviceConfig.RegisterHandler(proxier)
-	if endpointsFilterer == nil {
+	if c.FilteringEndpointsHandler == nil {
 		endpointsConfig.RegisterHandler(proxier)
 	} else {
-		endpointsFilterer.SetBaseEndpointsHandler(proxier)
-		endpointsConfig.RegisterHandler(endpointsFilterer)
+		c.FilteringEndpointsHandler.SetBaseEndpointsHandler(proxier)
+		endpointsConfig.RegisterHandler(c.FilteringEndpointsHandler)
 	}
 	recorder.Eventf(nodeRef, "Starting", "Starting kube-proxy.")
 	glog.Infof("Started Kubernetes Proxy on %s", host)
