@@ -15,7 +15,10 @@ GOPATH=${OSDN_ROOT}/_output:${OSDN_ROOT}/Godeps/_workspace
 export GOPATH
 
 ALL_TESTS="
+pkg/exec
+pkg/ipcmd
 pkg/netutils
+pkg/ovs
 "
 for test in ${WHAT:-${ALL_TESTS}}; do
     go test -v github.com/openshift/openshift-sdn/${test}
