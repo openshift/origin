@@ -134,8 +134,8 @@ func (oc *OvsController) SubnetStartNode(mtu uint) error {
 }
 
 func (oc *OvsController) initSelfSubnet() error {
-	// timeout: 10 secs
-	retries := 20
+	// timeout: 30 secs
+	retries := 60
 	retryInterval := 500 * time.Millisecond
 
 	var err error
