@@ -131,14 +131,11 @@ os::build::build_binaries() {
     local platform
     for platform in "${platforms[@]}"; do
       os::build::set_platform_envs "${platform}"
-      echo "GOPATH [[[[[[[[ $GOPATH ]]]]]]]]"
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
       for b in ${binaries[@]}; do
           echo "install $b"
-          if [[ "$b" == "github.com/openshift/origin/test/e2e/e2e.test" ]]; then
-              echo "test install $b"
+          if [[ "$b" == *"e2e.test"* ]]; then
               bpkg="`dirname $b`"
-              echo "pkg $bpkg"
               test_out="`echo $GOPATH | cut -d':' -f 1`"/bin/e2e.test
               go test -c "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "$bpkg" -o $test_out
           else
