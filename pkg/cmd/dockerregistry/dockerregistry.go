@@ -8,16 +8,19 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus/formatters/logstash"
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/digest"
-	"github.com/docker/distribution/registry/api/v2"
+	"github.com/docker/distribution/health"
+	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/auth"
 	"github.com/docker/distribution/registry/handlers"
 	_ "github.com/docker/distribution/registry/storage/driver/filesystem"
 	_ "github.com/docker/distribution/registry/storage/driver/s3"
+	"github.com/docker/distribution/uuid"
 	"github.com/docker/distribution/version"
 	gorillahandlers "github.com/gorilla/handlers"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -31,21 +34,17 @@ func Execute(configFile io.Reader) {
 		log.Fatalf("Error parsing configuration file: %s", err)
 	}
 
-	logLevel, err := log.ParseLevel(string(config.Log.Level))
-	if err != nil {
-		log.Errorf("Error parsing log level %q: %s", config.Log.Level, err)
-		logLevel = log.InfoLevel
-	}
-	log.SetLevel(logLevel)
-
-	log.Infof("version=%s", version.Version)
 	ctx := context.Background()
+	ctx, err = configureLogging(ctx, config)
+	if err != nil {
+		log.Fatalf("error configuring logger: %v", err)
+	}
+	log.Infof("version=%s", version.Version)
+	// inject a logger into the uuid library. warns us if there is a problem
+	// with uuid generation under low entropy.
+	uuid.Loggerf = context.GetLogger(ctx).Warnf
 
-	app := handlers.NewApp(ctx, *config)
-
-	// register OpenShift routes
-	// TODO: change this to an anonymous Access record
-	app.RegisterRoute(app.NewRoute().Path("/healthz"), server.HealthzHandler, handlers.NameNotRequired, handlers.NoCustomAccessRecords)
+	app := handlers.NewApp(ctx, config)
 
 	// TODO add https scheme
 	adminRouter := app.NewRoute().PathPrefix("/admin/").Subrouter()
@@ -63,7 +62,7 @@ func Execute(configFile io.Reader) {
 
 	app.RegisterRoute(
 		// DELETE /admin/blobs/<digest>
-		adminRouter.Path("/blobs/{digest:"+digest.DigestRegexp.String()+"}").Methods("DELETE"),
+		adminRouter.Path("/blobs/{digest:"+reference.DigestRegexp.String()+"}").Methods("DELETE"),
 		// handler
 		server.BlobDispatcher,
 		// repo name not required in url
@@ -72,29 +71,11 @@ func Execute(configFile io.Reader) {
 		pruneAccessRecords,
 	)
 
-	app.RegisterRoute(
-		// DELETE /admin/<repo>/manifests/<digest>
-		adminRouter.Path("/{name:"+v2.RepositoryNameRegexp.String()+"}/manifests/{digest:"+digest.DigestRegexp.String()+"}").Methods("DELETE"),
-		// handler
-		server.ManifestDispatcher,
-		// repo name required in url
-		handlers.NameRequired,
-		// custom access records
-		pruneAccessRecords,
-	)
-
-	app.RegisterRoute(
-		// DELETE /admin/<repo>/layers/<digest>
-		adminRouter.Path("/{name:"+v2.RepositoryNameRegexp.String()+"}/layers/{digest:"+digest.DigestRegexp.String()+"}").Methods("DELETE"),
-		// handler
-		server.LayerDispatcher,
-		// repo name required in url
-		handlers.NameRequired,
-		// custom access records
-		pruneAccessRecords,
-	)
-
-	handler := gorillahandlers.CombinedLoggingHandler(os.Stdout, app)
+	app.RegisterHealthChecks()
+	handler := alive("/", app)
+	handler = health.Handler(handler)
+	handler = panicHandler(handler)
+	handler = gorillahandlers.CombinedLoggingHandler(os.Stdout, handler)
 
 	if config.HTTP.TLS.Certificate == "" {
 		context.GetLogger(app).Infof("listening on %v", config.HTTP.Addr)
@@ -137,4 +118,100 @@ func Execute(configFile io.Reader) {
 			context.GetLogger(app).Fatalln(err)
 		}
 	}
+}
+
+// configureLogging prepares the context with a logger using the
+// configuration.
+func configureLogging(ctx context.Context, config *configuration.Configuration) (context.Context, error) {
+	if config.Log.Level == "" && config.Log.Formatter == "" {
+		// If no config for logging is set, fallback to deprecated "Loglevel".
+		log.SetLevel(logLevel(config.Loglevel))
+		ctx = context.WithLogger(ctx, context.GetLogger(ctx))
+		return ctx, nil
+	}
+
+	log.SetLevel(logLevel(config.Log.Level))
+
+	formatter := config.Log.Formatter
+	if formatter == "" {
+		formatter = "text" // default formatter
+	}
+
+	switch formatter {
+	case "json":
+		log.SetFormatter(&log.JSONFormatter{
+			TimestampFormat: time.RFC3339Nano,
+		})
+	case "text":
+		log.SetFormatter(&log.TextFormatter{
+			TimestampFormat: time.RFC3339Nano,
+		})
+	case "logstash":
+		log.SetFormatter(&logstash.LogstashFormatter{
+			TimestampFormat: time.RFC3339Nano,
+		})
+	default:
+		// just let the library use default on empty string.
+		if config.Log.Formatter != "" {
+			return ctx, fmt.Errorf("unsupported logging formatter: %q", config.Log.Formatter)
+		}
+	}
+
+	if config.Log.Formatter != "" {
+		log.Debugf("using %q logging formatter", config.Log.Formatter)
+	}
+
+	if len(config.Log.Fields) > 0 {
+		// build up the static fields, if present.
+		var fields []interface{}
+		for k := range config.Log.Fields {
+			fields = append(fields, k)
+		}
+
+		ctx = context.WithValues(ctx, config.Log.Fields)
+		ctx = context.WithLogger(ctx, context.GetLogger(ctx, fields...))
+	}
+
+	return ctx, nil
+}
+
+func logLevel(level configuration.Loglevel) log.Level {
+	l, err := log.ParseLevel(string(level))
+	if err != nil {
+		l = log.InfoLevel
+		log.Warnf("error parsing level %q: %v, using %q	", level, err, l)
+	}
+
+	return l
+}
+
+// alive simply wraps the handler with a route that always returns an http 200
+// response when the path is matched. If the path is not matched, the request
+// is passed to the provided handler. There is no guarantee of anything but
+// that the server is up. Wrap with other handlers (such as health.Handler)
+// for greater affect.
+func alive(path string, handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == path {
+			w.Header().Set("Cache-Control", "no-cache")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// panicHandler add a HTTP handler to web app. The handler recover the happening
+// panic. logrus.Panic transmits panic message to pre-config log hooks, which is
+// defined in config.yml.
+func panicHandler(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Panic(fmt.Sprintf("%v", err))
+			}
+		}()
+		handler.ServeHTTP(w, r)
+	})
 }

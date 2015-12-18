@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	"github.com/docker/distribution/registry/storage/driver/inmemory"
@@ -32,8 +33,9 @@ func TestSimpleWrite(t *testing.T) {
 
 	driver := inmemory.New()
 	path := "/random"
+	ctx := context.Background()
 
-	fw, err := newFileWriter(driver, path)
+	fw, err := newFileWriter(ctx, driver, path)
 	if err != nil {
 		t.Fatalf("unexpected error creating fileWriter: %v", err)
 	}
@@ -49,7 +51,7 @@ func TestSimpleWrite(t *testing.T) {
 		t.Fatalf("unexpected write length: %d != %d", n, len(content))
 	}
 
-	fr, err := newFileReader(driver, path)
+	fr, err := newFileReader(ctx, driver, path, int64(len(content)))
 	if err != nil {
 		t.Fatalf("unexpected error creating fileReader: %v", err)
 	}
@@ -76,23 +78,23 @@ func TestSimpleWrite(t *testing.T) {
 		t.Fatalf("write did not advance offset: %d != %d", end, len(content))
 	}
 
-	// Double the content, but use the WriteAt method
+	// Double the content
 	doubled := append(content, content...)
 	doubledgst, err := digest.FromReader(bytes.NewReader(doubled))
 	if err != nil {
 		t.Fatalf("unexpected error digesting doubled content: %v", err)
 	}
 
-	n, err = fw.WriteAt(content, end)
+	nn, err := fw.ReadFrom(bytes.NewReader(content))
 	if err != nil {
-		t.Fatalf("unexpected error writing content at %d: %v", end, err)
+		t.Fatalf("unexpected error doubling content: %v", err)
 	}
 
-	if n != len(content) {
+	if nn != int64(len(content)) {
 		t.Fatalf("writeat was short: %d != %d", n, len(content))
 	}
 
-	fr, err = newFileReader(driver, path)
+	fr, err = newFileReader(ctx, driver, path, int64(len(doubled)))
 	if err != nil {
 		t.Fatalf("unexpected error creating fileReader: %v", err)
 	}
@@ -109,32 +111,32 @@ func TestSimpleWrite(t *testing.T) {
 		t.Fatalf("unable to verify write data")
 	}
 
-	// Check that WriteAt didn't update the offset.
+	// Check that Write updated the offset.
 	end, err = fw.Seek(0, os.SEEK_END)
 	if err != nil {
 		t.Fatalf("unexpected error seeking: %v", err)
 	}
 
-	if end != int64(len(content)) {
-		t.Fatalf("write did not advance offset: %d != %d", end, len(content))
+	if end != int64(len(doubled)) {
+		t.Fatalf("write did not advance offset: %d != %d", end, len(doubled))
 	}
 
 	// Now, we copy from one path to another, running the data through the
 	// fileReader to fileWriter, rather than the driver.Move command to ensure
 	// everything is working correctly.
-	fr, err = newFileReader(driver, path)
+	fr, err = newFileReader(ctx, driver, path, int64(len(doubled)))
 	if err != nil {
 		t.Fatalf("unexpected error creating fileReader: %v", err)
 	}
 	defer fr.Close()
 
-	fw, err = newFileWriter(driver, "/copied")
+	fw, err = newFileWriter(ctx, driver, "/copied")
 	if err != nil {
 		t.Fatalf("unexpected error creating fileWriter: %v", err)
 	}
 	defer fw.Close()
 
-	nn, err := io.Copy(fw, fr)
+	nn, err = io.Copy(fw, fr)
 	if err != nil {
 		t.Fatalf("unexpected error copying data: %v", err)
 	}
@@ -143,7 +145,7 @@ func TestSimpleWrite(t *testing.T) {
 		t.Fatalf("unexpected copy length: %d != %d", nn, len(doubled))
 	}
 
-	fr, err = newFileReader(driver, "/copied")
+	fr, err = newFileReader(ctx, driver, "/copied", int64(len(doubled)))
 	if err != nil {
 		t.Fatalf("unexpected error creating fileReader: %v", err)
 	}
@@ -162,7 +164,8 @@ func TestSimpleWrite(t *testing.T) {
 }
 
 func TestBufferedFileWriter(t *testing.T) {
-	writer, err := newFileWriter(inmemory.New(), "/random")
+	ctx := context.Background()
+	writer, err := newFileWriter(ctx, inmemory.New(), "/random")
 
 	if err != nil {
 		t.Fatalf("Failed to initialize bufferedFileWriter: %v", err.Error())
@@ -203,8 +206,8 @@ func BenchmarkFileWriter(b *testing.B) {
 			driver: inmemory.New(),
 			path:   "/random",
 		}
-
-		if fi, err := fw.driver.Stat(fw.path); err != nil {
+		ctx := context.Background()
+		if fi, err := fw.driver.Stat(ctx, fw.path); err != nil {
 			switch err := err.(type) {
 			case storagedriver.PathNotFoundError:
 				// ignore, offset is zero
@@ -236,8 +239,9 @@ func BenchmarkFileWriter(b *testing.B) {
 
 func BenchmarkBufferedFileWriter(b *testing.B) {
 	b.StopTimer() // not sure how long setup above will take
+	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
-		bfw, err := newFileWriter(inmemory.New(), "/random")
+		bfw, err := newFileWriter(ctx, inmemory.New(), "/random")
 
 		if err != nil {
 			b.Fatalf("Failed to initialize bufferedFileWriter: %v", err.Error())

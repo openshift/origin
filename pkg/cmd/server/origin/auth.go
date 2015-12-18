@@ -10,11 +10,11 @@ import (
 	"net/url"
 	"path"
 
-	"code.google.com/p/go-uuid/uuid"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
+	"github.com/pborman/uuid"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kuser "k8s.io/kubernetes/pkg/auth/user"

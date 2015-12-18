@@ -11,11 +11,6 @@
 			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
 		},
 		{
-			"ImportPath": "code.google.com/p/go-uuid/uuid",
-			"Comment": "null-12",
-			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
-		},
-		{
 			"ImportPath": "github.com/AaronO/go-git-http",
 			"Rev": "0ebecedc64b67a3a8674c56724082660be48216e"
 		},
@@ -335,8 +330,8 @@
 		},
 		{
 			"ImportPath": "github.com/docker/distribution",
-			"Comment": "v2.0.1",
-			"Rev": "1341222284b3a6b4e77fb64571ad423ed58b0d34"
+			"Comment": "v2.2.1",
+			"Rev": "e6c60e79c570f97ef36f280fcebed497682a5f37"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/builder/command",
@@ -817,6 +812,10 @@
 		{
 			"ImportPath": "github.com/spf13/pflag",
 			"Rev": "08b1a584251b5b62f458943640fc8ebd4d50aaa5"
+		},
+		{
+			"ImportPath": "github.com/stevvooe/resumable",
+			"Rev": "51ad44105773cafcbe91927f70ac68e1bf78f8b4"
 		},
 		{
 			"ImportPath": "github.com/stretchr/objx",

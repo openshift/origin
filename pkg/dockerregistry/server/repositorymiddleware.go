@@ -8,17 +8,17 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/docker/distribution"
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
-	"github.com/docker/distribution/manifest"
+	"github.com/docker/distribution/manifest/schema1"
 	repomw "github.com/docker/distribution/registry/middleware/repository"
 	"github.com/docker/libtrust"
-	"github.com/openshift/origin/pkg/client"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	"golang.org/x/net/context"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+
+	"github.com/openshift/origin/pkg/client"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func init() {
@@ -28,17 +28,20 @@ func init() {
 type repository struct {
 	distribution.Repository
 
-	registryClient *client.Client
+	ctx            context.Context
+	registryClient client.Interface
 	registryAddr   string
 	namespace      string
 	name           string
 }
 
+var _ distribution.ManifestService = &repository{}
+
 // newRepository returns a new repository middleware.
-func newRepository(repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
-	registryAddr := os.Getenv("REGISTRY_URL")
+func newRepository(ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
+	registryAddr := os.Getenv("DOCKER_REGISTRY_URL")
 	if len(registryAddr) == 0 {
-		return nil, errors.New("REGISTRY_URL is required")
+		return nil, errors.New("DOCKER_REGISTRY_URL is required")
 	}
 
 	registryClient, err := NewRegistryOpenShiftClient()
@@ -52,7 +55,9 @@ func newRepository(repo distribution.Repository, options map[string]interface{})
 	}
 
 	return &repository{
-		Repository:     repo,
+		Repository: repo,
+
+		ctx:            ctx,
 		registryClient: registryClient,
 		registryAddr:   registryAddr,
 		namespace:      nameParts[0],
@@ -61,13 +66,18 @@ func newRepository(repo distribution.Repository, options map[string]interface{})
 }
 
 // Manifests returns r, which implements distribution.ManifestService.
-func (r *repository) Manifests() distribution.ManifestService {
-	return r
+func (r *repository) Manifests(ctx context.Context, options ...distribution.ManifestServiceOption) (distribution.ManifestService, error) {
+	if r.ctx == ctx {
+		return r, nil
+	}
+	repo := repository(*r)
+	repo.ctx = ctx
+	return &repo, nil
 }
 
 // Tags lists the tags under the named repository.
-func (r *repository) Tags(ctx context.Context) ([]string, error) {
-	imageStream, err := r.getImageStream(ctx)
+func (r *repository) Tags() ([]string, error) {
+	imageStream, err := r.getImageStream()
 	if err != nil {
 		return []string{}, nil
 	}
@@ -80,7 +90,7 @@ func (r *repository) Tags(ctx context.Context) ([]string, error) {
 }
 
 // Exists returns true if the manifest specified by dgst exists.
-func (r *repository) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
+func (r *repository) Exists(dgst digest.Digest) (bool, error) {
 	image, err := r.getImage(dgst)
 	if err != nil {
 		return false, err
@@ -89,8 +99,8 @@ func (r *repository) Exists(ctx context.Context, dgst digest.Digest) (bool, erro
 }
 
 // ExistsByTag returns true if the manifest with tag `tag` exists.
-func (r *repository) ExistsByTag(ctx context.Context, tag string) (bool, error) {
-	imageStream, err := r.getImageStream(ctx)
+func (r *repository) ExistsByTag(tag string) (bool, error) {
+	imageStream, err := r.getImageStream()
 	if err != nil {
 		return false, err
 	}
@@ -99,39 +109,49 @@ func (r *repository) ExistsByTag(ctx context.Context, tag string) (bool, error) 
 }
 
 // Get retrieves the manifest with digest `dgst`.
-func (r *repository) Get(ctx context.Context, dgst digest.Digest) (*manifest.SignedManifest, error) {
-	if _, err := r.getImageStreamImage(ctx, dgst); err != nil {
-		log.Errorf("Error retrieving ImageStreamImage %s/%s@%s: %v", r.namespace, r.name, dgst.String(), err)
+func (r *repository) Get(dgst digest.Digest) (*schema1.SignedManifest, error) {
+	if _, err := r.getImageStreamImage(dgst); err != nil {
+		context.GetLogger(r.ctx).Errorf("Error retrieving ImageStreamImage %s/%s@%s: %v", r.namespace, r.name, dgst.String(), err)
 		return nil, err
 	}
 
 	image, err := r.getImage(dgst)
 	if err != nil {
-		log.Errorf("Error retrieving image %s: %v", dgst.String(), err)
+		context.GetLogger(r.ctx).Errorf("Error retrieving image %s: %v", dgst.String(), err)
 		return nil, err
 	}
 
 	return r.manifestFromImage(image)
 }
 
+// Enumerate retrieves digests of manifest revisions in particular repository
+func (r *repository) Enumerate() ([]digest.Digest, error) {
+	panic("not implemented")
+}
+
 // GetByTag retrieves the named manifest with the provided tag
-func (r *repository) GetByTag(ctx context.Context, tag string) (*manifest.SignedManifest, error) {
-	imageStreamTag, err := r.getImageStreamTag(ctx, tag)
+func (r *repository) GetByTag(tag string, options ...distribution.ManifestServiceOption) (*schema1.SignedManifest, error) {
+	for _, opt := range options {
+		if err := opt(r); err != nil {
+			return nil, err
+		}
+	}
+	imageStreamTag, err := r.getImageStreamTag(tag)
 	if err != nil {
-		log.Errorf("Error getting ImageStreamTag %q: %v", tag, err)
+		context.GetLogger(r.ctx).Errorf("Error getting ImageStreamTag %q: %v", tag, err)
 		return nil, err
 	}
 	image := &imageStreamTag.Image
 
 	dgst, err := digest.ParseDigest(imageStreamTag.Image.Name)
 	if err != nil {
-		log.Errorf("Error parsing digest %q: %v", imageStreamTag.Image.Name, err)
+		context.GetLogger(r.ctx).Errorf("Error parsing digest %q: %v", imageStreamTag.Image.Name, err)
 		return nil, err
 	}
 
 	image, err = r.getImage(dgst)
 	if err != nil {
-		log.Errorf("Error getting image %q: %v", dgst.String(), err)
+		context.GetLogger(r.ctx).Errorf("Error getting image %q: %v", dgst.String(), err)
 		return nil, err
 	}
 
@@ -139,7 +159,7 @@ func (r *repository) GetByTag(ctx context.Context, tag string) (*manifest.Signed
 }
 
 // Put creates or updates the named manifest.
-func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest) error {
+func (r *repository) Put(manifest *schema1.SignedManifest) error {
 	// Resolve the payload in the manifest.
 	payload, err := manifest.Payload()
 	if err != nil {
@@ -175,13 +195,13 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 		// if the error was that the image stream wasn't found, try to auto provision it
 		statusErr, ok := err.(*kerrors.StatusError)
 		if !ok {
-			log.Errorf("Error creating ImageStreamMapping: %s", err)
+			context.GetLogger(r.ctx).Errorf("Error creating ImageStreamMapping: %s", err)
 			return err
 		}
 
 		status := statusErr.ErrStatus
 		if status.Code != http.StatusNotFound || status.Details.Kind != "imageStream" || status.Details.Name != r.name {
-			log.Errorf("Error creating ImageStreamMapping: %s", err)
+			context.GetLogger(r.ctx).Errorf("Error creating ImageStreamMapping: %s", err)
 			return err
 		}
 
@@ -191,20 +211,20 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 			},
 		}
 
-		client, ok := UserClientFrom(ctx)
+		client, ok := UserClientFrom(r.ctx)
 		if !ok {
-			log.Errorf("Error creating user client to auto provision image stream: Origin user client unavailable")
+			context.GetLogger(r.ctx).Errorf("Error creating user client to auto provision image stream: Origin user client unavailable")
 			return statusErr
 		}
 
 		if _, err := client.ImageStreams(r.namespace).Create(&stream); err != nil {
-			log.Errorf("Error auto provisioning image stream: %s", err)
+			context.GetLogger(r.ctx).Errorf("Error auto provisioning image stream: %s", err)
 			return statusErr
 		}
 
 		// try to create the ISM again
 		if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
-			log.Errorf("Error creating image stream mapping: %s", err)
+			context.GetLogger(r.ctx).Errorf("Error creating image stream mapping: %s", err)
 			return err
 		}
 	}
@@ -217,7 +237,7 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 
 	for _, signature := range signatures {
 		if err := r.Signatures().Put(dgst, signature); err != nil {
-			log.Errorf("Error storing signature: %s", err)
+			context.GetLogger(r.ctx).Errorf("Error storing signature: %s", err)
 			return err
 		}
 	}
@@ -228,12 +248,16 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 // Delete deletes the manifest with digest `dgst`. Note: Image resources
 // in OpenShift are deleted via 'oadm prune images'. This function deletes
 // the content related to the manifest in the registry's storage (signatures).
-func (r *repository) Delete(ctx context.Context, dgst digest.Digest) error {
-	return r.Repository.Manifests().Delete(ctx, dgst)
+func (r *repository) Delete(dgst digest.Digest) error {
+	ms, err := r.Repository.Manifests(r.ctx)
+	if err != nil {
+		return err
+	}
+	return ms.Delete(dgst)
 }
 
 // getImageStream retrieves the ImageStream for r.
-func (r *repository) getImageStream(ctx context.Context) (*imageapi.ImageStream, error) {
+func (r *repository) getImageStream() (*imageapi.ImageStream, error) {
 	return r.registryClient.ImageStreams(r.namespace).Get(r.name)
 }
 
@@ -244,18 +268,18 @@ func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
 
 // getImageStreamTag retrieves the Image with tag `tag` for the ImageStream
 // associated with r.
-func (r *repository) getImageStreamTag(ctx context.Context, tag string) (*imageapi.ImageStreamTag, error) {
+func (r *repository) getImageStreamTag(tag string) (*imageapi.ImageStreamTag, error) {
 	return r.registryClient.ImageStreamTags(r.namespace).Get(r.name, tag)
 }
 
 // getImageStreamImage retrieves the Image with digest `dgst` for the ImageStream
 // associated with r. This ensures the image belongs to the image stream.
-func (r *repository) getImageStreamImage(ctx context.Context, dgst digest.Digest) (*imageapi.ImageStreamImage, error) {
+func (r *repository) getImageStreamImage(dgst digest.Digest) (*imageapi.ImageStreamImage, error) {
 	return r.registryClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
 }
 
 // manifestFromImage converts an Image to a SignedManifest.
-func (r *repository) manifestFromImage(image *imageapi.Image) (*manifest.SignedManifest, error) {
+func (r *repository) manifestFromImage(image *imageapi.Image) (*schema1.SignedManifest, error) {
 	dgst, err := digest.ParseDigest(image.Name)
 	if err != nil {
 		return nil, err
@@ -278,7 +302,7 @@ func (r *repository) manifestFromImage(image *imageapi.Image) (*manifest.SignedM
 		return nil, err
 	}
 
-	var sm manifest.SignedManifest
+	var sm schema1.SignedManifest
 	if err := json.Unmarshal(raw, &sm); err != nil {
 		return nil, err
 	}
