@@ -127,19 +127,25 @@ func getTags(stream *api.ImageStream, client dockerregistry.Client, insecure boo
 	if err != nil {
 		return imports, false, err
 	}
+	glog.V(5).Infof("Connecting to %s...", streamRef.Registry)
 	conn, err := client.Connect(streamRef.Registry, insecure)
 	if err != nil {
+		glog.V(5).Infof("Error connecting to %s: %v", streamRef.Registry, err)
 		// retry-able error no. 1
 		return imports, true, err
 	}
+	glog.V(5).Infof("Fetching tags for %s/%s...", streamRef.Namespace, streamRef.Name)
 	tags, err := conn.ImageTags(streamRef.Namespace, streamRef.Name)
 	switch {
 	case dockerregistry.IsRepositoryNotFound(err), dockerregistry.IsRegistryNotFound(err):
+		glog.V(5).Infof("Error fetching tags for %s/%s: %v", streamRef.Namespace, streamRef.Name, err)
 		return imports, false, err
 	case err != nil:
 		// retry-able error no. 2
+		glog.V(5).Infof("Error fetching tags for %s/%s: %v", streamRef.Namespace, streamRef.Name, err)
 		return imports, true, err
 	}
+	glog.V(5).Infof("Got tags for %s/%s: %#v", streamRef.Namespace, streamRef.Name, tags)
 	for tag, image := range tags {
 		if _, ok := imports[tag]; ok || references.Has(tag) {
 			continue

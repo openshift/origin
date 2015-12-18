@@ -154,7 +154,7 @@ os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master
 # Start openshift
 OPENSHIFT_ON_PANIC=crash openshift start master \
   --config=${MASTER_CONFIG_DIR}/master-config.yaml \
-  --loglevel=4 \
+  --loglevel=5 \
   &>"${LOG_DIR}/openshift.log" &
 OS_PID=$!
 
