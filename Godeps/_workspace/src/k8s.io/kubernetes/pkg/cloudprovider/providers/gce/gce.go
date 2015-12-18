@@ -1429,6 +1429,28 @@ func (gce *GCECloud) GetZone() (cloudprovider.Zone, error) {
 	}, nil
 }
 
+func (gce *GCECloud) CreateDisk(name string, sizeGb int64) error {
+	diskToCreate := &compute.Disk{
+		Name:   name,
+		SizeGb: sizeGb,
+	}
+	createOp, err := gce.service.Disks.Insert(gce.projectID, gce.zone, diskToCreate).Do()
+	if err != nil {
+		return err
+	}
+
+	return gce.waitForZoneOp(createOp)
+}
+
+func (gce *GCECloud) DeleteDisk(diskToDelete string) error {
+	deleteOp, err := gce.service.Disks.Delete(gce.projectID, gce.zone, diskToDelete).Do()
+	if err != nil {
+		return err
+	}
+
+	return gce.waitForZoneOp(deleteOp)
+}
+
 func (gce *GCECloud) AttachDisk(diskName string, readOnly bool) error {
 	disk, err := gce.getDisk(diskName)
 	if err != nil {
