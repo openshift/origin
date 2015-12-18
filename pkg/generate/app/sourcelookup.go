@@ -65,8 +65,13 @@ func IsRemoteRepository(s string) bool {
 	if !s2igit.New().ValidCloneSpecRemoteOnly(s) {
 		return false
 	}
+	url, err := url.Parse(s)
+	if err != nil {
+		return false
+	}
+	url.Fragment = ""
 	gitRepo := git.NewRepository()
-	if _, _, err := gitRepo.ListRemote(s); err != nil {
+	if _, _, err := gitRepo.ListRemote(url.String()); err != nil {
 		return false
 	}
 	return true
