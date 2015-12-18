@@ -155,11 +155,11 @@ os::cmd::expect_success_and_text 'if (( 1 )); then echo "hello"; fi' 'hello'
 os::cmd::expect_success_and_text 'echo $(( 1 - 20 ))' '\-19' # we need to escape for grep
 
 # redirects
-os::cmd::expect_failure_and_text 'grep' 'for more information'
+os::cmd::expect_failure_and_text 'grep' '(Usage|usage)'
 
 os::cmd::expect_success_and_not_text 'pwd 1>/dev/null' '.' 
 
-os::cmd::expect_failure_and_not_text 'grep 2>/dev/null' '.'
+os::cmd::expect_failure_and_not_text 'grep 2>/dev/null' '(Usage|usage)'
 
 # here document/string
 os::cmd::expect_success 'grep hello <<EOF

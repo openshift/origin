@@ -255,7 +255,7 @@ function os::cmd::internal::describe_expectation() {
 	"os::cmd::internal::failure_func")
 		echo "failure" ;;
 	"os::cmd::internal::specific_code_func"*[0-9])
-		local code=$(echo "${func}" | grep -Po "[0-9]+$")
+		local code=$(echo "${func}" | grep -Eo "[0-9]+$")
 		echo "exit code ${code}" ;;
 	"")
 		echo "any result"
@@ -266,6 +266,11 @@ function os::cmd::internal::describe_expectation() {
 # with milli-second precision
 function os::cmd::internal::seconds_since_epoch() {
 	local ns=$(date +%s%N)
+	# if `date` doesn't support nanoseconds, return second precision
+	if [[ "$ns" == *N ]]; then
+		date "+%s.000"
+		return
+	fi
 	echo $(bc <<< "scale=3; ${ns}/1000000000")
 }
 
