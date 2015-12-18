@@ -47,6 +47,7 @@ os::cmd::expect_success_and_text "oc get imageStreams postgresql --template='{{.
 os::cmd::expect_success_and_text "oc get imageStreams mongodb --template='{{.status.dockerImageRepository}}'" 'mongodb'
 # verify the image repository had its tags populated
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
+os::cmd::try_until_success "oc get imageStreams wildfly --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'"
 os::cmd::expect_success_and_text "oc get imageStreams wildfly --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'" '[0-9]{4}\-[0-9]{2}\-[0-9]{2}' # expect a date like YYYY-MM-DD
 os::cmd::expect_success_and_text 'oc get istag' 'wildfly'
 os::cmd::expect_success 'oc annotate istag/wildfly:latest foo=bar'
@@ -65,6 +66,7 @@ os::cmd::expect_failure 'oc get imageStreams mongodb'
 os::cmd::expect_failure 'oc get imageStreams wildfly'
 os::cmd::try_until_success 'oc get imagestreamTags mysql:5.5'
 os::cmd::try_until_success 'oc get imagestreamTags mysql:5.6'
+os::cmd::try_until_success "oc get imagestreams mysql --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'"
 os::cmd::expect_success_and_text "oc get imagestreams mysql --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'" '[0-9]{4}\-[0-9]{2}\-[0-9]{2}' # expect a date like YYYY-MM-DD
 os::cmd::expect_success 'oc describe istag/mysql:latest'
 os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Environment:'
