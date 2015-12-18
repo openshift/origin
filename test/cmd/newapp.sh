@@ -17,15 +17,16 @@ os::cmd::expect_failure 'oc new-app unknownhubimage -o yaml'
 os::cmd::expect_success_and_text 'oc new-app mongo -o yaml' 'library/mongo'
 # the local image repository takes precedence over the Docker Hub "mysql" image
 os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
-os::cmd::try_until_success 'oc get imagestreamtags mysql:latest'
-os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'
-os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:latest' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6' $(( 2 * minute ))
 os::cmd::expect_success_and_not_text 'oc new-app mysql -o yaml' 'library/mysql'
 
 # check label creation
-os::cmd::try_until_success 'oc get imagestreamtags php:latest'
-os::cmd::try_until_success 'oc get imagestreamtags php:5.5'
-os::cmd::try_until_success 'oc get imagestreamtags php:5.6'
+os::cmd::try_until_success 'oc get imagestreamtags php:latest' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags php:5.5' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags php:5.6' $(( 2 * minute ))
+
 os::cmd::expect_success 'oc new-app php mysql -l no-source=php-mysql'
 os::cmd::expect_success 'oc delete all -l no-source=php-mysql'
 os::cmd::expect_success 'oc new-app php mysql'
@@ -57,32 +58,32 @@ os::cmd::expect_failure 'oc new-app -S --template=nodejs'
 os::cmd::expect_failure 'oc new-app -S --template=perl'
 # check search - filtered, exact matches
 # make sure the imagestreams are imported first.
-os::cmd::try_until_success 'oc get imagestreamtags mongodb:latest'
-os::cmd::try_until_success 'oc get imagestreamtags mongodb:2.4'
-os::cmd::try_until_success 'oc get imagestreamtags mongodb:2.6'
-os::cmd::try_until_success 'oc get imagestreamtags mysql:latest'
-os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'
-os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'
-os::cmd::try_until_success 'oc get imagestreamtags nodejs:latest'
-os::cmd::try_until_success 'oc get imagestreamtags nodejs:0.10'
-os::cmd::try_until_success 'oc get imagestreamtags perl:latest'
-os::cmd::try_until_success 'oc get imagestreamtags perl:5.16'
-os::cmd::try_until_success 'oc get imagestreamtags perl:5.20'
-os::cmd::try_until_success 'oc get imagestreamtags php:latest'
-os::cmd::try_until_success 'oc get imagestreamtags php:5.5'
-os::cmd::try_until_success 'oc get imagestreamtags php:5.6'
-os::cmd::try_until_success 'oc get imagestreamtags postgresql:latest'
-os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.2'
-os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.4'
-os::cmd::try_until_success 'oc get imagestreamtags python:latest'
-os::cmd::try_until_success 'oc get imagestreamtags python:2.7'
-os::cmd::try_until_success 'oc get imagestreamtags python:3.3'
-os::cmd::try_until_success 'oc get imagestreamtags python:3.4'
-os::cmd::try_until_success 'oc get imagestreamtags ruby:latest'
-os::cmd::try_until_success 'oc get imagestreamtags ruby:2.0'
-os::cmd::try_until_success 'oc get imagestreamtags ruby:2.2'
-os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
-os::cmd::try_until_success 'oc get imagestreamtags wildfly:8.1'
+os::cmd::try_until_success 'oc get imagestreamtags mongodb:latest' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags mongodb:2.4' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags mongodb:2.6' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags mysql:latest' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:latest' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:0.10' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags perl:latest' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags perl:5.16' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags perl:5.20' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags php:latest' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags php:5.5' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags php:5.6' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags postgresql:latest' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.2' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.4' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags python:latest' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags python:2.7' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags python:3.3' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags python:3.4' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags ruby:latest' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.0' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.2' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:8.1' $(( 2 * minute ))
 
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "Tags:\s+2.4, 2.6, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.5, 5.6, latest"
@@ -140,9 +141,9 @@ os::cmd::expect_success 'oc policy add-role-to-user edit test-user'
 os::cmd::expect_success 'oc login -u test-user -p anything'
 os::cmd::try_until_success 'oc project ${project}'
 
-os::cmd::try_until_success 'oc get imagestreamtags installable:file'
-os::cmd::try_until_success 'oc get imagestreamtags installable:token'
-os::cmd::try_until_success 'oc get imagestreamtags installable:serviceaccount'
+os::cmd::try_until_success 'oc get imagestreamtags installable:file' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags installable:token' $(( 2 * minute ))
+os::cmd::try_until_success 'oc get imagestreamtags installable:serviceaccount' $(( 2 * minute ))
 os::cmd::expect_failure 'oc new-app installable:file'
 os::cmd::expect_failure_and_text 'oc new-app installable:file' 'requires that you grant the image access'
 os::cmd::expect_failure_and_text 'oc new-app installable:serviceaccount' "requires an 'installer' service account with project editor access"
