@@ -82,7 +82,7 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 					imageData := imageStreamImage.Image
 
 					imageref.Registry = ""
-					componentMatches = append(componentMatches, &ComponentMatch{
+					match := &ComponentMatch{
 						Value:       imageref.Exact(),
 						Argument:    fmt.Sprintf("--image-stream=%q", imageref.Exact()),
 						Name:        imageref.Name,
@@ -91,7 +91,9 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 						ImageStream: stream,
 						Image:       &imageData.DockerImageMetadata,
 						ImageTag:    searchTag,
-					})
+					}
+					glog.V(2).Infof("Adding %s as component match for %q with score %v", match.Description, term, match.Score)
+					componentMatches = append(componentMatches, match)
 				}
 			}
 		}
