@@ -60,6 +60,9 @@ func AddAllTriggerEdges(g osgraph.MutableUniqueGraph) {
 func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *deploygraph.DeploymentConfigNode) *deploygraph.DeploymentConfigNode {
 	for _, n := range g.(graph.Graph).Nodes() {
 		if rcNode, ok := n.(*kubegraph.ReplicationControllerNode); ok {
+			if rcNode.Namespace != node.Namespace {
+				continue
+			}
 			if BelongsToDeploymentConfig(node.DeploymentConfig, rcNode.ReplicationController) {
 				g.AddEdge(node, rcNode, DeploymentEdgeKind)
 			}

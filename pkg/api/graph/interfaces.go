@@ -40,7 +40,7 @@ const (
 type Markers []Marker
 
 // MarkerScanner is a function for analyzing a graph and finding interesting things in it
-type MarkerScanner func(g Graph) []Marker
+type MarkerScanner func(g Graph, f Namer) []Marker
 
 func (m Markers) BySeverity(severity Severity) []Marker {
 	ret := []Marker{}

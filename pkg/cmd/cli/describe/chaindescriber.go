@@ -39,11 +39,12 @@ type ChainDescriber struct {
 	c            client.BuildConfigsNamespacer
 	namespaces   sets.String
 	outputFormat string
+	namer        osgraph.Namer
 }
 
 // NewChainDescriber returns a new ChainDescriber
 func NewChainDescriber(c client.BuildConfigsNamespacer, namespaces sets.String, out string) *ChainDescriber {
-	return &ChainDescriber{c: c, namespaces: namespaces, outputFormat: out}
+	return &ChainDescriber{c: c, namespaces: namespaces, outputFormat: out, namer: namespacedFormatter{hideNamespace: true}}
 }
 
 // MakeGraph will create the graph of all build configurations and the image streams
@@ -106,7 +107,7 @@ func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag, includeInputImag
 		}
 		return string(data), nil
 	case "":
-		return d.humanReadableOutput(partitioned, istNode), nil
+		return d.humanReadableOutput(partitioned, d.namer, istNode), nil
 	}
 
 	return "", fmt.Errorf("unknown specified format %q", d.outputFormat)
@@ -147,7 +148,7 @@ func partition(g osgraph.Graph, root graph.Node, buildInputEdgeKinds []string) o
 // in a human-readable format. It starts from the provided root, assuming it
 // is an imageStreamTag node and continues to the rest of the graph handling
 // only imageStreamTag and buildConfig nodes.
-func (d *ChainDescriber) humanReadableOutput(g osgraph.Graph, root graph.Node) string {
+func (d *ChainDescriber) humanReadableOutput(g osgraph.Graph, f osgraph.Namer, root graph.Node) string {
 	var singleNamespace bool
 	if len(d.namespaces) == 1 && !d.namespaces.Has(kapi.NamespaceAll) {
 		singleNamespace = true
@@ -168,9 +169,9 @@ func (d *ChainDescriber) humanReadableOutput(g osgraph.Graph, root graph.Node) s
 
 		switch t := node.(type) {
 		case *imagegraph.ImageStreamTagNode:
-			info = outputHelper(t.ResourceString(), t.Namespace, singleNamespace)
+			info = outputHelper(f.ResourceName(t), t.Namespace, singleNamespace)
 		case *buildgraph.BuildConfigNode:
-			info = outputHelper(t.ResourceString(), t.BuildConfig.Namespace, singleNamespace)
+			info = outputHelper(f.ResourceName(t), t.BuildConfig.Namespace, singleNamespace)
 		default:
 			panic("this graph contains node kinds other than imageStreamTags and buildConfigs")
 		}

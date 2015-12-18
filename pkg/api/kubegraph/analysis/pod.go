@@ -16,7 +16,7 @@ const (
 )
 
 // FindRestartingPods inspects all Pods to see if they've restarted more than the threshold
-func FindRestartingPods(g osgraph.Graph) []osgraph.Marker {
+func FindRestartingPods(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
 	for _, uncastPodNode := range g.NodesByKind(kubegraph.PodNodeKind) {
@@ -34,7 +34,7 @@ func FindRestartingPods(g osgraph.Graph) []osgraph.Marker {
 					Severity: osgraph.WarningSeverity,
 					Key:      RestartingPodWarning,
 					Message: fmt.Sprintf("container %q in %s has restarted %d times", containerStatus.Name,
-						podNode.ResourceString(), containerStatus.RestartCount),
+						f.ResourceName(podNode), containerStatus.RestartCount),
 				})
 			}
 		}

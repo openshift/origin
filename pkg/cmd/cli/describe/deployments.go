@@ -338,6 +338,8 @@ func NewLatestDeploymentsDescriber(client client.Interface, kclient kclient.Inte
 
 // Describe returns the description of the latest deployments for a config
 func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, error) {
+	var f formatter
+
 	config, err := d.client.getDeploymentConfig(namespace, name)
 	if err != nil {
 		return "", err
@@ -371,7 +373,7 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 	activeDeployment, inactiveDeployments := deployedges.RelevantDeployments(g, dcNode)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
-		descriptions := describeDeployments(dcNode, activeDeployment, inactiveDeployments, d.count)
+		descriptions := describeDeployments(f, dcNode, activeDeployment, inactiveDeployments, d.count)
 		for i, description := range descriptions {
 			descriptions[i] = fmt.Sprintf("%v %v", name, description)
 		}

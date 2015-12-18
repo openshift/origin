@@ -166,7 +166,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"bc/ruby-hello-world is pushing to imagestreamtag/ruby-hello-world:latest that is using is/ruby-hello-world, but the administrator has not configured the integrated Docker registry.",
+				"bc/ruby-hello-world is pushing to istag/ruby-hello-world:latest that is using is/ruby-hello-world, but the administrator has not configured the integrated Docker registry.",
 			},
 		},
 		"bare-bc-can-push": {
