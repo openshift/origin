@@ -8,10 +8,6 @@ metadata:
     app: gitauthtest
     template: gitserver
   name: gitauthtest
-  namespace: devproj
-  resourceVersion: "634"
-  selfLink: /oapi/v1/namespaces/devproj/buildconfigs/gitauthtest
-  uid: 6d487478-8e02-11e5-9cf2-3c970e88b00e
 spec:
   output: {}
   resources: {}

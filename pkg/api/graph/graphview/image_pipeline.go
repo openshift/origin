@@ -148,11 +148,11 @@ func (m SortedImagePipelines) Less(i, j int) bool {
 
 func CompareImagePipeline(a, b *ImagePipeline) bool {
 	switch {
-	case a.Build != nil && b.Build != nil:
-		return CompareObjectMeta(&a.Build.ObjectMeta, &b.Build.ObjectMeta)
-	case a.Build != nil:
+	case a.Build != nil && b.Build != nil && a.Build.BuildConfig != nil && b.Build.BuildConfig != nil:
+		return CompareObjectMeta(&a.Build.BuildConfig.ObjectMeta, &b.Build.BuildConfig.ObjectMeta)
+	case a.Build != nil && a.Build.BuildConfig != nil:
 		return true
-	case b.Build != nil:
+	case b.Build != nil && b.Build.BuildConfig != nil:
 		return false
 	}
 	if a.Image == nil || b.Image == nil {
