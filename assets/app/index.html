@@ -132,6 +132,8 @@
     <script src="bower_components/kubernetes-object-describer/dist/object-describer.js"></script>
     <script src="bower_components/openshift-object-describer/dist/object-describer.js"></script>
     <script src="bower_components/bootstrap-hover-dropdown/bootstrap-hover-dropdown.min.js"></script>
+    <script src="bower_components/angular-extension-registry/dist/angular-extension-registry.min.js"></script>
+    <script src="bower_components/angular-extension-registry/dist/compiled-templates.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
@@ -225,6 +227,15 @@
         <script src="scripts/directives/affix.js"></script>
         <script src="scripts/services/logLinks.js"></script>
         <!-- endbuild -->
+
+        <!-- extension manager demo -->
+        <link rel="stylesheet" href="scripts/_extensions/build_details/style.css" />
+        <script src="scripts/_extensions/build_details/route.js"></script>
+        <script src="scripts/_extensions/build_details/stub.js"></script>
+        <script src="scripts/_extensions/build_details/service.js"></script>
+        <script src="scripts/_extensions/build_details/controller.js"></script>
+        <script src="scripts/_extensions/build_details/extension.js"></script>
+        <!-- /extension manager demo -->
 
     <!-- Load any extensions last. -->
     <script src="scripts/extensions.js"></script>

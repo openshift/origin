@@ -9,3 +9,5 @@
  *
  * You can modify this file to test extensions in a development environment.
  */
+console.info('HELLO', 'world');
+console.log('from the extensions/', 'extensions.js', 'file');
