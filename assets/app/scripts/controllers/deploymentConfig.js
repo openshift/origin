@@ -158,8 +158,28 @@ angular.module('openshiftConsole')
           });
         });
 
-        $scope.startLatestDeployment = function(deploymentConfig) {
-          DeploymentsService.startLatestDeployment(deploymentConfig, context, $scope);
+        var hashSize = $filter('hashSize');
+        $scope.canDeploy = function() {
+          if (!$scope.deploymentConfig) {
+            return false;
+          }
+
+          if ($scope.deploymentConfig.metadata.deletionTimestamp) {
+            return false;
+          }
+
+          if ($scope.deploymentConfigDeploymentsInProgress &&
+              hashSize($scope.deploymentConfigDeploymentsInProgress[$scope.deploymentConfig.metadata.name]) > 0) {
+            return false;
+          }
+
+          return true;
+        };
+
+        $scope.startLatestDeployment = function() {
+          if ($scope.canDeploy()) {
+            DeploymentsService.startLatestDeployment($scope.deploymentConfig, context, $scope);
+          }
         };
 
         $scope.$on('$destroy', function(){

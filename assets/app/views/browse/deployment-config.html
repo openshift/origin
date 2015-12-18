@@ -6,13 +6,44 @@
     <div class="tile" ng-if="deploymentConfig">
       <h1>
         {{deploymentConfig.metadata.name}}
-        <delete-button
-          class="pull-right fa-lg"
-          resource-type="deploymentconfig"
-          resource-name="{{deploymentConfig.metadata.name}}"
-          project-name="{{deploymentConfig.metadata.namespace}}"
-          alerts="alerts">
-        </delete-button>
+
+        <div class="pull-right dropdown">
+          <!-- Primary Actions -->
+          <button
+              class="btn btn-default hidden-xs"
+              ng-click="startLatestDeployment()"
+              ng-disabled="!canDeploy()">
+            Deploy
+          </button>
+
+          <!-- Secondary Actions -->
+          <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+          <ul class="dropdown-menu actions action-button">
+            <li class="visible-xs-inline" ng-class="{ disabled: !canDeploy() }">
+              <a href=""
+                role="button"
+                ng-attr-aria-disabled="{{canDeploy() ? undefined : 'true'}}"
+                ng-class="{ 'disabled-link': !canDeploy() }"
+                ng-click="startLatestDeployment()"
+                ><i class="fa fa-play fa-fw" aria-hidden="true"></i> Deploy</a>
+            </li>
+            <li>
+              <edit-link
+                resource="deploymentConfig"
+                kind="deploymentconfigs"
+                alerts="alerts">
+              </edit-link>
+            </li>
+            <li>
+              <delete-link
+                resource-type="deploymentconfig"
+                resource-name="{{deploymentConfig.metadata.name}}"
+                project-name="{{deploymentConfig.metadata.namespace}}"
+                alerts="alerts">
+              </delete-link>
+            </li>
+          </ul>
+        </div>
         <span ng-if="deploymentConfig.status.details.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{deploymentConfig.status.details.message}}"></span>
         <small class="meta">created <relative-timestamp timestamp="deploymentConfig.metadata.creationTimestamp"></relative-timestamp></small>
       </h1>
@@ -60,12 +91,6 @@
           <div class="col-lg-6">
             <h3>Triggers</h3>
             <dl class="dl-horizontal left">
-              <dt>Manual:</dt>
-              <dd>
-                <span>
-                  <button class="btn btn-default btn-xs" ng-click="startLatestDeployment(deploymentConfig)" ng-disabled="deploymentConfig.metadata.deletionTimestamp || (deploymentConfigDeploymentsInProgress[deploymentConfig.metadata.name] | hashSize) > 0">Deploy</button>
-                </span>
-              </dd>
               <dt>Manual (CLI):
                 <a href="{{'deployment-operations' | helpLink}}" target="_blank">
                   <span class="learn-more-block">Learn more <i class="fa fa-external-link"> </i></span>
