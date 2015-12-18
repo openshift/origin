@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -104,29 +105,14 @@ func TestParseRepository(t *testing.T) {
 		},
 	}
 
-	for scenario, test := range tests {
-		out, err := ParseRepository(scenario)
+	for scenario, want := range tests {
+		got, err := ParseRepository(scenario)
 		if err != nil {
 			t.Errorf("ParseRepository returned err: %v", err)
 		}
 
-		// reflect.DeepEqual was not dealing with url.URL correctly, have to check each field individually
-		// First, the easy string compares
-		equal := out.Scheme == test.Scheme && out.Opaque == test.Opaque && out.Host == test.Host && out.Path == test.Path && out.RawQuery == test.RawQuery && out.Fragment == test.Fragment
-		if equal {
-			// now deal with User, a Userinfo struct ptr
-			if out.User == nil && test.User != nil {
-				equal = false
-			} else if out.User != nil && test.User == nil {
-				equal = false
-			} else if out.User != nil && test.User != nil {
-				equal = out.User.String() == test.User.String()
-			}
-		}
-		if !equal {
-			t.Errorf("For URL string %s, field by field check for scheme %v opaque %v host %v path %v rawq %v frag %v out user nil %v test user nil %v out scheme  %s out opaque %s out host %s out path %s  out raw query %s out frag %s", scenario,
-				out.Scheme == test.Scheme, out.Opaque == test.Opaque, out.Host == test.Host, out.Path == test.Path, out.RawQuery == test.RawQuery,
-				out.Fragment == test.Fragment, out.User == nil, test.User == nil, out.Scheme, out.Opaque, out.Host, out.Path, out.RawQuery, out.Fragment)
+		if !reflect.DeepEqual(*got, want) {
+			t.Errorf("%s: got %v, want %v", scenario, got, want)
 		}
 	}
 }
