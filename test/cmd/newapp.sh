@@ -159,4 +159,7 @@ os::cmd::expect_success_and_text 'oc new-app installable:serviceaccount --grant-
 # Ensure output is valid JSON
 os::cmd::expect_success 'oc new-app mongo -o json | python -m json.tool'
 
+# Ensure custom branch/ref works
+os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world#beta4'
+
 echo "new-app: ok"
