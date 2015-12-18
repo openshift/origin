@@ -35,14 +35,14 @@
             <labels ng-if="buildConfigName" labels="build.metadata.labels" clickable="true" kind="builds" title-kind="builds for build config {{buildConfigName}}" project-name="{{build.metadata.namespace}}" limit="3" navigate-url="project/{{build.metadata.namespace}}/browse/builds/{{buildConfigName}}"></labels>
             <labels ng-if="!buildConfigName" labels="build.metadata.labels" limit="3"></labels>
 
-            <tabset>
-              <tab active="selectedTab.details">
-                <tab-heading>Details</tab-heading>
+            <uib-tabset>
+              <uib-tab active="selectedTab.details">
+                <uib-tab-heading>Details</uib-tab-heading>
                 <ng-include src=" 'views/browse/_build-details.html' "></ng-include>
-              </tab>
+              </uib-tab>
 
-              <tab active="selectedTab.logs">
-                <tab-heading>Logs</tab-heading>
+              <uib-tab active="selectedTab.logs">
+                <uib-tab-heading>Logs</uib-tab-heading>
                 <log-viewer
                   ng-if="selectedTab.logs"
                   kind="builds/log"
@@ -52,8 +52,8 @@
                   start="build.status.startTimestamp | date : 'short'"
                   end="build.status.completionTimestamp | date : 'short'">
                 </log-viewer>
-              </tab>
-            </tabset>
+              </uib-tab>
+            </uib-tabset>
           </div>
         </div>
       </div><!-- /.row -->

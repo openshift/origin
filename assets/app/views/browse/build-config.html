@@ -47,9 +47,9 @@
           <small class="meta">created <relative-timestamp timestamp="buildConfig.metadata.creationTimestamp"></relative-timestamp></small>
         </h1>
         <labels labels="buildConfig.metadata.labels" clickable="true" kind="builds" title-kind="build configs" project-name="{{buildConfig.metadata.namespace}}" limit="3"></labels>
-        <tabset>
-          <tab>
-            <tab-heading>Summary</tab-heading>
+        <uib-tabset>
+          <uib-tab>
+            <uib-tab-heading>Summary</uib-tab-heading>
 
             <!-- If unfilteredBuilds is undefined, the builds are still loading. -->
             <div ng-if="!unfilteredBuilds" class="gutter-bottom">Loading...</div>
@@ -108,9 +108,9 @@
 
               <build-trends-chart builds="builds"></build-trends-chart>
             </div>
-          </tab>
-          <tab>
-            <tab-heading>Configuration</tab-heading>
+          </uib-tab>
+          <uib-tab>
+            <uib-tab-heading>Configuration</uib-tab-heading>
               <div class="resource-details">
                 <div class="row">
                   <div class="col-lg-6">
@@ -240,8 +240,8 @@
               </div>
               <annotations annotations="buildConfig.metadata.annotations"></annotations>
             </div>
-          </tab>
-        </tabset>
+          </uib-tab>
+        </uib-tabset>
       </div>
     </div><!-- /buildConfig .tile -->
     <div ng-if="loaded">
