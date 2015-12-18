@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 // tests of running registries are done in the integration client test
@@ -25,7 +26,7 @@ func TestHTTPFallback(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true)
+	conn, err := NewClient(10*time.Second).Connect(uri.Host, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +57,7 @@ func TestV2Check(t *testing.T) {
 		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.RequestURI())
 	}))
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true)
+	conn, err := NewClient(10*time.Second).Connect(uri.Host, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +113,7 @@ func TestV2CheckNoDistributionHeader(t *testing.T) {
 		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.RequestURI())
 	}))
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true)
+	conn, err := NewClient(10*time.Second).Connect(uri.Host, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +143,7 @@ func TestInsecureHTTPS(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true)
+	conn, err := NewClient(10*time.Second).Connect(uri.Host, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +172,7 @@ func TestProxy(t *testing.T) {
 	os.Setenv("HTTPS_PROXY", "secure.proxy.tld")
 	os.Setenv("NO_PROXY", "")
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true)
+	conn, err := NewClient(10*time.Second).Connect(uri.Host, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -227,7 +228,7 @@ func TestTokenExpiration(t *testing.T) {
 	}))
 
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true)
+	conn, err := NewClient(10*time.Second).Connect(uri.Host, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -287,7 +288,7 @@ func TestGetTagFallback(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true)
+	conn, err := NewClient(10*time.Second).Connect(uri.Host, true)
 	c := conn.(*connection)
 	if err != nil {
 		t.Fatal(err)
