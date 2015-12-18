@@ -42,12 +42,12 @@ all build:
 #
 # Example:
 #   make check
-#   make check WHAT=pkg/build GOFLAGS=-v
+#   make check WHAT=pkg/build TESTFLAGS=-v
 check:
 	TEST_KUBE=1 hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
 .PHONY: check
 
-# Verify code is properly organized.
+# Verify if code is properly organized.
 #
 # Example:
 #   make verify
@@ -131,7 +131,7 @@ endif
 test-int-plus: export KUBE_COVER= -cover -covermode=atomic
 test-int-plus: export KUBE_RACE=  -race
 ifeq ($(SKIP_BUILD), true)
-test-int-plus: 
+test-int-plus:
 else
 test-int-plus: build
 endif
