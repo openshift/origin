@@ -16,11 +16,11 @@
 		},
 		{
 			"ImportPath": "github.com/AdRoll/goamz/aws",
-			"Rev": "cc210f45dcb9889c2769a274522be2bf70edfb99"
+			"Rev": "aa6e716d710a0c7941cb2075cfbb9661f16d21f1"
 		},
 		{
 			"ImportPath": "github.com/AdRoll/goamz/s3",
-			"Rev": "cc210f45dcb9889c2769a274522be2bf70edfb99"
+			"Rev": "aa6e716d710a0c7941cb2075cfbb9661f16d21f1"
 		},
 		{
 			"ImportPath": "github.com/ClusterHQ/flocker-go",
