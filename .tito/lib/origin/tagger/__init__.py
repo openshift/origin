@@ -70,7 +70,7 @@ class OriginTagger(VersionTagger):
         new_version = re.sub(r"-.*", "", new_version)
         git_hash = get_latest_commit()
         update_commit = \
-            "sed -i 's/^%%global commit .*$/%%global commit {0}/' {1}".format(
+            "sed -i 's/^%global commit .*$/%global commit {0}/' {1}".format(
                 git_hash,
                 self.spec_file
             )
@@ -83,7 +83,7 @@ class OriginTagger(VersionTagger):
         # dirty
         ldflags = ldflags.replace('-dirty', '')
         update_ldflags = \
-            "sed -i 's|^%%global ldflags .*$|%%global ldflags {0}|' {1}".format(
+            "sed -i 's|^%global ldflags .*$|%global ldflags {0}|' {1}".format(
                 ldflags,
                 self.spec_file
             )
