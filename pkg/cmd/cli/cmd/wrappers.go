@@ -310,7 +310,7 @@ foreground for an interactive container execution.  You may pass 'run-controller
   $ %[1]s run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
 
   # Start a single instance of nginx and keep it in the foreground, don't restart it if it exits.
-  $ %[1]s run -i -tty nginx --image=nginx --restart=Never`
+  $ %[1]s run -i --tty nginx --image=nginx --restart=Never`
 
 	// TODO: uncomment these when arguments are delivered upstream
 
