@@ -183,6 +183,7 @@ func TestProjectStatus(t *testing.T) {
 				// this makes sure that status knows this can push.  If it fails, there's a "(can't push image)" next to like #8
 				" hours\n  #7",
 			},
+			Time: mustParseTime("2015-12-17T20:36:15Z"),
 		},
 		"cyclical build": {
 			Path: "../../../../pkg/api/graph/test/circular.yaml",
