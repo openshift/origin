@@ -6,7 +6,8 @@
 #
 FROM openshift/origin-base
 
-RUN yum install -y zip hg golang golang-pkg-darwin-amd64 golang-pkg-windows-amd64 golang-pkg-linux-386 && yum clean all
+RUN install_and_verify.sh zip golang golang-pkg-darwin-amd64 \
+                   golang-pkg-windows-amd64 golang-pkg-linux-386
 
 ENV GOPATH /go
 

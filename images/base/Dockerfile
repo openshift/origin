@@ -12,6 +12,11 @@ FROM centos:centos7
 # base images land
 RUN yum swap -y -- remove systemd-container\* -- install systemd systemd-libs
 
-RUN yum install -y git tar wget hostname sysvinit-tools util-linux bsdtar epel-release \
-    socat ethtool device-mapper iptables && \
-    yum clean all
+# The install_and_verify.sh script installs packages using yum and verifies that
+# the packages were really installed and not skipped.
+RUN echo -e "#!/bin/sh -ex\nyum install --setopt=tsflags=nodocs -y \"\$@\" && \
+      yum clean all && rpm -V \"\$@\"" > /usr/bin/install_and_verify.sh && \
+      chmod +x /usr/bin/install_and_verify.sh
+
+RUN install_and_verify.sh git tar wget hostname sysvinit-tools util-linux bsdtar \
+                 epel-release socat ethtool device-mapper iptables

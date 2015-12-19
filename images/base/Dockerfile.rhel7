@@ -6,5 +6,10 @@
 #
 FROM rhel7
 
-RUN yum install -y git tar wget socat hostname sysvinit-tools util-linux ethtool bsdtar && \
-    yum clean all
+# The install_and_verify.sh script installs packages using yum and verifies that
+# the packages were really installed and not skipped.
+RUN echo -e "#!/bin/sh -ex\nyum install --setopt=tsflags=nodocs -y \"\$@\" && \
+      yum clean all && rpm -V \"\$@\"" > /usr/bin/install_and_verify.sh && \
+      chmod +x /usr/bin/install_and_verify.sh
+
+RUN install_and_verify.sh git tar wget socat hostname sysvinit-tools util-linux ethtool bsdtar
