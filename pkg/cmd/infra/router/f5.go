@@ -167,7 +167,7 @@ func (o *F5RouterOptions) Run() error {
 		return err
 	}
 
-	plugin := controller.NewUniqueHost(f5Plugin, controller.HostForRoute)
+	plugin := controller.NewUniqueHost(f5Plugin, o.RouteSelectionFunc())
 
 	oc, kc, err := o.Config.Clients()
 	if err != nil {

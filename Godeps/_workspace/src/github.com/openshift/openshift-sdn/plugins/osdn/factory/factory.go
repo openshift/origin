@@ -7,14 +7,13 @@ import (
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	oskserver "github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"github.com/openshift/openshift-sdn/plugins/osdn/ovs"
 )
 
 // Call by higher layers to create the plugin instance
-func NewPlugin(pluginType string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string) (api.OsdnPlugin, oskserver.FilteringEndpointsConfigHandler, error) {
+func NewPlugin(pluginType string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string) (api.OsdnPlugin, api.FilteringEndpointsConfigHandler, error) {
 	switch strings.ToLower(pluginType) {
 	case ovs.SingleTenantPluginName():
 		return ovs.CreatePlugin(osdn.NewRegistry(osClient, kClient), false, hostname, selfIP)

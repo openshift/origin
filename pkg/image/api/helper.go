@@ -300,6 +300,9 @@ func LatestTaggedImage(stream *ImageStream, tag string) *TagEvent {
 	// find the most recent tag event with an image reference
 	if stream.Status.Tags != nil {
 		if history, ok := stream.Status.Tags[tag]; ok {
+			if len(history.Items) == 0 {
+				return nil
+			}
 			return &history.Items[0]
 		}
 	}

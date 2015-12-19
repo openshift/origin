@@ -1178,6 +1178,54 @@ func TestValidateBuildSpec(t *testing.T) {
 					},
 				},
 			},
+		},
+		// 15
+		// dockerfilePath can't be an absolute path
+		{
+			string(fielderrors.ValidationErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
+			&buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						DockerfilePath: "/myDockerfile",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+		// 16
+		// dockerfilePath can't start with ..
+		{
+			string(fielderrors.ValidationErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
+			&buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						DockerfilePath: "../someDockerfile",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
 		}}
 
 	for count, config := range errorCases {
@@ -1315,6 +1363,31 @@ func TestValidateBuildSpecSuccess(t *testing.T) {
 				},
 			},
 		},
+		// 5
+		{
+			&buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						From: &kapi.ObjectReference{
+							Kind: "ImageStreamImage",
+							Name: "imagestreamimage",
+						},
+						DockerfilePath: "dockerfiles/firstDockerfile",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
 	}
 
 	for count, config := range testCases {
@@ -1324,6 +1397,48 @@ func TestValidateBuildSpecSuccess(t *testing.T) {
 		}
 	}
 
+}
+
+func TestValidateDockerfilePath(t *testing.T) {
+	tests := []struct {
+		strategy               *buildapi.DockerBuildStrategy
+		expectedDockerfilePath string
+	}{
+		{
+			strategy: &buildapi.DockerBuildStrategy{
+				DockerfilePath: ".",
+			},
+			expectedDockerfilePath: "",
+		},
+		{
+			strategy: &buildapi.DockerBuildStrategy{
+				DockerfilePath: "somedir/..",
+			},
+			expectedDockerfilePath: "",
+		},
+		{
+			strategy: &buildapi.DockerBuildStrategy{
+				DockerfilePath: "somedir/../somedockerfile",
+			},
+			expectedDockerfilePath: "somedockerfile",
+		},
+		{
+			strategy: &buildapi.DockerBuildStrategy{
+				DockerfilePath: "somedir/somedockerfile",
+			},
+			expectedDockerfilePath: "somedir/somedockerfile",
+		},
+	}
+
+	for count, test := range tests {
+		errors := validateDockerStrategy(test.strategy)
+		if len(errors) != 0 {
+			t.Errorf("Test[%d] Unexpected validation error: %v", count, errors)
+		}
+		if test.strategy.DockerfilePath != test.expectedDockerfilePath {
+			t.Errorf("Test[%d] Unexpected DockerfilePath: %v (expected: %s)", count, test.strategy.DockerfilePath, test.expectedDockerfilePath)
+		}
+	}
 }
 
 func TestValidateTrigger(t *testing.T) {

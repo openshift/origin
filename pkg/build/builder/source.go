@@ -100,8 +100,12 @@ func checkRemoteGit(gitClient GitClient, url string, timeout time.Duration) erro
 		return fmt.Errorf("timeout while waiting for remote repository %q", url)
 	}
 
-	glog.V(4).Infof(out)
-	glog.V(4).Infof(errOut)
+	if len(out) != 0 {
+		glog.V(4).Infof(out)
+	}
+	if len(errOut) != 0 {
+		glog.V(4).Infof(errOut)
+	}
 
 	combinedOut := out + errOut
 	switch {

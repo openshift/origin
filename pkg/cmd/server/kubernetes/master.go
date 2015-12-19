@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 
 	osclient "github.com/openshift/origin/pkg/client"
+	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
@@ -26,6 +27,9 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/volume"
+	"k8s.io/kubernetes/pkg/volume/aws_ebs"
+	"k8s.io/kubernetes/pkg/volume/cinder"
+	"k8s.io/kubernetes/pkg/volume/gce_pd"
 	"k8s.io/kubernetes/pkg/volume/host_path"
 	"k8s.io/kubernetes/pkg/volume/nfs"
 	"k8s.io/kubernetes/plugin/pkg/scheduler"
@@ -72,9 +76,31 @@ func (c *MasterConfig) RunNamespaceController() {
 }
 
 // RunPersistentVolumeClaimBinder starts the Kubernetes Persistent Volume Claim Binder
-func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
-	binder := volumeclaimbinder.NewPersistentVolumeClaimBinder(c.KubeClient, c.ControllerManager.PVClaimBinderSyncPeriod)
+func (c *MasterConfig) RunPersistentVolumeClaimBinder(client *client.Client) {
+	binder := volumeclaimbinder.NewPersistentVolumeClaimBinder(client, c.ControllerManager.PVClaimBinderSyncPeriod)
 	binder.Run()
+}
+
+func (c *MasterConfig) RunPersistentVolumeProvisioner(client *client.Client) {
+	provisioner, err := kctrlmgr.NewVolumeProvisioner(c.CloudProvider, c.ControllerManager.VolumeConfigFlags)
+	if err != nil {
+		// a provisioner was expected but encountered an error
+		glog.Fatal(err)
+	}
+
+	// not all cloud providers have a provisioner.
+	if provisioner != nil {
+		allPlugins := []volume.VolumePlugin{}
+		allPlugins = append(allPlugins, aws_ebs.ProbeVolumePlugins()...)
+		allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
+		allPlugins = append(allPlugins, cinder.ProbeVolumePlugins()...)
+		controllerClient := volumeclaimbinder.NewControllerClient(client)
+		provisionerController, err := volumeclaimbinder.NewPersistentVolumeProvisionerController(controllerClient, c.ControllerManager.PVClaimBinderSyncPeriod, allPlugins, provisioner, c.CloudProvider)
+		if err != nil {
+			glog.Fatalf("Could not start Persistent Volume Provisioner: %+v", err)
+		}
+		provisionerController.Run()
+	}
 }
 
 func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string, client *client.Client) {
@@ -114,7 +140,12 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(hostPathConfig)...)
 	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins(nfsConfig)...)
 
-	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(client, c.ControllerManager.PVClaimBinderSyncPeriod, allPlugins)
+	// dynamic provisioning allows deletion of volumes as a recycling operation after a claim is deleted
+	allPlugins = append(allPlugins, aws_ebs.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, cinder.ProbeVolumePlugins()...)
+
+	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(client, c.ControllerManager.PVClaimBinderSyncPeriod, allPlugins, c.CloudProvider)
 	if err != nil {
 		glog.Fatalf("Could not start Persistent Volume Recycler: %+v", err)
 	}

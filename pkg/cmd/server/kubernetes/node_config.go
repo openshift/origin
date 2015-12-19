@@ -19,6 +19,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/oom"
 
+	osdnapi "github.com/openshift/openshift-sdn/plugins/osdn/api"
+	"github.com/openshift/openshift-sdn/plugins/osdn/factory"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -46,9 +48,20 @@ type NodeConfig struct {
 	KubeletConfig *kapp.KubeletConfig
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
+
+	// Maximum transmission unit for the network packets
+	MTU uint
+	// SDNPlugin is an optional SDN plugin
+	SDNPlugin osdnapi.OsdnPlugin
+	// EndpointsFilterer is an optional endpoints filterer
+	FilteringEndpointsHandler osdnapi.FilteringEndpointsConfigHandler
 }
 
 func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error) {
+	originClient, _, err := configapi.GetOpenShiftClient(options.MasterKubeConfig)
+	if err != nil {
+		return nil, err
+	}
 	kubeClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig)
 	if err != nil {
 		return nil, err
@@ -239,6 +252,13 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	}
 	cfg.Cloud = cloud
 
+	sdnPlugin, endpointFilter, err := factory.NewPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP)
+	if err != nil {
+		return nil, fmt.Errorf("SDN initialization failed: %v", err)
+	} else if sdnPlugin != nil {
+		cfg.NetworkPlugins = append(cfg.NetworkPlugins, sdnPlugin)
+	}
+
 	config := &NodeConfig{
 		BindAddress: options.ServingInfo.BindAddress,
 
@@ -252,6 +272,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		KubeletConfig: cfg,
 
 		IPTablesSyncPeriod: options.IPTablesSyncPeriod,
+		MTU:                options.NetworkConfig.MTU,
+
+		SDNPlugin:                 sdnPlugin,
+		FilteringEndpointsHandler: endpointFilter,
 	}
 
 	return config, nil

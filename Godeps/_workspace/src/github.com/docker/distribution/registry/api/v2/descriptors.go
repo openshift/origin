@@ -5,23 +5,25 @@ import (
 	"regexp"
 
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/api/errcode"
 )
 
 var (
 	nameParameterDescriptor = ParameterDescriptor{
 		Name:        "name",
 		Type:        "string",
-		Format:      RepositoryNameRegexp.String(),
+		Format:      reference.NameRegexp.String(),
 		Required:    true,
 		Description: `Name of the target repository.`,
 	}
 
-	tagParameterDescriptor = ParameterDescriptor{
-		Name:        "tag",
+	referenceParameterDescriptor = ParameterDescriptor{
+		Name:        "reference",
 		Type:        "string",
-		Format:      TagNameRegexp.String(),
+		Format:      reference.TagRegexp.String(),
 		Required:    true,
-		Description: `Tag of the target manifiest.`,
+		Description: `Tag or digest of the target manifest.`,
 	}
 
 	uuidParameterDescriptor = ParameterDescriptor{
@@ -86,45 +88,91 @@ var (
 		Format:      "<digest>",
 	}
 
-	unauthorizedResponse = ResponseDescriptor{
-		Description: "The client does not have access to the repository.",
-		StatusCode:  http.StatusUnauthorized,
-		Headers: []ParameterDescriptor{
-			authChallengeHeader,
-			{
-				Name:        "Content-Length",
-				Type:        "integer",
-				Description: "Length of the JSON error response body.",
-				Format:      "<length>",
-			},
+	linkHeader = ParameterDescriptor{
+		Name:        "Link",
+		Type:        "link",
+		Description: "RFC5988 compliant rel='next' with URL to next result set, if available",
+		Format:      `<<url>?n=<last n value>&last=<last entry from response>>; rel="next"`,
+	}
+
+	paginationParameters = []ParameterDescriptor{
+		{
+			Name:        "n",
+			Type:        "integer",
+			Description: "Limit the number of entries in each response. It not present, all entries will be returned.",
+			Format:      "<integer>",
+			Required:    false,
 		},
-		ErrorCodes: []ErrorCode{
-			ErrorCodeUnauthorized,
-		},
-		Body: BodyDescriptor{
-			ContentType: "application/json; charset=utf-8",
-			Format:      unauthorizedErrorsBody,
+		{
+			Name:        "last",
+			Type:        "string",
+			Description: "Result set will include values lexically after last.",
+			Format:      "<integer>",
+			Required:    false,
 		},
 	}
 
-	unauthorizedResponsePush = ResponseDescriptor{
-		Description: "The client does not have access to push to the repository.",
+	unauthorizedResponseDescriptor = ResponseDescriptor{
+		Name:        "Authentication Required",
 		StatusCode:  http.StatusUnauthorized,
+		Description: "The client is not authenticated.",
 		Headers: []ParameterDescriptor{
 			authChallengeHeader,
 			{
 				Name:        "Content-Length",
 				Type:        "integer",
-				Description: "Length of the JSON error response body.",
+				Description: "Length of the JSON response body.",
 				Format:      "<length>",
 			},
 		},
-		ErrorCodes: []ErrorCode{
-			ErrorCodeUnauthorized,
+		Body: BodyDescriptor{
+			ContentType: "application/json; charset=utf-8",
+			Format:      errorsBody,
+		},
+		ErrorCodes: []errcode.ErrorCode{
+			errcode.ErrorCodeUnauthorized,
+		},
+	}
+
+	repositoryNotFoundResponseDescriptor = ResponseDescriptor{
+		Name:        "No Such Repository Error",
+		StatusCode:  http.StatusNotFound,
+		Description: "The repository is not known to the registry.",
+		Headers: []ParameterDescriptor{
+			{
+				Name:        "Content-Length",
+				Type:        "integer",
+				Description: "Length of the JSON response body.",
+				Format:      "<length>",
+			},
 		},
 		Body: BodyDescriptor{
 			ContentType: "application/json; charset=utf-8",
-			Format:      unauthorizedErrorsBody,
+			Format:      errorsBody,
+		},
+		ErrorCodes: []errcode.ErrorCode{
+			ErrorCodeNameUnknown,
+		},
+	}
+
+	deniedResponseDescriptor = ResponseDescriptor{
+		Name:        "Access Denied",
+		StatusCode:  http.StatusForbidden,
+		Description: "The client does not have required access to the repository.",
+		Headers: []ParameterDescriptor{
+			{
+				Name:        "Content-Length",
+				Type:        "integer",
+				Description: "Length of the JSON response body.",
+				Format:      "<length>",
+			},
+		},
+		Body: BodyDescriptor{
+			ContentType: "application/json; charset=utf-8",
+			Format:      errorsBody,
+		},
+		ErrorCodes: []errcode.ErrorCode{
+			errcode.ErrorCodeDenied,
 		},
 	}
 )
@@ -171,13 +219,8 @@ const (
 var APIDescriptor = struct {
 	// RouteDescriptors provides a list of the routes available in the API.
 	RouteDescriptors []RouteDescriptor
-
-	// ErrorDescriptors provides a list of the error codes and their
-	// associated documentation and metadata.
-	ErrorDescriptors []ErrorDescriptor
 }{
 	RouteDescriptors: routeDescriptors,
-	ErrorDescriptors: errorDescriptors,
 }
 
 // RouteDescriptor describes a route specified by name.
@@ -273,9 +316,12 @@ type ResponseDescriptor struct {
 	// Headers covers any headers that may be returned from the response.
 	Headers []ParameterDescriptor
 
+	// Fields describes any fields that may be present in the response.
+	Fields []ParameterDescriptor
+
 	// ErrorCodes enumerates the error codes that may be returned along with
 	// the response.
-	ErrorCodes []ErrorCode
+	ErrorCodes []errcode.ErrorCode
 
 	// Body describes the body of the response, if any.
 	Body BodyDescriptor
@@ -317,36 +363,12 @@ type ParameterDescriptor struct {
 	Examples []string
 }
 
-// ErrorDescriptor provides relevant information about a given error code.
-type ErrorDescriptor struct {
-	// Code is the error code that this descriptor describes.
-	Code ErrorCode
-
-	// Value provides a unique, string key, often captilized with
-	// underscores, to identify the error code. This value is used as the
-	// keyed value when serializing api errors.
-	Value string
-
-	// Message is a short, human readable decription of the error condition
-	// included in API responses.
-	Message string
-
-	// Description provides a complete account of the errors purpose, suitable
-	// for use in documentation.
-	Description string
-
-	// HTTPStatusCodes provides a list of status under which this error
-	// condition may arise. If it is empty, the error condition may be seen
-	// for any status code.
-	HTTPStatusCodes []int
-}
-
 var routeDescriptors = []RouteDescriptor{
 	{
 		Name:        RouteNameBase,
 		Path:        "/v2/",
 		Entity:      "Base",
-		Description: `Base V2 API route. Typically, this can be used for lightweight version checks and to validate registry authorization.`,
+		Description: `Base V2 API route. Typically, this can be used for lightweight version checks and to validate registry authentication.`,
 		Methods: []MethodDescriptor{
 			{
 				Method:      "GET",
@@ -365,23 +387,10 @@ var routeDescriptors = []RouteDescriptor{
 						},
 						Failures: []ResponseDescriptor{
 							{
-								Description: "The client is not authorized to access the registry.",
-								StatusCode:  http.StatusUnauthorized,
-								Headers: []ParameterDescriptor{
-									authChallengeHeader,
-								},
-								Body: BodyDescriptor{
-									ContentType: "application/json; charset=utf-8",
-									Format:      errorsBody,
-								},
-								ErrorCodes: []ErrorCode{
-									ErrorCodeUnauthorized,
-								},
-							},
-							{
 								Description: "The registry does not implement the V2 API.",
 								StatusCode:  http.StatusNotFound,
 							},
+							unauthorizedResponseDescriptor,
 						},
 					},
 				},
@@ -390,7 +399,7 @@ var routeDescriptors = []RouteDescriptor{
 	},
 	{
 		Name:        RouteNameTags,
-		Path:        "/v2/{name:" + RepositoryNameRegexp.String() + "}/tags/list",
+		Path:        "/v2/{name:" + reference.NameRegexp.String() + "}/tags/list",
 		Entity:      "Tags",
 		Description: "Retrieve information about tags.",
 		Methods: []MethodDescriptor{
@@ -399,6 +408,8 @@ var routeDescriptors = []RouteDescriptor{
 				Description: "Fetch the tags under the repository identified by `name`.",
 				Requests: []RequestDescriptor{
 					{
+						Name:        "Tags",
+						Description: "Return all tags for the repository",
 						Headers: []ParameterDescriptor{
 							hostHeader,
 							authHeader,
@@ -431,28 +442,45 @@ var routeDescriptors = []RouteDescriptor{
 							},
 						},
 						Failures: []ResponseDescriptor{
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
+						},
+					},
+					{
+						Name:            "Tags Paginated",
+						Description:     "Return a portion of the tags for the specified repository.",
+						PathParameters:  []ParameterDescriptor{nameParameterDescriptor},
+						QueryParameters: paginationParameters,
+						Successes: []ResponseDescriptor{
 							{
-								StatusCode:  http.StatusNotFound,
-								Description: "The repository is not known to the registry.",
+								StatusCode:  http.StatusOK,
+								Description: "A list of tags for the named repository.",
+								Headers: []ParameterDescriptor{
+									{
+										Name:        "Content-Length",
+										Type:        "integer",
+										Description: "Length of the JSON response body.",
+										Format:      "<length>",
+									},
+									linkHeader,
+								},
 								Body: BodyDescriptor{
 									ContentType: "application/json; charset=utf-8",
-									Format:      errorsBody,
-								},
-								ErrorCodes: []ErrorCode{
-									ErrorCodeNameUnknown,
-								},
-							},
-							{
-								StatusCode:  http.StatusUnauthorized,
-								Description: "The client does not have access to the repository.",
-								Body: BodyDescriptor{
-									ContentType: "application/json; charset=utf-8",
-									Format:      errorsBody,
-								},
-								ErrorCodes: []ErrorCode{
-									ErrorCodeUnauthorized,
+									Format: `{
+    "name": <name>,
+    "tags": [
+        <tag>,
+        ...
+    ],
+}`,
 								},
 							},
+						},
+						Failures: []ResponseDescriptor{
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
 						},
 					},
 				},
@@ -461,9 +489,9 @@ var routeDescriptors = []RouteDescriptor{
 	},
 	{
 		Name:        RouteNameManifest,
-		Path:        "/v2/{name:" + RepositoryNameRegexp.String() + "}/manifests/{reference:" + TagNameRegexp.String() + "|" + digest.DigestRegexp.String() + "}",
+		Path:        "/v2/{name:" + reference.NameRegexp.String() + "}/manifests/{reference:" + reference.TagRegexp.String() + "|" + digest.DigestRegexp.String() + "}",
 		Entity:      "Manifest",
-		Description: "Create, update and retrieve manifests.",
+		Description: "Create, update, delete and retrieve manifests.",
 		Methods: []MethodDescriptor{
 			{
 				Method:      "GET",
@@ -476,11 +504,11 @@ var routeDescriptors = []RouteDescriptor{
 						},
 						PathParameters: []ParameterDescriptor{
 							nameParameterDescriptor,
-							tagParameterDescriptor,
+							referenceParameterDescriptor,
 						},
 						Successes: []ResponseDescriptor{
 							{
-								Description: "The manifest idenfied by `name` and `reference`. The contents can be used to identify and resolve resources required to run the specified image.",
+								Description: "The manifest identified by `name` and `reference`. The contents can be used to identify and resolve resources required to run the specified image.",
 								StatusCode:  http.StatusOK,
 								Headers: []ParameterDescriptor{
 									digestHeader,
@@ -495,7 +523,7 @@ var routeDescriptors = []RouteDescriptor{
 							{
 								Description: "The name or reference was invalid.",
 								StatusCode:  http.StatusBadRequest,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeNameInvalid,
 									ErrorCodeTagInvalid,
 								},
@@ -504,29 +532,9 @@ var routeDescriptors = []RouteDescriptor{
 									Format:      errorsBody,
 								},
 							},
-							{
-								StatusCode:  http.StatusUnauthorized,
-								Description: "The client does not have access to the repository.",
-								Body: BodyDescriptor{
-									ContentType: "application/json; charset=utf-8",
-									Format:      errorsBody,
-								},
-								ErrorCodes: []ErrorCode{
-									ErrorCodeUnauthorized,
-								},
-							},
-							{
-								Description: "The named manifest is not known to the registry.",
-								StatusCode:  http.StatusNotFound,
-								ErrorCodes: []ErrorCode{
-									ErrorCodeNameUnknown,
-									ErrorCodeManifestUnknown,
-								},
-								Body: BodyDescriptor{
-									ContentType: "application/json; charset=utf-8",
-									Format:      errorsBody,
-								},
-							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
 						},
 					},
 				},
@@ -542,7 +550,7 @@ var routeDescriptors = []RouteDescriptor{
 						},
 						PathParameters: []ParameterDescriptor{
 							nameParameterDescriptor,
-							tagParameterDescriptor,
+							referenceParameterDescriptor,
 						},
 						Body: BodyDescriptor{
 							ContentType: "application/json; charset=utf-8",
@@ -551,7 +559,7 @@ var routeDescriptors = []RouteDescriptor{
 						Successes: []ResponseDescriptor{
 							{
 								Description: "The manifest has been accepted by the registry and is stored under the specified `name` and `tag`.",
-								StatusCode:  http.StatusAccepted,
+								StatusCode:  http.StatusCreated,
 								Headers: []ParameterDescriptor{
 									{
 										Name:        "Location",
@@ -573,7 +581,7 @@ var routeDescriptors = []RouteDescriptor{
 									ContentType: "application/json; charset=utf-8",
 									Format:      errorsBody,
 								},
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeNameInvalid,
 									ErrorCodeTagInvalid,
 									ErrorCodeManifestInvalid,
@@ -581,22 +589,14 @@ var routeDescriptors = []RouteDescriptor{
 									ErrorCodeBlobUnknown,
 								},
 							},
-							{
-								StatusCode:  http.StatusUnauthorized,
-								Description: "The client does not have permission to push to the repository.",
-								Body: BodyDescriptor{
-									ContentType: "application/json; charset=utf-8",
-									Format:      errorsBody,
-								},
-								ErrorCodes: []ErrorCode{
-									ErrorCodeUnauthorized,
-								},
-							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
 							{
 								Name:        "Missing Layer(s)",
 								Description: "One or more layers may be missing during a manifest upload. If so, the missing layers will be enumerated in the error response.",
 								StatusCode:  http.StatusBadRequest,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeBlobUnknown,
 								},
 								Body: BodyDescriptor{
@@ -615,22 +615,11 @@ var routeDescriptors = []RouteDescriptor{
 								},
 							},
 							{
-								StatusCode: http.StatusUnauthorized,
-								Headers: []ParameterDescriptor{
-									authChallengeHeader,
-									{
-										Name:        "Content-Length",
-										Type:        "integer",
-										Description: "Length of the JSON error response body.",
-										Format:      "<length>",
-									},
-								},
-								ErrorCodes: []ErrorCode{
-									ErrorCodeUnauthorized,
-								},
-								Body: BodyDescriptor{
-									ContentType: "application/json; charset=utf-8",
-									Format:      errorsBody,
+								Name:        "Not allowed",
+								Description: "Manifest put is not allowed because the registry is configured as a pull-through cache or for some other reason",
+								StatusCode:  http.StatusMethodNotAllowed,
+								ErrorCodes: []errcode.ErrorCode{
+									errcode.ErrorCodeUnsupported,
 								},
 							},
 						},
@@ -639,7 +628,7 @@ var routeDescriptors = []RouteDescriptor{
 			},
 			{
 				Method:      "DELETE",
-				Description: "Delete the manifest identified by `name` and `reference` where `reference` can be a tag or digest.",
+				Description: "Delete the manifest identified by `name` and `reference`. Note that a manifest can _only_ be deleted by `digest`.",
 				Requests: []RequestDescriptor{
 					{
 						Headers: []ParameterDescriptor{
@@ -648,7 +637,7 @@ var routeDescriptors = []RouteDescriptor{
 						},
 						PathParameters: []ParameterDescriptor{
 							nameParameterDescriptor,
-							tagParameterDescriptor,
+							referenceParameterDescriptor,
 						},
 						Successes: []ResponseDescriptor{
 							{
@@ -657,10 +646,10 @@ var routeDescriptors = []RouteDescriptor{
 						},
 						Failures: []ResponseDescriptor{
 							{
-								Name:        "Invalid Name or Tag",
-								Description: "The specified `name` or `tag` were invalid and the delete was unable to proceed.",
+								Name:        "Invalid Name or Reference",
+								Description: "The specified `name` or `reference` were invalid and the delete was unable to proceed.",
 								StatusCode:  http.StatusBadRequest,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeNameInvalid,
 									ErrorCodeTagInvalid,
 								},
@@ -669,19 +658,16 @@ var routeDescriptors = []RouteDescriptor{
 									Format:      errorsBody,
 								},
 							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
 							{
-								StatusCode: http.StatusUnauthorized,
-								Headers: []ParameterDescriptor{
-									authChallengeHeader,
-									{
-										Name:        "Content-Length",
-										Type:        "integer",
-										Description: "Length of the JSON error response body.",
-										Format:      "<length>",
-									},
-								},
-								ErrorCodes: []ErrorCode{
-									ErrorCodeUnauthorized,
+								Name:        "Unknown Manifest",
+								Description: "The specified `name` or `reference` are unknown to the registry and the delete was unable to proceed. Clients can assume the manifest was already deleted if this response is returned.",
+								StatusCode:  http.StatusNotFound,
+								ErrorCodes: []errcode.ErrorCode{
+									ErrorCodeNameUnknown,
+									ErrorCodeManifestUnknown,
 								},
 								Body: BodyDescriptor{
 									ContentType: "application/json; charset=utf-8",
@@ -689,16 +675,11 @@ var routeDescriptors = []RouteDescriptor{
 								},
 							},
 							{
-								Name:        "Unknown Manifest",
-								Description: "The specified `name` or `tag` are unknown to the registry and the delete was unable to proceed. Clients can assume the manifest was already deleted if this response is returned.",
-								StatusCode:  http.StatusNotFound,
-								ErrorCodes: []ErrorCode{
-									ErrorCodeNameUnknown,
-									ErrorCodeManifestUnknown,
-								},
-								Body: BodyDescriptor{
-									ContentType: "application/json; charset=utf-8",
-									Format:      errorsBody,
+								Name:        "Not allowed",
+								Description: "Manifest delete is not allowed because the registry is configured as a pull-through cache or `delete` has been disabled.",
+								StatusCode:  http.StatusMethodNotAllowed,
+								ErrorCodes: []errcode.ErrorCode{
+									errcode.ErrorCodeUnsupported,
 								},
 							},
 						},
@@ -710,11 +691,10 @@ var routeDescriptors = []RouteDescriptor{
 
 	{
 		Name:        RouteNameBlob,
-		Path:        "/v2/{name:" + RepositoryNameRegexp.String() + "}/blobs/{digest:" + digest.DigestRegexp.String() + "}",
+		Path:        "/v2/{name:" + reference.NameRegexp.String() + "}/blobs/{digest:" + digest.DigestRegexp.String() + "}",
 		Entity:      "Blob",
-		Description: "Fetch the blob identified by `name` and `digest`. Used to fetch layers by digest.",
+		Description: "Operations on blobs identified by `name` and `digest`. Used to fetch or delete layers by digest.",
 		Methods: []MethodDescriptor{
-
 			{
 				Method:      "GET",
 				Description: "Retrieve the blob from the registry identified by `digest`. A `HEAD` request can also be issued to this endpoint to obtain resource information without receiving all data.",
@@ -765,7 +745,7 @@ var routeDescriptors = []RouteDescriptor{
 							{
 								Description: "There was a problem with the request that needs to be addressed by the client, such as an invalid `name` or `tag`.",
 								StatusCode:  http.StatusBadRequest,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeNameInvalid,
 									ErrorCodeDigestInvalid,
 								},
@@ -774,7 +754,6 @@ var routeDescriptors = []RouteDescriptor{
 									Format:      errorsBody,
 								},
 							},
-							unauthorizedResponse,
 							{
 								Description: "The blob, identified by `name` and `digest`, is unknown to the registry.",
 								StatusCode:  http.StatusNotFound,
@@ -782,11 +761,14 @@ var routeDescriptors = []RouteDescriptor{
 									ContentType: "application/json; charset=utf-8",
 									Format:      errorsBody,
 								},
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeNameUnknown,
 									ErrorCodeBlobUnknown,
 								},
 							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
 						},
 					},
 					{
@@ -834,7 +816,7 @@ var routeDescriptors = []RouteDescriptor{
 							{
 								Description: "There was a problem with the request that needs to be addressed by the client, such as an invalid `name` or `tag`.",
 								StatusCode:  http.StatusBadRequest,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeNameInvalid,
 									ErrorCodeDigestInvalid,
 								},
@@ -843,10 +825,9 @@ var routeDescriptors = []RouteDescriptor{
 									Format:      errorsBody,
 								},
 							},
-							unauthorizedResponse,
 							{
 								StatusCode: http.StatusNotFound,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeNameUnknown,
 									ErrorCodeBlobUnknown,
 								},
@@ -859,10 +840,80 @@ var routeDescriptors = []RouteDescriptor{
 								Description: "The range specification cannot be satisfied for the requested content. This can happen when the range is not formatted correctly or if the range is outside of the valid size of the content.",
 								StatusCode:  http.StatusRequestedRangeNotSatisfiable,
 							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
 						},
 					},
 				},
 			},
+			{
+				Method:      "DELETE",
+				Description: "Delete the blob identified by `name` and `digest`",
+				Requests: []RequestDescriptor{
+					{
+						Headers: []ParameterDescriptor{
+							hostHeader,
+							authHeader,
+						},
+						PathParameters: []ParameterDescriptor{
+							nameParameterDescriptor,
+							digestPathParameter,
+						},
+						Successes: []ResponseDescriptor{
+							{
+								StatusCode: http.StatusAccepted,
+								Headers: []ParameterDescriptor{
+									{
+										Name:        "Content-Length",
+										Type:        "integer",
+										Description: "0",
+										Format:      "0",
+									},
+									digestHeader,
+								},
+							},
+						},
+						Failures: []ResponseDescriptor{
+							{
+								Name:       "Invalid Name or Digest",
+								StatusCode: http.StatusBadRequest,
+								ErrorCodes: []errcode.ErrorCode{
+									ErrorCodeDigestInvalid,
+									ErrorCodeNameInvalid,
+								},
+							},
+							{
+								Description: "The blob, identified by `name` and `digest`, is unknown to the registry.",
+								StatusCode:  http.StatusNotFound,
+								Body: BodyDescriptor{
+									ContentType: "application/json; charset=utf-8",
+									Format:      errorsBody,
+								},
+								ErrorCodes: []errcode.ErrorCode{
+									ErrorCodeNameUnknown,
+									ErrorCodeBlobUnknown,
+								},
+							},
+							{
+								Description: "Blob delete is not allowed because the registry is configured as a pull-through cache or `delete` has been disabled",
+								StatusCode:  http.StatusMethodNotAllowed,
+								Body: BodyDescriptor{
+									ContentType: "application/json; charset=utf-8",
+									Format:      errorsBody,
+								},
+								ErrorCodes: []errcode.ErrorCode{
+									errcode.ErrorCodeUnsupported,
+								},
+							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
+						},
+					},
+				},
+			},
+
 			// TODO(stevvooe): We may want to add a PUT request here to
 			// kickoff an upload of a blob, integrated with the blob upload
 			// API.
@@ -871,8 +922,8 @@ var routeDescriptors = []RouteDescriptor{
 
 	{
 		Name:        RouteNameBlobUpload,
-		Path:        "/v2/{name:" + RepositoryNameRegexp.String() + "}/blobs/uploads/",
-		Entity:      "Intiate Blob Upload",
+		Path:        "/v2/{name:" + reference.NameRegexp.String() + "}/blobs/uploads/",
+		Entity:      "Initiate Blob Upload",
 		Description: "Initiate a blob upload. This endpoint can be used to create resumable uploads or monolithic uploads.",
 		Methods: []MethodDescriptor{
 			{
@@ -926,12 +977,22 @@ var routeDescriptors = []RouteDescriptor{
 							{
 								Name:       "Invalid Name or Digest",
 								StatusCode: http.StatusBadRequest,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeDigestInvalid,
 									ErrorCodeNameInvalid,
 								},
 							},
-							unauthorizedResponsePush,
+							{
+								Name:        "Not allowed",
+								Description: "Blob upload is not allowed because the registry is configured as a pull-through cache or for some other reason",
+								StatusCode:  http.StatusMethodNotAllowed,
+								ErrorCodes: []errcode.ErrorCode{
+									errcode.ErrorCodeUnsupported,
+								},
+							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
 						},
 					},
 					{
@@ -970,12 +1031,14 @@ var routeDescriptors = []RouteDescriptor{
 							{
 								Name:       "Invalid Name or Digest",
 								StatusCode: http.StatusBadRequest,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeDigestInvalid,
 									ErrorCodeNameInvalid,
 								},
 							},
-							unauthorizedResponsePush,
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
 						},
 					},
 				},
@@ -985,7 +1048,7 @@ var routeDescriptors = []RouteDescriptor{
 
 	{
 		Name:        RouteNameBlobUploadChunk,
-		Path:        "/v2/{name:" + RepositoryNameRegexp.String() + "}/blobs/uploads/{uuid:[a-zA-Z0-9-_.=]+}",
+		Path:        "/v2/{name:" + reference.NameRegexp.String() + "}/blobs/uploads/{uuid:[a-zA-Z0-9-_.=]+}",
 		Entity:      "Blob Upload",
 		Description: "Interact with blob uploads. Clients should never assemble URLs for this endpoint and should only take it through the `Location` header on related API requests. The `Location` header and its parameters should be preserved by clients, using the latest value returned via upload related API calls.",
 		Methods: []MethodDescriptor{
@@ -1024,7 +1087,7 @@ var routeDescriptors = []RouteDescriptor{
 							{
 								Description: "There was an error processing the upload and it must be restarted.",
 								StatusCode:  http.StatusBadRequest,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeDigestInvalid,
 									ErrorCodeNameInvalid,
 									ErrorCodeBlobUploadInvalid,
@@ -1034,11 +1097,10 @@ var routeDescriptors = []RouteDescriptor{
 									Format:      errorsBody,
 								},
 							},
-							unauthorizedResponse,
 							{
 								Description: "The upload is unknown to the registry. The upload must be restarted.",
 								StatusCode:  http.StatusNotFound,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeBlobUploadUnknown,
 								},
 								Body: BodyDescriptor{
@@ -1046,6 +1108,9 @@ var routeDescriptors = []RouteDescriptor{
 									Format:      errorsBody,
 								},
 							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
 						},
 					},
 				},
@@ -1096,7 +1161,7 @@ var routeDescriptors = []RouteDescriptor{
 							{
 								Description: "There was an error processing the upload and it must be restarted.",
 								StatusCode:  http.StatusBadRequest,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeDigestInvalid,
 									ErrorCodeNameInvalid,
 									ErrorCodeBlobUploadInvalid,
@@ -1106,11 +1171,10 @@ var routeDescriptors = []RouteDescriptor{
 									Format:      errorsBody,
 								},
 							},
-							unauthorizedResponsePush,
 							{
 								Description: "The upload is unknown to the registry. The upload must be restarted.",
 								StatusCode:  http.StatusNotFound,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeBlobUploadUnknown,
 								},
 								Body: BodyDescriptor{
@@ -1118,6 +1182,9 @@ var routeDescriptors = []RouteDescriptor{
 									Format:      errorsBody,
 								},
 							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
 						},
 					},
 					{
@@ -1175,7 +1242,7 @@ var routeDescriptors = []RouteDescriptor{
 							{
 								Description: "There was an error processing the upload and it must be restarted.",
 								StatusCode:  http.StatusBadRequest,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeDigestInvalid,
 									ErrorCodeNameInvalid,
 									ErrorCodeBlobUploadInvalid,
@@ -1185,11 +1252,10 @@ var routeDescriptors = []RouteDescriptor{
 									Format:      errorsBody,
 								},
 							},
-							unauthorizedResponsePush,
 							{
 								Description: "The upload is unknown to the registry. The upload must be restarted.",
 								StatusCode:  http.StatusNotFound,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeBlobUploadUnknown,
 								},
 								Body: BodyDescriptor{
@@ -1201,6 +1267,9 @@ var routeDescriptors = []RouteDescriptor{
 								Description: "The `Content-Range` specification cannot be accepted, either because it does not overlap with the current progress or it is invalid.",
 								StatusCode:  http.StatusRequestedRangeNotSatisfiable,
 							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
 						},
 					},
 				},
@@ -1266,21 +1335,21 @@ var routeDescriptors = []RouteDescriptor{
 							{
 								Description: "There was an error processing the upload and it must be restarted.",
 								StatusCode:  http.StatusBadRequest,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeDigestInvalid,
 									ErrorCodeNameInvalid,
 									ErrorCodeBlobUploadInvalid,
+									errcode.ErrorCodeUnsupported,
 								},
 								Body: BodyDescriptor{
 									ContentType: "application/json; charset=utf-8",
 									Format:      errorsBody,
 								},
 							},
-							unauthorizedResponsePush,
 							{
 								Description: "The upload is unknown to the registry. The upload must be restarted.",
 								StatusCode:  http.StatusNotFound,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeBlobUploadUnknown,
 								},
 								Body: BodyDescriptor{
@@ -1288,6 +1357,9 @@ var routeDescriptors = []RouteDescriptor{
 									Format:      errorsBody,
 								},
 							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
 						},
 					},
 				},
@@ -1321,7 +1393,7 @@ var routeDescriptors = []RouteDescriptor{
 							{
 								Description: "An error was encountered processing the delete. The client may ignore this error.",
 								StatusCode:  http.StatusBadRequest,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeNameInvalid,
 									ErrorCodeBlobUploadInvalid,
 								},
@@ -1330,16 +1402,88 @@ var routeDescriptors = []RouteDescriptor{
 									Format:      errorsBody,
 								},
 							},
-							unauthorizedResponse,
 							{
 								Description: "The upload is unknown to the registry. The client may ignore this error and assume the upload has been deleted.",
 								StatusCode:  http.StatusNotFound,
-								ErrorCodes: []ErrorCode{
+								ErrorCodes: []errcode.ErrorCode{
 									ErrorCodeBlobUploadUnknown,
 								},
 								Body: BodyDescriptor{
 									ContentType: "application/json; charset=utf-8",
 									Format:      errorsBody,
+								},
+							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		Name:        RouteNameCatalog,
+		Path:        "/v2/_catalog",
+		Entity:      "Catalog",
+		Description: "List a set of available repositories in the local registry cluster. Does not provide any indication of what may be available upstream. Applications can only determine if a repository is available but not if it is not available.",
+		Methods: []MethodDescriptor{
+			{
+				Method:      "GET",
+				Description: "Retrieve a sorted, json list of repositories available in the registry.",
+				Requests: []RequestDescriptor{
+					{
+						Name:        "Catalog Fetch Complete",
+						Description: "Request an unabridged list of repositories available.",
+						Successes: []ResponseDescriptor{
+							{
+								Description: "Returns the unabridged list of repositories as a json response.",
+								StatusCode:  http.StatusOK,
+								Headers: []ParameterDescriptor{
+									{
+										Name:        "Content-Length",
+										Type:        "integer",
+										Description: "Length of the JSON response body.",
+										Format:      "<length>",
+									},
+								},
+								Body: BodyDescriptor{
+									ContentType: "application/json; charset=utf-8",
+									Format: `{
+	"repositories": [
+		<name>,
+		...
+	]
+}`,
+								},
+							},
+						},
+					},
+					{
+						Name:            "Catalog Fetch Paginated",
+						Description:     "Return the specified portion of repositories.",
+						QueryParameters: paginationParameters,
+						Successes: []ResponseDescriptor{
+							{
+								StatusCode: http.StatusOK,
+								Body: BodyDescriptor{
+									ContentType: "application/json; charset=utf-8",
+									Format: `{
+	"repositories": [
+		<name>,
+		...
+	]
+	"next": "<url>?last=<name>&n=<last value of n>"
+}`,
+								},
+								Headers: []ParameterDescriptor{
+									{
+										Name:        "Content-Length",
+										Type:        "integer",
+										Description: "Length of the JSON response body.",
+										Format:      "<length>",
+									},
+									linkHeader,
 								},
 							},
 						},
@@ -1350,143 +1494,11 @@ var routeDescriptors = []RouteDescriptor{
 	},
 }
 
-// ErrorDescriptors provides a list of HTTP API Error codes that may be
-// encountered when interacting with the registry API.
-var errorDescriptors = []ErrorDescriptor{
-	{
-		Code:    ErrorCodeUnknown,
-		Value:   "UNKNOWN",
-		Message: "unknown error",
-		Description: `Generic error returned when the error does not have an
-		API classification.`,
-	},
-	{
-		Code:    ErrorCodeUnsupported,
-		Value:   "UNSUPPORTED",
-		Message: "The operation is unsupported.",
-		Description: `The operation was unsupported due to a missing
-		implementation or invalid set of parameters.`,
-	},
-	{
-		Code:    ErrorCodeUnauthorized,
-		Value:   "UNAUTHORIZED",
-		Message: "access to the requested resource is not authorized",
-		Description: `The access controller denied access for the operation on
-		a resource. Often this will be accompanied by a 401 Unauthorized
-		response status.`,
-	},
-	{
-		Code:    ErrorCodeDigestInvalid,
-		Value:   "DIGEST_INVALID",
-		Message: "provided digest did not match uploaded content",
-		Description: `When a blob is uploaded, the registry will check that
-		the content matches the digest provided by the client. The error may
-		include a detail structure with the key "digest", including the
-		invalid digest string. This error may also be returned when a manifest
-		includes an invalid layer digest.`,
-		HTTPStatusCodes: []int{http.StatusBadRequest, http.StatusNotFound},
-	},
-	{
-		Code:    ErrorCodeSizeInvalid,
-		Value:   "SIZE_INVALID",
-		Message: "provided length did not match content length",
-		Description: `When a layer is uploaded, the provided size will be
-		checked against the uploaded content. If they do not match, this error
-		will be returned.`,
-		HTTPStatusCodes: []int{http.StatusBadRequest},
-	},
-	{
-		Code:    ErrorCodeNameInvalid,
-		Value:   "NAME_INVALID",
-		Message: "invalid repository name",
-		Description: `Invalid repository name encountered either during
-		manifest validation or any API operation.`,
-		HTTPStatusCodes: []int{http.StatusBadRequest, http.StatusNotFound},
-	},
-	{
-		Code:    ErrorCodeTagInvalid,
-		Value:   "TAG_INVALID",
-		Message: "manifest tag did not match URI",
-		Description: `During a manifest upload, if the tag in the manifest
-		does not match the uri tag, this error will be returned.`,
-		HTTPStatusCodes: []int{http.StatusBadRequest, http.StatusNotFound},
-	},
-	{
-		Code:    ErrorCodeNameUnknown,
-		Value:   "NAME_UNKNOWN",
-		Message: "repository name not known to registry",
-		Description: `This is returned if the name used during an operation is
-		unknown to the registry.`,
-		HTTPStatusCodes: []int{http.StatusNotFound},
-	},
-	{
-		Code:    ErrorCodeManifestUnknown,
-		Value:   "MANIFEST_UNKNOWN",
-		Message: "manifest unknown",
-		Description: `This error is returned when the manifest, identified by
-		name and tag is unknown to the repository.`,
-		HTTPStatusCodes: []int{http.StatusNotFound},
-	},
-	{
-		Code:    ErrorCodeManifestInvalid,
-		Value:   "MANIFEST_INVALID",
-		Message: "manifest invalid",
-		Description: `During upload, manifests undergo several checks ensuring
-		validity. If those checks fail, this error may be returned, unless a
-		more specific error is included. The detail will contain information
-		the failed validation.`,
-		HTTPStatusCodes: []int{http.StatusBadRequest},
-	},
-	{
-		Code:    ErrorCodeManifestUnverified,
-		Value:   "MANIFEST_UNVERIFIED",
-		Message: "manifest failed signature verification",
-		Description: `During manifest upload, if the manifest fails signature
-		verification, this error will be returned.`,
-		HTTPStatusCodes: []int{http.StatusBadRequest},
-	},
-	{
-		Code:    ErrorCodeBlobUnknown,
-		Value:   "BLOB_UNKNOWN",
-		Message: "blob unknown to registry",
-		Description: `This error may be returned when a blob is unknown to the
-		registry in a specified repository. This can be returned with a
-		standard get or if a manifest references an unknown layer during
-		upload.`,
-		HTTPStatusCodes: []int{http.StatusBadRequest, http.StatusNotFound},
-	},
-
-	{
-		Code:    ErrorCodeBlobUploadUnknown,
-		Value:   "BLOB_UPLOAD_UNKNOWN",
-		Message: "blob upload unknown to registry",
-		Description: `If a blob upload has been cancelled or was never
-		started, this error code may be returned.`,
-		HTTPStatusCodes: []int{http.StatusNotFound},
-	},
-	{
-		Code:    ErrorCodeBlobUploadInvalid,
-		Value:   "BLOB_UPLOAD_INVALID",
-		Message: "blob upload invalid",
-		Description: `The blob upload encountered an error and can no
-		longer proceed.`,
-		HTTPStatusCodes: []int{http.StatusNotFound},
-	},
-}
-
-var errorCodeToDescriptors map[ErrorCode]ErrorDescriptor
-var idToDescriptors map[string]ErrorDescriptor
 var routeDescriptorsMap map[string]RouteDescriptor
 
 func init() {
-	errorCodeToDescriptors = make(map[ErrorCode]ErrorDescriptor, len(errorDescriptors))
-	idToDescriptors = make(map[string]ErrorDescriptor, len(errorDescriptors))
 	routeDescriptorsMap = make(map[string]RouteDescriptor, len(routeDescriptors))
 
-	for _, descriptor := range errorDescriptors {
-		errorCodeToDescriptors[descriptor.Code] = descriptor
-		idToDescriptors[descriptor.Value] = descriptor
-	}
 	for _, descriptor := range routeDescriptors {
 		routeDescriptorsMap[descriptor.Name] = descriptor
 	}

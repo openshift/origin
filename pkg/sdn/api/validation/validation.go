@@ -40,12 +40,39 @@ func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) fielderrors.Valid
 	return allErrs
 }
 
+func validateNewNetwork(obj *sdnapi.ClusterNetwork, old *sdnapi.ClusterNetwork) error {
+	oldBase, oldNet, err := net.ParseCIDR(old.Network)
+	if err != nil {
+		// Shouldn't happen, but if the existing value is invalid, then any change should be an improvement...
+		return nil
+	}
+	oldSize, _ := oldNet.Mask.Size()
+	_, newNet, err := net.ParseCIDR(obj.Network)
+	if err != nil {
+		return fielderrors.NewFieldInvalid("Network", obj.Network, err.Error())
+	}
+	newSize, _ := newNet.Mask.Size()
+	// oldSize/newSize is, eg the "16" in "10.1.0.0/16", so "newSize < oldSize" means
+	// the new network is larger
+	if newSize < oldSize && newNet.Contains(oldBase) {
+		return nil
+	} else {
+		return fielderrors.NewFieldInvalid("Network", obj.Network, "cannot change the cluster's network CIDR to a value that does not include the existing network.")
+	}
+}
+
 func ValidateClusterNetworkUpdate(obj *sdnapi.ClusterNetwork, old *sdnapi.ClusterNetwork) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
 
 	if obj.Network != old.Network {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("Network", obj.Network, "cannot change the cluster's network CIDR midflight."))
+		err := validateNewNetwork(obj, old)
+		if err != nil {
+			allErrs = append(allErrs, err)
+		}
+	}
+	if obj.HostSubnetLength != old.HostSubnetLength {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("HostSubnetLength", obj.HostSubnetLength, "cannot change the cluster's hostSubnetLength midflight."))
 	}
 	if obj.ServiceNetwork != old.ServiceNetwork && old.ServiceNetwork != "" {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("ServiceNetwork", obj.ServiceNetwork, "cannot change the cluster's serviceNetwork CIDR midflight."))

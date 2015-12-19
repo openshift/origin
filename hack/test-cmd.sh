@@ -57,6 +57,7 @@ tests=( $(find_tests ${1:-.*}) )
 
 # test-cmd specific defaults
 BASETMPDIR=${USE_TEMP:-$(mkdir -p /tmp/openshift-cmd && mktemp -d /tmp/openshift-cmd/XXXX)}
+LOG_DIR=${BASETMPDIR}/logs
 API_HOST=${API_HOST:-127.0.0.1}
 export API_PORT=${API_PORT:-28443}
 
@@ -67,6 +68,7 @@ setup_env_vars
 export SUDO=''
 mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" "${LOG_DIR}"
 
+echo "Logging to ${LOG_DIR}..."
 
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
@@ -152,7 +154,7 @@ os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master
 # Start openshift
 OPENSHIFT_ON_PANIC=crash openshift start master \
   --config=${MASTER_CONFIG_DIR}/master-config.yaml \
-  --loglevel=4 \
+  --loglevel=5 \
   &>"${LOG_DIR}/openshift.log" &
 OS_PID=$!
 

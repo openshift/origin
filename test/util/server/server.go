@@ -209,7 +209,6 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, error) {
 	startOptions := start.AllInOneOptions{MasterOptions: &start.MasterOptions{}, NodeArgs: &start.NodeArgs{}}
 	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions()
-	startOptions.MasterOptions.MasterArgs.NodeList = nil
 	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.ServiceNetworkCIDR = start.NewDefaultNetworkArgs().ServiceNetworkCIDR
 	startOptions.Complete()

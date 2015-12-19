@@ -18,8 +18,18 @@ html, body {
   input[type="number"],
   input[type="search"],
   input[type="url"],
-  textarea {
+  textarea,
+  .modal-resource-edit .editor {
     font-size: 16px;
+  }
+
+  // Fix Bootstrap modal dialog zoom on the iPhone
+  // See http://stackoverflow.com/questions/32675849/screen-zooms-in-when-a-bootstrap-modal-is-opened-on-ios-9-safari
+  body {
+    padding-right: 0px !important
+  }
+  .modal-open {
+    overflow-y: auto;
   }
 }
 
@@ -736,10 +746,6 @@ select:invalid {
   width: 60px;
 }
 
-.deployment .replicas-form input {
-  display: inline-block;
-}
-
 .action-button {
   color: @gray-light;
   cursor: pointer;
@@ -765,6 +771,14 @@ a.disabled-link {
   }
 }
 
+.resource-actions-dropdown {
+  .action-button;
+
+  // Bigger click target for the dropdown icon, which is a narrow ellipsis
+  padding: 0 10px;
+  vertical-align: middle;
+}
+
 .modal-resource-delete, .modal-confirm-scale {
   background-color: @gray-lighter;
   h1 {
@@ -774,6 +788,47 @@ a.disabled-link {
   }
   p {
     font-size: @font-size-large + 1;
+  }
+}
+
+// Disable numeric highlighting in YAML because of bugs
+.yaml-mode .ace_constant.ace_numeric {
+  color: inherit;
+}
+
+.modal-resource-edit {
+  .editor {
+    font-family: @font-family-monospace;
+    line-height: 1.5;
+    width: 100%;
+    min-height: 100px;
+    .ace_gutter {
+      color: #8b8d8f;
+    }
+  }
+  .modal-header {
+    h2 {
+      // Don't wrap at narrow screen widths.
+      .truncate();
+      // Avoid clipping descenders with .truncate()
+      line-height: 1.4;
+      margin: 10px;
+      .fa {
+        color: #4d5258;
+        margin-right: 5px;
+      }
+    }
+  }
+  .modal-body {
+    border-top: 1px solid #bbbbbb;
+    border-bottom: 1px solid #bbbbbb;
+    padding: 0;
+    .alert {
+      margin-bottom: 0;
+    }
+  }
+  .modal-footer {
+    margin-top: 0;
   }
 }
 

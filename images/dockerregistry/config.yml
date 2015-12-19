@@ -8,6 +8,8 @@ storage:
     layerinfo: inmemory
   filesystem:
     rootdirectory: /registry
+  delete:
+    enabled: true
 auth:
   openshift:
     realm: openshift

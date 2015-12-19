@@ -68,6 +68,11 @@ func TestAddArguments(t *testing.T) {
 			repos:   []string{".", testDir, "git://github.com/openshift/origin.git"},
 			unknown: []string{},
 		},
+		"source custom ref": {
+			args:    []string{"https://github.com/openshift/ruby-hello-world#beta4"},
+			repos:   []string{"https://github.com/openshift/ruby-hello-world#beta4"},
+			unknown: []string{},
+		},
 		"env": {
 			args:    []string{"first=one", "second=two", "third=three"},
 			env:     []string{"first=one", "second=two", "third=three"},

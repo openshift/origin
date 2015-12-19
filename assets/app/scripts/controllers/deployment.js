@@ -11,6 +11,7 @@ angular.module('openshiftConsole')
     $scope.projectName = $routeParams.project;
     $scope.deployment = null;
     $scope.deploymentConfig = null;
+    $scope.deploymentConfigMissing = false;
     $scope.deployments = {};
     $scope.podTemplates = {};
     $scope.imageStreams = {};
@@ -38,10 +39,6 @@ angular.module('openshiftConsole')
       title: $routeParams.deployment || $routeParams.replicationcontroller
     });
 
-    $scope.replicas = {
-      editing: false
-    };
-
     // Check for a ?tab=<name> query param to allow linking directly to a tab.
     if ($routeParams.tab) {
       $scope.selectedTab = {};
@@ -60,6 +57,25 @@ angular.module('openshiftConsole')
         // projectPromise rather than just a namespace, so we have to pass the
         // context into the log-viewer directive.
         $scope.logContext = context;
+
+        var watchActiveDeployment = function() {
+          // Watch all replication controllers so we know if this is the active deployment to enable scaling.
+          watches.push(DataService.watch("replicationcontrollers", context, function(deployments) {
+            var activeDeployment,
+                deploymentsForConfig = [],
+                getAnnotation = $filter("annotation");
+            // Filter the list to just those deployments for this config.
+            angular.forEach(deployments.by("metadata.name"), function(deployment) {
+              var depConfigName = getAnnotation(deployment, 'deploymentConfig') || "";
+              if (depConfigName === $scope.deploymentConfigName) {
+                deploymentsForConfig.push(deployment);
+              }
+            });
+            activeDeployment = DeploymentsService.getActiveDeployment(deploymentsForConfig);
+            $scope.isActive = activeDeployment && activeDeployment.metadata.uid === $scope.deployment.metadata.uid;
+          }));
+        };
+
         DataService.get("replicationcontrollers", $routeParams.deployment || $routeParams.replicationcontroller, context).then(
           // success
           function(deployment) {
@@ -82,6 +98,11 @@ angular.module('openshiftConsole')
               }
               $scope.deployment = deployment;
             }));
+
+            if ($scope.deploymentConfigName) {
+              // Check if we're the active deployment to enable or disable scaling.
+              watchActiveDeployment();
+            }
           },
           // failure
           function(e) {
@@ -95,13 +116,20 @@ angular.module('openshiftConsole')
         );
 
         if ($routeParams.deploymentconfig) {
-          DataService.get("deploymentconfigs", $routeParams.deploymentconfig, context).then(
+          DataService.get("deploymentconfigs", $routeParams.deploymentconfig, context, {
+            errorNotification: false
+          }).then(
             // success
             function(deploymentConfig) {
               $scope.deploymentConfig = deploymentConfig;
             },
             // failure
             function(e) {
+              if (e.status === 404) {
+                $scope.deploymentConfigMissing = true;
+                return;
+              }
+
               $scope.alerts["load"] = {
                 type: "error",
                 message: "The deployment configuration details could not be loaded.",
@@ -187,31 +215,25 @@ angular.module('openshiftConsole')
           DeploymentsService.cancelRunningDeployment(deployment, context, $scope);
         };
 
-        $scope.scale = function() {
-          if ($scope.replicas.form.$valid) {
-            DeploymentsService.scale($scope.deployment, $scope.replicas.desired).then(
-              // success, no need for a message since the UI updates immediately
-              _.noop,
-              // failure
-              function(result) {
-                $scope.alerts["scale"] =
-                  {
-                    type: "error",
-                    message: "An error occurred scaling the deployment.",
-                    details: $filter('getErrorDetails')(result)
-                  };
-              });
-            $scope.replicas.editing = false;
-          }
-        };
+        $scope.scale = function(replicas) {
+          var showScalingError = function(result) {
+            $scope.alerts = $scope.alerts || {};
+            $scope.alerts["scale"] = {
+              type: "error",
+              message: "An error occurred scaling the deployment.",
+              details: $filter('getErrorDetails')(result)
+            };
+          };
 
-        $scope.cancelScale = function() {
-          $scope.replicas.editing = false;
+          if ($scope.deploymentConfig) {
+            DeploymentsService.scaleDC($scope.deploymentConfig, replicas).then(_.noop, showScalingError);
+          } else {
+            DeploymentsService.scaleRC($scope.deployment, replicas).then(_.noop, showScalingError);
+          }
         };
 
         $scope.$on('$destroy', function(){
           DataService.unwatchAll(watches);
         });
-
     }));
   });

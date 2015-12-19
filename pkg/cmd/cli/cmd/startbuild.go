@@ -208,6 +208,9 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 			},
 			Commit: commit,
 		}
+		if len(env) > 0 {
+			fmt.Fprintf(cmd.Out(), "WARNING: Specifying environment variables with binary builds is not supported.\n")
+		}
 		if newBuild, err = streamPathToBuild(git, in, cmd.Out(), client.BuildConfigs(namespace), fromDir, fromFile, fromRepo, request); err != nil {
 			return err
 		}

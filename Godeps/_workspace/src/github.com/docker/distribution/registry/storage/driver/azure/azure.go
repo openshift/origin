@@ -11,11 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/distribution/context"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	"github.com/docker/distribution/registry/storage/driver/base"
 	"github.com/docker/distribution/registry/storage/driver/factory"
 
-	azure "github.com/MSOpenTech/azure-sdk-for-go/storage"
+	azure "github.com/Azure/azure-sdk-for-go/storage"
 )
 
 const driverName = "azure"
@@ -67,7 +68,7 @@ func FromParameters(parameters map[string]interface{}) (*Driver, error) {
 
 	realm, ok := parameters[paramRealm]
 	if !ok || fmt.Sprint(realm) == "" {
-		realm = azure.DefaultBaseUrl
+		realm = azure.DefaultBaseURL
 	}
 
 	return New(fmt.Sprint(accountName), fmt.Sprint(accountKey), fmt.Sprint(container), fmt.Sprint(realm))
@@ -75,7 +76,7 @@ func FromParameters(parameters map[string]interface{}) (*Driver, error) {
 
 // New constructs a new Driver with the given Azure Storage Account credentials
 func New(accountName, accountKey, container, realm string) (*Driver, error) {
-	api, err := azure.NewClient(accountName, accountKey, realm, azure.DefaultApiVersion, true)
+	api, err := azure.NewClient(accountName, accountKey, realm, azure.DefaultAPIVersion, true)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func New(accountName, accountKey, container, realm string) (*Driver, error) {
 	}
 
 	d := &driver{
-		client:    *blobClient,
+		client:    blobClient,
 		container: container}
 	return &Driver{baseEmbed: baseEmbed{Base: base.Base{StorageDriver: d}}}, nil
 }
@@ -99,7 +100,7 @@ func (d *driver) Name() string {
 }
 
 // GetContent retrieves the content stored at "path" as a []byte.
-func (d *driver) GetContent(path string) ([]byte, error) {
+func (d *driver) GetContent(ctx context.Context, path string) ([]byte, error) {
 	blob, err := d.client.GetBlob(d.container, path)
 	if err != nil {
 		if is404(err) {
@@ -112,13 +113,22 @@ func (d *driver) GetContent(path string) ([]byte, error) {
 }
 
 // PutContent stores the []byte content at a location designated by "path".
-func (d *driver) PutContent(path string, contents []byte) error {
-	return d.client.PutBlockBlob(d.container, path, ioutil.NopCloser(bytes.NewReader(contents)))
+func (d *driver) PutContent(ctx context.Context, path string, contents []byte) error {
+	if _, err := d.client.DeleteBlobIfExists(d.container, path); err != nil {
+		return err
+	}
+	if err := d.client.CreateBlockBlob(d.container, path); err != nil {
+		return err
+	}
+	bs := newAzureBlockStorage(d.client)
+	bw := newRandomBlobWriter(&bs, azure.MaxBlobBlockSize)
+	_, err := bw.WriteBlobAt(d.container, path, 0, bytes.NewReader(contents))
+	return err
 }
 
 // ReadStream retrieves an io.ReadCloser for the content stored at "path" with a
 // given byte offset.
-func (d *driver) ReadStream(path string, offset int64) (io.ReadCloser, error) {
+func (d *driver) ReadStream(ctx context.Context, path string, offset int64) (io.ReadCloser, error) {
 	if ok, err := d.client.BlobExists(d.container, path); err != nil {
 		return nil, err
 	} else if !ok {
@@ -145,7 +155,7 @@ func (d *driver) ReadStream(path string, offset int64) (io.ReadCloser, error) {
 
 // WriteStream stores the contents of the provided io.ReadCloser at a location
 // designated by the given path.
-func (d *driver) WriteStream(path string, offset int64, reader io.Reader) (int64, error) {
+func (d *driver) WriteStream(ctx context.Context, path string, offset int64, reader io.Reader) (int64, error) {
 	if blobExists, err := d.client.BlobExists(d.container, path); err != nil {
 		return 0, err
 	} else if !blobExists {
@@ -166,7 +176,7 @@ func (d *driver) WriteStream(path string, offset int64, reader io.Reader) (int64
 
 // Stat retrieves the FileInfo for the given path, including the current size
 // in bytes and the creation time.
-func (d *driver) Stat(path string) (storagedriver.FileInfo, error) {
+func (d *driver) Stat(ctx context.Context, path string) (storagedriver.FileInfo, error) {
 	// Check if the path is a blob
 	if ok, err := d.client.BlobExists(d.container, path); err != nil {
 		return nil, err
@@ -215,7 +225,7 @@ func (d *driver) Stat(path string) (storagedriver.FileInfo, error) {
 
 // List returns a list of the objects that are direct descendants of the given
 // path.
-func (d *driver) List(path string) ([]string, error) {
+func (d *driver) List(ctx context.Context, path string) ([]string, error) {
 	if path == "/" {
 		path = ""
 	}
@@ -231,8 +241,8 @@ func (d *driver) List(path string) ([]string, error) {
 
 // Move moves an object stored at sourcePath to destPath, removing the original
 // object.
-func (d *driver) Move(sourcePath string, destPath string) error {
-	sourceBlobURL := d.client.GetBlobUrl(d.container, sourcePath)
+func (d *driver) Move(ctx context.Context, sourcePath string, destPath string) error {
+	sourceBlobURL := d.client.GetBlobURL(d.container, sourcePath)
 	err := d.client.CopyBlob(d.container, destPath, sourceBlobURL)
 	if err != nil {
 		if is404(err) {
@@ -245,7 +255,7 @@ func (d *driver) Move(sourcePath string, destPath string) error {
 }
 
 // Delete recursively deletes all objects stored at "path" and its subpaths.
-func (d *driver) Delete(path string) error {
+func (d *driver) Delete(ctx context.Context, path string) error {
 	ok, err := d.client.DeleteBlobIfExists(d.container, path)
 	if err != nil {
 		return err
@@ -275,7 +285,7 @@ func (d *driver) Delete(path string) error {
 // URLFor returns a publicly accessible URL for the blob stored at given path
 // for specified duration by making use of Azure Storage Shared Access Signatures (SAS).
 // See https://msdn.microsoft.com/en-us/library/azure/ee395415.aspx for more info.
-func (d *driver) URLFor(path string, options map[string]interface{}) (string, error) {
+func (d *driver) URLFor(ctx context.Context, path string, options map[string]interface{}) (string, error) {
 	expiresTime := time.Now().UTC().Add(20 * time.Minute) // default expiration
 	expires, ok := options["expiry"]
 	if ok {
@@ -351,6 +361,6 @@ func (d *driver) listBlobs(container, virtPath string) ([]string, error) {
 }
 
 func is404(err error) bool {
-	e, ok := err.(azure.StorageServiceError)
+	e, ok := err.(azure.AzureStorageServiceError)
 	return ok && e.StatusCode == http.StatusNotFound
 }

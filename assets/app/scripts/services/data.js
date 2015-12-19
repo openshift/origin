@@ -914,6 +914,9 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
         if (!item.kind) {
           item.kind = data.kind.slice(0, -4);
         }
+        if (!item.apiVersion) {
+          item.apiVersion = data.apiVersion;
+        }
       });
     }
 

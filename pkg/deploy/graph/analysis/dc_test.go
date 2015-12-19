@@ -46,22 +46,3 @@ func TestMissingImageStream(t *testing.T) {
 		t.Fatalf("expected marker key %q, got %q", expected, got)
 	}
 }
-
-func TestSyntheticImageStreamTag(t *testing.T) {
-	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/unpushable-build.yaml")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	buildedges.AddAllInputOutputEdges(g)
-	deployedges.AddAllTriggerEdges(g)
-	imageedges.AddAllImageStreamRefEdges(g)
-
-	markers := FindDeploymentConfigTriggerErrors(g)
-	if e, a := 1, len(markers); e != a {
-		t.Fatalf("expected %v, got %v", e, a)
-	}
-
-	if got, expected := markers[0].Key, TagNotAvailableWarning; got != expected {
-		t.Fatalf("expected marker key %q, got %q", expected, got)
-	}
-}

@@ -2,8 +2,9 @@ package validation
 
 import (
 	"fmt"
+	"regexp"
 
-	"github.com/docker/distribution/registry/api/v2"
+	"github.com/docker/distribution/reference"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
@@ -12,16 +13,29 @@ import (
 	"github.com/openshift/origin/pkg/image/api"
 )
 
+// RepositoryNameComponentRegexp restricts registry path component names to
+// start with at least one letter or number, with following parts able to
+// be separated by one period, dash or underscore.
+// Copied from github.com/docker/distribution/registry/api/v2/names.go v2.1.1
+var RepositoryNameComponentRegexp = regexp.MustCompile(`[a-z0-9]+(?:[._-][a-z0-9]+)*`)
+
+// RepositoryNameComponentAnchoredRegexp is the version of
+// RepositoryNameComponentRegexp which must completely match the content
+// Copied from github.com/docker/distribution/registry/api/v2/names.go v2.1.1
+var RepositoryNameComponentAnchoredRegexp = regexp.MustCompile(`^` + RepositoryNameComponentRegexp.String() + `$`)
+
+// RepositoryNameRegexp builds on RepositoryNameComponentRegexp to allow
+// multiple path components, separated by a forward slash.
+// Copied from github.com/docker/distribution/registry/api/v2/names.go v2.1.1
+var RepositoryNameRegexp = regexp.MustCompile(`(?:` + RepositoryNameComponentRegexp.String() + `/)*` + RepositoryNameComponentRegexp.String())
+
 func ValidateImageStreamName(name string, prefix bool) (bool, string) {
 	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
 		return ok, reason
 	}
 
-	if len(name) < v2.RepositoryNameComponentMinLength {
-		return false, fmt.Sprintf("must be at least %d characters long", v2.RepositoryNameComponentMinLength)
-	}
-	if !v2.RepositoryNameComponentAnchoredRegexp.MatchString(name) {
-		return false, fmt.Sprintf("must match %q", v2.RepositoryNameComponentRegexp.String())
+	if !RepositoryNameComponentAnchoredRegexp.MatchString(name) {
+		return false, fmt.Sprintf("must match %q", RepositoryNameComponentRegexp.String())
 	}
 	return true, ""
 }
@@ -58,11 +72,8 @@ func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorLis
 	result = append(result, validation.ValidateObjectMeta(&stream.ObjectMeta, true, ValidateImageStreamName).Prefix("metadata")...)
 
 	// Ensure we can generate a valid docker image repository from namespace/name
-	if len(stream.Namespace) > 0 && len(stream.Namespace) < v2.RepositoryNameComponentMinLength {
-		result = append(result, fielderrors.NewFieldInvalid("metadata.namespace", stream.Namespace, fmt.Sprintf("must be at least %d characters long", v2.RepositoryNameComponentMinLength)))
-	}
-	if len(stream.Namespace+"/"+stream.Name) > v2.RepositoryNameTotalLengthMax {
-		result = append(result, fielderrors.NewFieldInvalid("metadata.name", stream.Name, fmt.Sprintf("'namespace/name' cannot be longer than %d characters", v2.RepositoryNameTotalLengthMax)))
+	if len(stream.Namespace+"/"+stream.Name) > reference.NameTotalLengthMax {
+		result = append(result, fielderrors.NewFieldInvalid("metadata.name", stream.Name, fmt.Sprintf("'namespace/name' cannot be longer than %d characters", reference.NameTotalLengthMax)))
 	}
 
 	if stream.Spec.Tags == nil {
