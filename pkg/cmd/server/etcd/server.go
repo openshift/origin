@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"reflect"
+	"sort"
 	"strings"
 	"time"
 
@@ -15,7 +17,6 @@ import (
 
 	"github.com/coreos/etcd/etcdserver"
 	"github.com/coreos/etcd/etcdserver/etcdhttp"
-	"github.com/coreos/etcd/pkg/netutil"
 	"github.com/coreos/etcd/pkg/osutil"
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/coreos/etcd/pkg/types"
@@ -56,7 +57,7 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 		return nil, fmt.Errorf("error setting up initial cluster: %v", err)
 	}
 
-	pt, err := transport.NewTimeoutTransport(cfg.peerTLSInfo, rafthttp.DialTimeout, rafthttp.ConnReadTimeout, rafthttp.ConnWriteTimeout)
+	pt, err := transport.NewTimeoutTransport(cfg.peerTLSInfo, peerDialTimeout(cfg.ElectionMs), rafthttp.ConnReadTimeout, rafthttp.ConnWriteTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +131,7 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 	s.Start()
 	osutil.RegisterInterruptHandler(s.Stop)
 
-	ch := etcdhttp.NewClientHandler(s)
+	ch := etcdhttp.NewClientHandler(s, srvcfg.ReqTimeout())
 	ph := etcdhttp.NewPeerHandler(s.Cluster(), s.RaftHandler())
 	// Start the peer server in a goroutine
 	for _, l := range plns {
@@ -199,7 +200,7 @@ func serveHTTP(l net.Listener, handler http.Handler, readTimeout time.Duration) 
 }
 
 func (cfg *config) resolveUrls() error {
-	out, err := netutil.ResolveTCPAddrs([][]url.URL{cfg.lpurls, cfg.apurls, cfg.lcurls, cfg.acurls})
+	out, err := resolveTCPAddrs([][]url.URL{cfg.lpurls, cfg.apurls, cfg.lcurls, cfg.acurls})
 	if err != nil {
 		return err
 	}
@@ -208,3 +209,74 @@ func (cfg *config) resolveUrls() error {
 }
 
 func (cfg config) electionTicks() int { return int(cfg.ElectionMs / cfg.TickMs) }
+
+// private in etcdmain
+
+func peerDialTimeout(electionMs uint) time.Duration {
+	// 1s for queue wait and system delay
+	// + one RTT, which is smaller than 1/5 election timeout
+	return time.Second + time.Duration(electionMs)*time.Millisecond/5
+}
+
+// made private in netutil
+
+// resolveTCPAddrs is a convenience wrapper for net.ResolveTCPAddr.
+// resolveTCPAddrs return a new set of url.URLs, in which all DNS hostnames
+// are resolved.
+func resolveTCPAddrs(urls [][]url.URL) ([][]url.URL, error) {
+	newurls := make([][]url.URL, 0)
+	for _, us := range urls {
+		nus := make([]url.URL, len(us))
+		for i, u := range us {
+			nu, err := url.Parse(u.String())
+			if err != nil {
+				return nil, err
+			}
+			nus[i] = *nu
+		}
+		for i, u := range nus {
+			host, _, err := net.SplitHostPort(u.Host)
+			if err != nil {
+				glog.Errorf("could not parse url %s during tcp resolving", u.Host)
+				return nil, err
+			}
+			if host == "localhost" {
+				continue
+			}
+			if net.ParseIP(host) != nil {
+				continue
+			}
+			tcpAddr, err := net.ResolveTCPAddr("tcp", u.Host)
+			if err != nil {
+				glog.Errorf("could not resolve host %s", u.Host)
+				return nil, err
+			}
+			glog.Infof("resolving %s to %s", u.Host, tcpAddr.String())
+			nus[i].Host = tcpAddr.String()
+		}
+		newurls = append(newurls, nus)
+	}
+	return newurls, nil
+}
+
+// urlsEqual checks equality of url.URLS between two arrays.
+// This check pass even if an URL is in hostname and opposite is in IP address.
+func urlsEqual(a []url.URL, b []url.URL) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	urls, err := resolveTCPAddrs([][]url.URL{a, b})
+	if err != nil {
+		return false
+	}
+	a, b = urls[0], urls[1]
+	sort.Sort(types.URLs(a))
+	sort.Sort(types.URLs(b))
+	for i := range a {
+		if !reflect.DeepEqual(a[i], b[i]) {
+			return false
+		}
+	}
+
+	return true
+}
