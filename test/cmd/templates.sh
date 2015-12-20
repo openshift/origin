@@ -62,6 +62,8 @@ os::cmd::expect_success 'oc create -f examples/sample-app/application-template-d
 os::cmd::expect_success 'oc policy add-role-to-user admin test-user'
 os::cmd::expect_success 'oc login -u test-user -p password'
 os::cmd::expect_success 'oc new-project test-template-project'
+# make sure the permissions on the new project are set up
+os::cmd::try_until_success 'oc get templates'
 os::cmd::expect_success 'oc create -f examples/sample-app/application-template-dockerbuild.json'
 os::cmd::expect_success 'oc process template/ruby-helloworld-sample'
 os::cmd::expect_success 'oc process templates/ruby-helloworld-sample'
