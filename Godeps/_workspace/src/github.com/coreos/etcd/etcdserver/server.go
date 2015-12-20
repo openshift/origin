@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"path"
 	"regexp"
 	"sync/atomic"
@@ -40,6 +41,7 @@ import (
 	"github.com/coreos/etcd/raft/raftpb"
 	"github.com/coreos/etcd/rafthttp"
 	"github.com/coreos/etcd/snap"
+	dstorage "github.com/coreos/etcd/storage"
 	"github.com/coreos/etcd/store"
 	"github.com/coreos/etcd/version"
 	"github.com/coreos/etcd/wal"
@@ -52,17 +54,13 @@ const (
 	// owner can make/remove files inside the directory
 	privateDirMode = 0700
 
-	defaultSyncTimeout = time.Second
-	DefaultSnapCount   = 10000
-	// TODO: calculate based on heartbeat interval
-	defaultPublishRetryInterval = 5 * time.Second
+	DefaultSnapCount = 10000
 
 	StoreClusterPrefix = "/0"
 	StoreKeysPrefix    = "/1"
 
 	purgeFileInterval      = 30 * time.Second
 	monitorVersionInterval = 5 * time.Second
-	versionUpdateTimeout   = 1 * time.Second
 )
 
 var (
@@ -158,6 +156,7 @@ type EtcdServer struct {
 	cluster *cluster
 
 	store store.Store
+	kv    dstorage.KV
 
 	stats  *stats.ServerStats
 	lstats *stats.LeaderStats
@@ -187,6 +186,11 @@ func NewServer(cfg *ServerConfig) (*EtcdServer, error) {
 		return nil, err
 	}
 	if err := upgradeDataDir(cfg.DataDir, cfg.Name, dataVer); err != nil {
+		return nil, err
+	}
+
+	err = os.MkdirAll(cfg.MemberDir(), privateDirMode)
+	if err != nil && err != os.ErrExist {
 		return nil, err
 	}
 
@@ -234,7 +238,7 @@ func NewServer(cfg *ServerConfig) (*EtcdServer, error) {
 		if cfg.ShouldDiscover() {
 			str, err := discovery.JoinCluster(cfg.DiscoveryURL, cfg.DiscoveryProxy, m.ID, cfg.InitialPeerURLsMap.String())
 			if err != nil {
-				return nil, err
+				return nil, &DiscoveryError{Op: "join", Err: err}
 			}
 			urlsmap, err := types.NewURLsMap(str)
 			if err != nil {
@@ -257,6 +261,10 @@ func NewServer(cfg *ServerConfig) (*EtcdServer, error) {
 
 		if err := fileutil.IsDirWriteable(cfg.MemberDir()); err != nil {
 			return nil, fmt.Errorf("cannot write to member directory: %v", err)
+		}
+
+		if err := fileutil.IsDirWriteable(cfg.WALDir()); err != nil {
+			return nil, fmt.Errorf("cannot write to WAL directory: %v", err)
 		}
 
 		if cfg.ShouldDiscover() {
@@ -315,6 +323,13 @@ func NewServer(cfg *ServerConfig) (*EtcdServer, error) {
 		forceVersionC: make(chan struct{}),
 	}
 
+	if cfg.V3demo {
+		srv.kv = dstorage.New(path.Join(cfg.DataDir, "member", "v3demo"))
+	} else {
+		// we do not care about the error of the removal
+		os.RemoveAll(path.Join(cfg.DataDir, "member", "v3demo"))
+	}
+
 	// TODO: move transport initialization near the definition of remote
 	tr := rafthttp.NewTransporter(cfg.Transport, id, cl.ID(), srv, srv.errorc, sstats, lstats)
 	// add all remotes into transport
@@ -337,7 +352,7 @@ func NewServer(cfg *ServerConfig) (*EtcdServer, error) {
 // It also starts a goroutine to publish its server information.
 func (s *EtcdServer) Start() {
 	s.start()
-	go s.publish(defaultPublishRetryInterval)
+	go s.publish(s.cfg.ReqTimeout())
 	go s.purgeFile()
 	go monitorFileDescriptor(s.done)
 	go s.monitorVersions()
@@ -355,7 +370,7 @@ func (s *EtcdServer) start() {
 	s.done = make(chan struct{})
 	s.stop = make(chan struct{})
 	if s.ClusterVersion() != nil {
-		plog.Infof("starting server... [version: %v, cluster version: %v]", version.Version, s.ClusterVersion())
+		plog.Infof("starting server... [version: %v, cluster version: %v]", version.Version, version.Cluster(s.ClusterVersion().String()))
 	} else {
 		plog.Infof("starting server... [version: %v, cluster version: to_be_decided]", version.Version)
 	}
@@ -415,15 +430,9 @@ func (s *EtcdServer) run() {
 	confState := snap.Metadata.ConfState
 	snapi := snap.Metadata.Index
 	appliedi := snapi
-	// TODO: get rid of the raft initialization in etcd server
-	s.r.s = s
-	s.r.applyc = make(chan apply)
-	s.r.stopped = make(chan struct{})
-	s.r.done = make(chan struct{})
-	go s.r.run()
+	s.r.start(s)
 	defer func() {
-		s.r.stopped <- struct{}{}
-		<-s.r.done
+		s.r.stop()
 		close(s.done)
 	}()
 
@@ -692,7 +701,7 @@ func (s *EtcdServer) sync(timeout time.Duration) {
 // static clientURLs of the server.
 // The function keeps attempting to register until it succeeds,
 // or its server is stopped.
-func (s *EtcdServer) publish(retryInterval time.Duration) {
+func (s *EtcdServer) publish(timeout time.Duration) {
 	b, err := json.Marshal(s.attributes)
 	if err != nil {
 		plog.Panicf("json marshal error: %v", err)
@@ -705,7 +714,7 @@ func (s *EtcdServer) publish(retryInterval time.Duration) {
 	}
 
 	for {
-		ctx, cancel := context.WithTimeout(context.Background(), retryInterval)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		_, err := s.Do(ctx, req)
 		cancel()
 		switch err {
@@ -722,7 +731,7 @@ func (s *EtcdServer) publish(retryInterval time.Duration) {
 }
 
 func (s *EtcdServer) send(ms []raftpb.Message) {
-	for i, _ := range ms {
+	for i := range ms {
 		if s.cluster.IsIDRemoved(types.ID(ms[i].To)) {
 			ms[i].To = 0
 		}
@@ -750,9 +759,19 @@ func (s *EtcdServer) apply(es []raftpb.Entry, confState *raftpb.ConfState) (uint
 				}
 				break
 			}
-			var r pb.Request
-			pbutil.MustUnmarshal(&r, e.Data)
-			s.w.Trigger(r.ID, s.applyRequest(r))
+
+			var raftReq pb.InternalRaftRequest
+			if !pbutil.MaybeUnmarshal(&raftReq, e.Data) { // backward compatible
+				var r pb.Request
+				pbutil.MustUnmarshal(&r, e.Data)
+				s.w.Trigger(r.ID, s.applyRequest(r))
+			} else {
+				switch {
+				case raftReq.V2 != nil:
+					req := raftReq.V2
+					s.w.Trigger(req.ID, s.applyRequest(*req))
+				}
+			}
 		case raftpb.EntryConfChange:
 			var cc raftpb.ConfChange
 			pbutil.MustUnmarshal(&cc, e.Data)
@@ -981,16 +1000,16 @@ func (s *EtcdServer) monitorVersions() {
 
 func (s *EtcdServer) updateClusterVersion(ver string) {
 	if s.cluster.Version() == nil {
-		plog.Infof("setting up the initial cluster version to %v", ver)
+		plog.Infof("setting up the initial cluster version to %s", version.Cluster(ver))
 	} else {
-		plog.Infof("updating the cluster version from %v to %v", s.cluster.Version(), ver)
+		plog.Infof("updating the cluster version from %s to %s", version.Cluster(s.cluster.Version().String()), version.Cluster(ver))
 	}
 	req := pb.Request{
 		Method: "PUT",
 		Path:   path.Join(StoreClusterPrefix, "version"),
 		Val:    ver,
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), versionUpdateTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.cfg.ReqTimeout())
 	_, err := s.Do(ctx, req)
 	cancel()
 	switch err {
@@ -1014,8 +1033,42 @@ func (s *EtcdServer) parseProposeCtxErr(err error, start time.Time) error {
 		if start.After(prevLeadLost) && start.Before(curLeadElected) {
 			return ErrTimeoutDueToLeaderFail
 		}
+
+		lead := types.ID(atomic.LoadUint64(&s.r.lead))
+		switch lead {
+		case types.ID(raft.None):
+			// TODO: return error to specify it happens because the cluster does not have leader now
+		case s.ID():
+			if !isConnectedToQuorumSince(s.r.transport, start, s.ID(), s.cluster.Members()) {
+				return ErrTimeoutDueToConnectionLost
+			}
+		default:
+			if !isConnectedSince(s.r.transport, start, lead) {
+				return ErrTimeoutDueToConnectionLost
+			}
+		}
+
 		return ErrTimeout
 	default:
 		return err
 	}
+}
+
+// isConnectedToQuorumSince checks whether the local member is connected to the
+// quorum of the cluster since the given time.
+func isConnectedToQuorumSince(transport rafthttp.Transporter, since time.Time, self types.ID, members []*Member) bool {
+	var connectedNum int
+	for _, m := range members {
+		if m.ID == self || isConnectedSince(transport, since, m.ID) {
+			connectedNum++
+		}
+	}
+	return connectedNum >= (len(members)+1)/2
+}
+
+// isConnectedSince checks whether the local member is connected to the
+// remote member since the given time.
+func isConnectedSince(transport rafthttp.Transporter, since time.Time, remote types.ID) bool {
+	t := transport.ActiveSince(remote)
+	return !t.IsZero() && t.Before(since)
 }

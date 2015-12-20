@@ -37,7 +37,7 @@ var (
 // resolveTCPAddrs is a convenience wrapper for net.ResolveTCPAddr.
 // resolveTCPAddrs return a new set of url.URLs, in which all DNS hostnames
 // are resolved.
-func ResolveTCPAddrs(urls [][]url.URL) ([][]url.URL, error) {
+func resolveTCPAddrs(urls [][]url.URL) ([][]url.URL, error) {
 	newurls := make([][]url.URL, 0)
 	for _, us := range urls {
 		nus := make([]url.URL, len(us))
@@ -79,7 +79,7 @@ func urlsEqual(a []url.URL, b []url.URL) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	urls, err := ResolveTCPAddrs([][]url.URL{a, b})
+	urls, err := resolveTCPAddrs([][]url.URL{a, b})
 	if err != nil {
 		return false
 	}

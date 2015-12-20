@@ -147,6 +147,7 @@ func TestServeRaftPrefix(t *testing.T) {
 			t.Fatalf("#%d: could not create request: %#v", i, err)
 		}
 		req.Header.Set("X-Etcd-Cluster-ID", tt.clusterID)
+		req.Header.Set("X-Server-Version", version.Version)
 		rw := httptest.NewRecorder()
 		h := NewHandler(tt.p, types.ID(0))
 		h.ServeHTTP(rw, req)
@@ -181,6 +182,7 @@ func TestServeRaftStreamPrefix(t *testing.T) {
 			t.Fatalf("#%d: could not create request: %#v", i, err)
 		}
 		req.Header.Set("X-Etcd-Cluster-ID", "1")
+		req.Header.Set("X-Server-Version", version.Version)
 		req.Header.Set("X-Raft-To", "2")
 		wterm := "1"
 		req.Header.Set("X-Raft-Term", wterm)
@@ -300,6 +302,7 @@ func TestServeRaftStreamPrefixBad(t *testing.T) {
 			t.Fatalf("#%d: could not create request: %#v", i, err)
 		}
 		req.Header.Set("X-Etcd-Cluster-ID", tt.clusterID)
+		req.Header.Set("X-Server-Version", version.Version)
 		req.Header.Set("X-Raft-To", tt.remote)
 		rw := httptest.NewRecorder()
 		peerGetter := &fakePeerGetter{peers: map[types.ID]Peer{types.ID(1): newFakePeer()}}
@@ -363,4 +366,5 @@ func (pr *fakePeer) Send(m raftpb.Message)                 { pr.msgs = append(pr
 func (pr *fakePeer) Update(urls types.URLs)                { pr.urls = urls }
 func (pr *fakePeer) setTerm(term uint64)                   { pr.term = term }
 func (pr *fakePeer) attachOutgoingConn(conn *outgoingConn) { pr.connc <- conn }
+func (pr *fakePeer) activeSince() time.Time                { return time.Time{} }
 func (pr *fakePeer) Stop()                                 {}

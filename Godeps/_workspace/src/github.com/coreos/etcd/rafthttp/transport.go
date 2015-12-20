@@ -17,12 +17,14 @@ package rafthttp
 import (
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/coreos/etcd/etcdserver/stats"
 	"github.com/coreos/etcd/pkg/types"
 	"github.com/coreos/etcd/raft"
 	"github.com/coreos/etcd/raft/raftpb"
 	"github.com/coreos/pkg/capnslog"
+	"github.com/xiang90/probing"
 	"golang.org/x/net/context"
 )
 
@@ -51,11 +53,11 @@ type Transporter interface {
 	// AddRemote adds a remote with given peer urls into the transport.
 	// A remote helps newly joined member to catch up the progress of cluster,
 	// and will not be used after that.
-	// It is the caller's responsibility to ensure the urls are all vaild,
+	// It is the caller's responsibility to ensure the urls are all valid,
 	// or it panics.
 	AddRemote(id types.ID, urls []string)
 	// AddPeer adds a peer with given peer urls into the transport.
-	// It is the caller's responsibility to ensure the urls are all vaild,
+	// It is the caller's responsibility to ensure the urls are all valid,
 	// or it panics.
 	// Peer urls are used to connect to the remote peer.
 	AddPeer(id types.ID, urls []string)
@@ -64,9 +66,14 @@ type Transporter interface {
 	// RemoveAllPeers removes all the existing peers in the transport.
 	RemoveAllPeers()
 	// UpdatePeer updates the peer urls of the peer with the given id.
-	// It is the caller's responsibility to ensure the urls are all vaild,
+	// It is the caller's responsibility to ensure the urls are all valid,
 	// or it panics.
 	UpdatePeer(id types.ID, urls []string)
+	// ActiveSince returns the time that the connection with the peer
+	// of the given id becomes active.
+	// If the connection is active since peer was added, it returns the adding time.
+	// If the connection is currently inactive, it returns zero time.
+	ActiveSince(id types.ID) time.Time
 	// Stop closes the connections and stops the transporter.
 	Stop()
 }
@@ -83,7 +90,9 @@ type transport struct {
 	term    uint64               // the latest term that has been observed
 	remotes map[types.ID]*remote // remotes map that helps newly joined member to catch up
 	peers   map[types.ID]Peer    // peers map
-	errorc  chan error
+
+	prober probing.Prober
+	errorc chan error
 }
 
 func NewTransporter(rt http.RoundTripper, id, cid types.ID, r Raft, errorc chan error, ss *stats.ServerStats, ls *stats.LeaderStats) Transporter {
@@ -96,7 +105,9 @@ func NewTransporter(rt http.RoundTripper, id, cid types.ID, r Raft, errorc chan 
 		leaderStats:  ls,
 		remotes:      make(map[types.ID]*remote),
 		peers:        make(map[types.ID]Peer),
-		errorc:       errorc,
+
+		prober: probing.NewProber(rt),
+		errorc: errorc,
 	}
 }
 
@@ -106,6 +117,7 @@ func (t *transport) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle(RaftPrefix, pipelineHandler)
 	mux.Handle(RaftStreamPrefix+"/", streamHandler)
+	mux.Handle(ProbingPrefix, probing.NewHandler())
 	return mux
 }
 
@@ -139,7 +151,10 @@ func (t *transport) Send(msgs []raftpb.Message) {
 			t.maybeUpdatePeersTerm(m.Term)
 		}
 
+		t.mu.RLock()
 		p, ok := t.peers[to]
+		t.mu.RUnlock()
+
 		if ok {
 			if m.Type == raftpb.MsgApp {
 				t.serverStats.SendAppendReq(m.Size())
@@ -165,6 +180,7 @@ func (t *transport) Stop() {
 	for _, p := range t.peers {
 		p.Stop()
 	}
+	t.prober.RemoveAll()
 	if tr, ok := t.roundTripper.(*http.Transport); ok {
 		tr.CloseIdleConnections()
 	}
@@ -195,6 +211,7 @@ func (t *transport) AddPeer(id types.ID, us []string) {
 	}
 	fs := t.leaderStats.Follower(id.String())
 	t.peers[id] = startPeer(t.roundTripper, urls, t.id, id, t.clusterID, t.raft, fs, t.errorc, t.term)
+	addPeerToProber(t.prober, id.String(), us)
 }
 
 func (t *transport) RemovePeer(id types.ID) {
@@ -206,7 +223,7 @@ func (t *transport) RemovePeer(id types.ID) {
 func (t *transport) RemoveAllPeers() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	for id, _ := range t.peers {
+	for id := range t.peers {
 		t.removePeer(id)
 	}
 }
@@ -220,6 +237,7 @@ func (t *transport) removePeer(id types.ID) {
 	}
 	delete(t.peers, id)
 	delete(t.leaderStats.Followers, id.String())
+	t.prober.Remove(id.String())
 }
 
 func (t *transport) UpdatePeer(id types.ID, us []string) {
@@ -234,6 +252,18 @@ func (t *transport) UpdatePeer(id types.ID, us []string) {
 		plog.Panicf("newURLs %+v should never fail: %+v", us, err)
 	}
 	t.peers[id].Update(urls)
+
+	t.prober.Remove(id.String())
+	addPeerToProber(t.prober, id.String(), us)
+}
+
+func (t *transport) ActiveSince(id types.ID) time.Time {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if p, ok := t.peers[id]; ok {
+		return p.activeSince()
+	}
+	return time.Time{}
 }
 
 type Pausable interface {

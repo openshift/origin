@@ -24,7 +24,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (s *Store) ensureAuthDirectories() error {
+func (s *store) ensureAuthDirectories() error {
 	if s.ensuredOnce {
 		return nil
 	}
@@ -72,23 +72,28 @@ func (s *Store) ensureAuthDirectories() error {
 	return nil
 }
 
-func (s *Store) enableAuth() error {
+func (s *store) enableAuth() error {
 	_, err := s.updateResource("/enabled", true)
 	return err
 }
-func (s *Store) disableAuth() error {
+func (s *store) disableAuth() error {
 	_, err := s.updateResource("/enabled", false)
 	return err
 }
 
-func (s *Store) detectAuth() bool {
+func (s *store) detectAuth() bool {
 	if s.server == nil {
 		return false
+	}
+	if s.enabled != nil {
+		return *s.enabled
 	}
 	value, err := s.requestResource("/enabled", false)
 	if err != nil {
 		if e, ok := err.(*etcderr.Error); ok {
 			if e.ErrorCode == etcderr.EcodeKeyNotFound {
+				b := false
+				s.enabled = &b
 				return false
 			}
 		}
@@ -102,10 +107,11 @@ func (s *Store) detectAuth() bool {
 		plog.Errorf("internal bookkeeping value for enabled isn't valid JSON (%v)", err)
 		return false
 	}
+	s.enabled = &u
 	return u
 }
 
-func (s *Store) requestResource(res string, dir bool) (etcdserver.Response, error) {
+func (s *store) requestResource(res string, dir bool) (etcdserver.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
 	defer cancel()
 	p := path.Join(StorePermsPrefix, res)
@@ -117,13 +123,13 @@ func (s *Store) requestResource(res string, dir bool) (etcdserver.Response, erro
 	return s.server.Do(ctx, rr)
 }
 
-func (s *Store) updateResource(res string, value interface{}) (etcdserver.Response, error) {
+func (s *store) updateResource(res string, value interface{}) (etcdserver.Response, error) {
 	return s.setResource(res, value, true)
 }
-func (s *Store) createResource(res string, value interface{}) (etcdserver.Response, error) {
+func (s *store) createResource(res string, value interface{}) (etcdserver.Response, error) {
 	return s.setResource(res, value, false)
 }
-func (s *Store) setResource(res string, value interface{}, prevexist bool) (etcdserver.Response, error) {
+func (s *store) setResource(res string, value interface{}, prevexist bool) (etcdserver.Response, error) {
 	err := s.ensureAuthDirectories()
 	if err != nil {
 		return etcdserver.Response{}, err
@@ -144,7 +150,7 @@ func (s *Store) setResource(res string, value interface{}, prevexist bool) (etcd
 	return s.server.Do(ctx, rr)
 }
 
-func (s *Store) deleteResource(res string) (etcdserver.Response, error) {
+func (s *store) deleteResource(res string) (etcdserver.Response, error) {
 	err := s.ensureAuthDirectories()
 	if err != nil {
 		return etcdserver.Response{}, err

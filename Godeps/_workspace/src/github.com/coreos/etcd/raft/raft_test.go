@@ -480,7 +480,7 @@ func TestDuelingCandidates(t *testing.T) {
 	nt.send(pb.Message{From: 3, To: 3, Type: pb.MsgHup})
 
 	wlog := &raftLog{
-		storage:   &MemoryStorage{ents: []pb.Entry{{}, pb.Entry{Data: nil, Term: 1, Index: 1}}},
+		storage:   &MemoryStorage{ents: []pb.Entry{{}, {Data: nil, Term: 1, Index: 1}}},
 		committed: 1,
 		unstable:  unstable{offset: 2},
 	}
@@ -492,7 +492,7 @@ func TestDuelingCandidates(t *testing.T) {
 	}{
 		{a, StateFollower, 2, wlog},
 		{b, StateFollower, 2, wlog},
-		{c, StateFollower, 2, newLog(NewMemoryStorage())},
+		{c, StateFollower, 2, newLog(NewMemoryStorage(), raftLogger)},
 	}
 
 	for i, tt := range tests {
@@ -638,7 +638,7 @@ func TestProposal(t *testing.T) {
 		send(pb.Message{From: 1, To: 1, Type: pb.MsgHup})
 		send(pb.Message{From: 1, To: 1, Type: pb.MsgProp, Entries: []pb.Entry{{Data: data}}})
 
-		wantLog := newLog(NewMemoryStorage())
+		wantLog := newLog(NewMemoryStorage(), raftLogger)
 		if tt.success {
 			wantLog = &raftLog{
 				storage: &MemoryStorage{
