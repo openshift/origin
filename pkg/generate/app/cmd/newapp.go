@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -171,7 +172,7 @@ func (c *AppConfig) SetClientMapper(clientMapper resource.ClientMapper) {
 
 func (c *AppConfig) dockerRegistrySearcher() app.Searcher {
 	return app.DockerRegistrySearcher{
-		Client:        dockerregistry.NewClient(),
+		Client:        dockerregistry.NewClient(30 * time.Second),
 		AllowInsecure: c.InsecureRegistry,
 	}
 }
