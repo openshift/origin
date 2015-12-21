@@ -282,6 +282,9 @@ func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writ
 			formatString(out, "From Image", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
 		}
 	}
+	if len(s.DockerfilePath) != 0 {
+		formatString(out, "Dockerfile Path", s.DockerfilePath)
+	}
 	if s.PullSecret != nil {
 		formatString(out, "Pull Secret Name", s.PullSecret.Name)
 	}
