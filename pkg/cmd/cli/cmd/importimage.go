@@ -45,6 +45,7 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *co
 	}
 	cmd.Flags().String("from", "", "A Docker image repository to import images from")
 	cmd.Flags().Bool("confirm", false, "If true, allow the image stream import location to be set or changed")
+	cmd.Flags().Bool("insecure-repository", false, "If true, allow the docker registry to be insecure")
 
 	return cmd
 }
@@ -68,7 +69,7 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 
 	from := cmdutil.GetFlagString(cmd, "from")
 	confirm := cmdutil.GetFlagBool(cmd, "confirm")
-
+	insecure := cmdutil.GetFlagBool(cmd, "insecure-repository")
 	imageStreamClient := osClient.ImageStreams(namespace)
 	stream, err := imageStreamClient.Get(streamName)
 	if err != nil {
@@ -98,8 +99,13 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 
 	if stream.Annotations != nil {
 		delete(stream.Annotations, imageapi.DockerImageRepositoryCheckAnnotation)
+	} else {
+		stream.Annotations = make(map[string]string)
 	}
 
+	if insecure {
+		stream.Annotations[imageapi.InsecureRepositoryAnnotation] = "true"
+	}
 	if stream.CreationTimestamp.IsZero() {
 		stream, err = imageStreamClient.Create(stream)
 	} else {

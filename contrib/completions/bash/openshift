@@ -6114,6 +6114,7 @@ _openshift_cli_import-image()
 
     flags+=("--confirm")
     flags+=("--from=")
+    flags+=("--insecure-repository")
     flags+=("--alsologtostderr")
     flags+=("--api-version=")
     flags+=("--boot-id-file=")
