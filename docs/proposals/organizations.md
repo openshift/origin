@@ -6,33 +6,60 @@
  3.  Cluster administrators want to delegate control over groups of users to an organization administrator - that organization administrator should be able to manage the access of a set of users to individual projects under that organization umbrella.
  4.  Cluster administrators want to allow self-service of users on the cluster, but the total allocated resources those self service users can get access to is limited (to prevent abuse / unfair use of resources).
 
-We can do this with an Organization entity that can manage multiple projects.  An Organization can have multiple org-owners who are allowed to manage quota allocation to owned projects and OrgGroups (groups that scoped to projects owned by an Organization).  A project is owned by at most one Organization, an Organization can own muliple projects.
+We can do this by introducing the concept of project ownerhsip.  A Project is owned by at most one (Organization xor User).  We'll also introduce the idea of a `ClusterResourceQuota` object that can be associated with an organization or a user. An Organization can have multiple org-owners who are allowed to manage quota allocation to owned projects and OrgGroups (groups that scoped to projects owned by an Organization).
 
 ### Open Questions
- 1.  Should we have a two layer scoping `/api/v1/organization/<org name>/namespace/<namespace name>` or keep the current namespace structure?  No, we should not. (yay!)
-
-     Keeping the current namespace structure mitigates changes, but prevents two orgs from having the same namespace and makes storing additional org-scoped resources like quota and groups more difficult.
-
- 2.  Should we allow projects to be owned by Users or only allow ownership by Organizations?
-
-     Allowing Users to own projects eliminates the creation of another "linked" resource that needs to be protected and maintained.
-     Having a single entity allowed to own projects limits some duplication of things like quota.
-
- 3.  Can we punt on adding users as organization members?
+ 3.  Can we punt on adding users as organization members?  Still don't see a clear answer on this.
 
      Organization-admins should not be able to force users into an Org.  Users should not be able to join any Org they want.  I'd like to get the structure correct and punt on the ability to add members.  It would require some sort of invitation/request/approval flow.
 
- 4.  Can we punt on project transfering?
+ 4.  Can we punt on project transfering?  Sounds like yes.  A cluster-admin could transfer ownership.
 
      An org-owner shouldn't be able to take a project from someone else and they shouldn't be allowed to orphan their own project.  That means we'd need an offer/request/approval flow.
-
- 5.  Should cluster/org admins be able to force projects to be created with a name prefix to guarantee uniqueness.
-
-     This would make it impossible to reasonably transfer a project to new organization.  I'd be more interested in allowing namespaces to have a local name under an organization that must be unique, but can collide across the cluster.  Then essentially proxying `/api/v1/organization/<org name>/namespace/<local alias>/pods` to `/api/v1/namespace/<actual namespace name>/pods`.
 
  6.  What things can org-owners do?
 
  	There's a list below proposing things.
+
+
+## ClusterResourceQuota
+`ClusterResourceQuota` mirrors `ResourceQuota`, but at the cluster-scope.  (We can't call it that because `ResourceQuota` is a namespace-scope resource and it can't be in both scope.)  A `ClusterResourceQuota` has an optional owner that is either a user or an organization and an optional label selector.  An empty label selector is `true`.  If both are set, then the `ClusterResourceQuota` applies to all namespaces matching the selector **and** owned by the owner.
+
+The existing quota admission controller would remain in place, but no limits would be set by default.  If a project owner decided that a particular project was starving the rest, he could assign hard limits to that Project's `ResourceQuota` to prevent it from taking more.  An additional admission controller would be responsible for doing the rollup across all projects in the Organization and preventing over-use of resources.
+
+```go
+type ClusterResourceQuota struct {
+	kapi.TypeMeta
+	kapi.ObjectMeta
+
+	// Spec defines the desired quota
+	Spec ResourceQuotaSpec 
+
+	// Status defines the actual enforced quota and its current usage
+	Status ResourceQuotaStatus 
+}
+
+type ClusterResourceQuotaSpec struct {
+	Owner    *kapi.ObjectReference
+	Selector map[string]string 
+
+	kapi.ResourceQuotaSpec
+}
+```
+
+#### Limitations
+This approach is relatively easy to build, but it is limited because it doesn't reserve quota for a given project.  A more complicated approach would be to allow killing of "extra" resources and then provide a rate and ceiling like tc.  This would have an overall cap and allow "borrowing" of quota when resources are plentiful, but then selectively kill resources when resources are scarce to allow for project guarantees.  With enough effort, this sort of solution could be layered on top of kube by setting the ceiling for the existing quota controller and having a separate resource for the guarantee and a separate controller for the killer.
+
+I'm sure there will be complaints no matter what we do.
+
+
+## Project Owners
+Projects will have an label that indicates which Subject owns them.  If we don't allow modifications to project by default, then a cluster-admin can sort out project transfers.
+All project owners (both Users and Organizations) have a need to perform some actions scoped to them as an owner.  These will be represented as subresources under `oapi/v1/users/foo/<blah>` and `oapi/v1/organizations/foo/<blah>`.
+
+1. `resourcequotas` - Supports `list`.  This provides readonly access to all the `ClusterResourceQuotas` that apply to this owner.  Eventually we need to sort out `create` to allow additional subdivision by a user, but that would imply a need for `update` and `delete`.  `Update` and `delete`, should only be allowed on `resourcequotas` that the project owner has made.  That means we'd want some sort of "protected" flag or we could choose to model it as a different subresource backed by a different cluster-scope resource.
+1. `ownedprojects` - Supports `list`.  This provides readonly access to all the projects that you own.  We don't claim `projects`, because that's a likely spot to hang "all the projects you can see".
+
 
 
 ## Organizations
@@ -55,38 +82,24 @@ type Organization struct {
 
 The Organization has a list of admins.  Admins have the power to:
  1.  Reserve quota for particular projects.
- 2.  Accept ownership of a project.
- 3.  Offer ownership of a project.
- 4.  Remove (but not add) group members.
- 5.  Add other AdminUsers and AdminGroups.  A cluster-admin will have to add the initial AdminUser or AdminGroup.
- 5.  Create and modify organization groups.
- 6.  Modify RoleBindings in projects the organization owns.  (This prevents accidentally orphaning a project.)
+ 2.  Remove (but not add) group members.
+ 3.  Add other Owners.  A cluster-admin will have to add the initial Owner.
+ 4.  Create and modify organization groups.
+ 5.  Modify RoleBindings in projects the organization owns.  (This prevents accidentally orphaning a project.)
 
 The Organization has a list of members.  Only users from this list may be assigned to OrgGroups.  This prevents an overzealous organization admin from creating OrgGroups made up of non-members.
 
-Organizations will have an `organizations/members` subresource that flattens the list of members by resolving the constituent Users of the MemberGroups.
-
-
-## Quota allocation
-An Organization can be assigned quota by a cluster-admin.  The simplest way to model this is to have a cluster-scoped `ResourceQuota` (We can't call it that because `ResourceQuota` is a namespace-scope resource and it can't be in both scope.) that is linked to an Organization.  The existing quota admission controller would remain in place, but no limits would be set by default.  If an Organization admin decided that a particular project was starving the rest, he could assign hard limits to that Project's `ResourceQuota` to prevent it from taking more.  An additional admission controller would be responsible for doing the rollup across all projects in the Organization and preventing over-use of resources.
-
-This approach is relatively easy to build, but it is limited because it doesn't reserve quota for a given project.  A more complicated approach would be to allow killing of "extra" resources and then provide a rate and ceiling like tc.  This would have an overall cap and allow "borrowing" of quota when resources are plentiful, but then selectively kill resources when resources are scarce to allow for project guarantees.  With enough effort, this sort of solution could be layered on top of kube by setting the ceiling for the existing quota controller and having a separate resource for the guarantee and a separate controller for the killer.
-
-I'm sure there will be complaints no matter what we do.
+Organizations will have an `organizations/members` subresource that flattens the list of members by resolving the constituent Subjects of Members.
 
 
 ## Default Policy
 org-owners should have power somewhere between a cluster-admin and a project-admin.  Since the idea of an Organization doesn't scope cleanly, we can make use of the `attributeRestrictions` to run custom logic for a cluster-scoped rule.  We can create a `ClusterRoleBinding` to `system:authenticated` that allows a `ClusterRole` with the correct access to every project that the is owned by a Organization that the user is an org-owner for.  That makes it impossible for an org-owner to accidentally (or intentionally) remove his powers on a project.
 
 
-## Project ownership
-Projects will have an annotation that indicates which Organization owns them.  If we don't allow modifications to project by default, then a cluster-admin can sort it out for now until we make an offer/request/approval flow.
-
-
 ## Org Member powers
 A given user can:
  1.  See which orgs he's a part of.  This will require a reverse-lookup map/cache and probably a subresource on user.
- 2.  Leave an organization that he's tied to by MemberUser, but not one that he is tied to by MemberGroup.  That's an odd wrinkle.
+ 2.  Leave an organization that he's tied to by direct Subject reference, but not one that he is tied to by a Group suibject.  That's an odd wrinkle.
 
 
 ## OrgGroups Overview
