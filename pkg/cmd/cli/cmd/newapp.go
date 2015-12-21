@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -20,7 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/errors"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
@@ -423,6 +424,10 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 	// Only output="" should print descriptions of intermediate steps. Everything
 	// else should print only some specific output (json, yaml, go-template, ...)
 	output := cmdutil.GetFlagString(c, "output")
+
+	if output == "wide" {
+		return fmt.Errorf("output \"wide\" is undefined")
+	}
 	if len(output) == 0 {
 		config.Out = out
 	} else {
@@ -532,7 +537,7 @@ func handleRunError(c *cobra.Command, err error, fullName string) error {
 	if err == nil {
 		return nil
 	}
-	if errs, ok := err.(errors.Aggregate); ok {
+	if errs, ok := err.(kerrors.Aggregate); ok {
 		if len(errs.Errors()) == 1 {
 			err = errs.Errors()[0]
 		}

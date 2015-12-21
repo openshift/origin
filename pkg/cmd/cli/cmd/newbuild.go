@@ -7,7 +7,9 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -15,7 +17,6 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newapp "github.com/openshift/origin/pkg/generate/app"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 const (
