@@ -21,45 +21,65 @@ const (
 	retryAfter    = time.Millisecond * 500
 )
 
-// retryWhenUnreachable invokes given function several times until it succeeds,
-// returns network unrelated error or maximum number of attempts is reached.
-// Should be used to wrap calls to remote registry to prevent test failures
-// because of short-term outages.
-func retryWhenUnreachable(t *testing.T, f func() error) error {
+var (
+	// Below are lists of error patterns for use with `retryOnErrors` utility.
+
+	// unreachableErrorPatterns will match following error examples:
+	//   Get https://registry.com/v2/: dial tcp registry.com:443: i/o timeout
+	//   Get https://registry.com/v2/: dial tcp: lookup registry.com: no such host
+	//   Get https://registry.com/v2/: dial tcp registry.com:443: getsockopt: connection refused
+	//   Get https://registry.com/v2/: read tcp 127.0.0.1:39849->registry.com:443: read: connection reset by peer
+	//   Get https://registry.com/v2/: net/http: request cancelled while waiting for connection
+	//   Get https://registry.com/v2/: net/http: TLS handshake timeout
+	//   the registry "https://registry.com/v2/" could not be reached
+	unreachableErrorPatterns = []string{
+		"dial tcp",
+		"read tcp",
+		"net/http",
+		"could not be reached",
+	}
+
+	// imageNotFoundErrorPatterns will match following error examples:
+	//   the image "..." in repository "..." was not found and may have been deleted
+	// use only with non-internal registry
+	imageNotFoundErrorPatterns = []string{
+		"was not found and may have been deleted",
+	}
+)
+
+// retryOnErrors invokes given function several times until it succeeds,
+// returns unexpected error or a maximum number of attempts is reached. It
+// should be used to wrap calls to remote registry to prevent test failures
+// because of short-term outages or image updates.
+func retryOnErrors(t *testing.T, errorPatterns []string, f func() error) error {
 	timeout := retryAfter
 	attempt := 0
 	for err := f(); err != nil; err = f() {
-		// Examples of catched error messages:
-		//   Get https://registry.com/v2/: dial tcp registry.com:443: i/o timeout
-		//   Get https://registry.com/v2/: dial tcp: lookup registry.com: no such host
-		//   Get https://registry.com/v2/: dial tcp registry.com:443: getsockopt: connection refused
-		//   Get https://registry.com/v2/: read tcp 127.0.0.1:39849->registry.com:443: read: connection reset by peer
-		//   Get https://registry.com/v2/: net/http: request cancelled while waiting for connection
-		//   Get https://registry.com/v2/: net/http: TLS handshake timeout
-		//   the registry "https://registry.com/v2/ " could not be reached
-		reachable := true
-		for _, substr := range []string{
-			"dial tcp",
-			"read tcp",
-			"net/http",
-			"could not be reached",
-		} {
-			if strings.Contains(err.Error(), substr) {
-				reachable = false
+		match := false
+		for _, pattern := range errorPatterns {
+			if strings.Contains(err.Error(), pattern) {
+				match = true
 				break
 			}
 		}
 
-		if reachable || attempt >= maxRetryCount {
+		if !match || attempt >= maxRetryCount {
 			return err
 		}
 
-		t.Logf("registry unreachable \"%v\", retry in %s", err, timeout.String())
+		t.Logf("caught error \"%v\", retrying in %s", err, timeout.String())
 		time.Sleep(timeout)
 		timeout = timeout * 2
 		attempt += 1
 	}
 	return nil
+}
+
+// retryWhenUnreachable is a convenient wrapper for retryOnErrors that makes it
+// retry when the registry is not reachable. Additional error patterns may
+// follow.
+func retryWhenUnreachable(t *testing.T, f func() error, errorPatterns ...string) error {
+	return retryOnErrors(t, append(errorPatterns, unreachableErrorPatterns...), f)
 }
 
 func TestRegistryClientConnect(t *testing.T) {
@@ -100,8 +120,11 @@ func TestRegistryClientConnectPulpRegistry(t *testing.T) {
 	err = retryWhenUnreachable(t, func() error {
 		image, err = conn.ImageByTag("library", "rhel", "latest")
 		return err
-	})
+	}, imageNotFoundErrorPatterns...)
 	if err != nil {
+		if strings.Contains(err.Error(), "x509: certificate has expired or is not yet valid") {
+			t.Skip("SKIPPING: due to expired certificate of %s: %v", pulpRegistryName, err)
+		}
 		t.Fatal(err)
 	}
 	if len(image.ID) == 0 {
@@ -218,7 +241,7 @@ func TestRegistryClientQuayIOImage(t *testing.T) {
 	err = retryWhenUnreachable(t, func() error {
 		_, err := conn.ImageByTag("coreos", "etcd", "latest")
 		return err
-	})
+	}, imageNotFoundErrorPatterns...)
 	if err != nil {
 		t.Skip("SKIPPING: unexpected error from quay.io: %v", err)
 	}
