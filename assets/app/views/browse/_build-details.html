@@ -36,7 +36,7 @@
         <dt>Build strategy:</dt>
         <dd>{{build.spec.strategy.type}}</dd>
         <dt>Builder image:</dt>
-        <dd class="truncate">{{(build | buildStrategy).from | imageObjectRef : build.metadata.namespace}}</dd>
+        <dd class="truncate">{{(build | buildStrategy).from | imageObjectRef : build.metadata.namespace}}<span ng-if="!(build | buildStrategy).from"><em>none</em></span></dd>
         <dt>Source type:</dt>
         <dd>{{build.spec.source.type}}</dd>
         <dt ng-if-start="build.spec.source.git.uri">Source repo:</dt>

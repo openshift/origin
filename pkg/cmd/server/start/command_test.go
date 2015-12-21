@@ -166,28 +166,6 @@ func TestCommandBindingEtcdDir(t *testing.T) {
 	}
 }
 
-// explicit start master never modifies the NodeList
-func TestCommandBindingNodesForMaster(t *testing.T) {
-	valueToSet := "first,second,third"
-	actualCfg := executeMasterCommand([]string{"master", "--nodes=" + valueToSet})
-
-	expectedArgs := NewDefaultMasterArgs()
-	expectedArgs.NodeList = strings.Split(valueToSet, ",")
-
-	if !reflect.DeepEqual(expectedArgs.NodeList, actualCfg.NodeList) {
-		t.Errorf("expected %v, got %v", expectedArgs.NodeList, actualCfg.NodeList)
-	}
-}
-
-// explicit start master never modifies the NodeList
-func TestCommandBindingNodesDefaultingMaster(t *testing.T) {
-	actualCfg := executeMasterCommand([]string{"master"})
-
-	if len(actualCfg.NodeList) > 0 {
-		t.Errorf("expected empty, got %v", actualCfg.NodeList)
-	}
-}
-
 func TestCommandBindingCors(t *testing.T) {
 	valueToSet := "first,second,third"
 	actualCfg := executeMasterCommand([]string{"--cors-allowed-origins=" + valueToSet})

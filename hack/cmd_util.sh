@@ -255,7 +255,7 @@ function os::cmd::internal::describe_expectation() {
 	"os::cmd::internal::failure_func")
 		echo "failure" ;;
 	"os::cmd::internal::specific_code_func"*[0-9])
-		local code=$(echo "${func}" | grep -Po "[0-9]+$")
+		local code=$(echo "${func}" | grep -Eo "[0-9]+$")
 		echo "exit code ${code}" ;;
 	"")
 		echo "any result"
@@ -266,6 +266,11 @@ function os::cmd::internal::describe_expectation() {
 # with milli-second precision
 function os::cmd::internal::seconds_since_epoch() {
 	local ns=$(date +%s%N)
+	# if `date` doesn't support nanoseconds, return second precision
+	if [[ "$ns" == *N ]]; then
+		date "+%s.000"
+		return
+	fi
 	echo $(bc <<< "scale=3; ${ns}/1000000000")
 }
 
@@ -400,28 +405,10 @@ function os::cmd::internal::run_until_exit_code() {
 		fi
 		return 0
 	else
-		local cause=$(os::cmd::internal::assemble_try_until_code_causes "${cmd_succeeded}")
-
-		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: ${cause}"
+		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
 		os::text::print_red "$(os::cmd::internal::print_results)"
 		return 1
 	fi
-}
-
-# os::cmd::internal::assemble_try_until_code_causes determines from the input boolean which part of the try untik
-# failed and generates a nice delimited list of failure causes
-function os::cmd::internal::assemble_try_until_code_causes() {
-	local cmd_succeeded=$1
-
-	local causes=()
-	if (( ! cmd_succeeded )); then
-		causes+=("the command returned the wrong error code")
-	else
-		causes+=("the command timed out")
-	fi
-
-	local list=$(printf '; %s' "${causes[@]}")
-	echo "${list:2}"
 }
 
 # os::cmd::internal::run_until_text runs the provided command until the command output contains the
@@ -473,26 +460,8 @@ function os::cmd::internal::run_until_text() {
 		fi
 		return 0
 	else
-		local cause=$(os::cmd::internal::assemble_try_until_text_causes "${test_succeeded}")
-		
-		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: ${cause}"
+		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
 		os::text::print_red "$(os::cmd::internal::print_results)"
 		return 1
 	fi
-}
-
-# os::cmd::internal::assemble_try_until_text_causes determines from the input boolean which part of the try untik
-# failed and generates a nice delimited list of failure causes
-function os::cmd::internal::assemble_try_until_text_causes() {
-	local test_succeeded=$1
-
-	local causes=()
-	if (( ! test_succeeded )); then
-		causes+=("the output content test failed")
-	else
-		causes+=("the command timed out")
-	fi
-
-	local list=$(printf '; %s' "${causes[@]}")
-	echo "${list:2}"
 }

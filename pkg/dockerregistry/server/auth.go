@@ -7,14 +7,13 @@ import (
 	"net/http"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
+	context "github.com/docker/distribution/context"
+	registryauth "github.com/docker/distribution/registry/auth"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 
-	log "github.com/Sirupsen/logrus"
-	ctxu "github.com/docker/distribution/context"
-	registryauth "github.com/docker/distribution/registry/auth"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
-	"golang.org/x/net/context"
 )
 
 func init() {
@@ -76,17 +75,15 @@ func (ac *authChallenge) Error() string {
 	return ac.err.Error()
 }
 
-// ServeHTTP handles writing the challenge response
-// by setting the challenge header and status code.
-func (ac *authChallenge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// SetHeaders sets the basic challenge header on the response.
+func (ac *authChallenge) SetHeaders(w http.ResponseWriter) {
 	// WWW-Authenticate response challenge header.
 	// See https://tools.ietf.org/html/rfc6750#section-3
 	str := fmt.Sprintf("Basic realm=%s", ac.realm)
 	if ac.err != nil {
 		str = fmt.Sprintf("%s,error=%q", str, ac.Error())
 	}
-	w.Header().Add("WWW-Authenticate", str)
-	w.WriteHeader(http.StatusUnauthorized)
+	w.Header().Set("WWW-Authenticate", str)
 }
 
 // wrapErr wraps errors related to authorization in an authChallenge error that will present a WWW-Authenticate challenge response
@@ -110,17 +107,12 @@ func (ac *AccessController) wrapErr(err error) error {
 //   origin/pkg/cmd/dockerregistry/dockerregistry.go#Execute
 //   docker/distribution/registry/handlers/app.go#appendAccessRecords
 func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...registryauth.Access) (context.Context, error) {
-	req, err := ctxu.GetRequest(ctx)
+	req, err := context.GetRequest(ctx)
 	if err != nil {
 		return nil, ac.wrapErr(err)
 	}
 
-	// TODO: change this to an anonymous Access record, don't require a token for it, and fold into the access record check look below
-	if req.URL.Path == "/healthz" {
-		return ctx, nil
-	}
-
-	bearerToken, err := getToken(req)
+	bearerToken, err := getToken(ctx, req)
 	if err != nil {
 		return nil, ac.wrapErr(err)
 	}
@@ -132,7 +124,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 
 	// In case of docker login, hits endpoint /v2
 	if len(accessRecords) == 0 {
-		if err := verifyOpenShiftUser(client); err != nil {
+		if err := verifyOpenShiftUser(ctx, client); err != nil {
 			return nil, ac.wrapErr(err)
 		}
 	}
@@ -142,7 +134,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	// Validate all requested accessRecords
 	// Only return failure errors from this loop. Success should continue to validate all records
 	for _, access := range accessRecords {
-		log.Debugf("Origin auth: checking for access to %s:%s:%s", access.Resource.Type, access.Resource.Name, access.Action)
+		context.GetLogger(ctx).Debugf("Origin auth: checking for access to %s:%s:%s", access.Resource.Type, access.Resource.Name, access.Action)
 
 		switch access.Resource.Type {
 		case "repository":
@@ -168,12 +160,12 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				if verifiedPrune {
 					continue
 				}
-				if err := verifyPruneAccess(client); err != nil {
+				if err := verifyPruneAccess(ctx, client); err != nil {
 					return nil, ac.wrapErr(err)
 				}
 				verifiedPrune = true
 			default:
-				if err := verifyImageStreamAccess(imageStreamNS, imageStreamName, verb, client); err != nil {
+				if err := verifyImageStreamAccess(ctx, imageStreamNS, imageStreamName, verb, client); err != nil {
 					return nil, ac.wrapErr(err)
 				}
 			}
@@ -184,7 +176,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				if verifiedPrune {
 					continue
 				}
-				if err := verifyPruneAccess(client); err != nil {
+				if err := verifyPruneAccess(ctx, client); err != nil {
 					return nil, ac.wrapErr(err)
 				}
 				verifiedPrune = true
@@ -215,7 +207,7 @@ func getNamespaceName(resourceName string) (string, string, error) {
 	return ns, name, nil
 }
 
-func getToken(req *http.Request) (string, error) {
+func getToken(ctx context.Context, req *http.Request) (string, error) {
 	authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
 	if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
 		return "", ErrTokenRequired
@@ -224,7 +216,7 @@ func getToken(req *http.Request) (string, error) {
 
 	payload, err := base64.StdEncoding.DecodeString(basicToken)
 	if err != nil {
-		log.Errorf("Basic token decode failed: %s", err)
+		context.GetLogger(ctx).Errorf("Basic token decode failed: %s", err)
 		return "", ErrTokenInvalid
 	}
 
@@ -237,9 +229,9 @@ func getToken(req *http.Request) (string, error) {
 	return bearerToken, nil
 }
 
-func verifyOpenShiftUser(client *client.Client) error {
+func verifyOpenShiftUser(ctx context.Context, client *client.Client) error {
 	if _, err := client.Users().Get("~"); err != nil {
-		log.Errorf("Get user failed with error: %s", err)
+		context.GetLogger(ctx).Errorf("Get user failed with error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
 			return ErrOpenShiftAccessDenied
 		}
@@ -249,7 +241,7 @@ func verifyOpenShiftUser(client *client.Client) error {
 	return nil
 }
 
-func verifyImageStreamAccess(namespace, imageRepo, verb string, client *client.Client) error {
+func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, client *client.Client) error {
 	sar := authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:         verb,
@@ -260,7 +252,7 @@ func verifyImageStreamAccess(namespace, imageRepo, verb string, client *client.C
 	response, err := client.LocalSubjectAccessReviews(namespace).Create(&sar)
 
 	if err != nil {
-		log.Errorf("OpenShift client error: %s", err)
+		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
 			return ErrOpenShiftAccessDenied
 		}
@@ -268,14 +260,14 @@ func verifyImageStreamAccess(namespace, imageRepo, verb string, client *client.C
 	}
 
 	if !response.Allowed {
-		log.Errorf("OpenShift access denied: %s", response.Reason)
+		context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Reason)
 		return ErrOpenShiftAccessDenied
 	}
 
 	return nil
 }
 
-func verifyPruneAccess(client *client.Client) error {
+func verifyPruneAccess(ctx context.Context, client *client.Client) error {
 	sar := authorizationapi.SubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:     "delete",
@@ -284,14 +276,14 @@ func verifyPruneAccess(client *client.Client) error {
 	}
 	response, err := client.SubjectAccessReviews().Create(&sar)
 	if err != nil {
-		log.Errorf("OpenShift client error: %s", err)
+		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
 			return ErrOpenShiftAccessDenied
 		}
 		return err
 	}
 	if !response.Allowed {
-		log.Errorf("OpenShift access denied: %s", response.Reason)
+		context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Reason)
 		return ErrOpenShiftAccessDenied
 	}
 	return nil

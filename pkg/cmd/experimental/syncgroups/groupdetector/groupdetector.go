@@ -18,12 +18,16 @@ type GroupBasedDetector struct {
 }
 
 func (l *GroupBasedDetector) Exists(ldapGroupUID string) (bool, error) {
-	_, err := l.groupGetter.GroupEntryFor(ldapGroupUID)
+	group, err := l.groupGetter.GroupEntryFor(ldapGroupUID)
 	if ldaputil.IsQueryOutOfBoundsError(err) || ldaputil.IsEntryNotFoundError(err) || ldaputil.IsNoSuchObjectError(err) {
 		return false, nil
 	}
 	if err != nil {
 		return false, err
+	}
+
+	if group == nil {
+		return false, nil
 	}
 
 	return true, nil
@@ -76,13 +80,17 @@ type CompoundDetector struct {
 }
 
 func (l *CompoundDetector) Exists(ldapGrouUID string) (bool, error) {
-	conclusion := false
+	if len(l.locators) == 0 {
+		return false, nil
+	}
+
+	conclusion := true
 	for _, locator := range l.locators {
 		opinion, err := locator.Exists(ldapGrouUID)
 		if err != nil {
 			return false, err
 		}
-		conclusion = conclusion || opinion
+		conclusion = conclusion && opinion
 	}
 	return conclusion, nil
 }

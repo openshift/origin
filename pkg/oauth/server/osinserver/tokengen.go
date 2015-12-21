@@ -19,12 +19,18 @@ func randomBytes(len int) []byte {
 	return b
 }
 func randomToken() string {
-	// 32 bytes (256 bits) = 43 base64-encoded characters
-	b := randomBytes(32)
-	// Use URLEncoding to ensure we don't get / characters
-	s := base64.URLEncoding.EncodeToString(b)
-	// Strip trailing ='s... they're ugly
-	return strings.TrimRight(s, "=")
+	for {
+		// 32 bytes (256 bits) = 43 base64-encoded characters
+		b := randomBytes(32)
+		// Use URLEncoding to ensure we don't get / characters
+		s := base64.URLEncoding.EncodeToString(b)
+		// Don't generate tokens with leading dashes... they're hard to use on the command line
+		if strings.HasPrefix(s, "-") {
+			continue
+		}
+		// Strip trailing ='s... they're ugly
+		return strings.TrimRight(s, "=")
+	}
 }
 
 // TokenGen is an authorization and access token generator

@@ -158,13 +158,45 @@ angular.module('openshiftConsole')
           });
         });
 
-        $scope.startLatestDeployment = function(deploymentConfig) {
-          DeploymentsService.startLatestDeployment(deploymentConfig, context, $scope);
+        var hashSize = $filter('hashSize');
+        $scope.canDeploy = function() {
+          if (!$scope.deploymentConfig) {
+            return false;
+          }
+
+          if ($scope.deploymentConfig.metadata.deletionTimestamp) {
+            return false;
+          }
+
+          if ($scope.deploymentConfigDeploymentsInProgress &&
+              hashSize($scope.deploymentConfigDeploymentsInProgress[$scope.deploymentConfig.metadata.name]) > 0) {
+            return false;
+          }
+
+          return true;
+        };
+
+        $scope.startLatestDeployment = function() {
+          if ($scope.canDeploy()) {
+            DeploymentsService.startLatestDeployment($scope.deploymentConfig, context, $scope);
+          }
+        };
+
+        $scope.scale = function(replicas) {
+          var showScalingError = function(result) {
+            $scope.alerts = $scope.alerts || {};
+            $scope.alerts["scale"] = {
+              type: "error",
+              message: "An error occurred scaling the deployment config.",
+              details: $filter('getErrorDetails')(result)
+            };
+          };
+
+          DeploymentsService.scaleDC($scope.deploymentConfig, replicas).then(_.noop, showScalingError);
         };
 
         $scope.$on('$destroy', function(){
           DataService.unwatchAll(watches);
         });
-
     }));
   });

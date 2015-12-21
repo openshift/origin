@@ -166,6 +166,7 @@ func newConnection(url url.URL, allowInsecure, enableV2 bool) *connection {
 	var transport http.RoundTripper
 	if allowInsecure {
 		transport = kutil.SetTransportDefaults(&http.Transport{
+			Proxy:           http.ProxyFromEnvironment,
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		})
 	} else {

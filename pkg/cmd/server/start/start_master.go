@@ -19,7 +19,6 @@ import (
 	"k8s.io/kubernetes/pkg/capabilities"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -169,14 +168,6 @@ func (o *MasterOptions) Complete() error {
 	if !o.MasterArgs.ConfigDir.Provided() {
 		o.MasterArgs.ConfigDir.Default("openshift.local.config/master")
 	}
-
-	nodeList := sets.NewString()
-	// take everything toLower
-	for _, s := range o.MasterArgs.NodeList {
-		nodeList.Insert(strings.ToLower(s))
-	}
-
-	o.MasterArgs.NodeList = nodeList.List()
 
 	return nil
 }
@@ -536,9 +527,19 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for HPA controller: %v", err)
 		}
 
-		_, pvKClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeControllerServiceAccountName)
+		_, recyclerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
 		if err != nil {
-			glog.Fatalf("Could not get client for persistent volume controller: %v", err)
+			glog.Fatalf("Could not get client for persistent volume recycler controller: %v", err)
+		}
+
+		_, binderClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeBinderControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for persistent volume binder controller: %v", err)
+		}
+
+		_, provisionerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeProvisionerControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for persistent volume provisioner controller: %v", err)
 		}
 
 		// called by admission control
@@ -554,8 +555,9 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		}
 		kc.RunEndpointController()
 		kc.RunNamespaceController()
-		kc.RunPersistentVolumeClaimBinder()
-		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("recycler"), pvKClient)
+		kc.RunPersistentVolumeClaimBinder(binderClient)
+		kc.RunPersistentVolumeProvisioner(provisionerClient)
+		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("recycler"), recyclerClient)
 
 		glog.Infof("Started Kubernetes Controllers")
 	}

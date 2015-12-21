@@ -11,22 +11,21 @@ os::log::install_errexit
 
 # This test validates the new-app command
 
-os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
-
 os::cmd::expect_success_and_text 'oc new-app library/php mysql -o yaml' '3306'
 os::cmd::expect_failure 'oc new-app unknownhubimage -o yaml'
 # verify we can generate a Docker image based component "mongodb" directly
 os::cmd::expect_success_and_text 'oc new-app mongo -o yaml' 'library/mongo'
 # the local image repository takes precedence over the Docker Hub "mysql" image
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:latest'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'
-os::cmd::expect_success_and_text 'oc new-app mysql -o yaml' 'mysql'
+os::cmd::expect_success_and_not_text 'oc new-app mysql -o yaml' 'library/mysql'
+
+# check label creation
 os::cmd::try_until_success 'oc get imagestreamtags php:latest'
 os::cmd::try_until_success 'oc get imagestreamtags php:5.5'
 os::cmd::try_until_success 'oc get imagestreamtags php:5.6'
-
-# check label creation
 os::cmd::expect_success 'oc new-app php mysql -l no-source=php-mysql'
 os::cmd::expect_success 'oc delete all -l no-source=php-mysql'
 os::cmd::expect_success 'oc new-app php mysql'
@@ -159,5 +158,8 @@ os::cmd::expect_success_and_text 'oc new-app installable:serviceaccount --grant-
 
 # Ensure output is valid JSON
 os::cmd::expect_success 'oc new-app mongo -o json | python -m json.tool'
+
+# Ensure custom branch/ref works
+os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world#beta4'
 
 echo "new-app: ok"

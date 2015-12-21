@@ -76,6 +76,18 @@ func NewImagePipelineFromBuildConfigNode(g osgraph.Graph, bcNode *buildgraph.Bui
 	flow.Build = bcNode
 	flow.LastSuccessfulBuild, flow.LastUnsuccessfulBuild, flow.ActiveBuilds = buildedges.RelevantBuilds(g, flow.Build)
 
+	// we should have at most one
+	for _, buildOutputNode := range g.SuccessorNodesByEdgeKind(bcNode, buildedges.BuildOutputEdgeKind) {
+		// this will handle the imagestream tag case
+		for _, input := range g.SuccessorNodesByEdgeKind(buildOutputNode, imageedges.ReferencedImageStreamGraphEdgeKind) {
+			imageStreamNode := input.(*imagegraph.ImageStreamNode)
+
+			flow.DestinationResolved = (len(imageStreamNode.Status.DockerImageRepository) != 0)
+		}
+
+		// TODO handle the DockerImage case
+	}
+
 	return flow, covered
 }
 
@@ -148,11 +160,11 @@ func (m SortedImagePipelines) Less(i, j int) bool {
 
 func CompareImagePipeline(a, b *ImagePipeline) bool {
 	switch {
-	case a.Build != nil && b.Build != nil:
-		return CompareObjectMeta(&a.Build.ObjectMeta, &b.Build.ObjectMeta)
-	case a.Build != nil:
+	case a.Build != nil && b.Build != nil && a.Build.BuildConfig != nil && b.Build.BuildConfig != nil:
+		return CompareObjectMeta(&a.Build.BuildConfig.ObjectMeta, &b.Build.BuildConfig.ObjectMeta)
+	case a.Build != nil && a.Build.BuildConfig != nil:
 		return true
-	case b.Build != nil:
+	case b.Build != nil && b.Build.BuildConfig != nil:
 		return false
 	}
 	if a.Image == nil || b.Image == nil {

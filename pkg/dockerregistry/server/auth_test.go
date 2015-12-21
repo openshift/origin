@@ -10,11 +10,11 @@ import (
 	"testing"
 
 	"github.com/docker/distribution/registry/auth"
-	"golang.org/x/net/context"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	"github.com/docker/distribution/context"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/authorization/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -58,12 +58,13 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
+		ctx := context.Background()
 		server, _ := simulateOpenShiftMaster([]response{test.openshiftResponse})
 		client, err := NewUserOpenShiftClient("magic bearer token")
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = verifyImageStreamAccess("foo", "bar", "create", client)
+		err = verifyImageStreamAccess(ctx, "foo", "bar", "create", client)
 		if err == nil || test.expectedError == nil {
 			if err != test.expectedError {
 				t.Fatalf("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
@@ -271,7 +272,7 @@ func TestAccessController(t *testing.T) {
 		if len(test.basicToken) > 0 {
 			req.Header.Set("Authorization", fmt.Sprintf("Basic %s", test.basicToken))
 		}
-		ctx := context.WithValue(nil, "http.request", req)
+		ctx := context.WithValue(context.Background(), "http.request", req)
 
 		server, actions := simulateOpenShiftMaster(test.openshiftResponses)
 		authCtx, err := accessController.Authorized(ctx, test.access...)

@@ -170,7 +170,7 @@ func (d *ChainDescriber) humanReadableOutput(g osgraph.Graph, root graph.Node) s
 		case *imagegraph.ImageStreamTagNode:
 			info = outputHelper(t.ResourceString(), t.Namespace, singleNamespace)
 		case *buildgraph.BuildConfigNode:
-			info = outputHelper(t.ResourceString(), t.Namespace, singleNamespace)
+			info = outputHelper(t.ResourceString(), t.BuildConfig.Namespace, singleNamespace)
 		default:
 			panic("this graph contains node kinds other than imageStreamTags and buildConfigs")
 		}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"net"
+	"strconv"
 	"testing"
 	"time"
 
@@ -68,6 +69,31 @@ func TestDNS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
+	// Verify kubernetes service port is 53 and target port is the
+	// configured masterConfig.DNSConfig.BindAddress port.
+	_, dnsPortString, err := net.SplitHostPort(masterConfig.DNSConfig.BindAddress)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	dnsPort, err := strconv.Atoi(dnsPortString)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	kubernetesService, err := client.Services(kapi.NamespaceDefault).Get("kubernetes")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	found := false
+	for _, port := range kubernetesService.Spec.Ports {
+		if port.Port == 53 && port.TargetPort.IntVal == dnsPort && port.Protocol == kapi.ProtocolTCP {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("did not find DNS port in kubernetes service: %#v", kubernetesService)
+	}
+
 	for {
 		if _, err := client.Services(kapi.NamespaceDefault).Create(&kapi.Service{
 			ObjectMeta: kapi.ObjectMeta{

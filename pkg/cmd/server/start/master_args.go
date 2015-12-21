@@ -56,10 +56,6 @@ type MasterArgs struct {
 	EtcdDir   string
 	ConfigDir *util.StringFlag
 
-	// NodeList contains the hostnames of each node. This currently must be specified
-	// up front. Comma delimited list
-	NodeList []string
-
 	// CORSAllowedOrigins is a list of allowed origins for CORS, comma separated.
 	// An allowed origin can be a regular expression to support subdomain matching.
 	// CORS is enabled for localhost, 127.0.0.1, and the asset server by default.
@@ -86,11 +82,15 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 
 	flags.StringVar(&args.EtcdDir, prefix+"etcd-dir", "openshift.local.etcd", "The etcd data directory.")
 
-	flags.StringSliceVar(&args.NodeList, prefix+"nodes", []string{}, "The hostnames of each node. This currently must be specified up front. Comma delimited list")
+	nodes := []string{}
+	flags.StringSliceVar(&nodes, prefix+"nodes", nodes, "DEPRECATED: nodes now register themselves")
+	flags.MarkDeprecated(prefix+"nodes", "Nodes register themselves at startup, and are no longer statically registered")
+
 	flags.StringSliceVar(&args.CORSAllowedOrigins, prefix+"cors-allowed-origins", []string{}, "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
 
 	// autocompletion hints
 	cobra.MarkFlagFilename(flags, prefix+"etcd-dir")
+
 }
 
 // NewDefaultMasterArgs creates MasterArgs with sub-objects created and default values set.
@@ -407,13 +407,9 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 		masterIP = ip.String()
 	}
 
-	staticNodeList := sets.NewString(args.NodeList...)
-	staticNodeList.Delete("")
-
 	config := &configapi.KubernetesMasterConfig{
 		MasterIP:            masterIP,
 		ServicesSubnet:      args.NetworkArgs.ServiceNetworkCIDR,
-		StaticNodeNames:     staticNodeList.List(),
 		SchedulerConfigFile: args.SchedulerConfigFile,
 		ProxyClientInfo:     admin.DefaultProxyClientCertInfo(args.ConfigDir.Value()).CertLocation,
 	}

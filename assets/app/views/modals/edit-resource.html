@@ -1,0 +1,35 @@
+<div class="modal-resource-edit">
+  <div class="modal-header">
+    <h2><i class="fa fa-pencil" aria-hidden="true"></i> Editing {{resource.metadata.name}}</h2>
+  </div>
+  <div class="modal-body">
+    <!-- Error messages -->
+    <div ng-show="error" class="alert alert-danger">
+      <button ng-click="error = null" type="button" class="close" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+      </button>
+      <span class="pficon pficon-error-circle-o"></span>
+      Failed to update <strong>{{resource.metadata.name}}</strong>.
+      <div>
+        <truncate-long-text ng-if="error.message" content="error.message" limit="512" use-word-boundary="true"></truncate-long-text>
+        <span ng-if="error.parsedLine">Line: {{error.parsedLine}}</span>
+        <code ng-if="error.snippet">{{error.snippet}}</code>
+      </div>
+    </div>
+
+    <!-- Editor -->
+    <div ui-ace="{
+      mode: 'yaml',
+      theme: 'eclipse',
+      onLoad: aceLoaded,
+      rendererOptions: {
+        fadeFoldWidgets: true,
+        showPrintMargin: false
+      }
+    }" ng-model="model" class="editor yaml-mode"></div>
+  </div>
+  <div class="modal-footer">
+      <button class="btn btn-lg btn-primary" type="button" ng-click="save()">Save</button>
+      <button class="btn btn-lg btn-default" type="button" ng-click="cancel()">Cancel</button>
+  </div>
+</div>

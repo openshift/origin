@@ -13,6 +13,7 @@ import (
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
+	kutil "k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -250,19 +251,16 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 						SecurityContext: &kapi.SecurityContext{
 							Privileged: &mountHost,
 						},
-						// TODO reenable the liveness probe when we no longer support the v1 registry.
-						/*
-							LivenessProbe: &kapi.Probe{
-								InitialDelaySeconds: 3,
-								TimeoutSeconds:      5,
-								Handler: kapi.Handler{
-									HTTPGet: &kapi.HTTPGetAction{
-										Path: "/healthz",
-										Port: util.NewIntOrStringFromInt(5000),
-									},
+						LivenessProbe: &kapi.Probe{
+							InitialDelaySeconds: 3,
+							TimeoutSeconds:      5,
+							Handler: kapi.Handler{
+								HTTPGet: &kapi.HTTPGetAction{
+									Path: "/",
+									Port: kutil.NewIntOrStringFromInt(ports[0].ContainerPort),
 								},
 							},
-						*/
+						},
 					},
 				},
 				Volumes: []kapi.Volume{

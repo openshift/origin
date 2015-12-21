@@ -67,6 +67,27 @@ func TestRouter(t *testing.T) {
 			},
 		},
 		{
+			RouteName:  RouteNameTags,
+			RequestURI: "/v2/docker.com/foo/tags/list",
+			Vars: map[string]string{
+				"name": "docker.com/foo",
+			},
+		},
+		{
+			RouteName:  RouteNameTags,
+			RequestURI: "/v2/docker.com/foo/bar/tags/list",
+			Vars: map[string]string{
+				"name": "docker.com/foo/bar",
+			},
+		},
+		{
+			RouteName:  RouteNameTags,
+			RequestURI: "/v2/docker.com/foo/bar/baz/tags/list",
+			Vars: map[string]string{
+				"name": "docker.com/foo/bar/baz",
+			},
+		},
+		{
 			RouteName:  RouteNameBlob,
 			RequestURI: "/v2/foo/bar/blobs/tarsum.dev+foo:abcdef0919234",
 			Vars: map[string]string{
@@ -147,6 +168,14 @@ func TestRouter(t *testing.T) {
 			RequestURI: "/v2/foo/bar/manifests/tags/list",
 			Vars: map[string]string{
 				"name": "foo/bar/manifests",
+			},
+		},
+		{
+			RouteName:  RouteNameManifest,
+			RequestURI: "/v2/locahost:8080/foo/bar/baz/manifests/tag",
+			Vars: map[string]string{
+				"name":      "locahost:8080/foo/bar/baz",
+				"reference": "tag",
 			},
 		},
 	}
@@ -263,6 +292,7 @@ func checkTestRouter(t *testing.T, testCases []routeTestCase, prefix string, dee
 		}
 
 		if testcase.StatusCode != http.StatusOK {
+			resp.Body.Close()
 			// We don't care about json response.
 			continue
 		}
@@ -291,6 +321,8 @@ func checkTestRouter(t *testing.T, testCases []routeTestCase, prefix string, dee
 		if deeplyEqual && !reflect.DeepEqual(actualRouteInfo, testcase) {
 			t.Fatalf("actual does not equal expected: %#v != %#v", actualRouteInfo, testcase)
 		}
+
+		resp.Body.Close()
 	}
 
 }

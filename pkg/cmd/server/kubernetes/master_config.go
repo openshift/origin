@@ -229,8 +229,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			return nil, fmt.Errorf("invalid DNS port: %v", err)
 		}
 		m.ExtraServicePorts = append(m.ExtraServicePorts,
-			kapi.ServicePort{Name: "dns", Port: dnsPort, Protocol: kapi.ProtocolUDP, TargetPort: util.NewIntOrStringFromInt(dnsPort)},
-			kapi.ServicePort{Name: "dns-tcp", Port: dnsPort, Protocol: kapi.ProtocolTCP, TargetPort: util.NewIntOrStringFromInt(dnsPort)},
+			kapi.ServicePort{Name: "dns", Port: 53, Protocol: kapi.ProtocolUDP, TargetPort: util.NewIntOrStringFromInt(dnsPort)},
+			kapi.ServicePort{Name: "dns-tcp", Port: 53, Protocol: kapi.ProtocolTCP, TargetPort: util.NewIntOrStringFromInt(dnsPort)},
 		)
 		m.ExtraEndpointPorts = append(m.ExtraEndpointPorts,
 			kapi.EndpointPort{Name: "dns", Port: dnsPort, Protocol: kapi.ProtocolUDP},

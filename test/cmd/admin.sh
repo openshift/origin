@@ -204,9 +204,7 @@ echo "new-project: ok"
 os::cmd::expect_failure_and_text 'oadm router --dry-run' 'does not exist'
 encoded_json='{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}'
 os::cmd::expect_success "echo '${encoded_json}' | oc create -f - -n default"
-os::cmd::expect_success "oc get scc privileged -o yaml | sed '/users:/ a\
-- system:serviceaccount:default:router\
-' | oc replace scc privileged -f -"
+os::cmd::expect_success "oadm policy add-scc-to-user privileged system:serviceaccount:default:router"
 os::cmd::expect_success_and_text "oadm router -o yaml --credentials=${KUBECONFIG} --service-account=router -n default" 'image:.*-haproxy-router:'
 os::cmd::expect_success "oadm router --credentials=${KUBECONFIG} --images='${USE_IMAGES}' --service-account=router -n default"
 os::cmd::expect_success_and_text 'oadm router -n default' 'service exists'

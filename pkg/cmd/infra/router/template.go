@@ -154,7 +154,7 @@ func (o *TemplateRouterOptions) Run() error {
 		return err
 	}
 
-	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute)
+	plugin := controller.NewUniqueHost(templatePlugin, o.RouteSelectionFunc())
 
 	oc, kc, err := o.Config.Clients()
 	if err != nil {
