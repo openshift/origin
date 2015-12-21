@@ -217,6 +217,7 @@ os::cmd::expect_success_and_text "oadm registry -o yaml --credentials=${KUBECONF
 os::cmd::expect_success "oadm registry --credentials=${KUBECONFIG} --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oadm registry' 'service exists'
 os::cmd::expect_success_and_text 'oc describe svc/docker-registry' 'Session Affinity:\s*ClientIP'
+os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' 'readinessProbe'
 echo "registry: ok"
 
 # Test building a dependency tree
