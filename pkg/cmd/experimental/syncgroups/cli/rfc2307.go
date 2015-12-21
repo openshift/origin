@@ -56,9 +56,10 @@ func (b *RFC2307Builder) getRFC2307LDAPInterface() (*rfc2307.LDAPInterface, erro
 	if err != nil {
 		return nil, err
 	}
-	return rfc2307.NewLDAPInterface(b.ClientConfig,
+	b.rfc2307LDAPInterface = rfc2307.NewLDAPInterface(b.ClientConfig,
 		groupQuery, b.Config.GroupNameAttributes, b.Config.GroupMembershipAttributes,
-		userQuery, b.Config.UserNameAttributes), nil
+		userQuery, b.Config.UserNameAttributes)
+	return b.rfc2307LDAPInterface, nil
 }
 
 func (b *RFC2307Builder) GetGroupDetector() (interfaces.LDAPGroupDetector, error) {
