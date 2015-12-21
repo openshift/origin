@@ -35,6 +35,12 @@ angular.module('openshiftConsole')
     ];
     $scope.emptyMessage = "Loading...";
 
+    // Check for a ?tab=<name> query param to allow linking directly to a tab.
+    if ($routeParams.tab) {
+      $scope.selectedTab = {};
+      $scope.selectedTab[$routeParams.tab] = true;
+    }
+
     var watches = [];
 
     ProjectsService

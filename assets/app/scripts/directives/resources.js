@@ -135,4 +135,16 @@ angular.module('openshiftConsole')
       },
       templateUrl: 'views/_volumes.html'
     };
+  })
+  .directive('environment', function() {
+    return {
+      restrict: 'E',
+      scope: {
+        envVars: '='
+      },
+      templateUrl: 'views/directives/environment.html',
+      controller: function($scope) {
+        $scope.expanded = {};
+      }
+    };
   });

@@ -957,3 +957,27 @@ h1 small.meta, .build-config-summary .meta {
 .action-divider {
   color: @gray-light;
 }
+
+.environment-variables {
+  &.table.table-bordered > tbody > tr > td:first-child {
+    font-weight: bold;
+    padding-right: 10px;
+    vertical-align: top; 
+  }
+  &.table.table-bordered > tbody > tr > td:last-child {
+    width: 100%;
+
+    .env-var-value {
+      font-family: @font-family-monospace;
+
+      a {
+        font-family: @font-family-base;
+      }
+    }
+  }
+}
+
+.pretty-json {
+  font-family: @font-family-monospace;
+  white-space: pre-wrap;
+}

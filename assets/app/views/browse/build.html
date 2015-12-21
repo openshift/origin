@@ -41,6 +41,12 @@
                 <ng-include src=" 'views/browse/_build-details.html' "></ng-include>
               </uib-tab>
 
+              <uib-tab heading="Environment" active="selectedTab.environment">
+                <uib-tab-heading>Environment</uib-tab-heading>
+                <environment env-vars="(build | buildStrategy).env"></environment>
+                <em ng-if="!(build | buildStrategy).env">The build strategy had no environment variables defined.</em>
+              </uib-tab>
+
               <uib-tab active="selectedTab.logs">
                 <uib-tab-heading>Logs</uib-tab-heading>
                 <log-viewer
