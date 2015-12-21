@@ -75,7 +75,7 @@ if [ -z ${KUBE_RACE+x} ]; then
   KUBE_RACE=""
 fi
 
-KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 60s}
+KUBE_TIMEOUT=${KUBE_TIMEOUT:-'60s'}
 
 if [ "${1-}" != "" ]; then
   if [[ "${1}" == *"/..." ]]; then
@@ -109,7 +109,7 @@ if [[ -n "${KUBE_COVER}" && -n "${OUTPUT_COVERAGE}" ]]; then
     mkdir -p "$OUTPUT_COVERAGE/$test_package"
     KUBE_COVER_PROFILE="-coverprofile=$OUTPUT_COVERAGE/$test_package/profile.out"
 
-    go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$KUBE_COVER_PROFILE" "$test_package" "${@:2}"
+    go test $KUBE_RACE -timeout $KUBE_TIMEOUT $KUBE_COVER "$KUBE_COVER_PROFILE" "$test_package" "${@:2}"
   done
 
   echo 'mode: atomic' > ${OUTPUT_COVERAGE}/profiles.out
@@ -118,7 +118,7 @@ if [[ -n "${KUBE_COVER}" && -n "${OUTPUT_COVERAGE}" ]]; then
 
   rm -rf $OUTPUT_COVERAGE/$OS_GO_PACKAGE
 else
-  nice go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${@:2}" $test_packages
+  nice go test $KUBE_RACE -timeout $KUBE_TIMEOUT $KUBE_COVER "${@:2}" $test_packages
 fi
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
