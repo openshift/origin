@@ -164,7 +164,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 						continue rcNode
 					}
 				}
-				printLines(out, indent, 1, describeRCInServiceGroup(rcNode)...)
+				printLines(out, indent, 1, describeRCInServiceGroup(rcNode, service.FulfillingPods)...)
 			}
 
 		pod:
@@ -197,7 +197,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 		for _, standaloneRC := range standaloneRCs {
 			fmt.Fprintln(out)
-			printLines(out, indent, 0, describeRCInServiceGroup(standaloneRC.RC)...)
+			printLines(out, indent, 0, describeRCInServiceGroup(standaloneRC.RC, standaloneRC.OwnedPods)...)
 		}
 
 		allMarkers := osgraph.Markers{}
@@ -345,7 +345,7 @@ func describeDeploymentInServiceGroup(deploy graphview.DeploymentConfigPipeline)
 			lines = append(lines, segments[1])
 		}
 		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(deploy.Images[0].Build, deploy.Images[0].LastSuccessfulBuild, deploy.Images[0].LastUnsuccessfulBuild, deploy.Images[0].ActiveBuilds, deploy.Images[0].DestinationResolved, includeLastPass)...)...)
-		lines = append(lines, describeDeployments(deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, 3)...)
+		lines = append(lines, describeDeployments(deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, deploy.ActivePods, 3)...)
 		return lines
 	}
 
@@ -353,12 +353,12 @@ func describeDeploymentInServiceGroup(deploy graphview.DeploymentConfigPipeline)
 	for _, image := range deploy.Images {
 		lines = append(lines, describeImageInPipeline(image, deploy.Deployment.Namespace))
 		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)...)
-		lines = append(lines, describeDeployments(deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, 3)...)
+		lines = append(lines, describeDeployments(deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, deploy.ActivePods, 3)...)
 	}
 	return lines
 }
 
-func describeRCInServiceGroup(rcNode *kubegraph.ReplicationControllerNode) []string {
+func describeRCInServiceGroup(rcNode *kubegraph.ReplicationControllerNode, podNodes []*kubegraph.PodNode) []string {
 	if rcNode.ReplicationController.Spec.Template == nil {
 		return []string{}
 	}
@@ -367,9 +367,13 @@ func describeRCInServiceGroup(rcNode *kubegraph.ReplicationControllerNode) []str
 	for _, container := range rcNode.ReplicationController.Spec.Template.Spec.Containers {
 		images = append(images, container.Image)
 	}
+	pods := make([]*kapi.Pod, len(podNodes))
+	for i := range podNodes {
+		pods[i] = podNodes[i].Pod
+	}
 
 	lines := []string{fmt.Sprintf("%s runs %s", rcNode.ResourceString(), strings.Join(images, ", "))}
-	lines = append(lines, describeRCStatus(rcNode.ReplicationController))
+	lines = append(lines, describeRCStatus(rcNode.ReplicationController, pods))
 
 	return lines
 }
@@ -617,7 +621,7 @@ func describeSourceInPipeline(source *buildapi.BuildSource) (string, bool) {
 	return "", false
 }
 
-func describeDeployments(dcNode *deploygraph.DeploymentConfigNode, activeDeployment *kubegraph.ReplicationControllerNode, inactiveDeployments []*kubegraph.ReplicationControllerNode, count int) []string {
+func describeDeployments(dcNode *deploygraph.DeploymentConfigNode, activeDeployment *kubegraph.ReplicationControllerNode, inactiveDeployments []*kubegraph.ReplicationControllerNode, podNodes []*kubegraph.PodNode, count int) []string {
 	if dcNode == nil {
 		return nil
 	}
@@ -633,11 +637,20 @@ func describeDeployments(dcNode *deploygraph.DeploymentConfigNode, activeDeploym
 		}
 		// TODO: detect new image available?
 	} else {
+		pods := make([]*kapi.Pod, len(podNodes))
+		for i := range podNodes {
+			pods[i] = podNodes[i].Pod
+		}
+		// Prints info about the active deployment.
+		out = append(out, describeDeploymentStatus(activeDeployment.ReplicationController, pods, true))
 		deploymentsToPrint = append([]*kubegraph.ReplicationControllerNode{activeDeployment}, inactiveDeployments...)
 	}
 
 	for i, deployment := range deploymentsToPrint {
-		out = append(out, describeDeploymentStatus(deployment.ReplicationController, i == 0))
+		if i != 0 || activeDeployment == nil {
+			// Prints info about any other deployment other than the active one.
+			out = append(out, describeDeploymentStatus(deployment.ReplicationController, []*kapi.Pod{}, i == 0))
+		}
 
 		switch {
 		case count == -1:
@@ -653,7 +666,7 @@ func describeDeployments(dcNode *deploygraph.DeploymentConfigNode, activeDeploym
 	return out
 }
 
-func describeDeploymentStatus(deploy *kapi.ReplicationController, first bool) string {
+func describeDeploymentStatus(deploy *kapi.ReplicationController, pods []*kapi.Pod, first bool) string {
 	timeAt := strings.ToLower(formatRelativeTime(deploy.CreationTimestamp.Time))
 	status := deployutil.DeploymentStatusFor(deploy)
 	version := deployutil.DeploymentVersionFor(deploy)
@@ -664,54 +677,59 @@ func describeDeploymentStatus(deploy *kapi.ReplicationController, first bool) st
 			reason = fmt.Sprintf(": %s", reason)
 		}
 		// TODO: encode fail time in the rc
-		return fmt.Sprintf("#%d deployment failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(deploy, false))
+		return fmt.Sprintf("#%d deployment failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(deploy, pods, false))
 	case deployapi.DeploymentStatusComplete:
 		// TODO: pod status output
-		return fmt.Sprintf("#%d deployed %s ago%s", version, timeAt, describePodSummaryInline(deploy, first))
+		return fmt.Sprintf("#%d deployed %s ago%s", version, timeAt, describePodSummaryInline(deploy, pods, first))
 	case deployapi.DeploymentStatusRunning:
-		return fmt.Sprintf("#%d deployment running for %s%s", version, timeAt, describePodSummaryInline(deploy, false))
+		return fmt.Sprintf("#%d deployment running for %s%s", version, timeAt, describePodSummaryInline(deploy, pods, false))
 	default:
-		return fmt.Sprintf("#%d deployment %s %s ago%s", version, strings.ToLower(string(status)), timeAt, describePodSummaryInline(deploy, false))
+		return fmt.Sprintf("#%d deployment %s %s ago%s", version, strings.ToLower(string(status)), timeAt, describePodSummaryInline(deploy, pods, false))
 	}
 }
 
-func describeRCStatus(rc *kapi.ReplicationController) string {
+func describeRCStatus(rc *kapi.ReplicationController, pods []*kapi.Pod) string {
 	timeAt := strings.ToLower(formatRelativeTime(rc.CreationTimestamp.Time))
-	return fmt.Sprintf("rc/%s created %s ago%s", rc.Name, timeAt, describePodSummaryInline(rc, false))
+	return fmt.Sprintf("rc/%s created %s ago%s", rc.Name, timeAt, describePodSummaryInline(rc, pods, false))
 }
 
-func describePodSummaryInline(rc *kapi.ReplicationController, includeEmpty bool) string {
-	s := describePodSummary(rc, includeEmpty)
+func describePodSummaryInline(rc *kapi.ReplicationController, pods []*kapi.Pod, includeEmpty bool) string {
+	running := filterRunningPods(pods)
+	s := describePodSummary(running, includeEmpty)
 	if len(s) == 0 {
 		return s
 	}
 	change := ""
-	desired := rc.Spec.Replicas
-	switch {
-	case desired < rc.Status.Replicas:
-		change = fmt.Sprintf(" reducing to %d", desired)
-	case desired > rc.Status.Replicas:
-		change = fmt.Sprintf(" growing to %d", desired)
+	if have, want := len(running), rc.Spec.Replicas; have != want {
+		if len(running) != 0 || includeEmpty {
+			change = ","
+		}
+		change = fmt.Sprintf("%s scaling to %d", change, want)
 	}
 	return fmt.Sprintf(" - %s%s", s, change)
 }
 
-func describePodSummary(rc *kapi.ReplicationController, includeEmpty bool) string {
-	actual, requested := rc.Status.Replicas, rc.Spec.Replicas
-	if actual == requested {
-		switch {
-		case actual == 0:
-			if !includeEmpty {
-				return ""
-			}
-			return "0 pods"
-		case actual > 1:
-			return fmt.Sprintf("%d pods", actual)
-		default:
-			return "1 pod"
+func describePodSummary(running []*kapi.Pod, includeEmpty bool) string {
+	switch len(running) {
+	case 0:
+		if !includeEmpty {
+			return ""
+		}
+		return "no pods running"
+	case 1:
+		return "1 pod running"
+	}
+	return fmt.Sprintf("%d pods running", len(running))
+}
+
+func filterRunningPods(pods []*kapi.Pod) []*kapi.Pod {
+	running := []*kapi.Pod{}
+	for i := range pods {
+		if pods[i].Status.Phase == kapi.PodRunning {
+			running = append(running, pods[i])
 		}
 	}
-	return fmt.Sprintf("%d/%d pods", actual, requested)
+	return running
 }
 
 func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (string, bool) {
