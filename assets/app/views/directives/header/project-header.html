@@ -1,18 +1,23 @@
 <nav class="navbar navbar-pf-alt" role="navigation">
-  <navbar-logo></navbar-logo>
+  <div row flex class="navbar-header">
+    <a class="navbar-home" href="./"><span class="fa-fw pficon pficon-home"></span> <span class="visible-xlg-inline-block">Projects</span></a>
+  </div>
   <nav class="container-fluid">
     <div class="nav navbar-project-menu">
       <div row>
-        <div flex grow="3" class="form-group">
+        <!-- mobile nav menu -->
+        <div row flex class="project-actions">
+          <a class="project-action-btn" href="javascript:;" role="button" data-toggle="collapse" data-target=".navbar-collapse-3" aria-expanded="false" title="Filter by labels" aria-pressed="false" ng-if="!renderOptions || !renderOptions.hideFilterWidget">
+            <i class="fa fa-filter"></i>
+          </a>
+        </div>
+        <div flex class="form-group">
           <!-- TODO add multiple attribute back to the select tag when we support selecting multiple -->
           <!-- Use title="" to prevent "Nothing selected" from briefly flashing while the projects are still loading. -->
           <select class="selectpicker form-control" data-selected-text-format="count>3" id="boostrapSelect" title=""></select>
         </div>
         <!-- Filter and create buttons show at mobile -->
         <div row flex class="project-actions">
-          <a class="project-action-btn" href="javascript:;" role="button" data-toggle="collapse" data-target=".navbar-collapse-3" aria-expanded="false" title="Filter by labels" aria-pressed="false" ng-if="!renderOptions || !renderOptions.hideFilterWidget">
-            <i class="fa fa-filter"></i>
-          </a>
           <a class="project-action-btn" href="project/{{project.metadata.name}}/create" ng-disabled="project.status.phase != 'Active'" title="Add to project">
             <i class="fa fa-plus"></i>
           </a>

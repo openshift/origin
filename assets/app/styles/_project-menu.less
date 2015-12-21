@@ -4,8 +4,8 @@
 
 .navbar-project-menu {
   background: @sidebar-os-bg;
-  border-bottom: 1px solid @navbar-os-sidebar-border-color;
-  border-top: 1px solid @navbar-os-sidebar-border-color;
+  border-bottom: 1px solid @sidebar-os-border-color;
+  border-top: 1px solid @sidebar-os-border-color;
   margin: 0 -@navbar-padding-horizontal;
   .navbar-project-search {
     display: inline-block;
@@ -17,15 +17,20 @@
       height: auto;
     }
   }
+  .bootstrap-select.open.btn-group {
+    .btn {
+      background-color: @navbar-os-project-menu-active-bg;
+    }
+  }
   .bootstrap-select.btn-group {
       .btn {
-      border-color: @navbar-os-sidebar-border-color;
+      border-color: @sidebar-os-border-color;
       border-width: 0 1px 0 0;
       border-radius: 0;
       color: @navbar-os-project-menu-color;
       font-size: @font-size-large + 4;
       font-weight: 300;
-      background: @sidebar-os-bg;
+      background: @navbar-os-project-menu-bg;
       border-bottom: 0;
       box-shadow: none;
       border-top: 0;
@@ -34,8 +39,8 @@
       transition: none;
       width: 100%;
       &:hover, &:focus {
-        background-color: @sidebar-os-hover-bg;
-        color: @sidebar-os-active-color;
+        background-color: @navbar-os-project-menu-active-bg;
+        color: @navbar-os-project-menu-active-color;
       }
       &:focus {
         .tab-focus();
@@ -52,14 +57,14 @@
       right: 30px;
     }
     .dropdown-menu {
-      background-color: @navbar-os-project-menu-bg;
+      background-color: @navbar-os-project-menu-active-bg;
       border-color: @navbar-os-project-border-color;
       color: @navbar-os-project-menu-color;
       margin-top: 0;
       padding: 0;
       li {
         &.selected a {
-          background-color: @navbar-os-project-menu-active-bg !important;
+          background-color: @navbar-os-project-bg !important;
           border-color: transparent !important;
           color: @navbar-os-project-menu-active-color;
           &:after {
@@ -77,13 +82,13 @@
           color: @sidebar-os-color;
           padding: 10px 15px;
           &:hover, &:focus {
-            background-color: @sidebar-os-hover-bg;
+            background-color: @navbar-os-project-menu-hover-bg;
             border-color: transparent;
             color: @sidebar-os-active-color;
           }
         }
         &.divider {
-          background-color: @navbar-os-sidebar-border-color !important;
+          background-color: @sidebar-os-bg !important;
           height: 2px;
           margin: 0 !important;
         }
@@ -101,8 +106,8 @@
         background-color: @sidebar-os-hover-bg;
         color: @sidebar-os-active-color;
       }
-      &:last-child {
-        border-left: 1px solid @navbar-os-sidebar-border-color;
+      &:first-child {
+        border-right: 1px solid @sidebar-os-border-color;
       }
     }
   }
@@ -114,10 +119,11 @@
       display: inline;
     }
     .project-actions {
+      .flex(@columns: 0 0 50px);
       a {
         color: lighten(@navbar-os-project-menu-color, 20%);
         cursor: pointer;
-        display: flex;
+        .flex-display(@display: flex);
         font-size: 18px;
         // padding: 4px 14px 5px; CLEANUP
         &:hover, &:active, &:focus {
@@ -139,12 +145,12 @@
     padding-top: 0;
     max-width: 380px;
     .bootstrap-select.btn-group .btn {
-      border-left:1px solid @navbar-os-sidebar-border-color;
-      border-right:1px solid @navbar-os-sidebar-border-color;
+      border-left:1px solid @navbar-os-project-menu-border;
+      border-right:1px solid @navbar-os-project-menu-border;
       padding: 9px 40px 7px 30px;
       &:before {
         color: @gray-light;
-        content: 'Projects';
+        content: 'Project';
         font-size: @font-size-xsmall;
         left: 30px;
         position: absolute;
@@ -153,7 +159,7 @@
     }
     .bootstrap-select .dropdown-toggle {
       height: 60px;
-      min-width: 270px;
+      min-width: 300px;
     }
     .project-actions {
       display: none;

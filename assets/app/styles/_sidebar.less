@@ -6,7 +6,7 @@
   background: @sidebar-os-bg;
   position:relative;
   .navbar-sidebar {
-    border-bottom: 1px solid @navbar-os-sidebar-border-color;
+    border-bottom: 1px solid @sidebar-os-border-color;
     margin: 0;
     min-height: 46px;
     .sidebar-header {
@@ -43,16 +43,9 @@
         }
       }
     }
-    .navbar-collapse {
-      border-top: 0;
-      padding: 0;
-      margin-top: 5px;
-      max-height: none;
-      .box-shadow(none);
-    }
     ul.nav-sidenav-primary> li {
-      // outline: 1px solid @navbar-os-sidebar-border-color;
-      outline: 1px solid @navbar-os-sidebar-border-color;
+      // outline: 1px solid @sidebar-os-border-color;
+      outline: 1px solid @sidebar-os-border-color;
       margin-bottom: 1px;
       &.active {
         > a {
@@ -97,7 +90,7 @@
       ul.nav-sidenav-secondary {
         > li {
           &:first-child {
-            border-top: 1px solid @navbar-os-sidebar-border-color;
+            border-top: 1px solid @sidebar-os-border-color;
           }
           a {
             color: @sidebar-os-color;
@@ -158,7 +151,7 @@
 @media (min-width: @screen-sm-min) {
   .sidebar-left {
     .navbar-sidebar {
-      border-right: 1px solid @navbar-os-sidebar-border-color;
+      border-right: 1px solid @sidebar-os-border-color;
       border-bottom: 0;
       width: @sidebar-left-width-sm;
       position: absolute;
@@ -169,13 +162,10 @@
       .sidebar-header {
         display: none;
       }
-      .navbar-collapse {
-        margin: 0;
-      }
       // Sidebar hover menu
       .hover-nav.dropdown-menu {
         background-color: @sidebar-os-bg;
-        border-color: @navbar-os-sidebar-border-color;
+        border-color: @sidebar-os-border-color;
         .box-shadow(2px 2px 2px rgba(0, 0, 0, 0.125));
         left: 100%;
         margin: -1px 0 0;
@@ -251,7 +241,7 @@
 @media (min-width: @screen-lg-min) {
   .sidebar-left {
     .navbar-sidebar {
-      // width: @sidebar-left-width-md;
+      // width: @sidebar-left-width-md; CLEANUP
       font-size: @font-size-base + 1;
       .nav-sidenav-secondary.hover-nav.dropdown-menu {
         font-size:  @font-size-base + 1;
@@ -275,12 +265,9 @@
       ul.nav-sidenav-primary> li {
         > a {
           text-align: left;
-          padding: (@sidebar-os-padding-y * 1.5);
+          padding: (@sidebar-os-padding-x);
           .fa {
-            margin-right: 10px;
-          }
-          span {
-            display: inline;
+            .primary-nav-icon-xl();
           }
         }
       }

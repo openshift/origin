@@ -6,6 +6,26 @@
   background: @navbar-os-bg-color;
   border-bottom: 0;
   border-top: 0;
+  .navbar-header {
+    .flex(@columns: 0 0 50px);
+    .flex-display(@display: flex);
+    height: 47px;
+    width: 50px;
+    text-decoration: none;
+    .navbar-home {
+      .align-items(@align: center);
+      .flex(@columns: 1 0 0%);
+      .flex-display(@display: flex);
+      .justify-content(@justify: center);
+      color: @sidebar-os-color;
+      font-weight: 300;
+      text-decoration: none;
+      .pficon {
+        color: #A8A9AA;
+        font-size: 20px;
+      }
+    }
+  }
   .nav {
     .nav-item-iconic {
       // utiltity links
@@ -23,20 +43,39 @@
     padding: 20px 0;
   }
 }
-.nav-pf-vertical-alt {
-  .list-group-item a {
-    font-size: @font-size-base;
-  }
-}
 
- @media (min-width: @screen-sm-min) {
+
+@media (min-width: @screen-sm-min) {
   .navbar-pf-alt {
-    border-bottom: 1px solid @navbar-os-sidebar-border-color;
+    border-bottom: 1px solid @sidebar-os-border-color;
     .navbar-header {
+      height: 60px;
+      width: 89px;
       .navbar-brand {
-        margin-left: 25px;
         margin-right: 75px;
         margin-top: 0;
+      }
+    }
+  }
+}
+@media (min-width: @screen-lg-min) {
+  .navbar-pf-alt {
+    .navbar-header {
+      width: 109px;
+    }
+  }
+}
+@media (min-width: @screen-xlg-min) {
+  .navbar-pf-alt {
+    .navbar-header {
+      width: 209px;
+      .navbar-home {
+        font-size: @font-size-base + 1;
+        margin-right: 75px;
+        margin-top: 0;
+        .pficon {
+          .primary-nav-icon-xl();
+        }
       }
     }
   }
@@ -48,9 +87,8 @@
   background-position: center left;
   background-size: contain;
   height: 20px;
-  width: 160px;
+  width: 200px;
 }
-
 
 
 

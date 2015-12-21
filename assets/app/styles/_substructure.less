@@ -37,6 +37,22 @@ html,body {
     background: @sidebar-os-bg;
     position:relative;
     transition:@sidebar-os-transition;
+    @media (max-width: @screen-xs-max) {
+      // Off-canvas nav
+      &.view-mobile-nav { display:none;
+        background: @sidebar-os-bg;
+        position:relative;
+        transition:@sidebar-os-transition;
+        width: @sidebar-left-mobile;
+        bottom: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        left: 0;
+        position: fixed;
+        top: 106px;
+        z-index: 1030;
+      }
+    }
   }
   .middle {
     background-color: @body-bg;
