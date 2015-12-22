@@ -20,40 +20,41 @@ import (
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 const (
-	SyncGroupsRecommendedName = "sync-groups"
+	SyncRecommendedName = "sync"
 
-	syncGroupsLong = `
+	syncLong = `
 Sync OpenShift Groups with records from an external provider.
 
 In order to sync OpenShift Group records with those from an external provider, determine which Groups you wish
 to sync and where their records live. For instance, all or some groups may be selected from the current Groups
 stored in OpenShift that have been synced previously, or similarly all or some groups may be selected from those 
 stored on an LDAP server. The path to a sync configuration file is required in order to describe how data is 
-requested from the external record store and migrated to OpenShift records. Default behavior is to sync all 
-groups from the LDAP server returned by the LDAP query templates.
+requested from the external record store and migrated to OpenShift records. Default behavior is to do a dry-run
+without changing OpenShift records. Passing '--confirm' will sync all groups from the LDAP server returned by the 
+LDAP query templates.
 `
-	syncGroupsExamples = `  # Sync all groups from an LDAP server
-  $ %[1]s --sync-config=/path/to/ldap-sync-config.yaml
+	syncExamples = `  # Sync all groups from an LDAP server
+  $ %[1]s --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Sync all groups except the ones from the blacklist file from an LDAP server
-  $ %[1]s --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml
+  $ %[1]s --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Sync specific groups specified in a whitelist file with an LDAP server 
-  $ %[1]s --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml
+  $ %[1]s --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml --confirm
 
   # Sync all OpenShift Groups that have been synced previously with an LDAP server
-  $ %[1]s --existing --sync-config=/path/to/ldap-sync-config.yaml
+  $ %[1]s --type=openshift --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Sync specific OpenShift Groups if they have been synced previously with an LDAP server
-  $ %[1]s groups/group1 groups/group2 groups/group3 --sync-config=/path/to/sync-config.yaml
+  $ %[1]s groups/group1 groups/group2 groups/group3 --sync-config=/path/to/sync-config.yaml --confirm
 `
 )
 
@@ -74,7 +75,7 @@ func ValidateSource(source GroupSyncSource) bool {
 	return knownSources.Has(string(source))
 }
 
-type SyncGroupsOptions struct {
+type SyncOptions struct {
 	// Source determines the source of the list of groups to sync
 	Source GroupSyncSource
 
@@ -100,15 +101,15 @@ type SyncGroupsOptions struct {
 	Out io.Writer
 }
 
-func NewSyncGroupsOptions() *SyncGroupsOptions {
-	return &SyncGroupsOptions{
+func NewSyncOptions() *SyncOptions {
+	return &SyncOptions{
 		Stderr:    os.Stderr,
 		Whitelist: []string{},
 	}
 }
 
-func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	options := NewSyncGroupsOptions()
+func NewCmdSync(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	options := NewSyncOptions()
 	options.Out = out
 
 	typeArg := string(GroupSyncSourceLDAP)
@@ -117,10 +118,10 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 	configFile := ""
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s [SOURCE SCOPE WHITELIST --whitelist=WHITELIST-FILE] --sync-config=CONFIG-SOURCE", name),
+		Use:     fmt.Sprintf("%s [--type=TYPE] [WHITELIST] [--whitelist=WHITELIST-FILE] --sync-config=CONFIG-FILE [--confirm]", name),
 		Short:   "Sync OpenShift groups with records from an external provider.",
-		Long:    syncGroupsLong,
-		Example: fmt.Sprintf(syncGroupsExamples, fullName),
+		Long:    syncLong,
+		Example: fmt.Sprintf(syncExamples, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(typeArg, whitelistFile, blacklistFile, configFile, args, f); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
@@ -148,8 +149,8 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 	// TODO: enable this once we're able to support string slice elements that have commas
 	// cmd.Flags().StringSliceVar(&options.Blacklist, "blacklist-group", options.Blacklist, "group to blacklist")
 	cmd.Flags().StringVar(&configFile, "sync-config", configFile, "path to the sync config")
-	cmd.Flags().StringVar(&typeArg, "type", typeArg, "type of group used to locate LDAP group UIDs: "+strings.Join(AllowedSourceTypes, ","))
-	cmd.Flags().BoolVar(&options.Confirm, "confirm", false, "if true, modify OpenShift groups; if false, display groups")
+	cmd.Flags().StringVar(&typeArg, "type", typeArg, "which groups white- and blacklist entries refer to: "+strings.Join(AllowedSourceTypes, ","))
+	cmd.Flags().BoolVar(&options.Confirm, "confirm", false, "if true, modify OpenShift groups; if false, display results of a dry-run")
 	cmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().Lookup("output").DefValue = "yaml"
 	cmd.Flags().Lookup("output").Value.Set("yaml")
@@ -157,7 +158,7 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 	return cmd
 }
 
-func (o *SyncGroupsOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile string, args []string, f *clientcmd.Factory) error {
+func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile string, args []string, f *clientcmd.Factory) error {
 	switch typeArg {
 	case string(GroupSyncSourceLDAP):
 		o.Source = GroupSyncSourceLDAP
@@ -292,7 +293,7 @@ func readLines(path string) ([]string, error) {
 	return trimmedLines, nil
 }
 
-func (o *SyncGroupsOptions) Validate() error {
+func (o *SyncOptions) Validate() error {
 	if !ValidateSource(o.Source) {
 		return fmt.Errorf("sync source must be one of the following: %v", strings.Join(AllowedSourceTypes, ","))
 	}
@@ -310,7 +311,7 @@ func (o *SyncGroupsOptions) Validate() error {
 
 // Run creates the GroupSyncer specified and runs it to sync groups
 // the arguments are only here because its the only way to get the printer we need
-func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
+func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 	clientConfig, err := ldaputil.NewLDAPClientConfig(o.Config.URL, o.Config.BindDN, o.Config.BindPassword, o.Config.CA, o.Config.Insecure)
 	if err != nil {
 		return fmt.Errorf("could not determine LDAP client configuration: %v", err)
@@ -441,20 +442,20 @@ func getGroupNameMapper(syncBuilder SyncBuilder, info MappedNameRestrictions) (i
 	return syncNameMapper, nil
 }
 
-// The following getters ensure that SyncGroupsOptions satisfies the name restriction interfaces
+// The following getters ensure that SyncOptions satisfies the name restriction interfaces
 
-func (o *SyncGroupsOptions) GetWhitelist() []string {
+func (o *SyncOptions) GetWhitelist() []string {
 	return o.Whitelist
 }
 
-func (o *SyncGroupsOptions) GetBlacklist() []string {
+func (o *SyncOptions) GetBlacklist() []string {
 	return o.Blacklist
 }
 
-func (o *SyncGroupsOptions) GetClient() osclient.GroupInterface {
+func (o *SyncOptions) GetClient() osclient.GroupInterface {
 	return o.GroupInterface
 }
 
-func (o *SyncGroupsOptions) GetGroupNameMappings() map[string]string {
+func (o *SyncOptions) GetGroupNameMappings() map[string]string {
 	return o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping
 }

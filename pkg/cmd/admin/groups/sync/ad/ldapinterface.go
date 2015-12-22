@@ -9,8 +9,8 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/groupdetector"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/groupdetector"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 )
 
 // NewADLDAPInterface builds a new ADLDAPInterface using a schema-appropriate config

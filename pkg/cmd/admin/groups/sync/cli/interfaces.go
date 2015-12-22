@@ -2,7 +2,7 @@ package cli
 
 import (
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 )
 
 // SyncBuilder describes an object that can build all the schema-specific parts of an LDAPGroupSyncer

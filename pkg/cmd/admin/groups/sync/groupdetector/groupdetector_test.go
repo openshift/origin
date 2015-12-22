@@ -8,7 +8,7 @@ import (
 	"gopkg.in/ldap.v2"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 )
 
 func TestGroupBasedDetectorExists(t *testing.T) {

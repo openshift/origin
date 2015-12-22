@@ -3,9 +3,9 @@ package cli
 import (
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/ad"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/ad"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 

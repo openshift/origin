@@ -7,7 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 )
 
 // GroupPruner runs a prune job on Groups

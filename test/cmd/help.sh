@@ -124,3 +124,10 @@ os::cmd::expect_failure 'openshift admin TYPO'
 os::cmd::expect_failure 'openshift cli TYPO'
 os::cmd::expect_failure 'oc policy TYPO'
 os::cmd::expect_failure 'oc secrets TYPO'
+
+# make sure that LDAP group sync and prune exist under both parents
+os::cmd::expect_success_and_text 'openshift ex sync-groups --help' 'external provider'
+os::cmd::expect_success_and_text 'openshift ex prune-groups --help' 'external provider'
+os::cmd::expect_success_and_text 'openshift admin groups sync --help' 'external provider'
+os::cmd::expect_success_and_text 'openshift admin groups prune --help' 'external provider'
+os::cmd::expect_success_and_text 'openshift admin prune groups --help' 'external provider'
