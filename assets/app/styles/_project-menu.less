@@ -6,7 +6,6 @@
   // background: @sidebar-os-bg;
   border-bottom: 1px solid @sidebar-os-border-color;
   border-top: 1px solid @sidebar-os-border-color;
-  margin: 0 -@navbar-padding-horizontal;
   .navbar-project-search {
     display: inline-block;
   }
@@ -95,22 +94,6 @@
       }
     }
   }
-  .project-mobile-action {
-    .project-action-btn {
-      color: @navbar-os-project-menu-color;
-      text-decoration: none;
-      .align-items(@align: center);
-      .flex(@columns: 1 0 0%);
-      .justify-content(@justify: center);
-      &:hover {
-        background-color: @sidebar-os-hover-bg;
-        color: @sidebar-os-active-color;
-      }
-      &:first-child {
-        border-right: 1px solid @sidebar-os-border-color;
-      }
-    }
-  }
 }
 
 @media (max-width: @screen-xs-max) {
@@ -122,28 +105,11 @@
     .bootstrap-select.btn-group .dropdown-menu {
       max-width: 100%;
     }
-    .project-mobile-action {
-      .flex(@columns: 0 0 50px);
-      a {
-        color: lighten(@navbar-os-project-menu-color, 20%);
-        cursor: pointer;
-        .flex-display(@display: flex);
-        font-size: 18px;
-        // padding: 4px 14px 5px; CLEANUP
-        &:hover, &:active, &:focus {
-          background-color: @sidebar-os-active-bg;
-          color: @navbar-os-project-menu-color;
-        }
-      }
-    }
   }
 }
 
 @media (max-width: @screen-xxs-max) {
   .navbar-project-menu {
-    .project-mobile-action {
-      .flex(@columns: 0 0 40px);
-    }
     .bootstrap-select.btn-group {
       .btn {
         font-size: 16px;
@@ -188,9 +154,6 @@
     .bootstrap-select .dropdown-toggle {
       height: 60px;
       min-width: 300px;
-    }
-    .project-mobile-action {
-      display: none;
     }
   }
 }

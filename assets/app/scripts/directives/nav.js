@@ -110,20 +110,6 @@ angular.module('openshiftConsole')
       templateUrl: 'views/_project-page.html'
     };
   })
-  .directive('navbarHome', function() {
-    return {
-      restrict: 'E',
-      transclude: true,
-      templateUrl: 'views/directives/header/_navbar-home.html'
-    };
-  })
-  .directive('navbarLogo', function() {
-    return {
-      restrict: 'E',
-      transclude: true,
-      templateUrl: 'views/directives/header/_navbar-logo.html'
-    };
-  })
   .directive('navbarUtility', function() {
     return {
       restrict: 'E',
