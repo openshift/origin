@@ -3,7 +3,7 @@
 // -----------------------------------------------
 
 .navbar-project-menu {
-  background: @sidebar-os-bg;
+  // background: @sidebar-os-bg;
   border-bottom: 1px solid @sidebar-os-border-color;
   border-top: 1px solid @sidebar-os-border-color;
   margin: 0 -@navbar-padding-horizontal;
@@ -54,7 +54,7 @@
     }
     .dropdown-toggle .caret {
       font-size: 16px;
-      right: 30px;
+      right: 20px;
     }
     .dropdown-menu {
       background-color: @navbar-os-project-menu-active-bg;
@@ -95,8 +95,8 @@
       }
     }
   }
-  .project-actions {
-    a.project-action-btn {
+  .project-mobile-action {
+    .project-action-btn {
       color: @navbar-os-project-menu-color;
       text-decoration: none;
       .align-items(@align: center);
@@ -112,13 +112,17 @@
     }
   }
 }
+
 @media (max-width: @screen-xs-max) {
   // Project nav at mobile widths
   .navbar-project-menu {
     .form-group {
       display: inline;
     }
-    .project-actions {
+    .bootstrap-select.btn-group .dropdown-menu {
+      max-width: 100%;
+    }
+    .project-mobile-action {
       .flex(@columns: 0 0 50px);
       a {
         color: lighten(@navbar-os-project-menu-color, 20%);
@@ -135,33 +139,57 @@
   }
 }
 
+@media (max-width: @screen-xxs-max) {
+  .navbar-project-menu {
+    .project-mobile-action {
+      .flex(@columns: 0 0 40px);
+    }
+    .bootstrap-select.btn-group {
+      .btn {
+        font-size: 16px;
+        padding-left: 10px;
+        padding-right: 20px;
+      }
+      .dropdown-toggle .caret {
+        font-size: 14px;
+        right: 10px;
+      }
+    }
+  }
+}
+
 @media (min-width: @screen-sm-min) {
   .navbar-project-menu {
-    background: @navbar-os-project-bg;
+    // background: @navbar-os-project-bg;
     border-bottom:0;
     border-top:0;
     float: left;
     margin: 0;
     padding-top: 0;
     max-width: 380px;
-    .bootstrap-select.btn-group .btn {
-      border-left:1px solid @navbar-os-project-menu-border;
-      border-right:1px solid @navbar-os-project-menu-border;
-      padding: 9px 40px 7px 30px;
-      &:before {
-        color: @gray-light;
-        content: 'Project';
-        font-size: @font-size-xsmall;
-        left: 30px;
-        position: absolute;
-        top: 8px;
+    .bootstrap-select.btn-group {
+      .btn {
+        border-left:1px solid @navbar-os-project-menu-border;
+        border-right:1px solid @navbar-os-project-menu-border;
+        padding: 9px 40px 7px 30px;
+        &:before {
+          color: @gray-light;
+          content: 'Project';
+          font-size: @font-size-xsmall;
+          left: 30px;
+          position: absolute;
+          top: 8px;
+        }
+      }
+      .dropdown-toggle .caret {
+        right: 30px;
       }
     }
     .bootstrap-select .dropdown-toggle {
       height: 60px;
       min-width: 300px;
     }
-    .project-actions {
+    .project-mobile-action {
       display: none;
     }
   }

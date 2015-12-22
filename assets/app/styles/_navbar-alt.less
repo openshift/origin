@@ -6,6 +6,15 @@
   background: @navbar-os-bg-color;
   border-bottom: 0;
   border-top: 0;
+  min-height: inherit;
+  .navbar-toggle {
+    float: none;
+    margin: 0;
+    padding: 9px 14px;
+    @media (max-width: @screen-xxs-max) {
+      padding-left: 8px;
+    }
+  }
   .navbar-header {
     .flex(@columns: 0 0 50px);
     .flex-display(@display: flex);
@@ -103,7 +112,7 @@
 //       .form-group {
 //         display: inline;
 //       }
-//       .project-actions {
+//       .project-mobile-action {
 //         margin-right: -10px;
 //         margin-left: 10px;
 //         a {
