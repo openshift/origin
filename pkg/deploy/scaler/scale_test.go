@@ -43,7 +43,7 @@ func TestScale(t *testing.T) {
 		scaler := NewDeploymentConfigScaler(oc, kc)
 
 		config := deploytest.OkDeploymentConfig(1)
-		config.Template.ControllerTemplate.Replicas = 1
+		config.Spec.Replicas = 1
 		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 
 		var wait *kubectl.RetryParams
@@ -59,7 +59,7 @@ func TestScale(t *testing.T) {
 			// scale replica count.
 			scale := action.(ktestclient.UpdateAction).GetObject().(*extensions.Scale)
 			scale.Status.Replicas = scale.Spec.Replicas
-			config.Template.ControllerTemplate.Replicas = scale.Spec.Replicas
+			config.Spec.Replicas = scale.Spec.Replicas
 			deployment.Spec.Replicas = scale.Spec.Replicas
 			deployment.Status.Replicas = deployment.Spec.Replicas
 			return true, scale, nil
@@ -76,7 +76,7 @@ func TestScale(t *testing.T) {
 			}
 		}
 
-		if e, a := config.Template.ControllerTemplate.Replicas, deployment.Spec.Replicas; e != a {
+		if e, a := config.Spec.Replicas, deployment.Spec.Replicas; e != a {
 			t.Errorf("expected rc/%s replicas %d, got %d", deployment.Name, e, a)
 		}
 	}

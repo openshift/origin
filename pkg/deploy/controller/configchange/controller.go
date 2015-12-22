@@ -38,7 +38,7 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 		return nil
 	}
 
-	if config.LatestVersion == 0 {
+	if config.Status.LatestVersion == 0 {
 		_, _, err := c.generateDeployment(config)
 		if err != nil {
 			if kerrors.IsConflict(err) {
@@ -70,8 +70,8 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 	}
 
 	// Detect template diffs, and return early if there aren't any changes.
-	if kapi.Semantic.DeepEqual(config.Template.ControllerTemplate.Template, deployedConfig.Template.ControllerTemplate.Template) {
-		glog.V(5).Infof("Ignoring DeploymentConfig change for %s (latestVersion=%d); same as Deployment %s", deployutil.LabelForDeploymentConfig(config), config.LatestVersion, deployutil.LabelForDeployment(deployment))
+	if kapi.Semantic.DeepEqual(config.Spec.Template, deployedConfig.Spec.Template) {
+		glog.V(5).Infof("Ignoring DeploymentConfig change for %s (latestVersion=%d); same as Deployment %s", deployutil.LabelForDeploymentConfig(config), config.Status.LatestVersion, deployutil.LabelForDeployment(deployment))
 		return nil
 	}
 
@@ -90,11 +90,11 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 func (c *DeploymentConfigChangeController) generateDeployment(config *deployapi.DeploymentConfig) (int, int, error) {
 	newConfig, err := c.changeStrategy.generateDeploymentConfig(config.Namespace, config.Name)
 	if err != nil {
-		return config.LatestVersion, 0, err
+		return config.Status.LatestVersion, 0, err
 	}
 
-	if newConfig.LatestVersion == config.LatestVersion {
-		newConfig.LatestVersion++
+	if newConfig.Status.LatestVersion == config.Status.LatestVersion {
+		newConfig.Status.LatestVersion++
 	}
 
 	// set the trigger details for the new deployment config
@@ -103,7 +103,7 @@ func (c *DeploymentConfigChangeController) generateDeployment(config *deployapi.
 		&deployapi.DeploymentCause{
 			Type: deployapi.DeploymentTriggerOnConfigChange,
 		})
-	newConfig.Details = &deployapi.DeploymentDetails{
+	newConfig.Status.Details = &deployapi.DeploymentDetails{
 		Causes: causes,
 	}
 
@@ -112,10 +112,10 @@ func (c *DeploymentConfigChangeController) generateDeployment(config *deployapi.
 	// current config will be captured in future events.
 	updatedConfig, err := c.changeStrategy.updateDeploymentConfig(config.Namespace, newConfig)
 	if err != nil {
-		return config.LatestVersion, newConfig.LatestVersion, err
+		return config.Status.LatestVersion, newConfig.Status.LatestVersion, err
 	}
 
-	return config.LatestVersion, updatedConfig.LatestVersion, nil
+	return config.Status.LatestVersion, updatedConfig.Status.LatestVersion, nil
 }
 
 // changeStrategy knows how to generate and update DeploymentConfigs.

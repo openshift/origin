@@ -204,7 +204,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 		return nil, err
 	}
 
-	container, err := c.makeContainer(&deploymentConfig.Template.Strategy)
+	container, err := c.makeContainer(&deploymentConfig.Spec.Strategy)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 					Args:      container.Args,
 					Image:     container.Image,
 					Env:       envVars,
-					Resources: deploymentConfig.Template.Strategy.Resources,
+					Resources: deploymentConfig.Spec.Strategy.Resources,
 				},
 			},
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
@@ -251,8 +251,8 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 	}
 
 	// MergeInfo will not overwrite values unless the flag OverwriteExistingDstKey is set.
-	util.MergeInto(pod.Labels, deploymentConfig.Template.Strategy.Labels, 0)
-	util.MergeInto(pod.Annotations, deploymentConfig.Template.Strategy.Annotations, 0)
+	util.MergeInto(pod.Labels, deploymentConfig.Spec.Strategy.Labels, 0)
+	util.MergeInto(pod.Annotations, deploymentConfig.Spec.Strategy.Annotations, 0)
 
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 

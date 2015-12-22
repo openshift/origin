@@ -109,8 +109,8 @@ items:
         containerNames:
         - sinatra-example-1
         from:
-          kind: ImageRepository
-          name: sinatra-example-1
+          kind: ImageStreamTag
+          name: sinatra-example-1:latest
         lastTriggeredImage: ""
       type: ImageChange
   status: {}

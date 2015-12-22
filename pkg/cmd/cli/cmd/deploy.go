@@ -213,7 +213,7 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer)
 		// Reject attempts to start a concurrent deployment.
 		status := deployutil.DeploymentStatusFor(deployment)
 		if status != deployapi.DeploymentStatusComplete && status != deployapi.DeploymentStatusFailed {
-			return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using the --cancel option.", config.LatestVersion, status)
+			return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using the --cancel option.", config.Status.LatestVersion, status)
 		}
 	} else {
 		if !kerrors.IsNotFound(err) {
@@ -221,10 +221,10 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer)
 		}
 	}
 
-	config.LatestVersion++
+	config.Status.LatestVersion++
 	_, err = o.osClient.DeploymentConfigs(config.Namespace).Update(config)
 	if err == nil {
-		fmt.Fprintf(out, "Started deployment #%d\n", config.LatestVersion)
+		fmt.Fprintf(out, "Started deployment #%d\n", config.Status.LatestVersion)
 	}
 	return err
 }
@@ -233,20 +233,20 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer)
 // the deployment to be retried. An error is returned if the deployment is not
 // currently in a failed state.
 func (o DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) error {
-	if config.LatestVersion == 0 {
+	if config.Status.LatestVersion == 0 {
 		return fmt.Errorf("no deployments found for %s/%s", config.Namespace, config.Name)
 	}
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			return fmt.Errorf("unable to find the latest deployment (#%d).\nYou can start a new deployment using the --latest option.", config.LatestVersion)
+			return fmt.Errorf("unable to find the latest deployment (#%d).\nYou can start a new deployment using the --latest option.", config.Status.LatestVersion)
 		}
 		return err
 	}
 
 	if status := deployutil.DeploymentStatusFor(deployment); status != deployapi.DeploymentStatusFailed {
-		message := fmt.Sprintf("#%d is %s; only failed deployments can be retried.\n", config.LatestVersion, status)
+		message := fmt.Sprintf("#%d is %s; only failed deployments can be retried.\n", config.Status.LatestVersion, status)
 		if status == deployapi.DeploymentStatusComplete {
 			message += "You can start a new deployment using the --latest option."
 		} else {
@@ -259,12 +259,12 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) 
 	// Delete the deployer pod as well as the deployment hooks pods, if any
 	pods, err := o.kubeClient.Pods(config.Namespace).List(deployutil.DeployerPodSelector(deploymentName), fields.Everything())
 	if err != nil {
-		return fmt.Errorf("failed to list deployer/hook pods for deployment #%d: %v", config.LatestVersion, err)
+		return fmt.Errorf("failed to list deployer/hook pods for deployment #%d: %v", config.Status.LatestVersion, err)
 	}
 	for _, pod := range pods.Items {
 		err := o.kubeClient.Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
 		if err != nil {
-			return fmt.Errorf("failed to delete deployer/hook pod %s for deployment #%d: %v", pod.Name, config.LatestVersion, err)
+			return fmt.Errorf("failed to delete deployer/hook pod %s for deployment #%d: %v", pod.Name, config.Status.LatestVersion, err)
 		}
 	}
 
@@ -274,7 +274,7 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) 
 	delete(deployment.Annotations, deployapi.DeploymentCancelledAnnotation)
 	_, err = o.kubeClient.ReplicationControllers(deployment.Namespace).Update(deployment)
 	if err == nil {
-		fmt.Fprintf(out, "Retried #%d\n", config.LatestVersion)
+		fmt.Fprintf(out, "Retried #%d\n", config.Status.LatestVersion)
 	}
 	return err
 }
@@ -307,7 +307,7 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer)
 			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledByUser
 			_, err := o.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
 			if err == nil {
-				fmt.Fprintf(out, "Cancelled deployment #%d\n", config.LatestVersion)
+				fmt.Fprintf(out, "Cancelled deployment #%d\n", config.Status.LatestVersion)
 				anyCancelled = true
 			} else {
 				fmt.Fprintf(out, "Couldn't cancel deployment #%d (status: %s): %v\n", deployutil.DeploymentVersionFor(&deployment), status, err)
@@ -332,7 +332,7 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer)
 // reenableTriggers enables all image triggers and then persists config.
 func (o DeployOptions) reenableTriggers(config *deployapi.DeploymentConfig, out io.Writer) error {
 	enabled := []string{}
-	for _, trigger := range config.Triggers {
+	for _, trigger := range config.Spec.Triggers {
 		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
 			trigger.ImageChangeParams.Automatic = true
 			enabled = append(enabled, trigger.ImageChangeParams.From.Name)

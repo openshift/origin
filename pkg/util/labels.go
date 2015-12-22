@@ -176,20 +176,20 @@ func AddObjectAnnotations(obj runtime.Object, annotations map[string]string) err
 
 // addDeploymentConfigNestedLabels adds new label(s) to a nested labels of a single DeploymentConfig object
 func addDeploymentConfigNestedLabels(obj *deployapi.DeploymentConfig, labels labels.Set) error {
-	if obj.Template.ControllerTemplate.Template.Labels == nil {
-		obj.Template.ControllerTemplate.Template.Labels = make(map[string]string)
+	if obj.Spec.Template.Labels == nil {
+		obj.Spec.Template.Labels = make(map[string]string)
 	}
-	if err := MergeInto(obj.Template.ControllerTemplate.Template.Labels, labels, OverwriteExistingDstKey); err != nil {
+	if err := MergeInto(obj.Spec.Template.Labels, labels, OverwriteExistingDstKey); err != nil {
 		return fmt.Errorf("unable to add labels to Template.DeploymentConfig.Template.ControllerTemplate.Template: %v", err)
 	}
 	return nil
 }
 
 func addDeploymentConfigNestedAnnotations(obj *deployapi.DeploymentConfig, annotations map[string]string) error {
-	if obj.Template.ControllerTemplate.Template.Annotations == nil {
-		obj.Template.ControllerTemplate.Template.Annotations = make(map[string]string)
+	if obj.Spec.Template.Annotations == nil {
+		obj.Spec.Template.Annotations = make(map[string]string)
 	}
-	if err := MergeInto(obj.Template.ControllerTemplate.Template.Annotations, annotations, OverwriteExistingDstKey); err != nil {
+	if err := MergeInto(obj.Spec.Template.Annotations, annotations, OverwriteExistingDstKey); err != nil {
 		return fmt.Errorf("unable to add annotations to Template.DeploymentConfig.Template.ControllerTemplate.Template: %v", err)
 	}
 	return nil

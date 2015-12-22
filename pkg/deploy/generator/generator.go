@@ -28,8 +28,10 @@ func (BasicDeploymentConfigController) Generate(genericParams map[string]interfa
 	case *kapi.ReplicationController:
 		obj = &deployapi.DeploymentConfig{
 			ObjectMeta: t.ObjectMeta,
-			Template: deployapi.DeploymentTemplate{
-				ControllerTemplate: t.Spec,
+			Spec: deployapi.DeploymentConfigSpec{
+				Selector: t.Spec.Selector,
+				Replicas: t.Spec.Replicas,
+				Template: t.Spec.Template,
 			},
 		}
 	default:

@@ -37,7 +37,7 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 	for _, config := range configs {
 		glog.V(4).Infof("Detecting changed images for DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
 
-		for _, trigger := range config.Triggers {
+		for _, trigger := range config.Spec.Triggers {
 			params := trigger.ImageChangeParams
 
 			// Only automatic image change triggers should fire
@@ -50,10 +50,15 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 				continue
 			}
 
+			_, tag, ok := imageapi.SplitImageStreamTag(params.From.Name)
+			if !ok {
+				return fmt.Errorf("invalid ImageStreamTag: %s", params.From.Name)
+			}
+
 			// Find the latest tag event for the trigger tag
-			latestEvent := imageapi.LatestTaggedImage(imageRepo, params.Tag)
+			latestEvent := imageapi.LatestTaggedImage(imageRepo, tag)
 			if latestEvent == nil {
-				glog.V(5).Infof("Couldn't find latest tag event for tag %s in ImageStream %s", params.Tag, labelForRepo(imageRepo))
+				glog.V(5).Infof("Couldn't find latest tag event for tag %s in ImageStream %s", tag, labelForRepo(imageRepo))
 				continue
 			}
 
@@ -95,19 +100,10 @@ func triggerMatchesImage(config *deployapi.DeploymentConfig, params *deployapi.D
 		if len(namespace) == 0 {
 			namespace = config.Namespace
 		}
-
-		return repo.Namespace == namespace && repo.Name == params.From.Name
+		name, _, ok := imageapi.SplitImageStreamTag(params.From.Name)
+		return repo.Namespace == namespace && repo.Name == name && ok
 	}
-
-	// This is an invalid state (as one of From.Name or RepositoryName is required), but
-	// account for it anyway.
-	if len(params.RepositoryName) == 0 {
-		return false
-	}
-
-	// If the repo's repository information isn't yet available, we can't assume it'll match.
-	return len(repo.Status.DockerImageRepository) > 0 &&
-		params.RepositoryName == repo.Status.DockerImageRepository
+	return false
 }
 
 // regenerate calls the generator to get a new config. If the newly generated
@@ -121,7 +117,7 @@ func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) e
 	}
 
 	// No update occurred
-	if config.LatestVersion == newConfig.LatestVersion {
+	if config.Status.LatestVersion == newConfig.Status.LatestVersion {
 		glog.V(5).Infof("No version difference for generated DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}

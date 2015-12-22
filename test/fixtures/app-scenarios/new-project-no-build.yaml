@@ -5,7 +5,6 @@ items:
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
     name: sinatra-example-2
-    namespace: example
   spec:
     output:
       to:
@@ -36,7 +35,6 @@ items:
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
     name: sinatra-example-2
-    namespace: example
   spec:
     replicas: 1
     selector:
@@ -73,8 +71,8 @@ items:
         containerNames:
         - sinatra-example-2
         from:
-          kind: ImageRepository
-          name: sinatra-example-2
+          kind: ImageStreamTag
+          name: sinatra-example-2:latest
         lastTriggeredImage: ""
       type: ImageChange
   status: {}
@@ -83,7 +81,6 @@ items:
   metadata:
     creationTimestamp: 2015-04-06T21:18:56Z
     name: sinatra-example-2
-    namespace: example
   spec: {}
   status:
     dockerImageRepository: ""
@@ -92,7 +89,6 @@ items:
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
     name: sinatra-example-2
-    namespace: example
   spec:
     portalIP: 172.30.17.48
     ports:

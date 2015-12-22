@@ -13,23 +13,44 @@ import (
 )
 
 func TestTriggerRoundTrip(t *testing.T) {
-	p := DeploymentTriggerImageChangeParams{
-		From: kapiv1.ObjectReference{
-			Kind: "DockerImage",
-			Name: "",
+	tests := []struct {
+		testName   string
+		kind, name string
+	}{
+		{
+			testName: "ImageStream -> ImageStreamTag",
+			kind:     "ImageStream",
+			name:     "golang",
+		},
+		{
+			testName: "ImageStreamTag -> ImageStreamTag",
+			kind:     "ImageStreamTag",
+			name:     "golang:latest",
+		},
+		{
+			testName: "ImageRepository -> ImageStreamTag",
+			kind:     "ImageRepository",
+			name:     "golang",
 		},
 	}
-	out := &newer.DeploymentTriggerImageChangeParams{}
-	if err := kapi.Scheme.Convert(&p, out); err == nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	p.From.Name = "a/b:test"
-	out = &newer.DeploymentTriggerImageChangeParams{}
-	if err := kapi.Scheme.Convert(&p, out); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if out.RepositoryName != "a/b" && out.Tag != "test" {
-		t.Errorf("unexpected output: %#v", out)
+
+	for _, test := range tests {
+		p := DeploymentTriggerImageChangeParams{
+			From: kapiv1.ObjectReference{
+				Kind: test.kind,
+				Name: test.name,
+			},
+		}
+		out := &newer.DeploymentTriggerImageChangeParams{}
+		if err := kapi.Scheme.Convert(&p, out); err != nil {
+			t.Errorf("%s: unexpected error: %v", test.testName, err)
+		}
+		if out.From.Name != "golang:latest" {
+			t.Errorf("%s: unexpected name: %s", test.testName, out.From.Name)
+		}
+		if out.From.Kind != "ImageStreamTag" {
+			t.Errorf("%s: unexpected kind: %s", test.testName, out.From.Kind)
+		}
 	}
 }
 

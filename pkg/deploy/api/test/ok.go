@@ -8,6 +8,24 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+func OkDeploymentConfigSpec() deployapi.DeploymentConfigSpec {
+	return deployapi.DeploymentConfigSpec{
+		Replicas: 1,
+		Selector: OkSelector(),
+		Strategy: OkStrategy(),
+		Template: OkPodTemplate(),
+		Triggers: []deployapi.DeploymentTriggerPolicy{
+			OkImageChangeTrigger(),
+		},
+	}
+}
+
+func OkDeploymentConfigStatus(version int) deployapi.DeploymentConfigStatus {
+	return deployapi.DeploymentConfigStatus{
+		LatestVersion: version,
+	}
+}
+
 func OkStrategy() deployapi.DeploymentStrategy {
 	return deployapi.DeploymentStrategy{
 		Type: deployapi.DeploymentStrategyTypeRecreate,
@@ -67,21 +85,6 @@ func OkRollingStrategy() deployapi.DeploymentStrategy {
 	}
 }
 
-func OkControllerTemplate() kapi.ReplicationControllerSpec {
-	return kapi.ReplicationControllerSpec{
-		Replicas: 1,
-		Selector: OkSelector(),
-		Template: OkPodTemplate(),
-	}
-}
-
-func OkDeploymentTemplate() deployapi.DeploymentTemplate {
-	return deployapi.DeploymentTemplate{
-		Strategy:           OkStrategy(),
-		ControllerTemplate: OkControllerTemplate(),
-	}
-}
-
 func OkSelector() map[string]string {
 	return map[string]string{"a": "b"}
 }
@@ -131,24 +134,9 @@ func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
 				"container1",
 			},
 			From: kapi.ObjectReference{
-				Kind: "ImageStream",
-				Name: "test-image-stream",
+				Kind: "ImageStreamTag",
+				Name: imageapi.JoinImageStreamTag("test-image-stream", imageapi.DefaultImageTag),
 			},
-			Tag: imageapi.DefaultImageTag,
-		},
-	}
-}
-
-func OkImageChangeTriggerDeprecated() deployapi.DeploymentTriggerPolicy {
-	return deployapi.DeploymentTriggerPolicy{
-		Type: deployapi.DeploymentTriggerOnImageChange,
-		ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
-			Automatic: true,
-			ContainerNames: []string{
-				"container1",
-			},
-			RepositoryName: "registry:8080/repo1:ref1",
-			Tag:            imageapi.DefaultImageTag,
 		},
 	}
 }
@@ -158,10 +146,7 @@ func OkDeploymentConfig(version int) *deployapi.DeploymentConfig {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "config",
 		},
-		LatestVersion: version,
-		Triggers: []deployapi.DeploymentTriggerPolicy{
-			OkImageChangeTrigger(),
-		},
-		Template: OkDeploymentTemplate(),
+		Spec:   OkDeploymentConfigSpec(),
+		Status: OkDeploymentConfigStatus(version),
 	}
 }
