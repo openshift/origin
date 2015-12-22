@@ -24,6 +24,8 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -313,6 +315,15 @@ type testDeployOpenshift struct {
 	server     *httptest.Server
 	stop       chan struct{}
 	lock       sync.Mutex
+}
+
+type fakeSubjectAccessReviewRegistry struct {
+}
+
+var _ subjectaccessreview.Registry = &fakeSubjectAccessReviewRegistry{}
+
+func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+	return &authorizationapi.SubjectAccessReviewResponse{Allowed: true}, nil
 }
 
 func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {

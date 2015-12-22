@@ -51,6 +51,35 @@ type controllerCount struct {
 	ConfigChangeControllers int
 }
 
+func mockBuild() *buildapi.Build {
+	return &buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			GenerateName: "mock-build",
+			Labels: map[string]string{
+				"label1": "value1",
+				"label2": "value2",
+			},
+		},
+		Spec: buildapi.BuildSpec{
+			Source: buildapi.BuildSource{
+				Git: &buildapi.GitBuildSource{
+					URI: "http://my.docker/build",
+				},
+				ContextDir: "context",
+			},
+			Strategy: buildapi.BuildStrategy{
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
+			},
+			Output: buildapi.BuildOutput{
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "namespace/builtimage",
+				},
+			},
+		},
+	}
+}
+
 // TestConcurrentBuildControllers tests the transition of a build from new to pending. Ensures that only a single New -> Pending
 // transition happens and that only a single pod is created during a set period of time.
 func TestConcurrentBuildControllers(t *testing.T) {
