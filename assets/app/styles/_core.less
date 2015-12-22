@@ -325,6 +325,13 @@ html, body {
   .build-trends-container {
     min-width: 600px;
     height: 235px;
+    // Set initial tooltip position to 0, 0 to avoid scrollbars flickering when
+    // c3 first shows the tooltip, but hasn't positioned it.
+    // (Doesn't change tooltip positioning.)
+    .c3-tooltip-container {
+      top: 0;
+      left: 0;
+    }
     // Disable the gray vertical line when hover over a bar.
     .c3-xgrid-focus {
       display: none;
