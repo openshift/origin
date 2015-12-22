@@ -6,6 +6,8 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
@@ -21,6 +23,7 @@ func init() {
 
 // RequireEtcd verifies if the etcd is running and accessible for testing
 func RequireEtcd() {
+	logEtcd()
 	if _, err := NewEtcdClient().Get("/", false, false); err != nil {
 		glog.Fatalf("unable to connect to etcd for testing: %v", err)
 	}
@@ -62,7 +65,24 @@ func GetEtcdURL() string {
 }
 
 func logEtcd() {
-	etcd.SetLogger(log.New(os.Stderr, "go-etcd", log.LstdFlags))
+	logDir := os.Getenv("LOG_DIR")
+	if len(logDir) == 0 {
+		logDir = "/tmp/origin/e2e/"
+	}
+	os.MkdirAll(logDir, os.FileMode(0700))
+
+	logFile := fmt.Sprintf("integration-etcd-%d", time.Now().Unix())
+	if testName := os.Getenv("TEST_NAME"); len(testName) > 0 {
+		logFile += "-" + testName
+	}
+	logFile += ".log"
+
+	fileWriter, err := os.Create(filepath.Join(logDir, logFile))
+	if err != nil {
+		panic(err)
+	}
+
+	etcd.SetLogger(log.New(fileWriter, "go-etcd", log.LstdFlags))
 }
 
 func withEtcdKey(f func(string)) {
