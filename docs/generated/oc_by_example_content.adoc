@@ -400,13 +400,16 @@ Display one or many resources
   $ oc get pods
 
   # List a single replication controller with specified ID in ps output format.
-  $ oc get replicationController 1234-56-7890-234234-456456
+  $ oc get rc redis
+
+  # List all pods and show more details about them.
+  $ oc get -o wide pods
 
   # List a single pod in JSON output format.
-  $ oc get -o json pod 1234-56-7890-234234-456456
+  $ oc get -o json pod redis-pod
 
   # Return only the status value of the specified pod.
-  $ oc get -o template pod 1234-56-7890-234234-456456 --template={{.currentState.status}}
+  $ oc get -o template pod redis-pod --template={{.currentState.status}}
 ----
 ====
 
