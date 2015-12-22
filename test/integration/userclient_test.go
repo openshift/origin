@@ -26,10 +26,6 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func init() {
-	testutil.RequireEtcd()
-}
-
 func makeIdentityInfo(providerName, providerUserName string, extra map[string]string) authapi.UserIdentityInfo {
 	info := authapi.NewDefaultUserIdentityInfo("idp", "bob")
 	if extra != nil {

@@ -38,7 +38,6 @@ const ServiceAccountWaitTimeout = 30 * time.Second
 // RequireServer verifies if the etcd, docker and the OpenShift server are
 // available and you can successfully connected to them.
 func RequireServer() {
-	util.RequireEtcd()
 	util.RequireDocker()
 	if _, err := util.GetClusterAdminClient(util.KubeConfigPath()); err != nil {
 		os.Exit(1)
@@ -105,7 +104,7 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 
 	nodeArgs.NodeName = "127.0.0.1"
 	nodeArgs.VolumeDir = path.Join(basedir, "volume")
-	masterArgs.EtcdDir = path.Join(basedir, "etcd")
+	masterArgs.EtcdDir = path.Join(basedir, "etcd", cmdutil.Env("TEST_NAME", "missing-test-name"))
 	masterArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", "master"))
 	nodeArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", nodeArgs.NodeName))
 	nodeArgs.MasterCertDir = masterArgs.ConfigDir.Value()
@@ -123,7 +122,6 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 
 	masterArgs.MasterAddr.Set(masterAddr)
 	listenArg.ListenAddr.Set(masterAddr)
-	masterArgs.EtcdAddr.Set(util.GetEtcdURL())
 
 	dnsAddr := os.Getenv("OS_DNS_ADDR")
 	if len(dnsAddr) == 0 {
@@ -156,6 +154,19 @@ func DefaultMasterOptions() (*configapi.MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	masterConfig.EtcdConfig.Address, err = FindAvailableBindAddress(14000, 14999)
+	if err != nil {
+		return nil, err
+	}
+	masterConfig.EtcdConfig.ServingInfo.BindAddress = masterConfig.EtcdConfig.Address
+	masterConfig.EtcdConfig.PeerAddress, err = FindAvailableBindAddress(15000, 15999)
+	if err != nil {
+		return nil, err
+	}
+	masterConfig.EtcdConfig.PeerServingInfo.BindAddress = masterConfig.EtcdConfig.PeerAddress
+
+	masterConfig.EtcdClientInfo.URLs = []string{"https://" + masterConfig.EtcdConfig.Address}
 
 	// force strict handling of service account secret references by default, so that all our examples and controllers will handle it.
 	masterConfig.ServiceAccountConfig.LimitSecretReferences = true
@@ -339,10 +350,6 @@ func StartConfiguredMasterAPI(masterConfig *configapi.MasterConfig) (string, err
 }
 
 func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, testOptions TestOptions) (string, error) {
-	if testOptions.DeleteAllEtcdKeys {
-		util.DeleteAllEtcdKeys()
-	}
-
 	if err := start.NewMaster(masterConfig, testOptions.EnableControllers, true).Start(); err != nil {
 		return "", err
 	}

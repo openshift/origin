@@ -16,21 +16,6 @@ cd "${OS_ROOT}"
 
 os::build::setup_env
 
-export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
-export ETCD_PORT=${ETCD_PORT:-44001}
-export ETCD_PEER_PORT=${ETCD_PEER_PORT:-47001}
-
-
-set +e
-
-if [ "$(which etcd 2>/dev/null)" == "" ]; then
-	if [[ ! -f ${OS_ROOT}/_tools/etcd/bin/etcd ]]; then
-		echo "etcd must be in your PATH or installed in _tools/etcd/bin/ with hack/install-etcd.sh"
-		exit 1
-	fi
-	export PATH="${OS_ROOT}/_tools/etcd/bin:$PATH"
-fi
-
 # Stop on any failures
 set -e
 
@@ -39,10 +24,6 @@ set -e
 function cleanup() {
 	out=$?
 	set +e
-	if [[ $out -ne 0 && -f "${etcdlog}" ]]; then
-		cat "${etcdlog}"
-	fi
-	kill "${ETCD_PID}" 1>&2 2>/dev/null
 	echo
 	echo "Complete"
 	exit $out
@@ -65,13 +46,10 @@ echo "Test ${package} -tags='${tags}' ..."
 echo
 
 # setup the test dirs
-export ETCD_DIR=${BASETMPDIR}/etcd
-etcdlog="${BASETMPDIR}/etcd.log"
 testdir="${OS_ROOT}/_output/testbin/${package}"
 name="$(basename ${testdir})"
 testexec="${testdir}/${name}.test"
 mkdir -p "${testdir}"
-mkdir -p "${ETCD_DIR}"
 
 # build the test executable (cgo must be disabled to have the symbol table available)
 pushd "${testdir}" &>/dev/null
@@ -80,21 +58,6 @@ CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
 popd &>/dev/null
 
 
-# Start etcd
-echo "Starting etcd..."
-etcd -name test -data-dir ${ETCD_DIR} \
- --listen-peer-urls http://${ETCD_HOST}:${ETCD_PEER_PORT} \
- --listen-client-urls http://${ETCD_HOST}:${ETCD_PORT} \
- --initial-advertise-peer-urls http://${ETCD_HOST}:${ETCD_PEER_PORT} \
- --initial-cluster test=http://${ETCD_HOST}:${ETCD_PEER_PORT} \
- --advertise-client-urls http://${ETCD_HOST}:${ETCD_PORT} \
- &>"${etcdlog}" &
-export ETCD_PID=$!
-
-wait_for_url "http://${ETCD_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160
-curl -X PUT	"http://${ETCD_HOST}:${ETCD_PORT}/v2/keys/_test"
-echo
-
 trap cleanup EXIT SIGINT
 
 function exectest() {
@@ -102,10 +65,10 @@ function exectest() {
 
 	result=1
 	if [ -n "${VERBOSE-}" ]; then
-		ETCD_PORT=${ETCD_PORT} "${testexec}" -test.v -test.run="^$1$" "${@:2}" 2>&1
+		TEST_NAME=$1 "${testexec}" -test.v -test.run="^$1$" "${@:2}" 2>&1
 		result=$?
 	else
-		out=$(ETCD_PORT=${ETCD_PORT} "${testexec}" -test.run="^$1$" "${@:2}" 2>&1)
+		out=$(TEST_NAME=$1 "${testexec}" -test.run="^$1$" "${@:2}" 2>&1)
 		result=$?
 	fi
 

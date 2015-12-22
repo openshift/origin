@@ -17,10 +17,6 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func init() {
-	testutil.RequireEtcd()
-}
-
 func TestImageStreamList(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {

@@ -13,10 +13,6 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func init() {
-	testutil.RequireEtcd()
-}
-
 // TestProjectIsNamespace verifies that a project is a namespace, and a namespace is a project
 func TestProjectIsNamespace(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()

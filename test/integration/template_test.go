@@ -14,9 +14,6 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func init() {
-	testutil.RequireEtcd()
-}
 func TestTemplate(t *testing.T) {
 	_, path, err := testserver.StartTestMaster()
 	if err != nil {

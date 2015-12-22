@@ -22,10 +22,6 @@ const (
 	tag        = "latest"
 )
 
-func init() {
-	testutil.RequireEtcd()
-}
-
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI(t *testing.T) {
 	projectAdminClient := setup(t)
 	imageStream := mockImageStream2(tag)

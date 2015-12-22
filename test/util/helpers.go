@@ -1,17 +1,26 @@
 package util
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/capabilities"
 	kyaml "k8s.io/kubernetes/pkg/util/yaml"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
+
+func init() {
+	capabilities.SetForTests(capabilities.Capabilities{
+		AllowPrivileged: true,
+	})
+	flag.Set("v", "5")
+}
 
 // CreateSampleImageStream creates an ImageStream in given namespace
 func CreateSampleImageStream(namespace string) *imageapi.ImageStream {

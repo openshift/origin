@@ -27,10 +27,6 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func init() {
-	testutil.RequireEtcd()
-}
-
 func signedManifest(name string) ([]byte, digest.Digest, error) {
 	key, err := libtrust.GenerateECP256PrivateKey()
 	if err != nil {

@@ -40,10 +40,6 @@ var (
 	BuildControllersWatchTimeout = 10 * time.Second
 )
 
-func init() {
-	testutil.RequireEtcd()
-}
-
 type controllerCount struct {
 	BuildControllers,
 	BuildPodControllers,
