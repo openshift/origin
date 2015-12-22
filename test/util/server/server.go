@@ -9,8 +9,10 @@ import (
 	"path"
 	"time"
 
+	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	utilrand "k8s.io/kubernetes/pkg/util/rand"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
@@ -21,6 +23,8 @@ import (
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -39,6 +43,37 @@ func RequireServer() {
 	if _, err := util.GetClusterAdminClient(util.KubeConfigPath()); err != nil {
 		os.Exit(1)
 	}
+}
+
+// StartTestEtcd starts up an insecure etcd for integration tests that just need a datastore
+func StartTestEtcd() (*etcdclient.Client, error) {
+	var err error
+	etcdConfig := &configapi.EtcdConfig{}
+	etcdConfig.Address, err = FindAvailableBindAddress(14000, 14999)
+	if err != nil {
+		return nil, err
+	}
+	etcdConfig.ServingInfo.BindAddress = etcdConfig.Address
+	etcdConfig.PeerAddress, err = FindAvailableBindAddress(15000, 15999)
+	if err != nil {
+		return nil, err
+	}
+	etcdConfig.PeerServingInfo.BindAddress = etcdConfig.PeerAddress
+	etcdConfig.StorageDir = util.GetBaseDir() + "/etcd-" + utilrand.String(7)
+
+	etcd.RunEtcd(etcdConfig)
+
+	clientInfo := configapi.EtcdConnectionInfo{URLs: []string{"http://" + etcdConfig.Address}}
+	client, err := etcd.EtcdClient(clientInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := etcd.TestEtcdClient(client); err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 // FindAvailableBindAddress returns a bind address on 127.0.0.1 with a free port in the low-high range.
