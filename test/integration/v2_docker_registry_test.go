@@ -74,7 +74,7 @@ func signedManifest(name string) ([]byte, digest.Digest, error) {
 }
 
 func TestV2RegistryGetTags(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)
 	}

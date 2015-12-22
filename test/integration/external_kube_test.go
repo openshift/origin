@@ -24,7 +24,7 @@ import (
 
 func TestExternalKube(t *testing.T) {
 	// Start one OpenShift master as "cluster1" to play the external kube server
-	cluster1MasterConfig, cluster1AdminConfigFile, err := testserver.StartTestMaster()
+	cluster1MasterConfig, cluster1AdminConfigFile, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

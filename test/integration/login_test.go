@@ -25,7 +25,7 @@ import (
 func TestLogin(t *testing.T) {
 	clientcmd.DefaultCluster = clientcmdapi.Cluster{Server: ""}
 
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
