@@ -22,7 +22,7 @@ import (
 )
 
 func TestUnprivilegedNewProject(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 }
 
 func TestUnprivilegedNewProjectDenied(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -48,7 +48,7 @@ func mockImageStream() *imageapi.ImageStream {
 }
 
 func TestImageStreamCreate(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestImageStreamCreate(t *testing.T) {
 }
 
 func TestImageStreamMappingCreate(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -244,33 +244,4 @@ func TestImageStreamMappingCreate(t *testing.T) {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
-}
-
-func TestImageStreamDelete(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	stream := mockImageStream()
-
-	if err := clusterAdminClient.ImageStreams(testutil.Namespace()).Delete(stream.Name); err == nil || !errors.IsNotFound(err) {
-		t.Fatalf("Unxpected non-error or type: %v", err)
-	}
-	actual, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(stream)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if err := clusterAdminClient.ImageStreams(testutil.Namespace()).Delete(actual.Name); err != nil {
-		t.Fatalf("Unxpected error: %v", err)
-	}
 }
