@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 
@@ -179,6 +180,23 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 
 	} else {
 		glog.V(2).Infof("Ignoring bootstrap policy file because cluster policy found")
+	}
+
+	// Wait until the policy cache has caught up before continuing
+	review := &authorizationapi.SubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{Verb: "get", Resource: "clusterpolicies"}}
+	err := wait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
+		result, err := c.PolicyClient().SubjectAccessReviews().Create(review)
+		if err == nil && result.Allowed {
+			return true, nil
+		}
+		if kapierror.IsForbidden(err) || (err == nil && !result.Allowed) {
+			glog.V(2).Infof("waiting for policy cache to initialize")
+			return false, nil
+		}
+		return false, err
+	})
+	if err != nil {
+		glog.Errorf("error waiting for policy cache to initialize: %v", err)
 	}
 }
 
