@@ -4171,6 +4171,14 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 	negativePriority := validSCC()
 	negativePriority.Priority = &invalidPriority
 
+	requiredCapAddAndDrop := validSCC()
+	requiredCapAddAndDrop.DefaultAddCapabilities = []api.Capability{"foo"}
+	requiredCapAddAndDrop.RequiredDropCapabilities = []api.Capability{"foo"}
+
+	allowedCapListedInRequiredDrop := validSCC()
+	allowedCapListedInRequiredDrop.RequiredDropCapabilities = []api.Capability{"foo"}
+	allowedCapListedInRequiredDrop.AllowedCapabilities = []api.Capability{"foo"}
+
 	errorCases := map[string]struct {
 		scc         *api.SecurityContextConstraints
 		errorType   fielderrors.ValidationErrorType
@@ -4246,6 +4254,16 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 			errorType:   errors.ValidationErrorTypeInvalid,
 			errorDetail: "priority cannot be negative",
 		},
+		"invalid required caps": {
+			scc:         requiredCapAddAndDrop,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "capability is listed in defaultAddCapabilities and requiredDropCapabilities",
+		},
+		"allowed cap listed in required drops": {
+			scc:         allowedCapListedInRequiredDrop,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "capability is listed in allowedCapabilities and requiredDropCapabilities",
+		},
 	}
 
 	for k, v := range errorCases {
@@ -4266,6 +4284,14 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 	runAsNonRoot := validSCC()
 	runAsNonRoot.RunAsUser.Type = api.RunAsUserStrategyMustRunAsNonRoot
 
+	caseInsensitiveAddDrop := validSCC()
+	caseInsensitiveAddDrop.DefaultAddCapabilities = []api.Capability{"foo"}
+	caseInsensitiveAddDrop.RequiredDropCapabilities = []api.Capability{"FOO"}
+
+	caseInsensitiveAllowedDrop := validSCC()
+	caseInsensitiveAllowedDrop.RequiredDropCapabilities = []api.Capability{"FOO"}
+	caseInsensitiveAllowedDrop.AllowedCapabilities = []api.Capability{"foo"}
+
 	successCases := map[string]struct {
 		scc *api.SecurityContextConstraints
 	}{
@@ -4277,6 +4303,12 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 		},
 		"run as non-root (user only)": {
 			scc: runAsNonRoot,
+		},
+		"comparison for add -> drop is case sensitive": {
+			scc: caseInsensitiveAddDrop,
+		},
+		"comparison for allowed -> drop is case sensitive": {
+			scc: caseInsensitiveAllowedDrop,
 		},
 	}
 

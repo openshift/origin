@@ -2143,6 +2143,22 @@ func deepCopy_v1beta3_SecurityContextConstraints(in SecurityContextConstraints, 
 	if err := deepCopy_v1beta3_SupplementalGroupsStrategyOptions(in.SupplementalGroups, &out.SupplementalGroups, c); err != nil {
 		return err
 	}
+	if in.DefaultAddCapabilities != nil {
+		out.DefaultAddCapabilities = make([]Capability, len(in.DefaultAddCapabilities))
+		for i := range in.DefaultAddCapabilities {
+			out.DefaultAddCapabilities[i] = in.DefaultAddCapabilities[i]
+		}
+	} else {
+		out.DefaultAddCapabilities = nil
+	}
+	if in.RequiredDropCapabilities != nil {
+		out.RequiredDropCapabilities = make([]Capability, len(in.RequiredDropCapabilities))
+		for i := range in.RequiredDropCapabilities {
+			out.RequiredDropCapabilities[i] = in.RequiredDropCapabilities[i]
+		}
+	} else {
+		out.RequiredDropCapabilities = nil
+	}
 	if in.Users != nil {
 		out.Users = make([]string, len(in.Users))
 		for i := range in.Users {
