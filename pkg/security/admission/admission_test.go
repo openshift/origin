@@ -27,6 +27,122 @@ func NewTestAdmission(store cache.Store, kclient client.Interface) kadmission.In
 	}
 }
 
+func TestAdmitCaps(t *testing.T) {
+	createPodWithCaps := func(caps *kapi.Capabilities) *kapi.Pod {
+		pod := goodPod()
+		pod.Spec.Containers[0].SecurityContext.Capabilities = caps
+		return pod
+	}
+
+	restricted := restrictiveSCC()
+
+	allowsFooInAllowed := restrictiveSCC()
+	allowsFooInAllowed.Name = "allowCapInAllowed"
+	allowsFooInAllowed.AllowedCapabilities = []kapi.Capability{"foo"}
+
+	allowsFooInRequired := restrictiveSCC()
+	allowsFooInRequired.Name = "allowCapInRequired"
+	allowsFooInRequired.DefaultAddCapabilities = []kapi.Capability{"foo"}
+
+	requiresFooToBeDropped := restrictiveSCC()
+	requiresFooToBeDropped.Name = "requireDrop"
+	requiresFooToBeDropped.RequiredDropCapabilities = []kapi.Capability{"foo"}
+
+	tc := map[string]struct {
+		pod                  *kapi.Pod
+		sccs                 []*kapi.SecurityContextConstraints
+		shouldPass           bool
+		expectedCapabilities *kapi.Capabilities
+	}{
+		// UC 1: if an SCC does not define allowed or required caps then a pod requesting a cap
+		// should be rejected.
+		"should reject cap add when not allowed or required": {
+			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
+			sccs:       []*kapi.SecurityContextConstraints{restricted},
+			shouldPass: false,
+		},
+		// UC 2: if an SCC allows a cap in the allowed field it should accept the pod request
+		// to add the cap.
+		"should accept cap add when in allowed": {
+			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
+			sccs:       []*kapi.SecurityContextConstraints{restricted, allowsFooInAllowed},
+			shouldPass: true,
+		},
+		// UC 3: if an SCC requires a cap then it should accept the pod request
+		// to add the cap.
+		"should accept cap add when in required": {
+			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
+			sccs:       []*kapi.SecurityContextConstraints{restricted, allowsFooInRequired},
+			shouldPass: true,
+		},
+		// UC 4: if an SCC requires a cap to be dropped then it should fail both
+		// in the verification of adds and verification of drops
+		"should reject cap add when requested cap is required to be dropped": {
+			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
+			sccs:       []*kapi.SecurityContextConstraints{restricted, requiresFooToBeDropped},
+			shouldPass: false,
+		},
+		// UC 5: if an SCC requires a cap to be dropped it should accept
+		// a manual request to drop the cap.
+		"should accept cap drop when cap is required to be dropped": {
+			pod:        createPodWithCaps(&kapi.Capabilities{Drop: []kapi.Capability{"foo"}}),
+			sccs:       []*kapi.SecurityContextConstraints{restricted, requiresFooToBeDropped},
+			shouldPass: true,
+		},
+		// UC 6: required add is defaulted
+		"required add is defaulted": {
+			pod:        goodPod(),
+			sccs:       []*kapi.SecurityContextConstraints{allowsFooInRequired},
+			shouldPass: true,
+			expectedCapabilities: &kapi.Capabilities{
+				Add: []kapi.Capability{"foo"},
+			},
+		},
+		// UC 7: required drop is defaulted
+		"required drop is defaulted": {
+			pod:        goodPod(),
+			sccs:       []*kapi.SecurityContextConstraints{requiresFooToBeDropped},
+			shouldPass: true,
+			expectedCapabilities: &kapi.Capabilities{
+				Drop: []kapi.Capability{"foo"},
+			},
+		},
+	}
+
+	for k, v := range tc {
+		testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, t)
+
+		if v.expectedCapabilities != nil {
+			if !reflect.DeepEqual(v.expectedCapabilities, v.pod.Spec.Containers[0].SecurityContext.Capabilities) {
+				t.Errorf("%s resulted in caps that were not expected - expected: %v, received: %v", k, v.expectedCapabilities, v.pod.Spec.Containers[0].SecurityContext.Capabilities)
+			}
+		}
+	}
+}
+
+func testSCCAdmit(testCaseName string, sccs []*kapi.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, t *testing.T) {
+	namespace := createNamespaceForTest()
+	serviceAccount := createSAForTest()
+	tc := testclient.NewSimpleFake(namespace, serviceAccount)
+	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
+
+	for _, scc := range sccs {
+		store.Add(scc)
+	}
+
+	plugin := NewTestAdmission(store, tc)
+
+	attrs := kadmission.NewAttributesRecord(pod, "Pod", "namespace", "", string(kapi.ResourcePods), "", kadmission.Create, &user.DefaultInfo{})
+	err := plugin.Admit(attrs)
+
+	if shouldPass && err != nil {
+		t.Errorf("%s expected no errors but received %v", testCaseName, err)
+	}
+	if !shouldPass && err == nil {
+		t.Errorf("%s expected errors but received none", testCaseName)
+	}
+}
+
 func TestAdmit(t *testing.T) {
 	// create the annotated namespace and add it to the fake client
 	namespace := createNamespaceForTest()
