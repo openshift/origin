@@ -157,7 +157,8 @@ type defaultRegistryPinger struct {
 
 func (drp *defaultRegistryPinger) ping(registry string) error {
 	healthCheck := func(proto, registry string) error {
-		healthResponse, err := drp.client.Get(fmt.Sprintf("%s://%s/", proto, registry))
+		// TODO: `/healthz` route is deprecated by `/`; remove it in future versions
+		healthResponse, err := drp.client.Get(fmt.Sprintf("%s://%s/healthz", proto, registry))
 		if err != nil {
 			return err
 		}
