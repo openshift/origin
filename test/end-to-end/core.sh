@@ -155,19 +155,19 @@ oc whoami
 
 echo "[INFO] Running a CLI command in a container using the service account"
 oc policy add-role-to-user view -z default
-out=$(oc run cli-with-token --attach --env=POD_NAMESPACE=test --image=openshift/origin:${TAG} --restart=Never -- cli status --loglevel=4 2>&1)
-echo "${out}"
-[ "$(echo $out | grep 'Using in-cluster configuration')" ]
-[ "$(echo $out | grep 'In project test')" ]
+oc run cli-with-token --attach --env=POD_NAMESPACE=test --image=openshift/origin:${TAG} --restart=Never -- cli status --loglevel=4 > ${LOG_DIR}/cli-with-token.log 2>&1
+cat ${LOG_DIR}/cli-with-token.log
+[ "$(cat ${LOG_DIR}/cli-with-token.log | grep 'Using in-cluster configuration')" ]
+[ "$(cat ${LOG_DIR}/cli-with-token.log | grep 'In project test')" ]
 oc delete pod cli-with-token
-out=$(oc run cli-with-token-2 --attach --env=POD_NAMESPACE=test --image=openshift/origin:${TAG} --restart=Never -- cli whoami --loglevel=4 2>&1)
-echo "${out}"
-[ "$(echo $out | grep 'system:serviceaccount:test:default')" ]
+oc run cli-with-token-2 --attach --env=POD_NAMESPACE=test --image=openshift/origin:${TAG} --restart=Never -- cli whoami --loglevel=4 > ${LOG_DIR}/cli-with-token2.log 2>&1
+cat ${LOG_DIR}/cli-with-token2.log
+[ "$(cat ${LOG_DIR}/cli-with-token2.log | grep 'system:serviceaccount:test:default')" ]
 oc delete pod cli-with-token-2
-out=$(oc run kubectl-with-token --attach --env=POD_NAMESPACE=test --image=openshift/origin:${TAG} --restart=Never --command -- kubectl get pods --loglevel=4 2>&1)
-echo "${out}"
-[ "$(echo $out | grep 'Using in-cluster configuration')" ]
-[ "$(echo $out | grep 'kubectl-with-token')" ]
+oc run kubectl-with-token --attach --env=POD_NAMESPACE=test --image=openshift/origin:${TAG} --restart=Never --command -- kubectl get pods --loglevel=4 > ${LOG_DIR}/kubectl-with-token.log 2>&1
+cat ${LOG_DIR}/kubectl-with-token.log
+[ "$(cat ${LOG_DIR}/kubectl-with-token.log | grep 'Using in-cluster configuration')" ]
+[ "$(cat ${LOG_DIR}/kubectl-with-token.log | grep 'kubectl-with-token')" ]
 
 echo "[INFO] Streaming the logs from a deployment twice..."
 oc create -f test/fixtures/failing-dc.yaml
