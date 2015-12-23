@@ -47,6 +47,7 @@ angular.module('openshiftConsole')
 
         // Chart configuration, see http://c3js.org/reference.html
         $scope.chartID = _.uniqueId('build-trends-chart-');
+        var animationDuration = _.constant(350);
         var config = {
           bindto: '#' + $scope.chartID,
           padding: {
@@ -109,6 +110,9 @@ angular.module('openshiftConsole')
               }
             }
           },
+          transition: {
+            duration: animationDuration()
+          },
           data: {
             // https://www.patternfly.org/styles/color-palette/
             colors: {
@@ -163,7 +167,7 @@ angular.module('openshiftConsole')
           return buildNumber;
         };
 
-        var getDuration = function(build) {
+        var getBuildDuration = function(build) {
           var startTimestamp = getStartTimestsamp(build);
           var endTimestamp = build.status.completionTimestamp;
           if (!startTimestamp || !endTimestamp) {
@@ -207,7 +211,7 @@ angular.module('openshiftConsole')
               return;
             }
 
-            var duration = getDuration(build);
+            var duration = getBuildDuration(build);
 
             // Track the sum and count to calculate the average duration.
             sum += duration;
@@ -267,12 +271,16 @@ angular.module('openshiftConsole')
             chart = c3.generate(config);
           } else {
             data.unload = unload;
+            // Call flush to work around a c3.js bug where the y-axis label
+            // overlaps the tick values when the data changes.
+            data.done = function() {
+              // done() is called before the chart animation finishes.
+              // Wait until the animation is complete to call flush().
+              setTimeout(function() {
+                chart.flush();
+              }, animationDuration() + 25);
+            };
             chart.load(data);
-            setTimeout(function() {
-              // Call flush to work around a c3.js bug where the y-axis label
-              // overlaps the tick values when the data changes.
-              chart.flush();
-            }, 10);
           }
 
           // Update average line.
