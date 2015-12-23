@@ -26,25 +26,30 @@ func tab(original string) string {
 const (
 	getLong = `Display one or many resources
 
-Possible resources include builds, buildConfigs, services, pods, etc.`
+Possible resources include builds, buildConfigs, services, pods, etc.
+Some resources may omit advanced details that you can see with '-o wide'.
+If you want an even more detailed view, use '%[1]s describe'.`
 
 	getExample = `  # List all pods in ps output format.
   $ %[1]s get pods
 
   # List a single replication controller with specified ID in ps output format.
-  $ %[1]s get replicationController 1234-56-7890-234234-456456
+  $ %[1]s get rc redis
+
+  # List all pods and show more details about them.
+  $ %[1]s get -o wide pods
 
   # List a single pod in JSON output format.
-  $ %[1]s get -o json pod 1234-56-7890-234234-456456
+  $ %[1]s get -o json pod redis-pod
 
   # Return only the status value of the specified pod.
-  $ %[1]s get -o template pod 1234-56-7890-234234-456456 --template={{.currentState.status}}`
+  $ %[1]s get -o template pod redis-pod --template={{.currentState.status}}`
 )
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
 func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdGet(f.Factory, out)
-	cmd.Long = getLong
+	cmd.Long = fmt.Sprintf(getLong, fullName)
 	cmd.Example = fmt.Sprintf(getExample, fullName)
 	cmd.SuggestFor = []string{"list"}
 	return cmd
