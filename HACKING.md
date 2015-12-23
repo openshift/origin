@@ -73,6 +73,13 @@ or an individual package and all packages nested under it:
 
     $ hack/test-go.sh pkg/build/...
 
+or multiple packages:
+
+    $ hack/test-go.sh pkg/{build,deploy}
+
+The prefix "github.com/openshift/origin/" is automatically added for
+convenience, when needed.
+
 To run only a certain regex of tests in a package, use:
 
     $ hack/test-go.sh pkg/build -test.run=SynchronizeBuildRunning
@@ -83,7 +90,7 @@ To get verbose output add `-v` to the end:
 
 To run all tests with verbose output:
 
-    $ hack/test-go.sh "" -v
+    $ hack/test-go.sh -v
 
 To enable running the kubernetes unit tests:
 
