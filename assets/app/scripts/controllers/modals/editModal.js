@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('EditModalController', function ($scope, $filter, $modalInstance, DataService) {
+  .controller('EditModalController', function ($scope, $filter, $uibModalInstance, DataService) {
     // Use angular.copy to avoid $$hashKey properties inserted by ng-repeat.
     var resource = angular.copy($scope.resource);
 
@@ -71,7 +71,7 @@ angular.module('openshiftConsole')
       }
 
       if (_.isEqual(resource, updatedResource)) {
-        $modalInstance.close('no-changes');
+        $uibModalInstance.close('no-changes');
         return;
       }
 
@@ -87,7 +87,7 @@ angular.module('openshiftConsole')
       }).then(
         // success
         function() {
-          $modalInstance.close('save');
+          $uibModalInstance.close('save');
         },
         // failure
         function(result) {
@@ -98,6 +98,6 @@ angular.module('openshiftConsole')
     };
 
     $scope.cancel = function() {
-      $modalInstance.dismiss('cancel');
+      $uibModalInstance.dismiss('cancel');
     };
   });
