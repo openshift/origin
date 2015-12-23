@@ -17,7 +17,7 @@ import (
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	storage, _ := NewREST(etcdStorage, testclient.NewSimpleFake())
+	storage, _, _ := NewREST(etcdStorage, testclient.NewSimpleFake())
 	return storage, server
 }
 

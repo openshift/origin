@@ -211,6 +211,11 @@ func (o DeployOptions) RunDeploy() error {
 // deploy launches a new deployment unless there's already a deployment
 // process in progress for config.
 func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer) error {
+	// TODO: This implies that deploymentconfig.status.latestVersion is always synced. Currently,
+	// that's the case because clients (oc, trigger controllers) are updating the status directly.
+	// Clients should be acting either on spec or on annotations and status updates should be a
+	// responsibility of the main controller. We need to start by unplugging this assumption from
+	// our client tools.
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
 	if err == nil {
@@ -225,13 +230,17 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer)
 		}
 	}
 
-	config.Status.LatestVersion++
-	_, err = o.osClient.DeploymentConfigs(config.Namespace).Update(config)
-	if err == nil {
-		fmt.Fprintf(out, "Started deployment #%d\n", config.Status.LatestVersion)
-		fmt.Fprintf(out, "Use '%s logs -f dc/%s' to track its progress.\n", o.baseCommandName, config.Name)
+	if config.Annotations == nil {
+		config.Annotations = make(map[string]string)
 	}
-	return err
+	config.Annotations[deployapi.DeploymentInstantiatedAnnotation] = deployapi.DeploymentInstantiatedAnnotationValue
+	dc, err := o.osClient.DeploymentConfigs(config.Namespace).Update(config)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "Started deployment #%d\n", dc.Status.LatestVersion)
+	fmt.Fprintf(out, "Use '%s logs -f dc/%s' to track its progress.\n", o.baseCommandName, dc.Name)
+	return nil
 }
 
 // retry resets the status of the latest deployment to New, which will cause
@@ -241,6 +250,11 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) 
 	if config.Status.LatestVersion == 0 {
 		return fmt.Errorf("no deployments found for %s/%s", config.Namespace, config.Name)
 	}
+	// TODO: This implies that deploymentconfig.status.latestVersion is always synced. Currently,
+	// that's the case because clients (oc, trigger controllers) are updating the status directly.
+	// Clients should be acting either on spec or on annotations and status updates should be a
+	// responsibility of the main controller. We need to start by unplugging this assumption from
+	// our client tools.
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
 	if err != nil {

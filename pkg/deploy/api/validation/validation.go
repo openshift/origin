@@ -19,36 +19,45 @@ import (
 
 func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateDeploymentConfigSpec(config.Spec)...)
+	allErrs = append(allErrs, ValidateDeploymentConfigStatus(config.Status)...)
+	return allErrs
+}
 
-	// TODO: Refactor to validate spec and status separately
+func ValidateDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec) field.ErrorList {
+	allErrs := field.ErrorList{}
 	specPath := field.NewPath("spec")
-	for i := range config.Spec.Triggers {
-		allErrs = append(allErrs, validateTrigger(&config.Spec.Triggers[i], specPath.Child("triggers").Index(i))...)
+	for i := range spec.Triggers {
+		allErrs = append(allErrs, validateTrigger(&spec.Triggers[i], specPath.Child("triggers").Index(i))...)
 	}
 
-	var spec *kapi.PodSpec
-	if config.Spec.Template != nil {
-		spec = &config.Spec.Template.Spec
+	var podSpec *kapi.PodSpec
+	if spec.Template != nil {
+		podSpec = &spec.Template.Spec
 	}
-	allErrs = append(allErrs, validateDeploymentStrategy(&config.Spec.Strategy, spec, specPath.Child("strategy"))...)
-	if config.Spec.Template == nil {
+	allErrs = append(allErrs, validateDeploymentStrategy(&spec.Strategy, podSpec, specPath.Child("strategy"))...)
+	if spec.Template == nil {
 		allErrs = append(allErrs, field.Required(specPath.Child("template"), ""))
 	} else {
-		allErrs = append(allErrs, validation.ValidatePodTemplateSpec(config.Spec.Template, specPath.Child("template"))...)
+		allErrs = append(allErrs, validation.ValidatePodTemplateSpec(spec.Template, specPath.Child("template"))...)
 	}
-	if config.Spec.Replicas < 0 {
-		allErrs = append(allErrs, field.Invalid(specPath.Child("replicas"), config.Spec.Replicas, "replicas cannot be negative"))
+	if spec.Replicas < 0 {
+		allErrs = append(allErrs, field.Invalid(specPath.Child("replicas"), spec.Replicas, "replicas cannot be negative"))
 	}
-	if len(config.Spec.Selector) == 0 {
-		allErrs = append(allErrs, field.Invalid(specPath.Child("selector"), config.Spec.Selector, "selector cannot be empty"))
+	if len(spec.Selector) == 0 {
+		allErrs = append(allErrs, field.Invalid(specPath.Child("selector"), spec.Selector, "selector cannot be empty"))
 	}
+	return allErrs
+}
 
+func ValidateDeploymentConfigStatus(status deployapi.DeploymentConfigStatus) field.ErrorList {
+	allErrs := field.ErrorList{}
 	statusPath := field.NewPath("status")
-	if config.Status.LatestVersion < 0 {
-		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), config.Status.LatestVersion, "latestVersion cannot be negative"))
+	if status.LatestVersion < 0 {
+		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), status.LatestVersion, "latestVersion cannot be negative"))
 	}
-	if config.Status.ObservedGeneration < int64(0) {
-		allErrs = append(allErrs, field.Invalid(statusPath.Child("observedGeneration"), config.Status.ObservedGeneration, "observedGeneration cannot be negative"))
+	if status.ObservedGeneration < int64(0) {
+		allErrs = append(allErrs, field.Invalid(statusPath.Child("observedGeneration"), status.ObservedGeneration, "observedGeneration cannot be negative"))
 	}
 	return allErrs
 }
@@ -56,6 +65,13 @@ func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) field.ErrorLis
 func ValidateDeploymentConfigUpdate(newConfig *deployapi.DeploymentConfig, oldConfig *deployapi.DeploymentConfig) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&newConfig.ObjectMeta, &oldConfig.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateDeploymentConfig(newConfig)...)
+	allErrs = append(allErrs, ValidateDeploymentConfigStatusUpdate(newConfig, oldConfig)...)
+	return allErrs
+}
+
+func ValidateDeploymentConfigStatusUpdate(newConfig *deployapi.DeploymentConfig, oldConfig *deployapi.DeploymentConfig) field.ErrorList {
+	allErrs := validation.ValidateObjectMetaUpdate(&newConfig.ObjectMeta, &oldConfig.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateDeploymentConfigStatus(newConfig.Status)...)
 	statusPath := field.NewPath("status")
 	if newConfig.Status.LatestVersion < oldConfig.Status.LatestVersion {
 		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), newConfig.Status.LatestVersion, "latestVersion cannot be decremented"))

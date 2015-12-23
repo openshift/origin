@@ -374,7 +374,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	buildConfigStorage := buildconfigetcd.NewREST(c.EtcdHelper)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
-	deployConfigStorage, deployConfigScaleStorage := deployconfigetcd.NewREST(c.EtcdHelper, c.DeploymentConfigScaleClient())
+	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage := deployconfigetcd.NewREST(c.EtcdHelper, c.DeploymentConfigScaleClient())
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
 	routeAllocator := c.RouteAllocator()
@@ -500,6 +500,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 		"deploymentConfigs":         deployConfigStorage,
 		"deploymentConfigs/scale":   deployConfigScaleStorage,
+		"deploymentConfigs/status":  deployConfigStatusStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec()),
 		"deploymentConfigs/log":     deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),

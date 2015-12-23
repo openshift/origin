@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/api/validation"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // strategy implements behavior for DeploymentConfig objects
@@ -41,28 +42,50 @@ func (strategy) AllowUnconditionalUpdate() bool {
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(obj runtime.Object) {
 	dc := obj.(*api.DeploymentConfig)
-	// TODO: need to ensure status.latestVersion is not set out of order
 	dc.Generation = 1
+	dc.Status = api.DeploymentConfigStatus{}
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (strategy) PrepareForUpdate(obj, old runtime.Object) {
-	oldDc := obj.(*api.DeploymentConfig)
-	newDc := old.(*api.DeploymentConfig)
-	// TODO: need to ensure status.latestVersion is not set out of order
+	newDc := obj.(*api.DeploymentConfig)
+	oldDc := old.(*api.DeploymentConfig)
 
-	// Any changes to the spec increment the generation number, any changes to the
-	// status should reflect the generation number of the corresponding object. We push
-	// the burden of managing the status onto the clients because we can't (in general)
-	// know here what version of spec the writer of the status has seen. It may seem like
-	// we can at first -- since obj contains spec -- but in the future we will probably make
-	// status its own object, and even if we don't, writes may be the result of a
-	// read-update-write loop, so the contents of spec may not actually be the spec that
-	// the controller has *seen*.
-	//
-	// TODO: Any changes to a part of the object that represents desired state (labels,
-	// annotations etc) should also increment the generation.
-	if !reflect.DeepEqual(oldDc.Spec, newDc.Spec) {
+	newVersion := newDc.Status.LatestVersion
+	oldVersion := oldDc.Status.LatestVersion
+
+	// Check for imagechange controller change
+	isImageControllerChange := deployutil.IsImageChangeControllerChange(*newDc, *oldDc)
+
+	// Persist status
+	newStatus := newDc.Status
+	newDc.Status = oldDc.Status
+
+	// If this update comes from the imagechange controller, tolerate status detail updates.
+	// TODO: Make the config change controller detect this change and update latestVersion.
+	// Then the main controller should detect there is a change coming from the image change
+	// controller and update status details accordingly.
+	if isImageControllerChange {
+		newDc.Status.Details = newStatus.Details
+	}
+
+	// oc deploy --latest from new clients
+	if newVersion == oldVersion && deployutil.IsInstantiated(newDc) {
+		// TODO: Have an endpoint for this and avoid hacking it here.
+		newDc.Status.LatestVersion = oldVersion + 1
+		delete(newDc.Annotations, api.DeploymentInstantiatedAnnotation)
+	}
+
+	// oc deploy --latest from old clients
+	// TODO: Remove once we drop support for older clients
+	if newVersion == oldVersion+1 {
+		newDc.Status.LatestVersion = newVersion
+	}
+
+	// Any changes to the spec or labels, increment the generation number, any changes
+	// to the status should reflect the generation number of the corresponding object
+	// (should be handled by the controller).
+	if !reflect.DeepEqual(oldDc.Spec, newDc.Spec) || newDc.Status.LatestVersion != oldDc.Status.LatestVersion {
 		newDc.Generation = oldDc.Generation + 1
 	}
 }
@@ -81,9 +104,29 @@ func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.
 	return validation.ValidateDeploymentConfigUpdate(obj.(*api.DeploymentConfig), old.(*api.DeploymentConfig))
 }
 
-// CheckGracefulDelete allows a build to be gracefully deleted.
+// CheckGracefulDelete allows a deployment config to be gracefully deleted.
 func (strategy) CheckGracefulDelete(obj runtime.Object, options *kapi.DeleteOptions) bool {
 	return false
+}
+
+// statusStrategy implements behavior for DeploymentConfig status updates.
+type statusStrategy struct {
+	strategy
+}
+
+var StatusStrategy = statusStrategy{Strategy}
+
+// PrepareForUpdate clears fields that are not allowed to be set by end users on update of status.
+func (statusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newDc := obj.(*api.DeploymentConfig)
+	oldDc := old.(*api.DeploymentConfig)
+	newDc.Spec = oldDc.Spec
+	newDc.Labels = oldDc.Labels
+}
+
+// ValidateUpdate is the default update validation for an end user updating status.
+func (statusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+	return validation.ValidateDeploymentConfigStatusUpdate(obj.(*api.DeploymentConfig), old.(*api.DeploymentConfig))
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
@@ -94,7 +137,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
 			deploymentConfig, ok := obj.(*api.DeploymentConfig)
 			if !ok {
-				return nil, nil, fmt.Errorf("not a DeploymentConfig")
+				return nil, nil, fmt.Errorf("not a deployment config")
 			}
 			return labels.Set(deploymentConfig.ObjectMeta.Labels), api.DeploymentConfigToSelectableFields(deploymentConfig), nil
 		},
