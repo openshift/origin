@@ -89,6 +89,8 @@ registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
 wait_for_url_timed "http://${DOCKER_REGISTRY}/" "[INFO] Docker registry says: " $((2*TIME_MIN))
+# ensure original healthz route works as well
+curl -f "http://${DOCKER_REGISTRY}/healthz"
 
 [ "$(dig @${API_HOST} "docker-registry.default.local." A)" ]
 
