@@ -58,7 +58,14 @@
             "securityContext": {
               "capabilities": {},
               "privileged": false
-            }
+            },
+            "readinessProbe": {
+              "exec": {
+                "command": ["ldapsearch", "-x", "-b", "dc=example,dc=com"]
+              },
+              "initialDelaySeconds": 5,
+              "timeoutSeconds": 1
+            }            
           }
         ],
         "restartPolicy": "Always",
