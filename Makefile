@@ -44,7 +44,7 @@ all build:
 #   make check
 #   make check WHAT=pkg/build GOFLAGS=-v
 check:
-	TEST_KUBE=1 hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
+	TEST_KUBE=1 JUNIT=1 hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
 .PHONY: check
 
 # Verify code is properly organized.

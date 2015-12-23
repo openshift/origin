@@ -612,6 +612,10 @@
 			"ImportPath": "github.com/jonboulle/clockwork",
 			"Rev": "3f831b65b61282ba6bece21b91beea2edc4c887a"
 		},
+ 		{
+			"ImportPath": "github.com/jstemmer/go-junit-report",
+			"Rev": "c7bb460f297b44059c52554e382d41e7b27fd1ca"
+		},
 		{
 			"ImportPath": "github.com/jteeuwen/go-bindata",
 			"Comment": "v3.0.7-70-gbfe36d3",
