@@ -9,8 +9,10 @@ import (
 	"path"
 	"time"
 
+	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	utilrand "k8s.io/kubernetes/pkg/util/rand"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
@@ -21,6 +23,8 @@ import (
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -34,11 +38,41 @@ const ServiceAccountWaitTimeout = 30 * time.Second
 // RequireServer verifies if the etcd, docker and the OpenShift server are
 // available and you can successfully connected to them.
 func RequireServer() {
-	util.RequireEtcd()
 	util.RequireDocker()
 	if _, err := util.GetClusterAdminClient(util.KubeConfigPath()); err != nil {
 		os.Exit(1)
 	}
+}
+
+// StartTestEtcd starts up an insecure etcd for integration tests that just need a datastore
+func StartTestEtcd() (*etcdclient.Client, error) {
+	var err error
+	etcdConfig := &configapi.EtcdConfig{}
+	etcdConfig.Address, err = FindAvailableBindAddress(14000, 14999)
+	if err != nil {
+		return nil, err
+	}
+	etcdConfig.ServingInfo.BindAddress = etcdConfig.Address
+	etcdConfig.PeerAddress, err = FindAvailableBindAddress(15000, 15999)
+	if err != nil {
+		return nil, err
+	}
+	etcdConfig.PeerServingInfo.BindAddress = etcdConfig.PeerAddress
+	etcdConfig.StorageDir = util.GetBaseDir() + "/etcd-" + utilrand.String(7)
+
+	etcd.RunEtcd(etcdConfig)
+
+	clientInfo := configapi.EtcdConnectionInfo{URLs: []string{"http://" + etcdConfig.Address}}
+	client, err := etcd.EtcdClient(clientInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := etcd.TestEtcdClient(client); err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 // FindAvailableBindAddress returns a bind address on 127.0.0.1 with a free port in the low-high range.
@@ -70,7 +104,7 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 
 	nodeArgs.NodeName = "127.0.0.1"
 	nodeArgs.VolumeDir = path.Join(basedir, "volume")
-	masterArgs.EtcdDir = path.Join(basedir, "etcd")
+	masterArgs.EtcdDir = path.Join(basedir, "etcd", cmdutil.Env("TEST_NAME", "missing-test-name"))
 	masterArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", "master"))
 	nodeArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", nodeArgs.NodeName))
 	nodeArgs.MasterCertDir = masterArgs.ConfigDir.Value()
@@ -88,7 +122,6 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 
 	masterArgs.MasterAddr.Set(masterAddr)
 	listenArg.ListenAddr.Set(masterAddr)
-	masterArgs.EtcdAddr.Set(util.GetEtcdURL())
 
 	dnsAddr := os.Getenv("OS_DNS_ADDR")
 	if len(dnsAddr) == 0 {
@@ -121,6 +154,19 @@ func DefaultMasterOptions() (*configapi.MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	masterConfig.EtcdConfig.Address, err = FindAvailableBindAddress(14000, 14999)
+	if err != nil {
+		return nil, err
+	}
+	masterConfig.EtcdConfig.ServingInfo.BindAddress = masterConfig.EtcdConfig.Address
+	masterConfig.EtcdConfig.PeerAddress, err = FindAvailableBindAddress(15000, 15999)
+	if err != nil {
+		return nil, err
+	}
+	masterConfig.EtcdConfig.PeerServingInfo.BindAddress = masterConfig.EtcdConfig.PeerAddress
+
+	masterConfig.EtcdClientInfo.URLs = []string{"https://" + masterConfig.EtcdConfig.Address}
 
 	// force strict handling of service account secret references by default, so that all our examples and controllers will handle it.
 	masterConfig.ServiceAccountConfig.LimitSecretReferences = true
@@ -304,10 +350,6 @@ func StartConfiguredMasterAPI(masterConfig *configapi.MasterConfig) (string, err
 }
 
 func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, testOptions TestOptions) (string, error) {
-	if testOptions.DeleteAllEtcdKeys {
-		util.DeleteAllEtcdKeys()
-	}
-
 	if err := start.NewMaster(masterConfig, testOptions.EnableControllers, true).Start(); err != nil {
 		return "", err
 	}

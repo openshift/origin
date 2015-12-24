@@ -9,12 +9,12 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/util/leaderlease"
-	"github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestLeaderLeaseAcquire(t *testing.T) {
-	util.DeleteAllEtcdKeys()
-	client := util.NewEtcdClient()
+	client, err := testserver.StartTestEtcd()
+	checkErr(t, err)
 
 	key := "/random/key"
 	held := make(chan struct{})
@@ -47,8 +47,9 @@ func TestLeaderLeaseAcquire(t *testing.T) {
 }
 
 func TestLeaderLeaseWait(t *testing.T) {
-	util.DeleteAllEtcdKeys()
-	client := util.NewEtcdClient()
+	client, err := testserver.StartTestEtcd()
+	checkErr(t, err)
+
 	key := "/random/key"
 
 	if _, err := client.Create(key, "other", 1); err != nil {
@@ -85,8 +86,9 @@ func TestLeaderLeaseWait(t *testing.T) {
 }
 
 func TestLeaderLeaseSwapWhileWaiting(t *testing.T) {
-	util.DeleteAllEtcdKeys()
-	client := util.NewEtcdClient()
+	client, err := testserver.StartTestEtcd()
+	checkErr(t, err)
+
 	key := "/random/key"
 
 	if _, err := client.Create(key, "holder", 10); err != nil {
@@ -113,8 +115,9 @@ func TestLeaderLeaseSwapWhileWaiting(t *testing.T) {
 }
 
 func TestLeaderLeaseReacquire(t *testing.T) {
-	util.DeleteAllEtcdKeys()
-	client := util.NewEtcdClient()
+	client, err := testserver.StartTestEtcd()
+	checkErr(t, err)
+
 	key := "/random/key"
 
 	if _, err := client.Create(key, "holder", 1); err != nil {

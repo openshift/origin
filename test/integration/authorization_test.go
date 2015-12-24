@@ -25,7 +25,7 @@ import (
 )
 
 func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -95,7 +95,7 @@ func waitForProject(t *testing.T, client client.Interface, projectName string, d
 }
 
 func TestAuthorizationResolution(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -278,7 +278,7 @@ func (test localResourceAccessReviewTest) run(t *testing.T) {
 }
 
 func TestAuthorizationResourceAccessReview(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -468,7 +468,7 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 }
 
 func TestAuthorizationSubjectAccessReview(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -752,7 +752,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 // TestOldLocalSubjectAccessReviewEndpoint checks to make sure that the old subject access review endpoint still functions properly
 // this is needed to support old docker registry images
 func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -878,7 +878,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 // TestOldLocalResourceAccessReviewEndpoint checks to make sure that the old resource access review endpoint still functions properly
 // this is needed to support old who-can client
 func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

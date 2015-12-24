@@ -24,12 +24,8 @@ import (
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	registrystorage "github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
-	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
-
-func init() {
-	testutil.RequireEtcd()
-}
 
 type testUser struct {
 	UserName string
@@ -58,9 +54,10 @@ func (u *testUser) ConvertFromAccessToken(*api.OAuthAccessToken) (interface{}, e
 }
 
 func TestOAuthStorage(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
+	etcdClient, err := testserver.StartTestEtcd()
+	checkErr(t, err)
+
 	interfaces, _ := latest.InterfacesFor(latest.Version)
-	etcdClient := testutil.NewEtcdClient()
 	etcdHelper := etcdstorage.NewEtcdStorage(etcdClient, interfaces.Codec, etcdtest.PathPrefix())
 
 	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)

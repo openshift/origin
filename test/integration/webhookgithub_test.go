@@ -21,10 +21,6 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func init() {
-	testutil.RequireEtcd()
-}
-
 func TestWebhookGitHubPushWithImage(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
