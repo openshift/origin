@@ -8,8 +8,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"reflect"
-	"sort"
 	"strings"
 	"time"
 
@@ -57,7 +55,7 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 		return nil, fmt.Errorf("error setting up initial cluster: %v", err)
 	}
 
-	pt, err := transport.NewTimeoutTransport(cfg.peerTLSInfo, peerDialTimeout(cfg.ElectionMs), rafthttp.ConnReadTimeout, rafthttp.ConnWriteTimeout)
+	pt, err := transport.NewTimeoutTransport(cfg.peerTLSInfo, time.Second, rafthttp.ConnReadTimeout, rafthttp.ConnWriteTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -210,16 +208,6 @@ func (cfg *config) resolveUrls() error {
 
 func (cfg config) electionTicks() int { return int(cfg.ElectionMs / cfg.TickMs) }
 
-// private in etcdmain
-
-func peerDialTimeout(electionMs uint) time.Duration {
-	// 1s for queue wait and system delay
-	// + one RTT, which is smaller than 1/5 election timeout
-	return time.Second + time.Duration(electionMs)*time.Millisecond/5
-}
-
-// made private in netutil
-
 // resolveTCPAddrs is a convenience wrapper for net.ResolveTCPAddr.
 // resolveTCPAddrs return a new set of url.URLs, in which all DNS hostnames
 // are resolved.
@@ -251,32 +239,10 @@ func resolveTCPAddrs(urls [][]url.URL) ([][]url.URL, error) {
 				glog.Errorf("could not resolve host %s", u.Host)
 				return nil, err
 			}
-			glog.Infof("resolving %s to %s", u.Host, tcpAddr.String())
+			glog.V(4).Infof("resolving %s to %s", u.Host, tcpAddr.String())
 			nus[i].Host = tcpAddr.String()
 		}
 		newurls = append(newurls, nus)
 	}
 	return newurls, nil
-}
-
-// urlsEqual checks equality of url.URLS between two arrays.
-// This check pass even if an URL is in hostname and opposite is in IP address.
-func urlsEqual(a []url.URL, b []url.URL) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	urls, err := resolveTCPAddrs([][]url.URL{a, b})
-	if err != nil {
-		return false
-	}
-	a, b = urls[0], urls[1]
-	sort.Sort(types.URLs(a))
-	sort.Sort(types.URLs(b))
-	for i := range a {
-		if !reflect.DeepEqual(a[i], b[i]) {
-			return false
-		}
-	}
-
-	return true
 }
