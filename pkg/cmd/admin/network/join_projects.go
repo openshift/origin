@@ -10,11 +10,12 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn/ovs"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 const (
+	ovsPluginName = "redhat/openshift-ovs-multitenant"
+
 	JoinProjectsNetworkCommandName = "join-projects"
 
 	joinProjectsNetworkLong = `
@@ -42,7 +43,7 @@ func NewCmdJoinProjectsNetwork(commandName, fullName string, f *clientcmd.Factor
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Join project network",
-		Long:    fmt.Sprintf(joinProjectsNetworkLong, ovs.MultiTenantPluginName()),
+		Long:    fmt.Sprintf(joinProjectsNetworkLong, ovsPluginName),
 		Example: fmt.Sprintf(joinProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := opts.Complete(f, c, args, out); err != nil {
