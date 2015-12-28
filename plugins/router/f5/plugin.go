@@ -198,10 +198,10 @@ func (p *F5Plugin) deletePoolIfEmpty(poolname string) error {
 	}
 
 	if poolExists {
-		members, err := p.F5Client.GetPoolMembers(poolname)
-		if err != nil {
-			glog.V(4).Infof("F5Client.GetPoolMembers failed: %v", err)
-			return err
+		members, getErr := p.F5Client.GetPoolMembers(poolname)
+		if getErr != nil {
+			glog.V(4).Infof("F5Client.GetPoolMembers failed: %v", getErr)
+			return getErr
 		}
 
 		// We only delete the pool if the pool is empty, which it may not be

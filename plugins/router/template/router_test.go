@@ -168,7 +168,7 @@ func TestDeleteEndpoints(t *testing.T) {
 		} else {
 			router.DeleteEndpoints(suKey)
 
-			su, ok := router.FindServiceUnit(suKey)
+			su, ok = router.FindServiceUnit(suKey)
 
 			if !ok {
 				t.Errorf("Unable to find created service unit %s", suKey)
@@ -265,7 +265,7 @@ func TestRouteKey(t *testing.T) {
 		}
 
 		routeKey := router.routeKey(route)
-		_, ok := su.ServiceAliasConfigs[routeKey]
+		_, ok = su.ServiceAliasConfigs[routeKey]
 		if !ok {
 			t.Errorf("Unable to find created service alias config for route %s", routeKey)
 		}
@@ -314,9 +314,9 @@ func TestAddRoute(t *testing.T) {
 		t.Errorf("Unable to find created service unit %s", suKey)
 	} else {
 		routeKey := router.routeKey(route)
-		saCfg, ok := su.ServiceAliasConfigs[routeKey]
+		saCfg, saOK := su.ServiceAliasConfigs[routeKey]
 
-		if !ok {
+		if !saOK {
 			t.Errorf("Unable to find created serivce alias config for route %s", routeKey)
 		} else {
 			if saCfg.Host != route.Spec.Host || saCfg.Path != route.Spec.Path || !compareTLS(route, saCfg, t) {
@@ -402,10 +402,10 @@ func TestRemoveRoute(t *testing.T) {
 
 	router.RemoveRoute(suKey, route)
 	su, _ = router.FindServiceUnit(suKey)
-	if _, ok := su.ServiceAliasConfigs[routeKey]; ok {
+	if _, ok = su.ServiceAliasConfigs[routeKey]; ok {
 		t.Errorf("Route %v was expected to be deleted but was still found", route)
 	}
-	if _, ok := su.ServiceAliasConfigs[router.routeKey(route2)]; !ok {
+	if _, ok = su.ServiceAliasConfigs[router.routeKey(route2)]; !ok {
 		t.Errorf("Route %v was expected to exist but was not found", route2)
 	}
 }
@@ -695,9 +695,9 @@ func TestAddRouteEdgeTerminationInsecurePolicy(t *testing.T) {
 				tc.Name, suKey)
 		} else {
 			routeKey := router.routeKey(route)
-			saCfg, ok := su.ServiceAliasConfigs[routeKey]
+			saCfg, saOK := su.ServiceAliasConfigs[routeKey]
 
-			if !ok {
+			if !saOK {
 				t.Errorf("InsecureEdgeTerminationPolicy test %s: unable to find created service alias config for route %s",
 					tc.Name, routeKey)
 			} else {
