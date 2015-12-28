@@ -119,7 +119,7 @@ func ensureKubeE2EPrivilegedSA() {
 			}
 		}
 		priv.Groups = groups
-		if _, err := c.SecurityContextConstraints().Update(priv); err != nil {
+		if _, err = c.SecurityContextConstraints().Update(priv); err != nil {
 			FatalErr(err)
 		}
 	}

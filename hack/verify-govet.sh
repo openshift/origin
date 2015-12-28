@@ -68,7 +68,7 @@ ALL_DIRS='./cmd
 ./test'
 
 # Whitelist some directories using a `grep`
-SHADOW_TEST_DIRS=$(echo "${ALL_DIRS}" | grep -E "\./test")
+SHADOW_TEST_DIRS=$(echo "${ALL_DIRS}" | grep -E "\./(test)")
 for test_dir in $SHADOW_TEST_DIRS
 do
   go tool vet -shadow -shadowstrict $test_dir

@@ -97,9 +97,9 @@ func GetClientForServiceAccount(adminClient *kclient.Client, clientConfig kclien
 	token := ""
 	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
 		selector := fields.OneTermEqualSelector(kclient.SecretType, string(kapi.SecretTypeServiceAccountToken))
-		secrets, err := adminClient.Secrets(namespace).List(labels.Everything(), selector)
-		if err != nil {
-			return false, err
+		secrets, listErr := adminClient.Secrets(namespace).List(labels.Everything(), selector)
+		if listErr != nil {
+			return false, listErr
 		}
 		for _, secret := range secrets.Items {
 			if serviceaccounts.IsValidServiceAccountToken(sa, &secret) {

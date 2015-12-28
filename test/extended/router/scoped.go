@@ -61,10 +61,10 @@ var _ = g.Describe("Router", func() {
 
 			for _, host := range []string{"second.example.com", "third.example.com"} {
 				g.By(fmt.Sprintf("checking that %s does not match a route", host))
-				req, err := requestViaReverseProxy("GET", routerURL, host)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				resp, err := http.DefaultClient.Do(req)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				req, requestErr := requestViaReverseProxy("GET", routerURL, host)
+				o.Expect(requestErr).NotTo(o.HaveOccurred())
+				resp, responseErr := http.DefaultClient.Do(req)
+				o.Expect(responseErr).NotTo(o.HaveOccurred())
 				resp.Body.Close()
 				if resp.StatusCode != http.StatusServiceUnavailable {
 					e2e.Failf("should have had a 503 status code for %s", host)
@@ -119,10 +119,10 @@ var _ = g.Describe("Router", func() {
 			for _, host := range []string{"route-1", "route-2"} {
 				host = fmt.Sprintf(pattern, host, ns)
 				g.By(fmt.Sprintf("checking that %s does not match a route", host))
-				req, err := requestViaReverseProxy("GET", routerURL, host)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				resp, err := http.DefaultClient.Do(req)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				req, requestErr = requestViaReverseProxy("GET", routerURL, host)
+				o.Expect(requestErr).NotTo(o.HaveOccurred())
+				resp, responseErr = http.DefaultClient.Do(req)
+				o.Expect(responseErr).NotTo(o.HaveOccurred())
 				resp.Body.Close()
 				if resp.StatusCode != http.StatusOK {
 					e2e.Failf("should have had a 200 status code for %s", host)

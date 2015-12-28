@@ -295,7 +295,7 @@ func (c *CLI) OutputToFile(filename string) (string, error) {
 // This function will set the default output to Ginkgo writer.
 func (c *CLI) Execute() error {
 	out, err := c.Output()
-	if _, err := io.Copy(g.GinkgoWriter, strings.NewReader(out+"\n")); err != nil {
+	if _, err = io.Copy(g.GinkgoWriter, strings.NewReader(out+"\n")); err != nil {
 		fmt.Printf("ERROR: Unable to copy the output to ginkgo writer")
 	}
 	os.Stdout.Sync()
