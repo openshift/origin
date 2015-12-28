@@ -137,9 +137,9 @@ func main() {
 	if *outputDest == "-" {
 		out = os.Stdout
 	} else {
-		f, err := os.Create(*outputDest)
-		if err != nil {
-			log.Fatalf("Couldn't open %q: %q", *outputDest, err)
+		f, createErr := os.Create(*outputDest)
+		if createErr != nil {
+			log.Fatalf("Couldn't open %q: %q", *outputDest, createErr)
 		}
 		defer f.Close()
 		out = f

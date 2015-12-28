@@ -24,7 +24,7 @@ func main() {
 		log.Fatalf("ERROR: Invalid JSON file  '%v': %v\n", os.Args[1], err)
 	}
 
-	if output, err := json.MarshalIndent(dat, "", "  "); err != nil {
+	if output, outputErr := json.MarshalIndent(dat, "", "  "); outputErr != nil {
 		log.Fatalf("ERROR: Unable to indent JSON file: %v\n", os.Args[1])
 	} else {
 		os.Stdout.Write(append(output, '\n'))
