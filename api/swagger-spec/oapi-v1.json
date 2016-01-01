@@ -14743,6 +14743,10 @@
      "httpsProxy": {
       "type": "string",
       "description": "specifies a https proxy to be used during git clone operations"
+     },
+     "disableSSLCheck": {
+      "type": "boolean",
+      "description": "whether to verify the SSL certificate when fetching or pushing over HTTPS"
      }
     }
    },

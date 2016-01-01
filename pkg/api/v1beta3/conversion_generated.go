@@ -1659,6 +1659,7 @@ func autoconvert_api_GitBuildSource_To_v1beta3_GitBuildSource(in *buildapi.GitBu
 	out.Ref = in.Ref
 	out.HTTPProxy = in.HTTPProxy
 	out.HTTPSProxy = in.HTTPSProxy
+	out.DisableSSLCheck = in.DisableSSLCheck
 	return nil
 }
 
@@ -2374,6 +2375,7 @@ func autoconvert_v1beta3_GitBuildSource_To_api_GitBuildSource(in *apiv1beta3.Git
 	out.Ref = in.Ref
 	out.HTTPProxy = in.HTTPProxy
 	out.HTTPSProxy = in.HTTPSProxy
+	out.DisableSSLCheck = in.DisableSSLCheck
 	return nil
 }
 

@@ -246,6 +246,9 @@ type GitBuildSource struct {
 
 	// HTTPSProxy is a proxy used to reach the git repository over https
 	HTTPSProxy string
+
+	// DisableSSLCheck controls whether to verify the SSL certificate over HTTPS
+	DisableSSLCheck bool
 }
 
 // SourceControlUser defines the identity of a user of source control

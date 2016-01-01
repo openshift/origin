@@ -219,6 +219,8 @@ type GitBuildSource struct {
 
 	// HTTPSProxy is a proxy used to reach the git repository over https
 	HTTPSProxy string `json:"httpsProxy,omitempty" description:"specifies a https proxy to be used during git clone operations"`
+
+	DisableSSLCheck bool `json:"disableSSLCheck,omitempty" description:"whether to verify the SSL certificate when fetching or pushing over HTTPS"`
 }
 
 // SourceControlUser defines the identity of a user of source control
