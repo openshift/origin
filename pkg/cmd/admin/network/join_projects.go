@@ -14,8 +14,6 @@ import (
 )
 
 const (
-	ovsPluginName = "redhat/openshift-ovs-multitenant"
-
 	JoinProjectsNetworkCommandName = "join-projects"
 
 	joinProjectsNetworkLong = `

@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	adminVNID = uint(0)
+	globalVNID = uint(0)
 
 	MakeGlobalProjectsNetworkCommandName = "make-projects-global"
 
@@ -71,7 +71,7 @@ func (m *MakeGlobalOptions) Run() error {
 
 	errList := []error{}
 	for _, project := range projects {
-		err = m.Options.CreateOrUpdateNetNamespace(project.ObjectMeta.Name, adminVNID)
+		err = m.Options.CreateOrUpdateNetNamespace(project.ObjectMeta.Name, globalVNID)
 		if err != nil {
 			errList = append(errList, fmt.Errorf("Removing network isolation for project '%s' failed, error: %v", project.ObjectMeta.Name, err))
 		}
