@@ -311,6 +311,22 @@
         }
       }
     }
+    .hpa-details {
+      .small;
+      .text-muted;
+      .text-center;
+      // Show text closer to the pod donut. (It has no bottom margin, but the donut chart does not
+      // fill the entire SVG height.)
+      margin-top: -5px;
+      margin-bottom: 7px;
+      .hpa-warning {
+        cursor: help;
+        margin-left: 1px;
+        // middle, baseline, etc. are not quite right. Use a length value to align the icon exactly
+        // where we want.
+        vertical-align: -1px;
+      }
+    }
   }
 }
 

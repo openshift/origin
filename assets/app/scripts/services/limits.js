@@ -46,9 +46,9 @@ angular.module("openshiftConsole")
       return !projectOverrideAnnotation || projectOverrideAnnotation === 'true';
     };
 
-    var isRequestCalculated = function(computeResource, project) {
+    var getRequestToLimitPercent = function(computeResource, project) {
       if (!limitRequestOverridesEnabled(project)) {
-        return false;
+        return null;
       }
 
       switch (computeResource) {
@@ -57,14 +57,18 @@ angular.module("openshiftConsole")
       case "memory":
         return LIMIT_REQUEST_OVERRIDES.memoryRequestToLimitPercent;
       default:
-        return false;
+        return null;
       }
+    };
+
+    var isRequestCalculated = function(computeResource, project) {
+      return !!getRequestToLimitPercent(computeResource, project);
     };
 
     var isLimitCalculated = function(computeResource, project) {
       return limitRequestOverridesEnabled(project) &&
              computeResource === 'cpu' &&
-             LIMIT_REQUEST_OVERRIDES.limitCPUToMemoryPercent;
+             !!LIMIT_REQUEST_OVERRIDES.limitCPUToMemoryPercent;
     };
 
     // Reconciles multiple limit range resources for a compute resource ('cpu'
@@ -185,9 +189,9 @@ angular.module("openshiftConsole")
 
     return {
       getEffectiveLimitRange: getEffectiveLimitRange,
+      getRequestToLimitPercent: getRequestToLimitPercent,
       isRequestCalculated: isRequestCalculated,
       isLimitCalculated: isLimitCalculated,
       validatePodLimits: validatePodLimits
     };
   });
-

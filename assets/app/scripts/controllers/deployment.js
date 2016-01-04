@@ -7,7 +7,17 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('DeploymentController', function ($scope, $routeParams, AlertMessageService, DataService, ProjectsService, DeploymentsService, ImageStreamResolver, Navigate, $filter) {
+  .controller('DeploymentController',
+              function ($scope,
+                        $filter,
+                        $routeParams,
+                        AlertMessageService,
+                        DataService,
+                        HPAService,
+                        ProjectsService,
+                        DeploymentsService,
+                        ImageStreamResolver,
+                        Navigate) {
     $scope.projectName = $routeParams.project;
     $scope.deployment = null;
     $scope.deploymentConfig = null;
@@ -84,6 +94,7 @@ angular.module('openshiftConsole')
             });
             activeDeployment = DeploymentsService.getActiveDeployment(deploymentsForConfig);
             $scope.isActive = activeDeployment && activeDeployment.metadata.uid === $scope.deployment.metadata.uid;
+            updateHPA();
           }));
         };
 
@@ -98,12 +109,31 @@ angular.module('openshiftConsole')
           });
         };
 
+        var allHPA = {}, limitRanges = {};
+        var updateHPA = function() {
+          $scope.hpaForRC = HPAService.hpaForRC(allHPA, $routeParams.deployment || $routeParams.replicationcontroller);
+          if ($scope.isActive) {
+            // Show both HPAs that target the RC and the DC if this is the active deployment.
+            var hpaForDC = HPAService.hpaForDC(allHPA, $routeParams.deploymentconfig);
+            $scope.autoscalers = $scope.hpaForRC.concat(hpaForDC);
+          } else {
+            $scope.autoscalers = $scope.hpaForRC;
+          }
+        };
+        var updateHPAWarnings = function() {
+            HPAService.getHPAWarnings($scope.deployment, $scope.autoscalers, limitRanges, project)
+                      .then(function(warnings) {
+              $scope.hpaWarnings = warnings;
+            });
+        };
+
         DataService.get("replicationcontrollers", $routeParams.deployment || $routeParams.replicationcontroller, context).then(
           // success
           function(deployment) {
             $scope.loaded = true;
             $scope.deployment = deployment;
             setLogVars(deployment);
+            updateHPAWarnings();
             var deploymentVersion = $filter("annotation")(deployment, "deploymentVersion");
             if (deploymentVersion) {
               $scope.breadcrumbs[2].title = "#" + deploymentVersion;
@@ -120,6 +150,7 @@ angular.module('openshiftConsole')
               }
               $scope.deployment = deployment;
               setLogVars(deployment);
+              updateHPAWarnings();
             }));
 
             if ($scope.deploymentConfigName) {
@@ -232,6 +263,22 @@ angular.module('openshiftConsole')
           $scope.builds = builds.by("metadata.name");
           Logger.log("builds (subscribe)", $scope.builds);
         }));
+
+        watches.push(DataService.watch({
+          group: "extensions",
+          resource: "horizontalpodautoscalers"
+        }, context, function(data) {
+          allHPA = data.by("metadata.name");
+          updateHPA();
+          updateHPAWarnings();
+        }));
+
+        // List limit ranges in this project to determine if there is a default
+        // CPU request for autoscaling.
+        DataService.list("limitranges", context, function(response) {
+          limitRanges = response.by("metadata.name");
+          updateHPAWarnings();
+        });
 
         $scope.startLatestDeployment = function(deploymentConfig) {
           DeploymentsService.startLatestDeployment(deploymentConfig, context, $scope);

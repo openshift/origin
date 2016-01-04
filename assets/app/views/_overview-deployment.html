@@ -8,6 +8,7 @@
   deploymentConfigMissing          - Boolean. Optional.
   deploymentConfigDifferentService - Boolean. Optional.
   deploymentConfig                 - Object. Required for scaling deployments.
+  hpa                              - Object. Optional.
 
   imagesByDockerReference - map[dockerReference][]Image. Optional.
   builds                  - map[buildId]build. Optional.
@@ -86,7 +87,7 @@
     <div column class="overview-pods" axis="center center">
       <div row>
         <!-- spacer -->
-        <div flex class="visible-xs-block"></div>
+        <div flex></div>
 
         <div column>
           <pod-status-chart
@@ -106,7 +107,8 @@
           </a>
         </div>
 
-        <div column class="scaling-controls">
+        <!-- Don't show the scaling controls until the HPAs load so they don't appear and quickly disappear. -->
+        <div column class="scaling-controls" ng-if="hpa && !hpa.length">
           <!-- spacer -->
           <div flex></div>
           <div column>
@@ -138,7 +140,22 @@
         </div>
 
         <!-- spacer -->
-        <div flex class="visible-xs-block"></div>
+        <div flex></div>
+      </div>
+      <div ng-if="hpa.length" class="hpa-details">
+        Autoscaled:
+        <span class="nowrap">min: {{hpa[0].spec.minReplicas || 1}},</span>
+        <span class="nowrap">
+          max: {{hpa[0].spec.maxReplicas}}
+          <span ng-if="hpaWarnings"
+                dynamic-content="{{hpaWarnings}}"
+                data-toggle="popover"
+                data-trigger="hover"
+                data-html="true"
+                class="pficon pficon-warning-triangle-o hpa-warning"
+                aria-hidden="true">
+          </span>
+        </span>
       </div>
     </div>
 

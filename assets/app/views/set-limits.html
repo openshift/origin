@@ -19,10 +19,10 @@
                   <div class="help-block">
                     Resource limits control how much <span ng-if="!hideCPU">CPU and</span> memory a container will consume on a node.
                   </div>
-                  <div class="learn-more-block">
+                  <div class="learn-more-block" ng-class="{ 'gutter-bottom': showPodWarning }">
                     <a href="{{'compute_resources' | helpLink}}" target="_blank">Learn more <i class="fa fa-external-link" aria-hidden> </i></a>
                   </div>
-                  <div ng-if="showPodWarning" class="gutter-top">
+                  <div ng-if="showPodWarning" class="alert alert-warning">
                     <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
                     Changes will only apply to new pods.
                   </div>

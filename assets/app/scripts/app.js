@@ -246,6 +246,10 @@ angular
         templateUrl: 'views/set-limits.html',
         controller: 'SetLimitsController'
       })
+      .when('/project/:project/edit/autoscaler', {
+        templateUrl: 'views/edit/autoscaler.html',
+        controller: 'EditAutoscalerController'
+      })
       .when('/about', {
         templateUrl: 'views/about.html',
         controller: 'AboutController'
