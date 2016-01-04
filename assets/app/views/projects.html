@@ -1,9 +1,9 @@
 <default-header class="top-header"></default-header>
 <div class="wrap">
-  <div class="middle">
+  <div class="container-single middle">
 
     <div ng-if="!showGetStarted" class="container">
-    <div ng-if="(projects | hashSize) === 0" class="text-muted">Loading...</div>
+    <div ng-if="(projects | hashSize) === 0" class="text-muted" style="margin-top: 50px;">Loading...</div>
     <div ng-if="(projects | hashSize) !== 0">
       <h1 style="display: inline-block;">Projects</h1>
       <a ng-if="canCreate" href="createProject" style="margin-top: 10px;" class="btn btn-lg btn-primary pull-right">New Project</a>

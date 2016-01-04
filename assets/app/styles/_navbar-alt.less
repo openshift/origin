@@ -46,8 +46,16 @@
       }
     }
   }
+  #header-logo {
+    background-image: url('@{image-path}/logo-origin-thin.svg');
+    background-repeat: no-repeat;
+    background-position: center left;
+    background-size: contain;
+    height: 20px;
+    width: 190px;
+  }
   .navbar-iconic {
-    padding-right: 20px;
+    margin-right: 0;
     .dropdown-menu {
       &:before,&:after {
         display: block;
@@ -74,22 +82,8 @@
       }
     }
   }
-  .nav {
-    .nav-item-iconic {
-      // utiltity links
-      color: @navbar-pf-alt-color;
-      max-height: none;
-      padding: 21px;
-      &:hover, &:focus {
-        color: @navbar-pf-alt-active-color;
-      }
-    }
-  }
   .navbar-brand {
     border: 0;
-  }
-  .navbar-iconic {
-    margin-right: 0;
   }
   .navbar-toggle {
     border: 0;
@@ -108,13 +102,24 @@
     }
   }
   .nav-item-iconic {
+    // utiltity links
     cursor: pointer;
     line-height: 1;
     max-height: (@navbar-pf-alt-height - @navbar-pf-alt-border-width); // to keep Firefox from oversizing icons
     padding: @navbar-pf-alt-nav-item-iconic-padding;
     position: relative;
+    color: @navbar-pf-alt-color;
+    margin-right: 0;
+    max-height: none;
+    padding: 21px;
+    .username {
+      position: relative;
+      top: -2px;
+      padding: 0 2px;
+    }
     &:hover, &:focus {
       background-color: transparent;
+      color: @navbar-pf-alt-active-color;
       .caret, .fa, .glyphicon, .pf-icon {
         color: @navbar-pf-alt-active-color;
       }
@@ -122,12 +127,12 @@
     .caret, .fa, .pf-icon {
       color: @navbar-pf-alt-color;
       font-size: @font-size-base + 4;
+      width: auto;
     }
     .caret {
       font-size: @font-size-base;
-      width: auto;
+      height: 12px;
     }
-
   }
   .open > .nav-item-iconic {
     &, &:hover, &:focus {
@@ -190,7 +195,7 @@
       width: 88px;
       .navbar-brand {
         padding: 20px 0;
-        margin-left: 20px;
+        margin-left: 30px;
         margin-right: 75px;
         margin-top: 0;
       }
@@ -212,22 +217,17 @@
     .navbar-header {
       width: 208px;
       .navbar-home {
+        .justify-content(@justify: flex-start);
         font-size: @font-size-base + 1;
-        margin-right: 75px;
         margin-top: 0;
+        padding-left: 20px;
         .pficon {
           .primary-nav-icon-xl();
+        }
+        .visible-xlg-inline-block {
+          margin-left: 3px;
         }
       }
     }
   }
-}
-
-#header-logo {
-  background-image: url('@{image-path}/logo-origin-thin.svg');
-  background-repeat: no-repeat;
-  background-position: center left;
-  background-size: contain;
-  height: 20px;
-  width: 200px;
 }
