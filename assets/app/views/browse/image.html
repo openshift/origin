@@ -85,7 +85,7 @@
                 </div>
               </div>
               <div ng-if="tag.status">
-                <span ng-if="tag.status.items.length && tag.status.items[0].image">
+                <span ng-if="tag.status.items.length && tag.status.items[0].image" class="nowrap">
                   <short-id id="{{tag.status.items[0].image | imageName}}"></short-id>
                   <a href="" ng-if="tag.status.items.length > 1" ng-click="tagShowOlder[tag.name] = !tagShowOlder[tag.name]" ng-attr-title="{{tagShowOlder[tag.name] ? 'Hide older images' : 'Show older images'}}"><span class="fa fa-clock-o"></span><span class="fa fa-caret-up" ng-if="tagShowOlder[tag.name]" style="margin-left: 3px;"></span></a>
                 </span>
