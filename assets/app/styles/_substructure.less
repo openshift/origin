@@ -16,23 +16,26 @@ html,body {
     .flex-display(@display: flex);
     position:relative;
     z-index:10;
-    height:47px; /* top offset height */
+     /* top offset height */
+    height: @navbar-os-header-height;
   }
   .wrap {
     display: block;
     overflow: visible;
-    > .container { // Pages without project nav
-      margin-bottom: @grid-gutter-width * 2;
-      h1 {
-        margin: 10px 0 20px;
+    &.no-sidebar {
+      .container {
+        margin-bottom: @grid-gutter-width * 2;
+        h1 {
+          margin: 10px 0 20px;
+        }
       }
-    }
-    > .container-single.middle {
-      margin-top: 30px;
+      .middle {
+        margin-top: 30px;
+      }
     }
   }
   .sidebar-left,.middle,.sidebar-right {
-    display: block;
+    // display: block; CLEANUP IS THIS NEEDED?
     .flex(@columns: 0 0 auto);
     width: 100%;
   }
@@ -41,20 +44,9 @@ html,body {
     position:relative;
     transition:@sidebar-os-transition;
     @media (max-width: @screen-xs-max) {
-      // Off-canvas nav
-      &.view-mobile-nav { display:none;
-        background: @sidebar-os-bg;
-        position:relative;
-        transition:@sidebar-os-transition;
-        width: @sidebar-left-mobile;
-        bottom: 0;
-        overflow-x: hidden;
-        overflow-y: auto;
-        left: 0;
-        position: fixed;
-        top: 106px;
-        z-index: 1030;
-      }
+      border-top: 0;
+      padding-left: 0;
+      padding-right: 0;
     }
   }
   .middle {
@@ -111,8 +103,13 @@ html,body {
       width:100%;
       .backface-visibility(hidden);
       .flex-display(@display: flex);
-      > .container { // Pages without project nav
-        margin-top: 30px;
+      &.no-sidebar {
+        .container {
+          margin-top: 30px;
+        }
+        .sidebar-left {
+          display: none !important;
+        }
       }
     }
     .top-header {

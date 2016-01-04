@@ -25,7 +25,6 @@
   .navbar-header {
     .flex(@columns: 0 0 50px);
     .flex-display(@display: flex);
-    height: 47px;
     width: 50px;
     text-decoration: none;
     .navbar-home {
@@ -84,6 +83,8 @@
   }
   .navbar-brand {
     border: 0;
+    height: auto;
+    padding: 13px 20px;
   }
   .navbar-toggle {
     border: 0;
@@ -157,13 +158,17 @@
       background-color: @navbar-os-project-menu-active-bg;
       color: @navbar-os-project-menu-active-color;
     }
-    &:first-child {
+    &.navbar-toggle:first-child {
       border-right: 1px solid @sidebar-os-border-color;
     }
   }
 }
 
 @media (max-width: @screen-xs-max) {
+  .layout-pf-alt-fixed .navbar-pf-alt {
+    border-bottom: 1px solid @sidebar-os-border-color;
+    position: absolute;
+  }
   .navbar-flex-btn {
     .flex(@columns: 0 0 50px);
     a {

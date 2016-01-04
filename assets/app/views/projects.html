@@ -1,6 +1,9 @@
 <default-header class="top-header"></default-header>
-<div class="wrap">
-  <div class="container-single middle">
+<div class="wrap no-sidebar">
+  <div class="sidebar-left collapse navbar-collapse navbar-collapse-2">
+    <navbar-utility-mobile></navbar-utility-mobile>
+  </div>
+  <div class="middle">
 
     <div ng-if="!showGetStarted" class="container">
     <div ng-if="(projects | hashSize) === 0" class="text-muted" style="margin-top: 50px;">Loading...</div>

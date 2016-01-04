@@ -117,6 +117,13 @@ angular.module('openshiftConsole')
       templateUrl: 'views/directives/header/_navbar-utility.html'
     };
   })
+  .directive('navbarUtilityMobile', function() {
+    return {
+      restrict: 'E',
+      transclude: true,
+      templateUrl: 'views/directives/header/_navbar-utility-mobile.html'
+    };
+  })
   .directive('defaultHeader', function() {
     return {
       restrict: 'E',

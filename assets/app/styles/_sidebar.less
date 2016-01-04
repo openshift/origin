@@ -6,7 +6,8 @@
   background: @sidebar-os-bg;
   position:relative;
   .navbar-sidebar {
-    border-bottom: 1px solid @sidebar-os-border-color;
+    border-bottom: 0;
+    border-top: 0;
     margin: 0;
     min-height: 46px;
     .sidebar-header {
@@ -76,7 +77,7 @@
         &:hover, &:focus {
           background-color: @sidebar-os-hover-bg;
           color: @sidebar-os-active-color;
-          .fa {
+          .fa, .pficon {
             color: @sidebar-os-active;
           }
         }
@@ -89,11 +90,10 @@
       }
       ul.nav-sidenav-secondary {
         > li {
-          &:first-child {
-            border-top: 1px solid @sidebar-os-border-color;
-          }
           a {
             color: @sidebar-os-color;
+            font-weight: 300;
+            padding-left: 36px;
             &:hover {
               background:@sidebar-os-hover-bg;
               color: @sidebar-os-active-color;
