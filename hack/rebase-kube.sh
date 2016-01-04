@@ -45,7 +45,7 @@ echo "Clearing old versions ..."
 git rm -r Godeps
 
 echo "Saving dependencies ..."
-if ! godep save ./... ; then
+if ! godep save ./... -t ; then
   echo "ERROR: Unable to save new dependencies. If packages are listed as not found, try fetching them via 'go get'"
   exit 1
 fi
