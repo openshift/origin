@@ -75,9 +75,9 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 	}
 	// wait longer for the build to run to completion
 	err = wait.Poll(5*time.Second, 60*time.Minute, func() (bool, error) {
-		list, err := c.List(labels.Everything(), fields.Set{"name": name}.AsSelector())
-		if err != nil {
-			return false, err
+		list, listErr := c.List(labels.Everything(), fields.Set{"name": name}.AsSelector())
+		if listErr != nil {
+			return false, listErr
 		}
 		for i := range list.Items {
 			if name == list.Items[i].Name && isOK(&list.Items[i]) {
@@ -160,7 +160,7 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 				// reget and re-watch
 				break
 			}
-			if e, ok := val.Object.(*imageapi.ImageStream); ok {
+			if e, imageStreamOK := val.Object.(*imageapi.ImageStream); imageStreamOK {
 				if isOK(e) {
 					return nil
 				}
@@ -222,7 +222,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 				// reget and re-watch
 				break
 			}
-			if e, ok := val.Object.(*kapi.ReplicationController); ok {
+			if e, replicationControllerOK := val.Object.(*kapi.ReplicationController); replicationControllerOK {
 				if isOK(e) {
 					return nil
 				}
@@ -373,9 +373,9 @@ func SetupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix, capacity 
 		return volumes, err
 	}
 	for i := 0; i < count; i++ {
-		dir, err := ioutil.TempDir(rootDir, fmt.Sprintf("%0.4d", i))
-		if err != nil {
-			return volumes, err
+		dir, createErr := ioutil.TempDir(rootDir, fmt.Sprintf("%0.4d", i))
+		if createErr != nil {
+			return volumes, createErr
 		}
 		if _, err = exec.LookPath("chcon"); err != nil {
 			err := exec.Command("chcon", "-t", "svirt_sandbox_file_t", dir).Run()
@@ -386,9 +386,9 @@ func SetupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix, capacity 
 		if err = os.Chmod(dir, 0777); err != nil {
 			return volumes, err
 		}
-		pv, err := c.Create(CreatePersistentVolume(fmt.Sprintf("%s%s-%0.4d", pvPrefix, prefix, i), capacity, dir))
-		if err != nil {
-			return volumes, err
+		pv, createPVErr := c.Create(CreatePersistentVolume(fmt.Sprintf("%s%s-%0.4d", pvPrefix, prefix, i), capacity, dir))
+		if createPVErr != nil {
+			return volumes, createPVErr
 		}
 		volumes = append(volumes, pv)
 	}
@@ -447,14 +447,14 @@ func FixturePath(elem ...string) string {
 // It will retry once per second for duration retryTimeout if an error occurs during the request.
 func FetchURL(url string, retryTimeout time.Duration) (response string, err error) {
 	waitFn := func() (bool, error) {
-		r, err := http.Get(url)
-		if err != nil || r.StatusCode != 200 {
+		r, getErr := http.Get(url)
+		if getErr != nil || r.StatusCode != 200 {
 			// lie to the poller that we didn't get an error even though we did
 			// because otherwise it's going to give up.
 			return false, nil
 		}
 		defer r.Body.Close()
-		bytes, err := ioutil.ReadAll(r.Body)
+		bytes, _ := ioutil.ReadAll(r.Body)
 		response = string(bytes)
 		return true, nil
 	}

@@ -98,12 +98,12 @@ func CreatePodFromImage(stream *imageapi.ImageStream, tag, ns string) *kapi.Pod 
 			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
-	if pod, err := client.Pods(ns).Create(pod); err != nil {
+	pod, err = client.Pods(ns).Create(pod)
+	if err != nil {
 		fmt.Printf("%v\n", err)
 		return nil
-	} else {
-		return pod
 	}
+	return pod
 }
 
 // CreateServiceForPod creates a service to serve the provided Pod
@@ -124,12 +124,12 @@ func CreateServiceForPod(pod *kapi.Pod, ns string) *kapi.Service {
 			}},
 		},
 	}
-	if service, err := client.Services(ns).Create(service); err != nil {
+	service, err = client.Services(ns).Create(service)
+	if err != nil {
 		fmt.Printf("%v\n", err)
 		return nil
-	} else {
-		return service
 	}
+	return service
 }
 
 // CleanupServiceAndPod removes the Service and the Pod

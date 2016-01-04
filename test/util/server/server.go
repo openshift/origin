@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/wait"
 
-	"github.com/openshift/origin/pkg/client"
+	osclient "github.com/openshift/origin/pkg/client"
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -328,8 +328,9 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 
 	for {
 		// confirm that we can actually query from the api server
-		if client, err := util.GetClusterAdminClient(adminKubeConfigFile); err == nil {
-			if _, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything()); err == nil {
+		client, getErr := util.GetClusterAdminClient(adminKubeConfigFile)
+		if getErr == nil {
+			if _, err = client.ClusterPolicies().List(labels.Everything(), fields.Everything()); err == nil {
 				break
 			}
 		}
@@ -402,7 +403,7 @@ func WaitForServiceAccounts(client *kclient.Client, namespace string, accounts [
 
 // CreateNewProject creates a new project using the clusterAdminClient, then gets a token for the adminUser and returns
 // back a client for the admin user
-func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Config, projectName, adminUser string) (*client.Client, error) {
+func CreateNewProject(clusterAdminClient *osclient.Client, clientConfig kclient.Config, projectName, adminUser string) (*osclient.Client, error) {
 	newProjectOptions := &newproject.NewProjectOptions{
 		Client:      clusterAdminClient,
 		ProjectName: projectName,

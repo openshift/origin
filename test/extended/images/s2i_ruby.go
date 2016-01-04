@@ -37,7 +37,7 @@ var _ = g.Describe("images: s2i: ruby", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			assertPageContent := func(content string) {
-				_, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
+				_, err = exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				result, err := CheckPageContains(oc, "rails-postgresql-example", "", content)
