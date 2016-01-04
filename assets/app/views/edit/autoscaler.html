@@ -1,0 +1,77 @@
+<default-header class="top-header"></default-header>
+<div class="wrap no-sidebar">
+  <div class="sidebar-left collapse navbar-collapse navbar-collapse-2">
+    <navbar-utility-mobile></navbar-utility-mobile>
+  </div>
+  <div class="middle">
+    <!-- Middle section -->
+    <div class="middle-section surface-shaded">
+      <div class="middle-container has-scroll">
+        <div class="middle-content">
+          <div class="container surface-shaded" style="max-width: 900px;">
+            <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
+            <div class="row">
+              <div class="col-md-12">
+                <alerts alerts="alerts"></alerts>
+                <div ng-if="!targetKind || !targetName || !project">
+                  Loading...
+                </div>
+                <form name="form" ng-submit="save()" class="osc-form" ng-show="targetKind && targetName">
+                  <h1>
+                    Autoscale {{targetKind | humanizeKind}} {{targetName}}</span>
+                  </h1>
+                  <div class="help-block">
+                    Scale replicas automatically based on CPU usage.
+                  </div>
+                  <div class="learn-more-block" ng-class="{ 'gutter-bottom': metricsWarning || showCPURequestWarning }">
+                    <a href="{{'pod_autoscaling' | helpLink}}" target="_blank">Learn more <i class="fa fa-external-link" aria-hidden> </i></a>
+                  </div>
+
+                  <!-- Warning: metrics not configured -->
+                  <div ng-if="metricsWarning" class="alert alert-warning">
+                    <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+                    <span class="sr-only">Warning:</span>
+                    Metrics might not be configured by your cluster administrator. Metrics are
+                    required for autoscaling.
+                  </div>
+
+                  <!-- Warning: CPU request not set -->
+                  <div ng-if="showCPURequestWarning" class="alert alert-warning">
+                    <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+                    <span class="sr-only">Warning:</span>
+                    This {{targetKind | humanizeKind}} does not have any containers with a CPU
+                    <span ng-if="'cpu' | isRequestCalculated : project">limit</span>
+                    <span ng-if="!('cpu' | isRequestCalculated : project)">request</span>
+                    set. Autoscaling will not work without a CPU
+                    <span ng-if="'cpu' | isRequestCalculated : project">limit.</span>
+                    <span ng-if="!('cpu' | isRequestCalculated : project)">request.</span>
+                  </div>
+
+                  <fieldset ng-disabled="disableInputs" class="gutter-top">
+                    <osc-autoscaling
+                        model="autoscaling"
+                        project="project"
+                        show-name-input="true"
+                        name-read-only="kind === 'HorizontalPodAutoscaler'">
+                    </osc-autoscaling>
+                    <label-editor labels="autoscaling.labels" expand="true" can-toggle="false"></label-editor>
+                    <div class="buttons gutter-top">
+                      <button
+                          type="submit"
+                          class="btn btn-primary btn-lg"
+                          type="submit"
+                          ng-disabled="form.$invalid || form.$pristine">
+                        Save
+                      </button>
+                      <a href="" class="btn btn-default btn-lg" back>Cancel</a>
+                    </div>
+                  </fieldset>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div><!-- /middle-content -->
+      </div><!-- /middle-container -->
+    </div><!-- /middle-section -->
+  </div><!-- /middle -->
+</div><!-- /wrap -->

@@ -1,0 +1,143 @@
+<ng-form name="form">
+  <div class="autoscaling-form">
+  <div ng-show="showNameInput" class="form-group">
+    <label for="hpa-name" class="required">Autoscaler Name</label>
+    <span ng-class="{ 'has-error': form.name.$touched && form.name.$invalid }">
+      <input
+          id="hpa-name"
+          class="form-control"
+          type="text"
+          name="name"
+          ng-model="autoscaling.name"
+          ng-required="showNameInput"
+          ng-readonly="nameReadOnly"
+          ng-pattern="/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/"
+          ng-maxlength="63"
+          ng-minlength="2"
+          placeholder="my-hpa"
+          select-on-focus
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          aria-describedby="hpa-name-help">
+    </span>
+    <div>
+      <span id="hpa-name-help" class="help-block">
+        A unique name for the horizontal pod autoscaler within the project.
+      </span>
+    </div>
+    <div class="has-error" ng-show="form.name.$invalid && form.name.$touched">
+      <span ng-if="form.name.$error.required" class="help-block">
+        A name is required.
+      </span>
+      <span ng-show="form.name.$error.pattern" class="help-block">
+        Autoscaler names may only contain lower-case letters, numbers, and dashes.
+        They may not start or end with a dash.
+      </span>
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Min Pods</label>
+    <span ng-class="{ 'has-error': form.minReplicas.$dirty && form.minReplicas.$invalid }">
+      <input type="number"
+             class="form-control"
+             min="1"
+             name="minReplicas"
+             placeholder="1"
+             ng-model="autoscaling.minReplicas"
+             ng-required="required"
+             ng-pattern="/^\d+$/"
+             aria-describedby="min-replicas-help">
+    </span>
+    <div id="min-replicas-help" class="help-block">
+      The lower limit for the number of pods that can be set by the autoscaler.
+      If not specified, defaults to 1.
+    </div>
+    <div class="has-error" ng-show="form.minReplicas.$dirty && form.minReplicas.$invalid">
+      <span ng-if="form.minReplicas.$error.number" class="help-block">
+        Min pods must be a number.
+      </span>
+      <span ng-if="form.minReplicas.$error.pattern" class="help-block">
+        Min pods must be a whole number.
+      </span>
+      <span ng-if="form.minReplicas.$error.min" class="help-block">
+        Min pods must be greater than or equal to 1.
+      </span>
+    </div>
+  </div>
+  <div class="form-group">
+    <label class="required">Max Pods</label>
+    <span ng-class="{ 'has-error': (form.minReplicas.$dirty || form.maxReplicas.$dirty) && form.maxReplicas.$invalid }">
+      <input type="number"
+             class="form-control"
+             name="maxReplicas"
+             placeholder="4"
+             required
+             min="{{autoscaling.minReplicas || 1}}"
+             ng-model="autoscaling.maxReplicas"
+             ng-pattern="/^\d+$/"
+             aria-describedby="max-replicas-help">
+    </span>
+    <div id="max-replicas-help" class="help-block">
+      The upper limit for the number of pods that can be set by the autoscaler.
+    </div>
+    <div class="has-error" ng-show="(form.minReplicas.$dirty || form.maxReplicas.$dirty) && form.maxReplicas.$invalid">
+      <span ng-if="form.maxReplicas.$error.number" class="help-block">
+        Max pods must be a number.
+      </span>
+      <span ng-if="form.minReplicas.$error.pattern" class="help-block">
+        Min pods must be a whole number.
+      </span>
+      <span class="help-block" ng-if="form.maxReplicas.$error.min">
+        Max pods must be greater than or equal to
+        <span ng-if="autoscaling.minReplicas">min pods, which is</span>
+        {{autoscaling.minReplicas || 1}.
+      </span>
+      <span class="help-block" ng-if="form.maxReplicas.$error.required">
+        Max pods is a required field.
+      </span>
+    </div>
+  </div>
+  <div class="form-group">
+    <label>
+      CPU
+      <span ng-if="isRequestCalculated">Limit</span>
+      <span ng-if="!isRequestCalculated">Request</span>
+      Target
+    </label>
+    <div class="input-group" ng-class="{ 'has-error': form.targetCPU.$invalid && form.targetCPU.$touched }">
+      <input type="number"
+             class="form-control"
+             min="1"
+             name="targetCPU"
+             ng-attr-placeholder="{{defaultTargetCPUDisplayValue}}"
+             ng-model="targetCPUInput.percent"
+             ng-pattern="/^\d+$/"
+             aria-describedby="target-cpu-help">
+      <span class="input-group-addon">%</span>
+    </div>
+    <div id="target-cpu-help" class="help-block">
+      The percentage of the CPU
+      <span ng-if="isRequestCalculated">limit</span>
+      <span ng-if="!isRequestCalculated">request</span>
+      that each pod should ideally be using. Pods will be added or removed
+      periodically when CPU usage exceeds or drops below this target value.
+      Defaults to {{defaultTargetCPUDisplayValue}}%.
+    </div>
+    <div class="learn-more-block">
+      <a href="{{'compute_resources' | helpLink}}" target="_blank">Learn more <i class="fa fa-external-link" aria-hidden> </i></a>
+    </div>
+    <!-- Add extra top margin for the learn more block -->
+    <div class="has-error" style="margin-top: 10px;" ng-show="form.targetCPU.$touched && form.targetCPU.$invalid">
+      <span ng-if="form.targetCPU.$error.number" class="help-block">
+        Target CPU percentage must be a number.
+      </span>
+      <span ng-if="form.targetCPU.$error.pattern" class="help-block">
+        Target CPU percentage must be a whole number.
+      </span>
+      <span ng-if="form.targetCPU.$error.min" class="help-block">
+        Target CPU percentage must be greater than 1.
+      </span>
+    </div>
+  </div>
+</ng-form>

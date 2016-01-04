@@ -83,6 +83,10 @@ angular.module("openshiftConsole")
         deploymentConfig: scope._generateDeploymentConfig(input, imageSpec, ports, input.labels)
       };
 
+      if (input.scaling.autoscale) {
+        resources.hpa = scope._generateHPA(input, resources.deploymentConfig);
+      }
+
       var service = scope._generateService(input, input.name, ports);
       if (service) {
         resources.service = service;
@@ -182,6 +186,14 @@ angular.module("openshiftConsole")
         resources: _.get(input, "container.resources")
       };
 
+      var replicas;
+      if (input.scaling.autoscaling) {
+        // Set initial replicas to min replicas if autoscaling.
+        replicas = input.scaling.minReplicas || 1;
+      } else {
+        replicas = input.scaling.replicas;
+      }
+
       var deploymentConfig = {
         apiVersion: "v1",
         kind: "DeploymentConfig",
@@ -191,7 +203,7 @@ angular.module("openshiftConsole")
           annotations: input.annotations
         },
         spec: {
-          replicas: input.scaling.replicas,
+          replicas: replicas,
           selector: {
             deploymentconfig: input.name
           },
@@ -227,6 +239,33 @@ angular.module("openshiftConsole")
         deploymentConfig.spec.triggers.push({type: "ConfigChange"});
       }
       return deploymentConfig;
+    };
+
+    scope._generateHPA = function(input, dc) {
+      var hpa = {
+        apiVersion: "extensions/v1beta1",
+        kind: "HorizontalPodAutoscaler",
+        metadata: {
+          name: input.name,
+          labels: input.labels,
+          annotations: input.annotations
+        },
+        spec: {
+          scaleRef: {
+            kind: "DeploymentConfig",
+            name: dc.metadata.name,
+            apiVersion: "extensions/v1beta1",
+            subresource: "scale"
+          },
+          minReplicas: input.scaling.minReplicas,
+          maxReplicas: input.scaling.maxReplicas,
+          cpuUtilization: {
+            targetPercentage: input.scaling.targetCPU || input.scaling.defaultTargetCPU
+          }
+        }
+      };
+
+      return hpa;
     };
 
     scope._generateBuildConfig = function(input, imageSpec){

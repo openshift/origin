@@ -27,8 +27,18 @@
                        role="botton">Attach Storage</a>
                   </li>
                   <li>
-                    <a href="project/{{projectName}}/set-limits?rcName={{deployment.metadata.name}}"
+                    <a ng-href="project/{{projectName}}/set-limits?rcName={{deployment.metadata.name}}"
                        role="button">Set Resource Limits</a>
+                  </li>
+                  <li ng-if="!autoscalers.length">
+                    <!-- Create a new HPA. -->
+                    <a ng-href="project/{{projectName}}/edit/autoscaler?kind=ReplicationController&name={{deployment.metadata.name}}"
+                      role="button">Add Autoscaler</a>
+                  </li>
+                  <li ng-if="autoscalers.length === 1">
+                    <!-- Edit an existing HPA. -->
+                    <a ng-href="project/{{projectName}}/edit/autoscaler?kind=HorizontalPodAutoscaler&group=extensions&name={{autoscalers[0].metadata.name}}"
+                      role="button">Edit Autoscaler</a>
                   </li>
                   <li>
                     <edit-link
@@ -43,7 +53,8 @@
                       resource-name="{{deployment.metadata.name}}"
                       project-name="{{deployment.metadata.namespace}}"
                       alerts="alerts"
-                      disable-delete="!!deployment.status.replicas">
+                      disable-delete="!!deployment.status.replicas"
+                      hpa-list="hpaForRC">
                     </delete-link>
                   </li>
                 </ul>

@@ -7,7 +7,17 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('DeploymentConfigController', function ($scope, $routeParams, AlertMessageService, DataService, ProjectsService, DeploymentsService, ImageStreamResolver, $filter, LabelFilter) {
+  .controller('DeploymentConfigController',
+              function ($scope,
+                        $filter,
+                        $routeParams,
+                        AlertMessageService,
+                        DataService,
+                        DeploymentsService,
+                        HPAService,
+                        ImageStreamResolver,
+                        ProjectsService,
+                        LabelFilter) {
     $scope.projectName = $routeParams.project;
     $scope.deploymentConfigName = $routeParams.deploymentconfig;
     $scope.deploymentConfig = null;
@@ -49,17 +59,29 @@ angular.module('openshiftConsole')
     AlertMessageService.clearAlerts();
 
     var watches = [];
+    var hashSize = $filter('hashSize');
 
     ProjectsService
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
         $scope.project = project;
         $scope.projectContext = context;
+
+        var limitRanges = {};
+
+        var updateHPAWarnings = function() {
+            HPAService.getHPAWarnings($scope.deploymentConfig, $scope.autoscalers, limitRanges, project)
+                      .then(function(warnings) {
+              $scope.hpaWarnings = warnings;
+            });
+        };
+
         DataService.get("deploymentconfigs", $routeParams.deploymentconfig, context).then(
           // success
           function(deploymentConfig) {
             $scope.loaded = true;
             $scope.deploymentConfig = deploymentConfig;
+            updateHPAWarnings();
             ImageStreamResolver.fetchReferencedImageStreamImages([deploymentConfig.spec.template], $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, context);
 
             // If we found the item successfully, watch for changes on it
@@ -71,6 +93,7 @@ angular.module('openshiftConsole')
                 };
               }
               $scope.deploymentConfig = deploymentConfig;
+              updateHPAWarnings();
               ImageStreamResolver.fetchReferencedImageStreamImages([deploymentConfig.spec.template], $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, context);
             }));
           },
@@ -91,6 +114,13 @@ angular.module('openshiftConsole')
         //     $scope.podTemplates[deploymentId] = deployment.spec.template;
         //   });
         // }
+
+        // List limit ranges in this project to determine if there is a default
+        // CPU request for autoscaling.
+        DataService.list("limitranges", context, function(response) {
+          limitRanges = response.by("metadata.name");
+          updateHPAWarnings();
+        });
 
         watches.push(DataService.watch("replicationcontrollers", context, function(deployments, action, deployment) {
           // TODO we should add this back in and show the pod template on this page
@@ -152,6 +182,15 @@ angular.module('openshiftConsole')
           Logger.log("builds (subscribe)", $scope.builds);
         }));
 
+        watches.push(DataService.watch({
+          group: "extensions",
+          resource: "horizontalpodautoscalers"
+        }, context, function(hpa) {
+          $scope.autoscalers =
+            HPAService.hpaForDC(hpa.by("metadata.name"), $routeParams.deploymentconfig);
+          updateHPAWarnings();
+        }));
+
         function updateFilterWarning() {
           if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.deployments) && !$.isEmptyObject($scope.unfilteredDeployments)) {
             $scope.alerts["deployments"] = {
@@ -172,7 +211,6 @@ angular.module('openshiftConsole')
           });
         });
 
-        var hashSize = $filter('hashSize');
         $scope.canDeploy = function() {
           if (!$scope.deploymentConfig) {
             return false;

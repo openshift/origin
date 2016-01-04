@@ -29,6 +29,7 @@ window.OPENSHIFT_CONSTANTS.HELP = {
   "route-types":             "https://docs.openshift.com/online/latest/architecture/core_concepts/routes.html#route-types",
   "persistent_volumes":      "https://docs.openshift.com/online/latest/dev_guide/persistent_volumes.html",
   "compute_resources":       "https://docs.openshift.com/online/latest/dev_guide/compute_resources.html",
+  "pod_autoscaling":         "https://docs.openshift.org/online/latest/dev_guide/pod_autoscaling.html",
   "default":                 "https://docs.openshift.com/online/latest/welcome/index.html"
 };
 
