@@ -45,10 +45,14 @@ readonly OS_CROSS_COMPILE_PLATFORMS=(
   windows/amd64
   linux/386
 )
+
+# e2e.test has special logic
 readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
   cmd/oc
+  test/e2e/e2e.test
 )
+
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
 readonly OS_ALL_TARGETS=(
@@ -159,9 +163,20 @@ os::build::build_binaries() {
     for platform in "${platforms[@]}"; do
       os::build::set_platform_envs "${platform}"
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
-      go install "${goflags[@]:+${goflags[@]}}" \
-          -ldflags "${version_ldflags}" \
-          "${binaries[@]}"
+      for b in ${binaries[@]}; do
+          echo "Building $b"
+          if [[ "$b" == *"e2e.test"* ]]; then
+              echo "... Building test binary $b"
+              cp Godeps/_workspace/src/k8s.io/kubernetes/test/e2e/e2e_test.go Godeps/_workspace/src/k8s.io/kubernetes/test/e2e/e2e_test_copied.go
+    	      bpkg="`dirname $b`"
+              test_out="`echo $GOPATH | cut -d':' -f 1`"/bin/e2e.test
+              go test -c "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "$bpkg" -o $test_out
+    	      rm Godeps/_workspace/src/k8s.io/kubernetes/test/e2e/e2e_test_copied.go
+          else
+              echo "... Building core binary $b"
+              go install "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "$b"
+          fi
+      done
       os::build::unset_platform_envs "${platform}"
     done
   )
@@ -184,7 +199,6 @@ os::build::export_targets() {
   fi
 
   binaries=($(os::build::binaries_from_targets "${targets[@]}"))
-
   platforms=("${OS_BUILD_PLATFORMS[@]:+${OS_BUILD_PLATFORMS[@]}}")
   if [[ ${#platforms[@]} -eq 0 ]]; then
     platforms=("$(os::build::host_platform)")
