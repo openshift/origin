@@ -22,6 +22,7 @@ function setup {
 }
 
 function installOpenShift {
+<<<<<<< HEAD
 
         cd /data/src/github.com/openshift/origin
 	 
@@ -37,6 +38,14 @@ function installOpenShift {
 
 	echo "Starting openshift"
 	sudo `which openshift` start --loglevel=5 --public-master=localhost &> openshift.log &
+=======
+	cd /data/src/github.com/openshift/origin
+	echo "-- Starting build, memory:"
+	free -mh
+	# make clean build
+	echo "Starting openshift"
+	sudo `which openshift` start --public-master=localhost &> openshift.log &
+>>>>>>> d4486238f79e7aa2c0e518ee53486cd3bc3388d0
 	echo "-- Now starting as new user..."
 	#oc logout
 	#yes "j" | oc login

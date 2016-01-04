@@ -137,10 +137,10 @@ os::build::build_binaries() {
           if [[ "$b" == *"e2e.test"* ]]; then
               echo "... Building test binary $b"
               cp Godeps/_workspace/src/k8s.io/kubernetes/test/e2e/e2e_test.go Godeps/_workspace/src/k8s.io/kubernetes/test/e2e/e2e_test_copied.go
-	      bpkg="`dirname $b`"
+    	      bpkg="`dirname $b`"
               test_out="`echo $GOPATH | cut -d':' -f 1`"/bin/e2e.test
               go test -c "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "$bpkg" -o $test_out
-	      rm Godeps/_workspace/src/k8s.io/kubernetes/test/e2e/e2e_test_copied.go
+    	      rm Godeps/_workspace/src/k8s.io/kubernetes/test/e2e/e2e_test_copied.go
           else
               echo "... Building core binary $b"
               go install "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "$b"
