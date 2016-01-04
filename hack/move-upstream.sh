@@ -25,7 +25,7 @@ if [[ ! -d "${relativedir}" ]]; then
 fi
 
 if [[ -z "${NO_REBASE-}" ]]; then
-  lastrev="$(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json ${repo}/${package})"
+  lastrev="$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json ${repo}/${package})"
 fi
 
 branch="$(git rev-parse --abbrev-ref HEAD)"

@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/openshift/origin/cmd/rebasehelpers/util"
+	"github.com/openshift/origin/tools/rebasehelpers/util"
 )
 
 func main() {
