@@ -22,12 +22,21 @@ function setup {
 }
 
 function installOpenShift {
-	cd /data/src/github.com/openshift/origin
-	echo "-- Starting build, memory:"
-	free -mh
-	# make clean build
+
+        cd /data/src/github.com/openshift/origin
+	 
+	# make it first.  this might take a while.
+	# so, we check if an installation is available already.
+	if which openshift >/dev/null; then
+	    echo "Openshift found, not building."
+    	else	
+	    echo "-- Starting build, memory:"
+	    free -mh
+	    make clean build
+	fi
+
 	echo "Starting openshift"
-	sudo `which openshift` start --public-master=localhost &> openshift.log &
+	sudo `which openshift` start --loglevel=5 --public-master=localhost &> openshift.log &
 	echo "-- Now starting as new user..."
 	#oc logout
 	#yes "j" | oc login
