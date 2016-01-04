@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"time"
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
+	"github.com/golang/glog"
 
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
@@ -58,6 +60,7 @@ func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client
 
 	etcdClient := etcdclient.NewClient(etcdClientInfo.URLs)
 	etcdClient.SetTransport(transport)
+	etcdClient.CheckRetry = NeverRetryOnFailure
 	return etcdClient, nil
 }
 
@@ -76,4 +79,20 @@ func TestEtcdClient(etcdClient *etcdclient.Client) error {
 		time.Sleep(50 * time.Millisecond)
 	}
 	return nil
+}
+
+// NeverRetryOnFailure is a retry function for the etcdClient.  If there's only one machine, master election doesn't make much sense,
+// so we don't bother to retry, we simply dump the failure and return the error directly.
+func NeverRetryOnFailure(cluster *etcdclient.Cluster, numReqs int, lastResp http.Response, err error) error {
+	if len(cluster.Machines) > 1 {
+		return etcdclient.DefaultCheckRetry(cluster, numReqs, lastResp, err)
+	}
+
+	content, err := httputil.DumpResponse(&lastResp, true)
+	if err != nil {
+		glog.Errorf("failure dumping response: %v", err)
+	} else {
+		glog.Errorf("etcd failure response: %s", string(content))
+	}
+	return err
 }
