@@ -50,12 +50,12 @@
                  spellcheck="false">
 
               <!-- Filter by tag -->
-              <div dropdown keyboard-nav class="filter-btn btn-group">
+              <div uib-dropdown uib-keyboard-nav class="filter-btn btn-group">
                 <button class="dropdown-toggle" data-toggle="dropdown" role="menu">
                   Browse
                   <span class="caret"></span>
                 </button>
-                <ul class="dropdown-menu">
+                <ul class="uib-dropdown-menu">
                   <li ng-repeat="tag in categoryTags" role="menuitem">
                     <a href="" ng-click="filter.tag = tag">{{tag}}</a>
                   </li>

@@ -9,7 +9,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('SettingsController', function ($routeParams, $scope, DataService, ProjectsService, AlertMessageService, $filter, $modal, $location, LabelFilter, $timeout, Logger) {
+  .controller('SettingsController', function ($routeParams, $scope, DataService, ProjectsService, AlertMessageService, $filter, $location, LabelFilter, $timeout, Logger) {
     $scope.projectName = $routeParams.project;
     $scope.quotas = {};
     $scope.limitRanges = {};
