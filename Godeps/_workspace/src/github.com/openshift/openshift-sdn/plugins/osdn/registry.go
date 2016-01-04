@@ -1,7 +1,6 @@
 package osdn
 
 import (
-	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -269,14 +268,13 @@ func (registry *Registry) WriteNetworkConfig(network string, subnetLength uint, 
 	if err == nil {
 		if cn.Network == network && cn.HostSubnetLength == int(subnetLength) && cn.ServiceNetwork == serviceNetwork {
 			return nil
-		} else if cn.Network == network && cn.HostSubnetLength == int(subnetLength) && cn.ServiceNetwork == "" {
-			// Upgrade from 3.0.0
-			cn.ServiceNetwork = serviceNetwork
-			_, err = registry.oClient.ClusterNetwork().Update(cn)
-			return err
-		} else {
-			return fmt.Errorf("A network already exists and does not match the new network's parameters - Existing: (%s, %d, %s); New: (%s, %d, %s) ", cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, network, subnetLength, serviceNetwork)
 		}
+
+		cn.Network = network
+		cn.HostSubnetLength = int(subnetLength)
+		cn.ServiceNetwork = serviceNetwork
+		_, err = registry.oClient.ClusterNetwork().Update(cn)
+		return err
 	}
 	cn = &originapi.ClusterNetwork{
 		TypeMeta:         unversioned.TypeMeta{Kind: "ClusterNetwork"},
