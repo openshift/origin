@@ -2,8 +2,8 @@ package e2e
 
 import (
 	"testing"
-	. "github.com/onsi/ginkgo"
 	"k8s.io/kubernetes/test/e2e"
+	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("Custom Extension", func() {
@@ -12,6 +12,7 @@ var _ = Describe("Custom Extension", func() {
 		if(1 == 0){
 			e2e.Failf("example test, will never fail.")
 		}
+		print(e2e.XYZ2)
 	})
 })
 

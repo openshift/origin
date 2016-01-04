@@ -43,6 +43,7 @@ const (
 	podStartupTimeout = 10 * time.Minute
 )
 
+var XYZ = 1
 var (
 	cloudConfig = &testContext.CloudConfig
 
