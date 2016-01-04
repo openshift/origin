@@ -243,25 +243,93 @@
                     <osc-form-section
                       header="Scaling"
                       about-title="Scaling"
-                      about="Scaling defines the number of running instances of your built image."
+                      about="Scaling defines the number of running instances of your image and how it automatically scales based on usage."
                       expand="true"
                       can-toggle="false"
+                      class="scaling"
                       >
-                      <div ng-hide="$parent.expand">
-                        <div>
-                          <label>Replicas: </label>
-                          <span>{{scaling.replicas}}</span>
-                        </div>
-                      </div>
-                      <div ng-show="$parent.expand">
-                        <label class="number">
-                          Replicas:
-                          <input type="number" class="input-number" min="0" name="replicas" ng-model="scaling.replicas" required ng-pattern="/^\-?\d+$/">
+                      <div class="radio">
+                        <label>
+                          <input type="radio" ng-model="scaling.autoscale" ng-value="false">
+                          Scale manually
                         </label>
-                        <div class="has-error" ng-show="form.replicas.$invalid">
-                          <span class="help-block">Replicas must be an integer value greater than or equal to 0</span>
+                      </div>
+                      <div class="form-group">
+                        <label class="number">Replicas</label>
+                        <input type="number"
+                               class="form-control input-number"
+                               min="0"
+                               name="replicas"
+                               ng-model="scaling.replicas"
+                               ng-required="!scaling.autoscale"
+                               ng-disabled="scaling.autoscale"
+                               ng-pattern="/^\d+$/"
+                               aria-describedby="replicas-help">
+                        <div id="replicas-help">
+                          <span class="help-block">The number of instances of your image.</span>
+                        </div>
+                        <div class="has-error" ng-show="form.replicas.$dirty && form.replicas.$invalid">
+                          <span class="help-block">Replicas must be an integer value greater than or equal to 0.</span>
                         </div>
                       </div>
+                      <div class="radio">
+                        <label>
+                          <input type="radio" ng-model="scaling.autoscale" ng-value="true">
+                          Scale automatically based on CPU usage
+                        </label>
+                      </div>
+                      <fieldset ng-disabled="!scaling.autoscale">
+                        <div class="form-group">
+                          <label>Replica Range</label>
+                          <div class="replica-range">
+                            <input type="number"
+                                   class="form-control input-number"
+                                   min="1"
+                                   name="minReplicas"
+                                   ng-model="scaling.minReplicas"
+                                   ng-required="scaling.autoscale"
+                                   ng-pattern="/^\d+$/">
+                            to
+                            <input type="number"
+                                   class="form-control input-number"
+                                   name="maxReplicas"
+                                   ng-min="{{scaling.minReplicas}}"
+                                   ng-model="scaling.maxReplicas"
+                                   ng-required="scaling.autoscale"
+                                   ng-pattern="/^\d+$/">
+                          </div>
+                          <div id="min-replicas-help">
+                            <span class="help-block">The minimum and maximum replicas for autoscaling.</span>
+                          </div>
+                          <div class="has-error" ng-show="scaling.autoscale && form.minReplicas.$dirty && form.minReplicas.$invalid">
+                            <span class="help-block">Minimum replicas must be an integer value greater than or equal to 1.</span>
+                          </div>
+                          <div class="has-error" ng-show="scaling.autoscale && (form.minReplicas.$dirty || form.maxReplicas.$dirty) && form.maxReplicas.$invalid">
+                            <span class="help-block">Maximum replicas must be an integer value greater than or equal to minimum replicas.</span>
+                          </div>
+                        </div>
+                        <div class="form-group">
+                          <label>Target CPU Utilization</label>
+                          <div class="input-group input-number">
+                            <input type="number"
+                                   class="form-control"
+                                   min="1"
+                                   max="100"
+                                   name="targetCPU"
+                                   ng-model="scaling.targetCPU"
+                                   ng-required="scaling.autoscale"
+                                   ng-pattern="/^\d+$/"
+                                   aria-describedby="target-cpu-help">
+                            <span class="input-group-addon">%</span>
+                          </div>
+                          <div id="target-cpu-help">
+                            <span class="help-block">The percentage of the requested CPU that each pod should ideally be using.</span>
+                          </div>
+                          <div class="has-error" ng-show="scaling.autoscale && form.targetCPU.$dirty && form.targetCPU.$invalid">
+                            <span class="help-block">Target CPU Utilization must be an integer value between 1 and 100.</span>
+                          </div>
+                        </div>
+                      </fieldset>
                     </osc-form-section>
 
                     <!-- /scaling -->

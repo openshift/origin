@@ -515,6 +515,11 @@ label.checkbox {
       margin-bottom: 5px;
     }
   }
+  .scaling .radio label {
+    // Use a strong font-weight since the radio buttons are essential section
+    // headers with addtional options.
+    font-weight: 600;
+  }
 }
 
 .next-steps {
@@ -772,6 +777,16 @@ select:invalid {
 
 .input-number {
   width: 60px;
+}
+
+.create-from-image {
+  .replica-range input {
+    display: inline-block;
+  }
+  .input-number {
+    // Wide enough to accommodate the percent input group add-on
+    width: 80px;
+  }
 }
 
 .action-button {
