@@ -473,17 +473,20 @@ angular.module('openshiftConsole')
               return true;
             }
 
-            // Otherwise, show the deployment only if it's the latest.
+            // Wait for deployment configs to load.
             if (!$scope.deploymentConfigs) {
               return false;
             }
 
+            // If the deployment config has been deleted and the deployment has no replicas, hide it.
+            // Otherwise all old deployments for a deleted deployment config will be visible.
             var dc = $scope.deploymentConfigs[dcName];
             if (!dc) {
               return false;
             }
 
-            return isRecentDeployment(deployment, dc);
+            // Show the deployment if it's recent (latest or in progress) or if it's scalable.
+            return isRecentDeployment(deployment, dc) || $scope.isScalable(deployment, dcName);
           };
 
           // Add everything related to services, each of these tables are in
