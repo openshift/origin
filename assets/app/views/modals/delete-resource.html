@@ -1,7 +1,35 @@
 <div class="modal-resource-delete">
   <div class="modal-body">
-    <h1>Are you sure you want to delete the {{typeDisplayName || (kind | humanizeKind)}} '<strong>{{displayName ? displayName : resourceName}}</strong>'?</h1>
+    <h1>Are you sure you want to delete the {{typeDisplayName || (kind | humanizeKind)}}
+      '<strong>{{displayName ? displayName : resourceName}}</strong>'?</h1>
     <p>This<span ng-if="isProject"> will <strong>delete all resources</strong> associated with the project {{displayName ? displayName : resourceName}} and</span> <strong>cannot be undone</strong>.  Make sure this is something you really want to do!</p>
+
+    <!--
+      If this is a deployment config or replication controller with associated HPAs, prompt to
+      delete the HPAs as well.
+    -->
+    <div ng-if="hpaList.length > 0">
+      <p>
+        <span ng-if="hpaList.length === 1">
+          This resource has an autoscaler associated with it.
+          It is recommended you delete the autoscaler with the resource it scales.
+        </span>
+        <span ng-if="hpaList.length > 1">
+          This resource has autoscalers associated with it.
+          It is recommended you delete the autoscalers with the resource they scale.
+        </span>
+      </p>
+      <label>
+        <input type="checkbox" ng-model="options.deleteHPAs">
+        Delete
+        <span ng-if="hpaList.length === 1">
+          Horizontal Pod Autoscaler '<strong>{{hpaList[0].metadata.name}}</strong>'
+        </span>
+        <span ng-if="hpaList.length > 1">
+          {{hpaList.length}} associated Horizontal Pod Autoscalers
+        </span>
+      </label>
+    </div>
   </div>
   <div class="modal-footer">
       <button class="btn btn-lg btn-danger" type="button" ng-click="delete();">Delete</button>

@@ -449,4 +449,10 @@ angular.module('openshiftConsole')
 
       return truncated;
     };
+  })
+  // Checks if a value is null or undefined.
+  .filter('isNil', function() {
+    return function(value) {
+      return value === null || value === undefined;
+    };
   });

@@ -11,6 +11,8 @@ angular.module("openshiftConsole")
       Navigate,
       ApplicationGenerator,
       LimitRangesService,
+      MetricsService,
+      HPAService,
       TaskList,
       failureObjectNameFilter,
       $filter,
@@ -77,7 +79,15 @@ angular.module("openshiftConsole")
           scope.labels = {};
           scope.annotations = {};
           scope.scaling = {
-            replicas: 1
+            replicas: 1,
+            autoscale: false,
+            autoscaleOptions: [{
+              label: 'Manual',
+              value: false
+            }, {
+              label: 'Automatic',
+              value: true
+            }]
           };
           scope.container = {
             resources: {}
@@ -103,6 +113,11 @@ angular.module("openshiftConsole")
           scope.usingSampleRepo = function() {
             return scope.buildConfig.sourceUrl === _.get(scope, 'image.metadata.annotations.sampleRepo');
           };
+
+          // Warn if metrics aren't configured when setting autoscaling options.
+          MetricsService.isAvailable().then(function(available) {
+            $scope.metricsWarning = !available;
+          });
 
           DataService.get("imagestreams", scope.imageName, {namespace: (scope.namespace || $routeParams.project)}).then(function(imageStream){
               scope.imageStream = imageStream;
@@ -152,6 +167,19 @@ angular.module("openshiftConsole")
             $scope.$watch('container', validatePodLimits, true);
           }
         });
+
+        var checkCPURequest = function() {
+          if (!$scope.scaling.autoscale) {
+            $scope.showCPURequestWarning = false;
+            return;
+          }
+
+          // Warn if autoscaling is set, but there won't be a CPU request for the container.
+          $scope.showCPURequestWarning = !HPAService.hasCPURequest([$scope.container], $scope.limitRanges, project);
+        };
+
+        $scope.$watch('scaling.autoscale', checkCPURequest);
+        $scope.$watch('container', checkCPURequest, true);
 
         initAndValidate($scope);
 

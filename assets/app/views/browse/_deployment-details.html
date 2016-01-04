@@ -52,7 +52,7 @@
       </dd>
       <dt ng-if-start="deployment | isDeployment">Deployment config:</dt>
       <dd ng-if-end>
-        <a href="{{deploymentConfigName | navigateResourceURL : 'DeploymentConfig' : deployment.metadata.namespace}}">{{deploymentConfigName}}</a>
+        <a ng-href="{{deploymentConfigName | navigateResourceURL : 'DeploymentConfig' : deployment.metadata.namespace}}">{{deploymentConfigName}}</a>
       </dd>
       <dt ng-if-start="deployment | annotation:'deploymentStatusReason'">Status reason:</dt>
       <dd ng-if-end>
@@ -95,4 +95,81 @@
     <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}">Attach storage</a>
   </p>
   <volumes volumes="deployment.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
+</div>
+
+<!-- Autoscaling -->
+<div ng-if="!deploymentConfigName || (autoscalers | hashSize) > 0">
+  <h3>Autoscaling</h3>
+
+  <!-- Warning: metrics not configured -->
+  <div ng-if="metricsWarning && (autoscalers | hashSize) > 0" class="alert alert-warning">
+    <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+    <span class="sr-only">Warning:</span>
+    Metrics might not be configured by your cluster administrator. Metrics are required for autoscaling.
+  </div>
+
+  <!-- Warning: CPU request not set -->
+  <div ng-if="!hasCPURequest && (autoscalers | hashSize) > 0" class="alert alert-warning">
+    <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+    <span class="sr-only">Warning:</span>
+    This
+    <span ng-if="deployment | isDeployment">deployment</span>
+    <span ng-if="!(deployment | isDeployment)">replication controller</span>
+    does not have any containers with a CPU
+    <span ng-if="'cpu' | isRequestCalculated : project">limit</span>
+    <span ng-if="!('cpu' | isRequestCalculated : project)">request</span>
+    set. Autoscaling will not work without a CPU
+    <span ng-if="'cpu' | isRequestCalculated : project">limit.</span>
+    <span ng-if="!('cpu' | isRequestCalculated : project)">request.</span>
+    <span ng-if="'cpu' | isLimitCalculated : project">
+      The CPU limit will be automatically calculated from the container memory limit.
+    </span>
+    <!-- Prompt to set resource request only for replication controllers with no deployment config. -->
+    <a ng-href="project/{{projectName}}/set-limits?rcName={{deployment.metadata.name}}"
+       ng-if="!(deployment | isDeployment)"
+       role="button">Set resource
+        <span ng-if="!('cpu' | isRequestCalculated : project)">requests and</span> limits</a>
+  </div>
+
+  <!-- Warning: multiple autoscalers -->
+  <div ng-if="(autoscalers | hashSize) > 1" class="alert alert-warning">
+    <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+    <span class="sr-only">Warning:</span>
+    More than one autoscaler is scaling this resource.  This is not recommended because they might
+    compete with each other. Consider removing all but one autoscaler.
+  </div>
+
+  <!-- Create autoscaler -->
+  <div ng-if="(autoscalers | hashSize) === 0">
+    <a ng-href="project/{{projectName}}/edit/autoscaler?kind=ReplicationController&name={{deployment.metadata.name}}"
+       role="button">Add autoscaler</a>
+  </div>
+
+  <!-- HPA details -->
+  <div ng-repeat="hpa in autoscalers">
+    <h3 ng-if="(autoscalers | hashSize) > 1">{{hpa.metadata.name}}</h3>
+
+    <!-- Warning: scaled by RC and DC -->
+    <div ng-if="(deployment | isDeployment) && hpa.spec.scaleRef.kind === 'ReplicationController'" class="alert alert-warning">
+      <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+      <span class="sr-only">Warning:</span>
+      This deployment is scaled by both deployment config
+      <a ng-href="{{deploymentConfigName | navigateResourceURL : 'DeploymentConfig' : deployment.metadata.namespace}}">{{deploymentConfigName}}</a>
+      and an autoscaler. This is not recommended because they might compete with each other.
+      <delete-link
+          kind="HorizontalPodAutoscaler"
+          group="extensions"
+          resource-name="{{hpa.metadata.name}}"
+          project-name="{{hpa.metadata.namespace}}"
+          label="Remove autoscaler {{hpa.metadata.name}}?"
+          alerts="alerts"
+          stay-on-current-page="true">
+      </delete-link>
+    </div>
+
+    <hpa hpa="hpa"
+         show-scale-target="hpa.spec.scaleRef.kind !== 'ReplicationController'"
+         alerts="alerts">
+    </hpa>
+  </div>
 </div>

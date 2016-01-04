@@ -245,6 +245,10 @@ angular
         templateUrl: 'views/set-limits.html',
         controller: 'SetLimitsController'
       })
+      .when('/project/:project/edit/autoscaler', {
+        templateUrl: 'views/edit/autoscaler.html',
+        controller: 'EditAutoscalerController'
+      })
       .when('/about', {
         templateUrl: 'views/about.html',
         controller: 'AboutController'
@@ -293,6 +297,7 @@ angular
   .constant('SOURCE_URL_PATTERN', /^((ftp|http|https|git):\/\/(\w+:{0,1}[^\s@]*@)|git@)?([^\s@]+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/ )
   // http://stackoverflow.com/questions/9038625/detect-if-device-is-ios
   .constant('IS_IOS', /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream)
+  .constant('DEFAULT_HPA_CPU_TARGET', 80)
   .config(function($httpProvider, AuthServiceProvider, RedirectLoginServiceProvider, AUTH_CFG, API_CFG, kubernetesContainerSocketProvider) {
     $httpProvider.interceptors.push('AuthInterceptor');
 

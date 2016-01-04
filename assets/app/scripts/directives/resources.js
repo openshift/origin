@@ -147,4 +147,16 @@ angular.module('openshiftConsole')
         $scope.expanded = {};
       }
     };
+  })
+  .directive('hpa', function() {
+    return {
+      restrict: 'E',
+      scope: {
+        hpa: '=',
+        project: '=',
+        showScaleTarget: '=?',
+        alerts: '='
+      },
+      templateUrl: 'views/directives/hpa.html'
+    };
   });

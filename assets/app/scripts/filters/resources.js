@@ -916,4 +916,30 @@ angular.module('openshiftConsole')
 
       return oldestAdmittedIngress ? oldestAdmittedIngress.host : route.spec.host;
     };
+  })
+  .filter('isRequestCalculated', function(LimitRangesService) {
+    return function(computeResource, project) {
+      return LimitRangesService.isRequestCalculated(computeResource, project);
+    };
+  })
+  .filter('isLimitCalculated', function(LimitRangesService) {
+    return function(computeResource, project) {
+      return LimitRangesService.isLimitCalculated(computeResource, project);
+    };
+  })
+  .filter('hpaCPUPercent', function(HPAService, LimitRangesService) {
+    // Convert between CPU request percentage and CPU limit percentage if
+    // necessary to display an HPA value. Values are shown as percentages
+    // of CPU limit if a request/limit override is set.
+    return function(targetCPU, project) {
+      if (!targetCPU) {
+        return targetCPU;
+      }
+
+      if (!LimitRangesService.isRequestCalculated('cpu', project)) {
+        return targetCPU;
+      }
+
+      return HPAService.convertRequestPercentToLimit(targetCPU, project);
+    };
   });
