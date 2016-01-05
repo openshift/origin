@@ -145,12 +145,19 @@ func NewCmdSync(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	}
 
 	cmd.Flags().StringVar(&whitelistFile, "whitelist", whitelistFile, "path to the group whitelist file")
+	cmd.MarkFlagFilename("whitelist", "txt")
 	cmd.Flags().StringVar(&blacklistFile, "blacklist", whitelistFile, "path to the group blacklist file")
-	// TODO: enable this once we're able to support string slice elements that have commas
+	cmd.MarkFlagFilename("blacklist", "txt")
+
+	// TODO enable this we're able to support string slice elements that have commas
 	// cmd.Flags().StringSliceVar(&options.Blacklist, "blacklist-group", options.Blacklist, "group to blacklist")
+
 	cmd.Flags().StringVar(&configFile, "sync-config", configFile, "path to the sync config")
+	cmd.MarkFlagFilename("sync-config", "yaml", "yml")
+
 	cmd.Flags().StringVar(&typeArg, "type", typeArg, "which groups white- and blacklist entries refer to: "+strings.Join(AllowedSourceTypes, ","))
 	cmd.Flags().BoolVar(&options.Confirm, "confirm", false, "if true, modify OpenShift groups; if false, display results of a dry-run")
+
 	cmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().Lookup("output").DefValue = "yaml"
 	cmd.Flags().Lookup("output").Value.Set("yaml")
