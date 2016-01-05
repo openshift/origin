@@ -38,24 +38,29 @@ readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
   examples/deployment
 )
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS[@]##*/}")
-
 readonly OS_CROSS_COMPILE_PLATFORMS=(
   linux/amd64
   darwin/amd64
   windows/amd64
   linux/386
 )
-readonly OS_CROSS_COMPILE_TARGETS=(
+
+if [ "_$@" = "_test/e2e/e2e.test" ]; then
+OS_CROSS_COMPILE_TARGETS=(
+  test/e2e/e2e.test
+)
+else
+OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
   cmd/oc
 )
-readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
+fi
 
+readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 readonly OS_ALL_TARGETS=(
   "${OS_CROSS_COMPILE_TARGETS[@]}"
 )
 readonly OS_ALL_BINARIES=("${OS_ALL_TARGETS[@]##*/}")
-
 #If you update this list, be sure to get the images/origin/Dockerfile
 readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-router
@@ -124,6 +129,26 @@ os::build::host_platform() {
   echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
 
+os::build::build_e2e_binaries() {
+    version_ldflags=$1
+    
+    # _test.go files cannot be used as dependencies, see https://golang.org/pkg/testing/ for reason on why.
+    # Then, our e2e_test.go  will use the packages created here.
+    E2E_TEST="Godeps/_workspace/src/k8s.io/kubernetes/test/e2e/"
+    E2E_TEST_FILE="$E2E_TEST/e2e_test.go"
+    TMP_E2E_TEST_RENAMED="$E2E_TEST/e2e_test_copied.go"
+
+    # Copy the renamed file.
+    cp $E2E_TEST_FILE $TMP_E2E_TEST_RENAMED
+
+    bpkg="`dirname $artifact`"
+    test_out="`echo $GOPATH | cut -d':' -f 1`"/bin/e2e.test
+    go test -c "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "$bpkg" -o $test_out
+
+    # Delete the renamed file.
+    rm $TMP_E2E_TEST_RENAMED
+}
+
 # Build binaries targets specified
 #
 # Input:
@@ -159,9 +184,16 @@ os::build::build_binaries() {
     for platform in "${platforms[@]}"; do
       os::build::set_platform_envs "${platform}"
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
-      go install "${goflags[@]:+${goflags[@]}}" \
-          -ldflags "${version_ldflags}" \
-          "${binaries[@]}"
+      for artifact in ${binaries[@]}; do
+          echo "Artifact: $artifact"
+          if [[ "$artifact" == *"e2e.test"* ]]; then
+              echo "... Building e2e artifact"
+              os::build::build_e2e_binaries "$version_ldflags"
+          else
+              echo "... Building core binary $artifact"
+              go install "${goflags[@]:+${goflags[@]}}" -ldflags "${version_ldflags}" "$artifact"
+          fi
+      done
       os::build::unset_platform_envs "${platform}"
     done
   )
@@ -337,7 +369,12 @@ os::build::place_bins() {
 
       # Move the specified release binaries to the shared OS_OUTPUT_BINPATH.
       for binary in "${binaries[@]}"; do
+      # Some binaries (i.e. E2E) are optional, so we don't want to fail if they aren't built.
+      if [ -f "${full_binpath_src}/${binary}" ] ; then
         mv "${full_binpath_src}/${binary}" "${OS_OUTPUT_BINPATH}/${platform}/"
+      else
+        echo "*** Did not find $binary, not copying it into the final _output/local/bin/ path."
+      fi
       done
 
       # If no release archive was requested, we're done.
