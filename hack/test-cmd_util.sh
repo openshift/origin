@@ -11,7 +11,6 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
-mkdir -p /tmp/openshift/origin/test/cmd/
 JUNIT_OUTPUT_FILE=/tmp/openshift-cmd/junit_output.txt
 
 # set verbosity so we can see that command output renders correctly
@@ -380,6 +379,11 @@ fi
 
 echo "try_until: ok"
 
+TMPDIR="${TMPDIR:-"/tmp"}"
+TEST_DIR=${TMPDIR}/openshift/origin/test/cmd
+rm -rf ${TEST_DIR} || true
+mkdir -p ${TEST_DIR}
+
 echo -e 'success
 line 2
 \x1e
@@ -413,7 +417,7 @@ line 2
 \x1e
 \x1e
 \x1e
-\x1e' > /tmp/openshift/origin/test/cmd/compress_test.txt
+\x1e' > ${TEST_DIR}/compress_test.txt
 
 echo "success
 line 2
@@ -423,8 +427,8 @@ line 2
 ... repeated 4 times
 success OLD
 line 2
-... repeated 3 times" > /tmp/openshift/origin/test/cmd/compress_test.out
+... repeated 3 times" > ${TEST_DIR}/expected-compressed.out
 
-os::cmd::internal::compress_output /tmp/openshift/origin/test/cmd/compress_test.txt > /tmp/openshift/origin/test/cmd/compressed.out
-diff /tmp/openshift/origin/test/cmd/compress_test.out /tmp/openshift/origin/test/cmd/compressed.out
+os::cmd::internal::compress_output ${TEST_DIR}//compress_test.txt > ${TEST_DIR}/actual-compressed.out
+diff ${TEST_DIR}/expected-compressed.out ${TEST_DIR}/actual-compressed.out
 echo "compression: ok"

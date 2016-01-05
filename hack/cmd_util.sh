@@ -136,7 +136,8 @@ function os::cmd::try_until_text() {
 
 # In order to harvest stderr and stdout at the same time into different buckets, we need to stick them into files 
 # in an intermediate step
-os_cmd_internal_tmpdir="/tmp/openshift/test/cmd"
+TMPDIR="${TMPDIR:-"/tmp"}"
+os_cmd_internal_tmpdir="${TMPDIR}/openshift/test/cmd"
 os_cmd_internal_tmpout="${os_cmd_internal_tmpdir}/tmp_stdout.log"
 os_cmd_internal_tmperr="${os_cmd_internal_tmpdir}/tmp_stderr.log"
 

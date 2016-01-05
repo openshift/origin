@@ -86,7 +86,8 @@ DOCKER_CMD=${DOCKER_CMD:-"sudo docker"}
 
 # Override the default CONFIG_ROOT path with one that is
 # cluster-specific.
-CONFIG_ROOT=${OPENSHIFT_CONFIG_ROOT:-/tmp/openshift-dind-cluster/${INSTANCE_PREFIX}}
+TMPDIR="${TMPDIR:-"/tmp"}"
+CONFIG_ROOT=${OPENSHIFT_CONFIG_ROOT:-${TMPDIR}/openshift-dind-cluster/${INSTANCE_PREFIX}}
 
 DEPLOY_SSH=${OPENSHIFT_DEPLOY_SSH:-true}
 
