@@ -577,7 +577,7 @@ func (c *AppConfig) ensureHasSource(components app.ComponentReferences, reposito
 func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
 	errs := []error{}
 	for _, repo := range repositories {
-		err := repo.Detect(c.detector)
+		err := repo.Detect(c.detector, c.Strategy == "docker")
 		if err != nil {
 			if c.Strategy == "docker" && err == app.ErrNoLanguageDetected {
 				errs = append(errs, ErrNoDockerfileDetected)
@@ -609,7 +609,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 	pipelines := app.PipelineGroup{}
 	pipelineBuilder := app.NewPipelineBuilder(c.Name, c.GetBuildEnvironment(environment), c.OutputDocker).To(c.To)
 	for _, group := range components.Group() {
-		glog.V(4).Infof("found group: %#v", group)
+		glog.V(4).Infof("found group: %v", group)
 		common := app.PipelineGroup{}
 		for _, ref := range group {
 			refInput := ref.Input()
@@ -622,7 +622,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			case refInput.ExpectToBuild:
 				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)
 				if pipeline, err = pipelineBuilder.NewBuildPipeline(from, refInput.ResolvedMatch, refInput.Uses); err != nil {
-					return nil, fmt.Errorf("can't build %q: %v", refInput, err)
+					return nil, fmt.Errorf("can't build %q: %v", refInput.Uses, err)
 				}
 			default:
 				glog.V(4).Infof("will include %q", ref)

@@ -95,7 +95,7 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				}
 				matches = append(matches, t.Platform)
 			}
-			if len(matches) > 0 {
+			if len(matches) > 0 && !pipeline.Build.Strategy.IsDockerBuild {
 				fmt.Fprintf(out, "    * The source repository appears to match: %s\n", strings.Join(matches, ", "))
 			}
 		}
