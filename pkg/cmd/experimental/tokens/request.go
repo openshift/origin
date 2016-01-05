@@ -12,6 +12,8 @@ import (
 )
 
 func NewCmdRequestToken(f *clientcmd.Factory) *cobra.Command {
+	username := ""
+	password := ""
 	cmd := &cobra.Command{
 		Use:   "request-token",
 		Short: "Request an access token",
@@ -20,11 +22,13 @@ func NewCmdRequestToken(f *clientcmd.Factory) *cobra.Command {
 			clientCfg, err := f.OpenShiftClientConfig.ClientConfig()
 			util.CheckErr(err)
 
-			accessToken, err := tokencmd.RequestToken(clientCfg, os.Stdin, "", "")
+			accessToken, err := tokencmd.RequestToken(clientCfg, os.Stdin, username, password)
 			util.CheckErr(err)
 
 			fmt.Printf("%v\n", string(accessToken))
 		},
 	}
+	cmd.Flags().StringVarP(&username, "username", "u", "", "Username, will prompt if not provided")
+	cmd.Flags().StringVarP(&password, "password", "p", "", "Password, will prompt if not provided")
 	return cmd
 }
