@@ -149,9 +149,9 @@ func CommitsBetween(a, b string) ([]Commit, error) {
 		if len(log) == 0 {
 			continue
 		}
-		commit, err := NewCommitFromOnelineLog(log)
-		if err != nil {
-			return nil, err
+		commit, commitEr := NewCommitFromOnelineLog(log)
+		if commitEr != nil {
+			return nil, commitEr
 		}
 		commits = append(commits, commit)
 	}
