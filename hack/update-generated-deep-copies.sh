@@ -35,7 +35,7 @@ package ${version}
 // AUTO-GENERATED FUNCTIONS START HERE
 EOF
 
-	go run cmd/gendeepcopy/deep_copy.go -v ${version} -f - -o "${version}=" >>  $TMPFILE
+	go run tools/gendeepcopy/deep_copy.go -v ${version} -f - -o "${version}=" >>  $TMPFILE
 
 	cat >> $TMPFILE <<EOF
 // AUTO-GENERATED FUNCTIONS END HERE
