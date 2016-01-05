@@ -1,0 +1,5 @@
+ImageSource is used to describe build source that will be extracted from an image. A reference of
+type ImageStreamTag, ImageStreamImage or DockerImage may be used. A pull secret can be specified
+to pull the image from an external registry or override the default service account secret if pulling
+from the internal registry. A list of paths to copy from the image and their respective destination
+within the build directory must be specified in the paths array.

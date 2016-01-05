@@ -131,6 +131,8 @@ const (
 	BuildSourceDockerfile BuildSourceType = "Dockerfile"
 	// BuildSourceBinary indicates the build will accept a Binary file as input.
 	BuildSourceBinary BuildSourceType = "Binary"
+	// BuildSourceImage indicates the build will accept an image as input
+	BuildSourceImage BuildSourceType = "Image"
 )
 
 // BuildSource is the SCM used for the build.
@@ -158,6 +160,9 @@ type BuildSource struct {
 	// Git contains optional information about git build source
 	Git *GitBuildSource `json:"git,omitempty" description:"optional information about git build source"`
 
+	// Image describes an image to be used to provide source for the build
+	Image *ImageSource `json:"image,omitempty" description:"optional image build source"`
+
 	// ContextDir specifies the sub-directory where the source code for the application exists.
 	// This allows to have buildable sources in directory other than root of
 	// repository.
@@ -169,6 +174,31 @@ type BuildSource struct {
 	// data's key represent the authentication method to be used and value is
 	// the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
 	SourceSecret *kapi.LocalObjectReference `json:"sourceSecret,omitempty" description:"supported auth methods are: ssh-privatekey"`
+}
+
+// ImageSource describes an image that is used as source for the build
+type ImageSource struct {
+	// From is a reference to an ImageStreamTag, ImageStreamImage, or DockerImage to
+	// copy source from.
+	From kapi.ObjectReference `json:"from" description:"reference to ImageStreamTag, ImageStreamImage, or DockerImage"`
+
+	// Paths is a list of source and destination paths to copy from the image.
+	Paths []ImageSourcePath `json:"paths" description:"paths to copy from image"`
+
+	// PullSecret is a reference to a secret to be used to pull the image from a registry
+	// If the image is pulled from the OpenShift registry, this field does not need to be set.
+	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"overrides the default pull secret for the source image"`
+}
+
+// ImageSourcePath describes a path to be copied from a source image and its destination within the build directory.
+type ImageSourcePath struct {
+	// SourcePath is the absolute path of the file or directory inside the image to
+	// copy to the build directory.
+	SourcePath string `json:"sourcePath" description:"source path (directory or file) inside image"`
+
+	// DestinationDir is the relative directory within the build directory
+	// where files copied from the image are placed.
+	DestinationDir string `json:"destinationDir" description:"relative destination directory in build home"`
 }
 
 type BinaryBuildSource struct {

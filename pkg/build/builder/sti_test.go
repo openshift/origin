@@ -36,6 +36,22 @@ func (client testDockerClient) RemoveImage(name string) error {
 	return nil
 }
 
+func (client testDockerClient) CreateContainer(opts docker.CreateContainerOptions) (*docker.Container, error) {
+	return nil, nil
+}
+
+func (client testDockerClient) DownloadFromContainer(id string, opts docker.DownloadFromContainerOptions) error {
+	return nil
+}
+
+func (client testDockerClient) PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error {
+	return nil
+}
+
+func (client testDockerClient) RemoveContainer(opts docker.RemoveContainerOptions) error {
+	return nil
+}
+
 type testStiBuilderFactory struct {
 	getStrategyErr error
 	buildError     error

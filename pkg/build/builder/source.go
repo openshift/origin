@@ -10,12 +10,15 @@ import (
 	"strings"
 	"time"
 
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 
 	"github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/source-to-image/pkg/tar"
 )
 
 const (
@@ -38,7 +41,7 @@ func (e gitNotFoundError) Error() string {
 
 // fetchSource retrieves the inputs defined by the build source into the
 // provided directory, or returns an error if retrieval is not possible.
-func fetchSource(dir string, build *api.Build, urlTimeout time.Duration, in io.Reader, gitClient GitClient) (*git.SourceInfo, error) {
+func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTimeout time.Duration, in io.Reader, gitClient GitClient) (*git.SourceInfo, error) {
 	hasGitSource := false
 
 	// expect to receive input from STDIN
@@ -59,6 +62,15 @@ func fetchSource(dir string, build *api.Build, urlTimeout time.Duration, in io.R
 			for _, e := range errs {
 				glog.Warningf("Error getting git info: %v", e)
 			}
+		}
+	}
+
+	// extract source from an Image if specified
+	if build.Spec.Source.Image != nil {
+		// fetch image source
+		err := extractSourceFromImage(dockerClient, build.Spec.Source.Image.From.Name, dir, build.Spec.Source.Image.Paths)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -193,4 +205,90 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 		}
 	}
 	return true, nil
+}
+
+func copyImageSource(dockerClient DockerClient, containerID, sourceDir, destDir string, tarHelper tar.Tar) error {
+	// Setup destination directory
+	fi, err := os.Stat(destDir)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		glog.V(4).Infof("Creating image destination directory: %s", destDir)
+		err := os.MkdirAll(destDir, 0644)
+		if err != nil {
+			return err
+		}
+	} else {
+		if !fi.IsDir() {
+			return fmt.Errorf("destination %s must be a directory", destDir)
+		}
+	}
+
+	tempFile, err := ioutil.TempFile("", "imgsrc")
+	if err != nil {
+		return err
+	}
+	glog.V(4).Infof("Downloading source from path %s in container %s to temporary archive %s", sourceDir, containerID, tempFile.Name())
+	err = dockerClient.DownloadFromContainer(containerID, docker.DownloadFromContainerOptions{
+		OutputStream: tempFile,
+		Path:         sourceDir,
+	})
+	if err != nil {
+		return err
+	}
+	if err := tempFile.Close(); err != nil {
+		return err
+	}
+
+	// Extract the created tar file to the destination directory
+	file, err := os.Open(tempFile.Name())
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	glog.V(4).Infof("Extracting temporary tar %s to directory %s", tempFile.Name(), destDir)
+	var tarOutput io.Writer
+	if glog.V(4) {
+		tarOutput = os.Stdout
+	}
+	return tarHelper.ExtractTarStreamWithLogging(destDir, file, tarOutput)
+}
+
+func extractSourceFromImage(dockerClient DockerClient, image, buildDir string, paths []api.ImageSourcePath) error {
+	glog.V(4).Infof("Extracting image source from %s", image)
+
+	// Pre-pull image if a secret is specified
+	pullSecret := os.Getenv(dockercfg.PullSourceAuthType)
+	if len(pullSecret) > 0 {
+		dockerAuth, present := dockercfg.NewHelper().GetDockerAuth(image, dockercfg.PullSourceAuthType)
+		if present {
+			dockerClient.PullImage(docker.PullImageOptions{Repository: image}, dockerAuth)
+		}
+	}
+
+	// Create container to copy from
+	container, err := dockerClient.CreateContainer(docker.CreateContainerOptions{
+		Config: &docker.Config{
+			Image: image,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("error creating source image container: %v", err)
+	}
+	defer dockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: container.ID})
+
+	tarHelper := tar.New()
+	tarHelper.SetExclusionPattern(nil)
+
+	for _, path := range paths {
+		glog.V(4).Infof("Extracting path %s from container %s to %s", path.SourcePath, container.ID, path.DestinationDir)
+		err := copyImageSource(dockerClient, container.ID, path.SourcePath, filepath.Join(buildDir, path.DestinationDir), tarHelper)
+		if err != nil {
+			return fmt.Errorf("error copying source path %s to %s: %v", path.SourcePath, path.DestinationDir, err)
+		}
+	}
+
+	return nil
 }

@@ -33,6 +33,20 @@ func (d *FakeDocker) RemoveImage(name string) error {
 	return nil
 }
 
+func (d *FakeDocker) CreateContainer(opts docker.CreateContainerOptions) (*docker.Container, error) {
+	return nil, nil
+}
+
+func (d *FakeDocker) DownloadFromContainer(id string, opts docker.DownloadFromContainerOptions) error {
+	return nil
+}
+func (d *FakeDocker) PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error {
+	return nil
+}
+func (d *FakeDocker) RemoveContainer(opts docker.RemoveContainerOptions) error {
+	return nil
+}
+
 func TestDockerPush(t *testing.T) {
 	verifyFunc := func(opts docker.PushImageOptions, auth docker.AuthConfiguration) error {
 		if opts.Name != "test/image" {
