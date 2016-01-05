@@ -176,12 +176,17 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	// docker-in-docker (dind) deployments are used for testing
 	// networking plugins.  Running openshift under dind won't work
 	// with the real oom adjuster due to the state of the cgroups path
-	// in a dind container that uses systemd for init.
+	// in a dind container that uses systemd for init.  Similarly,
+	// cgroup manipulation of the nested docker daemon doesn't work
+	// properly under centos/rhel and should be disabled by setting
+	// the name of the container to an empty string.
 	//
-	// TODO(marun) Make dind cgroups compatible with openshift
+	// This workaround should become unnecessary once user namespaces
 	if value := cmdutil.Env("OPENSHIFT_DIND", ""); value == "true" {
 		glog.Warningf("Using FakeOOMAdjuster for docker-in-docker compatibility")
 		cfg.OOMAdjuster = oom.NewFakeOOMAdjuster()
+		glog.Warningf("Disabling cgroup manipulation of nested docker daemon for docker-in-docker compatibility")
+		cfg.DockerDaemonContainer = ""
 	}
 
 	// Setup auth
