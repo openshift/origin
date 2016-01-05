@@ -203,6 +203,9 @@ func init() {
 		func(in *[]NamedTagEventList, out *map[string]newer.TagEventList, s conversion.Scope) error {
 			for _, curr := range *in {
 				newTagEventList := newer.TagEventList{}
+				if err := s.Convert(&curr.Conditions, &newTagEventList.Conditions, 0); err != nil {
+					return err
+				}
 				if err := s.Convert(&curr.Items, &newTagEventList.Items, 0); err != nil {
 					return err
 				}
@@ -221,6 +224,9 @@ func init() {
 			for _, key := range allKeys {
 				newTagEventList := (*in)[key]
 				oldTagEventList := &NamedTagEventList{Tag: key}
+				if err := s.Convert(&newTagEventList.Conditions, &oldTagEventList.Conditions, 0); err != nil {
+					return err
+				}
 				if err := s.Convert(&newTagEventList.Items, &oldTagEventList.Items, 0); err != nil {
 					return err
 				}
@@ -235,6 +241,13 @@ func init() {
 				r := newer.TagReference{
 					Annotations: curr.Annotations,
 					Reference:   curr.Reference,
+					ImportPolicy: newer.TagImportPolicy{
+						Insecure: curr.ImportPolicy.Insecure,
+					},
+				}
+				if curr.Generation != nil {
+					gen := *curr.Generation
+					r.Generation = &gen
 				}
 				if err := s.Convert(&curr.From, &r.From, 0); err != nil {
 					return err
@@ -256,6 +269,13 @@ func init() {
 					Name:        tag,
 					Annotations: newTagReference.Annotations,
 					Reference:   newTagReference.Reference,
+					ImportPolicy: TagImportPolicy{
+						Insecure: newTagReference.ImportPolicy.Insecure,
+					},
+				}
+				if newTagReference.Generation != nil {
+					gen := *newTagReference.Generation
+					oldTagReference.Generation = &gen
 				}
 				if err := s.Convert(&newTagReference.From, &oldTagReference.From, 0); err != nil {
 					return err

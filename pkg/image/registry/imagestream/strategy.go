@@ -60,6 +60,11 @@ func (s Strategy) PrepareForCreate(obj runtime.Object) {
 		DockerImageRepository: s.dockerImageRepository(stream),
 		Tags: make(map[string]api.TagEventList),
 	}
+	stream.Generation = 1
+	for tag, ref := range stream.Spec.Tags {
+		ref.Generation = &stream.Generation
+		stream.Spec.Tags[tag] = ref
+	}
 }
 
 // Validate validates a new image stream.
@@ -152,6 +157,11 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 			continue
 		}
 
+		glog.V(5).Infof("Detected changed tag %s in %s/%s", tag, stream.Namespace, stream.Name)
+
+		generation := stream.Generation
+		tagRef.Generation = &generation
+
 		if tagRef.From.Kind == "DockerImage" && len(tagRef.From.Name) > 0 {
 			if tagRef.Reference {
 				event, err := tagReferenceToTagEvent(stream, tagRef, "")
@@ -159,6 +169,7 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 					errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from", tag), tagRef.From, err.Error()))
 					continue
 				}
+				stream.Spec.Tags[tag] = tagRef
 				api.AddTagEventToImageStream(stream, tag, *event)
 			}
 			continue
@@ -200,12 +211,11 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 			continue
 		}
 
+		stream.Spec.Tags[tag] = tagRef
 		api.AddTagEventToImageStream(stream, tag, *event)
 	}
 
-	if old != nil {
-		api.UpdateChangedTrackingTags(stream, old)
-	}
+	api.UpdateChangedTrackingTags(stream, old)
 
 	// use a consistent timestamp on creation
 	if old == nil && !stream.CreationTimestamp.IsZero() {
@@ -221,22 +231,34 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 }
 
 func tagReferenceToTagEvent(stream *api.ImageStream, tagRef api.TagReference, tagOrID string) (*api.TagEvent, error) {
+	var (
+		event *api.TagEvent
+		err   error
+	)
 	switch tagRef.From.Kind {
 	case "DockerImage":
-		return &api.TagEvent{
+		event = &api.TagEvent{
 			Created:              unversioned.Now(),
 			DockerImageReference: tagRef.From.Name,
-		}, nil
+		}
 
 	case "ImageStreamImage":
-		return api.ResolveImageID(stream, tagOrID)
+		event, err = api.ResolveImageID(stream, tagOrID)
 	case "ImageStreamTag":
-		return api.LatestTaggedImage(stream, tagOrID), nil
+		event, err = api.LatestTaggedImage(stream, tagOrID), nil
 	default:
-		return nil, fmt.Errorf("invalid from.kind %q: it must be DockerImage, ImageStreamImage or ImageStreamTag", tagRef.From.Kind)
+		err = fmt.Errorf("invalid from.kind %q: it must be DockerImage, ImageStreamImage or ImageStreamTag", tagRef.From.Kind)
 	}
+	if err != nil {
+		return nil, err
+	}
+	if event != nil && tagRef.Generation != nil {
+		event.Generation = *tagRef.Generation
+	}
+	return event, nil
 }
 
+// tagRefChanged returns true if the tag ref changed between two spec updates.
 func tagRefChanged(old, next api.TagReference, streamNamespace string) bool {
 	if next.From == nil {
 		// both fields in next are empty
@@ -264,7 +286,94 @@ func tagRefChanged(old, next api.TagReference, streamNamespace string) bool {
 	if oldFrom.Name != next.From.Name {
 		return true
 	}
-	return false
+	return tagRefGenerationChanged(old, next)
+}
+
+// tagRefGenerationChanged returns true if and only the values were set and the new generation
+// is at zero.
+func tagRefGenerationChanged(old, next api.TagReference) bool {
+	switch {
+	case old.Generation != nil && next.Generation != nil:
+		if *old.Generation == *next.Generation {
+			return false
+		}
+		if *next.Generation == 0 {
+			return true
+		}
+		return false
+	default:
+		return false
+	}
+}
+
+func tagEventChanged(old, next api.TagEvent) bool {
+	return old.Image != next.Image || old.DockerImageReference != next.DockerImageReference || old.Generation > next.Generation
+}
+
+// updateSpecTagGenerationsForUpdate ensures that new spec updates always have a generation set, and that the value
+// cannot be updated by an end user (except by setting generation 0).
+func updateSpecTagGenerationsForUpdate(stream, oldStream *api.ImageStream) {
+	for tag, ref := range stream.Spec.Tags {
+		if ref.Generation != nil && *ref.Generation == 0 {
+			continue
+		}
+		if oldRef, ok := oldStream.Spec.Tags[tag]; ok {
+			ref.Generation = oldRef.Generation
+			stream.Spec.Tags[tag] = ref
+		}
+	}
+}
+
+// ensureSpecTagGenerationsAreSet ensures that all spec tags have a generation set to either 0 or the
+// current stream value.
+func ensureSpecTagGenerationsAreSet(stream, oldStream *api.ImageStream) {
+	oldTags := map[string]api.TagReference{}
+	if oldStream != nil && oldStream.Spec.Tags != nil {
+		oldTags = oldStream.Spec.Tags
+	}
+
+	// set the generation for any spec tags that have changed, are nil, or are zero
+	for tag, ref := range stream.Spec.Tags {
+		if oldRef, ok := oldTags[tag]; !ok || tagRefChanged(oldRef, ref, stream.Namespace) {
+			ref.Generation = nil
+		}
+
+		if ref.Generation != nil && *ref.Generation != 0 {
+			continue
+		}
+		ref.Generation = &stream.Generation
+		stream.Spec.Tags[tag] = ref
+	}
+}
+
+// updateObservedGenerationForStatusUpdate ensures every status item has a generation set.
+func updateObservedGenerationForStatusUpdate(stream, oldStream *api.ImageStream) {
+	for tag, newer := range stream.Status.Tags {
+		if len(newer.Items) == 0 || newer.Items[0].Generation != 0 {
+			// generation is set, continue
+			continue
+		}
+
+		older := oldStream.Status.Tags[tag]
+		if len(older.Items) == 0 || !tagEventChanged(older.Items[0], newer.Items[0]) {
+			// if the tag wasn't changed by the status update
+			newer.Items[0].Generation = stream.Generation
+			stream.Status.Tags[tag] = newer
+			continue
+		}
+
+		spec, ok := stream.Spec.Tags[tag]
+		if !ok || spec.Generation == nil {
+			// if the spec tag has no generation
+			newer.Items[0].Generation = stream.Generation
+			stream.Status.Tags[tag] = newer
+			continue
+		}
+
+		// set the status tag from the spec tag generation
+		newer.Items[0].Generation = *spec.Generation
+		stream.Status.Tags[tag] = newer
+	}
 }
 
 type TagVerifier struct {
@@ -317,12 +426,33 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) field
 	return errors
 }
 
-func (s Strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s Strategy) prepareForUpdate(obj, old runtime.Object, resetStatus bool) {
 	oldStream := old.(*api.ImageStream)
 	stream := obj.(*api.ImageStream)
 
-	stream.Status = oldStream.Status
+	stream.Generation = oldStream.Generation
+	if resetStatus {
+		stream.Status = oldStream.Status
+	}
 	stream.Status.DockerImageRepository = s.dockerImageRepository(stream)
+
+	// ensure that users cannot change spec tag generation to any value except 0
+	updateSpecTagGenerationsForUpdate(stream, oldStream)
+
+	// Any changes to the spec increment the generation number.
+	//
+	// TODO: Any changes to a part of the object that represents desired state (labels,
+	// annotations etc) should also increment the generation.
+	if !kapi.Semantic.DeepEqual(oldStream.Spec, stream.Spec) || stream.Generation == 0 {
+		stream.Generation = oldStream.Generation + 1
+	}
+
+	// default spec tag generations afterwards (to avoid updating the generation for legacy objects)
+	ensureSpecTagGenerationsAreSet(stream, oldStream)
+}
+
+func (s Strategy) PrepareForUpdate(obj, old runtime.Object) {
+	s.prepareForUpdate(obj, old, true)
 }
 
 // ValidateUpdate is the default update validation for an end user.
@@ -361,10 +491,13 @@ func NewStatusStrategy(strategy Strategy) StatusStrategy {
 }
 
 func (StatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
-}
+	oldStream := old.(*api.ImageStream)
+	stream := obj.(*api.ImageStream)
 
-func (StatusStrategy) AllowUnconditionalUpdate() bool {
-	return false
+	stream.Spec.Tags = oldStream.Spec.Tags
+	stream.Spec.DockerImageRepository = oldStream.Spec.DockerImageRepository
+
+	updateObservedGenerationForStatusUpdate(stream, oldStream)
 }
 
 func (StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
@@ -409,13 +542,17 @@ func NewInternalStrategy(strategy Strategy) InternalStrategy {
 	return InternalStrategy{strategy}
 }
 
-func (InternalStrategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s InternalStrategy) PrepareForCreate(obj runtime.Object) {
+	stream := obj.(*api.ImageStream)
+
+	stream.Status.DockerImageRepository = s.dockerImageRepository(stream)
+	stream.Generation = 1
+	for tag, ref := range stream.Spec.Tags {
+		ref.Generation = &stream.Generation
+		stream.Spec.Tags[tag] = ref
+	}
 }
 
-func (InternalStrategy) AllowUnconditionalUpdate() bool {
-	return false
-}
-
-func (InternalStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidateImageStreamUpdate(obj.(*api.ImageStream), old.(*api.ImageStream))
+func (s InternalStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	s.prepareForUpdate(obj, old, false)
 }

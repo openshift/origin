@@ -374,7 +374,7 @@ func TestResolve(t *testing.T) {
 					Value: "mysql:invalid",
 					Resolver: app.UniqueExactOrInexactMatchResolver{
 						Searcher: app.DockerRegistrySearcher{
-							Client: dockerregistry.NewClient(10 * time.Second),
+							Client: dockerregistry.NewClient(10*time.Second, true),
 						},
 					},
 				})},
@@ -432,7 +432,7 @@ func TestDetectSource(t *testing.T) {
 	defer os.RemoveAll(gitLocalDir)
 
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10 * time.Second),
+		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
 	mocks := MockSourceRepositories(t, gitLocalDir)
 	tests := []struct {
@@ -511,7 +511,7 @@ func (r *ExactMatchDockerSearcher) Search(terms ...string) (app.ComponentMatches
 func TestRunAll(t *testing.T) {
 	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10 * time.Second),
+		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
 	tests := []struct {
 		name            string
@@ -1278,7 +1278,7 @@ func PrepareAppConfig(config *AppConfig) (stdout, stderr *bytes.Buffer) {
 		Tester:    dockerfile.NewTester(),
 	}
 	config.dockerSearcher = app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10 * time.Second),
+		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
 	config.imageStreamByAnnotationSearcher = &app.ImageStreamByAnnotationSearcher{
 		Client:            &client.Fake{},
@@ -1301,7 +1301,7 @@ func PrepareAppConfig(config *AppConfig) (stdout, stderr *bytes.Buffer) {
 func TestNewBuildEnvVars(t *testing.T) {
 	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10 * time.Second),
+		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
 
 	tests := []struct {
@@ -1363,7 +1363,7 @@ func TestNewBuildEnvVars(t *testing.T) {
 func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10 * time.Second),
+		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
 
 	tests := []struct {

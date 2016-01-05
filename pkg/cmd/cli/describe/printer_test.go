@@ -24,6 +24,7 @@ import (
 // reason.
 var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&imageapi.DockerImage{}),           // not a top level resource
+	reflect.TypeOf(&imageapi.ImageStreamImport{}),     // normal users don't ever look at these
 	reflect.TypeOf(&buildapi.BuildLog{}),              // just a marker type
 	reflect.TypeOf(&buildapi.BuildLogOptions{}),       // just a marker type
 	reflect.TypeOf(&deployapi.DeploymentLog{}),        // just a marker type

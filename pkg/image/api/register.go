@@ -8,13 +8,14 @@ func init() {
 	api.Scheme.AddKnownTypes("",
 		&Image{},
 		&ImageList{},
+		&DockerImage{},
 		&ImageStream{},
 		&ImageStreamList{},
 		&ImageStreamMapping{},
 		&ImageStreamTag{},
 		&ImageStreamTagList{},
 		&ImageStreamImage{},
-		&DockerImage{},
+		&ImageStreamImport{},
 	)
 }
 
@@ -27,3 +28,4 @@ func (*ImageStreamMapping) IsAnAPIObject() {}
 func (*ImageStreamTag) IsAnAPIObject()     {}
 func (*ImageStreamTagList) IsAnAPIObject() {}
 func (*ImageStreamImage) IsAnAPIObject()   {}
+func (*ImageStreamImport) IsAnAPIObject()  {}

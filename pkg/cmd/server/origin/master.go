@@ -42,11 +42,16 @@ import (
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
+	"github.com/openshift/origin/pkg/dockerregistry"
+	"github.com/openshift/origin/pkg/image/importer"
+	imageimporter "github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
+	"github.com/openshift/origin/pkg/image/registry/imagesecret"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
+	"github.com/openshift/origin/pkg/image/registry/imagestreamimport"
 	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
@@ -377,11 +382,19 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	imageStorage := imageetcd.NewREST(c.EtcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
+	imageStreamSecretsStorage := imagesecret.NewREST(c.ImageStreamSecretClient())
 	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage := imagestreametcd.NewREST(c.EtcdHelper, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage)
 	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
+	importerFn := func(r importer.RepositoryRetriever) imageimporter.Interface {
+		return imageimporter.NewImageStreamImporter(r, c.Options.ImagePolicyConfig.MaxImagesBulkImportedPerRepository, util.NewTokenBucketRateLimiter(2.0, 3))
+	}
+	importerDockerClientFn := func() dockerregistry.Client {
+		return dockerregistry.NewClient(20*time.Second, false)
+	}
+	imageStreamImportStorage := imagestreamimport.NewREST(importerFn, imageStreamRegistry, internalImageStreamStorage, imageStorage, c.ImageStreamImportSecretClient(), importerDockerClientFn)
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
 
@@ -435,12 +448,14 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	)
 
 	storage := map[string]rest.Storage{
-		"images":              imageStorage,
-		"imageStreams":        imageStreamStorage,
-		"imageStreams/status": imageStreamStatusStorage,
-		"imageStreamImages":   imageStreamImageStorage,
-		"imageStreamMappings": imageStreamMappingStorage,
-		"imageStreamTags":     imageStreamTagStorage,
+		"images":               imageStorage,
+		"imageStreams/secrets": imageStreamSecretsStorage,
+		"imageStreams":         imageStreamStorage,
+		"imageStreams/status":  imageStreamStatusStorage,
+		"imageStreamImports":   imageStreamImportStorage,
+		"imageStreamImages":    imageStreamImageStorage,
+		"imageStreamMappings":  imageStreamMappingStorage,
+		"imageStreamTags":      imageStreamTagStorage,
 
 		"deploymentConfigs":         deployConfigStorage.DeploymentConfig,
 		"deploymentConfigs/scale":   deployConfigStorage.Scale,

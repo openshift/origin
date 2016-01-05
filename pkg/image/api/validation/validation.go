@@ -125,8 +125,6 @@ func ValidateImageStreamUpdate(newStream, oldStream *api.ImageStream) fielderror
 func ValidateImageStreamStatusUpdate(newStream, oldStream *api.ImageStream) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
 	result = append(result, validation.ValidateObjectMetaUpdate(&newStream.ObjectMeta, &oldStream.ObjectMeta).Prefix("metadata")...)
-	newStream.Spec.Tags = oldStream.Spec.Tags
-	newStream.Spec.DockerImageRepository = oldStream.Spec.DockerImageRepository
 	return result
 }
 
@@ -184,4 +182,49 @@ func ValidateImageStreamTagUpdate(newIST, oldIST *api.ImageStreamTag) fielderror
 	}
 
 	return result
+}
+
+func ValidateImageStreamImport(isi *api.ImageStreamImport) fielderrors.ValidationErrorList {
+	errs := fielderrors.ValidationErrorList{}
+	for i, spec := range isi.Spec.Images {
+		from := spec.From
+		switch from.Kind {
+		case "DockerImage":
+			if spec.To != nil && len(spec.To.Name) == 0 {
+				errs = append(errs, fielderrors.ValidationErrorList{fielderrors.NewFieldInvalid("to.name", spec.To.Name, "the name of the target tag must be specified")}.PrefixIndex(i)...)
+			}
+			if len(spec.From.Name) == 0 {
+				errs = append(errs, fielderrors.ValidationErrorList{fielderrors.NewFieldRequired("from.name")}.PrefixIndex(i)...)
+			} else {
+				if _, err := api.ParseDockerImageReference(spec.From.Name); err != nil {
+					errs = append(errs, fielderrors.ValidationErrorList{fielderrors.NewFieldInvalid("from.name", spec.From.Name, err.Error())}.PrefixIndex(i)...)
+				}
+			}
+		default:
+			errs = append(errs, fielderrors.ValidationErrorList{fielderrors.NewFieldInvalid("from.kind", from.Kind, "only DockerImage is supported")}.PrefixIndex(i)...)
+		}
+	}
+	errs = errs.Prefix("spec.images")
+
+	if spec := isi.Spec.Repository; spec != nil {
+		from := spec.From
+		switch from.Kind {
+		case "DockerImage":
+			if len(spec.From.Name) == 0 {
+				errs = append(errs, fielderrors.NewFieldRequired("spec.repository.from.name"))
+			} else {
+				if _, err := api.ParseDockerImageReference(spec.From.Name); err != nil {
+					errs = append(errs, fielderrors.NewFieldInvalid("spec.repository.from.name", spec.From.Name, err.Error()))
+				}
+			}
+		default:
+			errs = append(errs, fielderrors.NewFieldInvalid("spec.repository.from.kind", from.Kind, "only DockerImage is supported"))
+		}
+	}
+	if len(isi.Spec.Images) == 0 && isi.Spec.Repository == nil {
+		errs = append(errs, fielderrors.NewFieldInvalid("spec.images", nil, "you must specify at least one image or a repository import"))
+	}
+
+	errs = append(errs, validation.ValidateObjectMeta(&isi.ObjectMeta, true, ValidateImageStreamName).Prefix("metadata")...)
+	return errs
 }

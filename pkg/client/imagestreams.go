@@ -1,12 +1,18 @@
 package client
 
 import (
+	"errors"
+
+	apierrs "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
+
+var ErrImageStreamImportUnsupported = errors.New("the server does not support directly importing images - create an image stream with tags or the dockerImageRepository field set")
 
 // ImageStreamsNamespacer has methods to work with ImageStream resources in a namespace
 type ImageStreamsNamespacer interface {
@@ -22,6 +28,7 @@ type ImageStreamInterface interface {
 	Delete(name string) error
 	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 	UpdateStatus(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
+	Import(isi *imageapi.ImageStreamImport) (*imageapi.ImageStreamImport, error)
 }
 
 // ImageStreamNamespaceGetter exposes methods to get ImageStreams by Namespace
@@ -107,4 +114,31 @@ func (c *imageStreams) UpdateStatus(stream *imageapi.ImageStream) (result *image
 	result = &imageapi.ImageStream{}
 	err = c.r.Put().Namespace(c.ns).Resource("imageStreams").Name(stream.Name).SubResource("status").Body(stream).Do().Into(result)
 	return
+}
+
+// Import makes a call to the server to retrieve information about the requested images or to perform an import. ImageStreamImport
+// will be returned if no actual import was requested (the to fields were not set), or an ImageStream if import was requested.
+func (c *imageStreams) Import(isi *imageapi.ImageStreamImport) (*imageapi.ImageStreamImport, error) {
+	result := &imageapi.ImageStreamImport{}
+	if err := c.r.Post().Namespace(c.ns).Resource("imageStreamImports").Body(isi).Do().Into(result); err != nil {
+		return nil, transformUnsupported(err)
+	}
+	return result, nil
+}
+
+// transformUnsupported converts specific error conditions to unsupported
+func transformUnsupported(err error) error {
+	if err == nil {
+		return nil
+	}
+	if apierrs.IsNotFound(err) {
+		status, ok := err.(kclient.APIStatus)
+		if !ok {
+			return ErrImageStreamImportUnsupported
+		}
+		if status.Status().Details == nil || status.Status().Details.Kind == "" {
+			return ErrImageStreamImportUnsupported
+		}
+	}
+	return err
 }

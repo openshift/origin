@@ -232,11 +232,11 @@ func newISTag(tag string, imageStream *api.ImageStream, image *api.Image) (*api.
 	}
 
 	if image != nil {
-		imageWithMetadata, err := api.ImageWithMetadata(*image)
-		if err != nil {
+		if err := api.ImageWithMetadata(image); err != nil {
 			return nil, err
 		}
-		ist.Image = *imageWithMetadata
+		image.DockerImageManifest = ""
+		ist.Image = *image
 	} else {
 		ist.Image = api.Image{}
 		ist.Image.Name = event.Image

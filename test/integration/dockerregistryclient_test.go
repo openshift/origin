@@ -83,7 +83,7 @@ func retryWhenUnreachable(t *testing.T, f func() error, errorPatterns ...string)
 }
 
 func TestRegistryClientConnect(t *testing.T) {
-	c := dockerregistry.NewClient(10 * time.Second)
+	c := dockerregistry.NewClient(10*time.Second, true)
 	conn, err := c.Connect("docker.io", false)
 	if err != nil {
 		t.Fatal(err)
@@ -110,7 +110,7 @@ func TestRegistryClientConnect(t *testing.T) {
 }
 
 func TestRegistryClientConnectPulpRegistry(t *testing.T) {
-	c := dockerregistry.NewClient(10 * time.Second)
+	c := dockerregistry.NewClient(10*time.Second, true)
 	conn, err := c.Connect(pulpRegistryName, false)
 	if err != nil {
 		t.Fatal(err)
@@ -133,7 +133,7 @@ func TestRegistryClientConnectPulpRegistry(t *testing.T) {
 }
 
 func TestRegistryClientDockerHubV2(t *testing.T) {
-	c := dockerregistry.NewClient(10 * time.Second)
+	c := dockerregistry.NewClient(10*time.Second, true)
 	conn, err := c.Connect(dockerHubV2RegistryName, false)
 	if err != nil {
 		t.Fatal(err)
@@ -153,7 +153,7 @@ func TestRegistryClientDockerHubV2(t *testing.T) {
 }
 
 func TestRegistryClientDockerHubV1(t *testing.T) {
-	c := dockerregistry.NewClient(10 * time.Second)
+	c := dockerregistry.NewClient(10*time.Second, true)
 	// a v1 only path
 	conn, err := c.Connect(dockerHubV1RegistryName, false)
 	if err != nil {
@@ -174,7 +174,7 @@ func TestRegistryClientDockerHubV1(t *testing.T) {
 }
 
 func TestRegistryClientRegistryNotFound(t *testing.T) {
-	conn, err := dockerregistry.NewClient(10*time.Second).Connect("localhost:65000", false)
+	conn, err := dockerregistry.NewClient(10*time.Second, true).Connect("localhost:65000", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestRegistryClientRegistryNotFound(t *testing.T) {
 }
 
 func doTestRegistryClientImage(t *testing.T, registry, version string) {
-	conn, err := dockerregistry.NewClient(10*time.Second).Connect(registry, false)
+	conn, err := dockerregistry.NewClient(10*time.Second, true).Connect(registry, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +234,7 @@ func TestRegistryClientImageV1(t *testing.T) {
 }
 
 func TestRegistryClientQuayIOImage(t *testing.T) {
-	conn, err := dockerregistry.NewClient(10*time.Second).Connect("quay.io", false)
+	conn, err := dockerregistry.NewClient(10*time.Second, true).Connect("quay.io", false)
 	if err != nil {
 		t.Fatal(err)
 	}

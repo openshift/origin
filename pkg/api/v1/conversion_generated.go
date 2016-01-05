@@ -3720,7 +3720,65 @@ func autoconvert_api_Image_To_v1_Image(in *imageapi.Image, out *imageapiv1.Image
 	}
 	out.DockerImageMetadataVersion = in.DockerImageMetadataVersion
 	out.DockerImageManifest = in.DockerImageManifest
+	if in.DockerImageLayers != nil {
+		out.DockerImageLayers = make([]imageapiv1.ImageLayer, len(in.DockerImageLayers))
+		for i := range in.DockerImageLayers {
+			if err := s.Convert(&in.DockerImageLayers[i], &out.DockerImageLayers[i], 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.DockerImageLayers = nil
+	}
 	return nil
+}
+
+func autoconvert_api_ImageImportSpec_To_v1_ImageImportSpec(in *imageapi.ImageImportSpec, out *imageapiv1.ImageImportSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.ImageImportSpec))(in)
+	}
+	if err := convert_api_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
+		return err
+	}
+	if in.To != nil {
+		out.To = new(pkgapiv1.LocalObjectReference)
+		if err := convert_api_LocalObjectReference_To_v1_LocalObjectReference(in.To, out.To, s); err != nil {
+			return err
+		}
+	} else {
+		out.To = nil
+	}
+	if err := convert_api_TagImportPolicy_To_v1_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
+		return err
+	}
+	out.IncludeManifest = in.IncludeManifest
+	return nil
+}
+
+func convert_api_ImageImportSpec_To_v1_ImageImportSpec(in *imageapi.ImageImportSpec, out *imageapiv1.ImageImportSpec, s conversion.Scope) error {
+	return autoconvert_api_ImageImportSpec_To_v1_ImageImportSpec(in, out, s)
+}
+
+func autoconvert_api_ImageImportStatus_To_v1_ImageImportStatus(in *imageapi.ImageImportStatus, out *imageapiv1.ImageImportStatus, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.ImageImportStatus))(in)
+	}
+	out.Tag = in.Tag
+	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+		return err
+	}
+	if in.Image != nil {
+		if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
+			return err
+		}
+	} else {
+		out.Image = nil
+	}
+	return nil
+}
+
+func convert_api_ImageImportStatus_To_v1_ImageImportStatus(in *imageapi.ImageImportStatus, out *imageapiv1.ImageImportStatus, s conversion.Scope) error {
+	return autoconvert_api_ImageImportStatus_To_v1_ImageImportStatus(in, out, s)
 }
 
 func autoconvert_api_ImageList_To_v1_ImageList(in *imageapi.ImageList, out *imageapiv1.ImageList, s conversion.Scope) error {
@@ -3791,6 +3849,96 @@ func autoconvert_api_ImageStreamImage_To_v1_ImageStreamImage(in *imageapi.ImageS
 
 func convert_api_ImageStreamImage_To_v1_ImageStreamImage(in *imageapi.ImageStreamImage, out *imageapiv1.ImageStreamImage, s conversion.Scope) error {
 	return autoconvert_api_ImageStreamImage_To_v1_ImageStreamImage(in, out, s)
+}
+
+func autoconvert_api_ImageStreamImport_To_v1_ImageStreamImport(in *imageapi.ImageStreamImport, out *imageapiv1.ImageStreamImport, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.ImageStreamImport))(in)
+	}
+	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+		return err
+	}
+	if err := convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := convert_api_ImageStreamImportSpec_To_v1_ImageStreamImportSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := convert_api_ImageStreamImportStatus_To_v1_ImageStreamImportStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_api_ImageStreamImport_To_v1_ImageStreamImport(in *imageapi.ImageStreamImport, out *imageapiv1.ImageStreamImport, s conversion.Scope) error {
+	return autoconvert_api_ImageStreamImport_To_v1_ImageStreamImport(in, out, s)
+}
+
+func autoconvert_api_ImageStreamImportSpec_To_v1_ImageStreamImportSpec(in *imageapi.ImageStreamImportSpec, out *imageapiv1.ImageStreamImportSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.ImageStreamImportSpec))(in)
+	}
+	out.Import = in.Import
+	if in.Repository != nil {
+		out.Repository = new(imageapiv1.RepositoryImportSpec)
+		if err := convert_api_RepositoryImportSpec_To_v1_RepositoryImportSpec(in.Repository, out.Repository, s); err != nil {
+			return err
+		}
+	} else {
+		out.Repository = nil
+	}
+	if in.Images != nil {
+		out.Images = make([]imageapiv1.ImageImportSpec, len(in.Images))
+		for i := range in.Images {
+			if err := convert_api_ImageImportSpec_To_v1_ImageImportSpec(&in.Images[i], &out.Images[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Images = nil
+	}
+	return nil
+}
+
+func convert_api_ImageStreamImportSpec_To_v1_ImageStreamImportSpec(in *imageapi.ImageStreamImportSpec, out *imageapiv1.ImageStreamImportSpec, s conversion.Scope) error {
+	return autoconvert_api_ImageStreamImportSpec_To_v1_ImageStreamImportSpec(in, out, s)
+}
+
+func autoconvert_api_ImageStreamImportStatus_To_v1_ImageStreamImportStatus(in *imageapi.ImageStreamImportStatus, out *imageapiv1.ImageStreamImportStatus, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.ImageStreamImportStatus))(in)
+	}
+	if in.Import != nil {
+		out.Import = new(imageapiv1.ImageStream)
+		if err := convert_api_ImageStream_To_v1_ImageStream(in.Import, out.Import, s); err != nil {
+			return err
+		}
+	} else {
+		out.Import = nil
+	}
+	if in.Repository != nil {
+		out.Repository = new(imageapiv1.RepositoryImportStatus)
+		if err := convert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in.Repository, out.Repository, s); err != nil {
+			return err
+		}
+	} else {
+		out.Repository = nil
+	}
+	if in.Images != nil {
+		out.Images = make([]imageapiv1.ImageImportStatus, len(in.Images))
+		for i := range in.Images {
+			if err := convert_api_ImageImportStatus_To_v1_ImageImportStatus(&in.Images[i], &out.Images[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Images = nil
+	}
+	return nil
+}
+
+func convert_api_ImageStreamImportStatus_To_v1_ImageStreamImportStatus(in *imageapi.ImageStreamImportStatus, out *imageapiv1.ImageStreamImportStatus, s conversion.Scope) error {
+	return autoconvert_api_ImageStreamImportStatus_To_v1_ImageStreamImportStatus(in, out, s)
 }
 
 func autoconvert_api_ImageStreamList_To_v1_ImageStreamList(in *imageapi.ImageStreamList, out *imageapiv1.ImageStreamList, s conversion.Scope) error {
@@ -3907,6 +4055,68 @@ func convert_api_ImageStreamTagList_To_v1_ImageStreamTagList(in *imageapi.ImageS
 	return autoconvert_api_ImageStreamTagList_To_v1_ImageStreamTagList(in, out, s)
 }
 
+func autoconvert_api_RepositoryImportSpec_To_v1_RepositoryImportSpec(in *imageapi.RepositoryImportSpec, out *imageapiv1.RepositoryImportSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.RepositoryImportSpec))(in)
+	}
+	if err := convert_api_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
+		return err
+	}
+	if err := convert_api_TagImportPolicy_To_v1_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
+		return err
+	}
+	out.IncludeManifest = in.IncludeManifest
+	return nil
+}
+
+func convert_api_RepositoryImportSpec_To_v1_RepositoryImportSpec(in *imageapi.RepositoryImportSpec, out *imageapiv1.RepositoryImportSpec, s conversion.Scope) error {
+	return autoconvert_api_RepositoryImportSpec_To_v1_RepositoryImportSpec(in, out, s)
+}
+
+func autoconvert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in *imageapi.RepositoryImportStatus, out *imageapiv1.RepositoryImportStatus, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.RepositoryImportStatus))(in)
+	}
+	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+		return err
+	}
+	if in.Images != nil {
+		out.Images = make([]imageapiv1.ImageImportStatus, len(in.Images))
+		for i := range in.Images {
+			if err := convert_api_ImageImportStatus_To_v1_ImageImportStatus(&in.Images[i], &out.Images[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Images = nil
+	}
+	if in.AdditionalTags != nil {
+		out.AdditionalTags = make([]string, len(in.AdditionalTags))
+		for i := range in.AdditionalTags {
+			out.AdditionalTags[i] = in.AdditionalTags[i]
+		}
+	} else {
+		out.AdditionalTags = nil
+	}
+	return nil
+}
+
+func convert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in *imageapi.RepositoryImportStatus, out *imageapiv1.RepositoryImportStatus, s conversion.Scope) error {
+	return autoconvert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in, out, s)
+}
+
+func autoconvert_api_TagImportPolicy_To_v1_TagImportPolicy(in *imageapi.TagImportPolicy, out *imageapiv1.TagImportPolicy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.TagImportPolicy))(in)
+	}
+	out.Insecure = in.Insecure
+	return nil
+}
+
+func convert_api_TagImportPolicy_To_v1_TagImportPolicy(in *imageapi.TagImportPolicy, out *imageapiv1.TagImportPolicy, s conversion.Scope) error {
+	return autoconvert_api_TagImportPolicy_To_v1_TagImportPolicy(in, out, s)
+}
+
 func autoconvert_v1_Image_To_api_Image(in *imageapiv1.Image, out *imageapi.Image, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*imageapiv1.Image))(in)
@@ -3923,7 +4133,65 @@ func autoconvert_v1_Image_To_api_Image(in *imageapiv1.Image, out *imageapi.Image
 	}
 	out.DockerImageMetadataVersion = in.DockerImageMetadataVersion
 	out.DockerImageManifest = in.DockerImageManifest
+	if in.DockerImageLayers != nil {
+		out.DockerImageLayers = make([]imageapi.ImageLayer, len(in.DockerImageLayers))
+		for i := range in.DockerImageLayers {
+			if err := s.Convert(&in.DockerImageLayers[i], &out.DockerImageLayers[i], 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.DockerImageLayers = nil
+	}
 	return nil
+}
+
+func autoconvert_v1_ImageImportSpec_To_api_ImageImportSpec(in *imageapiv1.ImageImportSpec, out *imageapi.ImageImportSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.ImageImportSpec))(in)
+	}
+	if err := convert_v1_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
+		return err
+	}
+	if in.To != nil {
+		out.To = new(pkgapi.LocalObjectReference)
+		if err := convert_v1_LocalObjectReference_To_api_LocalObjectReference(in.To, out.To, s); err != nil {
+			return err
+		}
+	} else {
+		out.To = nil
+	}
+	if err := convert_v1_TagImportPolicy_To_api_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
+		return err
+	}
+	out.IncludeManifest = in.IncludeManifest
+	return nil
+}
+
+func convert_v1_ImageImportSpec_To_api_ImageImportSpec(in *imageapiv1.ImageImportSpec, out *imageapi.ImageImportSpec, s conversion.Scope) error {
+	return autoconvert_v1_ImageImportSpec_To_api_ImageImportSpec(in, out, s)
+}
+
+func autoconvert_v1_ImageImportStatus_To_api_ImageImportStatus(in *imageapiv1.ImageImportStatus, out *imageapi.ImageImportStatus, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.ImageImportStatus))(in)
+	}
+	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+		return err
+	}
+	if in.Image != nil {
+		if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
+			return err
+		}
+	} else {
+		out.Image = nil
+	}
+	out.Tag = in.Tag
+	return nil
+}
+
+func convert_v1_ImageImportStatus_To_api_ImageImportStatus(in *imageapiv1.ImageImportStatus, out *imageapi.ImageImportStatus, s conversion.Scope) error {
+	return autoconvert_v1_ImageImportStatus_To_api_ImageImportStatus(in, out, s)
 }
 
 func autoconvert_v1_ImageList_To_api_ImageList(in *imageapiv1.ImageList, out *imageapi.ImageList, s conversion.Scope) error {
@@ -3994,6 +4262,96 @@ func autoconvert_v1_ImageStreamImage_To_api_ImageStreamImage(in *imageapiv1.Imag
 
 func convert_v1_ImageStreamImage_To_api_ImageStreamImage(in *imageapiv1.ImageStreamImage, out *imageapi.ImageStreamImage, s conversion.Scope) error {
 	return autoconvert_v1_ImageStreamImage_To_api_ImageStreamImage(in, out, s)
+}
+
+func autoconvert_v1_ImageStreamImport_To_api_ImageStreamImport(in *imageapiv1.ImageStreamImport, out *imageapi.ImageStreamImport, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.ImageStreamImport))(in)
+	}
+	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+		return err
+	}
+	if err := convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := convert_v1_ImageStreamImportSpec_To_api_ImageStreamImportSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := convert_v1_ImageStreamImportStatus_To_api_ImageStreamImportStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_v1_ImageStreamImport_To_api_ImageStreamImport(in *imageapiv1.ImageStreamImport, out *imageapi.ImageStreamImport, s conversion.Scope) error {
+	return autoconvert_v1_ImageStreamImport_To_api_ImageStreamImport(in, out, s)
+}
+
+func autoconvert_v1_ImageStreamImportSpec_To_api_ImageStreamImportSpec(in *imageapiv1.ImageStreamImportSpec, out *imageapi.ImageStreamImportSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.ImageStreamImportSpec))(in)
+	}
+	out.Import = in.Import
+	if in.Repository != nil {
+		out.Repository = new(imageapi.RepositoryImportSpec)
+		if err := convert_v1_RepositoryImportSpec_To_api_RepositoryImportSpec(in.Repository, out.Repository, s); err != nil {
+			return err
+		}
+	} else {
+		out.Repository = nil
+	}
+	if in.Images != nil {
+		out.Images = make([]imageapi.ImageImportSpec, len(in.Images))
+		for i := range in.Images {
+			if err := convert_v1_ImageImportSpec_To_api_ImageImportSpec(&in.Images[i], &out.Images[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Images = nil
+	}
+	return nil
+}
+
+func convert_v1_ImageStreamImportSpec_To_api_ImageStreamImportSpec(in *imageapiv1.ImageStreamImportSpec, out *imageapi.ImageStreamImportSpec, s conversion.Scope) error {
+	return autoconvert_v1_ImageStreamImportSpec_To_api_ImageStreamImportSpec(in, out, s)
+}
+
+func autoconvert_v1_ImageStreamImportStatus_To_api_ImageStreamImportStatus(in *imageapiv1.ImageStreamImportStatus, out *imageapi.ImageStreamImportStatus, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.ImageStreamImportStatus))(in)
+	}
+	if in.Import != nil {
+		out.Import = new(imageapi.ImageStream)
+		if err := convert_v1_ImageStream_To_api_ImageStream(in.Import, out.Import, s); err != nil {
+			return err
+		}
+	} else {
+		out.Import = nil
+	}
+	if in.Repository != nil {
+		out.Repository = new(imageapi.RepositoryImportStatus)
+		if err := convert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus(in.Repository, out.Repository, s); err != nil {
+			return err
+		}
+	} else {
+		out.Repository = nil
+	}
+	if in.Images != nil {
+		out.Images = make([]imageapi.ImageImportStatus, len(in.Images))
+		for i := range in.Images {
+			if err := convert_v1_ImageImportStatus_To_api_ImageImportStatus(&in.Images[i], &out.Images[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Images = nil
+	}
+	return nil
+}
+
+func convert_v1_ImageStreamImportStatus_To_api_ImageStreamImportStatus(in *imageapiv1.ImageStreamImportStatus, out *imageapi.ImageStreamImportStatus, s conversion.Scope) error {
+	return autoconvert_v1_ImageStreamImportStatus_To_api_ImageStreamImportStatus(in, out, s)
 }
 
 func autoconvert_v1_ImageStreamList_To_api_ImageStreamList(in *imageapiv1.ImageStreamList, out *imageapi.ImageStreamList, s conversion.Scope) error {
@@ -4107,6 +4465,68 @@ func autoconvert_v1_ImageStreamTagList_To_api_ImageStreamTagList(in *imageapiv1.
 
 func convert_v1_ImageStreamTagList_To_api_ImageStreamTagList(in *imageapiv1.ImageStreamTagList, out *imageapi.ImageStreamTagList, s conversion.Scope) error {
 	return autoconvert_v1_ImageStreamTagList_To_api_ImageStreamTagList(in, out, s)
+}
+
+func autoconvert_v1_RepositoryImportSpec_To_api_RepositoryImportSpec(in *imageapiv1.RepositoryImportSpec, out *imageapi.RepositoryImportSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.RepositoryImportSpec))(in)
+	}
+	if err := convert_v1_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
+		return err
+	}
+	if err := convert_v1_TagImportPolicy_To_api_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
+		return err
+	}
+	out.IncludeManifest = in.IncludeManifest
+	return nil
+}
+
+func convert_v1_RepositoryImportSpec_To_api_RepositoryImportSpec(in *imageapiv1.RepositoryImportSpec, out *imageapi.RepositoryImportSpec, s conversion.Scope) error {
+	return autoconvert_v1_RepositoryImportSpec_To_api_RepositoryImportSpec(in, out, s)
+}
+
+func autoconvert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus(in *imageapiv1.RepositoryImportStatus, out *imageapi.RepositoryImportStatus, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.RepositoryImportStatus))(in)
+	}
+	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+		return err
+	}
+	if in.Images != nil {
+		out.Images = make([]imageapi.ImageImportStatus, len(in.Images))
+		for i := range in.Images {
+			if err := convert_v1_ImageImportStatus_To_api_ImageImportStatus(&in.Images[i], &out.Images[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Images = nil
+	}
+	if in.AdditionalTags != nil {
+		out.AdditionalTags = make([]string, len(in.AdditionalTags))
+		for i := range in.AdditionalTags {
+			out.AdditionalTags[i] = in.AdditionalTags[i]
+		}
+	} else {
+		out.AdditionalTags = nil
+	}
+	return nil
+}
+
+func convert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus(in *imageapiv1.RepositoryImportStatus, out *imageapi.RepositoryImportStatus, s conversion.Scope) error {
+	return autoconvert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus(in, out, s)
+}
+
+func autoconvert_v1_TagImportPolicy_To_api_TagImportPolicy(in *imageapiv1.TagImportPolicy, out *imageapi.TagImportPolicy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.TagImportPolicy))(in)
+	}
+	out.Insecure = in.Insecure
+	return nil
+}
+
+func convert_v1_TagImportPolicy_To_api_TagImportPolicy(in *imageapiv1.TagImportPolicy, out *imageapi.TagImportPolicy, s conversion.Scope) error {
+	return autoconvert_v1_TagImportPolicy_To_api_TagImportPolicy(in, out, s)
 }
 
 func autoconvert_api_OAuthAccessToken_To_v1_OAuthAccessToken(in *oauthapi.OAuthAccessToken, out *oauthapiv1.OAuthAccessToken, s conversion.Scope) error {
@@ -7981,10 +8401,15 @@ func init() {
 		autoconvert_api_IdentityList_To_v1_IdentityList,
 		autoconvert_api_Identity_To_v1_Identity,
 		autoconvert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger,
+		autoconvert_api_ImageImportSpec_To_v1_ImageImportSpec,
+		autoconvert_api_ImageImportStatus_To_v1_ImageImportStatus,
 		autoconvert_api_ImageList_To_v1_ImageList,
 		autoconvert_api_ImageSourcePath_To_v1_ImageSourcePath,
 		autoconvert_api_ImageSource_To_v1_ImageSource,
 		autoconvert_api_ImageStreamImage_To_v1_ImageStreamImage,
+		autoconvert_api_ImageStreamImportSpec_To_v1_ImageStreamImportSpec,
+		autoconvert_api_ImageStreamImportStatus_To_v1_ImageStreamImportStatus,
+		autoconvert_api_ImageStreamImport_To_v1_ImageStreamImport,
 		autoconvert_api_ImageStreamList_To_v1_ImageStreamList,
 		autoconvert_api_ImageStreamMapping_To_v1_ImageStreamMapping,
 		autoconvert_api_ImageStreamSpec_To_v1_ImageStreamSpec,
@@ -8030,6 +8455,8 @@ func init() {
 		autoconvert_api_Project_To_v1_Project,
 		autoconvert_api_RBDVolumeSource_To_v1_RBDVolumeSource,
 		autoconvert_api_RecreateDeploymentStrategyParams_To_v1_RecreateDeploymentStrategyParams,
+		autoconvert_api_RepositoryImportSpec_To_v1_RepositoryImportSpec,
+		autoconvert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus,
 		autoconvert_api_ResourceAccessReviewResponse_To_v1_ResourceAccessReviewResponse,
 		autoconvert_api_ResourceAccessReview_To_v1_ResourceAccessReview,
 		autoconvert_api_ResourceRequirements_To_v1_ResourceRequirements,
@@ -8055,6 +8482,7 @@ func init() {
 		autoconvert_api_SubjectAccessReview_To_v1_SubjectAccessReview,
 		autoconvert_api_TCPSocketAction_To_v1_TCPSocketAction,
 		autoconvert_api_TLSConfig_To_v1_TLSConfig,
+		autoconvert_api_TagImportPolicy_To_v1_TagImportPolicy,
 		autoconvert_api_TemplateList_To_v1_TemplateList,
 		autoconvert_api_Template_To_v1_Template,
 		autoconvert_api_UserIdentityMapping_To_v1_UserIdentityMapping,
@@ -8139,10 +8567,15 @@ func init() {
 		autoconvert_v1_IdentityList_To_api_IdentityList,
 		autoconvert_v1_Identity_To_api_Identity,
 		autoconvert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger,
+		autoconvert_v1_ImageImportSpec_To_api_ImageImportSpec,
+		autoconvert_v1_ImageImportStatus_To_api_ImageImportStatus,
 		autoconvert_v1_ImageList_To_api_ImageList,
 		autoconvert_v1_ImageSourcePath_To_api_ImageSourcePath,
 		autoconvert_v1_ImageSource_To_api_ImageSource,
 		autoconvert_v1_ImageStreamImage_To_api_ImageStreamImage,
+		autoconvert_v1_ImageStreamImportSpec_To_api_ImageStreamImportSpec,
+		autoconvert_v1_ImageStreamImportStatus_To_api_ImageStreamImportStatus,
+		autoconvert_v1_ImageStreamImport_To_api_ImageStreamImport,
 		autoconvert_v1_ImageStreamList_To_api_ImageStreamList,
 		autoconvert_v1_ImageStreamMapping_To_api_ImageStreamMapping,
 		autoconvert_v1_ImageStreamSpec_To_api_ImageStreamSpec,
@@ -8188,6 +8621,8 @@ func init() {
 		autoconvert_v1_Project_To_api_Project,
 		autoconvert_v1_RBDVolumeSource_To_api_RBDVolumeSource,
 		autoconvert_v1_RecreateDeploymentStrategyParams_To_api_RecreateDeploymentStrategyParams,
+		autoconvert_v1_RepositoryImportSpec_To_api_RepositoryImportSpec,
+		autoconvert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus,
 		autoconvert_v1_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse,
 		autoconvert_v1_ResourceAccessReview_To_api_ResourceAccessReview,
 		autoconvert_v1_ResourceRequirements_To_api_ResourceRequirements,
@@ -8213,6 +8648,7 @@ func init() {
 		autoconvert_v1_SubjectAccessReview_To_api_SubjectAccessReview,
 		autoconvert_v1_TCPSocketAction_To_api_TCPSocketAction,
 		autoconvert_v1_TLSConfig_To_api_TLSConfig,
+		autoconvert_v1_TagImportPolicy_To_api_TagImportPolicy,
 		autoconvert_v1_TemplateList_To_api_TemplateList,
 		autoconvert_v1_Template_To_api_Template,
 		autoconvert_v1_UserIdentityMapping_To_api_UserIdentityMapping,

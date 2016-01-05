@@ -79,3 +79,15 @@ func (c *FakeImageStreams) UpdateStatus(inObj *imageapi.ImageStream) (result *im
 
 	return obj.(*imageapi.ImageStream), err
 }
+
+func (c *FakeImageStreams) Import(inObj *imageapi.ImageStreamImport) (*imageapi.ImageStreamImport, error) {
+	action := ktestclient.CreateActionImpl{}
+	action.Verb = "create"
+	action.Resource = "imagestreamimports"
+	action.Object = inObj
+	obj, err := c.Fake.Invokes(action, inObj)
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*imageapi.ImageStreamImport), nil
+}

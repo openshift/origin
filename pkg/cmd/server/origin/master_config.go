@@ -511,6 +511,16 @@ func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, *kclient.Clien
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
+// ImageStreamSecretClient returns the client capable of retrieving secrets for an image secret wrapper
+func (c *MasterConfig) ImageStreamSecretClient() *kclient.Client {
+	return c.PrivilegedLoopbackKubernetesClient
+}
+
+// ImageStreamImportSecretClient returns the client capable of retrieving image secrets for a namespace
+func (c *MasterConfig) ImageStreamImportSecretClient() *osclient.Client {
+	return c.PrivilegedLoopbackOpenShiftClient
+}
+
 // WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.
 func (c *MasterConfig) WebConsoleEnabled() bool {
 	return c.Options.AssetConfig != nil && !c.Options.DisabledFeatures.Has(configapi.FeatureWebConsole)
