@@ -8,21 +8,6 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/exec"
 )
 
-var vsctlPath, ofctlPath string
-
-func init() {
-	var err error
-
-	vsctlPath, err = exec.LookPath("ovs-vsctl")
-	if err != nil {
-		panic("ovs is not installed")
-	}
-	ofctlPath, err = exec.LookPath("ovs-ofctl")
-	if err != nil {
-		panic("ovs is not installed")
-	}
-}
-
 type Transaction struct {
 	bridge string
 	err    error
@@ -40,18 +25,24 @@ func (tx *Transaction) exec(cmd string, args ...string) (string, error) {
 		return "", tx.err
 	}
 
+	cmdpath, err := exec.LookPath(cmd)
+	if err != nil {
+		tx.err = fmt.Errorf("OVS is not installed")
+		return "", tx.err
+	}
+
 	var output string
-	output, tx.err = exec.Exec(cmd, args...)
+	output, tx.err = exec.Exec(cmdpath, args...)
 	return output, tx.err
 }
 
 func (tx *Transaction) vsctlExec(args ...string) (string, error) {
-	return tx.exec(vsctlPath, args...)
+	return tx.exec("ovs-vsctl", args...)
 }
 
 func (tx *Transaction) ofctlExec(args ...string) (string, error) {
 	args = append([]string{"-O", "OpenFlow13"}, args...)
-	return tx.exec(ofctlPath, args...)
+	return tx.exec("ovs-ofctl", args...)
 }
 
 // AddBridge creates the bridge associated with the transaction, optionally setting

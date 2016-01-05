@@ -2,23 +2,16 @@
 package ipcmd
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/openshift/openshift-sdn/pkg/exec"
 )
 
-var ipcmdPath string
 var addressRegexp *regexp.Regexp
 
 func init() {
-	var err error
-
-	ipcmdPath, err = exec.LookPath("ip")
-	if err != nil {
-		panic("ip is not installed")
-	}
-
 	addressRegexp = regexp.MustCompile("inet ([0-9.]*/[0-9]*) ")
 }
 
@@ -36,6 +29,12 @@ func NewTransaction(link string) *Transaction {
 
 func (tx *Transaction) exec(args []string) (string, error) {
 	if tx.err != nil {
+		return "", tx.err
+	}
+
+	ipcmdPath, err := exec.LookPath("ip")
+	if err != nil {
+		tx.err = fmt.Errorf("ip is not installed")
 		return "", tx.err
 	}
 

@@ -7,16 +7,17 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/exec"
 )
 
-// Using a global variable initializer ensures this runs before ipcmd.go's init()
-var dummy = setTestMode()
-
-func setTestMode() bool {
+func normalSetup() {
 	exec.SetTestMode()
 	exec.AddTestProgram("/sbin/ip")
-	return true
+}
+
+func missingSetup() {
+	exec.SetTestMode()
 }
 
 func TestGetAddresses(t *testing.T) {
+	normalSetup()
 	exec.AddTestResult("/sbin/ip addr show dev lo", `1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default 
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
     inet 127.0.0.1/8 scope host lo
@@ -81,6 +82,7 @@ func TestGetRoutes(t *testing.T) {
 		l2 = "1.2.3.4 via 192.168.1.1  proto static  metric 10 "
 		l3 = "192.168.1.0/24  proto kernel  scope link  src 192.168.1.15 "
 	)
+	normalSetup()
 	exec.AddTestResult("/sbin/ip route show dev wlp3s0", l1+"\n"+l2+"\n"+l3+"\n", nil)
 	itx := NewTransaction("wlp3s0")
 	routes, err := itx.GetRoutes()
@@ -117,6 +119,7 @@ func TestGetRoutes(t *testing.T) {
 }
 
 func TestErrorHandling(t *testing.T) {
+	normalSetup()
 	exec.AddTestResult("/sbin/ip link del dummy0", "", fmt.Errorf("Device \"%s\" does not exist", "dummy0"))
 	itx := NewTransaction("dummy0")
 	itx.DeleteLink()
@@ -145,5 +148,18 @@ func TestErrorHandling(t *testing.T) {
 	err = itx.EndTransaction()
 	if err == nil {
 		t.Fatalf("Failed to get expected error")
+	}
+}
+
+func TestIPMissing(t *testing.T) {
+	missingSetup()
+	itx := NewTransaction("dummy0")
+	itx.AddLink("type", "dummy")
+	err := itx.EndTransaction()
+	if err == nil {
+		t.Fatalf("Unexpectedly did not get error")
+	}
+	if err.Error() != "ip is not installed" {
+		t.Fatalf("Got wrong error: %v", err)
 	}
 }
