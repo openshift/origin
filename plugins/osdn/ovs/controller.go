@@ -193,7 +193,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	// Table 3; incoming from vxlan
 	otx.AddFlow("table=3, priority=200, ip, nw_dst=%s, actions=output:2", localSubnetGateway)
 	if c.multitenant {
-		otx.AddFlow("table=3, priority=100, ip, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[], goto_table:7", localSubnetCIDR)
+		otx.AddFlow("table=3, priority=100, ip, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[], goto_table:6", localSubnetCIDR)
 	} else {
 		otx.AddFlow("table=3, priority=100, ip, nw_dst=%s, actions=goto_table:9", localSubnetCIDR)
 	}
