@@ -6,6 +6,7 @@ import (
 	_ "github.com/openshift/origin/pkg/build/admission"
 	_ "github.com/openshift/origin/pkg/project/admission/lifecycle"
 	_ "github.com/openshift/origin/pkg/project/admission/nodeenv"
+	_ "github.com/openshift/origin/pkg/project/admission/requestlimit"
 	_ "github.com/openshift/origin/pkg/security/admission"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/admit"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/exec"

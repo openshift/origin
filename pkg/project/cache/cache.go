@@ -23,7 +23,7 @@ func NewProjectCache(client client.NamespaceInterface, defaultNodeSelector strin
 
 type ProjectCache struct {
 	Client              client.NamespaceInterface
-	Store               cache.Store
+	Store               cache.Indexer
 	DefaultNodeSelector string
 }
 
@@ -80,7 +80,7 @@ func (p *ProjectCache) GetNodeSelectorMap(namespace *kapi.Namespace) (map[string
 
 // Run builds the store that backs this cache and runs the backing reflector
 func (c *ProjectCache) Run() {
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
+	store := NewCacheStore(cache.MetaNamespaceKeyFunc)
 	reflector := cache.NewReflector(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
@@ -104,10 +104,23 @@ func (c *ProjectCache) Running() bool {
 }
 
 // NewFake is used for testing purpose only
-func NewFake(c client.NamespaceInterface, store cache.Store, defaultNodeSelector string) *ProjectCache {
+func NewFake(c client.NamespaceInterface, store cache.Indexer, defaultNodeSelector string) *ProjectCache {
 	return &ProjectCache{
 		Client:              c,
 		Store:               store,
 		DefaultNodeSelector: defaultNodeSelector,
 	}
+}
+
+// NewCacheStore creates an Indexer store with the given key function
+func NewCacheStore(keyFn cache.KeyFunc) cache.Indexer {
+	return cache.NewIndexer(keyFn, cache.Indexers{
+		"requester": indexNamespaceByRequester,
+	})
+}
+
+// indexNamespaceByRequester returns the requester for a given namespace object as an index value
+func indexNamespaceByRequester(obj interface{}) ([]string, error) {
+	requester := obj.(*kapi.Namespace).Annotations[projectapi.ProjectRequester]
+	return []string{requester}, nil
 }
