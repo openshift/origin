@@ -1,3 +1,6 @@
+'use strict';
+/* jshint unused:false */
+
 require('jasmine-beforeall');
 var h = require('../helpers.js');
 
@@ -8,7 +11,7 @@ var goToAddToProjectPage = function(projectName) {
   expect(element(by.cssContainingText('h1', "Create Using a Template")).isPresent()).toBe(true);
   expect(element(by.model('from_source_url')).isPresent()).toBe(true);
   expect(element(by.cssContainingText('.catalog h3 > a', "ruby-helloworld-sample")).isPresent()).toBe(true);
-}
+};
 
 var goToCreateProjectPage = function() {
   h.goToPage('/createProject');
@@ -16,7 +19,7 @@ var goToCreateProjectPage = function() {
   expect(element(by.model('name')).isPresent()).toBe(true);
   expect(element(by.model('displayName')).isPresent()).toBe(true);
   expect(element(by.model('description')).isPresent()).toBe(true);
-}
+};
 
 var requestCreateFromSource = function(projectName, sourceUrl) {
   var uri = '/project/' + projectName + '/create';
@@ -25,7 +28,7 @@ var requestCreateFromSource = function(projectName, sourceUrl) {
   var nextButton = element(by.buttonText('Next'));
   browser.wait(protractor.ExpectedConditions.elementToBeClickable(nextButton), 2000);
   nextButton.click();
-}
+};
 
 var requestCreateFromTemplate = function(projectName, templateName) {
   var uri = '/project/' + projectName + '/create';
@@ -33,7 +36,7 @@ var requestCreateFromTemplate = function(projectName, templateName) {
   var template = element(by.cssContainingText('.catalog h3 > a', templateName));
   expect(template.isPresent()).toBe(true);
   template.click();
-}
+};
 
 var attachBuilderImageToSource = function(projectName, builderImageName) {
   var uri = '/project/' + projectName + '/catalog/images';
@@ -42,7 +45,7 @@ var attachBuilderImageToSource = function(projectName, builderImageName) {
   var builderImageLink = element(by.cssContainingText('h3 > a', builderImageName));
   expect(builderImageLink.isPresent()).toBe(true);
   builderImageLink.click();
-}
+};
 
 var createFromSource = function(projectName, builderImageName, appName) {
   var uri = '/project/' + projectName + '/create/fromimage';
@@ -58,7 +61,7 @@ var createFromSource = function(projectName, builderImageName, appName) {
   appNameInput.clear();
   appNameInput.sendKeys(appName);
   h.clickAndGo('Create', '/project/' + projectName + '/overview');
-}
+};
 
 var createFromTemplate = function(projectName, templateName, parameterNames, labelNames) {
   var uri = '/project/' + projectName + '/create/fromtemplate';
@@ -68,41 +71,42 @@ var createFromTemplate = function(projectName, templateName, parameterNames, lab
   expect(element(by.cssContainingText('h2', "Parameters")).isPresent()).toBe(true);
   expect(element(by.cssContainingText('h2', "Labels")).isPresent()).toBe(true);
   if (parameterNames) {
-    for (i = 0; i < parameterNames.length; i++) {
-      expect(element(by.cssContainingText('.env-variable-list label.key', parameterNames[i])).isPresent()).toBe(true);
-    }
+    parameterNames.forEach(function(val) {
+      expect(element(by.cssContainingText('.env-variable-list label.key', val)).isPresent()).toBe(true);
+    });
   }
   if (labelNames) {
-    for (i = 0; i < labelNames.length; i++) {
-      expect(element(by.cssContainingText('.label-list span.key', labelNames[i])).isPresent()).toBe(true);
-    }
+    labelNames.forEach(function(val) {
+      expect(element(by.cssContainingText('.label-list span.key', val)).isPresent()).toBe(true);
+    });
   }
   h.clickAndGo('Create', '/project/' + projectName + '/overview');
-}
+};
 
 var checkServiceCreated = function(projectName, serviceName) {
-  var uri = '/project/' + projectName + '/overview';
-  h.goToPage(uri);
+  h.goToPage('/project/' + projectName + '/overview');
   h.waitForPresence('.component .service', serviceName, 10000);
-  var uri = '/project/' + projectName + '/browse/services';
-  h.goToPage(uri);
+  h.goToPage('/project/' + projectName + '/browse/services');
   h.waitForPresence('h3', serviceName, 10000);
-}
+};
 
 var checkProjectSettings = function(projectName, displayName, description) {
   var uri = '/project/' + projectName + '/settings';
   h.goToPage(uri);
-  expect(element.all(by.css("dl > dd")).get(0).getText()).toEqual(projectName);
-  expect(element.all(by.css("dl > dd")).get(1).getText()).toEqual(displayName);
-  expect(element.all(by.css("dl > dd")).get(2).getText()).toEqual(description);
-}
+  expect(element(by.css('.project-name')).getText()).toEqual(projectName);
+  expect(element(by.css('.project-display-name')).getText()).toEqual(displayName);
+  expect(element(by.css('.project-description')).getText()).toEqual(description);
+};
 
 
 describe('', function() {
+
   afterAll(function(){
     h.afterAllTeardown();
   });
+
   describe('authenticated e2e-user', function() {
+
     beforeEach(function() {
       h.commonSetup();
       h.login();
@@ -113,8 +117,11 @@ describe('', function() {
     });
 
     describe('new project', function() {
+
       describe('when creating a new project', function() {
+
         it('should be able to show the create project page', goToCreateProjectPage);
+
         var timestamp = (new Date()).getTime();
         var project = {
           name:        'console-test-project-' + timestamp,
@@ -184,10 +191,12 @@ describe('', function() {
 
         it('should delete a project', function() {
           h.goToPage('/project/' + project['name'] + '/settings');
-          element(by.css(".action-button .fa-trash-o")).click();
+          element(by.css('.resource-actions-dropdown')).click();
+          element(by.css('.button-delete')).click();
           element(by.cssContainingText(".modal-dialog .btn", "Delete")).click();
           h.waitForPresence(".alert-success", "marked for deletion");
         });
+
   /*
         describe('when using console-integration-test-project', function() {
           describe('when adding to project', function() {
@@ -226,7 +235,7 @@ describe('', function() {
             });
           });
         });
-  */      
+  */
       });
     });
   });

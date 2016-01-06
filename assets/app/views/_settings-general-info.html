@@ -1,0 +1,104 @@
+<h3>General information</h3>
+
+
+<div column ng-if="!show.editing">
+  <div row mobile="column">
+    <div flex><strong>Name:</strong></div>
+    <div flex grow="4" class="project-name">{{projectName}}</div>
+  </div>
+  <div row mobile="column">
+    <div flex><strong>Display Name:</strong></div>
+    <div row flex grow="4">
+      <div
+        class="project-display-name"
+        ng-if="project | displayName: true">
+        {{project | displayName: true}}
+      </div>
+      <div
+        class="project-display-name no-display-name"
+        ng-if="!(project | displayName: true)">
+        <em>No display name</em>
+      </div>
+    </div>
+  </div>
+  <div row mobile="column">
+    <div flex><strong>Description:</strong></div>
+    <div row flex grow="4">
+      <div
+        ng-if="project | description">
+        <truncate-long-text
+          class="project-description"
+          content="project | description"
+          limit="1024"
+          use-word-boundary="true"></truncate-long-text>
+      </div>
+      <div
+        ng-if="!(project | description)">
+        <em>No description</em>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<form
+  name="editForm"
+  novalidate ng-if="show.editing">
+  <div row>
+    <div flex><strong>Name:</strong></div>
+    <div flex grow="4">{{projectName}}</div>
+  </div>
+  <div
+    row
+    class='form-group'
+    style="margin-top: 10px">
+    <div flex>
+      <label for="settings_display_name">
+        <strong>Display name: </strong>
+      </label>
+    </div>
+
+    <div flex grow="2">
+      <input id="settings_display_name"
+             class="form-control"
+             type="text"
+             name="settings_display_name"
+             placeholder="project display name"
+             ng-model="editableFields.displayName">
+    </div>
+    <div flex grow="2"></div>
+  </div>
+  <div
+    row
+    class='form-group'>
+    <div flex>
+      <label for="settings_description">
+        <strong>Description: </strong>
+      </label>
+    </div>
+    <div flex grow="2">
+      <textarea
+        id="settings_description"
+        class="form-control"
+        name="settings_description"
+        placeholder="project description"
+        ng-model="editableFields.description"></textarea>
+    </div>
+    <div flex grow="2"></div>
+  </div>
+  <div row>
+    <div flex></div>
+    <div flex grow="2">
+      <button
+        class="btn btn-default"
+        ng-click="update()"
+        ng-disabled="editForm.$pristine"
+        >Save</button>
+      <button
+        class="btn btn-default"
+        ng-click="cancel()">Cancel</button>
+    </div>
+    <div flex grow="2"></div>
+  </div>
+</form>
