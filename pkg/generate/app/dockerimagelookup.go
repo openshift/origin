@@ -63,7 +63,7 @@ func (r DockerClientSearcher) Search(terms ...string) (ComponentMatches, error) 
 				termMatches = append(termMatches, matches...)
 			case ErrNoMatch:
 			default:
-				return nil, err
+				glog.V(5).Infof("An error occurred searching remote registry for %q: %v", ref.String(), err)
 			}
 		}
 
