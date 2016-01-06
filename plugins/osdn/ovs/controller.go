@@ -242,6 +242,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	defer deleteLocalSubnetRoute(TUN, localSubnetCIDR)
 	itx.SetLink("up")
 	itx.AddRoute(clusterNetworkCIDR, "proto", "kernel", "scope", "link")
+	itx.AddRoute(servicesNetworkCIDR)
 	err = itx.EndTransaction()
 	if err != nil {
 		return err
