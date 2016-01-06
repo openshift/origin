@@ -70,6 +70,7 @@ add_ovs_flows() {
 
 del_ovs_flows() {
     ovs-ofctl -O OpenFlow13 del-flows br0 "ip,nw_dst=${ipaddr}"
+    ovs-ofctl -O OpenFlow13 del-flows br0 "ip,nw_src=${ipaddr}"
     ovs-ofctl -O OpenFlow13 del-flows br0 "arp,nw_dst=${ipaddr}"
 }
 
