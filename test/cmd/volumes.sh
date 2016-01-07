@@ -7,7 +7,9 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
 (
@@ -17,6 +19,7 @@ os::log::install_errexit
 ) &>/dev/null
 
 
+os::test::junit::declare_suite_start "cmd/volumes"
 # This test validates the 'volume' command
 
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.yaml'
@@ -50,3 +53,5 @@ os::cmd::expect_success 'oc set volumes dc/test-deployment-config --list'
 
 os::cmd::expect_success 'oc delete dc/test-deployment-config'
 echo "volumes: ok"
+os::test::junit::declare_suite_end
+

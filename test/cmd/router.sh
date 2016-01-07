@@ -7,7 +7,9 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
 (
@@ -20,6 +22,7 @@ os::log::install_errexit
 defaultimage="openshift/origin-\${component}:latest"
 USE_IMAGES=${USE_IMAGES:-$defaultimage}
 
+os::test::junit::declare_suite_start "cmd/router"
 # Test running a router
 os::cmd::expect_failure_and_text 'oadm router --dry-run' 'does not exist'
 os::cmd::expect_failure_and_text 'oadm router --dry-run -o yaml' 'service account "router" is not allowed to access the host network on nodes'
@@ -65,3 +68,4 @@ os::cmd::expect_success_and_text 'oc get dc/router -o yaml' 'readinessProbe'
 # only when using hostnetwork should we force the probes to use localhost
 os::cmd::expect_success_and_not_text "oadm router -o yaml --credentials=${KUBECONFIG} --host-network=false" 'host: localhost'
 echo "router: ok"
+os::test::junit::declare_suite_end

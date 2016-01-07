@@ -704,7 +704,7 @@ os::log::errexit() {
 }
 
 os::log::install_errexit() {
-	# trap ERR to provide an error handler whenever a command exits nonzero	this
+	# trap ERR to provide an error handler whenever a command exits nonzero this
 	# is a more verbose version of set -o errexit
 	trap 'os::log::errexit' ERR
 

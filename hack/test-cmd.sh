@@ -14,6 +14,7 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
 os::log::install_errexit
 os::util::environment::setup_time_vars
 
@@ -77,6 +78,11 @@ export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
 
 os::util::environment::setup_all_server_vars "test-cmd/"
 reset_tmp_dir
+
+# Allow setting $JUNIT_REPORT to toggle output behavior
+if [[ -n "${JUNIT_REPORT}" ]]; then
+  export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+fi
 
 echo "Logging to ${LOG_DIR}..."
 
@@ -145,19 +151,6 @@ openshift start \
   --etcd-dir="${ETCD_DATA_DIR}" \
   --images="${USE_IMAGES}"
 
-# validate config that was generated
-os::cmd::expect_success_and_text "openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml" 'SUCCESS'
-os::cmd::expect_success_and_text "openshift ex validate node-config ${NODE_CONFIG_DIR}/node-config.yaml" 'SUCCESS'
-# breaking the config fails the validation check
-cp ${MASTER_CONFIG_DIR}/master-config.yaml ${BASETMPDIR}/master-config-broken.yaml
-echo "kubernetesMasterConfig: {}" >> ${BASETMPDIR}/master-config-broken.yaml
-os::cmd::expect_failure_and_text "openshift ex validate master-config ${BASETMPDIR}/master-config-broken.yaml" 'ERROR'
-
-cp ${NODE_CONFIG_DIR}/node-config.yaml ${BASETMPDIR}/node-config-broken.yaml
-os::util::sed '5,10d' ${BASETMPDIR}/node-config-broken.yaml
-os::cmd::expect_failure_and_text "openshift ex validate node-config ${BASETMPDIR}/node-config-broken.yaml" 'ERROR'
-echo "validation: ok"
-
 # Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
 os::util::sed "s/:4001$/:${ETCD_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
 os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
@@ -196,6 +189,22 @@ atomic-enterprise start \
   --etcd-dir="${ETCD_DATA_DIR}" \
   --images="${USE_IMAGES}"
 
+os::test::junit::declare_suite_start "cmd/validatation"
+# validate config that was generated
+os::cmd::expect_success_and_text "openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml" 'SUCCESS'
+os::cmd::expect_success_and_text "openshift ex validate node-config ${NODE_CONFIG_DIR}/node-config.yaml" 'SUCCESS'
+# breaking the config fails the validation check
+cp ${MASTER_CONFIG_DIR}/master-config.yaml ${BASETMPDIR}/master-config-broken.yaml
+os::util::sed '7,12d' ${BASETMPDIR}/master-config-broken.yaml
+os::cmd::expect_failure_and_text "openshift ex validate master-config ${BASETMPDIR}/master-config-broken.yaml" 'ERROR'
+
+cp ${NODE_CONFIG_DIR}/node-config.yaml ${BASETMPDIR}/node-config-broken.yaml
+os::util::sed '5,10d' ${BASETMPDIR}/node-config-broken.yaml
+os::cmd::expect_failure_and_text "openshift ex validate node-config ${BASETMPDIR}/node-config-broken.yaml" 'ERROR'
+echo "validation: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/config"
 # ensure that DisabledFeatures aren't written to config files
 os::cmd::expect_success_and_text "cat ${MASTER_CONFIG_DIR}/master-config.yaml" 'disabledFeatures: null'
 os::cmd::expect_success_and_text "cat ${BASETMPDIR}/atomic.local.config/master/master-config.yaml" 'disabledFeatures: null'
@@ -216,7 +225,6 @@ if [[ "${API_SCHEME}" == "https" ]]; then
     # test bad certificate
     os::cmd::expect_failure_and_text "oc get services" 'certificate signed by unknown authority'
 fi
-
 
 # login and logout tests
 # bad token should error
@@ -279,6 +287,7 @@ cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/config
 os::cmd::expect_success 'oc get services'
 mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
 echo "config files: ok"
+os::test::junit::declare_suite_end
 
 # from this point every command will use config from the KUBECONFIG env var
 export NODECONFIG="${NODE_CONFIG_DIR}/node-config.yaml"
@@ -303,6 +312,8 @@ for test in "${tests[@]}"; do
   cp ${KUBECONFIG}{.bak,}  # since nothing ever gets deleted from kubeconfig, reset it
 done
 
+# check that we didn't mangle jUnit output
+os::test::junit::check_test_counters
 
 # Done
 echo
