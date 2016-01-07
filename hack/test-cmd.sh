@@ -13,6 +13,7 @@ cd "${OS_ROOT}"
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
+source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
 function cleanup()
@@ -137,16 +138,16 @@ openshift start \
   --images="${USE_IMAGES}"
 
 # validate config that was generated
-[ "$(openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml 2>&1 | grep SUCCESS)" ]
-[ "$(openshift ex validate node-config ${NODE_CONFIG_DIR}/node-config.yaml 2>&1 | grep SUCCESS)" ]
+os::cmd::expect_success_and_text "openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml" 'SUCCESS'
+os::cmd::expect_success_and_text "openshift ex validate node-config ${NODE_CONFIG_DIR}/node-config.yaml" 'SUCCESS'
 # breaking the config fails the validation check
 cp ${MASTER_CONFIG_DIR}/master-config.yaml ${BASETMPDIR}/master-config-broken.yaml
 os::util::sed '7,12d' ${BASETMPDIR}/master-config-broken.yaml
-[ "$(openshift ex validate master-config ${BASETMPDIR}/master-config-broken.yaml 2>&1 | grep ERROR)" ]
+os::cmd::expect_failure_and_text "openshift ex validate master-config ${BASETMPDIR}/master-config-broken.yaml" 'ERROR'
 
 cp ${NODE_CONFIG_DIR}/node-config.yaml ${BASETMPDIR}/node-config-broken.yaml
 os::util::sed '5,10d' ${BASETMPDIR}/node-config-broken.yaml
-[ "$(openshift ex validate node-config ${BASETMPDIR}/node-config-broken.yaml 2>&1 | grep ERROR)" ]
+os::cmd::expect_failure_and_text "openshift ex validate node-config ${BASETMPDIR}/node-config-broken.yaml" 'ERROR'
 echo "validation: ok"
 
 # Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
@@ -188,18 +189,16 @@ atomic-enterprise start \
   --images="${USE_IMAGES}"
 
 # ensure that DisabledFeatures aren't written to config files
-! grep -i '\<disabledFeatures\>' \
-	"${MASTER_CONFIG_DIR}/master-config.yaml" \
-	"${BASETMPDIR}/atomic.local.config/master/master-config.yaml" \
-	"${NODE_CONFIG_DIR}/node-config.yaml"
+os::cmd::expect_success_and_text "cat ${MASTER_CONFIG_DIR}/master-config.yaml" 'disabledFeatures: null'
+os::cmd::expect_success_and_text "cat ${BASETMPDIR}/atomic.local.config/master/master-config.yaml" 'disabledFeatures: null'
 
 # test client not configured
-[ "$(oc get services 2>&1 | grep 'No configuration file found, please login')" ]
+os::cmd::expect_failure_and_text "oc get services" 'No configuration file found, please login'
 unused_port="33333"
 # setting env bypasses the not configured message
-[ "$(KUBERNETES_MASTER=http://${API_HOST}:${unused_port} oc get services 2>&1 | grep 'did you specify the right host or port')" ]
+os::cmd::expect_failure_and_text "KUBERNETES_MASTER=http://${API_HOST}:${unused_port} oc get services" 'did you specify the right host or port'
 # setting --server bypasses the not configured message
-[ "$(oc get services --server=http://${API_HOST}:${unused_port} 2>&1 | grep 'did you specify the right host or port')" ]
+os::cmd::expect_failure_and_text "oc get services --server=http://${API_HOST}:${unused_port}" 'did you specify the right host or port'
 
 # Set KUBERNETES_MASTER for oc from now on
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
@@ -207,72 +206,71 @@ export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 # Set certificates for oc from now on
 if [[ "${API_SCHEME}" == "https" ]]; then
     # test bad certificate
-    [ "$(oc get services 2>&1 | grep 'certificate signed by unknown authority')" ]
+    os::cmd::expect_failure_and_text "oc get services" 'certificate signed by unknown authority'
 fi
 
 
 # login and logout tests
 # --token and --username are mutually exclusive
-[ "$(oc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify 2>&1 | grep 'mutually exclusive')" ]
+os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify" 'mutually exclusive'
 # must only accept one arg (server)
-[ "$(oc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
+os::cmd::expect_failure_and_text "oc login https://server1 https://server2.com" 'Only the server URL may be specified'
 # logs in with a valid certificate authority
-oc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1
-grep -q "v1" ${HOME}/.kube/config
-oc logout
+os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything --api-version=v1"
+os::cmd::expect_success_and_text "cat ${HOME}/.kube/config" "v1" 
+os::cmd::expect_success 'oc logout'
 # logs in skipping certificate check
-oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything
+os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything"
 # logs in by an existing and valid token
 temp_token=$(oc config view -o template --template='{{range .users}}{{ index .user.token }}{{end}}')
-[ "$(oc login --token=${temp_token} 2>&1 | grep 'using the token provided')" ]
-oc logout
+os::cmd::expect_success_and_text "oc login --token=${temp_token}" 'using the token provided'
+os::cmd::expect_success 'oc logout'
 # properly parse server port
-[ "$(oc login https://server1:844333 2>&1 | grep 'Not a valid port')" ]
+os::cmd::expect_failure_and_text 'oc login https://server1:844333' 'Not a valid port'
 # properly handle trailing slash
-oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
 # create a new project
-oc new-project project-foo --display-name="my project" --description="boring project description"
-[ "$(oc project | grep 'Using project "project-foo"')" ]
+os::cmd::expect_success "oc new-project project-foo --display-name='my project' --description='boring project description'"
+os::cmd::expect_success_and_text "oc project" 'Using project "project-foo"'
 # new user should get default context
-oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u new-and-unknown-user -p anything
-[ "$(oc config view | grep current-context | grep /${API_HOST}:${API_PORT}/new-and-unknown-user)" ]
+os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u new-and-unknown-user -p anything"
+os::cmd::expect_success_and_text 'oc config view' "current-context.+/${API_HOST}:${API_PORT}/new-and-unknown-user"
 # denies access after logging out
-oc logout
-[ -z "$(oc get pods | grep 'system:anonymous')" ]
+os::cmd::expect_success 'oc logout'
+os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list pods'
 
 # log in as an image-pruner and test that oadm prune images works against the atomic binary
-oadm policy add-cluster-role-to-user system:image-pruner pruner --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u pruner -p anything
+os::cmd::expect_success "oadm policy add-cluster-role-to-user system:image-pruner pruner --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
+os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u pruner -p anything"
 # this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
-oadm prune images
+os::cmd::expect_success 'oadm prune images'
 
 # log in and set project to use from now on
-oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
-oc get projects
-oc project project-foo
-[ "$(oc config view | grep current-context | grep project-foo/${API_HOST}:${API_PORT}/test-user)" ]
-[ "$(oc whoami | grep 'test-user')" ]
-[ "$(oc whoami --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" | grep 'system:admin')" ]
-[ -n "$(oc whoami -t)" ]
-[ -n "$(oc whoami -c)" ]
+VERBOSE=true os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
+VERBOSE=true os::cmd::expect_success 'oc get projects'
+VERBOSE=true os::cmd::expect_success 'oc project project-foo'
+os::cmd::expect_success_and_text 'oc config view' "current-context.+project-foo/${API_HOST}:${API_PORT}/test-user"
+os::cmd::expect_success_and_text 'oc whoami' 'test-user'
+os::cmd::expect_success_and_text "oc whoami --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'system:admin'
+os::cmd::expect_success_and_text 'oc whoami -t' '.'
+os::cmd::expect_success_and_text 'oc whoami -c' '.'
 
 # test config files from the --config flag
-oc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+os::cmd::expect_success "oc get services --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
 
 # test config files from env vars
-KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" oc get services
+os::cmd::expect_success "KUBECONFIG='${MASTER_CONFIG_DIR}/admin.kubeconfig' oc get services"
 
 # test config files in the home directory
 mkdir -p ${HOME}/.kube
 cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/config
-oc get services
+os::cmd::expect_success 'oc get services'
 mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
 echo "config files: ok"
 
 # from this point every command will use config from the KUBECONFIG env var
 export KUBECONFIG="${HOME}/.kube/non-default-config"
 export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template --template='{{index . "current-context"}}')
-
 
 # NOTE: Do not add tests here, add them to test/cmd/*.
 # Tests should assume they run in an empty project, and should be reentrant if possible
