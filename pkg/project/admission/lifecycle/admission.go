@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package admission
+package lifecycle
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -47,6 +48,7 @@ func init() {
 
 type lifecycle struct {
 	client client.Interface
+	cache  *cache.ProjectCache
 
 	// creatableResources is a set of resources that can be created even if the namespace is terminating
 	creatableResources sets.String
@@ -89,12 +91,11 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 		name, _ = meta.NewAccessor().Name(obj)
 	}
 
-	projects, err := cache.GetProjectCache()
-	if err != nil {
+	if !e.cache.Running() {
 		return admission.NewForbidden(a, err)
 	}
 
-	namespace, err := projects.GetNamespaceObject(a.GetNamespace())
+	namespace, err := e.cache.GetNamespace(a.GetNamespace())
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
@@ -140,10 +141,26 @@ func (e *lifecycle) Handles(operation admission.Operation) bool {
 }
 
 func NewLifecycle(client client.Interface, creatableResources sets.String) (admission.Interface, error) {
-	return &lifecycle{client: client, creatableResources: creatableResources}, nil
+	if reference == nil {
+		return nil, errors.New("no project cache reference initialized")
+	}
+
+	return &lifecycle{
+		client:             client,
+		cache:              reference,
+		creatableResources: creatableResources,
+	}, nil
 }
 
 func isSubjectAccessReview(a admission.Attributes) bool {
 	return a.GetResource() == "subjectaccessreviews" ||
 		a.GetResource() == "localsubjectaccessreviews"
+}
+
+// reference holds a handle to the project cache so we can inject it into admission plugin creation,
+// as Kube has a strict interface for admission plugins constructors
+var reference *cache.ProjectCache
+
+func InitializeCacheReference(cache *cache.ProjectCache) {
+	reference = cache
 }
