@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
 	"github.com/openshift/origin/pkg/auth/server/login"
+	"github.com/openshift/origin/pkg/auth/server/selectprovider"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -99,13 +100,26 @@ func ValidateOAuthConfig(config *api.OAuthConfig, fldPath *field.Path) Validatio
 			)))
 	}
 
-	if config.Templates != nil && len(config.Templates.Login) > 0 {
-		content, err := ioutil.ReadFile(config.Templates.Login)
-		if err != nil {
-			validationResults.AddErrors(field.Invalid(fldPath.Child("templates", "login"), config.Templates.Login, "could not read file"))
-		} else {
-			for _, err = range login.ValidateLoginTemplate(content) {
-				validationResults.AddErrors(field.Invalid(fldPath.Child("templates", "login"), config.Templates.Login, err.Error()))
+	if config.Templates != nil {
+		if len(config.Templates.Login) > 0 {
+			content, err := ioutil.ReadFile(config.Templates.Login)
+			if err != nil {
+				validationResults.AddErrors(field.Invalid(fldPath.Child("templates", "login"), config.Templates.Login, "could not read file"))
+			} else {
+				for _, err = range login.ValidateLoginTemplate(content) {
+					validationResults.AddErrors(field.Invalid(fldPath.Child("templates", "login"), config.Templates.Login, err.Error()))
+				}
+			}
+		}
+
+		if len(config.Templates.ProviderSelection) > 0 {
+			content, err := ioutil.ReadFile(config.Templates.ProviderSelection)
+			if err != nil {
+				validationResults.AddErrors(field.Invalid(fldPath.Child("templates", "providerSelection"), config.Templates.ProviderSelection, "could not read file"))
+			} else {
+				for _, err = range selectprovider.ValidateSelectProviderTemplate(content) {
+					validationResults.AddErrors(field.Invalid(fldPath.Child("templates", "providerSelection"), config.Templates.ProviderSelection, err.Error()))
+				}
 			}
 		}
 	}

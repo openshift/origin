@@ -14,13 +14,14 @@ import (
 
 // unionAuthenticationHandler is an oauth.AuthenticationHandler that muxes multiple challenge handlers and redirect handlers
 type unionAuthenticationHandler struct {
-	challengers  map[string]AuthenticationChallenger
-	redirectors  map[string]AuthenticationRedirector
-	errorHandler AuthenticationErrorHandler
+	challengers      map[string]AuthenticationChallenger
+	redirectors      map[string]AuthenticationRedirector
+	errorHandler     AuthenticationErrorHandler
+	selectionHandler AuthenticationSelectionHandler
 }
 
 // NewUnionAuthenticationHandler returns an oauth.AuthenticationHandler that muxes multiple challenge handlers and redirect handlers
-func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationChallenger, passedRedirectors map[string]AuthenticationRedirector, errorHandler AuthenticationErrorHandler) AuthenticationHandler {
+func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationChallenger, passedRedirectors map[string]AuthenticationRedirector, errorHandler AuthenticationErrorHandler, selectionHandler AuthenticationSelectionHandler) AuthenticationHandler {
 	challengers := passedChallengers
 	if challengers == nil {
 		challengers = make(map[string]AuthenticationChallenger, 1)
@@ -31,7 +32,7 @@ func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationCh
 		redirectors = make(map[string]AuthenticationRedirector, 1)
 	}
 
-	return &unionAuthenticationHandler{challengers, redirectors, errorHandler}
+	return &unionAuthenticationHandler{challengers, redirectors, errorHandler, selectionHandler}
 }
 
 const (
@@ -44,6 +45,8 @@ const (
 	warningHeaderAgentIndex = 2
 	warningHeaderTextIndex  = 3
 	warningHeaderDateIndex  = 4
+
+	useRedirectParam = "idp"
 )
 
 var (
@@ -70,7 +73,7 @@ var (
 
 // AuthenticationNeeded looks at the oauth Client to determine whether it wants try to authenticate with challenges or using a redirect path
 // If the client wants a challenge path, it muxes together all the different challenges from the challenge handlers
-// If (the client wants a redirect path) and ((there is one redirect handler) or (a redirect handler was requested via the "useRedirectHandler" parameter),
+// If (the client wants a redirect path) and ((there is one redirect handler) or (a redirect handler was requested via the "idp" parameter),
 // then the redirect handler is called.  Otherwise, you get an error (currently) or a redirect to a page letting you choose how you'd like to authenticate.
 // It returns whether the response was written and/or an error
 func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient authapi.Client, w http.ResponseWriter, req *http.Request) (bool, error) {
@@ -129,22 +132,56 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 
 	}
 
-	redirectHandlerName := req.URL.Query().Get("useRedirectHandler")
-
+	// See if a single provider was selected
+	redirectHandlerName := req.URL.Query().Get(useRedirectParam)
 	if len(redirectHandlerName) > 0 {
 		redirectHandler := authHandler.redirectors[redirectHandlerName]
 		if redirectHandler == nil {
 			return false, fmt.Errorf("Unable to locate redirect handler: %v", redirectHandlerName)
 		}
-
 		err := redirectHandler.AuthenticationRedirect(w, req)
 		if err != nil {
 			return authHandler.errorHandler.AuthenticationError(err, w, req)
 		}
 		return true, nil
-
 	}
 
+	// Delegate to provider selection
+	if authHandler.selectionHandler != nil {
+		providers := []ProviderInfo{}
+		for name := range authHandler.redirectors {
+			u := *req.URL
+			q := u.Query()
+			q.Set(useRedirectParam, name)
+			u.RawQuery = q.Encode()
+			providerInfo := ProviderInfo{
+				Name: name,
+				URL:  u.String(),
+			}
+			providers = append(providers, providerInfo)
+		}
+		selectedProvider, handled, err := authHandler.selectionHandler.SelectAuthentication(providers, w, req)
+		if err != nil {
+			return authHandler.errorHandler.AuthenticationError(err, w, req)
+		}
+		if handled {
+			return handled, nil
+		}
+		if selectedProvider != nil {
+			redirectHandler := authHandler.redirectors[selectedProvider.Name]
+			if redirectHandler == nil {
+				return false, fmt.Errorf("Unable to locate redirect handler: %v", selectedProvider.Name)
+			}
+			err := redirectHandler.AuthenticationRedirect(w, req)
+			if err != nil {
+				return authHandler.errorHandler.AuthenticationError(err, w, req)
+			}
+			return true, nil
+
+		}
+	}
+
+	// Otherwise, automatically select a single provider, and error on multiple
 	if (len(authHandler.redirectors)) == 1 {
 		// there has to be a better way
 		for _, redirectHandler := range authHandler.redirectors {
