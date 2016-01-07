@@ -33,16 +33,8 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
 		case clientdiags.ConfigContextsName:
-			seen := map[string]bool{}
 			for contextName := range rawConfig.Contexts {
-				diagnostic := clientdiags.ConfigContext{RawConfig: rawConfig, ContextName: contextName}
-				if clusterUser, defined := diagnostic.ContextClusterUser(); !defined {
-					// definitely want to diagnose the broken context
-					diagnostics = append(diagnostics, diagnostic)
-				} else if !seen[clusterUser] {
-					seen[clusterUser] = true // avoid validating same user for multiple projects
-					diagnostics = append(diagnostics, diagnostic)
-				}
+				diagnostics = append(diagnostics, clientdiags.ConfigContext{RawConfig: rawConfig, ContextName: contextName})
 			}
 
 		default:
