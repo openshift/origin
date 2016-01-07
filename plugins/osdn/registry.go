@@ -514,7 +514,7 @@ func (registry *Registry) runEventQueue(resourceName string) (*oscache.EventQueu
 
 	lw := cache.NewListWatchFromClient(client, strings.ToLower(resourceName), kapi.NamespaceAll, fields.Everything())
 	eventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	reflector := cache.NewReflector(lw, expectedType, eventQueue, 4*time.Minute)
+	reflector := cache.NewReflector(lw, expectedType, eventQueue, 0)
 	reflector.Run()
 	return eventQueue, reflector
 }
