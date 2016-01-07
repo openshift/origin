@@ -39,7 +39,7 @@ trap "cleanup" EXIT
 
 # Start All-in-one server and wait for health
 TMPDIR="${TMPDIR:-"/tmp"}"
-BASETMPDIR="${TMPDIR}/openshift-e2e"
+BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-e2e}"
 setup_env_vars
 reset_tmp_dir
 configure_os_server
