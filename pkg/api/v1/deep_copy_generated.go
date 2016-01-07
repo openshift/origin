@@ -991,6 +991,14 @@ func deepCopy_v1_BuildSource(in apiv1.BuildSource, out *apiv1.BuildSource, c *co
 	} else {
 		out.Git = nil
 	}
+	if in.Image != nil {
+		out.Image = new(apiv1.ImageSource)
+		if err := deepCopy_v1_ImageSource(*in.Image, out.Image, c); err != nil {
+			return err
+		}
+	} else {
+		out.Image = nil
+	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {
 		if newVal, err := c.DeepCopy(in.SourceSecret); err != nil {
@@ -1242,6 +1250,40 @@ func deepCopy_v1_ImageChangeTrigger(in apiv1.ImageChangeTrigger, out *apiv1.Imag
 	} else {
 		out.From = nil
 	}
+	return nil
+}
+
+func deepCopy_v1_ImageSource(in apiv1.ImageSource, out *apiv1.ImageSource, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.From); err != nil {
+		return err
+	} else {
+		out.From = newVal.(pkgapiv1.ObjectReference)
+	}
+	if in.Paths != nil {
+		out.Paths = make([]apiv1.ImageSourcePath, len(in.Paths))
+		for i := range in.Paths {
+			if err := deepCopy_v1_ImageSourcePath(in.Paths[i], &out.Paths[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Paths = nil
+	}
+	if in.PullSecret != nil {
+		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {
+			return err
+		} else {
+			out.PullSecret = newVal.(*pkgapiv1.LocalObjectReference)
+		}
+	} else {
+		out.PullSecret = nil
+	}
+	return nil
+}
+
+func deepCopy_v1_ImageSourcePath(in apiv1.ImageSourcePath, out *apiv1.ImageSourcePath, c *conversion.Cloner) error {
+	out.SourcePath = in.SourcePath
+	out.DestinationDir = in.DestinationDir
 	return nil
 }
 
@@ -2811,6 +2853,8 @@ func init() {
 		deepCopy_v1_GitBuildSource,
 		deepCopy_v1_GitSourceRevision,
 		deepCopy_v1_ImageChangeTrigger,
+		deepCopy_v1_ImageSource,
+		deepCopy_v1_ImageSourcePath,
 		deepCopy_v1_SecretSpec,
 		deepCopy_v1_SourceBuildStrategy,
 		deepCopy_v1_SourceControlUser,

@@ -89,14 +89,14 @@ func NewDeployer(client kclient.Interface) *Deployer {
 		},
 		scaler: scaler,
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
-			switch config.Template.Strategy.Type {
+			switch config.Spec.Strategy.Type {
 			case deployapi.DeploymentStrategyTypeRecreate:
 				return recreate.NewRecreateDeploymentStrategy(client, latest.Codec), nil
 			case deployapi.DeploymentStrategyTypeRolling:
 				recreate := recreate.NewRecreateDeploymentStrategy(client, latest.Codec)
 				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, latest.Codec, recreate), nil
 			default:
-				return nil, fmt.Errorf("unsupported strategy type: %s", config.Template.Strategy.Type)
+				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}
 		},
 	}

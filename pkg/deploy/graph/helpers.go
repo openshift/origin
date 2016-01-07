@@ -27,7 +27,7 @@ func RelevantDeployments(g osgraph.Graph, dcNode *deploygraph.DeploymentConfigNo
 
 	sort.Sort(RecentDeploymentReferences(allDeployments))
 
-	if dcNode.DeploymentConfig.LatestVersion == deployutil.DeploymentVersionFor(allDeployments[0]) {
+	if dcNode.DeploymentConfig.Status.LatestVersion == deployutil.DeploymentVersionFor(allDeployments[0]) {
 		return allDeployments[0], allDeployments[1:]
 	}
 
@@ -55,8 +55,7 @@ type TemplateImage struct {
 
 	Ref *imageapi.DockerImageReference
 
-	From    *kapi.ObjectReference
-	FromTag string
+	From *kapi.ObjectReference
 }
 
 func EachTemplateImage(pod *kapi.PodSpec, triggerFn TriggeredByFunc, fn func(TemplateImage, error)) {
@@ -80,7 +79,7 @@ type TriggeredByFunc func(container *kapi.Container) (TemplateImage, bool)
 
 func DeploymentConfigHasTrigger(config *deployapi.DeploymentConfig) TriggeredByFunc {
 	return func(container *kapi.Container) (TemplateImage, bool) {
-		for _, trigger := range config.Triggers {
+		for _, trigger := range config.Spec.Triggers {
 			params := trigger.ImageChangeParams
 			if params == nil {
 				continue
@@ -90,18 +89,13 @@ func DeploymentConfigHasTrigger(config *deployapi.DeploymentConfig) TriggeredByF
 					if len(params.From.Name) == 0 {
 						continue
 					}
-					tag := params.Tag
-					if len(tag) == 0 {
-						tag = imageapi.DefaultImageTag
-					}
 					from := params.From
 					if len(from.Namespace) == 0 {
 						from.Namespace = config.Namespace
 					}
 					return TemplateImage{
-						Image:   container.Image,
-						From:    &from,
-						FromTag: tag,
+						Image: container.Image,
+						From:  &from,
 					}, true
 				}
 			}

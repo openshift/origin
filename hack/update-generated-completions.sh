@@ -15,7 +15,7 @@ if [[ "${platform}" != "linux/amd64" ]]; then
   exit 1
 fi
 
-"${OS_ROOT}/hack/build-go.sh" cmd/genbashcomp
+"${OS_ROOT}/hack/build-go.sh" tools/genbashcomp
 
 # Find binary
 genbashcomp="$(os::build::find-binary genbashcomp)"
@@ -25,7 +25,7 @@ if [[ ! "$genbashcomp" ]]; then
     echo "It looks as if you don't have a compiled genbashcomp binary"
     echo
     echo "If you are running from a clone of the git repo, please run"
-    echo "'./hack/build-go.sh cmd/genbashcomp'."
+    echo "'./hack/build-go.sh tools/genbashcomp'."
   } >&2
   exit 1
 fi

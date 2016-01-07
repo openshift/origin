@@ -51,12 +51,12 @@
             <a href="http://docs.openshift.com/enterprise/latest/welcome/index.html">
             <span class="fa fa-files-o fa-fw"></span> Documentation</a>
           </li>
-          <li ng-cloak ng-if="user" class="dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+          <li uib-dropdown ng-cloak ng-if="user">
+            <a href="" uib-dropdown-toggle id="user-dropdown">
               <span class="pficon pficon-user"></span>
               <span class="username">{{user.fullName || user.metadata.name}}</span> <b class="caret"></b>
             </a>
-            <ul class="dropdown-menu">
+            <ul class="uib-dropdown-menu" aria-labelledby="user-dropdown">
               <!--
               <li>
                 <a href="#">Account</a>

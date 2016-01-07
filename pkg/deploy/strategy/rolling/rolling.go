@@ -100,7 +100,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s: %v", deployutil.LabelForDeployment(to), err)
 	}
 
-	params := config.Template.Strategy.RollingParams
+	params := config.Spec.Strategy.RollingParams
 	updateAcceptor := s.getUpdateAcceptor(time.Duration(*params.TimeoutSeconds) * time.Second)
 
 	// If there's no prior deployment, delegate to another strategy since the

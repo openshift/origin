@@ -9,13 +9,13 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/admin"
+	sync "github.com/openshift/origin/pkg/cmd/admin/groups/sync/cli"
 	"github.com/openshift/origin/pkg/cmd/admin/validate"
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	diagnostics "github.com/openshift/origin/pkg/cmd/experimental/diagnostics"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
-	syncgroups "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/cli"
 	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
@@ -156,8 +156,10 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
 	experimental.AddCommand(diagnostics.NewCommandDiagnostics("diagnostics", fullName+" diagnostics", out))
-	experimental.AddCommand(syncgroups.NewCmdSyncGroups(syncgroups.SyncGroupsRecommendedName, fullName+" "+syncgroups.SyncGroupsRecommendedName, f, out))
-	experimental.AddCommand(syncgroups.NewCmdPruneGroups(syncgroups.PruneGroupsRecommendedName, fullName+" "+syncgroups.PruneGroupsRecommendedName, f, out))
 	experimental.AddCommand(cmd.NewCmdOptions(out))
+
+	// these groups also live under `oadm groups {sync,prune}` and are here only for backwards compatibility
+	experimental.AddCommand(sync.NewCmdSync("sync-groups", fullName+" "+"sync-groups", f, out))
+	experimental.AddCommand(sync.NewCmdPrune("prune-groups", fullName+" "+"prune-groups", f, out))
 	return experimental
 }

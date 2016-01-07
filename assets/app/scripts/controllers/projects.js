@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ProjectsController', function ($scope, $route, $filter, $location, $modal, DataService, AuthService, AlertMessageService, Logger, hashSizeFilter) {
+  .controller('ProjectsController', function ($scope, $route, $filter, $location, DataService, AuthService, AlertMessageService, Logger, hashSizeFilter) {
     $scope.projects = {};
     $scope.alerts = $scope.alerts || {};
     $scope.showGetStarted = false;

@@ -9,12 +9,12 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('DeleteModalController', function ($scope, $modalInstance) {
+  .controller('DeleteModalController', function ($scope, $uibModalInstance) {
     $scope.delete = function() {
-      $modalInstance.close('delete');
+      $uibModalInstance.close('delete');
     };
 
     $scope.cancel = function() {
-      $modalInstance.dismiss('cancel');
+      $uibModalInstance.dismiss('cancel');
     };
   });

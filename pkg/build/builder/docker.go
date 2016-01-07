@@ -58,7 +58,7 @@ func (d *DockerBuilder) Build() error {
 	if err != nil {
 		return err
 	}
-	sourceInfo, err := fetchSource(buildDir, d.build, d.urlTimeout, os.Stdin, d.gitClient)
+	sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, d.urlTimeout, os.Stdin, d.gitClient)
 	if err != nil {
 		return err
 	}

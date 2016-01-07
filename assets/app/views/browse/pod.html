@@ -37,13 +37,13 @@
               <small class="meta">created <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp></small>
             </h1>
             <labels labels="pod.metadata.labels" clickable="true" kind="pods" project-name="{{pod.metadata.namespace}}" limit="3"></labels>
-            <tabset>
-              <tab heading="Details" active="selectedTab.details">
-                <tab-heading>Details</tab-heading>
+            <uib-tabset>
+              <uib-tab heading="Details" active="selectedTab.details">
+                <uib-tab-heading>Details</uib-tab-heading>
                 <ng-include src=" 'views/browse/_pod-details.html' "></ng-include>
-              </tab>
+              </uib-tab>
 
-              <tab ng-if="metricsAvailable" heading="Metrics" active="selectedTab.metrics">
+              <uib-tab ng-if="metricsAvailable" heading="Metrics" active="selectedTab.metrics">
                 <!-- Use ng-if to remove the pod-metrics directive when the tab is not active so
                      we don't update in the background. -->
                 <pod-metrics
@@ -51,10 +51,10 @@
                   pod="pod"
                   alerts="alerts">
                 </pod-metrics>
-              </tab>
+              </uib-tab>
 
-              <tab active="selectedTab.logs">
-                <tab-heading>Logs</tab-heading>
+              <uib-tab active="selectedTab.logs">
+                <uib-tab-heading>Logs</uib-tab-heading>
 
                 <label for="selectLogContainer">Container:</label>
 
@@ -79,13 +79,13 @@
                     status="pod.status.phase"
                     start="pod.status.startTime | date : 'short'">
                 </log-viewer>
-              </tab>
+              </uib-tab>
 
-              <tab active="selectedTab.terminal"
+              <uib-tab active="selectedTab.terminal"
                 select="terminalTabWasSelected = true"
                 ng-init="containers = pod.status.containerStatuses"
                 ng-if="containersRunning(pod.status.containerStatuses) > 0">
-                <tab-heading>Terminal</tab-heading>
+                <uib-tab-heading>Terminal</uib-tab-heading>
                 <div>
                   <span class="pficon pficon-info" aria-hidden="true"></span>
                   When you navigate away from this pod, any processes running
@@ -99,9 +99,9 @@
                     prevent="!terminalTabWasSelected">
                   </kubernetes-container-terminal>
                 </div>
-	      </tab>
+	      </uib-tab>
 
-            </tabset>
+            </uib-tabset>
           </div>
         </div>
       </div><!-- /row -->

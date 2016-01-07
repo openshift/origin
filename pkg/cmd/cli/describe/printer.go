@@ -453,7 +453,7 @@ func printRouteList(routeList *routeapi.RouteList, w io.Writer, withNamespace, w
 
 func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
 	triggers := sets.String{}
-	for _, trigger := range dc.Triggers {
+	for _, trigger := range dc.Spec.Triggers {
 		triggers.Insert(string(trigger.Type))
 	}
 	tStr := strings.Join(triggers.List(), ", ")
@@ -463,7 +463,7 @@ func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, withName
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", dc.Name, tStr, dc.LatestVersion)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", dc.Name, tStr, dc.Status.LatestVersion)
 	return err
 }
 

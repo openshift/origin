@@ -241,11 +241,9 @@ func dc(namespace, name string, containerImages ...string) deployapi.DeploymentC
 			Namespace: namespace,
 			Name:      name,
 		},
-		Template: deployapi.DeploymentTemplate{
-			ControllerTemplate: kapi.ReplicationControllerSpec{
-				Template: &kapi.PodTemplateSpec{
-					Spec: podSpec(containerImages...),
-				},
+		Spec: deployapi.DeploymentConfigSpec{
+			Template: &kapi.PodTemplateSpec{
+				Spec: podSpec(containerImages...),
 			},
 		},
 	}

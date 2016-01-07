@@ -256,7 +256,8 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 							TimeoutSeconds:      5,
 							Handler: kapi.Handler{
 								HTTPGet: &kapi.HTTPGetAction{
-									Path: "/",
+									// TODO: `/healthz` route is deprecated by `/`; remove it in future version
+									Path: "/healthz",
 									Port: kutil.NewIntOrStringFromInt(ports[0].ContainerPort),
 								},
 							},
@@ -283,15 +284,13 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 					Name:   name,
 					Labels: label,
 				},
-				Triggers: []dapi.DeploymentTriggerPolicy{
-					{Type: dapi.DeploymentTriggerOnConfigChange},
-				},
-				Template: dapi.DeploymentTemplate{
-					ControllerTemplate: kapi.ReplicationControllerSpec{
-						Replicas: cfg.Replicas,
-						Selector: label,
-						Template: podTemplate,
+				Spec: dapi.DeploymentConfigSpec{
+					Replicas: cfg.Replicas,
+					Selector: label,
+					Triggers: []dapi.DeploymentTriggerPolicy{
+						{Type: dapi.DeploymentTriggerOnConfigChange},
 					},
+					Template: podTemplate,
 				},
 			},
 		}

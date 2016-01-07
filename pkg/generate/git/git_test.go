@@ -112,7 +112,7 @@ func TestParseRepository(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(*got, want) {
-			t.Errorf("%s: got %v, want %v", scenario, got, want)
+			t.Errorf("%s: got %#v, want %#v", scenario, *got, want)
 		}
 	}
 }

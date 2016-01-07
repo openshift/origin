@@ -24,8 +24,8 @@ func manualTrigger() []api.DeploymentTriggerPolicy {
 func rollingConfig(interval, updatePeriod, timeout int) api.DeploymentConfig {
 	return api.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-		Triggers:   manualTrigger(),
-		Template: api.DeploymentTemplate{
+		Spec: api.DeploymentConfigSpec{
+			Triggers: manualTrigger(),
 			Strategy: api.DeploymentStrategy{
 				Type: api.DeploymentStrategyTypeRolling,
 				RollingParams: &api.RollingDeploymentStrategyParams{
@@ -35,7 +35,8 @@ func rollingConfig(interval, updatePeriod, timeout int) api.DeploymentConfig {
 					MaxSurge:            kutil.NewIntOrStringFromInt(1),
 				},
 			},
-			ControllerTemplate: test.OkControllerTemplate(),
+			Template: test.OkPodTemplate(),
+			Selector: test.OkSelector(),
 		},
 	}
 }
@@ -43,8 +44,8 @@ func rollingConfig(interval, updatePeriod, timeout int) api.DeploymentConfig {
 func rollingConfigMax(maxSurge, maxUnavailable kutil.IntOrString) api.DeploymentConfig {
 	return api.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-		Triggers:   manualTrigger(),
-		Template: api.DeploymentTemplate{
+		Spec: api.DeploymentConfigSpec{
+			Triggers: manualTrigger(),
 			Strategy: api.DeploymentStrategy{
 				Type: api.DeploymentStrategyTypeRolling,
 				RollingParams: &api.RollingDeploymentStrategyParams{
@@ -55,18 +56,22 @@ func rollingConfigMax(maxSurge, maxUnavailable kutil.IntOrString) api.Deployment
 					MaxUnavailable:      maxUnavailable,
 				},
 			},
-			ControllerTemplate: test.OkControllerTemplate(),
+			Template: test.OkPodTemplate(),
+			Selector: test.OkSelector(),
 		},
 	}
 }
 
-// TODO: test validation errors for ReplicationControllerTemplates
-
 func TestValidateDeploymentConfigOK(t *testing.T) {
 	errs := ValidateDeploymentConfig(&api.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-		Triggers:   manualTrigger(),
-		Template:   test.OkDeploymentTemplate(),
+		Spec: api.DeploymentConfigSpec{
+			Replicas: 1,
+			Triggers: manualTrigger(),
+			Selector: test.OkSelector(),
+			Strategy: test.OkStrategy(),
+			Template: test.OkPodTemplate(),
+		},
 	})
 
 	if len(errs) > 0 {
@@ -76,14 +81,14 @@ func TestValidateDeploymentConfigOK(t *testing.T) {
 
 func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 	errorCases := map[string]struct {
-		D api.DeploymentConfig
-		T fielderrors.ValidationErrorType
-		F string
+		DeploymentConfig api.DeploymentConfig
+		ErrorType        fielderrors.ValidationErrorType
+		Field            string
 	}{
 		"missing name": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "bar"},
-				Template:   test.OkDeploymentTemplate(),
+				Spec:       test.OkDeploymentConfigSpec(),
 			},
 			fielderrors.ValidationErrorTypeRequired,
 			"metadata.name",
@@ -91,7 +96,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 		"missing namespace": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: ""},
-				Template:   test.OkDeploymentTemplate(),
+				Spec:       test.OkDeploymentConfigSpec(),
 			},
 			fielderrors.ValidationErrorTypeRequired,
 			"metadata.namespace",
@@ -99,7 +104,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 		"invalid name": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "-foo", Namespace: "bar"},
-				Template:   test.OkDeploymentTemplate(),
+				Spec:       test.OkDeploymentConfigSpec(),
 			},
 			fielderrors.ValidationErrorTypeInvalid,
 			"metadata.name",
@@ -107,7 +112,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 		"invalid namespace": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "-bar"},
-				Template:   test.OkDeploymentTemplate(),
+				Spec:       test.OkDeploymentConfigSpec(),
 			},
 			fielderrors.ValidationErrorTypeInvalid,
 			"metadata.namespace",
@@ -116,137 +121,147 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 		"missing trigger.type": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Triggers: []api.DeploymentTriggerPolicy{
-					{
-						ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
-							ContainerNames: []string{"foo"},
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Triggers: []api.DeploymentTriggerPolicy{
+						{
+							ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
+								ContainerNames: []string{"foo"},
+							},
 						},
 					},
+					Selector: test.OkSelector(),
+					Strategy: test.OkStrategy(),
+					Template: test.OkPodTemplate(),
 				},
-				Template: test.OkDeploymentTemplate(),
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"triggers[0].type",
+			"spec.triggers[0].type",
 		},
 		"missing Trigger imageChangeParams.from": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Triggers: []api.DeploymentTriggerPolicy{
-					{
-						Type: api.DeploymentTriggerOnImageChange,
-						ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
-							ContainerNames: []string{"foo"},
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Triggers: []api.DeploymentTriggerPolicy{
+						{
+							Type: api.DeploymentTriggerOnImageChange,
+							ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
+								ContainerNames: []string{"foo"},
+							},
 						},
 					},
+					Selector: test.OkSelector(),
+					Strategy: test.OkStrategy(),
+					Template: test.OkPodTemplate(),
 				},
-				Template: test.OkDeploymentTemplate(),
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"triggers[0].imageChangeParams.from",
+			"spec.triggers[0].imageChangeParams.from",
 		},
 		"invalid Trigger imageChangeParams.from.kind": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Triggers: []api.DeploymentTriggerPolicy{
-					{
-						Type: api.DeploymentTriggerOnImageChange,
-						ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
-							From: kapi.ObjectReference{
-								Kind: "Invalid",
-								Name: "name",
-							},
-							ContainerNames: []string{"foo"},
-						},
-					},
-				},
-				Template: test.OkDeploymentTemplate(),
-			},
-			fielderrors.ValidationErrorTypeInvalid,
-			"triggers[0].imageChangeParams.from.kind",
-		},
-		"both fields illegal Trigger imageChangeParams.repositoryName": {
-			api.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Triggers: []api.DeploymentTriggerPolicy{
-					{
-						Type: api.DeploymentTriggerOnImageChange,
-						ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
-							ContainerNames: []string{"foo"},
-							RepositoryName: "name",
-							From: kapi.ObjectReference{
-								Name: "other",
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Triggers: []api.DeploymentTriggerPolicy{
+						{
+							Type: api.DeploymentTriggerOnImageChange,
+							ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
+								From: kapi.ObjectReference{
+									Kind: "Invalid",
+									Name: "name:tag",
+								},
+								ContainerNames: []string{"foo"},
 							},
 						},
 					},
+					Selector: test.OkSelector(),
+					Strategy: test.OkStrategy(),
+					Template: test.OkPodTemplate(),
 				},
-				Template: test.OkDeploymentTemplate(),
 			},
 			fielderrors.ValidationErrorTypeInvalid,
-			"triggers[0].imageChangeParams.repositoryName",
+			"spec.triggers[0].imageChangeParams.from.kind",
 		},
 		"missing Trigger imageChangeParams.containerNames": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Triggers: []api.DeploymentTriggerPolicy{
-					{
-						Type: api.DeploymentTriggerOnImageChange,
-						ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
-							RepositoryName: "foo",
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Triggers: []api.DeploymentTriggerPolicy{
+						{
+							Type: api.DeploymentTriggerOnImageChange,
+							ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
+								From: kapi.ObjectReference{
+									Kind: "ImageStreamTag",
+									Name: "foo:v1",
+								},
+							},
 						},
 					},
+					Selector: test.OkSelector(),
+					Strategy: test.OkStrategy(),
+					Template: test.OkPodTemplate(),
 				},
-				Template: test.OkDeploymentTemplate(),
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"triggers[0].imageChangeParams.containerNames",
+			"spec.triggers[0].imageChangeParams.containerNames",
 		},
 		"missing strategy.type": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Triggers:   manualTrigger(),
-				Template: api.DeploymentTemplate{
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Triggers: manualTrigger(),
+					Selector: test.OkSelector(),
 					Strategy: api.DeploymentStrategy{
 						CustomParams: test.OkCustomParams(),
 					},
-					ControllerTemplate: test.OkControllerTemplate(),
+					Template: test.OkPodTemplate(),
 				},
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"template.strategy.type",
+			"spec.strategy.type",
 		},
 		"missing strategy.customParams": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Triggers:   manualTrigger(),
-				Template: api.DeploymentTemplate{
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Triggers: manualTrigger(),
+					Selector: test.OkSelector(),
 					Strategy: api.DeploymentStrategy{
 						Type: api.DeploymentStrategyTypeCustom,
 					},
-					ControllerTemplate: test.OkControllerTemplate(),
+					Template: test.OkPodTemplate(),
 				},
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"template.strategy.customParams",
+			"spec.strategy.customParams",
 		},
-		"missing template.strategy.customParams.image": {
+		"missing spec.strategy.customParams.image": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Triggers:   manualTrigger(),
-				Template: api.DeploymentTemplate{
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Triggers: manualTrigger(),
+					Selector: test.OkSelector(),
 					Strategy: api.DeploymentStrategy{
 						Type:         api.DeploymentStrategyTypeCustom,
 						CustomParams: &api.CustomDeploymentStrategyParams{},
 					},
-					ControllerTemplate: test.OkControllerTemplate(),
+					Template: test.OkPodTemplate(),
 				},
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"template.strategy.customParams.image",
+			"spec.strategy.customParams.image",
 		},
-		"missing template.strategy.recreateParams.pre.failurePolicy": {
+		"missing spec.strategy.recreateParams.pre.failurePolicy": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Template: api.DeploymentTemplate{
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
 					Strategy: api.DeploymentStrategy{
 						Type: api.DeploymentStrategyTypeRecreate,
 						RecreateParams: &api.RecreateDeploymentStrategyParams{
@@ -258,16 +273,18 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 							},
 						},
 					},
-					ControllerTemplate: test.OkControllerTemplate(),
+					Template: test.OkPodTemplate(),
+					Selector: test.OkSelector(),
 				},
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"template.strategy.recreateParams.pre.failurePolicy",
+			"spec.strategy.recreateParams.pre.failurePolicy",
 		},
-		"missing template.strategy.recreateParams.pre.execNewPod": {
+		"missing spec.strategy.recreateParams.pre.execNewPod": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Template: api.DeploymentTemplate{
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
 					Strategy: api.DeploymentStrategy{
 						Type: api.DeploymentStrategyTypeRecreate,
 						RecreateParams: &api.RecreateDeploymentStrategyParams{
@@ -276,16 +293,18 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 							},
 						},
 					},
-					ControllerTemplate: test.OkControllerTemplate(),
+					Template: test.OkPodTemplate(),
+					Selector: test.OkSelector(),
 				},
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"template.strategy.recreateParams.pre.execNewPod",
+			"spec.strategy.recreateParams.pre.execNewPod",
 		},
-		"missing template.strategy.recreateParams.pre.execNewPod.command": {
+		"missing spec.strategy.recreateParams.pre.execNewPod.command": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Template: api.DeploymentTemplate{
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
 					Strategy: api.DeploymentStrategy{
 						Type: api.DeploymentStrategyTypeRecreate,
 						RecreateParams: &api.RecreateDeploymentStrategyParams{
@@ -297,16 +316,18 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 							},
 						},
 					},
-					ControllerTemplate: test.OkControllerTemplate(),
+					Template: test.OkPodTemplate(),
+					Selector: test.OkSelector(),
 				},
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"template.strategy.recreateParams.pre.execNewPod.command",
+			"spec.strategy.recreateParams.pre.execNewPod.command",
 		},
-		"missing template.strategy.recreateParams.pre.execNewPod.containerName": {
+		"missing spec.strategy.recreateParams.pre.execNewPod.containerName": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Template: api.DeploymentTemplate{
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
 					Strategy: api.DeploymentStrategy{
 						Type: api.DeploymentStrategyTypeRecreate,
 						RecreateParams: &api.RecreateDeploymentStrategyParams{
@@ -318,16 +339,18 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 							},
 						},
 					},
-					ControllerTemplate: test.OkControllerTemplate(),
+					Template: test.OkPodTemplate(),
+					Selector: test.OkSelector(),
 				},
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"template.strategy.recreateParams.pre.execNewPod.containerName",
+			"spec.strategy.recreateParams.pre.execNewPod.containerName",
 		},
-		"invalid template.strategy.recreateParams.pre.execNewPod.volumes": {
+		"invalid spec.strategy.recreateParams.pre.execNewPod.volumes": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Template: api.DeploymentTemplate{
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
 					Strategy: api.DeploymentStrategy{
 						Type: api.DeploymentStrategyTypeRecreate,
 						RecreateParams: &api.RecreateDeploymentStrategyParams{
@@ -341,31 +364,33 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 							},
 						},
 					},
-					ControllerTemplate: test.OkControllerTemplate(),
+					Template: test.OkPodTemplate(),
+					Selector: test.OkSelector(),
 				},
 			},
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.recreateParams.pre.execNewPod.volumes[1]",
+			"spec.strategy.recreateParams.pre.execNewPod.volumes[1]",
 		},
-		"invalid template.strategy.rollingParams.intervalSeconds": {
+		"invalid spec.strategy.rollingParams.intervalSeconds": {
 			rollingConfig(-20, 1, 1),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.intervalSeconds",
+			"spec.strategy.rollingParams.intervalSeconds",
 		},
-		"invalid template.strategy.rollingParams.updatePeriodSeconds": {
+		"invalid spec.strategy.rollingParams.updatePeriodSeconds": {
 			rollingConfig(1, -20, 1),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.updatePeriodSeconds",
+			"spec.strategy.rollingParams.updatePeriodSeconds",
 		},
-		"invalid template.strategy.rollingParams.timeoutSeconds": {
+		"invalid spec.strategy.rollingParams.timeoutSeconds": {
 			rollingConfig(1, 1, -20),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.timeoutSeconds",
+			"spec.strategy.rollingParams.timeoutSeconds",
 		},
-		"missing template.strategy.rollingParams.pre.failurePolicy": {
+		"missing spec.strategy.rollingParams.pre.failurePolicy": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Template: api.DeploymentTemplate{
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
 					Strategy: api.DeploymentStrategy{
 						Type: api.DeploymentStrategyTypeRolling,
 						RollingParams: &api.RollingDeploymentStrategyParams{
@@ -381,73 +406,74 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 							},
 						},
 					},
-					ControllerTemplate: test.OkControllerTemplate(),
+					Template: test.OkPodTemplate(),
+					Selector: test.OkSelector(),
 				},
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"template.strategy.rollingParams.pre.failurePolicy",
+			"spec.strategy.rollingParams.pre.failurePolicy",
 		},
-		"both maxSurge and maxUnavailable 0 template.strategy.rollingParams.maxUnavailable": {
+		"both maxSurge and maxUnavailable 0 spec.strategy.rollingParams.maxUnavailable": {
 			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromInt(0)),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.maxUnavailable",
+			"spec.strategy.rollingParams.maxUnavailable",
 		},
-		"invalid lower bound template.strategy.rollingParams.maxUnavailable": {
+		"invalid lower bound spec.strategy.rollingParams.maxUnavailable": {
 			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromInt(-100)),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.maxUnavailable",
+			"spec.strategy.rollingParams.maxUnavailable",
 		},
-		"invalid lower bound template.strategy.rollingParams.maxSurge": {
+		"invalid lower bound spec.strategy.rollingParams.maxSurge": {
 			rollingConfigMax(kutil.NewIntOrStringFromInt(-1), kutil.NewIntOrStringFromInt(0)),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.maxSurge",
+			"spec.strategy.rollingParams.maxSurge",
 		},
-		"both maxSurge and maxUnavailable 0 percent template.strategy.rollingParams.maxUnavailable": {
+		"both maxSurge and maxUnavailable 0 percent spec.strategy.rollingParams.maxUnavailable": {
 			rollingConfigMax(kutil.NewIntOrStringFromString("0%"), kutil.NewIntOrStringFromString("0%")),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.maxUnavailable",
+			"spec.strategy.rollingParams.maxUnavailable",
 		},
-		"invalid lower bound percent template.strategy.rollingParams.maxUnavailable": {
+		"invalid lower bound percent spec.strategy.rollingParams.maxUnavailable": {
 			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromString("-1%")),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.maxUnavailable",
+			"spec.strategy.rollingParams.maxUnavailable",
 		},
-		"invalid upper bound percent template.strategy.rollingParams.maxUnavailable": {
+		"invalid upper bound percent spec.strategy.rollingParams.maxUnavailable": {
 			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromString("101%")),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.maxUnavailable",
+			"spec.strategy.rollingParams.maxUnavailable",
 		},
-		"invalid percent template.strategy.rollingParams.maxUnavailable": {
+		"invalid percent spec.strategy.rollingParams.maxUnavailable": {
 			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromString("foo")),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.maxUnavailable",
+			"spec.strategy.rollingParams.maxUnavailable",
 		},
-		"invalid percent template.strategy.rollingParams.maxSurge": {
+		"invalid percent spec.strategy.rollingParams.maxSurge": {
 			rollingConfigMax(kutil.NewIntOrStringFromString("foo"), kutil.NewIntOrStringFromString("100%")),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.maxSurge",
+			"spec.strategy.rollingParams.maxSurge",
 		},
 	}
 
-	for k, v := range errorCases {
-		errs := ValidateDeploymentConfig(&v.D)
-		if len(v.T) == 0 {
+	for testName, v := range errorCases {
+		errs := ValidateDeploymentConfig(&v.DeploymentConfig)
+		if len(v.ErrorType) == 0 {
 			if len(errs) > 0 {
 				for _, e := range errs {
-					t.Errorf("unexpected error for %s: %s", k, e)
+					t.Errorf("%s: unexpected error: %s", testName, e)
 				}
 			}
 			continue
 		}
 		if len(errs) == 0 {
-			t.Errorf("Expected failure for scenario %s", k)
+			t.Errorf("%s: expected test failure, got success", testName)
 		}
 		for i := range errs {
-			if errs[i].(*fielderrors.ValidationError).Type != v.T {
-				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			if got, exp := errs[i].(*fielderrors.ValidationError).Type, v.ErrorType; got != exp {
+				t.Errorf("%s: expected error \"%v\" to have type %q, but got %q", testName, errs[i], exp, got)
 			}
-			if errs[i].(*fielderrors.ValidationError).Field != v.F {
-				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			if got, exp := errs[i].(*fielderrors.ValidationError).Field, v.Field; got != exp {
+				t.Errorf("%s: expected error \"%v\" to have field %q, but got %q", testName, errs[i], exp, got)
 			}
 		}
 	}
@@ -455,16 +481,30 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 
 func TestValidateDeploymentConfigUpdate(t *testing.T) {
 	oldConfig := &api.DeploymentConfig{
-		ObjectMeta:    kapi.ObjectMeta{Name: "foo", Namespace: "bar", ResourceVersion: "1"},
-		Triggers:      manualTrigger(),
-		Template:      test.OkDeploymentTemplate(),
-		LatestVersion: 5,
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar", ResourceVersion: "1"},
+		Spec: api.DeploymentConfigSpec{
+			Replicas: 1,
+			Triggers: manualTrigger(),
+			Selector: test.OkSelector(),
+			Strategy: test.OkStrategy(),
+			Template: test.OkPodTemplate(),
+		},
+		Status: api.DeploymentConfigStatus{
+			LatestVersion: 5,
+		},
 	}
 	newConfig := &api.DeploymentConfig{
-		ObjectMeta:    kapi.ObjectMeta{Name: "foo", Namespace: "bar", ResourceVersion: "1"},
-		Triggers:      manualTrigger(),
-		Template:      test.OkDeploymentTemplate(),
-		LatestVersion: 3,
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar", ResourceVersion: "1"},
+		Spec: api.DeploymentConfigSpec{
+			Replicas: 1,
+			Triggers: manualTrigger(),
+			Selector: test.OkSelector(),
+			Strategy: test.OkStrategy(),
+			Template: test.OkPodTemplate(),
+		},
+		Status: api.DeploymentConfigStatus{
+			LatestVersion: 3,
+		},
 	}
 
 	scenarios := []struct {
@@ -477,8 +517,8 @@ func TestValidateDeploymentConfigUpdate(t *testing.T) {
 	}
 
 	for _, values := range scenarios {
-		oldConfig.LatestVersion = values.oldLatestVersion
-		newConfig.LatestVersion = values.newLatestVersion
+		oldConfig.Status.LatestVersion = values.oldLatestVersion
+		newConfig.Status.LatestVersion = values.newLatestVersion
 		errs := ValidateDeploymentConfigUpdate(newConfig, oldConfig)
 		if len(errs) == 0 {
 			t.Errorf("Expected update failure")
@@ -487,15 +527,15 @@ func TestValidateDeploymentConfigUpdate(t *testing.T) {
 			if errs[i].(*fielderrors.ValidationError).Type != fielderrors.ValidationErrorTypeInvalid {
 				t.Errorf("expected update error to have type %s: %v", fielderrors.ValidationErrorTypeInvalid, errs[i])
 			}
-			if errs[i].(*fielderrors.ValidationError).Field != "latestVersion" {
+			if errs[i].(*fielderrors.ValidationError).Field != "status.latestVersion" {
 				t.Errorf("expected update error to have field %s: %v", "latestVersion", errs[i])
 			}
 		}
 	}
 
 	// testing for a successful update
-	oldConfig.LatestVersion = 5
-	newConfig.LatestVersion = 6
+	oldConfig.Status.LatestVersion = 5
+	newConfig.Status.LatestVersion = 6
 	errs := ValidateDeploymentConfigUpdate(newConfig, oldConfig)
 	if len(errs) > 0 {
 		t.Errorf("Unexpected update failure")
@@ -569,55 +609,28 @@ func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 func TestValidateDeploymentConfigDefaultImageStreamKind(t *testing.T) {
 	config := &api.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-		Triggers: []api.DeploymentTriggerPolicy{
-			{
-				Type: api.DeploymentTriggerOnImageChange,
-				ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
-					From: kapi.ObjectReference{
-						Name: "name",
+		Spec: api.DeploymentConfigSpec{
+			Replicas: 1,
+			Triggers: []api.DeploymentTriggerPolicy{
+				{
+					Type: api.DeploymentTriggerOnImageChange,
+					ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
+						From: kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "name:v1",
+						},
+						ContainerNames: []string{"foo"},
 					},
-					ContainerNames: []string{"foo"},
 				},
 			},
+			Selector: test.OkSelector(),
+			Template: test.OkPodTemplate(),
+			Strategy: test.OkStrategy(),
 		},
-		Template: test.OkDeploymentTemplate(),
 	}
 
-	errs := ValidateDeploymentConfig(config)
-	if len(errs) > 0 {
+	if errs := ValidateDeploymentConfig(config); len(errs) > 0 {
 		t.Errorf("Unxpected non-empty error list: %v", errs)
-	}
-
-	if e, a := "ImageStream", config.Triggers[0].ImageChangeParams.From.Kind; e != a {
-		t.Errorf("expected imageChangeParams.from.kind %s, got %s", e, a)
-	}
-}
-
-func TestValidateDeploymentConfigImageRepositorySupported(t *testing.T) {
-	config := &api.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-		Triggers: []api.DeploymentTriggerPolicy{
-			{
-				Type: api.DeploymentTriggerOnImageChange,
-				ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
-					From: kapi.ObjectReference{
-						Kind: "ImageRepository",
-						Name: "name",
-					},
-					ContainerNames: []string{"foo"},
-				},
-			},
-		},
-		Template: test.OkDeploymentTemplate(),
-	}
-
-	errs := ValidateDeploymentConfig(config)
-	if len(errs) > 0 {
-		t.Errorf("Unxpected non-empty error list: %v", errs)
-	}
-
-	if e, a := "ImageRepository", config.Triggers[0].ImageChangeParams.From.Kind; e != a {
-		t.Errorf("expected imageChangeParams.from.kind %s, got %s", e, a)
 	}
 }
 

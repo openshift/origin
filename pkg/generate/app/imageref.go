@@ -288,18 +288,17 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 		imageChangeParams := &deployapi.DeploymentTriggerImageChangeParams{
 			Automatic:      true,
 			ContainerNames: []string{name},
-			Tag:            tag,
 		}
 		if r.Stream != nil {
 			imageChangeParams.From = kapi.ObjectReference{
-				Kind:      "ImageStream",
-				Name:      r.Stream.Name,
+				Kind:      "ImageStreamTag",
+				Name:      imageapi.JoinImageStreamTag(r.Stream.Name, tag),
 				Namespace: r.Stream.Namespace,
 			}
 		} else {
 			imageChangeParams.From = kapi.ObjectReference{
-				Kind: "ImageStream",
-				Name: name,
+				Kind: "ImageStreamTag",
+				Name: imageapi.JoinImageStreamTag(name, tag),
 			}
 		}
 		triggers = []deployapi.DeploymentTriggerPolicy{

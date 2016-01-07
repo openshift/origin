@@ -1,5 +1,8 @@
 #debuginfo not supported with Go
 %global debug_package %{nil}
+# modifying the Go binaries breaks the DWARF debugging
+%global __os_install_post %{_rpmconfigdir}/brp-compress
+
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %global sdn_import_path github.com/openshift/openshift-sdn

@@ -157,7 +157,8 @@ type defaultRegistryPinger struct {
 
 func (drp *defaultRegistryPinger) ping(registry string) error {
 	healthCheck := func(proto, registry string) error {
-		healthResponse, err := drp.client.Get(fmt.Sprintf("%s://%s/", proto, registry))
+		// TODO: `/healthz` route is deprecated by `/`; remove it in future versions
+		healthResponse, err := drp.client.Get(fmt.Sprintf("%s://%s/healthz", proto, registry))
 		if err != nil {
 			return err
 		}
@@ -459,7 +460,7 @@ func addDeploymentConfigsToGraph(g graph.Graph, dcs *deployapi.DeploymentConfigL
 		dc := &dcs.Items[i]
 		glog.V(4).Infof("Examining DeploymentConfig %s/%s", dc.Namespace, dc.Name)
 		dcNode := deploygraph.EnsureDeploymentConfigNode(g, dc)
-		addPodSpecToGraph(g, &dc.Template.ControllerTemplate.Template.Spec, dcNode)
+		addPodSpecToGraph(g, &dc.Spec.Template.Spec, dcNode)
 	}
 }
 

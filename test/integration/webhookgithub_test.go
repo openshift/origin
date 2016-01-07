@@ -220,21 +220,31 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 }
 
 func TestWebhookGitHubPing(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestBuildOpenshift(t)
-	defer openshift.Close()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unable to start master: %v", err)
+	}
 
-	openshift.KubeClient.Namespaces().Create(&kapi.Namespace{
+	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unable to get kubeClient: %v", err)
+	}
+	osClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unable to get osClient: %v", err)
+	}
+
+	kubeClient.Namespaces().Create(&kapi.Namespace{
 		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
 	})
 
 	// create buildconfig
 	buildConfig := mockBuildConfigImageParms("originalImage", "imageStream", "validTag")
-	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+	if _, err := osClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	watch, err := osClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
@@ -244,7 +254,12 @@ func TestWebhookGitHubPing(t *testing.T) {
 		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 		// trigger build event sending push notification
-		postFile(&http.Client{}, "ping", "pingevent.json", openshift.server.URL+s, http.StatusOK, t)
+		clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		postFile(kubeClient.RESTClient.Client, "ping", "pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 
 		// TODO: improve negative testing
 		timer := time.NewTimer(time.Second / 2)

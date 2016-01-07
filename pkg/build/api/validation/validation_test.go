@@ -670,13 +670,14 @@ func TestValidateSource(t *testing.T) {
 		// 3
 		{
 			t:    fielderrors.ValidationErrorTypeInvalid,
-			path: "binary",
+			path: "git",
 			source: &buildapi.BuildSource{
 				Git: &buildapi.GitBuildSource{
 					URI: "https://example.com/repo.git",
 				},
 				Binary: &buildapi.BinaryBuildSource{},
 			},
+			multiple: true,
 		},
 		// 4
 		{
@@ -778,6 +779,78 @@ func TestValidateSource(t *testing.T) {
 					HTTPSProxy: "some!@#$%^&*()url",
 				},
 				ContextDir: "contextDir",
+			},
+		},
+		// 15
+		{
+			ok: true,
+			source: &buildapi.BuildSource{
+				Image: &buildapi.ImageSource{
+					From: kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "my-image:latest",
+					},
+					Paths: []buildapi.ImageSourcePath{
+						{
+							SourcePath:     "/some/path",
+							DestinationDir: "test/dir",
+						},
+					},
+				},
+			},
+		},
+		// 16
+		{
+			t:    fielderrors.ValidationErrorTypeRequired,
+			path: "image.paths",
+			source: &buildapi.BuildSource{
+				Image: &buildapi.ImageSource{
+					From: kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "my-image:latest",
+					},
+				},
+			},
+		},
+		// 17
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "image.from.kind",
+			source: &buildapi.BuildSource{
+				Image: &buildapi.ImageSource{
+					From: kapi.ObjectReference{
+						Kind: "InvalidKind",
+						Name: "my-image:latest",
+					},
+					Paths: []buildapi.ImageSourcePath{
+						{
+							SourcePath:     "/some/path",
+							DestinationDir: "test/dir",
+						},
+					},
+				},
+			},
+		},
+		// 18
+		{
+			t:    fielderrors.ValidationErrorTypeRequired,
+			path: "image.pullSecret.name",
+			source: &buildapi.BuildSource{
+				Image: &buildapi.ImageSource{
+					From: kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "my-image:latest",
+					},
+					PullSecret: &kapi.LocalObjectReference{
+						Name: "",
+					},
+					Paths: []buildapi.ImageSourcePath{
+						{
+							SourcePath:     "/some/path",
+							DestinationDir: "test/dir",
+						},
+					},
+				},
 			},
 		},
 	}

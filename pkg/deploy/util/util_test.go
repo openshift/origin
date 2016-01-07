@@ -72,7 +72,7 @@ func TestMakeDeploymentOk(t *testing.T) {
 	expectedAnnotations := map[string]string{
 		deployapi.DeploymentConfigAnnotation:  config.Name,
 		deployapi.DeploymentStatusAnnotation:  string(deployapi.DeploymentStatusNew),
-		deployapi.DeploymentVersionAnnotation: strconv.Itoa(config.LatestVersion),
+		deployapi.DeploymentVersionAnnotation: strconv.Itoa(config.Status.LatestVersion),
 	}
 
 	for key, expected := range expectedAnnotations {
@@ -84,7 +84,7 @@ func TestMakeDeploymentOk(t *testing.T) {
 	expectedAnnotations = map[string]string{
 		deployapi.DeploymentAnnotation:        deployment.Name,
 		deployapi.DeploymentConfigAnnotation:  config.Name,
-		deployapi.DeploymentVersionAnnotation: strconv.Itoa(config.LatestVersion),
+		deployapi.DeploymentVersionAnnotation: strconv.Itoa(config.Status.LatestVersion),
 	}
 
 	for key, expected := range expectedAnnotations {

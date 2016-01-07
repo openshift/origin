@@ -75,7 +75,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		return fmt.Errorf("couldn't decode config from deployment %s: %v", to.Name, err)
 	}
 
-	params := config.Template.Strategy.RecreateParams
+	params := config.Spec.Strategy.RecreateParams
 	retryParams := kubectl.NewRetryParams(s.retryPeriod, s.retryTimeout)
 	waitParams := kubectl.NewRetryParams(s.retryPeriod, s.retryTimeout)
 

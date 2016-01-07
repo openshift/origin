@@ -63,7 +63,7 @@ func (c *ImportController) Next(stream *api.ImageStream) error {
 	insecure := stream.Annotations[api.InsecureRepositoryAnnotation] == "true"
 	client := c.client
 	if client == nil {
-		client = dockerregistry.NewClient()
+		client = dockerregistry.NewClient(5 * time.Second)
 	}
 
 	var errlist []error

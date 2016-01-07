@@ -170,23 +170,20 @@ func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigC
 			Name:   name,
 			Labels: selector,
 		},
-		Triggers: []dapi.DeploymentTriggerPolicy{
-			{Type: dapi.DeploymentTriggerOnConfigChange},
-		},
-		Template: dapi.DeploymentTemplate{
+		Spec: dapi.DeploymentConfigSpec{
 			Strategy: dapi.DeploymentStrategy{
 				Type: dapi.DeploymentStrategyTypeRecreate,
 			},
-
 			// TODO: v0.1 requires a manual resize of the
 			//       replicas to match current cluster state.
 			//       In the future, the PerNodeController in
 			//       kubernetes would remove the need for this
 			//       manual intervention.
-			ControllerTemplate: kapi.ReplicationControllerSpec{
-				Replicas: options.Replicas,
-				Selector: selector,
-				Template: podTemplate,
+			Replicas: options.Replicas,
+			Selector: selector,
+			Template: podTemplate,
+			Triggers: []dapi.DeploymentTriggerPolicy{
+				{Type: dapi.DeploymentTriggerOnConfigChange},
 			},
 		},
 	}, nil

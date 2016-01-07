@@ -14703,6 +14703,10 @@
       "$ref": "v1.GitBuildSource",
       "description": "optional information about git build source"
      },
+     "image": {
+      "$ref": "v1.ImageSource",
+      "description": "optional image build source"
+     },
      "contextDir": {
       "type": "string",
       "description": "specifies sub-directory where the source code for the application exists, allows for sources to be built from a directory other than the root of a repository"
@@ -14743,6 +14747,47 @@
      "httpsProxy": {
       "type": "string",
       "description": "specifies a https proxy to be used during git clone operations"
+     }
+    }
+   },
+   "v1.ImageSource": {
+    "id": "v1.ImageSource",
+    "required": [
+     "from",
+     "paths"
+    ],
+    "properties": {
+     "from": {
+      "$ref": "v1.ObjectReference",
+      "description": "reference to ImageStreamTag, ImageStreamImage, or DockerImage"
+     },
+     "paths": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ImageSourcePath"
+      },
+      "description": "paths to copy from image"
+     },
+     "pullSecret": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "overrides the default pull secret for the source image"
+     }
+    }
+   },
+   "v1.ImageSourcePath": {
+    "id": "v1.ImageSourcePath",
+    "required": [
+     "sourcePath",
+     "destinationDir"
+    ],
+    "properties": {
+     "sourcePath": {
+      "type": "string",
+      "description": "source path (directory or file) inside image"
+     },
+     "destinationDir": {
+      "type": "string",
+      "description": "relative destination directory in build home"
      }
     }
    },
@@ -16076,7 +16121,7 @@
      },
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "a reference to an ImageRepository, ImageStream, or ImageStreamTag to watch for changes"
+      "description": "a reference to an ImageStreamTag to watch for changes"
      },
      "lastTriggeredImage": {
       "type": "string",
