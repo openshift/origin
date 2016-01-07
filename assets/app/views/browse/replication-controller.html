@@ -1,8 +1,21 @@
 <project-header class="top-header"></project-header>
   <project-page>
-    <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
-    <alerts alerts="alerts"></alerts>
-    <div ng-if="!loaded">Loading...</div>
+
+  <!-- Middle section -->
+  <div class="middle-section">
+    <div class="middle-container">
+      <div class="middle-header">
+        <div class="container-fluid">
+          <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
+          <alerts alerts="alerts"></alerts>
+          <div ng-if="!loaded">Loading...</div>
+        </div>
+      </div><!-- /middle-header-->
+      <div class="middle-content">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-md-12">
+
     <div ng-if="deployment" class="deployment">
       <div class="row">
         <div class="col-md-12">
@@ -41,4 +54,11 @@
         </div><!-- .col -->
       </div>
     </div>
+
+            </div><!-- /col-* -->
+          </div>
+        </div>
+      </div><!-- /middle-content -->
+    </div><!-- /middle-container -->
+  </div><!-- /middle-section -->
   </project-page>

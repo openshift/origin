@@ -1,19 +1,31 @@
 <project-header class="top-header"></project-header>
   <project-page>
-    <div>
-      <div class="page-header page-header-bleed-right">
-        <delete-link
-          class="pull-right fa-lg"
-          resource-type="project"
-          resource-name="{{project.metadata.name}}"
-          project-name="{{project.metadata.name}}"
-          display-name="{{(project | displayName)}}"
-          alerts="alerts"
-          button-only>
-        </delete-link>
-        <h1>Project Settings</h1>
-      </div>
 
+  <!-- Middle section -->
+  <div class="middle-section">
+    <div class="middle-container">
+      <div class="middle-header">
+        <div class="container-fluid">
+          <div class="page-header page-header-bleed-right">
+            <delete-link
+              class="pull-right fa-lg"
+              resource-type="project"
+              resource-name="{{project.metadata.name}}"
+              project-name="{{project.metadata.name}}"
+              display-name="{{(project | displayName)}}"
+              alerts="alerts"
+              button-only>
+            </delete-link>
+            <h1>Project Settings</h1>
+          </div>
+        </div>
+      </div><!-- /middle-header-->
+      <div class="middle-content">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-md-12">
+
+    <div>
       <alerts alerts="alerts"></alerts>
       <h2>General information</h2>
       <!-- TODO make these fields editable - probably with a cog icon that flips into inline-editing -->
@@ -115,4 +127,11 @@
         </tbody>
       </table>
     </div>
+
+            </div><!-- /col-* -->
+          </div>
+        </div>
+      </div><!-- /middle-content -->
+    </div><!-- /middle-container -->
+  </div><!-- /middle-section -->
   </project-page>
