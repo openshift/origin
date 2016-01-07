@@ -56,8 +56,7 @@ tests=( $(find_tests ${1:-.*}) )
 # Setup environment
 
 # test-cmd specific defaults
-TMPDIR="${TMPDIR:-"/tmp"}"
-BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-cmd}"
+BASETMPDIR=${USE_TEMP:-$(mkdir -p /tmp/openshift-cmd && mktemp -d /tmp/openshift-cmd/XXXX)}
 LOG_DIR=${BASETMPDIR}/logs
 API_HOST=${API_HOST:-127.0.0.1}
 export API_PORT=${API_PORT:-28443}
@@ -68,7 +67,6 @@ export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
 setup_env_vars
 export SUDO=''
 mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" "${LOG_DIR}"
-reset_tmp_dir
 
 echo "Logging to ${LOG_DIR}..."
 

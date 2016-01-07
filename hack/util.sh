@@ -544,8 +544,7 @@ function cleanup_openshift {
 function create_gitconfig {
 	USERNAME=sample-user
 	PASSWORD=password
-	TMPDIR="${TMPDIR:-"/tmp"}"
-	GITCONFIG_DIR=$(mktemp -d ${TMPDIR}/test-gitconfig.XXXX)
+	GITCONFIG_DIR=$(mktemp -d /tmp/test-gitconfig.XXXX)
 	touch ${GITCONFIG_DIR}/.gitconfig
 	git config --file ${GITCONFIG_DIR}/.gitconfig user.name ${USERNAME}
 	git config --file ${GITCONFIG_DIR}/.gitconfig user.token ${PASSWORD}
@@ -553,8 +552,7 @@ function create_gitconfig {
 }
 
 function create_valid_file {
-	TMPDIR="${TMPDIR:-"/tmp"}"
-	FILE_DIR=$(mktemp -d ${TMPDIR}/test-file.XXXX)
+	FILE_DIR=$(mktemp -d /tmp/test-file.XXXX)
 	touch ${FILE_DIR}/${1}
 	echo ${FILE_DIR}/${1}
 }
