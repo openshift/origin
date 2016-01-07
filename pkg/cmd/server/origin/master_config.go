@@ -52,7 +52,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
+	"github.com/openshift/origin/pkg/project/admission/lifecycle"
+	"github.com/openshift/origin/pkg/project/admission/nodeenv"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
+	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
@@ -77,6 +80,7 @@ type MasterConfig struct {
 	PolicyCache               policycache.ReadOnlyCache
 	GroupCache                *usercache.GroupCache
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
+	ProjectCache              *projectcache.ProjectCache
 
 	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
@@ -176,6 +180,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	authorizer := newAuthorizer(policyClient, options.ProjectConfig.ProjectRequestMessage)
 
+	projectCache := projectcache.NewProjectCache(privilegedLoopbackKubeClient.Namespaces(), options.ProjectConfig.DefaultNodeSelector)
+	// pass reference to the cache to the necessary admission packages so it can be injected into the admission plugin constructors
+	lifecycle.InitializeCacheReference(projectCache)
+	nodeenv.InitializeCacheReference(projectCache)
+
 	config := &MasterConfig{
 		Options: options,
 
@@ -186,6 +195,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PolicyCache:               policyCache,
 		GroupCache:                groupCache,
 		ProjectAuthorizationCache: newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, policyClient),
+		ProjectCache:              projectCache,
 
 		RequestContextMapper: requestContextMapper,
 

@@ -29,7 +29,6 @@ import (
 	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	"github.com/openshift/origin/pkg/dns"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
-	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
 	securitycontroller "github.com/openshift/origin/pkg/security/controller"
 	"github.com/openshift/origin/pkg/security/mcs"
@@ -179,7 +178,7 @@ func (c *MasterConfig) RunDNSServer() {
 // RunProjectCache populates project cache, used by scheduler and project admission controller.
 func (c *MasterConfig) RunProjectCache() {
 	glog.Infof("Using default project node label selector: %s", c.Options.ProjectConfig.DefaultNodeSelector)
-	projectcache.RunProjectCache(c.PrivilegedLoopbackKubernetesClient, c.Options.ProjectConfig.DefaultNodeSelector)
+	c.ProjectCache.Run()
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
