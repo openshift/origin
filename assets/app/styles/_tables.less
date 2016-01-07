@@ -44,6 +44,15 @@
     }
   }
 }
+
+.table-borderless>tbody>tr>th, 
+.table-borderless>tfoot>tr>th, 
+.table-borderless>thead>tr>td, 
+.table-borderless>tbody>tr>td, 
+.table-borderless>tfoot>tr>td {
+  border-top: none; 
+}
+
 @media (max-width: @screen-xs-max) {
   .table-mobile {
     border-top: 2px solid @table-border-color;

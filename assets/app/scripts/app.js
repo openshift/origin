@@ -70,6 +70,7 @@ angular
       .subPath("Pods", "pods", builder.join(templatePath, 'pods.html'))
       .subPath("Routes", "routes", builder.join(templatePath, 'browse/routes.html'))
       .subPath("Services", "services", builder.join(templatePath, 'services.html'))
+      .subPath("Storage", "storage", builder.join(templatePath, 'storage.html'))
       .build();
     tab.icon = "sitemap";
     tabs.push(tab);
@@ -195,6 +196,14 @@ angular
         templateUrl: 'views/browse/service.html',
         controller: 'ServiceController'
       })
+      .when('/project/:project/browse/storage', {
+        templateUrl: 'views/storage.html',
+        controller: 'StorageController'
+      })
+      .when('/project/:project/browse/persistentvolumeclaims/:pvc', {
+        templateUrl: 'views/browse/persistent-volume-claim.html',
+        controller: 'PersistentVolumeClaimController'
+      })
       .when('/project/:project/browse/routes', {
         templateUrl: 'views/browse/routes.html',
         controller: 'RoutesController'
@@ -206,6 +215,10 @@ angular
       .when('/project/:project/createRoute', {
         templateUrl: 'views/createRoute.html',
         controller: 'CreateRouteController'
+      })
+      .when('/project/:project/attachPVC', {
+        templateUrl: 'views/attachPVC.html',
+        controller: 'AttachPVCController'
       })
       .when('/project/:project/create', {
         templateUrl: 'views/create.html',

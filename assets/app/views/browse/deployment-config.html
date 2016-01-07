@@ -87,6 +87,9 @@
                     builds="builds"
                     detailed="true"></pod-template>
             </dl>
+            <h4 style="margin-top: 20px;">Volumes</h4>
+            <a ng-href="project/{{project.metadata.name}}/attachPVC?deploymentconfig={{deploymentConfig.metadata.name}}">Attach storage</a>
+            <volumes volumes="deploymentConfig.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
           </div>
           <div class="col-lg-6">
             <h3>Triggers</h3>
