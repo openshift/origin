@@ -5,8 +5,6 @@ metadata:
   labels:
     route: lonely
   name: lonely-route
-  resourceVersion: "260"
-  uid: 025407f7-7193-11e5-b84d-080027c5bfa9
 spec:
   host: www.example.com
   to:

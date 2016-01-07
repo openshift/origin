@@ -1,37 +1,17 @@
 FROM docs/base:latest
-MAINTAINER Mary <mary@docker.com> (@moxiegirl)
+MAINTAINER Mary Anthony <mary@docker.com> (@moxiegirl)
 
-# to get the git info for this repo
+RUN svn checkout https://github.com/docker/docker/trunk/docs /docs/content/engine
+RUN svn checkout https://github.com/docker/compose/trunk/docs /docs/content/compose
+RUN svn checkout https://github.com/docker/machine/trunk/docs /docs/content/machine
+RUN svn checkout https://github.com/docker/distribution/trunk/docs /docs/content/registry
+RUN svn checkout https://github.com/kitematic/kitematic/trunk/docs /docs/content/kitematic
+RUN svn checkout https://github.com/docker/tutorials/trunk/docs /docs/content/tutorials
+RUN svn checkout https://github.com/docker/opensource/trunk/docs /docs/content/opensource
+
+ENV PROJECT=registry
+
+# To get the git info for this repo
 COPY . /src
 
-# Reset the /docs dir so we can replace the theme meta with the new repo's git info
-RUN git reset --hard
-
-RUN grep "VERSION =" /src/version/version.go  | sed 's/.*"\(.*\)".*/\1/' > /docs/VERSION
-
-
-#
-# RUN git describe --match 'v[0-9]*' --dirty='.m' --always > /docs/VERSION
-# The above line causes a floating point error in our tools
-#
-COPY docs/* /docs/sources/registry/
-COPY docs/images/* /docs/sources/registry/images/
-COPY docs/spec/* /docs/sources/registry/spec/
-COPY docs/spec/auth/* /docs/sources/registry/spec/auth/
-COPY docs/storage-drivers/* /docs/sources/registry/storage-drivers/
-COPY docs/mkdocs.yml /docs/mkdocs-distribution.yml
-
-RUN sed -i.old '1s;^;no_version_dropdown: true;' \
-  /docs/sources/registry/*.md \
-  /docs/sources/registry/spec/*.md \
-  /docs/sources/registry/spec/auth/*.md \
-  /docs/sources/registry/storage-drivers/*.md 
-
-RUN sed -i.old  -e '/^<!--GITHUB/g' -e '/^IGNORES-->/g'\
-  /docs/sources/registry/*.md \
-  /docs/sources/registry/spec/*.md \
-  /docs/sources/registry/spec/auth/*.md \
-  /docs/sources/registry/storage-drivers/*.md 
-
-# Then build everything together, ready for mkdocs
-RUN /docs/build.sh
+COPY . /docs/content/$PROJECT/

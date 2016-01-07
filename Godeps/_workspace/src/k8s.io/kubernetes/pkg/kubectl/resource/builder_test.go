@@ -557,56 +557,6 @@ func TestSingleResourceType(t *testing.T) {
 	}
 }
 
-func TestHasNamesArg(t *testing.T) {
-	testCases := map[string]struct {
-		args     []string
-		expected bool
-	}{
-		"resource/name": {
-			args:     []string{"pods/foo"},
-			expected: true,
-		},
-		"resource name": {
-			args:     []string{"pods", "foo"},
-			expected: true,
-		},
-		"resource1,resource2 name": {
-			args:     []string{"pods,rc", "foo"},
-			expected: true,
-		},
-		"resource1,group2/resource2 name": {
-			args:     []string{"pods,experimental/deployments", "foo"},
-			expected: true,
-		},
-		"group/resource name": {
-			args:     []string{"experimental/deployments", "foo"},
-			expected: true,
-		},
-		"group/resource/name": {
-			args:     []string{"experimental/deployments/foo"},
-			expected: true,
-		},
-		"group1/resource1,group2/resource2": {
-			args:     []string{"experimental/daemonsets,experimental/deployments"},
-			expected: false,
-		},
-		"resource1,group2/resource2": {
-			args:     []string{"pods,experimental/deployments"},
-			expected: false,
-		},
-		"group/resource/name,group2/resource2": {
-			args:     []string{"experimental/deployments/foo,controller/deamonset"},
-			expected: false,
-		},
-	}
-	for k, testCase := range testCases {
-		b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient())
-		if testCase.expected != b.hasNamesArg(testCase.args) {
-			t.Errorf("%s: unexpected argument - expected: %v", k, testCase.expected)
-		}
-	}
-}
-
 func TestSplitGroupResourceTypeName(t *testing.T) {
 	expectNoErr := func(err error) bool { return err == nil }
 	expectErr := func(err error) bool { return err != nil }
@@ -1106,6 +1056,64 @@ func TestReplaceAliases(t *testing.T) {
 		replaced := b.replaceAliases(test.arg)
 		if replaced != test.expected {
 			t.Errorf("%s: unexpected argument: expected %s, got %s", test.name, test.expected, replaced)
+		}
+	}
+}
+
+func TestHasNames(t *testing.T) {
+	tests := []struct {
+		args            []string
+		expectedHasName bool
+		expectedError   error
+	}{
+		{
+			args:            []string{""},
+			expectedHasName: false,
+			expectedError:   nil,
+		},
+		{
+			args:            []string{"rc"},
+			expectedHasName: false,
+			expectedError:   nil,
+		},
+		{
+			args:            []string{"rc,pod,svc"},
+			expectedHasName: false,
+			expectedError:   nil,
+		},
+		{
+			args:            []string{"rc/foo"},
+			expectedHasName: true,
+			expectedError:   nil,
+		},
+		{
+			args:            []string{"rc", "foo"},
+			expectedHasName: true,
+			expectedError:   nil,
+		},
+		{
+			args:            []string{"rc,pod,svc", "foo"},
+			expectedHasName: true,
+			expectedError:   nil,
+		},
+		{
+			args:            []string{"rc/foo", "rc/bar", "rc/zee"},
+			expectedHasName: true,
+			expectedError:   nil,
+		},
+		{
+			args:            []string{"rc/foo", "bar"},
+			expectedHasName: false,
+			expectedError:   fmt.Errorf("when passing arguments in resource/name form, all arguments must include the resource"),
+		},
+	}
+	for _, test := range tests {
+		hasNames, err := HasNames(test.args)
+		if !reflect.DeepEqual(test.expectedError, err) {
+			t.Errorf("expected HasName to error %v, got %s", test.expectedError, err)
+		}
+		if hasNames != test.expectedHasName {
+			t.Errorf("expected HasName to return %v for %s", test.expectedHasName, test.args)
 		}
 	}
 }

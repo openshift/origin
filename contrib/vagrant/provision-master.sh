@@ -31,7 +31,7 @@ os::provision::init-certs "${CONFIG_ROOT}" "${NETWORK_PLUGIN}" \
 echo "Launching openshift daemons"
 NODE_LIST=$(os::provision::join , ${NODE_NAMES[@]})
 cmd="/usr/bin/openshift start master --loglevel=${LOG_LEVEL} \
- --master=https://${MASTER_IP}:8443 --nodes=${NODE_LIST} \
+ --master=https://${MASTER_IP}:8443 \
  --network-plugin=${NETWORK_PLUGIN}"
 os::provision::start-os-service "openshift-master" "OpenShift Master" "${cmd}"
 

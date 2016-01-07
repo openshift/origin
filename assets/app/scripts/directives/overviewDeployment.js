@@ -10,6 +10,8 @@ angular.module('openshiftConsole')
         deploymentConfigId: '=',
         deploymentConfigMissing: '=',
         deploymentConfigDifferentService: '=',
+        deploymentConfig: '=',
+        scalable: '=',
 
         // Nested podTemplate fields
         imagesByDockerReference: '=',
@@ -27,27 +29,28 @@ angular.module('openshiftConsole')
           $scope.desiredReplicas = null;
         });
 
-        // Debounce scaling so multiple clicks within 500 milliseconds only
-        // result in one request.
+        // Debounce scaling so multiple clicks within 500 milliseconds only result in one request.
         var scale = _.debounce(function () {
           if (!angular.isNumber($scope.desiredReplicas)) {
             return;
           }
 
-          DeploymentsService.scale($scope.rc, $scope.desiredReplicas, $scope).then(
-            // success, no need for a message since the UI updates immediately
-            _.noop,
-            // failure
-            function(result) {
-              $scope.alerts = $scope.alerts || {};
-              $scope.desiredReplicas = null;
-              $scope.alerts["scale"] =
-                {
-                  type: "error",
-                  message: "An error occurred scaling the deployment.",
-                  details: $filter('getErrorDetails')(result)
-                };
-            });
+          var showScalingError = function(result) {
+            $scope.alerts = $scope.alerts || {};
+            $scope.desiredReplicas = null;
+            $scope.alerts["scale"] =
+              {
+                type: "error",
+                message: "An error occurred scaling the deployment.",
+                details: $filter('getErrorDetails')(result)
+              };
+          };
+
+          if ($scope.deploymentConfig) {
+            DeploymentsService.scaleDC($scope.deploymentConfig, $scope.desiredReplicas).then(_.noop, showScalingError);
+          } else {
+            DeploymentsService.scaleRC($scope.rc, $scope.desiredReplicas).then(_.noop, showScalingError);
+          }
         }, 500);
 
         $scope.viewPodsForDeployment = function(deployment) {
@@ -62,12 +65,20 @@ angular.module('openshiftConsole')
         };
 
         $scope.scaleUp = function() {
+          if (!$scope.scalable) {
+            return;
+          }
+
           $scope.desiredReplicas = $scope.getDesiredReplicas();
           $scope.desiredReplicas++;
           scale();
         };
 
         $scope.scaleDown = function() {
+          if (!$scope.scalable) {
+            return;
+          }
+
           $scope.desiredReplicas = $scope.getDesiredReplicas();
           if ($scope.desiredReplicas === 0) {
             return;
@@ -94,7 +105,10 @@ angular.module('openshiftConsole')
             });
 
             modalInstance.result.then(function() {
-              $scope.desiredReplicas--;
+              // It's possible $scope.desiredReplicas was set to null if
+              // rc.spec.replicas changed since the dialog was shown, so call
+              // getDesiredReplicas() again.
+              $scope.desiredReplicas = $scope.getDesiredReplicas() - 1;
               scale();
             });
 

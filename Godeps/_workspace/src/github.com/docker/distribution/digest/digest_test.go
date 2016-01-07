@@ -10,7 +10,7 @@ func TestParseDigest(t *testing.T) {
 	for _, testcase := range []struct {
 		input     string
 		err       error
-		algorithm string
+		algorithm Algorithm
 		hex       string
 	}{
 		{
@@ -52,6 +52,16 @@ func TestParseDigest(t *testing.T) {
 			// not hex
 			input: "sha256:d41d8cd98f00b204e9800m98ecf8427e",
 			err:   ErrDigestInvalidFormat,
+		},
+		{
+			// too short
+			input: "sha256:abcdef0123456789",
+			err:   ErrDigestInvalidLength,
+		},
+		{
+			// too short (from different algorithm)
+			input: "sha512:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+			err:   ErrDigestInvalidLength,
 		},
 		{
 			input: "foo:d41d8cd98f00b204e9800998ecf8427e",

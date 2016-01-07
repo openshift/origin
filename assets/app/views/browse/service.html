@@ -9,13 +9,26 @@
           <div class="tile">
             <h1>
               {{service.metadata.name}}
-              <delete-button
-                class="pull-right fa-lg"
-                resource-type="service"
-                resource-name="{{service.metadata.name}}"
-                project-name="{{service.metadata.namespace}}"
-                alerts="alerts">
-              </delete-button>
+              <div class="pull-right dropdown">
+                <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                <ul class="dropdown-menu actions action-link">
+                  <li>
+                    <edit-link
+                      resource="service"
+                      kind="services"
+                      alerts="alerts">
+                    </edit-link>
+                  </li>
+                  <li>
+                    <delete-link
+                      resource-type="service"
+                      resource-name="{{service.metadata.name}}"
+                      project-name="{{service.metadata.namespace}}"
+                      alerts="alerts">
+                    </delete-link>
+                  </li>
+                </ul>
+              </div>
               <small class="meta">created <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></small>
             </h1>
             <labels labels="service.metadata.labels" clickable="true" kind="services" project-name="{{service.metadata.namespace}}" limit="3"></labels>

@@ -63,21 +63,16 @@ angular.module('openshiftConsole')
       return moment().subtract(amt, unit).diff(moment(timestamp)) < 0;
     };
   })
-  .filter('orderObjectsByDate', function() {
+  .filter('orderObjectsByDate', function(toArrayFilter) {
     return function(items, reverse) {
-      var filtered = [];
-      angular.forEach(items, function(item) {
-        filtered.push(item);
-      });
-      filtered.sort(function (a, b) {
+      items = toArrayFilter(items);
+      items.sort(function (a, b) {
         if (!a.metadata || !a.metadata.creationTimestamp || !b.metadata || !b.metadata.creationTimestamp) {
           throw "orderObjectsByDate expects all objects to have the field metadata.creationTimestamp";
         }
-        return moment(a.metadata.creationTimestamp).diff(moment(b.metadata.creationTimestamp));
+        var diff = moment(a.metadata.creationTimestamp).diff(moment(b.metadata.creationTimestamp));
+        return reverse ? diff * -1 : diff;
       });
-      if(reverse) {
-        filtered.reverse();
-      }
-      return filtered;
+      return items;
     };
   });

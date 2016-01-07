@@ -181,7 +181,7 @@ angular.module('openshiftConsole')
           contextDir = encodeURIComponent(contextDir);
           // But then unencode the / characters
           contextDir = contextDir.replace("%2F", "/");
-          link += "/tree/" + (encodeURIComponent(ref) || "master") + "/" + contextDir;
+          link += "/tree/" + (encodeURIComponent(ref || "master")) + "/" + contextDir;
         }
         else if (ref && ref !== "master") {
           link += "/tree/" + encodeURIComponent(ref);

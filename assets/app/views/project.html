@@ -58,11 +58,11 @@
             </g>
             <g class="Service" id="vertex-Service">
               <circle r="16"></circle>
-              <image height="27" width="27" x="-13" y="-13" xlink:href="images/service-icon.svg"></image>
+              <text y="10" x="1">&#xe61e;</text>
             </g>
             <g class="ReplicationController" id="vertex-ReplicationController">
               <circle r="16"></circle>
-              <image height="25" width="25" x="-12" y="-13" xlink:href="images/replicator-icon.svg"></image>
+              <text y="9">&#xe624;</text>
             </g>
             <g class="DeploymentConfig" id="vertex-DeploymentConfig">
               <circle r="16"></circle>
@@ -70,7 +70,7 @@
             </g>
             <g class="Route" id="vertex-Route">
               <circle r="16"></circle>
-              <image height="26" width="26" x="-13" y="-13" xlink:href="images/route-icon.svg"></image>
+              <text y="9">&#xe625;</text>
             </g>
           </defs>
         </svg>
@@ -176,6 +176,8 @@
                 deployment-config-id="deploymentConfigId"
                 deployment-config-missing="deploymentConfigs && !deploymentConfigs[deploymentConfigId]"
                 deployment-config-different-service="deploymentConfigs[deploymentConfigId] && !deploymentConfigsByService[serviceId][deploymentConfigId]"
+                deployment-config="deploymentConfigs[deploymentConfigId]"
+                scalable="isScalable(deployment, deploymentConfigId)"
                 images-by-docker-reference="imagesByDockerReference"
                 builds="builds"
                 pods="podsByDeployment[deployment.metadata.name]"
@@ -223,6 +225,7 @@
               deployment-config-id="deploymentConfigId"
               deployment-config-missing="deploymentConfigs && !deploymentConfigs[deploymentConfigId]"
               deployment-config-different-service="deploymentConfigs[deploymentConfigId] && !deploymentConfigsByService[''][deploymentConfigId]"
+              scalable="true"
               images-by-docker-reference="imagesByDockerReference"
               builds="builds"
               pods="podsByDeployment[deployment.metadata.name]">

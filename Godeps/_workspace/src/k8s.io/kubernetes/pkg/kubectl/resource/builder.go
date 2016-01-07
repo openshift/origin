@@ -275,32 +275,6 @@ func (b *Builder) SelectAllParam(selectAll bool) *Builder {
 	return b
 }
 
-func (b *Builder) hasNamesArg(args []string) bool {
-	if len(args) > 1 {
-		return true
-	}
-	if len(args) != 1 {
-		return false
-	}
-	// the first (and the only) arg could be (type[,group/type]), type/name, or group/type/name
-	s := args[0]
-	// type or group/type (no name)
-	if strings.Contains(s, ",") {
-		return false
-	}
-	// type (no name)
-	if !strings.Contains(s, "/") {
-		return false
-	}
-	// group/type/name, type/name or group/type
-	tuple := strings.Split(s, "/")
-	if len(tuple) != 3 && !b.mapper.ResourceIsValid(tuple[0]) {
-		// TODO: prints warning/error message here when tuple[0] may be resource or group (name duplication)?
-		return false
-	}
-	return true
-}
-
 func getResource(groupResource string) string {
 	if strings.Contains(groupResource, "/") {
 		return strings.Split(groupResource, "/")[1]
@@ -314,32 +288,14 @@ func getResource(groupResource string) string {
 // The allowEmptySelector permits to select all the resources (via Everything func).
 // <type> = (<group>/<resource type> | <resource type>)
 func (b *Builder) ResourceTypeOrNameArgs(allowEmptySelector bool, args ...string) *Builder {
-	hasNames := b.hasNamesArg(args)
-
-	// convert multiple resources to resource tuples, a,b,c d as a transform to a/d b/d c/d
-	if len(args) >= 2 {
-		resources := []string{}
-		resources = append(resources, SplitResourceArgument(args[0])...)
-		if len(resources) > 1 {
-			names := []string{}
-			names = append(names, args[1:]...)
-			newArgs := []string{}
-			for _, resource := range resources {
-				for _, name := range names {
-					newArgs = append(newArgs, strings.Join([]string{resource, name}, "/"))
-				}
-			}
-			args = newArgs
-		}
-	}
-
-	if ok, err := hasCombinedTypeArgs(args); ok && hasNames {
+	args = normalizeMultipleResourcesArgs(args)
+	if ok, err := hasCombinedTypeArgs(args); ok {
 		if err != nil {
 			b.errs = append(b.errs, err)
 			return b
 		}
 		for _, s := range args {
-			tuple, ok, err := splitGroupResourceTypeName(s)
+			tuple, ok, err := splitResourceTypeName(s)
 			if err != nil {
 				b.errs = append(b.errs, err)
 				return b
@@ -396,6 +352,8 @@ func hasCombinedTypeArgs(args []string) (bool, error) {
 	switch {
 	case hasSlash > 0 && hasSlash == len(args):
 		return true, nil
+	case hasSlash > 0 && hasSlash != len(args):
+		return true, fmt.Errorf("when passing arguments in resource/name form, all arguments must include the resource")
 	default:
 		return false, nil
 	}
@@ -421,6 +379,27 @@ func splitGroupResourceTypeName(s string) (resourceTuple, bool, error) {
 		return resourceTuple{}, false, fmt.Errorf("arguments in group/resource/name form must have a single resource and name")
 	}
 	return resourceTuple{Resource: resource, Name: name}, true, nil
+}
+
+// Normalize args convert multiple resources to resource tuples, a,b,c d
+// as a transform to a/d b/d c/d
+func normalizeMultipleResourcesArgs(args []string) []string {
+	if len(args) >= 2 {
+		resources := []string{}
+		resources = append(resources, SplitResourceArgument(args[0])...)
+		if len(resources) > 1 {
+			names := []string{}
+			names = append(names, args[1:]...)
+			newArgs := []string{}
+			for _, resource := range resources {
+				for _, name := range names {
+					newArgs = append(newArgs, strings.Join([]string{resource, name}, "/"))
+				}
+			}
+			return newArgs
+		}
+	}
+	return args
 }
 
 // splitResourceTypeName handles type/name resource formats and returns a resource tuple
@@ -750,4 +729,14 @@ func SplitResourceArgument(arg string) []string {
 		out = append(out, s)
 	}
 	return out
+}
+
+// HasNames returns true if the provided args contain resource names
+func HasNames(args []string) (bool, error) {
+	args = normalizeMultipleResourcesArgs(args)
+	hasCombinedTypes, err := hasCombinedTypeArgs(args)
+	if err != nil {
+		return false, err
+	}
+	return hasCombinedTypes || len(args) > 1, nil
 }

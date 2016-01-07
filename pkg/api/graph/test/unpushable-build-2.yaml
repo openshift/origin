@@ -106,7 +106,7 @@ items:
           name: ruby-hello-world
           ports:
           - containerPort: 8080
-            name: ruby-hello-world-tcp-8080
+            name: tcp-8080
             protocol: TCP
           resources: {}
           securityContext:
@@ -136,7 +136,7 @@ items:
   spec:
     portalIP: ""
     ports:
-    - name: ruby-hello-world-tcp-8080
+    - name: tcp-8080
       nodePort: 0
       port: 8080
       protocol: TCP

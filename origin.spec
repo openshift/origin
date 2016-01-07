@@ -18,12 +18,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit cf75fd93f5a9ba1a5405c294e64af68e6626a806
+%global commit 1ce17a2ce1e5a7517052591b93c83516262290d3
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.0.3-16-gcf75fd9 -X github.com/openshift/origin/pkg/version.commitFromGit cf75fd9 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.0.902-153-g1ce17a2 -X github.com/openshift/origin/pkg/version.commitFromGit 1ce17a2 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -43,7 +43,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.0.902
+Version:        3.1.1.0
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -112,6 +112,7 @@ Obsoletes:      tuned-profiles-openshift-node < %{package_refector_version}
 %package clients
 Summary:        %{product_name} Client binaries for Linux
 Obsoletes:      openshift-clients < %{package_refector_version}
+Requires:       git
 
 %description clients
 %{summary}
@@ -462,6 +463,116 @@ fi
 
 
 %changelog
+* Sat Dec 19 2015 Scott Dodson <sdodson@redhat.com> 3.1.1.0
+- Fix tito ldflag manipulation at tag time (sdodson@redhat.com)
+- Fix oc status unit test (mkargaki@redhat.com)
+- Improve web console scaling (spadgett@redhat.com)
+- UPSTREAM: <drop>: fixup for 14537 (mturansk@redhat.com)
+- Add bash auto-completion for oc, oadm, and openshift to the environments
+  created by Vagrant. (bbennett@redhat.com)
+- Fix github link when contextDir is set but not git ref (jforrest@redhat.com)
+- install which in the base image (bparees@redhat.com)
+- UPSTREAM: 18165: fixes get --show-all (ffranz@redhat.com)
+- fix extra indentation for bare builds (deads@redhat.com)
+- Edit resource YAML in the web console (spadgett@redhat.com)
+- Use DeepEqual instead of field by field comparison (rhcarvalho@gmail.com)
+- Fix regression: new-app with custom Git ref (rhcarvalho@gmail.com)
+- Increase debug logging for image import controller (jliggitt@redhat.com)
+- Gather logs for test-cmd (jliggitt@redhat.com)
+- UPSTREAM: 18621: Implement GCE PD dynamic provisioner. (jsafrane@redhat.com)
+- UPSTREAM: 17747: Implement GCE PD disk creation. (jsafrane@redhat.com)
+- UPSTREAM: 18607: Implement OpenStack Cinder dynamic provisioner.
+  (jsafrane@redhat.com)
+- UPSTREAM: 18601: Implement AWS EBS dynamic provisioner. (jsafrane@redhat.com)
+- Fix test-cmd.sh on OSX (jliggitt@redhat.com)
+- Web console: Fix edge case scaling to 0 replicas (spadgett@redhat.com)
+- correctly determine build pushability for status (deads@redhat.com)
+- move imagestream creation to more sensible spot (bparees@redhat.com)
+- Avoid generating tokens with leading dashes (jliggitt@redhat.com)
+- Show 'none' when there is no builder image. (rhcarvalho@gmail.com)
+- status: Add more details for a broken dc trigger (mkargaki@redhat.com)
+- diagnose timeouts correctly in error message (skuznets@redhat.com)
+- Fix up ClusterNetwork validation. (danw@redhat.com)
+- Show warning when --env is used in start-build with binary source
+  (mfojtik@redhat.com)
+- Fix deployements/stragies anchor link (christophe@augello.be)
+- don't output empty strings in logs (bparees@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  e7f0d8be285f73c896ff19455bd03d5189cbe5e6 (dcbw@redhat.com)
+- Fix race between Kubelet initialization and plugin creation (dcbw@redhat.com)
+- Output more helpful cancel message (jliggitt@redhat.com)
+- Use the iptables-based proxier instead of the userland one (danw@redhat.com)
+- Delete tag if its history is empty (miminar@redhat.com)
+- Remove redundant admin routes (miminar@redhat.com)
+- Reenabled registry dc's liveness probe (miminar@redhat.com)
+- Refactor of OSO's code (miminar@redhat.com)
+- Refactor dockerregistry: prevent a warning during startup
+  (miminar@redhat.com)
+- Refactor dockerregistry: unify logging style with upstream's codebase
+  (miminar@redhat.com)
+- Refactor dockerregistry: use registry's own health check (miminar@redhat.com)
+- Refactor dockerregistry: adapt to upstream changes (miminar@redhat.com)
+- Registry refactor: handle REGISTRY_CONFIGURATION_PATH (miminar@redhat.com)
+- unbump(code.google.com/p/go-uuid/uuid): which is obsoleted
+  (miminar@redhat.com)
+- Always use port 53 as the dns service port. (abutcher@redhat.com)
+- Fix service link on route page (spadgett@redhat.com)
+- Increase contrast of web console log text (spadgett@redhat.com)
+- custom Dockerfile path for the docker build (v.behar@free.fr)
+- assets: Fix up the topology view icon colors and lines (stefw@redhat.com)
+- Remove static nodes, deprecate --nodes (jliggitt@redhat.com)
+- Add PV Provisioner Controller (mturansk@redhat.com)
+- Fix for bugz https://bugzilla.redhat.com/show_bug.cgi?id=1290643   o Make
+  Forwarded header value rfc7239 compliant.   o Set X-Forwarded-Proto for http
+  (if insecure edge terminated routes     are allowed). (smitram@gmail.com)
+- UPSTREAM: 14537: Add PersistentVolumeProvisionerController
+  (mturansk@redhat.com)
+- Fix test failures for scoped and host-overriden routers. (smitram@gmail.com)
+- Unit test for hostname override (ccoleman@redhat.com)
+- Routers should be able to override the host value on Routes
+  (ccoleman@redhat.com)
+- added support for recursive testing using test-go (skuznets@redhat.com)
+- fixed group detection bug for LDAP prune (skuznets@redhat.com)
+- removed tryuntil from test-cmd (skuznets@redhat.com)
+- fixed LDAP test file extensions (skuznets@redhat.com)
+- Allow image importing to work with proxy (jkhelil@gmail.com)
+- oc: Use object name instead of provided arg in cancel-build
+  (mkargaki@redhat.com)
+- add step for getting the jenkins service ip (bparees@redhat.com)
+- fix forcepull setup build config (gmontero@redhat.com)
+- Add user/group reapers (jliggitt@redhat.com)
+- Make project template use default rolebinding name (jliggitt@redhat.com)
+- update missing imagestream message to warning (bparees@redhat.com)
+- Temporary fix for systemd upgrade path issues (sdodson@redhat.com)
+- Add logging for etcd integration tests (jliggitt@redhat.com)
+- Fix the mysql replica extended test (mfojtik@redhat.com)
+- Use service port name as route targetPort in 'oc expose service'
+  (jliggitt@redhat.com)
+- Refactor SCM auth and use of env vars in builders (cewong@redhat.com)
+- oc: Cosmetic fixes in oc status (mkargaki@redhat.com)
+- allow for test specification from command-line for test-cmd
+  (skuznets@redhat.com)
+- Change uuid imports to github.com/pborman/uuid (miminar@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: remove parents on delete
+  (miminar@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: export app.Namespace
+  (miminar@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: custom routes/auth
+  (agoldste@redhat.com)
+- UPSTREAM: docker/distribution: 1050: Exported API functions needed for
+  pruning (miminar@redhat.com)
+- bump(github.com/stevvooe/resumable): 51ad44105773cafcbe91927f70ac68e1bf78f8b4
+  (miminar@redhat.com)
+- bump(github.com/docker/distribution):
+  e6c60e79c570f97ef36f280fcebed497682a5f37 (miminar@redhat.com)
+- Give user suggestion about new-app on new-project (ccoleman@redhat.com)
+- Controllers should always go async on start (ccoleman@redhat.com)
+- Clean up docker-in-docker image (marun@redhat.com)
+- doc: create glusterfs service to persist endpoints (hchen@redhat.com)
+- [RPMs] Add requires on git (sdodson@redhat.com)
+- added better output to test-end-to-end/core (skuznets@redhat.com)
+- refactored scripts to use hack/text (skuznets@redhat.com)
+
 * Mon Dec 14 2015 Troy Dawson <tdawson@redhat.com> 3.1.0.902
 - Include LICENSE in client zips (ccoleman@redhat.com)
 - Minor commit validation fixes (ironcladlou@gmail.com)

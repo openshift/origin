@@ -427,6 +427,8 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) Validati
 	for i, nodeName := range config.StaticNodeNames {
 		if len(nodeName) == 0 {
 			validationResults.AddErrors(fielderrors.NewFieldInvalid(fmt.Sprintf("staticNodeName[%d]", i), nodeName, "may not be empty"))
+		} else {
+			validationResults.AddWarnings(fielderrors.NewFieldInvalid(fmt.Sprintf("staticNodeName[%d]", i), nodeName, "static nodes are not supported"))
 		}
 	}
 

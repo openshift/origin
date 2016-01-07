@@ -1,8 +1,11 @@
-<!--GITHUB
-page_title: Microsoft Azure storage driver
-page_description: Explains how to use the Azure storage drivers
-page_keywords: registry, service, driver, images, storage, azure
-IGNORES-->
+<!--[metadata]>
++++
+title = "Microsoft Azure storage driver"
+description = "Explains how to use the Azure storage drivers"
+keywords = ["registry, service, driver, images, storage,  azure"]
++++
+<![end-metadata]-->
+
 
 # Microsoft Azure storage driver
 
@@ -16,7 +19,6 @@ The following parameters must be used to authenticate and configure the storage 
 * `accountkey`: Primary or Secondary Key for the Storage Account.
 * `container`: Name of the root storage container in which all registry data will be stored. Must comply the storage container name [requirements][create-container-api].
 * `realm`: (optional) Domain name suffix for the Storage Service API endpoint. Defaults to `core.windows.net`. For example realm for "Azure in China" would be `core.chinacloudapi.cn` and realm for "Azure Government" would be `core.usgovcloudapi.net`.
-
 
 [azure-blob-storage]: http://azure.microsoft.com/en-us/services/storage/
 [create-container-api]: https://msdn.microsoft.com/en-us/library/azure/dd179468.aspx

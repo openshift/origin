@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	dockerclient "github.com/fsouza/go-dockerclient"
@@ -16,8 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
-	proxy "k8s.io/kubernetes/pkg/proxy/userspace"
-	"k8s.io/kubernetes/pkg/util"
+	proxy "k8s.io/kubernetes/pkg/proxy/iptables"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
@@ -169,23 +167,19 @@ func SetFakeCadvisorInterfaceForIntegrationTest() {
 	defaultCadvisorInterface = &cadvisor.Fake{}
 }
 
-type FilteringEndpointsConfigHandler interface {
-	pconfig.EndpointsConfigHandler
-	SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler)
+func (c *NodeConfig) RunSDN() {
+	if c.SDNPlugin != nil {
+		if err := c.SDNPlugin.StartNode(c.MTU); err != nil {
+			glog.Fatalf("SDN Node failed: %v", err)
+		}
+	}
 }
 
 // RunProxy starts the proxy
-func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler) {
+func (c *NodeConfig) RunProxy() {
 	// initialize kube proxy
 	serviceConfig := pconfig.NewServiceConfig()
 	endpointsConfig := pconfig.NewEndpointsConfig()
-	loadBalancer := proxy.NewLoadBalancerRR()
-	if endpointsFilterer == nil {
-		endpointsConfig.RegisterHandler(loadBalancer)
-	} else {
-		endpointsFilterer.SetBaseEndpointsHandler(loadBalancer)
-		endpointsConfig.RegisterHandler(endpointsFilterer)
-	}
 
 	host, _, err := net.SplitHostPort(c.BindAddress)
 	if err != nil {
@@ -214,43 +208,32 @@ func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler)
 		Name: c.KubeletConfig.NodeName,
 	}
 
-	go util.Forever(func() {
-		dbus := utildbus.New()
-		iptables := iptables.New(kexec.New(), dbus, protocol)
-		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables, util.PortRange{}, syncPeriod)
-		iptables.AddReloadFunc(proxier.Sync)
+	exec := kexec.New()
+	dbus := utildbus.New()
+	iptables := iptables.New(exec, dbus, protocol)
+	proxier, err := proxy.NewProxier(iptables, exec, syncPeriod, false)
+	if err != nil {
+		// This should be fatal, but that would break the integration tests
+		glog.Warningf("WARNING: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
+		return
+	}
+	iptables.AddReloadFunc(proxier.Sync)
 
-		if err != nil {
-			switch {
-			// conflicting use of iptables, retry
-			case proxy.IsProxyLocked(err):
-				glog.Errorf("Unable to start proxy, will retry: %v", err)
-				return
-			// on a system without iptables
-			case strings.Contains(err.Error(), "executable file not found in path"):
-				glog.V(4).Infof("kube-proxy initialization error: %v", err)
-				glog.Warningf("WARNING: Could not find the iptables command. The service proxy requires iptables and will be disabled.")
-			case err == proxy.ErrProxyOnLocalhost:
-				glog.Warningf("WARNING: The service proxy cannot bind to localhost and will be disabled.")
-			case strings.Contains(err.Error(), "you must be root"):
-				glog.Warningf("WARNING: Could not modify iptables. You must run this process as root to use the service proxy.")
-			default:
-				glog.Warningf("WARNING: Could not modify iptables. You must run this process as root to use the service proxy: %v", err)
-			}
-			select {}
-		}
+	pconfig.NewSourceAPI(
+		c.Client,
+		10*time.Minute,
+		serviceConfig.Channel("api"),
+		endpointsConfig.Channel("api"))
 
-		pconfig.NewSourceAPI(
-			c.Client,
-			10*time.Minute,
-			serviceConfig.Channel("api"),
-			endpointsConfig.Channel("api"))
-
-		serviceConfig.RegisterHandler(proxier)
-		recorder.Eventf(nodeRef, "Starting", "Starting kube-proxy.")
-		glog.Infof("Started Kubernetes Proxy on %s", host)
-		select {}
-	}, 5*time.Second)
+	serviceConfig.RegisterHandler(proxier)
+	if c.FilteringEndpointsHandler == nil {
+		endpointsConfig.RegisterHandler(proxier)
+	} else {
+		c.FilteringEndpointsHandler.SetBaseEndpointsHandler(proxier)
+		endpointsConfig.RegisterHandler(c.FilteringEndpointsHandler)
+	}
+	recorder.Eventf(nodeRef, "Starting", "Starting kube-proxy.")
+	glog.Infof("Started Kubernetes Proxy on %s", host)
 }
 
 // TODO: more generic location

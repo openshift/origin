@@ -9,13 +9,28 @@
           <div class="tile">
             <h1>
               {{pod.metadata.name}}
-              <delete-button
-                class="pull-right fa-lg" 
-                resource-type="pod" 
-                resource-name="{{pod.metadata.name}}" 
-                project-name="{{pod.metadata.namespace}}" 
-                alerts="alerts">
-              </delete-button>
+
+              <div class="pull-right dropdown">
+                <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                <ul class="dropdown-menu actions action-button">
+                  <li>
+                    <edit-link
+                      resource="pod"
+                      kind="pods"
+                      alerts="alerts">
+                    </edit-link>
+                  </li>
+                  <li>
+                    <delete-link
+                      resource-type="pod"
+                      resource-name="{{pod.metadata.name}}"
+                      project-name="{{pod.metadata.namespace}}"
+                      alerts="alerts">
+                    </delete-link>
+                  </li>
+                </ul>
+
+              </div>
               <span ng-if="pod | isTroubledPod">
                 <pod-warnings pod="pod" style="vertical-align: middle;"></pod-warnings>
               </span>

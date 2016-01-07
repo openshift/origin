@@ -63,6 +63,19 @@ At this point, all [environment assumptions](..) are met, and we have a Gluster 
         kubernetes          192.168.122.251:8443 
 
 
+- To persist the Endpoints, you need to use [service configuration file](glusterfs-service.json) to create a service:
+
+
+
+        oc create -f gluster-service.json
+
+        [root@OpenShift1 nginx_gluster]# oc create -f gluster-service.json 
+
+
+_then check the service status via_
+
+
+        oc get service
 
 
 - Following similar deployment to what we did in the previous examples, we will modify the [pod configuration file](gluster-nginx-pod.json) to utilize the “glusterfs” plugin

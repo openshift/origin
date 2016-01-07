@@ -190,8 +190,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 		for _, standaloneImage := range standaloneImages {
 			fmt.Fprintln(out)
-			printLines(out, indent, 0, describeStandaloneBuildGroup(standaloneImage, namespace)...)
-			printLines(out, indent, 1, describeAdditionalBuildDetail(standaloneImage.Build, standaloneImage.LastSuccessfulBuild, standaloneImage.LastUnsuccessfulBuild, standaloneImage.ActiveBuilds, standaloneImage.DestinationResolved, true)...)
+			lines := describeStandaloneBuildGroup(standaloneImage, namespace)
+			lines = append(lines, describeAdditionalBuildDetail(standaloneImage.Build, standaloneImage.LastSuccessfulBuild, standaloneImage.LastUnsuccessfulBuild, standaloneImage.ActiveBuilds, standaloneImage.DestinationResolved, true)...)
+			printLines(out, indent, 0, lines...)
 		}
 
 		for _, standaloneRC := range standaloneRCs {
@@ -300,6 +301,7 @@ func getMarkerScanners() []osgraph.MarkerScanner {
 		kubeanalysis.FindMissingSecrets,
 		buildanalysis.FindUnpushableBuildConfigs,
 		buildanalysis.FindCircularBuilds,
+		buildanalysis.FindPendingTags,
 		deployanalysis.FindDeploymentConfigTriggerErrors,
 		routeanalysis.FindMissingPortMapping,
 		routeanalysis.FindMissingTLSTerminationType,

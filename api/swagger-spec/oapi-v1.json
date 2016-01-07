@@ -14855,6 +14855,10 @@
      "forcePull": {
       "type": "boolean",
       "description": "forces the source build to pull the image if true"
+     },
+     "dockerfilePath": {
+      "type": "string",
+      "description": "path of the Dockerfile to use for building the Docker image, relative to the contextDir, if set"
      }
     }
    },

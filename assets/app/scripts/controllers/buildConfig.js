@@ -129,8 +129,28 @@ angular.module('openshiftConsole')
           });
         });
 
-        $scope.startBuild = function(buildConfigName) {
-          BuildsService.startBuild(buildConfigName, context, $scope);
+        var hashSize = $filter('hashSize');
+        $scope.canBuild = function() {
+          if (!$scope.buildConfig) {
+            return false;
+          }
+
+          if ($scope.buildConfig.metadata.deletionTimestamp) {
+            return false;
+          }
+
+          if ($scope.buildConfigBuildsInProgress &&
+              hashSize($scope.buildConfigBuildsInProgress[$scope.buildConfig.metadata.name]) > 0) {
+            return false;
+          }
+
+          return true;
+        };
+
+        $scope.startBuild = function() {
+          if ($scope.canBuild()) {
+            BuildsService.startBuild($scope.buildConfig.metadata.name, context, $scope);
+          }
         };
 
         $scope.cancelBuild = function(build, buildConfigName) {

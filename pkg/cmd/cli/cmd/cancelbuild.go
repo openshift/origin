@@ -151,6 +151,11 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 
 // isBuildCancellable checks if another cancellation event was triggered, and if the build status is correct.
 func isBuildCancellable(build *buildapi.Build, out io.Writer) bool {
+	if build.Status.Cancelled {
+		fmt.Fprintf(out, "A cancellation event was already triggered for the build %s.\n", build.Name)
+		return false
+	}
+
 	if build.Status.Phase != buildapi.BuildPhaseNew &&
 		build.Status.Phase != buildapi.BuildPhasePending &&
 		build.Status.Phase != buildapi.BuildPhaseRunning {
@@ -159,9 +164,5 @@ func isBuildCancellable(build *buildapi.Build, out io.Writer) bool {
 		return false
 	}
 
-	if build.Status.Cancelled {
-		fmt.Fprintf(out, "A cancellation event was already triggered for the build %s.\n", build.Name)
-		return false
-	}
 	return true
 }

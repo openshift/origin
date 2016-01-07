@@ -12,6 +12,7 @@ angular.module('openshiftConsole')
               function ($routeParams,
                         $scope,
                         DataService,
+                        DeploymentsService,
                         ProjectsService,
                         annotationFilter,
                         hashSizeFilter,
@@ -70,6 +71,10 @@ angular.module('openshiftConsole')
     $scope.renderOptions.showSidebarRight = false;
     $scope.overviewMode = 'tiles';
 
+    // Make sure only one deployment per deployment config is scalable on the overview page.
+    // This is the most recent deployment in progress or complete.
+    var scalableDeploymentByConfig = {};
+
     /*
      * HACK: The use of <base href="/"> that is encouraged by angular is
      * a cop-out. It breaks a number of real world use cases, including
@@ -92,7 +97,6 @@ angular.module('openshiftConsole')
 
     var intervals = [];
     var watches = [];
-
 
     ProjectsService
       .get($routeParams.project)
@@ -117,7 +121,7 @@ angular.module('openshiftConsole')
           $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
 
           // Order is important here since podRelationships expects deploymentsByServiceByDeploymentConfig to be up to date
-          deploymentsByService();
+          deploymentRelationships();
           deploymentConfigsByService();
           podRelationships();
 
@@ -212,6 +216,27 @@ angular.module('openshiftConsole')
           updateTopologyLater();
         }
 
+        $scope.isScalable = function(deployment, deploymentConfigId) {
+          // Allow scaling of RCs with no deployment config.
+          if (!deploymentConfigId) {
+            return true;
+          }
+
+          // Wait for deployment configs to load before allowing scaling of
+          // a deployment with a deployment config.
+          if (!$scope.deploymentConfigs) {
+            return false;
+          }
+
+          // Allow scaling of deployments whose deployment config has been deleted.
+          if (!$scope.deploymentConfigs[deploymentConfigId]) {
+            return true;
+          }
+
+          // Otherwise, check the map to find the most recent deployment that's scalable.
+          return scalableDeploymentByConfig[deploymentConfigId] === deployment;
+        };
+
         // Filter out monopods we know we don't want to see
         function showMonopod(pod) {
           // Hide pods in the Succeeded, Terminated, and Failed phases since these
@@ -260,15 +285,32 @@ angular.module('openshiftConsole')
           });
         }
 
-        function deploymentsByService() {
+        // Only the most recent in progress or complete deployment for a given
+        // deployment config is scalable in the overview.
+        function updateScalableDeployments(deploymentsByDC) {
+          scalableDeploymentByConfig = {};
+          angular.forEach(deploymentsByDC, function(deployments, dcName) {
+            scalableDeploymentByConfig[dcName] = DeploymentsService.getActiveDeployment(deployments);
+          });
+        }
+
+        function deploymentRelationships() {
           var bySvc = $scope.deploymentsByService = {"": {}};
           var bySvcByDepCfg = $scope.deploymentsByServiceByDeploymentConfig = {"": {}};
+
+          // Also keep a map of deployments by deployment config to determine which are scalable.
+          var byDepConfig = {};
 
           angular.forEach($scope.deployments, function(deployment, depName){
             var foundMatch = false;
             var getLabels = $parse('spec.template.metadata.labels');
             var deploymentSelector = new LabelSelector(getLabels(deployment) || {});
             var depConfigName = annotationFilter(deployment, 'deploymentConfig') || "";
+
+            if (depConfigName) {
+              byDepConfig[depConfigName] = byDepConfig[depConfigName] || [];
+              byDepConfig[depConfigName].push(deployment);
+            }
 
             angular.forEach($scope.unfilteredServices, function(service, name){
               bySvc[name] = bySvc[name] || {};
@@ -289,6 +331,8 @@ angular.module('openshiftConsole')
               bySvcByDepCfg[""][depConfigName] = bySvcByDepCfg[""][depConfigName] || {};
               bySvcByDepCfg[""][depConfigName][depName] = deployment;
             }
+
+            updateScalableDeployments(byDepConfig);
           });
         }
 
@@ -307,7 +351,7 @@ angular.module('openshiftConsole')
           }
 
           // Order is important here since podRelationships expects deploymentsByServiceByDeploymentConfig to be up to date
-          deploymentsByService();
+          deploymentRelationships();
           podRelationships();
 
           // Must be called after podRelationships()
