@@ -59,7 +59,7 @@ class OriginBuilder(Builder):
             ldflags = run_command("bash -c '{0}'".format(cmd))
             print("LDFLAGS::{0}".format(ldflags))
             update_ldflags = \
-                    "sed -i 's|^%global ldflags .*$|%global ldflags {0}|' {1}".format(
+                    "sed -i 's|^%%global ldflags .*$|%%global ldflags {0}|' {1}".format(
                         ' '.join([ldflag.strip() for ldflag in ldflags.split()]),
                         self.spec_file
                     )
