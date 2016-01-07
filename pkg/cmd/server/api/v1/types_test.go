@@ -55,7 +55,9 @@ volumeDirectory: ""
 	// Before modifying this constant, ensure any changes have corresponding issues filed for:
 	// - documentation: https://github.com/openshift/openshift-docs/
 	// - install: https://github.com/openshift/openshift-ansible/
-	expectedSerializedMasterConfig = `apiLevels: null
+	expectedSerializedMasterConfig = `admissionPluginConfig:
+  pluginName: configFilePath
+apiLevels: null
 apiVersion: v1
 assetConfig:
   extensionDevelopment: false
@@ -351,7 +353,8 @@ func TestMasterConfig(t *testing.T) {
 		AssetConfig: &internal.AssetConfig{
 			Extensions: []internal.AssetExtensionsConfig{{}},
 		},
-		DNSConfig: &internal.DNSConfig{},
+		DNSConfig:             &internal.DNSConfig{},
+		AdmissionPluginConfig: map[string]string{"pluginName": "configFilePath"}, // Must be specified explicitly becase it's omitempty
 	}
 	serializedConfig, err := writeYAML(config)
 	if err != nil {

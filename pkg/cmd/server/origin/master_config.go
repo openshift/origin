@@ -165,7 +165,16 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	admissionControlPluginNames := []string{"OriginNamespaceLifecycle", "BuildByStrategy"}
 
 	admissionClient := admissionControlClient(privilegedLoopbackKubeClient, privilegedLoopbackOpenShiftClient)
-	admissionController := admission.NewFromPlugins(admissionClient, admissionControlPluginNames, "")
+
+	plugins := []admission.Interface{}
+	for _, pluginName := range admissionControlPluginNames {
+		configFile := options.AdmissionPluginConfig[pluginName]
+		plugin := admission.InitPlugin(pluginName, admissionClient, configFile)
+		if plugin != nil {
+			plugins = append(plugins, plugin)
+		}
+	}
+	admissionController := admission.NewChainHandler(plugins...)
 
 	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, client)
 	if err != nil {
