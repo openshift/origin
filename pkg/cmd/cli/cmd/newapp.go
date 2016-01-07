@@ -566,8 +566,7 @@ The '%[2]s' command will match arguments to the following types:
   3. Templates in the current project or the 'openshift' project
   4. Git repository URLs or local paths that point to Git repositories
 
---allow-missing-images can be used to point to an image that does not exist yet
-or is only on the local system.
+--allow-missing-images can be used to point to an image that does not exist yet.
 
 See '%[2]s' for examples.
 `, t, c.Name())

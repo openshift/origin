@@ -103,7 +103,7 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, deployme
 	}
 
 	// Build a pod spec from the hook config and deployment
-	podSpec, err := makeHookPod(hook, deployment, &config.Template.Strategy, label)
+	podSpec, err := makeHookPod(hook, deployment, &config.Spec.Strategy, label)
 	if err != nil {
 		return err
 	}

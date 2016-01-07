@@ -22,6 +22,9 @@ os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'
 os::cmd::expect_success_and_not_text 'oc new-app mysql -o yaml' 'library/mysql'
 
+# docker strategy with repo that has no dockerfile
+os::cmd::expect_failure_and_text 'oc new-app https://github.com/openshift/nodejs-ex --strategy=docker' 'No Dockerfile was found'
+
 # check label creation
 os::cmd::try_until_success 'oc get imagestreamtags php:latest'
 os::cmd::try_until_success 'oc get imagestreamtags php:5.5'

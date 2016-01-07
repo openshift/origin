@@ -175,6 +175,16 @@ func (d ConfigContext) CanRun() (bool, error) {
 	return true, nil
 }
 
+// ContextClusterUser returns user+cluster name, plus true if the context is defined
+func (d ConfigContext) ContextClusterUser() (string, bool) {
+	if context, exists := d.RawConfig.Contexts[d.ContextName]; exists {
+		return context.Cluster + " " + context.AuthInfo, true
+	} else {
+		return "", false
+	}
+}
+
+// Check is part of the Diagnostic interface; it runs the actual diagnostic logic
 func (d ConfigContext) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(ConfigContextsName)
 
@@ -188,7 +198,7 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 		unusableLine = fmt.Sprintf("The current client config context '%s' is unusable", d.ContextName)
 	}
 
-	// check that the context and its constitutuents are defined in the kubeconfig
+	// check that the context and its constituents are defined in the kubeconfig
 	context, exists := d.RawConfig.Contexts[d.ContextName]
 	if !exists {
 		r.Error(errorKey, nil, fmt.Sprintf("%s:\n Client config context '%s' is not defined.", unusableLine, d.ContextName))

@@ -17,19 +17,19 @@ import (
 
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
 func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
-	return fmt.Sprintf("%s-%d", config.Name, config.LatestVersion)
+	return fmt.Sprintf("%s-%d", config.Name, config.Status.LatestVersion)
 }
 
 // LatestDeploymentInfo returns info about the latest deployment for a config,
 // or nil if there is no latest deployment. The latest deployment is not
 // always the same as the active deployment.
 func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments *api.ReplicationControllerList) (bool, *api.ReplicationController) {
-	if config.LatestVersion == 0 || len(deployments.Items) == 0 {
+	if config.Status.LatestVersion == 0 || len(deployments.Items) == 0 {
 		return false, nil
 	}
 	sort.Sort(ByLatestVersionDesc(deployments.Items))
 	candidate := &deployments.Items[0]
-	return DeploymentVersionFor(candidate) == config.LatestVersion, candidate
+	return DeploymentVersionFor(candidate) == config.Status.LatestVersion, candidate
 }
 
 // ActiveDeployment returns the latest complete deployment, or nil if there is
@@ -62,7 +62,7 @@ func LabelForDeployment(deployment *api.ReplicationController) string {
 
 // LabelForDeploymentConfig builds a string identifier for a DeploymentConfig.
 func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
-	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
+	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.Status.LatestVersion)
 }
 
 // DeploymentNameForConfigVersion returns the name of the version-th deployment
@@ -97,7 +97,7 @@ func AnyDeployerPodSelector() labels.Selector {
 // HasChangeTrigger returns whether the provided deployment configuration has
 // a config change trigger or not
 func HasChangeTrigger(config *deployapi.DeploymentConfig) bool {
-	for _, trigger := range config.Triggers {
+	for _, trigger := range config.Spec.Triggers {
 		if trigger.Type == deployapi.DeploymentTriggerOnConfigChange {
 			return true
 		}
@@ -142,7 +142,7 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 	deploymentName := LatestDeploymentNameForConfig(config)
 
 	podSpec := api.PodSpec{}
-	if err := api.Scheme.Convert(&config.Template.ControllerTemplate.Template.Spec, &podSpec); err != nil {
+	if err := api.Scheme.Convert(&config.Spec.Template.Spec, &podSpec); err != nil {
 		return nil, fmt.Errorf("couldn't clone podSpec: %v", err)
 	}
 
@@ -159,26 +159,26 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 	// to the controller, and that multiple deployment controllers for the same config don't
 	// manipulate each others' pods.
 	selector := map[string]string{}
-	for k, v := range config.Template.ControllerTemplate.Selector {
+	for k, v := range config.Spec.Selector {
 		selector[k] = v
 	}
 	selector[deployapi.DeploymentConfigLabel] = config.Name
 	selector[deployapi.DeploymentLabel] = deploymentName
 
 	podLabels := make(labels.Set)
-	for k, v := range config.Template.ControllerTemplate.Template.Labels {
+	for k, v := range config.Spec.Template.Labels {
 		podLabels[k] = v
 	}
 	podLabels[deployapi.DeploymentConfigLabel] = config.Name
 	podLabels[deployapi.DeploymentLabel] = deploymentName
 
 	podAnnotations := make(labels.Set)
-	for k, v := range config.Template.ControllerTemplate.Template.Annotations {
+	for k, v := range config.Spec.Template.Annotations {
 		podAnnotations[k] = v
 	}
 	podAnnotations[deployapi.DeploymentAnnotation] = deploymentName
 	podAnnotations[deployapi.DeploymentConfigAnnotation] = config.Name
-	podAnnotations[deployapi.DeploymentVersionAnnotation] = strconv.Itoa(config.LatestVersion)
+	podAnnotations[deployapi.DeploymentVersionAnnotation] = strconv.Itoa(config.Status.LatestVersion)
 
 	deployment := &api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{
@@ -187,9 +187,9 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 				deployapi.DeploymentConfigAnnotation:        config.Name,
 				deployapi.DeploymentStatusAnnotation:        string(deployapi.DeploymentStatusNew),
 				deployapi.DeploymentEncodedConfigAnnotation: encodedConfig,
-				deployapi.DeploymentVersionAnnotation:       strconv.Itoa(config.LatestVersion),
+				deployapi.DeploymentVersionAnnotation:       strconv.Itoa(config.Status.LatestVersion),
 				// This is the target replica count for the new deployment.
-				deployapi.DesiredReplicasAnnotation:    strconv.Itoa(config.Template.ControllerTemplate.Replicas),
+				deployapi.DesiredReplicasAnnotation:    strconv.Itoa(config.Spec.Replicas),
 				deployapi.DeploymentReplicasAnnotation: strconv.Itoa(0),
 			},
 			Labels: controllerLabels,

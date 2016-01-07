@@ -19,8 +19,10 @@ func EnsureDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *depoyapi.Deplo
 		},
 	).(*DeploymentConfigNode)
 
-	rcSpecNode := kubegraph.EnsureReplicationControllerSpecNode(g, &dc.Template.ControllerTemplate, dcName)
-	g.AddEdge(dcNode, rcSpecNode, osgraph.ContainsEdgeKind)
+	if dc.Spec.Template != nil {
+		podTemplateSpecNode := kubegraph.EnsurePodTemplateSpecNode(g, dc.Spec.Template, dcName)
+		g.AddEdge(dcNode, podTemplateSpecNode, osgraph.ContainsEdgeKind)
+	}
 
 	return dcNode
 }

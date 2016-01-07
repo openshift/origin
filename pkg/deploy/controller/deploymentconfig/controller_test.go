@@ -593,7 +593,7 @@ func TestHandleScenarios(t *testing.T) {
 		}
 
 		config := deploytest.OkDeploymentConfig(test.newVersion)
-		config.Template.ControllerTemplate.Replicas = test.replicas
+		config.Spec.Replicas = test.replicas
 		err := controller.Handle(config)
 		if err != nil && !test.errExpected {
 			t.Fatalf("unexpected error: %s", err)
@@ -610,7 +610,7 @@ func TestHandleScenarios(t *testing.T) {
 		sort.Sort(deployutil.ByLatestVersionDesc(expectedDeployments))
 		sort.Sort(deployutil.ByLatestVersionDesc(actualDeployments))
 
-		if e, a := test.expectedReplicas, config.Template.ControllerTemplate.Replicas; e != a {
+		if e, a := test.expectedReplicas, config.Spec.Replicas; e != a {
 			t.Errorf("expected config replicas to be %d, got %d", e, a)
 			t.Fatalf("events:\n%s", strings.Join(recorder.Events, "\t\n"))
 		}

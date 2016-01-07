@@ -696,9 +696,9 @@ func TestDeployerCustomLabelsAndAnnotations(t *testing.T) {
 	for _, test := range testCases {
 		t.Logf("evaluating test case %s", test.name)
 		config := deploytest.OkDeploymentConfig(1)
-		config.Template.Strategy = test.strategy
-		config.Template.Strategy.Labels = test.labels
-		config.Template.Strategy.Annotations = test.annotations
+		config.Spec.Strategy = test.strategy
+		config.Spec.Strategy.Labels = test.labels
+		config.Spec.Strategy.Annotations = test.annotations
 
 		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 		podTemplate, err := controller.makeDeployerPod(deployment)

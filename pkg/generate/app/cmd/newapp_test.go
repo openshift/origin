@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -373,7 +374,7 @@ func TestResolve(t *testing.T) {
 					Value: "mysql:invalid",
 					Resolver: app.UniqueExactOrInexactMatchResolver{
 						Searcher: app.DockerRegistrySearcher{
-							Client: dockerregistry.NewClient(),
+							Client: dockerregistry.NewClient(10 * time.Second),
 						},
 					},
 				})},
@@ -431,7 +432,7 @@ func TestDetectSource(t *testing.T) {
 	defer os.RemoveAll(gitLocalDir)
 
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(),
+		Client: dockerregistry.NewClient(10 * time.Second),
 	}
 	mocks := MockSourceRepositories(t, gitLocalDir)
 	tests := []struct {
@@ -510,7 +511,7 @@ func (r *ExactMatchDockerSearcher) Search(terms ...string) (app.ComponentMatches
 func TestRunAll(t *testing.T) {
 	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(),
+		Client: dockerregistry.NewClient(10 * time.Second),
 	}
 	tests := []struct {
 		name            string
@@ -913,7 +914,7 @@ func TestRunAll(t *testing.T) {
 				imageStreams = append(imageStreams, tp)
 			case *deployapi.DeploymentConfig:
 				got["deploymentConfig"] = append(got["deploymentConfig"], tp.Name)
-				if podTemplate := tp.Template.ControllerTemplate.Template; podTemplate != nil {
+				if podTemplate := tp.Spec.Template; podTemplate != nil {
 					for _, volume := range podTemplate.Spec.Volumes {
 						if volume.VolumeSource.EmptyDir != nil {
 							gotVolumes[volume.Name] = "EmptyDir"
@@ -928,9 +929,9 @@ func TestRunAll(t *testing.T) {
 					}
 				}
 				if test.config.Labels != nil {
-					if !mapContains(test.config.Labels, tp.Template.ControllerTemplate.Selector) {
+					if !mapContains(test.config.Labels, tp.Spec.Selector) {
 						t.Errorf("%s: did not get expected deployment config rc selector. Expected: %v. Got: %v",
-							test.name, test.config.Labels, tp.Template.ControllerTemplate.Selector)
+							test.name, test.config.Labels, tp.Spec.Selector)
 					}
 				}
 			}
@@ -993,7 +994,7 @@ func TestRunAll(t *testing.T) {
 func TestRunBuilds(t *testing.T) {
 	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(),
+		Client: dockerregistry.NewClient(10 * time.Second),
 	}
 
 	tests := []struct {
@@ -1434,7 +1435,7 @@ func TestRunBuilds(t *testing.T) {
 func TestNewBuildEnvVars(t *testing.T) {
 	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(),
+		Client: dockerregistry.NewClient(10 * time.Second),
 	}
 
 	tests := []struct {
@@ -1496,7 +1497,7 @@ func TestNewBuildEnvVars(t *testing.T) {
 func TestNewAppBuildConfigEnvVars(t *testing.T) {
 	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(),
+		Client: dockerregistry.NewClient(10 * time.Second),
 	}
 
 	tests := []struct {

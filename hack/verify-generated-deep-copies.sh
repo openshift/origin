@@ -11,7 +11,7 @@ cd "${OS_ROOT}"
 
 echo "===== Verifying Generated Conversions ====="
 echo "Building gendeepcopy binary..."
-if ! buildout=`"${OS_ROOT}/hack/build-go.sh" cmd/gendeepcopy 2>&1`
+if ! buildout=`"${OS_ROOT}/hack/build-go.sh" tools/gendeepcopy 2>&1`
 then
   echo "FAILURE: Building gendeepcopy binary failed:"
   echo "$buildout"
@@ -27,7 +27,7 @@ if [[ ! -x "$gendeepcopy" ]]; then
   {
     echo "FAILURE: It looks as if you don't have a compiled conversion binary."
     echo "If you are running from a clone of the git repo, please run:"
-    echo "'./hack/build-go.sh cmd/gendeepcopy'."
+    echo "'./hack/build-go.sh tools/gendeepcopy'."
   } >&2
   exit 1
 fi

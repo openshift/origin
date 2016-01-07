@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/cli"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -30,6 +31,8 @@ func NewCmdGroups(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 	cmds.AddCommand(NewCmdNewGroup(NewGroupRecommendedName, fullName+" "+NewGroupRecommendedName, f, out))
 	cmds.AddCommand(NewCmdAddUsers(AddRecommendedName, fullName+" "+AddRecommendedName, f, out))
 	cmds.AddCommand(NewCmdRemoveUsers(RemoveRecommendedName, fullName+" "+RemoveRecommendedName, f, out))
+	cmds.AddCommand(cli.NewCmdSync(cli.SyncRecommendedName, fullName+" "+cli.SyncRecommendedName, f, out))
+	cmds.AddCommand(cli.NewCmdPrune(cli.PruneRecommendedName, fullName+" "+cli.PruneRecommendedName, f, out))
 
 	return cmds
 }

@@ -1,0 +1,175 @@
+apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: hello-builder
+    name: hello-builder
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: hello-builder:latest
+    source:
+      binary: {}
+      type: Binary
+    strategy:
+      dockerStrategy: {}
+      type: Docker
+    triggers: []
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: hello-openshift
+    name: hello-openshift
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: hello-openshift:latest
+    source:
+      contextDir: examples/hello-openshift
+      git:
+        uri: https://github.com/openshift/origin.git
+      image:
+        from:
+          kind: ImageStreamTag
+          name: hello-openshift-binary:latest
+        paths:
+        - destinationPath: examples/hello-openshift/bin
+          sourceDir: /tmp/hello-openshift
+      type: Git
+    strategy:
+      dockerStrategy: {}
+      type: Docker
+    triggers:
+    - imageChange:
+        from:
+          kind: ImageStreamTag
+          name: hello-openshift-binary:latest
+      type: ImageChange
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: hello-openshift-binary
+    name: hello-openshift-binary
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: hello-openshift-binary:latest
+    source:
+      contextDir: examples/hello-openshift
+      git:
+        uri: https://github.com/openshift/origin.git
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: hello-builder:latest
+      type: Source
+    triggers:
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      build: hello-builder
+    name: hello-builder
+  spec: {}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      build: hello-openshift
+    name: hello-openshift
+  spec: {}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      build: hello-openshift-binary
+    name: hello-openshift-binary
+  spec: {}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: hello-openshift
+    name: hello-openshift
+  spec:
+    replicas: 1
+    selector:
+      app: hello-openshift
+      deploymentconfig: hello-openshift
+    strategy:
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: hello-openshift
+          deploymentconfig: hello-openshift
+      spec:
+        containers:
+        - image: hello-openshift
+          imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              port: 8080
+          name: hello-openshift
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8888
+            protocol: TCP
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - hello-openshift
+        from:
+          kind: ImageStreamTag
+          name: hello-openshift:latest
+      type: ImageChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: hello-openshift
+    name: hello-openshift
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    - name: 8888-tcp
+      port: 8888
+      protocol: TCP
+      targetPort: 8888
+    selector:
+      app: hello-openshift
+      deploymentconfig: hello-openshift
+    sessionAffinity: None
+    type: ClusterIP

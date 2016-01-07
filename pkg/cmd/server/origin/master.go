@@ -152,7 +152,12 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		extra = append(extra, i.InstallAPI(open)...)
 	}
 
-	handler = indexAPIPaths(handler)
+	var kubeAPILevels []string
+	if c.Options.KubernetesMasterConfig != nil {
+		kubeAPILevels = configapi.GetEnabledAPIVersionsForGroup(*c.Options.KubernetesMasterConfig, configapi.APIGroupKube)
+	}
+
+	handler = indexAPIPaths(c.Options.APILevels, kubeAPILevels, handler)
 
 	open.Handle("/", handler)
 

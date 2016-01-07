@@ -39,7 +39,7 @@ func TestRolling_deployInitial(t *testing.T) {
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
-	config.Template.Strategy = deploytest.OkRollingStrategy()
+	config.Spec.Strategy = deploytest.OkRollingStrategy()
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
@@ -52,10 +52,10 @@ func TestRolling_deployInitial(t *testing.T) {
 
 func TestRolling_deployRolling(t *testing.T) {
 	latestConfig := deploytest.OkDeploymentConfig(1)
-	latestConfig.Template.Strategy = deploytest.OkRollingStrategy()
+	latestConfig.Spec.Strategy = deploytest.OkRollingStrategy()
 	latest, _ := deployutil.MakeDeployment(latestConfig, kapi.Codec)
 	config := deploytest.OkDeploymentConfig(2)
-	config.Template.Strategy = deploytest.OkRollingStrategy()
+	config.Spec.Strategy = deploytest.OkRollingStrategy()
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 
 	deployments := map[string]*kapi.ReplicationController{
@@ -139,7 +139,7 @@ func TestRolling_deployRolling(t *testing.T) {
 
 func TestRolling_deployRollingHooks(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
-	config.Template.Strategy = deploytest.OkRollingStrategy()
+	config.Spec.Strategy = deploytest.OkRollingStrategy()
 	latest, _ := deployutil.MakeDeployment(config, kapi.Codec)
 
 	var hookError error
@@ -191,7 +191,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 
 	for _, tc := range cases {
 		config := deploytest.OkDeploymentConfig(2)
-		config.Template.Strategy.RollingParams = tc.params
+		config.Spec.Strategy.RollingParams = tc.params
 		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 		deployments[deployment.Name] = deployment
 		hookError = nil
@@ -250,7 +250,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 
 	for _, tc := range cases {
 		config := deploytest.OkDeploymentConfig(2)
-		config.Template.Strategy.RollingParams = tc.params
+		config.Spec.Strategy.RollingParams = tc.params
 		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 		hookError = nil
 		if tc.hookShouldFail {

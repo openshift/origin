@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -54,6 +55,7 @@ type Connection interface {
 
 // client implements the Client interface
 type client struct {
+	dialTimeout time.Duration
 	connections map[string]*connection
 }
 
@@ -61,8 +63,9 @@ type client struct {
 // a Docker registry. enableV2 allows a client to prefer V1 registry
 // API connections.
 // TODO: accept a docker auth config
-func NewClient() Client {
+func NewClient(dialTimeout time.Duration) Client {
 	return &client{
+		dialTimeout: dialTimeout,
 		connections: make(map[string]*connection),
 	}
 }
@@ -79,7 +82,7 @@ func (c *client) Connect(name string, allowInsecure bool) (Connection, error) {
 	if conn, ok := c.connections[prefix]; ok && conn.allowInsecure == allowInsecure {
 		return conn, nil
 	}
-	conn := newConnection(*target, allowInsecure, true)
+	conn := newConnection(*target, c.dialTimeout, allowInsecure, true)
 	c.connections[prefix] = conn
 	return conn, nil
 }
@@ -156,7 +159,7 @@ type connection struct {
 }
 
 // newConnection creates a new connection
-func newConnection(url url.URL, allowInsecure, enableV2 bool) *connection {
+func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enableV2 bool) *connection {
 	var isV2 *bool
 	if !enableV2 {
 		v2 := false
@@ -166,11 +169,19 @@ func newConnection(url url.URL, allowInsecure, enableV2 bool) *connection {
 	var transport http.RoundTripper
 	if allowInsecure {
 		transport = kutil.SetTransportDefaults(&http.Transport{
-			Proxy:           http.ProxyFromEnvironment,
+			Dial: (&net.Dialer{
+				Timeout:   dialTimeout,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		})
 	} else {
-		transport = http.DefaultTransport
+		transport = kutil.SetTransportDefaults(&http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   dialTimeout,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+		})
 	}
 
 	switch {

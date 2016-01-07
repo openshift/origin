@@ -201,7 +201,7 @@ Resource limits:
 
 You can now see that the project has set min/max limits at the pod and container scopes.
 
-If a pod is created that has no cpu resource limit set, the default (100m) will be set as an explicit limit.  Similarly, if a pod is created that has no memory resource limit set, the default (256Mi) will be set as an explicit limit.
+If a pod is created that has no cpu resource limit set, the default (100m) will be set as an explicit limit.  Similarly, if a pod is created that has no memory resource limit set, the default (100Mi) will be set as an explicit limit.
 
 To demonstrate this, let's try to create the pod that failed previously:
 
@@ -252,7 +252,7 @@ To demonstrate this, let's provision a custom template that enumerates resources
 
 ```shell
 $ oc create -f application-template-with-resources.json
-$ oc describe template templates ruby-helloworld-sample-with-resources
+$ oc describe template ruby-helloworld-sample-with-resources
 Name:   ruby-helloworld-sample-with-resources
 Created:  12 minutes ago
 Labels:   <none>
@@ -354,15 +354,15 @@ Putting it all together
 Now that we have created our template, let's create the content within it.
 
 ```shell
-$ oc process ruby-helloworld-sample-with-resources | openshift cli create -f -
-services/frontend
-routes/route-edge
-imageStreams/origin-ruby-sample
-imageStreams/ruby-20-centos7
-buildConfigs/ruby-sample-build
-deploymentConfigs/frontend
-services/database
-deploymentConfigs/database
+$ oc process ruby-helloworld-sample-with-resources | oc create -f -
+service "frontend" created
+route "route-edge" created
+imagestream "origin-ruby-sample" created
+imagestream "ruby-20-centos7" created
+buildconfig "ruby-sample-build" created
+deploymentconfig "frontend" created
+service "database" created
+deploymentconfig "database" created
 ```
 
 Every action in the project that consumes node level cpu or memory resources has defined limits.

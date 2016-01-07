@@ -51,7 +51,7 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 		if err != nil {
 			return err
 		}
-		return wait.Poll(waitForReplicas.Interval, waitForReplicas.Timeout, controllerHasSpecifiedReplicas(scaler.clientInterface, rc, dc.Template.ControllerTemplate.Replicas))
+		return wait.Poll(waitForReplicas.Interval, waitForReplicas.Timeout, controllerHasSpecifiedReplicas(scaler.clientInterface, rc, dc.Spec.Replicas))
 	}
 	return nil
 }

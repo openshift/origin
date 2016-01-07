@@ -136,6 +136,29 @@ Create a new group
 ====
 
 
+== oadm groups prune
+Prune OpenShift groups referencing missing records on an external provider.
+
+====
+
+[options="nowrap"]
+----
+  # Prune all orphaned groups 
+  $ oadm groups prune --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups except the ones from the blacklist file
+  $ oadm groups prune --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist file
+  $ oadm groups prune --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist
+  $ oadm groups prune groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+----
+====
+
+
 == oadm groups remove-users
 Remove users from a group
 
@@ -145,6 +168,32 @@ Remove users from a group
 ----
   # Remove user1 and user2 from my-group
   $ oadm groups remove-users my-group user1 user2
+----
+====
+
+
+== oadm groups sync
+Sync OpenShift groups with records from an external provider.
+
+====
+
+[options="nowrap"]
+----
+  # Sync all groups from an LDAP server
+  $ oadm groups sync --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Sync all groups except the ones from the blacklist file from an LDAP server
+  $ oadm groups sync --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Sync specific groups specified in a whitelist file with an LDAP server 
+  $ oadm groups sync --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml --confirm
+
+  # Sync all OpenShift Groups that have been synced previously with an LDAP server
+  $ oadm groups sync --type=openshift --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Sync specific OpenShift Groups if they have been synced previously with an LDAP server
+  $ oadm groups sync groups/group1 groups/group2 groups/group3 --sync-config=/path/to/sync-config.yaml --confirm
+
 ----
 ====
 
@@ -293,6 +342,29 @@ Replace cluster SCCs to match the recommended bootstrap policy
 
   # Replace existing users, groups, and priorities that do not match defaults
   $ oadm policy reconcile-sccs --additive-only=false --confirm
+----
+====
+
+
+== oadm prune prune
+Prune OpenShift groups referencing missing records on an external provider.
+
+====
+
+[options="nowrap"]
+----
+  # Prune all orphaned groups 
+  $ oadm prune prune --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups except the ones from the blacklist file
+  $ oadm prune prune --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist file
+  $ oadm prune prune --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist
+  $ oadm prune prune groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
 ----
 ====
 

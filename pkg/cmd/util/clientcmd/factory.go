@@ -240,7 +240,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	w.PodSelectorForObject = func(object runtime.Object) (string, error) {
 		switch t := object.(type) {
 		case *deployapi.DeploymentConfig:
-			return kubectl.MakeLabels(t.Template.ControllerTemplate.Selector), nil
+			return kubectl.MakeLabels(t.Spec.Selector), nil
 		default:
 			return kPodSelectorForObjectFunc(object)
 		}
@@ -249,7 +249,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	w.PortsForObject = func(object runtime.Object) ([]string, error) {
 		switch t := object.(type) {
 		case *deployapi.DeploymentConfig:
-			return getPorts(t.Template.ControllerTemplate.Template.Spec), nil
+			return getPorts(t.Spec.Template.Spec), nil
 		default:
 			return kPortsForObjectFunc(object)
 		}
@@ -323,7 +323,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			var err error
 			var pods *api.PodList
 			for pods == nil || len(pods.Items) == 0 {
-				if t.LatestVersion == 0 {
+				if t.Status.LatestVersion == 0 {
 					time.Sleep(2 * time.Second)
 				}
 				if t, err = oc.DeploymentConfigs(t.Namespace).Get(t.Name); err != nil {
@@ -385,11 +385,11 @@ func (f *Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpe
 		}
 		return true, fn(&t.Spec.Template.Spec)
 	case *deployapi.DeploymentConfig:
-		template := t.Template.ControllerTemplate
-		if template.Template == nil {
-			template.Template = &api.PodTemplateSpec{}
+		template := t.Spec.Template
+		if template == nil {
+			template = &api.PodTemplateSpec{}
 		}
-		return true, fn(&template.Template.Spec)
+		return true, fn(&template.Spec)
 	default:
 		return false, fmt.Errorf("the object is not a pod or does not have a pod template")
 	}

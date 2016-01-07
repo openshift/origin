@@ -141,23 +141,27 @@ func hasProxy(source *buildapi.GitBuildSource) bool {
 func validateSource(input *buildapi.BuildSource, isCustomStrategy bool) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
+	// Ensure that Git and Binary source types are mutually exclusive.
+	if input.Git != nil && input.Binary != nil && !isCustomStrategy {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("git", "", "may not be set when binary is also set"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("binary", "", "may not be set when git is also set"))
+		return allErrs
+	}
+
+	// Validate individual source type details
 	if input.Git != nil {
-		// git and binary input sources are mutually exclusive
-		if input.Binary != nil && !isCustomStrategy {
-			return append(allErrs, fielderrors.NewFieldInvalid("binary", "", "may not be set when git also set"))
-		}
 		allErrs = append(allErrs, validateGitSource(input.Git).Prefix("git")...)
 	}
 	if input.Binary != nil {
-		// git and binary input sources are mutually exclusive
-		if input.Git != nil && !isCustomStrategy {
-			return append(allErrs, fielderrors.NewFieldInvalid("git", "", "may not be set when binary is also set"))
-		}
 		allErrs = append(allErrs, validateBinarySource(input.Binary).Prefix("binary")...)
 	}
 	if input.Dockerfile != nil {
 		allErrs = append(allErrs, validateDockerfile(*input.Dockerfile)...)
 	}
+	if input.Image != nil {
+		allErrs = append(allErrs, validateImageSource(input.Image).Prefix("image")...)
+	}
+
 	allErrs = append(allErrs, validateSecretRef(input.SourceSecret).Prefix("sourceSecret")...)
 
 	if len(input.ContextDir) != 0 {
@@ -217,6 +221,18 @@ func validateGitSource(git *buildapi.GitBuildSource) fielderrors.ValidationError
 	}
 	if hasProxy(git) && !isHTTPScheme(git.URI) {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("uri", git.URI, "only http:// and https:// GIT protocols are allowed with HTTP or HTTPS proxy set"))
+	}
+	return allErrs
+}
+
+func validateImageSource(imageSource *buildapi.ImageSource) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, validateFromImageReference(&imageSource.From).Prefix("from")...)
+	if imageSource.PullSecret != nil {
+		allErrs = append(allErrs, validateSecretRef(imageSource.PullSecret).Prefix("pullSecret")...)
+	}
+	if len(imageSource.Paths) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("paths"))
 	}
 	return allErrs
 }

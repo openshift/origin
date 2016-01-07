@@ -311,19 +311,17 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 		ObjectMeta: kapi.ObjectMeta{
 			Name: r.Name,
 		},
-		Template: deployapi.DeploymentTemplate{
-			ControllerTemplate: kapi.ReplicationControllerSpec{
-				Replicas: 1,
-				Selector: selector,
-				Template: &kapi.PodTemplateSpec{
-					ObjectMeta: kapi.ObjectMeta{
-						Labels: selector,
-					},
-					Spec: template,
+		Spec: deployapi.DeploymentConfigSpec{
+			Replicas: 1,
+			Selector: selector,
+			Template: &kapi.PodTemplateSpec{
+				ObjectMeta: kapi.ObjectMeta{
+					Labels: selector,
 				},
+				Spec: template,
 			},
+			Triggers: triggers,
 		},
-		Triggers: triggers,
 	}, nil
 }
 

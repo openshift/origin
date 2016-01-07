@@ -966,6 +966,14 @@ func deepCopy_api_BuildSource(in buildapi.BuildSource, out *buildapi.BuildSource
 	} else {
 		out.Git = nil
 	}
+	if in.Image != nil {
+		out.Image = new(buildapi.ImageSource)
+		if err := deepCopy_api_ImageSource(*in.Image, out.Image, c); err != nil {
+			return err
+		}
+	} else {
+		out.Image = nil
+	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {
 		if newVal, err := c.DeepCopy(in.SourceSecret); err != nil {
@@ -1219,6 +1227,40 @@ func deepCopy_api_ImageChangeTrigger(in buildapi.ImageChangeTrigger, out *builda
 	return nil
 }
 
+func deepCopy_api_ImageSource(in buildapi.ImageSource, out *buildapi.ImageSource, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.From); err != nil {
+		return err
+	} else {
+		out.From = newVal.(pkgapi.ObjectReference)
+	}
+	if in.Paths != nil {
+		out.Paths = make([]buildapi.ImageSourcePath, len(in.Paths))
+		for i := range in.Paths {
+			if err := deepCopy_api_ImageSourcePath(in.Paths[i], &out.Paths[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Paths = nil
+	}
+	if in.PullSecret != nil {
+		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {
+			return err
+		} else {
+			out.PullSecret = newVal.(*pkgapi.LocalObjectReference)
+		}
+	} else {
+		out.PullSecret = nil
+	}
+	return nil
+}
+
+func deepCopy_api_ImageSourcePath(in buildapi.ImageSourcePath, out *buildapi.ImageSourcePath, c *conversion.Cloner) error {
+	out.SourcePath = in.SourcePath
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
 func deepCopy_api_SecretSpec(in buildapi.SecretSpec, out *buildapi.SecretSpec, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.SecretSource); err != nil {
 		return err
@@ -1324,8 +1366,11 @@ func deepCopy_api_DeploymentCause(in deployapi.DeploymentCause, out *deployapi.D
 }
 
 func deepCopy_api_DeploymentCauseImageTrigger(in deployapi.DeploymentCauseImageTrigger, out *deployapi.DeploymentCauseImageTrigger, c *conversion.Cloner) error {
-	out.RepositoryName = in.RepositoryName
-	out.Tag = in.Tag
+	if newVal, err := c.DeepCopy(in.From); err != nil {
+		return err
+	} else {
+		out.From = newVal.(pkgapi.ObjectReference)
+	}
 	return nil
 }
 
@@ -1340,27 +1385,11 @@ func deepCopy_api_DeploymentConfig(in deployapi.DeploymentConfig, out *deployapi
 	} else {
 		out.ObjectMeta = newVal.(pkgapi.ObjectMeta)
 	}
-	if in.Triggers != nil {
-		out.Triggers = make([]deployapi.DeploymentTriggerPolicy, len(in.Triggers))
-		for i := range in.Triggers {
-			if err := deepCopy_api_DeploymentTriggerPolicy(in.Triggers[i], &out.Triggers[i], c); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Triggers = nil
-	}
-	if err := deepCopy_api_DeploymentTemplate(in.Template, &out.Template, c); err != nil {
+	if err := deepCopy_api_DeploymentConfigSpec(in.Spec, &out.Spec, c); err != nil {
 		return err
 	}
-	out.LatestVersion = in.LatestVersion
-	if in.Details != nil {
-		out.Details = new(deployapi.DeploymentDetails)
-		if err := deepCopy_api_DeploymentDetails(*in.Details, out.Details, c); err != nil {
-			return err
-		}
-	} else {
-		out.Details = nil
+	if err := deepCopy_api_DeploymentConfigStatus(in.Status, &out.Status, c); err != nil {
+		return err
 	}
 	return nil
 }
@@ -1411,6 +1440,54 @@ func deepCopy_api_DeploymentConfigRollbackSpec(in deployapi.DeploymentConfigRoll
 	out.IncludeTemplate = in.IncludeTemplate
 	out.IncludeReplicationMeta = in.IncludeReplicationMeta
 	out.IncludeStrategy = in.IncludeStrategy
+	return nil
+}
+
+func deepCopy_api_DeploymentConfigSpec(in deployapi.DeploymentConfigSpec, out *deployapi.DeploymentConfigSpec, c *conversion.Cloner) error {
+	if err := deepCopy_api_DeploymentStrategy(in.Strategy, &out.Strategy, c); err != nil {
+		return err
+	}
+	if in.Triggers != nil {
+		out.Triggers = make([]deployapi.DeploymentTriggerPolicy, len(in.Triggers))
+		for i := range in.Triggers {
+			if err := deepCopy_api_DeploymentTriggerPolicy(in.Triggers[i], &out.Triggers[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Triggers = nil
+	}
+	out.Replicas = in.Replicas
+	if in.Selector != nil {
+		out.Selector = make(map[string]string)
+		for key, val := range in.Selector {
+			out.Selector[key] = val
+		}
+	} else {
+		out.Selector = nil
+	}
+	if in.Template != nil {
+		if newVal, err := c.DeepCopy(in.Template); err != nil {
+			return err
+		} else {
+			out.Template = newVal.(*pkgapi.PodTemplateSpec)
+		}
+	} else {
+		out.Template = nil
+	}
+	return nil
+}
+
+func deepCopy_api_DeploymentConfigStatus(in deployapi.DeploymentConfigStatus, out *deployapi.DeploymentConfigStatus, c *conversion.Cloner) error {
+	out.LatestVersion = in.LatestVersion
+	if in.Details != nil {
+		out.Details = new(deployapi.DeploymentDetails)
+		if err := deepCopy_api_DeploymentDetails(*in.Details, out.Details, c); err != nil {
+			return err
+		}
+	} else {
+		out.Details = nil
+	}
 	return nil
 }
 
@@ -1539,18 +1616,6 @@ func deepCopy_api_DeploymentStrategy(in deployapi.DeploymentStrategy, out *deplo
 	return nil
 }
 
-func deepCopy_api_DeploymentTemplate(in deployapi.DeploymentTemplate, out *deployapi.DeploymentTemplate, c *conversion.Cloner) error {
-	if err := deepCopy_api_DeploymentStrategy(in.Strategy, &out.Strategy, c); err != nil {
-		return err
-	}
-	if newVal, err := c.DeepCopy(in.ControllerTemplate); err != nil {
-		return err
-	} else {
-		out.ControllerTemplate = newVal.(pkgapi.ReplicationControllerSpec)
-	}
-	return nil
-}
-
 func deepCopy_api_DeploymentTriggerImageChangeParams(in deployapi.DeploymentTriggerImageChangeParams, out *deployapi.DeploymentTriggerImageChangeParams, c *conversion.Cloner) error {
 	out.Automatic = in.Automatic
 	if in.ContainerNames != nil {
@@ -1561,13 +1626,11 @@ func deepCopy_api_DeploymentTriggerImageChangeParams(in deployapi.DeploymentTrig
 	} else {
 		out.ContainerNames = nil
 	}
-	out.RepositoryName = in.RepositoryName
 	if newVal, err := c.DeepCopy(in.From); err != nil {
 		return err
 	} else {
 		out.From = newVal.(pkgapi.ObjectReference)
 	}
-	out.Tag = in.Tag
 	out.LastTriggeredImage = in.LastTriggeredImage
 	return nil
 }
@@ -2896,6 +2959,8 @@ func init() {
 		deepCopy_api_GitBuildSource,
 		deepCopy_api_GitSourceRevision,
 		deepCopy_api_ImageChangeTrigger,
+		deepCopy_api_ImageSource,
+		deepCopy_api_ImageSourcePath,
 		deepCopy_api_SecretSpec,
 		deepCopy_api_SourceBuildStrategy,
 		deepCopy_api_SourceControlUser,
@@ -2908,11 +2973,12 @@ func init() {
 		deepCopy_api_DeploymentConfigList,
 		deepCopy_api_DeploymentConfigRollback,
 		deepCopy_api_DeploymentConfigRollbackSpec,
+		deepCopy_api_DeploymentConfigSpec,
+		deepCopy_api_DeploymentConfigStatus,
 		deepCopy_api_DeploymentDetails,
 		deepCopy_api_DeploymentLog,
 		deepCopy_api_DeploymentLogOptions,
 		deepCopy_api_DeploymentStrategy,
-		deepCopy_api_DeploymentTemplate,
 		deepCopy_api_DeploymentTriggerImageChangeParams,
 		deepCopy_api_DeploymentTriggerPolicy,
 		deepCopy_api_ExecNewPodHook,

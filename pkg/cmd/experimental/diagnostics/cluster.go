@@ -38,7 +38,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 
 	clusterClient, kclusterClient, found, serverUrl, err := o.findClusterClients(rawConfig)
 	if !found {
-		o.Logger.Notice("CED1002", "No cluster-admin client config found; skipping cluster diagnostics.")
+		o.Logger.Notice("CED1002", "Could not configure a client with cluster-admin permissions for the current server, so cluster diagnostics will be skipped")
 		return nil, true, err
 	}
 

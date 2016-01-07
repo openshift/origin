@@ -33,11 +33,8 @@ func TestExport(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "config",
 				},
-				LatestVersion: 0,
-				Triggers: []deployapi.DeploymentTriggerPolicy{
-					deploytest.OkImageChangeTrigger(),
-				},
-				Template: deploytest.OkDeploymentTemplate(),
+				Spec:   deploytest.OkDeploymentConfigSpec(),
+				Status: deploytest.OkDeploymentConfigStatus(0),
 			},
 			expectedErr: nil,
 		},

@@ -156,7 +156,7 @@ func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 
-	_, err := makeHookPod(hook, deployment, &config.Template.Strategy, "hook")
+	_, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook")
 
 	if err == nil {
 		t.Fatalf("expected an error")
@@ -382,7 +382,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 	for _, test := range tests {
 		t.Logf("evaluating test: %s", test.name)
 		config, deployment := deployment("deployment", "test", test.strategyLabels, test.strategyAnnotations)
-		pod, err := makeHookPod(test.hook, deployment, &config.Template.Strategy, "hook")
+		pod, err := makeHookPod(test.hook, deployment, &config.Spec.Strategy, "hook")
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -409,7 +409,7 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 
-	pod, err := makeHookPod(hook, deployment, &config.Template.Strategy, "hook")
+	pod, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook")
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -532,8 +532,12 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 			Name:      name,
 			Namespace: namespace,
 		},
-		LatestVersion: 1,
-		Template: deployapi.DeploymentTemplate{
+		Status: deployapi.DeploymentConfigStatus{
+			LatestVersion: 1,
+		},
+		Spec: deployapi.DeploymentConfigSpec{
+			Replicas: 1,
+			Selector: map[string]string{"a": "b"},
 			Strategy: deployapi.DeploymentStrategy{
 				Type: deployapi.DeploymentStrategyTypeRecreate,
 				Resources: kapi.ResourceRequirements{
@@ -545,61 +549,57 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 				Labels:      strategyLabels,
 				Annotations: strategyAnnotations,
 			},
-			ControllerTemplate: kapi.ReplicationControllerSpec{
-				Replicas: 1,
-				Selector: map[string]string{"a": "b"},
-				Template: &kapi.PodTemplateSpec{
-					Spec: kapi.PodSpec{
-						Containers: []kapi.Container{
-							{
-								Name:  "container1",
-								Image: "registry:8080/repo1:ref1",
-								Env: []kapi.EnvVar{
-									{
-										Name:  "ENV1",
-										Value: "VAL1",
-									},
-								},
-								ImagePullPolicy: kapi.PullIfNotPresent,
-								Resources: kapi.ResourceRequirements{
-									Limits: kapi.ResourceList{
-										kapi.ResourceCPU:    resource.MustParse("10"),
-										kapi.ResourceMemory: resource.MustParse("10M"),
-									},
-								},
-								VolumeMounts: []kapi.VolumeMount{
-									{
-										Name:      "volume-2",
-										ReadOnly:  true,
-										MountPath: "/mnt/volume-2",
-									},
+			Template: &kapi.PodTemplateSpec{
+				Spec: kapi.PodSpec{
+					Containers: []kapi.Container{
+						{
+							Name:  "container1",
+							Image: "registry:8080/repo1:ref1",
+							Env: []kapi.EnvVar{
+								{
+									Name:  "ENV1",
+									Value: "VAL1",
 								},
 							},
-							{
-								Name:            "container2",
-								Image:           "registry:8080/repo1:ref2",
-								ImagePullPolicy: kapi.PullIfNotPresent,
+							ImagePullPolicy: kapi.PullIfNotPresent,
+							Resources: kapi.ResourceRequirements{
+								Limits: kapi.ResourceList{
+									kapi.ResourceCPU:    resource.MustParse("10"),
+									kapi.ResourceMemory: resource.MustParse("10M"),
+								},
+							},
+							VolumeMounts: []kapi.VolumeMount{
+								{
+									Name:      "volume-2",
+									ReadOnly:  true,
+									MountPath: "/mnt/volume-2",
+								},
 							},
 						},
-						Volumes: []kapi.Volume{
-							{
-								Name: "volume-1",
-							},
-							{
-								Name: "volume-2",
-							},
-						},
-						RestartPolicy: kapi.RestartPolicyAlways,
-						DNSPolicy:     kapi.DNSClusterFirst,
-						ImagePullSecrets: []kapi.LocalObjectReference{
-							{
-								Name: "secret-1",
-							},
+						{
+							Name:            "container2",
+							Image:           "registry:8080/repo1:ref2",
+							ImagePullPolicy: kapi.PullIfNotPresent,
 						},
 					},
-					ObjectMeta: kapi.ObjectMeta{
-						Labels: map[string]string{"a": "b"},
+					Volumes: []kapi.Volume{
+						{
+							Name: "volume-1",
+						},
+						{
+							Name: "volume-2",
+						},
 					},
+					RestartPolicy: kapi.RestartPolicyAlways,
+					DNSPolicy:     kapi.DNSClusterFirst,
+					ImagePullSecrets: []kapi.LocalObjectReference{
+						{
+							Name: "secret-1",
+						},
+					},
+				},
+				ObjectMeta: kapi.ObjectMeta{
+					Labels: map[string]string{"a": "b"},
 				},
 			},
 		},

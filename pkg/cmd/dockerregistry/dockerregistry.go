@@ -73,6 +73,8 @@ func Execute(configFile io.Reader) {
 
 	app.RegisterHealthChecks()
 	handler := alive("/", app)
+	// TODO: temporarily keep for backwards compatibility; remove in the future
+	handler = alive("/healthz", handler)
 	handler = health.Handler(handler)
 	handler = panicHandler(handler)
 	handler = gorillahandlers.CombinedLoggingHandler(os.Stdout, handler)

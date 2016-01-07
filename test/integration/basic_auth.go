@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/gorilla/context"
+
+	"k8s.io/kubernetes/pkg/util"
 )
 
 type User struct {
@@ -143,6 +146,18 @@ func (handler *xRemoteUserProxyingHandler) ServeHTTP(w http.ResponseWriter, r *h
 func NewXRemoteUserProxyingHandler(rawURL string) http.Handler {
 	parsedURL, _ := url.Parse(rawURL)
 	proxier := httputil.NewSingleHostReverseProxy(parsedURL)
+	proxier.Transport = insecureTransport()
+
 	// proxier.Transport = NewBasicAuthRoundTripper(http.DefaultTransport)
 	return &xRemoteUserProxyingHandler{proxier}
+}
+
+func insecureTransport() *http.Transport {
+	return util.SetTransportDefaults(&http.Transport{
+		TLSClientConfig: &tls.Config{
+			// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
+			MinVersion:         tls.VersionTLS10,
+			InsecureSkipVerify: true,
+		},
+	})
 }

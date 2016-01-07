@@ -26,7 +26,7 @@ func TestArgs(t *testing.T) {
 
 func TestEditor(t *testing.T) {
 	edit := Editor{Args: []string{"cat"}}
-	contents, path, err := edit.LaunchTempFile("", "someprefix", bytes.NewBufferString("test something"))
+	contents, path, err := edit.LaunchTempFile("", "someprefix", bytes.NewBufferString("test something\n"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -37,7 +37,7 @@ func TestEditor(t *testing.T) {
 	if disk, err := ioutil.ReadFile(path); err != nil || !bytes.Equal(contents, disk) {
 		t.Errorf("unexpected file on disk: %v %s", err, string(disk))
 	}
-	if !bytes.Equal(contents, []byte("test something")) {
+	if !bytes.Equal(contents, []byte("test something\n")) {
 		t.Errorf("unexpected contents: %s", string(contents))
 	}
 	if !strings.Contains(path, "someprefix") {

@@ -45,14 +45,12 @@ func fakeDeploymentConfig(name string, containers ...containerDesc) *deployapi.D
 		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
 		},
-		Template: deployapi.DeploymentTemplate{
-			ControllerTemplate: kapi.ReplicationControllerSpec{
-				Replicas: 1,
-				Selector: map[string]string{"name": "test"},
-				Template: &kapi.PodTemplateSpec{
-					Spec: kapi.PodSpec{
-						Containers: specContainers,
-					},
+		Spec: deployapi.DeploymentConfigSpec{
+			Replicas: 1,
+			Selector: map[string]string{"name": "test"},
+			Template: &kapi.PodTemplateSpec{
+				Spec: kapi.PodSpec{
+					Containers: specContainers,
 				},
 			},
 		},

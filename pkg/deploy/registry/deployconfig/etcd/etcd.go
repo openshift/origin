@@ -112,11 +112,11 @@ func (r *ScaleREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 			CreationTimestamp: deploymentConfig.CreationTimestamp,
 		},
 		Spec: extensions.ScaleSpec{
-			Replicas: deploymentConfig.Template.ControllerTemplate.Replicas,
+			Replicas: deploymentConfig.Spec.Replicas,
 		},
 		Status: extensions.ScaleStatus{
 			Replicas: totalReplicas,
-			Selector: deploymentConfig.Template.ControllerTemplate.Selector,
+			Selector: deploymentConfig.Spec.Selector,
 		},
 	}, nil
 }
@@ -162,7 +162,7 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 			Replicas: scale.Spec.Replicas,
 		},
 		Status: extensions.ScaleStatus{
-			Selector: deploymentConfig.Template.ControllerTemplate.Selector,
+			Selector: deploymentConfig.Spec.Selector,
 		},
 	}
 
@@ -173,8 +173,8 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 		return nil, false, err
 	}
 
-	oldReplicas := deploymentConfig.Template.ControllerTemplate.Replicas
-	deploymentConfig.Template.ControllerTemplate.Replicas = scale.Spec.Replicas
+	oldReplicas := deploymentConfig.Spec.Replicas
+	deploymentConfig.Spec.Replicas = scale.Spec.Replicas
 	if err := r.registry.UpdateDeploymentConfig(ctx, deploymentConfig); err != nil {
 		return nil, false, err
 	}

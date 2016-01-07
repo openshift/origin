@@ -31,7 +31,7 @@ func TestHandle_newConfigNoTriggers(t *testing.T) {
 	}
 
 	config := deployapitest.OkDeploymentConfig(1)
-	config.Triggers = []deployapi.DeploymentTriggerPolicy{}
+	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{}
 	err := controller.Handle(config)
 
 	if err != nil {
@@ -61,7 +61,7 @@ func TestHandle_newConfigTriggers(t *testing.T) {
 	}
 
 	config := deployapitest.OkDeploymentConfig(0)
-	config.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
+	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
 	err := controller.Handle(config)
 
 	if err != nil {
@@ -72,16 +72,16 @@ func TestHandle_newConfigTriggers(t *testing.T) {
 		t.Fatalf("expected config to be updated")
 	}
 
-	if e, a := 1, updated.LatestVersion; e != a {
+	if e, a := 1, updated.Status.LatestVersion; e != a {
 		t.Fatalf("expected update to latestversion=%d, got %d", e, a)
 	}
 
-	if updated.Details == nil {
+	if updated.Status.Details == nil {
 		t.Fatalf("expected config change details to be set")
-	} else if updated.Details.Causes == nil {
+	} else if updated.Status.Details.Causes == nil {
 		t.Fatalf("expected config change causes to be set")
-	} else if updated.Details.Causes[0].Type != deployapi.DeploymentTriggerOnConfigChange {
-		t.Fatalf("expected config change cause to be set to config change trigger, got %s", updated.Details.Causes[0].Type)
+	} else if updated.Status.Details.Causes[0].Type != deployapi.DeploymentTriggerOnConfigChange {
+		t.Fatalf("expected config change cause to be set to config change trigger, got %s", updated.Status.Details.Causes[0].Type)
 	}
 }
 
@@ -98,14 +98,14 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 			name:           "container name change",
 			changeExpected: true,
 			modify: func(config *deployapi.DeploymentConfig) {
-				config.Template.ControllerTemplate.Template.Spec.Containers[1].Name = "modified"
+				config.Spec.Template.Spec.Containers[1].Name = "modified"
 			},
 		},
 		{
 			name:           "template label change",
 			changeExpected: true,
 			modify: func(config *deployapi.DeploymentConfig) {
-				config.Template.ControllerTemplate.Template.Labels["newkey"] = "value"
+				config.Spec.Template.Labels["newkey"] = "value"
 			},
 		},
 		{
@@ -119,7 +119,7 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 		t.Logf("running scenario: %s", s.name)
 
 		config := deployapitest.OkDeploymentConfig(1)
-		config.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
+		config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
 		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 		var updated *deployapi.DeploymentConfig
 
@@ -152,20 +152,20 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 				t.Errorf("expected config to be updated")
 				continue
 			}
-			if e, a := 2, updated.LatestVersion; e != a {
+			if e, a := 2, updated.Status.LatestVersion; e != a {
 				t.Errorf("expected update to latestversion=%d, got %d", e, a)
 			}
 
-			if updated.Details == nil {
+			if updated.Status.Details == nil {
 				t.Errorf("expected config change details to be set")
-			} else if updated.Details.Causes == nil {
+			} else if updated.Status.Details.Causes == nil {
 				t.Errorf("expected config change causes to be set")
-			} else if updated.Details.Causes[0].Type != deployapi.DeploymentTriggerOnConfigChange {
-				t.Errorf("expected config change cause to be set to config change trigger, got %s", updated.Details.Causes[0].Type)
+			} else if updated.Status.Details.Causes[0].Type != deployapi.DeploymentTriggerOnConfigChange {
+				t.Errorf("expected config change cause to be set to config change trigger, got %s", updated.Status.Details.Causes[0].Type)
 			}
 		} else {
 			if updated != nil {
-				t.Errorf("unexpected update to version %d", updated.LatestVersion)
+				t.Errorf("unexpected update to version %d", updated.Status.LatestVersion)
 			}
 		}
 	}

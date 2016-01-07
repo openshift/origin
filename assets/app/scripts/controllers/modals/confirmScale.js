@@ -9,15 +9,15 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ConfirmScaleController', function ($scope, $modalInstance, resource, type) {
+  .controller('ConfirmScaleController', function ($scope, $uibModalInstance, resource, type) {
     $scope.resource = resource;
     $scope.type = type;
 
     $scope.confirmScale = function() {
-      $modalInstance.close('confirmScale');
+      $uibModalInstance.close('confirmScale');
     };
 
     $scope.cancel = function() {
-      $modalInstance.dismiss('cancel');
+      $uibModalInstance.dismiss('cancel');
     };
   });

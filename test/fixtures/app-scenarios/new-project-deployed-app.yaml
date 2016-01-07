@@ -8,7 +8,6 @@ items:
       name: ruby-sample-build
       template: application-template-stibuild
     name: ruby-sample-build
-    namespace: example
   spec:
     output:
       to:
@@ -47,7 +46,6 @@ items:
       name: ruby-sample-build
       template: application-template-stibuild
     name: ruby-sample-build-1
-    namespace: example
   spec:
     output:
       to:
@@ -70,7 +68,7 @@ items:
     config:
       kind: BuildConfig
       name: ruby-sample-build
-      namespace: example
+
     phase: Complete
     startTimestamp: 2015-04-07T04:12:21Z
 - apiVersion: v1beta3
@@ -86,7 +84,6 @@ items:
     labels:
       template: application-template-stibuild
     name: database-2
-    namespace: example
   spec:
     replicas: 1
     selector:
@@ -143,7 +140,6 @@ items:
     labels:
       template: application-template-stibuild
     name: database-1
-    namespace: example
   spec:
     replicas: 1
     selector:
@@ -194,7 +190,6 @@ items:
     labels:
       template: application-template-stibuild
     name: database
-    namespace: example
   spec:
     replicas: 1
     selector:
@@ -245,14 +240,13 @@ items:
       openshift.io/deployment-config.name: frontend
       openshift.io/deployment.phase: Failed
       openshift.io/deployment-config.latest-version: "2"
-      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"frontend","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/frontend","uid":"471f24e3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"346","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ImageChange","imageChangeParams":{"automatic":true,"containerNames":["ruby-helloworld"],"from":{"kind":"ImageRepository","name":"origin-ruby-sample"},"tag":"latest","lastTriggeredImage":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58"}}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld","image":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","ports":[{"containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminNPX"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"7q1IdEao"},{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ImageChange","imageTrigger":{"repositoryName":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","tag":"latest"}}]}}'
+      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"frontend","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/frontend","uid":"471f24e3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"346","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ImageChange","imageChangeParams":{"automatic":true,"containerNames":["ruby-helloworld"],"from":{"kind":"ImageStreamTag","name":"origin-ruby-sample:latest"},"tag":"latest","lastTriggeredImage":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58"}}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld","image":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","ports":[{"containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminNPX"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"7q1IdEao"},{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ImageChange","imageTrigger":{"repositoryName":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","tag":"latest"}}]}}'
       openshift.io/deployment.status-reason: unable to contact server
       pod: deploy-frontend-17mza9
     creationTimestamp: 2015-04-07T04:12:53Z
     labels:
       template: application-template-stibuild
     name: frontend-2
-    namespace: example
   spec:
     replicas: 1
     selector:
@@ -307,13 +301,12 @@ items:
       openshift.io/deployment-config.name: frontend
       openshift.io/deployment.phase: Complete
       openshift.io/deployment-config.latest-version: "1"
-      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"frontend","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/frontend","uid":"471f24e3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"346","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ImageChange","imageChangeParams":{"automatic":true,"containerNames":["ruby-helloworld"],"from":{"kind":"ImageRepository","name":"origin-ruby-sample"},"tag":"latest","lastTriggeredImage":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58"}}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld","image":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","ports":[{"containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminNPX"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"7q1IdEao"},{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ImageChange","imageTrigger":{"repositoryName":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","tag":"latest"}}]}}'
+      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"frontend","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/frontend","uid":"471f24e3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"346","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ImageChange","imageChangeParams":{"automatic":true,"containerNames":["ruby-helloworld"],"from":{"kind":"ImageStreamTag","name":"origin-ruby-sample:latest"},"tag":"latest","lastTriggeredImage":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58"}}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld","image":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","ports":[{"containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminNPX"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"7q1IdEao"},{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ImageChange","imageTrigger":{"repositoryName":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","tag":"latest"}}]}}'
       pod: deploy-frontend-17mza9
     creationTimestamp: 2015-04-07T04:12:53Z
     labels:
       template: application-template-stibuild
     name: frontend-1
-    namespace: example
   spec:
     replicas: 1
     selector:
@@ -368,7 +361,6 @@ items:
     labels:
       template: application-template-stibuild
     name: frontend
-    namespace: example
   spec:
     replicas: 1
     selector:
@@ -415,8 +407,8 @@ items:
         containerNames:
         - ruby-helloworld
         from:
-          kind: ImageRepository
-          name: origin-ruby-sample
+          kind: ImageStreamTag
+          name: origin-ruby-sample:latest
         lastTriggeredImage: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
       type: ImageChange
   status:
@@ -435,7 +427,6 @@ items:
     labels:
       template: application-template-stibuild
     name: database
-    namespace: example
   spec:
     portalIP: 172.30.17.240
     ports:
@@ -456,7 +447,6 @@ items:
     labels:
       template: application-template-stibuild
     name: frontend
-    namespace: example
   spec:
     portalIP: 172.30.17.154
     ports:
@@ -479,7 +469,6 @@ items:
     labels:
       template: application-template-stibuild
     name: frontend
-    namespace: example
     resourceVersion: "393"
   spec:
     host: frontend-example.router.default.svc.cluster.local

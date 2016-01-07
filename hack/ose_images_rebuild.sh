@@ -17,37 +17,43 @@
 #   krb5-workstation
 #   git
 
+BASE_GIT_REPO="git@github.com:openshift/ose.git"
+DIST_GIT_BRANCH="rhaos-3.1-rhel-7-candidate"
 # format:
 # dist-git_name	image_dependency dist-git_branch git_repo git_path
 base_images_list="
-openshift-enterprise-base-docker None rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/base
-openshift-enterprise-pod-docker None rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/pod
-openshift-enterprise-keepalived-ipfailover-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/ipfailover/keepalived
-openshift-enterprise-dockerregistry-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/dockerregistry
-openshift-enterprise-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/ose
-openshift-enterprise-haproxy-router-base-docker openshift-enterprise-base-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/router/haproxy-base
-openshift-enterprise-deployer-docker openshift-enterprise-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/deployer
-openshift-enterprise-sti-builder-docker openshift-enterprise-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/builder/docker/sti-builder
-openshift-enterprise-docker-builder-docker openshift-enterprise-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/builder/docker/docker-builder
-openshift-enterprise-haproxy-router-docker openshift-enterprise-haproxy-router-base-docker rhaos-3.1-rhel-7 git@github.com:openshift/ose.git ose/images/router/haproxy
+openshift-enterprise-base-docker None ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/base
+openshift-enterprise-pod-docker None ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/pod
+openshift-enterprise-openvswitch-docker None ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/openvswitch
+openshift-enterprise-keepalived-ipfailover-docker openshift-enterprise-base-docker ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/ipfailover/keepalived
+openshift-enterprise-dockerregistry-docker openshift-enterprise-base-docker ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/dockerregistry
+openshift-enterprise-docker openshift-enterprise-base-docker ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/ose
+openshift-enterprise-haproxy-router-base-docker openshift-enterprise-base-docker ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/router/haproxy-base
+openshift-enterprise-recycler-docker openshift-enterprise-base-docker ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/recycler
+aos-f5-router-docker openshift-enterprise-docker ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/router/f5
+openshift-enterprise-deployer-docker openshift-enterprise-docker ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/deployer
+openshift-enterprise-node-docker openshift-enterprise-docker ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/node
+openshift-enterprise-sti-builder-docker openshift-enterprise-docker ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/builder/docker/sti-builder
+openshift-enterprise-docker-builder-docker openshift-enterprise-docker ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/builder/docker/docker-builder
+openshift-enterprise-haproxy-router-docker openshift-enterprise-haproxy-router-base-docker ${DIST_GIT_BRANCH} ${BASE_GIT_REPO} ose/images/router/haproxy
 "
 
 # format:
 # dist-git_name	image_dependency dist-git_branch git_repo git_path
 s2i_images_list="
-openshift-sti-base-docker None rhaos-3.1-rhel-7 https://github.com/openshift/sti-base sti-base
-openshift-mongodb-docker None rhaos-3.1-rhel-7 https://github.com/openshift/mongodb mongodb/2.4
-openshift-mysql-docker None rhaos-3.1-rhel-7 https://github.com/openshift/mysql mysql/5.5
-openshift-postgresql-docker None rhaos-3.1-rhel-7 https://github.com/openshift/postgresql postgresql/9.2
-openshift-sti-nodejs-docker openshift-sti-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/sti-nodejs sti-nodejs/0.10
-openshift-sti-perl-docker openshift-sti-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/sti-perl sti-perl/5.16
-openshift-sti-php-docker openshift-sti-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/sti-php sti-php/5.5
-openshift-sti-python-docker openshift-sti-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/sti-python sti-python/3.3
-openshift-sti-ruby-docker openshift-sti-base-docker rhaos-3.1-rhel-7 https://github.com/openshift/sti-ruby sti-ruby/2.0
+openshift-sti-base-docker None ${DIST_GIT_BRANCH} https://github.com/openshift/sti-base sti-base
+openshift-mongodb-docker None ${DIST_GIT_BRANCH} https://github.com/openshift/mongodb mongodb/2.4
+openshift-mysql-docker None ${DIST_GIT_BRANCH} https://github.com/openshift/mysql mysql/5.5
+openshift-postgresql-docker None ${DIST_GIT_BRANCH} https://github.com/openshift/postgresql postgresql/9.2
+openshift-sti-nodejs-docker openshift-sti-base-docker ${DIST_GIT_BRANCH} https://github.com/openshift/sti-nodejs sti-nodejs/0.10
+openshift-sti-perl-docker openshift-sti-base-docker ${DIST_GIT_BRANCH} https://github.com/openshift/sti-perl sti-perl/5.16
+openshift-sti-php-docker openshift-sti-base-docker ${DIST_GIT_BRANCH} https://github.com/openshift/sti-php sti-php/5.5
+openshift-sti-python-docker openshift-sti-base-docker ${DIST_GIT_BRANCH} https://github.com/openshift/sti-python sti-python/3.3
+openshift-sti-ruby-docker openshift-sti-base-docker ${DIST_GIT_BRANCH} https://github.com/openshift/sti-ruby sti-ruby/2.0
 "
 
 usage() {
-  echo "Usage `basename $0` <action> <version>" >&2
+  echo "Usage `basename $0` <action> <option>" >&2
   echo >&2
   echo "Actions:" >&2
   echo "  git_update_base  - Clone git and dist-git, bump release, compare (non-s2i images)" >&2
@@ -57,20 +63,29 @@ usage() {
   echo "  everything_base  - git_update,  build_container (non s2i images)" >&2
   echo "  everything_s2i   - git_update,  build_container (s2i images)" >&2
   echo >&2
-  echo "Version:" >&2
-  echo "  specific image version, e.g. 3.1.1.2 or 1.1 (What should be in LABEL Version)" >&2
+  echo "Options:" >&2
+  echo "  -h, --help          :: Show this options menu" >&2
+  echo "  -v, --verbose       :: Be verbose" >&2
+  echo "  --version [version] :: Change Dockerfile version e.g. 3.1.1.2" >&2
+  echo "  --release [version] :: Change Dockerfile release e.g. 3" >&2
+  echo "  --rhel [version]    :: Change Dockerfile RHEL version e.g. rhel7.2:7.2-35 or rhel7:latest" >&2
+  echo "  --branch [version]  :: Use a certain dist-git branch  default[${DIST_GIT_BRANCH}]" >&2
   popd &>/dev/null
   exit 1
 }
 
-update_version() {
+update_dockerfile() {
   pushd "${workingdir}/${container}" >/dev/null
   find . -name ".osbs*" -prune -o -name "Dockerfile*" -type f -print | while read line
   do
-    if [ "${updatestyle}" == "Version" ] ; then
-      sed -i -e "s/${updatestyle}=\"v[0-9]*.[0-9]*.[0-9]*.[0-9]*\"/${updatestyle}=\"v${base_image}\"/" ${line}
-    else
-      sed -i -e "s/${updatestyle}=\"[0-9]*\"/${updatestyle}=\"${base_image}\"/" ${line}
+    if [ "${update_version}" == "TRUE" ] ; then
+      sed -i -e "s/Version=\"v[0-9]*.[0-9]*.[0-9]*.[0-9]*\"/Version=\"v${version_version}\"/" ${line}
+    fi
+    if [ "${update_release}" == "TRUE" ] ; then
+      sed -i -e "s/Release=\"[0-9]*\"/Release=\"${release_version}\"/" ${line}
+    fi
+    if [ "${update_rhel}" == "TRUE" ] ; then
+      sed -i -e "s/FROM rhel7.*/FROM ${rhel_version}/" ${line}
     fi
   done
   popd >/dev/null
@@ -211,11 +226,61 @@ git_update() {
   pushd "${workingdir}" >/dev/null
   setup_dist_git
   setup_git_repo
-  update_version
+  update_dockerfile
   show_git_diffs
   popd >/dev/null
 }
 
+if [ "$#" -lt 1 ] ; then
+  usage
+fi
+
+# Get our arguments
+while [[ "$#" -ge 1 ]]
+do
+key="$1"
+case $key in
+    everything_base | git_update_base | build_container_base)
+      export list="${base_images_list}"
+      export action="${key}"
+      echo "$action :: ${list}"
+      echo "What?"
+      ;;
+    everything_s2i|git_update_s2i|build_container_s2i)
+      export list="${s2i_images_list}"
+      export action="${key}"
+      ;;
+    --version)
+      version_version="$2"
+      export update_version="TRUE"
+      shift
+      ;;
+    --release)
+      release_version="$2"
+      export update_release="TRUE"
+      shift
+      ;;
+    --rhel)
+      rhel_version="$2"
+      export update_rhel="TRUE"
+      shift
+      ;;
+    --branch)
+      DIST_GIT_BRANCH="$2"
+      shift
+      ;;
+    -v|--verbose)
+      export VERBOSE="TRUE"
+      ;;
+    -h|--help)
+      usage  # unknown option
+      ;;
+    *)
+      usage  # unknown option
+      ;;
+esac
+shift # past argument or value
+done
 
 workingdir=$(mktemp -d /var/tmp/rebuild-images-XXXXXX)
 pushd "${workingdir}" &>/dev/null
@@ -223,20 +288,9 @@ mkdir -p logs/done
 echo "::None::" >> logs/finished
 echo "Using working directory: ${workingdir}"
 
-if [ "$#" -ne 2 ] ; then
-  usage
-fi
+echo "${list}"
 
-export action="$1"
-export base_image="$2"
-
-case "$action" in
-  everything_base|git_update_base|build_container_base) export updatestyle="Version" ; list="${base_images_list}" ;;
-  everything_s2i|git_update_s2i|build_container_s2i) export updatestyle="Release" ; list="${s2i_images_list}" ;;
-  *) usage ;;
-esac
-
-echo "$list" | while read spec ; do
+echo "${list}" | while read spec ; do
   [ -z "$spec" ] && continue
   export container=$(echo "$spec" | awk '{print $1}')
   export dependency=$(echo "$spec" | awk '{print $2}')

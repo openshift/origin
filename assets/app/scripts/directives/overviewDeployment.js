@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .directive('overviewDeployment', function($location, $modal, $timeout, $filter, LabelFilter, DeploymentsService, hashSizeFilter, isDeploymentFilter) {
+  .directive('overviewDeployment', function($location, $uibModal, $timeout, $filter, LabelFilter, DeploymentsService, hashSizeFilter, isDeploymentFilter) {
     return {
       restrict: 'E',
       scope: {
@@ -86,7 +86,7 @@ angular.module('openshiftConsole')
 
           // Prompt before scaling to 0.
           if ($scope.desiredReplicas === 1) {
-            var modalInstance = $modal.open({
+            var modalInstance = $uibModal.open({
               animation: true,
               templateUrl: 'views/modals/confirmScale.html',
               controller: 'ConfirmScaleController',

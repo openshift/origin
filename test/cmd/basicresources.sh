@@ -86,8 +86,10 @@ echo "expose: ok"
 os::cmd::expect_success 'oc delete all --all'
 
 # switch to test user to be sure that default project admin policy works properly
+project=$(oc project -q)
 os::cmd::expect_success 'oc policy add-role-to-user admin test-user'
 os::cmd::expect_success 'oc login -u test-user -p anything'
+os::cmd::try_until_success 'oc project ${project}'
 
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift test'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2'

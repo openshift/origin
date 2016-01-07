@@ -256,7 +256,7 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 	}
 
 	// fetch source
-	sourceInfo, err := fetchSource(targetDir, d.s.build, d.timeout, d.in, d.s.gitClient)
+	sourceInfo, err := fetchSource(d.s.dockerClient, targetDir, d.s.build, d.timeout, d.in, d.s.gitClient)
 	if err != nil {
 		return nil, err
 	}
