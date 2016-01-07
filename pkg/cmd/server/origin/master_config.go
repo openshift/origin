@@ -49,6 +49,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
+	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
@@ -163,9 +164,24 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
 	admissionControlPluginNames := []string{"OriginNamespaceLifecycle", "BuildByStrategy"}
+	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
+		admissionControlPluginNames = options.AdmissionConfig.PluginOrderOverride
+	}
 
 	admissionClient := admissionControlClient(privilegedLoopbackKubeClient, privilegedLoopbackOpenShiftClient)
-	admissionController := admission.NewFromPlugins(admissionClient, admissionControlPluginNames, "")
+
+	plugins := []admission.Interface{}
+	for _, pluginName := range admissionControlPluginNames {
+		configFile, err := pluginconfig.GetPluginConfig(options.AdmissionConfig.PluginConfig[pluginName])
+		if err != nil {
+			return nil, err
+		}
+		plugin := admission.InitPlugin(pluginName, admissionClient, configFile)
+		if plugin != nil {
+			plugins = append(plugins, plugin)
+		}
+	}
+	admissionController := admission.NewChainHandler(plugins...)
 
 	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, client)
 	if err != nil {

@@ -143,6 +143,9 @@ type MasterConfig struct {
 	// omitted) and controller election can be disabled with -1.
 	ControllerLeaseTTL int `json:"controllerLeaseTTL"`
 
+	// AdmissionConfig contains admission control plugin configuration.
+	AdmissionConfig AdmissionConfig `json:"admissionConfig"`
+
 	// DisabledFeatures is a list of features that should not be started.  We
 	// omitempty here because its very unlikely that anyone will want to
 	// manually disable features and we don't want to encourage it.
@@ -714,6 +717,10 @@ type KubernetesMasterConfig struct {
 	PodEvictionTimeout string `json:"podEvictionTimeout"`
 	// ProxyClientInfo specifies the client cert/key to use when proxying to pods
 	ProxyClientInfo CertInfo `json:"proxyClientInfo"`
+
+	// AdmissionConfig contains admission control plugin configuration.
+	AdmissionConfig AdmissionConfig `json:"admissionConfig"`
+
 	// APIServerArguments are key value pairs that will be passed directly to the Kube apiserver that match the apiservers's
 	// command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not
 	// start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.
@@ -880,4 +887,23 @@ type LDAPQuery struct {
 
 	// Filter is a valid LDAP search filter that retrieves all relevant entries from the LDAP server with the base DN
 	Filter string `json:"filter"`
+}
+
+type AdmissionPluginConfig struct {
+	// Location is the path to a configuration file that contains the plugin's
+	// configuration
+	Location string `json:"location"`
+
+	// Configuration is an embedded configuration object to be used as the plugin's
+	// configuration. If present, it will be used instead of the path to the configuration file.
+	Configuration runtime.RawExtension `json:"configuration"`
+}
+
+type AdmissionConfig struct {
+	// PluginConfig allows specifying a configuration file per admission control plugin
+	PluginConfig map[string]AdmissionPluginConfig `json:"pluginConfig"`
+
+	// PluginOrderOverride is a list of admission control plugin names that will be installed
+	// on the master. Order is significant. If empty, a default list of plugins is used.
+	PluginOrderOverride []string `json:"pluginOrderOverride,omitempty"`
 }

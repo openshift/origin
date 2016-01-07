@@ -29,6 +29,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
+	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 )
 
 // AdmissionPlugins is the full list of admission control plugins to enable in the order they must run
@@ -87,13 +88,19 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	server.EventTTL = 2 * time.Hour
 	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
-	server.AdmissionControl = strings.Join(AdmissionPlugins, ",")
+	admissionPlugins := AdmissionPlugins
+	server.AdmissionControl = strings.Join(admissionPlugins, ",")
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
 	if err := cmdflags.Resolve(options.KubernetesMasterConfig.APIServerArguments, server.AddFlags); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
+	}
+
+	if len(options.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride) > 0 {
+		admissionPlugins := options.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride
+		server.AdmissionControl = strings.Join(admissionPlugins, ",")
 	}
 
 	cmserver := cmapp.NewCMServer()
@@ -124,7 +131,18 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			plugins = append(plugins, saAdmitter)
 
 		default:
-			plugin := admission.InitPlugin(pluginName, kubeClient, server.AdmissionControlConfigFile)
+			configFile := server.AdmissionControlConfigFile
+			pluginConfig := options.KubernetesMasterConfig.AdmissionConfig.PluginConfig
+
+			// Check whether a config is specified for this plugin. If not, default to the
+			// global plugin config file specifiedd in the server config.
+			if cfg, hasConfig := pluginConfig[pluginName]; hasConfig {
+				configFile, err = pluginconfig.GetPluginConfig(cfg)
+				if err != nil {
+					return nil, err
+				}
+			}
+			plugin := admission.InitPlugin(pluginName, kubeClient, configFile)
 			if plugin != nil {
 				plugins = append(plugins, plugin)
 			}
