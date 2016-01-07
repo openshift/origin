@@ -3,7 +3,7 @@
     <ol class="breadcrumb"><!-- TODO use the breadcrumb directive -->
       <li><a href="{{projectName | projectOverviewURL}}">{{projectDisplayName()}}</a></li>
       <li><a href="project/{{projectName}}/create">Add to Project</a></li>
-      <li ng-if="name"><a href="" ng-click="goBack()">{{name}}</a></li>
+      <li ng-if="name"><a href="#" ng-click="goBack()">{{name}}</a></li>
       <li class="active"><strong ng-if="pendingTasks(tasks()).length">Creating</strong><strong ng-if="!pendingTasks(tasks()).length">Next Steps</strong></li>
     </ol>
 

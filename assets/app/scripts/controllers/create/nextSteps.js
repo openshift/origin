@@ -92,7 +92,7 @@ angular.module("openshiftConsole")
         }
 
         function creatingFromImage() {
-          return $routeParams.imageName && $routeParams.imageTag && $routeParams.namespace;
+          return $routeParams.imageName && $routeParams.imageTag && $routeParams.namespace && $routeParams.sourceURL;
         }
 
         $scope.$on('$destroy', function(){
