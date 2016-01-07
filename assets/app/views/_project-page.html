@@ -3,20 +3,21 @@
     <sidebar></sidebar>
   </div>
   <div id="container-main" class="middle">
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-md-12" ng-transclude>
+    <div class="container-fluid" ng-transclude>
 
-        </div>
-      </div>
     </div>
   </div>
   <div class="sidebar-right sidebar-pf sidebar-pf-right">
-    <div class="container-fluid">
-      <div class="sidebar-header sidebar-header-bleed-left sidebar-header-bleed-right">
-        <h2 class="h5">Details</h2>
+    <!-- Right section -->
+    <div class="right-section">
+      <div class="right-container">
+        <div class="sidebar-header right-header">
+            <h2 class="h5">Details</h2>
+        </div>
+        <div class="right-content">
+          <osc-object-describer></osc-object-describer>
+        </div><!-- /right-content -->
       </div>
-      <osc-object-describer></osc-object-describer>
-    </div>
+    </div><!-- /right-section -->
   </div>
 </div>

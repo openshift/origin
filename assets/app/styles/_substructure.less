@@ -58,18 +58,6 @@ html,body {
   .wrap.show-sidebar-right {
     .sidebar-right {
       display: block;
-      .sidebar-header {
-        border-color: @page-header-border-color;
-        margin-top: 32px;
-      }
-      h3 {
-        border-top: 1px solid darken(@page-header-border-color, 2%);
-        padding-top: @line-height-computed;
-        &:last-child {
-          border-top: 0;
-          padding-top: 0;
-        }
-      }
       .dl-horizontal {
         margin: 0 0 @line-height-computed;
         dt {
@@ -85,6 +73,7 @@ html,body {
     }
   }
 }
+
 
 @media (min-width: @screen-sm-min) {
   .layout-pf-alt-fixed .nav-pf-vertical-alt {
@@ -116,8 +105,6 @@ html,body {
       height:60px; /* top offset height */
     }
     .sidebar-left,.middle,.sidebar-right {
-      overflow-y:auto;
-      height:auto;
       -webkit-overflow-scrolling:touch;
     }
     .sidebar-left {
@@ -127,10 +114,79 @@ html,body {
     }
     .middle{
       .flex(@columns: 1 1 0%);
+      position: relative;
     }
     .sidebar-right {
       border-left: 1px solid #dadada;
       .flex(@columns: 0 0 @sidebar-right-width-sm);
+      position: relative;
+    }
+  }
+  // scrollable panels within sections
+  // ---------------------------------
+  .middle-section {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    .middle-container {
+      display: flex;
+      flex-direction: column;
+      flex-wrap: nowrap;
+      align-items: flex-start;
+      justify-content: flex-start;
+      height: 100%;
+      position: absolute;
+      overflow: hidden;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      .middle-header {
+        flex: 0 0 auto;
+        width: 100%;
+      }
+      .middle-content {
+        flex: 1 1 auto;
+        position: relative;
+        overflow-x: hidden;
+        overflow-y: auto;
+        width: 100%;
+      }
+    }
+  }
+  .right-section {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: @sidebar-right-width-sm;
+    height: 100%;
+    .right-container {
+      display: flex;
+      flex-direction: column;
+      flex-wrap: nowrap;
+      align-items: flex-start;
+      justify-content: flex-start;
+      height: 100%;
+      position: absolute;
+      overflow: hidden;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      .right-header  {
+        flex: 0 0 auto;
+        width: 100%;
+      }
+      .right-content {
+        flex: 1 1 auto;
+        padding: 0 20px;
+        position: relative;
+        overflow-x: hidden;
+        overflow-y: auto;
+        width: 100%;
+      }
     }
   }
 }
@@ -160,6 +216,9 @@ html,body {
   .console-os {
     .sidebar-right {
       .flex(@columns: 0 0 @sidebar-right-width-md);
+      .right-section {
+        width: @sidebar-right-width-md;
+      }
     }
   }
 }
@@ -175,6 +234,9 @@ html,body {
     .wrap.show-sidebar-right {
       .sidebar-right {
         .flex(@columns: 0 0 @sidebar-right-width-lg);
+        .right-section {
+          width: @sidebar-right-width-lg;
+        }
       }
     }
   }
@@ -191,6 +253,9 @@ html,body {
     .wrap.show-sidebar-right {
       .sidebar-right {
         .flex(@columns: 0 0 @sidebar-right-width-xlg);
+        .right-section {
+          width: @sidebar-right-width-xlg;
+        }
       }
     }
   }
