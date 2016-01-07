@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1ce17a2ce1e5a7517052591b93c83516262290d3
+%global commit 92cb98f279daf1bbba2c9183a5b4e86fab01e5b7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.0.902-153-g1ce17a2 -X github.com/openshift/origin/pkg/version.commitFromGit 1ce17a2 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.0-112-g92cb98f -X github.com/openshift/origin/pkg/version.commitFromGit 92cb98f -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.0
+Version:        3.1.1.1
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -466,6 +466,73 @@ fi
 
 
 %changelog
+* Thu Jan 07 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.1
+- add option --insecure for oc import-image
+  (haoran@dhcp-129-204.nay.redhat.com)
+- new-app: search local docker daemon if registry search fails
+  (cewong@redhat.com)
+- Fix breadcrumb on next steps page (spadgett@redhat.com)
+- Enable DWARF debuginfo (tdawson@redhat.com)
+- update scripts to respect TMPDIR (deads@redhat.com)
+- handle missing dockerfile with docker strategy (bparees@redhat.com)
+- Bump kubernetes-topology-graph to 0.0.21 (spadgett@redhat.com)
+- Print more enlightening string if test fails (rhcarvalho@gmail.com)
+- Add to project catalog legend and accessibility fixes (spadgett@redhat.com)
+- tolerate spurious failure during test setup (deads@redhat.com)
+- fixed readiness endpoint route listing (skuznets@redhat.com)
+- moved tools from cmd/ to tools/ (skuznets@redhat.com)
+- Fix scale up button tooltip (spadgett@redhat.com)
+- fix deploy test to use actual master (deads@redhat.com)
+- Use angular-bootstrap dropdown for user menu (spadgett@redhat.com)
+- added bash autocompletion for ldap sync config (skuznets@redhat.com)
+- Don't allow clock icon to wrap in image tag table (spadgett@redhat.com)
+- diagnostics: improve wording of notes (lmeyer@redhat.com)
+- diagnostics: improve master/node config warnings (lmeyer@redhat.com)
+- Show scalable deployments on web console overview even if not latest
+  (spadgett@redhat.com)
+- Use angular-bootstrap uib-prefixed components (spadgett@redhat.com)
+- write output to file in e2e core (skuznets@redhat.com)
+- Make web console alerts dismissable (spadgett@redhat.com)
+- Reenabled original registry's /healthz route (miminar@redhat.com)
+- fixed TestEditor output (skuznets@redhat.com)
+- added readiness check to LDAP server pod (skuznets@redhat.com)
+- diagnostics: avoid some redundancy (lmeyer@redhat.com)
+- update auth tests to use actual master (deads@redhat.com)
+- fix non-compliant build integration tests (deads@redhat.com)
+- Wait until animation finishes to call chart.flush() (spadgett@redhat.com)
+- oc: Add more doc and examples in oc get (mkargaki@redhat.com)
+- Make KUBE_TIMEOUT take a duration (rhcarvalho@gmail.com)
+- examples: Update resource quota README (mkargaki@redhat.com)
+- promoted group prune and sync from experimental (skuznets@redhat.com)
+- Various accessibility fixes, bumps angular-bootstrap version
+  (jforrest@redhat.com)
+- Avoid scrollbar flicker on build trends tooltip (spadgett@redhat.com)
+- Show empty RCs in some cases on overview when no service
+  (spadgett@redhat.com)
+- make os::cmd::try_until* output smarter (skuznets@redhat.com)
+- Fix tito ldflag manipulation at tag time (sdodson@redhat.com)
+- graphapi: Remove dead code and add godoc (mkargaki@redhat.com)
+- describe DockerBuildStrategy.DockerfilePath (v.behar@free.fr)
+- integration-tests: retry get image on not found error (miminar@redhat.com)
+- Wait for user permissions in test-cmd.sh (jliggitt@redhat.com)
+- Wait for bootstrap policy on startup (jliggitt@redhat.com)
+- Shorten image importer dialTimeout to 5 seconds (jliggitt@redhat.com)
+- Increase specificity of CSS .yaml-mode .ace-numeric style
+  (spadgett@redhat.com)
+- Fix typo in example `oc run` command. (dusty@dustymabe.com)
+- deployapi: Necessary refactoring after updating the internal objects
+  (mkargaki@redhat.com)
+- deployapi: Update generated conversions and deep copies (mkargaki@redhat.com)
+- deployapi: Update manual conversions (mkargaki@redhat.com)
+- deployapi: Refactor internal objects to match versioned (mkargaki@redhat.com)
+- Allow using an image as source for a build (cewong@redhat.com)
+- Updating after real world tests (tdawson@redhat.com)
+- added os::cmd readme (skuznets@redhat.com)
+- fixed caching bug in ldap sync (skuznets@redhat.com)
+- update deltafifo usage to match upstream changes (bparees@redhat.com)
+- UPSTREAM: 14881: fix delta fifo & various fakes for go1.5.1
+  (maszulik@redhat.com)
+
 * Sat Dec 19 2015 Scott Dodson <sdodson@redhat.com> 3.1.1.0
 - Fix tito ldflag manipulation at tag time (sdodson@redhat.com)
 - Fix oc status unit test (mkargaki@redhat.com)
