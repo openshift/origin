@@ -1,9 +1,10 @@
 package e2e
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	"k8s.io/kubernetes/test/e2e"
-	"testing"
 )
 
 var _ = Describe("Custom Extension", func() {
