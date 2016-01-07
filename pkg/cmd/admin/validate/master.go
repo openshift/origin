@@ -60,7 +60,7 @@ func NewCommandValidateMasterConfig(name, fullName string, out io.Writer) *cobra
 				os.Exit(1)
 			}
 
-			fmt.Fprintf(options.Out, "SUCCESS: Validation succeeded for file: %s\n", options.MasterConfigFile)
+			fmt.Fprintf(options.Out, "SUCCESS: Validation succeded for file: %s\n", options.MasterConfigFile)
 		},
 	}
 
