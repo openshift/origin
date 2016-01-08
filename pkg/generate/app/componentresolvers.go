@@ -123,7 +123,7 @@ func (r WeightedResolvers) Resolve(value string) (*ComponentMatch, error) {
 		}
 	}
 	if len(errs) != 0 {
-		glog.V(2).Infof("Errors occurred during resolution: %#v", errs)
+		glog.V(2).Infof("Errors occurred during resolution: %v", errs)
 	}
 	switch len(candidates) {
 	case 0:
