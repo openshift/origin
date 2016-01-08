@@ -124,86 +124,73 @@ func (oc *OsdnController) initSelfSubnet() error {
 
 // Only run on the master
 func watchNodes(oc *OsdnController) {
-	stop := make(chan bool)
 	nodeEvent := make(chan *NodeEvent)
-	go oc.Registry.WatchNodes(nodeEvent, stop)
+	go oc.Registry.WatchNodes(nodeEvent)
 	for {
-		select {
-		case ev := <-nodeEvent:
-			switch ev.Type {
-			case Added:
-				nodeIP, nodeErr := GetNodeIP(ev.Node)
-				if nodeErr == nil {
-					nodeErr = oc.validateNode(nodeIP)
-				}
+		ev := <-nodeEvent
+		switch ev.Type {
+		case Added:
+			nodeIP, nodeErr := GetNodeIP(ev.Node)
+			if nodeErr == nil {
+				nodeErr = oc.validateNode(nodeIP)
+			}
 
-				sub, err := oc.Registry.GetSubnet(ev.Node.Name)
-				if err != nil {
-					if nodeErr == nil {
-						// subnet does not exist already
-						err = oc.addNode(ev.Node.Name, nodeIP)
-						if err != nil {
-							log.Errorf("Error adding node: %v", err)
-						}
-					} else {
-						log.Errorf("Ignoring invalid node %s/%s: %v", ev.Node.Name, nodeIP, nodeErr)
+			sub, err := oc.Registry.GetSubnet(ev.Node.Name)
+			if err != nil {
+				if nodeErr == nil {
+					// subnet does not exist already
+					err = oc.addNode(ev.Node.Name, nodeIP)
+					if err != nil {
+						log.Errorf("Error adding node: %v", err)
 					}
 				} else {
-					if sub.HostIP != nodeIP {
-						err = oc.Registry.DeleteSubnet(ev.Node.Name)
+					log.Errorf("Ignoring invalid node %s/%s: %v", ev.Node.Name, nodeIP, nodeErr)
+				}
+			} else {
+				if sub.HostIP != nodeIP {
+					err = oc.Registry.DeleteSubnet(ev.Node.Name)
+					if err != nil {
+						log.Errorf("Error deleting subnet for node %s, old ip %s: %v", ev.Node.Name, sub.HostIP, err)
+						continue
+					}
+					if nodeErr == nil {
+						err = oc.Registry.CreateSubnet(ev.Node.Name, nodeIP, sub.Subnet)
 						if err != nil {
-							log.Errorf("Error deleting subnet for node %s, old ip %s: %v", ev.Node.Name, sub.HostIP, err)
+							log.Errorf("Error creating subnet for node %s, ip %s: %v", ev.Node.Name, sub.HostIP, err)
 							continue
 						}
-						if nodeErr == nil {
-							err = oc.Registry.CreateSubnet(ev.Node.Name, nodeIP, sub.Subnet)
-							if err != nil {
-								log.Errorf("Error creating subnet for node %s, ip %s: %v", ev.Node.Name, sub.HostIP, err)
-								continue
-							}
-						} else {
-							log.Errorf("Ignoring creating invalid node %s/%s: %v", ev.Node.Name, nodeIP, nodeErr)
-						}
+					} else {
+						log.Errorf("Ignoring creating invalid node %s/%s: %v", ev.Node.Name, nodeIP, nodeErr)
 					}
 				}
-			case Deleted:
-				err := oc.deleteNode(ev.Node.Name)
-				if err != nil {
-					log.Errorf("Error deleting node: %v", err)
-				}
 			}
-		case <-oc.sig:
-			log.Error("Signal received. Stopping watching of nodes.")
-			stop <- true
-			return
+		case Deleted:
+			err := oc.deleteNode(ev.Node.Name)
+			if err != nil {
+				log.Errorf("Error deleting node: %v", err)
+			}
 		}
 	}
 }
 
 // Only run on the nodes
 func watchSubnets(oc *OsdnController) {
-	stop := make(chan bool)
 	clusterEvent := make(chan *HostSubnetEvent)
-	go oc.Registry.WatchSubnets(clusterEvent, stop)
+	go oc.Registry.WatchSubnets(clusterEvent)
 	for {
-		select {
-		case ev := <-clusterEvent:
-			if ev.HostSubnet.HostIP == oc.localIP {
+		ev := <-clusterEvent
+		if ev.HostSubnet.HostIP == oc.localIP {
+			continue
+		}
+		switch ev.Type {
+		case Added:
+			if err := oc.validateNode(ev.HostSubnet.HostIP); err != nil {
+				log.Errorf("Ignoring invalid subnet for node %s: %v", ev.HostSubnet.HostIP, err)
 				continue
 			}
-			switch ev.Type {
-			case Added:
-				if err := oc.validateNode(ev.HostSubnet.HostIP); err != nil {
-					log.Errorf("Ignoring invalid subnet for node %s: %v", ev.HostSubnet.HostIP, err)
-					continue
-				}
-				oc.pluginHooks.AddHostSubnetRules(ev.HostSubnet)
-			case Deleted:
-				oc.pluginHooks.DeleteHostSubnetRules(ev.HostSubnet)
-			}
-		case <-oc.sig:
-			stop <- true
-			return
+			oc.pluginHooks.AddHostSubnetRules(ev.HostSubnet)
+		case Deleted:
+			oc.pluginHooks.DeleteHostSubnetRules(ev.HostSubnet)
 		}
 	}
 }

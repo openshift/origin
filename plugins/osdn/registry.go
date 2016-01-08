@@ -105,7 +105,7 @@ func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) erro
 	return err
 }
 
-func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent, stop <-chan bool) error {
+func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent) error {
 	eventQueue := registry.runEventQueue("HostSubnets")
 
 	for {
@@ -138,7 +138,7 @@ func (registry *Registry) GetPods() ([]kapi.Pod, string, error) {
 	return podList.Items, podList.ListMeta.ResourceVersion, nil
 }
 
-func (registry *Registry) WatchPods(stop <-chan bool) error {
+func (registry *Registry) WatchPods() error {
 	eventQueue := registry.runEventQueue("Pods")
 
 	for {
@@ -221,7 +221,7 @@ func (registry *Registry) getNodeAddressMap() (map[types.UID]string, error) {
 	return nodeAddressMap, nil
 }
 
-func (registry *Registry) WatchNodes(receiver chan<- *NodeEvent, stop <-chan bool) error {
+func (registry *Registry) WatchNodes(receiver chan<- *NodeEvent) error {
 	eventQueue := registry.runEventQueue("Nodes")
 
 	nodeAddressMap, err := registry.getNodeAddressMap()
@@ -357,7 +357,7 @@ func (registry *Registry) GetNamespaces() ([]kapi.Namespace, string, error) {
 	return namespaceList.Items, namespaceList.ListMeta.ResourceVersion, nil
 }
 
-func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent, stop <-chan bool) error {
+func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent) error {
 	eventQueue := registry.runEventQueue("Namespaces")
 
 	for {
@@ -378,7 +378,7 @@ func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent, stop 
 	}
 }
 
-func (registry *Registry) WatchNetNamespaces(receiver chan<- *NetNamespaceEvent, stop <-chan bool) error {
+func (registry *Registry) WatchNetNamespaces(receiver chan<- *NetNamespaceEvent) error {
 	eventQueue := registry.runEventQueue("NetNamespaces")
 
 	for {
@@ -449,7 +449,7 @@ func (registry *Registry) getServices(namespace string) ([]kapi.Service, string,
 	return servList, kServList.ListMeta.ResourceVersion, nil
 }
 
-func (registry *Registry) WatchServices(receiver chan<- *ServiceEvent, stop <-chan bool) error {
+func (registry *Registry) WatchServices(receiver chan<- *ServiceEvent) error {
 	eventQueue := registry.runEventQueue("Services")
 
 	for {

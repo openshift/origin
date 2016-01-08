@@ -42,7 +42,6 @@ type OsdnController struct {
 	localSubnet     *osapi.HostSubnet
 	HostName        string
 	subnetAllocator *netutils.SubnetAllocator
-	sig             chan struct{}
 	podNetworkReady chan struct{}
 	VNIDMap         map[string]uint
 	netIDManager    *netutils.NetIDAllocator
@@ -84,7 +83,6 @@ func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, 
 	oc.localIP = selfIP
 	oc.HostName = hostname
 	oc.VNIDMap = make(map[string]uint)
-	oc.sig = make(chan struct{})
 	oc.podNetworkReady = make(chan struct{})
 	oc.adminNamespaces = make([]string, 0)
 	oc.services = make(map[string]*kapi.Service)
@@ -240,10 +238,6 @@ func (oc *OsdnController) WaitForPodNetworkReady() error {
 		}
 	}
 	return fmt.Errorf("SDN pod network is not ready(timeout: 2 mins)")
-}
-
-func (oc *OsdnController) Stop() {
-	close(oc.sig)
 }
 
 type FirewallRule struct {
