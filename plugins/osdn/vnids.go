@@ -19,7 +19,7 @@ const (
 )
 
 func (oc *OsdnController) VnidStartMaster() error {
-	nets, _, err := oc.Registry.GetNetNamespaces()
+	nets, err := oc.Registry.GetNetNamespaces()
 	if err != nil {
 		return err
 	}

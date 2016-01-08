@@ -117,7 +117,7 @@ func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *
 	}
 
 	// Ensure each host subnet is within the cluster network
-	subnets, _, err := oc.Registry.GetSubnets()
+	subnets, err := oc.Registry.GetSubnets()
 	if err != nil {
 		return fmt.Errorf("Error in initializing/fetching subnets: %v", err)
 	}
@@ -133,7 +133,7 @@ func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *
 	}
 
 	// Ensure each service is within the services network
-	services, _, err := oc.Registry.GetServices()
+	services, err := oc.Registry.GetServices()
 	if err != nil {
 		return err
 	}

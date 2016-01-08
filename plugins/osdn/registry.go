@@ -77,12 +77,12 @@ func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
 	}
 }
 
-func (registry *Registry) GetSubnets() ([]osapi.HostSubnet, string, error) {
+func (registry *Registry) GetSubnets() ([]osapi.HostSubnet, error) {
 	hostSubnetList, err := registry.oClient.HostSubnets().List(kapi.ListOptions{})
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	return hostSubnetList.Items, hostSubnetList.ListMeta.ResourceVersion, nil
+	return hostSubnetList.Items, nil
 }
 
 func (registry *Registry) GetSubnet(nodeName string) (*osapi.HostSubnet, error) {
@@ -122,20 +122,6 @@ func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent) error {
 			receiver <- &HostSubnetEvent{Type: Deleted, HostSubnet: hs}
 		}
 	}
-}
-
-func (registry *Registry) GetPods() ([]kapi.Pod, string, error) {
-	podList, err := registry.kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
-	if err != nil {
-		return nil, "", err
-	}
-
-	for _, pod := range podList.Items {
-		if pod.Status.PodIP != "" {
-			registry.trackPod(&pod)
-		}
-	}
-	return podList.Items, podList.ListMeta.ResourceVersion, nil
 }
 
 func (registry *Registry) WatchPods() error {
@@ -195,15 +181,6 @@ func (registry *Registry) GetPod(nodeName, namespace, podName string) (*kapi.Pod
 		}
 	}
 	return nil, nil
-}
-
-func (registry *Registry) GetNodes() ([]kapi.Node, string, error) {
-	nodes, err := registry.kClient.Nodes().List(kapi.ListOptions{})
-	if err != nil {
-		return nil, "", err
-	}
-
-	return nodes.Items, nodes.ListMeta.ResourceVersion, nil
 }
 
 func (registry *Registry) getNodeAddressMap() (map[types.UID]string, error) {
@@ -349,14 +326,6 @@ func (registry *Registry) GetServicesNetwork() (*net.IPNet, error) {
 	return registry.serviceNetwork, nil
 }
 
-func (registry *Registry) GetNamespaces() ([]kapi.Namespace, string, error) {
-	namespaceList, err := registry.kClient.Namespaces().List(kapi.ListOptions{})
-	if err != nil {
-		return nil, "", err
-	}
-	return namespaceList.Items, namespaceList.ListMeta.ResourceVersion, nil
-}
-
 func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent) error {
 	eventQueue := registry.runEventQueue("Namespaces")
 
@@ -397,12 +366,12 @@ func (registry *Registry) WatchNetNamespaces(receiver chan<- *NetNamespaceEvent)
 	}
 }
 
-func (registry *Registry) GetNetNamespaces() ([]osapi.NetNamespace, string, error) {
+func (registry *Registry) GetNetNamespaces() ([]osapi.NetNamespace, error) {
 	netNamespaceList, err := registry.oClient.NetNamespaces().List(kapi.ListOptions{})
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	return netNamespaceList.Items, netNamespaceList.ListMeta.ResourceVersion, nil
+	return netNamespaceList.Items, nil
 }
 
 func (registry *Registry) GetNetNamespace(name string) (*osapi.NetNamespace, error) {
@@ -425,18 +394,18 @@ func (registry *Registry) DeleteNetNamespace(name string) error {
 }
 
 func (registry *Registry) GetServicesForNamespace(namespace string) ([]kapi.Service, error) {
-	services, _, err := registry.getServices(namespace)
+	services, err := registry.getServices(namespace)
 	return services, err
 }
 
-func (registry *Registry) GetServices() ([]kapi.Service, string, error) {
+func (registry *Registry) GetServices() ([]kapi.Service, error) {
 	return registry.getServices(kapi.NamespaceAll)
 }
 
-func (registry *Registry) getServices(namespace string) ([]kapi.Service, string, error) {
+func (registry *Registry) getServices(namespace string) ([]kapi.Service, error) {
 	kServList, err := registry.kClient.Services(namespace).List(kapi.ListOptions{})
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	servList := make([]kapi.Service, 0, len(kServList.Items))
@@ -446,7 +415,7 @@ func (registry *Registry) getServices(namespace string) ([]kapi.Service, string,
 		}
 		servList = append(servList, service)
 	}
-	return servList, kServList.ListMeta.ResourceVersion, nil
+	return servList, nil
 }
 
 func (registry *Registry) WatchServices(receiver chan<- *ServiceEvent) error {
