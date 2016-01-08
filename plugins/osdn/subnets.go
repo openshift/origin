@@ -142,6 +142,7 @@ func watchNodes(oc *OsdnController) {
 					err = oc.addNode(ev.Node.Name, nodeIP)
 					if err != nil {
 						log.Errorf("Error adding node: %v", err)
+						continue
 					}
 				} else {
 					log.Errorf("Ignoring invalid node %s/%s: %v", ev.Node.Name, nodeIP, nodeErr)
@@ -168,6 +169,7 @@ func watchNodes(oc *OsdnController) {
 			err := oc.deleteNode(ev.Node.Name)
 			if err != nil {
 				log.Errorf("Error deleting node: %v", err)
+				continue
 			}
 		}
 	}

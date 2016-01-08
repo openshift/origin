@@ -183,28 +183,9 @@ func (registry *Registry) GetPod(nodeName, namespace, podName string) (*kapi.Pod
 	return nil, nil
 }
 
-func (registry *Registry) getNodeAddressMap() (map[types.UID]string, error) {
-	nodeAddressMap := map[types.UID]string{}
-
-	nodes, err := registry.kClient.Nodes().List(kapi.ListOptions{})
-	if err != nil {
-		return nodeAddressMap, err
-	}
-	for _, node := range nodes.Items {
-		if len(node.Status.Addresses) > 0 {
-			nodeAddressMap[node.ObjectMeta.UID] = node.Status.Addresses[0].Address
-		}
-	}
-	return nodeAddressMap, nil
-}
-
 func (registry *Registry) WatchNodes(receiver chan<- *NodeEvent) error {
 	eventQueue := registry.runEventQueue("Nodes")
-
-	nodeAddressMap, err := registry.getNodeAddressMap()
-	if err != nil {
-		return err
-	}
+	nodeAddressMap := map[types.UID]string{}
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
@@ -224,16 +205,13 @@ func (registry *Registry) WatchNodes(receiver chan<- *NodeEvent) error {
 		}
 
 		switch eventType {
-		case watch.Added:
+		case watch.Added, watch.Modified:
+			oldNodeIP, ok := nodeAddressMap[node.ObjectMeta.UID]
+			if ok && (oldNodeIP == nodeIP) {
+				continue
+			}
 			receiver <- &NodeEvent{Type: Added, Node: node}
 			nodeAddressMap[node.ObjectMeta.UID] = nodeIP
-		case watch.Modified:
-			oldNodeIP, ok := nodeAddressMap[node.ObjectMeta.UID]
-			if ok && oldNodeIP != nodeIP {
-				// Node Added event will handle update subnet if there is ip mismatch
-				receiver <- &NodeEvent{Type: Added, Node: node}
-				nodeAddressMap[node.ObjectMeta.UID] = nodeIP
-			}
 		case watch.Deleted:
 			receiver <- &NodeEvent{Type: Deleted, Node: node}
 			delete(nodeAddressMap, node.ObjectMeta.UID)
