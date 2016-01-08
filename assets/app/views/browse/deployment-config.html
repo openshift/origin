@@ -78,6 +78,10 @@
               <dt>Replicas:</dt>
               <dd>
                 <replicas spec="deploymentConfig.spec.replicas" scale-fn="scale(replicas)"></replicas>
+                <div ng-if="autoscaling">
+                  Autoscaling from {{autoscaling.min}} to {{autoscaling.max}} pods.
+                  <span ng-if="autoscaling.targetCPU">{{autoscaling.targetCPU}}% target CPU utilization.</span>
+                </div>
               </dd>
               <dt>Pod template:</dt>
               <dd>&nbsp;</dd>

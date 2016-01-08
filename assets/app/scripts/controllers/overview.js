@@ -158,6 +158,42 @@ angular.module('openshiftConsole')
           Logger.log("routes (subscribe)", $scope.routesByService);
         }));
 
+        var hpaByDC, hpaByRC;
+        var isDCAutoscaled = function(name) {
+          return hpaByDC[name] && hpaByDC[name].length;
+        };
+
+        var isRCAutoscaled = function(name) {
+          return hpaByRC[name] && hpaByRC[name].length;
+        };
+
+        watches.push(DataService.watch({
+          group: "extensions",
+          resource: "horizontalpodautoscalers"
+        }, context, function(horizontalPodAutoscalers) {
+          hpaByDC = {};
+          hpaByRC = {};
+          angular.forEach(horizontalPodAutoscalers.by("metadata.name"), function(hpa) {
+            var name = hpa.spec.scaleRef.name, kind = hpa.spec.scaleRef.kind;
+            if (!name || !kind) {
+              return;
+            }
+
+            switch (kind) {
+            case "DeploymentConfig":
+              hpaByDC[name] = hpaByDC[name] || [];
+              hpaByDC[name].push(hpa);
+              break;
+            case "ReplicationController":
+              hpaByRC[name] = hpaByRC[name] || [];
+              hpaByRC[name].push(hpa);
+              break;
+            default:
+              Logger.warn("Unexpected HPA scaleRef kind", kind);
+            }
+          });
+        }));
+
         // Expects deploymentsByServiceByDeploymentConfig to be up to date
         function podRelationships() {
           $scope.monopodsByService = {"": {}};
@@ -217,7 +253,12 @@ angular.module('openshiftConsole')
         }
 
         $scope.isScalable = function(deployment, deploymentConfigId) {
-          // Allow scaling of RCs with no deployment config.
+          // If this RC has an autoscaler, don't allow manual scaling.
+          if (isRCAutoscaled(deployment.metadata.name)) {
+            return false;
+          }
+
+          // Otherwise allow scaling of RCs with no deployment config.
           if (!deploymentConfigId) {
             return true;
           }
@@ -231,6 +272,11 @@ angular.module('openshiftConsole')
           // Allow scaling of deployments whose deployment config has been deleted.
           if (!$scope.deploymentConfigs[deploymentConfigId]) {
             return true;
+          }
+
+          // If the deployment config has an autoscaler, don't allow manual scaling.
+          if (isDCAutoscaled(deploymentConfigId)) {
+            return false;
           }
 
           // Otherwise, check the map to find the most recent deployment that's scalable.
