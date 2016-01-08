@@ -55,7 +55,8 @@ function cleanup()
 		set -u
 	fi
 
-	delete_large_and_empty_logs
+	delete_empty_logs
+	truncate_large_logs
 	set -e
 
 	echo "[INFO] Exiting"
