@@ -39,6 +39,8 @@ type ImportController struct {
 	work           chan *api.ImageStream
 	workingSet     sets.String
 	workingSetLock sync.Mutex
+	queuedSet      sets.String
+	queuedSetLock  sync.Mutex
 
 	// this should not be larger the capacity of the work channel
 	numParallelImports int
@@ -52,6 +54,7 @@ func NewImportController(isNamespacer client.ImageStreamsNamespacer, ismNamespac
 		numParallelImports: parallelImports,
 		work:               make(chan *api.ImageStream, 20*parallelImports),
 		workingSet:         sets.String{},
+		queuedSet:          sets.String{},
 	}
 
 	_, c.imageStreamController = framework.NewInformer(
@@ -96,44 +99,30 @@ func (c *ImportController) Stop() {
 
 func (c *ImportController) imageStreamAdded(obj interface{}) {
 	imageStream := obj.(*api.ImageStream)
-	if needsImport(imageStream) {
-		glog.V(5).Infof("trying to add %s to the worklist", workingSetKey(imageStream))
-		c.work <- imageStream
-		glog.V(3).Infof("added %s to the worklist", workingSetKey(imageStream))
-
-	} else {
-		glog.V(5).Infof("not adding %s to the worklist", workingSetKey(imageStream))
-	}
+	glog.V(5).Infof("imageStreamAdded: %s(%s)", workingSetKey(imageStream), imageStream.ResourceVersion)
+	c.enqueue(imageStream)
 }
 
 func (c *ImportController) imageStreamUpdated(oldObj interface{}, newObj interface{}) {
 	newImageStream := newObj.(*api.ImageStream)
-	if needsImport(newImageStream) {
-		glog.V(5).Infof("trying to add %s to the worklist", workingSetKey(newImageStream))
-		c.work <- newImageStream
-		glog.V(3).Infof("added %s to the worklist", workingSetKey(newImageStream))
-
-	} else {
-		glog.V(5).Infof("not adding %s to the worklist", workingSetKey(newImageStream))
-	}
+	glog.V(5).Infof("imageStreamUpdated: %s(%s)", workingSetKey(newImageStream), newImageStream.ResourceVersion)
+	c.enqueue(newImageStream)
 }
 
 // needsImport returns true if the provided image stream should have its tags imported.
 func needsImport(stream *api.ImageStream) bool {
+	glog.Infof("needsImport %s(%s) - %q", stream.Name, stream.ResourceVersion, stream.Annotations[api.DockerImageRepositoryCheckAnnotation])
 	return stream.Annotations == nil || len(stream.Annotations[api.DockerImageRepositoryCheckAnnotation]) == 0
 }
 
 func (c *ImportController) handleImport() {
 	for {
-		select {
-		case <-c.stopChan:
+		staleImageStream, ok := c.dequeue()
+		if !ok {
 			return
-
-		case staleImageStream := <-c.work:
-			glog.V(1).Infof("popped %s from the worklist", workingSetKey(staleImageStream))
-
-			c.importImageStream(staleImageStream)
 		}
+		glog.V(1).Infof("popped %s from the worklist", workingSetKey(staleImageStream))
+		c.importImageStream(staleImageStream)
 	}
 }
 
@@ -147,8 +136,7 @@ func (c *ImportController) importImageStream(staleImageStream *api.ImageStream) 
 			time.Sleep(100 * time.Millisecond)
 		}
 		glog.V(5).Infof("requeuing %s to the worklist", workingSetKey(staleImageStream))
-		c.work <- staleImageStream
-
+		c.enqueue(staleImageStream)
 		return
 	}
 	defer c.removeFromWorkingSet(staleImageStream)
@@ -197,6 +185,41 @@ func (c *ImportController) removeFromWorkingSet(imageStream *api.ImageStream) {
 	c.workingSetLock.Lock()
 	defer c.workingSetLock.Unlock()
 	c.workingSet.Delete(workingSetKey(imageStream))
+}
+
+// enqueue returns true if the image stream was added to the work queue, false if it was
+// already present
+func (c *ImportController) enqueue(imageStream *api.ImageStream) bool {
+	if !needsImport(imageStream) {
+		glog.V(5).Infof("not adding %s to the worklist, import not needed", workingSetKey(imageStream))
+		return false
+	}
+
+	c.queuedSetLock.Lock()
+	defer c.queuedSetLock.Unlock()
+
+	if c.queuedSet.Has(workingSetKey(imageStream)) {
+		glog.V(5).Infof("not adding %s to the worklist, already queued", workingSetKey(imageStream))
+		return false
+	}
+
+	c.queuedSet.Insert(workingSetKey(imageStream))
+	c.work <- imageStream
+	glog.V(3).Infof("added %s(%s) to the worklist", workingSetKey(imageStream), imageStream.ResourceVersion)
+
+	return true
+}
+
+func (c *ImportController) dequeue() (*api.ImageStream, bool) {
+	select {
+	case imageStream := <-c.work:
+		c.queuedSetLock.Lock()
+		defer c.queuedSetLock.Unlock()
+		c.queuedSet.Delete(workingSetKey(imageStream))
+		return imageStream, true
+	case <-c.stopChan:
+		return nil, false
+	}
 }
 
 // Next processes the given image stream, looking for streams that have DockerImageRepository
