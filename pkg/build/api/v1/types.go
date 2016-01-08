@@ -161,7 +161,9 @@ type BuildSource struct {
 	Git *GitBuildSource `json:"git,omitempty" description:"optional information about git build source"`
 
 	// Image describes an image to be used to provide source for the build
-	Image *ImageSource `json:"image,omitempty" description:"optional image build source"`
+	// EXPERIMENTAL.  This will be changing to an array of images in the near future
+	// and no migration/compatibility will be provided.  Use at your own risk.
+	Image *ImageSource `json:"image,omitempty" description:"optional image build source.  EXPERIMENTAL: This will be changing to an array of images in the near future and no migration/compatibility will be provided.  Use at your own risk."`
 
 	// ContextDir specifies the sub-directory where the source code for the application exists.
 	// This allows to have buildable sources in directory other than root of
