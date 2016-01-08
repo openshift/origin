@@ -9,8 +9,6 @@ import (
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
-
-	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func (oc *OsdnController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
@@ -33,40 +31,7 @@ func (oc *OsdnController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 		return err
 	}
 
-	getNodes := func(registry *Registry) (interface{}, string, error) {
-		return registry.GetNodes()
-	}
-	result, err := oc.watchAndGetResource("Node", watchNodes, getNodes)
-	if err != nil {
-		return err
-	}
-
-	// Make sure each node has a Subnet allocated
-	nodes := result.([]kapi.Node)
-	for _, node := range nodes {
-		nodeIP, err := GetNodeIP(&node)
-		if err != nil {
-			// Don't error out; just warn so the error can be corrected by admin
-			log.Errorf("Failed to get Node %s IP: %v", node.Name, err)
-			continue
-		}
-
-		err = oc.validateNode(nodeIP)
-		if err != nil {
-			// Don't error out; just warn so the error can be corrected by admin
-			log.Errorf("Failed to validate Node %s: %v", node.Name, err)
-			continue
-		}
-		_, err = oc.Registry.GetSubnet(node.Name)
-		if err == nil {
-			log.V(5).Infof("HostSubnet for node %q already exists", node.Name)
-			continue
-		}
-		err = oc.addNode(node.Name, nodeIP)
-		if err != nil {
-			return err
-		}
-	}
+	go watchNodes(oc)
 	return nil
 }
 
@@ -124,20 +89,7 @@ func (oc *OsdnController) SubnetStartNode(mtu uint) (bool, error) {
 		return false, err
 	}
 
-	getSubnets := func(registry *Registry) (interface{}, string, error) {
-		return registry.GetSubnets()
-	}
-	result, err := oc.watchAndGetResource("HostSubnet", watchSubnets, getSubnets)
-	if err != nil {
-		return false, err
-	}
-	subnets := result.([]osapi.HostSubnet)
-	for _, s := range subnets {
-		if s.HostIP != oc.localIP {
-			oc.pluginHooks.AddHostSubnetRules(&s)
-		}
-	}
-
+	go watchSubnets(oc)
 	return networkChanged, nil
 }
 
@@ -171,10 +123,10 @@ func (oc *OsdnController) initSelfSubnet() error {
 }
 
 // Only run on the master
-func watchNodes(oc *OsdnController, ready chan<- bool, start <-chan string) {
+func watchNodes(oc *OsdnController) {
 	stop := make(chan bool)
 	nodeEvent := make(chan *NodeEvent)
-	go oc.Registry.WatchNodes(nodeEvent, ready, start, stop)
+	go oc.Registry.WatchNodes(nodeEvent, stop)
 	for {
 		select {
 		case ev := <-nodeEvent:
@@ -229,10 +181,10 @@ func watchNodes(oc *OsdnController, ready chan<- bool, start <-chan string) {
 }
 
 // Only run on the nodes
-func watchSubnets(oc *OsdnController, ready chan<- bool, start <-chan string) {
+func watchSubnets(oc *OsdnController) {
 	stop := make(chan bool)
 	clusterEvent := make(chan *HostSubnetEvent)
-	go oc.Registry.WatchSubnets(clusterEvent, ready, start, stop)
+	go oc.Registry.WatchSubnets(clusterEvent, stop)
 	for {
 		select {
 		case ev := <-clusterEvent:

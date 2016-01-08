@@ -6,7 +6,6 @@ import (
 	log "github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	osapi "github.com/openshift/origin/pkg/sdn/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
@@ -38,41 +37,10 @@ func (oc *OsdnController) VnidStartMaster() error {
 		return err
 	}
 
-	getNamespaces := func(registry *Registry) (interface{}, string, error) {
-		return registry.GetNamespaces()
-	}
-	result, err := oc.watchAndGetResource("Namespace", watchNamespaces, getNamespaces)
-	if err != nil {
-		return err
-	}
-
 	// 'default' namespace is currently always an admin namespace
 	oc.adminNamespaces = append(oc.adminNamespaces, "default")
 
-	// Handle existing namespaces
-	namespaces := result.([]kapi.Namespace)
-	for _, ns := range namespaces {
-		nsName := ns.ObjectMeta.Name
-		// Revoke invalid VNID for admin namespaces
-		if oc.isAdminNamespace(nsName) {
-			netid, ok := oc.VNIDMap[nsName]
-			if ok && (netid != AdminVNID) {
-				err := oc.revokeVNID(nsName)
-				if err != nil {
-					return err
-				}
-			}
-		}
-		_, found := oc.VNIDMap[nsName]
-		// Assign VNID for the namespace if it doesn't exist
-		if !found {
-			err := oc.assignVNID(nsName)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
+	go watchNamespaces(oc)
 	return nil
 }
 
@@ -150,10 +118,10 @@ func (oc *OsdnController) revokeVNID(namespaceName string) error {
 	return nil
 }
 
-func watchNamespaces(oc *OsdnController, ready chan<- bool, start <-chan string) {
+func watchNamespaces(oc *OsdnController) {
 	nsevent := make(chan *NamespaceEvent)
 	stop := make(chan bool)
-	go oc.Registry.WatchNamespaces(nsevent, ready, start, stop)
+	go oc.Registry.WatchNamespaces(nsevent, stop)
 	for {
 		select {
 		case ev := <-nsevent:
@@ -180,44 +148,9 @@ func watchNamespaces(oc *OsdnController, ready chan<- bool, start <-chan string)
 }
 
 func (oc *OsdnController) VnidStartNode() error {
-	getNetNamespaces := func(registry *Registry) (interface{}, string, error) {
-		return registry.GetNetNamespaces()
-	}
-	result, err := oc.watchAndGetResource("NetNamespace", watchNetNamespaces, getNetNamespaces)
-	if err != nil {
-		return err
-	}
-	nslist := result.([]osapi.NetNamespace)
-	for _, ns := range nslist {
-		oc.VNIDMap[ns.Name] = ns.NetID
-	}
-
-	getServices := func(registry *Registry) (interface{}, string, error) {
-		return registry.GetServices()
-	}
-	result, err = oc.watchAndGetResource("Service", watchServices, getServices)
-	if err != nil {
-		return err
-	}
-
-	services := result.([]kapi.Service)
-	for _, svc := range services {
-		netid, found := oc.VNIDMap[svc.Namespace]
-		if !found {
-			return fmt.Errorf("Error fetching Net ID for namespace: %s", svc.Namespace)
-		}
-		oc.services[string(svc.UID)] = &svc
-		oc.pluginHooks.AddServiceRules(&svc, netid)
-	}
-
-	getPods := func(registry *Registry) (interface{}, string, error) {
-		return registry.GetPods()
-	}
-	_, err = oc.watchAndGetResource("Pod", watchPods, getPods)
-	if err != nil {
-		return err
-	}
-
+	go watchNetNamespaces(oc)
+	go watchServices(oc)
+	go watchPods(oc)
 	return nil
 }
 
@@ -246,10 +179,10 @@ func (oc *OsdnController) updatePodNetwork(namespace string, netID uint) error {
 	return nil
 }
 
-func watchNetNamespaces(oc *OsdnController, ready chan<- bool, start <-chan string) {
+func watchNetNamespaces(oc *OsdnController) {
 	stop := make(chan bool)
 	netNsEvent := make(chan *NetNamespaceEvent)
-	go oc.Registry.WatchNetNamespaces(netNsEvent, ready, start, stop)
+	go oc.Registry.WatchNetNamespaces(netNsEvent, stop)
 	for {
 		select {
 		case ev := <-netNsEvent:
@@ -279,10 +212,10 @@ func watchNetNamespaces(oc *OsdnController, ready chan<- bool, start <-chan stri
 	}
 }
 
-func watchServices(oc *OsdnController, ready chan<- bool, start <-chan string) {
+func watchServices(oc *OsdnController) {
 	stop := make(chan bool)
 	svcevent := make(chan *ServiceEvent)
-	go oc.Registry.WatchServices(svcevent, ready, start, stop)
+	go oc.Registry.WatchServices(svcevent, stop)
 	for {
 		select {
 		case ev := <-svcevent:
@@ -330,9 +263,9 @@ func watchServices(oc *OsdnController, ready chan<- bool, start <-chan string) {
 	}
 }
 
-func watchPods(oc *OsdnController, ready chan<- bool, start <-chan string) {
+func watchPods(oc *OsdnController) {
 	stop := make(chan bool)
-	go oc.Registry.WatchPods(ready, start, stop)
+	go oc.Registry.WatchPods(stop)
 
 	<-oc.sig
 	log.Error("Signal received. Stopping watching of pods.")

@@ -246,53 +246,6 @@ func (oc *OsdnController) Stop() {
 	close(oc.sig)
 }
 
-// Wait for ready signal from Watch interface for the given resource
-// Closes the ready channel as we don't need it anymore after this point
-func waitForWatchReadiness(ready chan bool, resourceName string) {
-	timeout := time.Minute
-	select {
-	case <-ready:
-		close(ready)
-	case <-time.After(timeout):
-		log.Fatalf("Watch for resource %s is not ready(timeout: %v)", resourceName, timeout)
-	}
-	return
-}
-
-type watchWatcher func(oc *OsdnController, ready chan<- bool, start <-chan string)
-type watchGetter func(registry *Registry) (interface{}, string, error)
-
-// watchAndGetResource will fetch current items in etcd and watch for any new
-// changes for the given resource.
-// Supported resources: nodes, subnets, namespaces, services, netnamespaces, and pods.
-//
-// To avoid any potential race conditions during this process, these steps are followed:
-// 1. Initiator(master/node): Watch for a resource as an async op, lets say WatchProcess
-// 2. WatchProcess: When ready for watching, send ready signal to initiator
-// 3. Initiator: Wait for watch resource to be ready
-//    This is needed as step-1 is an asynchronous operation
-// 4. WatchProcess: Collect new changes in the queue but wait for initiator
-//    to indicate which version to start from
-// 5. Initiator: Get existing items with their latest version for the resource
-// 6. Initiator: Send version from step-5 to WatchProcess
-// 7. WatchProcess: Ignore any items with version <= start version got from initiator on step-6
-// 8. WatchProcess: Handle new changes
-func (oc *OsdnController) watchAndGetResource(resourceName string, watcher watchWatcher, getter watchGetter) (interface{}, error) {
-	ready := make(chan bool)
-	start := make(chan string)
-
-	go watcher(oc, ready, start)
-	waitForWatchReadiness(ready, strings.ToLower(resourceName))
-	getOutput, version, err := getter(oc.Registry)
-	if err != nil {
-		return nil, err
-	}
-
-	start <- version
-
-	return getOutput, nil
-}
-
 type FirewallRule struct {
 	table string
 	chain string
