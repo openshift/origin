@@ -12,6 +12,7 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 cd "${OS_ROOT}"
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
 
 function cleanup()
@@ -57,18 +58,14 @@ tests=( $(find_tests ${1:-.*}) )
 # Setup environment
 
 # test-cmd specific defaults
-TMPDIR="${TMPDIR:-"/tmp"}"
-BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-cmd}"
-LOG_DIR=${BASETMPDIR}/logs
 API_HOST=${API_HOST:-127.0.0.1}
 export API_PORT=${API_PORT:-28443}
 
 export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 export ETCD_PORT=${ETCD_PORT:-24001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
-setup_env_vars
-export SUDO=''
-mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" "${LOG_DIR}"
+
+os::util::environment::setup_all_server_vars "test-cmd/"
 reset_tmp_dir
 
 echo "Logging to ${LOG_DIR}..."
@@ -79,7 +76,7 @@ os::log::start_system_logger
 unset KUBECONFIG
 
 # test wrapper functions
-${OS_ROOT}/hack/test-cmd_util.sh > ${BASETMPDIR}/wrappers.txt 2>&1
+${OS_ROOT}/hack/test-cmd_util.sh > ${LOG_DIR}/wrappers_test.log 2>&1
 
 
 # handle profiling defaults

@@ -11,6 +11,9 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 os::log::install_errexit
 
+source "${OS_ROOT}/hack/lib/util/environment.sh"
+os::util::environment::setup_time_vars
+
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 TEST_ASSETS="${TEST_ASSETS:-false}"
 
@@ -333,7 +336,6 @@ oc exec -p ${registry_pod} du /registry > ${LOG_DIR}/prune-images.after.txt
 
 # make sure there were changes to the registry's storage
 [ -n "$(diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-images.after.txt)" ]
-
 
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then

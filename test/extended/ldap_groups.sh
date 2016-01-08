@@ -13,17 +13,13 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 os::log::install_errexit
+
+source "${OS_ROOT}/hack/lib/util/environment.sh"
+os::util::environment::setup_time_vars
+
 cd "${OS_ROOT}"
 
 os::build::setup_env
-
-export TMPDIR="${TMPDIR:-"/tmp"}"
-export BASETMPDIR="${TMPDIR}/openshift-extended-tests/authentication"
-export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
-export KUBE_REPO_ROOT="${OS_ROOT}/../../../k8s.io/kubernetes"
-
-function join { local IFS="$1"; shift; echo "$*"; }
-
 
 function cleanup()
 {
@@ -39,7 +35,8 @@ trap "cleanup" EXIT
 echo "[INFO] Starting server"
 
 ensure_iptables_or_die
-setup_env_vars
+os::util::environment::setup_all_server_vars "test-extended/ldap_groups/"
+os::util::environment::use_sudo
 reset_tmp_dir
 
 os::log::start_system_logger

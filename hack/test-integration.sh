@@ -10,6 +10,7 @@ source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/text.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
 
 # Go to the top of the tree.
@@ -17,14 +18,11 @@ cd "${OS_ROOT}"
 
 os::build::setup_env
 
-TMPDIR="${TMPDIR:-"/tmp"}"
-export BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-integration}"
-export API_SCHEME=${API_SCHEME:-http}
+export API_SCHEME="http"
 export API_BIND_HOST="127.0.0.1"
 export ETCD_PORT=${ETCD_PORT:-44001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-47001}
-export SUDO=''
-setup_env_vars
+os::util::environment::setup_all_server_vars "test-integration/"
 reset_tmp_dir
 
 function cleanup() {
