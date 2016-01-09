@@ -131,19 +131,19 @@ angular.module('openshiftConsole')
         case "basic_cli_operations":
           return "https://docs.openshift.org/latest/cli_reference/basic_cli_operations.html";
         case "webhooks":
-          return "http://docs.openshift.org/latest/dev_guide/builds.html#webhook-triggers";
+          return "https://docs.openshift.org/latest/dev_guide/builds.html#webhook-triggers";
         case "new_app":
-          return "http://docs.openshift.org/latest/dev_guide/new_app.html";
+          return "https://docs.openshift.org/latest/dev_guide/new_app.html";
         case "start-build":
-          return "http://docs.openshift.org/latest/dev_guide/builds.html#starting-a-build";
+          return "https://docs.openshift.org/latest/dev_guide/builds.html#starting-a-build";
         case "deployment-operations":
-          return "http://docs.openshift.org/latest/cli_reference/basic_cli_operations.html#deployment-operations";
+          return "https://docs.openshift.org/latest/cli_reference/basic_cli_operations.html#build-and-deployment-cli-operations";
         case "route-types":
           return "https://docs.openshift.org/latest/architecture/core_concepts/routes.html#route-types";
         case "persistent_volumes":
           return "https://docs.openshift.org/latest/dev_guide/persistent_volumes.html";
         default:
-          return "http://docs.openshift.org/latest/welcome/index.html";
+          return "https://docs.openshift.org/latest/welcome/index.html";
       }
     };
   })
