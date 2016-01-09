@@ -57,7 +57,7 @@ Run the unit tests with:
 
     $ hack/test-go.sh
 
-or an individual package unit test with:
+or an individual package using its relative path with:
 
     $ hack/test-go.sh pkg/build
 
@@ -69,36 +69,52 @@ To run only a certain regex of tests in a package, use:
 
     $ hack/test-go.sh pkg/build -test.run=SynchronizeBuildRunning
 
-To get verbose output add `-v` to the end:
+To get verbose output for the above example:
 
     $ hack/test-go.sh pkg/build -test.run=SynchronizeBuildRunning -v
 
 To run all tests with verbose output:
 
-    $ hack/test-go.sh "" -v
+    $ hack/test-go.sh -v
+
+To change the timeout for individual unit tests, which defaults to one minute, use:
+
+    $ TIMEOUT=<timeout> hack/test-go.sh
 
 To enable running the kubernetes unit tests:
 
-    $ TEST_KUBE=1 hack/test-go.sh
+    $ TEST_KUBE=true hack/test-go.sh
 
 To run unit test for an individual kubernetes package:
 
-    $ TEST_KUBE=1 hack/test-go.sh Godeps/_workspace/src/k8s.io/kubernetes/examples
+    $ hack/test-go.sh Godeps/_workspace/src/k8s.io/kubernetes/examples
 
-To turn off or change the coverage mode, which is `-cover -covermode=atomic` by default, use:
+To change the coverage mode, which is `-cover -covermode=atomic` by default, use:
 
-    $ KUBE_COVER="" hack/test-go.sh
+    $ COVERAGE_SPEC="<some coverage specification>" hack/test-go.sh
+
+To turn off coverage calculation, which is on by default, use:
+
+    $ COVERAGE_SPEC= hack/test-go.sh
 
 To run tests without the go race detector, which is on by default, use:
 
-    $ KUBE_RACE="" hack/test-go.sh
+    $ DETECT_RACES= hack/test-go.sh
 
 To create a line coverage report, set `OUTPUT_COVERAGE` to a path where the
 report should be stored. For example:
 
-    $ OUTPUT_COVERAGE=/path/to/dir hack/test-go.sh pkg/build
+    $ COVERAGE_OUTPUT_DIR='/path/to/dir' hack/test-go.sh
 
 After that you can open `/path/to/dir/coverage.html` in the browser.
+
+To generate a jUnit XML report from the output of the tests, and see a summary of the test output 
+instead of the full test output, use:
+    
+    $ JUNIT_REPORT=true hack/test-go.sh
+
+`hack/test-go.sh` cannot generate jUnit XML and a coverage report for all packages at once. If you
+require both, you must call `hack/test-go.sh` twice.
 
 ### Integration tests
 
