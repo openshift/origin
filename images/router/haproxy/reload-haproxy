@@ -1,21 +1,62 @@
 #!/bin/bash -xu
 
+script=$(basename "${BASH_SOURCE[0]}")
+interval=${RELOAD_COALESCE_INTERVAL:-"15"}   #  default 15 secs.
+COALESCE_MAX_WAIT=$((5 * 60))  #  5 minutes
+
 config_file=/var/lib/haproxy/conf/haproxy.config
-pid_file=/var/lib/haproxy/run/haproxy.pid
+run_dir=/var/lib/haproxy/run
+pid_file=$run_dir/haproxy.pid
+lock_file="$run_dir/${script}.lock"
 old_pid=""
 haproxy_conf_dir=/var/lib/haproxy/conf
+
+
+function coalesce_reloads() {
+  local reloadts=0
+  [ -f "$lock_file" ] && reloadts=$(stat -c "%Y" "$lock_file")
+
+  #  Ensure interval is under max wait time (5 mins).
+  [ $interval -gt $COALESCE_MAX_WAIT ] && interval=$COALESCE_MAX_WAIT
+
+  (
+    function _onexit() {
+      flock -x -u -n 42
+    }
+
+    trap _onexit KILL ERR QUIT TERM EXIT INT
+
+    flock -n 42 || exit 0  #  Another reload is running.
+
+    #  Get time difference of last reload from current timestamp.
+    local now=$(date +%s)
+    local timediff=$(( $now - $reloadts))
+
+    #  Sleep for 'x' secs  where 0 <= x < interval ( <= COALESCE_MAX_WAIT).
+    [ $interval -ge $timediff ] && sleep $((interval - timediff))
+
+    if [ -f $pid_file ]; then
+      old_pid=$(<$pid_file)
+    fi
+
+    if [ -n "$old_pid" ]; then
+      /usr/sbin/haproxy -f $config_file -p $pid_file -sf $old_pid
+    else
+      /usr/sbin/haproxy -f $config_file -p $pid_file
+    fi
+
+    _onexit
+
+  ) 42> "$lock_file"
+
+  flock -x -u "$lock_file" id &> /dev/null
+
+}  #  End of function  coalesce_reloads.
+
 
 # sort the path based map files for the haproxy map_beg function
 for mapfile in "$haproxy_conf_dir"/*.map; do
   sort -r "$mapfile" -o "$mapfile"
 done
 
-if [ -f $pid_file ]; then
-  old_pid=$(<$pid_file)
-fi
-
-if [ -n "$old_pid" ]; then
-  /usr/sbin/haproxy -f $config_file -p $pid_file -sf $old_pid
-else
-  /usr/sbin/haproxy -f $config_file -p $pid_file
-fi
+coalesce_reloads
