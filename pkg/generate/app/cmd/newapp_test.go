@@ -1129,6 +1129,41 @@ func TestRunBuilds(t *testing.T) {
 			},
 		},
 		{
+			name: "successful generation of BC with multiple sources: repo + Dockerfile",
+			config: &AppConfig{
+				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
+				Dockerfile:         "FROM centos/ruby-22-centos7\nRUN false",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"ruby-hello-world"},
+				"imageStream": {"ruby-22-centos7", "ruby-hello-world"},
+			},
+			checkResult: func(res *AppResult) error {
+				var bc *buildapi.BuildConfig
+				for _, item := range res.List.Items {
+					switch v := item.(type) {
+					case *buildapi.BuildConfig:
+						if bc != nil {
+							return fmt.Errorf("want one BuildConfig got multiple: %#v", res.List.Items)
+						}
+						bc = v
+					}
+				}
+				if bc == nil {
+					return fmt.Errorf("want one BuildConfig got none: %#v", res.List.Items)
+				}
+				var got string
+				if bc.Spec.Source.Dockerfile != nil {
+					got = *bc.Spec.Source.Dockerfile
+				}
+				want := "FROM centos/ruby-22-centos7\nRUN false"
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Dockerfile = %q; want %q", got, want)
+				}
+				return nil
+			},
+		},
+		{
 			name: "unsuccessful build from dockerfile due to strategy conflict",
 			config: &AppConfig{
 				Dockerfile: "FROM openshift/origin-base\nUSER foo",
@@ -1160,6 +1195,19 @@ func TestRunBuilds(t *testing.T) {
 					}.DockerClientDefaults(),
 				}
 				return err.Error() == fmt.Errorf("%v, please specify a different output reference with --to", e).Error()
+			},
+		},
+		{
+			name: "unsuccessful generation of BC with multiple repos and Dockerfile",
+			config: &AppConfig{
+				SourceRepositories: []string{
+					"https://github.com/openshift/ruby-hello-world",
+					"https://github.com/openshift/django-ex",
+				},
+				Dockerfile: "FROM centos/ruby-22-centos7\nRUN false",
+			},
+			expectedErr: func(err error) bool {
+				return err.Error() == "--dockerfile cannot be used with multiple source repositories"
 			},
 		},
 	}
@@ -1212,7 +1260,7 @@ func TestRunBuilds(t *testing.T) {
 
 		if test.checkResult != nil {
 			if err := test.checkResult(res); err != nil {
-				t.Error(err)
+				t.Errorf("%s: unexpected result: %v", test.name, err)
 			}
 		}
 	}
