@@ -108,7 +108,8 @@ angular.module('openshiftConsole')
       var amount = split[1];
       var unit = split[2];
       switch(type) {
-        case "memory", "storage":
+        case "memory":
+        case "storage":
           unit += "B";
           break;
         case "cpu":
