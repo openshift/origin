@@ -193,14 +193,13 @@ esac
 
 TEST_EXTRA_ARGS="$@"
 
-os::build::setup_env
-
 os::log::info "Building networking test binary"
 TEST_BINARY="${OS_OUTPUT_BINPATH}/networking.test"
 if [ -f "${TEST_BINARY}" ] &&
    [ "${OPENSHIFT_SKIP_BUILD:-false}" = "true" ]; then
   os::log::warn "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=true"
 else
+  os::build::setup_env
   go test -c ./test/extended/networking -o "${TEST_BINARY}"
 fi
 
