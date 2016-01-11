@@ -1,9 +1,9 @@
 package systemd
 
 import (
+	"fmt"
 	"regexp"
 
-	"fmt"
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
@@ -29,7 +29,7 @@ type logMatcher struct {
 }
 
 type unitSpec struct {
-	Name        string
+	Names       []string
 	StartMatch  *regexp.Regexp // regex to look for in log messages indicating startup
 	LogMatchers []logMatcher   // suspect log patterns to check for - checked in order
 }
@@ -60,7 +60,7 @@ var tlsClientErrorSeen map[string]bool
 // Specify what units we can check and what to look for and say about it
 var unitLogSpecs = []*unitSpec{
 	{
-		Name:       "atomic-openshift-master",
+		Names:      []string{"origin-master", "atomic-openshift-master"},
 		StartMatch: regexp.MustCompile("Starting \\w+ Master"),
 		LogMatchers: []logMatcher{
 			badImageTemplate,
@@ -76,7 +76,7 @@ var unitLogSpecs = []*unitSpec{
 				Level:  log.WarnLevel,
 				Interpret: func(entry *logEntry, matches []string, r types.DiagnosticResult) bool {
 					client := matches[1]
-					prelude := fmt.Sprintf("Found 'atomic-openshift-master' journald log message:\n  %s\n", entry.Message)
+					prelude := fmt.Sprintf("Found master journald log message:\n  %s\n", entry.Message)
 					if tlsClientErrorSeen == nil { // first time this message was seen
 						tlsClientErrorSeen = map[string]bool{client: true}
 						// TODO: too generic, adjust message depending on subnet of the "from" address
@@ -108,7 +108,7 @@ log message:
   component. Check pod logs and recreate it with the correct CA cert.
   Routers and registries won't work properly with the wrong CA.
 * If it is from a node IP, the client is likely a node. Check the
-  atomic-openshift-node logs and reconfigure with the correct CA cert.
+  node logs and reconfigure with the correct CA cert.
   Nodes will be unable to create pods until this is corrected.
 * If it is from an external IP, it is likely from a user (CLI, browser,
   etc.). Command line clients should be configured with the correct
@@ -129,7 +129,7 @@ log message:
 		},
 	},
 	{
-		Name:       "atomic-openshift-node",
+		Names:      []string{"origin-node", "atomic-openshift-node"},
 		StartMatch: regexp.MustCompile("Starting \\w+ Node"), //systemd puts this out; could change
 		LogMatchers: []logMatcher{
 			badImageTemplate,
@@ -138,7 +138,7 @@ log message:
 				Level:  log.ErrorLevel,
 				Id:     "DS2004",
 				Interpretation: `
-atomic-openshift-node could not register with the master API because it lacks
+This node could not register with the master API because it lacks
 the proper credentials. Nodes should specify a client certificate in
 order to identify themselves to the master. This message typically means
 that either no client key/cert was supplied, or it is not validated
@@ -174,7 +174,7 @@ the node kubeconfig.
 		},
 	},
 	{
-		Name:       "docker",
+		Names:      []string{"docker"},
 		StartMatch: regexp.MustCompile(`Starting Docker`), // RHEL Docker at least
 		LogMatchers: []logMatcher{
 			{
@@ -235,10 +235,5 @@ This is not a known problem, but it is causing Docker to crash,
 so the node will not run on this host until it is resolved.`,
 			},
 		},
-	},
-	{
-		Name:        "openvswitch",
-		StartMatch:  regexp.MustCompile("Starting Open vSwitch"),
-		LogMatchers: []logMatcher{},
 	},
 }
