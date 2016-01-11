@@ -20,24 +20,19 @@
         <label style="margin-right: 5px;">Version:</label>
         {{version}}
       </div>
-      <a href=""
-         ng-click="filterTag(tag)"
-         ng-repeat="tag in (imageStream | imageStreamTagTags : imageTag)"
-         ng-attr-title="Filter by tag {{tag}}"
-         class="tag small">
+      <a href="" ng-click="filterTag(tag)" ng-repeat="tag in (imageStream | imageStreamTagTags : imageTag)" class="tag small">
         {{tag}}
       </a>
     </div>
     <!-- Unset title attribute to prevent two tooltips. -->
     <div title="" ng-if="isBuilder">
       <i
-        class="pficon pficon-image tile-badge-icon"
+        class="pficon pficon-image"
         aria-hidden="true"
         data-toggle="tooltip"
         data-placement="bottom"
         data-container="body"
-        data-original-title="Builder Image"></i>
-      <span class="sr-only">Builder Image</span>
+        data-original-title="This image can build source code."></i>
     </div>
   </div>
 </div>

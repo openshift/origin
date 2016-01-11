@@ -397,20 +397,8 @@ label.checkbox {
 
 // Make sure icons are the same size so headings align.
 .add-to-project {
-  .catalog-legend {
-    dd {
-      margin-bottom: 5px;
-    }
-    .fa, .pficon {
-      width: 12px;
-      margin-right: 5px;
-      text-align: center;
-    }
-  }
-
   .filter-group {
     line-height: 1.75;
-    margin: 15px 0 10px;
     .search-input, .btn-group {
       display: inline-block;
       margin-bottom: 10px;
@@ -422,21 +410,13 @@ label.checkbox {
         width: 400px;
       }
     }
-  }
-  @media (min-width:@screen-sm-min) {
-    // Line up the description and filter controls with left column tiles.
-    .catalog-header-left {
-      padding-right: 10px;
+    .filter-btn {
+      margin-right: 5px;
     }
-    // Line up catalog with right column tiles.
-    .catalog-legend {
-      padding-left: 15px;
-    }
-  }
-  @media (min-width:@screen-md-min) {
-    // Line up the description and filter controls with left column tiles.
-    .catalog-header-left {
-      padding-right: 15px;
+    @media (min-width: @screen-sm-min) {
+      .filter-msg {
+        display: inline-block;
+      }
     }
   }
 }

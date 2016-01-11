@@ -33,63 +33,37 @@
           <div ng-show="!emptyCatalog">
             <h1>Select Image or Template</h1>
 
-            <div class="row">
-              <!-- Right padding to line up cleanly with the left column tiles. -->
-              <div class="col-sm-6 catalog-header-left">
-                Choose from web frameworks, databases, and other components to
-                add content to your project.
+            <p>Choose from web frameworks, databases, and other components.</p>
 
-                <div class="filter-group">
-                  <!-- Add a hidden label for screen readers. -->
-                  <label for="search" class="sr-only">Filter by keyword</label>
-                  <!-- Pull the filter right so the input and dropdown button
-                       can use 100% width on the same line. -->
-                  <div uib-dropdown uib-keyboard-nav class="btn-group pull-right">
-                    <button class="dropdown-toggle" data-toggle="dropdown" role="menu">
-                      Browse
-                      <span class="caret" aria-hidden="true"></span>
-                    </button>
-                    <ul class="uib-dropdown-menu">
-                      <li ng-repeat="tag in categoryTags" role="menuitem">
-                        <a href="" ng-click="filter.tag = tag">{{tag}}</a>
-                      </li>
-                    </ul>
-                  </div>
+            <div class="filter-group">
+              <!-- Add a hidden label for screen readers. -->
+              <label for="search" class="sr-only">Filter by keyword</label>
+              <input
+                 ng-model="filter.keyword"
+                 autofocus
+                 type="search"
+                 id="search"
+                 placeholder="Filter by keyword"
+                 class="search-input form-control"
+                 autocorrect="off"
+                 autocapitalize="off"
+                 spellcheck="false">
 
-                  <!-- Use the remaining space for the input. -->
-                  <div style="overflow: hidden; padding-right: 10px;">
-                    <input
-                       ng-model="filter.keyword"
-                       autofocus
-                       type="search"
-                       id="search"
-                       placeholder="Filter by keyword"
-                       class="search-input form-control"
-                       autocorrect="off"
-                       autocapitalize="off"
-                       spellcheck="false"
-                       style="width: 100%;">
-                   </div>
-
-                  <div ng-if="filter.tag">
-                    Tagged with {{filter.tag}}.
-                    <a href="" ng-click="filter.tag = ''">See all tags</a>
-                  </div>
-                </div>
+              <!-- Filter by tag -->
+              <div uib-dropdown uib-keyboard-nav class="filter-btn btn-group">
+                <button class="dropdown-toggle" data-toggle="dropdown" role="menu">
+                  Browse
+                  <span class="caret"></span>
+                </button>
+                <ul class="uib-dropdown-menu">
+                  <li ng-repeat="tag in categoryTags" role="menuitem">
+                    <a href="" ng-click="filter.tag = tag">{{tag}}</a>
+                  </li>
+                </ul>
               </div>
-
-              <!-- Legend -->
-              <div class="col-sm-6 catalog-legend">
-                <dl aria-hidden="true" class="text-muted">
-                  <dt>
-                    <i class="pficon pficon-image"></i> Builder Image
-                  </dt>
-                  <dd>Builds images from source code in a Git repository.</dd>
-                  <dt>
-                    <i class="fa fa-bolt"></i> Template
-                  </dt>
-                  <dd>Creates a predefined set of resources.</dd>
-                </dl>
+              <div ng-if="filter.tag" class="filter-msg">
+                Tagged with {{filter.tag}}.
+                <a href="" ng-click="filter.tag = ''">See all tags</a>
               </div>
             </div>
 
