@@ -36,8 +36,18 @@ func DeleteAllEtcdKeys() {
 	for _, node := range keys.Node.Nodes {
 		glog.Infof("Deleting %#v (child of %#v)", node, keys.Node)
 		if _, err := client.Delete(node.Key, true); err != nil {
-			glog.Fatalf("Unable to delete key: %v", err)
+			// This should't happen, but something is confusing etcd: https://github.com/openshift/origin/issues/6065
+			// This is strictly test setup.  The test will still be valid if there are no root keys when this method is over.
+			glog.Errorf("Unable to delete key: %v", err)
 		}
+	}
+
+	keys, err = client.Get("/", false, false)
+	if err != nil {
+		glog.Fatalf("Unable to list root etcd keys: %v", err)
+	}
+	if len(keys.Node.Nodes) > 0 {
+		glog.Fatalf("Unable to deletes key: %v", keys)
 	}
 }
 

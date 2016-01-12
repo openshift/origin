@@ -485,12 +485,22 @@ function dump_container_logs()
 	done
 }
 
-# delete_large_and_empty_logs deletes empty logs and logs over 20MB
-function delete_large_and_empty_logs()
-{
+# delete_empty_logs deletes empty logs
+function delete_empty_logs() {
 	# Clean up zero byte log files
+	find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -empty \) -delete
+}
+
+# truncate_large_logs truncates large logs so we only download the last 20MB
+function truncate_large_logs() {
 	# Clean up large log files so they don't end up on jenkins
-	find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -empty -or -size +20M \) -delete
+	local large_files=$(find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -size +20M \))
+	for file in "${large_files}"; do
+		cp "${file}" "${file}.tmp"
+		echo "LOGFILE TOO LONG, PREVIOUS BYTES TRUNCATED. LAST 20M BYTES OF LOGFILE:" > "${file}"
+		tail -c 20M "${file}.tmp" > "${file}"
+		rm "${file}.tmp"
+	done
 }
 
 ######
@@ -534,7 +544,8 @@ function cleanup_openshift {
 		set -u
 	fi
 
-	delete_large_and_empty_logs
+	delete_empty_logs
+	truncate_large_logs
 
 	echo "[INFO] Cleanup complete"
 	set -e
@@ -544,7 +555,8 @@ function cleanup_openshift {
 function create_gitconfig {
 	USERNAME=sample-user
 	PASSWORD=password
-	GITCONFIG_DIR=$(mktemp -d /tmp/test-gitconfig.XXXX)
+	TMPDIR="${TMPDIR:-"/tmp"}"
+	GITCONFIG_DIR=$(mktemp -d ${TMPDIR}/test-gitconfig.XXXX)
 	touch ${GITCONFIG_DIR}/.gitconfig
 	git config --file ${GITCONFIG_DIR}/.gitconfig user.name ${USERNAME}
 	git config --file ${GITCONFIG_DIR}/.gitconfig user.token ${PASSWORD}
@@ -552,7 +564,8 @@ function create_gitconfig {
 }
 
 function create_valid_file {
-	FILE_DIR=$(mktemp -d /tmp/test-file.XXXX)
+	TMPDIR="${TMPDIR:-"/tmp"}"
+	FILE_DIR=$(mktemp -d ${TMPDIR}/test-file.XXXX)
 	touch ${FILE_DIR}/${1}
 	echo ${FILE_DIR}/${1}
 }

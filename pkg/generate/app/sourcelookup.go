@@ -162,7 +162,7 @@ func (r *SourceRepository) String() string {
 
 // Detect clones source locally if not already local and runs code detection
 // with the given detector.
-func (r *SourceRepository) Detect(d Detector) error {
+func (r *SourceRepository) Detect(d Detector, dockerStrategy bool) error {
 	if r.info != nil {
 		return nil
 	}
@@ -170,7 +170,7 @@ func (r *SourceRepository) Detect(d Detector) error {
 	if err != nil {
 		return err
 	}
-	r.info, err = d.Detect(path)
+	r.info, err = d.Detect(path, dockerStrategy)
 	if err != nil {
 		return err
 	}
@@ -310,7 +310,7 @@ func (t *SourceLanguageType) Term() string {
 // Detector is an interface for detecting information about a
 // source repository
 type Detector interface {
-	Detect(dir string) (*SourceRepositoryInfo, error)
+	Detect(dir string, dockerStrategy bool) (*SourceRepositoryInfo, error)
 }
 
 // SourceRepositoryEnumerator implements the Detector interface
@@ -324,16 +324,21 @@ type SourceRepositoryEnumerator struct {
 var ErrNoLanguageDetected = fmt.Errorf("No language matched the source repository")
 
 // Detect extracts source code information about the provided source repository
-func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, error) {
+func (e SourceRepositoryEnumerator) Detect(dir string, dockerStrategy bool) (*SourceRepositoryInfo, error) {
 	info := &SourceRepositoryInfo{
 		Path: dir,
 	}
-	for _, d := range e.Detectors {
-		if detected, ok := d(dir); ok {
-			info.Types = append(info.Types, SourceLanguageType{
-				Platform: detected.Platform,
-				Version:  detected.Version,
-			})
+
+	// no point in doing source-type detection if the requested build strategy
+	// is docker
+	if !dockerStrategy {
+		for _, d := range e.Detectors {
+			if detected, ok := d(dir); ok {
+				info.Types = append(info.Types, SourceLanguageType{
+					Platform: detected.Platform,
+					Version:  detected.Version,
+				})
+			}
 		}
 	}
 	if path, ok, err := e.Tester.Has(dir); err == nil && ok {
@@ -343,6 +348,7 @@ func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, e
 		}
 		info.Dockerfile = dockerfile
 	}
+
 	if info.Dockerfile == nil && len(info.Types) == 0 {
 		return nil, ErrNoLanguageDetected
 	}

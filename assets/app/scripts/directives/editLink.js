@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module("openshiftConsole")
-  .directive("editLink", function ($modal, Logger) {
+  .directive("editLink", function ($uibModal, Logger) {
     return {
       restrict: "E",
       scope: {
@@ -19,7 +19,7 @@ angular.module("openshiftConsole")
             delete scope.alerts['edit-yaml'];
           }
 
-          var modalInstance = $modal.open({
+          var modalInstance = $uibModal.open({
             animation: true,
             templateUrl: 'views/modals/edit-resource.html',
             controller: 'EditModalController',

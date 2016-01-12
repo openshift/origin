@@ -188,6 +188,11 @@ type BuildSource struct {
 	// Git contains optional information about git build source
 	Git *GitBuildSource
 
+	// Image describes an image to be used to provide source for the build
+	// EXPERIMENTAL.  This will be changing to an array of images in the near future
+	// and no migration/compatibility will be provided.  Use at your own risk.
+	Image *ImageSource
+
 	// ContextDir specifies the sub-directory where the source code for the application exists.
 	// This allows to have buildable sources in directory other than root of
 	// repository.
@@ -198,7 +203,34 @@ type BuildSource struct {
 	// The secret contains valid credentials for remote repository, where the
 	// data's key represent the authentication method to be used and value is
 	// the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
+	// TODO: This needs to move under the GitBuildSource struct since it's only
+	// used for git authentication
 	SourceSecret *kapi.LocalObjectReference
+}
+
+// ImageSource describes an image that is used as source for the build
+type ImageSource struct {
+	// From is a reference to an ImageStreamTag, ImageStreamImage, or DockerImage to
+	// copy source from.
+	From kapi.ObjectReference
+
+	// Paths is a list of source and destination paths to copy from the image.
+	Paths []ImageSourcePath
+
+	// PullSecret is a reference to a secret to be used to pull the image from a registry
+	// If the image is pulled from the OpenShift registry, this field does not need to be set.
+	PullSecret *kapi.LocalObjectReference
+}
+
+// ImageSourcePath describes a path to be copied from a source image and its destination within the build directory.
+type ImageSourcePath struct {
+	// SourcePath is the absolute path of the file or directory inside the image to
+	// copy to the build directory.
+	SourcePath string
+
+	// DestinationDir is the relative directory within the build directory
+	// where files copied from the image are placed.
+	DestinationDir string
 }
 
 type BinaryBuildSource struct {

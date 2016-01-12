@@ -205,7 +205,7 @@ func TestValidateTLS(t *testing.T) {
 					},
 				},
 			},
-			expectedErrors: 0,
+			expectedErrors: 1,
 		},
 		{
 			name: "Passthrough termination OK",
@@ -483,26 +483,30 @@ func TestValidateInsecureEdgeTerminationPolicy(t *testing.T) {
 }
 
 func TestValidateNoTLSInsecureEdgeTerminationPolicy(t *testing.T) {
-	insecureTypes := []api.InsecureEdgeTerminationPolicyType{
-		api.InsecureEdgeTerminationPolicyNone,
-		api.InsecureEdgeTerminationPolicyAllow,
-		api.InsecureEdgeTerminationPolicyRedirect,
-		"support HTTPsec",
-		"or maybe HSTS",
+	insecureTypes := map[api.InsecureEdgeTerminationPolicyType]bool{
+		api.InsecureEdgeTerminationPolicyNone:     false,
+		api.InsecureEdgeTerminationPolicyAllow:    false,
+		api.InsecureEdgeTerminationPolicyRedirect: false,
+		"support HTTPsec":                         true,
+		"or maybe HSTS":                           true,
 	}
 
-	for _, val := range insecureTypes {
+	for key, expected := range insecureTypes {
 		route := &api.Route{
 			Spec: api.RouteSpec{
 				TLS: &api.TLSConfig{
-					Termination:                   "",
-					InsecureEdgeTerminationPolicy: val,
+					Termination:                   api.TLSTerminationEdge,
+					InsecureEdgeTerminationPolicy: key,
 				},
 			},
 		}
-		if errs := validateTLS(route); len(errs) != 0 {
-			t.Errorf("Test case for no termination with insecure=%s got %d errors where none were expected. %v",
-				val, len(errs), errs)
+		errs := validateTLS(route)
+		if !expected && len(errs) != 0 {
+			t.Errorf("Test case for edge termination with insecure=%s got %d errors where none were expected. %v",
+				key, len(errs), errs)
+		}
+		if expected && len(errs) == 0 {
+			t.Errorf("Test case for edge termination with insecure=%s got no errors where some were expected.", key)
 		}
 	}
 }

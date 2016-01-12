@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 
 	"bitbucket.org/ww/goautoneg"
 
@@ -23,25 +24,28 @@ import (
 
 // TODO We would like to use the IndexHandler from k8s but we do not yet have a
 // MuxHelper to track all registered paths
-func indexAPIPaths(handler http.Handler) http.Handler {
+func indexAPIPaths(osAPIVersions, kubeAPIVersions []string, handler http.Handler) http.Handler {
+	// TODO once we have a MuxHelper we will not need to hardcode this list of paths
+	rootPaths := []string{"/api",
+		"/controllers",
+		"/healthz",
+		"/healthz/ping",
+		"/healthz/ready",
+		"/logs/",
+		"/metrics",
+		"/oapi",
+		"/swaggerapi/"}
+	for _, path := range kubeAPIVersions {
+		rootPaths = append(rootPaths, "/api/"+path)
+	}
+	for _, path := range osAPIVersions {
+		rootPaths = append(rootPaths, "/oapi/"+path)
+	}
+	sort.Strings(rootPaths)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path == "/" {
-			// TODO once we have a MuxHelper we will not need to hardcode this list of paths
-			object := unversioned.RootPaths{Paths: []string{
-				"/api",
-				"/api/v1",
-				"/controllers",
-				"/healthz",
-				"/healthz/ping",
-				"/logs/",
-				"/metrics",
-				"/ready",
-				"/oapi",
-				"/oapi/v1",
-				"/swaggerapi/",
-			}}
-			// TODO it would be nice if apiserver.writeRawJSON was not private
-			output, err := json.MarshalIndent(object, "", "  ")
+			output, err := json.MarshalIndent(unversioned.RootPaths{Paths: rootPaths}, "", "  ")
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return

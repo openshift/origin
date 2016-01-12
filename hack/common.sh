@@ -518,8 +518,8 @@ os::build::os_version_vars() {
 # os::build::kube_version_vars returns the version of Kubernetes we have
 # vendored.
 os::build::kube_version_vars() {
-  KUBE_GIT_VERSION=$(go run "${OS_ROOT}/hack/version.go" "${OS_ROOT}/Godeps/Godeps.json" "k8s.io/kubernetes/pkg/api" "comment")
-  KUBE_GIT_COMMIT=$(go run "${OS_ROOT}/hack/version.go" "${OS_ROOT}/Godeps/Godeps.json" "k8s.io/kubernetes/pkg/api")
+  KUBE_GIT_VERSION=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "k8s.io/kubernetes/pkg/api" "comment")
+  KUBE_GIT_COMMIT=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "k8s.io/kubernetes/pkg/api")
 }
 
 # Saves the environment flags to $1

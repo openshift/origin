@@ -30,7 +30,7 @@ exports.login = function(loginPageAlreadyLoaded) {
 
   driver.wait(function() {
     return driver.isElementPresent(by.css(".navbar-utility .username"));
-  }, 3000);
+  }, 5000);
 };
 
 exports.setInputValue = function(name, value) {

@@ -12,13 +12,12 @@ os::provision::install-cmds "${ORIGIN_ROOT}"
 os::provision::install-sdn "${ORIGIN_ROOT}"
 
 if [ "${SDN_NODE}" = "true" ]; then
-  # Running an openshift node on the master ensures connectivity between
-  # the openshift service and pods.  This supports kube API calls that
-  # query a service and require that the endpoints of the service be
-  # reachable from the master.
-  #
-  # TODO(marun) This is required for connectivity with openshift-sdn,
-  # but may not make sense for other plugins.
+  # Running an sdn node on the master when using an openshift sdn
+  # plugin ensures connectivity between the openshift service and
+  # pods.  This enables kube API calls that query a service and
+  # require that the endpoints of the service be reachable from the
+  # master.  This capability is used extensively in the kube e2e
+  # tests.
   NODE_NAMES+=(${SDN_NODE_NAME})
   NODE_IPS+=(127.0.0.1)
   # Force the addition of a hosts entry for the sdn node.

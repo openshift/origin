@@ -48,52 +48,9 @@
         detailed="true">
       </pod-template>
       <div ng-if="pod.spec.volumes.length">
-        <h3 style="margin-top: 20px;">Volumes</h3>
-        <div ng-repeat="volume in pod.spec.volumes">
-          <h4>{{volume.name}}</h4>
-          <dl class="dl-horizontal left">
-            <div ng-if="volume.secret">
-              <dt>Type:</dt>
-              <dd>secret</dd>
-              <dt>Secret name:</dt>
-              <dd>{{volume.secret.secretName}}</dd>
-            </div>
-            <div ng-if="volume.persistentVolumeClaim">
-              <dt>Type:</dt>
-              <dd>persistent volume claim</dd>
-              <dt>Claim name:</dt>
-              <dd>{{volume.persistentVolumeClaim.claimName}}</dd>
-              <dt>Mode:</dt>
-              <dd>
-                <span ng-if="volume.persistentVolumeClaim.readOnly">read-only</span>
-                <span ng-if="!volume.persistentVolumeClaim.readOnly">read-write</span>
-              </dd>
-            </div>
-            <div ng-if="volume.hostPath">
-              <dt>Type:</dt>
-              <dd>host path</dd>
-              <dt>Path:</dt>
-              <dd>{{volume.hostPath.path}}</dd>
-            </div>
-            <div ng-if="volume.emptyDir">
-              <dt>Type:</dt>
-              <dd>empty dir</dd>
-              <dt>Medium:</dt>
-              <dd>
-                <span ng-if="!volume.emptyDir.medium">node's default</span>
-                <span ng-if="volume.emptyDir.medium">{{volume.emptyDir.medium}}</span>
-              </dd>
-            </div>
-            <div ng-if="volume.gitRepo">
-              <dt>Type:</dt>
-              <dd>git repo</dd>
-              <dt>Repository:</dt>
-              <dd>{{volume.gitRepo.repository}}</dd>
-              <dt ng-if-start="volume.gitRepo.revision">Revision:</dt>
-              <dd ng-if-end>{{volume.gitRepo.revision}}</dd>
-            </div>
-          </dl>
-        </div>    
+        <h4 style="margin-top: 20px;">Volumes</h4>
+        <a ng-if="pod | annotation:'deploymentConfig'" ng-href="project/{{project.metadata.name}}/attachPVC?deploymentconfig={{pod | annotation:'deploymentConfig'}}">Attach storage and redeploy</a>
+        <volumes volumes="pod.spec.volumes" namespace="project.metadata.name"></volumes>
       </div>
     </div>
   </div>

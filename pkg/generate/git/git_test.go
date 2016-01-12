@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 )
 
@@ -111,8 +110,17 @@ func TestParseRepository(t *testing.T) {
 			t.Errorf("ParseRepository returned err: %v", err)
 		}
 
-		if !reflect.DeepEqual(*got, want) {
-			t.Errorf("%s: got %v, want %v", scenario, got, want)
+		// go1.5 added the RawPath field to url.URL; it is not a field we need to manipulate with the
+		// ParseRepository path, but it impacts the values set in our test results array and doing a
+		// DeepEqual compare; hence, we have reverted back to a field by field compare (which
+		// this test originally did)
+		if got.Scheme != want.Scheme ||
+			got.Host != want.Host ||
+			got.Path != want.Path ||
+			(got.User != nil && want.User != nil && got.User.Username() != want.User.Username()) ||
+			(got.User == nil && want.User != nil) ||
+			(got.User != nil && want.User == nil) {
+			t.Errorf("%s: got %#v, want %#v", scenario, *got, want)
 		}
 	}
 }

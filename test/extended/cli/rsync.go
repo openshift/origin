@@ -26,27 +26,27 @@ var _ = g.Describe("cli: parallel: oc rsync", func() {
 		strategies   = []string{"rsync", "rsync-daemon", "tar"}
 	)
 
+	var podName string
+	g.JustBeforeEach(func() {
+		oc.SetOutputDir(exutil.TestContext.OutputDir)
+
+		g.By(fmt.Sprintf("calling oc new-app -f %q", templatePath))
+		err := oc.Run("new-app").Args("-f", templatePath).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("expecting the jenkins service get endpoints")
+		err = oc.KubeFramework().WaitForAnEndpoint("jenkins")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Getting the jenkins pod name")
+		selector, _ := labels.Parse("name=jenkins")
+		pods, err := oc.KubeREST().Pods(oc.Namespace()).List(selector, fields.Everything())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(len(pods.Items)).ToNot(o.BeZero())
+		podName = pods.Items[0].Name
+	})
+
 	g.Describe("copy by strategy", func() {
-		var podName string
-
-		g.JustBeforeEach(func() {
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
-
-			g.By(fmt.Sprintf("calling oc new-app -f %q", templatePath))
-			err := oc.Run("new-app").Args("-f", templatePath).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("expecting the jenkins service get endpoints")
-			err = oc.KubeFramework().WaitForAnEndpoint("jenkins")
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Getting the jenkins pod name")
-			selector, _ := labels.Parse("name=jenkins")
-			pods, err := oc.KubeREST().Pods(oc.Namespace()).List(selector, fields.Everything())
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(len(pods.Items)).ToNot(o.BeZero())
-			podName = pods.Items[0].Name
-		})
 
 		testRsyncFn := func(strategy string) func() {
 			return func() {
@@ -143,4 +143,80 @@ var _ = g.Describe("cli: parallel: oc rsync", func() {
 			g.It(fmt.Sprintf("should copy files with the %s strategy", strategy), testRsyncFn(strategy))
 		}
 	})
+
+	g.Describe("rsync specific flags", func() {
+
+		g.It("should honor the --exclude flag", func() {
+			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=image-streams-rhel7.json", sourcePath1, podName))
+			err := oc.Run("rsync").Args(
+				sourcePath1,
+				fmt.Sprintf("%s:/tmp", podName),
+				"--exclude=image-streams-rhel7.json").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Verifying that files are copied to the container")
+			result, err := oc.Run("rsh").Args(podName, "ls", "/tmp/image-streams").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(result).To(o.ContainSubstring("image-streams-centos7.json"))
+			o.Expect(result).NotTo(o.ContainSubstring("image-streams-rhel7.json"))
+		})
+
+		g.It("should honor the --include flag", func() {
+			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=*.json --include=image-streams-rhel7.json", sourcePath1, podName))
+			err := oc.Run("rsync").Args(
+				sourcePath1,
+				fmt.Sprintf("%s:/tmp", podName),
+				"--exclude=*.json",
+				"--include=image-streams-rhel7.json").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Verifying that files are copied to the container")
+			result, err := oc.Run("rsh").Args(podName, "ls", "/tmp/image-streams").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(result).To(o.ContainSubstring("image-streams-rhel7.json"))
+			o.Expect(result).NotTo(o.ContainSubstring("image-streams-centos7.json"))
+		})
+
+		g.It("should honor the --progress flag", func() {
+			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --progress", sourcePath1, podName))
+			result, err := oc.Run("rsync").Args(
+				sourcePath1,
+				fmt.Sprintf("%s:/tmp", podName),
+				"--progress").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(result).To(o.ContainSubstring("100%"))
+		})
+
+		g.It("should honor the --no-perms flag", func() {
+			g.By("Creating a temporary destination directory")
+			tempDir, err := ioutil.TempDir("", "rsync")
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("Copying the jenkins directory from the pod to the temp directory: oc rsync %s:/var/lib/jenkins %s", podName, tempDir))
+			err = oc.Run("rsync").Args(
+				fmt.Sprintf("%s:/var/lib/jenkins", podName),
+				tempDir).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			localJenkinsDir := filepath.Join(tempDir, "jenkins")
+			g.By("By changing the permissions on the local jenkins directory")
+			err = os.Chmod(localJenkinsDir, 0700)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("Copying the local jenkins directory to the pod with no flags: oc rsync %s/ %s:/var/lib/jenkins", localJenkinsDir, podName))
+			err = oc.Run("rsync").Args(
+				fmt.Sprintf("%s/", localJenkinsDir),
+				fmt.Sprintf("%s:/var/lib/jenkins", podName)).Execute()
+			// An error should occur trying to set permissions on the directory
+			o.Expect(err).To(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("Copying the local jenkins directory to the pod with: oc rsync %s/ %s:/var/lib/jenkins --no-perms", localJenkinsDir, podName))
+			err = oc.Run("rsync").Args(
+				fmt.Sprintf("%s/", localJenkinsDir),
+				fmt.Sprintf("%s:/var/lib/jenkins", podName),
+				"--no-perms").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+	})
+
 })

@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module("openshiftConsole")
-  .directive("deleteLink", function ($modal, $location, $filter, hashSizeFilter, DataService, AlertMessageService, Navigate, Logger) {
+  .directive("deleteLink", function ($uibModal, $location, $filter, hashSizeFilter, DataService, AlertMessageService, Navigate, Logger) {
     return {
       restrict: "E",
       scope: {
@@ -39,7 +39,7 @@ angular.module("openshiftConsole")
           }
 
           // opening the modal with settings scope as parent
-          var modalInstance = $modal.open({
+          var modalInstance = $uibModal.open({
             animation: true,
             templateUrl: 'views/modals/delete-resource.html',
             controller: 'DeleteModalController',

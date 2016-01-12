@@ -1,0 +1,17 @@
+=== RUN TestOne
+--- PASS: TestOne (0.06 seconds)
+=== RUN TestTwo
+--- PASS: TestTwo (0.10 seconds)
+PASS
+ok  	package/name1 0.160s
+=== RUN TestOne
+--- FAIL: TestOne (0.02 seconds)
+	file_test.go:11: Error message
+	file_test.go:11: Longer
+		error
+		message.
+=== RUN TestTwo
+--- PASS: TestTwo (0.13 seconds)
+FAIL
+exit status 1
+FAIL	package/name2 0.150s

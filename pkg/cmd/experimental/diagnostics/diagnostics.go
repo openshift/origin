@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"runtime/debug"
+	"strings"
 
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
@@ -71,6 +72,10 @@ you will receive an error if they are not found. For example:
 * If a client config file is not found, client and cluster diagnostics
   are skipped.
 
+Diagnostics may be individually run with --diagnostics. The available
+diagnostic names are:
+%[2]s
+
 NOTE: This is a beta version of diagnostics and may still evolve in a
 different direction.
 `
@@ -85,7 +90,7 @@ func NewCommandDiagnostics(name string, fullName string, out io.Writer) *cobra.C
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "This utility helps you troubleshoot and diagnose.",
-		Long:  fmt.Sprintf(longDescription, fullName),
+		Long:  fmt.Sprintf(longDescription, fullName, strings.Join(availableDiagnostics().List(), ",")),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete())
 
@@ -127,21 +132,26 @@ func (o *DiagnosticsOptions) Complete() error {
 	return nil
 }
 
+func availableDiagnostics() sets.String {
+	available := sets.NewString()
+	available.Insert(availableClientDiagnostics.List()...)
+	available.Insert(availableClusterDiagnostics.List()...)
+	available.Insert(availableHostDiagnostics.List()...)
+	return available
+}
+
 // RunDiagnostics builds diagnostics based on the options and executes them, returning a summary.
 func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 	failed := false
 	warnings := []error{}
 	errors := []error{}
 	diagnostics := []types.Diagnostic{}
-	AvailableDiagnostics := sets.NewString()
-	AvailableDiagnostics.Insert(availableClientDiagnostics.List()...)
-	AvailableDiagnostics.Insert(availableClusterDiagnostics.List()...)
-	AvailableDiagnostics.Insert(availableHostDiagnostics.List()...)
+	available := availableDiagnostics()
 	if len(o.RequestedDiagnostics) == 0 {
-		o.RequestedDiagnostics = AvailableDiagnostics.List()
-	} else if common := intersection(sets.NewString(o.RequestedDiagnostics...), AvailableDiagnostics); len(common) == 0 {
+		o.RequestedDiagnostics = available.List()
+	} else if common := intersection(sets.NewString(o.RequestedDiagnostics...), available); len(common) == 0 {
 		o.Logger.Error("CED3012", log.EvalTemplate("CED3012", "None of the requested diagnostics are available:\n  {{.requested}}\nPlease try from the following:\n  {{.available}}",
-			log.Hash{"requested": o.RequestedDiagnostics, "available": AvailableDiagnostics.List()}))
+			log.Hash{"requested": o.RequestedDiagnostics, "available": available.List()}))
 		return false, fmt.Errorf("No requested diagnostics available"), 0, 1
 	} else if len(common) < len(o.RequestedDiagnostics) {
 		errors = append(errors, fmt.Errorf("Not all requested diagnostics are available"))
@@ -152,7 +162,7 @@ only these are available:
     {{.common}}
 The list of all possible is:
     {{.available}}
-		`, log.Hash{"requested": o.RequestedDiagnostics, "common": common.List(), "available": AvailableDiagnostics.List()}))
+		`, log.Hash{"requested": o.RequestedDiagnostics, "common": common.List(), "available": available.List()}))
 	}
 
 	// If not given master/client config file locations, check if the defaults exist

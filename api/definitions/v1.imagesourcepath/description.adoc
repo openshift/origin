@@ -1,0 +1,3 @@
+ImageSourcePath specifies the absolute path of a file or directory within a source image
+to be copied to a relative directory of the build home. If a source directory is specified, all 
+files and directories under that directory are copied from the image.

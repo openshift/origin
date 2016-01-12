@@ -69,8 +69,8 @@ func (r *InfraServiceAccounts) RoleFor(saName string) (authorizationapi.ClusterR
 
 func (r *InfraServiceAccounts) AllRoles() []authorizationapi.ClusterRole {
 	ret := []authorizationapi.ClusterRole{}
-	for _, role := range r.saToRole {
-		ret = append(ret, role)
+	for _, saName := range r.serviceAccounts.List() {
+		ret = append(ret, r.saToRole[saName])
 	}
 	return ret
 }
@@ -283,7 +283,7 @@ func init() {
 					// TODO: restrict this to the appropriate namespace
 					Verbs:         sets.NewString("proxy"),
 					Resources:     sets.NewString("services"),
-					ResourceNames: sets.NewString("https:heapster"),
+					ResourceNames: sets.NewString("https:heapster:"),
 				},
 			},
 		},

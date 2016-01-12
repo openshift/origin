@@ -1,0 +1,17 @@
+{
+  "apiVersion": "v1",
+  "kind": "ResourceQuota",
+  "metadata": {
+    "name": "test-quota"
+  },
+  "spec": {
+    "hard": {
+      "memory": "512Mi",
+      "cpu": "200m",
+      "pods": "3",
+      "services": "3",
+      "replicationcontrollers": "3",
+      "resourcequotas": "1"
+    }
+  }
+}

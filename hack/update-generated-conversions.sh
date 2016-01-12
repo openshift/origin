@@ -24,7 +24,7 @@ package ${version}
 // AUTO-GENERATED FUNCTIONS START HERE
 EOF
 
-	go run cmd/genconversion/conversion.go -v ${version} -f - >>  $TMPFILE
+	go run tools/genconversion/conversion.go -v ${version} -f - >>  $TMPFILE
 
 	cat >> $TMPFILE <<EOF
 // AUTO-GENERATED FUNCTIONS END HERE

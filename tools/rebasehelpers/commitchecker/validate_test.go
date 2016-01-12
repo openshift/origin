@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/openshift/origin/cmd/rebasehelpers/util"
+	"github.com/openshift/origin/tools/rebasehelpers/util"
 )
 
 func TestValidateUpstreamCommitsWithoutGodepsChanges(t *testing.T) {

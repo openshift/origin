@@ -24,7 +24,7 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 	// osClient, kubeClient, clientErr := o.Factory.Clients() // use with a diagnostic that needs OpenShift/Kube client
 	_, _, clientErr := o.Factory.Clients()
 	if clientErr != nil {
-		o.Logger.Notice("CED0001", "Failed creating client from config; client diagnostics will be limited to config testing")
+		o.Logger.Notice("CED0001", "Could not configure a client, so client diagnostics are limited to testing configuration and connection")
 		available = sets.NewString(clientdiags.ConfigContextsName)
 	}
 
@@ -33,8 +33,16 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
 		case clientdiags.ConfigContextsName:
+			seen := map[string]bool{}
 			for contextName := range rawConfig.Contexts {
-				diagnostics = append(diagnostics, clientdiags.ConfigContext{RawConfig: rawConfig, ContextName: contextName})
+				diagnostic := clientdiags.ConfigContext{RawConfig: rawConfig, ContextName: contextName}
+				if clusterUser, defined := diagnostic.ContextClusterUser(); !defined {
+					// definitely want to diagnose the broken context
+					diagnostics = append(diagnostics, diagnostic)
+				} else if !seen[clusterUser] {
+					seen[clusterUser] = true // avoid validating same user for multiple projects
+					diagnostics = append(diagnostics, diagnostic)
+				}
 			}
 
 		default:

@@ -67,7 +67,7 @@ func DetectPHP(dir string) (*Info, bool) {
 
 // DetectPython detects Python source
 func DetectPython(dir string) (*Info, bool) {
-	return detect("python", dir, "requirements.txt", "config.py")
+	return detect("python", dir, "requirements.txt", "setup.py")
 }
 
 // DetectPerl detects Perl source

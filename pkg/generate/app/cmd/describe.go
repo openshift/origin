@@ -95,7 +95,7 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				}
 				matches = append(matches, t.Platform)
 			}
-			if len(matches) > 0 {
+			if len(matches) > 0 && !pipeline.Build.Strategy.IsDockerBuild {
 				fmt.Fprintf(out, "    * The source repository appears to match: %s\n", strings.Join(matches, ", "))
 			}
 		}
@@ -142,6 +142,9 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 		if pipeline.Image != nil && pipeline.Image.HasEmptyDir {
 			fmt.Fprintf(out, "    * This image declares volumes and will default to use non-persistent, host-local storage.\n")
 			fmt.Fprintf(out, "      You can add persistent volumes later by running 'volume dc/%s --add ...'\n", pipeline.Deployment.Name)
+		}
+		if pipeline.Image.Info != nil && (len(pipeline.Image.Info.Config.User) == 0 || pipeline.Image.Info.Config.User == "root" || pipeline.Image.Info.Config.User == "0") {
+			fmt.Fprintf(out, "    * [WARNING] Image %q runs as the 'root' user which may not be permitted by your cluster administrator\n", pipeline.Image.Reference.Name)
 		}
 	}
 	if match != nil && match.Image != nil {

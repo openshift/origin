@@ -78,29 +78,30 @@ type RouterShard struct {
 
 // TLSConfig defines config used to secure a route and provide termination
 type TLSConfig struct {
-	// Termination indicates termination type.  If termination type is not set, any termination config will be ignored
-	Termination TLSTerminationType `json:"termination,omitempty"`
+	// Termination indicates termination type.
+	Termination TLSTerminationType
 
 	// Certificate provides certificate contents
-	Certificate string `json:"certificate,omitempty"`
+	Certificate string
 
 	// Key provides key file contents
-	Key string `json:"key,omitempty"`
+	Key string
 
 	// CACertificate provides the cert authority certificate contents
-	CACertificate string `json:"caCertificate,omitempty"`
+	CACertificate string
 
 	// DestinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt
 	// termination this file should be provided in order to have routers use it for health checks on the secure connection
-	DestinationCACertificate string `json:"destinationCACertificate,omitempty"`
+	DestinationCACertificate string
 
 	// InsecureEdgeTerminationPolicy indicates the desired behavior for
 	// insecure connections to an edge-terminated route:
 	//   disable, allow or redirect
-	InsecureEdgeTerminationPolicy InsecureEdgeTerminationPolicyType `json:"insecureEdgeTerminationPolicy,omitempty"`
+	InsecureEdgeTerminationPolicy InsecureEdgeTerminationPolicyType
 }
 
 // TLSTerminationType dictates where the secure communication will stop
+// TODO: Reconsider this type in v2
 type TLSTerminationType string
 
 // InsecureEdgeTerminationPolicyType dictates the behavior of insecure

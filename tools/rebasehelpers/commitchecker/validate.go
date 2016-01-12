@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/openshift/origin/cmd/rebasehelpers/util"
+	"github.com/openshift/origin/tools/rebasehelpers/util"
 )
 
 var CommitSummaryErrorTemplate = `

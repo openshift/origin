@@ -30,12 +30,15 @@ type tarStrategy struct {
 	Delete         bool
 	Tar            tar.Tar
 	RemoteExecutor executor
+	IgnoredFlags   []string
 }
 
 func newTarStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
 
 	tarHelper := tar.New()
 	tarHelper.SetExclusionPattern(nil)
+
+	ignoredFlags := rsyncSpecificFlags(o)
 
 	remoteExec, err := newRemoteExecutor(f, o)
 	if err != nil {
@@ -47,6 +50,7 @@ func newTarStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (co
 		Delete:         o.Delete,
 		Tar:            tarHelper,
 		RemoteExecutor: remoteExec,
+		IgnoredFlags:   ignoredFlags,
 	}, nil
 }
 
@@ -110,6 +114,11 @@ func deleteFiles(source, dest *pathSpec, remoteExecutor executor) error {
 func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer) error {
 
 	glog.V(3).Infof("Copying files with tar")
+
+	if len(r.IgnoredFlags) > 0 {
+		fmt.Fprintf(errOut, "Ignoring the following flags because they only apply to rsync: %s\n", strings.Join(r.IgnoredFlags, ", "))
+	}
+
 	if r.Delete {
 		// Implement the rsync --delete flag as a separate call to first delete directory contents
 		err := deleteFiles(source, destination, r.RemoteExecutor)

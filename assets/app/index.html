@@ -51,12 +51,12 @@
             <a href="http://docs.openshift.org/latest/welcome/index.html">
             <span class="fa fa-files-o fa-fw"></span> Documentation</a>
           </li>
-          <li ng-cloak ng-if="user" class="dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+          <li uib-dropdown ng-cloak ng-if="user">
+            <a href="" uib-dropdown-toggle id="user-dropdown">
               <span class="pficon pficon-user"></span>
               <span class="username">{{user.fullName || user.metadata.name}}</span> <b class="caret"></b>
             </a>
-            <ul class="dropdown-menu">
+            <ul class="uib-dropdown-menu" aria-labelledby="user-dropdown">
               <!--
               <li>
                 <a href="#">Account</a>
@@ -166,6 +166,7 @@
         <script src="scripts/services/deployments.js"></script>
         <script src="scripts/services/imagestreams.js"></script>
         <script src="scripts/services/metrics.js"></script>
+        <script src="scripts/services/storage.js"></script>
         <script src="scripts/controllers/projects.js"></script>
         <script src="scripts/controllers/pods.js"></script>
         <script src="scripts/controllers/pod.js"></script>
@@ -183,6 +184,8 @@
         <script src="scripts/controllers/service.js"></script>
         <script src="scripts/controllers/routes.js"></script>
         <script src="scripts/controllers/route.js"></script>
+        <script src="scripts/controllers/storage.js"></script>
+        <script src="scripts/controllers/persistentVolumeClaim.js"></script>
         <script src="scripts/controllers/create/createFromImage.js"></script>
         <script src="scripts/controllers/create/nextSteps.js"></script>
         <script src="scripts/controllers/newfromtemplate.js"></script>
@@ -195,6 +198,7 @@
         <script src="scripts/controllers/create.js"></script>
         <script src="scripts/controllers/createProject.js"></script>
         <script src="scripts/controllers/createRoute.js"></script>
+        <script src="scripts/controllers/attachPVC.js"></script>
         <script src="scripts/controllers/modals/confirmScale.js"></script>
         <script src="scripts/controllers/modals/deleteModal.js"></script>
         <script src="scripts/controllers/modals/editModal.js"></script>
