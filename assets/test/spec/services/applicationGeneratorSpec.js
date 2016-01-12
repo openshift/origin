@@ -29,6 +29,11 @@ describe("ApplicationGenerator", function(){
         },
         host: "www.example.com",
         path: "/test",
+        appendDNSSuffix: true,
+        shard: {
+          shardName: "global",
+          dnsSuffix: "router.default.svc.cluster.local"
+        },
         tls: {
           termination: "edge",
           insecureEdgeTerminationPolicy: "Redirect",
@@ -189,6 +194,11 @@ describe("ApplicationGenerator", function(){
           },
           host: "www.example.com",
           path: "/test",
+          appendDNSSuffix: true,
+          shard: {
+            shardName: "global",
+            dnsSuffix: "router.default.svc.cluster.local"
+          },
           port: {
             targetPort: 443
           },
@@ -255,7 +265,7 @@ describe("ApplicationGenerator", function(){
                         {
                           "name": "BUILD_ENV_2",
                           "value": "anotherValue"
-                        }                        
+                        }
                       ]
                     }
                 },

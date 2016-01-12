@@ -2446,9 +2446,16 @@ func deepCopy_api_RoutePort(in routeapi.RoutePort, out *routeapi.RoutePort, c *c
 	return nil
 }
 
+func deepCopy_api_RouteShard(in routeapi.RouterShard, out *routeapi.RouterShard, c *conversion.Cloner) error {
+	out.ShardName = in.ShardName
+	out.DNSSuffix = in.DNSSuffix
+	return nil
+}
+
 func deepCopy_api_RouteSpec(in routeapi.RouteSpec, out *routeapi.RouteSpec, c *conversion.Cloner) error {
 	out.Host = in.Host
 	out.Path = in.Path
+	out.AppendDNSSuffix = in.AppendDNSSuffix
 	if newVal, err := c.DeepCopy(in.To); err != nil {
 		return err
 	} else {
@@ -2469,6 +2476,14 @@ func deepCopy_api_RouteSpec(in routeapi.RouteSpec, out *routeapi.RouteSpec, c *c
 		}
 	} else {
 		out.TLS = nil
+	}
+	if in.Shard != nil {
+		out.Shard = new(routeapi.RouterShard)
+		if err := deepCopy_api_RouteShard(*in.Shard, out.Shard, c); err != nil {
+			return err
+		}
+	} else {
+		out.Shard = nil
 	}
 	return nil
 }
@@ -2972,6 +2987,7 @@ func init() {
 		deepCopy_api_Route,
 		deepCopy_api_RouteList,
 		deepCopy_api_RoutePort,
+		deepCopy_api_RouteShard,
 		deepCopy_api_RouteSpec,
 		deepCopy_api_RouteStatus,
 		deepCopy_api_TLSConfig,

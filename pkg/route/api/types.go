@@ -36,6 +36,10 @@ type RouteSpec struct {
 
 	//TLS provides the ability to configure certificates and termination for the route
 	TLS *TLSConfig
+
+	Shard *RouterShard
+
+	AppendDNSSuffix bool
 }
 
 // RoutePort defines a port mapping from a router to an endpoint in the service endpoints.

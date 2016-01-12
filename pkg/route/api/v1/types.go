@@ -48,6 +48,10 @@ type RouteSpec struct {
 
 	// TLS provides the ability to configure certificates and termination for the route
 	TLS *TLSConfig `json:"tls,omitempty" description:"provides the ability to configure certificates and termination for the route"`
+
+	Shard *RouterShard `json:"shard,omitempty" description:"provides shard information for the route"`
+
+	AppendDNSSuffix bool `json:"appendDNSSuffix,omitempty" description:"provides information whether to append DNSSuffix to display in UI when host is specified"`
 }
 
 // RoutePort defines a port mapping from a router to an endpoint in the service endpoints.

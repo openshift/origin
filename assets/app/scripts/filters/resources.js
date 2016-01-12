@@ -275,19 +275,33 @@ angular.module('openshiftConsole')
        return true;
     };
   })
-  .filter('routeWebURL', function(){
+  .filter('routeWebURL', function($filter){
     return function(route){
         var scheme = (route.spec.tls && route.spec.tls.tlsTerminationType !== "") ? "https" : "http";
-        var url = scheme + "://" + route.spec.host;
+        var isGenerated = $filter('annotation')(route, "openshift.io/host.generated");
+        var url = "";
+        if(isGenerated === "true" || !route.spec.appendDNSSuffix) {
+          url = scheme + "://" + route.spec.host;
+        }
+        else {
+          url = scheme + "://" + route.spec.host + "." + route.spec.shard.dnsSuffix;
+        }
         if (route.spec.path) {
             url += route.spec.path;
         }
         return url;
     };
   })
-  .filter('routeLabel', function() {
+  .filter('routeLabel', function($filter) {
     return function(route) {
-      var label = route.spec.host;
+      var isGenerated = $filter('annotation')(route, "openshift.io/host.generated");
+      var label = "";
+      if(isGenerated === "true" || !route.spec.appendDNSSuffix) {
+        label = route.spec.host;
+      }
+      else {
+        label = route.spec.host + "." + route.spec.shard.dnsSuffix;
+      }
       if (route.spec.path) {
         label += route.spec.path;
       }

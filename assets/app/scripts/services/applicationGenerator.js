@@ -121,6 +121,10 @@ angular.module("openshiftConsole")
           to: {
             kind: "Service",
             name: serviceName
+          },
+          shard: {
+            shardName: input.routing.shard.shardName,
+            dnsSuffix: input.routing.shard.dnsSuffix
           }
         }
       };
@@ -131,6 +135,10 @@ angular.module("openshiftConsole")
 
       if (input.routing.path) {
         route.spec.path = input.routing.path;
+      }
+
+      if (input.routing.appendDNSSuffix) {
+        route.spec.appendDNSSuffix = input.routing.appendDNSSuffix;
       }
 
       if (input.routing.targetPort) {
