@@ -49,8 +49,11 @@ type RouteSpec struct {
 	// TLS provides the ability to configure certificates and termination for the route
 	TLS *TLSConfig `json:"tls,omitempty" description:"provides the ability to configure certificates and termination for the route"`
 
+	// RouterShard has information of a routing shard and is used to
+	// generate host names
 	Shard *RouterShard `json:"shard,omitempty" description:"provides shard information for the route"`
 
+	// If specfied and true then DNSSuffix is appended to display in UI when host is specified for a route
 	AppendDNSSuffix bool `json:"appendDNSSuffix,omitempty" description:"provides information whether to append DNSSuffix to display in UI when host is specified"`
 }
 
