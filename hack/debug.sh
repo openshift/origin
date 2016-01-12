@@ -150,7 +150,11 @@ split_servicespec () {
 
 get_port_for_addr () {
     addr=$1
-    sed -ne "s/.*nw_dst=${addr}.*output://p" $lognode/flows | head -1
+    # The nw_src line works with all current installs. The nw_dst line is needed for
+    # older installs using the original single-tenant rules.
+    sed -n -e "s/.*in_port=\([0-9]*\).*nw_src=${addr}.*/\1/p" \
+	   -e "s/.*nw_dst=${addr}.*output://p" \
+           $lognode/flows | head -1
 }
 
 get_vnid_for_addr () {
