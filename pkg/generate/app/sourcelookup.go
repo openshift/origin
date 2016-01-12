@@ -109,17 +109,11 @@ func NewSourceRepository(s string) (*SourceRepository, error) {
 // NewSourceRepositoryForDockerfile creates a source repository that is set up to use
 // the contents of a Dockerfile as the input of the build.
 func NewSourceRepositoryForDockerfile(contents string) (*SourceRepository, error) {
-	dockerfile, err := NewDockerfile(contents)
-	if err != nil {
-		return nil, err
-	}
-	return &SourceRepository{
-		buildWithDocker:  true,
+	s := &SourceRepository{
 		ignoreRepository: true,
-		info: &SourceRepositoryInfo{
-			Dockerfile: dockerfile,
-		},
-	}, nil
+	}
+	err := s.AddDockerfile(contents)
+	return s, err
 }
 
 // NewBinarySourceRepository creates a source repository that is configured for binary
@@ -252,6 +246,22 @@ func (r *SourceRepository) ContextDir() string {
 	return r.contextDir
 }
 
+// AddDockerfile adds the Dockerfile contents to the SourceRepository and
+// configure it to build with Docker strategy. Returns an error if the contents
+// are invalid.
+func (r *SourceRepository) AddDockerfile(contents string) error {
+	dockerfile, err := NewDockerfile(contents)
+	if err != nil {
+		return err
+	}
+	if r.info == nil {
+		r.info = &SourceRepositoryInfo{}
+	}
+	r.info.Dockerfile = dockerfile
+	r.buildWithDocker = true
+	return nil
+}
+
 // SourceRepositories is a list of SourceRepository objects
 type SourceRepositories []*SourceRepository
 
@@ -368,7 +378,7 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 		Binary: repo.binary,
 	}
 
-	if repo.ignoreRepository && repo.Info() != nil && repo.Info().Dockerfile != nil {
+	if repo.Info() != nil && repo.Info().Dockerfile != nil {
 		source.DockerfileContents = repo.Info().Dockerfile.Contents()
 	}
 	if !repo.ignoreRepository {
