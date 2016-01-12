@@ -18,8 +18,8 @@
         <!-- Use title="" to prevent "Nothing selected" from briefly flashing while the projects are still loading. -->
         <select class="selectpicker form-control" data-selected-text-format="count>3" id="boostrapSelect" title=""></select>
       </div>
-      <!-- Filter and create buttons show at mobile -->
-      <div row flex class="navbar-flex-btn">
+      <!-- create buttons show at mobile -->
+      <div row flex class="navbar-flex-btn project-action">
         <a class="project-action-btn" href="project/{{project.metadata.name}}/create" ng-disabled="project.status.phase != 'Active'" title="Add to project">
           <i class="fa fa-plus"></i>
         </a>

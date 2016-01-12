@@ -119,17 +119,22 @@
   }
 }
 .show-sidebar-right {
+  .right-content {
+    padding: 20px;
+  }
   .sidebar-right {
     background-color: @body-bg;
     .sidebar-header {
       border-color: @page-header-border-color;
-      margin-top: 21px;
+      margin-bottom: 0;
+      margin-top: 20px;
       h2 {
         margin-left: 20px;
       }
     }
     h3 {
       border-top: 1px solid darken(@page-header-border-color, 2%);
+      margin-top: 0;
       padding-top: @line-height-computed;
       &:last-child {
         border-top: 0;
@@ -172,7 +177,7 @@
         border-color: @sidebar-os-border-color;
         .box-shadow(2px 2px 2px rgba(0, 0, 0, 0.125));
         left: 100%;
-        margin: -1px 0 0;
+        margin: 0;
         min-width: 230px;
         position: absolute;
         top: 0;

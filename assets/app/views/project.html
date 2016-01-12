@@ -4,50 +4,59 @@
   <!-- Middle section -->
   <div class="middle-section">
     <div class="middle-container">
-      <div class="middle-header">
+      <div class="middle-header header-light">
         <div class="container-fluid">
           <tasks></tasks>
-          <div ng-if="!renderOptions.showGetStarted" class="actions pull-right">
-            <div class="btn-group">
-              <label class="btn btn-default" ng-model="$parent.overviewMode" uib-btn-radio="'tiles'" title="Tile View">
-                <i class="fa fa-th-list"></i>
-              </label>
-              <label class="btn btn-default" ng-model="$parent.overviewMode" uib-btn-radio="'topology'" title="Topology View">
-                <i class="fa fa-share-alt"></i>
-              </label>
-            </div>
-          </div>
-          <div ng-if="!renderOptions.showGetStarted" class="page-header page-header-bleed-right">
+
+          <div ng-if="!renderOptions.showGetStarted" class="page-header page-header-bleed-right page-header-bleed-left">
             <h1 title="{{project | displayName}}">{{project | displayName}}</h1>
           </div>
           <!-- TODO handle things that don't live under services -->
           <alerts alerts="alerts"></alerts>
-          <!-- Empty states -->
-          <div ng-if="(services | hashSize) == 0">
-            <!-- Getting started -->
-            <div ng-if="renderOptions.showGetStarted" class="empty-project text-center">
-              <h2>Get started with your project.</h2>
-              <p class="gutter-top">
-                Use your source or an example repository to build an application
-                image, or add components like databases and message queues.
-              </p>
-              <p class="gutter-top">
-                <a ng-href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
-                  Add to Project
-                </a>
-              </p>
+          <div ng-if="!renderOptions.showGetStarted" class="row data-toolbar">
+            <div class="col-xs-8 col-sm-9">
+            <project-filter></project-filter>
             </div>
-            <!-- Normal empty message (loading... or filtered) -->
-            <div ng-if="!renderOptions.showGetStarted">
-              <em>{{emptyMessage}}</em>
+            <div class="col-xs-4 col-sm-3">
+            <div class="actions pull-right">
+              <div class="btn-group">
+                <label class="btn btn-default" ng-model="$parent.overviewMode" uib-btn-radio="'tiles'" title="Tile View">
+                  <i class="fa fa-list"></i>
+                </label>
+                <label class="btn btn-default" ng-model="$parent.overviewMode" uib-btn-radio="'topology'" title="Topology View">
+                  <i class="pficon pficon-topology"></i>
+                </label>
+              </div>
+            </div>
             </div>
           </div>
         </div>
       </div><!-- /middle-header-->
-      <div class="middle-content">
+      <div class="middle-content  has-scroll surface-shaded">
         <div class="container-fluid">
           <div class="row">
-            <div class="col-md-12">
+            <div class="col-md-12 gutter-top">
+
+              <!-- Empty states -->
+              <div ng-if="(services | hashSize) == 0">
+                <!-- Getting started -->
+                <div ng-if="renderOptions.showGetStarted" class="empty-project text-center">
+                  <h2>Get started with your project.</h2>
+                  <p class="gutter-top">
+                    Use your source or an example repository to build an application
+                    image, or add components like databases and message queues.
+                  </p>
+                  <p class="gutter-top">
+                    <a ng-href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
+                      Add to Project
+                    </a>
+                  </p>
+                </div>
+                <!-- Normal empty message (loading... or filtered) -->
+                <div ng-if="!renderOptions.showGetStarted">
+                  <em>{{emptyMessage}}</em>
+                </div>
+              </div>
 
               <div ng-if="overviewMode == 'topology' && !renderOptions.showGetStarted">
                 <kubernetes-topology-graph bottom-of-window="1" items="topologyItems"

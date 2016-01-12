@@ -20,8 +20,16 @@ html,body {
     height: @navbar-os-header-height;
   }
   .wrap {
-    display: block;
-    overflow: visible;
+    height:100vh;
+    margin-top:-60px; /* top offset height */
+    padding-top:60px; /* top offset height */
+    position:relative;
+    width:100%;
+    .backface-visibility(hidden);
+    .flex-direction(@direction: column);
+    .flex-display(@display: flex);
+    // display: block; CLEANUP
+    // overflow: visible;
     &.no-sidebar {
       .container {
         margin-bottom: @grid-gutter-width * 2;
@@ -30,7 +38,7 @@ html,body {
         }
       }
       .middle {
-        margin-top: 30px;
+        padding-top: 30px;
       }
     }
   }
@@ -38,6 +46,7 @@ html,body {
     // display: block; CLEANUP IS THIS NEEDED?
     .flex(@columns: 0 0 auto);
     width: 100%;
+    position: relative;
   }
   .sidebar-left {
     background: @sidebar-os-bg;
@@ -49,30 +58,39 @@ html,body {
       padding-right: 0;
     }
   }
-  .middle {
-    background-color: @body-bg;
-  }
   .sidebar-right {
+    background-color: @panel-light;
     display: none;
   }
-  .wrap.show-sidebar-right {
-    .sidebar-right {
-      display: block;
-      .dl-horizontal {
-        margin: 0 0 @line-height-computed;
-        dt {
-          text-align: left;
+  .middle {
+    height: 100%; // full height at mobile
+    .middle-section {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      .middle-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        .middle-content {
+          flex: 1 1 auto;
+          position: relative;
+          width: 100%;
         }
-        dd {
-          .word-break();
-        }
-      }
-      .sidebar-help {
-        color: @gray-light;
       }
     }
   }
 }
+.header-light {
+  background-color: @panel-light;
+  border-bottom: 1px solid @page-header-border-color;
+}
+.surface-shaded {
+  background-color: @panel-shaded;
+}
+
 
 
 @media (min-width: @screen-sm-min) {
@@ -84,20 +102,31 @@ html,body {
   }
   .console-os {
     .wrap {
+      .flex-direction(@direction: row);
       overflow:hidden;
-      height:100vh;
-      margin-top:-60px; /* top offset height */
-      padding-top:60px; /* top offset height */
-      position:relative;
-      width:100%;
-      .backface-visibility(hidden);
-      .flex-display(@display: flex);
       &.no-sidebar {
         .container {
           margin-top: 30px;
         }
         .sidebar-left {
           display: none !important;
+        }
+      }
+      &.show-sidebar-right {
+        .sidebar-right {
+          display: block;
+          .dl-horizontal {
+            margin: 0 0 @line-height-computed;
+            dt {
+              text-align: left;
+            }
+            dd {
+              .word-break();
+            }
+          }
+          .sidebar-help {
+            color: @gray-light;
+          }
         }
       }
     }
@@ -115,6 +144,9 @@ html,body {
     .middle{
       .flex(@columns: 1 1 0%);
       position: relative;
+      // make scrollable
+      overflow-x: hidden;
+      overflow-y: auto;
     }
     .sidebar-right {
       border-left: 1px solid #dadada;
@@ -125,11 +157,6 @@ html,body {
   // scrollable panels within sections
   // ---------------------------------
   .middle-section {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
     .middle-container {
       display: flex;
       flex-direction: column;
@@ -138,11 +165,15 @@ html,body {
       justify-content: flex-start;
       height: 100%;
       position: absolute;
-      overflow: hidden;
+      overflow: hidden; //make scrollable
       top: 0;
       right: 0;
       bottom: 0;
       left: 0;
+      &.has-scroll {
+      overflow-x: hidden;
+      overflow-y: auto;
+      }
       .middle-header {
         flex: 0 0 auto;
         width: 100%;
@@ -150,9 +181,12 @@ html,body {
       .middle-content {
         flex: 1 1 auto;
         position: relative;
+        width: 100%;
+
+        &.has-scroll {
         overflow-x: hidden;
         overflow-y: auto;
-        width: 100%;
+        }
       }
     }
   }
@@ -181,7 +215,6 @@ html,body {
       }
       .right-content {
         flex: 1 1 auto;
-        padding: 0 20px;
         position: relative;
         overflow-x: hidden;
         overflow-y: auto;

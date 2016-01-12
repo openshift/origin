@@ -1,49 +1,56 @@
 <default-header class="top-header"></default-header>
 <div class="wrap">
-  <div class="middle">
-    <div class="container">
-      <ol class="breadcrumb">
-        <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
-        <li><a href="project/{{projectName}}/create">Add to Project</a></li>
-        <li class="active"><strong>{{template | displayName}}</strong></li>
-      </ol>
-      <div class="row">
-        <div class="col-md-12">
-          <div class="create-from-template">
+  <div class="middle surface-shaded">
+    <!-- Middle section -->
+    <div class="middle-section">
+      <div class="middle-container has-scroll">
+        <div class="middle-content">
+          <div class="container">
             <div class="row">
-              <div class="col-md-2 template-name gutter-top hidden-sm hidden-xs">
-                <span class="fa fa-cubes"></span>
-              </div>
-              <div class="col-md-9">
-                <fieldset ng-disabled="disableInputs">
-                  <osc-image-summary resource="template"></osc-image-summary>
-                  <div ng-if="templateImages.length" class="images">
-                    <h2>Images</h2>
-                    <ul class="list-unstyled" ng-repeat="image in templateImages">
-                      <li>
-                        <i class="pficon pficon-image"></i>
-                        <span class="name">{{ image.name }}</span>
-                      </li>
-                    </ul>
-                  </div>
-                  <form name="templateForm">
-                    <template-options parameters="template.parameters" expand="true" can-toggle="false"></template-options>
-                    <label-editor labels="template.labels" expand="true" can-toggle="false"></label-editor>
-                    <alerts alerts="alerts"></alerts>
-                    <div class="buttons gutter-top-bottom">
-                      <button class="btn btn-primary btn-lg" ng-click="createFromTemplate()" ng-disabled="templateForm.$invalid || disableInputs">Create</button>
-                      <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}">Cancel</a>
+              <div class="col-md-12">
+                <ol class="breadcrumb">
+                  <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
+                  <li><a href="project/{{projectName}}/create">Add to Project</a></li>
+                  <li class="active"><strong>{{template | displayName}}</strong></li>
+                </ol>
+                <div class="create-from-template">
+                  <div class="row">
+                    <div class="col-md-2 template-name gutter-top hidden-sm hidden-xs">
+                      <span class="fa fa-cubes"></span>
                     </div>
-                  </form>
-                </fieldset>
-              </div>
+                    <div class="col-md-9">
+                      <fieldset ng-disabled="disableInputs">
+                        <osc-image-summary resource="template"></osc-image-summary>
+                        <div ng-if="templateImages.length" class="images">
+                          <h2>Images</h2>
+                          <ul class="list-unstyled" ng-repeat="image in templateImages">
+                            <li>
+                              <i class="pficon pficon-image"></i>
+                              <span class="name">{{ image.name }}</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <form name="templateForm">
+                          <template-options parameters="template.parameters" expand="true" can-toggle="false"></template-options>
+                          <label-editor labels="template.labels" expand="true" can-toggle="false"></label-editor>
+                          <alerts alerts="alerts"></alerts>
+                          <div class="buttons gutter-top-bottom">
+                            <button class="btn btn-primary btn-lg" ng-click="createFromTemplate()" ng-disabled="templateForm.$invalid || disableInputs">Create</button>
+                            <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}">Cancel</a>
+                          </div>
+                        </form>
+                      </fieldset>
+                    </div>
+                  </div>
+                  <div ng-hide="template">
+                    {{ emptyMessage }}
+                  </div>
+                </div><!-- /create-from-template -->
+              </div><!-- /col-* -->
             </div>
-            <div ng-hide="template">
-              {{ emptyMessage }}
-            </div>
-          </div><!-- /create-from-template -->
-        </div>
-      </div>
-    </div>
+          </div>
+        </div><!-- /middle-content -->
+      </div><!-- /middle-container -->
+    </div><!-- /middle-section -->
   </div><!-- /middle -->
 </div><!-- /wrap -->

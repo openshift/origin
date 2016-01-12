@@ -92,14 +92,20 @@ angular.module('openshiftConsole')
               $location.url(newURL);
             });
           });
+      }
+    };
+  })
+  .directive('projectFilter', function(LabelFilter) {
+    return {
+      restrict: 'E',
+      templateUrl: 'views/directives/_project-filter.html',
+      link: function($scope, $elem) {
+        LabelFilter.setupFilterWidget($elem.find('.navbar-filter-widget'), $elem.find('.active-filters'), { addButtonText: "Add" });
+        LabelFilter.toggleFilterWidget(!$scope.renderOptions || !$scope.renderOptions.hideFilterWidget);
 
-        // LabelFilter.setupFilterWidget($elem.find('.navbar-filter-widget'), $elem.find('.active-filters'), { addButtonText: "Add" });
-        // LabelFilter.toggleFilterWidget(!$scope.renderOptions || !$scope.renderOptions.hideFilterWidget);
-        //
-        // $scope.$watch("project", updateOptions);
-        // $scope.$watch("renderOptions", function(renderOptions) {
-        //   LabelFilter.toggleFilterWidget(!renderOptions || !renderOptions.hideFilterWidget);
-        // });
+        $scope.$watch("renderOptions", function(renderOptions) {
+          LabelFilter.toggleFilterWidget(!renderOptions || !renderOptions.hideFilterWidget);
+        });
       }
     };
   })

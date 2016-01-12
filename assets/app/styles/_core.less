@@ -41,13 +41,41 @@
 .console-os {
   .page-header {
     border-color: @page-header-border-color;
-    margin-top: 22px;
+    margin-bottom: 3px;
+    margin-left: -20px;
+    margin-right: -20px;
+    margin-top: 20px;
+    padding-left: 20px;
     .actions {
       margin-top: 0;
     }
   }
 }
 
+// Data toolbar
+.data-toolbar {
+  padding: 3px 0 1px;
+}
+.filter .navbar-filter-widget .label-filter {
+  width: 80%;
+  @media (max-width: @screen-xs-max) {
+    min-width:inherit;
+    width: 87%;
+  }
+  .selectize-input.not-full {
+      width: auto !important;
+  }
+}
+
+.navbar-filter-widget-collapse .form-group {
+  margin-bottom: 0;
+}
+.active-filters {
+  line-height: 0;
+  .label-filter-active {
+    padding-bottom: 4px;
+  }
+}
 
  @media (min-width: @screen-sm-min) {
   .console-os {
@@ -70,12 +98,20 @@
   }
 }
 
+@media (max-width: @screen-xs-max) {
+.console-os .navbar-filter-widget {
+    white-space: nowrap;
+  }
+}
+
 .separator {
   border-top: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 .breadcrumb {
   font-size: @font-size-base - 1;
+  margin-bottom: 0;
+  padding-bottom: 0;
   strong {
     font-weight: 600;
   }
@@ -645,7 +681,6 @@ a.disabled-link {
 
 .resource-actions-dropdown {
   .action-button;
-
   // Bigger click target for the dropdown icon, which is a narrow ellipsis
   padding: 0 10px;
   vertical-align: middle;
