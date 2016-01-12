@@ -161,10 +161,10 @@ func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig) *fielderrors
 
 	// It is an edge-terminated route, check insecure option value is
 	// one of None(for disable), Allow or Redirect.
-	allowedValues := map[routeapi.InsecureEdgeTerminationPolicyType]bool{
-		routeapi.InsecureEdgeTerminationPolicyNone:     true,
-		routeapi.InsecureEdgeTerminationPolicyAllow:    true,
-		routeapi.InsecureEdgeTerminationPolicyRedirect: true,
+	allowedValues := map[routeapi.InsecureEdgeTerminationPolicyType]struct{}{
+		routeapi.InsecureEdgeTerminationPolicyNone:     {},
+		routeapi.InsecureEdgeTerminationPolicyAllow:    {},
+		routeapi.InsecureEdgeTerminationPolicyRedirect: {},
 	}
 
 	if _, ok := allowedValues[tls.InsecureEdgeTerminationPolicy]; !ok {
