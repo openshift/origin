@@ -13,6 +13,9 @@ func init() {
 			obj.To.Kind = "Service"
 		},
 		func(obj *TLSConfig) {
+			if len(obj.Termination) == 0 && len(obj.DestinationCACertificate) == 0 {
+				obj.Termination = TLSTerminationEdge
+			}
 			switch obj.Termination {
 			case TLSTerminationType("Reencrypt"):
 				obj.Termination = TLSTerminationReencrypt

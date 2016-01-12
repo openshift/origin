@@ -79,8 +79,8 @@ type RouterShard struct {
 
 // TLSConfig defines config used to secure a route and provide termination
 type TLSConfig struct {
-	// Termination indicates termination type.  If termination type is not set, any termination config will be ignored
-	Termination TLSTerminationType `json:"termination,omitempty" description:"indicates termination type.  if not set, any termination config will be ignored"`
+	// Termination indicates termination type.
+	Termination TLSTerminationType `json:"termination" description:"indicates termination type"`
 
 	// Certificate provides certificate contents
 	Certificate string `json:"certificate,omitempty" description:"provides certificate contents"`
@@ -102,6 +102,7 @@ type TLSConfig struct {
 }
 
 // TLSTerminationType dictates where the secure communication will stop
+// TODO: Reconsider this type in v2
 type TLSTerminationType string
 
 // InsecureEdgeTerminationPolicyType dictates the behavior of insecure
