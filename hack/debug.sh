@@ -31,7 +31,7 @@ try_eval () {
 
 # The environment may contain sensitive information like passwords or private keys
 filter_env () {
-    awk '/"env": \[$/ { indent = index($0, "\""); skipping = 1; next } !skipping { print; } skipping { if (index($0, "]") == indent) skipping = 0; }'
+    awk '/ env:$/ { indent = index($0, "e"); skipping = 1; next } !skipping { print; } skipping { ch = substr($0, indent, 1); if (ch != " " && ch != "-") { skipping = 0; print } }'
 }
 
 log_system () {
