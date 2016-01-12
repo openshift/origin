@@ -9,6 +9,7 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/text.sh"
+source "${OS_ROOT}/hack/lib/log.sh"
 os::log::install_errexit
 
 # Go to the top of the tree.
@@ -36,6 +37,8 @@ function cleanup() {
 	exit $out
 }
 
+trap cleanup EXIT SIGINT
+
 package="${OS_TEST_PACKAGE:-test/integration}"
 tags="${OS_TEST_TAGS:-integration !docker etcd}"
 
@@ -56,8 +59,9 @@ pushd "${testdir}" &>/dev/null
 echo "Building test executable..."
 CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
 popd &>/dev/null
-
-trap cleanup EXIT SIGINT
+	
+os::log::install_system_logger
+os::log::install_cleanup
 
 configure_os_server
 openshift start etcd --config=${MASTER_CONFIG_DIR}/master-config.yaml &> ${LOG_DIR}/etcd.log &
@@ -65,7 +69,6 @@ openshift start etcd --config=${MASTER_CONFIG_DIR}/master-config.yaml &> ${LOG_D
 wait_for_url "http://${API_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160
 curl -X PUT	"http://${API_HOST}:${ETCD_PORT}/v2/keys/_test"
 echo
-
 
 function exectest() {
 	echo "Running $1..."

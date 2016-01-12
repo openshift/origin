@@ -15,6 +15,7 @@ export KUBE_REPO_ROOT="${GOPATH}/src/k8s.io/kubernetes"
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/lib/log.sh"
 os::log::install_errexit
 cd "${OS_ROOT}"
 
@@ -106,6 +107,10 @@ if [[ -z ${TEST_ONLY+x} ]]; then
 
   setup_env_vars
   reset_tmp_dir
+
+  os::log::install_system_logger
+  os::log::install_cleanup
+
   # when selinux is enforcing, the volume dir selinux label needs to be
   # svirt_sandbox_file_t
   #
