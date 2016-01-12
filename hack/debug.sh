@@ -292,7 +292,6 @@ do_node () {
 	die "Could not find node name in $config"
     fi
 
-    logdir=$(dirname $0)
     lognode=$logdir/nodes/$node
     mkdir -p $lognode
 
@@ -436,7 +435,6 @@ do_node () {
 run_self_via_ssh () {
     args=$1
     host=$2
-    remote_logdir=$3
 
     SSH_OPTS='-o StrictHostKeyChecking=no -o PasswordAuthentication=no'
 
@@ -483,7 +481,7 @@ do_master_and_nodes ()
     if [ -z "$master" ]; then
 	do_master
     else
-	run_self_via_ssh --master $master $logdir/master && \
+	run_self_via_ssh --master $master && \
 	    try_eval scp $SSH_OPTS -pr root@$master:$logdir/master $logdir
     fi
 
@@ -491,7 +489,7 @@ do_master_and_nodes ()
 	echo ""
 	echo "Analyzing $name ($addr)"
 
-	run_self_via_ssh --node $addr $logdir/nodes < /dev/null && \
+	run_self_via_ssh --node $addr < /dev/null && \
 	    try_eval scp $SSH_OPTS -pr root@$addr:$logdir/nodes $logdir
     done < $logdir/master/node-ips
 }
