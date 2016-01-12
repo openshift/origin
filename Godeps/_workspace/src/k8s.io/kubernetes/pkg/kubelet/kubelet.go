@@ -196,6 +196,7 @@ func NewMainKubelet(
 	daemonEndpoints *api.NodeDaemonEndpoints,
 	oomAdjuster *oom.OOMAdjuster,
 	serializeImagePulls bool,
+	nodeIP net.IP,
 ) (*Kubelet, error) {
 	if rootDirectory == "" {
 		return nil, fmt.Errorf("invalid root directory %q", rootDirectory)
@@ -308,6 +309,13 @@ func NewMainKubelet(
 		resolverConfig:                 resolverConfig,
 		cpuCFSQuota:                    cpuCFSQuota,
 		daemonEndpoints:                daemonEndpoints,
+		nodeIP:                         nodeIP,
+	}
+	if klet.nodeIP != nil {
+		if err := klet.validateNodeIP(); err != nil {
+			return nil, err
+		}
+		glog.Infof("Using node IP: %q", klet.nodeIP.String())
 	}
 
 	if plug, err := network.InitNetworkPlugin(networkPlugins, networkPluginName, &networkHost{klet}); err != nil {
@@ -642,6 +650,42 @@ type Kubelet struct {
 
 	// Information about the ports which are opened by daemons on Node running this Kubelet server.
 	daemonEndpoints *api.NodeDaemonEndpoints
+
+	// If non-nil, use this IP address for the node
+	nodeIP net.IP
+}
+
+// Validate given node IP belongs to the current host
+func (kl *Kubelet) validateNodeIP() error {
+	if kl.nodeIP == nil {
+		return nil
+	}
+
+	// Honor IP limitations set in setNodeStatus()
+	if kl.nodeIP.IsLoopback() {
+		return fmt.Errorf("nodeIP can't be loopback address")
+	}
+	if kl.nodeIP.To4() == nil {
+		return fmt.Errorf("nodeIP must be IPv4 address")
+	}
+
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return err
+	}
+	for _, addr := range addrs {
+		var ip net.IP
+		switch v := addr.(type) {
+		case *net.IPNet:
+			ip = v.IP
+		case *net.IPAddr:
+			ip = v.IP
+		}
+		if ip != nil && ip.Equal(kl.nodeIP) {
+			return nil
+		}
+	}
+	return fmt.Errorf("Node IP: %q not found in the host's network interfaces", kl.nodeIP.String())
 }
 
 func (kl *Kubelet) allSourcesReady() bool {
@@ -2453,8 +2497,12 @@ func (kl *Kubelet) setNodeStatus(node *api.Node) error {
 		}
 		node.Status.Addresses = nodeAddresses
 	} else {
-		addr := net.ParseIP(kl.hostname)
-		if addr != nil {
+		if kl.nodeIP != nil {
+			node.Status.Addresses = []api.NodeAddress{
+				{Type: api.NodeLegacyHostIP, Address: kl.nodeIP.String()},
+				{Type: api.NodeInternalIP, Address: kl.nodeIP.String()},
+			}
+		} else if addr := net.ParseIP(kl.hostname); addr != nil {
 			node.Status.Addresses = []api.NodeAddress{
 				{Type: api.NodeLegacyHostIP, Address: addr.String()},
 				{Type: api.NodeInternalIP, Address: addr.String()},
