@@ -34,8 +34,8 @@ for the copy.`
   # Synchronize a pod directory with a local directory
   $ %[1]s POD:/remote/dir/ ./local/dir`
 
-	noRsyncUnixWarning    = "WARNING: rsync command not found in path. Please use your package manager to install it."
-	noRsyncWindowsWarning = "WARNING: rsync command not found in path. Download cwRsync for Windows and add it to your PATH."
+	noRsyncUnixWarning    = "WARNING: rsync command not found in path. Please use your package manager to install it.\n"
+	noRsyncWindowsWarning = "WARNING: rsync command not found in path. Download cwRsync for Windows and add it to your PATH.\n"
 )
 
 // copyStrategy
@@ -65,6 +65,11 @@ type RsyncOptions struct {
 	StrategyName  string
 	Quiet         bool
 	Delete        bool
+
+	RsyncInclude  string
+	RsyncExclude  string
+	RsyncProgress bool
+	RsyncNoPerms  bool
 
 	Out    io.Writer
 	ErrOut io.Writer
@@ -97,6 +102,10 @@ func NewCmdRsync(name, parent string, f *clientcmd.Factory, out, errOut io.Write
 	// Flags for rsync options, Must match rsync flag names
 	cmd.Flags().BoolVarP(&o.Quiet, "quiet", "q", false, "Suppress non-error messages")
 	cmd.Flags().BoolVar(&o.Delete, "delete", false, "Delete files not present in source")
+	cmd.Flags().StringVar(&o.RsyncExclude, "exclude", "", "rsync - exclude files matching specified pattern")
+	cmd.Flags().StringVar(&o.RsyncInclude, "include", "", "rsync - include files matching specified pattern")
+	cmd.Flags().BoolVar(&o.RsyncProgress, "progress", false, "rsync - show progress during transfer")
+	cmd.Flags().BoolVar(&o.RsyncNoPerms, "no-perms", false, "rsync - do not transfer permissions")
 	return cmd
 }
 

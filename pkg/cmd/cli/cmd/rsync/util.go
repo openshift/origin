@@ -2,6 +2,7 @@ package rsync
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -74,4 +75,46 @@ func checkRsync(e executor) error {
 
 func checkTar(e executor) error {
 	return executeWithLogging(e, testTarCommand)
+}
+
+func rsyncFlagsFromOptions(o *RsyncOptions) []string {
+	flags := []string{}
+	if o.Quiet {
+		flags = append(flags, "-q")
+	} else {
+		flags = append(flags, "-v")
+	}
+	if o.Delete {
+		flags = append(flags, "--delete")
+	}
+	if len(o.RsyncInclude) > 0 {
+		flags = append(flags, fmt.Sprintf("--include=%s", o.RsyncInclude))
+	}
+	if len(o.RsyncExclude) > 0 {
+		flags = append(flags, fmt.Sprintf("--exclude=%s", o.RsyncExclude))
+	}
+	if o.RsyncProgress {
+		flags = append(flags, "--progress")
+	}
+	if o.RsyncNoPerms {
+		flags = append(flags, "--no-perms")
+	}
+	return flags
+}
+
+func rsyncSpecificFlags(o *RsyncOptions) []string {
+	flags := []string{}
+	if len(o.RsyncInclude) > 0 {
+		flags = append(flags, "--include")
+	}
+	if len(o.RsyncExclude) > 0 {
+		flags = append(flags, "--exclude")
+	}
+	if o.RsyncProgress {
+		flags = append(flags, "--progress")
+	}
+	if o.RsyncNoPerms {
+		flags = append(flags, "--no-perms")
+	}
+	return flags
 }
