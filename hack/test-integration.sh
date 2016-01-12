@@ -9,6 +9,7 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/text.sh"
+source "${OS_ROOT}/hack/lib/log.sh"
 os::log::install_errexit
 
 # Go to the top of the tree.
@@ -20,21 +21,13 @@ export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 export ETCD_PORT=${ETCD_PORT:-44001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-47001}
 
-
-set +e
-
-if [ "$(which etcd 2>/dev/null)" == "" ]; then
+if ! which etcd >/dev/null 2>&1; then
 	if [[ ! -f ${OS_ROOT}/_tools/etcd/bin/etcd ]]; then
 		echo "etcd must be in your PATH or installed in _tools/etcd/bin/ with hack/install-etcd.sh"
 		exit 1
 	fi
 	export PATH="${OS_ROOT}/_tools/etcd/bin:$PATH"
 fi
-
-# Stop on any failures
-set -e
-
-
 
 function cleanup() {
 	out=$?
@@ -48,7 +41,7 @@ function cleanup() {
 	exit $out
 }
 
-
+trap cleanup EXIT SIGINT
 
 package="${OS_TEST_PACKAGE:-test/integration}"
 tags="${OS_TEST_TAGS:-integration !docker etcd}"
@@ -58,7 +51,6 @@ TMPDIR="${TMPDIR:-"/tmp"}"
 export BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-integration}"
 rm -rf ${BASETMPDIR} | true
 mkdir -p ${BASETMPDIR}
-
 
 echo
 echo "Test ${package} -tags='${tags}' ..."
@@ -78,7 +70,10 @@ pushd "${testdir}" &>/dev/null
 echo "Building test executable..."
 CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
 popd &>/dev/null
-
+	
+LOG_DIR="${BASETMPDIR}/logs"
+mkdir -p "${LOG_DIR}" 
+os::log::start_system_logger
 
 # Start etcd
 echo "Starting etcd..."
@@ -94,8 +89,6 @@ export ETCD_PID=$!
 wait_for_url "http://${ETCD_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160
 curl -X PUT	"http://${ETCD_HOST}:${ETCD_PORT}/v2/keys/_test"
 echo
-
-trap cleanup EXIT SIGINT
 
 function exectest() {
 	echo "Running $1..."

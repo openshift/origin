@@ -11,6 +11,7 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 cd "${OS_ROOT}"
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/log.sh"
 os::log::install_errexit
 
 function cleanup()
@@ -71,6 +72,8 @@ mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_
 reset_tmp_dir
 
 echo "Logging to ${LOG_DIR}..."
+
+os::log::start_system_logger
 
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
