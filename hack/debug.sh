@@ -492,8 +492,14 @@ do_master_and_nodes ()
 	echo ""
 	echo "Analyzing $name ($addr)"
 
-	run_self_via_ssh --node $addr < /dev/null && \
-	    try_eval scp $SSH_OPTS -pr root@$addr:$logdir/nodes $logdir
+	if ip addr show | grep -q "inet $addr/"; then
+	    # Running on master which is also a node
+	    cp $self $logdir/debug.sh
+	    /bin/bash $logdir/debug.sh --node
+	else
+	    run_self_via_ssh --node $addr < /dev/null && \
+		try_eval scp $SSH_OPTS -pr root@$addr:$logdir/nodes $logdir
+	fi
     done < $logdir/master/node-ips
 }
 
