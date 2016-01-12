@@ -481,8 +481,11 @@ do_master_and_nodes ()
     if [ -z "$master" ]; then
 	do_master
     else
-	run_self_via_ssh --master $master && \
+	if run_self_via_ssh --master $master < /dev/null; then
 	    try_eval scp $SSH_OPTS -pr root@$master:$logdir/master $logdir
+	else
+	    return 1
+	fi
     fi
 
     while read name addr; do
