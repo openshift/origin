@@ -27,6 +27,8 @@ This command validates that a configuration file intended to be used for a maste
 
 	validateMasterConfigExample = ` // Validate master server configuration file
   $ %s openshift.local.config/master/master-config.yaml`
+
+	validateMasterConfigDeprecationMessage = `This command is deprecated and will be removed. Use 'openshift ex diagnostics --diagnostic MasterConfigCheck --master-config=path/to/config.yaml' instead.`
 )
 
 type ValidateMasterConfigOptions struct {
@@ -44,10 +46,11 @@ func NewCommandValidateMasterConfig(name, fullName string, out io.Writer) *cobra
 	}
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s SOURCE", name),
-		Short:   "Validate the configuration file for a master server",
-		Long:    validateMasterConfigLong,
-		Example: fmt.Sprintf(validateMasterConfigExample, fullName),
+		Use:        fmt.Sprintf("%s SOURCE", name),
+		Short:      "Validate the configuration file for a master server",
+		Long:       validateMasterConfigLong,
+		Example:    fmt.Sprintf(validateMasterConfigExample, fullName),
+		Deprecated: validateMasterConfigDeprecationMessage,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(args); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
