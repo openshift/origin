@@ -855,7 +855,7 @@ func TestValidateSource(t *testing.T) {
 		},
 	}
 	for i, tc := range errorCases {
-		errors := validateSource(tc.source, false)
+		errors := validateSource(tc.source, false, false)
 		switch len(errors) {
 		case 0:
 			if !tc.ok {
@@ -883,7 +883,7 @@ func TestValidateSource(t *testing.T) {
 	}
 
 	errorCases[11].source.ContextDir = "."
-	validateSource(errorCases[11].source, false)
+	validateSource(errorCases[11].source, false, false)
 	if len(errorCases[11].source.ContextDir) != 0 {
 		t.Errorf("ContextDir was not cleaned: %s", errorCases[11].source.ContextDir)
 	}

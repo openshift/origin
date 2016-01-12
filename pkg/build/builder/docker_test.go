@@ -246,7 +246,7 @@ func TestDockerfilePath(t *testing.T) {
 		}
 
 		// check that the docker client is called with the right Dockerfile parameter
-		if err = dockerBuilder.dockerBuild(buildDir); err != nil {
+		if err = dockerBuilder.dockerBuild(buildDir, []api.SecretBuildSource{}); err != nil {
 			t.Errorf("failed to build: %v", err)
 			continue
 		}

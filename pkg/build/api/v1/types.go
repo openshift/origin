@@ -176,6 +176,10 @@ type BuildSource struct {
 	// data's key represent the authentication method to be used and value is
 	// the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
 	SourceSecret *kapi.LocalObjectReference `json:"sourceSecret,omitempty" description:"supported auth methods are: ssh-privatekey"`
+
+	// Secrets represents a list of secrets and their destinations that will
+	// be used only for the build.
+	Secrets []SecretBuildSource `json:"secrets" description:"list of build secrets and destination directories"`
 }
 
 // ImageSource describes an image that is used as source for the build
@@ -201,6 +205,25 @@ type ImageSourcePath struct {
 	// DestinationDir is the relative directory within the build directory
 	// where files copied from the image are placed.
 	DestinationDir string `json:"destinationDir" description:"relative destination directory in build home"`
+}
+
+// SecretBuildSource describes a secret and its destination directory that will be
+// used only at the build time. The content of the secret referenced here will
+// be copied into the destination directory instead of mounting.
+type SecretBuildSource struct {
+	// Secret is a reference to an existing secret that you want to use in your
+	// build.
+	Secret kapi.LocalObjectReference `json:"secret" description:"name of a secret to be used as a source"`
+
+	// DestinationDir is the directory where the files from the secret should be
+	// available for the build time.
+	// For the Source build strategy, these will be injected into a container
+	// where the assemble script runs. Later, when the script finishes, all files
+	// injected will be truncated to zero length.
+	// For the Docker build strategy, these will be copied into the build
+	// directory, where the Dockerfile is located, so users can ADD or COPY them
+	// during docker build.
+	DestinationDir string `json:"destinationDir,omitempty" description:"destination directory for the secret files"`
 }
 
 type BinaryBuildSource struct {

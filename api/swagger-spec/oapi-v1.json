@@ -14684,7 +14684,8 @@
    "v1.BuildSource": {
     "id": "v1.BuildSource",
     "required": [
-     "type"
+     "type",
+     "secrets"
     ],
     "properties": {
      "type": {
@@ -14714,6 +14715,13 @@
      "sourceSecret": {
       "$ref": "v1.LocalObjectReference",
       "description": "supported auth methods are: ssh-privatekey"
+     },
+     "secrets": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.SecretBuildSource"
+      },
+      "description": "list of build secrets and destination directories"
      }
     }
    },
@@ -14798,6 +14806,22 @@
      "name": {
       "type": "string",
       "description": "Name of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names"
+     }
+    }
+   },
+   "v1.SecretBuildSource": {
+    "id": "v1.SecretBuildSource",
+    "required": [
+     "secret"
+    ],
+    "properties": {
+     "secret": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "name of a secret to be used as a source"
+     },
+     "destinationDir": {
+      "type": "string",
+      "description": "destination directory for the secret files"
      }
     }
    },
