@@ -196,6 +196,9 @@ type MasterConfig struct {
 	ControllerLeaseTTL int
 	// TODO: the next field added to controllers must be added to a new controllers struct
 
+	// AdmissionPluginConfig allows specifying a configuration file per admission control plugin
+	AdmissionPluginConfig map[string]string
+
 	// Allow to disable OpenShift components
 	DisabledFeatures FeatureList
 

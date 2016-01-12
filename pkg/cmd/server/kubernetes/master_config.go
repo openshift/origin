@@ -124,7 +124,11 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			plugins = append(plugins, saAdmitter)
 
 		default:
-			plugin := admission.InitPlugin(pluginName, kubeClient, server.AdmissionControlConfigFile)
+			configFile := server.AdmissionControlConfigFile
+			if _, hasConfig := options.AdmissionPluginConfig[pluginName]; hasConfig {
+				configFile = options.AdmissionPluginConfig[pluginName]
+			}
+			plugin := admission.InitPlugin(pluginName, kubeClient, configFile)
 			if plugin != nil {
 				plugins = append(plugins, plugin)
 			}

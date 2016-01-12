@@ -143,6 +143,9 @@ type MasterConfig struct {
 	// omitted) and controller election can be disabled with -1.
 	ControllerLeaseTTL int `json:"controllerLeaseTTL"`
 
+	// AdmissionPluginConfig allows specifying a configuration file per admission control plugin
+	AdmissionPluginConfig map[string]string `json:"admissionPluginConfig,omitempty"`
+
 	// DisabledFeatures is a list of features that should not be started.  We
 	// omitempty here because its very unlikely that anyone will want to
 	// manually disable features and we don't want to encourage it.
