@@ -5,7 +5,7 @@
   <div class="nav navbar-project-menu">
     <div row>
       <!-- mobile nav menu -->
-      <div row flex class="navbar-flex-btn">
+      <div row flex class="navbar-flex-btn toggle-menu">
         <button type="button" class="navbar-toggle project-action-btn ng-isolate-scope" data-toggle="collapse" data-target=".navbar-collapse-1">
           <span class="sr-only">Toggle navigation</span>
           <span class="icon-bar"></span>
@@ -20,8 +20,8 @@
       </div>
       <!-- create buttons show at mobile -->
       <div row flex class="navbar-flex-btn project-action">
-        <a class="project-action-btn" href="project/{{project.metadata.name}}/create" ng-disabled="project.status.phase != 'Active'" title="Add to project">
-          <i class="fa fa-plus"></i>
+        <a row class="project-action-btn" href="project/{{project.metadata.name}}/create" ng-disabled="project.status.phase != 'Active'" title="Add to project">
+          <i class="fa fa-plus visible-xs-inline-block"></i><span class="hidden-xs">Add to project</span>
         </a>
       </div>
     </div>

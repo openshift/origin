@@ -7,7 +7,6 @@ html,body {
 }
 
 .layout-pf-alt.layout-pf-alt-fixed body {
-  // overflow-x:hidden;
   padding-top: 0;
 }
 .console-os {
@@ -16,7 +15,6 @@ html,body {
     .flex-display(@display: flex);
     position:relative;
     z-index:10;
-     /* top offset height */
     height: @navbar-os-header-height;
   }
   .wrap {
@@ -28,8 +26,6 @@ html,body {
     .backface-visibility(hidden);
     .flex-direction(@direction: column);
     .flex-display(@display: flex);
-    // display: block; CLEANUP
-    // overflow: visible;
     &.no-sidebar {
       .container {
         margin-bottom: @grid-gutter-width * 2;
@@ -43,13 +39,13 @@ html,body {
     }
   }
   .sidebar-left,.middle,.sidebar-right {
-    // display: block; CLEANUP IS THIS NEEDED?
     .flex(@columns: 0 0 auto);
     width: 100%;
     position: relative;
   }
   .sidebar-left {
     background: @sidebar-os-bg;
+    padding: 0;
     position:relative;
     transition:@sidebar-os-transition;
     @media (max-width: @screen-xs-max) {
@@ -71,11 +67,11 @@ html,body {
       height: 100%;
       width: 100%;
       .middle-container {
-        display: flex;
-        flex-direction: column;
+        .flex-display(@display: flex);
+        .flex-direction(@direction: column);
         height: 100%;
         .middle-content {
-          flex: 1 1 auto;
+          .flex(@columns: 1 1 auto);
           position: relative;
           width: 100%;
         }
@@ -91,8 +87,6 @@ html,body {
   background-color: @panel-shaded;
 }
 
-
-
 @media (min-width: @screen-sm-min) {
   .layout-pf-alt-fixed .nav-pf-vertical-alt {
     position: fixed;
@@ -105,9 +99,6 @@ html,body {
       .flex-direction(@direction: row);
       overflow:hidden;
       &.no-sidebar {
-        .container {
-          margin-top: 30px;
-        }
         .sidebar-left {
           display: none !important;
         }
@@ -158,11 +149,11 @@ html,body {
   // ---------------------------------
   .middle-section {
     .middle-container {
-      display: flex;
-      flex-direction: column;
-      flex-wrap: nowrap;
-      align-items: flex-start;
-      justify-content: flex-start;
+      .flex-display(@display: flex);
+      .flex-direction(@direction: column);
+      .flex-wrap(@wrap: nowrap);
+      .align-items(@align: flex-start);
+      .justify-content(@justify: flex-start);
       height: 100%;
       position: absolute;
       overflow: hidden; //make scrollable
@@ -175,11 +166,11 @@ html,body {
       overflow-y: auto;
       }
       .middle-header {
-        flex: 0 0 auto;
+        .flex(@columns: 0 0 auto);
         width: 100%;
       }
       .middle-content {
-        flex: 1 1 auto;
+        .flex(@columns: 1 1 auto);
         position: relative;
         width: 100%;
 
@@ -197,11 +188,11 @@ html,body {
     width: @sidebar-right-width-sm;
     height: 100%;
     .right-container {
-      display: flex;
-      flex-direction: column;
-      flex-wrap: nowrap;
-      align-items: flex-start;
-      justify-content: flex-start;
+      .flex-display(@display: flex);
+      .flex-direction(@direction: column);
+      .flex-wrap(@wrap: nowrap);
+      .align-items(@align: flex-start);
+      .justify-content(@justify: flex-start);
       height: 100%;
       position: absolute;
       overflow: hidden;
@@ -210,11 +201,11 @@ html,body {
       bottom: 0;
       left: 0;
       .right-header  {
-        flex: 0 0 auto;
+        .flex(@columns: 0 0 auto);
         width: 100%;
       }
       .right-content {
-        flex: 1 1 auto;
+        .flex(@columns: 1 1 auto);
         position: relative;
         overflow-x: hidden;
         overflow-y: auto;
@@ -224,26 +215,6 @@ html,body {
   }
 }
 
-// @media (min-width: @screen-sm-min) and (max-width: @screen-md-max) {
-//   .console-os {
-//     .sidebar-left{
-//       .flex(@columns: 0 0 @sidebar-left-width-md);
-//     }
-//     .sidebar-right {
-//       .flex(@columns: 0 0 @sidebar-left-width-md);
-//       .dl-horizontal {
-//         dt {
-//           float: none;
-//           width: auto;
-//         }
-//         dd {
-//           margin-left: 0;
-//           margin-bottom: (@line-height-computed / 2);
-//         }
-//       }
-//     }
-//   }
-// }
 
 @media (min-width: @screen-md-min) {
   .console-os {

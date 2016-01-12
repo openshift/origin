@@ -52,7 +52,7 @@
   }
 }
 
-// Data toolbar
+// Data toolbar with filter
 .data-toolbar {
   padding: 3px 0 1px;
 }
@@ -72,29 +72,8 @@
 }
 .active-filters {
   line-height: 0;
-  .label-filter-active {
-    padding-bottom: 4px;
-  }
-}
-
- @media (min-width: @screen-sm-min) {
-  .console-os {
-
-    // .navbar-project-menu { CLEANUP
-    //   .navbar-filter-widget-collapse.collapse {
-    //     // Prevent filter field from being hidden when going from mobile to desktop width
-    //     display: block;
-    //   }
-    //   .navbar-filter-widget {
-    //     /* Prevent the filter button from wrapping at wide screen sizes. */
-    //     min-width: 340px;
-    //   }
-    //   .create-button-container {
-    //     text-align: right;
-    //     /* Align button with other navbar controls that have a label above. */
-    //     margin-top: 30px;
-    //   }
-    // }
+  .label-filter-active-filters {
+    padding-bottom: 3px;
   }
 }
 
@@ -652,6 +631,11 @@ select:invalid {
 
 .input-number {
   width: 60px;
+}
+
+.alert {
+  margin-bottom: 14px;
+  margin-top: 7px;
 }
 
 .action-button {

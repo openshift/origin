@@ -22,7 +22,6 @@
   .bootstrap-select.btn-group {
       .btn {
       border-color: @sidebar-os-border-color;
-      border-width: 0 1px 0 0;
       border-radius: 0;
       color: @navbar-os-project-menu-color;
       font-size: @font-size-large + 4;
@@ -44,6 +43,16 @@
         &:active {
           outline: none !important;
         }
+      }
+      &:after {
+        content: '';
+        background: @sidebar-os-border-inset-color;
+        display: block;
+        height: 100%;
+        left: 0px;
+        position: absolute;
+        top: 0;
+        width: 1px;
       }
       .filter-option {
         .truncate();
@@ -85,7 +94,8 @@
           }
         }
         &.divider {
-          background-color: #373e47 !important;
+          background-color: @sidebar-os-border-inset-color !important;
+          border-top: 1px solid @sidebar-os-border-color;
           height: 2px;
           margin: 0 !important;
         }
@@ -123,17 +133,14 @@
 
 @media (min-width: @screen-sm-min) {
   .navbar-project-menu {
-    // background: @navbar-os-project-bg;
     border-bottom:0;
     border-top:0;
     float: left;
     margin: 0;
     padding-top: 0;
-    max-width: 380px;
+    max-width: 480px;
     .bootstrap-select.btn-group {
       .btn {
-        border-left:1px solid @navbar-os-project-menu-border;
-        border-right:1px solid @navbar-os-project-menu-border;
         padding: 9px 40px 7px 30px;
         &:before {
           color: @gray-light;

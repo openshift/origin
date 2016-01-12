@@ -19,7 +19,7 @@ angular.module('openshiftConsole')
         if($(window).width() < breakpoint.mobile) {
           $window.scrollTo(null, 0);
         } else {
-          var objDiv = document.getElementById("middle-content");
+          var objDiv = $(".middle-container.has-scroll")[0];
           objDiv.scrollTop = 0;
         }
       };
@@ -28,7 +28,7 @@ angular.module('openshiftConsole')
         if($(window).width() < breakpoint.mobile) {
            $window.scrollTo(null, $(document).height() - $(window).height());
         } else {
-          var objDiv = document.getElementById("middle-content");
+          var objDiv = $(".middle-container.has-scroll")[0];
           objDiv.scrollTop = objDiv.scrollHeight;
         }
       };
