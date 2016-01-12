@@ -231,6 +231,7 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 
 func watchServices(oc *OsdnController) {
 	svcevent := make(chan *ServiceEvent)
+	services := make(map[string]*kapi.Service)
 	go oc.Registry.WatchServices(svcevent)
 
 	for {
@@ -246,20 +247,20 @@ func watchServices(oc *OsdnController) {
 		}
 		switch ev.Type {
 		case Added:
-			oc.services[string(ev.Service.UID)] = ev.Service
+			services[string(ev.Service.UID)] = ev.Service
 			oc.pluginHooks.AddServiceRules(ev.Service, netid)
 		case Deleted:
-			delete(oc.services, string(ev.Service.UID))
+			delete(services, string(ev.Service.UID))
 			oc.pluginHooks.DeleteServiceRules(ev.Service)
 		case Modified:
-			oldsvc, exists := oc.services[string(ev.Service.UID)]
+			oldsvc, exists := services[string(ev.Service.UID)]
 			if exists {
 				if !isServiceChanged(oldsvc, ev.Service) {
 					continue
 				}
 				oc.pluginHooks.DeleteServiceRules(oldsvc)
 			}
-			oc.services[string(ev.Service.UID)] = ev.Service
+			services[string(ev.Service.UID)] = ev.Service
 			oc.pluginHooks.AddServiceRules(ev.Service, netid)
 		}
 	}

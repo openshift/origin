@@ -46,7 +46,6 @@ type OsdnController struct {
 	VNIDMap         map[string]uint
 	netIDManager    *netutils.NetIDAllocator
 	adminNamespaces []string
-	services        map[string]*kapi.Service
 }
 
 // Called by plug factory functions to initialize the generic plugin instance
@@ -85,7 +84,6 @@ func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, 
 	oc.VNIDMap = make(map[string]uint)
 	oc.podNetworkReady = make(chan struct{})
 	oc.adminNamespaces = make([]string, 0)
-	oc.services = make(map[string]*kapi.Service)
 
 	return nil
 }
