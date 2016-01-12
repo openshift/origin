@@ -156,6 +156,7 @@ type KubeletServer struct {
 	// Pull images one at a time.
 	SerializeImagePulls        bool
 	ExperimentalFlannelOverlay bool
+	NodeIP                     net.IP
 }
 
 // bootstrapping interface for kubelet, targets the initialization protocol
@@ -345,6 +346,7 @@ func (s *KubeletServer) AddFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&s.KubeAPIBurst, "kube-api-burst", s.KubeAPIBurst, "Burst to use while talking with kubernetes apiserver")
 	fs.BoolVar(&s.SerializeImagePulls, "serialize-image-pulls", s.SerializeImagePulls, "Pull images one at a time. We recommend *not* changing the default value on nodes that run docker daemon with version < 1.9 or an Aufs storage backend. Issue #10959 has more details. [default=true]")
 	fs.BoolVar(&s.ExperimentalFlannelOverlay, "experimental-flannel-overlay", s.ExperimentalFlannelOverlay, "Experimental support for starting the kubelet with the default overlay network (flannel). Assumes flanneld is already running in client mode. [default=false]")
+	fs.IPVar(&s.NodeIP, "node-ip", s.NodeIP, "IP address of the node. If set, kubelet will use this IP address for the node")
 }
 
 // UnsecuredKubeletConfig returns a KubeletConfig suitable for being run, or an error if the server setup
@@ -484,6 +486,7 @@ func (s *KubeletServer) UnsecuredKubeletConfig() (*KubeletConfig, error) {
 		VolumePlugins:                  ProbeVolumePlugins(),
 
 		ExperimentalFlannelOverlay: s.ExperimentalFlannelOverlay,
+		NodeIP: s.NodeIP,
 	}, nil
 }
 
@@ -960,6 +963,7 @@ type KubeletConfig struct {
 	VolumePlugins                  []volume.VolumePlugin
 
 	ExperimentalFlannelOverlay bool
+	NodeIP                     net.IP
 }
 
 func CreateAndInitKubelet(kc *KubeletConfig) (k KubeletBootstrap, pc *config.PodConfig, err error) {
@@ -1043,6 +1047,7 @@ func CreateAndInitKubelet(kc *KubeletConfig) (k KubeletBootstrap, pc *config.Pod
 		kc.SerializeImagePulls,
 		kc.ContainerManager,
 		kc.ExperimentalFlannelOverlay,
+		kc.NodeIP,
 	)
 
 	if err != nil {
