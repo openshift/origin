@@ -33,7 +33,7 @@ var Versions = []string{"v1", "v1beta3"}
 // the latest supported version.  Use this Codec when writing to
 // disk, a data store that is not dynamically versioned, or in tests.
 // This codec can decode any object that OpenShift is aware of.
-var Codec = v1beta3.Codec
+var Codec = v1.Codec
 
 // accessor is the shared static metadata accessor for the API.
 var accessor = kmeta.NewAccessor()
