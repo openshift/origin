@@ -24,7 +24,14 @@ type AuthConfig struct {
 
 	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
 	AssetPublicAddresses []string
-	EtcdHelper           storage.Interface
+
+	// EtcdHelper provides storage capabilities
+	EtcdHelper storage.Interface
+
+	// EtcdBackends is a list of storage interfaces, each of which talks to a single etcd backend.
+	// These are only used to ensure newly created tokens are distributed to all backends before returning them for use.
+	// EtcdHelper should normally be used for storage functions.
+	EtcdBackends []storage.Interface
 
 	UserRegistry     userregistry.Registry
 	IdentityRegistry identityregistry.Registry
@@ -40,6 +47,22 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 	etcdHelper, err := NewEtcdStorage(client, options.EtcdStorageConfig.OpenShiftStorageVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
+	}
+
+	// Build a list of storage.Interface objects, each of which only speaks to one of the etcd backends
+	etcdBackends := []storage.Interface{}
+	for _, url := range options.EtcdClientInfo.URLs {
+		backendClientInfo := options.EtcdClientInfo
+		backendClientInfo.URLs = []string{url}
+		backendClient, err := etcd.EtcdClient(backendClientInfo)
+		if err != nil {
+			return nil, err
+		}
+		backendEtcdHelper, err := NewEtcdStorage(backendClient, options.EtcdStorageConfig.OpenShiftStorageVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
+		if err != nil {
+			return nil, fmt.Errorf("Error setting up server storage: %v", err)
+		}
+		etcdBackends = append(etcdBackends, backendEtcdHelper)
 	}
 
 	var sessionAuth *session.Authenticator
@@ -70,6 +93,7 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 
 		AssetPublicAddresses: assetPublicURLs,
 		EtcdHelper:           etcdHelper,
+		EtcdBackends:         etcdBackends,
 
 		IdentityRegistry: identityRegistry,
 		UserRegistry:     userRegistry,
