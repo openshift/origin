@@ -494,6 +494,8 @@ type IdentityProvider struct {
 	UseAsLogin bool `json:"login"`
 	// MappingMethod determines how identities from this provider are mapped to users
 	MappingMethod string `json:"mappingMethod"`
+	// MappingMethodConfig is used to configure custom MappingMethods.
+	MappingMethodConfig map[string]string `json:"mappingMethodConfig,omitempty"`
 	// Provider contains the information about how to set up a specific identity provider
 	Provider runtime.RawExtension `json:"provider"`
 }

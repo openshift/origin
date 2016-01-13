@@ -112,13 +112,6 @@ func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
 	return validationResults
 }
 
-var validMappingMethods = sets.NewString(
-	string(identitymapper.MappingMethodLookup),
-	string(identitymapper.MappingMethodClaim),
-	string(identitymapper.MappingMethodAdd),
-	string(identitymapper.MappingMethodGenerate),
-)
-
 func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationResults {
 	validationResults := ValidationResults{}
 
@@ -131,8 +124,8 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 
 	if len(identityProvider.MappingMethod) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldRequired("mappingMethod"))
-	} else if !validMappingMethods.Has(identityProvider.MappingMethod) {
-		validationResults.AddErrors(fielderrors.NewFieldValueNotSupported("mappingMethod", identityProvider.MappingMethod, validMappingMethods.List()))
+	} else if !identitymapper.RegisteredMappingMethodTypes().Has(identityProvider.MappingMethod) {
+		validationResults.AddErrors(fielderrors.NewFieldValueNotSupported("mappingMethod", identityProvider.MappingMethod, identitymapper.RegisteredMappingMethodTypes().List()))
 	}
 
 	if !api.IsIdentityProviderType(identityProvider.Provider) {

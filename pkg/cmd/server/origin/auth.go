@@ -328,7 +328,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 	redirectors := map[string]handlers.AuthenticationRedirector{}
 
 	for _, identityProvider := range c.Options.IdentityProviders {
-		identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod))
+		identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod), identityProvider.MappingMethodConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -471,7 +471,7 @@ func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvide
 }
 
 func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.IdentityProvider) (authenticator.Password, error) {
-	identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod))
+	identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod), identityProvider.MappingMethodConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -553,7 +553,7 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 	}
 
 	for _, identityProvider := range c.Options.IdentityProviders {
-		identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod))
+		identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod), identityProvider.MappingMethodConfig)
 		if err != nil {
 			return nil, err
 		}
