@@ -1,9 +1,9 @@
 #!/bin/bash -xu
 
 script=$(basename "${BASH_SOURCE[0]}")
-DEFAULT_COALESCE_INTERVAL=15   #  default 15 secs.
-COALESCE_MAX_WAIT=$((5 * 60))  #  5 minutes
-interval=${RELOAD_COALESCE_INTERVAL:-"$DEFAULT_COALESCE_INTERVAL"}
+declare -i -r default_coalesce_interval=15   #  default 15 secs.
+declare -i -r coalesce_max_wait=$((5 * 60))  #  5 minutes
+interval=${RELOAD_COALESCE_INTERVAL:-"$default_coalesce_interval"}
 
 config_file=/var/lib/haproxy/conf/haproxy.config
 run_dir=/var/lib/haproxy/run
@@ -18,8 +18,8 @@ function coalesce_reloads() {
   [ -f "$lock_file" ] && reloadts=$(stat -c "%Y" "$lock_file")
 
   #  Ensure interval is a valid number and under max wait time (5 mins).
-  [[ $interval =~ ^-?[0-9]+$ ]] || interval=$DEFAULT_COALESCE_INTERVAL
-  [ $interval -gt $COALESCE_MAX_WAIT ] && interval=$COALESCE_MAX_WAIT
+  [[ $interval =~ ^-?[0-9]+$ ]] || interval=$default_coalesce_interval
+  [ $interval -gt $coalesce_max_wait ] && interval=$coalesce_max_wait
 
   (
     function _onexit() {
@@ -34,7 +34,7 @@ function coalesce_reloads() {
     local now=$(date +%s)
     local timediff=$(( $now - $reloadts))
 
-    #  Sleep for 'x' secs  where 0 <= x < interval ( <= COALESCE_MAX_WAIT).
+    #  Sleep for 'x' secs  where 0 <= x < interval ( <= coalesce_max_wait).
     [ $interval -ge $timediff ] && sleep $((interval - timediff))
 
     if [ -f $pid_file ]; then
