@@ -19,7 +19,7 @@ var (
 // buildHostDiagnostics builds host Diagnostic objects based on the host environment.
 // Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.) {
 func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, bool, error) {
-	requestedDiagnostics := intersection(sets.NewString(o.RequestedDiagnostics...), availableHostDiagnostics).List()
+	requestedDiagnostics := availableHostDiagnostics.Intersection(sets.NewString(o.RequestedDiagnostics...)).List()
 	if len(requestedDiagnostics) == 0 { // no diagnostics to run here
 		return nil, true, nil // don't waste time on discovery
 	}

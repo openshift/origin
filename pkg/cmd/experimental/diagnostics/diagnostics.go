@@ -77,8 +77,8 @@ you will receive an error if they are not found. For example:
 * If a client config file is not found, client and cluster diagnostics
   are skipped.
 
-Diagnostics may be individually run with --diagnostics. The available
-diagnostic names are:
+Diagnostics may be individually run by passing diagnostic name as arguments.
+The available diagnostic names are:
 %[2]s
 
 NOTE: This is a beta version of diagnostics and may still evolve in a
@@ -96,9 +96,11 @@ func NewCommandDiagnostics(name string, fullName string, out io.Writer) *cobra.C
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "This utility helps you troubleshoot and diagnose.",
-		Long:  fmt.Sprintf(longDescription, fullName, strings.Join(availableDiagnostics().List(), ",")),
+		Long:  fmt.Sprintf(longDescription, fullName, strings.Join(availableDiagnostics().List(), " ")),
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete())
+			kcmdutil.CheckErr(o.Complete(args))
+
+			kcmdutil.CheckErr(o.Validate())
 
 			failed, err, warnCount, errorCount := o.RunDiagnostics()
 			o.Logger.Summary(warnCount, errorCount)
@@ -125,17 +127,61 @@ func NewCommandDiagnostics(name string, fullName string, out io.Writer) *cobra.C
 	cmd.Flags().BoolVar(&o.PreventModification, options.FlagPreventModificationName, false, "May be set to prevent diagnostics making any changes via the API")
 	flagtypes.GLog(cmd.Flags())
 	options.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, options.RecommendedLoggerOptionFlags())
-	options.BindDiagnosticFlag(cmd.Flags(), &o.RequestedDiagnostics, options.NewRecommendedDiagnosticFlag())
 
 	return cmd
 }
 
 // Complete fills in DiagnosticsOptions needed if the command is actually invoked.
-func (o *DiagnosticsOptions) Complete() error {
+func (o *DiagnosticsOptions) Complete(args []string) error {
 	var err error
 	o.Logger, err = o.LogOptions.NewLogger()
 	if err != nil {
 		return err
+	}
+
+	// If not given master/client config file locations, check if the defaults exist
+	// and adjust the options accordingly:
+	if len(o.MasterConfigLocation) == 0 {
+		if _, err := os.Stat(StandardMasterConfigPath); !os.IsNotExist(err) {
+			o.MasterConfigLocation = StandardMasterConfigPath
+		}
+	}
+	if len(o.NodeConfigLocation) == 0 {
+		if _, err := os.Stat(StandardNodeConfigPath); !os.IsNotExist(err) {
+			o.NodeConfigLocation = StandardNodeConfigPath
+		}
+	}
+
+	o.RequestedDiagnostics = append(o.RequestedDiagnostics, args...)
+	if len(o.RequestedDiagnostics) == 0 {
+		o.RequestedDiagnostics = availableDiagnostics().List()
+	}
+
+	return nil
+}
+
+func (o *DiagnosticsOptions) Validate() error {
+	available := availableDiagnostics()
+
+	if common := available.Intersection(sets.NewString(o.RequestedDiagnostics...)); len(common) == 0 {
+		o.Logger.Error("CED3012", log.EvalTemplate("CED3012", "None of the requested diagnostics are available:\n  {{.requested}}\nPlease try from the following:\n  {{.available}}",
+			log.Hash{"requested": o.RequestedDiagnostics, "available": available.List()}))
+		return fmt.Errorf("No requested diagnostics are available: requested=%s available=%s", strings.Join(o.RequestedDiagnostics, " "), strings.Join(available.List(), " "))
+
+	} else if len(common) < len(o.RequestedDiagnostics) {
+		o.Logger.Error("CED3013", log.EvalTemplate("CED3013", `
+Of the requested diagnostics:
+    {{.requested}}
+only these are available:
+    {{.common}}
+The list of all possible is:
+    {{.available}}
+		`, log.Hash{"requested": o.RequestedDiagnostics, "common": common.List(), "available": available.List()}))
+
+		return fmt.Errorf("Not all requested diagnostics are available: missing=%s requested=%s available=%s",
+			strings.Join(sets.NewString(o.RequestedDiagnostics...).Difference(available).List(), " "),
+			strings.Join(o.RequestedDiagnostics, " "),
+			strings.Join(available.List(), " "))
 	}
 
 	return nil
@@ -155,37 +201,6 @@ func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 	warnings := []error{}
 	errors := []error{}
 	diagnostics := []types.Diagnostic{}
-	available := availableDiagnostics()
-	if len(o.RequestedDiagnostics) == 0 {
-		o.RequestedDiagnostics = available.List()
-	} else if common := intersection(sets.NewString(o.RequestedDiagnostics...), available); len(common) == 0 {
-		o.Logger.Error("CED3012", log.EvalTemplate("CED3012", "None of the requested diagnostics are available:\n  {{.requested}}\nPlease try from the following:\n  {{.available}}",
-			log.Hash{"requested": o.RequestedDiagnostics, "available": available.List()}))
-		return false, fmt.Errorf("No requested diagnostics available"), 0, 1
-	} else if len(common) < len(o.RequestedDiagnostics) {
-		errors = append(errors, fmt.Errorf("Not all requested diagnostics are available"))
-		o.Logger.Error("CED3013", log.EvalTemplate("CED3013", `
-Of the requested diagnostics:
-    {{.requested}}
-only these are available:
-    {{.common}}
-The list of all possible is:
-    {{.available}}
-		`, log.Hash{"requested": o.RequestedDiagnostics, "common": common.List(), "available": available.List()}))
-	}
-
-	// If not given master/client config file locations, check if the defaults exist
-	// and adjust the options accordingly:
-	if len(o.MasterConfigLocation) == 0 {
-		if _, err := os.Stat(StandardMasterConfigPath); !os.IsNotExist(err) {
-			o.MasterConfigLocation = StandardMasterConfigPath
-		}
-	}
-	if len(o.NodeConfigLocation) == 0 {
-		if _, err := os.Stat(StandardNodeConfigPath); !os.IsNotExist(err) {
-			o.NodeConfigLocation = StandardNodeConfigPath
-		}
-	}
 
 	func() { // don't trust discovery/build of diagnostics; wrap panic nicely in case of developer error
 		defer func() {
@@ -282,15 +297,4 @@ func (o DiagnosticsOptions) Run(diagnostics []types.Diagnostic) (bool, error, in
 		}()
 	}
 	return errorCount > 0, nil, warnCount, errorCount
-}
-
-// TODO move upstream
-func intersection(s1 sets.String, s2 sets.String) sets.String {
-	result := sets.NewString()
-	for key := range s1 {
-		if s2.Has(key) {
-			result.Insert(key)
-		}
-	}
-	return result
 }
