@@ -1,8 +1,9 @@
 #!/bin/bash -xu
 
 script=$(basename "${BASH_SOURCE[0]}")
-interval=${RELOAD_COALESCE_INTERVAL:-"15"}   #  default 15 secs.
+DEFAULT_COALESCE_INTERVAL=15   #  default 15 secs.
 COALESCE_MAX_WAIT=$((5 * 60))  #  5 minutes
+interval=${RELOAD_COALESCE_INTERVAL:-"$DEFAULT_COALESCE_INTERVAL"}
 
 config_file=/var/lib/haproxy/conf/haproxy.config
 run_dir=/var/lib/haproxy/run
@@ -16,7 +17,8 @@ function coalesce_reloads() {
   local reloadts=0
   [ -f "$lock_file" ] && reloadts=$(stat -c "%Y" "$lock_file")
 
-  #  Ensure interval is under max wait time (5 mins).
+  #  Ensure interval is a valid number and under max wait time (5 mins).
+  [[ $interval =~ ^-?[0-9]+$ ]] || interval=$DEFAULT_COALESCE_INTERVAL
   [ $interval -gt $COALESCE_MAX_WAIT ] && interval=$COALESCE_MAX_WAIT
 
   (
