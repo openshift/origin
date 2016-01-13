@@ -59,6 +59,10 @@ func ValidateRouteUpdate(route *routeapi.Route, older *routeapi.Route) fielderro
 	return allErrs
 }
 
+// ValidateRouteStatusUpdate validates status updates for routes.
+//
+// Note that this function shouldn't call ValidateRouteUpdate, otherwise
+// we are risking to break existing routes.
 func ValidateRouteStatusUpdate(route *routeapi.Route, older *routeapi.Route) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&route.ObjectMeta, &older.ObjectMeta).Prefix("metadata")...)
@@ -67,14 +71,14 @@ func ValidateRouteStatusUpdate(route *routeapi.Route, older *routeapi.Route) fie
 	return allErrs
 }
 
-// ValidateTLS tests fields for different types of TLS combinations are set.  Called
+// validateTLS tests fields for different types of TLS combinations are set.  Called
 // by ValidateRoute.
 func validateTLS(route *routeapi.Route) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
 	tls := route.Spec.TLS
 
-	//no termination, ignore other settings
-	if tls == nil || tls.Termination == "" {
+	// no tls config present, no need for validation
+	if tls == nil {
 		return nil
 	}
 
@@ -109,8 +113,8 @@ func validateTLS(route *routeapi.Route) fielderrors.ValidationErrorList {
 			result = append(result, fielderrors.NewFieldInvalid("destinationCACertificate", tls.DestinationCACertificate, "edge termination does not support destination certificates"))
 		}
 	default:
-		msg := fmt.Sprintf("invalid value for termination, acceptable values are %s, %s, %s, or empty (no tls specified)", routeapi.TLSTerminationEdge, routeapi.TLSTerminationPassthrough, routeapi.TLSTerminationReencrypt)
-		result = append(result, fielderrors.NewFieldInvalid("termination", tls.Termination, msg))
+		validValues := []string{string(routeapi.TLSTerminationEdge), string(routeapi.TLSTerminationPassthrough), string(routeapi.TLSTerminationReencrypt)}
+		result = append(result, fielderrors.NewFieldValueNotSupported("termination", tls.Termination, validValues))
 	}
 
 	if err := validateInsecureEdgeTerminationPolicy(tls); err != nil {
@@ -157,10 +161,10 @@ func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig) *fielderrors
 
 	// It is an edge-terminated route, check insecure option value is
 	// one of None(for disable), Allow or Redirect.
-	allowedValues := map[routeapi.InsecureEdgeTerminationPolicyType]bool{
-		routeapi.InsecureEdgeTerminationPolicyNone:     true,
-		routeapi.InsecureEdgeTerminationPolicyAllow:    true,
-		routeapi.InsecureEdgeTerminationPolicyRedirect: true,
+	allowedValues := map[routeapi.InsecureEdgeTerminationPolicyType]struct{}{
+		routeapi.InsecureEdgeTerminationPolicyNone:     {},
+		routeapi.InsecureEdgeTerminationPolicyAllow:    {},
+		routeapi.InsecureEdgeTerminationPolicyRedirect: {},
 	}
 
 	if _, ok := allowedValues[tls.InsecureEdgeTerminationPolicy]; !ok {

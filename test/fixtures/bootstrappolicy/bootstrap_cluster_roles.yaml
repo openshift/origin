@@ -1,0 +1,1349 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: cluster-admin
+  rules:
+  - apiGroups:
+    - '*'
+    attributeRestrictions: null
+    resources:
+    - '*'
+    verbs:
+    - '*'
+  - apiGroups: null
+    attributeRestrictions: null
+    nonResourceURLs:
+    - '*'
+    resources: []
+    verbs:
+    - '*'
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: cluster-reader
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - bindings
+    - buildconfigs
+    - buildconfigs/instantiate
+    - buildconfigs/instantiatebinary
+    - buildconfigs/webhooks
+    - buildlogs
+    - builds
+    - builds/clone
+    - builds/details
+    - builds/log
+    - clusternetworks
+    - clusterpolicies
+    - clusterpolicybindings
+    - clusterrolebindings
+    - clusterroles
+    - deploymentconfigrollbacks
+    - deploymentconfigs
+    - deploymentconfigs/log
+    - deploymentconfigs/scale
+    - deployments
+    - endpoints
+    - events
+    - generatedeploymentconfigs
+    - groups
+    - hostsubnets
+    - identities
+    - images
+    - imagestreamimages
+    - imagestreammappings
+    - imagestreams
+    - imagestreams/status
+    - imagestreamtags
+    - limitranges
+    - localresourceaccessreviews
+    - localsubjectaccessreviews
+    - minions
+    - namespaces
+    - netnamespaces
+    - nodes
+    - oauthclientauthorizations
+    - oauthclients
+    - persistentvolumeclaims
+    - persistentvolumes
+    - pods
+    - pods/log
+    - policies
+    - policybindings
+    - processedtemplates
+    - projectrequests
+    - projects
+    - replicationcontrollers
+    - resourceaccessreviews
+    - resourcequotas
+    - resourcequotausages
+    - rolebindings
+    - roles
+    - routes
+    - routes/status
+    - securitycontextconstraints
+    - serviceaccounts
+    - services
+    - subjectaccessreviews
+    - templateconfigs
+    - templates
+    - useridentitymappings
+    - users
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - horizontalpodautoscalers
+    - jobs
+    - replicationcontrollers/scale
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - resourceaccessreviews
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes/metrics
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes/stats
+    verbs:
+    - create
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    nonResourceURLs:
+    - '*'
+    resources: []
+    verbs:
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: admin
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - buildconfigs
+    - buildconfigs/instantiate
+    - buildconfigs/instantiatebinary
+    - buildconfigs/webhooks
+    - buildlogs
+    - builds
+    - builds/clone
+    - builds/custom
+    - builds/docker
+    - builds/log
+    - builds/source
+    - deploymentconfigrollbacks
+    - deploymentconfigs
+    - deploymentconfigs/log
+    - deploymentconfigs/scale
+    - deployments
+    - endpoints
+    - generatedeploymentconfigs
+    - imagestreamimages
+    - imagestreammappings
+    - imagestreams
+    - imagestreamtags
+    - localresourceaccessreviews
+    - localsubjectaccessreviews
+    - persistentvolumeclaims
+    - pods
+    - pods/attach
+    - pods/exec
+    - pods/log
+    - pods/portforward
+    - pods/proxy
+    - processedtemplates
+    - projects
+    - replicationcontrollers
+    - resourceaccessreviews
+    - rolebindings
+    - roles
+    - routes
+    - secrets
+    - serviceaccounts
+    - services
+    - subjectaccessreviews
+    - templateconfigs
+    - templates
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - horizontalpodautoscalers
+    - jobs
+    - replicationcontrollers/scale
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - bindings
+    - endpoints
+    - events
+    - imagestreams/status
+    - limitranges
+    - minions
+    - namespaces
+    - namespaces/status
+    - nodes
+    - persistentvolumeclaims
+    - persistentvolumes
+    - pods
+    - pods/log
+    - pods/status
+    - policies
+    - policybindings
+    - replicationcontrollers
+    - replicationcontrollers/status
+    - resourcequotas
+    - resourcequotas/status
+    - resourcequotausages
+    - routes/status
+    - securitycontextconstraints
+    - serviceaccounts
+    - services
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams/layers
+    verbs:
+    - get
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: edit
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - buildconfigs
+    - buildconfigs/instantiate
+    - buildconfigs/instantiatebinary
+    - buildconfigs/webhooks
+    - buildlogs
+    - builds
+    - builds/clone
+    - builds/custom
+    - builds/docker
+    - builds/log
+    - builds/source
+    - deploymentconfigrollbacks
+    - deploymentconfigs
+    - deploymentconfigs/log
+    - deploymentconfigs/scale
+    - deployments
+    - endpoints
+    - generatedeploymentconfigs
+    - imagestreamimages
+    - imagestreammappings
+    - imagestreams
+    - imagestreamtags
+    - persistentvolumeclaims
+    - pods
+    - pods/attach
+    - pods/exec
+    - pods/log
+    - pods/portforward
+    - pods/proxy
+    - processedtemplates
+    - replicationcontrollers
+    - routes
+    - secrets
+    - serviceaccounts
+    - services
+    - templateconfigs
+    - templates
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - horizontalpodautoscalers
+    - jobs
+    - replicationcontrollers/scale
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - bindings
+    - endpoints
+    - events
+    - imagestreams/status
+    - limitranges
+    - minions
+    - namespaces
+    - namespaces/status
+    - nodes
+    - persistentvolumeclaims
+    - persistentvolumes
+    - pods
+    - pods/log
+    - pods/status
+    - projects
+    - replicationcontrollers
+    - replicationcontrollers/status
+    - resourcequotas
+    - resourcequotas/status
+    - resourcequotausages
+    - routes/status
+    - securitycontextconstraints
+    - serviceaccounts
+    - services
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams/layers
+    verbs:
+    - get
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: view
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - bindings
+    - buildconfigs
+    - buildconfigs/instantiate
+    - buildconfigs/instantiatebinary
+    - buildconfigs/webhooks
+    - buildlogs
+    - builds
+    - builds/clone
+    - builds/log
+    - deploymentconfigrollbacks
+    - deploymentconfigs
+    - deploymentconfigs/log
+    - deploymentconfigs/scale
+    - deployments
+    - endpoints
+    - events
+    - generatedeploymentconfigs
+    - imagestreamimages
+    - imagestreammappings
+    - imagestreams
+    - imagestreams/status
+    - imagestreamtags
+    - limitranges
+    - minions
+    - namespaces
+    - namespaces/status
+    - nodes
+    - persistentvolumeclaims
+    - persistentvolumes
+    - pods
+    - pods/log
+    - pods/status
+    - processedtemplates
+    - projects
+    - replicationcontrollers
+    - replicationcontrollers/status
+    - resourcequotas
+    - resourcequotas/status
+    - resourcequotausages
+    - routes
+    - routes/status
+    - securitycontextconstraints
+    - serviceaccounts
+    - services
+    - templateconfigs
+    - templates
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - horizontalpodautoscalers
+    - jobs
+    verbs:
+    - get
+    - list
+    - watch
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: basic-user
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resourceNames:
+    - "~"
+    resources:
+    - users
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - projectrequests
+    verbs:
+    - list
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - clusterroles
+    verbs:
+    - get
+    - list
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - projects
+    verbs:
+    - list
+  - apiGroups: null
+    attributeRestrictions:
+      apiVersion: v1
+      kind: IsPersonalSubjectAccessReview
+    resources:
+    - localsubjectaccessreviews
+    - subjectaccessreviews
+    verbs:
+    - create
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: self-provisioner
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - projectrequests
+    verbs:
+    - create
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: cluster-status
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    nonResourceURLs:
+    - /api
+    - /api/
+    - /api/v1
+    - /api/v1/
+    - /apis
+    - /apis/
+    - /apis/extensions
+    - /apis/extensions/
+    - /apis/extensions/v1beta1
+    - /apis/extensions/v1beta1/
+    - /healthz
+    - /healthz/*
+    - /oapi
+    - /oapi/
+    - /oapi/v1
+    - /oapi/v1/
+    - /osapi
+    - /osapi/
+    - /version
+    resources: []
+    verbs:
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:image-puller
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams/layers
+    verbs:
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:image-pusher
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams/layers
+    verbs:
+    - get
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:image-builder
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams/layers
+    verbs:
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - builds/details
+    verbs:
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:image-pruner
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - images
+    verbs:
+    - delete
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - buildconfigs
+    - builds
+    - deploymentconfigs
+    - images
+    - imagestreams
+    - pods
+    - replicationcontrollers
+    verbs:
+    - get
+    - list
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams/status
+    verbs:
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:deployer
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
+    - get
+    - list
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods/log
+    verbs:
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:master
+  rules:
+  - apiGroups:
+    - '*'
+    attributeRestrictions: null
+    resources:
+    - '*'
+    verbs:
+    - '*'
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:oauth-token-deleter
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - oauthaccesstokens
+    - oauthauthorizetokens
+    verbs:
+    - delete
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:router
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - endpoints
+    - routes
+    verbs:
+    - list
+    - watch
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:registry
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - images
+    verbs:
+    - delete
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreamimages
+    - imagestreams
+    - imagestreamtags
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams
+    verbs:
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreammappings
+    verbs:
+    - create
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:node-proxier
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - endpoints
+    - services
+    verbs:
+    - list
+    - watch
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:node-admin
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - proxy
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes/log
+    - nodes/metrics
+    - nodes/stats
+    verbs:
+    - '*'
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:node-reader
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes/metrics
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes/stats
+    verbs:
+    - create
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:node
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - localsubjectaccessreviews
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - services
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - create
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes/status
+    verbs:
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods/status
+    verbs:
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - secrets
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims
+    - persistentvolumes
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - endpoints
+    verbs:
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:sdn-reader
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - hostsubnets
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - netnamespaces
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - clusternetworks
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - namespaces
+    verbs:
+    - get
+    - list
+    - watch
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:sdn-manager
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - hostsubnets
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - netnamespaces
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - clusternetworks
+    verbs:
+    - create
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:webhook
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - buildconfigs/webhooks
+    verbs:
+    - create
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:build-controller
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - builds
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - builds
+    verbs:
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:deployment-controller
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:hpa-controller
+  rules:
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - horizontalpodautoscalers
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - horizontalpodautoscalers/status
+    verbs:
+    - update
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers/scale
+    verbs:
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs/scale
+    verbs:
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - list
+  - apiGroups: null
+    attributeRestrictions: null
+    resourceNames:
+    - 'https:heapster:'
+    resources:
+    - services
+    verbs:
+    - proxy
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:job-controller
+  rules:
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - jobs
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - jobs/status
+    verbs:
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:pv-binder-controller
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes
+    verbs:
+    - create
+    - delete
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes/status
+    verbs:
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims
+    verbs:
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims/status
+    verbs:
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:pv-provisioner-controller
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes
+    verbs:
+    - create
+    - delete
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes/status
+    verbs:
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims
+    verbs:
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims/status
+    verbs:
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:pv-recycler-controller
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes
+    verbs:
+    - create
+    - delete
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes/status
+    verbs:
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims
+    verbs:
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims/status
+    verbs:
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:replication-controller
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers/status
+    verbs:
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+kind: List
+metadata: {}

@@ -38,19 +38,3 @@ func TestMissingPortMapping(t *testing.T) {
 		t.Fatalf("expected %s marker key, got %s", expected, got)
 	}
 }
-
-func TestMissingTLSTerminationType(t *testing.T) {
-	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/route-cruft.yaml")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	routeedges.AddAllRouteEdges(g)
-
-	markers := FindMissingTLSTerminationType(g)
-	if expected, got := 1, len(markers); expected != got {
-		t.Fatalf("expected %d markers, got %d", expected, got)
-	}
-	if expected, got := MissingTLSTerminationTypeErr, markers[0].Key; expected != got {
-		t.Fatalf("expected %s marker key, got %s", expected, got)
-	}
-}

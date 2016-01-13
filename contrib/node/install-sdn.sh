@@ -15,7 +15,7 @@ os::provision::install-sdn() {
   mkdir -p "${target}/bin/"
   pushd "${osdn_plugin_path}" > /dev/null
     cp -f ovs/bin/openshift-sdn-ovs "${target}/bin/"
-    cp -f ovs/bin/openshift-sdn-ovs-setup.sh "${target}/bin/"
+    cp -f ovs/bin/openshift-sdn-docker-setup.sh "${target}/bin/"
   popd > /dev/null
 
   # osdn plugin setup writes docker network options to

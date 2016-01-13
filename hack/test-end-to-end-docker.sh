@@ -55,7 +55,8 @@ function cleanup()
 		set -u
 	fi
 
-	delete_large_and_empty_logs
+	delete_empty_logs
+	truncate_large_logs
 	set -e
 
 	echo "[INFO] Exiting"
@@ -77,11 +78,13 @@ out=$(
 echo "[INFO] `openshift version`"
 echo "[INFO] Using images:							${USE_IMAGES}"
 
+mkdir -p /tmp/openshift-e2e/etcd || true
+
 echo "[INFO] Starting OpenShift containerized server"
 sudo docker run -d --name="origin" \
 	--privileged --net=host --pid=host \
 	-v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker:/var/lib/docker:rw \
-	-v "${VOLUME_DIR}:${VOLUME_DIR}" \
+	-v "${VOLUME_DIR}:${VOLUME_DIR}" -v /tmp/openshift-e2e/etcd:/var/lib/origin/openshift.local.etcd:rw \
 	"openshift/origin:${TAG}" start --loglevel=4 --volume-dir=${VOLUME_DIR} --images="${USE_IMAGES}"
 
 

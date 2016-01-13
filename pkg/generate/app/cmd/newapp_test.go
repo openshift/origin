@@ -993,13 +993,10 @@ func TestRunAll(t *testing.T) {
 
 func TestRunBuilds(t *testing.T) {
 	skipExternalGit(t)
-	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10 * time.Second),
-	}
-
 	tests := []struct {
-		name        string
-		config      *AppConfig
+		name   string
+		config *AppConfig
+
 		expected    map[string][]string
 		expectedErr func(error) bool
 		checkResult func(*AppResult) error
@@ -1011,31 +1008,6 @@ func TestRunBuilds(t *testing.T) {
 				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
 				DockerImages:       []string{"centos/ruby-22-centos7", "centos/mongodb-26-centos7"},
 				OutputDocker:       true,
-
-				dockerSearcher: dockerSearcher,
-				imageStreamSearcher: app.ImageStreamSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				templateSearcher: app.TemplateSearcher{
-					Client: &client.Fake{},
-					TemplateConfigsNamespacer: &client.Fake{},
-					Namespaces:                []string{"openshift", "default"},
-				},
-
-				detector: app.SourceRepositoryEnumerator{
-					Detectors: source.DefaultDetectors,
-					Tester:    dockerfile.NewTester(),
-				},
-				typer:           kapi.Scheme,
-				osclient:        &client.Fake{},
-				originNamespace: "default",
 			},
 			expected: map[string][]string{
 				// TODO: this test used to silently ignore components that were not builders (i.e. user input)
@@ -1048,31 +1020,6 @@ func TestRunBuilds(t *testing.T) {
 			name: "successful build from dockerfile",
 			config: &AppConfig{
 				Dockerfile: "FROM openshift/origin:v1.0.6\nUSER foo",
-
-				dockerSearcher: dockerSearcher,
-				imageStreamSearcher: app.ImageStreamSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				templateSearcher: app.TemplateSearcher{
-					Client: &client.Fake{},
-					TemplateConfigsNamespacer: &client.Fake{},
-					Namespaces:                []string{"openshift", "default"},
-				},
-
-				detector: app.SourceRepositoryEnumerator{
-					Detectors: source.DefaultDetectors,
-					Tester:    dockerfile.NewTester(),
-				},
-				typer:           kapi.Scheme,
-				osclient:        &client.Fake{},
-				originNamespace: "default",
 			},
 			expected: map[string][]string{
 				"buildConfig": {"origin"},
@@ -1086,31 +1033,6 @@ func TestRunBuilds(t *testing.T) {
 			config: &AppConfig{
 				Dockerfile: "FROM centos",
 				NoOutput:   true,
-
-				dockerSearcher: dockerSearcher,
-				imageStreamSearcher: app.ImageStreamSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				templateSearcher: app.TemplateSearcher{
-					Client: &client.Fake{},
-					TemplateConfigsNamespacer: &client.Fake{},
-					Namespaces:                []string{"openshift", "default"},
-				},
-
-				detector: app.SourceRepositoryEnumerator{
-					Detectors: source.DefaultDetectors,
-					Tester:    dockerfile.NewTester(),
-				},
-				typer:           kapi.Scheme,
-				osclient:        &client.Fake{},
-				originNamespace: "default",
 			},
 			expected: map[string][]string{
 				"buildConfig": {"centos"},
@@ -1136,31 +1058,6 @@ func TestRunBuilds(t *testing.T) {
 			config: &AppConfig{
 				Dockerfile: "FROM openshift/origin-base\nUSER foo",
 				Name:       "foobar",
-
-				dockerSearcher: dockerSearcher,
-				imageStreamSearcher: app.ImageStreamSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				templateSearcher: app.TemplateSearcher{
-					Client: &client.Fake{},
-					TemplateConfigsNamespacer: &client.Fake{},
-					Namespaces:                []string{"openshift", "default"},
-				},
-
-				detector: app.SourceRepositoryEnumerator{
-					Detectors: source.DefaultDetectors,
-					Tester:    dockerfile.NewTester(),
-				},
-				typer:           kapi.Scheme,
-				osclient:        &client.Fake{},
-				originNamespace: "default",
 			},
 			expected: map[string][]string{
 				"buildConfig": {"foobar"},
@@ -1173,31 +1070,6 @@ func TestRunBuilds(t *testing.T) {
 				Dockerfile: "FROM openshift/origin-base\nUSER foo",
 				Name:       "foobar",
 				To:         "destination/reference:tag",
-
-				dockerSearcher: dockerSearcher,
-				imageStreamSearcher: app.ImageStreamSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				templateSearcher: app.TemplateSearcher{
-					Client: &client.Fake{},
-					TemplateConfigsNamespacer: &client.Fake{},
-					Namespaces:                []string{"openshift", "default"},
-				},
-
-				detector: app.SourceRepositoryEnumerator{
-					Detectors: source.DefaultDetectors,
-					Tester:    dockerfile.NewTester(),
-				},
-				typer:           kapi.Scheme,
-				osclient:        &client.Fake{},
-				originNamespace: "default",
 			},
 			expected: map[string][]string{
 				"buildConfig": {"foobar"},
@@ -1211,31 +1083,6 @@ func TestRunBuilds(t *testing.T) {
 				Name:         "foobar",
 				To:           "destination/reference:tag",
 				OutputDocker: true,
-
-				dockerSearcher: dockerSearcher,
-				imageStreamSearcher: app.ImageStreamSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				templateSearcher: app.TemplateSearcher{
-					Client: &client.Fake{},
-					TemplateConfigsNamespacer: &client.Fake{},
-					Namespaces:                []string{"openshift", "default"},
-				},
-
-				detector: app.SourceRepositoryEnumerator{
-					Detectors: source.DefaultDetectors,
-					Tester:    dockerfile.NewTester(),
-				},
-				typer:           kapi.Scheme,
-				osclient:        &client.Fake{},
-				originNamespace: "default",
 			},
 			expected: map[string][]string{
 				"buildConfig": {"foobar"},
@@ -1264,31 +1111,6 @@ func TestRunBuilds(t *testing.T) {
 			config: &AppConfig{
 				Dockerfile: "FROM centos\nRUN yum install -y httpd",
 				To:         "centos",
-
-				dockerSearcher: dockerSearcher,
-				imageStreamSearcher: app.ImageStreamSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				templateSearcher: app.TemplateSearcher{
-					Client: &client.Fake{},
-					TemplateConfigsNamespacer: &client.Fake{},
-					Namespaces:                []string{"openshift", "default"},
-				},
-
-				detector: app.SourceRepositoryEnumerator{
-					Detectors: source.DefaultDetectors,
-					Tester:    dockerfile.NewTester(),
-				},
-				typer:           kapi.Scheme,
-				osclient:        &client.Fake{},
-				originNamespace: "default",
 			},
 			expected: map[string][]string{
 				"buildConfig": {"centos"},
@@ -1307,14 +1129,45 @@ func TestRunBuilds(t *testing.T) {
 			},
 		},
 		{
+			name: "successful generation of BC with multiple sources: repo + Dockerfile",
+			config: &AppConfig{
+				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
+				Dockerfile:         "FROM centos/ruby-22-centos7\nRUN false",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"ruby-hello-world"},
+				"imageStream": {"ruby-22-centos7", "ruby-hello-world"},
+			},
+			checkResult: func(res *AppResult) error {
+				var bc *buildapi.BuildConfig
+				for _, item := range res.List.Items {
+					switch v := item.(type) {
+					case *buildapi.BuildConfig:
+						if bc != nil {
+							return fmt.Errorf("want one BuildConfig got multiple: %#v", res.List.Items)
+						}
+						bc = v
+					}
+				}
+				if bc == nil {
+					return fmt.Errorf("want one BuildConfig got none: %#v", res.List.Items)
+				}
+				var got string
+				if bc.Spec.Source.Dockerfile != nil {
+					got = *bc.Spec.Source.Dockerfile
+				}
+				want := "FROM centos/ruby-22-centos7\nRUN false"
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Dockerfile = %q; want %q", got, want)
+				}
+				return nil
+			},
+		},
+		{
 			name: "unsuccessful build from dockerfile due to strategy conflict",
 			config: &AppConfig{
 				Dockerfile: "FROM openshift/origin-base\nUSER foo",
 				Strategy:   "source",
-
-				typer:           kapi.Scheme,
-				osclient:        &client.Fake{},
-				originNamespace: "default",
 			},
 			expectedErr: func(err error) bool {
 				return err.Error() == "when directly referencing a Dockerfile, the strategy must must be 'docker'"
@@ -1325,10 +1178,6 @@ func TestRunBuilds(t *testing.T) {
 			config: &AppConfig{
 				Dockerfile: "USER foo",
 				Strategy:   "docker",
-
-				typer:           kapi.Scheme,
-				osclient:        &client.Fake{},
-				originNamespace: "default",
 			},
 			expectedErr: func(err error) bool {
 				return err.Error() == "the Dockerfile in the repository \"\" has no FROM instruction"
@@ -1338,31 +1187,6 @@ func TestRunBuilds(t *testing.T) {
 			name: "unsuccessful build from dockerfile due to identical input and output image references",
 			config: &AppConfig{
 				Dockerfile: "FROM centos\nRUN yum install -y httpd",
-
-				dockerSearcher: dockerSearcher,
-				imageStreamSearcher: app.ImageStreamSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				templateSearcher: app.TemplateSearcher{
-					Client: &client.Fake{},
-					TemplateConfigsNamespacer: &client.Fake{},
-					Namespaces:                []string{"openshift", "default"},
-				},
-
-				detector: app.SourceRepositoryEnumerator{
-					Detectors: source.DefaultDetectors,
-					Tester:    dockerfile.NewTester(),
-				},
-				typer:           kapi.Scheme,
-				osclient:        &client.Fake{},
-				originNamespace: "default",
 			},
 			expectedErr: func(err error) bool {
 				e := app.CircularOutputReferenceError{
@@ -1373,13 +1197,23 @@ func TestRunBuilds(t *testing.T) {
 				return err.Error() == fmt.Errorf("%v, please specify a different output reference with --to", e).Error()
 			},
 		},
+		{
+			name: "unsuccessful generation of BC with multiple repos and Dockerfile",
+			config: &AppConfig{
+				SourceRepositories: []string{
+					"https://github.com/openshift/ruby-hello-world",
+					"https://github.com/openshift/django-ex",
+				},
+				Dockerfile: "FROM centos/ruby-22-centos7\nRUN false",
+			},
+			expectedErr: func(err error) bool {
+				return err.Error() == "--dockerfile cannot be used with multiple source repositories"
+			},
+		},
 	}
-
 	for _, test := range tests {
-		var stdout, stderr bytes.Buffer
-		test.config.refBuilder = &app.ReferenceBuilder{}
-		test.config.Out, test.config.ErrOut = &stdout, &stderr
-		test.config.ExpectToBuild = true
+		stdout, stderr := PrepareAppConfig(test.config)
+
 		res, err := test.config.Run()
 		if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
@@ -1389,7 +1223,7 @@ func TestRunBuilds(t *testing.T) {
 			continue
 		}
 		if test.checkOutput != nil {
-			if err := test.checkOutput(&stdout, &stderr); err != nil {
+			if err := test.checkOutput(stdout, stderr); err != nil {
 				t.Error(err)
 				continue
 			}
@@ -1426,10 +1260,42 @@ func TestRunBuilds(t *testing.T) {
 
 		if test.checkResult != nil {
 			if err := test.checkResult(res); err != nil {
-				t.Error(err)
+				t.Errorf("%s: unexpected result: %v", test.name, err)
 			}
 		}
 	}
+}
+
+// PrepareAppConfig sets fields in config appropriate for running tests. It
+// returns two buffers bound to stdout and stderr.
+func PrepareAppConfig(config *AppConfig) (stdout, stderr *bytes.Buffer) {
+	config.ExpectToBuild = true
+	stdout, stderr = new(bytes.Buffer), new(bytes.Buffer)
+	config.Out, config.ErrOut = stdout, stderr
+
+	config.detector = app.SourceRepositoryEnumerator{
+		Detectors: source.DefaultDetectors,
+		Tester:    dockerfile.NewTester(),
+	}
+	config.dockerSearcher = app.DockerRegistrySearcher{
+		Client: dockerregistry.NewClient(10 * time.Second),
+	}
+	config.imageStreamByAnnotationSearcher = &app.ImageStreamByAnnotationSearcher{
+		Client:            &client.Fake{},
+		ImageStreamImages: &client.Fake{},
+		Namespaces:        []string{"default"},
+	}
+	config.imageStreamSearcher = fakeImageStreamSearcher()
+	config.originNamespace = "default"
+	config.osclient = &client.Fake{}
+	config.refBuilder = &app.ReferenceBuilder{}
+	config.templateSearcher = app.TemplateSearcher{
+		Client: &client.Fake{},
+		TemplateConfigsNamespacer: &client.Fake{},
+		Namespaces:                []string{"openshift", "default"},
+	}
+	config.typer = kapi.Scheme
+	return
 }
 
 func TestNewBuildEnvVars(t *testing.T) {

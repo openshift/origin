@@ -282,7 +282,7 @@ install -d -m 0755 %{buildroot}%{_unitdir}/docker.service.d
 install -p -m 0644 contrib/systemd/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
 pushd _thirdpartyhacks/src/%{sdn_import_path}/plugins/osdn/ovs/bin
    install -p -m 755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
-   install -p -m 755 openshift-sdn-ovs-setup.sh %{buildroot}%{_bindir}/openshift-sdn-ovs-setup.sh
+   install -p -m 755 openshift-sdn-docker-setup.sh %{buildroot}%{_bindir}/openshift-sdn-docker-setup.sh
 popd
 install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
 install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
@@ -405,7 +405,7 @@ fi
 %dir %{_unitdir}/docker.service.d/
 %dir %{_unitdir}/%{name}-node.service.d/
 %{_bindir}/openshift-sdn-ovs
-%{_bindir}/openshift-sdn-ovs-setup.sh
+%{_bindir}/openshift-sdn-docker-setup.sh
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 %{_unitdir}/docker.service.d/docker-sdn-ovs.conf
 

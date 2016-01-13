@@ -87,6 +87,13 @@
               {
                 "name": "mongodb",
                 "image": "mongodb",
+                "readinessProbe": {
+                    "tcpSocket":{
+                        "port": 27017
+                    },
+                    "initialDelaySeconds": 15,
+                    "timeoutSeconds": 1
+                },
                 "ports": [
                   {
                     "containerPort": 27017,

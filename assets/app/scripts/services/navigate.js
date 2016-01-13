@@ -126,7 +126,8 @@ angular.module("openshiftConsole")
           'pod': 'pods',
           'replicationcontroller': 'deployments',
           'route': 'routes',
-          'service': 'services'
+          'service': 'services',
+          'persistentvolumeclaim': 'storage'
         };
 
         var redirect = URI.expand("project/{projectName}/browse/{browsePath}", {

@@ -131,14 +131,14 @@
             "from": {
               "kind": "ImageStreamTag",
               "name": "ruby-22-centos7:latest"
-            }
-          },
-          "env": [
-            {
-              "name": "EXAMPLE",
-              "value": "sample-app"
-            }
-          ]
+            },
+            "env": [
+              {
+                "name": "EXAMPLE",
+                "value": "sample-app"
+              }
+            ]
+          }
         },
         "output": {
           "to": {

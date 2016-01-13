@@ -259,17 +259,8 @@ func (s *rsyncDaemonStrategy) Validate() error {
 }
 
 func newRsyncDaemonStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
-	// TODO: Expose more flags to send to the rsync command
-	// either as a special argument or any unrecognized arguments.
 	flags := []string{"-a", "--omit-dir-times", "--numeric-ids"}
-	if o.Quiet {
-		flags = append(flags, "-q")
-	} else {
-		flags = append(flags, "-v")
-	}
-	if o.Delete {
-		flags = append(flags, "--delete")
-	}
+	flags = append(flags, rsyncFlagsFromOptions(o)...)
 
 	remoteExec, err := newRemoteExecutor(f, o)
 	if err != nil {

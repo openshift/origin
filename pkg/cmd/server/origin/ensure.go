@@ -144,7 +144,8 @@ func (c *MasterConfig) ensureNamespaceServiceAccountRoleBindings(namespace *kapi
 		namespace.Annotations = map[string]string{}
 	}
 	namespace.Annotations[ServiceAccountRolesInitializedAnnotation] = "true"
-	if _, err := c.KubeClient().Namespaces().Update(namespace); err != nil {
+	// Log any error other than a conflict (the update will be retried and recorded again on next startup in that case)
+	if _, err := c.KubeClient().Namespaces().Update(namespace); err != nil && !kapierror.IsConflict(err) {
 		glog.Errorf("Error recording adding service account roles to %q namespace: %v", namespace.Name, err)
 	}
 }

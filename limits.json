@@ -1,0 +1,39 @@
+{
+    "kind": "LimitRange",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "limits",
+        "creationTimestamp": null
+    },
+    "spec": {
+        "limits": [
+            {
+                "type": "Pod",
+                "max": {
+                    "cpu": "500m",
+                    "memory": "750Mi"
+                },
+                "min": {
+                    "cpu": "10m",
+                    "memory": "5Mi"
+                }
+            },
+            {
+                "type": "Container",
+                "max": {
+                    "cpu": "500m",
+                    "memory": "750Mi"
+                },
+                "min": {
+                    "cpu": "10m",
+                    "memory": "5Mi"
+                },
+                "default": {
+                    "cpu": "100m",
+                    "memory": "100Mi"
+                }
+            }
+        ]
+    }
+}
+
