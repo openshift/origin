@@ -456,7 +456,7 @@ function kill_all_processes()
 
 	pids=($(jobs -pr))
 	for i in ${pids[@]-}; do
-		ps --ppid=${i} | xargs $sudo kill &> /dev/null
+		pgrep -P ${i} | xargs $sudo kill &> /dev/null
 		$sudo kill ${i} &> /dev/null
 	done
 }
