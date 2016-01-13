@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 92cb98f279daf1bbba2c9183a5b4e86fab01e5b7
+%global commit 05d5bc57c622b8a9cfe7a9f5ac31c63ea69a79f4
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.0-112-g92cb98f -X github.com/openshift/origin/pkg/version.commitFromGit 92cb98f -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.1-83-g05d5bc5 -X github.com/openshift/origin/pkg/version.commitFromGit 05d5bc5 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.1
+Version:        3.1.1.2
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -466,6 +466,57 @@ fi
 
 
 %changelog
+* Wed Jan 13 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.2
+- Wait for access tokens to be available in clustered etcd
+  (jliggitt@redhat.com)
+- Add a new image to be used for testing (ccoleman@redhat.com)
+- Bug 1263609 - fix oc rsh usage (ffranz@redhat.com)
+- Fix HPA default policy (jliggitt@redhat.com)
+- oc rsync: expose additional rsync flags (cewong@redhat.com)
+- Bug 1248463 - fixes exec help (ffranz@redhat.com)
+- Bug 1273708 - mark --all in oc export deprecated in help (ffranz@redhat.com)
+- Fix tests for route validation changes (mkargaki@redhat.com)
+- Make new-build output BC with multiple sources (rhcarvalho@gmail.com)
+- Remove code duplication (rhcarvalho@gmail.com)
+- Require tls termination in route tls configuration (mkargaki@redhat.com)
+- Fix nw extended test support for skipping build (marun@redhat.com)
+- Fix broken switch in usageWithUnits filter (spadgett@redhat.com)
+- UPSTREAM: 19481: make patch call update admission chain after applying the
+  patch (deads@redhat.com)
+- diagnostics: logs and units for origin (lmeyer@redhat.com)
+- Update java console to 1.0.39 (slewis@fusesource.com)
+- extended tests for jenkins openshift V3 plugin (gmontero@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  da8ad5dc5c94012eb222221d909b2b6fa678500f (dcbw@redhat.com)
+- Update for openshift-sdn script installation changes (danw@redhat.com)
+- use direct mount for etcd data (deads@redhat.com)
+- mark image input source as experimental (bparees@redhat.com)
+- made large file behavior smarter (skuznets@redhat.com)
+- Revert "Allow parallel image stream importing" (jordan@liggitt.net)
+- version now updates FROM (tdawson@redhat.com)
+- Fix deployment CLI ops link and make all doc links https
+  (jforrest@redhat.com)
+- Fix detection of Python projects (rhcarvalho@gmail.com)
+- add probe for mongodb template (haowang@redhat.com)
+- deal with RawPath field added to url.URL in go1.5 (gmontero@redhat.com)
+- Include kube e2e service tests in networking suite (marun@redhat.com)
+- Fix replication controller usage in kube e2e tests (marun@redhat.com)
+- Enable openshift-sdn sdn node by default (marun@redhat.com)
+- Fix dind compatibility with centos/rhel (marun@redhat.com)
+- Fix dind compatibility with centos/rhel (marun@redhat.com)
+- added junitreport tool (skuznets@redhat.com)
+- diagnostics: list diagnostic names in long desc (lmeyer@redhat.com)
+- Increase web console e2e login timeout (spadgett@redhat.com)
+- Persistent volume claims on the web console (ffranz@redhat.com)
+- update extended test to point to correct version tool (skuznets@redhat.com)
+- add warning about root user in images (bparees@redhat.com)
+- allow parallel image streams (deads@redhat.com)
+- Suppress conflict error logging when adding SA role bindings
+  (jliggitt@redhat.com)
+- BuildConfig envVars in wrong structure in sti build template
+  (jhadvig@redhat.com)
+- Remove unnecessary type conversions (rhcarvalho@gmail.com)
+
 * Thu Jan 07 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.1
 - add option --insecure for oc import-image
   (haoran@dhcp-129-204.nay.redhat.com)
