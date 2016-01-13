@@ -291,6 +291,27 @@ _openshift_start_node()
     must_have_one_noun=()
 }
 
+_openshift_start_etcd()
+{
+    last_command="openshift_start_etcd"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("__handle_filename_extension_flag yaml|yml")
+    flags+=("--google-json-key=")
+    flags+=("--log-flush-frequency=")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--config=")
+    must_have_one_noun=()
+}
+
 _openshift_start_kubernetes_apiserver()
 {
     last_command="openshift_start_kubernetes_apiserver"
@@ -743,6 +764,7 @@ _openshift_start()
     commands=()
     commands+=("master")
     commands+=("node")
+    commands+=("etcd")
     commands+=("kubernetes")
 
     flags=()
