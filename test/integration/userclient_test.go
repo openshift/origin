@@ -10,6 +10,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/runtime"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/types"
 
@@ -94,19 +95,19 @@ func TestUserInitialization(t *testing.T) {
 	userRegistry := userregistry.NewRegistry(useretcd.NewREST(etcdHelper))
 	identityRegistry := identityregistry.NewRegistry(identityetcd.NewREST(etcdHelper))
 
-	lookup, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodLookup)
+	lookup, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodLookup, &runtime.EmbeddedObject{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	generate, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodGenerate)
+	generate, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodGenerate, &runtime.EmbeddedObject{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	add, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodAdd)
+	add, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodAdd, &runtime.EmbeddedObject{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	claim, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodClaim)
+	claim, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodClaim, &runtime.EmbeddedObject{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
