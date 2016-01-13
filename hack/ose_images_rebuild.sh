@@ -80,6 +80,7 @@ update_dockerfile() {
   do
     if [ "${update_version}" == "TRUE" ] ; then
       sed -i -e "s/Version=\"v[0-9]*.[0-9]*.[0-9]*.[0-9]*\"/Version=\"v${version_version}\"/" ${line}
+      sed -i -e "s/FROM \(.*\):v.*/FROM \1:v${version_version}/" ${line}
     fi
     if [ "${update_release}" == "TRUE" ] ; then
       sed -i -e "s/Release=\"[0-9]*\"/Release=\"${release_version}\"/" ${line}
@@ -118,15 +119,15 @@ check_builds() {
       echo "=== ${package} IMAGE BUILD FAILED ==="
       echo " exiting"
       mv ${line} ${package}.watchlog done/
-      exit 23
+      #break 9
     fi
     if grep -q -e "buildContainer (noarch) completed successfully" ${line} ; then
       package=`echo ${line} | cut -d'.' -f1`
-      echo "=== ${package} IMAGE COMPLETED ==="
+      echo "==== ${package} IMAGE COMPLETED ===="
       if grep "No package" ${package}.watchlog ; then
-        echo "  ERROR IN IMAGE for ${package}"
-        # echo "  exiting"
-        # exit 25
+        echo "===== ${package}: ERRORS IN COMPLETED IMAGE see above ====="
+        #echo "  exiting so we do not build more images based on this bad image"
+        #break 9
       fi
       echo "::${package}::" >> ${workingdir}/logs/finished
       mv ${line} ${package}.watchlog done/
@@ -175,7 +176,7 @@ build_image() {
       echo " error"
       echo "=== ${container} IMAGE BUILD FAILED ==="
       echo "  exiting"
-      exit 23
+      #break 9
     fi
     taskid=`grep createContainer ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
   done
@@ -243,8 +244,6 @@ case $key in
     everything_base | git_update_base | build_container_base)
       export list="${base_images_list}"
       export action="${key}"
-      echo "$action :: ${list}"
-      echo "What?"
       ;;
     everything_s2i|git_update_s2i|build_container_s2i)
       export list="${s2i_images_list}"
@@ -286,11 +285,11 @@ workingdir=$(mktemp -d /var/tmp/rebuild-images-XXXXXX)
 pushd "${workingdir}" &>/dev/null
 mkdir -p logs/done
 echo "::None::" >> logs/finished
+touch logs/finished
 echo "Using working directory: ${workingdir}"
 
-echo "${list}"
-
-echo "${list}" | while read spec ; do
+echo "${list}" | while read spec
+do
   [ -z "$spec" ] && continue
   export container=$(echo "$spec" | awk '{print $1}')
   export dependency=$(echo "$spec" | awk '{print $2}')
@@ -308,7 +307,9 @@ echo "${list}" | while read spec ; do
       git_update
       build_container
       ;;
-    * ) usage ;;
+    * )
+      usage
+      ;;
   esac
 done
 

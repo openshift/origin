@@ -70,11 +70,12 @@ add_ovs_flows() {
 
 del_ovs_flows() {
     ovs-ofctl -O OpenFlow13 del-flows br0 "ip,nw_dst=${ipaddr}"
+    ovs-ofctl -O OpenFlow13 del-flows br0 "ip,nw_src=${ipaddr}"
     ovs-ofctl -O OpenFlow13 del-flows br0 "arp,nw_dst=${ipaddr}"
 }
 
 add_subnet_route() {
-    source /etc/openshift-sdn/config.env
+    source /run/openshift-sdn/config.env
     local subnet_route="ip route add ${OPENSHIFT_CLUSTER_SUBNET} dev eth0 proto kernel scope link src $ipaddr"
     nsenter -n -t $pid -- $subnet_route
 }

@@ -11,6 +11,8 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	gorillahandlers "github.com/gorilla/handlers"
+
 	"github.com/Sirupsen/logrus/formatters/logstash"
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
@@ -18,11 +20,14 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/auth"
 	"github.com/docker/distribution/registry/handlers"
-	_ "github.com/docker/distribution/registry/storage/driver/filesystem"
-	_ "github.com/docker/distribution/registry/storage/driver/s3"
 	"github.com/docker/distribution/uuid"
 	"github.com/docker/distribution/version"
-	gorillahandlers "github.com/gorilla/handlers"
+
+	_ "github.com/docker/distribution/registry/auth/htpasswd"
+	_ "github.com/docker/distribution/registry/auth/token"
+	_ "github.com/docker/distribution/registry/storage/driver/filesystem"
+	_ "github.com/docker/distribution/registry/storage/driver/s3"
+
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/dockerregistry/server"
 )

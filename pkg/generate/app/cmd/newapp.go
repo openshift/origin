@@ -255,19 +255,44 @@ func (c *AppConfig) individualSourceRepositories() (app.SourceRepositories, erro
 		}
 	}
 	if len(c.Dockerfile) > 0 {
-		switch {
-		case c.Strategy == "docker", len(c.Strategy) == 0:
-		default:
-			return nil, fmt.Errorf("when directly referencing a Dockerfile, the strategy must must be 'docker'")
+		if err := c.addDockerfile(); err != nil {
+			return nil, err
 		}
-		repo, err := app.NewSourceRepositoryForDockerfile(c.Dockerfile)
-		if err != nil {
-			return nil, fmt.Errorf("provided Dockerfile is not valid: %v", err)
-		}
-		c.refBuilder.AddExistingSourceRepository(repo)
 	}
 	_, repos, errs := c.refBuilder.Result()
 	return repos, errors.NewAggregate(errs)
+}
+
+// addDockerfile adds a Dockerfile passed in the command line to the reference
+// builder.
+func (c *AppConfig) addDockerfile() error {
+	if len(c.Strategy) != 0 && c.Strategy != "docker" {
+		return fmt.Errorf("when directly referencing a Dockerfile, the strategy must must be 'docker'")
+	}
+	_, repos, errs := c.refBuilder.Result()
+	if err := errors.NewAggregate(errs); err != nil {
+		return err
+	}
+	switch len(repos) {
+	case 0:
+		// Create a new SourceRepository with the Dockerfile.
+		repo, err := app.NewSourceRepositoryForDockerfile(c.Dockerfile)
+		if err != nil {
+			return fmt.Errorf("provided Dockerfile is not valid: %v", err)
+		}
+		c.refBuilder.AddExistingSourceRepository(repo)
+	case 1:
+		// Add the Dockerfile to the existing SourceRepository, so that
+		// eventually we generate a single BuildConfig with multiple
+		// sources.
+		if err := repos[0].AddDockerfile(c.Dockerfile); err != nil {
+			return fmt.Errorf("provided Dockerfile is not valid: %v", err)
+		}
+	default:
+		// Invalid.
+		return fmt.Errorf("--dockerfile cannot be used with multiple source repositories")
+	}
+	return nil
 }
 
 // set up the components to be used by the reference builder

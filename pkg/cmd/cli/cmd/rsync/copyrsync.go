@@ -27,7 +27,7 @@ type rsyncStrategy struct {
 	RemoteExecutor executor
 }
 
-var rshExcludeFlags = sets.NewString("delete", "strategy", "quiet")
+var rshExcludeFlags = sets.NewString("delete", "strategy", "quiet", "include", "exclude", "progress", "no-perms")
 
 func newRsyncStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
 	// Determine the rsh command to pass to the local rsync command
@@ -48,19 +48,10 @@ func newRsyncStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (
 		return nil, err
 	}
 
-	// TODO: Expose more flags to send to the rsync command
-	// either as a special argument or any unrecognized arguments.
 	// The blocking-io flag is used to resolve a sync issue when
 	// copying from the pod to the local machine
 	flags := []string{"-a", "--blocking-io", "--omit-dir-times", "--numeric-ids"}
-	if o.Quiet {
-		flags = append(flags, "-q")
-	} else {
-		flags = append(flags, "-v")
-	}
-	if o.Delete {
-		flags = append(flags, "--delete")
-	}
+	flags = append(flags, rsyncFlagsFromOptions(o)...)
 
 	return &rsyncStrategy{
 		Flags:          flags,

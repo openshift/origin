@@ -109,6 +109,7 @@ angular.module('openshiftConsole')
       var unit = split[2];
       switch(type) {
         case "memory":
+        case "storage":
           unit += "B";
           break;
         case "cpu":
@@ -140,8 +141,10 @@ angular.module('openshiftConsole')
           return "http://docs.openshift.com/enterprise/latest/cli_reference/basic_cli_operations.html#build-and-deployment-cli-operations";
         case "route-types":
           return "https://docs.openshift.com/enterprise/latest/architecture/core_concepts/routes.html#route-types";
+        case "persistent_volumes":
+          return "https://docs.openshift.org/enterprise/latest/dev_guide/persistent_volumes.html";
         default:
-          return "http://docs.openshift.com/enterprise/latest/welcome/index.html";
+          return "https://docs.openshift.com/enterprise/latest/welcome/index.html";
       }
     };
   })
@@ -340,5 +343,52 @@ angular.module('openshiftConsole')
   .filter('navigateResourceURL', function(Navigate) {
     return function(resource, kind, namespace) {
       return Navigate.resourceURL(resource, kind, namespace);
+    };
+  })
+  .filter('join', function() {
+    return function(array, separator) {
+      if (!separator) {
+        separator = ',';
+      }
+      return array.join(separator);
+    };
+  })
+  .filter('generateName', function() {
+    return function(prefix, length) {
+      if (!prefix) {
+        prefix = "";
+      }
+      if (!length) {
+        length = 5;
+      }
+      var randomString = Math.round((Math.pow(36, length + 1) - Math.random() * Math.pow(36, length))).toString(36).slice(1);
+      return prefix + randomString;
+    };
+  })
+  .filter('accessModes', function() {
+    return function(value, format) {
+      if (!value) {
+        return value;
+      }  
+      var accessModes = [];
+      angular.forEach(value, function(item) {
+        var accessModeString;
+        var longForm = format === "long";
+        switch(item) {
+          case "ReadWriteOnce":
+            accessModeString = longForm ? "RWO (Read-Write-Once)" : "Read-Write-Once";
+            break;
+          case "ReadOnlyMany":
+            accessModeString = longForm ? "ROX (Read-Only-Many)" : "Read-Only-Many";
+            break;
+          case "ReadWriteMany":
+            accessModeString = longForm ? "RWX (Read-Write-Many)" : "Read-Write-Many";
+            break;
+          default:
+            accessModeString = item;
+        }
+        accessModes.push(accessModeString);
+      });
+      return _.uniq(accessModes);
     };
   });

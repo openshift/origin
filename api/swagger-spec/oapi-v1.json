@@ -14705,7 +14705,7 @@
      },
      "image": {
       "$ref": "v1.ImageSource",
-      "description": "optional image build source"
+      "description": "optional image build source.  EXPERIMENTAL: This will be changing to an array of images in the near future and no migration/compatibility will be provided.  Use at your own risk."
      },
      "contextDir": {
       "type": "string",
@@ -18705,10 +18705,13 @@
    },
    "v1.TLSConfig": {
     "id": "v1.TLSConfig",
+    "required": [
+     "termination"
+    ],
     "properties": {
      "termination": {
       "type": "string",
-      "description": "indicates termination type.  if not set, any termination config will be ignored"
+      "description": "indicates termination type"
      },
      "certificate": {
       "type": "string",

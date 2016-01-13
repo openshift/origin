@@ -189,7 +189,9 @@ var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
 func WaitForADeployment(client kclient.ReplicationControllerInterface,
 	name string,
 	isOK, isFailed func(*kapi.ReplicationController) bool) error {
-	for {
+	startTime := time.Now()
+	endTime := startTime.Add(15 * time.Minute)
+	for time.Now().Before(endTime) {
 		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, labels.EqualsOperator, sets.NewString(name))
 		if err != nil {
 			return fmt.Errorf("unexpected error generating label selector: %v", err)
@@ -233,6 +235,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 			}
 		}
 	}
+	return fmt.Errorf("the deploy did not finish within 3 minutes")
 }
 
 // CheckDeploymentCompletedFn returns true if the deployment completed

@@ -27,7 +27,6 @@ NETWORK_PLUGIN=${OPENSHIFT_NETWORK_PLUGIN:-""}
 NODE_INDEX=0
 CONFIG_ROOT=${ORIGIN_ROOT}
 SKIP_BUILD=${OPENSHIFT_SKIP_BUILD:-false}
-SDN_NODE=${OPENSHIFT_SDN_NODE_ON_MASTER:-false}
 
 # Parse optional arguments
 # Skip the positional arguments
@@ -49,9 +48,6 @@ while getopts ":i:n:c:fs" opt; do
     s)
       SKIP_BUILD=true
       ;;
-    o)
-      SDN_NODE=true
-      ;;
     \?)
       echo "Invalid option: -${OPTARG}" >&2
       exit 1
@@ -69,8 +65,15 @@ NODE_IPS=(${NODE_IPS//,/ })
 if [ "${CONFIG_ROOT}" = "/" ]; then
   CONFIG_ROOT=""
 fi
+
 NETWORK_PLUGIN=$(os::provision::get-network-plugin "${NETWORK_PLUGIN}" \
   "${DIND_MANAGEMENT_SCRIPT:-false}")
+if [[ "${NETWORK_PLUGIN}" =~ redhat/ ]]; then
+  SDN_NODE="true"
+else
+  SDN_NODE="false"
+fi
+
 MASTER_NAME="${INSTANCE_PREFIX}-master"
 NODE_PREFIX="${INSTANCE_PREFIX}-node-"
 NODE_NAMES=( $(eval echo ${NODE_PREFIX}{1..${NODE_COUNT}}) )

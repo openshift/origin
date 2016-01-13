@@ -31,7 +31,7 @@ export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
 # TODO: check out the version of Kube we need so that we have access to sample content - in the future,
 # we want to get this content as well from cherrypicks (e2e test that is cherry-picked depends on content).
-k8s_version=$(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json k8s.io/kubernetes/pkg/util)
+k8s_version=$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json k8s.io/kubernetes/pkg/util)
 pushd "${KUBE_REPO_ROOT}" &>/dev/null
 git checkout "${k8s_version}"
 popd &>/dev/null

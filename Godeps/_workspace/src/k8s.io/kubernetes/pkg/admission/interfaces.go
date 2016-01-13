@@ -63,6 +63,7 @@ type Operation string
 const (
 	Create  Operation = "CREATE"
 	Update  Operation = "UPDATE"
+	Patch   Operation = "PATCH"
 	Delete  Operation = "DELETE"
 	Connect Operation = "CONNECT"
 )

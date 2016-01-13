@@ -100,9 +100,9 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	// TODO: register into container
 	mux := container.ServeMux
 
-	accessTokenStorage := accesstokenetcd.NewREST(c.EtcdHelper)
+	accessTokenStorage := accesstokenetcd.NewREST(c.EtcdHelper, c.EtcdBackends...)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-	authorizeTokenStorage := authorizetokenetcd.NewREST(c.EtcdHelper)
+	authorizeTokenStorage := authorizetokenetcd.NewREST(c.EtcdHelper, c.EtcdBackends...)
 	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
 	clientStorage := clientetcd.NewREST(c.EtcdHelper)
 	clientRegistry := clientregistry.NewRegistry(clientStorage)

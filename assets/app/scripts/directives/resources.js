@@ -125,4 +125,14 @@ angular.module('openshiftConsole')
         };
       }
     };
+  })
+  .directive('volumes', function() {
+    return {
+      restrict: 'E',
+      scope: {
+        volumes: '=',
+        namespace: '='
+      },
+      templateUrl: 'views/_volumes.html'
+    };
   });

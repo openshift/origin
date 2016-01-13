@@ -1,0 +1,10 @@
+Of 4 tests executed in 0.310s, 3 succeeded, 1 failed, and 0 were skipped.
+
+In suite "package/name2", test case "TestOne" failed:
+=== RUN TestOne
+--- FAIL: TestOne (0.02 seconds)
+	file_test.go:11: Error message
+	file_test.go:11: Longer
+		error
+		message.
+
