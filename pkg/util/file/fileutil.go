@@ -2,6 +2,7 @@ package file
 
 import (
 	"bufio"
+	"io/ioutil"
 	"os"
 )
 
@@ -19,4 +20,18 @@ func ReadLines(fileName string) ([]string, error) {
 		lines = append(lines, scanner.Text())
 	}
 	return lines, scanner.Err()
+}
+
+// LoadData reads the specified file and returns it as a bytes slice.
+func LoadData(file string) ([]byte, error) {
+	if len(file) == 0 {
+		return []byte{}, nil
+	}
+
+	bytes, err := ioutil.ReadFile(file)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return bytes, nil
 }

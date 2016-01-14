@@ -291,7 +291,13 @@ echo "[INFO] Validating routed app response..."
 # used as a resolve IP to test routing
 CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
-
+# Validate that oc create route edge will create an edge terminated route.
+oc delete route/route-edge -n test
+oc create route edge --service=frontend --cert=${MASTER_CONFIG_DIR}/ca.crt \
+                        --key=${MASTER_CONFIG_DIR}/ca.key \
+                        --ca-cert=${MASTER_CONFIG_DIR}/ca.crt \
+                        --hostname=www.example.com -n test
+validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 
 # Pod node selection
 echo "[INFO] Validating pod.spec.nodeSelector rejections"
