@@ -40,8 +40,8 @@ items:
           kind: ImageStreamTag
           name: hello-openshift-binary:latest
         paths:
-        - destinationPath: examples/hello-openshift/bin
-          sourceDir: /tmp/hello-openshift
+        - destinationDir: examples/hello-openshift/bin
+          sourcePath: /tmp/hello-openshift
       type: Git
     strategy:
       dockerStrategy: {}

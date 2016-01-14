@@ -9,6 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/wait"
 
@@ -77,7 +78,7 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 			RoleBindingAccessor: roleAccessor,
 			Subjects:            []kapi.ObjectReference{{Namespace: ns, Name: saName, Kind: "ServiceAccount"}},
 		}
-		if err := addRole.AddRole(); err != nil {
+		if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error { return addRole.AddRole() }); err != nil {
 			glog.Errorf("Could not add %v service accounts to the %v cluster role: %v\n", saName, role.Name, err)
 		} else {
 			glog.V(2).Infof("Added %v service accounts to the %v cluster role: %v\n", saName, role.Name, err)
@@ -129,7 +130,7 @@ func (c *MasterConfig) ensureNamespaceServiceAccountRoleBindings(namespace *kapi
 			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(namespace.Name, c.ServiceAccountRoleBindingClient()),
 			Subjects:            binding.Subjects,
 		}
-		if err := addRole.AddRole(); err != nil {
+		if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error { return addRole.AddRole() }); err != nil {
 			glog.Errorf("Could not add service accounts to the %v role in the %q namespace: %v\n", binding.RoleRef.Name, namespace.Name, err)
 			hasErrors = true
 		}

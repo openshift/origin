@@ -54,6 +54,15 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 		}
 	}
 
+	// make sure build updates are rejected
+	for _, strategy := range buildStrategyTypes() {
+		for clientType, client := range clients {
+			if _, err := updateBuild(t, client.Builds(testutil.Namespace()), builds[string(strategy)+clientType]); !kapierror.IsForbidden(err) {
+				t.Errorf("expected forbidden for strategy %s and client %s: got %v", strategy, clientType, err)
+			}
+		}
+	}
+
 	// make sure clone is rejected
 	for _, strategy := range buildStrategyTypes() {
 		for clientType, client := range clients {
@@ -95,6 +104,15 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 	for _, strategy := range buildStrategyTypes() {
 		for clientType, client := range clients {
 			if _, err := createBuildConfig(t, client.BuildConfigs(testutil.Namespace()), strategy); !kapierror.IsForbidden(err) {
+				t.Errorf("expected forbidden for strategy %s and client %s: got %v", strategy, clientType, err)
+			}
+		}
+	}
+
+	// make sure buildconfig updates are rejected
+	for _, strategy := range buildStrategyTypes() {
+		for clientType, client := range clients {
+			if _, err := updateBuildConfig(t, client.BuildConfigs(testutil.Namespace()), buildConfigs[string(strategy)+clientType]); !kapierror.IsForbidden(err) {
 				t.Errorf("expected forbidden for strategy %s and client %s: got %v", strategy, clientType, err)
 			}
 		}
@@ -226,6 +244,11 @@ func createBuild(t *testing.T, buildInterface client.BuildInterface, strategy st
 	return buildInterface.Create(build)
 }
 
+func updateBuild(t *testing.T, buildInterface client.BuildInterface, build *buildapi.Build) (*buildapi.Build, error) {
+	build.Labels = map[string]string{"updated": "true"}
+	return buildInterface.Update(build)
+}
+
 func createBuildConfig(t *testing.T, buildConfigInterface client.BuildConfigInterface, strategy string) (*buildapi.BuildConfig, error) {
 	buildConfig := &buildapi.BuildConfig{}
 	buildConfig.GenerateName = strings.ToLower(string(strategy)) + "-buildconfig-"
@@ -245,4 +268,9 @@ func instantiateBuildConfig(t *testing.T, buildConfigInterface client.BuildConfi
 	req := &buildapi.BuildRequest{}
 	req.Name = buildConfig.Name
 	return buildConfigInterface.Instantiate(req)
+}
+
+func updateBuildConfig(t *testing.T, buildConfigInterface client.BuildConfigInterface, buildConfig *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
+	buildConfig.Labels = map[string]string{"updated": "true"}
+	return buildConfigInterface.Update(buildConfig)
 }
