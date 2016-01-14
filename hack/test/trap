@@ -1,0 +1,284 @@
+#!/bin/bash
+#
+# This test ensures that the functions in 'os::util::trap' function as expected
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+cd "${OS_ROOT}"
+
+# test signal prefixing
+for signal in $( os::util::trap::internal::list_all_possible_signals ); do
+    if [[ "${signal}" == SIG* ]]; then
+        escaped_signal="$( echo "${signal}" | sed -e 's/-/\\-/g' -e 's/+/\\+/g' )"
+        os::cmd::expect_success_and_text "os::util::trap::internal::prefix_signal_if_necessary ${signal:3}" "${escaped_signal}"
+    fi
+done
+echo "prefixing: ok"
+
+# test signal validation
+for signal in $( os::util::trap::internal::list_all_possible_signals ); do
+    os::cmd::expect_success "os::util::trap::internal::validate_signal ${signal}"
+done
+echo "signal validation: ok"
+
+# test trap validation
+os::cmd::expect_success "os::util::trap::internal::validate_trap 'func'"
+os::cmd::expect_success "os::util::trap::internal::validate_trap 'func_name'"
+os::cmd::expect_success "os::util::trap::internal::validate_trap 'namespace::func'"
+os::cmd::expect_failure "os::util::trap::internal::validate_trap 'func with spaces'"
+os::cmd::expect_failure "os::util::trap::internal::validate_trap 'func \"with quotation marks\"'"
+echo "trap validation: ok"
+
+# basic functionality tests
+func_name="func"
+signal="ERR"
+os::util::trap::add "${func_name}" "${signal}"
+os::cmd::expect_success_and_text "echo ${REGISTERED_TRAPS_TO_SIGNALS[${func_name}]-}" "${signal}"
+os::cmd::expect_success_and_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "${func_name}"
+os::util::trap::remove "${func_name}"
+os::cmd::expect_success_and_not_text "echo ${REGISTERED_TRAPS_TO_SIGNALS[${func_name}]-}" "${signal}"
+os::cmd::expect_success_and_not_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "${func_name}"
+unset func_name signal
+echo "addition: ok"
+
+func_name="func"
+signals="ERR INT TERM"
+full_signals="SIGTERM SIGINT ERR"
+os::util::trap::add "${func_name}" "${signals}"
+os::cmd::expect_success_and_text "echo ${REGISTERED_TRAPS_TO_SIGNALS[${func_name}]-}" "${full_signals}"
+for signal in ${full_signals}; do
+    os::cmd::expect_success_and_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "${func_name}"
+done
+os::util::trap::remove "${func_name}"
+os::cmd::expect_success_and_not_text "echo ${REGISTERED_TRAPS_TO_SIGNALS[${func_name}]-}" "${full_signals}"
+for signal in ${full_signals}; do
+    os::cmd::expect_success_and_not_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "${func_name}"
+done
+unset func_name signals full_signals signal
+echo "one trap many signals: ok"
+
+func_names="func otherfunc thirdfunc"
+reverse_names="thirdfunc otherfunc func"
+signal="SIGIO"
+for func in ${func_names}; do
+    os::util::trap::add "${func}" "${signal}"
+done
+for func in ${func_names}; do
+    os::cmd::expect_success_and_text "echo ${REGISTERED_TRAPS_TO_SIGNALS[${func}]-}" "${signal}"
+done
+os::cmd::expect_success_and_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "${reverse_names}"
+for func in ${func_names}; do
+    os::util::trap::remove "${func}"
+done
+for func in ${func_names}; do
+    os::cmd::expect_success_and_not_text "echo ${REGISTERED_TRAPS_TO_SIGNALS[${func}]-}" "${signal}"
+done
+os::cmd::expect_success_and_not_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "${reverse_names}"
+unset func_names signal func reverse_names
+echo "one signal many traps: ok"
+
+first_func='first_func'
+second_func='second_func'
+signal='SIGSTKFLT'
+os::util::trap::add "${first_func}" "${signal}"
+os::util::trap::prepend_to_signal "${second_func}" "${signal}"
+os::cmd::expect_success_and_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "${second_func} ${first_func}"
+os::util::trap::remove "${second_func}"
+os::util::trap::append_to_signal "${second_func}" "${signal}"
+os::cmd::expect_success_and_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "${first_func} ${second_func}"
+os::util::trap::remove "${first_func}"
+os::util::trap::remove "${second_func}"
+echo "{app,pre}pend: ok"
+
+func_name='func_name'
+signal='SIGINT'
+os::util::trap::add "${func_name}" "${signal}"
+os::util::trap::add "${func_name}" "${signal}"
+os::util::trap::add "${func_name}" "${signal}"
+os::cmd::expect_success_and_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "^${func_name}$"
+os::util::trap::remove "${func_name}"
+os::cmd::expect_success_and_not_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "${func_name}"
+os::util::trap::append_to_signal "${func_name}" "${signal}"
+os::util::trap::append_to_signal "${func_name}" "${signal}"
+os::util::trap::append_to_signal "${func_name}" "${signal}"
+os::cmd::expect_success_and_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "^${func_name}$"
+os::util::trap::remove "${func_name}"
+os::cmd::expect_success_and_not_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "${func_name}"
+os::util::trap::prepend_to_signal "${func_name}" "${signal}"
+os::util::trap::prepend_to_signal "${func_name}" "${signal}"
+os::util::trap::prepend_to_signal "${func_name}" "${signal}"
+os::cmd::expect_success_and_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "^${func_name}$"
+os::util::trap::remove "${func_name}"
+os::cmd::expect_success_and_not_text "echo ${SIGNALS_TO_REGISTERED_TRAPS[${signal}]-}" "${func_name}"
+echo "deduping: ok"
+
+# "integration" tests
+# basic test
+os::cmd::expect_success_and_text 'echo -n "before subshell "
+(
+    source "${OS_ROOT}/hack/lib/util/trap.sh"
+    function inner_trap() { echo -n "inner trap "; }
+    os::util::trap::add inner_trap EXIT
+    echo -n "before trap "
+)
+echo "after subshell"' 'before subshell before trap inner trap after subshell'
+
+os::cmd::expect_success_and_text 'echo -n "before subshell "
+(
+    source "${OS_ROOT}/hack/lib/util/trap.sh"
+    function inner_trap() { echo -n "inner trap "; }
+    os::util::trap::append_to_signal inner_trap EXIT
+    echo -n "before trap "
+)
+echo "after subshell"' 'before subshell before trap inner trap after subshell'
+
+os::cmd::expect_success_and_text 'echo -n "before subshell "
+(
+    source "${OS_ROOT}/hack/lib/util/trap.sh"
+    function inner_trap() { echo -n "inner trap "; }
+    os::util::trap::prepend_to_signal inner_trap EXIT
+    echo -n "before trap "
+)
+echo "after subshell"' 'before subshell before trap inner trap after subshell'
+
+# multiple traps test
+os::cmd::expect_success_and_text 'echo -n "before subshell "
+(
+    source "${OS_ROOT}/hack/lib/util/trap.sh"
+    function inner_trap() { echo -n "inner trap "; }
+    function second_inner_trap() { echo -n "other message "; }
+    os::util::trap::add second_inner_trap EXIT
+    os::util::trap::add inner_trap EXIT
+    echo "${SIGNALS_TO_REGISTERED_TRAPS[EXIT]-}" >&2
+    echo -n "before trap "
+)
+echo "after subshell"' 'before subshell before trap inner trap other message after subshell'
+
+os::cmd::expect_success_and_text 'echo -n "before subshell "
+(
+    source "${OS_ROOT}/hack/lib/util/trap.sh"
+    function inner_trap() { echo -n "inner trap "; }
+    function second_inner_trap() { echo -n "other message "; }
+    os::util::trap::add inner_trap EXIT
+    os::util::trap::append_to_signal second_inner_trap EXIT
+    echo -n "before trap "
+)
+echo "after subshell"' 'before subshell before trap inner trap other message after subshell'
+
+os::cmd::expect_success_and_text 'echo -n "before subshell "
+(
+    source "${OS_ROOT}/hack/lib/util/trap.sh"
+    function inner_trap() { echo -n "inner trap "; }
+    function second_inner_trap() { echo -n "other message "; }
+    os::util::trap::add inner_trap EXIT
+    os::util::trap::prepend_to_signal second_inner_trap EXIT
+    echo -n "before trap "
+)
+echo "after subshell"' 'before subshell before trap other message inner trap after subshell'
+echo "basic integration: ok"
+
+os::cmd::expect_success_and_text 'echo -n "before subshell "
+(
+    source "${OS_ROOT}/hack/lib/util/trap.sh"
+    function inner_trap() { echo -n $1 ; }
+    os::util::trap::add inner_trap EXIT
+    echo -n "before trap "
+    exit 100
+)
+echo " after subshell"' 'before subshell before trap 100 after subshell'
+echo "return code: ok"
+
+# multiple signals test
+
+os::cmd::expect_success_and_text 'echo -n "before subshell "
+(
+    source "${OS_ROOT}/hack/lib/util/trap.sh"
+    function inner_trap() { echo -n "inner trap "; }
+    os::util::trap::add inner_trap EXIT INT TERM
+    echo -n "before trap "
+)
+echo "after subshell"' 'before subshell before trap inner trap after subshell'
+
+os::cmd::expect_success_and_text 'echo -n "before subshell "
+(
+    source "${OS_ROOT}/hack/lib/util/trap.sh"
+    function inner_trap() { echo -n "inner trap "; }
+    os::util::trap::add inner_trap INT TERM
+    echo -n "before trap "
+    sleep 0.1
+) &
+subpid=$!
+sleep 0.05
+kill -SIGINT "${subpid}"
+wait "${subpid}"
+echo "after subshell"' 'before subshell before trap inner trap after subshell'
+
+os::cmd::expect_success_and_text 'echo -n "before subshell "
+(
+    source "${OS_ROOT}/hack/lib/util/trap.sh"
+    function inner_trap() { echo -n "inner trap "; }
+    os::util::trap::add inner_trap INT TERM
+    echo -n "before trap "
+    sleep 0.1
+) &
+subpid=$!
+sleep 0.05
+kill -SIGTERM "${subpid}"
+wait "${subpid}"
+echo "after subshell"' 'before subshell before trap inner trap after subshell'
+echo "mutlple signals integration: ok"
+
+for signal in $( os::util::trap::internal::list_all_possible_signals ); do
+    if [[ "${signal}" == "SIGCHLD" ]]; then
+        # SIGCHLD is sent to the parent process, so this framework doesn't work for it
+        continue
+    elif [[ "${signal}" == "ERR" || "${signal}" == "EXIT" ]]; then
+        # ERR and EXIT aren't Unix signals but Bash "signals" and therefore can't be sent
+        continue
+    fi
+
+    os::cmd::expect_success_and_text 'echo -n "before subshell "
+    (
+        source "${OS_ROOT}/hack/lib/util/trap.sh"
+        function inner_trap() { echo -n "inner trap "; }
+        os::util::trap::add inner_trap '"${signal}"'
+        echo -n "before trap "
+        sleep 0.1
+    ) &
+    subpid=$!
+    sleep 0.05
+    kill -'"${signal}"' "${subpid}"
+    wait "${subpid}"
+    echo "after subshell"' 'before subshell before trap inner trap after subshell'
+done
+echo "every 'normal' signal: ok"
+
+# we need to monitor for SIGCHLD to be sent, so we set -o monitor inside
+os::cmd::expect_success_and_text 'set -o monitor
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+function child_trap() { echo -n "child trap "; }
+os::util::trap::add child_trap SIGCHLD
+echo -n "before subshell "
+(
+    echo -n "inside subshell "
+) &
+wait $!
+echo "after subshell"' 'before subshell inside subshell child trap after subshell'
+echo "SIGCHLD: ok"
+
+out="$(eval 'echo -n "before subshell "
+(
+    source "${OS_ROOT}/hack/lib/util/trap.sh"
+    function err_trap() { echo -n "err trap "; }
+    os::util::trap::add err_trap ERR
+    echo -n "before trap "
+    false
+)
+echo "after subshell"')"
+echo "${out}" | grep -q 'before subshell before trap err trap after subshell'
+echo "ERR: ok"

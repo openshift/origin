@@ -8,11 +8,12 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 os::log::install_errexit
 
 function cleanup()
 {
-    out=$?
+    out=$1
     cleanup_openshift
 
     if [ $out -ne 0 ]; then
@@ -23,11 +24,9 @@ function cleanup()
         echo -------------------------------------
         echo
     fi
-    exit $out
 }
 
-trap "exit" INT TERM
-trap "cleanup" EXIT
+os::util::trap::add "cleanup" EXIT INT TERM
 
 set -e
 

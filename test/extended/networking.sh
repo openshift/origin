@@ -18,6 +18,7 @@ export SHELLOPTS
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 os::log::install_errexit
 
 # These strings filter the available tests.
@@ -232,7 +233,7 @@ else
   # Ensure cleanup on error
   ENABLE_SELINUX=0
   function cleanup-dind {
-    local exit_code=$?
+    local exit_code=$1
     # Return non-zero for either command or test failures
     if [ "${exit_code}" = "0" ]; then
       exit_code="${TEST_FAILURES}"
@@ -242,10 +243,8 @@ else
       ${CLUSTER_CMD} stop
     fi
     enable-selinux
-    exit $exit_code
   }
-  trap "exit" INT TERM
-  trap "cleanup-dind" EXIT
+  os::util::trap::add "cleanup-dind" EXIT INT TERM
 
   # Docker-in-docker is not compatible with selinux
   disable-selinux
