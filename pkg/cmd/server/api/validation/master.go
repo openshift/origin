@@ -102,6 +102,7 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 	}
 
 	if config.DNSConfig != nil {
+		validationResults.AddErrors(ValidateDNSDomain(config.DNSConfig.Domain, "domain")...)
 		validationResults.AddErrors(ValidateHostPort(config.DNSConfig.BindAddress, "bindAddress").Prefix("dnsConfig")...)
 		switch config.DNSConfig.BindNetwork {
 		case "tcp", "tcp4", "tcp6":

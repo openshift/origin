@@ -86,6 +86,7 @@ disabledFeatures: null
 dnsConfig:
   bindAddress: ""
   bindNetwork: ""
+  domain: ""
 etcdClientInfo:
   ca: ""
   certFile: ""

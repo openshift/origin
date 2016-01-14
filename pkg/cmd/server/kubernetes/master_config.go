@@ -44,6 +44,18 @@ type MasterConfig struct {
 	CloudProvider     cloudprovider.Interface
 }
 
+func GetKubernetesMasterPort(options configapi.MasterConfig) (int, error) {
+	_, portString, err := net.SplitHostPort(options.ServingInfo.BindAddress)
+	if err != nil {
+		return 0, err
+	}
+	port, err := strconv.Atoi(portString)
+	if err != nil {
+		return 0, err
+	}
+	return port, nil
+}
+
 func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client) (*MasterConfig, error) {
 	if options.KubernetesMasterConfig == nil {
 		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
@@ -64,11 +76,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	// in-order list of plug-ins that should intercept admission decisions
 	// TODO: Push node environment support to upstream in future
 
-	_, portString, err := net.SplitHostPort(options.ServingInfo.BindAddress)
-	if err != nil {
-		return nil, err
-	}
-	port, err := strconv.Atoi(portString)
+	port, err := GetKubernetesMasterPort(options)
 	if err != nil {
 		return nil, err
 	}

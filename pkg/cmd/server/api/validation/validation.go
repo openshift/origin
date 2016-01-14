@@ -318,3 +318,11 @@ func ValidateExtendedArguments(config api.ExtendedArguments, flagFunc func(*pfla
 
 	return allErrs
 }
+
+func ValidateDNSDomain(domain, field string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	if !kuval.IsDNS1123Subdomain(domain) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, domain, "not a valid DNS subdomain"))
+	}
+	return allErrs
+}

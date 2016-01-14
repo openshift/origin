@@ -114,6 +114,9 @@ func init() {
 			}
 		},
 		func(obj *DNSConfig) {
+			if obj.Domain == "" {
+				obj.Domain = "cluster.local"
+			}
 			if len(obj.BindNetwork) == 0 {
 				obj.BindNetwork = "tcp4"
 			}
