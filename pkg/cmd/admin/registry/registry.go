@@ -40,6 +40,9 @@ that image for more on setting up alternative storage. Once you've made those ch
 pass --replicas=2 or higher to ensure you have failover protection. The default registry setup
 uses a local volume and the data will be lost if you delete the running pod.
 
+If multiple ports are specified using the option --ports, the first specified port will be
+chosen for use as the REGISTRY_HTTP_ADDR and will be passed to Docker registry.
+
 NOTE: This command is intended to simplify the tasks of setting up a Docker registry in a new
   installation. Some configuration beyond this command is still required to make
   your registry persist data.`
@@ -245,6 +248,8 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 		healthzPort := defaultPort
 		if len(ports) > 0 {
 			healthzPort = ports[0].ContainerPort
+			env["REGISTRY_HTTP_ADDR"] = fmt.Sprintf(":%d", healthzPort)
+			env["REGISTRY_HTTP_NET"] = "tcp"
 		}
 		livenessProbe := generateLivenessProbeConfig(healthzPort)
 		readinessProbe := generateReadinessProbeConfig(healthzPort)
