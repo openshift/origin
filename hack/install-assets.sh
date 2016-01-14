@@ -60,6 +60,10 @@ pushd ${OS_ROOT}/assets > /dev/null
   cmd "npm install --unsafe-perm"
   cmd "node_modules/protractor/bin/webdriver-manager update"
 
+  # tmp workaround for https://github.com/openshift/origin/issues/6651
+  # remove once we have a clean base_ami in place
+  cmd "rm -fr bower_components/uri.js" 
+
   # In case upstream components change things without incrementing versions
   cmd "bower cache clean --allow-root"
   cmd "bower update --allow-root" 3
