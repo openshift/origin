@@ -72,11 +72,11 @@ In practice, however, there are (at present) some serious problems with the appr
 
 For these reasons, Docker-in-Docker is not considered a viable build strategy for a secure, multi-tenant production environment.
 
-### STI (Source-to-Image) Builds
+### S2I (Source-to-Image) Builds
 
-OpenShift also supports [Source-To-Images (sti)](https://github.com/openshift/source-to-image#source-to-image-sti) builds.
+OpenShift also supports [Source-To-Images (s2i)](https://github.com/openshift/source-to-image#source-to-image-sti) builds.
 
-Source-to-images (sti) is a tool for building reproducible Docker images. It produces ready-to-run images by injecting a user source into a docker image and assembling a new Docker image which incorporates the base image and built source, and is ready to use with `docker run`. STI supports incremental builds which re-use previously downloaded dependencies, previously built artifacts, etc.
+Source-to-images (s2i) is a tool for building reproducible Docker images. It produces ready-to-run images by injecting a user source into a docker image and assembling a new Docker image which incorporates the base image and built source, and is ready to use with `docker run`. S2I supports incremental builds which re-use previously downloaded dependencies, previously built artifacts, etc.
 
 ### Custom Builds
 
@@ -112,4 +112,3 @@ variables are passed to the build container:
 * `$SOURCE_URI` contains the URL to the source code repository
 * `$SOURCE_REF` contains the branch, tag or ref for source repository
 * `$DOCKER_SOCKET` contains full path to the Docker socket
-
