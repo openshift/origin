@@ -39,7 +39,7 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *co
 		Short:      "Cancel a pending or running build",
 		Long:       cancelBuildLong,
 		Example:    fmt.Sprintf(cancelBuildExample, fullName),
-		SuggestFor: []string{"builds"},
+		SuggestFor: []string{"builds", "stop-build"},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCancelBuild(f, out, cmd, args)
 			cmdutil.CheckErr(err)

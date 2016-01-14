@@ -971,6 +971,14 @@ items:
   - apiGroups: null
     attributeRestrictions: null
     resources:
+    - builds/custom
+    - builds/docker
+    - builds/source
+    verbs:
+    - create
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
     - imagestreams
     verbs:
     - get
