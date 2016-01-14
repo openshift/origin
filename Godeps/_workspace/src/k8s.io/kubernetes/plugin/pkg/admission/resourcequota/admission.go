@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"strings"
 	"time"
 
 	"k8s.io/kubernetes/pkg/admission"
@@ -41,14 +42,16 @@ func init() {
 	})
 }
 
-type quota struct {
+type Quota struct {
 	*admission.Handler
 	client  client.Interface
 	indexer cache.Indexer
+
+	Delegate admission.Interface
 }
 
 // NewResourceQuota creates a new resource quota admission control handler
-func NewResourceQuota(client client.Interface) admission.Interface {
+func NewResourceQuota(client client.Interface) *Quota {
 	lw := &cache.ListWatch{
 		ListFunc: func() (runtime.Object, error) {
 			return client.ResourceQuotas(api.NamespaceAll).List(labels.Everything(), fields.Everything())
@@ -62,8 +65,8 @@ func NewResourceQuota(client client.Interface) admission.Interface {
 	return createResourceQuota(client, indexer)
 }
 
-func createResourceQuota(client client.Interface, indexer cache.Indexer) admission.Interface {
-	return &quota{
+func createResourceQuota(client client.Interface, indexer cache.Indexer) *Quota {
+	return &Quota{
 		Handler: admission.NewHandler(admission.Create, admission.Update),
 		client:  client,
 		indexer: indexer,
@@ -79,13 +82,23 @@ var resourceToResourceName = map[string]api.ResourceName{
 	"persistentvolumeclaims": api.ResourcePersistentVolumeClaims,
 }
 
-func (q *quota) Admit(a admission.Attributes) (err error) {
+func (q *Quota) Admit(a admission.Attributes) (err error) {
 	if a.GetSubresource() != "" {
 		return nil
 	}
 
 	if a.GetOperation() == "DELETE" {
 		return nil
+	}
+
+	if strings.Contains(strings.ToLower(a.GetResource()), "pod") {
+		// crazy hack for testing
+		a.GetObject().(*api.Pod).Namespace = a.GetNamespace()
+		fmt.Printf("#### HERE for %v", a.GetName())
+		// if strings.HasPrefix(a.GetObject().(*api.Pod).Name, "my-pod") {
+		// 	return fmt.Errorf("FORCE FAILURE")
+		// }
+		return q.Delegate.Admit(a)
 	}
 
 	key := &api.ResourceQuota{

@@ -9,9 +9,11 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kresource "k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -22,6 +24,108 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
+
+func TestSimpleQuota2(t *testing.T) {
+	projectName := "quota"
+
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	_, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, "david")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	quota := &kapi.ResourceQuota{
+		ObjectMeta: kapi.ObjectMeta{Name: "my-quota"},
+		Spec: kapi.ResourceQuotaSpec{
+			Hard: kapi.ResourceList{
+				kapi.ResourcePods: kresource.MustParse("100"),
+			},
+		},
+	}
+	if _, err := clusterAdminKubeClient.ResourceQuotas(projectName).Create(quota); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	rc := &kapi.ReplicationController{
+		ObjectMeta: kapi.ObjectMeta{Name: "my-rc"},
+		Spec: kapi.ReplicationControllerSpec{
+			Replicas: 100,
+			Selector: map[string]string{"whose": "mine"},
+			Template: &kapi.PodTemplateSpec{
+				ObjectMeta: kapi.ObjectMeta{
+					Labels: map[string]string{"whose": "mine"},
+				},
+				Spec: kapi.PodSpec{
+					Containers: []kapi.Container{
+						{
+							Name:  "foo",
+							Image: "scratch",
+						},
+					},
+				},
+			},
+		},
+	}
+	if _, err := clusterAdminKubeClient.ReplicationControllers(projectName).Create(rc); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	currNumPods := 0
+	startTime := time.Now()
+	wait.PollImmediate(10*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		results, err := clusterAdminKubeClient.Pods(projectName).List(labels.Everything(), fields.Everything())
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+			return false, nil
+		}
+		currNumPods = len(results.Items)
+		if len(results.Items) != 100 {
+			return false, nil
+		}
+
+		return true, nil
+	})
+
+	duration := time.Since(startTime)
+	t.Errorf("It took %v seconds to scale up %d pods", duration.Seconds(), currNumPods)
+
+	// without quota: It took 3.261400093 seconds to scale up 100 pods
+	// with quota: It took 10.015715218 seconds to scale up 13 pods
+	// with fixed quota: It took 3.629586537 seconds to scale up 100 pods
+
+	pod := &kapi.Pod{
+		ObjectMeta: kapi.ObjectMeta{Name: "my-pod"},
+		Spec: kapi.PodSpec{
+			Containers: []kapi.Container{
+				{
+					Name:  "foo",
+					Image: "scratch",
+				},
+			},
+		},
+	}
+	if _, err := clusterAdminKubeClient.Pods(projectName).Create(pod); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+}
 
 func TestUnprivilegedNewProject(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()

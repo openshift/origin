@@ -23,12 +23,14 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
+	"github.com/openshift/origin/pkg/util/partitioningbucketer"
 )
 
 // AdmissionPlugins is the full list of admission control plugins to enable in the order they must run
@@ -122,6 +124,19 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
 			saAdmitter.Run()
 			plugins = append(plugins, saAdmitter)
+
+		case "ResourceQuota":
+			stop := make(chan struct{})
+			pb := partitioningbucketer.NewPartitioningBucketer(10, partitioningbucketer.NamespaceKeyFunc, stop)
+
+			rqAdmitter := resourcequota.NewResourceQuota(kubeClient)
+			delegate := &partitioningbucketer.QuotaHandler{}
+			delegate.KubeClient = kubeClient
+			delegate.PartitionBucketer = pb
+			delegate.Start(10)
+			rqAdmitter.Delegate = delegate
+
+			plugins = append(plugins, rqAdmitter)
 
 		default:
 			plugin := admission.InitPlugin(pluginName, kubeClient, server.AdmissionControlConfigFile)
