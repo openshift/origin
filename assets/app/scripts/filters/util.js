@@ -142,7 +142,7 @@ angular.module('openshiftConsole')
         case "route-types":
           return "https://docs.openshift.com/enterprise/latest/architecture/core_concepts/routes.html#route-types";
         case "persistent_volumes":
-          return "https://docs.openshift.org/enterprise/latest/dev_guide/persistent_volumes.html";
+          return "https://docs.openshift.com/enterprise/latest/dev_guide/persistent_volumes.html";
         default:
           return "https://docs.openshift.com/enterprise/latest/welcome/index.html";
       }
