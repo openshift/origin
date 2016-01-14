@@ -50,6 +50,7 @@ log_system () {
     echo_and_eval  cat /etc/hosts                                     &> $logpath/hosts
     echo_and_eval  cat /etc/resolv.conf                               &> $logpath/resolv.conf
     echo_and_eval  lsmod                                              &> $logpath/modules
+    echo_and_eval  sysctl -a                                          &> $logpath/sysctl
 
     echo_and_eval  oc version                                         &> $logpath/version
     echo                                                             &>> $logpath/version
