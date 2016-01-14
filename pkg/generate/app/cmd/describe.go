@@ -66,12 +66,51 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 	}
 }
 
+func inputAnnotations(match *app.ComponentMatch) map[string]string {
+	if match == nil {
+		return nil
+	}
+	base := make(map[string]string)
+	if image := match.Image; image != nil {
+		if image.Config != nil {
+			for k, v := range image.Config.Labels {
+				base[k] = v
+			}
+		}
+	}
+	if stream := match.ImageStream; stream != nil {
+		if len(match.ImageTag) > 0 {
+			if ref, ok := stream.Spec.Tags[match.ImageTag]; ok {
+				for k, v := range ref.Annotations {
+					base[k] = v
+				}
+			}
+		}
+	}
+	return base
+}
+
 func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, pipeline *app.Pipeline, baseNamespace string) {
 	refInput := ref.Input()
 	match := refInput.ResolvedMatch
 
 	if locatedImage := describeLocatedImage(refInput, baseNamespace); len(locatedImage) > 0 {
 		fmt.Fprintf(out, "--> %s\n", locatedImage)
+		annotations := inputAnnotations(refInput.ResolvedMatch)
+		if desc := annotations["io.k8s.display-name"]; len(desc) > 0 {
+			fmt.Fprintln(out)
+			fmt.Fprintf(out, "    %s \n", desc)
+			fmt.Fprintf(out, "    %s \n", strings.Repeat("-", len(desc)))
+		} else {
+			fmt.Fprintln(out)
+		}
+		if desc := annotations["io.k8s.description"]; len(desc) > 0 {
+			fmt.Fprintf(out, "    %s\n\n", desc)
+		}
+		if desc := annotations["io.openshift.tags"]; len(desc) > 0 {
+			desc = strings.Join(strings.Split(desc, ","), ", ")
+			fmt.Fprintf(out, "    Tags: %s\n\n", desc)
+		}
 	}
 
 	if pipeline.Build == nil {
@@ -167,9 +206,11 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				} else {
 					fmt.Fprintf(out, "    * Ports %s will be load balanced by service %q\n", strings.Join(orderedPorts, ", "), pipeline.Deployment.Name)
 				}
+				fmt.Fprintf(out, "    * Other containers can access this service through the hostname %q\n", pipeline.Deployment.Name)
 			}
 		}
 	}
+	fmt.Fprintln(out)
 }
 
 func describeGeneratedTemplate(out io.Writer, ref app.ComponentReference, result *templateapi.Template, baseNamespace string) {
