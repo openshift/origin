@@ -1,0 +1,225 @@
+//
+// Create App
+// --------------------------------------------------
+
+label.checkbox {
+  font-weight: normal;
+}
+
+.form-group .checkbox {
+  // Use the default form-group margin for consistency. Otherwise the
+  // checkboxes are closer than other form elements.
+  margin-bottom: inherit;
+}
+
+// Make sure icons are the same size so headings align.
+.add-to-project {
+  .filter-group {
+    line-height: 1.75;
+    .search-input, .btn-group {
+      display: inline-block;
+      margin-bottom: 10px;
+      vertical-align: top;
+    }
+    .search-input {
+      width: 100%;
+      @media (min-width: @screen-sm-min) {
+        width: 400px;
+      }
+    }
+    .filter-btn {
+      margin-right: 5px;
+    }
+    @media (min-width: @screen-sm-min) {
+      .filter-msg {
+        display: inline-block;
+      }
+    }
+  }
+}
+
+.icon-xl {
+  font-size: 128px;
+}
+
+.create-route-icon {
+  padding-top: 0;
+  text-align: right;
+}
+
+.create-from-template,
+.create-from-image {
+  margin-bottom: 100px; // needed space for hover help text near bottom
+  .template-name {
+    text-align: right;
+    span.fa {
+      font-size: 40px;
+    }
+    @media (min-width: @screen-sm-min) {
+      span.fa {
+        font-size: 100px;
+      }
+    }
+  }
+  span.fa.visible-xs-inline {
+    margin-right: 10px;
+  }
+  .flow {
+    .separator;
+    display: table;
+    margin-top: @grid-gutter-width;
+    width: 100%;
+    > .flow-block {
+      display: inline-block;
+      &.right {
+        font-size: @font-size-small;
+        font-weight: normal;
+      }
+      .action {
+          font-size: @font-size-small;
+          font-weight: normal;
+          // &:extend(.action-inline);
+        }
+      > ul.list-inline {
+        margin-bottom: 0;
+        > li {
+          font-size: @font-size-small;
+          text-align: left;
+        }
+      }
+    }
+  }
+  .first-section .flow {
+    margin-top: (@grid-gutter-width / 2);
+    border-top: 0;
+  }
+  .template-options {
+    line-height: 1.5;
+    .list-unstyled {
+      .options {
+        margin-bottom: 12px;
+      }
+      .help-block {
+        margin: 0 0 5px 2px;
+      }
+    }
+    .form-group {
+      width: 100%;
+      max-width: 600px;
+    }
+    .help-block {
+      margin-bottom: 5px;
+    }
+  }
+}
+
+.next-steps {
+  .tile {
+    margin-bottom: 0;
+    &.tile-status {
+      margin-top: 0;
+    }
+  }
+}
+
+.catalog-col section {
+  margin-bottom: 10px;
+  > h3 {
+    margin-top: 0;
+    small {
+      font-size: @font-size-base;
+    }
+  }
+}
+@media (min-width:@screen-sm-min) {
+  .catalog-col-2 {
+    margin-left: 3%;
+  }
+}
+
+.tag {
+  color: #999999;
+  text-transform: uppercase;
+  margin-right: 10px;
+}
+
+.catalog {
+  .flex-display(@display: flex);
+
+  // Stack at mobile screen sizes
+  .flex-direction(@direction: column);
+
+  .tile-template, .tile-image {
+    width: 100%;
+    a.tag {
+      text-decoration: none;
+      &:hover {
+        color: black;
+        background: #dfdfdf;
+        text-decoration: none;
+      }
+    }
+  }
+
+  // Arrange in columns >767px
+  @media (min-width: @screen-sm-min) {
+    .flex-direction(@direction: row);
+    .flex-wrap(@wrap: wrap);
+    .justify-content(@justify: flex-start);
+    .tile-template, .tile-image {
+      .flex(@columns: 1 0 auto);
+      width: 100%;
+      margin-right: (@grid-gutter-width / 2);
+    }
+    &.catalog-fluid {
+      .tile-template, .tile-image {
+        width: 375px;
+      }
+    }
+  }
+}
+
+@create-form-md-width: 44%;
+@media (min-width: 767px) {
+  .create-from-template,
+  .create-from-image {
+    .flow > .flow-block {
+      display: table-cell;
+      &.right {
+        // float: right;
+        text-align: right;
+      }
+    }
+    .labels .form-group {
+      // Show name/value fields like labels and env vars side by side at wide screen sizes.
+      // Align text fields with read-only values.
+      width: @create-form-md-width;
+      .form-control {
+        width: 100%;
+      }
+    }
+  }
+}
+
+.label-list li,
+.env-variable-list li {
+  &:first-child {
+    padding: 6px 0 0;
+  }
+  .key,
+  .value {
+    display: inline-block;
+    margin: 0;
+    width: 44%;
+  }
+  .value {
+    max-width: 500px; // enable firefox to truncate
+  }
+  .btn {
+    vertical-align: top;
+  }
+}
+
+.label + .label {
+  margin-left: 3px;
+}

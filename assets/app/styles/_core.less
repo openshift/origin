@@ -2,10 +2,6 @@
 // Core
 // --------------------------------------------------
 
-html, body {
-  height: 100%;
-}
-
 // See https://docs.angularjs.org/api/ng/directive/ngCloak
 [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
   display: none !important;
@@ -34,23 +30,7 @@ html, body {
 }
 
 .console-os {
-  background-color: @body-bg;
-  height: ~"calc(100% - 121px)"; // removes scrollbar on pages with less than full viewport content
-  #content-wrap {
-    height: 100%;
-    .content {
-      height: 100%;
-    }
-  }
-  .container-main {
-    background-color: @body-bg;
-    padding-bottom: @grid-gutter-width * 2;
-    .flex(@columns: 1);
-    h1 {
-      word-wrap: break-word;
-    }
-  }
-  #content-wrap > .container {
+  .wrap > .container { // For projects list page
     margin-top: 35px;
     margin-bottom: @grid-gutter-width * 2;
     h1 {
@@ -59,169 +39,47 @@ html, body {
   }
 }
 .console-os {
-  .navbar {
-    border: none;
-    margin-bottom: 0;
-  }
-  .navbar-pf {
-    background: @navbar-os-bg-color;
-    .navbar-nav li {
-      > a {
-        border: 0;
-        font-size: 12px;
-        &:hover {
-        }
-      }
-      + li {
-        border-top: 0;
-      }
-    }
-    @media (max-width: @screen-xs-max) {
-      .navbar-utility {
-        border-top: 1px solid @navbar-pf-navbar-header-border-color;
-      }
-    }
-    .navbar-brand {
-      border: 0;
-      margin-left: 20px;
-      margin-top: 4px;
-      padding: 8px 0 8px;
-
-    }
-  }
   .page-header {
-    margin-top: 22px;
+    border-color: @page-header-border-color;
+    margin-bottom: 3px;
+    margin-left: -20px;
+    margin-right: -20px;
+    margin-top: 20px;
+    padding-left: 20px;
     .actions {
       margin-top: 0;
     }
   }
 }
-#header-logo {
-  background: url('@{image-path}/logo-origin-thin.svg');
-  background-repeat: no-repeat;
-  width: 160px;
-  height: 10px;
+
+// Data toolbar with filter
+.data-toolbar {
+  padding: 3px 0 1px;
+}
+.filter .navbar-filter-widget .label-filter {
+  width: 80%;
+  @media (max-width: @screen-xs-max) {
+    min-width:inherit;
+    width: 87%;
+  }
+  .selectize-input.not-full {
+      width: auto !important;
+  }
 }
 
-.console-os .navbar-project {
-  border-bottom: 1px solid @navbar-os-project-border-color;
-  padding-bottom: 5px;
-  padding-top: 5px;
-  position: relative;
-  background: #fff;
-  label.control-label {
-    color: @navbar-project-label-color;
-    font-size: 11px;
-    font-weight: 400;
-    margin: 8px 0 0 0;
-  }
-  .bootstrap-select.btn-group .btn {
-    width: 100%;
-    padding: 7px 25px 7px 10px;
-    font-size: @font-size-large;
-    line-height: @line-height-base;
-    color: @navbar-os-project-menu-color;
-    font-weight: 400;
-    background: @navbar-os-project-menu-bg;
-    border: @navbar-os-project-menu-border;
-    transition: none;
-    &:hover, &:focus {
-      border-color: @input-border-hover;
-    }
-    .caret {
-      font-size: @font-size-large + 5;
-      margin-top: -4px;
-    }
-    .filter-option {
-      text-overflow: ellipsis;
-    }
-  }
-  .bootstrap-select.btn-group {
-    .dropdown-menu {
-      li a {
-        padding: 10px;
-      }
-    }
-  }
-  .navbar-project-search {
-    display: inline-block;
-  }
-  .form-group {
-    margin-bottom: 0;
-    .form-control {
-      height: @navbar-project-input-height;
-      margin-bottom: 0;
-    }
-  }
-  .active-filters {
-    /* If line-height is set, the active-filters div takes up space even
-       when no filters are active. */
-    line-height: 0;
-  }
-  .create-button-container {
-    margin-top: 15px;
+.navbar-filter-widget-collapse .form-group {
+  margin-bottom: 0;
+}
+.active-filters {
+  line-height: 0;
+  .label-filter-active-filters {
+    padding-bottom: 3px;
   }
 }
+
 @media (max-width: @screen-xs-max) {
-  // Project nav at mobile widths
-  .console-os {
-    .navbar-project {
-      .form-group {
-        display: inline;
-      }
-      .project-actions {
-        margin-right: -10px;
-        margin-left: 10px;
-        a {
-          color: lighten(@navbar-os-project-menu-color, 20%);
-          cursor: pointer;
-          display: inline-block;
-          font-size: 18px;
-          padding: 4px 14px 5px;
-          &:hover, &:active, &:focus {
-            background-color: @sidebar-os-hover-bg;
-            color: @navbar-os-project-menu-color;
-          }
-        }
-      }
-      .navbar-filter-widget {
-        margin-top: 10px;
-        white-space: nowrap;
-      }
-    }
-  }
-}
- @media (min-width: @screen-sm-min) {
-  .console-os {
-    .navbar-pf {
-      .navbar-header {
-        .navbar-brand {
-          margin-top: 0;
-        }
-      }
-    }
-    .navbar-project {
-      background: @navbar-os-project-bg;
-      padding-bottom: 20px;
-      padding-top: 0;
-      .navbar-filter-widget-collapse.collapse {
-        // Prevent filter field from being hidden when going from mobile to desktop width
-        display: block;
-      }
-      .navbar-filter-widget {
-        /* Prevent the filter button from wrapping at wide screen sizes. */
-        min-width: 340px;
-      }
-      .create-button-container {
-        text-align: right;
-        /* Align button with other navbar controls that have a label above. */
-        margin-top: 30px;
-      }
-    }
-    .container-main {
-      // Ensures short content pages in IE have sidebars that extend beneath the left nav
-      min-height: 600px;
-    }
+.console-os .navbar-filter-widget {
+    white-space: nowrap;
   }
 }
 
@@ -231,6 +89,8 @@ html, body {
 
 .breadcrumb {
   font-size: @font-size-base - 1;
+  margin-bottom: 0;
+  padding-bottom: 0;
   strong {
     font-weight: 600;
   }
@@ -278,9 +138,6 @@ html, body {
   .btn {
     margin: 10px 0 20px;
   }
-}
-
-.empty-state-full-page {
   @media (min-height: 500px) {
     margin-top: 150px;
   }
@@ -357,6 +214,7 @@ html, body {
   }
 }
 
+
 .pod-metrics {
   .metrics-options {
     .form-group {
@@ -381,6 +239,7 @@ html, body {
     padding-top: 5px;
   }
 }
+
 
 // Create App
 // --------------------------------------------------
@@ -774,6 +633,11 @@ select:invalid {
   width: 60px;
 }
 
+.alert {
+  margin-bottom: 14px;
+  margin-top: 7px;
+}
+
 .action-button {
   color: @gray-light;
   cursor: pointer;
@@ -801,7 +665,6 @@ a.disabled-link {
 
 .resource-actions-dropdown {
   .action-button;
-
   // Bigger click target for the dropdown icon, which is a narrow ellipsis
   padding: 0 10px;
   vertical-align: middle;
@@ -946,12 +809,8 @@ labels + .resource-details {
   border-bottom: 1px solid #eee;
 }
 
-h1 small.meta, .build-config-summary .meta {
+h1 small.meta {
   font-size: 12px;
-  @media (max-width: @screen-xs-min) {
-    display: block;
-    margin-top: 5px;
-  }
 }
 
 .action-divider {

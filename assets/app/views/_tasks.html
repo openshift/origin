@@ -2,7 +2,6 @@
   <div ng-repeat="task in tasks()">
     <div class="row">
       <div class="col-md-12">
-        <div class="tile tile-status">
           <h3>
             <i class="spinner spinner-xs spinner-inline" ng-show="task.status=='started'"></i>
             {{ task | taskTitle }}
@@ -27,7 +26,6 @@
           <div ng-show="!task.hasErrors || expanded">
             <alerts alerts="task.alerts"></alerts>
           </div>
-        </div>
       </div>
     </div>
   </div>

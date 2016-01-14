@@ -20,12 +20,13 @@ angular.module('openshiftConsole')
       templateUrl: "views/_sidebar-main-nav-item.html"
     };
   })
-  .directive('projectNav', function($timeout, $location, $filter, LabelFilter, DataService, projectOverviewURLFilter) {
+  .directive('projectHeader', function($timeout, $location, $filter, DataService, projectOverviewURLFilter) {
     return {
       restrict: 'EA',
-      templateUrl: 'views/_project-nav.html',
+      templateUrl: 'views/directives/header/project-header.html',
       link: function($scope, $elem) {
         var select = $elem.find('.selectpicker');
+        console.log('debugging',select);
         var projects = {};
         var sortedProjects = [];
         var options = [];
@@ -91,11 +92,17 @@ angular.module('openshiftConsole')
               $location.url(newURL);
             });
           });
-
+      }
+    };
+  })
+  .directive('projectFilter', function(LabelFilter) {
+    return {
+      restrict: 'E',
+      templateUrl: 'views/directives/_project-filter.html',
+      link: function($scope, $elem) {
         LabelFilter.setupFilterWidget($elem.find('.navbar-filter-widget'), $elem.find('.active-filters'), { addButtonText: "Add" });
         LabelFilter.toggleFilterWidget(!$scope.renderOptions || !$scope.renderOptions.hideFilterWidget);
 
-        $scope.$watch("project", updateOptions);
         $scope.$watch("renderOptions", function(renderOptions) {
           LabelFilter.toggleFilterWidget(!renderOptions || !renderOptions.hideFilterWidget);
         });
@@ -109,15 +116,46 @@ angular.module('openshiftConsole')
       templateUrl: 'views/_project-page.html'
     };
   })
+  .directive('navbarUtility', function() {
+    return {
+      restrict: 'E',
+      transclude: true,
+      templateUrl: 'views/directives/header/_navbar-utility.html'
+    };
+  })
+  .directive('navbarUtilityMobile', function() {
+    return {
+      restrict: 'E',
+      transclude: true,
+      templateUrl: 'views/directives/header/_navbar-utility-mobile.html'
+    };
+  })
+  .directive('defaultHeader', function() {
+    return {
+      restrict: 'E',
+      transclude: true,
+      templateUrl: 'views/directives/header/default-header.html'
+    };
+  })
+  // TODO: rename this :)
+  .directive('navPfVerticalAlt', function() {
+    return {
+      restrict: 'EAC',
+      link: function() {
+        // Short term solution to trigger the patternfly nav
+        $.fn.navigation();
+      }
+    };
+  })
   .directive('breadcrumbs', function() {
     return {
       restrict: 'E',
       scope: {
         breadcrumbs: '='
-      },      
+      },
       templateUrl: 'views/directives/breadcrumbs.html'
     };
-  })  
+  })
   .directive('back', ['$window', function($window) {
     return {
       restrict: 'A',
