@@ -169,9 +169,9 @@ func updateBuildEnv(strategy *buildapi.BuildStrategy, env []kapi.EnvVar) {
 	case strategy.SourceStrategy != nil:
 		buildEnv = &strategy.SourceStrategy.Env
 	case strategy.DockerStrategy != nil:
-		buildEnv = &strategy.SourceStrategy.Env
+		buildEnv = &strategy.DockerStrategy.Env
 	case strategy.CustomStrategy != nil:
-		buildEnv = &strategy.SourceStrategy.Env
+		buildEnv = &strategy.CustomStrategy.Env
 	}
 
 	newEnv := []kapi.EnvVar{}
