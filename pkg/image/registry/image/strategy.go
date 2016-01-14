@@ -60,7 +60,9 @@ func (imageStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-// It extracts the latest info from the manifest and sets that on the object.
+// It extracts the latest info from the manifest and sets that on the object. It allows a user
+// to update the manifest so that it matches the digest (in case an older server stored a manifest
+// that was malformed, it can always be corrected).
 func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	newImage := obj.(*api.Image)
 	oldImage := old.(*api.Image)
@@ -68,9 +70,20 @@ func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	// image metadata cannot be altered
 	newImage.DockerImageReference = oldImage.DockerImageReference
 	newImage.DockerImageMetadata = oldImage.DockerImageMetadata
-	newImage.DockerImageManifest = oldImage.DockerImageManifest
 	newImage.DockerImageMetadataVersion = oldImage.DockerImageMetadataVersion
 	newImage.DockerImageLayers = oldImage.DockerImageLayers
+
+	// allow an image update that results in the manifest matching the digest (the name)
+	newManifest := newImage.DockerImageManifest
+	newImage.DockerImageManifest = oldImage.DockerImageManifest
+	if newManifest != oldImage.DockerImageManifest && len(newManifest) > 0 {
+		ok, err := api.ManifestMatchesImage(oldImage, []byte(newManifest))
+		if err != nil {
+			util.HandleError(fmt.Errorf("attempted to validate that a manifest change to %q matched the signature, but failed: %v", oldImage.Name, err))
+		} else if ok {
+			newImage.DockerImageManifest = newManifest
+		}
+	}
 
 	if err := api.ImageWithMetadata(newImage); err != nil {
 		util.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))

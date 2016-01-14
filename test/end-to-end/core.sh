@@ -106,7 +106,7 @@ oc login -u e2e-user -p pass
 # make sure viewers can see oc status
 oc status -n default
 
-# check to make sure a project admin can push an image
+# check to make sure a project admin can push an image to an image stream that doesn't exist
 oc project cache
 e2e_user_token=$(oc config view --flatten --minify -o template --template='{{with index .users 0}}{{.user.token}}{{end}}')
 [[ -n ${e2e_user_token} ]]
@@ -119,6 +119,10 @@ echo "[INFO] Tagging and pushing ruby-22-centos7 to ${DOCKER_REGISTRY}/cache/rub
 docker tag -f centos/ruby-22-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest
 docker push ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest
 echo "[INFO] Pushed ruby-22-centos7"
+
+# verify remote images can be pulled directly from the local registry
+oc import-image --confirm --from=mysql:latest mysql:pullthrough
+docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough
 
 # check to make sure an image-pusher can push an image
 oc policy add-role-to-user system:image-pusher pusher
