@@ -130,19 +130,22 @@ func TestBuildAdmission(t *testing.T) {
 		},
 	}
 
+	ops := []admission.Operation{admission.Create, admission.Update}
 	for _, test := range tests {
-		c := NewBuildByStrategy(fakeClient(test.expectedResource, test.reviewResponse, test.responseObject))
-		attrs := admission.NewAttributesRecord(test.object, test.kind, "default", "name", test.resource, test.subResource, admission.Create, fakeUser())
-		err := c.Admit(attrs)
-		if err != nil && test.expectAccept {
-			t.Errorf("%s: unexpected error: %v", test.name, err)
-		}
-
-		if !apierrors.IsForbidden(err) && !test.expectAccept {
-			if (len(test.expectedError) != 0) || (test.expectedError == err.Error()) {
-				continue
+		for _, op := range ops {
+			c := NewBuildByStrategy(fakeClient(test.expectedResource, test.reviewResponse, test.responseObject))
+			attrs := admission.NewAttributesRecord(test.object, test.kind, "default", "name", test.resource, test.subResource, op, fakeUser())
+			err := c.Admit(attrs)
+			if err != nil && test.expectAccept {
+				t.Errorf("%s: unexpected error: %v", test.name, err)
 			}
-			t.Errorf("%s: expecting reject error, got %v", test.name, err)
+
+			if !apierrors.IsForbidden(err) && !test.expectAccept {
+				if (len(test.expectedError) != 0) || (test.expectedError == err.Error()) {
+					continue
+				}
+				t.Errorf("%s: expecting reject error, got %v", test.name, err)
+			}
 		}
 	}
 }

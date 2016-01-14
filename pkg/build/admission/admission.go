@@ -20,7 +20,7 @@ func init() {
 	admission.RegisterPlugin("BuildByStrategy", func(c kclient.Interface, config io.Reader) (admission.Interface, error) {
 		osClient, ok := c.(client.Interface)
 		if !ok {
-			return nil, errors.New("client is not an Origin client")
+			return nil, errors.New("client is not an Openshift client")
 		}
 		return NewBuildByStrategy(osClient), nil
 	})
@@ -35,7 +35,7 @@ type buildByStrategy struct {
 // on policy based on the build strategy type
 func NewBuildByStrategy(client client.Interface) admission.Interface {
 	return &buildByStrategy{
-		Handler: admission.NewHandler(admission.Create),
+		Handler: admission.NewHandler(admission.Create, admission.Update),
 		client:  client,
 	}
 }
@@ -57,7 +57,7 @@ func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	case *buildapi.BuildRequest:
 		return a.checkBuildRequestAuthorization(obj, attr)
 	default:
-		return admission.NewForbidden(attr, fmt.Errorf("Unrecognized request object %#v", obj))
+		return admission.NewForbidden(attr, fmt.Errorf("unrecognized request object %#v", obj))
 	}
 }
 
