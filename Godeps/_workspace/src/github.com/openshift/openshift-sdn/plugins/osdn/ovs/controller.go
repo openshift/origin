@@ -260,9 +260,9 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	// (This has to have been performed in advance for docker-in-docker deployments,
 	// since this will fail there).
 	_, _ = exec.Command("modprobe", "br_netfilter").CombinedOutput()
-	err = sysctl.SetSysctl("net/bridge/bridge-nf-call", 0)
+	err = sysctl.SetSysctl("net/bridge/bridge-nf-call-iptables", 0)
 	if err != nil {
-		glog.Warningf("Could not set net.bridge.bridge-nf-call sysctl: %s", err)
+		glog.Warningf("Could not set net.bridge.bridge-nf-call-iptables sysctl: %s", err)
 	}
 
 	// Enable IP forwarding for ipv4 packets

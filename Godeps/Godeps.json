@@ -675,12 +675,12 @@
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg",
 			"Comment": "v0.1-164-g9d342eb",
-			"Rev": "da8ad5dc5c94012eb222221d909b2b6fa678500f"
+			"Rev": "eda3808d8fe615229f168661fea021a074a34750"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/plugins",
 			"Comment": "v0.1-164-g9d342eb",
-			"Rev": "da8ad5dc5c94012eb222221d909b2b6fa678500f"
+			"Rev": "eda3808d8fe615229f168661fea021a074a34750"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
