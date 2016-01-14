@@ -122,14 +122,14 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.Config = path
 	server.RootDirectory = options.VolumeDirectory
 
-	// kubelet finds the node IP address by doing net.ParseIP(hostname) and if that fails,
-	// it does net.LookupIP(NodeName) and picks the first non-loopback address.
-	// Pass node IP as hostname to make kubelet use the desired IP address.
 	if len(options.NodeIP) > 0 {
-		server.HostnameOverride = options.NodeIP
-	} else {
-		server.HostnameOverride = options.NodeName
+		nodeIP := net.ParseIP(options.NodeIP)
+		if nodeIP == nil {
+			return nil, fmt.Errorf("Invalid Node IP: %s", options.NodeIP)
+		}
+		server.NodeIP = nodeIP
 	}
+	server.HostnameOverride = options.NodeName
 	server.AllowPrivileged = true
 	server.RegisterNode = true
 	server.Address = kubeAddress
