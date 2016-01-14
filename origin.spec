@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 05d5bc57c622b8a9cfe7a9f5ac31c63ea69a79f4
+%global commit 38d659dd6c2cea89512d2ef87672fcdaeb814cf2
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.1-83-g05d5bc5 -X github.com/openshift/origin/pkg/version.commitFromGit 05d5bc5 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.2-24-g38d659d -X github.com/openshift/origin/pkg/version.commitFromGit 38d659d -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.2
+Version:        3.1.1.3
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -466,6 +466,28 @@ fi
 
 
 %changelog
+* Thu Jan 14 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.3
+- Bug 1298457 - The link to pv doc is wrong (bleanhar@redhat.com)
+- Fix typo in build generator (mfojtik@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  eda3808d8fe615229f168661fea021a074a34750 (dcbw@redhat.com)
+- Auto generated bash completions for node-ip kubelet config option
+  (rpenta@redhat.com)
+- Use KubeletServer.NodeIP instead of KubeletServer.HostnameOverride to set
+  node IP (rpenta@redhat.com)
+- UPSTREAM: <carry>: Tolerate node ExternalID changes with no cloud provider
+  (sross@redhat.com)
+- Update certs for router tests (jliggitt@redhat.com)
+- Retry adding roles to service accounts in conflict cases
+  (jliggitt@redhat.com)
+- Include update operation in build admission controller (cewong@redhat.com)
+- UPSTREAM: 18541: Allow node IP to be passed as optional config for kubelet
+  (rpenta@redhat.com)
+- Fix test fixture fields (mkargaki@redhat.com)
+- Make `oc cancel-build` to be suggested for `oc stop-build`.
+  (vsemushi@redhat.com)
+- The default codec should be v1.Codec, not v1beta3 (ccoleman@redhat.com)
+
 * Wed Jan 13 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.2
 - Wait for access tokens to be available in clustered etcd
   (jliggitt@redhat.com)
