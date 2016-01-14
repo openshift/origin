@@ -8,52 +8,84 @@ interval=${RELOAD_COALESCE_INTERVAL:-"$default_coalesce_interval"}
 config_file=/var/lib/haproxy/conf/haproxy.config
 run_dir=/var/lib/haproxy/run
 pid_file=$run_dir/haproxy.pid
-lock_file="$run_dir/${script}.lock"
+coalesce_lock="$run_dir/${script}.coalesce.lock"
+reload_lock="$run_dir/${script}.lock"
 old_pid=""
 haproxy_conf_dir=/var/lib/haproxy/conf
 
 
+function _cleanup() {
+  [ -d "$coalesce_lock" ] && rmdir "$coalesce_lock"
+  exit 0
+}
+
+
 function coalesce_reloads() {
   local reloadts=0
-  [ -f "$lock_file" ] && reloadts=$(stat -c "%Y" "$lock_file")
+  [ -f "$reload_lock" ] && reloadts=$(stat -c "%Y" "$reload_lock")
+
+  if ! mkdir "$coalesce_lock"; then
+    echo  "  - Exiting as another haproxy reload is pending."
+    exit 0
+  fi
+
+  trap _cleanup KILL ERR QUIT TERM EXIT INT
 
   #  Ensure interval is a valid number and under max wait time (5 mins).
   [[ $interval =~ ^-?[0-9]+$ ]] || interval=$default_coalesce_interval
   [ $interval -gt $coalesce_max_wait ] && interval=$coalesce_max_wait
 
-  (
-    function _onexit() {
-      flock -x -u -n 42
-    }
+  #  Get time difference from the last reload.
+  local now=$(date +%s)
+  local timediff=$(( $now - $reloadts))
 
-    trap _onexit KILL ERR QUIT TERM EXIT INT
+  #  Sleep for 'x' secs  where 0 <= x < interval ( <= coalesce_max_wait).
+  [ $interval -ge $timediff ] && sleep $((interval - timediff))
 
-    flock -n 42 || exit 0  #  Another reload is running.
-
-    #  Get time difference of last reload from current timestamp.
-    local now=$(date +%s)
-    local timediff=$(( $now - $reloadts))
-
-    #  Sleep for 'x' secs  where 0 <= x < interval ( <= coalesce_max_wait).
-    [ $interval -ge $timediff ] && sleep $((interval - timediff))
-
-    if [ -f $pid_file ]; then
-      old_pid=$(<$pid_file)
-    fi
-
-    if [ -n "$old_pid" ]; then
-      /usr/sbin/haproxy -f $config_file -p $pid_file -sf $old_pid
-    else
-      /usr/sbin/haproxy -f $config_file -p $pid_file
-    fi
-
-    _onexit
-
-  ) 42> "$lock_file"
-
-  flock -x -u "$lock_file" id &> /dev/null
+  rmdir "$coalesce_lock"
 
 }  #  End of function  coalesce_reloads.
+
+
+function lock_and_reload_haproxy() {
+  local hapid=0
+
+  [ -f "$reload_lock" ] && hapid=$(<"$reload_lock")
+
+  if [ -n "$hapid" ]  &&  ! kill -0 $hapid; then
+    rm -f "$reload_lock"   #  stale pid.
+  fi
+
+  #  Ensure only 1 reload runs a time with flock.
+  (
+     flock 42
+
+     function _onexit() {
+       flock -x -u -n 42
+       echo "" > "$reload_lock"
+     }
+
+     trap _onexit KILL ERR QUIT TERM EXIT INT
+
+     echo "$$" > "$reload_lock"
+
+     if [ -f $pid_file ]; then
+       old_pid=$(<$pid_file)
+     fi
+
+     if [ -n "$old_pid" ]; then
+       /usr/sbin/haproxy -f $config_file -p $pid_file -sf $old_pid
+     else
+       /usr/sbin/haproxy -f $config_file -p $pid_file
+     fi
+
+     _onexit
+
+  ) 42> "$reload_lock"
+
+  flock -x -u "$reload_lock" id &> /dev/null
+
+}  #  End of function  lock_and_reload_haproxy.
 
 
 # sort the path based map files for the haproxy map_beg function
@@ -62,3 +94,5 @@ for mapfile in "$haproxy_conf_dir"/*.map; do
 done
 
 coalesce_reloads
+
+lock_and_reload_haproxy
