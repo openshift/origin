@@ -128,6 +128,15 @@ func TestBuildAdmission(t *testing.T) {
 			expectAccept:   false,
 			expectedError:  "Internal error occurred: [Unrecognized request object &admission.fakeObject{}, couldn't find ObjectMeta field in admission.fakeObject{}]",
 		},
+		{
+			name:           "details on forbidden docker build",
+			object:         testBuild(buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{}}),
+			kind:           "Build",
+			resource:       buildsResource,
+			subResource:    "details",
+			reviewResponse: reviewResponse(false, "cannot create build of type docker build"),
+			expectAccept:   true,
+		},
 	}
 
 	ops := []admission.Operation{admission.Create, admission.Update}
