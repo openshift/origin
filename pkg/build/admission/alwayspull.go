@@ -1,10 +1,10 @@
 package admission
 
 import (
-	"fmt"
 	"io"
 
 	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -31,19 +31,18 @@ func NewAlwaysPullBuildImages() admission.Interface {
 }
 
 func (a *alwaysPull) Admit(attr admission.Attributes) error {
-	if resource := attr.GetResource(); resource != buildsResource && resource != buildConfigsResource {
+	if len(attr.GetSubresource()) != 0 || attr.GetResource() != buildsResource {
 		return nil
 	}
-	switch obj := attr.GetObject().(type) {
-	case *buildapi.Build:
-		setForcePull(obj.Spec.Strategy)
-		return nil
-	case *buildapi.BuildConfig:
-		setForcePull(obj.Spec.Strategy)
-		return nil
-	default:
-		return admission.NewForbidden(attr, fmt.Errorf("unrecognized request object %#v", obj))
+
+	build, ok := attr.GetObject().(*buildapi.Build)
+	if !ok {
+		return errors.NewBadRequest("Resource was marked with kind Build but was unable to be converted")
 	}
+
+	setForcePull(build.Spec.Strategy)
+
+	return nil
 }
 
 func setForcePull(strategy buildapi.BuildStrategy) {

@@ -12,17 +12,14 @@ import (
 
 func TestAlwaysPullBuildImagesAdmission(t *testing.T) {
 	tests := []struct {
-		name           string
-		kind           string
-		resource       string
-		object         runtime.Object
-		responseObject runtime.Object
-		expectAccept   bool
-		expectedError  string
+		name          string
+		build         *buildapi.Build
+		expectAccept  bool
+		expectedError string
 	}{
 		{
 			name: "build - custom",
-			object: &buildapi.Build{
+			build: &buildapi.Build{
 				Spec: buildapi.BuildSpec{
 					Strategy: buildapi.BuildStrategy{
 						CustomStrategy: &buildapi.CustomBuildStrategy{
@@ -31,13 +28,11 @@ func TestAlwaysPullBuildImagesAdmission(t *testing.T) {
 					},
 				},
 			},
-			kind:         "Build",
-			resource:     buildsResource,
 			expectAccept: true,
 		},
 		{
 			name: "build - docker",
-			object: &buildapi.Build{
+			build: &buildapi.Build{
 				Spec: buildapi.BuildSpec{
 					Strategy: buildapi.BuildStrategy{
 						DockerStrategy: &buildapi.DockerBuildStrategy{
@@ -46,13 +41,11 @@ func TestAlwaysPullBuildImagesAdmission(t *testing.T) {
 					},
 				},
 			},
-			kind:         "Build",
-			resource:     buildsResource,
 			expectAccept: true,
 		},
 		{
 			name: "build - source",
-			object: &buildapi.Build{
+			build: &buildapi.Build{
 				Spec: buildapi.BuildSpec{
 					Strategy: buildapi.BuildStrategy{
 						SourceStrategy: &buildapi.SourceBuildStrategy{
@@ -61,59 +54,6 @@ func TestAlwaysPullBuildImagesAdmission(t *testing.T) {
 					},
 				},
 			},
-			kind:         "Build",
-			resource:     buildsResource,
-			expectAccept: true,
-		},
-		{
-			name: "build config - custom",
-			object: &buildapi.BuildConfig{
-				Spec: buildapi.BuildConfigSpec{
-					BuildSpec: buildapi.BuildSpec{
-						Strategy: buildapi.BuildStrategy{
-							CustomStrategy: &buildapi.CustomBuildStrategy{
-								ForcePull: false,
-							},
-						},
-					},
-				},
-			},
-			kind:         "BuildConfig",
-			resource:     buildConfigsResource,
-			expectAccept: true,
-		},
-		{
-			name: "build config - docker",
-			object: &buildapi.BuildConfig{
-				Spec: buildapi.BuildConfigSpec{
-					BuildSpec: buildapi.BuildSpec{
-						Strategy: buildapi.BuildStrategy{
-							DockerStrategy: &buildapi.DockerBuildStrategy{
-								ForcePull: false,
-							},
-						},
-					},
-				},
-			},
-			kind:         "BuildConfig",
-			resource:     buildConfigsResource,
-			expectAccept: true,
-		},
-		{
-			name: "build config - source",
-			object: &buildapi.BuildConfig{
-				Spec: buildapi.BuildConfigSpec{
-					BuildSpec: buildapi.BuildSpec{
-						Strategy: buildapi.BuildStrategy{
-							SourceStrategy: &buildapi.SourceBuildStrategy{
-								ForcePull: false,
-							},
-						},
-					},
-				},
-			},
-			kind:         "BuildConfig",
-			resource:     buildConfigsResource,
 			expectAccept: true,
 		},
 	}
@@ -122,7 +62,7 @@ func TestAlwaysPullBuildImagesAdmission(t *testing.T) {
 	for _, test := range tests {
 		for _, op := range ops {
 			c := NewAlwaysPullBuildImages()
-			attrs := admission.NewAttributesRecord(test.object, test.kind, "default", "name", test.resource, "", op, nil)
+			attrs := admission.NewAttributesRecord(test.build, "Build", "default", "name", "builds", "", op, nil)
 			err := c.Admit(attrs)
 			if err != nil && test.expectAccept {
 				t.Errorf("%s: unexpected error: %v", test.name, err)
@@ -135,29 +75,110 @@ func TestAlwaysPullBuildImagesAdmission(t *testing.T) {
 				t.Errorf("%s: expecting reject error, got %v", test.name, err)
 			}
 
-			var strategy *buildapi.BuildStrategy
-			switch obj := test.object.(type) {
-			case *buildapi.Build:
-				strategy = &obj.Spec.Strategy
-			case *buildapi.BuildConfig:
-				strategy = &obj.Spec.Strategy
-			}
-
+			strategy := test.build.Spec.Strategy
 			switch {
 			case strategy.CustomStrategy != nil:
 				if strategy.CustomStrategy.ForcePull == false {
-					t.Errorf("%s: force pull was false")
+					t.Errorf("%s (%s): force pull was false", test.name, op)
 				}
 			case strategy.DockerStrategy != nil:
 				if strategy.DockerStrategy.ForcePull == false {
-					t.Errorf("%s: force pull was false")
+					t.Errorf("%s (%s): force pull was false", test.name, op)
 				}
 			case strategy.SourceStrategy != nil:
 				if strategy.SourceStrategy.ForcePull == false {
-					t.Errorf("%s: force pull was false")
+					t.Errorf("%s (%s): force pull was false", test.name, op)
 				}
 			}
 
+		}
+	}
+}
+
+func TestAlwaysPullBuildImagesAdmissionOtherResources(t *testing.T) {
+	build := &buildapi.Build{
+		Spec: buildapi.BuildSpec{
+			Strategy: buildapi.BuildStrategy{
+				SourceStrategy: &buildapi.SourceBuildStrategy{
+					ForcePull: false,
+				},
+			},
+		},
+	}
+
+	bc := &buildapi.BuildConfig{
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Strategy: buildapi.BuildStrategy{
+					SourceStrategy: &buildapi.SourceBuildStrategy{
+						ForcePull: false,
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		kind        string
+		resource    string
+		subresource string
+		object      runtime.Object
+		expectError bool
+	}{
+		{
+			name:     "non-build resource",
+			kind:     "Foo",
+			resource: "foos",
+			object:   build,
+		},
+		{
+			name:        "build subresource",
+			kind:        "Build",
+			resource:    "builds",
+			subresource: "clone",
+			object:      build,
+		},
+		{
+			name:        "non-build object",
+			kind:        "Build",
+			resource:    "builds",
+			object:      &buildapi.BuildConfig{},
+			expectError: true,
+		},
+		{
+			name:     "build config",
+			kind:     "BuildConfig",
+			resource: "buildconfigs",
+			object:   bc,
+		},
+	}
+
+	ops := []admission.Operation{admission.Create, admission.Update}
+	for _, test := range tests {
+		for _, op := range ops {
+			handler := NewAlwaysPullBuildImages()
+
+			err := handler.Admit(admission.NewAttributesRecord(test.object, test.kind, "default", "name", test.resource, test.subresource, op, nil))
+
+			if test.expectError {
+				if err == nil {
+					t.Errorf("%s (%s): unexpected nil error", test.name, op)
+				}
+				continue
+			}
+
+			if err != nil {
+				t.Errorf("%s (%s): unexpected error: %v", test.name, op, err)
+				continue
+			}
+
+			if build.Spec.Strategy.SourceStrategy.ForcePull != false {
+				t.Errorf("%s (%s): build force pull should be false", test.name, op)
+			}
+			if bc.Spec.Strategy.SourceStrategy.ForcePull != false {
+				t.Errorf("%s (%s): build config force pull should be false", test.name, op)
+			}
 		}
 	}
 }
