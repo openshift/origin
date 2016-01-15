@@ -1,6 +1,7 @@
 package osdn
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -38,22 +39,33 @@ type Registry struct {
 	namespaceOfPodIP     map[string]string
 }
 
-func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
+func NewRegistry(isMaster bool, osClient *osclient.Client, kClient *kclient.Client) (*Registry, error) {
 	var clusterNetwork, serviceNetwork *net.IPNet
-	cn, err := osClient.ClusterNetwork().Get("default")
-	if err == nil {
-		_, clusterNetwork, _ = net.ParseCIDR(cn.Network)
-		_, serviceNetwork, _ = net.ParseCIDR(cn.ServiceNetwork)
+	var namespaceMap map[string]string
+
+	if !isMaster {
+		cn, err := osClient.ClusterNetwork().Get("default")
+		if err != nil {
+			return nil, fmt.Errorf("Could not get default ClusterNetwork record: %v", err)
+		}
+		_, clusterNetwork, err = net.ParseCIDR(cn.Network)
+		if err != nil {
+			return nil, fmt.Errorf("Could not parse ClusterNetwork.Network value %q: %v", cn.Network, err)
+		}
+		_, serviceNetwork, err = net.ParseCIDR(cn.ServiceNetwork)
+		if err != nil {
+			return nil, fmt.Errorf("Could not parse ClusterNetwork.ServiceNetwork value %q: %v", cn.ServiceNetwork, err)
+		}
+		namespaceMap = make(map[string]string)
 	}
-	// else the same error will occur again later and be reported
 
 	return &Registry{
 		oClient:          osClient,
 		kClient:          kClient,
 		serviceNetwork:   serviceNetwork,
 		clusterNetwork:   clusterNetwork,
-		namespaceOfPodIP: make(map[string]string),
-	}
+		namespaceOfPodIP: namespaceMap,
+	}, nil
 }
 
 func (registry *Registry) GetSubnets() ([]osdnapi.Subnet, string, error) {
