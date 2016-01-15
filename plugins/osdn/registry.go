@@ -621,10 +621,6 @@ EndpointLoop:
 		for _, ss := range ep.Subsets {
 			for _, addr := range ss.Addresses {
 				IP := net.ParseIP(addr.IP)
-				if IP == nil {
-					log.Warningf("Service %q in namespace %q has an Endpoint with invalid IP address %q", ep.ObjectMeta.Name, ns, addr.IP)
-					continue EndpointLoop
-				}
 				if registry.serviceNetwork.Contains(IP) {
 					log.Warningf("Service '%s' in namespace '%s' has an Endpoint inside the service network (%s)", ep.ObjectMeta.Name, ns, addr.IP)
 					continue EndpointLoop
