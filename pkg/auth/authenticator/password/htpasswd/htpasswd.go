@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"github.com/openshift/origin/pkg/util"
 	"golang.org/x/crypto/bcrypt"
 	"k8s.io/kubernetes/pkg/auth/user"
 )
@@ -85,8 +86,10 @@ func (a *Authenticator) load() error {
 			continue
 		}
 
-		parts := strings.SplitN(line, ":", 2)
-		if len(parts) != 2 {
+		parts := strings.Split(line, ":")
+
+		// Note that we ignore trailing fields
+		if len(parts) < 2 {
 			glog.Warningf("Ignoring malformed htpasswd line: %s", line)
 			continue
 		}
@@ -136,8 +139,11 @@ func testPassword(password, hash string) (bool, error) {
 	case strings.HasPrefix(hash, "{SHA}"):
 		// SHA-1, insecure
 		return testSHAPassword(password, hash[5:])
-	case len(hash) == 13:
-		// looks like crypt
+	case len(hash) == 13 && !strings.HasPrefix(hash, "$"):
+		// DES crypt()
+		return testCryptPassword(password, hash)
+	case strings.HasPrefix(hash, "$1$") || strings.HasPrefix(hash, "$5$") || strings.HasPrefix(hash, "$6$"):
+		// Other crypt modes
 		return testCryptPassword(password, hash)
 	default:
 		return false, errors.New("Unrecognized hash type")
@@ -194,10 +200,11 @@ func testMD5Password(password, hash string) (bool, error) {
 }
 
 func testCryptPassword(password, hash string) (bool, error) {
-	// if len(password) > 8 {
-	// 	password = password[:8]
-	// }
-	// salt := hash[0:2]
-	// hash = hash[2:]
-	return false, errors.New("crypt password hashes are not supported")
+	testhash, err := util.Crypt(password, hash)
+	if err != nil {
+		return false, err
+	}
+
+	match := testhash == hash
+	return match, nil
 }

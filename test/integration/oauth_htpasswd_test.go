@@ -61,7 +61,8 @@ func TestOAuthHTPasswd(t *testing.T) {
 	}
 
 	// Update the htpasswd file with output of `htpasswd -n -b username password`
-	userpass := "username:$apr1$4Ci5I8yc$85R9vc4fOgzAULsldiUuv."
+	// And also a line that looks like /etc/shadow with root account and crypt('foobar', ...)
+	userpass := "username:$apr1$4Ci5I8yc$85R9vc4fOgzAULsldiUuv.\nroot:$6$nbGgoytD$F7YVfCQVLgEw6JiM.64cvXrIfWZd4s2OL7URG3RIAB9YwZE1pdEyxvsG5U9/AmkAtfDDuCEXsff3/QKeZO4tQ0:16819:0:99999:7:::\n"
 	ioutil.WriteFile(htpasswdFile.Name(), []byte(userpass), os.FileMode(0600))
 
 	// Make sure we can get a token
@@ -87,5 +88,29 @@ func TestOAuthHTPasswd(t *testing.T) {
 	}
 	if user.Name != "username" {
 		t.Fatalf("Expected username as the user, got %v", user)
+	}
+
+	// Now try to get a token for the shadow style crypt() line
+	rootToken, err := tokencmd.RequestToken(&anonConfig, nil, "root", "shadow")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if len(rootToken) == 0 {
+		t.Errorf("Expected access token for root, got none")
+	}
+
+	// Make sure we can use the token, and it represents who we expect
+	userConfig.BearerToken = rootToken
+	rootClient, err := client.New(&userConfig)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	root, err := rootClient.Users().Get("~")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if root.Name != "root" {
+		t.Fatalf("Expected root as the user, got %v", root)
 	}
 }
