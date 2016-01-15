@@ -60,6 +60,10 @@
 			"Rev": "c0ef4539dfab4d21c8ef20ba2924f9fc6f186d35"
 		},
 		{
+			"ImportPath": "github.com/apcera/gssapi",
+			"Rev": "b28cfdd5220f7ebe15d8372ac81a7f41cc35ab32"
+		},
+		{
 			"ImportPath": "github.com/appc/cni/libcni",
 			"Comment": "v0.1.0-27-g2a58bd9",
 			"Rev": "2a58bd9379ca33579f0cf631945b717aa4fa373d"
