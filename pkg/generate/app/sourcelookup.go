@@ -90,6 +90,8 @@ type SourceRepository struct {
 	buildWithDocker  bool
 	ignoreRepository bool
 	binary           bool
+
+	forceAddDockerfile bool
 }
 
 // NewSourceRepository creates a reference to a local or remote source code repository from
@@ -259,6 +261,7 @@ func (r *SourceRepository) AddDockerfile(contents string) error {
 	}
 	r.info.Dockerfile = dockerfile
 	r.buildWithDocker = true
+	r.forceAddDockerfile = true
 	return nil
 }
 
@@ -378,7 +381,7 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 		Binary: repo.binary,
 	}
 
-	if repo.Info() != nil && repo.Info().Dockerfile != nil {
+	if (repo.ignoreRepository || repo.forceAddDockerfile) && repo.Info() != nil && repo.Info().Dockerfile != nil {
 		source.DockerfileContents = repo.Info().Dockerfile.Contents()
 	}
 	if !repo.ignoreRepository {
