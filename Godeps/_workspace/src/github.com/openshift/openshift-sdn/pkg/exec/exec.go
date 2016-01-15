@@ -6,6 +6,8 @@ import (
 	"fmt"
 	osexec "os/exec"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 var testMode bool
@@ -26,9 +28,17 @@ func Exec(cmd string, args ...string) (string, error) {
 		return testModeExec(cmd, args...)
 	}
 
+	glog.V(5).Infof("[cmd] %s %s", cmd, strings.Join(args, " "))
 	out, err := osexec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		err = fmt.Errorf("%s failed: '%s %s': %v", cmd, cmd, strings.Join(args, " "), err)
+	} else if glog.V(5) {
+		lines := strings.Split(string(out), "\n")
+		for i, line := range lines {
+			if i < len(lines)-1 || len(line) > 0 {
+				glog.V(5).Infof("[cmd]   => %s", line)
+			}
+		}
 	}
 	return string(out), err
 }
