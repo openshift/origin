@@ -116,13 +116,15 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 
 	glog.V(5).Infof("[SDN setup] node pod subnet %s gateway %s", ipnet.String(), localSubnetGateway)
 
+	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
+
 	itx := ipcmd.NewTransaction(LBR)
 	itx.SetLink("down")
 	itx.IgnoreError()
 	itx.DeleteLink()
 	itx.IgnoreError()
 	itx.AddLink("type", "bridge")
-	itx.AddAddress(fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength))
+	itx.AddAddress(gwCIDR)
 	itx.SetLink("up")
 	err = itx.EndTransaction()
 	if err != nil {
@@ -140,7 +142,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 		glog.V(5).Infof("[SDN setup] docker setup success:\n%s", out)
 	}
 
-	if alreadySetUp(c.multitenant, fmt.Sprintf("%s/%s", localSubnetGateway, localSubnetMaskLength)) {
+	if alreadySetUp(c.multitenant, gwCIDR) {
 		glog.V(5).Infof("[SDN setup] no SDN setup required")
 		return nil
 	}
@@ -248,7 +250,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	}
 
 	itx = ipcmd.NewTransaction(TUN)
-	itx.AddAddress(localSubnetGateway)
+	itx.AddAddress(gwCIDR)
 	defer deleteLocalSubnetRoute(TUN, localSubnetCIDR)
 	itx.SetLink("up")
 	itx.AddRoute(clusterNetworkCIDR, "proto", "kernel", "scope", "link")
