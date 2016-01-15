@@ -125,6 +125,7 @@ export -f exectest
 export testexec
 export childargs
 
+loop="${TIMES:-1}"
 pushd "./${package}" &>/dev/null
 # $1 is passed to grep -E to filter the list of tests; this may be the name of a single test,
 # a fragment of a test name, or a regular expression.
@@ -138,9 +139,11 @@ tests=( $(go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${pack
 # run each test as its own process
 ret=0
 for test in "${tests[@]}"; do
-	if ! (exectest "${test}" ${@:2}); then 
-		ret=1
-	fi
+	for((i=0;i<${loop};i+=1)); do
+		if ! (exectest "${test}" ${@:2}); then 
+			ret=1
+		fi
+	done
 done
 popd &>/dev/null
 
