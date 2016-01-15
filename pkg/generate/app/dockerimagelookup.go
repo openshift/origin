@@ -224,6 +224,9 @@ func (r DockerRegistrySearcher) Search(terms ...string) (ComponentMatches, error
 }
 
 func descriptionFor(image *imageapi.DockerImage, value, from string, tag string) string {
+	if len(from) == 0 {
+		from = "local"
+	}
 	shortID := imageapi.ShortDockerImageID(image, 7)
 	tagPart := ""
 	if len(tag) > 0 {
@@ -232,7 +235,7 @@ func descriptionFor(image *imageapi.DockerImage, value, from string, tag string)
 	parts := []string{fmt.Sprintf("Docker image %q%v", value, tagPart), shortID, fmt.Sprintf("from %s", from)}
 	if image.Size > 0 {
 		mb := float64(image.Size) / float64(1024*1024)
-		parts = append(parts, fmt.Sprintf("%f", mb))
+		parts = append(parts, fmt.Sprintf("%.3fmb", mb))
 	}
 	if len(image.Author) > 0 {
 		parts = append(parts, fmt.Sprintf("author %s", image.Author))

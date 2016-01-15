@@ -49,6 +49,9 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 		}
 		exact, inexact, err := resolveExact(group, value)
 		switch {
+		case err != nil:
+			glog.V(5).Infof("Error from resolver: %v\n", err)
+			return nil, err
 		case exact != nil:
 			if exact.Score == 0.0 {
 				return exact, nil
@@ -68,8 +71,6 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 				}
 				imperfect = append(imperfect, m)
 			}
-		case err != nil:
-			glog.V(2).Infof("Error from resolver: %v\n", err)
 		}
 		group = nil
 	}
@@ -91,11 +92,19 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 		}
 		return nil, ErrNoMatch{value: value}
 	case 1:
-		return imperfect[0], nil
+		var err error
+		if imperfect[0].Score != 0.0 {
+			err = ErrPartialMatch{value, imperfect[0]}
+		}
+		return imperfect[0], err
 	default:
 		sort.Sort(imperfect)
 		if imperfect[0].Score < imperfect[1].Score {
-			return imperfect[0], nil
+			var err error
+			if imperfect[0].Score != 0.0 {
+				err = ErrPartialMatch{value, imperfect[0]}
+			}
+			return imperfect[0], err
 		}
 		return nil, ErrMultipleMatches{value, imperfect}
 	}
@@ -294,7 +303,7 @@ func resolveExact(resolver Resolver, value string) (exact *ComponentMatch, inexa
 		case ErrNoMatch:
 			return nil, nil, nil
 		case ErrMultipleMatches:
-			return nil, t.Matches, nil
+			return nil, t.Matches, err
 		default:
 			return nil, nil, err
 		}

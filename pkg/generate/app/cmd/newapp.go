@@ -205,6 +205,7 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespac
 		Client:            osclient,
 		ImageStreamImages: osclient,
 		Namespaces:        namespaces,
+		StopOnMatch:       !c.AsSearch,
 	}
 	c.imageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(osclient, osclient, namespaces)
 	c.templateSearcher = app.TemplateSearcher{
@@ -341,11 +342,11 @@ func (c *AppConfig) addReferenceBuilderComponents(b *app.ReferenceBuilder) {
 			resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamSearcher, Weight: 0.0})
 			searcher = append(searcher, app.WeightedSearcher{Searcher: c.imageStreamSearcher, Weight: 0.0})
 		}
-		if c.templateSearcher != nil {
+		if c.templateSearcher != nil && !input.ExpectToBuild {
 			resolver = append(resolver, app.WeightedResolver{Searcher: c.templateSearcher, Weight: 0.0})
 			searcher = append(searcher, app.WeightedSearcher{Searcher: c.templateSearcher, Weight: 0.0})
 		}
-		if c.templateFileSearcher != nil {
+		if c.templateFileSearcher != nil && !input.ExpectToBuild {
 			resolver = append(resolver, app.WeightedResolver{Searcher: c.templateFileSearcher, Weight: 0.0})
 		}
 		if c.dockerSearcher != nil {
@@ -441,11 +442,12 @@ func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app
 			}
 			refs := b.AddComponents([]string{info.Types[0].Term()}, func(input *app.ComponentInput) app.ComponentReference {
 				resolver := app.PerfectMatchWeightedResolver{}
-				if c.imageStreamByAnnotationSearcher != nil {
-					resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamByAnnotationSearcher, Weight: 0.0})
-				}
+
 				if c.imageStreamSearcher != nil {
-					resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamSearcher, Weight: 1.0})
+					resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamSearcher, Weight: 0.0})
+				}
+				if c.imageStreamByAnnotationSearcher != nil {
+					resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamByAnnotationSearcher, Weight: 1.0})
 				}
 				if c.dockerSearcher != nil {
 					resolver = append(resolver, app.WeightedResolver{Searcher: c.dockerSearcher, Weight: 2.0})

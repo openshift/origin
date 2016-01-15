@@ -18,6 +18,7 @@ type ImageStreamSearcher struct {
 	Client            client.ImageStreamsNamespacer
 	ImageStreamImages client.ImageStreamImagesNamespacer
 	Namespaces        []string
+	StopOnMatch       bool
 }
 
 // Search will attempt to find imagestreams with names that matches the passed in value
@@ -37,6 +38,7 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 			searchTag = imageapi.DefaultImageTag
 		}
 		for _, namespace := range namespaces {
+			foundExactInNamespace := false
 			glog.V(4).Infof("checking ImageStreams %s/%s with ref %q", namespace, ref.Name, searchTag)
 			streams, err := r.Client.ImageStreams(namespace).List(labels.Everything(), fields.Everything())
 			if err != nil {
@@ -54,14 +56,14 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 				} else {
 					imageref, _ := imageapi.ParseDockerImageReference(term)
 					imageref.Name = stream.Name
-
+					matchName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 					latest := imageapi.LatestTaggedImage(stream, searchTag)
 					if latest == nil || len(latest.Image) == 0 {
 						glog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, searchTag)
 						componentMatches = append(componentMatches, &ComponentMatch{
 							Value:       imageref.Exact(),
-							Argument:    fmt.Sprintf("--image-stream=%q", imageref.Exact()),
-							Name:        imageref.Name,
+							Argument:    fmt.Sprintf("--image-stream=%q", matchName),
+							Name:        matchName,
 							Description: fmt.Sprintf("Image stream %s in project %s", stream.Name, stream.Namespace),
 							Score:       0.5 + score,
 							ImageStream: stream,
@@ -82,10 +84,11 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 					imageData := imageStreamImage.Image
 
 					imageref.Registry = ""
+
 					match := &ComponentMatch{
 						Value:       imageref.Exact(),
-						Argument:    fmt.Sprintf("--image-stream=%q", imageref.Exact()),
-						Name:        imageref.Name,
+						Argument:    fmt.Sprintf("--image-stream=%q", matchName),
+						Name:        matchName,
 						Description: fmt.Sprintf("Image stream %q (tag %q) in project %q", stream.Name, searchTag, stream.Namespace),
 						Score:       score,
 						ImageStream: stream,
@@ -93,8 +96,16 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 						ImageTag:    searchTag,
 					}
 					glog.V(2).Infof("Adding %s as component match for %q with score %v", match.Description, term, match.Score)
+					if match.Score == 0.0 {
+						foundExactInNamespace = true
+					}
 					componentMatches = append(componentMatches, match)
 				}
+			}
+			// If we found an exact match in this namespace, do not continue looking at
+			// other namespaces
+			if foundExactInNamespace && r.StopOnMatch {
+				break
 			}
 		}
 	}
@@ -223,10 +234,12 @@ func (r *ImageStreamByAnnotationSearcher) annotationMatches(stream *imageapi.Ima
 			continue
 		}
 		imageData := imageStream.Image
+		matchName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
+		glog.V(5).Infof("ImageStreamAnnotationSearcher match found: %s for %s with score %f", matchName, value, score)
 		match := &ComponentMatch{
 			Value:       value,
-			Name:        stream.Name,
-			Argument:    fmt.Sprintf("--image-stream=%q", value),
+			Name:        fmt.Sprintf("%s", matchName),
+			Argument:    fmt.Sprintf("--image-stream=%q", matchName),
 			Description: fmt.Sprintf("Image stream %s in project %s", stream.Name, stream.Namespace),
 			Score:       score,
 
@@ -249,6 +262,7 @@ func (r *ImageStreamByAnnotationSearcher) Search(terms ...string) (ComponentMatc
 		}
 		for i := range streams {
 			for _, term := range terms {
+				glog.V(5).Infof("Checking imagestream %s/%s for supports annotation %q", namespace, streams[i].Name, term)
 				matches = append(matches, r.annotationMatches(&streams[i], term)...)
 			}
 		}

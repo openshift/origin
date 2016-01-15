@@ -7,8 +7,11 @@ import (
 
 // ComponentMatch is a match to a provided component
 type ComponentMatch struct {
-	Value       string
-	Argument    string
+	// what this is a match for (the value that was searched on)
+	Value string
+	// the argument to use to specify this match explicitly
+	Argument string
+	// the exact name of this match
 	Name        string
 	Description string
 	Score       float32

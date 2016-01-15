@@ -26,6 +26,31 @@ func (e ErrNoMatch) UsageError(commandName string) string {
 	return fmt.Sprintf("%[3]s - does a Docker image with that name exist?", e.value, commandName, e.Error())
 }
 
+// ErrPartialMatch is the error returned to new-app users when the
+// best match available is only a partial match for a given component.
+type ErrPartialMatch struct {
+	Image string
+	Match *ComponentMatch
+}
+
+func (e ErrPartialMatch) Error() string {
+	return fmt.Sprintf("only a partial match was found for %q: %q", e.Image, e.Match.Name)
+}
+
+// UsageError is the usage error message returned when only a partial match is
+// found.
+func (e ErrPartialMatch) UsageError(commandName string) string {
+	buf := &bytes.Buffer{}
+	fmt.Fprintf(buf, "* %s\n", e.Match.Description)
+	fmt.Fprintf(buf, "  Use %[1]s to specify this image or template\n\n", e.Match.Argument)
+
+	return fmt.Sprintf(`
+The argument %[1]q only partially matched the following Docker image or OpenShift image stream:
+
+%[2]s
+`, e.Image, buf.String())
+}
+
 // ErrMultipleMatches is the error returned to new-app users when multiple
 // matches are found for a given component.
 type ErrMultipleMatches struct {
@@ -42,11 +67,11 @@ func (e ErrMultipleMatches) Error() string {
 func (e ErrMultipleMatches) UsageError(commandName string) string {
 	buf := &bytes.Buffer{}
 	for _, match := range e.Matches {
-		fmt.Fprintf(buf, "* %s %f\n", match.Description, match.Score)
+		fmt.Fprintf(buf, "* %s\n", match.Description)
 		fmt.Fprintf(buf, "  Use %[1]s to specify this image or template\n\n", match.Argument)
 	}
 	return fmt.Sprintf(`
-The argument %[1]q could apply to the following Docker images or OpenShift image repositories:
+The argument %[1]q could apply to the following Docker images or OpenShift image streams:
 
 %[2]s
 `, e.Image, buf.String())
