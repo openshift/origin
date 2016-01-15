@@ -15,6 +15,7 @@ export KUBE_REPO_ROOT="${GOPATH}/src/k8s.io/kubernetes"
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 os::log::install_errexit
 cd "${OS_ROOT}"
 
@@ -94,14 +95,11 @@ if [[ -z ${TEST_ONLY+x} ]]; then
 
   function cleanup()
   {
-    out=$?
     cleanup_openshift
     echo "[INFO] Exiting"
-    exit $out
   }
 
-  trap "exit" INT TERM
-  trap "cleanup" EXIT
+  os::util::trap::add "cleanup" EXIT INT TERM
   echo "[INFO] Starting server"
 
   setup_env_vars

@@ -9,6 +9,7 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/text.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 os::log::install_errexit
 
 # Go to the top of the tree.
@@ -37,15 +38,13 @@ set -e
 
 
 function cleanup() {
-	out=$?
-	set +e
+	out=$1
 	if [[ $out -ne 0 && -f "${etcdlog}" ]]; then
 		cat "${etcdlog}"
 	fi
 	kill "${ETCD_PID}" 1>&2 2>/dev/null
 	echo
 	echo "Complete"
-	exit $out
 }
 
 
@@ -95,7 +94,7 @@ wait_for_url "http://${ETCD_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160
 curl -X PUT	"http://${ETCD_HOST}:${ETCD_PORT}/v2/keys/_test"
 echo
 
-trap cleanup EXIT SIGINT
+os::util::trap::add cleanup EXIT SIGINT
 
 function exectest() {
 	echo "Running $1..."

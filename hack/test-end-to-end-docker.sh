@@ -10,6 +10,7 @@ set -o pipefail
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 
 echo "[INFO] Starting containerized end-to-end test"
 
@@ -22,7 +23,7 @@ reset_tmp_dir
 
 function cleanup()
 {
-	out=$?
+	out=$1
 	echo
 	if [ $out -ne 0 ]; then
 		echo "[FAIL] !!!!! Test Failed !!!!"
@@ -31,7 +32,6 @@ function cleanup()
 	fi
 	echo
 
-	set +e
 	dump_container_logs
 	
 	echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
@@ -57,15 +57,12 @@ function cleanup()
 
 	delete_empty_logs
 	truncate_large_logs
-	set -e
 
 	echo "[INFO] Exiting"
 	ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
-	exit $out
 }
 
-trap "exit" INT TERM
-trap "cleanup" EXIT
+os::util::trap::add "cleanup" EXIT INT TERM
 
 out=$(
 	set +e

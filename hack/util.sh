@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # Provides simple utility functions
+# Assumes "${OS_ROOT}" is set
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 
 TIME_SEC=1000
 TIME_MIN=$((60 * $TIME_SEC))
@@ -521,7 +523,6 @@ function cleanup_openshift {
 	API_SCHEME="${API_SCHEME:-https}"
 	ETCD_PORT="${ETCD_PORT:-4001}"
 
-	set +e
 	dump_container_logs
 	
 	echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
@@ -548,7 +549,6 @@ function cleanup_openshift {
 	truncate_large_logs
 
 	echo "[INFO] Cleanup complete"
-	set -e
 }
 
 # create a .gitconfig for test-cmd secrets
@@ -668,7 +668,7 @@ os::log::errexit() {
 os::log::install_errexit() {
 	# trap ERR to provide an error handler whenever a command exits nonzero	this
 	# is a more verbose version of set -o errexit
-	trap 'os::log::errexit' ERR
+	os::util::trap::append_to_signal 'os::log::errexit' ERR
 
 	# setting errtrace allows our ERR trap handler to be propagated to functions,
 	# expansions and subshells

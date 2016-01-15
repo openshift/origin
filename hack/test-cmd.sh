@@ -11,13 +11,13 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 cd "${OS_ROOT}"
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 os::log::install_errexit
 
 function cleanup()
 {
-    out=$?
+    out=$1
     pkill -P $$
-    set +e
     kill_all_processes
 
     if [ $out -ne 0 ]; then
@@ -40,11 +40,9 @@ function cleanup()
     fi
 
     ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
-    exit $out
 }
 
-trap "exit" INT TERM
-trap "cleanup" EXIT
+os::util::trap::add "cleanup" EXIT INT TERM
 
 set -e
 
