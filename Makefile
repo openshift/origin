@@ -31,6 +31,13 @@ all build:
 	hack/build-go.sh $(WHAT)
 .PHONY: all build
 
+# Build Code with E2E tests artifact.
+# Example:
+# make e2e
+e2e:
+	hack/build-go.sh test/e2e/e2e.test
+.PHONY: e2e
+
 # Build and run unit tests
 #
 # Args:
