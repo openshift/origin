@@ -41,11 +41,13 @@ func TestCreatePodSecurityContextNonmutating(t *testing.T) {
 			ObjectMeta: api.ObjectMeta{
 				Name: "scc-sa",
 			},
+			DefaultAddCapabilities:   []api.Capability{"foo"},
+			RequiredDropCapabilities: []api.Capability{"bar"},
 			RunAsUser: api.RunAsUserStrategyOptions{
 				Type: api.RunAsUserStrategyRunAsAny,
 			},
 			SELinuxContext: api.SELinuxContextStrategyOptions{
-				Type:           api.SELinuxStrategyRunAsAny,
+				Type: api.SELinuxStrategyRunAsAny,
 			},
 			// these are pod mutating strategies that are tested above
 			FSGroup: api.FSGroupStrategyOptions{
@@ -109,6 +111,8 @@ func TestCreateContainerSecurityContextNonmutating(t *testing.T) {
 			ObjectMeta: api.ObjectMeta{
 				Name: "scc-sa",
 			},
+			DefaultAddCapabilities:   []api.Capability{"foo"},
+			RequiredDropCapabilities: []api.Capability{"bar"},
 			RunAsUser: api.RunAsUserStrategyOptions{
 				Type: api.RunAsUserStrategyMustRunAs,
 				UID:  &uid,
@@ -167,7 +171,7 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 	failSupplementalGroupPod := defaultPod()
 	failSupplementalGroupPod.Spec.SecurityContext.SupplementalGroups = []int64{999}
 	failSupplementalGroupSCC := defaultSCC()
-	failSupplementalGroupSCC.SupplementalGroups = api.SupplementalGroupsStrategyOptions {
+	failSupplementalGroupSCC.SupplementalGroups = api.SupplementalGroupsStrategyOptions{
 		Type: api.SupplementalGroupsStrategyMustRunAs,
 		Ranges: []api.IDRange{
 			{Min: 1, Max: 1},
@@ -178,7 +182,7 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 	fsGroup := int64(999)
 	failFSGroupPod.Spec.SecurityContext.FSGroup = &fsGroup
 	failFSGroupSCC := defaultSCC()
-	failFSGroupSCC.FSGroup = api.FSGroupStrategyOptions {
+	failFSGroupSCC.FSGroup = api.FSGroupStrategyOptions{
 		Type: api.FSGroupStrategyMustRunAs,
 		Ranges: []api.IDRange{
 			{Min: 1, Max: 1},
@@ -218,33 +222,33 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 			expectedError: "Host IPC is not allowed to be used",
 		},
 		"failSupplementalGroupOutOfRange": {
-			pod: failSupplementalGroupPod,
-			scc: failSupplementalGroupSCC,
+			pod:           failSupplementalGroupPod,
+			scc:           failSupplementalGroupSCC,
 			expectedError: "999 is not an allowed group",
 		},
 		"failSupplementalGroupEmpty": {
-			pod: defaultPod(),
-			scc: failSupplementalGroupSCC,
+			pod:           defaultPod(),
+			scc:           failSupplementalGroupSCC,
 			expectedError: "unable to validate empty groups against required ranges",
 		},
 		"failFSGroupOutOfRange": {
-			pod: failFSGroupPod,
-			scc: failFSGroupSCC,
+			pod:           failFSGroupPod,
+			scc:           failFSGroupSCC,
 			expectedError: "999 is not an allowed group",
 		},
 		"failFSGroupEmpty": {
-			pod: defaultPod(),
-			scc: failFSGroupSCC,
+			pod:           defaultPod(),
+			scc:           failFSGroupSCC,
 			expectedError: "unable to validate empty groups against required ranges",
 		},
 		"failNilSELinux": {
-			pod: failNilSELinuxPod,
-			scc: failSELinuxSCC,
+			pod:           failNilSELinuxPod,
+			scc:           failSELinuxSCC,
 			expectedError: "unable to validate nil seLinuxOptions",
 		},
 		"failInvalidSELinux": {
-			pod: failInvalidSELinuxPod,
-			scc: failSELinuxSCC,
+			pod:           failInvalidSELinuxPod,
+			scc:           failSELinuxSCC,
 			expectedError: "does not match required level.  Found bar, wanted foo",
 		},
 	}
@@ -334,7 +338,7 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 		"failCapsSCC": {
 			pod:           failCapsPod,
 			scc:           defaultSCC(),
-			expectedError: "Capability is not allowed to be added",
+			expectedError: "capability may not be added",
 		},
 		"failHostDirSCC": {
 			pod:           failHostDirPod,
@@ -403,17 +407,17 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 
 	seLinuxPod := defaultPod()
 	seLinuxPod.Spec.SecurityContext.SELinuxOptions = &api.SELinuxOptions{
-		User: "user",
-		Role: "role",
-		Type: "type",
+		User:  "user",
+		Role:  "role",
+		Type:  "type",
 		Level: "level",
 	}
 	seLinuxSCC := defaultSCC()
 	seLinuxSCC.SELinuxContext.Type = api.SELinuxStrategyMustRunAs
 	seLinuxSCC.SELinuxContext.SELinuxOptions = &api.SELinuxOptions{
-		User: "user",
-		Role: "role",
-		Type: "type",
+		User:  "user",
+		Role:  "role",
+		Type:  "type",
 		Level: "level",
 	}
 
@@ -478,7 +482,7 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 			},
 		}
 	}
-	
+
 	// fail user strat
 	userSCC := defaultSCC()
 	var uid int64 = 999
@@ -515,6 +519,14 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 		Add: []api.Capability{"foo"},
 	}
 
+	// pod should be able to request caps that are in the required set even if not specified in the allowed set
+	requiredCapsSCC := defaultSCC()
+	requiredCapsSCC.DefaultAddCapabilities = []api.Capability{"foo"}
+	requiredCapsPod := defaultPod()
+	requiredCapsPod.Spec.Containers[0].SecurityContext.Capabilities = &api.Capabilities{
+		Add: []api.Capability{"foo"},
+	}
+
 	hostDirSCC := defaultSCC()
 	hostDirSCC.AllowHostDirVolumePlugin = true
 	hostDirPod := defaultPod()
@@ -548,9 +560,13 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 			pod: privPod,
 			scc: privSCC,
 		},
-		"pass caps validating SCC": {
+		"pass allowed caps validating SCC": {
 			pod: capsPod,
 			scc: capsSCC,
+		},
+		"pass required caps validating SCC": {
+			pod: requiredCapsPod,
+			scc: requiredCapsSCC,
 		},
 		"pass hostDir validating SCC": {
 			pod: hostDirPod,
@@ -600,7 +616,7 @@ func defaultPod() *api.Pod {
 	return &api.Pod{
 		Spec: api.PodSpec{
 			SecurityContext: &api.PodSecurityContext{
-				// fill in for test cases
+			// fill in for test cases
 			},
 			Containers: []api.Container{
 				{
