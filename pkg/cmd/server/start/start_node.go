@@ -260,8 +260,10 @@ func StartNode(nodeConfig configapi.NodeConfig) error {
 
 	// async starts
 	config.RunKubelet()
-	config.RunSDN()
 	config.RunProxy()
+
+	// SDN must run after proxy to set correct bridge-nf-call-iptables value
+	config.RunSDN()
 
 	return nil
 }
