@@ -49,6 +49,11 @@ func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	if resource := attr.GetResource(); resource != buildsResource && resource != buildConfigsResource {
 		return nil
 	}
+	// Explicitly exclude the builds/details subresource because it's only
+	// updating commit info and cannot change build type.
+	if attr.GetResource() == buildsResource && attr.GetSubresource() == "details" {
+		return nil
+	}
 	switch obj := attr.GetObject().(type) {
 	case *buildapi.Build:
 		return a.checkBuildAuthorization(obj, attr)
