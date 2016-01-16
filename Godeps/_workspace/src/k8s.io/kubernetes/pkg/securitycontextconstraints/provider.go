@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/securitycontextconstraints/capabilities"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/group"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/selinux"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/user"
@@ -29,7 +30,7 @@ import (
 // used to pass in the field being validated for reusable group strategies so they
 // can create informative error messages.
 const (
-	fsGroupField = "fsGroup"
+	fsGroupField            = "fsGroup"
 	supplementalGroupsField = "supplementalGroups"
 )
 
@@ -40,6 +41,7 @@ type simpleProvider struct {
 	seLinuxStrategy           selinux.SELinuxSecurityContextConstraintsStrategy
 	fsGroupStrategy           group.GroupSecurityContextConstraintsStrategy
 	supplementalGroupStrategy group.GroupSecurityContextConstraintsStrategy
+	capabilitiesStrategy      capabilities.CapabilitiesSecurityContextConstraintsStrategy
 }
 
 // ensure we implement the interface correctly.
@@ -71,12 +73,18 @@ func NewSimpleProvider(scc *api.SecurityContextConstraints) (SecurityContextCons
 		return nil, err
 	}
 
+	capStrat, err := createCapabilitiesStrategy(scc.DefaultAddCapabilities, scc.RequiredDropCapabilities, scc.AllowedCapabilities)
+	if err != nil {
+		return nil, err
+	}
+
 	return &simpleProvider{
 		scc:                       scc,
 		runAsUserStrategy:         userStrat,
 		seLinuxStrategy:           seLinuxStrat,
 		fsGroupStrategy:           fsGroupStrat,
 		supplementalGroupStrategy: supGroupStrat,
+		capabilitiesStrategy:      capStrat,
 	}, nil
 }
 
@@ -167,7 +175,12 @@ func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container 
 		sc.RunAsNonRoot = &b
 	}
 
-	// No need to touch capabilities, they will validate or not.
+	caps, err := s.capabilitiesStrategy.Generate(pod, container)
+	if err != nil {
+		return nil, err
+	}
+	sc.Capabilities = caps
+
 	return sc, nil
 }
 
@@ -228,20 +241,7 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("privileged", *sc.Privileged, "Privileged containers are not allowed"))
 	}
 
-	if sc.Capabilities != nil && len(sc.Capabilities.Add) > 0 {
-		for _, cap := range sc.Capabilities.Add {
-			found := false
-			for _, allowedCap := range s.scc.AllowedCapabilities {
-				if cap == allowedCap {
-					found = true
-					break
-				}
-			}
-			if !found {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("capabilities.add", cap, "Capability is not allowed to be added"))
-			}
-		}
-	}
+	allErrs = append(allErrs, s.capabilitiesStrategy.Validate(pod, container)...)
 
 	if !s.scc.AllowHostDirVolumePlugin {
 		for _, v := range pod.Spec.Volumes {
@@ -326,4 +326,9 @@ func createSupplementalGroupStrategy(opts *api.SupplementalGroupsStrategyOptions
 	default:
 		return nil, fmt.Errorf("Unrecognized SupplementalGroups strategy type %s", opts.Type)
 	}
+}
+
+// createCapabilitiesStrategy creates a new capabilities strategy.
+func createCapabilitiesStrategy(defaultAddCaps, requiredDropCaps, allowedCaps []api.Capability) (capabilities.CapabilitiesSecurityContextConstraintsStrategy, error) {
+	return capabilities.NewDefaultCapabilities(defaultAddCaps, requiredDropCaps, allowedCaps)
 }
