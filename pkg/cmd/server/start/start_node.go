@@ -14,7 +14,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/sysctl"
 
+	osdn "github.com/openshift/openshift-sdn/plugins/osdn/ovs"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -262,6 +264,16 @@ func StartNode(nodeConfig configapi.NodeConfig) error {
 	config.RunKubelet()
 	config.RunSDN()
 	config.RunProxy()
+
+	// HACK: RunProxy resets bridge-nf-call-iptables from what openshift-sdn requires
+	if config.SDNPlugin != nil {
+		sdnPluginName := nodeConfig.NetworkConfig.NetworkPluginName
+		if sdnPluginName == osdn.SingleTenantPluginName() || sdnPluginName == osdn.MultiTenantPluginName() {
+			if err := sysctl.SetSysctl("net/bridge/bridge-nf-call-iptables", 0); err != nil {
+				glog.Warningf("Could not set net.bridge.bridge-nf-call-iptables sysctl: %s", err)
+			}
+		}
+	}
 
 	return nil
 }
