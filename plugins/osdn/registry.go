@@ -29,29 +29,20 @@ import (
 )
 
 type Registry struct {
-	oClient osclient.Interface
-	kClient kclient.Interface
+	oClient          osclient.Interface
+	kClient          kclient.Interface
+	namespaceOfPodIP map[string]string
 
+	// These are only set if SetBaseEndpointsHandler() has been called
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
 	serviceNetwork       *net.IPNet
 	clusterNetwork       *net.IPNet
-	namespaceOfPodIP     map[string]string
 }
 
 func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
-	var clusterNetwork, serviceNetwork *net.IPNet
-	cn, err := osClient.ClusterNetwork().Get("default")
-	if err == nil {
-		_, clusterNetwork, _ = net.ParseCIDR(cn.Network)
-		_, serviceNetwork, _ = net.ParseCIDR(cn.ServiceNetwork)
-	}
-	// else the same error will occur again later and be reported
-
 	return &Registry{
 		oClient:          osClient,
 		kClient:          kClient,
-		serviceNetwork:   serviceNetwork,
-		clusterNetwork:   clusterNetwork,
 		namespaceOfPodIP: make(map[string]string),
 	}
 }
@@ -611,6 +602,14 @@ func getEvent(eventQueue *oscache.EventQueue, startVersion uint64, checkConditio
 // FilteringEndpointsConfigHandler implementation
 func (registry *Registry) SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler) {
 	registry.baseEndpointsHandler = base
+
+	cn, err := registry.oClient.ClusterNetwork().Get("default")
+	if err != nil {
+		// "can't happen"; StartNode() will already have ensured that there's no error
+		panic("Failed to get ClusterNetwork: " + err.Error())
+	}
+	_, registry.clusterNetwork, _ = net.ParseCIDR(cn.Network)
+	_, registry.serviceNetwork, _ = net.ParseCIDR(cn.ServiceNetwork)
 }
 
 func (registry *Registry) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
