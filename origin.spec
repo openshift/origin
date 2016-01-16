@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 38d659dd6c2cea89512d2ef87672fcdaeb814cf2
+%global commit 7c0e890782d5c96ca9423c7a8260c522eaafcc35
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.2-24-g38d659d -X github.com/openshift/origin/pkg/version.commitFromGit 38d659d -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.3-17-g7c0e890 -X github.com/openshift/origin/pkg/version.commitFromGit 7c0e890 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.3
+Version:        3.1.1.4
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -466,6 +466,17 @@ fi
 
 
 %changelog
+* Sat Jan 16 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.4
+- Fix up net.bridge.bridge-nf-call-iptables after kubernetes breaks it
+  (danw@redhat.com)
+- admission tests and swagger (pweil@redhat.com)
+- UPSTREAM: <carry>: capability defaulting (pweil@redhat.com)
+- Fix logic to add Dockerfile to BuildConfig (rhcarvalho@gmail.com)
+- Add TIMES=N to rerun integration tests for flakes (ccoleman@redhat.com)
+- Fix route serialization flake (mkargaki@redhat.com)
+- STI -> S2I (dmcphers@redhat.com)
+- Enable PostgreSQL replication tests for RHEL images (nagy.martin@gmail.com)
+
 * Thu Jan 14 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.3
 - Bug 1298457 - The link to pv doc is wrong (bleanhar@redhat.com)
 - Fix typo in build generator (mfojtik@redhat.com)
