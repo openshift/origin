@@ -14743,6 +14743,8 @@
     "required": [
      "priority",
      "allowPrivilegedContainer",
+     "defaultAddCapabilities",
+     "requiredDropCapabilities",
      "allowedCapabilities",
      "allowHostDirVolumePlugin",
      "allowHostNetwork",
@@ -14770,6 +14772,20 @@
      "allowPrivilegedContainer": {
       "type": "boolean",
       "description": "allow containers to run as privileged"
+     },
+     "defaultAddCapabilities": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Capability"
+      },
+      "description": "capabilities that are added by default but may be dropped"
+     },
+     "requiredDropCapabilities": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Capability"
+      },
+      "description": "capabilities that will be dropped by default and may not be added"
      },
      "allowedCapabilities": {
       "type": "array",

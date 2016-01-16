@@ -19,9 +19,8 @@ var (
 	postgreSQLImages              = []string{
 		"openshift/postgresql-92-centos7",
 		"centos/postgresql-94-centos7",
-		// TODO: Uncomment once upstream images are fixed
-		// "registry.access.redhat.com/openshift3/postgresql-92-rhel7",
-		// "registry.access.redhat.com/rhscl/postgresql-94-rhel7",
+		"registry.access.redhat.com/openshift3/postgresql-92-rhel7",
+		"registry.access.redhat.com/rhscl/postgresql-94-rhel7",
 	}
 )
 

@@ -218,6 +218,12 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				Name: j.To.Name,
 			}
 		},
+		func(j *route.TLSConfig, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if len(j.Termination) == 0 && len(j.DestinationCACertificate) == 0 {
+				j.Termination = route.TLSTerminationEdge
+			}
+		},
 		func(j *deploy.DeploymentConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.Spec.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}

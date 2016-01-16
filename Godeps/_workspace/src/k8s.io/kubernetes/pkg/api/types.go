@@ -2143,7 +2143,16 @@ type SecurityContextConstraints struct {
 
 	// AllowPrivilegedContainer determines if a container can request to be run as privileged.
 	AllowPrivilegedContainer bool
+	// DefaultAddCapabilities is the default set of capabilities that will be added to the container
+	// unless the pod spec specifically drops the capability.  You may not list a capabiility in both
+	// DefaultAddCapabilities and RequiredDropCapabilities.
+	DefaultAddCapabilities []Capability
+	// RequiredDropCapabilities are the capabilities that will be dropped from the container.  These
+	// are required to be dropped and cannot be added.
+	RequiredDropCapabilities []Capability
 	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
+	// Capabilities in this field maybe added at the pod author's discretion.
+	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
 	AllowedCapabilities []Capability
 	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
 	AllowHostDirVolumePlugin bool

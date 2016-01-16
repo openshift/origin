@@ -2760,6 +2760,22 @@ func convert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints(in 
 	if err := convert_api_SupplementalGroupsStrategyOptions_To_v1_SupplementalGroupsStrategyOptions(&in.SupplementalGroups, &out.SupplementalGroups, s); err != nil {
 		return err
 	}
+	if in.DefaultAddCapabilities != nil {
+		out.DefaultAddCapabilities = make([]Capability, len(in.DefaultAddCapabilities))
+		for i := range in.DefaultAddCapabilities {
+			out.DefaultAddCapabilities[i] = Capability(in.DefaultAddCapabilities[i])
+		}
+	} else {
+		out.DefaultAddCapabilities = nil
+	}
+	if in.RequiredDropCapabilities != nil {
+		out.RequiredDropCapabilities = make([]Capability, len(in.RequiredDropCapabilities))
+		for i := range in.RequiredDropCapabilities {
+			out.RequiredDropCapabilities[i] = Capability(in.RequiredDropCapabilities[i])
+		}
+	} else {
+		out.RequiredDropCapabilities = nil
+	}
 	if in.Users != nil {
 		out.Users = make([]string, len(in.Users))
 		for i := range in.Users {
@@ -5767,6 +5783,22 @@ func convert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints(in 
 	}
 	if err := convert_v1_SupplementalGroupsStrategyOptions_To_api_SupplementalGroupsStrategyOptions(&in.SupplementalGroups, &out.SupplementalGroups, s); err != nil {
 		return err
+	}
+	if in.DefaultAddCapabilities != nil {
+		out.DefaultAddCapabilities = make([]api.Capability, len(in.DefaultAddCapabilities))
+		for i := range in.DefaultAddCapabilities {
+			out.DefaultAddCapabilities[i] = api.Capability(in.DefaultAddCapabilities[i])
+		}
+	} else {
+		out.DefaultAddCapabilities = nil
+	}
+	if in.RequiredDropCapabilities != nil {
+		out.RequiredDropCapabilities = make([]api.Capability, len(in.RequiredDropCapabilities))
+		for i := range in.RequiredDropCapabilities {
+			out.RequiredDropCapabilities[i] = api.Capability(in.RequiredDropCapabilities[i])
+		}
+	} else {
+		out.RequiredDropCapabilities = nil
 	}
 	if in.Users != nil {
 		out.Users = make([]string, len(in.Users))

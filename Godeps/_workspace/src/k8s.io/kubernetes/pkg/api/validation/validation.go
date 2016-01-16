@@ -2105,7 +2105,36 @@ func ValidateSecurityContextConstraints(scc *api.SecurityContextConstraints) err
 	}
 	allErrs = append(allErrs, validateIDRanges(scc.SupplementalGroups.Ranges).Prefix("supplementalGroups")...)
 
+	// validate capabilities
+	allErrs = append(allErrs, validateSCCCapsAgainstDrops(scc.RequiredDropCapabilities, scc.DefaultAddCapabilities, "defaultAddCapabilities")...)
+	allErrs = append(allErrs, validateSCCCapsAgainstDrops(scc.RequiredDropCapabilities, scc.AllowedCapabilities, "allowedCapabilities")...)
+
 	return allErrs
+}
+
+// validateSCCCapsAgainstDrops ensures an allowed cap is not listed in the required drops.
+func validateSCCCapsAgainstDrops(requiredDrops []api.Capability, capsToCheck []api.Capability, fieldName string) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	if requiredDrops == nil {
+		return allErrs
+	}
+	for _, cap := range capsToCheck {
+		if hasCap(cap, requiredDrops) {
+			allErrs = append(allErrs, errs.NewFieldInvalid(fieldName, cap,
+				fmt.Sprintf("capability is listed in %s and requiredDropCapabilities", fieldName)))
+		}
+	}
+	return allErrs
+}
+
+// hasCap checks for needle in haystack.
+func hasCap(needle api.Capability, haystack []api.Capability) bool {
+	for _, c := range haystack {
+		if needle == c {
+			return true
+		}
+	}
+	return false
 }
 
 // validateIDRanges ensures the range is valid.
