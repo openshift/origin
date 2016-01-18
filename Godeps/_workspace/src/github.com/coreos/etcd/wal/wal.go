@@ -32,6 +32,7 @@ import (
 	"github.com/coreos/etcd/wal/walpb"
 
 	"github.com/coreos/pkg/capnslog"
+	"github.com/golang/glog"
 )
 
 const (
@@ -396,13 +397,21 @@ func (w *WAL) cut() error {
 }
 
 func (w *WAL) sync() error {
+	flushPoint := GlobalTracker.GetInspectionPoint("wal.sync.flush")
+	syncPoint := GlobalTracker.GetInspectionPoint("wal.sync.sync")
+
 	if w.encoder != nil {
+		inst := flushPoint.StartInstance("")
 		if err := w.encoder.flush(); err != nil {
 			return err
 		}
+		flushPoint.EndInstance(inst.name)
+
 	}
 	start := time.Now()
+	inst := syncPoint.StartInstance("")
 	err := w.f.Sync()
+	syncPoint.EndInstance(inst.name)
 	syncDurations.Observe(float64(time.Since(start).Nanoseconds() / int64(time.Microsecond)))
 	return err
 }
@@ -497,33 +506,73 @@ func (w *WAL) saveState(s *raftpb.HardState) error {
 }
 
 func (w *WAL) Save(st raftpb.HardState, ents []raftpb.Entry) error {
+	// this is a possible slow spot
+	lockWaitPoint := GlobalTracker.GetInspectionPoint("wal.save.lockwait")
+	hardPoint := GlobalTracker.GetInspectionPoint("wal.save.IsEmptyHardState")
+	savesPoint := GlobalTracker.GetInspectionPoint("wal.save.saveEntries")
+	statePoint := GlobalTracker.GetInspectionPoint("wal.save.saveState")
+	statPoint := GlobalTracker.GetInspectionPoint("wal.save.Stat")
+	sizePoint := GlobalTracker.GetInspectionPoint("wal.save.Size")
+	syncPoint := GlobalTracker.GetInspectionPoint("wal.save.sync")
+	cutPoint := GlobalTracker.GetInspectionPoint("wal.save.cut")
+
+	inst := lockWaitPoint.StartInstance("")
 	w.mu.Lock()
+	lockWaitPoint.EndInstance(inst.name)
 	defer w.mu.Unlock()
 
 	// short cut, do not call sync
+	inst = hardPoint.StartInstance("")
 	if raft.IsEmptyHardState(st) && len(ents) == 0 {
 		return nil
 	}
+	hardPoint.EndInstance(inst.name)
 
 	// TODO(xiangli): no more reference operator
+	inst = savesPoint.StartInstance("")
 	for i := range ents {
 		if err := w.saveEntry(&ents[i]); err != nil {
 			return err
 		}
 	}
+	savesPoint.EndInstance(inst.name)
+
+	inst = statePoint.StartInstance("")
 	if err := w.saveState(&st); err != nil {
 		return err
 	}
+	statePoint.EndInstance(inst.name)
 
+	inst = statPoint.StartInstance("")
 	fstat, err := w.f.Stat()
 	if err != nil {
 		return err
 	}
-	if fstat.Size() < segmentSizeBytes {
-		return w.sync()
+	statPoint.EndInstance(inst.name)
+
+	inst = sizePoint.StartInstance("")
+	currentSize := fstat.Size()
+	sizePoint.EndInstance(inst.name)
+	if currentSize < segmentSizeBytes {
+
+		inst = syncPoint.StartInstance("")
+		inst.AddContext(fmt.Sprintf("writing %d entries for term=%d, vote=%d, commit=%d, size=%d", len(ents), st.Term, st.Vote, st.Commit, st.Size()))
+		err := w.sync()
+		syncPoint.EndInstance(inst.name)
+
+		endingSize := fstat.Size()
+		if (endingSize - currentSize) > 1*1000*1000 {
+			glog.Infof("#### WROTE %d to the file", (endingSize - currentSize))
+		}
+
+		return err
 	}
 	// TODO: add a test for this code path when refactoring the tests
-	return w.cut()
+	inst = cutPoint.StartInstance("")
+	err = w.cut()
+	cutPoint.EndInstance(inst.name)
+
+	return err
 }
 
 func (w *WAL) SaveSnapshot(e walpb.Snapshot) error {
