@@ -47,7 +47,7 @@ func main() {
 	// TODO(wojtek-t): Change the overwrites to a flag.
 	generator.OverwritePackage(*version, "")
 	for _, knownType := range api.Scheme.KnownTypes(*version) {
-		if !strings.Contains(knownType.PkgPath(), "openshift/origin") {
+		if !strings.Contains(knownType.PkgPath(), "openshift/origin") || strings.Contains(knownType.PkgPath(), "api/kubernetes") {
 			continue
 		}
 		if err := generator.GenerateConversionsForType(*version, knownType); err != nil {

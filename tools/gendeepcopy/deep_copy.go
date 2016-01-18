@@ -70,7 +70,7 @@ func main() {
 		generator.OverwritePackage(vals[0], vals[1])
 	}
 	for _, knownType := range api.Scheme.KnownTypes(knownVersion) {
-		if !strings.Contains(knownType.PkgPath(), "openshift/origin") {
+		if !strings.Contains(knownType.PkgPath(), "openshift/origin") || strings.Contains(knownType.PkgPath(), "api/kubernetes") {
 			continue
 		}
 		if err := generator.AddType(knownType); err != nil {
