@@ -2347,7 +2347,7 @@ func convert_api_TCPSocketAction_To_v1beta3_TCPSocketAction(in *api.TCPSocketAct
 	return nil
 }
 
-func convert_api_TypeMeta_To_v1beta3_TypeMeta(in *unversioned.TypeMeta, out *TypeMeta, s conversion.Scope) error {
+func convert_api_TypeMeta_To_v1beta3_TypeMeta(in *unversioned.TypeMeta, out *unversioned.TypeMeta, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*unversioned.TypeMeta))(in)
 	}
@@ -4697,9 +4697,9 @@ func convert_v1beta3_TCPSocketAction_To_api_TCPSocketAction(in *TCPSocketAction,
 	return nil
 }
 
-func convert_v1beta3_TypeMeta_To_api_TypeMeta(in *TypeMeta, out *unversioned.TypeMeta, s conversion.Scope) error {
+func convert_v1beta3_TypeMeta_To_api_TypeMeta(in *unversioned.TypeMeta, out *unversioned.TypeMeta, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*TypeMeta))(in)
+		defaulting.(func(*unversioned.TypeMeta))(in)
 	}
 	out.Kind = in.Kind
 	out.APIVersion = in.APIVersion
