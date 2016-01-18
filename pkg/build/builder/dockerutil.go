@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
 
 	docker "github.com/fsouza/go-dockerclient"
@@ -88,7 +89,7 @@ func removeImage(client DockerClient, name string) error {
 }
 
 // buildImage invokes a docker build on a particular directory
-func buildImage(client DockerClient, dir string, dockerfilePath string, noCache bool, tag string, tar tar.Tar, pullAuth *docker.AuthConfigurations, forcePull bool) error {
+func buildImage(client DockerClient, dir string, dockerfilePath string, noCache bool, tag string, tar tar.Tar, pullAuth *docker.AuthConfigurations, forcePull bool, cgLimits *s2iapi.CGroupLimits) error {
 	// TODO: be able to pass a stream directly to the Docker build to avoid the double temp hit
 	r, w := io.Pipe()
 	go func() {
@@ -108,6 +109,13 @@ func buildImage(client DockerClient, dir string, dockerfilePath string, noCache 
 		Dockerfile:     dockerfilePath,
 		NoCache:        noCache,
 		Pull:           forcePull,
+	}
+	if cgLimits != nil {
+		opts.Memory = cgLimits.MemoryLimitBytes
+		opts.Memswap = cgLimits.MemorySwap
+		opts.CPUShares = cgLimits.CPUShares
+		opts.CPUPeriod = cgLimits.CPUPeriod
+		opts.CPUQuota = cgLimits.CPUQuota
 	}
 	if pullAuth != nil {
 		opts.AuthConfigs = *pullAuth

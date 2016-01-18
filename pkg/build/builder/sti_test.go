@@ -62,6 +62,7 @@ func newTestS2IBuilder(config testS2IBuilderConfig) *S2IBuilder {
 			buildError:     config.buildError,
 		},
 		runtimeConfigValidator{},
+		nil,
 	)
 }
 
