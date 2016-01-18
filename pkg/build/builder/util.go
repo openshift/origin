@@ -3,11 +3,13 @@ package builder
 import (
 	"bufio"
 	"io"
+	"io/ioutil"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
-	stiapi "github.com/openshift/source-to-image/pkg/api"
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
 )
 
 var (
@@ -47,7 +49,7 @@ func readNetClsCGroup(reader io.Reader) string {
 
 // getDockerNetworkMode determines whether the builder is running as a container
 // by examining /proc/self/cgroup. This contenxt is then passed to source-to-image.
-func getDockerNetworkMode() stiapi.DockerNetworkMode {
+func getDockerNetworkMode() s2iapi.DockerNetworkMode {
 	file, err := os.Open("/proc/self/cgroup")
 	if err != nil {
 		return ""
@@ -55,9 +57,56 @@ func getDockerNetworkMode() stiapi.DockerNetworkMode {
 	defer file.Close()
 
 	if id := readNetClsCGroup(file); id != "" {
-		return stiapi.NewDockerNetworkModeContainer(id)
+		return s2iapi.NewDockerNetworkModeContainer(id)
 	}
 	return ""
+}
+
+// GetCGroupLimits returns a struct populated with cgroup limit values gathered
+// from the local /sys/fs/cgroup filesystem.  Overflow values are set to
+// MAX_INT_64.
+func GetCGroupLimits() (*s2iapi.CGroupLimits, error) {
+	byteLimit, err := readInt64("/sys/fs/cgroup/memory/memory.limit_in_bytes")
+	if err != nil {
+		return nil, err
+	}
+
+	cpuQuota, err := readInt64("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us")
+	if err != nil {
+		return nil, err
+	}
+
+	cpuShares, err := readInt64("/sys/fs/cgroup/cpu,cpuacct/cpu.shares")
+	if err != nil {
+		return nil, err
+	}
+
+	cpuPeriod, err := readInt64("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us")
+	if err != nil {
+		return nil, err
+	}
+	return &s2iapi.CGroupLimits{
+		CPUShares:        cpuShares,
+		CPUPeriod:        cpuPeriod,
+		CPUQuota:         cpuQuota,
+		MemoryLimitBytes: byteLimit,
+		MemorySwap:       -1,
+	}, nil
+}
+
+func readInt64(filePath string) (int64, error) {
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return -1, err
+	}
+	s := strings.TrimSpace(string(data))
+	val, err := strconv.ParseInt(s, 10, 64)
+	// overflow errors are ok because we'll get a MAX_INT_64 value which is more
+	// than enough anyway.
+	if err != nil && err.(*strconv.NumError).Err != strconv.ErrRange {
+		return -1, err
+	}
+	return val, nil
 }
 
 // MergeEnv will take an existing environment and merge it with a new set of

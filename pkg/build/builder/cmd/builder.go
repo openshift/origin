@@ -11,6 +11,8 @@ import (
 	"github.com/golang/glog"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
+
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/build/api"
 	bld "github.com/openshift/origin/pkg/build/builder"
@@ -21,7 +23,7 @@ import (
 )
 
 type builder interface {
-	Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient) error
+	Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error
 }
 
 type builderConfig struct {
@@ -125,7 +127,13 @@ func (c *builderConfig) execute(b builder) error {
 	}
 	gitClient := git.NewRepositoryWithEnv(gitEnv)
 
-	if err := b.Build(c.dockerClient, c.dockerEndpoint, c.buildsClient, c.build, gitClient); err != nil {
+	cgLimits, err := bld.GetCGroupLimits()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve cgroup limits: %v", err)
+	}
+	glog.V(2).Infof("Running build with cgroup limits: %#v", *cgLimits)
+
+	if err := b.Build(c.dockerClient, c.dockerEndpoint, c.buildsClient, c.build, gitClient, cgLimits); err != nil {
 		return fmt.Errorf("build error: %v", err)
 	}
 
@@ -164,15 +172,15 @@ func fixSecretPermissions(secretsDir string) (string, error) {
 type dockerBuilder struct{}
 
 // Build starts a Docker build.
-func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient) error {
-	return bld.NewDockerBuilder(dockerClient, buildsClient, build, gitClient).Build()
+func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error {
+	return bld.NewDockerBuilder(dockerClient, buildsClient, build, gitClient, cgLimits).Build()
 }
 
 type s2iBuilder struct{}
 
 // Build starts an S2I build.
-func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient) error {
-	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build, gitClient).Build()
+func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error {
+	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build, gitClient, cgLimits).Build()
 }
 
 func runBuild(builder builder) {
