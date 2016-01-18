@@ -32,7 +32,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/registered"
 	apiutil "k8s.io/kubernetes/pkg/api/util"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
@@ -106,7 +105,7 @@ func interfacesFor(version string) (*meta.VersionInterfaces, error) {
 	switch version {
 	case "v1beta3":
 		return &meta.VersionInterfaces{
-			Codec:            v1beta3.Codec,
+			Codec:            runtime.CodecFor(api.Scheme, "v1beta3"),
 			ObjectConvertor:  api.Scheme,
 			MetadataAccessor: accessor,
 		}, nil
