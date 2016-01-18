@@ -71,7 +71,7 @@ curl -X PUT	"http://${API_HOST}:${ETCD_PORT}/v2/keys/_test"
 echo
 
 function exectest() {
-	echo "Running $1..."
+	echo "$(date +"%Y-%m-%dT%H:%M:%S") Running $1..."
 
 	result=1
 	if [ -n "${VERBOSE-}" ]; then
@@ -85,10 +85,10 @@ function exectest() {
 	os::text::clear_last_line
 
 	if [[ ${result} -eq 0 ]]; then
-		os::text::print_green "ok      $1"
+		os::text::print_green "$(date +"%Y-%m-%dT%H:%M:%S") ok      $1"
 		exit 0
 	else
-		os::text::print_red "failed  $1"
+		os::text::print_red "$(date +"%Y-%m-%dT%H:%M:%S") failed  $1"
 		echo "${out}"
 
 		# dump etcd for failing test

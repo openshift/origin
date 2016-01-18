@@ -158,7 +158,7 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	os::cmd::internal::init_tempdir
 
 	local name=$(os::cmd::internal::describe_call "${cmd}" "${cmd_eval_func}" "${grep_args}" "${test_eval_func}")
-	echo "Running ${name}..."
+	echo "$(date +"%Y-%m-%dT%H:%M:%S") Running ${name}..."
 
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
 
@@ -182,7 +182,7 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	done
 
 	if (( cmd_succeeded && test_succeeded )); then
-		os::text::print_green "SUCCESS after ${time_elapsed}s: ${name}"
+		os::text::print_green "$(date +"%Y-%m-%dT%H:%M:%S") SUCCESS after ${time_elapsed}s: ${name}"
 		if [[ -n ${VERBOSE-} ]]; then
 			os::cmd::internal::print_results
 		fi
@@ -190,7 +190,7 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	else
 		local cause=$(os::cmd::internal::assemble_causes "${cmd_succeeded}" "${test_succeeded}")
 		
-		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${name}: ${cause}"
+		os::text::print_red_bold "$(date +"%Y-%m-%dT%H:%M:%S") FAILURE after ${time_elapsed}s: ${name}: ${cause}"
 		os::text::print_red "$(os::cmd::internal::print_results)"
 		return 1
 	fi
@@ -408,7 +408,7 @@ function os::cmd::internal::run_until_exit_code() {
 	local description=$(os::cmd::internal::describe_call "${cmd}" "${cmd_eval_func}")
 	local duration_seconds=$(echo "scale=3; $(( duration )) / 1000" | bc | xargs printf '%5.3f')
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
-	echo "Running ${description}..."
+	echo "$(date +"%Y-%m-%dT%H:%M:%S") Running ${description}..."
 	
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
 
@@ -434,13 +434,13 @@ function os::cmd::internal::run_until_exit_code() {
 
 	if (( cmd_succeeded )); then
 
-		os::text::print_green "SUCCESS after ${time_elapsed}s: ${description}"
+		os::text::print_green "$(date +"%Y-%m-%dT%H:%M:%S") SUCCESS after ${time_elapsed}s: ${description}"
 		if [[ -n ${VERBOSE-} ]]; then
 			os::cmd::internal::print_try_until_results
 		fi
 		return 0
 	else
-		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
+		os::text::print_red_bold "$(date +"%Y-%m-%dT%H:%M:%S") FAILURE after ${time_elapsed}s: ${description}: the command timed out"
 		os::text::print_red "$(os::cmd::internal::print_try_until_results)"
 		return 1
 	fi
@@ -462,7 +462,7 @@ function os::cmd::internal::run_until_text() {
 	local description=$(os::cmd::internal::describe_call "${cmd}" "" "${text}" "os::cmd::internal::success_func")
 	local duration_seconds=$(echo "scale=3; $(( duration )) / 1000" | bc | xargs printf '%5.3f')
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
-	echo "Running ${description}..."
+	echo "$(date +"%Y-%m-%dT%H:%M:%S") Running ${description}..."
 	
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
 	
@@ -490,13 +490,13 @@ function os::cmd::internal::run_until_text() {
 
 	if (( test_succeeded )); then
 
-		os::text::print_green "SUCCESS after ${time_elapsed}s: ${description}"
+		os::text::print_green "$(date +"%Y-%m-%dT%H:%M:%S") SUCCESS after ${time_elapsed}s: ${description}"
 		if [[ -n ${VERBOSE-} ]]; then
 			os::cmd::internal::print_try_until_results
 		fi
 		return 0
 	else
-		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
+		os::text::print_red_bold "$(date +"%Y-%m-%dT%H:%M:%S") FAILURE after ${time_elapsed}s: ${description}: the command timed out"
 		os::text::print_red "$(os::cmd::internal::print_try_until_results)"
 		return 1
 	fi
