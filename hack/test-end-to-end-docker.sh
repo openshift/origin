@@ -21,6 +21,11 @@ BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-e2e-containerized}"
 setup_env_vars
 reset_tmp_dir
 
+dd if=/dev/zero of=/tmp/file-taking-size  bs=999M  count=1
+sync
+rm -rf /tmp/file-taking-size
+
+
 function cleanup()
 {
 	out=$?
