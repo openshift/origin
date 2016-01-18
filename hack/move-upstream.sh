@@ -18,6 +18,8 @@ repo="${UPSTREAM_REPO:-k8s.io/kubernetes}"
 package="${UPSTREAM_PACKAGE:-pkg/api}"
 
 patch="${TMPDIR}/patch"
+rm -rf "${patch}"
+mkdir -p "${patch}"
 relativedir="../../../${repo}"
 if [[ ! -d "${relativedir}" ]]; then
   echo "Expected ${relativedir} to exist" 1>&2
@@ -35,7 +37,14 @@ if [[ -n "${1-}" ]]; then
 fi
 
 echo "++ Generating patch for ${selector} onto ${lastrev} ..." 2>&1
-git diff -p --raw --relative=Godeps/_workspace/src/${repo}/ "${selector}" -- Godeps/_workspace/src/${repo}/ > "${patch}"
+index=0
+for commit in $(git log --no-merges --format="%H" --reverse "${selector}" -- "Godeps/_workspace/src/${repo}/"); do
+  git format-patch --raw --start-number=${index} --relative="Godeps/_workspace/src/${repo}/" "${commit}^..${commit}" -o "${patch}"
+  let index+=10
+done
+
+# remove all commits that had no entries
+find "${patch}" -type f -size 0 -exec rm {} \;
 
 pushd "${relativedir}" > /dev/null
 os::build::require_clean_tree
@@ -44,17 +53,11 @@ os::build::require_clean_tree
 git checkout -b "${branch}" "${lastrev}"
 
 # apply the changes
-if ! git apply --reject "${patch}"; then
+if ! git am -3 --ignore-whitespace ${patch}/*.patch; then
   echo 2>&1
-  echo "++ Patch does not apply cleanly, possible overlapping UPSTREAM patches?" 2>&1
+  echo "++ Patches do not apply cleanly, continue with 'git am' in ${relativedir}" 2>&1
   exit 1
 fi
 
-# generate a new commit, fetch the latest, and attempt a rebase to master
-git add .
-git commit -m "UPSTREAMED"
-git fetch
-git rebase origin/master -i
-
 echo 2>&1
-echo "++ Done" 2>&1
+echo "++ All patches applied cleanly upstream" 2>&1
