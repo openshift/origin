@@ -20,11 +20,12 @@ import (
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/securitycontextconstraints/capabilities"
-	"k8s.io/kubernetes/pkg/securitycontextconstraints/group"
-	"k8s.io/kubernetes/pkg/securitycontextconstraints/selinux"
-	"k8s.io/kubernetes/pkg/securitycontextconstraints/user"
 	"k8s.io/kubernetes/pkg/util/validation/field"
+
+	"github.com/openshift/origin/pkg/securitycontextconstraints/capabilities"
+	"github.com/openshift/origin/pkg/securitycontextconstraints/group"
+	"github.com/openshift/origin/pkg/securitycontextconstraints/selinux"
+	"github.com/openshift/origin/pkg/securitycontextconstraints/user"
 )
 
 // used to pass in the field being validated for reusable group strategies so they
