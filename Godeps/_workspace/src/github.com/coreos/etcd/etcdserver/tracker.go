@@ -100,7 +100,8 @@ func (p *InspectionPoint) EndInstance(name string) {
 		if (p.count > 10) && *instance.duration > p.mean*10 {
 			p.notableInstances = append(p.notableInstances, instance)
 
-			glog.Infof("#### InspectionPoint %s.%s (%v) took %v seconds instead of about %v from\n%s\n", p.name, instance.name, instance.context, instance.duration.Seconds(), p.mean.Seconds(), string(instance.stack))
+			// glog.Infof("#### InspectionPoint %s.%s (%v) took %v seconds instead of about %v from\n%s\n", p.name, instance.name, instance.context, instance.duration.Seconds(), p.mean.Seconds(), string(instance.stack))
+			glog.Infof("#### InspectionPoint %s.%s (%v) took %v seconds instead of about %v", p.name, instance.name, instance.context, instance.duration.Seconds(), p.mean.Seconds())
 
 		} else {
 			// don't pollute the mean with outliers
