@@ -3,8 +3,8 @@ package v1beta3_test
 import (
 	"testing"
 
+	kolder "github.com/openshift/origin/pkg/api/kubernetes/v1beta3"
 	knewer "k8s.io/kubernetes/pkg/api"
-	kolder "k8s.io/kubernetes/pkg/api/v1beta3"
 
 	newer "github.com/openshift/origin/pkg/build/api"
 	older "github.com/openshift/origin/pkg/build/api/v1beta3"

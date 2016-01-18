@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	kapiv1beta3 "github.com/openshift/origin/pkg/api/kubernetes/v1beta3"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1beta3 "k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/util"
 
 	newer "github.com/openshift/origin/pkg/deploy/api"

@@ -20,8 +20,8 @@ import (
 	"reflect"
 	"testing"
 
+	versioned "github.com/openshift/origin/pkg/api/kubernetes/v1beta3"
 	"k8s.io/kubernetes/pkg/api"
-	versioned "k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 )

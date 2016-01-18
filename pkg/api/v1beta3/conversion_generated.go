@@ -2,6 +2,7 @@ package v1beta3
 
 // AUTO-GENERATED FUNCTIONS START HERE
 import (
+	pkgapiv1beta3 "github.com/openshift/origin/pkg/api/kubernetes/v1beta3"
 	api "github.com/openshift/origin/pkg/authorization/api"
 	v1beta3 "github.com/openshift/origin/pkg/authorization/api/v1beta3"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -24,7 +25,6 @@ import (
 	userapiv1beta3 "github.com/openshift/origin/pkg/user/api/v1beta3"
 	pkgapi "k8s.io/kubernetes/pkg/api"
 	resource "k8s.io/kubernetes/pkg/api/resource"
-	pkgapiv1beta3 "k8s.io/kubernetes/pkg/api/v1beta3"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	reflect "reflect"
 )

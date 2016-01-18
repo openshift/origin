@@ -20,9 +20,9 @@ import (
 	dockerClient "github.com/fsouza/go-dockerclient"
 	"golang.org/x/net/websocket"
 
+	"github.com/openshift/origin/pkg/api/kubernetes/v1beta3"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
