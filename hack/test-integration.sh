@@ -17,7 +17,7 @@ cd "${OS_ROOT}"
 
 os::build::setup_env
 
-TMPDIR="${TMPDIR:-"/tmp"}"
+TMPDIR="/tmp"
 export BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-integration}"
 export API_SCHEME=${API_SCHEME:-http}
 export API_BIND_HOST="127.0.0.1"
@@ -26,6 +26,10 @@ export ETCD_PEER_PORT=${ETCD_PEER_PORT:-47001}
 export SUDO=''
 setup_env_vars
 reset_tmp_dir
+
+# this is insane and should clearly not matter
+dd if=/dev/zero of=/tmp/file-taking-size  bs=999M  count=1
+rm -rf /tmp/file-taking-size
 
 
 function cleanup() {

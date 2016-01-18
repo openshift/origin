@@ -8,7 +8,13 @@ import (
 	"time"
 )
 
+var tenK_msg = ""
+
 func main() {
+	for i := 0; i < 10; i++ {
+		tenK_msg += "0123456789"
+	}
+
 	flushPoint := GlobalTracker.GetInspectionPoint("flush")
 	syncPoint := GlobalTracker.GetInspectionPoint("sync")
 
@@ -26,6 +32,9 @@ func main() {
 		message := fmt.Sprintf("%v    last cycle took %v seconds to complete\n", start, lastDuration.Seconds())
 
 		if _, err := buffer.WriteString(message); err != nil {
+			panic(err)
+		}
+		if _, err := buffer.WriteString(tenK_msg + "\n"); err != nil {
 			panic(err)
 		}
 
