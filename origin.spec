@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 7c0e890782d5c96ca9423c7a8260c522eaafcc35
+%global commit 45bc219e1f0a1642fa15071d8610bb8b41d93c24
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.3-17-g7c0e890 -X github.com/openshift/origin/pkg/version.commitFromGit 7c0e890 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.4-8-g45bc219 -X github.com/openshift/origin/pkg/version.commitFromGit 45bc219 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-origin-1107-g4c8e6f4
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.4
+Version:        3.1.1.5
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -466,6 +466,12 @@ fi
 
 
 %changelog
+* Mon Jan 18 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.5
+- More fixes and tweeks (tdawson@redhat.com)
+- Lock ace-builds version to 1.2.2 (spadgett@redhat.com)
+- Do not check builds/details in build by strategy admission control
+  (cewong@redhat.com)
+
 * Sat Jan 16 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.4
 - Fix up net.bridge.bridge-nf-call-iptables after kubernetes breaks it
   (danw@redhat.com)
