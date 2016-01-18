@@ -16,62 +16,40 @@ cd "${OS_ROOT}"
 
 os::build::setup_env
 
-export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
+TMPDIR="${TMPDIR:-"/tmp"}"
+export BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-integration}"
+export API_SCHEME=${API_SCHEME:-http}
+export API_BIND_HOST="127.0.0.1"
 export ETCD_PORT=${ETCD_PORT:-44001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-47001}
-
-
-set +e
-
-if [ "$(which etcd 2>/dev/null)" == "" ]; then
-	if [[ ! -f ${OS_ROOT}/_tools/etcd/bin/etcd ]]; then
-		echo "etcd must be in your PATH or installed in _tools/etcd/bin/ with hack/install-etcd.sh"
-		exit 1
-	fi
-	export PATH="${OS_ROOT}/_tools/etcd/bin:$PATH"
-fi
-
-# Stop on any failures
-set -e
-
+export SUDO=''
+setup_env_vars
+reset_tmp_dir
 
 
 function cleanup() {
 	out=$?
 	set +e
-	if [[ $out -ne 0 && -f "${etcdlog}" ]]; then
-		cat "${etcdlog}"
-	fi
-	kill "${ETCD_PID}" 1>&2 2>/dev/null
-	echo
+
+	cleanup_openshift
 	echo "Complete"
 	exit $out
 }
-
-
 
 package="${OS_TEST_PACKAGE:-test/integration}"
 tags="${OS_TEST_TAGS:-integration !docker etcd}"
 
 export GOMAXPROCS="$(grep "processor" -c /proc/cpuinfo 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || 1)"
-TMPDIR="${TMPDIR:-"/tmp"}"
-export BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-integration}"
-rm -rf ${BASETMPDIR} | true
-mkdir -p ${BASETMPDIR}
-
 
 echo
 echo "Test ${package} -tags='${tags}' ..."
 echo
 
 # setup the test dirs
-export ETCD_DIR=${BASETMPDIR}/etcd
-etcdlog="${BASETMPDIR}/etcd.log"
 testdir="${OS_ROOT}/_output/testbin/${package}"
 name="$(basename ${testdir})"
 testexec="${testdir}/${name}.test"
 mkdir -p "${testdir}"
-mkdir -p "${ETCD_DIR}"
 
 # build the test executable (cgo must be disabled to have the symbol table available)
 pushd "${testdir}" &>/dev/null
@@ -79,23 +57,15 @@ echo "Building test executable..."
 CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
 popd &>/dev/null
 
+trap cleanup EXIT SIGINT
 
-# Start etcd
-echo "Starting etcd..."
-etcd -name test -data-dir ${ETCD_DIR} \
- --listen-peer-urls http://${ETCD_HOST}:${ETCD_PEER_PORT} \
- --listen-client-urls http://${ETCD_HOST}:${ETCD_PORT} \
- --initial-advertise-peer-urls http://${ETCD_HOST}:${ETCD_PEER_PORT} \
- --initial-cluster test=http://${ETCD_HOST}:${ETCD_PEER_PORT} \
- --advertise-client-urls http://${ETCD_HOST}:${ETCD_PORT} \
- &>"${etcdlog}" &
-export ETCD_PID=$!
+configure_os_server
+openshift start etcd --config=${MASTER_CONFIG_DIR}/master-config.yaml &> ${LOG_DIR}/etcd.log &
 
-wait_for_url "http://${ETCD_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160
-curl -X PUT	"http://${ETCD_HOST}:${ETCD_PORT}/v2/keys/_test"
+wait_for_url "http://${API_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160
+curl -X PUT	"http://${API_HOST}:${ETCD_PORT}/v2/keys/_test"
 echo
 
-trap cleanup EXIT SIGINT
 
 function exectest() {
 	echo "Running $1..."
@@ -117,6 +87,12 @@ function exectest() {
 	else
 		os::text::print_red "failed  $1"
 		echo "${out}"
+
+		# dump etcd for failing test
+		echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/$1-etcd_dump.json"
+		curl -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/$1-etcd_dump.json"
+		echo
+
 		exit 1
 	fi
 }
