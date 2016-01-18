@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	etcderr "github.com/coreos/etcd/error"
@@ -51,9 +52,9 @@ var (
 var rootRole = Role{
 	Role: RootRoleName,
 	Permissions: Permissions{
-		KV: rwPermission{
-			Read:  []string{"*"},
-			Write: []string{"*"},
+		KV: RWPermission{
+			Read:  []string{"/*"},
+			Write: []string{"/*"},
 		},
 	},
 }
@@ -61,9 +62,9 @@ var rootRole = Role{
 var guestRole = Role{
 	Role: GuestRoleName,
 	Permissions: Permissions{
-		KV: rwPermission{
-			Read:  []string{"*"},
-			Write: []string{"*"},
+		KV: RWPermission{
+			Read:  []string{"/*"},
+			Write: []string{"/*"},
 		},
 	},
 }
@@ -72,10 +73,30 @@ type doer interface {
 	Do(context.Context, etcdserverpb.Request) (etcdserver.Response, error)
 }
 
-type Store struct {
+type Store interface {
+	AllUsers() ([]string, error)
+	GetUser(name string) (User, error)
+	CreateOrUpdateUser(user User) (out User, created bool, err error)
+	CreateUser(user User) (User, error)
+	DeleteUser(name string) error
+	UpdateUser(user User) (User, error)
+	AllRoles() ([]string, error)
+	GetRole(name string) (Role, error)
+	CreateRole(role Role) error
+	DeleteRole(name string) error
+	UpdateRole(role Role) (Role, error)
+	AuthEnabled() bool
+	EnableAuth() error
+	DisableAuth() error
+}
+
+type store struct {
 	server      doer
 	timeout     time.Duration
 	ensuredOnce bool
+
+	mu      sync.Mutex // protect enabled
+	enabled *bool
 }
 
 type User struct {
@@ -94,39 +115,39 @@ type Role struct {
 }
 
 type Permissions struct {
-	KV rwPermission `json:"kv"`
+	KV RWPermission `json:"kv"`
 }
 
 func (p *Permissions) IsEmpty() bool {
 	return p == nil || (len(p.KV.Read) == 0 && len(p.KV.Write) == 0)
 }
 
-type rwPermission struct {
+type RWPermission struct {
 	Read  []string `json:"read"`
 	Write []string `json:"write"`
 }
 
 type Error struct {
-	httpStatus int
-	errmsg     string
+	Status int
+	Errmsg string
 }
 
-func (ae Error) Error() string   { return ae.errmsg }
-func (ae Error) HTTPStatus() int { return ae.httpStatus }
+func (ae Error) Error() string   { return ae.Errmsg }
+func (ae Error) HTTPStatus() int { return ae.Status }
 
 func authErr(hs int, s string, v ...interface{}) Error {
-	return Error{httpStatus: hs, errmsg: fmt.Sprintf("auth: "+s, v...)}
+	return Error{Status: hs, Errmsg: fmt.Sprintf("auth: "+s, v...)}
 }
 
-func NewStore(server doer, timeout time.Duration) *Store {
-	s := &Store{
+func NewStore(server doer, timeout time.Duration) Store {
+	s := &store{
 		server:  server,
 		timeout: timeout,
 	}
 	return s
 }
 
-func (s *Store) AllUsers() ([]string, error) {
+func (s *store) AllUsers() ([]string, error) {
 	resp, err := s.requestResource("/users/", false)
 	if err != nil {
 		if e, ok := err.(*etcderr.Error); ok {
@@ -145,7 +166,7 @@ func (s *Store) AllUsers() ([]string, error) {
 	return nodes, nil
 }
 
-func (s *Store) GetUser(name string) (User, error) {
+func (s *store) GetUser(name string) (User, error) {
 	resp, err := s.requestResource("/users/"+name, false)
 	if err != nil {
 		if e, ok := err.(*etcderr.Error); ok {
@@ -170,17 +191,17 @@ func (s *Store) GetUser(name string) (User, error) {
 // CreateOrUpdateUser should be only used for creating the new user or when you are not
 // sure if it is a create or update. (When only password is passed in, we are not sure
 // if it is a update or create)
-func (s *Store) CreateOrUpdateUser(user User) (out User, created bool, err error) {
+func (s *store) CreateOrUpdateUser(user User) (out User, created bool, err error) {
 	_, err = s.GetUser(user.User)
 	if err == nil {
-		out, err := s.UpdateUser(user)
+		out, err = s.UpdateUser(user)
 		return out, false, err
 	}
 	u, err := s.CreateUser(user)
 	return u, true, err
 }
 
-func (s *Store) CreateUser(user User) (User, error) {
+func (s *store) CreateUser(user User) (User, error) {
 	// Attach root role to root user.
 	if user.User == "root" {
 		user = attachRootRole(user)
@@ -192,7 +213,7 @@ func (s *Store) CreateUser(user User) (User, error) {
 	return u, err
 }
 
-func (s *Store) createUserInternal(user User) (User, error) {
+func (s *store) createUserInternal(user User) (User, error) {
 	if user.Password == "" {
 		return user, authErr(http.StatusBadRequest, "Cannot create user %s with an empty password", user.User)
 	}
@@ -213,7 +234,7 @@ func (s *Store) createUserInternal(user User) (User, error) {
 	return user, err
 }
 
-func (s *Store) DeleteUser(name string) error {
+func (s *store) DeleteUser(name string) error {
 	if s.AuthEnabled() && name == "root" {
 		return authErr(http.StatusForbidden, "Cannot delete root user while auth is enabled.")
 	}
@@ -230,7 +251,7 @@ func (s *Store) DeleteUser(name string) error {
 	return nil
 }
 
-func (s *Store) UpdateUser(user User) (User, error) {
+func (s *store) UpdateUser(user User) (User, error) {
 	old, err := s.GetUser(user.User)
 	if err != nil {
 		if e, ok := err.(*etcderr.Error); ok {
@@ -254,7 +275,7 @@ func (s *Store) UpdateUser(user User) (User, error) {
 	return newUser, err
 }
 
-func (s *Store) AllRoles() ([]string, error) {
+func (s *store) AllRoles() ([]string, error) {
 	nodes := []string{RootRoleName}
 	resp, err := s.requestResource("/roles/", false)
 	if err != nil {
@@ -273,7 +294,7 @@ func (s *Store) AllRoles() ([]string, error) {
 	return nodes, nil
 }
 
-func (s *Store) GetRole(name string) (Role, error) {
+func (s *store) GetRole(name string) (Role, error) {
 	if name == RootRoleName {
 		return rootRole, nil
 	}
@@ -295,7 +316,7 @@ func (s *Store) GetRole(name string) (Role, error) {
 	return r, nil
 }
 
-func (s *Store) CreateRole(role Role) error {
+func (s *store) CreateRole(role Role) error {
 	if role.Role == RootRoleName {
 		return authErr(http.StatusForbidden, "Cannot modify role %s: is root role.", role.Role)
 	}
@@ -313,7 +334,7 @@ func (s *Store) CreateRole(role Role) error {
 	return err
 }
 
-func (s *Store) DeleteRole(name string) error {
+func (s *store) DeleteRole(name string) error {
 	if name == RootRoleName {
 		return authErr(http.StatusForbidden, "Cannot modify role %s: is root role.", name)
 	}
@@ -331,7 +352,7 @@ func (s *Store) DeleteRole(name string) error {
 	return err
 }
 
-func (s *Store) UpdateRole(role Role) (Role, error) {
+func (s *store) UpdateRole(role Role) (Role, error) {
 	if role.Role == RootRoleName {
 		return Role{}, authErr(http.StatusForbidden, "Cannot modify role %s: is root role.", role.Role)
 	}
@@ -358,14 +379,21 @@ func (s *Store) UpdateRole(role Role) (Role, error) {
 	return newRole, err
 }
 
-func (s *Store) AuthEnabled() bool {
+func (s *store) AuthEnabled() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	return s.detectAuth()
 }
 
-func (s *Store) EnableAuth() error {
+func (s *store) EnableAuth() error {
 	if s.AuthEnabled() {
 		return authErr(http.StatusConflict, "already enabled")
 	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	_, err := s.GetUser("root")
 	if err != nil {
 		return authErr(http.StatusConflict, "No root user available, please create one")
@@ -381,6 +409,8 @@ func (s *Store) EnableAuth() error {
 	}
 	err = s.enableAuth()
 	if err == nil {
+		b := true
+		s.enabled = &b
 		plog.Noticef("auth: enabled auth")
 	} else {
 		plog.Errorf("error enabling auth (%v)", err)
@@ -388,12 +418,18 @@ func (s *Store) EnableAuth() error {
 	return err
 }
 
-func (s *Store) DisableAuth() error {
+func (s *store) DisableAuth() error {
 	if !s.AuthEnabled() {
 		return authErr(http.StatusConflict, "already disabled")
 	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	err := s.disableAuth()
 	if err == nil {
+		b := false
+		s.enabled = &b
 		plog.Noticef("auth: disabled auth")
 	} else {
 		plog.Errorf("error disabling auth (%v)", err)
@@ -505,8 +541,8 @@ func (p Permissions) Revoke(n *Permissions) (Permissions, error) {
 
 // Grant adds a set of permissions to the permission object on which it is called,
 // returning a new permission object.
-func (rw rwPermission) Grant(n rwPermission) (rwPermission, error) {
-	var out rwPermission
+func (rw RWPermission) Grant(n RWPermission) (RWPermission, error) {
+	var out RWPermission
 	currentRead := types.NewUnsafeSet(rw.Read...)
 	for _, r := range n.Read {
 		if currentRead.Contains(r) {
@@ -530,8 +566,8 @@ func (rw rwPermission) Grant(n rwPermission) (rwPermission, error) {
 
 // Revoke removes a set of permissions to the permission object on which it is called,
 // returning a new permission object.
-func (rw rwPermission) Revoke(n rwPermission) (rwPermission, error) {
-	var out rwPermission
+func (rw RWPermission) Revoke(n RWPermission) (RWPermission, error) {
+	var out RWPermission
 	currentRead := types.NewUnsafeSet(rw.Read...)
 	for _, r := range n.Read {
 		if !currentRead.Contains(r) {
@@ -555,7 +591,7 @@ func (rw rwPermission) Revoke(n rwPermission) (rwPermission, error) {
 	return out, nil
 }
 
-func (rw rwPermission) HasAccess(key string, write bool) bool {
+func (rw RWPermission) HasAccess(key string, write bool) bool {
 	var list []string
 	if write {
 		list = rw.Write
@@ -571,7 +607,7 @@ func (rw rwPermission) HasAccess(key string, write bool) bool {
 	return false
 }
 
-func (rw rwPermission) HasRecursiveAccess(key string, write bool) bool {
+func (rw RWPermission) HasRecursiveAccess(key string, write bool) bool {
 	list := rw.Read
 	if write {
 		list = rw.Write

@@ -32,7 +32,7 @@ func TestNetworkDrop(t *testing.T) {
 
 	drop := sent - received
 	if drop > int((droprate+0.1)*float64(sent)) || drop < int((droprate-0.1)*float64(sent)) {
-		t.Errorf("drop = %d, want around %d", drop, droprate*float64(sent))
+		t.Errorf("drop = %d, want around %.2f", drop, droprate*float64(sent))
 	}
 }
 
@@ -52,7 +52,7 @@ func TestNetworkDelay(t *testing.T) {
 
 	w := time.Duration(float64(sent)*delayrate/2) * delay
 	// there are pretty overhead in the send call, since it genarete random numbers.
-	if total < w+10*delay {
+	if total < w {
 		t.Errorf("total = %v, want > %v", total, w)
 	}
 }

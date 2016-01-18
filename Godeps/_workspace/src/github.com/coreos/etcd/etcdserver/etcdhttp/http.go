@@ -29,12 +29,6 @@ import (
 )
 
 const (
-	// time to wait for response from EtcdServer requests
-	// 5s for disk and network delay + 10*heartbeat for commit and possible
-	// leader switch
-	// TODO: use heartbeat set in etcdserver
-	defaultServerTimeout = 5*time.Second + 10*(100*time.Millisecond)
-
 	// time to wait for a Watch request
 	defaultWatchTimeout = time.Duration(math.MaxInt64)
 )
@@ -60,9 +54,10 @@ func writeError(w http.ResponseWriter, err error) {
 		herr := httptypes.NewHTTPError(e.HTTPStatus(), e.Error())
 		herr.WriteTo(w)
 	default:
-		if err == etcdserver.ErrTimeoutDueToLeaderFail {
+		switch err {
+		case etcdserver.ErrTimeoutDueToLeaderFail, etcdserver.ErrTimeoutDueToConnectionLost:
 			plog.Error(err)
-		} else {
+		default:
 			plog.Errorf("got unexpected response error (%v)", err)
 		}
 		herr := httptypes.NewHTTPError(http.StatusInternalServerError, "Internal Server Error")

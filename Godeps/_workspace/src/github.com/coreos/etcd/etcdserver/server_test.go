@@ -509,14 +509,15 @@ func TestApplyConfChangeShouldStop(t *testing.T) {
 
 func TestDoProposal(t *testing.T) {
 	tests := []pb.Request{
-		pb.Request{Method: "POST", ID: 1},
-		pb.Request{Method: "PUT", ID: 1},
-		pb.Request{Method: "DELETE", ID: 1},
-		pb.Request{Method: "GET", ID: 1, Quorum: true},
+		{Method: "POST", ID: 1},
+		{Method: "PUT", ID: 1},
+		{Method: "DELETE", ID: 1},
+		{Method: "GET", ID: 1, Quorum: true},
 	}
 	for i, tt := range tests {
 		st := &storeRecorder{}
 		srv := &EtcdServer{
+			cfg: &ServerConfig{TickMs: 1},
 			r: raftNode{
 				Node:        newNodeCommitter(),
 				storage:     &storageRecorder{},
@@ -547,6 +548,7 @@ func TestDoProposal(t *testing.T) {
 func TestDoProposalCancelled(t *testing.T) {
 	wait := &waitRecorder{}
 	srv := &EtcdServer{
+		cfg:      &ServerConfig{TickMs: 1},
 		r:        raftNode{Node: &nodeRecorder{}},
 		w:        wait,
 		reqIDGen: idutil.NewGenerator(0, time.Time{}),
@@ -580,6 +582,7 @@ func TestDoProposalTimeout(t *testing.T) {
 
 func TestDoProposalStopped(t *testing.T) {
 	srv := &EtcdServer{
+		cfg:      &ServerConfig{TickMs: 1},
 		r:        raftNode{Node: &nodeRecorder{}},
 		w:        &waitRecorder{},
 		reqIDGen: idutil.NewGenerator(0, time.Time{}),
@@ -654,6 +657,7 @@ func TestSyncTrigger(t *testing.T) {
 	n := newReadyNode()
 	st := make(chan time.Time, 1)
 	srv := &EtcdServer{
+		cfg: &ServerConfig{TickMs: 1},
 		r: raftNode{
 			Node:        n,
 			raftStorage: raft.NewMemoryStorage(),
@@ -734,6 +738,7 @@ func TestTriggerSnap(t *testing.T) {
 	st := &storeRecorder{}
 	p := &storageRecorder{}
 	srv := &EtcdServer{
+		cfg:       &ServerConfig{TickMs: 1},
 		snapCount: uint64(snapc),
 		r: raftNode{
 			Node:        newNodeCommitter(),
@@ -966,6 +971,7 @@ func TestPublish(t *testing.T) {
 	ch <- Response{}
 	w := &waitWithResponse{ch: ch}
 	srv := &EtcdServer{
+		cfg:        &ServerConfig{TickMs: 1},
 		id:         1,
 		r:          raftNode{Node: n},
 		attributes: Attributes{Name: "node1", ClientURLs: []string{"http://a", "http://b"}},
@@ -1006,6 +1012,7 @@ func TestPublish(t *testing.T) {
 // TestPublishStopped tests that publish will be stopped if server is stopped.
 func TestPublishStopped(t *testing.T) {
 	srv := &EtcdServer{
+		cfg: &ServerConfig{TickMs: 1},
 		r: raftNode{
 			Node:      &nodeRecorder{},
 			transport: &nopTransporter{},
@@ -1048,6 +1055,7 @@ func TestUpdateVersion(t *testing.T) {
 	w := &waitWithResponse{ch: ch}
 	srv := &EtcdServer{
 		id:         1,
+		cfg:        &ServerConfig{TickMs: 1},
 		r:          raftNode{Node: n},
 		attributes: Attributes{Name: "node1", ClientURLs: []string{"http://node1.com"}},
 		cluster:    &cluster{},
@@ -1146,7 +1154,7 @@ func TestGetOtherPeerURLs(t *testing.T) {
 
 // storeRecorder records all the methods it receives.
 // storeRecorder DOES NOT work as a actual store.
-// It always returns invaild empty response and no error.
+// It always returns invalid empty response and no error.
 type storeRecorder struct{ testutil.Recorder }
 
 func (s *storeRecorder) Version() int  { return 0 }
@@ -1409,6 +1417,7 @@ func (s *nopTransporter) AddPeer(id types.ID, us []string)    {}
 func (s *nopTransporter) RemovePeer(id types.ID)              {}
 func (s *nopTransporter) RemoveAllPeers()                     {}
 func (s *nopTransporter) UpdatePeer(id types.ID, us []string) {}
+func (s *nopTransporter) ActiveSince(id types.ID) time.Time   { return time.Time{} }
 func (s *nopTransporter) Stop()                               {}
 func (s *nopTransporter) Pause()                              {}
 func (s *nopTransporter) Resume()                             {}
