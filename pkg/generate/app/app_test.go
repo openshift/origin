@@ -72,6 +72,26 @@ func TestBuildConfigNoOutput(t *testing.T) {
 	}
 }
 
+func TestBuildConfigWithSecrets(t *testing.T) {
+	url, err := url.Parse("https://github.com/openshift/origin.git")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	source := &SourceRef{URL: url, Secrets: []buildapi.SecretBuildSource{
+		{Secret: kapi.LocalObjectReference{Name: "foo"}, DestinationDir: "/var"},
+		{Secret: kapi.LocalObjectReference{Name: "bar"}},
+	}}
+	build := &BuildRef{Source: source}
+	config, err := build.BuildConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	secrets := config.Spec.Source.Secrets
+	if got := len(secrets); got != 2 {
+		t.Errorf("expected 2 source secrets in build config, got %d", got)
+	}
+}
+
 func TestSourceRefBuildSourceURI(t *testing.T) {
 	tests := []struct {
 		name     string

@@ -9,10 +9,13 @@ import (
 
 	"github.com/docker/docker/builder/parser"
 
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/generate/source"
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 type Dockerfile interface {
@@ -84,6 +87,7 @@ type SourceRepository struct {
 	localDir   string
 	remoteURL  *url.URL
 	contextDir string
+	secrets    []buildapi.SecretBuildSource
 	info       *SourceRepositoryInfo
 
 	usedBy           []ComponentReference
@@ -248,6 +252,11 @@ func (r *SourceRepository) ContextDir() string {
 	return r.contextDir
 }
 
+// Secrets returns the secrets
+func (r *SourceRepository) Secrets() []buildapi.SecretBuildSource {
+	return r.secrets
+}
+
 // AddDockerfile adds the Dockerfile contents to the SourceRepository and
 // configure it to build with Docker strategy. Returns an error if the contents
 // are invalid.
@@ -262,6 +271,37 @@ func (r *SourceRepository) AddDockerfile(contents string) error {
 	r.info.Dockerfile = dockerfile
 	r.buildWithDocker = true
 	r.forceAddDockerfile = true
+	return nil
+}
+
+// AddBuildSecrets adds the defined secrets into a build. The input format for
+// the secrets is "<secretName>:<destinationDir>". The destinationDir is
+// optional and when not specified the default is the current working directory.
+func (r *SourceRepository) AddBuildSecrets(secrets []string) error {
+	injections := s2iapi.InjectionList{}
+	r.secrets = []buildapi.SecretBuildSource{}
+	for _, in := range secrets {
+		if err := injections.Set(in); err != nil {
+			return err
+		}
+	}
+	secretExists := func(name string) bool {
+		for _, s := range r.secrets {
+			if s.Secret.Name == name {
+				return true
+			}
+		}
+		return false
+	}
+	for _, in := range injections {
+		if secretExists(in.SourcePath) {
+			return fmt.Errorf("the %q secret can be used just once", in.SourcePath)
+		}
+		r.secrets = append(r.secrets, buildapi.SecretBuildSource{
+			Secret:         kapi.LocalObjectReference{Name: in.SourcePath},
+			DestinationDir: in.DestinationDir,
+		})
+	}
 	return nil
 }
 
@@ -378,7 +418,8 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 		IsDockerBuild: repo.IsDockerBuild(),
 	}
 	source := &SourceRef{
-		Binary: repo.binary,
+		Binary:  repo.binary,
+		Secrets: repo.secrets,
 	}
 
 	if (repo.ignoreRepository || repo.forceAddDockerfile) && repo.Info() != nil && repo.Info().Dockerfile != nil {

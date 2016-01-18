@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/fsouza/go-dockerclient"
@@ -79,6 +80,8 @@ type AppConfig struct {
 
 	AllowSecretUse bool
 	SecretAccessor app.SecretAccessor
+
+	Secrets []string
 
 	AsSearch bool
 	AsList   bool
@@ -647,6 +650,10 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			)
 			switch {
 			case refInput.ExpectToBuild:
+				glog.V(4).Infof("will add %q secrets into a build for a source build of %q", strings.Join(c.Secrets, ","), refInput.Uses)
+				if err := refInput.Uses.AddBuildSecrets(c.Secrets); err != nil {
+					return nil, fmt.Errorf("unable to add build secrets %q: %v", strings.Join(c.Secrets, ","), err)
+				}
 				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)
 				if pipeline, err = pipelineBuilder.NewBuildPipeline(from, refInput.ResolvedMatch, refInput.Uses); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", refInput.Uses, err)

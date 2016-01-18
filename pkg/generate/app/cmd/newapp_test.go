@@ -1360,17 +1360,18 @@ func TestNewBuildEnvVars(t *testing.T) {
 	}
 }
 
-func TestNewAppBuildConfigEnvVars(t *testing.T) {
+func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(10 * time.Second),
 	}
 
 	tests := []struct {
-		name        string
-		config      *AppConfig
-		expected    []kapi.EnvVar
-		expectedErr error
+		name            string
+		config          *AppConfig
+		expected        []kapi.EnvVar
+		expectedSecrets map[string]string
+		expectedErr     error
 	}{
 		{
 			name: "explicit environment variables for buildConfig and deploymentConfig",
@@ -1379,6 +1380,7 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 				DockerImages:       []string{"centos/ruby-22-centos7", "centos/mongodb-26-centos7"},
 				OutputDocker:       true,
 				Environment:        []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
+				Secrets:            []string{"foo:/var", "bar"},
 				dockerSearcher:     dockerSearcher,
 				detector: app.SourceRepositoryEnumerator{
 					Detectors: source.DefaultDetectors,
@@ -1388,8 +1390,9 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 				osclient:        &client.Fake{},
 				originNamespace: "default",
 			},
-			expected:    []kapi.EnvVar{},
-			expectedErr: nil,
+			expected:        []kapi.EnvVar{},
+			expectedSecrets: map[string]string{"foo": "/var", "bar": "."},
+			expectedErr:     nil,
 		},
 	}
 
@@ -1403,11 +1406,27 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 			continue
 		}
 		got := []kapi.EnvVar{}
+		gotSecrets := []buildapi.SecretBuildSource{}
 		for _, obj := range res.List.Items {
 			switch tp := obj.(type) {
 			case *buildapi.BuildConfig:
 				got = tp.Spec.Strategy.SourceStrategy.Env
+				gotSecrets = tp.Spec.Source.Secrets
 				break
+			}
+		}
+
+		for secretName, destDir := range test.expectedSecrets {
+			found := false
+			for _, got := range gotSecrets {
+				if got.Secret.Name == secretName && got.DestinationDir == destDir {
+					found = true
+					continue
+				}
+			}
+			if !found {
+				t.Errorf("expected secret %q and destination %q, got %#v", secretName, destDir, gotSecrets)
+				continue
 			}
 		}
 
