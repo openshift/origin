@@ -64,6 +64,11 @@ func (f *FakeDocker) Ping() error {
 	return nil
 }
 
+// GetImageWorkdir returns the workdir
+func (f *FakeDocker) GetImageWorkdir(name string) (string, error) {
+	return "/", nil
+}
+
 // GetOnBuild returns the list of onbuild instructions for the given image
 func (f *FakeDocker) GetOnBuild(imageName string) ([]string, error) {
 	f.OnBuildImage = imageName
@@ -89,7 +94,7 @@ func (f *FakeDocker) RunContainer(opts RunContainerOptions) error {
 		return f.RunContainerError
 	}
 	if opts.OnStart != nil {
-		if err := opts.OnStart(); err != nil {
+		if err := opts.OnStart(""); err != nil {
 			return err
 		}
 	}
@@ -97,6 +102,10 @@ func (f *FakeDocker) RunContainer(opts RunContainerOptions) error {
 		opts.PostExec.PostExecute(f.RunContainerContainerID, string(opts.Command))
 	}
 	return f.RunContainerError
+}
+
+func (f *FakeDocker) UploadToContainer(srcPath, destPath, name string) error {
+	return nil
 }
 
 // GetImageID returns a fake Docker image ID
