@@ -14594,6 +14594,10 @@
       "$ref": "v1.ResourceRequirements",
       "description": "the desired compute resources the build should have"
      },
+     "nodeSelector": {
+      "type": "any",
+      "description": "selector which must be true for the build pod to fit on a node"
+     },
      "completionDeadlineSeconds": {
       "type": "integer",
       "format": "int64",
@@ -15334,6 +15338,10 @@
      "resources": {
       "$ref": "v1.ResourceRequirements",
       "description": "the desired compute resources the build should have"
+     },
+     "nodeSelector": {
+      "type": "any",
+      "description": "selector which must be true for the build pod to fit on a node"
      },
      "completionDeadlineSeconds": {
       "type": "integer",
