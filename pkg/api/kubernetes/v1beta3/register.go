@@ -21,6 +21,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/registered"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
+
+	_ "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // Codec encodes internal objects to the v1beta3 scheme
@@ -88,6 +90,10 @@ func addKnownTypes() {
 	// Legacy names are supported
 	api.Scheme.AddKnownTypeWithName("v1beta3", "Minion", &Node{})
 	api.Scheme.AddKnownTypeWithName("v1beta3", "MinionList", &NodeList{})
+	// The legacy name must also be registered in the internal API
+	// TODO: looks like this is a bug with NewObject that was reintroduced at some point
+	api.Scheme.AddKnownTypeWithName("", "Minion", &api.Node{})
+	api.Scheme.AddKnownTypeWithName("", "MinionList", &api.NodeList{})
 
 	// Add common types
 	api.Scheme.AddKnownTypes("v1beta3", &unversioned.Status{})
