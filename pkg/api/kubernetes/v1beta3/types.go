@@ -175,13 +175,13 @@ type VolumeSource struct {
 	Flocker *FlockerVolumeSource `json:"flocker,omitempty"`
 
 	// DownwardAPI represents metadata about the pod that should populate this volume
-	DownwardAPI *DownwardAPIVolumeSource `json:"downwardAPI,omitempty" description: "Metadata volume containing information about the pod"`
+	DownwardAPI *DownwardAPIVolumeSource `json:"downwardAPI,omitempty" description:"Metadata volume containing information about the pod"`
 	// FC represents a Fibre Channel resource that is attached to a kubelet's host machine and then exposed to the pod.
 	FC *FCVolumeSource `json:"fc,omitempty"`
 
 	// Metadata represents metadata about the pod that should populate this volume
 	// NOTE: Deprecated in favor of DownwardAPI
-	Metadata *MetadataVolumeSource `json:"metadata,omitempty" description: "Metadata volume containing information about the pod"`
+	Metadata *MetadataVolumeSource `json:"metadata,omitempty" description:"Metadata volume containing information about the pod"`
 }
 
 type PersistentVolumeClaimVolumeSource struct {
@@ -953,7 +953,7 @@ type PodSpec struct {
 	// a termination signal and the time when the processes are forcibly halted with a kill signal.
 	// Set this value longer than the expected cleanup time for your process.
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty" description:"optional duration in seconds the pod needs to terminate gracefully; may be decreased in delete request; value must be non-negative integer; the value zero indicates delete immediately; if this value is not set, the default grace period will be used instead; the grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal; set this value longer than the expected cleanup time for your process"`
-	ActiveDeadlineSeconds         *int64 `json:"activeDeadlineSeconds,omitempty" description:"optional duration in seconds the pod may be active on the node relative to StartTime before the system will actively try to mark it failed and kill associated containers; value must be a positive integer`
+	ActiveDeadlineSeconds         *int64 `json:"activeDeadlineSeconds,omitempty" description:"optional duration in seconds the pod may be active on the node relative to StartTime before the system will actively try to mark it failed and kill associated containers; value must be a positive integer"`
 	// Optional: Set DNS policy.  Defaults to "ClusterFirst"
 	DNSPolicy DNSPolicy `json:"dnsPolicy,omitempty" description:"DNS policy for containers within the pod; one of 'ClusterFirst' or 'Default'"`
 	// NodeSelector is a selector which must be true for the pod to fit on a node
@@ -1403,7 +1403,7 @@ type NodeSpec struct {
 // DaemonEndpoint contains information about a single Daemon endpoint.
 type DaemonEndpoint struct {
 	// Port number of the given endpoint.
-	Port int `json:port`
+	Port int `json:"port"`
 }
 
 // NodeDaemonEndpoints lists ports opened by daemons running on the Node.
