@@ -1,7 +1,6 @@
 package osdn
 
 import (
-	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -30,42 +29,22 @@ import (
 )
 
 type Registry struct {
-	oClient osclient.Interface
-	kClient kclient.Interface
+	oClient          osclient.Interface
+	kClient          kclient.Interface
+	namespaceOfPodIP map[string]string
 
+	// These are only set if SetBaseEndpointsHandler() has been called
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
 	serviceNetwork       *net.IPNet
 	clusterNetwork       *net.IPNet
-	namespaceOfPodIP     map[string]string
 }
 
-func NewRegistry(isMaster bool, osClient *osclient.Client, kClient *kclient.Client) (*Registry, error) {
-	var clusterNetwork, serviceNetwork *net.IPNet
-	var namespaceMap map[string]string
-
-	if !isMaster {
-		cn, err := osClient.ClusterNetwork().Get("default")
-		if err != nil {
-			return nil, fmt.Errorf("Could not get default ClusterNetwork record: %v", err)
-		}
-		_, clusterNetwork, err = net.ParseCIDR(cn.Network)
-		if err != nil {
-			return nil, fmt.Errorf("Could not parse ClusterNetwork.Network value %q: %v", cn.Network, err)
-		}
-		_, serviceNetwork, err = net.ParseCIDR(cn.ServiceNetwork)
-		if err != nil {
-			return nil, fmt.Errorf("Could not parse ClusterNetwork.ServiceNetwork value %q: %v", cn.ServiceNetwork, err)
-		}
-		namespaceMap = make(map[string]string)
-	}
-
+func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
 	return &Registry{
 		oClient:          osClient,
 		kClient:          kClient,
-		serviceNetwork:   serviceNetwork,
-		clusterNetwork:   clusterNetwork,
-		namespaceOfPodIP: namespaceMap,
-	}, nil
+		namespaceOfPodIP: make(map[string]string),
+	}
 }
 
 func (registry *Registry) GetSubnets() ([]osdnapi.Subnet, string, error) {
@@ -623,6 +602,14 @@ func getEvent(eventQueue *oscache.EventQueue, startVersion uint64, checkConditio
 // FilteringEndpointsConfigHandler implementation
 func (registry *Registry) SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler) {
 	registry.baseEndpointsHandler = base
+
+	cn, err := registry.oClient.ClusterNetwork().Get("default")
+	if err != nil {
+		// "can't happen"; StartNode() will already have ensured that there's no error
+		panic("Failed to get ClusterNetwork: " + err.Error())
+	}
+	_, registry.clusterNetwork, _ = net.ParseCIDR(cn.Network)
+	_, registry.serviceNetwork, _ = net.ParseCIDR(cn.ServiceNetwork)
 }
 
 func (registry *Registry) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
