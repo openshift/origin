@@ -64,9 +64,9 @@ API_HOST=${API_HOST:-127.0.0.1}
 export API_PORT=${API_PORT:-28443}
 
 # this is insane and should clearly not matter
-dd if=/dev/zero of=/tmp/file-taking-size  bs=999M  count=1
-sync
-rm -rf /tmp/file-taking-size
+# dd if=/dev/zero of=/tmp/file-taking-size  bs=999M  count=1
+# sync
+# rm -rf /tmp/file-taking-size
 
 
 export ETCD_HOST=${ETCD_HOST:-127.0.0.1}

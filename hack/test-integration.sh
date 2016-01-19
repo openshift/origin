@@ -28,9 +28,9 @@ setup_env_vars
 reset_tmp_dir
 
 # this is insane and should clearly not matter
-dd if=/dev/zero of=/tmp/file-taking-size  bs=999M  count=1
-sync
-rm -rf /tmp/file-taking-size
+# dd if=/dev/zero of=/tmp/file-taking-size  bs=999M  count=1
+# sync
+# rm -rf /tmp/file-taking-size
 
 
 function cleanup() {
