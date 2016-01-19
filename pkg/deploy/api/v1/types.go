@@ -238,18 +238,11 @@ type DeploymentConfigSpec struct {
 	Replicas int `json:"replicas" description:"the desired number of replicas"`
 
 	// Selector is a label query over pods that should match the Replicas count.
-	Selector map[string]string `json:"selector" description:"a label query over pods that should match the replicas count"`
-
-	// TODO removed from RCSpec, so this shouldn't exist
-	// TemplateRef is a reference to an object that describes the pod that will be created if
-	// insufficient replicas are detected. This reference is ignored if a Template is set.
-	// Must be set before converting to a v1 API object
-	// TemplateRef *kapi.ObjectReference `json:"templateRef,omitempty" description:"a reference to an object that describes the pod that will be created if insufficient replicas are detected; ignored if template is set"`
+	Selector map[string]string `json:"selector,omitempty" description:"a label query over pods that should match the replicas count; if omitted, it will default to the podTemplate labels"`
 
 	// Template is the object that describes the pod that will be created if
 	// insufficient replicas are detected. Internally, this takes precedence over a
 	// TemplateRef.
-	// Must be set before converting to a v1beta1 or v1beta2 API object.
 	Template *kapi.PodTemplateSpec `json:"template,omitempty" description:"describes the pod that will be created if insufficient replicas are detected; takes precedence over a template reference"`
 }
 
