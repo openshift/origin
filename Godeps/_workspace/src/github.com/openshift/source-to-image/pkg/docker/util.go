@@ -182,13 +182,8 @@ func PullImage(name string, d Docker, policy api.PullPolicy, force bool) (*PullR
 	switch policy {
 	case api.PullIfNotPresent:
 		image, err = d.CheckAndPullImage(name)
-		return &PullResult{Image: image, OnBuild: d.IsImageOnBuild(name)}, err
 	case api.PullAlways:
 		image, err = d.PullImage(name)
-		if err == nil {
-			return &PullResult{Image: image, OnBuild: d.IsImageOnBuild(name)}, nil
-		}
-		fallthrough
 	case api.PullNever:
 		image, err = d.CheckImage(name)
 	}

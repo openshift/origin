@@ -5,8 +5,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
-	"strings"
+	"path"
+	"runtime"
 
 	"github.com/golang/glog"
 
@@ -77,39 +77,78 @@ func (h *fs) Exists(file string) bool {
 	return err == nil
 }
 
-// Copy copies a set of files from sourcePath to targetPath
-func (h *fs) Copy(sourcePath string, targetPath string) error {
-	if _, err := os.Stat(sourcePath); err != nil {
-		return err
-	}
-
-	info, err := os.Stat(targetPath)
-
-	if err != nil || (info != nil && !info.IsDir()) {
-		err = os.Mkdir(targetPath, 0700)
-		if err != nil {
-			return err
-		}
-
-		targetPath = filepath.Join(targetPath, filepath.Base(sourcePath))
-	}
-	// TODO: Use the appropriate command for Windows
-	glog.V(5).Infof("cp -a %s %s", sourcePath, targetPath)
-	return h.runner.Run("cp", "-a", sourcePath, targetPath)
-}
-
-func (h *fs) CopyContents(sourcePath string, targetPath string) error {
-	info, err := os.Stat(sourcePath)
+// Copy copies the source to a destination.
+// If the source is a file, then the destination has to be a file as well,
+// otherwise you will get an error.
+// If the source is a directory, then the destination has to be a directory and
+// we copy the content of the source directory to destination directory
+// recursively.
+func (h *fs) Copy(source string, dest string) (err error) {
+	sourcefile, err := os.Open(source)
 	if err != nil {
 		return err
 	}
-	if !info.IsDir() {
-		return fmt.Errorf("source path %s is not a directory", sourcePath)
+	sourceinfo, err := os.Stat(source)
+	if err != nil {
+		return err
 	}
-	if !strings.HasSuffix(sourcePath, string(filepath.Separator)) {
-		sourcePath += string(filepath.Separator)
+	defer sourcefile.Close()
+
+	if sourceinfo.IsDir() {
+		glog.V(5).Infof("D %q -> %q", source, dest)
+		return h.CopyContents(source, dest)
 	}
-	return h.Copy(sourcePath, targetPath)
+
+	destinfo, err := os.Stat(dest)
+	if destinfo != nil && destinfo.IsDir() {
+		return fmt.Errorf("destination must be full path to a file, not directory")
+	}
+	destfile, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer destfile.Close()
+	glog.V(5).Infof("F %q -> %q", source, dest)
+	if _, err := io.Copy(destfile, sourcefile); err != nil {
+		return err
+	}
+
+	if runtime.GOOS == "windows" {
+		return
+	}
+	return os.Chmod(dest, sourceinfo.Mode())
+}
+
+// CopyContents copies the content of the source directory to a destination
+// directory.
+// If the destination directory does not exists, it will be created.
+// The source directory itself will not be copied, only it's content. If you
+// want this behavior, the destination must include the source directory name.
+func (h *fs) CopyContents(src string, dest string) (err error) {
+	sourceinfo, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dest, sourceinfo.Mode()); err != nil {
+		return err
+	}
+	directory, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	objects, err := directory.Readdir(-1)
+	if err != nil {
+		return err
+	}
+	for _, obj := range objects {
+		source := path.Join(src, obj.Name())
+		destination := path.Join(dest, obj.Name())
+		if err := h.Copy(source, destination); err != nil {
+			return err
+		}
+
+	}
+	return
 }
 
 // RemoveDirectory removes the specified directory and all its contents

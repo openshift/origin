@@ -2,6 +2,8 @@ package api
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
 
@@ -13,6 +15,10 @@ const (
 	DefaultNamespace    = "io.openshift.s2i."
 	KubernetesNamespace = "io.k8s."
 )
+
+// invalidFilenameCharacters contains a list of character we consider malicious
+// when injecting the directories into containers.
+const invalidFilenameCharacters = `\:;*?"<>|%#$!+{}&[],"'` + "`"
 
 const (
 	// PullAlways means that we always attempt to pull the latest image.
@@ -156,9 +162,23 @@ type Config struct {
 
 	// Usage allows for properly shortcircuiting s2i logic when `s2i usage` is invoked
 	Usage bool
+
+	// Injections specifies a list source/destination folders that are injected to
+	// the container that runs assemble.
+	// All files we inject will be truncated after the assemble script finishes.
+	Injections InjectionList
 }
 
-// DockerConfig contains the configuration for a Docker connection
+// InjectPath contains definition of source directory and the injection path.
+type InjectPath struct {
+	SourcePath     string
+	DestinationDir string
+}
+
+// InjectionList contains list of InjectPath.
+type InjectionList []InjectPath
+
+// DockerConfig contains the configuration for a Docker connection.
 type DockerConfig struct {
 	// Endpoint is the docker network endpoint or socket
 	Endpoint string
@@ -310,4 +330,50 @@ func (p *PullPolicy) Set(v string) error {
 		return fmt.Errorf("invalid value %q, valid values are: always, never or if-not-present")
 	}
 	return nil
+}
+
+// IsInvalidFilename verifies if the provided filename contains malicious
+// characters.
+func IsInvalidFilename(name string) bool {
+	return strings.ContainsAny(name, invalidFilenameCharacters)
+}
+
+// Set implements the Set() function of pflags.Value interface.
+// This function parses the string that contains source:destination pair.
+// When the destination is not specified, the source get copied into current
+// working directory in container.
+func (il *InjectionList) Set(value string) error {
+	mount := strings.Split(value, ":")
+	switch len(mount) {
+	case 0:
+		return fmt.Errorf("invalid format, must be source:destination")
+	case 1:
+		mount = append(mount, "")
+		fallthrough
+	case 2:
+		mount[0] = strings.Trim(mount[0], `"'`)
+		mount[1] = strings.Trim(mount[1], `"'`)
+	default:
+		return fmt.Errorf("invalid source:path definition")
+	}
+	s := InjectPath{SourcePath: filepath.Clean(mount[0]), DestinationDir: filepath.Clean(mount[1])}
+	if IsInvalidFilename(s.SourcePath) || IsInvalidFilename(s.DestinationDir) {
+		return fmt.Errorf("invalid characters in filename: %q", value)
+	}
+	*il = append(*il, s)
+	return nil
+}
+
+// String implements the String() function of pflags.Value interface.
+func (il *InjectionList) String() string {
+	result := []string{}
+	for _, i := range *il {
+		result = append(result, strings.Join([]string{i.SourcePath, i.DestinationDir}, ":"))
+	}
+	return strings.Join(result, ",")
+}
+
+// Type implements the Type() function of pflags.Value interface.
+func (il *InjectionList) Type() string {
+	return "string"
 }

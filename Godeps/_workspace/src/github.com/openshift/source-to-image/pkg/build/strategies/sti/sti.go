@@ -368,7 +368,7 @@ func (b *STI) Save(config *api.Config) (err error) {
 	defer errReader.Close()
 	defer errWriter.Close()
 	glog.V(1).Infof("Saving build artifacts from image %s to path %s", image, artifactTmpDir)
-	extractFunc := func() error {
+	extractFunc := func(string) error {
 		defer outReader.Close()
 		return b.tar.ExtractTarStream(artifactTmpDir, outReader)
 	}
@@ -446,6 +446,49 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 		User:            user,
 		PostExec:        b.postExecutor,
 		NetworkMode:     string(config.DockerNetworkMode),
+	}
+
+	// If there are injections specified, override the original assemble script
+	// and wait till all injections are uploaded into the container that runs the
+	// assemble script.
+	if len(config.Injections) > 0 && command == api.Assemble {
+		workdir, err := b.docker.GetImageWorkdir(config.BuilderImage)
+		if err != nil {
+			return err
+		}
+		util.FixInjectionsWithRelativePath(workdir, &config.Injections)
+		injectedFiles, err := util.ExpandInjectedFiles(config.Injections)
+		if err != nil {
+			return err
+		}
+		rmScript, err := util.CreateInjectedFilesRemovalScript(injectedFiles, "/tmp/rm-injections")
+		if err != nil {
+			return err
+		}
+		defer os.Remove(rmScript)
+		glog.V(5).Infof("Waiting for injected files to be copied into assemble container...")
+		opts.CommandOverrides = func(cmd string) string {
+			return fmt.Sprintf("while [ ! -f %q ]; do sleep 0.5; done; %s; result=$?; source %[1]s; exit $result",
+				"/tmp/rm-injections", cmd)
+		}
+		originalOnStart := opts.OnStart
+		opts.OnStart = func(containerID string) error {
+			if err != nil {
+				return err
+			}
+			for _, s := range config.Injections {
+				if err := b.docker.UploadToContainer(s.SourcePath, s.DestinationDir, containerID); err != nil {
+					return err
+				}
+			}
+			if err := b.docker.UploadToContainer(rmScript, "/tmp/rm-injections", containerID); err != nil {
+				return err
+			}
+			if originalOnStart != nil {
+				return originalOnStart(containerID)
+			}
+			return nil
+		}
 	}
 
 	if !config.LayeredBuild {

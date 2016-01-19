@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"time"
@@ -42,6 +44,7 @@ func New(config *api.Config, scripts build.ScriptsHandler, overrides build.Overr
 	}, nil
 }
 
+//getDestination returns the destination directory from the config
 func getDestination(config *api.Config) string {
 	destination := config.Destination
 	if len(destination) == 0 {
@@ -50,6 +53,17 @@ func getDestination(config *api.Config) string {
 	return destination
 }
 
+//checkValidDirWithContents will return true if the parameter provided is a valid, accessible directory that has contents (i.e. is not empty
+func checkValidDirWithContents(name string) bool {
+	items, err := ioutil.ReadDir(name)
+	if os.IsNotExist(err) {
+		glog.Warningf("Unable to access directory %q: %v", name, err)
+	}
+	return !(err != nil || len(items) == 0)
+}
+
+//CreateDockerfile takes the various inputs and creates the Dockerfile used by the docker cmd
+// to create the image produces by s2i
 func (b *Layered) CreateDockerfile(config *api.Config) error {
 	buffer := bytes.Buffer{}
 
@@ -64,14 +78,27 @@ func (b *Layered) CreateDockerfile(config *api.Config) error {
 	}
 
 	buffer.WriteString(fmt.Sprintf("FROM %s\n", b.config.BuilderImage))
-	buffer.WriteString(fmt.Sprintf("COPY scripts %s\n", locations[0]))
+	// only COPY scripts dir if required scripts are present, i.e. the dir is not empty;
+	// even if the "scripts" dir exists, the COPY would fail if it was empty
+	scriptsIncluded := checkValidDirWithContents(path.Join(config.WorkingDir, api.UploadScripts))
+	if scriptsIncluded {
+		glog.V(2).Infof("The scripts are included in %q directory", path.Join(config.WorkingDir, api.UploadScripts))
+		buffer.WriteString(fmt.Sprintf("COPY scripts %s\n", locations[0]))
+	} else {
+		// if an err on reading or opening dir, can't copy it
+		glog.V(2).Infof("Could not gather scripts from the directory %q", path.Join(config.WorkingDir, api.UploadScripts))
+	}
 	buffer.WriteString(fmt.Sprintf("COPY src %s\n", locations[1]))
 
 	//TODO: We need to account for images that may not have chown. There is a proposal
 	//      to specify the owner for COPY here: https://github.com/docker/docker/pull/9934
 	if len(user) > 0 {
 		buffer.WriteString("USER root\n")
-		buffer.WriteString(fmt.Sprintf("RUN chown -R %s %s %s\n", user, locations[0], locations[1]))
+		if scriptsIncluded {
+			buffer.WriteString(fmt.Sprintf("RUN chown -R %s %s %s\n", user, locations[0], locations[1]))
+		} else {
+			buffer.WriteString(fmt.Sprintf("RUN chown -R %s %s\n", user, locations[1]))
+		}
 		buffer.WriteString(fmt.Sprintf("USER %s\n", user))
 	}
 
@@ -84,6 +111,7 @@ func (b *Layered) CreateDockerfile(config *api.Config) error {
 }
 
 // TODO: this should stop generating a file, and instead stream the tar.
+//SourceTar returns a stream to the source tar file
 func (b *Layered) SourceTar(config *api.Config) (io.ReadCloser, error) {
 	uploadDir := filepath.Join(config.WorkingDir, "upload")
 	tarFileName, err := b.tar.CreateTarFile(b.config.WorkingDir, uploadDir)
@@ -93,6 +121,7 @@ func (b *Layered) SourceTar(config *api.Config) (io.ReadCloser, error) {
 	return b.fs.Open(tarFileName)
 }
 
+//Build handles the `docker build` equivalent execution, returning the success/failure details
 func (b *Layered) Build(config *api.Config) (*api.Result, error) {
 	if err := b.CreateDockerfile(config); err != nil {
 		return nil, err
@@ -141,8 +170,17 @@ func (b *Layered) Build(config *api.Config) (*api.Result, error) {
 	b.config.LayeredBuild = true
 	// new image name
 	b.config.BuilderImage = newBuilderImage
-	// the scripts are inside the image
-	b.config.ScriptsURL = "image://" + path.Join(getDestination(config), "scripts")
+	// see CreateDockerfile, conditional copy, location of scripts
+	scriptsIncluded := checkValidDirWithContents(path.Join(config.WorkingDir, api.UploadScripts))
+	glog.V(2).Infof("Scripts dir has contents %v", scriptsIncluded)
+	if scriptsIncluded {
+		b.config.ScriptsURL = "image://" + path.Join(getDestination(config), "scripts")
+	} else {
+		b.config.ScriptsURL, err = b.docker.GetScriptsURL(newBuilderImage)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	glog.V(2).Infof("Building %s using sti-enabled image", b.config.Tag)
 	if err := b.scripts.Execute(api.Assemble, config.AssembleUser, b.config); err != nil {
