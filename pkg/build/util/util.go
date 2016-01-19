@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -69,4 +70,16 @@ func IsBuildComplete(build *buildapi.Build) bool {
 // for the config that has the provided name
 func BuildNameForConfigVersion(name string, version int) string {
 	return fmt.Sprintf("%s-%d", name, version)
+}
+
+// BuildConfigSelector returns a label Selector which can be used to find all
+// builds for a BuildConfig.
+func BuildConfigSelector(name string) labels.Selector {
+	return labels.Set{buildapi.BuildConfigLabel: name}.AsSelector()
+}
+
+// BuildConfigSelectorDeprecated returns a label Selector which can be used to find
+// all builds for a BuildConfig that use the deprecated labels.
+func BuildConfigSelectorDeprecated(name string) labels.Selector {
+	return labels.Set{buildapi.BuildConfigLabelDeprecated: name}.AsSelector()
 }

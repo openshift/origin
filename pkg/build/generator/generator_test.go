@@ -81,6 +81,26 @@ func TestInstantiateRetry(t *testing.T) {
 }
 */
 
+func TestInstantiateDeletingError(t *testing.T) {
+	generator := BuildGenerator{Client: Client{
+		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+			bc := &buildapi.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{
+					Annotations: map[string]string{
+						buildapi.BuildConfigPausedAnnotation: "true",
+					},
+				},
+			}
+			return bc, nil
+		},
+	}}
+
+	_, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	if err == nil || !strings.Contains(err.Error(), "BuildConfig is paused") {
+		t.Errorf("Expected error, got different %v", err)
+	}
+}
+
 func TestInstantiateGetBuildConfigError(t *testing.T) {
 	generator := BuildGenerator{Client: Client{
 		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
