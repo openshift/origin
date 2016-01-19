@@ -104,7 +104,8 @@ func TestPodAdmission(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		InitializeCacheReference(projectcache.NewFake(mockClient.Namespaces(), projectStore, test.defaultNodeSelector))
+		cache := projectcache.NewFake(mockClient.Namespaces(), projectStore, test.defaultNodeSelector)
+		handler.SetProjectCache(cache)
 		if !test.ignoreProjectNodeSelector {
 			project.ObjectMeta.Annotations = map[string]string{"openshift.io/node-selector": test.projectNodeSelector}
 		}
@@ -130,8 +131,6 @@ func TestHandles(t *testing.T) {
 		admission.Connect: false,
 		admission.Delete:  false,
 	} {
-		InitializeCacheReference(&projectcache.ProjectCache{})
-
 		nodeEnvionment, err := NewPodNodeEnvironment(nil)
 		if err != nil {
 			t.Errorf("%v: error getting node environment: %v", op, err)

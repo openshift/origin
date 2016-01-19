@@ -1,7 +1,6 @@
 package nodeenv
 
 import (
-	"errors"
 	"fmt"
 	"io"
 
@@ -10,6 +9,7 @@ import (
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
@@ -26,6 +26,9 @@ type podNodeEnvironment struct {
 	client client.Interface
 	cache  *cache.ProjectCache
 }
+
+var _ = oadmission.WantsProjectCache(&podNodeEnvironment{})
+var _ = oadmission.Validator(&podNodeEnvironment{})
 
 // Admit enforces that pod and its project node label selectors matches at least a node in the cluster.
 func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
@@ -68,22 +71,20 @@ func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
 	return nil
 }
 
-func NewPodNodeEnvironment(client client.Interface) (admission.Interface, error) {
-	if reference == nil {
-		return nil, errors.New("no project cache reference initialized")
-	}
+func (p *podNodeEnvironment) SetProjectCache(c *cache.ProjectCache) {
+	p.cache = c
+}
 
+func (p *podNodeEnvironment) Validate() error {
+	if p.cache == nil {
+		return fmt.Errorf("project node environment plugin needs a project cache")
+	}
+	return nil
+}
+
+func NewPodNodeEnvironment(client client.Interface) (admission.Interface, error) {
 	return &podNodeEnvironment{
 		Handler: admission.NewHandler(admission.Create),
 		client:  client,
-		cache:   reference,
 	}, nil
-}
-
-// reference holds a handle to the project cache so we can inject it into admission plugin creation,
-// as Kube has a strict interface for admission plugins constructors
-var reference *cache.ProjectCache
-
-func InitializeCacheReference(cache *cache.ProjectCache) {
-	reference = cache
 }

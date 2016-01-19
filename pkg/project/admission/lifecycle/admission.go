@@ -17,7 +17,6 @@ limitations under the License.
 package lifecycle
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -34,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/project/cache"
 	projectutil "github.com/openshift/origin/pkg/project/util"
 )
@@ -55,6 +55,8 @@ type lifecycle struct {
 }
 
 var recommendedCreatableResources = sets.NewString("resourceaccessreviews", "localresourceaccessreviews")
+var _ = oadmission.WantsProjectCache(&lifecycle{})
+var _ = oadmission.Validator(&lifecycle{})
 
 // Admit enforces that a namespace must exist in order to associate content with it.
 // Admit enforces that a namespace that is terminating cannot accept new content being associated with it.
@@ -140,14 +142,20 @@ func (e *lifecycle) Handles(operation admission.Operation) bool {
 	return true
 }
 
-func NewLifecycle(client client.Interface, creatableResources sets.String) (admission.Interface, error) {
-	if reference == nil {
-		return nil, errors.New("no project cache reference initialized")
-	}
+func (e *lifecycle) SetProjectCache(c *cache.ProjectCache) {
+	e.cache = c
+}
 
+func (e *lifecycle) Validate() error {
+	if e.cache == nil {
+		return fmt.Errorf("project lifecycle plugin needs a project cache")
+	}
+	return nil
+}
+
+func NewLifecycle(client client.Interface, creatableResources sets.String) (admission.Interface, error) {
 	return &lifecycle{
 		client:             client,
-		cache:              reference,
 		creatableResources: creatableResources,
 	}, nil
 }
@@ -155,12 +163,4 @@ func NewLifecycle(client client.Interface, creatableResources sets.String) (admi
 func isSubjectAccessReview(a admission.Attributes) bool {
 	return a.GetResource() == "subjectaccessreviews" ||
 		a.GetResource() == "localsubjectaccessreviews"
-}
-
-// reference holds a handle to the project cache so we can inject it into admission plugin creation,
-// as Kube has a strict interface for admission plugins constructors
-var reference *cache.ProjectCache
-
-func InitializeCacheReference(cache *cache.ProjectCache) {
-	reference = cache
 }

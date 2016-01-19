@@ -26,10 +26,12 @@ import (
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
+	projectcache "github.com/openshift/origin/pkg/project/cache"
 )
 
 // AdmissionPlugins is the full list of admission control plugins to enable in the order they must run
@@ -45,7 +47,7 @@ type MasterConfig struct {
 	CloudProvider     cloudprovider.Interface
 }
 
-func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client) (*MasterConfig, error) {
+func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client, projectCache *projectcache.ProjectCache) (*MasterConfig, error) {
 	if options.KubernetesMasterConfig == nil {
 		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
 	}
@@ -120,6 +122,12 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", server.CloudProvider, server.CloudConfigFile)
 	}
 
+	// This is a placeholder to provide additional initialization
+	// objects to plugins
+	pluginInitializer := oadmission.PluginInitializer{
+		ProjectCache: projectCache,
+	}
+
 	plugins := []admission.Interface{}
 	for _, pluginName := range strings.Split(server.AdmissionControl, ",") {
 		switch pluginName {
@@ -148,6 +156,11 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			}
 
 		}
+	}
+	pluginInitializer.Initialize(plugins)
+	// ensure that plugins have been properly initialized
+	if err := oadmission.Validate(plugins); err != nil {
+		return nil, err
 	}
 	admissionController := admission.NewChainHandler(plugins...)
 
