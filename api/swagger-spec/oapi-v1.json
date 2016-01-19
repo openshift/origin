@@ -15899,8 +15899,7 @@
     "required": [
      "strategy",
      "triggers",
-     "replicas",
-     "selector"
+     "replicas"
     ],
     "properties": {
      "strategy": {
@@ -15921,7 +15920,7 @@
      },
      "selector": {
       "type": "any",
-      "description": "a label query over pods that should match the replicas count"
+      "description": "a label query over pods that should match the replicas count; if omitted, it will default to the podTemplate labels"
      },
      "template": {
       "$ref": "v1.PodTemplateSpec",
