@@ -94,16 +94,16 @@ angular.module('openshiftConsole')
       return number * multiplier;
     };
   })
-  .filter('usageWithUnits', function() {
+  // Returns the amount and unit for compute resources, normalizing the unit.
+  .filter('amountAndUnit', function() {
     return function(value, type) {
       if (!value) {
-        return value;
+        return [value, null];
       }
-      // only special casing memory at the moment
       var split = /(-?[0-9\.]+)\s*(.*)/.exec(value);
       if (!split) {
         // We didn't get an amount? shouldn't happen but just in case
-        return value;
+        return [value, null];
       }
       var amount = split[1];
       var unit = split[2];
@@ -119,7 +119,21 @@ angular.module('openshiftConsole')
           unit += (amount === "1" ? "core" : "cores");
           break;
       }
-      return amount + (unit !== "" ? " " + unit : "");
+      return [amount, unit];
+    };
+  })
+  // Formats a compute resource value for display.
+  .filter('usageWithUnits', function(amountAndUnitFilter) {
+    return function(value, type) {
+      var toString = _.spread(function(amount, unit) {
+        if (!unit) {
+          return amount;
+        }
+
+        return amount + " " + unit;
+      });
+
+      return toString(amountAndUnitFilter(value, type));
     };
   })
   .filter('helpLink', function() {
