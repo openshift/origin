@@ -107,5 +107,31 @@ window.OPENSHIFT_CONFIG = {
     logout_uri: ""
   },
   loggingURL: "",
-  metricsURL: ""
+  metricsURL: "",
+  cli: {
+    downloadURL: {
+      "Linux (32 bits)": "https://github.com/openshift/origin/releases/download/v1.1.1/openshift-origin-client-tools-v1.1.1-e1d9873-linux-32bit.tar.gz",
+      "Linux (64 bits)": "https://github.com/openshift/origin/releases/download/v1.1.1/openshift-origin-client-tools-v1.1.1-e1d9873-linux-64bit.tar.gz",
+      "Windows": "https://github.com/openshift/origin/releases/download/v1.1.1/openshift-origin-client-tools-v1.1.1-e1d9873-windows.zip",
+      "Mac OS X": "https://github.com/openshift/origin/releases/download/v1.1.1/openshift-origin-client-tools-v1.1.1-e1d9873-mac.zip"
+    }
+  }
 };
+
+// This is the default version info for the dev mode of the web console.
+// A generated version of this version info is created at run-time when running
+// the web console from the openshift binary.
+window.OPENSHIFT_VERSION = {
+  openshift: {
+    major: "dev-mode",
+    minor: "dev-mode",
+    gitCommit: "dev-mode",
+    gitVersion: "dev-mode"
+  },
+  kubernetes: {
+    major: "dev-mode",
+    minor: "dev-mode",
+    gitCommit: "dev-mode",
+    gitVersion: "dev-mode"
+  }
+}

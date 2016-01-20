@@ -14,6 +14,9 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/util"
+
+	oversion "github.com/openshift/origin/pkg/version"
+	kversion "k8s.io/kubernetes/pkg/version"
 )
 
 var varyHeaderRegexp = regexp.MustCompile("\\s*,\\s*")
@@ -141,6 +144,28 @@ func HTML5ModeHandler(contextRoot string, subcontextMap map[string]string, h htt
 	}), nil
 }
 
+var versionTemplate = template.Must(template.New("webConsoleVersion").Parse(`
+window.OPENSHIFT_VERSION = {
+  openshift: {
+  	major: "{{ .OpenShiftVersionInfo.Major | js}}",
+  	minor: "{{ .OpenShiftVersionInfo.Minor | js}}",
+  	gitCommit: "{{ .OpenShiftVersionInfo.GitCommit | js}}",
+  	gitVersion: "{{ .OpenShiftVersionInfo.GitVersion | js}}"
+  },
+  kubernetes: {
+  	major: "{{ .KubernetesVersionInfo.Major | js}}",
+  	minor: "{{ .KubernetesVersionInfo.Minor | js}}",
+  	gitCommit: "{{ .KubernetesVersionInfo.GitCommit | js}}",
+  	gitVersion: "{{ .KubernetesVersionInfo.GitVersion | js}}"
+  }
+};
+`))
+
+type WebConsoleVersion struct {
+	KubernetesVersionInfo kversion.Info
+	OpenShiftVersionInfo  oversion.Info
+}
+
 var configTemplate = template.Must(template.New("webConsoleConfig").Parse(`
 window.OPENSHIFT_CONFIG = {
   apis: {
@@ -176,7 +201,13 @@ window.OPENSHIFT_CONFIG = {
   	logout_uri: "{{ .LogoutURI | js}}"
   },
   loggingURL: "{{ .LoggingURL | js}}",
-  metricsURL: "{{ .MetricsURL | js}}"
+  metricsURL: "{{ .MetricsURL | js}}",
+  cli: {
+  	downloadURL: {
+{{range $i,$e := .CLIDownloadURLs}}{{if $i}},
+{{end}}        "{{$i | js}}": "{{$e | js}}"{{end}}
+  	}
+  }
 };
 `))
 
@@ -210,11 +241,16 @@ type WebConsoleConfig struct {
 	LoggingURL string
 	// MetricsURL is the endpoint for metrics (optional)
 	MetricsURL string
+	// CLIDownloadURL is a map that holds links to download the client tools, where key is the platform name and value is the download URL (optional)
+	CLIDownloadURLs map[string]string
 }
 
-func GeneratedConfigHandler(config WebConsoleConfig) (http.Handler, error) {
+func GeneratedConfigHandler(config WebConsoleConfig, version WebConsoleVersion) (http.Handler, error) {
 	var buffer bytes.Buffer
 	if err := configTemplate.Execute(&buffer, config); err != nil {
+		return nil, err
+	}
+	if err := versionTemplate.Execute(&buffer, version); err != nil {
 		return nil, err
 	}
 	content := buffer.Bytes()
@@ -222,9 +258,8 @@ func GeneratedConfigHandler(config WebConsoleConfig) (http.Handler, error) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Cache-Control", "no-cache, no-store")
 		w.Header().Add("Content-Type", "application/javascript")
-		_, err := w.Write(content)
-		if err != nil {
-			util.HandleError(fmt.Errorf("Error serving Web Console configuration: %v", err))
+		if _, err := w.Write(content); err != nil {
+			util.HandleError(fmt.Errorf("Error serving Web Console config and version: %v", err))
 		}
 	}), nil
 }

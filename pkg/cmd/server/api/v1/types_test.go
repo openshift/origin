@@ -78,6 +78,7 @@ assetConfig:
     sourceDirectory: ""
   loggingPublicURL: ""
   logoutURL: ""
+  cliDownloadPublicURLs: null,
   masterPublicURL: ""
   metricsPublicURL: ""
   publicURL: ""
