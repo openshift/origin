@@ -21,9 +21,21 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-const deploymentsLongDesc = `%s %s - Remove older completed and failed deployments`
-
 const PruneDeploymentsRecommendedName = "deployments"
+
+const (
+	deploymentsLongDesc = `Prune old completed and failed deployments
+
+By default, the prune operation performs a dry run making no changes to the deployments.
+A --confirm flag is needed for changes to be effective.
+`
+
+	deploymentsExample = `  # Dry run deleting all but the last complete deployment for every deployment config
+  $ %[1]s %[2]s --keep-complete=1
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  $ %[1]s %[2]s --keep-complete=1 --confirm`
+)
 
 type pruneDeploymentConfig struct {
 	Confirm         bool
@@ -42,10 +54,11 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 	}
 
 	cmd := &cobra.Command{
-		Use:   name,
-		Short: "Remove completed and failed deployments",
-		Long:  fmt.Sprintf(deploymentsLongDesc, parentName, name),
-
+		Use:        name,
+		Short:      "Remove old completed and failed deployments",
+		Long:       deploymentsLongDesc,
+		Example:    fmt.Sprintf(deploymentsExample, parentName, name),
+		SuggestFor: []string{"deployment", "deployments"},
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) > 0 {
 				glog.Fatalf("No arguments are allowed to this command")
