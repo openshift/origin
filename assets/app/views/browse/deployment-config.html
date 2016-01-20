@@ -63,7 +63,7 @@
                     </li>
                   </ul>
                 </div>
-                <span ng-if="deploymentConfig.status.details.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{deploymentConfig.status.details.message}}"></span>
+                <span ng-if="deploymentConfig.status.details.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="bottom" data-trigger="hover" dynamic-content="{{deploymentConfig.status.details.message}}"></span>
                 <small class="meta" ng-if="deploymentConfig">created <relative-timestamp timestamp="deploymentConfig.metadata.creationTimestamp"></relative-timestamp></small>
               </h1>
               <labels labels="deploymentConfig.metadata.labels" clickable="true" kind="deployments" title-kind="deployment configs" project-name="{{deploymentConfig.metadata.namespace}}" limit="3"></labels>

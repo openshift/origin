@@ -47,6 +47,7 @@ angular.module('openshiftConsole')
           function(buildConfig) {
             $scope.loaded = true;
             $scope.buildConfig = buildConfig;
+            $scope.paused = BuildsService.isPaused($scope.buildConfig);
 
             if ($scope.buildConfig.spec.source.images) {
               $scope.imageSources = $scope.buildConfig.spec.source.images;
@@ -65,6 +66,7 @@ angular.module('openshiftConsole')
                 };
               }
               $scope.buildConfig = buildConfig;
+              $scope.paused = BuildsService.isPaused($scope.buildConfig);
             }));
           },
           // failure
@@ -118,6 +120,7 @@ angular.module('openshiftConsole')
             }
           }
 
+          $scope.canBuild = BuildsService.canBuild($scope.buildConfig, $scope.buildConfigBuildsInProgress);
           $scope.builds = LabelFilter.getLabelSelector().select($scope.unfilteredBuilds);
           updateFilterWarning();
           LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredBuilds, $scope.labelSuggestions);
@@ -150,26 +153,8 @@ angular.module('openshiftConsole')
           });
         });
 
-        var hashSize = $filter('hashSize');
-        $scope.canBuild = function() {
-          if (!$scope.buildConfig) {
-            return false;
-          }
-
-          if ($scope.buildConfig.metadata.deletionTimestamp) {
-            return false;
-          }
-
-          if ($scope.buildConfigBuildsInProgress &&
-              hashSize($scope.buildConfigBuildsInProgress[$scope.buildConfig.metadata.name]) > 0) {
-            return false;
-          }
-
-          return true;
-        };
-
         $scope.startBuild = function() {
-          if ($scope.canBuild()) {
+          if ($scope.canBuild) {
             BuildsService.startBuild($scope.buildConfig.metadata.name, context, $scope);
           }
         };
