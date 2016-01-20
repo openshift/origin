@@ -12,8 +12,10 @@ export KUBECONFIG=${OPENSHIFT_ADMIN_CONFIG}
 
 for ((i=1; i <=$NUM_PROJECTS; i++))
 do
-  ADMIN_USER=${USER_NAME_PREFIX}$(shuf -i 1-$NUM_USERS -n 1)
-  openshift admin new-project ${PROJECT_NAME_PREFIX}${i} --admin=$ADMIN_USER>/dev/null
+  number=$RANDOM
+  let "number %= $NUM_USERS"
+  ADMIN_USER=${USER_NAME_PREFIX}${number}
+  oadm new-project ${PROJECT_NAME_PREFIX}${i} --admin=$ADMIN_USER>/dev/null
 done
 
 echo "Done"
