@@ -56,7 +56,7 @@ if $DEF_MISSING || $UPDATE_WHITELIST
 then
 	if $DEF_MISSING
 	then
-		echo "FAILURE: Add missing descriptions to api/definitions"
+		echo "FAILURE: Add missing description.adoc file to ./api/definitions"
 	else
 		echo "FAILURE: Prune unnecessary whitelist entries"
 	fi
