@@ -6,8 +6,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -85,11 +83,11 @@ func (c *ProjectCache) Run() {
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	reflector := cache.NewReflector(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return c.Client.List(labels.Everything(), fields.Everything())
+			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				return c.Client.List(options)
 			},
-			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return c.Client.Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				return c.Client.Watch(options)
 			},
 		},
 		&kapi.Namespace{},

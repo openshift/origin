@@ -1,9 +1,8 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -23,8 +22,8 @@ func (c *FakeClusterRoles) Get(name string) (*authorizationapi.ClusterRole, erro
 	return obj.(*authorizationapi.ClusterRole), err
 }
 
-func (c *FakeClusterRoles) List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterRoleList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("clusterroles", label, field), &authorizationapi.ClusterRoleList{})
+func (c *FakeClusterRoles) List(opts kapi.ListOptions) (*authorizationapi.ClusterRoleList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("clusterroles", opts), &authorizationapi.ClusterRoleList{})
 	if obj == nil {
 		return nil, err
 	}

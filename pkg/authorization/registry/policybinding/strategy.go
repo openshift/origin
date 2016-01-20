@@ -67,6 +67,10 @@ func (s strategy) PrepareForUpdate(obj, old runtime.Object) {
 	s.scrubBindingRefs(binding)
 }
 
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
+}
+
 // Validate validates a new policyBinding.
 func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateLocalPolicyBinding(obj.(*authorizationapi.PolicyBinding))

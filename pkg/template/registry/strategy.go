@@ -32,6 +32,10 @@ func (templateStrategy) NamespaceScoped() bool {
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (templateStrategy) PrepareForUpdate(obj, old runtime.Object) {}
 
+// Canonicalize normalizes the object after validation.
+func (templateStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (templateStrategy) PrepareForCreate(obj runtime.Object) {
 }

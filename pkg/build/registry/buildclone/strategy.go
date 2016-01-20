@@ -35,3 +35,7 @@ func (s strategy) PrepareForCreate(obj runtime.Object) {
 func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	return buildvalidation.ValidateBuildRequest(obj.(*buildapi.BuildRequest))
 }
+
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
+}

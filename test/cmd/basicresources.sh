@@ -44,9 +44,14 @@ os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.jso
 os::cmd::expect_success 'oc delete services frontend'
 echo "services: ok"
 
-os::cmd::expect_success 'oc create -f test/fixtures/mixed-api-versions.yaml'
-os::cmd::expect_success 'oc get    -f test/fixtures/mixed-api-versions.yaml -o yaml'
-os::cmd::expect_success 'oc delete -f test/fixtures/mixed-api-versions.yaml'
+os::cmd::expect_success 'oc create   -f test/fixtures/mixed-api-versions.yaml'
+os::cmd::expect_success 'oc get      -f test/fixtures/mixed-api-versions.yaml -o yaml'
+os::cmd::expect_success 'oc label    -f test/fixtures/mixed-api-versions.yaml mylabel=a'
+os::cmd::expect_success 'oc annotate -f test/fixtures/mixed-api-versions.yaml myannotation=b'
+# Make sure all six resources, with different API versions, got labeled and annotated
+os::cmd::expect_success_and_text 'oc get -f test/fixtures/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.labels.mylabel}"'           '^a a a a a a$'
+os::cmd::expect_success_and_text 'oc get -f test/fixtures/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.annotations.myannotation}"' '^b b b b b b$'
+os::cmd::expect_success 'oc delete   -f test/fixtures/mixed-api-versions.yaml'
 echo "list version conversion: ok"
 
 os::cmd::expect_success 'oc get nodes'
@@ -94,7 +99,8 @@ os::cmd::try_until_success 'oc project ${project}'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift test'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --restart=Never test3'
-os::cmd::expect_success 'oc delete dc/test rc/test2 pod/test3'
+os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=job/v1beta1 --restart=Never test4'
+os::cmd::expect_success 'oc delete dc/test rc/test2 pod/test3 job/test4'
 
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | oc create -f -'
 os::cmd::expect_success 'oc delete all -l name=mytemplate'

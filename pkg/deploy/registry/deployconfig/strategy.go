@@ -49,6 +49,10 @@ func (strategy) PrepareForUpdate(obj, old runtime.Object) {
 	// TODO: need to ensure status.latestVersion is not set out of order
 }
 
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
+}
+
 // Validate validates a new policy.
 func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateDeploymentConfig(obj.(*api.DeploymentConfig))

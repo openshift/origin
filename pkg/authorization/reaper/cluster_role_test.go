@@ -74,7 +74,7 @@ func TestClusterRoleReaper(t *testing.T) {
 		})
 
 		reaper := NewClusterRoleReaper(tc, tc, tc)
-		_, err := reaper.Stop("", test.role.Name, 0, nil)
+		err := reaper.Stop("", test.role.Name, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}
@@ -143,7 +143,7 @@ func TestClusterRoleReaperAgainstNamespacedBindings(t *testing.T) {
 		})
 
 		reaper := NewClusterRoleReaper(tc, tc, tc)
-		_, err := reaper.Stop("", test.role.Name, 0, nil)
+		err := reaper.Stop("", test.role.Name, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}

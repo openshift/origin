@@ -58,6 +58,6 @@ func (r *DeploymentConfigRegistry) DeleteDeploymentConfig(ctx kapi.Context, id s
 	return r.Err
 }
 
-func (r *DeploymentConfigRegistry) WatchDeploymentConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *DeploymentConfigRegistry) WatchDeploymentConfigs(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
 	return nil, r.Err
 }

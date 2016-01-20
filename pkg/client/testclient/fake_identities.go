@@ -1,9 +1,8 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -23,8 +22,8 @@ func (c *FakeIdentities) Get(name string) (*userapi.Identity, error) {
 	return obj.(*userapi.Identity), err
 }
 
-func (c *FakeIdentities) List(label labels.Selector, field fields.Selector) (*userapi.IdentityList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("identities", label, field), &userapi.IdentityList{})
+func (c *FakeIdentities) List(opts kapi.ListOptions) (*userapi.IdentityList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("identities", opts), &userapi.IdentityList{})
 	if obj == nil {
 		return nil, err
 	}

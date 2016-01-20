@@ -9,9 +9,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
@@ -132,7 +131,7 @@ func TestWaitForBuild(t *testing.T) {
 			Getter:         watcher,
 			Watcher:        watcher,
 			PodGetter:      &testPodGetter{},
-			ConnectionInfo: &kclient.HTTPKubeletClient{Config: &kclient.KubeletConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
+			ConnectionInfo: &kubeletclient.HTTPKubeletClient{Config: &kubeletclient.KubeletClientConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
 			Timeout:        defaultTimeout,
 		}
 		go func() {
@@ -167,7 +166,7 @@ func TestWaitForBuildTimeout(t *testing.T) {
 		Getter:         watcher,
 		Watcher:        watcher,
 		PodGetter:      &testPodGetter{},
-		ConnectionInfo: &kclient.HTTPKubeletClient{Config: &kclient.KubeletConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
+		ConnectionInfo: &kubeletclient.HTTPKubeletClient{Config: &kubeletclient.KubeletClientConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
 		Timeout:        100 * time.Millisecond,
 	}
 	_, err := storage.Get(ctx, build.Name, &api.BuildLogOptions{})
@@ -186,7 +185,7 @@ func (r *buildWatcher) Get(ctx kapi.Context, name string) (runtime.Object, error
 	return r.Build, nil
 }
 
-func (r *buildWatcher) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *buildWatcher) Watch(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
 	return r.Watcher, r.Err
 }
 
@@ -209,7 +208,7 @@ func resourceLocationHelper(BuildPhase api.BuildPhase, podPhase string, ctx kapi
 	storage := &REST{
 		Getter:         internal,
 		PodGetter:      &testPodGetter{},
-		ConnectionInfo: &kclient.HTTPKubeletClient{Config: &kclient.KubeletConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
+		ConnectionInfo: &kubeletclient.HTTPKubeletClient{Config: &kubeletclient.KubeletClientConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
 		Timeout:        defaultTimeout,
 	}
 	getter := rest.GetterWithOptions(storage)

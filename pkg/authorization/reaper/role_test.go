@@ -96,7 +96,7 @@ func TestRoleReaper(t *testing.T) {
 		})
 
 		reaper := NewRoleReaper(tc, tc)
-		_, err := reaper.Stop(test.role.Namespace, test.role.Name, 0, nil)
+		err := reaper.Stop(test.role.Namespace, test.role.Name, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}

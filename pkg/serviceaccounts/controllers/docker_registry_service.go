@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"reflect"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -13,7 +12,6 @@ import (
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -44,11 +42,11 @@ func NewDockerRegistryServiceController(cl client.Interface, options DockerRegis
 
 	_, e.serviceController = framework.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return e.client.Services(options.RegistryNamespace).List(labels.Everything(), fields.Everything())
+			ListFunc: func(opts api.ListOptions) (runtime.Object, error) {
+				return e.client.Services(options.RegistryNamespace).List(opts)
 			},
-			WatchFunc: func(rv string) (watch.Interface, error) {
-				return e.client.Services(options.RegistryNamespace).Watch(labels.Everything(), fields.Everything(), rv)
+			WatchFunc: func(opts api.ListOptions) (watch.Interface, error) {
+				return e.client.Services(options.RegistryNamespace).Watch(opts)
 			},
 		},
 		&api.Service{},
@@ -167,7 +165,7 @@ func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation s
 		}
 
 		dockercfgMap := map[string]credentialprovider.DockerConfigEntry(*dockercfg)
-		keys := sets.KeySet(reflect.ValueOf(dockercfgMap))
+		keys := sets.StringKeySet(dockercfgMap)
 		if len(keys) != 1 {
 			util.HandleError(err)
 			continue
@@ -201,8 +199,8 @@ func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation s
 }
 
 func (e *DockerRegistryServiceController) listDockercfgSecrets() ([]*api.Secret, error) {
-	dockercfgSelector := fields.SelectorFromSet(map[string]string{client.SecretType: string(api.SecretTypeDockercfg)})
-	potentialSecrets, err := e.client.Secrets(api.NamespaceAll).List(labels.Everything(), dockercfgSelector)
+	options := api.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{client.SecretType: string(api.SecretTypeDockercfg)})}
+	potentialSecrets, err := e.client.Secrets(api.NamespaceAll).List(options)
 	if err != nil {
 		return nil, err
 	}

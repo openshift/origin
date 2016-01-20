@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
@@ -299,7 +298,7 @@ func (e importError) Error() string {
 }
 
 func waitForImport(imageStreamClient client.ImageStreamInterface, name, resourceVersion string) (*imageapi.ImageStream, error) {
-	streamWatch, err := imageStreamClient.Watch(labels.Everything(), fields.OneTermEqualSelector("metadata.name", name), resourceVersion)
+	streamWatch, err := imageStreamClient.Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", name), ResourceVersion: resourceVersion})
 	if err != nil {
 		return nil, err
 	}

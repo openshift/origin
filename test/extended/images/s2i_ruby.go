@@ -7,6 +7,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -53,7 +55,7 @@ var _ = g.Describe("images: s2i: ruby", func() {
 			g.By("testing application content source modification")
 			assertPageContent("Welcome to your Rails application on OpenShift")
 
-			pods, err := oc.KubeREST().Pods(oc.Namespace()).List(dcLabel, nil)
+			pods, err := oc.KubeREST().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: dcLabel})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(pods.Items)).To(o.Equal(1))
 

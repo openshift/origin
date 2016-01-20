@@ -15,9 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -114,41 +112,41 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, args []string, out i
 	}
 	o.Client = osClient
 
-	allImages, err := osClient.Images().List(labels.Everything(), fields.Everything())
+	allImages, err := osClient.Images().List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allStreams, err := osClient.ImageStreams(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	allStreams, err := osClient.ImageStreams(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allPods, err := kClient.Pods(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	allPods, err := kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allRCs, err := kClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	allRCs, err := kClient.ReplicationControllers(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allBCs, err := osClient.BuildConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	allBCs, err := osClient.BuildConfigs(kapi.NamespaceAll).List(kapi.ListOptions{})
 	// We need to tolerate 'not found' errors for buildConfigs since they may be disabled in Atomic
 	err = oserrors.TolerateNotFoundError(err)
 	if err != nil {
 		return err
 	}
 
-	allBuilds, err := osClient.Builds(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	allBuilds, err := osClient.Builds(kapi.NamespaceAll).List(kapi.ListOptions{})
 	// We need to tolerate 'not found' errors for builds since they may be disabled in Atomic
 	err = oserrors.TolerateNotFoundError(err)
 	if err != nil {
 		return err
 	}
 
-	allDCs, err := osClient.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	allDCs, err := osClient.DeploymentConfigs(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}

@@ -72,6 +72,10 @@ func (s userIdentityMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	mapping.User.UID = ""
 }
 
+// Canonicalize normalizes the object after validation.
+func (s userIdentityMappingStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // Validate validates a new UserIdentityMapping.
 func (s userIdentityMappingStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateUserIdentityMapping(obj.(*api.UserIdentityMapping))

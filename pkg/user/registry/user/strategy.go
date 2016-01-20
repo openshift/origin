@@ -51,6 +51,10 @@ func (userStrategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+// Canonicalize normalizes the object after validation.
+func (userStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // ValidateUpdate is the default update validation for an end user.
 func (userStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateUserUpdate(obj.(*api.User), old.(*api.User))

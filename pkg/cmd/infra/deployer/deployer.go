@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -85,7 +84,7 @@ func NewDeployer(client kclient.Interface) *Deployer {
 			return client.ReplicationControllers(namespace).Get(name)
 		},
 		getDeployments: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-			return client.ReplicationControllers(namespace).List(deployutil.ConfigSelector(configName), fields.Everything())
+			return client.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(configName)})
 		},
 		scaler: scaler,
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {

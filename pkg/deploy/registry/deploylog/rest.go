@@ -8,7 +8,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 	"k8s.io/kubernetes/pkg/registry/pod"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -26,9 +27,9 @@ const defaultTimeout time.Duration = 10 * time.Second
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
 	ConfigGetter     client.DeploymentConfigsNamespacer
-	DeploymentGetter kclient.ReplicationControllersNamespacer
+	DeploymentGetter unversioned.ReplicationControllersNamespacer
 	PodGetter        pod.ResourceGetter
-	ConnectionInfo   kclient.ConnectionInfoGetter
+	ConnectionInfo   kubeletclient.ConnectionInfoGetter
 	Timeout          time.Duration
 }
 
@@ -39,7 +40,7 @@ var _ = rest.GetterWithOptions(&REST{})
 // one for deployments (replication controllers) and one for pods to get the necessary
 // attributes to assemble the URL to which the request shall be redirected in order to
 // get the deployment logs.
-func NewREST(dn client.DeploymentConfigsNamespacer, rn kclient.ReplicationControllersNamespacer, pn kclient.PodsNamespacer, connectionInfo kclient.ConnectionInfoGetter) *REST {
+func NewREST(dn client.DeploymentConfigsNamespacer, rn unversioned.ReplicationControllersNamespacer, pn unversioned.PodsNamespacer, connectionInfo kubeletclient.ConnectionInfoGetter) *REST {
 	return &REST{
 		ConfigGetter:     dn,
 		DeploymentGetter: rn,
@@ -155,7 +156,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 // podGetter implements the ResourceGetter interface. Used by LogLocation to
 // retrieve the deployer pod
 type podGetter struct {
-	podsNamespacer kclient.PodsNamespacer
+	podsNamespacer unversioned.PodsNamespacer
 }
 
 // Get is responsible for retrieving the deployer pod

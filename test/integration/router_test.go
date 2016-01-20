@@ -23,7 +23,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1beta3"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/watch"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
 
@@ -151,7 +151,7 @@ func TestRouter(t *testing.T) {
 			expectedResponse:  tr.HelloPod,
 			routeTLS:          nil,
 			routerUrl:         routeAddress,
-			preferredPort:     &routeapi.RoutePort{TargetPort: util.NewIntOrStringFromInt(8888)},
+			preferredPort:     &routeapi.RoutePort{TargetPort: intstr.FromInt(8888)},
 		},
 		{
 			name:              "edge termination",

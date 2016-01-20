@@ -11,7 +11,6 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -38,11 +37,13 @@ func NewDockercfgDeletedController(cl client.Interface, options DockercfgDeleted
 	dockercfgSelector := fields.OneTermEqualSelector(client.SecretType, string(api.SecretTypeDockercfg))
 	_, e.secretController = framework.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return e.client.Secrets(api.NamespaceAll).List(labels.Everything(), dockercfgSelector)
+			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+				opts := api.ListOptions{FieldSelector: dockercfgSelector}
+				return e.client.Secrets(api.NamespaceAll).List(opts)
 			},
-			WatchFunc: func(rv string) (watch.Interface, error) {
-				return e.client.Secrets(api.NamespaceAll).Watch(labels.Everything(), dockercfgSelector, rv)
+			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				opts := api.ListOptions{FieldSelector: dockercfgSelector, ResourceVersion: options.ResourceVersion}
+				return e.client.Secrets(api.NamespaceAll).Watch(opts)
 			},
 		},
 		&api.Secret{},

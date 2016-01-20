@@ -42,6 +42,10 @@ func (strategy) PrepareForCreate(obj runtime.Object) {
 	dropUnknownTriggers(bc)
 }
 
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
+}
+
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (strategy) PrepareForUpdate(obj, old runtime.Object) {
 	bc := obj.(*api.BuildConfig)

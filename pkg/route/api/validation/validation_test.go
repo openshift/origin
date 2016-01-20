@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	"github.com/openshift/origin/pkg/route/api"
 )
@@ -104,7 +104,7 @@ func TestValidateRoute(t *testing.T) {
 						Name: "serviceName",
 					},
 					Port: &api.RoutePort{
-						TargetPort: util.NewIntOrStringFromInt(0),
+						TargetPort: intstr.FromInt(0),
 					},
 				},
 			},
@@ -123,7 +123,7 @@ func TestValidateRoute(t *testing.T) {
 						Name: "serviceName",
 					},
 					Port: &api.RoutePort{
-						TargetPort: util.NewIntOrStringFromString(""),
+						TargetPort: intstr.FromString(""),
 					},
 				},
 			},

@@ -36,6 +36,10 @@ func (strategy) GenerateName(base string) string {
 func (strategy) PrepareForCreate(obj runtime.Object) {
 }
 
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
+}
+
 // Validate validates a new token
 func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	token := obj.(*api.OAuthAuthorizeToken)

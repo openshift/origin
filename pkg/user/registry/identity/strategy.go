@@ -54,6 +54,10 @@ func (identityStrategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+// Canonicalize normalizes the object after validation.
+func (identityStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // ValidateUpdate is the default update validation for an identity
 func (identityStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateIdentityUpdate(obj.(*api.Identity), old.(*api.Identity))

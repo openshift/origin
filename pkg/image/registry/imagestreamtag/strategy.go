@@ -44,6 +44,10 @@ func (*strategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
+}
+
 func (s *strategy) PrepareForUpdate(obj, old runtime.Object) {
 	newIST := obj.(*api.ImageStreamTag)
 	oldIST := old.(*api.ImageStreamTag)

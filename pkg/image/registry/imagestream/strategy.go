@@ -426,6 +426,10 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) field
 	return errors
 }
 
+// Canonicalize normalizes the object after validation.
+func (Strategy) Canonicalize(obj runtime.Object) {
+}
+
 func (s Strategy) prepareForUpdate(obj, old runtime.Object, resetStatus bool) {
 	oldStream := old.(*api.ImageStream)
 	stream := obj.(*api.ImageStream)
@@ -490,6 +494,10 @@ func NewStatusStrategy(strategy Strategy) StatusStrategy {
 	return StatusStrategy{strategy}
 }
 
+// Canonicalize normalizes the object after validation.
+func (StatusStrategy) Canonicalize(obj runtime.Object) {
+}
+
 func (StatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	oldStream := old.(*api.ImageStream)
 	stream := obj.(*api.ImageStream)
@@ -540,6 +548,10 @@ type InternalStrategy struct {
 // strategy.
 func NewInternalStrategy(strategy Strategy) InternalStrategy {
 	return InternalStrategy{strategy}
+}
+
+// Canonicalize normalizes the object after validation.
+func (InternalStrategy) Canonicalize(obj runtime.Object) {
 }
 
 func (s InternalStrategy) PrepareForCreate(obj runtime.Object) {

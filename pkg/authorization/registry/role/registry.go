@@ -3,8 +3,7 @@ package role
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -12,7 +11,7 @@ import (
 // Registry is an interface for things that know how to store Roles.
 type Registry interface {
 	// ListRoles obtains list of policyRoles that match a selector.
-	ListRoles(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.RoleList, error)
+	ListRoles(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.RoleList, error)
 	// GetRole retrieves a specific policyRole.
 	GetRole(ctx kapi.Context, id string) (*authorizationapi.Role, error)
 	// CreateRole creates a new policyRole.
@@ -42,8 +41,8 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListRoles(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.RoleList, error) {
-	obj, err := s.List(ctx, label, field)
+func (s *storage) ListRoles(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.RoleList, error) {
+	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
 	}

@@ -11,9 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -69,12 +67,12 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 				cmdutil.CheckErr(err)
 			}
 
-			deploymentConfigList, err := osClient.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+			deploymentConfigList, err := osClient.DeploymentConfigs(kapi.NamespaceAll).List(kapi.ListOptions{})
 			if err != nil {
 				cmdutil.CheckErr(err)
 			}
 
-			deploymentList, err := kclient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+			deploymentList, err := kclient.ReplicationControllers(kapi.NamespaceAll).List(kapi.ListOptions{})
 			if err != nil {
 				cmdutil.CheckErr(err)
 			}
@@ -106,7 +104,7 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 					// If the deployment is failed we need to remove its deployer pods, too.
 					if deployutil.DeploymentStatusFor(deployment) == deployapi.DeploymentStatusFailed {
 						dpSelector := deployutil.DeployerPodSelector(deployment.Name)
-						deployers, err := kclient.Pods(deployment.Namespace).List(dpSelector, fields.Everything())
+						deployers, err := kclient.Pods(deployment.Namespace).List(kapi.ListOptions{LabelSelector: dpSelector})
 						if err != nil {
 							fmt.Fprintf(os.Stderr, "Cannot list deployer pods for %q: %v\n", deployment.Name, err)
 						} else {

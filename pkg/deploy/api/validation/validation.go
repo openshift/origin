@@ -8,8 +8,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -295,42 +295,42 @@ func validateImageStreamTagName(istag string) error {
 	return nil
 }
 
-func ValidatePositiveIntOrPercent(intOrPercent util.IntOrString, fieldName string) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	if intOrPercent.Kind == util.IntstrString {
+func ValidatePositiveIntOrPercent(intOrPercent intstr.IntOrString, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if intOrPercent.Type == intstr.String {
 		if !IsValidPercent(intOrPercent.StrVal) {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fieldName, intOrPercent, "value should be int(5) or percentage(5%)"))
 		}
 
-	} else if intOrPercent.Kind == util.IntstrInt {
-		allErrs = append(allErrs, ValidatePositiveField(int64(intOrPercent.IntVal), fieldName)...)
+	} else if intOrPercent.Type == intstr.Int {
+		allErrs = append(allErrs, ValidatePositiveField(int64(intOrPercent.IntVal), fldPath)...)
 	}
 	return allErrs
 }
 
-func getPercentValue(intOrStringValue util.IntOrString) (int, bool) {
-	if intOrStringValue.Kind != util.IntstrString || !IsValidPercent(intOrStringValue.StrVal) {
+func getPercentValue(intOrStringValue intstr.IntOrString) (int, bool) {
+	if intOrStringValue.Type != intstr.String || !IsValidPercent(intOrStringValue.StrVal) {
 		return 0, false
 	}
 	value, _ := strconv.Atoi(intOrStringValue.StrVal[:len(intOrStringValue.StrVal)-1])
 	return value, true
 }
 
-func getIntOrPercentValue(intOrStringValue util.IntOrString) int {
+func getIntOrPercentValue(intOrStringValue intstr.IntOrString) int {
 	value, isPercent := getPercentValue(intOrStringValue)
 	if isPercent {
 		return value
 	}
-	return intOrStringValue.IntVal
+	return int(intOrStringValue.IntVal)
 }
 
-func IsNotMoreThan100Percent(intOrStringValue util.IntOrString, fieldName string) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func IsNotMoreThan100Percent(intOrStringValue intstr.IntOrString, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 	value, isPercent := getPercentValue(intOrStringValue)
 	if !isPercent || value <= 100 {
 		return nil
 	}
-	allErrs = append(allErrs, fielderrors.NewFieldInvalid(fieldName, intOrStringValue, "should not be more than 100%"))
+	allErrs = append(allErrs, field.Invalid(fldPath, intOrStringValue, "should not be more than 100%"))
 	return allErrs
 }
 

@@ -19,10 +19,10 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -648,7 +648,7 @@ func WaitForBuildComplete(c osclient.BuildInterface, name string) error {
 			b.Status.Phase == buildapi.BuildPhaseError
 	}
 	for {
-		list, err := c.List(labels.Everything(), fields.Set{"name": name}.AsSelector())
+		list, err := c.List(kapi.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector()})
 		if err != nil {
 			return err
 		}
@@ -662,7 +662,7 @@ func WaitForBuildComplete(c osclient.BuildInterface, name string) error {
 		}
 
 		rv := list.ResourceVersion
-		w, err := c.Watch(labels.Everything(), fields.Set{"name": name}.AsSelector(), rv)
+		w, err := c.Watch(kapi.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector(), ResourceVersion: rv})
 		if err != nil {
 			return err
 		}

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,9 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -380,7 +377,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	buildList, err := d.Builds(namespace).List(labels.Everything(), fields.Everything())
+	buildList, err := d.Builds(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -652,12 +649,12 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 	resourceQuotasClient := d.kubeClient.ResourceQuotas(name)
-	resourceQuotaList, err := resourceQuotasClient.List(labels.Everything(), fields.Everything())
+	resourceQuotaList, err := resourceQuotasClient.List(kapi.ListOptions{})
 	if err != nil {
 		return "", err
 	}
 	limitRangesClient := d.kubeClient.LimitRanges(name)
-	limitRangeList, err := limitRangesClient.List(labels.Everything(), fields.Everything())
+	limitRangeList, err := limitRangesClient.List(kapi.ListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1026,7 +1023,7 @@ func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 		formatString(out, "Last Modified", policy.LastModified)
 
 		// using .List() here because I always want the sorted order that it provides
-		for _, key := range sets.KeySet(reflect.ValueOf(policy.Roles)).List() {
+		for _, key := range sets.StringKeySet(policy.Roles).List() {
 			role := policy.Roles[key]
 			fmt.Fprint(out, key+"\t"+policyRuleHeadings+"\n")
 			for _, rule := range role.Rules {
@@ -1116,7 +1113,7 @@ func DescribePolicyBinding(policyBinding *authorizationapi.PolicyBinding) (strin
 		formatString(out, "Policy", policyBinding.PolicyRef.Namespace)
 
 		// using .List() here because I always want the sorted order that it provides
-		for _, key := range sets.KeySet(reflect.ValueOf(policyBinding.RoleBindings)).List() {
+		for _, key := range sets.StringKeySet(policyBinding.RoleBindings).List() {
 			roleBinding := policyBinding.RoleBindings[key]
 			users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
 

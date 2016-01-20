@@ -13,8 +13,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
@@ -282,6 +280,7 @@ func DefaultTestOptions() TestOptions {
 
 func StartConfiguredNode(nodeConfig *configapi.NodeConfig) error {
 	kubernetes.SetFakeCadvisorInterfaceForIntegrationTest()
+	kubernetes.SetFakeContainerManagerInterfaceForIntegrationTest()
 
 	_, nodePort, err := net.SplitHostPort(nodeConfig.ServingInfo.BindAddress)
 	if err != nil {
@@ -337,7 +336,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 	for {
 		// confirm that we can actually query from the api server
 		if client, err := util.GetClusterAdminClient(adminKubeConfigFile); err == nil {
-			if _, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything()); err == nil {
+			if _, err := client.ClusterPolicies().List(kapi.ListOptions{}); err == nil {
 				break
 			}
 		}

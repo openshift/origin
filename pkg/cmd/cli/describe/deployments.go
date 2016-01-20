@@ -13,7 +13,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -102,10 +101,10 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Inter
 				return kclient.ReplicationControllers(namespace).Get(name)
 			},
 			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return kclient.ReplicationControllers(namespace).List(selector, fields.Everything())
+				return kclient.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: selector})
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
-				return kclient.Pods(namespace).List(selector, fields.Everything())
+				return kclient.Pods(namespace).List(kapi.ListOptions{LabelSelector: selector})
 			},
 			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
 				return kclient.Events(deploymentConfig.Namespace).Search(deploymentConfig)
@@ -324,10 +323,10 @@ func NewLatestDeploymentsDescriber(client client.Interface, kclient kclient.Inte
 				return kclient.ReplicationControllers(namespace).Get(name)
 			},
 			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return kclient.ReplicationControllers(namespace).List(selector, fields.Everything())
+				return kclient.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: selector})
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
-				return kclient.Pods(namespace).List(selector, fields.Everything())
+				return kclient.Pods(namespace).List(kapi.ListOptions{LabelSelector: selector})
 			},
 			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
 				return kclient.Events(deploymentConfig.Namespace).Search(deploymentConfig)

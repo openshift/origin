@@ -54,6 +54,7 @@ examples/
 examples/cephfs/
 examples/elasticsearch/
 examples/experimental/
+examples/extensions/
 examples/fibre_channel/
 examples/guestbook
 examples/guestbook-go
@@ -68,14 +69,18 @@ examples/elasticsearch
 examples/explorer
 examples/hazelcast
 examples/javaweb-tomcat-sidecar/
+examples/job/expansions/
+examples/job/work-queue-1
+examples/job/work-queue-2
 examples/meteor
 examples/mysql-wordpress-pd
 examples/nfs
-examples/openshift-origin
+examples/openshift-origin/
 examples/phabricator
 examples/redis
 examples/rethinkdb
 examples/spark
+examples/spark/spark-gluster
 examples/storm"
 
 for file in $special_files

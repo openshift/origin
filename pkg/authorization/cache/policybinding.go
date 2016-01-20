@@ -5,12 +5,12 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	errors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
+	"github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/client"
 	bindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
@@ -31,11 +31,21 @@ func NewReadOnlyPolicyBindingCache(registry bindingregistry.WatchingRegistry) *r
 
 	reflector := cache.NewReflector(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return registry.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
+			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				opts := &unversioned.ListOptions{
+					LabelSelector:   unversioned.LabelSelector{Selector: options.LabelSelector},
+					FieldSelector:   unversioned.FieldSelector{Selector: options.FieldSelector},
+					ResourceVersion: options.ResourceVersion,
+				}
+				return registry.ListPolicyBindings(ctx, opts)
 			},
-			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return registry.WatchPolicyBindings(ctx, labels.Everything(), fields.Everything(), resourceVersion)
+			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				opts := &unversioned.ListOptions{
+					LabelSelector:   unversioned.LabelSelector{Selector: options.LabelSelector},
+					FieldSelector:   unversioned.FieldSelector{Selector: options.FieldSelector},
+					ResourceVersion: options.ResourceVersion,
+				}
+				return registry.WatchPolicyBindings(ctx, opts)
 			},
 		},
 		&authorizationapi.PolicyBinding{},
@@ -68,7 +78,7 @@ func (c *readOnlyPolicyBindingCache) LastSyncResourceVersion() string {
 	return c.reflector.LastSyncResourceVersion()
 }
 
-func (c *readOnlyPolicyBindingCache) List(label labels.Selector, field fields.Selector, namespace string) (*authorizationapi.PolicyBindingList, error) {
+func (c *readOnlyPolicyBindingCache) List(options *unversioned.ListOptions, namespace string) (*authorizationapi.PolicyBindingList, error) {
 	var returnedList []interface{}
 	if namespace == kapi.NamespaceAll {
 		returnedList = c.indexer.List()
@@ -80,12 +90,13 @@ func (c *readOnlyPolicyBindingCache) List(label labels.Selector, field fields.Se
 		}
 	}
 	policyBindingList := &authorizationapi.PolicyBindingList{}
+	matcher := bindingregistry.Matcher(api.ListOptionsToSelectors(options))
 	for i := range returnedList {
 		policyBinding, castOK := returnedList[i].(*authorizationapi.PolicyBinding)
 		if !castOK {
 			return policyBindingList, errors.NewInvalid("PolicyBindingList", "policyBindingList", []error{})
 		}
-		if label.Matches(labels.Set(policyBinding.Labels)) && field.Matches(authorizationapi.PolicyBindingToSelectableFields(policyBinding)) {
+		if matches, err := matcher.Matches(policyBinding); err == nil && matches {
 			policyBindingList.Items = append(policyBindingList.Items, *policyBinding)
 		}
 	}
@@ -125,8 +136,8 @@ func newReadOnlyPolicyBindings(cache readOnlyAuthorizationCache, namespace strin
 	}
 }
 
-func (p *readOnlyPolicyBindings) List(label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
-	return p.readOnlyPolicyBindingCache.List(label, field, p.namespace)
+func (p *readOnlyPolicyBindings) List(options *unversioned.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+	return p.readOnlyPolicyBindingCache.List(options, p.namespace)
 }
 
 func (p *readOnlyPolicyBindings) Get(name string) (*authorizationapi.PolicyBinding, error) {

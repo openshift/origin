@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
@@ -70,7 +70,7 @@ func mockREST(version, desired int, endStatus api.DeploymentStatus) *REST {
 	fakeWatch := watch.NewFake()
 	fakeRn.PrependWatchReactor("replicationcontrollers", ktestclient.DefaultWatchReactor(fakeWatch, nil))
 	// Everything is fake
-	connectionInfo := &kclient.HTTPKubeletClient{Config: &kclient.KubeletConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}}
+	connectionInfo := &kubeletclient.HTTPKubeletClient{Config: &kubeletclient.KubeletClientConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}}
 
 	obj := &fakeDeployments.Items[desired-1]
 	obj.Annotations[api.DeploymentStatusAnnotation] = string(endStatus)

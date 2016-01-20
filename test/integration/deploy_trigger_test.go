@@ -8,8 +8,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/wait"
 	watchapi "k8s.io/kubernetes/pkg/watch"
 
@@ -50,7 +48,7 @@ func TestTriggers_manual(t *testing.T) {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 	}
 
-	rcWatch, err := kubeClient.ReplicationControllers(namespace).Watch(labels.Everything(), fields.Everything(), dc.ResourceVersion)
+	rcWatch, err := kubeClient.ReplicationControllers(namespace).Watch(kapi.ListOptions{ResourceVersion: dc.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments: %v", err)
 	}
@@ -112,7 +110,7 @@ func TestTriggers_imageChange(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
 
-	configWatch, err := openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	configWatch, err := openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Watch(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
@@ -122,7 +120,7 @@ func TestTriggers_imageChange(t *testing.T) {
 		t.Fatalf("Couldn't create ImageStream: %v", err)
 	}
 
-	imageWatch, err := openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	imageWatch, err := openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Watch(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to ImageStreams: %s", err)
 	}
@@ -209,7 +207,7 @@ func TestTriggers_configChange(t *testing.T) {
 	config.Namespace = namespace
 	config.Spec.Triggers[0] = deploytest.OkConfigChangeTrigger()
 
-	rcWatch, err := kubeClient.ReplicationControllers(namespace).Watch(labels.Everything(), fields.Everything(), "0")
+	rcWatch, err := kubeClient.ReplicationControllers(namespace).Watch(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}

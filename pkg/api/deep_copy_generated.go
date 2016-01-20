@@ -16,7 +16,7 @@ import (
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
-	util "k8s.io/kubernetes/pkg/util"
+	intstr "k8s.io/kubernetes/pkg/util/intstr"
 	sets "k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -1758,12 +1758,12 @@ func deepCopy_api_RollingDeploymentStrategyParams(in deployapi.RollingDeployment
 	if newVal, err := c.DeepCopy(in.MaxUnavailable); err != nil {
 		return err
 	} else {
-		out.MaxUnavailable = newVal.(util.IntOrString)
+		out.MaxUnavailable = newVal.(intstr.IntOrString)
 	}
 	if newVal, err := c.DeepCopy(in.MaxSurge); err != nil {
 		return err
 	} else {
-		out.MaxSurge = newVal.(util.IntOrString)
+		out.MaxSurge = newVal.(intstr.IntOrString)
 	}
 	if in.UpdatePercent != nil {
 		out.UpdatePercent = new(int)
@@ -2713,7 +2713,7 @@ func deepCopy_api_RoutePort(in routeapi.RoutePort, out *routeapi.RoutePort, c *c
 	if newVal, err := c.DeepCopy(in.TargetPort); err != nil {
 		return err
 	} else {
-		out.TargetPort = newVal.(util.IntOrString)
+		out.TargetPort = newVal.(intstr.IntOrString)
 	}
 	return nil
 }

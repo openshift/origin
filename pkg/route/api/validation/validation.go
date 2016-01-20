@@ -43,9 +43,9 @@ func ValidateRoute(route *routeapi.Route) fielderrors.ValidationErrorList {
 
 	if route.Spec.Port != nil {
 		switch target := route.Spec.Port.TargetPort; {
-		case target.Kind == util.IntstrInt && target.IntVal == 0,
-			target.Kind == util.IntstrString && len(target.StrVal) == 0:
 			result = append(result, fielderrors.NewFieldRequired("targetPort"))
+		case target.Type == intstr.Int && target.IntVal == 0,
+			target.Type == intstr.String && len(target.StrVal) == 0:
 		}
 	}
 

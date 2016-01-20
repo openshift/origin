@@ -56,6 +56,10 @@ func (imageStrategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+// Canonicalize normalizes the object after validation.
+func (imageStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 // It extracts the latest info from the manifest and sets that on the object.
 func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {

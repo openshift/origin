@@ -10,9 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -52,6 +50,8 @@ func (r *REST) New() runtime.Object {
 func (r *REST) NewList() runtime.Object {
 	return &unversioned.Status{}
 }
+
+var _ = rest.Creater(&REST{})
 
 func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 
@@ -150,7 +150,9 @@ func (r *REST) getTemplate() (*templateapi.Template, error) {
 	return r.openshiftClient.Templates(r.templateNamespace).Get(r.templateName)
 }
 
-func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
+var _ = rest.Lister(&REST{})
+
+func (r *REST) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
 	userInfo, exists := kapi.UserFrom(ctx)
 	if !exists {
 		return nil, errors.New("a user must be provided")

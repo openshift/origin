@@ -41,6 +41,10 @@ func (strategy) PrepareForCreate(obj runtime.Object) {
 	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
 }
 
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
+}
+
 // Validate validates a new client
 func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	auth := obj.(*api.OAuthClientAuthorization)

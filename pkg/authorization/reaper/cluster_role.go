@@ -6,9 +6,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 )
@@ -29,10 +27,10 @@ type ClusterRoleReaper struct {
 
 // Stop on a reaper is actually used for deletion.  In this case, we'll delete referencing clusterroleclusterBindings
 // then delete the clusterrole.
-func (r *ClusterRoleReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *kapi.DeleteOptions) (string, error) {
-	clusterBindings, err := r.clusterBindingClient.ClusterRoleBindings().List(labels.Everything(), fields.Everything())
+func (r *ClusterRoleReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *kapi.DeleteOptions) error {
+	clusterBindings, err := r.clusterBindingClient.ClusterRoleBindings().List(kapi.ListOptions{})
 	if err != nil {
-		return "", err
+		return err
 	}
 	for _, clusterBinding := range clusterBindings.Items {
 		if clusterBinding.RoleRef.Name == name {
@@ -42,9 +40,9 @@ func (r *ClusterRoleReaper) Stop(namespace, name string, timeout time.Duration, 
 		}
 	}
 
-	namespacedBindings, err := r.bindingClient.RoleBindings(kapi.NamespaceNone).List(labels.Everything(), fields.Everything())
+	namespacedBindings, err := r.bindingClient.RoleBindings(kapi.NamespaceNone).List(kapi.ListOptions{})
 	if err != nil {
-		return "", err
+		return err
 	}
 	for _, namespacedBinding := range namespacedBindings.Items {
 		if namespacedBinding.RoleRef.Namespace == kapi.NamespaceNone && namespacedBinding.RoleRef.Name == name {
@@ -55,8 +53,8 @@ func (r *ClusterRoleReaper) Stop(namespace, name string, timeout time.Duration, 
 	}
 
 	if err := r.roleClient.ClusterRoles().Delete(name); err != nil && !kerrors.IsNotFound(err) {
-		return "", err
+		return err
 	}
 
-	return "", nil
+	return nil
 }

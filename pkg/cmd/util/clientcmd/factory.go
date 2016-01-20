@@ -14,10 +14,10 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -286,7 +286,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if !ok {
 				return nil, errors.New("provided options object is not a BuildLogOptions")
 			}
-			builds, err := oc.Builds(t.Namespace).List(labels.Everything(), fields.Everything())
+			builds, err := oc.Builds(t.Namespace).List(api.ListOptions{})
 			if err != nil {
 				return nil, err
 			}
@@ -340,7 +340,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 					}
 					return nil, err
 				}
-				pods, err = kc.Pods(deployment.Namespace).List(labels.SelectorFromSet(deployment.Spec.Selector), fields.Everything())
+				pods, err = kc.Pods(deployment.Namespace).List(api.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector)})
 				if err != nil {
 					return nil, err
 				}

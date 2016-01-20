@@ -9,8 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
@@ -57,17 +56,17 @@ func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T
 
 	openshiftSharedResourcesNamespace := "openshift"
 
-	if _, err := valerieOpenshiftClient.Templates(openshiftSharedResourcesNamespace).List(labels.Everything(), fields.Everything()); err != nil {
+	if _, err := valerieOpenshiftClient.Templates(openshiftSharedResourcesNamespace).List(kapi.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.Templates(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieOpenshiftClient.Templates(kapi.NamespaceDefault).List(kapi.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := valerieOpenshiftClient.ImageStreams(openshiftSharedResourcesNamespace).List(labels.Everything(), fields.Everything()); err != nil {
+	if _, err := valerieOpenshiftClient.ImageStreams(openshiftSharedResourcesNamespace).List(kapi.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageStreams(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieOpenshiftClient.ImageStreams(kapi.NamespaceDefault).List(kapi.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -96,7 +95,7 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 
 	// after the policy is deleted, we must wait for it to be cleared from the policy cache
 	err = wait.Poll(10*time.Millisecond, 10*time.Second, func() (bool, error) {
-		_, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything())
+		_, err := client.ClusterPolicies().List(kapi.ListOptions{})
 		if err == nil {
 			return false, nil
 		}
@@ -123,7 +122,7 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything()); err != nil {
+	if _, err := client.ClusterPolicies().List(kapi.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

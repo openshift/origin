@@ -11,6 +11,7 @@ import (
 
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -425,8 +426,8 @@ func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 	return cmdutil.CertificatesFromFile(options.ServingInfo.ClientCA)
 }
 
-func GetKubeletClientConfig(options MasterConfig) *kclient.KubeletConfig {
-	config := &kclient.KubeletConfig{
+func GetKubeletClientConfig(options MasterConfig) *kubeletclient.KubeletClientConfig {
+	config := &kubeletclient.KubeletClientConfig{
 		Port: options.KubeletClientInfo.Port,
 	}
 

@@ -25,6 +25,10 @@ var Strategy = sdnStrategy{kapi.Scheme}
 
 func (sdnStrategy) PrepareForUpdate(obj, old runtime.Object) {}
 
+// Canonicalize normalizes the object after validation.
+func (sdnStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // NamespaceScoped is false for sdns
 func (sdnStrategy) NamespaceScoped() bool {
 	return false

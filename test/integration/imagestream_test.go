@@ -8,8 +8,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -36,7 +34,7 @@ func TestImageStreamList(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	builds, err := clusterAdminClient.ImageStreams(testutil.Namespace()).List(labels.Everything(), fields.Everything())
+	builds, err := clusterAdminClient.ImageStreams(testutil.Namespace()).List(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -86,7 +84,7 @@ func TestImageStreamCreate(t *testing.T) {
 		t.Errorf("unexpected object: %s", util.ObjectDiff(expected, actual))
 	}
 
-	streams, err := clusterAdminClient.ImageStreams(testutil.Namespace()).List(labels.Everything(), fields.Everything())
+	streams, err := clusterAdminClient.ImageStreams(testutil.Namespace()).List(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}

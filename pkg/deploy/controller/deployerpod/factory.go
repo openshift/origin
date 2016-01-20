@@ -6,8 +6,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
@@ -25,12 +23,12 @@ type DeployerPodControllerFactory struct {
 
 // Create creates a DeployerPodController.
 func (factory *DeployerPodControllerFactory) Create() controller.RunnableController {
-	deploymentLW := &deployutil.ListWatcherImpl{
-		ListFunc: func() (runtime.Object, error) {
-			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	deploymentLW := &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(options)
 		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).Watch(options)
 		},
 	}
 	deploymentStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
@@ -41,12 +39,14 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 	// TODO: Even with the label selector, this is inefficient on the backend
 	// and we should work to consolidate namespace-spanning pod watches. For
 	// example, the build infra is also watching pods across namespaces.
-	podLW := &deployutil.ListWatcherImpl{
-		ListFunc: func() (runtime.Object, error) {
-			return factory.KubeClient.Pods(kapi.NamespaceAll).List(deployutil.AnyDeployerPodSelector(), fields.Everything())
+	podLW := &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			opts := kapi.ListOptions{LabelSelector: deployutil.AnyDeployerPodSelector()}
+			return factory.KubeClient.Pods(kapi.NamespaceAll).List(opts)
 		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return factory.KubeClient.Pods(kapi.NamespaceAll).Watch(deployutil.AnyDeployerPodSelector(), fields.Everything(), resourceVersion)
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			opts := kapi.ListOptions{LabelSelector: deployutil.AnyDeployerPodSelector(), ResourceVersion: options.ResourceVersion}
+			return factory.KubeClient.Pods(kapi.NamespaceAll).Watch(opts)
 		},
 	}
 	podQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
@@ -69,11 +69,13 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 				return factory.KubeClient.ReplicationControllers(namespace).Update(deployment)
 			},
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).List(deployutil.ConfigSelector(configName), fields.Everything())
+				opts := kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(configName)}
+				return factory.KubeClient.ReplicationControllers(namespace).List(opts)
 			},
 		},
 		deployerPodsFor: func(namespace, name string) (*kapi.PodList, error) {
-			return factory.KubeClient.Pods(namespace).List(deployutil.DeployerPodSelector(name), fields.Everything())
+			opts := kapi.ListOptions{LabelSelector: deployutil.DeployerPodSelector(name)}
+			return factory.KubeClient.Pods(namespace).List(opts)
 		},
 		deletePod: func(namespace, name string) error {
 			return factory.KubeClient.Pods(namespace).Delete(name, kapi.NewDeleteOptions(0))

@@ -185,7 +185,7 @@ type mockLimiter struct {
 	count int
 }
 
-func (l *mockLimiter) CanAccept() bool {
+func (l *mockLimiter) TryAccept() bool {
 	return true
 }
 
@@ -194,6 +194,10 @@ func (l *mockLimiter) Accept() {
 }
 
 func (l *mockLimiter) Stop() {}
+
+func (t *mockLimiter) Saturation() float64 {
+	return float64(0.0)
+}
 
 type testObj struct {
 	id    string

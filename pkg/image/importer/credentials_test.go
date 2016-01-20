@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	_ "k8s.io/kubernetes/pkg/api/v1"
 )
 
 func TestCredentialsForSecrets(t *testing.T) {

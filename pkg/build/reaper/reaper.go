@@ -1,7 +1,6 @@
 package reaper
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -30,7 +29,7 @@ type BuildConfigReaper struct {
 }
 
 // Stop deletes the build configuration and all of the associated builds.
-func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *kapi.DeleteOptions) (string, error) {
+func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *kapi.DeleteOptions) error {
 	noBcFound := false
 	noBuildFound := true
 
@@ -58,7 +57,7 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 		return err
 	})
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	// Warn the user if the BuildConfig won't get deleted after this point.
@@ -70,9 +69,9 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 	}()
 
 	// Collect builds related to the config.
-	builds, err := reaper.oc.Builds(namespace).List(buildutil.BuildConfigSelector(name), nil)
+	builds, err := reaper.oc.Builds(namespace).List(kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector(name)})
 	if err != nil {
-		return "", err
+		return err
 	}
 	errList := []error{}
 	for _, build := range builds.Items {
@@ -87,9 +86,9 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 
 	// Collect deprecated builds related to the config.
 	// TODO: Delete this block after BuildConfigLabelDeprecated is removed.
-	builds, err = reaper.oc.Builds(namespace).List(buildutil.BuildConfigSelectorDeprecated(name), nil)
+	builds, err = reaper.oc.Builds(namespace).List(kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(name)})
 	if err != nil {
-		return "", err
+		return err
 	}
 	for _, build := range builds.Items {
 		noBuildFound = false
@@ -103,20 +102,20 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 
 	// Aggregate all errors
 	if len(errList) > 0 {
-		return "", kutilerrors.NewAggregate(errList)
+		return kutilerrors.NewAggregate(errList)
 	}
 
 	// Finally we can delete the BuildConfig
 	if !noBcFound {
 		if err := reaper.oc.BuildConfigs(namespace).Delete(name); err != nil {
-			return "", err
+			return err
 		}
 	}
 	bcDeleted = true
 
 	if noBcFound && noBuildFound {
-		return "", kerrors.NewNotFound("BuildConfig", name)
+		return kerrors.NewNotFound("BuildConfig", name)
 	}
 
-	return fmt.Sprintf("%s stopped", name), nil
+	return nil
 }

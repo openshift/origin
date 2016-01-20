@@ -10,7 +10,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -195,7 +194,7 @@ func (d *ClusterRegistry) getRegistryService(r types.DiagnosticResult) *kapi.Ser
 
 func (d *ClusterRegistry) getRegistryPods(service *kapi.Service, r types.DiagnosticResult) []*kapi.Pod {
 	runningPods := []*kapi.Pod{}
-	pods, err := d.KubeClient.Pods(kapi.NamespaceDefault).List(labels.SelectorFromSet(service.Spec.Selector), fields.Everything())
+	pods, err := d.KubeClient.Pods(kapi.NamespaceDefault).List(kapi.ListOptions{LabelSelector: labels.SelectorFromSet(service.Spec.Selector)})
 	if err != nil {
 		r.Error("DClu1005", err, fmt.Sprintf("Finding pods for '%s' service failed. This should never happen. Error: (%T) %[2]v", registryName, err))
 		return runningPods

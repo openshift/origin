@@ -15,6 +15,29 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
+// Ensures that `nil` can be passed to validation functions validating top-level objects
+func TestNilPath(t *testing.T) {
+	var nilPath *field.Path = nil
+	if s := nilPath.String(); s != "" {
+		t.Errorf("Unexpected nil path: %q", s)
+	}
+
+	child := nilPath.Child("child")
+	if s := child.String(); s != "child" {
+		t.Errorf("Unexpected child path: %q", s)
+	}
+
+	key := nilPath.Key("key")
+	if s := key.String(); s != "[key]" {
+		t.Errorf("Unexpected key path: %q", s)
+	}
+
+	index := nilPath.Index(1)
+	if s := index.String(); s != "[1]" {
+		t.Errorf("Unexpected index path: %q", s)
+	}
+}
+
 func TestNameFunc(t *testing.T) {
 	for apiType, validationInfo := range Validator.typeToValidator {
 		if !validationInfo.HasObjectMeta {

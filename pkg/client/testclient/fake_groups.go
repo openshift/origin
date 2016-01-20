@@ -1,9 +1,8 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -23,8 +22,8 @@ func (c *FakeGroups) Get(name string) (*userapi.Group, error) {
 	return obj.(*userapi.Group), err
 }
 
-func (c *FakeGroups) List(label labels.Selector, field fields.Selector) (*userapi.GroupList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("groups", label, field), &userapi.GroupList{})
+func (c *FakeGroups) List(opts kapi.ListOptions) (*userapi.GroupList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("groups", opts), &userapi.GroupList{})
 	if obj == nil {
 		return nil, err
 	}

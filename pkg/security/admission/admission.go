@@ -12,8 +12,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	sc "k8s.io/kubernetes/pkg/securitycontext"
 	scc "k8s.io/kubernetes/pkg/securitycontextconstraints"
@@ -52,11 +50,11 @@ func NewConstraint(kclient client.Interface) *constraint {
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	reflector := cache.NewReflector(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return kclient.SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				return kclient.SecurityContextConstraints().List(options)
 			},
-			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return kclient.SecurityContextConstraints().Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				return kclient.SecurityContextConstraints().Watch(options)
 			},
 		},
 		&kapi.SecurityContextConstraints{},

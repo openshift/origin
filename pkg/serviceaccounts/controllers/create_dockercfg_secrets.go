@@ -15,8 +15,6 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/credentialprovider"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/secret"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
@@ -46,11 +44,11 @@ func NewDockercfgController(cl client.Interface, options DockercfgControllerOpti
 
 	_, e.serviceAccountController = framework.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return e.client.ServiceAccounts(api.NamespaceAll).List(labels.Everything(), fields.Everything())
+			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+				return e.client.ServiceAccounts(api.NamespaceAll).List(options)
 			},
-			WatchFunc: func(rv string) (watch.Interface, error) {
-				return e.client.ServiceAccounts(api.NamespaceAll).Watch(labels.Everything(), fields.Everything(), rv)
+			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				return e.client.ServiceAccounts(api.NamespaceAll).Watch(options)
 			},
 		},
 		&api.ServiceAccount{},

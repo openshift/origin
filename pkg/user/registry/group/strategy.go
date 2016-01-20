@@ -51,6 +51,10 @@ func (groupStrategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+// Canonicalize normalizes the object after validation.
+func (groupStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // ValidateUpdate is the default update validation for an end group.
 func (groupStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateGroupUpdate(obj.(*api.Group), old.(*api.Group))

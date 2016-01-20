@@ -5,8 +5,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -18,7 +17,7 @@ type BuildConfigRegistry struct {
 	sync.Mutex
 }
 
-func (r *BuildConfigRegistry) ListBuildConfigs(ctx kapi.Context, labels labels.Selector, field fields.Selector) (*api.BuildConfigList, error) {
+func (r *BuildConfigRegistry) ListBuildConfigs(ctx kapi.Context, options *unversioned.ListOptions) (*api.BuildConfigList, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.BuildConfigs, r.Err
@@ -52,6 +51,6 @@ func (r *BuildConfigRegistry) DeleteBuildConfig(ctx kapi.Context, id string) err
 	return r.Err
 }
 
-func (r *BuildConfigRegistry) WatchBuildConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *BuildConfigRegistry) WatchBuildConfigs(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
 	return nil, r.Err
 }

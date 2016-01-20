@@ -1,9 +1,8 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -24,8 +23,8 @@ func (c *FakeClusterPolicies) Get(name string) (*authorizationapi.ClusterPolicy,
 	return obj.(*authorizationapi.ClusterPolicy), err
 }
 
-func (c *FakeClusterPolicies) List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("clusterpolicies", label, field), &authorizationapi.ClusterPolicyList{})
+func (c *FakeClusterPolicies) List(opts kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("clusterpolicies", opts), &authorizationapi.ClusterPolicyList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -38,6 +37,6 @@ func (c *FakeClusterPolicies) Delete(name string) error {
 	return err
 }
 
-func (c *FakeClusterPolicies) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("clusterpolicies", label, field, resourceVersion))
+func (c *FakeClusterPolicies) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("clusterpolicies", opts))
 }

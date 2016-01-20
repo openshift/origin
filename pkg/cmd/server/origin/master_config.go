@@ -16,7 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
-	"k8s.io/kubernetes/pkg/master"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	kutilrand "k8s.io/kubernetes/pkg/util/rand"
@@ -100,7 +100,7 @@ type MasterConfig struct {
 	// to provide access to the client for things that need it.
 	EtcdClient *etcdclient.Client
 
-	KubeletClientConfig *kclient.KubeletConfig
+	KubeletClientConfig *kubeletclient.KubeletClientConfig
 
 	// ClientCAs will be used to request client certificates in connections to the API.
 	// This CertPool should contain all the CAs that will be used for client certificate verification.
@@ -355,7 +355,12 @@ func newReadOnlyCacheAndClient(etcdHelper storage.Interface) (cache policycache.
 }
 
 func newAuthorizer(policyClient policyclient.ReadOnlyPolicyClient, projectRequestDenyMessage string) authorizer.Authorizer {
-	authorizer := authorizer.NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyClient, policyClient, policyClient, policyClient), authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
+	authorizer := authorizer.NewAuthorizer(rulevalidation.NewDefaultRuleResolver(
+		rulevalidation.PolicyGetter(policyClient),
+		rulevalidation.BindingLister(policyClient),
+		rulevalidation.ClusterPolicyGetter(policyClient),
+		rulevalidation.ClusterBindingLister(policyClient),
+	), authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
 	return authorizer
 }
 

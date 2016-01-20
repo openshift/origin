@@ -6,11 +6,10 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
@@ -154,11 +153,11 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 
 	namespaceReflector := cache.NewReflector(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return ac.namespaceInterface.List(labels.Everything(), fields.Everything())
+			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				return ac.namespaceInterface.List(options)
 			},
-			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return ac.namespaceInterface.Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				return ac.namespaceInterface.Watch(options)
 			},
 		},
 		&kapi.Namespace{},
@@ -193,7 +192,7 @@ func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache
 
 // synchronizePolicies synchronizes access over each policy
 func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
-	policyList, err := ac.policyClient.ReadOnlyPolicies(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	policyList, err := ac.policyClient.ReadOnlyPolicies(kapi.NamespaceAll).List(nil)
 	if err != nil {
 		util.HandleError(err)
 		return
@@ -211,7 +210,7 @@ func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.S
 
 // synchronizePolicyBindings synchronizes access over each policy binding
 func (ac *AuthorizationCache) synchronizePolicyBindings(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
-	policyBindingList, err := ac.policyClient.ReadOnlyPolicyBindings(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	policyBindingList, err := ac.policyClient.ReadOnlyPolicyBindings(kapi.NamespaceAll).List(&unversioned.ListOptions{})
 	if err != nil {
 		util.HandleError(err)
 		return
@@ -244,7 +243,7 @@ func purgeDeletedNamespaces(namespaceSet *sets.String, userSubjectRecordStore ca
 func (ac *AuthorizationCache) invalidateCache() bool {
 	invalidateCache := false
 
-	clusterPolicyList, err := ac.policyClient.ReadOnlyClusterPolicies().List(labels.Everything(), fields.Everything())
+	clusterPolicyList, err := ac.policyClient.ReadOnlyClusterPolicies().List(nil)
 	if err != nil {
 		util.HandleError(err)
 		return invalidateCache
@@ -259,7 +258,7 @@ func (ac *AuthorizationCache) invalidateCache() bool {
 		ac.clusterPolicyResourceVersions = temporaryVersions
 	}
 
-	clusterPolicyBindingList, err := ac.policyClient.ReadOnlyClusterPolicyBindings().List(labels.Everything(), fields.Everything())
+	clusterPolicyBindingList, err := ac.policyClient.ReadOnlyClusterPolicyBindings().List(nil)
 	if err != nil {
 		util.HandleError(err)
 		return invalidateCache

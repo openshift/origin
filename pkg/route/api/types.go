@@ -3,7 +3,7 @@ package api
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 // Route encapsulates the inputs needed to connect an alias to endpoints.
@@ -43,7 +43,7 @@ type RoutePort struct {
 	// The target port on pods selected by the service this route points to.
 	// If this is a string, it will be looked up as a named port in the target
 	// endpoints port list. Required
-	TargetPort util.IntOrString
+	TargetPort intstr.IntOrString
 }
 
 // RouteStatus provides relevant info about the status of a route, including which routers

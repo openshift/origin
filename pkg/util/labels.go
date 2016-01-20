@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"reflect"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-
 	kmeta "k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 // MergeInto flags

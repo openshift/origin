@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	kuval "k8s.io/kubernetes/pkg/util/validation"
 
 	deploy "github.com/openshift/origin/pkg/deploy/api"
@@ -362,7 +362,7 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 						Name:       name,
 						Port:       p.ContainerPort,
 						Protocol:   p.Protocol,
-						TargetPort: kutil.NewIntOrStringFromInt(p.ContainerPort),
+						TargetPort: intstr.FromInt(p.ContainerPort),
 					})
 					if firstPortOnly {
 						break

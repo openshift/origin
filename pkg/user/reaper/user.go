@@ -7,9 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 )
@@ -40,21 +38,21 @@ type UserReaper struct {
 
 // Stop on a reaper is actually used for deletion.  In this case, we'll delete referencing identities, clusterBindings, and bindings,
 // then delete the user
-func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *kapi.DeleteOptions) (string, error) {
+func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *kapi.DeleteOptions) error {
 	removedSubject := kapi.ObjectReference{Kind: "User", Name: name}
 
 	if err := reapClusterBindings(removedSubject, r.clusterBindingClient); err != nil {
-		return "", err
+		return err
 	}
 
 	if err := reapNamespacedBindings(removedSubject, r.bindingClient); err != nil {
-		return "", err
+		return err
 	}
 
 	// Remove the user from sccs
-	sccs, err := r.sccClient.SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+	sccs, err := r.sccClient.SecurityContextConstraints().List(kapi.ListOptions{})
 	if err != nil {
-		return "", err
+		return err
 	}
 	for _, scc := range sccs.Items {
 		retainedUsers := []string{}
@@ -73,9 +71,9 @@ func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 	}
 
 	// Remove the user from groups
-	groups, err := r.groupClient.Groups().List(labels.Everything(), fields.Everything())
+	groups, err := r.groupClient.Groups().List(kapi.ListOptions{})
 	if err != nil {
-		return "", err
+		return err
 	}
 	for _, group := range groups.Items {
 		retainedUsers := []string{}
@@ -99,8 +97,8 @@ func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 
 	// Remove the user
 	if err := r.userClient.Users().Delete(name); err != nil && !kerrors.IsNotFound(err) {
-		return "", err
+		return err
 	}
 
-	return "", nil
+	return nil
 }

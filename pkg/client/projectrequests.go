@@ -1,9 +1,8 @@
 package client
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -16,7 +15,7 @@ type ProjectRequestsInterface interface {
 // ProjectRequestInterface exposes methods on projectRequest resources.
 type ProjectRequestInterface interface {
 	Create(p *projectapi.ProjectRequest) (*projectapi.Project, error)
-	List(label labels.Selector, field fields.Selector) (*unversioned.Status, error)
+	List(opts kapi.ListOptions) (*unversioned.Status, error)
 }
 
 type projectRequests struct {
@@ -38,8 +37,8 @@ func (c *projectRequests) Create(p *projectapi.ProjectRequest) (result *projecta
 }
 
 // List returns a status object indicating that a user can call the Create or an error indicating why not
-func (c *projectRequests) List(label labels.Selector, field fields.Selector) (result *unversioned.Status, err error) {
+func (c *projectRequests) List(opts kapi.ListOptions) (result *unversioned.Status, err error) {
 	result = &unversioned.Status{}
-	err = c.r.Get().Resource("projectRequests").LabelsSelectorParam(label).FieldsSelectorParam(field).Do().Into(result)
+	err = c.r.Get().Resource("projectRequests").VersionedParams(&opts, kapi.Scheme).Do().Into(result)
 	return result, err
 }

@@ -9,7 +9,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 	"k8s.io/kubernetes/pkg/registry/pod"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -24,12 +25,12 @@ type REST struct {
 	Getter         rest.Getter
 	Watcher        rest.Watcher
 	PodGetter      pod.ResourceGetter
-	ConnectionInfo kclient.ConnectionInfoGetter
+	ConnectionInfo kubeletclient.ConnectionInfoGetter
 	Timeout        time.Duration
 }
 
 type podGetter struct {
-	podsNamespacer kclient.PodsNamespacer
+	podsNamespacer unversioned.PodsNamespacer
 }
 
 func (g *podGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
@@ -45,7 +46,7 @@ const defaultTimeout time.Duration = 10 * time.Second
 // NewREST creates a new REST for BuildLog
 // Takes build registry and pod client to get necessary attributes to assemble
 // URL to which the request shall be redirected in order to get build logs.
-func NewREST(getter rest.Getter, watcher rest.Watcher, pn kclient.PodsNamespacer, connectionInfo kclient.ConnectionInfoGetter) *REST {
+func NewREST(getter rest.Getter, watcher rest.Watcher, pn unversioned.PodsNamespacer, connectionInfo kubeletclient.ConnectionInfoGetter) *REST {
 	return &REST{
 		Getter:         getter,
 		Watcher:        watcher,

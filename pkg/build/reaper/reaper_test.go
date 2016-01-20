@@ -118,8 +118,8 @@ func TestStop(t *testing.T) {
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("buildconfigs", "default", "config"),
 				ktestclient.NewUpdateAction("buildconfigs", "default", makeBuildConfig(0, true)),
-				ktestclient.NewListAction("builds", "default", buildutil.BuildConfigSelector("config"), nil),
-				ktestclient.NewListAction("builds", "default", buildutil.BuildConfigSelectorDeprecated("config"), nil),
+				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector("config")}),
+				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated("config")}),
 				ktestclient.NewDeleteAction("buildconfigs", "default", "config"),
 			},
 			err: false,
@@ -129,10 +129,10 @@ func TestStop(t *testing.T) {
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("buildconfigs", "default", "config"),
 				ktestclient.NewUpdateAction("buildconfigs", "default", makeBuildConfig(4, true)),
-				ktestclient.NewListAction("builds", "default", buildutil.BuildConfigSelector("config"), nil),
+				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector("config")}),
 				ktestclient.NewDeleteAction("builds", "default", "build-1"),
 				ktestclient.NewDeleteAction("builds", "default", "build-3"),
-				ktestclient.NewListAction("builds", "default", buildutil.BuildConfigSelectorDeprecated("config"), nil),
+				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated("config")}),
 				ktestclient.NewDeleteAction("builds", "default", "build-2"),
 				ktestclient.NewDeleteAction("builds", "default", "build-4"),
 				ktestclient.NewDeleteAction("buildconfigs", "default", "config"),
@@ -143,9 +143,9 @@ func TestStop(t *testing.T) {
 			oc: newBuildListFake(makeBuildList(2)),
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("buildconfigs", "default", "config"),
-				ktestclient.NewListAction("builds", "default", buildutil.BuildConfigSelector("config"), nil),
+				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector("config")}),
 				ktestclient.NewDeleteAction("builds", "default", "build-1"),
-				ktestclient.NewListAction("builds", "default", buildutil.BuildConfigSelectorDeprecated("config"), nil),
+				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated("config")}),
 				ktestclient.NewDeleteAction("builds", "default", "build-2"),
 			},
 			err: false,
@@ -154,8 +154,8 @@ func TestStop(t *testing.T) {
 			oc: testclient.NewSimpleFake(notFound()),
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("buildconfigs", "default", "config"),
-				ktestclient.NewListAction("builds", "default", buildutil.BuildConfigSelector("config"), nil),
-				ktestclient.NewListAction("builds", "default", buildutil.BuildConfigSelectorDeprecated("config"), nil),
+				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector("config")}),
+				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated("config")}),
 			},
 			err: true,
 		},
@@ -164,8 +164,8 @@ func TestStop(t *testing.T) {
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("buildconfigs", "default", "config"),
 				ktestclient.NewUpdateAction("buildconfigs", "default", makeBuildConfig(0, true)),
-				ktestclient.NewListAction("builds", "default", buildutil.BuildConfigSelector("config"), nil),
-				ktestclient.NewListAction("builds", "default", buildutil.BuildConfigSelectorDeprecated("config"), nil),
+				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector("config")}),
+				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated("config")}),
 				ktestclient.NewDeleteAction("buildconfigs", "default", "config"),
 			},
 			err: false,
@@ -174,7 +174,7 @@ func TestStop(t *testing.T) {
 
 	for testName, test := range tests {
 		reaper := &BuildConfigReaper{oc: test.oc, pollInterval: time.Millisecond, timeout: time.Millisecond}
-		_, err := reaper.Stop("default", "config", 1*time.Second, nil)
+		err := reaper.Stop("default", "config", 1*time.Second, nil)
 
 		if !test.err && err != nil {
 			t.Errorf("%s: unexpected error: %v", testName, err)

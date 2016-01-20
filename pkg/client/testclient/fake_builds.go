@@ -1,9 +1,8 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -25,8 +24,8 @@ func (c *FakeBuilds) Get(name string) (*buildapi.Build, error) {
 	return obj.(*buildapi.Build), err
 }
 
-func (c *FakeBuilds) List(label labels.Selector, field fields.Selector) (*buildapi.BuildList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewListAction("builds", c.Namespace, label, field), &buildapi.BuildList{})
+func (c *FakeBuilds) List(opts kapi.ListOptions) (*buildapi.BuildList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("builds", c.Namespace, opts), &buildapi.BuildList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -57,8 +56,8 @@ func (c *FakeBuilds) Delete(name string) error {
 	return err
 }
 
-func (c *FakeBuilds) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("builds", c.Namespace, label, field, resourceVersion))
+func (c *FakeBuilds) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("builds", c.Namespace, opts))
 }
 
 func (c *FakeBuilds) Clone(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {

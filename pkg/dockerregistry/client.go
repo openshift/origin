@@ -15,7 +15,7 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/transport"
 	kutil "k8s.io/kubernetes/pkg/util"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -163,9 +163,9 @@ func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enable
 		isV2 = &v2
 	}
 
-	var transport http.RoundTripper
+	var rt http.RoundTripper
 	if allowInsecure {
-		transport = kutil.SetTransportDefaults(&http.Transport{
+		rt = kutil.SetTransportDefaults(&http.Transport{
 			Dial: (&net.Dialer{
 				Timeout:   dialTimeout,
 				KeepAlive: 30 * time.Second,
@@ -173,7 +173,7 @@ func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enable
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		})
 	} else {
-		transport = kutil.SetTransportDefaults(&http.Transport{
+		rt = kutil.SetTransportDefaults(&http.Transport{
 			Dial: (&net.Dialer{
 				Timeout:   dialTimeout,
 				KeepAlive: 30 * time.Second,
@@ -181,19 +181,10 @@ func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enable
 		})
 	}
 
-	switch {
-	case bool(glog.V(9)):
-		transport = kclient.NewDebuggingRoundTripper(transport, kclient.CurlCommand, kclient.URLTiming, kclient.ResponseHeaders)
-	case bool(glog.V(8)):
-		transport = kclient.NewDebuggingRoundTripper(transport, kclient.JustURL, kclient.RequestHeaders, kclient.ResponseStatus, kclient.ResponseHeaders)
-	case bool(glog.V(7)):
-		transport = kclient.NewDebuggingRoundTripper(transport, kclient.JustURL, kclient.RequestHeaders, kclient.ResponseStatus)
-	case bool(glog.V(6)):
-		transport = kclient.NewDebuggingRoundTripper(transport, kclient.URLTiming)
-	}
+	rt = transport.DebugWrappers(rt)
 
 	jar, _ := cookiejar.New(nil)
-	client := &http.Client{Jar: jar, Transport: transport}
+	client := &http.Client{Jar: jar, Transport: rt}
 	return &connection{
 		url:    url,
 		client: client,

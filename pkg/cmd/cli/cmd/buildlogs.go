@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/api/errors"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -41,7 +41,7 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunBuildLogs(fullName, f, out, cmd, opts, args)
 
-			if err, ok := err.(kclient.APIStatus); ok {
+			if err, ok := err.(errors.APIStatus); ok {
 				if msg := err.Status().Message; strings.HasSuffix(msg, buildutil.NoBuildLogsMessage) {
 					fmt.Fprintf(out, msg)
 					os.Exit(1)

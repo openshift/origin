@@ -19,10 +19,12 @@ import (
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -59,7 +61,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
-	kubeletClient, err := kclient.NewKubeletClient(kubeletClientConfig)
+	kubeletClient, err := kubeletclient.NewStaticKubeletClient(kubeletClientConfig)
 	if err != nil {
 		return nil, fmt.Errorf("unable to configure Kubelet client: %v", err)
 	}
@@ -260,8 +262,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			return nil, fmt.Errorf("invalid DNS port: %v", err)
 		}
 		m.ExtraServicePorts = append(m.ExtraServicePorts,
-			kapi.ServicePort{Name: "dns", Port: 53, Protocol: kapi.ProtocolUDP, TargetPort: util.NewIntOrStringFromInt(dnsPort)},
-			kapi.ServicePort{Name: "dns-tcp", Port: 53, Protocol: kapi.ProtocolTCP, TargetPort: util.NewIntOrStringFromInt(dnsPort)},
+			kapi.ServicePort{Name: "dns", Port: 53, Protocol: kapi.ProtocolUDP, TargetPort: intstr.FromInt(dnsPort)},
+			kapi.ServicePort{Name: "dns-tcp", Port: 53, Protocol: kapi.ProtocolTCP, TargetPort: intstr.FromInt(dnsPort)},
 		)
 		m.ExtraEndpointPorts = append(m.ExtraEndpointPorts,
 			kapi.EndpointPort{Name: "dns", Port: dnsPort, Protocol: kapi.ProtocolUDP},

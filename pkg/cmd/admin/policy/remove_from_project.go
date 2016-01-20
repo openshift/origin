@@ -8,9 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -97,7 +95,7 @@ func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, args []string,
 }
 
 func (o *RemoveFromProjectOptions) Run() error {
-	bindingList, err := o.Client.PolicyBindings(o.BindingNamespace).List(labels.Everything(), fields.Everything())
+	bindingList, err := o.Client.PolicyBindings(o.BindingNamespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}

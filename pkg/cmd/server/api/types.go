@@ -1,8 +1,6 @@
 package api
 
 import (
-	"reflect"
-
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -48,7 +46,7 @@ var (
 		APIGroupKube:       {"v1"},
 		APIGroupExtensions: {"v1beta1"},
 	}
-	KnownKubeAPIGroups = sets.KeySet(reflect.ValueOf(KubeAPIGroupsToAllowedVersions))
+	KnownKubeAPIGroups = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
 
 	// FeatureAliases maps deprecated names of feature flag to their canonical
 	// names. Aliases must be lower-cased for O(1) lookup.

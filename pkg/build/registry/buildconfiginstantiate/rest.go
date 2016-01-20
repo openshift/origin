@@ -12,8 +12,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/registry/pod"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
@@ -49,7 +50,7 @@ func (s *InstantiateREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.
 	return s.generator.Instantiate(ctx, obj.(*buildapi.BuildRequest))
 }
 
-func NewBinaryStorage(generator *generator.BuildGenerator, watcher rest.Watcher, podClient kclient.PodsNamespacer, info kclient.ConnectionInfoGetter) *BinaryInstantiateREST {
+func NewBinaryStorage(generator *generator.BuildGenerator, watcher rest.Watcher, podClient unversioned.PodsNamespacer, info kubeletclient.ConnectionInfoGetter) *BinaryInstantiateREST {
 	return &BinaryInstantiateREST{
 		Generator:      generator,
 		Watcher:        watcher,
@@ -63,7 +64,7 @@ type BinaryInstantiateREST struct {
 	Generator      *generator.BuildGenerator
 	Watcher        rest.Watcher
 	PodGetter      pod.ResourceGetter
-	ConnectionInfo kclient.ConnectionInfoGetter
+	ConnectionInfo kubeletclient.ConnectionInfoGetter
 	Timeout        time.Duration
 }
 
@@ -194,7 +195,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 }
 
 type podGetter struct {
-	podsNamespacer kclient.PodsNamespacer
+	podsNamespacer unversioned.PodsNamespacer
 }
 
 func (g *podGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {

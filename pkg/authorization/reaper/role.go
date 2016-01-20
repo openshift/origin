@@ -6,9 +6,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 )
@@ -27,10 +25,10 @@ type RoleReaper struct {
 
 // Stop on a reaper is actually used for deletion.  In this case, we'll delete referencing rolebindings
 // then delete the role.
-func (r *RoleReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *kapi.DeleteOptions) (string, error) {
-	bindings, err := r.bindingClient.RoleBindings(namespace).List(labels.Everything(), fields.Everything())
+func (r *RoleReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *kapi.DeleteOptions) error {
+	bindings, err := r.bindingClient.RoleBindings(namespace).List(kapi.ListOptions{})
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	for _, binding := range bindings.Items {
@@ -42,8 +40,8 @@ func (r *RoleReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 	}
 
 	if err := r.roleClient.Roles(namespace).Delete(name); err != nil && !kerrors.IsNotFound(err) {
-		return "", err
+		return err
 	}
 
-	return "", nil
+	return nil
 }

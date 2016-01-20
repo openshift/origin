@@ -31,6 +31,10 @@ func (strategy) GenerateName(base string) string {
 func (strategy) PrepareForCreate(obj runtime.Object) {
 }
 
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
+}
+
 // Validate validates a new role.
 func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	return buildvalidation.ValidateBuildRequest(obj.(*buildapi.BuildRequest))
@@ -56,6 +60,10 @@ func (binaryStrategy) GenerateName(base string) string {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (binaryStrategy) PrepareForCreate(obj runtime.Object) {
+}
+
+// Canonicalize normalizes the object after validation.
+func (binaryStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new role.

@@ -213,8 +213,8 @@ func (c *MasterConfig) RunScheduler() {
 
 // RunResourceQuotaManager starts the resource quota manager
 func (c *MasterConfig) RunResourceQuotaManager() {
-	resourceQuotaManager := resourcequotacontroller.NewResourceQuotaController(c.KubeClient)
-	resourceQuotaManager.Run(c.ControllerManager.ResourceQuotaSyncPeriod)
+	resourceQuotaManager := resourcequotacontroller.NewResourceQuotaController(c.KubeClient, controller.StaticResyncPeriodFunc(c.ControllerManager.ResourceQuotaSyncPeriod))
+	go resourceQuotaManager.Run(c.ControllerManager.ConcurrentResourceQuotaSyncs, util.NeverStop)
 }
 
 // RunNodeController starts the node controller

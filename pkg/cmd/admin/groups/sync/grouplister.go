@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"k8s.io/kubernetes/pkg/fields"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -41,7 +41,7 @@ func (l *allOpenShiftGroupLister) ListGroups() ([]string, error) {
 		return nil, err
 	}
 	hostSelector := labels.Set(map[string]string{ldaputil.LDAPHostLabel: host}).AsSelector()
-	allGroups, err := l.client.List(hostSelector, fields.Everything())
+	allGroups, err := l.client.List(kapi.ListOptions{LabelSelector: hostSelector})
 	if err != nil {
 		return nil, err
 	}

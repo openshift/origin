@@ -10,6 +10,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -97,8 +98,8 @@ func TestNodeAuth(t *testing.T) {
 	}
 	nodeTLS := configapi.UseTLS(nodeConfig.ServingInfo)
 
-	kubeletClientConfig := func(config *kclient.Config) *kclient.KubeletConfig {
-		return &kclient.KubeletConfig{
+	kubeletClientConfig := func(config *kclient.Config) *kubeletclient.KubeletClientConfig {
+		return &kubeletclient.KubeletClientConfig{
 			Port:            uint(nodePortInt),
 			EnableHttps:     nodeTLS,
 			TLSClientConfig: config.TLSClientConfig,
@@ -107,7 +108,7 @@ func TestNodeAuth(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		KubeletClientConfig *kclient.KubeletConfig
+		KubeletClientConfig *kubeletclient.KubeletClientConfig
 		Forbidden           bool
 		NodeViewer          bool
 		NodeAdmin           bool
@@ -204,7 +205,7 @@ func TestNodeAuth(t *testing.T) {
 			{"GET", "/attach/mynamespace/mypod/mycontainer", adminResultMissing},
 		}
 
-		rt, err := kclient.MakeTransport(tc.KubeletClientConfig)
+		rt, err := kubeletclient.MakeTransport(tc.KubeletClientConfig)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", k, err)
 			continue

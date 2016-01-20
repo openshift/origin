@@ -184,8 +184,8 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 }
 
 func (r *ScaleREST) replicasForDeploymentConfig(namespace, configName string) (int, error) {
-	selector := util.ConfigSelector(configName)
-	rcList, err := r.rcNamespacer.ReplicationControllers(namespace).List(selector, fields.Everything())
+	options := kapi.ListOptions{LabelSelector: util.ConfigSelector(configName)}
+	rcList, err := r.rcNamespacer.ReplicationControllers(namespace).List(options)
 	if err != nil {
 		return 0, err
 	}

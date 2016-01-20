@@ -4,8 +4,7 @@ import (
 	"sync"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -20,7 +19,7 @@ type BuildRegistry struct {
 	sync.Mutex
 }
 
-func (r *BuildRegistry) ListBuilds(ctx kapi.Context, labels labels.Selector, field fields.Selector) (*buildapi.BuildList, error) {
+func (r *BuildRegistry) ListBuilds(ctx kapi.Context, options *unversioned.ListOptions) (*buildapi.BuildList, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.Builds, r.Err
@@ -54,7 +53,7 @@ func (r *BuildRegistry) DeleteBuild(ctx kapi.Context, id string) error {
 	return r.Err
 }
 
-func (r *BuildRegistry) WatchBuilds(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *BuildRegistry) WatchBuilds(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
 	return nil, r.Err
 }
 

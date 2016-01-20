@@ -53,7 +53,8 @@ var MissingPrinterCoverageExceptions = []reflect.Type{
 }
 
 func TestPrinterCoverage(t *testing.T) {
-	printer := NewHumanReadablePrinter(false, false, false, false, []string{})
+	// noHeaders, withNamespace, wide bool, showAll bool, absoluteTimestamps bool, columnLabels []string
+	printer := NewHumanReadablePrinter(false, false, false, false, false, []string{})
 
 main:
 	for _, apiType := range kapi.Scheme.KnownTypes("") {
@@ -111,7 +112,7 @@ func TestPrintImageStream(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if err := printImageStream(test.stream, buf, test.withNamespace, false, false, nil); err != test.expectedErr {
+		if err := printImageStream(test.stream, buf, kctl.PrintOptions{}); err != test.expectedErr {
 			t.Errorf("error mismatch: expected %v, got %v", test.expectedErr, err)
 			continue
 		}

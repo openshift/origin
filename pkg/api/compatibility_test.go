@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
@@ -226,6 +227,30 @@ func testCompatibility(
 			t.Errorf("Unexpected error for %s: %v", k, err)
 		} else if !reflect.DeepEqual(expectedValue, actualValue) {
 			t.Errorf("Expected %v, got %v", expectedValue, actualValue)
+		}
+	}
+}
+
+func TestAllowedGrouplessVersion(t *testing.T) {
+	versions := map[string]unversioned.GroupVersion{
+		"v1":      {Group: "", Version: "v1"},
+		"v1beta3": {Group: "", Version: "v1beta3"},
+		"1.0":     {Group: "", Version: "1.0"},
+		"pre012":  {Group: "", Version: "pre012"},
+	}
+	for apiVersion, expectedGroupVersion := range versions {
+		groupVersion, err := unversioned.ParseGroupVersion(apiVersion)
+		if err != nil {
+			t.Errorf("%s: unexpected error parsing: %v", apiVersion, err)
+			continue
+		}
+		if groupVersion != expectedGroupVersion {
+			t.Errorf("%s: expected %#v, got %#v", apiVersion, expectedGroupVersion, groupVersion)
+			continue
+		}
+		if groupVersion.String() != apiVersion {
+			t.Errorf("%s: expected GroupVersion.String() to be %q, got %q", apiVersion, apiVersion, groupVersion.String())
+			continue
 		}
 	}
 }

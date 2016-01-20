@@ -6,7 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	"github.com/openshift/origin/pkg/route/api"
 )
@@ -76,7 +76,7 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 	portString := params["target-port"]
 	if len(portString) > 0 {
 		route.Spec.Port = &api.RoutePort{
-			TargetPort: util.NewIntOrStringFromString(portString),
+			TargetPort: intstr.FromString(portString),
 		}
 	}
 

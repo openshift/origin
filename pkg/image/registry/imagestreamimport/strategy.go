@@ -24,6 +24,9 @@ func (s *strategy) GenerateName(string) string {
 	return ""
 }
 
+func (s *strategy) Canonicalize(runtime.Object) {
+}
+
 func (s *strategy) PrepareForCreate(obj runtime.Object) {
 	newIST := obj.(*api.ImageStreamImport)
 	newIST.Status = api.ImageStreamImportStatus{}

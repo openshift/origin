@@ -39,7 +39,7 @@ func (r *REST) Get(ctx kapi.Context, _ string, options runtime.Object) (runtime.
 	if !ok {
 		ns = kapi.NamespaceAll
 	}
-	secrets, err := r.secrets.Secrets(ns).List(listOptions.LabelSelector, listOptions.FieldSelector)
+	secrets, err := r.secrets.Secrets(ns).List(*listOptions)
 	if err != nil {
 		return nil, err
 	}

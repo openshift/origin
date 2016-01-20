@@ -42,17 +42,17 @@ func NewSimpleFake(objects ...runtime.Object) *Fake {
 
 // AddReactor appends a reactor to the end of the chain
 func (c *Fake) AddReactor(verb, resource string, reaction ktestclient.ReactionFunc) {
-	c.ReactionChain = append(c.ReactionChain, &ktestclient.SimpleReactor{verb, resource, reaction})
+	c.ReactionChain = append(c.ReactionChain, &ktestclient.SimpleReactor{Verb: verb, Resource: resource, Reaction: reaction})
 }
 
 // PrependReactor adds a reactor to the beginning of the chain
 func (c *Fake) PrependReactor(verb, resource string, reaction ktestclient.ReactionFunc) {
-	c.ReactionChain = append([]ktestclient.Reactor{&ktestclient.SimpleReactor{verb, resource, reaction}}, c.ReactionChain...)
+	c.ReactionChain = append([]ktestclient.Reactor{&ktestclient.SimpleReactor{Verb: verb, Resource: resource, Reaction: reaction}}, c.ReactionChain...)
 }
 
 // AddWatchReactor appends a reactor to the end of the chain
 func (c *Fake) AddWatchReactor(resource string, reaction ktestclient.WatchReactionFunc) {
-	c.WatchReactionChain = append(c.WatchReactionChain, &ktestclient.SimpleWatchReactor{resource, reaction})
+	c.WatchReactionChain = append(c.WatchReactionChain, &ktestclient.SimpleWatchReactor{Resource: resource, Reaction: reaction})
 }
 
 // Invokes records the provided Action and then invokes the ReactFn (if provided).

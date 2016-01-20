@@ -37,6 +37,10 @@ func (sdnStrategy) GenerateName(base string) string {
 func (sdnStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
+// Canonicalize normalizes the object after validation.
+func (sdnStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // Validate validates a new sdn
 func (sdnStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateClusterNetwork(obj.(*api.ClusterNetwork))

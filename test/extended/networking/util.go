@@ -8,8 +8,6 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/test/e2e"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -129,7 +127,7 @@ func filterNodes(nodeList *api.NodeList, fn func(node api.Node) bool) {
 }
 
 func getMultipleNodes(f *e2e.Framework) (nodes *api.NodeList) {
-	nodes, err := f.Client.Nodes().List(labels.Everything(), fields.Everything())
+	nodes, err := f.Client.Nodes().List(api.ListOptions{})
 	if err != nil {
 		e2e.Failf("Failed to list nodes: %v", err)
 	}

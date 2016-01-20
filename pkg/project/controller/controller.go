@@ -4,8 +4,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	projectutil "github.com/openshift/origin/pkg/project/util"
@@ -99,7 +97,7 @@ func deleteAllContent(client osclient.Interface, namespace string) (err error) {
 }
 
 func deleteTemplates(client osclient.Interface, ns string) error {
-	items, err := client.Templates(ns).List(labels.Everything(), fields.Everything())
+	items, err := client.Templates(ns).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -113,7 +111,7 @@ func deleteTemplates(client osclient.Interface, ns string) error {
 }
 
 func deleteRoutes(client osclient.Interface, ns string) error {
-	items, err := client.Routes(ns).List(labels.Everything(), fields.Everything())
+	items, err := client.Routes(ns).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -127,7 +125,7 @@ func deleteRoutes(client osclient.Interface, ns string) error {
 }
 
 func deleteRoles(client osclient.Interface, ns string) error {
-	items, err := client.Roles(ns).List(labels.Everything(), fields.Everything())
+	items, err := client.Roles(ns).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -141,7 +139,7 @@ func deleteRoles(client osclient.Interface, ns string) error {
 }
 
 func deleteRoleBindings(client osclient.Interface, ns string) error {
-	items, err := client.RoleBindings(ns).List(labels.Everything(), fields.Everything())
+	items, err := client.RoleBindings(ns).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -155,7 +153,7 @@ func deleteRoleBindings(client osclient.Interface, ns string) error {
 }
 
 func deletePolicyBindings(client osclient.Interface, ns string) error {
-	items, err := client.PolicyBindings(ns).List(labels.Everything(), fields.Everything())
+	items, err := client.PolicyBindings(ns).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -169,7 +167,7 @@ func deletePolicyBindings(client osclient.Interface, ns string) error {
 }
 
 func deletePolicies(client osclient.Interface, ns string) error {
-	items, err := client.Policies(ns).List(labels.Everything(), fields.Everything())
+	items, err := client.Policies(ns).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -183,7 +181,7 @@ func deletePolicies(client osclient.Interface, ns string) error {
 }
 
 func deleteImageStreams(client osclient.Interface, ns string) error {
-	items, err := client.ImageStreams(ns).List(labels.Everything(), fields.Everything())
+	items, err := client.ImageStreams(ns).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -197,7 +195,7 @@ func deleteImageStreams(client osclient.Interface, ns string) error {
 }
 
 func deleteDeploymentConfigs(client osclient.Interface, ns string) error {
-	items, err := client.DeploymentConfigs(ns).List(labels.Everything(), fields.Everything())
+	items, err := client.DeploymentConfigs(ns).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -211,7 +209,7 @@ func deleteDeploymentConfigs(client osclient.Interface, ns string) error {
 }
 
 func deleteBuilds(client osclient.Interface, ns string) error {
-	items, err := client.Builds(ns).List(labels.Everything(), fields.Everything())
+	items, err := client.Builds(ns).List(kapi.ListOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -228,7 +226,7 @@ func deleteBuilds(client osclient.Interface, ns string) error {
 }
 
 func deleteBuildConfigs(client osclient.Interface, ns string) error {
-	items, err := client.BuildConfigs(ns).List(labels.Everything(), fields.Everything())
+	items, err := client.BuildConfigs(ns).List(kapi.ListOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil

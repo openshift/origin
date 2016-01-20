@@ -9,7 +9,8 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"k8s.io/kubernetes/pkg/fields"
+
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/labels"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -40,7 +41,7 @@ var _ = g.Describe("cli: parallel: oc rsync", func() {
 
 		g.By("Getting the jenkins pod name")
 		selector, _ := labels.Parse("name=jenkins")
-		pods, err := oc.KubeREST().Pods(oc.Namespace()).List(selector, fields.Everything())
+		pods, err := oc.KubeREST().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: selector})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(pods.Items)).ToNot(o.BeZero())
 		podName = pods.Items[0].Name

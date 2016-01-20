@@ -51,6 +51,10 @@ func (strategy) PrepareForUpdate(obj, old runtime.Object) {
 	_ = obj.(*authorizationapi.ClusterPolicy)
 }
 
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
+}
+
 // Validate validates a new policy.
 func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateClusterPolicy(obj.(*authorizationapi.ClusterPolicy))

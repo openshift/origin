@@ -7,8 +7,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
@@ -32,12 +30,12 @@ type DeploymentConfigChangeControllerFactory struct {
 
 // Create creates a DeploymentConfigChangeController.
 func (factory *DeploymentConfigChangeControllerFactory) Create() controller.RunnableController {
-	deploymentConfigLW := &deployutil.ListWatcherImpl{
-		ListFunc: func() (runtime.Object, error) {
-			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	deploymentConfigLW := &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(options)
 		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).Watch(options)
 		},
 	}
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)

@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	osapi "github.com/openshift/origin/pkg/api"
@@ -234,16 +235,6 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		func(j *deploy.DeploymentConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.Spec.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}
-			if forVersion == "v1beta3" {
-				// v1beta3 does not contain the PodSecurityContext type.  For this API version, only fuzz
-				// the host namespace fields.  The fields set to nil here are the other fields of the
-				// PodSecurityContext that will not roundtrip correctly from internal->v1beta3->internal.
-				j.Spec.Template.Spec.SecurityContext.SELinuxOptions = nil
-				j.Spec.Template.Spec.SecurityContext.RunAsUser = nil
-				j.Spec.Template.Spec.SecurityContext.RunAsNonRoot = nil
-				j.Spec.Template.Spec.SecurityContext.SupplementalGroups = nil
-				j.Spec.Template.Spec.SecurityContext.FSGroup = nil
-			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
@@ -282,11 +273,11 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 					}
 				}
 				if c.RandBool() {
-					params.MaxUnavailable = util.NewIntOrStringFromInt(int(c.RandUint64()))
-					params.MaxSurge = util.NewIntOrStringFromInt(int(c.RandUint64()))
+					params.MaxUnavailable = intstr.FromInt(int(c.RandUint64()))
+					params.MaxSurge = intstr.FromInt(int(c.RandUint64()))
 				} else {
-					params.MaxSurge = util.NewIntOrStringFromString(fmt.Sprintf("%d%%", c.RandUint64()))
-					params.MaxUnavailable = util.NewIntOrStringFromString(fmt.Sprintf("%d%%", c.RandUint64()))
+					params.MaxSurge = intstr.FromString(fmt.Sprintf("%d%%", c.RandUint64()))
+					params.MaxUnavailable = intstr.FromString(fmt.Sprintf("%d%%", c.RandUint64()))
 				}
 				j.RollingParams = params
 			default:
@@ -307,6 +298,56 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			specs := []string{"a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
 			j.From.Kind = "DockerImage"
 			j.From.Name = specs[c.Intn(len(specs))]
+		},
+		func(j *api.PodSecurityContext, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if forVersion == "v1beta3" {
+				// v1beta3 does not contain the PodSecurityContext type.  For this API version, only fuzz
+				// the host namespace fields.  The fields set to nil here are the other fields of the
+				// PodSecurityContext that will not roundtrip correctly from internal->v1beta3->internal.
+				j.SELinuxOptions = nil
+				j.RunAsUser = nil
+				j.RunAsNonRoot = nil
+				j.SupplementalGroups = nil
+				j.FSGroup = nil
+			}
+		},
+		func(j *api.GitRepoVolumeSource, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if forVersion == "v1beta3" {
+				// these fields are set to their empty state when testing v1beta3
+				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
+				j.Directory = ""
+			}
+		},
+		func(j *api.ISCSIVolumeSource, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if forVersion == "v1beta3" {
+				// these fields are set to their empty state when testing v1beta3
+				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
+				j.ISCSIInterface = ""
+			} else if j.ISCSIInterface == "" {
+				// otherwise an empty value defaults to "default"
+				j.ISCSIInterface = "default"
+			}
+		},
+		func(j *api.Event, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if forVersion == "v1beta3" {
+				// these fields are set to their empty state when testing v1beta3
+				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
+				j.Type = ""
+			}
+		},
+		func(j *api.Probe, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if forVersion == "v1beta3" {
+				// these fields are set to their empty state when testing v1beta3
+				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
+				j.PeriodSeconds = 0
+				j.SuccessThreshold = 0
+				j.FailureThreshold = 0
+			}
 		},
 		func(j *runtime.EmbeddedObject, c fuzz.Continue) {
 			// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.

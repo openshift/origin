@@ -19,8 +19,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/test/e2e"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -98,7 +96,7 @@ func ensureKubeE2EPrivilegedSA() {
 		if err != nil {
 			FatalErr(err)
 		}
-		namespaces, err := c.Namespaces().List(labels.Everything(), fields.Everything())
+		namespaces, err := c.Namespaces().List(kapi.ListOptions{})
 		if err != nil {
 			FatalErr(err)
 		}

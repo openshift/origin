@@ -11,8 +11,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -93,7 +91,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
@@ -190,7 +188,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
@@ -244,7 +242,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := osClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	watch, err := osClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}

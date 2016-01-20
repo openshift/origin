@@ -8,8 +8,8 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -145,7 +145,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 // TestCreatesAllowedDuringNamespaceDeletion checks to make sure that the resources in the whitelist are allowed
 func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 	config := &origin.MasterConfig{
-		KubeletClientConfig: &kclient.KubeletConfig{},
+		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
 		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, ""),
 	}
 	storageMap := config.GetRestStorage()

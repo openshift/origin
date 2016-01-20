@@ -3,10 +3,8 @@ package client
 import (
 	"errors"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -21,12 +19,12 @@ type ImageStreamsNamespacer interface {
 
 // ImageStreamInterface exposes methods on ImageStream resources.
 type ImageStreamInterface interface {
-	List(label labels.Selector, field fields.Selector) (*imageapi.ImageStreamList, error)
+	List(opts kapi.ListOptions) (*imageapi.ImageStreamList, error)
 	Get(name string) (*imageapi.ImageStream, error)
 	Create(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	Update(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	Delete(name string) error
-	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(opts kapi.ListOptions) (watch.Interface, error)
 	UpdateStatus(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	Import(isi *imageapi.ImageStreamImport) (*imageapi.ImageStreamImport, error)
 }
@@ -51,13 +49,12 @@ func newImageStreams(c *Client, namespace string) *imageStreams {
 }
 
 // List returns a list of image streams that match the label and field selectors.
-func (c *imageStreams) List(label labels.Selector, field fields.Selector) (result *imageapi.ImageStreamList, err error) {
+func (c *imageStreams) List(opts kapi.ListOptions) (result *imageapi.ImageStreamList, err error) {
 	result = &imageapi.ImageStreamList{}
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("imageStreams").
-		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		VersionedParams(&opts, kapi.Scheme).
 		Do().
 		Into(result)
 	return
@@ -98,14 +95,12 @@ func (c *imageStreams) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested image streams.
-func (c *imageStreams) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *imageStreams) Watch(opts kapi.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).
 		Resource("imageStreams").
-		Param("resourceVersion", resourceVersion).
-		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		VersionedParams(&opts, kapi.Scheme).
 		Watch()
 }
 
@@ -132,7 +127,7 @@ func transformUnsupported(err error) error {
 		return nil
 	}
 	if apierrs.IsNotFound(err) {
-		status, ok := err.(kclient.APIStatus)
+		status, ok := err.(apierrs.APIStatus)
 		if !ok {
 			return ErrImageStreamImportUnsupported
 		}

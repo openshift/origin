@@ -41,6 +41,10 @@ func (strategy) ValidateUpdate(ctx kapi.Context, obj runtime.Object, old runtime
 	return nil
 }
 
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
+}
+
 // AllowCreateOnUpdate is false for OAuth objects
 func (strategy) AllowCreateOnUpdate() bool {
 	return false

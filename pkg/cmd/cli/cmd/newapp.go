@@ -329,7 +329,7 @@ func followInstallation(f *clientcmd.Factory, input string, pod *kapi.Pod, kclie
 		LogsForObject: f.LogsForObject,
 		Out:           out,
 	}
-	_, logErr := opts.RunLog()
+	_, logErr := opts.RunLogs()
 
 	// status of the pod may take tens of seconds to propagate
 	if err := wait.PollImmediate(500*time.Millisecond, 30*time.Second, installationComplete(podClient, pod.Name, out)); err != nil {

@@ -56,7 +56,7 @@ func (l *ListPodsOptions) runListPods(node *kapi.Node, printer kubectl.ResourceP
 	fieldSelector := fields.Set{GetPodHostFieldLabel(node.TypeMeta.APIVersion): node.ObjectMeta.Name}.AsSelector()
 
 	// Filter all pods that satisfies pod label selector and belongs to the given node
-	pods, err := l.Options.Kclient.Pods(kapi.NamespaceAll).List(labelSelector, fieldSelector)
+	pods, err := l.Options.Kclient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
 	if err != nil {
 		return err
 	}

@@ -7,6 +7,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -54,7 +56,7 @@ var _ = g.Describe("images: s2i: perl", func() {
 			RunInPodContainer(oc, dcLabel, modifyCommand)
 			assertPageCountIs(3)
 
-			pods, err := oc.KubeREST().Pods(oc.Namespace()).List(dcLabel, nil)
+			pods, err := oc.KubeREST().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: dcLabel})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(pods.Items)).To(o.Equal(1))
 

@@ -17,7 +17,7 @@ import (
 	pkgapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
-	util "k8s.io/kubernetes/pkg/util"
+	intstr "k8s.io/kubernetes/pkg/util/intstr"
 )
 
 func deepCopy_v1_AuthorizationAttributes(in v1.AuthorizationAttributes, out *v1.AuthorizationAttributes, c *conversion.Cloner) error {
@@ -1786,7 +1786,7 @@ func deepCopy_v1_RollingDeploymentStrategyParams(in deployapiv1.RollingDeploymen
 		if newVal, err := c.DeepCopy(in.MaxUnavailable); err != nil {
 			return err
 		} else {
-			out.MaxUnavailable = newVal.(*util.IntOrString)
+			out.MaxUnavailable = newVal.(*intstr.IntOrString)
 		}
 	} else {
 		out.MaxUnavailable = nil
@@ -1795,7 +1795,7 @@ func deepCopy_v1_RollingDeploymentStrategyParams(in deployapiv1.RollingDeploymen
 		if newVal, err := c.DeepCopy(in.MaxSurge); err != nil {
 			return err
 		} else {
-			out.MaxSurge = newVal.(*util.IntOrString)
+			out.MaxSurge = newVal.(*intstr.IntOrString)
 		}
 	} else {
 		out.MaxSurge = nil
@@ -2605,7 +2605,7 @@ func deepCopy_v1_RoutePort(in routeapiv1.RoutePort, out *routeapiv1.RoutePort, c
 	if newVal, err := c.DeepCopy(in.TargetPort); err != nil {
 		return err
 	} else {
-		out.TargetPort = newVal.(util.IntOrString)
+		out.TargetPort = newVal.(intstr.IntOrString)
 	}
 	return nil
 }

@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	kmaster "k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -331,7 +332,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		glog.Fatalf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
 	}
 
-	kubeletClient, err := kclient.NewKubeletClient(c.KubeletClientConfig)
+	kubeletClient, err := kubeletclient.NewStaticKubeletClient(c.KubeletClientConfig)
 	if err != nil {
 		glog.Fatalf("Unable to configure Kubelet client: %v", err)
 	}

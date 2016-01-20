@@ -1,10 +1,9 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -26,8 +25,8 @@ func (c *FakeDeploymentConfigs) Get(name string) (*deployapi.DeploymentConfig, e
 	return obj.(*deployapi.DeploymentConfig), err
 }
 
-func (c *FakeDeploymentConfigs) List(label labels.Selector, field fields.Selector) (*deployapi.DeploymentConfigList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewListAction("deploymentconfigs", c.Namespace, label, field), &deployapi.DeploymentConfigList{})
+func (c *FakeDeploymentConfigs) List(opts kapi.ListOptions) (*deployapi.DeploymentConfigList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("deploymentconfigs", c.Namespace, opts), &deployapi.DeploymentConfigList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -58,8 +57,8 @@ func (c *FakeDeploymentConfigs) Delete(name string) error {
 	return err
 }
 
-func (c *FakeDeploymentConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("deploymentconfigs", c.Namespace, label, field, resourceVersion))
+func (c *FakeDeploymentConfigs) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("deploymentconfigs", c.Namespace, opts))
 }
 
 func (c *FakeDeploymentConfigs) Generate(name string) (*deployapi.DeploymentConfig, error) {
