@@ -94,8 +94,6 @@ func TestProjectStatus(t *testing.T) {
 				"In project example on server https://example.com:8443\n",
 				"rc/my-rc runs centos/mysql-56-centos7",
 				"0/1 pods growing to 1",
-				"rc/my-rc is attempting to mount a secret secret/existing-secret disallowed by sa/default",
-				"rc/my-rc is attempting to mount a secret secret/dne disallowed by sa/default",
 				"rc/my-rc is attempting to mount a missing secret secret/dne",
 			},
 		},

@@ -297,7 +297,6 @@ func getMarkerScanners() []osgraph.MarkerScanner {
 	return []osgraph.MarkerScanner{
 		kubeanalysis.FindRestartingPods,
 		kubeanalysis.FindDuelingReplicationControllers,
-		kubeanalysis.FindUnmountableSecrets,
 		kubeanalysis.FindMissingSecrets,
 		buildanalysis.FindUnpushableBuildConfigs,
 		buildanalysis.FindCircularBuilds,
@@ -305,6 +304,9 @@ func getMarkerScanners() []osgraph.MarkerScanner {
 		deployanalysis.FindDeploymentConfigTriggerErrors,
 		routeanalysis.FindMissingPortMapping,
 		routeanalysis.FindMissingTLSTerminationType,
+
+		// We disable this feature by default and we don't have a capability detection for this sort of thing.  Disable this check for now.
+		// kubeanalysis.FindUnmountableSecrets,
 	}
 }
 
