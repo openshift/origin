@@ -32,6 +32,11 @@ func ValidateRoute(route *routeapi.Route) fielderrors.ValidationErrorList {
 		result = append(result, fielderrors.NewFieldInvalid("path", route.Spec.Path, "path must begin with /"))
 	}
 
+	if len(route.Spec.Path) > 0 && route.Spec.TLS != nil &&
+		route.Spec.TLS.Termination == routeapi.TLSTerminationPassthrough {
+		result = append(result, fielderrors.NewFieldInvalid("path", route.Spec.Path, "passthrough termination does not support paths"))
+	}
+
 	if len(route.Spec.To.Name) == 0 {
 		result = append(result, fielderrors.NewFieldRequired("serviceName"))
 	}

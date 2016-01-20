@@ -179,6 +179,26 @@ func TestValidateRoute(t *testing.T) {
 			},
 			expectedErrors: 1,
 		},
+		{
+			name: "Passthrough route with path",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "name",
+					Namespace: "foo",
+				},
+				Spec: api.RouteSpec{
+					Host: "www.example.com",
+					Path: "/test",
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
+					TLS: &api.TLSConfig{
+						Termination: api.TLSTerminationPassthrough,
+					},
+				},
+			},
+			expectedErrors: 1,
+		},
 	}
 
 	for _, tc := range tests {
