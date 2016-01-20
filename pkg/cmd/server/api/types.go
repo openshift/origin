@@ -196,6 +196,9 @@ type MasterConfig struct {
 	ControllerLeaseTTL int
 	// TODO: the next field added to controllers must be added to a new controllers struct
 
+	// AdmissionConfig contains admission control plugin configuration.
+	AdmissionConfig AdmissionConfig
+
 	// Allow to disable OpenShift components
 	DisabledFeatures FeatureList
 
@@ -767,6 +770,9 @@ type KubernetesMasterConfig struct {
 	// ProxyClientInfo specifies the client cert/key to use when proxying to pods
 	ProxyClientInfo CertInfo
 
+	// AdmissionConfig contains admission control plugin configuration.
+	AdmissionConfig AdmissionConfig
+
 	// APIServerArguments are key value pairs that will be passed directly to the Kube apiserver that match the apiservers's
 	// command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not
 	// start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.
@@ -933,4 +939,23 @@ type LDAPQuery struct {
 
 	// Filter is a valid LDAP search filter that retrieves all relevant entries from the LDAP server with the base DN
 	Filter string
+}
+
+type AdmissionPluginConfig struct {
+	// Location is the path to a configuration file that contains the plugin's
+	// configuration
+	Location string
+
+	// Configuration is an embedded configuration object to be used as the plugin's
+	// configuration. If present, it will be used instead of the path to the configuration file.
+	Configuration runtime.EmbeddedObject
+}
+
+type AdmissionConfig struct {
+	// PluginConfig allows specifying a configuration file per admission control plugin
+	PluginConfig map[string]AdmissionPluginConfig
+
+	// PluginOrderOverride is a list of admission control plugin names that will be installed
+	// on the master. Order is significant. If empty, a default list of plugins is used.
+	PluginOrderOverride []string
 }

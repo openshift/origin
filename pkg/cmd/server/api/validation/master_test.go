@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 
@@ -207,6 +208,60 @@ func TestValidate_ValidateEtcdStorageConfig(t *testing.T) {
 		if !kapi.Semantic.DeepEqual(test.expected, results) {
 			t.Errorf("unexpected validation results; diff:\n%v", util.ObjectDiff(test.expected, results))
 			return
+		}
+	}
+}
+
+func TestValidateAdmissionPluginConfig(t *testing.T) {
+	locationOnly := configapi.AdmissionPluginConfig{
+		Location: "/some/location",
+	}
+	configOnly := configapi.AdmissionPluginConfig{
+		Configuration: runtime.EmbeddedObject{
+			Object: &configapi.AdmissionPluginConfig{},
+		},
+	}
+	locationAndConfig := configapi.AdmissionPluginConfig{
+		Location: "/some/location",
+		Configuration: runtime.EmbeddedObject{
+			Object: &configapi.AdmissionPluginConfig{},
+		},
+	}
+	bothEmpty := configapi.AdmissionPluginConfig{}
+
+	tests := []struct {
+		config      map[string]configapi.AdmissionPluginConfig
+		expectError bool
+	}{
+		{
+			config: map[string]configapi.AdmissionPluginConfig{
+				"one": locationOnly,
+				"two": configOnly,
+			},
+		},
+		{
+			config: map[string]configapi.AdmissionPluginConfig{
+				"one": locationOnly,
+				"two": locationAndConfig,
+			},
+			expectError: true,
+		},
+		{
+			config: map[string]configapi.AdmissionPluginConfig{
+				"one": configOnly,
+				"two": bothEmpty,
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		errs := ValidateAdmissionPluginConfig(tc.config)
+		if len(errs) > 0 && !tc.expectError {
+			t.Errorf("Unexpected error for %#v: %v", tc.config, errs)
+		}
+		if len(errs) == 0 && tc.expectError {
+			t.Errorf("Did not get expected error for: %#v", tc.config)
 		}
 	}
 }

@@ -171,6 +171,10 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 
 	validationResults.Append(ValidateAPILevels(config.APILevels, api.KnownOpenShiftAPILevels, api.DeadOpenShiftAPILevels, "apiLevels"))
 
+	if config.AdmissionConfig.PluginConfig != nil {
+		validationResults.AddErrors(ValidateAdmissionPluginConfig(config.AdmissionConfig.PluginConfig).Prefix("admissionConfig.pluginConfig")...)
+	}
+
 	return validationResults
 }
 
@@ -457,6 +461,10 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) Validati
 		}
 	}
 
+	if config.AdmissionConfig.PluginConfig != nil {
+		validationResults.AddErrors(ValidateAdmissionPluginConfig(config.AdmissionConfig.PluginConfig).Prefix("admissionConfig.pluginConfig")...)
+	}
+
 	validationResults.AddErrors(ValidateAPIServerExtendedArguments(config.APIServerArguments).Prefix("apiServerArguments")...)
 	validationResults.AddErrors(ValidateControllerExtendedArguments(config.ControllerArguments).Prefix("controllerArguments")...)
 
@@ -524,4 +532,18 @@ func ValidateAPIServerExtendedArguments(config api.ExtendedArguments) fielderror
 
 func ValidateControllerExtendedArguments(config api.ExtendedArguments) fielderrors.ValidationErrorList {
 	return ValidateExtendedArguments(config, cmapp.NewCMServer().AddFlags)
+}
+
+func ValidateAdmissionPluginConfig(pluginConfig map[string]api.AdmissionPluginConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	for name, config := range pluginConfig {
+		if len(config.Location) > 0 && config.Configuration.Object != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(name, "", "cannot specify both location and embedded config"))
+		}
+		if len(config.Location) == 0 && config.Configuration.Object == nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(name, "", "must specify either a location or an embedded config"))
+		}
+	}
+	return allErrs
+
 }

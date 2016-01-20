@@ -24,6 +24,7 @@ func init() {
 		&GoogleIdentityProvider{},
 		&OpenIDIdentityProvider{},
 		&GrantConfig{},
+		&AdmissionPluginConfig{},
 
 		&LDAPSyncConfig{},
 	)
@@ -41,6 +42,7 @@ func (*GitHubIdentityProvider) IsAnAPIObject()            {}
 func (*GoogleIdentityProvider) IsAnAPIObject()            {}
 func (*OpenIDIdentityProvider) IsAnAPIObject()            {}
 func (*GrantConfig) IsAnAPIObject()                       {}
+func (*AdmissionPluginConfig) IsAnAPIObject()             {}
 
 func (*MasterConfig) IsAnAPIObject()   {}
 func (*NodeConfig) IsAnAPIObject()     {}
