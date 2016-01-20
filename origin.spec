@@ -233,19 +233,20 @@ install -d -m 0755 %{buildroot}%{_unitdir}
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
 for cmd in \
-    openshift-router \
-    openshift-deploy \
-    openshift-sti-build \
-    openshift-docker-build \
-    origin \
     atomic-enterprise \
-    oadm \
-    kubernetes \
-    kubelet \
-    kube-proxy \
     kube-apiserver \
     kube-controller-manager \
-    kube-scheduler
+    kube-proxy \
+    kube-scheduler \
+    kubelet \
+    kubernetes \
+    oadm \
+    openshift-deploy \
+    openshift-docker-build \
+    openshift-f5-router \
+    openshift-router \
+    openshift-sti-build \
+    origin
 do
     ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/$cmd
 done
@@ -297,19 +298,20 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %doc README.md
 %license LICENSE
 %{_bindir}/openshift
-%{_bindir}/openshift-router
-%{_bindir}/openshift-deploy
-%{_bindir}/openshift-sti-build
-%{_bindir}/openshift-docker-build
-%{_bindir}/origin
 %{_bindir}/atomic-enterprise
-%{_bindir}/oadm
-%{_bindir}/kubernetes
-%{_bindir}/kubelet
-%{_bindir}/kube-proxy
 %{_bindir}/kube-apiserver
 %{_bindir}/kube-controller-manager
+%{_bindir}/kube-proxy
 %{_bindir}/kube-scheduler
+%{_bindir}/kubelet
+%{_bindir}/kubernetes
+%{_bindir}/oadm
+%{_bindir}/openshift-deploy
+%{_bindir}/openshift-docker-build
+%{_bindir}/openshift-f5-router
+%{_bindir}/openshift-router
+%{_bindir}/openshift-sti-build
+%{_bindir}/origin
 %{_sharedstatedir}/origin
 %{_sysconfdir}/bash_completion.d/atomic-enterprise
 %{_sysconfdir}/bash_completion.d/oadm
