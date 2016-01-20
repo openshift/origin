@@ -799,6 +799,46 @@ func deepCopy_v1_BuildConfigStatus(in apiv1.BuildConfigStatus, out *apiv1.BuildC
 	return nil
 }
 
+func deepCopy_v1_BuildHook(in apiv1.BuildHook, out *apiv1.BuildHook, c *conversion.Cloner) error {
+	if in.StartBuilds != nil {
+		out.StartBuilds = make([]pkgapiv1.ObjectReference, len(in.StartBuilds))
+		for i := range in.StartBuilds {
+			if newVal, err := c.DeepCopy(in.StartBuilds[i]); err != nil {
+				return err
+			} else {
+				out.StartBuilds[i] = newVal.(pkgapiv1.ObjectReference)
+			}
+		}
+	} else {
+		out.StartBuilds = nil
+	}
+	return nil
+}
+
+func deepCopy_v1_BuildHookSpec(in apiv1.BuildHookSpec, out *apiv1.BuildHookSpec, c *conversion.Cloner) error {
+	if in.OnSuccess != nil {
+		out.OnSuccess = make([]apiv1.BuildHook, len(in.OnSuccess))
+		for i := range in.OnSuccess {
+			if err := deepCopy_v1_BuildHook(in.OnSuccess[i], &out.OnSuccess[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OnSuccess = nil
+	}
+	if in.OnFailure != nil {
+		out.OnFailure = make([]apiv1.BuildHook, len(in.OnFailure))
+		for i := range in.OnFailure {
+			if err := deepCopy_v1_BuildHook(in.OnFailure[i], &out.OnFailure[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OnFailure = nil
+	}
+	return nil
+}
+
 func deepCopy_v1_BuildList(in apiv1.BuildList, out *apiv1.BuildList, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -1035,6 +1075,9 @@ func deepCopy_v1_BuildSpec(in apiv1.BuildSpec, out *apiv1.BuildSpec, c *conversi
 		return err
 	} else {
 		out.Resources = newVal.(pkgapiv1.ResourceRequirements)
+	}
+	if err := deepCopy_v1_BuildHookSpec(in.PostHooks, &out.PostHooks, c); err != nil {
+		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
 		out.CompletionDeadlineSeconds = new(int64)
@@ -2838,6 +2881,8 @@ func init() {
 		deepCopy_v1_BuildConfigList,
 		deepCopy_v1_BuildConfigSpec,
 		deepCopy_v1_BuildConfigStatus,
+		deepCopy_v1_BuildHook,
+		deepCopy_v1_BuildHookSpec,
 		deepCopy_v1_BuildList,
 		deepCopy_v1_BuildLog,
 		deepCopy_v1_BuildLogOptions,

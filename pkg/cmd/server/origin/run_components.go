@@ -229,9 +229,10 @@ func (c *MasterConfig) RunBuildController() {
 func (c *MasterConfig) RunBuildPodController() {
 	osclient, kclient := c.BuildPodControllerClients()
 	factory := buildcontrollerfactory.BuildPodControllerFactory{
-		OSClient:     osclient,
-		KubeClient:   kclient,
-		BuildUpdater: buildclient.NewOSClientBuildClient(osclient),
+		OSClient:                osclient,
+		KubeClient:              kclient,
+		BuildUpdater:            buildclient.NewOSClientBuildClient(osclient),
+		BuildConfigInstantiator: buildclient.NewOSClientBuildConfigInstantiatorClient(osclient),
 	}
 	controller := factory.Create()
 	controller.Run()

@@ -43,6 +43,10 @@ type BuildSpec struct {
 	// Compute resource requirements to execute the build
 	Resources kapi.ResourceRequirements `json:"resources,omitempty" description:"the desired compute resources the build should have"`
 
+	// PostHooks are build hooks which are executed after the build is
+	// completed.
+	PostHooks BuildHookSpec `json:"post,omitempty" description:"a set of actions that are executed after the build is completed"`
+
 	// Optional duration in seconds, counted from the time when a build pod gets
 	// scheduled in the system, that the build may be active on a node before the
 	// system actively tries to terminate the build; value must be positive integer
@@ -369,6 +373,25 @@ type SourceBuildStrategy struct {
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool `json:"forcePull,omitempty" description:"forces the source build to pull the image if true"`
+}
+
+// BuildHookSpec holds build hooks with actions grouped by build status.
+type BuildHookSpec struct {
+	// The OnSuccess group is a list of BuildHooks that will be executed
+	// when the build changes to BuildPhaseComplete.
+	OnSuccess []BuildHook `json:"onSuccess,omitempty" description:"list of actions to be executed when the build completes successfully"`
+
+	// The OnFailure group is a list of BuildHooks that will be executed
+	// when the build changes to BuildPhaseFailed.
+	OnFailure []BuildHook `json:"onFailure,omitempty" description:"list of actions to be executed when the build fails"`
+}
+
+// A BuildHook defines actions to be executed when a build changes to a certain
+// phase.
+type BuildHook struct {
+	// StartBuilds holds a list of references to BuildConfigs that will be
+	// started when the hook is executed.
+	StartBuilds []kapi.ObjectReference `json:"startBuilds,omitempty" description:"start a build of each BuildConfig in the list of object references"`
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy

@@ -1214,6 +1214,58 @@ func convert_api_BuildConfigStatus_To_v1_BuildConfigStatus(in *buildapi.BuildCon
 	return autoconvert_api_BuildConfigStatus_To_v1_BuildConfigStatus(in, out, s)
 }
 
+func autoconvert_api_BuildHook_To_v1_BuildHook(in *buildapi.BuildHook, out *apiv1.BuildHook, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.BuildHook))(in)
+	}
+	if in.StartBuilds != nil {
+		out.StartBuilds = make([]pkgapiv1.ObjectReference, len(in.StartBuilds))
+		for i := range in.StartBuilds {
+			if err := convert_api_ObjectReference_To_v1_ObjectReference(&in.StartBuilds[i], &out.StartBuilds[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.StartBuilds = nil
+	}
+	return nil
+}
+
+func convert_api_BuildHook_To_v1_BuildHook(in *buildapi.BuildHook, out *apiv1.BuildHook, s conversion.Scope) error {
+	return autoconvert_api_BuildHook_To_v1_BuildHook(in, out, s)
+}
+
+func autoconvert_api_BuildHookSpec_To_v1_BuildHookSpec(in *buildapi.BuildHookSpec, out *apiv1.BuildHookSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.BuildHookSpec))(in)
+	}
+	if in.OnSuccess != nil {
+		out.OnSuccess = make([]apiv1.BuildHook, len(in.OnSuccess))
+		for i := range in.OnSuccess {
+			if err := convert_api_BuildHook_To_v1_BuildHook(&in.OnSuccess[i], &out.OnSuccess[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OnSuccess = nil
+	}
+	if in.OnFailure != nil {
+		out.OnFailure = make([]apiv1.BuildHook, len(in.OnFailure))
+		for i := range in.OnFailure {
+			if err := convert_api_BuildHook_To_v1_BuildHook(&in.OnFailure[i], &out.OnFailure[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OnFailure = nil
+	}
+	return nil
+}
+
+func convert_api_BuildHookSpec_To_v1_BuildHookSpec(in *buildapi.BuildHookSpec, out *apiv1.BuildHookSpec, s conversion.Scope) error {
+	return autoconvert_api_BuildHookSpec_To_v1_BuildHookSpec(in, out, s)
+}
+
 func autoconvert_api_BuildList_To_v1_BuildList(in *buildapi.BuildList, out *apiv1.BuildList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildList))(in)
@@ -1460,6 +1512,9 @@ func autoconvert_api_BuildSpec_To_v1_BuildSpec(in *buildapi.BuildSpec, out *apiv
 		return err
 	}
 	if err := convert_api_ResourceRequirements_To_v1_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if err := convert_api_BuildHookSpec_To_v1_BuildHookSpec(&in.PostHooks, &out.PostHooks, s); err != nil {
 		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
@@ -1980,6 +2035,58 @@ func convert_v1_BuildConfigStatus_To_api_BuildConfigStatus(in *apiv1.BuildConfig
 	return autoconvert_v1_BuildConfigStatus_To_api_BuildConfigStatus(in, out, s)
 }
 
+func autoconvert_v1_BuildHook_To_api_BuildHook(in *apiv1.BuildHook, out *buildapi.BuildHook, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1.BuildHook))(in)
+	}
+	if in.StartBuilds != nil {
+		out.StartBuilds = make([]pkgapi.ObjectReference, len(in.StartBuilds))
+		for i := range in.StartBuilds {
+			if err := convert_v1_ObjectReference_To_api_ObjectReference(&in.StartBuilds[i], &out.StartBuilds[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.StartBuilds = nil
+	}
+	return nil
+}
+
+func convert_v1_BuildHook_To_api_BuildHook(in *apiv1.BuildHook, out *buildapi.BuildHook, s conversion.Scope) error {
+	return autoconvert_v1_BuildHook_To_api_BuildHook(in, out, s)
+}
+
+func autoconvert_v1_BuildHookSpec_To_api_BuildHookSpec(in *apiv1.BuildHookSpec, out *buildapi.BuildHookSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1.BuildHookSpec))(in)
+	}
+	if in.OnSuccess != nil {
+		out.OnSuccess = make([]buildapi.BuildHook, len(in.OnSuccess))
+		for i := range in.OnSuccess {
+			if err := convert_v1_BuildHook_To_api_BuildHook(&in.OnSuccess[i], &out.OnSuccess[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OnSuccess = nil
+	}
+	if in.OnFailure != nil {
+		out.OnFailure = make([]buildapi.BuildHook, len(in.OnFailure))
+		for i := range in.OnFailure {
+			if err := convert_v1_BuildHook_To_api_BuildHook(&in.OnFailure[i], &out.OnFailure[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OnFailure = nil
+	}
+	return nil
+}
+
+func convert_v1_BuildHookSpec_To_api_BuildHookSpec(in *apiv1.BuildHookSpec, out *buildapi.BuildHookSpec, s conversion.Scope) error {
+	return autoconvert_v1_BuildHookSpec_To_api_BuildHookSpec(in, out, s)
+}
+
 func autoconvert_v1_BuildList_To_api_BuildList(in *apiv1.BuildList, out *buildapi.BuildList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*apiv1.BuildList))(in)
@@ -2227,6 +2334,9 @@ func autoconvert_v1_BuildSpec_To_api_BuildSpec(in *apiv1.BuildSpec, out *buildap
 		return err
 	}
 	if err := convert_v1_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if err := convert_v1_BuildHookSpec_To_api_BuildHookSpec(&in.PostHooks, &out.PostHooks, s); err != nil {
 		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
@@ -7863,6 +7973,8 @@ func init() {
 		autoconvert_api_BuildConfigSpec_To_v1_BuildConfigSpec,
 		autoconvert_api_BuildConfigStatus_To_v1_BuildConfigStatus,
 		autoconvert_api_BuildConfig_To_v1_BuildConfig,
+		autoconvert_api_BuildHookSpec_To_v1_BuildHookSpec,
+		autoconvert_api_BuildHook_To_v1_BuildHook,
 		autoconvert_api_BuildList_To_v1_BuildList,
 		autoconvert_api_BuildLogOptions_To_v1_BuildLogOptions,
 		autoconvert_api_BuildLog_To_v1_BuildLog,
@@ -8020,6 +8132,8 @@ func init() {
 		autoconvert_v1_BuildConfigSpec_To_api_BuildConfigSpec,
 		autoconvert_v1_BuildConfigStatus_To_api_BuildConfigStatus,
 		autoconvert_v1_BuildConfig_To_api_BuildConfig,
+		autoconvert_v1_BuildHookSpec_To_api_BuildHookSpec,
+		autoconvert_v1_BuildHook_To_api_BuildHook,
 		autoconvert_v1_BuildList_To_api_BuildList,
 		autoconvert_v1_BuildLogOptions_To_api_BuildLogOptions,
 		autoconvert_v1_BuildLog_To_api_BuildLog,

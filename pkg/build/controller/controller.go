@@ -6,10 +6,11 @@ import (
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	errors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
+	"k8s.io/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -228,9 +229,10 @@ func (bc *BuildController) resolveOutputDockerImageReference(build *buildapi.Bui
 
 // BuildPodController watches pods running builds and manages the build state
 type BuildPodController struct {
-	BuildStore   cache.Store
-	BuildUpdater buildclient.BuildUpdater
-	PodManager   podManager
+	BuildStore              cache.Store
+	BuildUpdater            buildclient.BuildUpdater
+	BuildConfigInstantiator buildclient.BuildConfigInstantiator
+	PodManager              podManager
 }
 
 // HandlePod updates the state of the build based on the pod state
@@ -289,6 +291,86 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			return fmt.Errorf("failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 		}
 		glog.V(4).Infof("Build %s/%s status was updated %s -> %s", build.Namespace, build.Name, build.Status.Phase, nextStatus)
+
+		if buildutil.IsBuildComplete(build) {
+			if err := bc.executeBuildPostHooks(build); err != nil {
+				// Do not return the error, since errors executing the
+				// post hooks should not influence the build lifecycle.
+				util.HandleError(fmt.Errorf("failed to execute post hooks of build %s/%s: %v", build.Namespace, build.Name, err))
+			} else {
+				glog.V(4).Infof("Post hooks of build %s/%s were executed successfully", build.Namespace, build.Name)
+			}
+		}
+	}
+	return nil
+}
+
+// executeBuildPostHooks executes the PostHooks of build.
+func (bc *BuildPodController) executeBuildPostHooks(build *buildapi.Build) error {
+	switch build.Status.Phase {
+	case buildapi.BuildPhaseComplete:
+		for _, hook := range build.Spec.PostHooks.OnSuccess {
+			if err := bc.startBuilds(hook.StartBuilds, build.Namespace); err != nil {
+				return err
+			}
+		}
+	case buildapi.BuildPhaseFailed:
+		for _, hook := range build.Spec.PostHooks.OnFailure {
+			if err := bc.startBuilds(hook.StartBuilds, build.Namespace); err != nil {
+				return err
+			}
+		}
+	case buildapi.BuildPhaseError, buildapi.BuildPhaseCancelled:
+		// Nothing to do.
+	default:
+		// Should never happen.
+		return fmt.Errorf("cannot execute build post hooks when build phase is %q", build.Status.Phase)
+	}
+	return nil
+}
+
+// startBuilds instantiates a build for each BuildConfig reference in refs. If a
+// reference does not specify a namespace, defaultNamespace is used. Errors
+// instantiating a build are handled by util.HandleError. If any error occurred,
+// an error will be returned with a summary of failures.
+func (bc *BuildPodController) startBuilds(refs []kapi.ObjectReference, defaultNamespace string) error {
+	var failed []kapi.ObjectReference
+	for _, ref := range refs {
+		// Try to start all builds even if some fail.
+		if err := bc.startBuild(ref, defaultNamespace); err != nil {
+			util.HandleError(err)
+			failed = append(failed, ref)
+			continue
+		}
+	}
+	if len(failed) > 0 {
+		return fmt.Errorf("an error occurred starting %d of %d builds", len(failed), len(refs))
+	}
+	return nil
+}
+
+// startBuild instantiates a build for the BuildConfig referenced by ref. If the
+// ref does not specify a namespace, defaultNamespace is used.
+func (bc *BuildPodController) startBuild(ref kapi.ObjectReference, defaultNamespace string) error {
+	if ref.Kind != "BuildConfig" {
+		// Should never happen in a valid BuildSpec.
+		return fmt.Errorf("invalid object reference kind %q, must be \"BuildConfig\"", ref.Kind)
+	}
+	if len(ref.Namespace) == 0 {
+		ref.Namespace = defaultNamespace
+	}
+	request := &buildapi.BuildRequest{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      ref.Name,
+			Namespace: ref.Namespace,
+		},
+	}
+	glog.V(4).Infof("Running build for BuildConfig %s/%s", ref.Namespace, ref.Name)
+	if _, err := bc.BuildConfigInstantiator.Instantiate(ref.Namespace, request); err != nil {
+		if errors.IsConflict(err) {
+			return fmt.Errorf("unable to instantiate Build for BuildConfig %s/%s due to a conflicting update: %v", ref.Namespace, ref.Name, err)
+		}
+		return fmt.Errorf("error instantiating Build from BuildConfig %s/%s: %v", ref.Namespace, ref.Name, err)
 	}
 	return nil
 }
