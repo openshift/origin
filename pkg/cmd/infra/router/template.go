@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -46,6 +48,7 @@ type TemplateRouter struct {
 	WorkingDir         string
 	TemplateFile       string
 	ReloadScript       string
+	ReloadInterval     time.Duration
 	DefaultCertificate string
 	RouterService      *ktypes.NamespacedName
 }
@@ -55,6 +58,16 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.DefaultCertificate, "default-certificate", util.Env("DEFAULT_CERTIFICATE", ""), "A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format")
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
+
+	interval := util.Env("RELOAD_INTERVAL", "0s")
+
+	var err error
+	o.ReloadInterval, err = time.ParseDuration(interval)
+	if err != nil {
+		glog.Warningf("Invalid RELOAD_INTERVAL %q, ignoring ...", interval)
+		o.ReloadInterval = time.Duration(0 * time.Second)
+	}
+	flag.DurationVar(&o.ReloadInterval, "interval", o.ReloadInterval, "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
 }
 
 type RouterStats struct {
@@ -121,6 +134,7 @@ func (o *TemplateRouterOptions) Complete() error {
 		}
 		o.StatsPort = statsPort
 	}
+
 	return o.RouterSelection.Complete()
 }
 
@@ -141,6 +155,7 @@ func (o *TemplateRouterOptions) Run() error {
 		WorkingDir:         o.WorkingDir,
 		TemplatePath:       o.TemplateFile,
 		ReloadScriptPath:   o.ReloadScript,
+		ReloadInterval:     o.ReloadInterval,
 		DefaultCertificate: o.DefaultCertificate,
 		StatsPort:          o.StatsPort,
 		StatsUsername:      o.StatsUsername,
