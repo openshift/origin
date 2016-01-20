@@ -757,12 +757,12 @@ func (f5 *f5LTM) ensurePartitionPathExists(pathName string) error {
 	for _, v := range pathComponents {
 		p = path.Join(p, v)
 
-		exists, err := f5.checkPartitionPathExists(p)
+		exists, err = f5.checkPartitionPathExists(p)
 		if err != nil {
 			return err
 		}
 		if !exists {
-			if _, err := f5.addPartitionPath(p); err != nil {
+			if _, err = f5.addPartitionPath(p); err != nil {
 				return err
 			}
 		}
@@ -1519,11 +1519,11 @@ func (f5 *f5LTM) uploadCert(cert, certname string) error {
 		glog.V(4).Infof("Cleaning up tempfile for certificate %s on F5 BIG-IP...",
 			certname)
 		args := f5.buildSshArgs(sshUserHost, "rm", "-f", certfilePath)
-		out, err := execCommand("ssh", args...).CombinedOutput()
-		if err != nil {
+		out, execErr := execCommand("ssh", args...).CombinedOutput()
+		if execErr != nil {
 			glog.Errorf("Error deleting tempfile for certificate %s from F5 BIG-IP.\n"+
 				"\tOutput from ssh command: %s\n\tError: %v",
-				certname, out, err)
+				certname, out, execErr)
 		}
 	}()
 	out, err := execCommand("scp", args...).CombinedOutput()
@@ -1588,11 +1588,11 @@ func (f5 *f5LTM) uploadKey(privkey, keyname string) error {
 		glog.V(4).Infof("Cleaning up tempfile for key %s on F5 BIG-IP...",
 			keyname)
 		args := f5.buildSshArgs(sshUserHost, "rm", "-f", keyfilePath)
-		out, err := execCommand("ssh", args...).CombinedOutput()
-		if err != nil {
+		out, execErr := execCommand("ssh", args...).CombinedOutput()
+		if execErr != nil {
 			glog.Errorf("Error deleting tempfile for key %ss from F5 BIG-IP.\n"+
 				"\tOutput from ssh command: %s\n\tError: %v",
-				keyname, out, err)
+				keyname, out, execErr)
 		}
 	}()
 	out, err := execCommand("scp", args...).CombinedOutput()

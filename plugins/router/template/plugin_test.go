@@ -380,9 +380,9 @@ func TestHandleRoute(t *testing.T) {
 	if !ok {
 		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
 	} else {
-		serviceAliasCfg, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
+		serviceAliasCfg, routeKeyOK := actualSU.ServiceAliasConfigs[router.routeKey(route)]
 
-		if !ok {
+		if !routeKeyOK {
 			t.Errorf("TestHandleRoute expected route key %s", router.routeKey(route))
 		} else {
 			if serviceAliasCfg.Host != route.Spec.Host || serviceAliasCfg.Path != route.Spec.Path {
@@ -408,10 +408,10 @@ func TestHandleRoute(t *testing.T) {
 	if err := plugin.HandleRoute(watch.Added, duplicateRoute); err == nil {
 		t.Fatal("unexpected non-error")
 	}
-	if _, ok := router.FindServiceUnit("foo/TestService2"); ok {
+	if _, ok = router.FindServiceUnit("foo/TestService2"); ok {
 		t.Fatalf("unexpected second unit: %#v", router)
 	}
-	if r, ok := plugin.RoutesForHost("www.example.com"); !ok || r[0].Name != "test" {
+	if r, routeOK := plugin.RoutesForHost("www.example.com"); !routeOK || r[0].Name != "test" {
 		t.Fatalf("unexpected claimed routes: %#v", r)
 	}
 
@@ -419,13 +419,13 @@ func TestHandleRoute(t *testing.T) {
 	if err := plugin.HandleRoute(watch.Deleted, duplicateRoute); err == nil {
 		t.Fatal("unexpected non-error")
 	}
-	if _, ok := router.FindServiceUnit("foo/TestService2"); ok {
+	if _, ok = router.FindServiceUnit("foo/TestService2"); ok {
 		t.Fatalf("unexpected second unit: %#v", router)
 	}
-	if _, ok := router.FindServiceUnit("foo/TestService"); !ok {
+	if _, ok = router.FindServiceUnit("foo/TestService"); !ok {
 		t.Fatalf("unexpected first unit: %#v", router)
 	}
-	if r, ok := plugin.RoutesForHost("www.example.com"); !ok || r[0].Name != "test" {
+	if r, routeOK := plugin.RoutesForHost("www.example.com"); !routeOK || r[0].Name != "test" {
 		t.Fatalf("unexpected claimed routes: %#v", r)
 	}
 
@@ -441,7 +441,7 @@ func TestHandleRoute(t *testing.T) {
 	if len(actualSU.ServiceAliasConfigs) != 0 || len(otherSU.ServiceAliasConfigs) != 1 {
 		t.Errorf("incorrect router state: %#v", router)
 	}
-	if _, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]; ok {
+	if _, ok = actualSU.ServiceAliasConfigs[router.routeKey(route)]; ok {
 		t.Errorf("unexpected service alias config %s", router.routeKey(route))
 	}
 
@@ -457,9 +457,9 @@ func TestHandleRoute(t *testing.T) {
 	if !ok {
 		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
 	} else {
-		serviceAliasCfg, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
+		serviceAliasCfg, serviceAliasOK := actualSU.ServiceAliasConfigs[router.routeKey(route)]
 
-		if !ok {
+		if !serviceAliasOK {
 			t.Errorf("TestHandleRoute expected route key %s", router.routeKey(route))
 		} else {
 			if serviceAliasCfg.Host != route.Spec.Host || serviceAliasCfg.Path != route.Spec.Path {
@@ -482,7 +482,7 @@ func TestHandleRoute(t *testing.T) {
 	if !ok {
 		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
 	} else {
-		_, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
+		_, ok = actualSU.ServiceAliasConfigs[router.routeKey(route)]
 
 		if ok {
 			t.Errorf("TestHandleRoute did not expect route key %s", router.routeKey(route))

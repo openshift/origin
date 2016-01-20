@@ -1459,9 +1459,9 @@ func TestHandleEndpoints(t *testing.T) {
 			validate: func() error {
 				poolName := "openshift_foo_test"
 
-				poolExists, err := router.F5Client.PoolExists(poolName)
-				if err != nil {
-					return fmt.Errorf("PoolExists(%s) failed: %v", poolName, err)
+				poolExists, existsErr := router.F5Client.PoolExists(poolName)
+				if existsErr != nil {
+					return fmt.Errorf("PoolExists(%s) failed: %v", poolName, existsErr)
 				}
 
 				if poolExists != true {
@@ -1471,10 +1471,10 @@ func TestHandleEndpoints(t *testing.T) {
 
 				memberName := "1.1.1.1:345"
 
-				poolHasMember, err := router.F5Client.PoolHasMember(poolName, memberName)
-				if err != nil {
+				poolHasMember, hasErr := router.F5Client.PoolHasMember(poolName, memberName)
+				if hasErr != nil {
 					return fmt.Errorf("PoolHasMember(%s, %s) failed: %v",
-						poolName, memberName, err)
+						poolName, memberName, hasErr)
 				}
 
 				if poolHasMember != true {
@@ -1501,9 +1501,9 @@ func TestHandleEndpoints(t *testing.T) {
 			validate: func() error {
 				poolName := "openshift_foo_test"
 
-				poolExists, err := router.F5Client.PoolExists(poolName)
-				if err != nil {
-					return fmt.Errorf("PoolExists(%s) failed: %v", poolName, err)
+				poolExists, existsErr := router.F5Client.PoolExists(poolName)
+				if existsErr != nil {
+					return fmt.Errorf("PoolExists(%s) failed: %v", poolName, existsErr)
 				}
 
 				if poolExists != true {
@@ -1513,10 +1513,10 @@ func TestHandleEndpoints(t *testing.T) {
 
 				memberName := "2.2.2.2:8080"
 
-				poolHasMember, err := router.F5Client.PoolHasMember(poolName, memberName)
-				if err != nil {
+				poolHasMember, hasErr := router.F5Client.PoolHasMember(poolName, memberName)
+				if hasErr != nil {
 					return fmt.Errorf("PoolHasMember(%s, %s) failed: %v",
-						poolName, memberName, err)
+						poolName, memberName, hasErr)
 				}
 
 				if poolHasMember != true {
@@ -1540,9 +1540,9 @@ func TestHandleEndpoints(t *testing.T) {
 			validate: func() error {
 				poolName := "openshift_foo_test"
 
-				poolExists, err := router.F5Client.PoolExists(poolName)
-				if err != nil {
-					return fmt.Errorf("PoolExists(%s) failed: %v", poolName, err)
+				poolExists, existsErr := router.F5Client.PoolExists(poolName)
+				if existsErr != nil {
+					return fmt.Errorf("PoolExists(%s) failed: %v", poolName, existsErr)
 				}
 
 				if poolExists != false {
