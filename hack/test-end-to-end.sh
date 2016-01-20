@@ -10,6 +10,7 @@ set -o pipefail
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/log.sh"
 os::log::install_errexit
 
 ensure_iptables_or_die
@@ -42,6 +43,9 @@ TMPDIR="${TMPDIR:-"/tmp"}"
 BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-e2e}"
 setup_env_vars
 reset_tmp_dir
+
+os::log::start_system_logger
+
 configure_os_server
 start_os_server
 
