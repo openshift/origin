@@ -122,6 +122,7 @@ type RunContainerOptions struct {
 	TargetImage      bool
 	NetworkMode      string
 	User             string
+	CGroupLimits     *api.CGroupLimits
 }
 
 // CommitContainerOptions are options passed in to the CommitContainer method
@@ -592,14 +593,22 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 		config.AttachStdout = true
 	}
 
-	glog.V(2).Infof("Creating container using config: %+v", config)
 	ccopts := docker.CreateContainerOptions{Name: "", Config: &config}
+	ccopts.HostConfig = &docker.HostConfig{}
 	if opts.TargetImage {
-		ccopts.HostConfig = &docker.HostConfig{PublishAllPorts: true, NetworkMode: opts.NetworkMode}
+		ccopts.HostConfig.PublishAllPorts = true
+		ccopts.HostConfig.NetworkMode = opts.NetworkMode
 	} else if opts.NetworkMode != "" {
-		ccopts.HostConfig = &docker.HostConfig{NetworkMode: opts.NetworkMode}
+		ccopts.HostConfig.NetworkMode = opts.NetworkMode
 	}
 
+	if opts.CGroupLimits != nil {
+		ccopts.HostConfig.Memory = opts.CGroupLimits.MemoryLimitBytes
+		ccopts.HostConfig.CPUShares = opts.CGroupLimits.CPUShares
+		ccopts.HostConfig.CPUQuota = opts.CGroupLimits.CPUQuota
+		ccopts.HostConfig.CPUPeriod = opts.CGroupLimits.CPUPeriod
+	}
+	glog.V(2).Infof("Creating container using config: %+v", config)
 	container, err := d.client.CreateContainer(ccopts)
 	if err != nil {
 		return err
