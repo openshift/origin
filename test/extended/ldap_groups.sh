@@ -30,7 +30,7 @@ function cleanup()
 	out=$?
 	cleanup_openshift
 	echo "[INFO] Exiting"
-	exit $out
+	return $out
 }
 
 trap "exit" INT TERM

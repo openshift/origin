@@ -19,6 +19,7 @@ for test_script in $test_scripts; do
 	echo "${STARTTIME} starting ${test_script}";
 
 	set +e
+	# use a subshell to prevent `exit` calls from killing this script
 	(${test_script})
 	CURR_RETURN=$?
 	set -e
