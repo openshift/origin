@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/prune"
@@ -27,9 +28,23 @@ import (
 )
 
 const (
-	imagesLongDesc = `%s %s - prunes images`
 	// PruneImagesRecommendedName is the recommended command name
 	PruneImagesRecommendedName = "images"
+
+	imagesLongDesc = `Prune images no longer needed due to age and/or status
+
+By default, the prune operation performs a dry run making no changes to internal registry. A
+--confirm flag is needed for changes to be effective.
+
+Only a user with a cluster role %s or higher who is logged-in will be able to actually delete the
+images.`
+
+	imagesExample = `  # See, what the prune command would delete if only images more than an hour old and obsoleted
+  # by 3 newer revisions under the same tag were considered.
+  $ %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  $ %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m --confirm`
 )
 
 // PruneImagesOptions holds all the required options for prune images
@@ -57,7 +72,9 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Remove unreferenced images",
-		Long:  fmt.Sprintf(imagesLongDesc, parentName, name),
+		Long:  fmt.Sprintf(imagesLongDesc, bootstrappolicy.ImagePrunerRoleName),
+
+		Example: fmt.Sprintf(imagesExample, parentName, name),
 
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(f, args, out); err != nil {
