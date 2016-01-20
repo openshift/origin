@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"gopkg.in/ldap.v2"
@@ -38,8 +37,8 @@ const (
 )
 
 const (
-	defaultLDAPPort  = 389
-	defaultLDAPSPort = 636
+	defaultLDAPPort  = "389"
+	defaultLDAPSPort = "636"
 
 	defaultHost           = "localhost"
 	defaultQueryAttribute = "uid"
@@ -158,9 +157,9 @@ func DetermineLDAPHost(hostport string, scheme Scheme) (string, error) {
 	if _, _, err := net.SplitHostPort(hostport); err != nil {
 		switch scheme {
 		case SchemeLDAPS:
-			return net.JoinHostPort(hostport, strconv.Itoa(defaultLDAPSPort)), nil
+			return net.JoinHostPort(hostport, defaultLDAPSPort), nil
 		case SchemeLDAP:
-			return net.JoinHostPort(hostport, strconv.Itoa(defaultLDAPPort)), nil
+			return net.JoinHostPort(hostport, defaultLDAPPort), nil
 		default:
 			return "", fmt.Errorf("no default port for scheme %q", scheme)
 		}
