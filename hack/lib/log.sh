@@ -28,8 +28,7 @@ function os::log::install_system_logger_cleanup() {
 # Returns:  
 #  None
 function os::log::clean_up_logger() {
-    local return_code
-    return_code=$?
+    local return_code=$?
 
     # we don't want failures in this logger to 
     set +o errexit
