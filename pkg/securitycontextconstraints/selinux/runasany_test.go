@@ -39,7 +39,7 @@ func TestRunAsAnyGenerate(t *testing.T) {
 	}
 	uid, err := s.Generate(nil, nil)
 	if uid != nil {
-		t.Errorf("expected nil uid but got %d", *uid)
+		t.Errorf("expected nil uid but got %#v", uid)
 	}
 	if err != nil {
 		t.Errorf("unexpected error generating uid %v", err)

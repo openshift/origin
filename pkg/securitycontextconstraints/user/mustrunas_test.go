@@ -52,11 +52,11 @@ func TestMustRunAsGenerate(t *testing.T) {
 	opts := &api.RunAsUserStrategyOptions{UID: &uid}
 	mustRunAs, err := NewMustRunAs(opts)
 	if err != nil {
-		t.Fatal("unexpected error initializing NewMustRunAs %v", err)
+		t.Fatalf("unexpected error initializing NewMustRunAs %v", err)
 	}
 	generated, err := mustRunAs.Generate(nil, nil)
 	if err != nil {
-		t.Fatal("unexpected error generating uid %v", err)
+		t.Fatalf("unexpected error generating uid %v", err)
 	}
 	if *generated != uid {
 		t.Errorf("generated uid does not equal configured uid")
@@ -69,7 +69,7 @@ func TestMustRunAsValidate(t *testing.T) {
 	opts := &api.RunAsUserStrategyOptions{UID: &uid}
 	mustRunAs, err := NewMustRunAs(opts)
 	if err != nil {
-		t.Fatal("unexpected error initializing NewMustRunAs %v", err)
+		t.Fatalf("unexpected error initializing NewMustRunAs %v", err)
 	}
 	container := &api.Container{
 		SecurityContext: &api.SecurityContext{

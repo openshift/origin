@@ -51,7 +51,7 @@ func TestNonRootValidate(t *testing.T) {
 	var badUID int64 = 0
 	s, err := NewRunAsNonRoot(&api.RunAsUserStrategyOptions{})
 	if err != nil {
-		t.Fatal("unexpected error initializing NewMustRunAs %v", err)
+		t.Fatalf("unexpected error initializing NewMustRunAs %v", err)
 	}
 	container := &api.Container{
 		SecurityContext: &api.SecurityContext{
