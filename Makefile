@@ -64,7 +64,6 @@ endif
 	hack/verify-generated-completions.sh
 	hack/verify-generated-docs.sh
 	hack/verify-generated-swagger-spec.sh
-	hack/verify-api-descriptions.sh
 .PHONY: verify
 
 # check and verify can't run concurently because of strange concurrent build issues.
