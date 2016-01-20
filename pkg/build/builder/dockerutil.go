@@ -75,7 +75,7 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 			return err
 		}
 
-		util.HandleError(fmt.Errorf("push for image %s failed, will retry in %s seconds ...", name, DefaultPushRetryDelay))
+		util.HandleError(fmt.Errorf("push for image %s failed, will retry in %s ...", name, DefaultPushRetryDelay))
 		glog.Flush()
 		time.Sleep(DefaultPushRetryDelay)
 	}
