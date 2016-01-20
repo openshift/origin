@@ -213,12 +213,12 @@ func TestJSONPrinter(t *testing.T) {
 	testPrinter(t, &JSONPrinter{}, json.Unmarshal)
 }
 
-func PrintCustomType(obj *TestPrintType, w io.Writer, options printOptions) error {
+func PrintCustomType(obj *TestPrintType, w io.Writer, options PrintOptions) error {
 	_, err := fmt.Fprintf(w, "%s", obj.Data)
 	return err
 }
 
-func ErrorPrintHandler(obj *TestPrintType, w io.Writer, options printOptions) error {
+func ErrorPrintHandler(obj *TestPrintType, w io.Writer, options PrintOptions) error {
 	return fmt.Errorf("ErrorPrintHandler error")
 }
 
@@ -752,7 +752,7 @@ func TestPrintHumanReadableService(t *testing.T) {
 
 	for _, svc := range tests {
 		buff := bytes.Buffer{}
-		printService(&svc, &buff, printOptions{false, false, false, false, false, []string{}})
+		printService(&svc, &buff, PrintOptions{false, false, false, false, false, []string{}})
 		output := string(buff.Bytes())
 		ip := svc.Spec.ClusterIP
 		if !strings.Contains(output, ip) {
@@ -1041,7 +1041,7 @@ func TestPrintPod(t *testing.T) {
 
 	buf := bytes.NewBuffer([]byte{})
 	for _, test := range tests {
-		printPod(&test.pod, buf, printOptions{false, false, false, true, false, []string{}})
+		printPod(&test.pod, buf, PrintOptions{false, false, false, true, false, []string{}})
 		// We ignore time
 		if !strings.HasPrefix(buf.String(), test.expect) {
 			t.Fatalf("Expected: %s, got: %s", test.expect, buf.String())
@@ -1134,7 +1134,7 @@ func TestPrintNonTerminatedPod(t *testing.T) {
 
 	buf := bytes.NewBuffer([]byte{})
 	for _, test := range tests {
-		printPod(&test.pod, buf, printOptions{false, false, false, false, false, []string{}})
+		printPod(&test.pod, buf, PrintOptions{false, false, false, false, false, []string{}})
 		// We ignore time
 		if !strings.HasPrefix(buf.String(), test.expect) {
 			t.Fatalf("Expected: %s, got: %s", test.expect, buf.String())
@@ -1194,7 +1194,7 @@ func TestPrintPodWithLabels(t *testing.T) {
 
 	buf := bytes.NewBuffer([]byte{})
 	for _, test := range tests {
-		printPod(&test.pod, buf, printOptions{false, false, false, false, false, test.labelColumns})
+		printPod(&test.pod, buf, PrintOptions{false, false, false, false, false, test.labelColumns})
 		// We ignore time
 		if !strings.HasPrefix(buf.String(), test.startsWith) || !strings.HasSuffix(buf.String(), test.endsWith) {
 			t.Fatalf("Expected to start with: %s and end with: %s, but got: %s", test.startsWith, test.endsWith, buf.String())
@@ -1255,7 +1255,7 @@ func TestPrintDeployment(t *testing.T) {
 
 	buf := bytes.NewBuffer([]byte{})
 	for _, test := range tests {
-		printDeployment(&test.deployment, buf, printOptions{false, false, false, true, false, []string{}})
+		printDeployment(&test.deployment, buf, PrintOptions{false, false, false, true, false, []string{}})
 		if buf.String() != test.expect {
 			t.Fatalf("Expected: %s, got: %s", test.expect, buf.String())
 		}
