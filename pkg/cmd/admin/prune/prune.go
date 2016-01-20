@@ -12,6 +12,8 @@ import (
 
 const PruneRecommendedName = "prune"
 
+const PruneGroupsRecommendedName = "groups"
+
 const pruneLong = `Remove older versions of resources from the server
 
 The commands here allow administrators to manage the older versions of resources on
@@ -29,6 +31,6 @@ func NewCommandPrune(name, fullName string, f *clientcmd.Factory, out io.Writer)
 	cmds.AddCommand(NewCmdPruneBuilds(f, fullName, PruneBuildsRecommendedName, out))
 	cmds.AddCommand(NewCmdPruneDeployments(f, fullName, PruneDeploymentsRecommendedName, out))
 	cmds.AddCommand(NewCmdPruneImages(f, fullName, PruneImagesRecommendedName, out))
-	cmds.AddCommand(groups.NewCmdPrune(groups.PruneRecommendedName, fullName+" "+groups.PruneRecommendedName, f, out))
+	cmds.AddCommand(groups.NewCmdPrune(PruneGroupsRecommendedName, fullName+" "+PruneGroupsRecommendedName, f, out))
 	return cmds
 }

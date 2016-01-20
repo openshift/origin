@@ -3314,9 +3314,9 @@ _openshift_admin_prune_images()
     must_have_one_noun=()
 }
 
-_openshift_admin_prune_prune()
+_openshift_admin_prune_groups()
 {
-    last_command="openshift_admin_prune_prune"
+    last_command="openshift_admin_prune_groups"
     commands=()
 
     flags=()
@@ -3398,7 +3398,7 @@ _openshift_admin_prune()
     commands+=("builds")
     commands+=("deployments")
     commands+=("images")
-    commands+=("prune")
+    commands+=("groups")
 
     flags=()
     two_word_flags=()
