@@ -10,6 +10,7 @@ set -o pipefail
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/log.sh"
 
 echo "[INFO] Starting containerized end-to-end test"
 
@@ -19,6 +20,11 @@ TMPDIR="${TMPDIR:-"/tmp"}"
 BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-e2e-containerized}"
 setup_env_vars
 reset_tmp_dir
+
+# dd if=/dev/zero of=/tmp/file-taking-size  bs=999M  count=1
+# sync
+# rm -rf /tmp/file-taking-size
+
 
 function cleanup()
 {
@@ -66,6 +72,9 @@ function cleanup()
 
 trap "exit" INT TERM
 trap "cleanup" EXIT
+
+os::log::install_system_logger
+os::log::install_cleanup
 
 out=$(
 	set +e

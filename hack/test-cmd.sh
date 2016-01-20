@@ -11,6 +11,7 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 cd "${OS_ROOT}"
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/log.sh"
 os::log::install_errexit
 
 function cleanup()
@@ -62,6 +63,12 @@ LOG_DIR=${BASETMPDIR}/logs
 API_HOST=${API_HOST:-127.0.0.1}
 export API_PORT=${API_PORT:-28443}
 
+# this is insane and should clearly not matter
+# dd if=/dev/zero of=/tmp/file-taking-size  bs=999M  count=1
+# sync
+# rm -rf /tmp/file-taking-size
+
+
 export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 export ETCD_PORT=${ETCD_PORT:-24001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
@@ -71,6 +78,9 @@ mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_
 reset_tmp_dir
 
 echo "Logging to ${LOG_DIR}..."
+
+os::log::install_system_logger
+os::log::install_cleanup
 
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG

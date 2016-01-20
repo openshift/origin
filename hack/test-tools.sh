@@ -13,6 +13,7 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
+
 for tool in ${OS_ROOT}/tools/*; do
 	test_file=${tool}/test/integration.sh
 	if [ -e ${test_file} ]; then

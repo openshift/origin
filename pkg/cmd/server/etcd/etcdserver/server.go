@@ -1,5 +1,5 @@
 // This is a somewhat faithful reproduction of etcdmain/etcd.go
-package etcd
+package etcdserver
 
 import (
 	"fmt"

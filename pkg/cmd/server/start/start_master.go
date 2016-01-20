@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -424,7 +425,7 @@ func startHealth(openshiftConfig *origin.MasterConfig) error {
 func startAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	// start etcd
 	if oc.Options.EtcdConfig != nil {
-		etcd.RunEtcd(oc.Options.EtcdConfig)
+		etcdserver.RunEtcd(oc.Options.EtcdConfig)
 	}
 
 	// verify we can connect to etcd with the provided config
