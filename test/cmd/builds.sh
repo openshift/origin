@@ -36,7 +36,7 @@ os::cmd::expect_success 'oc delete is/binary-test bc/binary-test'
 
 # Build from Dockerfile with output to DockerImage
 os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1' --to-docker"
-os::cmd::expect_success_and_text "oc get bc/origin --template '${template}'" '^DockerImage library/origin:latest$'
+os::cmd::expect_success_and_text "oc get bc/origin --template '${template}'" '^DockerImage origin:latest$'
 
 os::cmd::expect_success 'oc delete is/origin'
 

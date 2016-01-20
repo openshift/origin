@@ -56,6 +56,12 @@ func TestParseDockerImageReference(t *testing.T) {
 			Name:      "baz",
 		},
 		{
+			From:      "bar/library/baz",
+			Registry:  "bar",
+			Namespace: "library",
+			Name:      "baz",
+		},
+		{
 			From:      "bar/foo/baz:tag",
 			Registry:  "bar",
 			Namespace: "foo",
@@ -76,10 +82,15 @@ func TestParseDockerImageReference(t *testing.T) {
 			Name:      "baz",
 		},
 		{
-			From:      "bar:5000/baz",
+			From:      "bar:5000/library/baz",
 			Registry:  "bar:5000",
-			Namespace: DockerDefaultNamespace,
+			Namespace: "library",
 			Name:      "baz",
+		},
+		{
+			From:     "bar:5000/baz",
+			Registry: "bar:5000",
+			Name:     "baz",
 		},
 		{
 			From:      "bar:5000/foo/baz:tag",
@@ -96,14 +107,36 @@ func TestParseDockerImageReference(t *testing.T) {
 			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
-			From:      "myregistry.io/foo",
-			Registry:  "myregistry.io",
-			Namespace: DockerDefaultNamespace,
-			Name:      "foo",
+			From:     "myregistry.io/foo",
+			Registry: "myregistry.io",
+			Name:     "foo",
 		},
 		{
-			From:      "localhost/bar",
-			Registry:  "localhost",
+			From:     "localhost/bar",
+			Registry: "localhost",
+			Name:     "bar",
+		},
+		{
+			From:      "docker.io/library/myapp",
+			Registry:  "docker.io",
+			Namespace: "library",
+			Name:      "myapp",
+		},
+		{
+			From:      "docker.io/myapp",
+			Registry:  "docker.io",
+			Namespace: DockerDefaultNamespace,
+			Name:      "myapp",
+		},
+		{
+			From:      "docker.io/user/myapp",
+			Registry:  "docker.io",
+			Namespace: "user",
+			Name:      "myapp",
+		},
+		{
+			From:      "index.docker.io/bar",
+			Registry:  "index.docker.io",
 			Namespace: DockerDefaultNamespace,
 			Name:      "bar",
 		},
@@ -238,22 +271,22 @@ func TestDockerImageReferenceString(t *testing.T) {
 	}{
 		{
 			Name:     "foo",
-			Expected: "library/foo",
+			Expected: "foo",
 		},
 		{
 			Name:     "foo",
 			Tag:      "tag",
-			Expected: "library/foo:tag",
+			Expected: "foo:tag",
 		},
 		{
 			Name:     "foo",
 			ID:       "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-			Expected: "library/foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected: "foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
 			Name:     "foo",
 			ID:       "3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-			Expected: "library/foo:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected: "foo:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
 			Namespace: "bar",
@@ -307,10 +340,35 @@ func TestDockerImageReferenceString(t *testing.T) {
 		},
 		{
 			Registry:  "bar:5000",
+			Namespace: "library",
+			Name:      "baz",
+			Tag:       "tag",
+			Expected:  "bar:5000/library/baz:tag",
+		},
+		{
+			Registry:  "bar:5000",
 			Namespace: "foo",
 			Name:      "baz",
 			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 			Expected:  "bar:5000/foo/baz@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
+			Registry:  "docker.io",
+			Namespace: "user",
+			Name:      "app",
+			Expected:  "docker.io/user/app",
+		},
+		{
+			Registry: "index.docker.io",
+			Name:     "foo",
+			Expected: "index.docker.io/library/foo",
+		},
+		{
+			Registry:  "index.docker.io",
+			Namespace: "library",
+			Name:      "bar",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected:  "index.docker.io/library/bar@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 	}
 
