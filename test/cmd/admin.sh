@@ -254,6 +254,20 @@ os::cmd::expect_success 'oadm policy remove-scc-from-group restricted system:aut
 os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'system:authenticated'
 os::cmd::expect_success 'oadm policy reconcile-sccs --confirm'
 os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'system:authenticated'
+
+os::cmd::expect_success 'oc label scc/restricted foo=bar'
+os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'foo: bar'
+os::cmd::expect_success 'oadm policy reconcile-sccs --confirm --additive-only=true'
+os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'foo: bar'
+os::cmd::expect_success 'oadm policy reconcile-sccs --confirm --additive-only=false'
+os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'foo: bar'
+
+os::cmd::expect_success 'oc annotate scc/restricted topic="my-foo-bar"'
+os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
+os::cmd::expect_success 'oadm policy reconcile-sccs --confirm --additive-only=true'
+os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
+os::cmd::expect_success 'oadm policy reconcile-sccs --confirm --additive-only=false'
+os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
 echo "reconcile-scc: ok"
 
 

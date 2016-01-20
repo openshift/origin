@@ -94,7 +94,7 @@ func NewCmdReconcileSCC(name, fullName string, f *clientcmd.Factory, out io.Writ
 	}
 
 	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "Specify that cluster SCCs should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")
-	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "Preserves extra users and groups in the SCC as well as existing priorities.")
+	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "Preserves extra users, groups, labels and annotations in the SCC as well as existing priorities.")
 	cmd.Flags().StringVar(&o.InfraNamespace, "infrastructure-namespace", o.InfraNamespace, "Name of the infrastructure namespace.")
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().Lookup("output").DefValue = "yaml"
@@ -235,6 +235,10 @@ func (o *ReconcileSCCOptions) computeUpdatedSCC(expected kapi.SecurityContextCon
 		if actual.Priority != nil {
 			expected.Priority = actual.Priority
 		}
+
+		// preserve labels and annotations
+		expected.Labels = mergeMaps(expected.Labels, actual.Labels)
+		expected.Annotations = mergeMaps(expected.Annotations, actual.Annotations)
 	}
 
 	// sort users and groups to remove any variants in order when diffing
@@ -243,13 +247,36 @@ func (o *ReconcileSCCOptions) computeUpdatedSCC(expected kapi.SecurityContextCon
 	sort.StringSlice(expected.Groups).Sort()
 	sort.StringSlice(expected.Users).Sort()
 
-	// make a copy of the expected scc here so we can ignore metadata diffs.
+	// compute the updated scc as follows:
+	// 1. start with the expected scc
+	// 2. take the objectmeta from the actual scc (preserves the resource version and uid)
+	// 3. add back the labels and annotations from the expected scc (which were already merged if unioning was desired)
 	updated := expected
-	expected.ObjectMeta = actual.ObjectMeta
+	updated.ObjectMeta = actual.ObjectMeta
+	updated.ObjectMeta.Labels = expected.Labels
+	updated.ObjectMeta.Annotations = expected.Annotations
 
-	if !kapi.Semantic.DeepEqual(expected, actual) {
+	if !kapi.Semantic.DeepEqual(updated, actual) {
 		needsUpdate = true
 	}
 
 	return &updated, needsUpdate
+}
+
+func mergeMaps(a, b map[string]string) map[string]string {
+	if a == nil && b == nil {
+		return nil
+	}
+
+	res := make(map[string]string)
+
+	for k, v := range a {
+		res[k] = v
+	}
+
+	for k, v := range b {
+		res[k] = v
+	}
+
+	return res
 }
