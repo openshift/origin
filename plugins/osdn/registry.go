@@ -606,7 +606,7 @@ func (registry *Registry) SetBaseEndpointsHandler(base pconfig.EndpointsConfigHa
 	cn, err := registry.oClient.ClusterNetwork().Get("default")
 	if err != nil {
 		// "can't happen"; StartNode() will already have ensured that there's no error
-		panic("Failed to get ClusterNetwork: " + err.Error())
+		log.Fatalf("Failed to get ClusterNetwork: %v", err)
 	}
 	_, registry.clusterNetwork, _ = net.ParseCIDR(cn.Network)
 	_, registry.serviceNetwork, _ = net.ParseCIDR(cn.ServiceNetwork)
