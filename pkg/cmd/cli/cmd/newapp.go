@@ -258,8 +258,18 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 				installing = append(installing, t)
 			}
 		case *buildapi.BuildConfig:
-			if len(t.Spec.Triggers) > 0 {
-				fmt.Fprintf(out, "%sBuild scheduled for %q - use the logs command to track its progress.\n", indent, t.Name)
+			triggered := false
+			for _, trigger := range t.Spec.Triggers {
+				switch trigger.Type {
+				case buildapi.ImageChangeBuildTriggerType, buildapi.ConfigChangeBuildTriggerType:
+					triggered = true
+					break
+				}
+			}
+			if triggered {
+				fmt.Fprintf(out, "%sBuild scheduled for %q, use 'oc logs' to track its progress.\n", indent, t.Name)
+			} else {
+				fmt.Fprintf(out, "%sBuild config %q does not include any automatic triggers, use 'oc start-build' to start a build.\n", indent, t.Name)
 			}
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
