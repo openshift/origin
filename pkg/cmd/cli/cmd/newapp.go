@@ -580,6 +580,10 @@ The '%[2]s' command will match arguments to the following types:
 
 See '%[2]s' for examples.
 `, t, c.Name())
+	case newapp.ErrMultipleMatches:
+		return fmt.Errorf(err.(newapp.ErrMultipleMatches).UsageError(""))
+	case newapp.ErrPartialMatch:
+		return fmt.Errorf(err.(newapp.ErrPartialMatch).UsageError(""))
 	}
 	switch err {
 	case errNoTokenAvailable:
