@@ -79,11 +79,17 @@ os::cmd::expect_success 'oc delete route external'
 os::cmd::expect_success 'oc delete svc external'
 # Expose multiport service and verify we set a port in the route
 os::cmd::expect_success 'oc create -f test/fixtures/multiport-service.yaml'
-os::cmd::expect_success 'oc expose svc/frontend --name route-with-set-port'
+os::cmd::expect_success 'oc expose svc/multiport-service --name route-with-set-port'
 os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{{.spec.port.targetPort}}' --output-version=v1" "web"
+os::cmd::expect_success 'oc delete all --all'
+# Verify that we can set a route port
+os::cmd::expect_success 'oc create -f test/fixtures/multiport-service.yaml'
+os::cmd::expect_success 'oc expose svc/multiport-service --target-port 8888 --name test-route'
+os::cmd::expect_success_and_text "oc get route test-route --template='{{.spec.port.targetPort}}'" "8888"
+os::cmd::expect_failure 'oc expose svc/multiport-service --target-port web3 --name failed'
+os::cmd::expect_success 'oc delete all --all'
 echo "expose: ok"
 
-os::cmd::expect_success 'oc delete all --all'
 
 # switch to test user to be sure that default project admin policy works properly
 project=$(oc project -q)

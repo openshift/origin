@@ -4,28 +4,22 @@ items:
 - apiVersion: v1
   kind: Service
   metadata:
-    labels:
-      test: missing-route-port
-    name: multiport-service
+    name: named-port-service
   spec:
     ports:
     - name: web
-      port: 5432
+      port: 80
       protocol: TCP
-      targetPort: 8080
-    - name: web2
-      port: 5433
-      protocol: TCP
-      targetPort: 8888
+      targetPort: http
     selector:
-      name: multiport-service
+      name: named-port-service
     sessionAffinity: None
     type: ClusterIP
 - apiVersion: v1
   kind: Pod
   metadata:
     labels:
-      name: multiport-service
+      name: named-port-service
     name: test-pod
   spec:
     containers:
@@ -33,11 +27,8 @@ items:
       imagePullPolicy: IfNotPresent
       name: test-pod
       ports:
-      - containerPort: 8080
+      - containerPort: 7070
         name: http
-        protocol: TCP
-      - containerPort: 8888
-        name: http2
         protocol: TCP
       resources: {}
       securityContext:

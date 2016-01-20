@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"strconv"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -39,7 +40,7 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 	for key, value := range genericParams {
 		strVal, isString := value.(string)
 		if !isString {
-			return nil, fmt.Errorf("expected string, saw %v for '%s'", value, key)
+			return nil, fmt.Errorf("expected string, saw %v for %q", value, key)
 		}
 		params[key] = strVal
 	}
@@ -56,7 +57,7 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 	if !found || len(name) == 0 {
 		name, found = params["default-name"]
 		if !found || len(name) == 0 {
-			return nil, fmt.Errorf("'name' is a required parameter.")
+			return nil, fmt.Errorf("route must have a name, use --name to set one")
 		}
 	}
 
@@ -73,10 +74,15 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 		},
 	}
 
-	portString := params["target-port"]
-	if len(portString) > 0 {
-		route.Spec.Port = &api.RoutePort{
-			TargetPort: util.NewIntOrStringFromString(portString),
+	if portString := params["target-port"]; len(portString) > 0 {
+		if port, err := strconv.Atoi(portString); err != nil {
+			route.Spec.Port = &api.RoutePort{
+				TargetPort: util.NewIntOrStringFromString(portString),
+			}
+		} else {
+			route.Spec.Port = &api.RoutePort{
+				TargetPort: util.NewIntOrStringFromInt(port),
+			}
 		}
 	}
 

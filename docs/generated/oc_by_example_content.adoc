@@ -374,17 +374,20 @@ Expose a replicated application as a service or route
 
 [options="nowrap"]
 ----
-  # Create a route based on service nginx. The new route will re-use nginx's labels
-  $ oc expose service nginx
+  # Create a route based on service nginx. The new route will re-use nginx's labels.
+  $ oc expose svc/nginx
 
-  # Create a route and specify your own label and route name
-  $ oc expose service nginx -l name=myroute --name=fromdowntown
+  # Create a route based on service nginx and specify the port on the container that the route should direct traffic to.
+  $ oc expose svc/nginx --target-port=80
 
-  # Create a route and specify a hostname
-  $ oc expose service nginx --hostname=www.example.com
+  # Create a route and specify your own label and route name.
+  $ oc expose svc/nginx -l name=myroute --name=fromdowntown
 
-  # Expose a deployment configuration as a service and use the specified port
-  $ oc expose dc ruby-hello-world --port=8080
+  # Create a route and specify a hostname.
+  $ oc expose svc/nginx --hostname=www.example.com
+
+  # Expose a deployment configuration as a service and use the specified port.
+  $ oc expose dc/ruby-hello-world --port=8080
 ----
 ====
 

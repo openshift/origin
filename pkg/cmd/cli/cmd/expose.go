@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -22,17 +25,20 @@ There is also the ability to expose a deployment configuration, replication cont
 as a new service on a specified port. If no labels are specified, the new object will re-use the
 labels from the object it exposes.`
 
-	exposeExample = `  # Create a route based on service nginx. The new route will re-use nginx's labels
-  $ %[1]s expose service nginx
+	exposeExample = `  # Create a route based on service nginx. The new route will re-use nginx's labels.
+  $ %[1]s expose svc/nginx
 
-  # Create a route and specify your own label and route name
-  $ %[1]s expose service nginx -l name=myroute --name=fromdowntown
+  # Create a route based on service nginx and specify the port on the container that the route should direct traffic to.
+  $ %[1]s expose svc/nginx --target-port=80
 
-  # Create a route and specify a hostname
-  $ %[1]s expose service nginx --hostname=www.example.com
+  # Create a route and specify your own label and route name.
+  $ %[1]s expose svc/nginx -l name=myroute --name=fromdowntown
 
-  # Expose a deployment configuration as a service and use the specified port
-  $ %[1]s expose dc ruby-hello-world --port=8080`
+  # Create a route and specify a hostname.
+  $ %[1]s expose svc/nginx --hostname=www.example.com
+
+  # Expose a deployment configuration as a service and use the specified port.
+  $ %[1]s expose dc/ruby-hello-world --port=8080`
 )
 
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command
@@ -50,6 +56,8 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	// when validating the use of it (invalid for routes)
 	cmd.Flags().Set("protocol", "")
 	cmd.Flag("protocol").DefValue = ""
+	// Set target-port usage to note that it can be used for routes, too.
+	cmd.Flag("target-port").Usage = "Number or name for the port on the container that the route or service should direct traffic to. Optional."
 	defRun := cmd.Run
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		err := validate(cmd, f, args)
@@ -99,6 +107,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			// Set default protocol back for generating services
 			if len(cmdutil.GetFlagString(cmd, "protocol")) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
+				cmd.Flag("protocol").Changed = false
 			}
 			return validateFlags(cmd, generator)
 		case "":
@@ -111,24 +120,17 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			if err := validateFlags(cmd, generator); err != nil {
 				return err
 			}
-			svc, err := kc.Services(info.Namespace).Get(info.Name)
+
+			routePort := cmdutil.GetFlagString(cmd, "target-port")
+			used := len(routePort) > 0
+			routePort, err = validateService(kc, info.Namespace, info.Name, routePort)
 			if err != nil {
 				return err
 			}
 
-			supportsTCP := false
-			for _, port := range svc.Spec.Ports {
-				if port.Protocol == kapi.ProtocolTCP {
-					if len(port.Name) > 0 {
-						// Pass service port name as the route target port, if it is named
-						cmd.Flags().Set("target-port", port.Name)
-					}
-					supportsTCP = true
-					break
-				}
-			}
-			if !supportsTCP {
-				return fmt.Errorf("service %q doesn't support TCP", info.Name)
+			if !used {
+				cmd.Flags().Set("target-port", routePort)
+				cmd.Flag("target-port").Changed = false
 			}
 		}
 
@@ -145,6 +147,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			// Set default protocol back for generating services
 			if len(cmdutil.GetFlagString(cmd, "protocol")) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
+				cmd.Flag("protocol").Changed = false
 			}
 			return validateFlags(cmd, generator)
 		}
@@ -176,14 +179,11 @@ func validateFlags(cmd *cobra.Command, generator string) error {
 		if len(cmdutil.GetFlagString(cmd, "container-port")) != 0 {
 			invalidFlags = append(invalidFlags, "--container-port")
 		}
-		if len(cmdutil.GetFlagString(cmd, "target-port")) != 0 {
-			invalidFlags = append(invalidFlags, "--target-port")
+		if len(cmdutil.GetFlagString(cmd, "port")) != 0 {
+			invalidFlags = append(invalidFlags, "--port")
 		}
 		if len(cmdutil.GetFlagString(cmd, "external-ip")) != 0 {
 			invalidFlags = append(invalidFlags, "--external-ip")
-		}
-		if len(cmdutil.GetFlagString(cmd, "port")) != 0 {
-			invalidFlags = append(invalidFlags, "--port")
 		}
 		if len(cmdutil.GetFlagString(cmd, "load-balancer-ip")) != 0 {
 			invalidFlags = append(invalidFlags, "--load-balancer-ip")
@@ -210,4 +210,51 @@ func validateFlags(cmd *cobra.Command, generator string) error {
 	}
 
 	return fmt.Errorf("cannot use %s when generating a %s", msg, strings.Split(generator, "/")[0])
+}
+
+var (
+	noTCPErr       = errors.New("provided service doesn't support TCP")
+	invalidPortErr = errors.New("provided route port cannot be resolved to a valid service target port")
+)
+
+// validateService validates a service that is about to be exposed as a route.
+// TODO: All the input arguments should be fields of an ExposeOptions struct.
+// This refactoring should most probably start from upstream.
+func validateService(kc kclient.Interface, namespace, name, routePort string) (string, error) {
+	svc, err := kc.Services(namespace).Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	portFlagChanged := len(routePort) > 0
+	supportsTCP := false
+	exists := false
+
+	for _, port := range svc.Spec.Ports {
+		if port.Protocol == kapi.ProtocolTCP {
+			supportsTCP = true
+
+			switch {
+			case !portFlagChanged && len(port.Name) > 0:
+				// Pass service port name as the route target port, if it is named.
+				return port.Name, nil
+			case portFlagChanged:
+				if _, err := strconv.Atoi(routePort); err != nil && port.Name == routePort {
+					// Non-numeric target-port; ensure there is a matching service named port.
+					exists = true
+				} else if err == nil && port.TargetPort.String() == routePort {
+					// Numeric target-port; ensure there is a matching service target port.
+					exists = true
+				}
+			}
+		}
+	}
+
+	if !supportsTCP {
+		return "", noTCPErr
+	}
+	if portFlagChanged && !exists {
+		return "", invalidPortErr
+	}
+	return routePort, nil
 }

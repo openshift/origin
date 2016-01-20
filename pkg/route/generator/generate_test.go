@@ -72,6 +72,35 @@ func TestGenerateRoute(t *testing.T) {
 				},
 			},
 		},
+		{
+			params: map[string]interface{}{
+				"labels":       "foo=bar",
+				"name":         "test",
+				"default-name": "someservice",
+				"target-port":  "8080",
+				"hostname":     "www.example.com",
+			},
+			expected: routeapi.Route{
+				ObjectMeta: api.ObjectMeta{
+					Name: "test",
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Spec: routeapi.RouteSpec{
+					Host: "www.example.com",
+					To: api.ObjectReference{
+						Name: "someservice",
+					},
+					Port: &routeapi.RoutePort{
+						TargetPort: util.IntOrString{
+							Kind:   util.IntstrInt,
+							IntVal: 8080,
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		obj, err := generator.Generate(test.params)
