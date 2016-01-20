@@ -506,7 +506,7 @@ func (c *clientCache) ClientConfigForVersion(version string) (*kclient.Config, e
 		c.negotiatingClient = negotiatingClient
 	}
 	config := *c.defaultConfig
-	negotiatedVersion, err := kclient.NegotiateVersion(c.negotiatingClient, &config, version, latest.Versions)
+	negotiatedVersion, err := negotiateVersion(c.negotiatingClient, &config, version, latest.Versions)
 	if err != nil {
 		return nil, err
 	}
