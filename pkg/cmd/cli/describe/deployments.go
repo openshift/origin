@@ -17,6 +17,7 @@ import (
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/labels"
 
+	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -369,9 +370,11 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 	deployedges.AddTriggerEdges(g, dcNode)
 	deployedges.AddDeploymentEdges(g, dcNode)
 	activeDeployment, inactiveDeployments := deployedges.RelevantDeployments(g, dcNode)
+	kubeedges.AddManagedByRCPodEdges(g, activeDeployment)
+	pods := kubeedges.RelevantPods(g, activeDeployment)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
-		descriptions := describeDeployments(dcNode, activeDeployment, inactiveDeployments, d.count)
+		descriptions := describeDeployments(dcNode, activeDeployment, inactiveDeployments, pods, d.count)
 		for i, description := range descriptions {
 			descriptions[i] = fmt.Sprintf("%v %v", name, description)
 		}
