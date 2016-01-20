@@ -1,19 +1,19 @@
-@pf-path: "../../bower_components/patternfly/less";
-@pf-components-path: "../../bower_components/patternfly";
+@bower-path: "../../bower_components";
+@pf-path: "@{bower-path}/patternfly/less";
 
 /* PatternFly */
 
 // /* Bootstrap 3 */
-@import "@{pf-components-path}/components/bootstrap/less/bootstrap.less";
+@import "@{bower-path}/bootstrap/less/bootstrap.less";
 
 // /* Font Awesome */
-@import "@{pf-components-path}/components/font-awesome/less/font-awesome.less";
+@import "@{bower-path}/font-awesome/less/font-awesome.less";
 
 // /* Bootstrap-Combobox */
-@import "@{pf-components-path}/components/bootstrap-combobox/less/combobox.less";
+@import "@{bower-path}/bootstrap-combobox/less/combobox.less";
 
 // /* Bootstrap-Select */
-@import (less) "@{pf-components-path}/components/bootstrap-select/dist/css/bootstrap-select.css";
+@import "@{bower-path}/bootstrap-select/less/bootstrap-select.less";
 
 // /* PatternFly overrides and new stuff */
 @import "@{pf-path}/variables.less";
@@ -29,7 +29,7 @@
 @import "@{pf-path}/buttons.less";
 @import "@{pf-path}/close.less";
 @import "@{pf-path}/cards.less";
-@import (less) "@{pf-components-path}/components/c3/c3.css";
+@import (less) "@{bower-path}/c3/c3.css";
 @import "@{pf-path}/charts.less";
 @import "@{pf-path}/close.less";
 @import "@{pf-path}/datatables.less";
