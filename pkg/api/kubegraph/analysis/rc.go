@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	DuelingRepliationControllerWarning = "DuelingReplicationControllers"
+	DuelingReplicationControllerWarning = "DuelingReplicationControllers"
 )
 
 func FindDuelingReplicationControllers(g osgraph.Graph) []osgraph.Marker {
@@ -45,7 +45,7 @@ func FindDuelingReplicationControllers(g osgraph.Graph) []osgraph.Marker {
 					RelatedNodes: relatedNodes,
 
 					Severity: osgraph.WarningSeverity,
-					Key:      DuelingRepliationControllerWarning,
+					Key:      DuelingReplicationControllerWarning,
 					Message:  fmt.Sprintf("%s is competing for %s with %s", rcNode.ResourceString(), podNode.ResourceString(), strings.Join(involvedRCNames, ", ")),
 				})
 			}
