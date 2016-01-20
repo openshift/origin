@@ -86,23 +86,29 @@ etcd -name test -data-dir ${ETCD_DIR} \
  &>"${etcdlog}" &
 export ETCD_PID=$!
 
+date
 wait_for_url "http://${ETCD_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160
+date
 curl -X PUT	"http://${ETCD_HOST}:${ETCD_PORT}/v2/keys/_test"
 echo
+date
 
 function exectest() {
+	date
 	echo "Running $1..."
 
 	result=1
 	if [ -n "${VERBOSE-}" ]; then
-		ETCD_PORT=${ETCD_PORT} "${testexec}" -test.v -test.run="^$1$" "${@:2}" 2>&1
+		TEST_NAME=${1} ETCD_PORT=${ETCD_PORT} "${testexec}" -test.v -test.run="^$1$" "${@:2}" 2>&1
 		result=$?
 	else
-		out=$(ETCD_PORT=${ETCD_PORT} "${testexec}" -test.run="^$1$" "${@:2}" 2>&1)
+		out=$(TEST_NAME=${1} ETCD_PORT=${ETCD_PORT} "${testexec}" -test.run="^$1$" "${@:2}" 2>&1)
 		result=$?
 	fi
 
 	os::text::clear_last_line
+
+	date
 
 	if [[ ${result} -eq 0 ]]; then
 		os::text::print_green "ok      $1"
