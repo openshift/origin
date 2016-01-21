@@ -10,7 +10,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
-func TestAlwaysPullBuildImagesAdmission(t *testing.T) {
+func TestAlwaysPullBuildImagesForBuilds(t *testing.T) {
 	tests := []struct {
 		name          string
 		build         *buildapi.Build
@@ -95,7 +95,28 @@ func TestAlwaysPullBuildImagesAdmission(t *testing.T) {
 	}
 }
 
-func TestAlwaysPullBuildImagesAdmissionOtherResources(t *testing.T) {
+func TestAlwaysPullBuildImagesForBuildRequests(t *testing.T) {
+	request := &buildapi.BuildRequest{}
+	ops := []admission.Operation{admission.Create, admission.Update}
+	for _, op := range ops {
+		c := NewAlwaysPullBuildImages()
+		attrs := admission.NewAttributesRecord(request, "BuildRequest", "default", "name", "buildrequests", "", op, nil)
+		err := c.Admit(attrs)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if request.Annotations == nil {
+			t.Fatal("unexpected nil annotations")
+		}
+
+		if e, a := "true", request.Annotations[buildapi.BuildAlwaysPullImagesAnnotation]; e != a {
+			t.Fatalf("unexpected value for %s: %q", buildapi.BuildAlwaysPullImagesAnnotation, a)
+		}
+	}
+}
+
+func TestAlwaysPullBuildImagesForOtherResources(t *testing.T) {
 	build := &buildapi.Build{
 		Spec: buildapi.BuildSpec{
 			Strategy: buildapi.BuildStrategy{
@@ -127,7 +148,7 @@ func TestAlwaysPullBuildImagesAdmissionOtherResources(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name:     "non-build resource",
+			name:     "other resource",
 			kind:     "Foo",
 			resource: "foos",
 			object:   build,
@@ -143,6 +164,13 @@ func TestAlwaysPullBuildImagesAdmissionOtherResources(t *testing.T) {
 			name:        "non-build object",
 			kind:        "Build",
 			resource:    "builds",
+			object:      &buildapi.BuildConfig{},
+			expectError: true,
+		},
+		{
+			name:        "non-buildrequest object",
+			kind:        "BuildRequest",
+			resource:    "buildrequests",
 			object:      &buildapi.BuildConfig{},
 			expectError: true,
 		},

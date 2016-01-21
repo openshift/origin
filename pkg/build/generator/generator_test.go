@@ -307,6 +307,73 @@ func TestInstantiateWithLastVersion(t *testing.T) {
 	}
 }
 
+func TestInstantiateWithAlwaysPullAnnotation(t *testing.T) {
+	request := &buildapi.BuildRequest{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:        "test-build-1",
+			Namespace:   kapi.NamespaceDefault,
+			Annotations: map[string]string{buildapi.BuildAlwaysPullImagesAnnotation: "true"},
+		},
+	}
+
+	strategies := []buildapi.BuildStrategy{
+		{
+			CustomStrategy: &buildapi.CustomBuildStrategy{
+				From: kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "foo/bar:latest",
+				},
+			},
+		},
+		{
+			DockerStrategy: &buildapi.DockerBuildStrategy{
+				From: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "foo/bar:latest",
+				},
+			},
+		},
+		{
+			SourceStrategy: &buildapi.SourceBuildStrategy{
+				From: kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "foo/bar:latest",
+				},
+			},
+		},
+	}
+
+	for i := range strategies {
+		var createdBuild *buildapi.Build
+		g := mockBuildGenerator()
+		c := g.Client.(Client)
+		c.CreateBuildFunc = func(ctx kapi.Context, build *buildapi.Build) error {
+			createdBuild = build
+			return nil
+		}
+		c.GetBuildFunc = func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+			return createdBuild, nil
+		}
+		c.GetBuildConfigFunc = func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+			return mocks.MockBuildConfig(mocks.MockSource(), strategies[i], mocks.MockOutput()), nil
+		}
+		g.Client = c
+		build, err := g.Instantiate(kapi.NewDefaultContext(), request)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if s := build.Spec.Strategy.CustomStrategy; s != nil && s.ForcePull != true {
+			t.Errorf("Custom forcePull should be true")
+		}
+		if s := build.Spec.Strategy.DockerStrategy; s != nil && s.ForcePull != true {
+			t.Errorf("Docker forcePull should be true")
+		}
+		if s := build.Spec.Strategy.SourceStrategy; s != nil && s.ForcePull != true {
+			t.Errorf("Source forcePull should be true")
+		}
+	}
+}
+
 func TestFindImageTrigger(t *testing.T) {
 	defaultTrigger := &buildapi.ImageChangeTrigger{}
 	image1Trigger := &buildapi.ImageChangeTrigger{
@@ -472,6 +539,59 @@ func TestCloneError(t *testing.T) {
 	_, err := generator.Clone(kapi.NewContext(), &buildapi.BuildRequest{})
 	if err == nil || !strings.Contains(err.Error(), "get-error") {
 		t.Errorf("Expected get-error, got different %v", err)
+	}
+}
+
+func TestCloneAlwaysPullAnnotation(t *testing.T) {
+	request := &buildapi.BuildRequest{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:        "test-build-1",
+			Namespace:   kapi.NamespaceDefault,
+			Annotations: map[string]string{buildapi.BuildAlwaysPullImagesAnnotation: "true"},
+		},
+	}
+
+	strategies := []buildapi.BuildStrategy{
+		{CustomStrategy: &buildapi.CustomBuildStrategy{}},
+		{DockerStrategy: &buildapi.DockerBuildStrategy{}},
+		{SourceStrategy: &buildapi.SourceBuildStrategy{}},
+	}
+
+	for i := range strategies {
+		var createdBuild *buildapi.Build
+		generator := BuildGenerator{Client: Client{
+			CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
+				createdBuild = build
+				return nil
+			},
+			GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+				if createdBuild == nil {
+					return &buildapi.Build{
+						ObjectMeta: kapi.ObjectMeta{
+							Name:      "test-build-1",
+							Namespace: kapi.NamespaceDefault,
+						},
+						Spec: buildapi.BuildSpec{
+							Strategy: strategies[i],
+						},
+					}, nil
+				}
+				return createdBuild, nil
+			},
+		}}
+		build, err := generator.Clone(kapi.NewDefaultContext(), request)
+		if err != nil {
+			t.Errorf("Unexpected error %v", err)
+		}
+		if s := build.Spec.Strategy.CustomStrategy; s != nil && s.ForcePull != true {
+			t.Errorf("Custom forcePull should be true")
+		}
+		if s := build.Spec.Strategy.DockerStrategy; s != nil && s.ForcePull != true {
+			t.Errorf("Docker forcePull should be true")
+		}
+		if s := build.Spec.Strategy.SourceStrategy; s != nil && s.ForcePull != true {
+			t.Errorf("Source forcePull should be true")
+		}
 	}
 }
 

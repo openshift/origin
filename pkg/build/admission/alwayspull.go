@@ -1,6 +1,7 @@
 package admission
 
 import (
+	"fmt"
 	"io"
 
 	"k8s.io/kubernetes/pkg/admission"
@@ -30,28 +31,29 @@ func NewAlwaysPullBuildImages() admission.Interface {
 	}
 }
 
+const buildRequestsResource = "buildrequests"
+
 func (a *alwaysPull) Admit(attr admission.Attributes) error {
-	if len(attr.GetSubresource()) != 0 || attr.GetResource() != buildsResource {
+	if len(attr.GetSubresource()) != 0 || (attr.GetResource() != buildsResource && attr.GetResource() != buildRequestsResource) {
 		return nil
 	}
 
-	build, ok := attr.GetObject().(*buildapi.Build)
-	if !ok {
-		return errors.NewBadRequest("Resource was marked with kind Build but was unable to be converted")
+	switch obj := attr.GetObject().(type) {
+	case *buildapi.Build:
+		buildapi.SetBuildForcePull(obj.Spec.Strategy)
+	case *buildapi.BuildRequest:
+		setBuildRequestForcePull(obj)
+	default:
+		return errors.NewBadRequest(fmt.Sprintf("Unable to convert %q resource", attr.GetResource()))
 	}
-
-	setForcePull(build.Spec.Strategy)
 
 	return nil
 }
 
-func setForcePull(strategy buildapi.BuildStrategy) {
-	switch {
-	case strategy.DockerStrategy != nil:
-		strategy.DockerStrategy.ForcePull = true
-	case strategy.CustomStrategy != nil:
-		strategy.CustomStrategy.ForcePull = true
-	case strategy.SourceStrategy != nil:
-		strategy.SourceStrategy.ForcePull = true
+func setBuildRequestForcePull(br *buildapi.BuildRequest) {
+	if br.Annotations == nil {
+		br.Annotations = make(map[string]string)
 	}
+
+	br.Annotations[buildapi.BuildAlwaysPullImagesAnnotation] = "true"
 }
