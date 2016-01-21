@@ -52,6 +52,7 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out i
 		ServicePort:      ipfailover.DefaultServicePort,
 		WatchPort:        ipfailover.DefaultWatchPort,
 		NetworkInterface: ipfailover.DefaultInterface,
+		VRRPIDOffset:     0,
 		Replicas:         1,
 	}
 
@@ -80,6 +81,7 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out i
 	cmd.Flags().StringVarP(&options.NetworkInterface, "interface", "i", "", "Network interface bound by VRRP to use for the set of virtual IP ranges/addresses specified.")
 
 	cmd.Flags().IntVarP(&options.WatchPort, "watch-port", "w", ipfailover.DefaultWatchPort, "Port to monitor or watch for resource availability.")
+	cmd.Flags().IntVar(&options.VRRPIDOffset, "vrrp-id-offset", options.VRRPIDOffset, "Offset to use for setting ids of VRRP instances (default offset is 0). This allows multiple ipfailover instances to run within the same cluster.")
 	cmd.Flags().IntVarP(&options.Replicas, "replicas", "r", options.Replicas, "The replication factor of this IP failover configuration; commonly 2 when high availability is desired. Please ensure this matches the number of nodes that satisfy the selector (or default selector) specified.")
 
 	// autocompletion hints
