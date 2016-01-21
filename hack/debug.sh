@@ -31,7 +31,7 @@ try_eval () {
 
 # The environment may contain sensitive information like passwords or private keys
 filter_env () {
-    awk '/"env": \[$/ { indent = index($0, "\""); skipping = 1; next } !skipping { print; } skipping { if (index($0, "]") == indent) skipping = 0; }'
+    awk '/ env:$/ { indent = index($0, "e"); skipping = 1; next } !skipping { print; } skipping { ch = substr($0, indent, 1); if (ch != " " && ch != "-") { skipping = 0; print } }'
 }
 
 log_system () {
@@ -50,6 +50,7 @@ log_system () {
     echo_and_eval  cat /etc/hosts                                     &> $logpath/hosts
     echo_and_eval  cat /etc/resolv.conf                               &> $logpath/resolv.conf
     echo_and_eval  lsmod                                              &> $logpath/modules
+    echo_and_eval  sysctl -a                                          &> $logpath/sysctl
 
     echo_and_eval  oc version                                         &> $logpath/version
     echo                                                             &>> $logpath/version
@@ -104,53 +105,23 @@ do_master () {
 	try_eval ping -c1 -W2 $node
     done
 
-    oc get nodes --template '{{range .items}}{{$name := .metadata.name}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{$name}} {{.address}}{{"\n"}}{{end}}{{end}}{{end}}' > $logmaster/node-ips
-}
+    # Outputs a list of nodes in the form "nodename IP"
+    oc get nodes --template '{{range .items}}{{$name := .metadata.name}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{$name}} {{.address}}{{"\n"}}{{end}}{{end}}{{end}}' > $logdir/meta/nodeinfo
 
-# Returns a list of pods in the form "minion-1:mypod:namespace:10.1.0.2:e4f1d61b"
-get_pods () {
-    if ! pods=$(oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{if (index .status.containerStatuses 0).ready}}{{if not .spec.hostNetwork}}{{.spec.nodeName}}:{{.metadata.name}}:{{.metadata.namespace}}:{{.status.podIP}}:{{printf "%.21s" (index .status.containerStatuses 0).containerID}} {{end}}{{end}}{{end}}{{end}}'); then
-	die "Could not get list of pods"
-    fi
-    echo ${pods//docker:\/\//}
-}
+    # Outputs a list of pods in the form "minion-1 mypod namespace 10.1.0.2 e4f1d61b"
+    oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{if (index .status.containerStatuses 0).ready}}{{if not .spec.hostNetwork}}{{.spec.nodeName}} {{.metadata.name}} {{.metadata.namespace}} {{.status.podIP}} {{printf "%.21s" (index .status.containerStatuses 0).containerID}}{{"\n"}}{{end}}{{end}}{{end}}{{end}}' | sed -e 's|docker://||' > $logdir/meta/podinfo
 
-# Given the name of a variable containing a "podspec" like
-# "minion-1:mypod:namespace:10.1.0.2:e4f1d61b", split into pieces
-split_podspec () {
-    prefix=$1
-    spec=${!prefix}
-
-    array=(${spec//:/ })
-    eval ${prefix}_node="${array[0]}"
-    eval ${prefix}_name="${array[1]}"
-    eval ${prefix}_ns="${array[2]}"
-    eval ${prefix}_addr="${array[3]}"
-    eval ${prefix}_id="${array[4]}"
-}
-
-# Returns a list of services in the form "myservice:namespace:172.30.0.99:tcp:5454"
-get_services () {
-    oc get services --all-namespaces --template '{{range .items}}{{if ne .spec.clusterIP "None"}}{{.metadata.name}}:{{.metadata.namespace}}:{{.spec.clusterIP}}:{{(index .spec.ports 0).protocol}}:{{(index .spec.ports 0).port}} {{end}}{{end}}' | sed -e 's/:TCP:/:tcp:/g' -e 's/:UDP:/:udp:/g'
-}
-
-# Given the name of a variable containing a "servicespec" like
-# "myservice:namespace:172.30.0.99:tcp:5454", split into pieces
-split_servicespec () {
-    prefix=$1
-    spec=${!prefix}
-
-    array=(${spec//:/ })
-    eval ${prefix}_name="${array[0]}"
-    eval ${prefix}_ns="${array[1]}"
-    eval ${prefix}_addr="${array[2]}"
-    eval ${prefix}_proto="${array[3]}"
-    eval ${prefix}_port="${array[4]}"
+    # Outputs a list of services in the form "myservice:namespace:172.30.0.99:tcp:5454"
+    oc get services --all-namespaces --template '{{range .items}}{{if ne .spec.clusterIP "None"}}{{.metadata.name}} {{.metadata.namespace}} {{.spec.clusterIP}} {{(index .spec.ports 0).protocol}} {{(index .spec.ports 0).port}}{{"\n"}}{{end}}{{end}}' | sed -e 's/ TCP / tcp /g' -e 's/ UDP / udp /g' > $logdir/meta/serviceinfo
 }
 
 get_port_for_addr () {
     addr=$1
-    sed -ne "s/.*nw_dst=${addr}.*output://p" $lognode/flows | head -1
+    # The nw_src line works with all current installs. The nw_dst line is needed for
+    # older installs using the original single-tenant rules.
+    sed -n -e "s/.*in_port=\([0-9]*\).*nw_src=${addr}.*/\1/p" \
+	   -e "s/.*nw_dst=${addr}.*output://p" \
+           $lognode/flows | head -1
 }
 
 get_vnid_for_addr () {
@@ -288,7 +259,6 @@ do_node () {
 	die "Could not find node name in $config"
     fi
 
-    logdir=$(dirname $0)
     lognode=$logdir/nodes/$node
     mkdir -p $lognode
 
@@ -304,8 +274,7 @@ do_node () {
     # Remember the name, address, namespace, and pid of the first pod we find on
     # this node which is not in the default namespace
     base_pod_addr=
-    for pod in $(get_pods); do
-	split_podspec pod
+    while read pod_node pod_name pod_ns pod_addr pod_id; do
 	if [ "$pod_node" != "$node" ]; then
 	    continue
 	fi
@@ -330,7 +299,7 @@ do_node () {
 	    base_pod_name=$pod_name
 	    base_pod_pid=$pid
 	fi
-    done
+    done < $logdir/meta/podinfo
 
     if [ -z "$base_pod_addr" ]; then
 	echo "No pods on $node, so no connectivity tests"
@@ -365,8 +334,7 @@ do_node () {
 
     # Now find other pods of various types to test connectivity against
     touch $lognode/pod-connectivity
-    for pod in $(get_pods); do
-	split_podspec pod
+    while read pod_node pod_name pod_ns pod_addr pod_id; do
 	if [ "$pod_addr" = "$base_pod_addr" ]; then
 	    continue
 	fi
@@ -395,7 +363,7 @@ do_node () {
 					 $pod_name $pod_addr \
 					 &>> $lognode/pod-connectivity
 	eval did_${where}_${namespace}=1
-    done
+    done < $logdir/meta/podinfo
 
     do_pod_external_connectivity_check $base_pod_name $base_pod_addr \
 				       $base_pod_pid $base_pod_port \
@@ -404,9 +372,7 @@ do_node () {
 
     # And now for services
     touch $lognode/service-connectivity
-    for service in $(get_services); do
-	split_servicespec service
-
+    while read service_name service_ns service_addr service_proto service_port; do
 	if [ "$service_ns" = "default" ]; then
 	    namespace=default
 	elif [ "$service_ns" = "$base_pod_ns" ]; then
@@ -426,13 +392,12 @@ do_node () {
 					  $service_name $service_addr $service_proto $service_port \
 					  &>> $lognode/service-connectivity
 	eval did_service_${namespace}=1
-    done
+    done < $logdir/meta/serviceinfo
 }
 
 run_self_via_ssh () {
     args=$1
     host=$2
-    remote_logdir=$3
 
     SSH_OPTS='-o StrictHostKeyChecking=no -o PasswordAuthentication=no'
 
@@ -444,30 +409,11 @@ run_self_via_ssh () {
 	return 1
     fi
 
-    if ! try_eval scp $SSH_OPTS $self root@$host:$logdir/debug.sh; then
+    if ! try_eval scp -pr $SSH_OPTS $logdir/meta root@$host:$logdir; then
 	return 1
     fi
 
-    extra_env=""
-    if ! try_eval ssh $SSH_OPTS root@$host oc get pods; then
-	if [ -z "$KUBECONFIG" ]; then
-	    if [ ! -f "$HOME/.kube/config" ]; then
-		return 1
-	    fi
-	    KUBECONFIG="$HOME/.kube/config"
-	fi
-
-	echo "Retrying with local kubeconfig"
-	if ! try_eval scp $SSH_OPTS $KUBECONFIG root@$host:$logdir/.kubeconfig; then
-	    return 1
-	fi
-	extra_env="env KUBECONFIG=$logdir/.kubeconfig"
-	if ! try_eval ssh $SSH_OPTS root@$host $extra_env oc get pods; then
-	    return 1
-	fi
-    fi
-
-    ssh $SSH_OPTS root@$host $extra_env /bin/bash $logdir/debug.sh $args
+    ssh $SSH_OPTS root@$host $extra_env /bin/bash $logdir/meta/debug.sh $args
 }
 
 do_master_and_nodes ()
@@ -479,17 +425,26 @@ do_master_and_nodes ()
     if [ -z "$master" ]; then
 	do_master
     else
-	run_self_via_ssh --master $master $logdir/master && \
+	if run_self_via_ssh --master $master < /dev/null; then
 	    try_eval scp $SSH_OPTS -pr root@$master:$logdir/master $logdir
+	else
+	    return 1
+	fi
     fi
 
     while read name addr; do
 	echo ""
 	echo "Analyzing $name ($addr)"
 
-	run_self_via_ssh --node $addr $logdir/nodes < /dev/null && \
-	    try_eval scp $SSH_OPTS -pr root@$addr:$logdir/nodes $logdir
-    done < $logdir/master/node-ips
+	if ip addr show | grep -q "inet $addr/"; then
+	    # Running on master which is also a node
+	    cp $self $logdir/debug.sh
+	    /bin/bash $logdir/debug.sh --node
+	else
+	    run_self_via_ssh --node $addr < /dev/null && \
+		try_eval scp $SSH_OPTS -pr root@$addr:$logdir/nodes $logdir
+	fi
+    done < $logdir/meta/nodeinfo
 }
 
 ######## Main program starts here
@@ -506,13 +461,13 @@ done
 
 case "$1" in
     --node)
-	logdir=$(dirname $0)
+	logdir=$(dirname $0 | sed -e 's|/meta$||')
 	do_node
 	exit 0
 	;;
 
     --master)
-	logdir=$(dirname $0)
+	logdir=$(dirname $0 | sed -e 's|/meta$||')
 	do_master
 	exit 0
 	;;
@@ -545,6 +500,8 @@ case "$0" in
 esac
 
 logdir=$(mktemp --tmpdir -d openshift-sdn-debug-XXXXXXXXX)
+mkdir $logdir/meta
+cp $self $logdir/meta
 mkdir $logdir/master
 mkdir $logdir/nodes
 do_master_and_nodes "$1" |& tee $logdir/log
