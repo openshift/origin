@@ -196,6 +196,8 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 
 	// Generated web console config
 	config := assets.WebConsoleConfig{
+		APIGroupAddr:        masterURL.Host,
+		APIGroupPrefix:      KubernetesAPIGroupPrefix,
 		MasterAddr:          masterURL.Host,
 		MasterPrefix:        OpenShiftAPIPrefix,
 		MasterResources:     originResources.List(),
