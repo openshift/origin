@@ -15,6 +15,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 )
 
 func TestBuildAdmission(t *testing.T) {
@@ -142,7 +143,9 @@ func TestBuildAdmission(t *testing.T) {
 	ops := []admission.Operation{admission.Create, admission.Update}
 	for _, test := range tests {
 		for _, op := range ops {
-			c := NewBuildByStrategy(fakeClient(test.expectedResource, test.reviewResponse, test.responseObject))
+			client := fakeClient(test.expectedResource, test.reviewResponse, test.responseObject)
+			c := NewBuildByStrategy()
+			c.(oadmission.WantsOpenshiftClient).SetOpenshiftClient(client)
 			attrs := admission.NewAttributesRecord(test.object, test.kind, "default", "name", test.resource, test.subResource, op, fakeUser())
 			err := c.Admit(attrs)
 			if err != nil && test.expectAccept {

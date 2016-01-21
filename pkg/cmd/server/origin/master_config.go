@@ -45,6 +45,7 @@ import (
 	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	osclient "github.com/openshift/origin/pkg/client"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
@@ -54,6 +55,7 @@ import (
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
+	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
@@ -78,6 +80,7 @@ type MasterConfig struct {
 	PolicyCache               policycache.ReadOnlyCache
 	GroupCache                *usercache.GroupCache
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
+	ProjectCache              *projectcache.ProjectCache
 
 	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
@@ -159,6 +162,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	requestContextMapper := kapi.NewRequestContextMapper()
 
 	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupstorage.NewREST(etcdHelper)))
+	projectCache := projectcache.NewProjectCache(privilegedLoopbackKubeClient.Namespaces(), options.ProjectConfig.DefaultNodeSelector)
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
@@ -168,18 +172,25 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		admissionControlPluginNames = options.AdmissionConfig.PluginOrderOverride
 	}
 
-	admissionClient := admissionControlClient(privilegedLoopbackKubeClient, privilegedLoopbackOpenShiftClient)
-
+	pluginInitializer := oadmission.PluginInitializer{
+		OpenshiftClient: privilegedLoopbackOpenShiftClient,
+		ProjectCache:    projectCache,
+	}
 	plugins := []admission.Interface{}
 	for _, pluginName := range admissionControlPluginNames {
 		configFile, err := pluginconfig.GetPluginConfig(options.AdmissionConfig.PluginConfig[pluginName])
 		if err != nil {
 			return nil, err
 		}
-		plugin := admission.InitPlugin(pluginName, admissionClient, configFile)
+		plugin := admission.InitPlugin(pluginName, privilegedLoopbackKubeClient, configFile)
 		if plugin != nil {
 			plugins = append(plugins, plugin)
 		}
+	}
+	pluginInitializer.Initialize(plugins)
+	// ensure that plugins have been properly initialized
+	if err := oadmission.Validate(plugins); err != nil {
+		return nil, err
 	}
 	admissionController := admission.NewChainHandler(plugins...)
 
@@ -202,6 +213,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PolicyCache:               policyCache,
 		GroupCache:                groupCache,
 		ProjectAuthorizationCache: newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, policyClient),
+		ProjectCache:              projectCache,
 
 		RequestContextMapper: requestContextMapper,
 
@@ -509,22 +521,6 @@ func (c *MasterConfig) WebConsoleEnabled() bool {
 // The kubernetes client object must have authority to execute a finalize request on a namespace
 func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
-}
-
-// admissionControlClient returns a client to be used for admission control.
-// TODO: Refactor admission control to allow more than one client to be passed in to plugins
-func admissionControlClient(kClient *kclient.Client, osClient *osclient.Client) kclient.Interface {
-	type kc struct{ *kclient.Client }
-	type osc struct{ *osclient.Client }
-	type compositeClient struct {
-		*kc
-		*osc
-	}
-	client := &compositeClient{
-		&kc{kClient},
-		&osc{osClient},
-	}
-	return client
 }
 
 // NewEtcdHelper returns an EtcdHelper for the provided storage version.

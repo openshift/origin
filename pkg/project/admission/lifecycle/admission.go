@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package admission
+package lifecycle
 
 import (
 	"fmt"
@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/project/cache"
 	projectutil "github.com/openshift/origin/pkg/project/util"
 )
@@ -47,12 +48,15 @@ func init() {
 
 type lifecycle struct {
 	client client.Interface
+	cache  *cache.ProjectCache
 
 	// creatableResources is a set of resources that can be created even if the namespace is terminating
 	creatableResources sets.String
 }
 
 var recommendedCreatableResources = sets.NewString("resourceaccessreviews", "localresourceaccessreviews")
+var _ = oadmission.WantsProjectCache(&lifecycle{})
+var _ = oadmission.Validator(&lifecycle{})
 
 // Admit enforces that a namespace must exist in order to associate content with it.
 // Admit enforces that a namespace that is terminating cannot accept new content being associated with it.
@@ -89,12 +93,11 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 		name, _ = meta.NewAccessor().Name(obj)
 	}
 
-	projects, err := cache.GetProjectCache()
-	if err != nil {
+	if !e.cache.Running() {
 		return admission.NewForbidden(a, err)
 	}
 
-	namespace, err := projects.GetNamespaceObject(a.GetNamespace())
+	namespace, err := e.cache.GetNamespace(a.GetNamespace())
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
@@ -139,8 +142,22 @@ func (e *lifecycle) Handles(operation admission.Operation) bool {
 	return true
 }
 
+func (e *lifecycle) SetProjectCache(c *cache.ProjectCache) {
+	e.cache = c
+}
+
+func (e *lifecycle) Validate() error {
+	if e.cache == nil {
+		return fmt.Errorf("project lifecycle plugin needs a project cache")
+	}
+	return nil
+}
+
 func NewLifecycle(client client.Interface, creatableResources sets.String) (admission.Interface, error) {
-	return &lifecycle{client: client, creatableResources: creatableResources}, nil
+	return &lifecycle{
+		client:             client,
+		creatableResources: creatableResources,
+	}, nil
 }
 
 func isSubjectAccessReview(a admission.Attributes) bool {

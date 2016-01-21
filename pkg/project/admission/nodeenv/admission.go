@@ -1,4 +1,4 @@
-package admission
+package nodeenv
 
 import (
 	"fmt"
@@ -9,7 +9,8 @@ import (
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 
-	projectcache "github.com/openshift/origin/pkg/project/cache"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
@@ -23,7 +24,11 @@ func init() {
 type podNodeEnvironment struct {
 	*admission.Handler
 	client client.Interface
+	cache  *cache.ProjectCache
 }
+
+var _ = oadmission.WantsProjectCache(&podNodeEnvironment{})
+var _ = oadmission.Validator(&podNodeEnvironment{})
 
 // Admit enforces that pod and its project node label selectors matches at least a node in the cluster.
 func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
@@ -44,15 +49,14 @@ func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
 
 	name := pod.Name
 
-	projects, err := projectcache.GetProjectCache()
-	if err != nil {
+	if !p.cache.Running() {
 		return err
 	}
-	namespace, err := projects.GetNamespaceObject(a.GetNamespace())
+	namespace, err := p.cache.GetNamespace(a.GetNamespace())
 	if err != nil {
 		return apierrors.NewForbidden(resource, name, err)
 	}
-	projectNodeSelector, err := projects.GetNodeSelectorMap(namespace)
+	projectNodeSelector, err := p.cache.GetNodeSelectorMap(namespace)
 	if err != nil {
 		return err
 	}
@@ -64,6 +68,17 @@ func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
 	// modify pod node selector = project node selector + current pod node selector
 	pod.Spec.NodeSelector = labelselector.Merge(projectNodeSelector, pod.Spec.NodeSelector)
 
+	return nil
+}
+
+func (p *podNodeEnvironment) SetProjectCache(c *cache.ProjectCache) {
+	p.cache = c
+}
+
+func (p *podNodeEnvironment) Validate() error {
+	if p.cache == nil {
+		return fmt.Errorf("project node environment plugin needs a project cache")
+	}
 	return nil
 }
 

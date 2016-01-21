@@ -1,4 +1,4 @@
-package admission
+package lifecycle
 
 import (
 	"fmt"
@@ -41,8 +41,9 @@ func TestAdmissionExists(t *testing.T) {
 		return true, &kapi.Namespace{}, fmt.Errorf("DOES NOT EXIST")
 	})
 
-	projectcache.FakeProjectCache(mockClient, cache.NewStore(cache.MetaNamespaceKeyFunc), "")
+	cache := projectcache.NewFake(mockClient.Namespaces(), cache.NewStore(cache.MetaNamespaceKeyFunc), "")
 	handler := &lifecycle{client: mockClient}
+	handler.SetProjectCache(cache)
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
 		Spec: buildapi.BuildSpec{
@@ -86,8 +87,9 @@ func TestAdmissionLifecycle(t *testing.T) {
 	store := cache.NewStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	store.Add(namespaceObj)
 	mockClient := &testclient.Fake{}
-	projectcache.FakeProjectCache(mockClient, store, "")
+	cache := projectcache.NewFake(mockClient.Namespaces(), store, "")
 	handler := &lifecycle{client: mockClient}
+	handler.SetProjectCache(cache)
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "other"},
 		Spec: buildapi.BuildSpec{
@@ -166,8 +168,9 @@ func TestSAR(t *testing.T) {
 	mockClient.AddReactor("get", "namespaces", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, fmt.Errorf("shouldn't get here")
 	})
-	projectcache.FakeProjectCache(mockClient, store, "")
+	cache := projectcache.NewFake(mockClient.Namespaces(), store, "")
 	handler := &lifecycle{client: mockClient}
+	handler.SetProjectCache(cache)
 
 	tests := map[string]struct {
 		kind     string

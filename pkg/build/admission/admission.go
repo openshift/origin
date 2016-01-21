@@ -1,7 +1,6 @@
 package admission
 
 import (
-	"errors"
 	"fmt"
 	"io"
 
@@ -14,15 +13,12 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 )
 
 func init() {
 	admission.RegisterPlugin("BuildByStrategy", func(c kclient.Interface, config io.Reader) (admission.Interface, error) {
-		osClient, ok := c.(client.Interface)
-		if !ok {
-			return nil, errors.New("client is not an Openshift client")
-		}
-		return NewBuildByStrategy(osClient), nil
+		return NewBuildByStrategy(), nil
 	})
 }
 
@@ -31,12 +27,14 @@ type buildByStrategy struct {
 	client client.Interface
 }
 
+var _ = oadmission.WantsOpenshiftClient(&buildByStrategy{})
+var _ = oadmission.Validator(&buildByStrategy{})
+
 // NewBuildByStrategy returns an admission control for builds that checks
 // on policy based on the build strategy type
-func NewBuildByStrategy(client client.Interface) admission.Interface {
+func NewBuildByStrategy() admission.Interface {
 	return &buildByStrategy{
 		Handler: admission.NewHandler(admission.Create, admission.Update),
-		client:  client,
 	}
 }
 
@@ -64,6 +62,17 @@ func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	default:
 		return admission.NewForbidden(attr, fmt.Errorf("unrecognized request object %#v", obj))
 	}
+}
+
+func (a *buildByStrategy) SetOpenshiftClient(c client.Interface) {
+	a.client = c
+}
+
+func (a *buildByStrategy) Validate() error {
+	if a.client == nil {
+		return fmt.Errorf("BuildByStrategy needs an Openshift client")
+	}
+	return nil
 }
 
 func resourceForStrategyType(strategy buildapi.BuildStrategy) string {
