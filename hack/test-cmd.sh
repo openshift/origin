@@ -280,6 +280,7 @@ export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template --template='
 # NOTE: Do not add tests here, add them to test/cmd/*.
 # Tests should assume they run in an empty project, and should be reentrant if possible
 # to make it easy to run individual tests
+cp ${KUBECONFIG}{,.bak}  # keep so we can reset kubeconfig after each test
 for test in "${tests[@]}"; do
   echo
   echo "++ ${test}"
@@ -291,6 +292,7 @@ for test in "${tests[@]}"; do
   ${test}
   oc project ${CLUSTER_ADMIN_CONTEXT}
   oc delete project "cmd-${name}"
+  cp ${KUBECONFIG}{.bak,}  # since nothing ever gets deleted from kubeconfig, reset it
 done
 
 

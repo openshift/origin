@@ -50,7 +50,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 		case clustdiags.MasterNodeName:
 			diagnostics = append(diagnostics, &clustdiags.MasterNode{KubeClient: kclusterClient, OsClient: clusterClient, ServerUrl: serverUrl, MasterConfigFile: o.MasterConfigLocation})
 		case clustdiags.ClusterRegistryName:
-			diagnostics = append(diagnostics, &clustdiags.ClusterRegistry{KubeClient: kclusterClient, OsClient: clusterClient})
+			diagnostics = append(diagnostics, &clustdiags.ClusterRegistry{KubeClient: kclusterClient, OsClient: clusterClient, PreventModification: o.PreventModification})
 		case clustdiags.ClusterRouterName:
 			diagnostics = append(diagnostics, &clustdiags.ClusterRouter{KubeClient: kclusterClient, OsClient: clusterClient})
 		case clustdiags.ClusterRolesName:
