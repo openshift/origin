@@ -93,9 +93,22 @@ func TestInstantiateDeletingError(t *testing.T) {
 			}
 			return bc, nil
 		},
+		GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+			build := &buildapi.Build{
+				Status: buildapi.BuildStatus{
+					Config: &kapi.ObjectReference{
+						Name: "buildconfig",
+					},
+				},
+			}
+			return build, nil
+		},
 	}}
-
 	_, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	if err == nil || !strings.Contains(err.Error(), "BuildConfig is paused") {
+		t.Errorf("Expected error, got different %v", err)
+	}
+	_, err = generator.Clone(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err == nil || !strings.Contains(err.Error(), "BuildConfig is paused") {
 		t.Errorf("Expected error, got different %v", err)
 	}

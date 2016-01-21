@@ -66,6 +66,11 @@ func IsBuildComplete(build *buildapi.Build) bool {
 	return build.Status.Phase != buildapi.BuildPhaseRunning && build.Status.Phase != buildapi.BuildPhasePending && build.Status.Phase != buildapi.BuildPhaseNew
 }
 
+// IsPaused returns true if the provided BuildConfig is paused and cannot be used to create a new Build
+func IsPaused(bc *buildapi.BuildConfig) bool {
+	return strings.ToLower(bc.Annotations[buildapi.BuildConfigPausedAnnotation]) == "true"
+}
+
 // BuildNameForConfigVersion returns the name of the version-th build
 // for the config that has the provided name
 func BuildNameForConfigVersion(name string, version int) string {
