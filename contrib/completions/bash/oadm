@@ -2678,9 +2678,9 @@ _oadm_prune_images()
     must_have_one_noun=()
 }
 
-_oadm_prune_prune()
+_oadm_prune_groups()
 {
-    last_command="oadm_prune_prune"
+    last_command="oadm_prune_groups"
     commands=()
 
     flags=()
@@ -2762,7 +2762,7 @@ _oadm_prune()
     commands+=("builds")
     commands+=("deployments")
     commands+=("images")
-    commands+=("prune")
+    commands+=("groups")
 
     flags=()
     two_word_flags=()

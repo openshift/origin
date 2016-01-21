@@ -362,6 +362,29 @@ Remove old completed and failed deployments
 ====
 
 
+== oadm prune groups
+Prune OpenShift groups referencing missing records on an external provider.
+
+====
+
+[options="nowrap"]
+----
+  # Prune all orphaned groups 
+  $ oadm prune groups --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups except the ones from the blacklist file
+  $ oadm prune groups --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist file
+  $ oadm prune groups --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist
+  $ oadm prune groups groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+----
+====
+
+
 == oadm prune images
 Remove unreferenced images
 
@@ -375,29 +398,6 @@ Remove unreferenced images
 
   # To actually perform the prune operation, the confirm flag must be appended
   $ oadm prune images --keep-tag-revisions=3 --keep-younger-than=60m --confirm
-----
-====
-
-
-== oadm prune prune
-Prune OpenShift groups referencing missing records on an external provider.
-
-====
-
-[options="nowrap"]
-----
-  # Prune all orphaned groups 
-  $ oadm prune prune --sync-config=/path/to/ldap-sync-config.yaml --confirm
-
-  # Prune all orphaned groups except the ones from the blacklist file
-  $ oadm prune prune --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
-
-  # Prune all orphaned groups from a list of specific groups specified in a whitelist file
-  $ oadm prune prune --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
-
-  # Prune all orphaned groups from a list of specific groups specified in a whitelist
-  $ oadm prune prune groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
-
 ----
 ====
 
