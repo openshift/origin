@@ -13,6 +13,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -153,6 +154,9 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	podSpec, err := bc.BuildStrategy.CreateBuildPod(buildCopy)
 	if err != nil {
 		build.Status.Reason = buildapi.StatusReasonCannotCreateBuildPodSpec
+		if strategy.IsFatal(err) {
+			return strategy.FatalError(fmt.Sprintf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err))
+		}
 		return fmt.Errorf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err)
 	}
 	glog.V(4).Infof("Pod %s for build %s/%s is about to be created", podSpec.Name, build.Namespace, build.Name)

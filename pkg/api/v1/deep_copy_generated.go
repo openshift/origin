@@ -1191,6 +1191,7 @@ func deepCopy_v1_CustomBuildStrategy(in apiv1.CustomBuildStrategy, out *apiv1.Cu
 	} else {
 		out.Secrets = nil
 	}
+	out.BuildAPIVersion = in.BuildAPIVersion
 	return nil
 }
 

@@ -26,6 +26,20 @@ const (
 
 var whitelistEnvVarNames = []string{"BUILD_LOGLEVEL"}
 
+// FatalError is an error which can't be retried.
+type FatalError string
+
+// Error implements the error interface.
+func (e FatalError) Error() string {
+	return string(e)
+}
+
+// IsFatal returns true if the error is fatal
+func IsFatal(err error) bool {
+	_, isFatal := err.(FatalError)
+	return isFatal
+}
+
 // setupDockerSocket configures the pod to support the host's Docker socket
 func setupDockerSocket(podSpec *kapi.Pod) {
 	dockerSocketVolume := kapi.Volume{

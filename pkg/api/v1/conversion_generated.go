@@ -1623,6 +1623,7 @@ func autoconvert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy(in *buildapi.
 	} else {
 		out.Secrets = nil
 	}
+	out.BuildAPIVersion = in.BuildAPIVersion
 	return nil
 }
 
@@ -2418,6 +2419,7 @@ func autoconvert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in *apiv1.Cus
 	} else {
 		out.Secrets = nil
 	}
+	out.BuildAPIVersion = in.BuildAPIVersion
 	return nil
 }
 

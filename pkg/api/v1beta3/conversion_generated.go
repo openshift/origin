@@ -1632,6 +1632,7 @@ func autoconvert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *buil
 	} else {
 		out.Secrets = nil
 	}
+	out.BuildAPIVersion = in.BuildAPIVersion
 	return nil
 }
 
@@ -2427,6 +2428,7 @@ func autoconvert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in *apiv
 	} else {
 		out.Secrets = nil
 	}
+	out.BuildAPIVersion = in.BuildAPIVersion
 	return nil
 }
 
