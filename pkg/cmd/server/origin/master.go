@@ -59,7 +59,7 @@ import (
 	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
 	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
-	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
+	"github.com/openshift/origin/pkg/sdn/registry/netnamespace"
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
@@ -344,7 +344,6 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	routeEtcd := routeetcd.NewREST(c.EtcdHelper, routeAllocator)
 	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
-	netNamespaceStorage := netnamespaceetcd.NewREST(c.EtcdHelper)
 	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
 
 	userStorage := useretcd.NewREST(c.EtcdHelper)
@@ -458,7 +457,6 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"projectRequests": projectRequestStorage,
 
 		"hostSubnets":     hostSubnetStorage,
-		"netNamespaces":   netNamespaceStorage,
 		"clusterNetworks": clusterNetworkStorage,
 
 		"users":                userStorage,
@@ -496,6 +494,11 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient(), kubeletClient)
 		storage["builds/log"] = buildlogregistry.NewREST(buildStorage, buildStorage, c.BuildLogClient(), kubeletClient)
 		storage["builds/details"] = buildDetailsStorage
+	}
+
+	if c.MultitenantNetworkConfig != nil {
+		nc := c.MultitenantNetworkConfig
+		storage["netNamespaces"] = netnamespace.NewStorage(nc.NetNamespaceRegistry, nc.NetIDAllocator, nc.NetIDRegistry, []string{kapi.NamespaceDefault})
 	}
 
 	return storage

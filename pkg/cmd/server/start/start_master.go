@@ -437,6 +437,7 @@ func startAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	oc.RunGroupCache()
 	oc.RunPolicyCache()
 	oc.RunProjectCache()
+	oc.RunNetNamespaceCache()
 
 	unprotectedInstallers := []origin.APIInstaller{}
 
@@ -513,6 +514,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	// used by admission controllers
 	oc.RunServiceAccountPullSecretsControllers()
 	oc.RunSecurityAllocationController()
+	oc.RunNetIDAllocationController()
 
 	if kc != nil {
 		_, rcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicationControllerServiceAccountName)

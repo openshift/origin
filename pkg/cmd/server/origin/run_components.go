@@ -12,7 +12,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
-	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	"k8s.io/kubernetes/pkg/util"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
@@ -31,14 +30,17 @@ import (
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
+	netnscache "github.com/openshift/origin/pkg/sdn/registry/netnamespace/cache"
 	securitycontroller "github.com/openshift/origin/pkg/security/controller"
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn/factory"
+	sdnfactory "github.com/openshift/openshift-sdn/plugins/osdn/factory"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	vnidcontroller "github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnidallocator/controller"
+	etcdallocator "github.com/openshift/origin/pkg/sdn/registry/netnamespace/vnidallocator/etcd"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 )
 
@@ -180,6 +182,15 @@ func (c *MasterConfig) RunDNSServer() {
 func (c *MasterConfig) RunProjectCache() {
 	glog.Infof("Using default project node label selector: %s", c.Options.ProjectConfig.DefaultNodeSelector)
 	projectcache.RunProjectCache(c.PrivilegedLoopbackKubernetesClient, c.Options.ProjectConfig.DefaultNodeSelector)
+}
+
+// RunNetNamespaceCache populates NetNamespace cache
+// Used by NetNamespace REST api and VNID repair controller when using multitenant network plugin.
+func (c *MasterConfig) RunNetNamespaceCache() {
+	if c.MultitenantNetworkConfig != nil {
+		osClient, _ := c.SDNControllerClients()
+		netnscache.RunNetNamespaceCache(osClient)
+	}
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
@@ -329,7 +340,7 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 // RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
 	oClient, kClient := c.SDNControllerClients()
-	controller, _, err := factory.NewPlugin(c.Options.NetworkConfig.NetworkPluginName, oClient, kClient, "", "")
+	controller, _, err := sdnfactory.NewPlugin(c.Options.NetworkConfig.NetworkPluginName, oClient, kClient, "", "")
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
@@ -350,6 +361,20 @@ func (c *MasterConfig) RunImageImportController() {
 	}
 	controller := factory.Create()
 	controller.Run()
+}
+
+// RunNetIDAllocationController starts the VNID allocation controller process.
+func (c *MasterConfig) RunNetIDAllocationController() {
+	if c.MultitenantNetworkConfig != nil {
+		nc := c.MultitenantNetworkConfig
+		repair := vnidcontroller.NewRepair(15*time.Minute, nc.NetNamespaceRegistry, nc.NetIDRange, nc.NetIDRegistry)
+		if err := repair.RunOnce(); err != nil {
+			glog.Fatalf("Unable to initialize netnamespace allocation: %v", err)
+		}
+
+		runner := util.NewRunner(repair.RunUntil)
+		runner.Start()
+	}
 }
 
 // RunSecurityAllocationController starts the security allocation controller process.

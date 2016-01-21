@@ -44,7 +44,7 @@ type NetNamespace struct {
 	kapi.ObjectMeta
 
 	NetName string
-	NetID   uint
+	NetID   *uint
 }
 
 // NetNamespaceList is a collection of NetNamespaces

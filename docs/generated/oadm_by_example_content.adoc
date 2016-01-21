@@ -250,6 +250,22 @@ Manage nodes - list pods, evacuate, or mark ready
 ====
 
 
+== oadm pod-network isolate-projects
+Isolate project network
+
+====
+
+[options="nowrap"]
+----
+	# Provide isolation for project p1
+	$ oadm pod-network isolate-projects <p1>
+
+	# Allow all projects with label name=top-secret to have their own isolated project network
+	$ oadm pod-network isolate-projects --selector='name=top-secret'
+----
+====
+
+
 == oadm pod-network join-projects
 Join project network
 
