@@ -117,6 +117,11 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	glog.V(5).Infof("[SDN setup] node pod subnet %s gateway %s", ipnet.String(), localSubnetGateway)
 
 	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
+	if alreadySetUp(c.multitenant, gwCIDR) {
+		glog.V(5).Infof("[SDN setup] no SDN setup required")
+		return nil
+	}
+	glog.V(5).Infof("[SDN setup] full SDN setup required")
 
 	itx := ipcmd.NewTransaction(LBR)
 	itx.SetLink("down")
@@ -141,13 +146,6 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	} else {
 		glog.V(5).Infof("[SDN setup] docker setup success:\n%s", out)
 	}
-
-	if alreadySetUp(c.multitenant, gwCIDR) {
-		glog.V(5).Infof("[SDN setup] no SDN setup required")
-		return nil
-	}
-
-	glog.V(5).Infof("[SDN setup] full SDN setup required")
 
 	config := fmt.Sprintf("export OPENSHIFT_CLUSTER_SUBNET=%s", clusterNetworkCIDR)
 	err = ioutil.WriteFile("/run/openshift-sdn/config.env", []byte(config), 0644)
