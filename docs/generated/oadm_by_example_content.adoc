@@ -346,6 +346,22 @@ Replace cluster SCCs to match the recommended bootstrap policy
 ====
 
 
+== oadm prune deployments
+Remove old completed and failed deployments
+
+====
+
+[options="nowrap"]
+----
+  # Dry run deleting all but the last complete deployment for every deployment config
+  $ oadm prune deployments --keep-complete=1
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  $ oadm prune deployments --keep-complete=1 --confirm
+----
+====
+
+
 == oadm prune images
 Remove unreferenced images
 
