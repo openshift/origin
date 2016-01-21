@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller"
+	"k8s.io/kubernetes/pkg/controller/daemon"
 	endpointcontroller "k8s.io/kubernetes/pkg/controller/endpoint"
 	jobcontroller "k8s.io/kubernetes/pkg/controller/job"
 	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
@@ -199,6 +200,11 @@ func (c *MasterConfig) RunHPAController(oc *osclient.Client, kc *client.Client, 
 	delegScaleNamespacer := osclient.NewDelegatingScaleNamespacer(oc, kc)
 	podautoscaler := podautoscalercontroller.NewHorizontalController(kc, delegScaleNamespacer, kc, metrics.NewHeapsterMetricsClient(kc, heapsterNamespace, "https", "heapster", ""))
 	podautoscaler.Run(c.ControllerManager.HorizontalPodAutoscalerSyncPeriod)
+}
+
+func (c *MasterConfig) RunDaemonSetsController(client *client.Client) {
+	controller := daemon.NewDaemonSetsController(client, c.ControllerManager.ResyncPeriod)
+	go controller.Run(c.ControllerManager.ConcurrentDSCSyncs, util.NeverStop)
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
