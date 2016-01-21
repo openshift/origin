@@ -85,6 +85,10 @@ angular.module("openshiftConsole")
         deploymentConfig: scope._generateDeploymentConfig(input, imageSpec, ports, input.labels)
       };
 
+      if (input.scaling.autoscale) {
+        resources.hpa = scope._generateHPA(input, resources.deploymentConfig);
+      }
+
       var service = scope._generateService(input, input.name, ports);
       if (service) {
         resources.service = service;
@@ -184,7 +188,8 @@ angular.module("openshiftConsole")
           annotations: input.annotations
         },
         spec: {
-          replicas: input.scaling.replicas,
+          // Set initial replicas to min replicas if autoscaling, otherwise use the entered value.
+          replicas: input.scaling.autoscale ? input.scaling.minReplicas : input.scaling.replicas,
           selector: {
             deploymentconfig: input.name
           },
@@ -227,6 +232,33 @@ angular.module("openshiftConsole")
         deploymentConfig.spec.triggers.push({type: "ConfigChange"});
       }
       return deploymentConfig;
+    };
+
+    scope._generateHPA = function(input, dc) {
+      var hpa = {
+        apiVersion: "extensions/v1beta1",
+        kind: "HorizontalPodAutoscaler",
+        metadata: {
+          name: input.name,
+          labels: input.labels,
+          annotations: input.annotations
+        },
+        spec: {
+          scaleRef: {
+            kind: "DeploymentConfig",
+            name: dc.metadata.name,
+            apiVersion: oApiVersion,
+            subresource: "scale"
+          },
+          minReplicas: input.scaling.minReplicas,
+          maxReplicas: input.scaling.maxReplicas,
+          cpuUtilization: {
+            targetPercentage: input.scaling.targetCPU
+          }
+        }
+      };
+
+      return hpa;
     };
 
     scope._generateBuildConfig = function(input, imageSpec){

@@ -57,7 +57,11 @@ angular.module("openshiftConsole")
           scope.labels = {};
           scope.annotations = {};
           scope.scaling = {
-            replicas: 1
+            replicas: 1,
+            autoscale: false,
+            minReplicas: 1,
+            maxReplicas: 10,
+            targetCPU: 70
           };
 
           scope.fillSampleRepo = function() {

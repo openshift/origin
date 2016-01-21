@@ -286,5 +286,34 @@ angular.module("openshiftConsole")
       });
     };
 
+    // Filters the HPAs for those referencing the resource kind/name.
+    var filterHPA = function(kind, name, hpaResources) {
+      return _.pick(hpaResources, function(hpa) {
+        return hpa.spec.scaleRef.kind === kind && hpa.spec.scaleRef.name === name;
+      });
+    };
+
+    // Filters the HPAs to those for a deployment config.
+    // dcName        - deployment config name
+    // hpaResources  - map of HPA by name
+    DeploymentsService.prototype.hpaForDC = function(dcName, hpaResources) {
+      return filterHPA("DeploymentConfig", dcName, hpaResources);
+    };
+
+    // Filters the HPAs to those for a replication controller or deployment.
+    // rc            - the replication controller object
+    // hpaResources  - map of HPA by name
+    DeploymentsService.prototype.hpaForRC = function(rc, hpaResources) {
+      var filtered = filterHPA("ReplicationController", rc.metadata.name);
+
+      // If this is a deployment, also find HPA referencing the deployment config.
+      var dcName = $filter('annotation')(rc, 'deploymentConfig');
+      if (dcName) {
+        _.assign(filtered, this.hpaForDC(dcName, hpaResources));
+      }
+
+      return filtered;
+    };
+
     return new DeploymentsService();
   });

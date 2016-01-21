@@ -138,6 +138,33 @@ angular.module('openshiftConsole')
           Logger.log("builds (subscribe)", $scope.builds);
         }));
 
+        watches.push(DataService.watch({
+          group: "extensions",
+          resource: "horizontalpodautoscalers"
+        }, context, function(horizontalPodAutoscalers) {
+          $scope.autoscaling = {};
+          var hpaForDC =
+            DeploymentsService.hpaForDC($routeParams.deploymentconfig,
+                                        horizontalPodAutoscalers.by("metadata.name"));
+          if (!hpaForDC.length) {
+            return;
+          }
+
+          if (hpaForDC.length > 1) {
+            // TODO handle this case
+          }
+
+          var hpa = hpaForDC[0];
+          $scope.autoscaling = {
+            min: angular.isDefined(hpa.spec.minReplicas) ? hpa.spec.minReplicas : 1,
+            max: hpa.spec.maxReplicas
+          };
+
+          if (hpa.spec.cpuUtilization) {
+            $scope.autoscaling.targetCPU = hpa.spec.cpuUtilization.targetPercentage;
+          }
+        }));
+
         function updateFilterWarning() {
           if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.deployments) && !$.isEmptyObject($scope.unfilteredDeployments)) {
             $scope.alerts["deployments"] = {

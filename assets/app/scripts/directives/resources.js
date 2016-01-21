@@ -135,4 +135,13 @@ angular.module('openshiftConsole')
       },
       templateUrl: 'views/_volumes.html'
     };
+  })
+  .directive('hpa', function() {
+    return {
+      restrict: 'E',
+      scope: {
+        hpa: '='
+      },
+      templateUrl: 'views/_hpa.html'
+    };
   });

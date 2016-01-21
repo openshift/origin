@@ -1,0 +1,13 @@
+<dl>
+  <dt>Name:</dt>
+  <dd>hpa.metadata.name</dd>
+  <dt ng-if-start="hpa.spec.scaleRef.kind && hpa.spec.scaleRef.name">Scales:</dt>
+  <dd ng-if-end>
+    {{hpa.spec.scaleRef.kind}}
+    <a ng-href="{{hpa.spec.scaleRef.name | navigateResourceURL : hpa.spec.scaleRef.kind : hpa.metadata.namespace}}">{{hpa.spec.scaleRef.name}}</a>
+  </dd>
+  <dt>Replica Range:</dt>
+  <dd>{{hpa.spec.minReplicas | defaultIfBlank : 1}} to {{hpa.spec.maxReplicas}}</dd>
+  <dt ng-if-start="hpa.spec.cpuUtilization.targetPercentage">Target CPU Utilization:</dt>
+  <dd ng-if-end>{{hpa.spec.cpuUtilization.targetPercentage}}%</dd>
+</dl>
