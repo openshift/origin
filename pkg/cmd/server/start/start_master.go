@@ -328,7 +328,7 @@ func (o MasterOptions) CreateCerts() error {
 	return nil
 }
 
-func buildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kubernetes.MasterConfig, error) {
+func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kubernetes.MasterConfig, error) {
 	if openshiftConfig.Options.KubernetesMasterConfig == nil {
 		return nil, nil
 	}
@@ -371,7 +371,7 @@ func (m *Master) Start() error {
 		return err
 	}
 
-	kubeMasterConfig, err := buildKubernetesMasterConfig(openshiftConfig)
+	kubeMasterConfig, err := BuildKubernetesMasterConfig(openshiftConfig)
 	if err != nil {
 		return err
 	}
@@ -385,7 +385,7 @@ func (m *Master) Start() error {
 		}
 		glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
 
-		if err := startAPI(openshiftConfig, kubeMasterConfig); err != nil {
+		if err := StartAPI(openshiftConfig, kubeMasterConfig); err != nil {
 			return err
 		}
 
@@ -418,11 +418,11 @@ func startHealth(openshiftConfig *origin.MasterConfig) error {
 	return nil
 }
 
-// startAPI starts the components of the master that are considered part of the API - the Kubernetes
+// StartAPI starts the components of the master that are considered part of the API - the Kubernetes
 // API and core controllers, the Origin API, the group, policy, project, and authorization caches,
 // etcd, the asset server (for the UI), the OAuth server endpoints, and the DNS server.
 // TODO: allow to be more granularly targeted
-func startAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
+func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	// start etcd
 	if oc.Options.EtcdConfig != nil {
 		etcdserver.RunEtcd(oc.Options.EtcdConfig)

@@ -63,7 +63,7 @@ func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
 	return "", fmt.Errorf("Could not find available port in the range %d-%d", lowPort, highPort)
 }
 
-func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, *start.ImageFormatArgs, *start.KubeConnectionArgs) {
+func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, *start.ImageFormatArgs, *start.KubeConnectionArgs) {
 	masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs := start.GetAllInOneArgs()
 
 	basedir := util.GetBaseDir()
@@ -75,20 +75,24 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 	nodeArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", nodeArgs.NodeName))
 	nodeArgs.MasterCertDir = masterArgs.ConfigDir.Value()
 
-	// don't wait for nodes to come up
-	masterAddr := os.Getenv("OS_MASTER_ADDR")
-	if len(masterAddr) == 0 {
-		if addr, err := FindAvailableBindAddress(12000, 12999); err != nil {
-			glog.Fatalf("Couldn't find free address for master: %v", err)
-		} else {
-			masterAddr = addr
+	if !useDefaultPort {
+		// don't wait for nodes to come up
+		masterAddr := os.Getenv("OS_MASTER_ADDR")
+		if len(masterAddr) == 0 {
+			if addr, err := FindAvailableBindAddress(12000, 12999); err != nil {
+				glog.Fatalf("Couldn't find free address for master: %v", err)
+			} else {
+				masterAddr = addr
+			}
 		}
+		fmt.Printf("masterAddr: %#v\n", masterAddr)
+		masterArgs.MasterAddr.Set(masterAddr)
+		listenArg.ListenAddr.Set(masterAddr)
 	}
-	fmt.Printf("masterAddr: %#v\n", masterAddr)
 
-	masterArgs.MasterAddr.Set(masterAddr)
-	listenArg.ListenAddr.Set(masterAddr)
-	masterArgs.EtcdAddr.Set(util.GetEtcdURL())
+	if !startEtcd {
+		masterArgs.EtcdAddr.Set(util.GetEtcdURL())
+	}
 
 	dnsAddr := os.Getenv("OS_DNS_ADDR")
 	if len(dnsAddr) == 0 {
@@ -105,8 +109,12 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 }
 
 func DefaultMasterOptions() (*configapi.MasterConfig, error) {
+	return DefaultMasterOptionsWithTweaks(false, false)
+}
+
+func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.MasterConfig, error) {
 	startOptions := start.MasterOptions{}
-	startOptions.MasterArgs, _, _, _, _ = setupStartOptions()
+	startOptions.MasterArgs, _, _, _, _ = setupStartOptions(startEtcd, useDefaultPort)
 	startOptions.Complete()
 	startOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
 
@@ -208,7 +216,7 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 
 func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, error) {
 	startOptions := start.AllInOneOptions{MasterOptions: &start.MasterOptions{}, NodeArgs: &start.NodeArgs{}}
-	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions()
+	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions(false, false)
 	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.ServiceNetworkCIDR = start.NewDefaultNetworkArgs().ServiceNetworkCIDR
 	startOptions.Complete()
