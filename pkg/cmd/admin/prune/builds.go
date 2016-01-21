@@ -20,9 +20,21 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const buildsLongDesc = `%s %s - removes older completed and failed builds`
-
 const PruneBuildsRecommendedName = "builds"
+
+const (
+	buildsLongDesc = `Prune old completed and failed builds
+
+By default, the prune operation performs a dry run making no changes to internal registry. A
+--confirm flag is needed for changes to be effective.`
+
+	buildsExample = `  # Dry run deleting older completed and failed builds and also including
+  # all builds whose associated BuildConfig no longer exists
+  $ %[1]s %[2]s --orphans
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  $ %[1]s %[2]s --orphans --confirm`
+)
 
 type pruneBuildsConfig struct {
 	Confirm         bool
@@ -42,9 +54,10 @@ func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Wri
 	}
 
 	cmd := &cobra.Command{
-		Use:   name,
-		Short: "Remove completed and failed builds",
-		Long:  fmt.Sprintf(buildsLongDesc, parentName, name),
+		Use:     name,
+		Short:   "Remove old completed and failed builds",
+		Long:    buildsLongDesc,
+		Example: fmt.Sprintf(buildsExample, parentName, name),
 
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) > 0 {
