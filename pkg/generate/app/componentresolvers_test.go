@@ -21,7 +21,7 @@ func (m mockSearcher) Search(terms ...string) (ComponentMatches, error) {
 func TestWeightedResolvers(t *testing.T) {
 	resolver1 := WeightedResolver{mockSearcher{2}, 1.0}
 	resolver2 := WeightedResolver{mockSearcher{3}, 1.0}
-	wr := WeightedResolvers{resolver1, resolver2}
+	wr := PerfectMatchWeightedResolver{resolver1, resolver2}
 
 	_, err := wr.Resolve("image")
 	if err == nil {

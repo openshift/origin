@@ -215,13 +215,19 @@ func (r *ImageRef) RepoName() string {
 
 // SuggestName suggests a name for an image reference
 func (r *ImageRef) SuggestName() (string, bool) {
-	if r != nil && len(r.ObjectName) > 0 {
-		return r.ObjectName, true
-	}
-	if r == nil || len(r.Reference.Name) == 0 {
+	if r == nil {
 		return "", false
 	}
-	return r.Reference.Name, true
+	if len(r.ObjectName) > 0 {
+		return r.ObjectName, true
+	}
+	if r.Stream != nil {
+		return r.Stream.Name, true
+	}
+	if len(r.Reference.Name) > 0 {
+		return r.Reference.Name, true
+	}
+	return "", false
 }
 
 // BuildOutput returns the BuildOutput of an image reference

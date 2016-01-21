@@ -20,34 +20,38 @@ type TemplateSearcher struct {
 	Client                    client.TemplatesNamespacer
 	TemplateConfigsNamespacer client.TemplateConfigsNamespacer
 	Namespaces                []string
+	StopOnMatch               bool
 }
 
 // Search searches for a template and returns matches with the object representation
 func (r TemplateSearcher) Search(terms ...string) (ComponentMatches, error) {
 	matches := ComponentMatches{}
 
-	for _, term := range terms {
-		checkedNamespaces := sets.NewString()
+	checkedNamespaces := sets.NewString()
+	for _, namespace := range r.Namespaces {
+		if checkedNamespaces.Has(namespace) {
+			continue
+		}
+		checkedNamespaces.Insert(namespace)
 
-		for _, namespace := range r.Namespaces {
-			if checkedNamespaces.Has(namespace) {
+		templates, err := r.Client.Templates(namespace).List(kapi.ListOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) || errors.IsForbidden(err) {
 				continue
 			}
+			return nil, err
+		}
 
-			checkedNamespaces.Insert(namespace)
-
-			glog.V(4).Infof("checking template %s/%s", namespace, term)
-			templates, err := r.Client.Templates(namespace).List(kapi.ListOptions{})
-			if err != nil {
-				if errors.IsNotFound(err) || errors.IsForbidden(err) {
-					continue
-				}
-				return nil, err
-			}
-
-			for i := range templates.Items {
-				template := &templates.Items[i]
+		exact := false
+		for i := range templates.Items {
+			template := &templates.Items[i]
+			for _, term := range terms {
+				glog.V(4).Infof("checking for term %s in namespace %s", term, namespace)
 				if score, scored := templateScorer(*template, term); scored {
+					if score == 0.0 {
+						exact = true
+					}
+					glog.V(4).Infof("Adding template %q in project %q with score %f", template.Name, template.Namespace, score)
 					matches = append(matches, &ComponentMatch{
 						Value:       term,
 						Argument:    fmt.Sprintf("--template=%q", template.Name),
@@ -56,8 +60,12 @@ func (r TemplateSearcher) Search(terms ...string) (ComponentMatches, error) {
 						Score:       score,
 						Template:    template,
 					})
+					break
 				}
 			}
+		}
+		if exact {
+			break
 		}
 	}
 
@@ -91,7 +99,8 @@ func (r *TemplateFileSearcher) Search(terms ...string) (ComponentMatches, error)
 			Object()
 
 		if err != nil {
-			return nil, err
+			glog.V(5).Infof("Error from template search: %v", err)
+			continue
 		}
 
 		if !isSingular {

@@ -218,6 +218,7 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespac
 		Client: osclient,
 		TemplateConfigsNamespacer: osclient,
 		Namespaces:                namespaces,
+		StopOnMatch:               !c.AsSearch,
 	}
 	c.templateFileSearcher = &app.TemplateFileSearcher{
 		Typer:        c.typer,

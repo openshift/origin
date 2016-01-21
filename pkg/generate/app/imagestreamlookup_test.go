@@ -87,6 +87,71 @@ func TestImageStreamByAnnotationSearcherAndResolver(t *testing.T) {
 	}
 }
 
+func TestImageStreamSearcher(t *testing.T) {
+	streams, images := fakeImageStreams(
+		&fakeImageStreamDesc{
+			name: "ruby20",
+			supports: map[string]string{
+				"stable": "ruby:1.9,ruby:1.9.4",
+			},
+		},
+		&fakeImageStreamDesc{
+			name: "wildfly",
+			supports: map[string]string{
+				"v8": "java,jee",
+				"v7": "java",
+			},
+			latest: "v8",
+		},
+	)
+	client := testImageStreamClient(streams, images)
+	searcher := ImageStreamSearcher{Client: client, ImageStreamImages: client, Namespaces: []string{"default"}}
+	resolver := UniqueExactOrInexactMatchResolver{Searcher: searcher}
+	tests := []struct {
+		value       string
+		expectMatch bool
+		expectTag   string
+	}{
+		{
+			value:       "ruby20",
+			expectMatch: true,
+		},
+		{
+			value:       "ruby2.0",
+			expectMatch: false,
+		},
+		{
+			value:       "wildfly",
+			expectMatch: true,
+			expectTag:   "v8",
+		},
+	}
+
+	for _, test := range tests {
+		searchResults, err := searcher.Search(test.value)
+		if len(searchResults) == 0 && test.expectMatch {
+			t.Errorf("Expected a search match for %s. Got none: %v", test.value, err)
+		}
+		if len(searchResults) == 1 && !test.expectMatch {
+			t.Errorf("Did not expect search a match for %s. Got a match: %#v", test.value, searchResults[0])
+		}
+
+		result, err := resolver.Resolve(test.value)
+		if err != nil && test.expectMatch {
+			t.Errorf("Expected a resolve match for %s. Got none: %v", test.value, err)
+		}
+		if err == nil && !test.expectMatch {
+			t.Errorf("Did not expect resolve a match for %s. Got a match: %v", test.value, err)
+		}
+		if err != nil {
+			continue
+		}
+		if len(test.expectTag) > 0 && result.ImageTag != test.expectTag {
+			t.Errorf("Did not expect match for %s to result in tag %s: %#v", test.value, result.ImageTag, result)
+		}
+	}
+}
+
 func TestMatchSupportsAnnotation(t *testing.T) {
 	tests := []struct {
 		name, value, annotation string
@@ -152,7 +217,7 @@ func TestAnnotationMatches(t *testing.T) {
 		"ruby":    "ruby,ruby:2.0,ruby:1.9",
 		"java":    "java,jee,wildfly",
 		"wildfly": "wildfly:8.0",
-	})
+	}, "")
 	client := testImageStreamClient(nil, images)
 	searcher := NewImageStreamByAnnotationSearcher(client, client, []string{"default"}).(*ImageStreamByAnnotationSearcher)
 	tests := []struct {
@@ -211,6 +276,7 @@ func TestAnnotationMatches(t *testing.T) {
 type fakeImageStreamDesc struct {
 	name     string
 	supports map[string]string
+	latest   string
 }
 
 func fakeImageStreams(descs ...*fakeImageStreamDesc) (*imageapi.ImageStreamList, map[string]*imageapi.ImageStreamImage) {
@@ -219,7 +285,7 @@ func fakeImageStreams(descs ...*fakeImageStreamDesc) (*imageapi.ImageStreamList,
 	}
 	allImages := map[string]*imageapi.ImageStreamImage{}
 	for _, desc := range descs {
-		stream, images := fakeImageStream(desc.name, desc.supports)
+		stream, images := fakeImageStream(desc.name, desc.supports, desc.latest)
 		streams.Items = append(streams.Items, *stream)
 		for k, v := range images {
 			allImages[k] = v
@@ -228,7 +294,7 @@ func fakeImageStreams(descs ...*fakeImageStreamDesc) (*imageapi.ImageStreamList,
 	return streams, allImages
 }
 
-func fakeImageStream(name string, supports map[string]string) (*imageapi.ImageStream, map[string]*imageapi.ImageStreamImage) {
+func fakeImageStream(name string, supports map[string]string, latest string) (*imageapi.ImageStream, map[string]*imageapi.ImageStreamImage) {
 	stream := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
@@ -260,7 +326,14 @@ func fakeImageStream(name string, supports map[string]string) (*imageapi.ImageSt
 				DockerImageMetadata:  imageapi.DockerImage{ID: tag},
 			},
 		}
-
+	}
+	if len(latest) > 0 {
+		stream.Spec.Tags["latest"] = imageapi.TagReference{
+			From: &kapi.ObjectReference{
+				Kind: "ImageStreamTag",
+				Name: latest,
+			},
+		}
 	}
 	return stream, images
 }

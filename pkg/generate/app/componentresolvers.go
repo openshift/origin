@@ -4,6 +4,8 @@ import (
 	"sort"
 
 	"github.com/golang/glog"
+
+	"k8s.io/kubernetes/pkg/util/errors"
 )
 
 // Resolver is an interface for resolving provided input to component matches.
@@ -39,42 +41,37 @@ type PerfectMatchWeightedResolver []WeightedResolver
 // Resolve resolves the provided input and returns only exact matches
 func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, error) {
 	imperfect := ScoredComponentMatches{}
-	var group WeightedResolvers
+	var group MultiSimpleSearcher
+	var groupWeight float32 = 0.0
 	for i, resolver := range r {
 		// lump all resolvers with the same weight into a single group
-		if len(group) == 0 || resolver.Weight == group[0].Weight {
-			group = append(group, resolver)
-			if i != len(r)-1 && r[i+1].Weight == group[0].Weight {
+		if len(group) == 0 || resolver.Weight == groupWeight {
+			group = append(group, resolver.Searcher)
+			groupWeight = resolver.Weight
+			if i != len(r)-1 && r[i+1].Weight == groupWeight {
 				continue
 			}
 		}
-		exact, inexact, err := resolveExact(group, value)
+		matches, err := group.Search(value)
 		switch {
-		case err != nil:
-			glog.V(5).Infof("Error from resolver: %v\n", err)
-			return nil, err
-		case exact != nil:
-			if exact.Score == 0.0 {
-				return exact, nil
+		case len(matches) > 0:
+			sort.Sort(ScoredComponentMatches(matches))
+			if matches[0].Score == 0.0 && (len(matches) == 1 || matches[1].Score != 0.0) {
+				return matches[0], nil
 			}
-			if resolver.Weight != 0.0 {
-				exact.Score = resolver.Weight * exact.Score
-			}
-			imperfect = append(imperfect, exact)
-		case len(inexact) > 0:
-			sort.Sort(ScoredComponentMatches(inexact))
-			if inexact[0].Score == 0.0 && (len(inexact) == 1 || inexact[1].Score != 0.0) {
-				return inexact[0], nil
-			}
-			for _, m := range inexact {
+			for _, m := range matches {
 				if resolver.Weight != 0.0 {
 					m.Score = resolver.Weight * m.Score
 				}
 				imperfect = append(imperfect, m)
 			}
+		case err != nil:
+			glog.V(5).Infof("Error from resolver: %v\n", err)
+			return nil, err
 		}
 		group = nil
 	}
+
 	switch len(imperfect) {
 	case 0:
 		// If value is a file and there is a TemplateFileSearcher in one of the resolvers
@@ -108,40 +105,6 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 			return imperfect[0], err
 		}
 		return nil, ErrMultipleMatches{value, imperfect}
-	}
-}
-
-// WeightedResolvers is a set of weighted resolvers
-type WeightedResolvers []WeightedResolver
-
-// Resolve resolves the provided input and returns both exact and inexact matches
-func (r WeightedResolvers) Resolve(value string) (*ComponentMatch, error) {
-	candidates := []*ComponentMatch{}
-	errs := []error{}
-	for _, resolver := range r {
-		exact, inexact, err := searchExact(resolver.Searcher, value)
-		switch {
-		case exact != nil:
-			candidates = append(candidates, exact)
-		case len(inexact) > 0:
-			candidates = append(candidates, inexact...)
-		case err != nil:
-			errs = append(errs, err)
-			if matchErr, ok := err.(ErrMultipleMatches); ok {
-				candidates = append(candidates, matchErr.Matches...)
-			}
-		}
-	}
-	if len(errs) != 0 {
-		glog.V(2).Infof("Errors occurred during resolution: %v", errs)
-	}
-	switch len(candidates) {
-	case 0:
-		return nil, ErrNoMatch{value: value}
-	case 1:
-		return candidates[0], nil
-	default:
-		return nil, ErrMultipleMatches{value, candidates}
 	}
 }
 
@@ -256,17 +219,19 @@ type MultiSimpleSearcher []Searcher
 
 // Search searches using all searchers it holds
 func (s MultiSimpleSearcher) Search(terms ...string) (ComponentMatches, error) {
+	var errs []error
 	componentMatches := ComponentMatches{}
 	for _, searcher := range s {
 		matches, err := searcher.Search(terms...)
 		if err != nil {
-			glog.V(2).Infof("Error occurred during search: %#v", err)
+			glog.V(2).Infof("Error occurred during search: %s", err)
+			errs = append(errs, err)
 			continue
 		}
 		componentMatches = append(componentMatches, matches...)
 	}
 	sort.Sort(ScoredComponentMatches(componentMatches))
-	return componentMatches, nil
+	return componentMatches, errors.NewAggregate(errs)
 }
 
 // WeightedSearcher is a searcher identified as exact or not, depending on its weight
@@ -295,24 +260,6 @@ func (s MultiWeightedSearcher) Search(terms ...string) (ComponentMatches, error)
 	}
 	sort.Sort(ScoredComponentMatches(componentMatches))
 	return componentMatches, nil
-}
-
-func resolveExact(resolver Resolver, value string) (exact *ComponentMatch, inexact []*ComponentMatch, err error) {
-	match, err := resolver.Resolve(value)
-	if err != nil {
-		switch t := err.(type) {
-		case ErrNoMatch:
-			return nil, nil, nil
-		case ErrMultipleMatches:
-			return nil, t.Matches, err
-		default:
-			return nil, nil, err
-		}
-	}
-	if match.Score == 0.0 {
-		return match, nil, nil
-	}
-	return nil, ComponentMatches{match}, nil
 }
 
 func searchExact(searcher Searcher, value string) (exact *ComponentMatch, inexact []*ComponentMatch, err error) {

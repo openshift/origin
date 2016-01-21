@@ -32,9 +32,11 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 		if len(ref.Namespace) != 0 {
 			namespaces = []string{ref.Namespace}
 		}
+		followTag := false
 		searchTag := ref.Tag
 		if len(searchTag) == 0 {
 			searchTag = imageapi.DefaultImageTag
+			followTag = true
 		}
 		for _, namespace := range namespaces {
 			foundExactInNamespace := false
@@ -46,6 +48,7 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 				}
 				return nil, err
 			}
+			original := ref
 			ref.Namespace = namespace
 			for i := range streams.Items {
 				stream := &streams.Items[i]
@@ -61,14 +64,23 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 					meta = map[string]string{"direct-tag": "1"}
 				}
 
-				imageref, _ := imageapi.ParseDockerImageReference(term)
+				imageref := original
 				imageref.Name = stream.Name
 				imageref.Registry = ""
 				matchName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 
-				latest := imageapi.LatestTaggedImage(stream, searchTag)
+				localSearchTag := searchTag
+				if specTag, ok := stream.Spec.Tags[searchTag]; ok && followTag {
+					if specTag.From != nil && specTag.From.Kind == "ImageStreamTag" && !strings.Contains(specTag.From.Name, ":") {
+						if imageapi.LatestTaggedImage(stream, specTag.From.Name) != nil {
+							localSearchTag = specTag.From.Name
+						}
+					}
+				}
+
+				latest := imageapi.LatestTaggedImage(stream, localSearchTag)
 				if latest == nil || len(latest.Image) == 0 {
-					glog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, searchTag)
+					glog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, localSearchTag)
 					componentMatches = append(componentMatches, &ComponentMatch{
 						Value:       imageref.Exact(),
 						Argument:    fmt.Sprintf("--image-stream=%q", matchName),
@@ -76,7 +88,7 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 						Description: fmt.Sprintf("Image stream %s in project %s", stream.Name, stream.Namespace),
 						Score:       0.5 + score,
 						ImageStream: stream,
-						ImageTag:    searchTag,
+						ImageTag:    localSearchTag,
 						Meta:        meta,
 					})
 					continue
@@ -86,7 +98,7 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 				if err != nil {
 					if errors.IsNotFound(err) {
 						// continue searching
-						glog.V(2).Infof("tag %q is set, but image %q has been removed", searchTag, latest.Image)
+						glog.V(2).Infof("tag %q is set, but image %q has been removed", localSearchTag, latest.Image)
 						continue
 					}
 					return nil, err
@@ -97,11 +109,11 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 					Value:       imageref.Exact(),
 					Argument:    fmt.Sprintf("--image-stream=%q", imageref.Exact()),
 					Name:        imageref.Name,
-					Description: fmt.Sprintf("Image stream %q (tag %q) in project %q", stream.Name, searchTag, stream.Namespace),
+					Description: fmt.Sprintf("Image stream %q (tag %q) in project %q", stream.Name, localSearchTag, stream.Namespace),
 					Score:       score,
 					ImageStream: stream,
 					Image:       &imageData.DockerImageMetadata,
-					ImageTag:    searchTag,
+					ImageTag:    localSearchTag,
 					Meta:        meta,
 				}
 				glog.V(2).Infof("Adding %s as component match for %q with score %v", match.Description, term, match.Score)
