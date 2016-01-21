@@ -98,7 +98,7 @@ if [[ -z ${TEST_ONLY+x} ]]; then
     out=$?
     cleanup_openshift
     echo "[INFO] Exiting"
-    exit $out
+    return $out
   }
 
   trap "exit" INT TERM
