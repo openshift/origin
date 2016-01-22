@@ -587,6 +587,9 @@ Create a new build configuration
 
   # Create a build config from a remote repository and add custom environment variables
   $ oc new-build https://github.com/openshift/ruby-hello-world RACK_ENV=development
+
+  # Create a build config from a remote repository and inject the npmrc into a build
+  $ oc new-build https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
 ----
 ====
 

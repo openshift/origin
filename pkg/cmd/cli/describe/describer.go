@@ -3,6 +3,7 @@ package describe
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strconv"
@@ -213,6 +214,14 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		} else {
 			formatString(out, "Binary", "provided on build")
 		}
+	}
+
+	if len(p.Source.Secrets) > 0 {
+		result := []string{}
+		for _, s := range p.Source.Secrets {
+			result = append(result, fmt.Sprintf("%s->%s", s.Secret.Name, filepath.Clean(s.DestinationDir)))
+		}
+		formatString(out, "Build Secrets", strings.Join(result, ","))
 	}
 
 	switch {

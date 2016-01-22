@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	"github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -68,6 +70,7 @@ func (d *DockerBuilder) Build() error {
 	if err := d.addBuildParameters(buildDir); err != nil {
 		return err
 	}
+
 	glog.V(4).Infof("Starting Docker build from build config %s ...", d.build.Name)
 	// if there is no output target, set one up so the docker build logic
 	// (which requires a tag) will still work, but we won't push it at the end.
@@ -77,7 +80,7 @@ func (d *DockerBuilder) Build() error {
 		push = true
 	}
 
-	if err := d.dockerBuild(buildDir); err != nil {
+	if err := d.dockerBuild(buildDir, d.build.Spec.Source.Secrets); err != nil {
 		return err
 	}
 
@@ -97,6 +100,28 @@ func (d *DockerBuilder) Build() error {
 			return fmt.Errorf("Failed to push image: %v", err)
 		}
 		glog.Infof("Push successful")
+	}
+	return nil
+}
+
+// copySecrets copies all files from the directory where the secret is
+// mounted in the builder pod to a directory where the is the Dockerfile, so
+// users can ADD or COPY the files inside their Dockerfile.
+func (d *DockerBuilder) copySecrets(secrets []api.SecretBuildSource, buildDir string) error {
+	for _, s := range secrets {
+		dstDir := filepath.Join(buildDir, s.DestinationDir)
+		if err := os.MkdirAll(dstDir, 0777); err != nil {
+			return err
+		}
+		srcDir := filepath.Join(strategy.SecretBuildSourceBaseMountPath, s.Secret.Name)
+		glog.Infof("Copying files from the build secret %q to %q", s.Secret.Name, filepath.Clean(s.DestinationDir))
+		out, err := exec.Command("cp", "-vrf", srcDir+"/.", dstDir+"/").Output()
+		if err != nil {
+			glog.Infof("Secret %q failed to copy: %q", s.Secret.Name, string(out))
+			return err
+		}
+		// See what is copied where when debugging.
+		glog.V(5).Infof(string(out))
 	}
 	return nil
 }
@@ -222,7 +247,7 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 }
 
 // dockerBuild performs a docker build on the source that has been retrieved
-func (d *DockerBuilder) dockerBuild(dir string) error {
+func (d *DockerBuilder) dockerBuild(dir string, secrets []api.SecretBuildSource) error {
 	var noCache bool
 	var forcePull bool
 	dockerfilePath := defaultDockerfilePath
@@ -238,6 +263,9 @@ func (d *DockerBuilder) dockerBuild(dir string) error {
 	}
 	auth, err := d.setupPullSecret()
 	if err != nil {
+		return err
+	}
+	if err := d.copySecrets(secrets, dir); err != nil {
 		return err
 	}
 	return buildImage(d.dockerClient, dir, dockerfilePath, noCache, d.build.Status.OutputDockerImageReference, d.tar, auth, forcePull)

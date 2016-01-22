@@ -21,6 +21,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	"github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/client"
 )
 
@@ -140,6 +141,16 @@ func (s *S2IBuilder) Build() error {
 		Fragment: ref,
 	}
 
+	injections := s2iapi.InjectionList{}
+	for _, s := range s.build.Spec.Source.Secrets {
+		glog.V(3).Infof("Injecting secret %q into a build into %q", s.Secret.Name, filepath.Clean(s.DestinationDir))
+		secretSourcePath := filepath.Join(strategy.SecretBuildSourceBaseMountPath, s.Secret.Name)
+		injections = append(injections, s2iapi.InjectPath{
+			SourcePath:     secretSourcePath,
+			DestinationDir: s.DestinationDir,
+		})
+	}
+
 	config := &s2iapi.Config{
 		WorkingDir:     buildDir,
 		DockerConfig:   &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
@@ -157,6 +168,8 @@ func (s *S2IBuilder) Build() error {
 		Source:     sourceURI.String(),
 		Tag:        tag,
 		ContextDir: s.build.Spec.Source.ContextDir,
+
+		Injections: injections,
 	}
 
 	if s.build.Spec.Strategy.SourceStrategy.ForcePull {

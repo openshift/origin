@@ -48,7 +48,10 @@ You can use '%[1]s status' to check the progress.`
   $ %[1]s new-build -D $'FROM centos:7\nRUN yum install -y httpd'
 
   # Create a build config from a remote repository and add custom environment variables
-  $ %[1]s new-build https://github.com/openshift/ruby-hello-world RACK_ENV=development`
+  $ %[1]s new-build https://github.com/openshift/ruby-hello-world RACK_ENV=development
+
+  # Create a build config from a remote repository and inject the npmrc into a build
+  $ %[1]s new-build https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc`
 
 	newBuildNoInput = `You must specify one or more images, image streams, or source code locations to create a build.
 
@@ -97,6 +100,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd.Flags().StringSliceVar(&config.SourceRepositories, "code", config.SourceRepositories, "Source code in the build configuration.")
 	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image", "i", config.ImageStreams, "Name of an image stream to to use as a builder.")
 	cmd.Flags().StringSliceVar(&config.DockerImages, "docker-image", config.DockerImages, "Name of a Docker image to use as a builder.")
+	cmd.Flags().StringSliceVar(&config.Secrets, "build-secret", config.Secrets, "Secret and destination to use as an input for the build.")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated build artifacts.")
 	cmd.Flags().StringVar(&config.To, "to", "", "Push built images to this image stream tag (or Docker image repository if --to-docker is set).")
 	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"path/filepath"
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -117,7 +118,7 @@ func validateBuildSpec(spec *buildapi.BuildSpec) fielderrors.ValidationErrorList
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("source", spec.Source, "must provide a value for at least one of source, binary, or dockerfile"))
 	}
 
-	allErrs = append(allErrs, validateSource(&spec.Source, s.CustomStrategy != nil).Prefix("source")...)
+	allErrs = append(allErrs, validateSource(&spec.Source, s.CustomStrategy != nil, s.DockerStrategy != nil).Prefix("source")...)
 
 	if spec.CompletionDeadlineSeconds != nil {
 		if *spec.CompletionDeadlineSeconds <= 0 {
@@ -138,7 +139,7 @@ func hasProxy(source *buildapi.GitBuildSource) bool {
 	return len(source.HTTPProxy) > 0 || len(source.HTTPSProxy) > 0
 }
 
-func validateSource(input *buildapi.BuildSource, isCustomStrategy bool) fielderrors.ValidationErrorList {
+func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrategy bool) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
 	// Ensure that Git and Binary source types are mutually exclusive.
@@ -161,6 +162,8 @@ func validateSource(input *buildapi.BuildSource, isCustomStrategy bool) fielderr
 	if input.Image != nil {
 		allErrs = append(allErrs, validateImageSource(input.Image).Prefix("image")...)
 	}
+
+	allErrs = append(allErrs, validateSecrets(input.Secrets, isDockerStrategy).Prefix("secrets")...)
 
 	allErrs = append(allErrs, validateSecretRef(input.SourceSecret).Prefix("sourceSecret")...)
 
@@ -221,6 +224,22 @@ func validateGitSource(git *buildapi.GitBuildSource) fielderrors.ValidationError
 	}
 	if hasProxy(git) && !isHTTPScheme(git.URI) {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("uri", git.URI, "only http:// and https:// GIT protocols are allowed with HTTP or HTTPS proxy set"))
+	}
+	return allErrs
+}
+
+func validateSecrets(secrets []buildapi.SecretBuildSource, isDockerStrategy bool) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	for i, s := range secrets {
+		if len(s.Secret.Name) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired(fmt.Sprintf("[%d].secret", i)))
+		}
+		if strings.HasPrefix(path.Clean(s.DestinationDir), "..") {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("[%d].destinationDir", i), s.DestinationDir, "destination dir cannot start with '..'"))
+		}
+		if isDockerStrategy && filepath.IsAbs(s.DestinationDir) {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("[%d].destinationDir", i), s.DestinationDir, "for the docker strategy the destinationDir has to be relative path"))
+		}
 	}
 	return allErrs
 }

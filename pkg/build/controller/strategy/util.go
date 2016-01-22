@@ -16,6 +16,7 @@ const (
 	dockerSocketPath               = "/var/run/docker.sock"
 	DockerPushSecretMountPath      = "/var/run/secrets/openshift.io/push"
 	DockerPullSecretMountPath      = "/var/run/secrets/openshift.io/pull"
+	SecretBuildSourceBaseMountPath = "/var/run/secrets/openshift.io/build"
 	SourceImagePullSecretMountPath = "/var/run/secrets/openshift.io/source-image"
 	sourceSecretMountPath          = "/var/run/secrets/openshift.io/source"
 )
@@ -137,6 +138,16 @@ func setupSourceSecrets(pod *kapi.Pod, sourceSecret *kapi.LocalObjectReference) 
 	pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
 		{Name: "SOURCE_SECRET_PATH", Value: sourceSecretMountPath},
 	}...)
+}
+
+// setupSecrets mounts the secrets referenced by the SecretBuildSource
+// into a builder container. It also sets an environment variable that contains
+// a name of the secret and the destination directory.
+func setupSecrets(pod *kapi.Pod, secrets []buildapi.SecretBuildSource) {
+	for _, s := range secrets {
+		mountSecretVolume(pod, s.Secret.Name, filepath.Join(SecretBuildSourceBaseMountPath, s.Secret.Name), "build")
+		glog.V(3).Infof("%s will be used as a build secret in %s", s.Secret.Name, SecretBuildSourceBaseMountPath)
+	}
 }
 
 // addSourceEnvVars adds environment variables related to the source code

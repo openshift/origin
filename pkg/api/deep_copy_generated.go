@@ -984,6 +984,16 @@ func deepCopy_api_BuildSource(in buildapi.BuildSource, out *buildapi.BuildSource
 	} else {
 		out.SourceSecret = nil
 	}
+	if in.Secrets != nil {
+		out.Secrets = make([]buildapi.SecretBuildSource, len(in.Secrets))
+		for i := range in.Secrets {
+			if err := deepCopy_api_SecretBuildSource(in.Secrets[i], &out.Secrets[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Secrets = nil
+	}
 	return nil
 }
 
@@ -1257,6 +1267,16 @@ func deepCopy_api_ImageSource(in buildapi.ImageSource, out *buildapi.ImageSource
 
 func deepCopy_api_ImageSourcePath(in buildapi.ImageSourcePath, out *buildapi.ImageSourcePath, c *conversion.Cloner) error {
 	out.SourcePath = in.SourcePath
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func deepCopy_api_SecretBuildSource(in buildapi.SecretBuildSource, out *buildapi.SecretBuildSource, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.Secret); err != nil {
+		return err
+	} else {
+		out.Secret = newVal.(pkgapi.LocalObjectReference)
+	}
 	out.DestinationDir = in.DestinationDir
 	return nil
 }
@@ -2961,6 +2981,7 @@ func init() {
 		deepCopy_api_ImageChangeTrigger,
 		deepCopy_api_ImageSource,
 		deepCopy_api_ImageSourcePath,
+		deepCopy_api_SecretBuildSource,
 		deepCopy_api_SecretSpec,
 		deepCopy_api_SourceBuildStrategy,
 		deepCopy_api_SourceControlUser,

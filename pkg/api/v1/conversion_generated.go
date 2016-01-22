@@ -1435,6 +1435,16 @@ func autoconvert_api_BuildSource_To_v1_BuildSource(in *buildapi.BuildSource, out
 	} else {
 		out.SourceSecret = nil
 	}
+	if in.Secrets != nil {
+		out.Secrets = make([]apiv1.SecretBuildSource, len(in.Secrets))
+		for i := range in.Secrets {
+			if err := convert_api_SecretBuildSource_To_v1_SecretBuildSource(&in.Secrets[i], &out.Secrets[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Secrets = nil
+	}
 	return nil
 }
 
@@ -1747,6 +1757,21 @@ func autoconvert_api_ImageSourcePath_To_v1_ImageSourcePath(in *buildapi.ImageSou
 
 func convert_api_ImageSourcePath_To_v1_ImageSourcePath(in *buildapi.ImageSourcePath, out *apiv1.ImageSourcePath, s conversion.Scope) error {
 	return autoconvert_api_ImageSourcePath_To_v1_ImageSourcePath(in, out, s)
+}
+
+func autoconvert_api_SecretBuildSource_To_v1_SecretBuildSource(in *buildapi.SecretBuildSource, out *apiv1.SecretBuildSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.SecretBuildSource))(in)
+	}
+	if err := convert_api_LocalObjectReference_To_v1_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
+		return err
+	}
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func convert_api_SecretBuildSource_To_v1_SecretBuildSource(in *buildapi.SecretBuildSource, out *apiv1.SecretBuildSource, s conversion.Scope) error {
+	return autoconvert_api_SecretBuildSource_To_v1_SecretBuildSource(in, out, s)
 }
 
 func autoconvert_api_SecretSpec_To_v1_SecretSpec(in *buildapi.SecretSpec, out *apiv1.SecretSpec, s conversion.Scope) error {
@@ -2202,6 +2227,16 @@ func autoconvert_v1_BuildSource_To_api_BuildSource(in *apiv1.BuildSource, out *b
 	} else {
 		out.SourceSecret = nil
 	}
+	if in.Secrets != nil {
+		out.Secrets = make([]buildapi.SecretBuildSource, len(in.Secrets))
+		for i := range in.Secrets {
+			if err := convert_v1_SecretBuildSource_To_api_SecretBuildSource(&in.Secrets[i], &out.Secrets[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Secrets = nil
+	}
 	return nil
 }
 
@@ -2515,6 +2550,21 @@ func autoconvert_v1_ImageSourcePath_To_api_ImageSourcePath(in *apiv1.ImageSource
 
 func convert_v1_ImageSourcePath_To_api_ImageSourcePath(in *apiv1.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
 	return autoconvert_v1_ImageSourcePath_To_api_ImageSourcePath(in, out, s)
+}
+
+func autoconvert_v1_SecretBuildSource_To_api_SecretBuildSource(in *apiv1.SecretBuildSource, out *buildapi.SecretBuildSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1.SecretBuildSource))(in)
+	}
+	if err := convert_v1_LocalObjectReference_To_api_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
+		return err
+	}
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func convert_v1_SecretBuildSource_To_api_SecretBuildSource(in *apiv1.SecretBuildSource, out *buildapi.SecretBuildSource, s conversion.Scope) error {
+	return autoconvert_v1_SecretBuildSource_To_api_SecretBuildSource(in, out, s)
 }
 
 func autoconvert_v1_SecretSpec_To_api_SecretSpec(in *apiv1.SecretSpec, out *buildapi.SecretSpec, s conversion.Scope) error {
@@ -7994,6 +8044,7 @@ func init() {
 		autoconvert_api_RouteStatus_To_v1_RouteStatus,
 		autoconvert_api_Route_To_v1_Route,
 		autoconvert_api_SELinuxOptions_To_v1_SELinuxOptions,
+		autoconvert_api_SecretBuildSource_To_v1_SecretBuildSource,
 		autoconvert_api_SecretSpec_To_v1_SecretSpec,
 		autoconvert_api_SecretVolumeSource_To_v1_SecretVolumeSource,
 		autoconvert_api_SecurityContext_To_v1_SecurityContext,
@@ -8151,6 +8202,7 @@ func init() {
 		autoconvert_v1_RouteStatus_To_api_RouteStatus,
 		autoconvert_v1_Route_To_api_Route,
 		autoconvert_v1_SELinuxOptions_To_api_SELinuxOptions,
+		autoconvert_v1_SecretBuildSource_To_api_SecretBuildSource,
 		autoconvert_v1_SecretSpec_To_api_SecretSpec,
 		autoconvert_v1_SecretVolumeSource_To_api_SecretVolumeSource,
 		autoconvert_v1_SecurityContext_To_api_SecurityContext,

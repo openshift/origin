@@ -1444,6 +1444,16 @@ func autoconvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource
 	} else {
 		out.SourceSecret = nil
 	}
+	if in.Secrets != nil {
+		out.Secrets = make([]apiv1beta3.SecretBuildSource, len(in.Secrets))
+		for i := range in.Secrets {
+			if err := convert_api_SecretBuildSource_To_v1beta3_SecretBuildSource(&in.Secrets[i], &out.Secrets[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Secrets = nil
+	}
 	return nil
 }
 
@@ -1756,6 +1766,21 @@ func autoconvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in *buildapi.Ima
 
 func convert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in *buildapi.ImageSourcePath, out *apiv1beta3.ImageSourcePath, s conversion.Scope) error {
 	return autoconvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in, out, s)
+}
+
+func autoconvert_api_SecretBuildSource_To_v1beta3_SecretBuildSource(in *buildapi.SecretBuildSource, out *apiv1beta3.SecretBuildSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.SecretBuildSource))(in)
+	}
+	if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
+		return err
+	}
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func convert_api_SecretBuildSource_To_v1beta3_SecretBuildSource(in *buildapi.SecretBuildSource, out *apiv1beta3.SecretBuildSource, s conversion.Scope) error {
+	return autoconvert_api_SecretBuildSource_To_v1beta3_SecretBuildSource(in, out, s)
 }
 
 func autoconvert_api_SecretSpec_To_v1beta3_SecretSpec(in *buildapi.SecretSpec, out *apiv1beta3.SecretSpec, s conversion.Scope) error {
@@ -2211,6 +2236,16 @@ func autoconvert_v1beta3_BuildSource_To_api_BuildSource(in *apiv1beta3.BuildSour
 	} else {
 		out.SourceSecret = nil
 	}
+	if in.Secrets != nil {
+		out.Secrets = make([]buildapi.SecretBuildSource, len(in.Secrets))
+		for i := range in.Secrets {
+			if err := convert_v1beta3_SecretBuildSource_To_api_SecretBuildSource(&in.Secrets[i], &out.Secrets[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Secrets = nil
+	}
 	return nil
 }
 
@@ -2524,6 +2559,21 @@ func autoconvert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in *apiv1beta3.I
 
 func convert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in *apiv1beta3.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
 	return autoconvert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in, out, s)
+}
+
+func autoconvert_v1beta3_SecretBuildSource_To_api_SecretBuildSource(in *apiv1beta3.SecretBuildSource, out *buildapi.SecretBuildSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1beta3.SecretBuildSource))(in)
+	}
+	if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
+		return err
+	}
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func convert_v1beta3_SecretBuildSource_To_api_SecretBuildSource(in *apiv1beta3.SecretBuildSource, out *buildapi.SecretBuildSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_SecretBuildSource_To_api_SecretBuildSource(in, out, s)
 }
 
 func autoconvert_v1beta3_SecretSpec_To_api_SecretSpec(in *apiv1beta3.SecretSpec, out *buildapi.SecretSpec, s conversion.Scope) error {
@@ -7961,6 +8011,7 @@ func init() {
 		autoconvert_api_RouteStatus_To_v1beta3_RouteStatus,
 		autoconvert_api_Route_To_v1beta3_Route,
 		autoconvert_api_SELinuxOptions_To_v1beta3_SELinuxOptions,
+		autoconvert_api_SecretBuildSource_To_v1beta3_SecretBuildSource,
 		autoconvert_api_SecretSpec_To_v1beta3_SecretSpec,
 		autoconvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource,
 		autoconvert_api_SecurityContext_To_v1beta3_SecurityContext,
@@ -8118,6 +8169,7 @@ func init() {
 		autoconvert_v1beta3_RouteStatus_To_api_RouteStatus,
 		autoconvert_v1beta3_Route_To_api_Route,
 		autoconvert_v1beta3_SELinuxOptions_To_api_SELinuxOptions,
+		autoconvert_v1beta3_SecretBuildSource_To_api_SecretBuildSource,
 		autoconvert_v1beta3_SecretSpec_To_api_SecretSpec,
 		autoconvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource,
 		autoconvert_v1beta3_SecurityContext_To_api_SecurityContext,
