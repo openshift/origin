@@ -19,8 +19,8 @@
     "hawtio-core": "2.0.11",
     "hawtio-core-navigation": "2.0.48",
     "hawtio-extension-service": "2.0.2",
-    "lodash": "3.2.0",
     "jquery": "2.1.3",
+    "lodash": "3.10.1",
     "sifter": "0.3.4",
     "microplugin": "0.0.3",
     "selectize": "0.11.2",
@@ -33,7 +33,7 @@
     "layout.attrs": "1.1.2",
     "bootstrap-hover-dropdown": "2.1.3",
     "angular-ui-ace": "0.2.3",
-    "ace-builds": "1.2.2",
+	  "ace-builds": "1.2.2",
     "yamljs": "0.1.5"
   },
   "devDependencies": {
@@ -41,6 +41,9 @@
     "angular-scenario": "1.3.8"
   },
   "appPath": "app",
+  "resolutions": {
+    "lodash": "3.10.1"
+  },
   "overrides": {
     "angular-patternfly": {
       "main": [
