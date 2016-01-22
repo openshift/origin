@@ -217,7 +217,7 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 		return nil, err
 	}
 
-	if strings.ToLower(bc.Annotations[buildapi.BuildConfigPausedAnnotation]) == "true" {
+	if buildutil.IsPaused(bc) {
 		return nil, &GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", bc.Namespace, bc.Name)}
 	}
 
@@ -320,6 +320,10 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 		buildConfig, err = g.Client.GetBuildConfig(ctx, build.Status.Config.Name)
 		if err != nil && !errors.IsNotFound(err) {
 			return nil, err
+		}
+
+		if buildutil.IsPaused(buildConfig) {
+			return nil, &GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", buildConfig.Namespace, buildConfig.Name)}
 		}
 	}
 
