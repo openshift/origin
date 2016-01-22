@@ -10,7 +10,11 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
+
+os::util::trap::init
+os::log::stacktrace::install
 
 # Build the primary client/server for all platforms
 OS_BUILD_PLATFORMS=("${OS_CROSS_COMPILE_PLATFORMS[@]}")

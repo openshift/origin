@@ -11,38 +11,29 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/os.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/system.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 
-source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::util::environment::setup_time_vars
-
+os::util::trap::init
+os::log::stacktrace::install
 cd "${OS_ROOT}"
 
 os::build::setup_env
 
-function cleanup()
-{
-	out=$?
-	cleanup_openshift
-	echo "[INFO] Exiting"
-	return $out
-}
-
-trap "exit" INT TERM
-trap "cleanup" EXIT
-
-echo "[INFO] Starting server"
+source "${OS_ROOT}/hack/lib/util/environment.sh"
+os::util::environment::setup_time_vars
 
 ensure_iptables_or_die
 os::util::environment::setup_all_server_vars "test-extended/ldap_groups/"
 os::util::environment::use_sudo
 reset_tmp_dir
 
-os::log::start_system_logger
+os::log::system::start
 
-configure_os_server
-start_os_server
+os::configure_server
+os::start_server
 
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 

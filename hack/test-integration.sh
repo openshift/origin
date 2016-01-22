@@ -8,10 +8,16 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/text.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/lib/os.sh"
+source "${OS_ROOT}/hack/lib/cleanup.sh"
+source "${OS_ROOT}/hack/lib/util/text.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/log/system.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
+
+os::util::trap::init
+os::log::stacktrace::install
 
 # Go to the top of the tree.
 cd "${OS_ROOT}"
@@ -24,17 +30,6 @@ export ETCD_PORT=${ETCD_PORT:-44001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-47001}
 os::util::environment::setup_all_server_vars "test-integration/"
 reset_tmp_dir
-
-function cleanup() {
-	out=$?
-	set +e
-
-	cleanup_openshift
-	echo "Complete"
-	exit $out
-}
-
-trap cleanup EXIT SIGINT
 
 package="${OS_TEST_PACKAGE:-test/integration}"
 tags="${OS_TEST_TAGS:-integration !docker etcd}"
@@ -57,9 +52,13 @@ echo "Building test executable..."
 CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
 popd &>/dev/null
 
-os::log::start_system_logger
+os::log::system::start
 
-configure_os_server
+os::configure_server
+os::util::install_describe_return_code
+os::cleanup::install_dump_etcd_contents
+os::cleanup::install_kill_all_running_jobs
+os::cleanup::install_prune_artifacts
 openshift start etcd --config=${MASTER_CONFIG_DIR}/master-config.yaml &> ${LOG_DIR}/etcd.log &
 
 wait_for_url "http://${API_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160
@@ -78,13 +77,13 @@ function exectest() {
 		result=$?
 	fi
 
-	os::text::clear_last_line
+	os::util::text::clear_last_line
 
 	if [[ ${result} -eq 0 ]]; then
-		os::text::print_green "ok      $1"
+		os::util::text::print_green "ok      $1"
 		exit 0
 	else
-		os::text::print_red "failed  $1"
+		os::util::text::print_red "failed  $1"
 		echo "${out}"
 
 		# dump etcd for failing test

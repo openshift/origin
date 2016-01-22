@@ -15,12 +15,15 @@ export KUBE_REPO_ROOT="${GOPATH}/src/k8s.io/kubernetes"
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
-os::log::install_errexit
-
 source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::util::environment::setup_time_vars
+source "${OS_ROOT}/hack/lib/os.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/system.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 
+os::util::trap::init
+os::log::stacktrace::install
+os::util::environment::setup_time_vars
 cd "${OS_ROOT}"
 
 # ensure_ginkgo_or_die
@@ -95,23 +98,13 @@ SKIP="${SKIP:-$DEFAULT_SKIP}"
 if [[ -z ${TEST_ONLY+x} ]]; then
   ensure_iptables_or_die
 
-  function cleanup()
-  {
-    out=$?
-    cleanup_openshift
-    echo "[INFO] Exiting"
-    return $out
-  }
-
-  trap "exit" INT TERM
-  trap "cleanup" EXIT
   echo "[INFO] Starting server"
 
   os::util::environment::setup_all_server_vars "test-extended/core"
   os::util::environment::use_sudo
   reset_tmp_dir
 
-  os::log::start_system_logger
+  os::log::system::start
 
   # when selinux is enforcing, the volume dir selinux label needs to be
   # svirt_sandbox_file_t
@@ -121,8 +114,8 @@ if [[ -z ${TEST_ONLY+x} ]]; then
   if selinuxenabled; then
          sudo chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
   fi
-  configure_os_server
-  start_os_server
+  os::configure_server
+  os::start_server
 
   export KUBECONFIG="${ADMIN_KUBECONFIG}"
 

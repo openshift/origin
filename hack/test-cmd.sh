@@ -11,44 +11,17 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 cd "${OS_ROOT}"
 source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/lib/os.sh"
+source "${OS_ROOT}/hack/lib/cleanup.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/log/system.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 
-function cleanup()
-{
-    out=$?
-    pkill -P $$
-    set +e
-    kill_all_processes
-
-    if [ $out -ne 0 ]; then
-        echo "[FAIL] !!!!! Test Failed !!!!"
-        echo
-        tail -40 "${LOG_DIR}/openshift.log"
-        echo
-        echo -------------------------------------
-        echo
-    else
-        if path=$(go tool -n pprof 2>&1); then
-          echo
-          echo "pprof: top output"
-          echo
-          go tool pprof -text ./_output/local/bin/$(os::util::host_platform)/openshift cpu.pprof | head -120
-        fi
-
-        echo
-        echo "Complete"
-    fi
-
-    ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
-    exit $out
-}
-
-trap "exit" INT TERM
-trap "cleanup" EXIT
-
-set -e
+os::util::trap::init
+os::log::stacktrace::install
+os::internal::install_master_cleanup
+os::cleanup::install_dump_pprof_output
 
 function find_tests {
   find "${OS_ROOT}/test/cmd" -name '*.sh' | grep -E "${1}" | sort -u
@@ -70,14 +43,10 @@ reset_tmp_dir
 
 echo "Logging to ${LOG_DIR}..."
 
-os::log::start_system_logger
+os::log::system::start
 
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
-
-# test wrapper functions
-${OS_ROOT}/hack/test-cmd_util.sh > ${LOG_DIR}/wrappers_test.log 2>&1
-
 
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
@@ -158,7 +127,9 @@ OPENSHIFT_ON_PANIC=crash openshift start master \
   --config=${MASTER_CONFIG_DIR}/master-config.yaml \
   --loglevel=5 \
   &>"${LOG_DIR}/openshift.log" &
-OS_PID=$!
+export OS_PID=$!
+
+export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 
 if [[ "${API_SCHEME}" == "https" ]]; then
     export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
@@ -241,7 +212,7 @@ oc logout
 [ -z "$(oc get pods | grep 'system:anonymous')" ]
 
 # log in as an image-pruner and test that oadm prune images works against the atomic binary
-oadm policy add-cluster-role-to-user system:image-pruner pruner --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+oadm policy add-cluster-role-to-user system:image-pruner pruner --config="${ADMIN_KUBECONFIG}"
 oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u pruner -p anything
 # this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
 oadm prune images
@@ -252,19 +223,19 @@ oc get projects
 oc project project-foo
 [ "$(oc config view | grep current-context | grep project-foo/${API_HOST}:${API_PORT}/test-user)" ]
 [ "$(oc whoami | grep 'test-user')" ]
-[ "$(oc whoami --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" | grep 'system:admin')" ]
+[ "$(oc whoami --config="${ADMIN_KUBECONFIG}" | grep 'system:admin')" ]
 [ -n "$(oc whoami -t)" ]
 [ -n "$(oc whoami -c)" ]
 
 # test config files from the --config flag
-oc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+oc get services --config="${ADMIN_KUBECONFIG}"
 
 # test config files from env vars
-KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" oc get services
+KUBECONFIG="${ADMIN_KUBECONFIG}" oc get services
 
 # test config files in the home directory
 mkdir -p ${HOME}/.kube
-cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/config
+cp ${ADMIN_KUBECONFIG} ${HOME}/.kube/config
 oc get services
 mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
 echo "config files: ok"
