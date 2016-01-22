@@ -17,6 +17,10 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 os::log::install_errexit
+
+source "${OS_ROOT}/hack/lib/util/environment.sh"
+os::util::environment::setup_time_vars
+
 cd "${OS_ROOT}"
 
 # ensure_ginkgo_or_die
@@ -26,8 +30,6 @@ os::build::setup_env
 #  go test -c ./test/extended -o ${OS_OUTPUT_BINPATH}/extended.test
 #fi
 
-export TMPDIR="${TMPDIR:-"/tmp"}"
-export BASETMPDIR="${TMPDIR}/openshift-extended-tests/core"
 export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
 # TODO: check out the version of Kube we need so that we have access to sample content - in the future,
@@ -105,7 +107,8 @@ if [[ -z ${TEST_ONLY+x} ]]; then
   trap "cleanup" EXIT
   echo "[INFO] Starting server"
 
-  setup_env_vars
+  os::util::environment::setup_all_server_vars "test-extended/core"
+  os::util::environment::use_sudo
   reset_tmp_dir
 
   os::log::start_system_logger

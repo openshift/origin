@@ -8,6 +8,7 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
 
 function cleanup()
@@ -29,19 +30,13 @@ function cleanup()
 trap "exit" INT TERM
 trap "cleanup" EXIT
 
-set -e
-
-
-TMPDIR="${TMPDIR:-"/tmp"}"
-BASETMPDIR="${TMPDIR}/openshift-swagger"
 export ALL_IP_ADDRESSES=127.0.0.1
 export SERVER_HOSTNAME_LIST=127.0.0.1
 export API_BIND_HOST=127.0.0.1
 export API_PORT=38443
 export ETCD_PORT=34001
 export ETCD_PEER_PORT=37001
-export SUDO=''
-setup_env_vars
+os::util::environment::setup_all_server_vars "generate-swagger-spec/"
 reset_tmp_dir
 configure_os_server
 

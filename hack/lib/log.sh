@@ -76,8 +76,6 @@ function os::log::clean_up_logger() {
         os::log::internal::plot "${log_subset_file}"
     done
 
-    set -o errexit
-
     return "${return_code}"
 }
 
