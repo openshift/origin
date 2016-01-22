@@ -1172,6 +1172,34 @@ func autoConvert_api_BuildOutput_To_v1_BuildOutput(in *buildapi.BuildOutput, out
 	return nil
 }
 
+func autoConvert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(in *buildapi.BuildPostCommitSpec, out *v1.BuildPostCommitSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.BuildPostCommitSpec))(in)
+	}
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.Script = in.Script
+	return nil
+}
+
+func Convert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(in *buildapi.BuildPostCommitSpec, out *v1.BuildPostCommitSpec, s conversion.Scope) error {
+	return autoConvert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(in, out, s)
+}
+
 func autoConvert_api_BuildRequest_To_v1_BuildRequest(in *buildapi.BuildRequest, out *v1.BuildRequest, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildRequest))(in)
@@ -1321,6 +1349,9 @@ func autoConvert_api_BuildSpec_To_v1_BuildSpec(in *buildapi.BuildSpec, out *v1.B
 		return err
 	}
 	if err := Convert_api_ResourceRequirements_To_v1_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if err := Convert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
 		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
@@ -1978,6 +2009,34 @@ func autoConvert_v1_BuildOutput_To_api_BuildOutput(in *v1.BuildOutput, out *buil
 	return nil
 }
 
+func autoConvert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in *v1.BuildPostCommitSpec, out *buildapi.BuildPostCommitSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1.BuildPostCommitSpec))(in)
+	}
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.Script = in.Script
+	return nil
+}
+
+func Convert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in *v1.BuildPostCommitSpec, out *buildapi.BuildPostCommitSpec, s conversion.Scope) error {
+	return autoConvert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in, out, s)
+}
+
 func autoConvert_v1_BuildRequest_To_api_BuildRequest(in *v1.BuildRequest, out *buildapi.BuildRequest, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1.BuildRequest))(in)
@@ -2128,6 +2187,9 @@ func autoConvert_v1_BuildSpec_To_api_BuildSpec(in *v1.BuildSpec, out *buildapi.B
 		return err
 	}
 	if err := Convert_v1_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
 		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
@@ -8626,6 +8688,7 @@ func init() {
 		autoConvert_api_BuildLogOptions_To_v1_BuildLogOptions,
 		autoConvert_api_BuildLog_To_v1_BuildLog,
 		autoConvert_api_BuildOutput_To_v1_BuildOutput,
+		autoConvert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec,
 		autoConvert_api_BuildRequest_To_v1_BuildRequest,
 		autoConvert_api_BuildSource_To_v1_BuildSource,
 		autoConvert_api_BuildSpec_To_v1_BuildSpec,
@@ -8800,6 +8863,7 @@ func init() {
 		autoConvert_v1_BuildLogOptions_To_api_BuildLogOptions,
 		autoConvert_v1_BuildLog_To_api_BuildLog,
 		autoConvert_v1_BuildOutput_To_api_BuildOutput,
+		autoConvert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec,
 		autoConvert_v1_BuildRequest_To_api_BuildRequest,
 		autoConvert_v1_BuildSource_To_api_BuildSource,
 		autoConvert_v1_BuildSpec_To_api_BuildSpec,

@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -1412,7 +1413,26 @@ func TestValidateBuildSpec(t *testing.T) {
 					},
 				},
 			},
-		}}
+		},
+		// 17
+		{
+			string(field.ErrorTypeInvalid) + "postCommit",
+			&buildapi.BuildSpec{
+				PostCommit: buildapi.BuildPostCommitSpec{
+					Command: []string{"rake", "test"},
+					Script:  "rake test",
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+			},
+		},
+	}
 
 	for count, config := range errorCases {
 		errors := validateBuildSpec(config.BuildSpec, nil)
@@ -1842,6 +1862,66 @@ func TestValidateStrategyEnvVars(t *testing.T) {
 		}
 		if err.Type != tc.errType {
 			t.Errorf("%d: unexpected error type: %s", i, err.Type)
+		}
+	}
+}
+
+func TestValidatePostCommit(t *testing.T) {
+	path := field.NewPath("postCommit")
+	invalidSpec := buildapi.BuildPostCommitSpec{
+		Command: []string{"rake", "test"},
+		Script:  "rake test",
+	}
+	tests := []struct {
+		spec buildapi.BuildPostCommitSpec
+		want field.ErrorList
+	}{
+		{
+			spec: buildapi.BuildPostCommitSpec{},
+			want: field.ErrorList{},
+		},
+		{
+			spec: buildapi.BuildPostCommitSpec{
+				Script: "rake test",
+			},
+			want: field.ErrorList{},
+		},
+		{
+			spec: buildapi.BuildPostCommitSpec{
+				Command: []string{"rake", "test"},
+			},
+			want: field.ErrorList{},
+		},
+		{
+			spec: buildapi.BuildPostCommitSpec{
+				Args: []string{"rake", "test"},
+			},
+			want: field.ErrorList{},
+		},
+		{
+			spec: buildapi.BuildPostCommitSpec{
+				Script: "rake test $1",
+				Args:   []string{"--verbose"},
+			},
+			want: field.ErrorList{},
+		},
+		{
+			spec: buildapi.BuildPostCommitSpec{
+				Command: []string{"/bin/bash", "-c"},
+				Args:    []string{"rake test"},
+			},
+			want: field.ErrorList{},
+		},
+		{
+			spec: invalidSpec,
+			want: field.ErrorList{
+				field.Invalid(path, invalidSpec, "cannot use command and script together"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		if got := validatePostCommit(tt.spec, path); !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("validatePostCommitSpec(%+v) = %v, want %v", tt.spec, got, tt.want)
 		}
 	}
 }

@@ -10,6 +10,7 @@ import (
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
 
+	"github.com/docker/docker/pkg/parsers"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/tar"
@@ -41,6 +42,10 @@ type DockerClient interface {
 	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
 	RemoveContainer(opts docker.RemoveContainerOptions) error
 	InspectImage(name string) (*docker.Image, error)
+	StartContainer(id string, hostConfig *docker.HostConfig) error
+	WaitContainer(id string) (int, error)
+	Logs(opts docker.LogsOptions) error
+	TagImage(name string, opts docker.TagImageOptions) error
 }
 
 // pushImage pushes a docker image to the registry specified in its tag.
@@ -121,4 +126,75 @@ func buildImage(client DockerClient, dir string, dockerfilePath string, noCache 
 		opts.AuthConfigs = *pullAuth
 	}
 	return client.BuildImage(opts)
+}
+
+// tagImage uses the dockerClient to tag a Docker image with name. It is a
+// helper to facilitate the usage of dockerClient.TagImage, because the former
+// requires the name to be split into more explicit parts.
+func tagImage(dockerClient DockerClient, image, name string) error {
+	repo, tag := parsers.ParseRepositoryTag(name)
+	return dockerClient.TagImage(image, docker.TagImageOptions{
+		Repo: repo,
+		Tag:  tag,
+		// We need to set Force to true to update the tag even if it
+		// already exists. This is the same behavior as `docker build -t
+		// tag .`.
+		Force: true,
+	})
+}
+
+// dockerRun mimics the 'docker run --rm' CLI command. It uses the Docker Remote
+// API to create and start a container and stream its logs. The container is
+// removed after it terminates.
+func dockerRun(client DockerClient, createOpts docker.CreateContainerOptions, logsOpts docker.LogsOptions) error {
+	// Create a new container.
+	glog.V(4).Infof("Creating container with options {Name:%q Config:%+v HostConfig:%+v} ...", createOpts.Name, createOpts.Config, createOpts.HostConfig)
+	c, err := client.CreateContainer(createOpts)
+	if err != nil {
+		return fmt.Errorf("create container %q: %v", createOpts.Name, err)
+	}
+
+	containerName := containerNameOrID(c)
+
+	// Container was created, so we defer its removal.
+	defer func() {
+		glog.V(4).Infof("Removing container %q ...", containerName)
+		if err := client.RemoveContainer(docker.RemoveContainerOptions{ID: c.ID}); err != nil {
+			glog.Warningf("Failed to remove container %q: %v", containerName, err)
+		} else {
+			glog.V(4).Infof("Removed container %q", containerName)
+		}
+	}()
+
+	// Start the container.
+	glog.V(4).Infof("Starting container %q ...", containerName)
+	if err := client.StartContainer(c.ID, nil); err != nil {
+		return fmt.Errorf("start container %q: %v", containerName, err)
+	}
+
+	// Stream container logs.
+	glog.V(4).Infof("Streaming logs of container %q with options %+v ...", containerName, logsOpts)
+	logsOpts.Container = c.ID
+	if err := client.Logs(logsOpts); err != nil {
+		return fmt.Errorf("streaming logs of %q: %v", containerName, err)
+	}
+
+	// Return an error if the exit code of the container is non-zero.
+	glog.V(4).Infof("Waiting for container %q to stop ...", containerName)
+	exitCode, err := client.WaitContainer(c.ID)
+	if err != nil {
+		return fmt.Errorf("waiting for container %q to stop: %v", containerName, err)
+	}
+	if exitCode != 0 {
+		return fmt.Errorf("container %q returned non-zero exit code: %d", containerName, exitCode)
+	}
+
+	return nil
+}
+
+func containerNameOrID(c *docker.Container) string {
+	if c.Name != "" {
+		return c.Name
+	}
+	return c.ID
 }

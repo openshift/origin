@@ -1180,6 +1180,34 @@ func autoConvert_api_BuildOutput_To_v1beta3_BuildOutput(in *buildapi.BuildOutput
 	return nil
 }
 
+func autoConvert_api_BuildPostCommitSpec_To_v1beta3_BuildPostCommitSpec(in *buildapi.BuildPostCommitSpec, out *v1beta3.BuildPostCommitSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.BuildPostCommitSpec))(in)
+	}
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.Script = in.Script
+	return nil
+}
+
+func Convert_api_BuildPostCommitSpec_To_v1beta3_BuildPostCommitSpec(in *buildapi.BuildPostCommitSpec, out *v1beta3.BuildPostCommitSpec, s conversion.Scope) error {
+	return autoConvert_api_BuildPostCommitSpec_To_v1beta3_BuildPostCommitSpec(in, out, s)
+}
+
 func autoConvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource, out *v1beta3.BuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildSource))(in)
@@ -1264,6 +1292,9 @@ func autoConvert_api_BuildSpec_To_v1beta3_BuildSpec(in *buildapi.BuildSpec, out 
 		return err
 	}
 	if err := Convert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if err := Convert_api_BuildPostCommitSpec_To_v1beta3_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
 		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
@@ -1921,6 +1952,34 @@ func autoConvert_v1beta3_BuildOutput_To_api_BuildOutput(in *v1beta3.BuildOutput,
 	return nil
 }
 
+func autoConvert_v1beta3_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in *v1beta3.BuildPostCommitSpec, out *buildapi.BuildPostCommitSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.BuildPostCommitSpec))(in)
+	}
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.Script = in.Script
+	return nil
+}
+
+func Convert_v1beta3_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in *v1beta3.BuildPostCommitSpec, out *buildapi.BuildPostCommitSpec, s conversion.Scope) error {
+	return autoConvert_v1beta3_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in, out, s)
+}
+
 func autoConvert_v1beta3_BuildSource_To_api_BuildSource(in *v1beta3.BuildSource, out *buildapi.BuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1beta3.BuildSource))(in)
@@ -2006,6 +2065,9 @@ func autoConvert_v1beta3_BuildSpec_To_api_BuildSpec(in *v1beta3.BuildSpec, out *
 		return err
 	}
 	if err := Convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if err := Convert_v1beta3_BuildPostCommitSpec_To_api_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
 		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
@@ -6781,6 +6843,7 @@ func init() {
 		autoConvert_api_BuildLogOptions_To_v1beta3_BuildLogOptions,
 		autoConvert_api_BuildLog_To_v1beta3_BuildLog,
 		autoConvert_api_BuildOutput_To_v1beta3_BuildOutput,
+		autoConvert_api_BuildPostCommitSpec_To_v1beta3_BuildPostCommitSpec,
 		autoConvert_api_BuildSource_To_v1beta3_BuildSource,
 		autoConvert_api_BuildSpec_To_v1beta3_BuildSpec,
 		autoConvert_api_BuildStatus_To_v1beta3_BuildStatus,
@@ -6924,6 +6987,7 @@ func init() {
 		autoConvert_v1beta3_BuildLogOptions_To_api_BuildLogOptions,
 		autoConvert_v1beta3_BuildLog_To_api_BuildLog,
 		autoConvert_v1beta3_BuildOutput_To_api_BuildOutput,
+		autoConvert_v1beta3_BuildPostCommitSpec_To_api_BuildPostCommitSpec,
 		autoConvert_v1beta3_BuildSource_To_api_BuildSource,
 		autoConvert_v1beta3_BuildSpec_To_api_BuildSpec,
 		autoConvert_v1beta3_BuildStatus_To_api_BuildStatus,

@@ -909,6 +909,27 @@ func deepCopy_v1beta3_BuildOutput(in apiv1beta3.BuildOutput, out *apiv1beta3.Bui
 	return nil
 }
 
+func deepCopy_v1beta3_BuildPostCommitSpec(in apiv1beta3.BuildPostCommitSpec, out *apiv1beta3.BuildPostCommitSpec, c *conversion.Cloner) error {
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.Script = in.Script
+	return nil
+}
+
 func deepCopy_v1beta3_BuildRequest(in apiv1beta3.BuildRequest, out *apiv1beta3.BuildRequest, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -1055,6 +1076,9 @@ func deepCopy_v1beta3_BuildSpec(in apiv1beta3.BuildSpec, out *apiv1beta3.BuildSp
 		return err
 	} else {
 		out.Resources = newVal.(pkgapiv1beta3.ResourceRequirements)
+	}
+	if err := deepCopy_v1beta3_BuildPostCommitSpec(in.PostCommit, &out.PostCommit, c); err != nil {
+		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
 		out.CompletionDeadlineSeconds = new(int64)
@@ -2999,6 +3023,7 @@ func init() {
 		deepCopy_v1beta3_BuildLog,
 		deepCopy_v1beta3_BuildLogOptions,
 		deepCopy_v1beta3_BuildOutput,
+		deepCopy_v1beta3_BuildPostCommitSpec,
 		deepCopy_v1beta3_BuildRequest,
 		deepCopy_v1beta3_BuildSource,
 		deepCopy_v1beta3_BuildSpec,

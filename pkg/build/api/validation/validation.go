@@ -117,6 +117,7 @@ func validateBuildSpec(spec *buildapi.BuildSpec, fldPath *field.Path) field.Erro
 
 	allErrs = append(allErrs, validateOutput(&spec.Output, fldPath.Child("output"))...)
 	allErrs = append(allErrs, validateStrategy(&spec.Strategy, fldPath.Child("strategy"))...)
+	allErrs = append(allErrs, validatePostCommit(spec.PostCommit, fldPath.Child("postCommit"))...)
 
 	// TODO: validate resource requirements (prereq: https://github.com/kubernetes/kubernetes/pull/7059)
 	return allErrs
@@ -545,6 +546,14 @@ func ValidateStrategyEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorLis
 		if ev.ValueFrom != nil {
 			allErrs = append(allErrs, field.Invalid(idxPath.Child("valueFrom"), ev.ValueFrom, "valueFrom is not supported in build strategy environment variables"))
 		}
+	}
+	return allErrs
+}
+
+func validatePostCommit(spec buildapi.BuildPostCommitSpec, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if spec.Script != "" && len(spec.Command) > 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath, spec, "cannot use command and script together"))
 	}
 	return allErrs
 }
