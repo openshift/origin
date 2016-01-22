@@ -1,6 +1,8 @@
 package registry
 
 import (
+	cryptorand "crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -75,6 +77,9 @@ type RegistryConfig struct {
 
 	// TODO: accept environment values.
 }
+
+// randomSecretSize is the number of random bytes to generate.
+const randomSecretSize = 32
 
 var errExit = fmt.Errorf("exit")
 
@@ -253,6 +258,12 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 		}
 		livenessProbe := generateLivenessProbeConfig(healthzPort)
 		readinessProbe := generateReadinessProbeConfig(healthzPort)
+
+		secretBytes := make([]byte, randomSecretSize)
+		if _, err := cryptorand.Read(secretBytes); err != nil {
+			return fmt.Errorf("registry does not exist; could not generate random bytes for HTTP secret: %v", err)
+		}
+		env["REGISTRY_HTTP_SECRET"] = base64.StdEncoding.EncodeToString(secretBytes)
 
 		mountHost := len(cfg.HostMount) > 0
 		podTemplate := &kapi.PodTemplateSpec{
