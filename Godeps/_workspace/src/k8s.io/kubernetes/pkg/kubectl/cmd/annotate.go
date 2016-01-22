@@ -23,6 +23,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -221,8 +222,9 @@ func (o AnnotateOptions) RunAnnotate() error {
 			return err
 		}
 		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, obj)
+		createdPatch := err == nil
 		if err != nil {
-			return err
+			glog.V(2).Infof("couldn't compute patch: %v", err)
 		}
 
 		mapping := info.ResourceMapping()
@@ -232,7 +234,12 @@ func (o AnnotateOptions) RunAnnotate() error {
 		}
 		helper := resource.NewHelper(client, mapping)
 
-		outputObj, err := helper.Patch(namespace, name, api.StrategicMergePatchType, patchBytes)
+		var outputObj runtime.Object
+		if createdPatch {
+			outputObj, err = helper.Patch(namespace, name, api.StrategicMergePatchType, patchBytes)
+		} else {
+			outputObj, err = helper.Replace(namespace, name, false, obj)
+		}
 		if err != nil {
 			return err
 		}
