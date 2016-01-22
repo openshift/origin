@@ -88,7 +88,7 @@ func NewCmdRun(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *c
 
 func addRunFlags(cmd *cobra.Command) {
 	// TODO: Change the default to "deployment/v1beta1" (which is a valid generator) when deployment reaches beta (#15313)
-	cmd.Flags().String("generator", "", "The name of the API generator to use.  Default is 'run/v1' if --restart=Always, otherwise the default is 'job/v1beta1'.")
+	cmd.Flags().String("generator", "", "The name of the API generator to use.  Default is 'run/v1' if --restart=Always, otherwise the default is 'run-pod/v1'.")
 	cmd.Flags().String("image", "", "The image for the container to run.")
 	cmd.MarkFlagRequired("image")
 	cmd.Flags().IntP("replicas", "r", 1, "Number of replicas to create for this container. Default is 1.")
@@ -150,7 +150,7 @@ func Run(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer, cmd *cob
 		if restartPolicy == api.RestartPolicyAlways {
 			generatorName = "run/v1"
 		} else {
-			generatorName = "job/v1beta1"
+			generatorName = "run-pod/v1"
 		}
 	}
 	generator, found := f.Generator(generatorName)
