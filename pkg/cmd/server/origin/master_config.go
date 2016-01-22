@@ -302,9 +302,15 @@ func newAuthenticator(config configapi.MasterConfig, etcdHelper storage.Interfac
 	// OAuth token
 	if config.OAuthConfig != nil {
 		tokenAuthenticator := getEtcdTokenAuthenticator(etcdHelper, groupMapper)
-		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator, true))
-		// Allow token as access_token param for WebSockets
-		authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator, true))
+		tokenRequestAuthenticators := []authenticator.Request{
+			bearertoken.New(tokenAuthenticator, true),
+			// Allow token as access_token param for WebSockets
+			paramtoken.New("access_token", tokenAuthenticator, true),
+		}
+
+		authenticators = append(authenticators,
+			// if you have a bearer token, you're a human (usually)
+			group.NewGroupAdder(unionrequest.NewUnionAuthentication(tokenRequestAuthenticators...), []string{bootstrappolicy.HumanGroup}))
 	}
 
 	if configapi.UseTLS(config.ServingInfo.ServingInfo) {
