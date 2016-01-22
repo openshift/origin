@@ -20,3 +20,4 @@ origin.iml
 .tag*
 .project
 *.go~
+tags
