@@ -200,7 +200,7 @@ function os::log::start_system_logger() {
     readonly SAR_LOGFILE="${LOG_DIR}/sar.log"
     export SAR_LOGFILE
 
-    ( os::log::internal::run_system_logger "${SAR_LOGFILE}" "${LOG_DIR}/sar_stderr.log" ) &
+    os::log::internal::run_system_logger "${SAR_LOGFILE}" "${LOG_DIR}/sar_stderr.log"
     LOGGER_PID=$!
     readonly LOGGER_PID
     export LOGGER_PID
@@ -224,5 +224,5 @@ function os::log::internal::run_system_logger() {
     local binary_logfile=$1
     local stderr_logfile=$2
 
-    sar -A -o "${binary_logfile}" 1 86400 1>/dev/null 2>"${stderr_logfile}"
+    sar -A -o "${binary_logfile}" 1 86400 1>/dev/null 2>"${stderr_logfile}" &
 }
