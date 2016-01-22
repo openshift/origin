@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api"
+	_ "k8s.io/kubernetes/pkg/api/latest"
 	kmeta "k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -12,6 +13,7 @@ import (
 	"github.com/golang/glog"
 
 	_ "github.com/openshift/origin/pkg/api"
+	_ "github.com/openshift/origin/pkg/api/kubernetes/v1beta3"
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
 )
@@ -140,6 +142,12 @@ func init() {
 		"ClusterNetwork": true,
 		"HostSubnet":     true,
 		"NetNamespace":   true,
+
+		"Node":                       true,
+		"Minion":                     true,
+		"Namespace":                  true,
+		"PersistentVolume":           true,
+		"SecurityContextConstraints": true,
 	}
 
 	// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources

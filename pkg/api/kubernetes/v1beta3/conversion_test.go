@@ -19,9 +19,9 @@ package v1beta3_test
 import (
 	"testing"
 
+	versioned "github.com/openshift/origin/pkg/api/kubernetes/v1beta3"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	versioned "k8s.io/kubernetes/pkg/api/v1beta3"
 )
 
 func TestResourceQuotaStatusConversion(t *testing.T) {

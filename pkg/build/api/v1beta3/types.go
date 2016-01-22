@@ -3,8 +3,8 @@ package v1beta3
 import (
 	"time"
 
+	kapi "github.com/openshift/origin/pkg/api/kubernetes/v1beta3"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kapi "k8s.io/kubernetes/pkg/api/v1beta3"
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as

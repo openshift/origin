@@ -2354,7 +2354,7 @@ func deepCopy_v1beta3_TCPSocketAction(in TCPSocketAction, out *TCPSocketAction, 
 	return nil
 }
 
-func deepCopy_v1beta3_TypeMeta(in TypeMeta, out *TypeMeta, c *conversion.Cloner) error {
+func deepCopy_v1beta3_TypeMeta(in unversioned.TypeMeta, out *unversioned.TypeMeta, c *conversion.Cloner) error {
 	out.Kind = in.Kind
 	out.APIVersion = in.APIVersion
 	return nil

@@ -1,8 +1,8 @@
 package v1beta3
 
 import (
+	kapi "github.com/openshift/origin/pkg/api/kubernetes/v1beta3"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kapi "k8s.io/kubernetes/pkg/api/v1beta3"
 	kutil "k8s.io/kubernetes/pkg/util"
 )
 

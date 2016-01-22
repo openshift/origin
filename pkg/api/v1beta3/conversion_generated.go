@@ -2,10 +2,11 @@ package v1beta3
 
 // AUTO-GENERATED FUNCTIONS START HERE
 import (
+	v1beta3 "github.com/openshift/origin/pkg/api/kubernetes/v1beta3"
 	api "github.com/openshift/origin/pkg/authorization/api"
-	v1beta3 "github.com/openshift/origin/pkg/authorization/api/v1beta3"
+	apiv1beta3 "github.com/openshift/origin/pkg/authorization/api/v1beta3"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	apiv1beta3 "github.com/openshift/origin/pkg/build/api/v1beta3"
+	buildapiv1beta3 "github.com/openshift/origin/pkg/build/api/v1beta3"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployapiv1beta3 "github.com/openshift/origin/pkg/deploy/api/v1beta3"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -24,12 +25,1049 @@ import (
 	userapiv1beta3 "github.com/openshift/origin/pkg/user/api/v1beta3"
 	pkgapi "k8s.io/kubernetes/pkg/api"
 	resource "k8s.io/kubernetes/pkg/api/resource"
-	pkgapiv1beta3 "k8s.io/kubernetes/pkg/api/v1beta3"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	reflect "reflect"
 )
 
-func autoconvert_api_ClusterPolicy_To_v1beta3_ClusterPolicy(in *api.ClusterPolicy, out *v1beta3.ClusterPolicy, s conversion.Scope) error {
+func autoconvert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in *v1beta3.AWSElasticBlockStoreVolumeSource, out *pkgapi.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.AWSElasticBlockStoreVolumeSource))(in)
+	}
+	out.VolumeID = in.VolumeID
+	out.FSType = in.FSType
+	out.Partition = in.Partition
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in *v1beta3.AWSElasticBlockStoreVolumeSource, out *pkgapi.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_Capabilities_To_api_Capabilities(in *v1beta3.Capabilities, out *pkgapi.Capabilities, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.Capabilities))(in)
+	}
+	if in.Add != nil {
+		out.Add = make([]pkgapi.Capability, len(in.Add))
+		for i := range in.Add {
+			out.Add[i] = pkgapi.Capability(in.Add[i])
+		}
+	} else {
+		out.Add = nil
+	}
+	if in.Drop != nil {
+		out.Drop = make([]pkgapi.Capability, len(in.Drop))
+		for i := range in.Drop {
+			out.Drop[i] = pkgapi.Capability(in.Drop[i])
+		}
+	} else {
+		out.Drop = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_Capabilities_To_api_Capabilities(in *v1beta3.Capabilities, out *pkgapi.Capabilities, s conversion.Scope) error {
+	return autoconvert_v1beta3_Capabilities_To_api_Capabilities(in, out, s)
+}
+
+func autoconvert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in *v1beta3.CephFSVolumeSource, out *pkgapi.CephFSVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.CephFSVolumeSource))(in)
+	}
+	if in.Monitors != nil {
+		out.Monitors = make([]string, len(in.Monitors))
+		for i := range in.Monitors {
+			out.Monitors[i] = in.Monitors[i]
+		}
+	} else {
+		out.Monitors = nil
+	}
+	out.User = in.User
+	out.SecretFile = in.SecretFile
+	if in.SecretRef != nil {
+		out.SecretRef = new(pkgapi.LocalObjectReference)
+		if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in.SecretRef, out.SecretRef, s); err != nil {
+			return err
+		}
+	} else {
+		out.SecretRef = nil
+	}
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func convert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in *v1beta3.CephFSVolumeSource, out *pkgapi.CephFSVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource(in *v1beta3.CinderVolumeSource, out *pkgapi.CinderVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.CinderVolumeSource))(in)
+	}
+	out.VolumeID = in.VolumeID
+	out.FSType = in.FSType
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func convert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource(in *v1beta3.CinderVolumeSource, out *pkgapi.CinderVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_Container_To_api_Container(in *v1beta3.Container, out *pkgapi.Container, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.Container))(in)
+	}
+	out.Name = in.Name
+	out.Image = in.Image
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.WorkingDir = in.WorkingDir
+	if in.Ports != nil {
+		out.Ports = make([]pkgapi.ContainerPort, len(in.Ports))
+		for i := range in.Ports {
+			if err := convert_v1beta3_ContainerPort_To_api_ContainerPort(&in.Ports[i], &out.Ports[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ports = nil
+	}
+	if in.Env != nil {
+		out.Env = make([]pkgapi.EnvVar, len(in.Env))
+		for i := range in.Env {
+			if err := convert_v1beta3_EnvVar_To_api_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Env = nil
+	}
+	if err := convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if in.VolumeMounts != nil {
+		out.VolumeMounts = make([]pkgapi.VolumeMount, len(in.VolumeMounts))
+		for i := range in.VolumeMounts {
+			if err := convert_v1beta3_VolumeMount_To_api_VolumeMount(&in.VolumeMounts[i], &out.VolumeMounts[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.VolumeMounts = nil
+	}
+	if in.LivenessProbe != nil {
+		out.LivenessProbe = new(pkgapi.Probe)
+		if err := convert_v1beta3_Probe_To_api_Probe(in.LivenessProbe, out.LivenessProbe, s); err != nil {
+			return err
+		}
+	} else {
+		out.LivenessProbe = nil
+	}
+	if in.ReadinessProbe != nil {
+		out.ReadinessProbe = new(pkgapi.Probe)
+		if err := convert_v1beta3_Probe_To_api_Probe(in.ReadinessProbe, out.ReadinessProbe, s); err != nil {
+			return err
+		}
+	} else {
+		out.ReadinessProbe = nil
+	}
+	if in.Lifecycle != nil {
+		out.Lifecycle = new(pkgapi.Lifecycle)
+		if err := convert_v1beta3_Lifecycle_To_api_Lifecycle(in.Lifecycle, out.Lifecycle, s); err != nil {
+			return err
+		}
+	} else {
+		out.Lifecycle = nil
+	}
+	out.TerminationMessagePath = in.TerminationMessagePath
+	// in.Privileged has no peer in out
+	out.ImagePullPolicy = pkgapi.PullPolicy(in.ImagePullPolicy)
+	// in.Capabilities has no peer in out
+	if in.SecurityContext != nil {
+		out.SecurityContext = new(pkgapi.SecurityContext)
+		if err := convert_v1beta3_SecurityContext_To_api_SecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
+			return err
+		}
+	} else {
+		out.SecurityContext = nil
+	}
+	out.Stdin = in.Stdin
+	out.StdinOnce = in.StdinOnce
+	out.TTY = in.TTY
+	return nil
+}
+
+func autoconvert_v1beta3_ContainerPort_To_api_ContainerPort(in *v1beta3.ContainerPort, out *pkgapi.ContainerPort, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.ContainerPort))(in)
+	}
+	out.Name = in.Name
+	out.HostPort = in.HostPort
+	out.ContainerPort = in.ContainerPort
+	out.Protocol = pkgapi.Protocol(in.Protocol)
+	out.HostIP = in.HostIP
+	return nil
+}
+
+func convert_v1beta3_ContainerPort_To_api_ContainerPort(in *v1beta3.ContainerPort, out *pkgapi.ContainerPort, s conversion.Scope) error {
+	return autoconvert_v1beta3_ContainerPort_To_api_ContainerPort(in, out, s)
+}
+
+func autoconvert_v1beta3_DownwardAPIVolumeFile_To_api_DownwardAPIVolumeFile(in *v1beta3.DownwardAPIVolumeFile, out *pkgapi.DownwardAPIVolumeFile, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.DownwardAPIVolumeFile))(in)
+	}
+	out.Path = in.Path
+	if err := convert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_v1beta3_DownwardAPIVolumeFile_To_api_DownwardAPIVolumeFile(in *v1beta3.DownwardAPIVolumeFile, out *pkgapi.DownwardAPIVolumeFile, s conversion.Scope) error {
+	return autoconvert_v1beta3_DownwardAPIVolumeFile_To_api_DownwardAPIVolumeFile(in, out, s)
+}
+
+func autoconvert_v1beta3_DownwardAPIVolumeSource_To_api_DownwardAPIVolumeSource(in *v1beta3.DownwardAPIVolumeSource, out *pkgapi.DownwardAPIVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.DownwardAPIVolumeSource))(in)
+	}
+	if in.Items != nil {
+		out.Items = make([]pkgapi.DownwardAPIVolumeFile, len(in.Items))
+		for i := range in.Items {
+			if err := convert_v1beta3_DownwardAPIVolumeFile_To_api_DownwardAPIVolumeFile(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_DownwardAPIVolumeSource_To_api_DownwardAPIVolumeSource(in *v1beta3.DownwardAPIVolumeSource, out *pkgapi.DownwardAPIVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_DownwardAPIVolumeSource_To_api_DownwardAPIVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_EmptyDirVolumeSource_To_api_EmptyDirVolumeSource(in *v1beta3.EmptyDirVolumeSource, out *pkgapi.EmptyDirVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.EmptyDirVolumeSource))(in)
+	}
+	out.Medium = pkgapi.StorageMedium(in.Medium)
+	return nil
+}
+
+func convert_v1beta3_EmptyDirVolumeSource_To_api_EmptyDirVolumeSource(in *v1beta3.EmptyDirVolumeSource, out *pkgapi.EmptyDirVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_EmptyDirVolumeSource_To_api_EmptyDirVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_EnvVar_To_api_EnvVar(in *v1beta3.EnvVar, out *pkgapi.EnvVar, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.EnvVar))(in)
+	}
+	out.Name = in.Name
+	out.Value = in.Value
+	if in.ValueFrom != nil {
+		out.ValueFrom = new(pkgapi.EnvVarSource)
+		if err := convert_v1beta3_EnvVarSource_To_api_EnvVarSource(in.ValueFrom, out.ValueFrom, s); err != nil {
+			return err
+		}
+	} else {
+		out.ValueFrom = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_EnvVar_To_api_EnvVar(in *v1beta3.EnvVar, out *pkgapi.EnvVar, s conversion.Scope) error {
+	return autoconvert_v1beta3_EnvVar_To_api_EnvVar(in, out, s)
+}
+
+func autoconvert_v1beta3_EnvVarSource_To_api_EnvVarSource(in *v1beta3.EnvVarSource, out *pkgapi.EnvVarSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.EnvVarSource))(in)
+	}
+	if in.FieldRef != nil {
+		out.FieldRef = new(pkgapi.ObjectFieldSelector)
+		if err := convert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector(in.FieldRef, out.FieldRef, s); err != nil {
+			return err
+		}
+	} else {
+		out.FieldRef = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_EnvVarSource_To_api_EnvVarSource(in *v1beta3.EnvVarSource, out *pkgapi.EnvVarSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_EnvVarSource_To_api_EnvVarSource(in, out, s)
+}
+
+func autoconvert_v1beta3_ExecAction_To_api_ExecAction(in *v1beta3.ExecAction, out *pkgapi.ExecAction, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.ExecAction))(in)
+	}
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_ExecAction_To_api_ExecAction(in *v1beta3.ExecAction, out *pkgapi.ExecAction, s conversion.Scope) error {
+	return autoconvert_v1beta3_ExecAction_To_api_ExecAction(in, out, s)
+}
+
+func autoconvert_v1beta3_FCVolumeSource_To_api_FCVolumeSource(in *v1beta3.FCVolumeSource, out *pkgapi.FCVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.FCVolumeSource))(in)
+	}
+	if in.TargetWWNs != nil {
+		out.TargetWWNs = make([]string, len(in.TargetWWNs))
+		for i := range in.TargetWWNs {
+			out.TargetWWNs[i] = in.TargetWWNs[i]
+		}
+	} else {
+		out.TargetWWNs = nil
+	}
+	if in.Lun != nil {
+		out.Lun = new(int)
+		*out.Lun = *in.Lun
+	} else {
+		out.Lun = nil
+	}
+	out.FSType = in.FSType
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func convert_v1beta3_FCVolumeSource_To_api_FCVolumeSource(in *v1beta3.FCVolumeSource, out *pkgapi.FCVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_FCVolumeSource_To_api_FCVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_FlockerVolumeSource_To_api_FlockerVolumeSource(in *v1beta3.FlockerVolumeSource, out *pkgapi.FlockerVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.FlockerVolumeSource))(in)
+	}
+	out.DatasetName = in.DatasetName
+	return nil
+}
+
+func convert_v1beta3_FlockerVolumeSource_To_api_FlockerVolumeSource(in *v1beta3.FlockerVolumeSource, out *pkgapi.FlockerVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_FlockerVolumeSource_To_api_FlockerVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource(in *v1beta3.GCEPersistentDiskVolumeSource, out *pkgapi.GCEPersistentDiskVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.GCEPersistentDiskVolumeSource))(in)
+	}
+	out.PDName = in.PDName
+	out.FSType = in.FSType
+	out.Partition = in.Partition
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func convert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource(in *v1beta3.GCEPersistentDiskVolumeSource, out *pkgapi.GCEPersistentDiskVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in *v1beta3.GitRepoVolumeSource, out *pkgapi.GitRepoVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.GitRepoVolumeSource))(in)
+	}
+	out.Repository = in.Repository
+	out.Revision = in.Revision
+	return nil
+}
+
+func convert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in *v1beta3.GitRepoVolumeSource, out *pkgapi.GitRepoVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in *v1beta3.GlusterfsVolumeSource, out *pkgapi.GlusterfsVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.GlusterfsVolumeSource))(in)
+	}
+	out.EndpointsName = in.EndpointsName
+	out.Path = in.Path
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func convert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in *v1beta3.GlusterfsVolumeSource, out *pkgapi.GlusterfsVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_HTTPGetAction_To_api_HTTPGetAction(in *v1beta3.HTTPGetAction, out *pkgapi.HTTPGetAction, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.HTTPGetAction))(in)
+	}
+	out.Path = in.Path
+	if err := s.Convert(&in.Port, &out.Port, 0); err != nil {
+		return err
+	}
+	out.Host = in.Host
+	out.Scheme = pkgapi.URIScheme(in.Scheme)
+	return nil
+}
+
+func convert_v1beta3_HTTPGetAction_To_api_HTTPGetAction(in *v1beta3.HTTPGetAction, out *pkgapi.HTTPGetAction, s conversion.Scope) error {
+	return autoconvert_v1beta3_HTTPGetAction_To_api_HTTPGetAction(in, out, s)
+}
+
+func autoconvert_v1beta3_Handler_To_api_Handler(in *v1beta3.Handler, out *pkgapi.Handler, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.Handler))(in)
+	}
+	if in.Exec != nil {
+		out.Exec = new(pkgapi.ExecAction)
+		if err := convert_v1beta3_ExecAction_To_api_ExecAction(in.Exec, out.Exec, s); err != nil {
+			return err
+		}
+	} else {
+		out.Exec = nil
+	}
+	if in.HTTPGet != nil {
+		out.HTTPGet = new(pkgapi.HTTPGetAction)
+		if err := convert_v1beta3_HTTPGetAction_To_api_HTTPGetAction(in.HTTPGet, out.HTTPGet, s); err != nil {
+			return err
+		}
+	} else {
+		out.HTTPGet = nil
+	}
+	if in.TCPSocket != nil {
+		out.TCPSocket = new(pkgapi.TCPSocketAction)
+		if err := convert_v1beta3_TCPSocketAction_To_api_TCPSocketAction(in.TCPSocket, out.TCPSocket, s); err != nil {
+			return err
+		}
+	} else {
+		out.TCPSocket = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_Handler_To_api_Handler(in *v1beta3.Handler, out *pkgapi.Handler, s conversion.Scope) error {
+	return autoconvert_v1beta3_Handler_To_api_Handler(in, out, s)
+}
+
+func autoconvert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in *v1beta3.HostPathVolumeSource, out *pkgapi.HostPathVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.HostPathVolumeSource))(in)
+	}
+	out.Path = in.Path
+	return nil
+}
+
+func convert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in *v1beta3.HostPathVolumeSource, out *pkgapi.HostPathVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in *v1beta3.ISCSIVolumeSource, out *pkgapi.ISCSIVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.ISCSIVolumeSource))(in)
+	}
+	out.TargetPortal = in.TargetPortal
+	out.IQN = in.IQN
+	out.Lun = in.Lun
+	out.FSType = in.FSType
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func convert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in *v1beta3.ISCSIVolumeSource, out *pkgapi.ISCSIVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_Lifecycle_To_api_Lifecycle(in *v1beta3.Lifecycle, out *pkgapi.Lifecycle, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.Lifecycle))(in)
+	}
+	if in.PostStart != nil {
+		out.PostStart = new(pkgapi.Handler)
+		if err := convert_v1beta3_Handler_To_api_Handler(in.PostStart, out.PostStart, s); err != nil {
+			return err
+		}
+	} else {
+		out.PostStart = nil
+	}
+	if in.PreStop != nil {
+		out.PreStop = new(pkgapi.Handler)
+		if err := convert_v1beta3_Handler_To_api_Handler(in.PreStop, out.PreStop, s); err != nil {
+			return err
+		}
+	} else {
+		out.PreStop = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_Lifecycle_To_api_Lifecycle(in *v1beta3.Lifecycle, out *pkgapi.Lifecycle, s conversion.Scope) error {
+	return autoconvert_v1beta3_Lifecycle_To_api_Lifecycle(in, out, s)
+}
+
+func autoconvert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in *v1beta3.LocalObjectReference, out *pkgapi.LocalObjectReference, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.LocalObjectReference))(in)
+	}
+	out.Name = in.Name
+	return nil
+}
+
+func convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in *v1beta3.LocalObjectReference, out *pkgapi.LocalObjectReference, s conversion.Scope) error {
+	return autoconvert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in, out, s)
+}
+
+func autoconvert_v1beta3_NFSVolumeSource_To_api_NFSVolumeSource(in *v1beta3.NFSVolumeSource, out *pkgapi.NFSVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.NFSVolumeSource))(in)
+	}
+	out.Server = in.Server
+	out.Path = in.Path
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func convert_v1beta3_NFSVolumeSource_To_api_NFSVolumeSource(in *v1beta3.NFSVolumeSource, out *pkgapi.NFSVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_NFSVolumeSource_To_api_NFSVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector(in *v1beta3.ObjectFieldSelector, out *pkgapi.ObjectFieldSelector, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.ObjectFieldSelector))(in)
+	}
+	out.APIVersion = in.APIVersion
+	out.FieldPath = in.FieldPath
+	return nil
+}
+
+func convert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector(in *v1beta3.ObjectFieldSelector, out *pkgapi.ObjectFieldSelector, s conversion.Scope) error {
+	return autoconvert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector(in, out, s)
+}
+
+func autoconvert_v1beta3_ObjectMeta_To_api_ObjectMeta(in *v1beta3.ObjectMeta, out *pkgapi.ObjectMeta, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.ObjectMeta))(in)
+	}
+	out.Name = in.Name
+	out.GenerateName = in.GenerateName
+	out.Namespace = in.Namespace
+	out.SelfLink = in.SelfLink
+	out.UID = in.UID
+	out.ResourceVersion = in.ResourceVersion
+	out.Generation = in.Generation
+	if err := s.Convert(&in.CreationTimestamp, &out.CreationTimestamp, 0); err != nil {
+		return err
+	}
+	if in.DeletionTimestamp != nil {
+		if err := s.Convert(&in.DeletionTimestamp, &out.DeletionTimestamp, 0); err != nil {
+			return err
+		}
+	} else {
+		out.DeletionTimestamp = nil
+	}
+	if in.DeletionGracePeriodSeconds != nil {
+		out.DeletionGracePeriodSeconds = new(int64)
+		*out.DeletionGracePeriodSeconds = *in.DeletionGracePeriodSeconds
+	} else {
+		out.DeletionGracePeriodSeconds = nil
+	}
+	if in.Labels != nil {
+		out.Labels = make(map[string]string)
+		for key, val := range in.Labels {
+			out.Labels[key] = val
+		}
+	} else {
+		out.Labels = nil
+	}
+	if in.Annotations != nil {
+		out.Annotations = make(map[string]string)
+		for key, val := range in.Annotations {
+			out.Annotations[key] = val
+		}
+	} else {
+		out.Annotations = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_ObjectMeta_To_api_ObjectMeta(in *v1beta3.ObjectMeta, out *pkgapi.ObjectMeta, s conversion.Scope) error {
+	return autoconvert_v1beta3_ObjectMeta_To_api_ObjectMeta(in, out, s)
+}
+
+func autoconvert_v1beta3_ObjectReference_To_api_ObjectReference(in *v1beta3.ObjectReference, out *pkgapi.ObjectReference, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.ObjectReference))(in)
+	}
+	out.Kind = in.Kind
+	out.Namespace = in.Namespace
+	out.Name = in.Name
+	out.UID = in.UID
+	out.APIVersion = in.APIVersion
+	out.ResourceVersion = in.ResourceVersion
+	out.FieldPath = in.FieldPath
+	return nil
+}
+
+func convert_v1beta3_ObjectReference_To_api_ObjectReference(in *v1beta3.ObjectReference, out *pkgapi.ObjectReference, s conversion.Scope) error {
+	return autoconvert_v1beta3_ObjectReference_To_api_ObjectReference(in, out, s)
+}
+
+func autoconvert_v1beta3_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in *v1beta3.PersistentVolumeClaimVolumeSource, out *pkgapi.PersistentVolumeClaimVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.PersistentVolumeClaimVolumeSource))(in)
+	}
+	out.ClaimName = in.ClaimName
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func convert_v1beta3_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in *v1beta3.PersistentVolumeClaimVolumeSource, out *pkgapi.PersistentVolumeClaimVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_PodSpec_To_api_PodSpec(in *v1beta3.PodSpec, out *pkgapi.PodSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.PodSpec))(in)
+	}
+	if in.Volumes != nil {
+		out.Volumes = make([]pkgapi.Volume, len(in.Volumes))
+		for i := range in.Volumes {
+			if err := convert_v1beta3_Volume_To_api_Volume(&in.Volumes[i], &out.Volumes[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Volumes = nil
+	}
+	if in.Containers != nil {
+		out.Containers = make([]pkgapi.Container, len(in.Containers))
+		for i := range in.Containers {
+			if err := s.Convert(&in.Containers[i], &out.Containers[i], 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Containers = nil
+	}
+	out.RestartPolicy = pkgapi.RestartPolicy(in.RestartPolicy)
+	if in.TerminationGracePeriodSeconds != nil {
+		out.TerminationGracePeriodSeconds = new(int64)
+		*out.TerminationGracePeriodSeconds = *in.TerminationGracePeriodSeconds
+	} else {
+		out.TerminationGracePeriodSeconds = nil
+	}
+	if in.ActiveDeadlineSeconds != nil {
+		out.ActiveDeadlineSeconds = new(int64)
+		*out.ActiveDeadlineSeconds = *in.ActiveDeadlineSeconds
+	} else {
+		out.ActiveDeadlineSeconds = nil
+	}
+	out.DNSPolicy = pkgapi.DNSPolicy(in.DNSPolicy)
+	if in.NodeSelector != nil {
+		out.NodeSelector = make(map[string]string)
+		for key, val := range in.NodeSelector {
+			out.NodeSelector[key] = val
+		}
+	} else {
+		out.NodeSelector = nil
+	}
+	// in.ServiceAccount has no peer in out
+	// in.Host has no peer in out
+	// in.HostNetwork has no peer in out
+	// in.HostPID has no peer in out
+	// in.HostIPC has no peer in out
+	if in.SecurityContext != nil {
+		if err := s.Convert(&in.SecurityContext, &out.SecurityContext, 0); err != nil {
+			return err
+		}
+	} else {
+		out.SecurityContext = nil
+	}
+	if in.ImagePullSecrets != nil {
+		out.ImagePullSecrets = make([]pkgapi.LocalObjectReference, len(in.ImagePullSecrets))
+		for i := range in.ImagePullSecrets {
+			if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(&in.ImagePullSecrets[i], &out.ImagePullSecrets[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ImagePullSecrets = nil
+	}
+	return nil
+}
+
+func autoconvert_v1beta3_PodTemplateSpec_To_api_PodTemplateSpec(in *v1beta3.PodTemplateSpec, out *pkgapi.PodTemplateSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.PodTemplateSpec))(in)
+	}
+	if err := convert_v1beta3_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_v1beta3_PodTemplateSpec_To_api_PodTemplateSpec(in *v1beta3.PodTemplateSpec, out *pkgapi.PodTemplateSpec, s conversion.Scope) error {
+	return autoconvert_v1beta3_PodTemplateSpec_To_api_PodTemplateSpec(in, out, s)
+}
+
+func autoconvert_v1beta3_Probe_To_api_Probe(in *v1beta3.Probe, out *pkgapi.Probe, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.Probe))(in)
+	}
+	if err := convert_v1beta3_Handler_To_api_Handler(&in.Handler, &out.Handler, s); err != nil {
+		return err
+	}
+	out.InitialDelaySeconds = in.InitialDelaySeconds
+	out.TimeoutSeconds = in.TimeoutSeconds
+	return nil
+}
+
+func convert_v1beta3_Probe_To_api_Probe(in *v1beta3.Probe, out *pkgapi.Probe, s conversion.Scope) error {
+	return autoconvert_v1beta3_Probe_To_api_Probe(in, out, s)
+}
+
+func autoconvert_v1beta3_RBDVolumeSource_To_api_RBDVolumeSource(in *v1beta3.RBDVolumeSource, out *pkgapi.RBDVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.RBDVolumeSource))(in)
+	}
+	if in.CephMonitors != nil {
+		out.CephMonitors = make([]string, len(in.CephMonitors))
+		for i := range in.CephMonitors {
+			out.CephMonitors[i] = in.CephMonitors[i]
+		}
+	} else {
+		out.CephMonitors = nil
+	}
+	out.RBDImage = in.RBDImage
+	out.FSType = in.FSType
+	out.RBDPool = in.RBDPool
+	out.RadosUser = in.RadosUser
+	out.Keyring = in.Keyring
+	if in.SecretRef != nil {
+		out.SecretRef = new(pkgapi.LocalObjectReference)
+		if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in.SecretRef, out.SecretRef, s); err != nil {
+			return err
+		}
+	} else {
+		out.SecretRef = nil
+	}
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func convert_v1beta3_RBDVolumeSource_To_api_RBDVolumeSource(in *v1beta3.RBDVolumeSource, out *pkgapi.RBDVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_RBDVolumeSource_To_api_RBDVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(in *v1beta3.ResourceRequirements, out *pkgapi.ResourceRequirements, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.ResourceRequirements))(in)
+	}
+	if in.Limits != nil {
+		out.Limits = make(pkgapi.ResourceList)
+		for key, val := range in.Limits {
+			newVal := resource.Quantity{}
+			if err := s.Convert(&val, &newVal, 0); err != nil {
+				return err
+			}
+			out.Limits[pkgapi.ResourceName(key)] = newVal
+		}
+	} else {
+		out.Limits = nil
+	}
+	if in.Requests != nil {
+		out.Requests = make(pkgapi.ResourceList)
+		for key, val := range in.Requests {
+			newVal := resource.Quantity{}
+			if err := s.Convert(&val, &newVal, 0); err != nil {
+				return err
+			}
+			out.Requests[pkgapi.ResourceName(key)] = newVal
+		}
+	} else {
+		out.Requests = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(in *v1beta3.ResourceRequirements, out *pkgapi.ResourceRequirements, s conversion.Scope) error {
+	return autoconvert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(in, out, s)
+}
+
+func autoconvert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in *v1beta3.SELinuxOptions, out *pkgapi.SELinuxOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.SELinuxOptions))(in)
+	}
+	out.User = in.User
+	out.Role = in.Role
+	out.Type = in.Type
+	out.Level = in.Level
+	return nil
+}
+
+func convert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in *v1beta3.SELinuxOptions, out *pkgapi.SELinuxOptions, s conversion.Scope) error {
+	return autoconvert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in, out, s)
+}
+
+func autoconvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in *v1beta3.SecretVolumeSource, out *pkgapi.SecretVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.SecretVolumeSource))(in)
+	}
+	out.SecretName = in.SecretName
+	return nil
+}
+
+func convert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in *v1beta3.SecretVolumeSource, out *pkgapi.SecretVolumeSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in, out, s)
+}
+
+func autoconvert_v1beta3_SecurityContext_To_api_SecurityContext(in *v1beta3.SecurityContext, out *pkgapi.SecurityContext, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.SecurityContext))(in)
+	}
+	if in.Capabilities != nil {
+		out.Capabilities = new(pkgapi.Capabilities)
+		if err := convert_v1beta3_Capabilities_To_api_Capabilities(in.Capabilities, out.Capabilities, s); err != nil {
+			return err
+		}
+	} else {
+		out.Capabilities = nil
+	}
+	if in.Privileged != nil {
+		out.Privileged = new(bool)
+		*out.Privileged = *in.Privileged
+	} else {
+		out.Privileged = nil
+	}
+	if in.SELinuxOptions != nil {
+		out.SELinuxOptions = new(pkgapi.SELinuxOptions)
+		if err := convert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
+			return err
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	if in.RunAsUser != nil {
+		out.RunAsUser = new(int64)
+		*out.RunAsUser = *in.RunAsUser
+	} else {
+		out.RunAsUser = nil
+	}
+	if in.RunAsNonRoot != nil {
+		out.RunAsNonRoot = new(bool)
+		*out.RunAsNonRoot = *in.RunAsNonRoot
+	} else {
+		out.RunAsNonRoot = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_SecurityContext_To_api_SecurityContext(in *v1beta3.SecurityContext, out *pkgapi.SecurityContext, s conversion.Scope) error {
+	return autoconvert_v1beta3_SecurityContext_To_api_SecurityContext(in, out, s)
+}
+
+func autoconvert_v1beta3_TCPSocketAction_To_api_TCPSocketAction(in *v1beta3.TCPSocketAction, out *pkgapi.TCPSocketAction, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.TCPSocketAction))(in)
+	}
+	if err := s.Convert(&in.Port, &out.Port, 0); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_v1beta3_TCPSocketAction_To_api_TCPSocketAction(in *v1beta3.TCPSocketAction, out *pkgapi.TCPSocketAction, s conversion.Scope) error {
+	return autoconvert_v1beta3_TCPSocketAction_To_api_TCPSocketAction(in, out, s)
+}
+
+func autoconvert_v1beta3_Volume_To_api_Volume(in *v1beta3.Volume, out *pkgapi.Volume, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.Volume))(in)
+	}
+	out.Name = in.Name
+	if err := s.Convert(&in.VolumeSource, &out.VolumeSource, 0); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_v1beta3_Volume_To_api_Volume(in *v1beta3.Volume, out *pkgapi.Volume, s conversion.Scope) error {
+	return autoconvert_v1beta3_Volume_To_api_Volume(in, out, s)
+}
+
+func autoconvert_v1beta3_VolumeMount_To_api_VolumeMount(in *v1beta3.VolumeMount, out *pkgapi.VolumeMount, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.VolumeMount))(in)
+	}
+	out.Name = in.Name
+	out.ReadOnly = in.ReadOnly
+	out.MountPath = in.MountPath
+	return nil
+}
+
+func convert_v1beta3_VolumeMount_To_api_VolumeMount(in *v1beta3.VolumeMount, out *pkgapi.VolumeMount, s conversion.Scope) error {
+	return autoconvert_v1beta3_VolumeMount_To_api_VolumeMount(in, out, s)
+}
+
+func autoconvert_v1beta3_VolumeSource_To_api_VolumeSource(in *v1beta3.VolumeSource, out *pkgapi.VolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.VolumeSource))(in)
+	}
+	if in.HostPath != nil {
+		out.HostPath = new(pkgapi.HostPathVolumeSource)
+		if err := convert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in.HostPath, out.HostPath, s); err != nil {
+			return err
+		}
+	} else {
+		out.HostPath = nil
+	}
+	if in.EmptyDir != nil {
+		out.EmptyDir = new(pkgapi.EmptyDirVolumeSource)
+		if err := convert_v1beta3_EmptyDirVolumeSource_To_api_EmptyDirVolumeSource(in.EmptyDir, out.EmptyDir, s); err != nil {
+			return err
+		}
+	} else {
+		out.EmptyDir = nil
+	}
+	if in.GCEPersistentDisk != nil {
+		out.GCEPersistentDisk = new(pkgapi.GCEPersistentDiskVolumeSource)
+		if err := convert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource(in.GCEPersistentDisk, out.GCEPersistentDisk, s); err != nil {
+			return err
+		}
+	} else {
+		out.GCEPersistentDisk = nil
+	}
+	if in.AWSElasticBlockStore != nil {
+		out.AWSElasticBlockStore = new(pkgapi.AWSElasticBlockStoreVolumeSource)
+		if err := convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in.AWSElasticBlockStore, out.AWSElasticBlockStore, s); err != nil {
+			return err
+		}
+	} else {
+		out.AWSElasticBlockStore = nil
+	}
+	if in.GitRepo != nil {
+		out.GitRepo = new(pkgapi.GitRepoVolumeSource)
+		if err := convert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in.GitRepo, out.GitRepo, s); err != nil {
+			return err
+		}
+	} else {
+		out.GitRepo = nil
+	}
+	if in.Secret != nil {
+		out.Secret = new(pkgapi.SecretVolumeSource)
+		if err := convert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in.Secret, out.Secret, s); err != nil {
+			return err
+		}
+	} else {
+		out.Secret = nil
+	}
+	if in.NFS != nil {
+		out.NFS = new(pkgapi.NFSVolumeSource)
+		if err := convert_v1beta3_NFSVolumeSource_To_api_NFSVolumeSource(in.NFS, out.NFS, s); err != nil {
+			return err
+		}
+	} else {
+		out.NFS = nil
+	}
+	if in.ISCSI != nil {
+		out.ISCSI = new(pkgapi.ISCSIVolumeSource)
+		if err := convert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in.ISCSI, out.ISCSI, s); err != nil {
+			return err
+		}
+	} else {
+		out.ISCSI = nil
+	}
+	if in.Glusterfs != nil {
+		out.Glusterfs = new(pkgapi.GlusterfsVolumeSource)
+		if err := convert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in.Glusterfs, out.Glusterfs, s); err != nil {
+			return err
+		}
+	} else {
+		out.Glusterfs = nil
+	}
+	if in.PersistentVolumeClaim != nil {
+		out.PersistentVolumeClaim = new(pkgapi.PersistentVolumeClaimVolumeSource)
+		if err := convert_v1beta3_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaim, out.PersistentVolumeClaim, s); err != nil {
+			return err
+		}
+	} else {
+		out.PersistentVolumeClaim = nil
+	}
+	if in.RBD != nil {
+		out.RBD = new(pkgapi.RBDVolumeSource)
+		if err := convert_v1beta3_RBDVolumeSource_To_api_RBDVolumeSource(in.RBD, out.RBD, s); err != nil {
+			return err
+		}
+	} else {
+		out.RBD = nil
+	}
+	if in.Cinder != nil {
+		out.Cinder = new(pkgapi.CinderVolumeSource)
+		if err := convert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource(in.Cinder, out.Cinder, s); err != nil {
+			return err
+		}
+	} else {
+		out.Cinder = nil
+	}
+	if in.CephFS != nil {
+		out.CephFS = new(pkgapi.CephFSVolumeSource)
+		if err := convert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
+			return err
+		}
+	} else {
+		out.CephFS = nil
+	}
+	if in.Flocker != nil {
+		out.Flocker = new(pkgapi.FlockerVolumeSource)
+		if err := convert_v1beta3_FlockerVolumeSource_To_api_FlockerVolumeSource(in.Flocker, out.Flocker, s); err != nil {
+			return err
+		}
+	} else {
+		out.Flocker = nil
+	}
+	if in.DownwardAPI != nil {
+		out.DownwardAPI = new(pkgapi.DownwardAPIVolumeSource)
+		if err := convert_v1beta3_DownwardAPIVolumeSource_To_api_DownwardAPIVolumeSource(in.DownwardAPI, out.DownwardAPI, s); err != nil {
+			return err
+		}
+	} else {
+		out.DownwardAPI = nil
+	}
+	if in.FC != nil {
+		out.FC = new(pkgapi.FCVolumeSource)
+		if err := convert_v1beta3_FCVolumeSource_To_api_FCVolumeSource(in.FC, out.FC, s); err != nil {
+			return err
+		}
+	} else {
+		out.FC = nil
+	}
+	// in.Metadata has no peer in out
+	return nil
+}
+
+func autoconvert_api_ClusterPolicy_To_v1beta3_ClusterPolicy(in *api.ClusterPolicy, out *apiv1beta3.ClusterPolicy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ClusterPolicy))(in)
 	}
@@ -48,11 +1086,11 @@ func autoconvert_api_ClusterPolicy_To_v1beta3_ClusterPolicy(in *api.ClusterPolic
 	return nil
 }
 
-func convert_api_ClusterPolicy_To_v1beta3_ClusterPolicy(in *api.ClusterPolicy, out *v1beta3.ClusterPolicy, s conversion.Scope) error {
+func convert_api_ClusterPolicy_To_v1beta3_ClusterPolicy(in *api.ClusterPolicy, out *apiv1beta3.ClusterPolicy, s conversion.Scope) error {
 	return autoconvert_api_ClusterPolicy_To_v1beta3_ClusterPolicy(in, out, s)
 }
 
-func autoconvert_api_ClusterPolicyBinding_To_v1beta3_ClusterPolicyBinding(in *api.ClusterPolicyBinding, out *v1beta3.ClusterPolicyBinding, s conversion.Scope) error {
+func autoconvert_api_ClusterPolicyBinding_To_v1beta3_ClusterPolicyBinding(in *api.ClusterPolicyBinding, out *apiv1beta3.ClusterPolicyBinding, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ClusterPolicyBinding))(in)
 	}
@@ -74,7 +1112,7 @@ func autoconvert_api_ClusterPolicyBinding_To_v1beta3_ClusterPolicyBinding(in *ap
 	return nil
 }
 
-func autoconvert_api_ClusterPolicyBindingList_To_v1beta3_ClusterPolicyBindingList(in *api.ClusterPolicyBindingList, out *v1beta3.ClusterPolicyBindingList, s conversion.Scope) error {
+func autoconvert_api_ClusterPolicyBindingList_To_v1beta3_ClusterPolicyBindingList(in *api.ClusterPolicyBindingList, out *apiv1beta3.ClusterPolicyBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ClusterPolicyBindingList))(in)
 	}
@@ -85,7 +1123,7 @@ func autoconvert_api_ClusterPolicyBindingList_To_v1beta3_ClusterPolicyBindingLis
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]v1beta3.ClusterPolicyBinding, len(in.Items))
+		out.Items = make([]apiv1beta3.ClusterPolicyBinding, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -97,11 +1135,11 @@ func autoconvert_api_ClusterPolicyBindingList_To_v1beta3_ClusterPolicyBindingLis
 	return nil
 }
 
-func convert_api_ClusterPolicyBindingList_To_v1beta3_ClusterPolicyBindingList(in *api.ClusterPolicyBindingList, out *v1beta3.ClusterPolicyBindingList, s conversion.Scope) error {
+func convert_api_ClusterPolicyBindingList_To_v1beta3_ClusterPolicyBindingList(in *api.ClusterPolicyBindingList, out *apiv1beta3.ClusterPolicyBindingList, s conversion.Scope) error {
 	return autoconvert_api_ClusterPolicyBindingList_To_v1beta3_ClusterPolicyBindingList(in, out, s)
 }
 
-func autoconvert_api_ClusterPolicyList_To_v1beta3_ClusterPolicyList(in *api.ClusterPolicyList, out *v1beta3.ClusterPolicyList, s conversion.Scope) error {
+func autoconvert_api_ClusterPolicyList_To_v1beta3_ClusterPolicyList(in *api.ClusterPolicyList, out *apiv1beta3.ClusterPolicyList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ClusterPolicyList))(in)
 	}
@@ -112,7 +1150,7 @@ func autoconvert_api_ClusterPolicyList_To_v1beta3_ClusterPolicyList(in *api.Clus
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]v1beta3.ClusterPolicy, len(in.Items))
+		out.Items = make([]apiv1beta3.ClusterPolicy, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -124,11 +1162,11 @@ func autoconvert_api_ClusterPolicyList_To_v1beta3_ClusterPolicyList(in *api.Clus
 	return nil
 }
 
-func convert_api_ClusterPolicyList_To_v1beta3_ClusterPolicyList(in *api.ClusterPolicyList, out *v1beta3.ClusterPolicyList, s conversion.Scope) error {
+func convert_api_ClusterPolicyList_To_v1beta3_ClusterPolicyList(in *api.ClusterPolicyList, out *apiv1beta3.ClusterPolicyList, s conversion.Scope) error {
 	return autoconvert_api_ClusterPolicyList_To_v1beta3_ClusterPolicyList(in, out, s)
 }
 
-func autoconvert_api_ClusterRole_To_v1beta3_ClusterRole(in *api.ClusterRole, out *v1beta3.ClusterRole, s conversion.Scope) error {
+func autoconvert_api_ClusterRole_To_v1beta3_ClusterRole(in *api.ClusterRole, out *apiv1beta3.ClusterRole, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ClusterRole))(in)
 	}
@@ -139,7 +1177,7 @@ func autoconvert_api_ClusterRole_To_v1beta3_ClusterRole(in *api.ClusterRole, out
 		return err
 	}
 	if in.Rules != nil {
-		out.Rules = make([]v1beta3.PolicyRule, len(in.Rules))
+		out.Rules = make([]apiv1beta3.PolicyRule, len(in.Rules))
 		for i := range in.Rules {
 			if err := s.Convert(&in.Rules[i], &out.Rules[i], 0); err != nil {
 				return err
@@ -151,11 +1189,11 @@ func autoconvert_api_ClusterRole_To_v1beta3_ClusterRole(in *api.ClusterRole, out
 	return nil
 }
 
-func convert_api_ClusterRole_To_v1beta3_ClusterRole(in *api.ClusterRole, out *v1beta3.ClusterRole, s conversion.Scope) error {
+func convert_api_ClusterRole_To_v1beta3_ClusterRole(in *api.ClusterRole, out *apiv1beta3.ClusterRole, s conversion.Scope) error {
 	return autoconvert_api_ClusterRole_To_v1beta3_ClusterRole(in, out, s)
 }
 
-func autoconvert_api_ClusterRoleBinding_To_v1beta3_ClusterRoleBinding(in *api.ClusterRoleBinding, out *v1beta3.ClusterRoleBinding, s conversion.Scope) error {
+func autoconvert_api_ClusterRoleBinding_To_v1beta3_ClusterRoleBinding(in *api.ClusterRoleBinding, out *apiv1beta3.ClusterRoleBinding, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ClusterRoleBinding))(in)
 	}
@@ -166,7 +1204,7 @@ func autoconvert_api_ClusterRoleBinding_To_v1beta3_ClusterRoleBinding(in *api.Cl
 		return err
 	}
 	if in.Subjects != nil {
-		out.Subjects = make([]pkgapiv1beta3.ObjectReference, len(in.Subjects))
+		out.Subjects = make([]v1beta3.ObjectReference, len(in.Subjects))
 		for i := range in.Subjects {
 			if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(&in.Subjects[i], &out.Subjects[i], s); err != nil {
 				return err
@@ -181,7 +1219,7 @@ func autoconvert_api_ClusterRoleBinding_To_v1beta3_ClusterRoleBinding(in *api.Cl
 	return nil
 }
 
-func autoconvert_api_ClusterRoleBindingList_To_v1beta3_ClusterRoleBindingList(in *api.ClusterRoleBindingList, out *v1beta3.ClusterRoleBindingList, s conversion.Scope) error {
+func autoconvert_api_ClusterRoleBindingList_To_v1beta3_ClusterRoleBindingList(in *api.ClusterRoleBindingList, out *apiv1beta3.ClusterRoleBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ClusterRoleBindingList))(in)
 	}
@@ -192,7 +1230,7 @@ func autoconvert_api_ClusterRoleBindingList_To_v1beta3_ClusterRoleBindingList(in
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]v1beta3.ClusterRoleBinding, len(in.Items))
+		out.Items = make([]apiv1beta3.ClusterRoleBinding, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -204,11 +1242,11 @@ func autoconvert_api_ClusterRoleBindingList_To_v1beta3_ClusterRoleBindingList(in
 	return nil
 }
 
-func convert_api_ClusterRoleBindingList_To_v1beta3_ClusterRoleBindingList(in *api.ClusterRoleBindingList, out *v1beta3.ClusterRoleBindingList, s conversion.Scope) error {
+func convert_api_ClusterRoleBindingList_To_v1beta3_ClusterRoleBindingList(in *api.ClusterRoleBindingList, out *apiv1beta3.ClusterRoleBindingList, s conversion.Scope) error {
 	return autoconvert_api_ClusterRoleBindingList_To_v1beta3_ClusterRoleBindingList(in, out, s)
 }
 
-func autoconvert_api_ClusterRoleList_To_v1beta3_ClusterRoleList(in *api.ClusterRoleList, out *v1beta3.ClusterRoleList, s conversion.Scope) error {
+func autoconvert_api_ClusterRoleList_To_v1beta3_ClusterRoleList(in *api.ClusterRoleList, out *apiv1beta3.ClusterRoleList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ClusterRoleList))(in)
 	}
@@ -219,7 +1257,7 @@ func autoconvert_api_ClusterRoleList_To_v1beta3_ClusterRoleList(in *api.ClusterR
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]v1beta3.ClusterRole, len(in.Items))
+		out.Items = make([]apiv1beta3.ClusterRole, len(in.Items))
 		for i := range in.Items {
 			if err := convert_api_ClusterRole_To_v1beta3_ClusterRole(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
@@ -231,11 +1269,11 @@ func autoconvert_api_ClusterRoleList_To_v1beta3_ClusterRoleList(in *api.ClusterR
 	return nil
 }
 
-func convert_api_ClusterRoleList_To_v1beta3_ClusterRoleList(in *api.ClusterRoleList, out *v1beta3.ClusterRoleList, s conversion.Scope) error {
+func convert_api_ClusterRoleList_To_v1beta3_ClusterRoleList(in *api.ClusterRoleList, out *apiv1beta3.ClusterRoleList, s conversion.Scope) error {
 	return autoconvert_api_ClusterRoleList_To_v1beta3_ClusterRoleList(in, out, s)
 }
 
-func autoconvert_api_IsPersonalSubjectAccessReview_To_v1beta3_IsPersonalSubjectAccessReview(in *api.IsPersonalSubjectAccessReview, out *v1beta3.IsPersonalSubjectAccessReview, s conversion.Scope) error {
+func autoconvert_api_IsPersonalSubjectAccessReview_To_v1beta3_IsPersonalSubjectAccessReview(in *api.IsPersonalSubjectAccessReview, out *apiv1beta3.IsPersonalSubjectAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.IsPersonalSubjectAccessReview))(in)
 	}
@@ -245,11 +1283,11 @@ func autoconvert_api_IsPersonalSubjectAccessReview_To_v1beta3_IsPersonalSubjectA
 	return nil
 }
 
-func convert_api_IsPersonalSubjectAccessReview_To_v1beta3_IsPersonalSubjectAccessReview(in *api.IsPersonalSubjectAccessReview, out *v1beta3.IsPersonalSubjectAccessReview, s conversion.Scope) error {
+func convert_api_IsPersonalSubjectAccessReview_To_v1beta3_IsPersonalSubjectAccessReview(in *api.IsPersonalSubjectAccessReview, out *apiv1beta3.IsPersonalSubjectAccessReview, s conversion.Scope) error {
 	return autoconvert_api_IsPersonalSubjectAccessReview_To_v1beta3_IsPersonalSubjectAccessReview(in, out, s)
 }
 
-func autoconvert_api_LocalResourceAccessReview_To_v1beta3_LocalResourceAccessReview(in *api.LocalResourceAccessReview, out *v1beta3.LocalResourceAccessReview, s conversion.Scope) error {
+func autoconvert_api_LocalResourceAccessReview_To_v1beta3_LocalResourceAccessReview(in *api.LocalResourceAccessReview, out *apiv1beta3.LocalResourceAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.LocalResourceAccessReview))(in)
 	}
@@ -260,7 +1298,7 @@ func autoconvert_api_LocalResourceAccessReview_To_v1beta3_LocalResourceAccessRev
 	return nil
 }
 
-func autoconvert_api_LocalSubjectAccessReview_To_v1beta3_LocalSubjectAccessReview(in *api.LocalSubjectAccessReview, out *v1beta3.LocalSubjectAccessReview, s conversion.Scope) error {
+func autoconvert_api_LocalSubjectAccessReview_To_v1beta3_LocalSubjectAccessReview(in *api.LocalSubjectAccessReview, out *apiv1beta3.LocalSubjectAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.LocalSubjectAccessReview))(in)
 	}
@@ -273,7 +1311,7 @@ func autoconvert_api_LocalSubjectAccessReview_To_v1beta3_LocalSubjectAccessRevie
 	return nil
 }
 
-func autoconvert_api_Policy_To_v1beta3_Policy(in *api.Policy, out *v1beta3.Policy, s conversion.Scope) error {
+func autoconvert_api_Policy_To_v1beta3_Policy(in *api.Policy, out *apiv1beta3.Policy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.Policy))(in)
 	}
@@ -292,7 +1330,7 @@ func autoconvert_api_Policy_To_v1beta3_Policy(in *api.Policy, out *v1beta3.Polic
 	return nil
 }
 
-func autoconvert_api_PolicyBinding_To_v1beta3_PolicyBinding(in *api.PolicyBinding, out *v1beta3.PolicyBinding, s conversion.Scope) error {
+func autoconvert_api_PolicyBinding_To_v1beta3_PolicyBinding(in *api.PolicyBinding, out *apiv1beta3.PolicyBinding, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.PolicyBinding))(in)
 	}
@@ -314,7 +1352,7 @@ func autoconvert_api_PolicyBinding_To_v1beta3_PolicyBinding(in *api.PolicyBindin
 	return nil
 }
 
-func autoconvert_api_PolicyBindingList_To_v1beta3_PolicyBindingList(in *api.PolicyBindingList, out *v1beta3.PolicyBindingList, s conversion.Scope) error {
+func autoconvert_api_PolicyBindingList_To_v1beta3_PolicyBindingList(in *api.PolicyBindingList, out *apiv1beta3.PolicyBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.PolicyBindingList))(in)
 	}
@@ -325,7 +1363,7 @@ func autoconvert_api_PolicyBindingList_To_v1beta3_PolicyBindingList(in *api.Poli
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]v1beta3.PolicyBinding, len(in.Items))
+		out.Items = make([]apiv1beta3.PolicyBinding, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -337,11 +1375,11 @@ func autoconvert_api_PolicyBindingList_To_v1beta3_PolicyBindingList(in *api.Poli
 	return nil
 }
 
-func convert_api_PolicyBindingList_To_v1beta3_PolicyBindingList(in *api.PolicyBindingList, out *v1beta3.PolicyBindingList, s conversion.Scope) error {
+func convert_api_PolicyBindingList_To_v1beta3_PolicyBindingList(in *api.PolicyBindingList, out *apiv1beta3.PolicyBindingList, s conversion.Scope) error {
 	return autoconvert_api_PolicyBindingList_To_v1beta3_PolicyBindingList(in, out, s)
 }
 
-func autoconvert_api_PolicyList_To_v1beta3_PolicyList(in *api.PolicyList, out *v1beta3.PolicyList, s conversion.Scope) error {
+func autoconvert_api_PolicyList_To_v1beta3_PolicyList(in *api.PolicyList, out *apiv1beta3.PolicyList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.PolicyList))(in)
 	}
@@ -352,7 +1390,7 @@ func autoconvert_api_PolicyList_To_v1beta3_PolicyList(in *api.PolicyList, out *v
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]v1beta3.Policy, len(in.Items))
+		out.Items = make([]apiv1beta3.Policy, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -364,11 +1402,11 @@ func autoconvert_api_PolicyList_To_v1beta3_PolicyList(in *api.PolicyList, out *v
 	return nil
 }
 
-func convert_api_PolicyList_To_v1beta3_PolicyList(in *api.PolicyList, out *v1beta3.PolicyList, s conversion.Scope) error {
+func convert_api_PolicyList_To_v1beta3_PolicyList(in *api.PolicyList, out *apiv1beta3.PolicyList, s conversion.Scope) error {
 	return autoconvert_api_PolicyList_To_v1beta3_PolicyList(in, out, s)
 }
 
-func autoconvert_api_PolicyRule_To_v1beta3_PolicyRule(in *api.PolicyRule, out *v1beta3.PolicyRule, s conversion.Scope) error {
+func autoconvert_api_PolicyRule_To_v1beta3_PolicyRule(in *api.PolicyRule, out *apiv1beta3.PolicyRule, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.PolicyRule))(in)
 	}
@@ -390,7 +1428,7 @@ func autoconvert_api_PolicyRule_To_v1beta3_PolicyRule(in *api.PolicyRule, out *v
 	return nil
 }
 
-func autoconvert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview(in *api.ResourceAccessReview, out *v1beta3.ResourceAccessReview, s conversion.Scope) error {
+func autoconvert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview(in *api.ResourceAccessReview, out *apiv1beta3.ResourceAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ResourceAccessReview))(in)
 	}
@@ -401,7 +1439,7 @@ func autoconvert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview(in *ap
 	return nil
 }
 
-func autoconvert_api_ResourceAccessReviewResponse_To_v1beta3_ResourceAccessReviewResponse(in *api.ResourceAccessReviewResponse, out *v1beta3.ResourceAccessReviewResponse, s conversion.Scope) error {
+func autoconvert_api_ResourceAccessReviewResponse_To_v1beta3_ResourceAccessReviewResponse(in *api.ResourceAccessReviewResponse, out *apiv1beta3.ResourceAccessReviewResponse, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ResourceAccessReviewResponse))(in)
 	}
@@ -414,7 +1452,7 @@ func autoconvert_api_ResourceAccessReviewResponse_To_v1beta3_ResourceAccessRevie
 	return nil
 }
 
-func autoconvert_api_Role_To_v1beta3_Role(in *api.Role, out *v1beta3.Role, s conversion.Scope) error {
+func autoconvert_api_Role_To_v1beta3_Role(in *api.Role, out *apiv1beta3.Role, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.Role))(in)
 	}
@@ -425,7 +1463,7 @@ func autoconvert_api_Role_To_v1beta3_Role(in *api.Role, out *v1beta3.Role, s con
 		return err
 	}
 	if in.Rules != nil {
-		out.Rules = make([]v1beta3.PolicyRule, len(in.Rules))
+		out.Rules = make([]apiv1beta3.PolicyRule, len(in.Rules))
 		for i := range in.Rules {
 			if err := s.Convert(&in.Rules[i], &out.Rules[i], 0); err != nil {
 				return err
@@ -437,11 +1475,11 @@ func autoconvert_api_Role_To_v1beta3_Role(in *api.Role, out *v1beta3.Role, s con
 	return nil
 }
 
-func convert_api_Role_To_v1beta3_Role(in *api.Role, out *v1beta3.Role, s conversion.Scope) error {
+func convert_api_Role_To_v1beta3_Role(in *api.Role, out *apiv1beta3.Role, s conversion.Scope) error {
 	return autoconvert_api_Role_To_v1beta3_Role(in, out, s)
 }
 
-func autoconvert_api_RoleBinding_To_v1beta3_RoleBinding(in *api.RoleBinding, out *v1beta3.RoleBinding, s conversion.Scope) error {
+func autoconvert_api_RoleBinding_To_v1beta3_RoleBinding(in *api.RoleBinding, out *apiv1beta3.RoleBinding, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.RoleBinding))(in)
 	}
@@ -452,7 +1490,7 @@ func autoconvert_api_RoleBinding_To_v1beta3_RoleBinding(in *api.RoleBinding, out
 		return err
 	}
 	if in.Subjects != nil {
-		out.Subjects = make([]pkgapiv1beta3.ObjectReference, len(in.Subjects))
+		out.Subjects = make([]v1beta3.ObjectReference, len(in.Subjects))
 		for i := range in.Subjects {
 			if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(&in.Subjects[i], &out.Subjects[i], s); err != nil {
 				return err
@@ -467,7 +1505,7 @@ func autoconvert_api_RoleBinding_To_v1beta3_RoleBinding(in *api.RoleBinding, out
 	return nil
 }
 
-func autoconvert_api_RoleBindingList_To_v1beta3_RoleBindingList(in *api.RoleBindingList, out *v1beta3.RoleBindingList, s conversion.Scope) error {
+func autoconvert_api_RoleBindingList_To_v1beta3_RoleBindingList(in *api.RoleBindingList, out *apiv1beta3.RoleBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.RoleBindingList))(in)
 	}
@@ -478,7 +1516,7 @@ func autoconvert_api_RoleBindingList_To_v1beta3_RoleBindingList(in *api.RoleBind
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]v1beta3.RoleBinding, len(in.Items))
+		out.Items = make([]apiv1beta3.RoleBinding, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -490,11 +1528,11 @@ func autoconvert_api_RoleBindingList_To_v1beta3_RoleBindingList(in *api.RoleBind
 	return nil
 }
 
-func convert_api_RoleBindingList_To_v1beta3_RoleBindingList(in *api.RoleBindingList, out *v1beta3.RoleBindingList, s conversion.Scope) error {
+func convert_api_RoleBindingList_To_v1beta3_RoleBindingList(in *api.RoleBindingList, out *apiv1beta3.RoleBindingList, s conversion.Scope) error {
 	return autoconvert_api_RoleBindingList_To_v1beta3_RoleBindingList(in, out, s)
 }
 
-func autoconvert_api_RoleList_To_v1beta3_RoleList(in *api.RoleList, out *v1beta3.RoleList, s conversion.Scope) error {
+func autoconvert_api_RoleList_To_v1beta3_RoleList(in *api.RoleList, out *apiv1beta3.RoleList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.RoleList))(in)
 	}
@@ -505,7 +1543,7 @@ func autoconvert_api_RoleList_To_v1beta3_RoleList(in *api.RoleList, out *v1beta3
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]v1beta3.Role, len(in.Items))
+		out.Items = make([]apiv1beta3.Role, len(in.Items))
 		for i := range in.Items {
 			if err := convert_api_Role_To_v1beta3_Role(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
@@ -517,11 +1555,11 @@ func autoconvert_api_RoleList_To_v1beta3_RoleList(in *api.RoleList, out *v1beta3
 	return nil
 }
 
-func convert_api_RoleList_To_v1beta3_RoleList(in *api.RoleList, out *v1beta3.RoleList, s conversion.Scope) error {
+func convert_api_RoleList_To_v1beta3_RoleList(in *api.RoleList, out *apiv1beta3.RoleList, s conversion.Scope) error {
 	return autoconvert_api_RoleList_To_v1beta3_RoleList(in, out, s)
 }
 
-func autoconvert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview(in *api.SubjectAccessReview, out *v1beta3.SubjectAccessReview, s conversion.Scope) error {
+func autoconvert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview(in *api.SubjectAccessReview, out *apiv1beta3.SubjectAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.SubjectAccessReview))(in)
 	}
@@ -534,7 +1572,7 @@ func autoconvert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview(in *api.
 	return nil
 }
 
-func autoconvert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewResponse(in *api.SubjectAccessReviewResponse, out *v1beta3.SubjectAccessReviewResponse, s conversion.Scope) error {
+func autoconvert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewResponse(in *api.SubjectAccessReviewResponse, out *apiv1beta3.SubjectAccessReviewResponse, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.SubjectAccessReviewResponse))(in)
 	}
@@ -547,13 +1585,13 @@ func autoconvert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewR
 	return nil
 }
 
-func convert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewResponse(in *api.SubjectAccessReviewResponse, out *v1beta3.SubjectAccessReviewResponse, s conversion.Scope) error {
+func convert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewResponse(in *api.SubjectAccessReviewResponse, out *apiv1beta3.SubjectAccessReviewResponse, s conversion.Scope) error {
 	return autoconvert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewResponse(in, out, s)
 }
 
-func autoconvert_v1beta3_ClusterPolicy_To_api_ClusterPolicy(in *v1beta3.ClusterPolicy, out *api.ClusterPolicy, s conversion.Scope) error {
+func autoconvert_v1beta3_ClusterPolicy_To_api_ClusterPolicy(in *apiv1beta3.ClusterPolicy, out *api.ClusterPolicy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.ClusterPolicy))(in)
+		defaulting.(func(*apiv1beta3.ClusterPolicy))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -570,13 +1608,13 @@ func autoconvert_v1beta3_ClusterPolicy_To_api_ClusterPolicy(in *v1beta3.ClusterP
 	return nil
 }
 
-func convert_v1beta3_ClusterPolicy_To_api_ClusterPolicy(in *v1beta3.ClusterPolicy, out *api.ClusterPolicy, s conversion.Scope) error {
+func convert_v1beta3_ClusterPolicy_To_api_ClusterPolicy(in *apiv1beta3.ClusterPolicy, out *api.ClusterPolicy, s conversion.Scope) error {
 	return autoconvert_v1beta3_ClusterPolicy_To_api_ClusterPolicy(in, out, s)
 }
 
-func autoconvert_v1beta3_ClusterPolicyBinding_To_api_ClusterPolicyBinding(in *v1beta3.ClusterPolicyBinding, out *api.ClusterPolicyBinding, s conversion.Scope) error {
+func autoconvert_v1beta3_ClusterPolicyBinding_To_api_ClusterPolicyBinding(in *apiv1beta3.ClusterPolicyBinding, out *api.ClusterPolicyBinding, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.ClusterPolicyBinding))(in)
+		defaulting.(func(*apiv1beta3.ClusterPolicyBinding))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -596,9 +1634,9 @@ func autoconvert_v1beta3_ClusterPolicyBinding_To_api_ClusterPolicyBinding(in *v1
 	return nil
 }
 
-func autoconvert_v1beta3_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in *v1beta3.ClusterPolicyBindingList, out *api.ClusterPolicyBindingList, s conversion.Scope) error {
+func autoconvert_v1beta3_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in *apiv1beta3.ClusterPolicyBindingList, out *api.ClusterPolicyBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.ClusterPolicyBindingList))(in)
+		defaulting.(func(*apiv1beta3.ClusterPolicyBindingList))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -619,13 +1657,13 @@ func autoconvert_v1beta3_ClusterPolicyBindingList_To_api_ClusterPolicyBindingLis
 	return nil
 }
 
-func convert_v1beta3_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in *v1beta3.ClusterPolicyBindingList, out *api.ClusterPolicyBindingList, s conversion.Scope) error {
+func convert_v1beta3_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in *apiv1beta3.ClusterPolicyBindingList, out *api.ClusterPolicyBindingList, s conversion.Scope) error {
 	return autoconvert_v1beta3_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in, out, s)
 }
 
-func autoconvert_v1beta3_ClusterPolicyList_To_api_ClusterPolicyList(in *v1beta3.ClusterPolicyList, out *api.ClusterPolicyList, s conversion.Scope) error {
+func autoconvert_v1beta3_ClusterPolicyList_To_api_ClusterPolicyList(in *apiv1beta3.ClusterPolicyList, out *api.ClusterPolicyList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.ClusterPolicyList))(in)
+		defaulting.(func(*apiv1beta3.ClusterPolicyList))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -646,13 +1684,13 @@ func autoconvert_v1beta3_ClusterPolicyList_To_api_ClusterPolicyList(in *v1beta3.
 	return nil
 }
 
-func convert_v1beta3_ClusterPolicyList_To_api_ClusterPolicyList(in *v1beta3.ClusterPolicyList, out *api.ClusterPolicyList, s conversion.Scope) error {
+func convert_v1beta3_ClusterPolicyList_To_api_ClusterPolicyList(in *apiv1beta3.ClusterPolicyList, out *api.ClusterPolicyList, s conversion.Scope) error {
 	return autoconvert_v1beta3_ClusterPolicyList_To_api_ClusterPolicyList(in, out, s)
 }
 
-func autoconvert_v1beta3_ClusterRole_To_api_ClusterRole(in *v1beta3.ClusterRole, out *api.ClusterRole, s conversion.Scope) error {
+func autoconvert_v1beta3_ClusterRole_To_api_ClusterRole(in *apiv1beta3.ClusterRole, out *api.ClusterRole, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.ClusterRole))(in)
+		defaulting.(func(*apiv1beta3.ClusterRole))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -673,13 +1711,13 @@ func autoconvert_v1beta3_ClusterRole_To_api_ClusterRole(in *v1beta3.ClusterRole,
 	return nil
 }
 
-func convert_v1beta3_ClusterRole_To_api_ClusterRole(in *v1beta3.ClusterRole, out *api.ClusterRole, s conversion.Scope) error {
+func convert_v1beta3_ClusterRole_To_api_ClusterRole(in *apiv1beta3.ClusterRole, out *api.ClusterRole, s conversion.Scope) error {
 	return autoconvert_v1beta3_ClusterRole_To_api_ClusterRole(in, out, s)
 }
 
-func autoconvert_v1beta3_ClusterRoleBinding_To_api_ClusterRoleBinding(in *v1beta3.ClusterRoleBinding, out *api.ClusterRoleBinding, s conversion.Scope) error {
+func autoconvert_v1beta3_ClusterRoleBinding_To_api_ClusterRoleBinding(in *apiv1beta3.ClusterRoleBinding, out *api.ClusterRoleBinding, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.ClusterRoleBinding))(in)
+		defaulting.(func(*apiv1beta3.ClusterRoleBinding))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -705,9 +1743,9 @@ func autoconvert_v1beta3_ClusterRoleBinding_To_api_ClusterRoleBinding(in *v1beta
 	return nil
 }
 
-func autoconvert_v1beta3_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in *v1beta3.ClusterRoleBindingList, out *api.ClusterRoleBindingList, s conversion.Scope) error {
+func autoconvert_v1beta3_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in *apiv1beta3.ClusterRoleBindingList, out *api.ClusterRoleBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.ClusterRoleBindingList))(in)
+		defaulting.(func(*apiv1beta3.ClusterRoleBindingList))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -728,13 +1766,13 @@ func autoconvert_v1beta3_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in
 	return nil
 }
 
-func convert_v1beta3_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in *v1beta3.ClusterRoleBindingList, out *api.ClusterRoleBindingList, s conversion.Scope) error {
+func convert_v1beta3_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in *apiv1beta3.ClusterRoleBindingList, out *api.ClusterRoleBindingList, s conversion.Scope) error {
 	return autoconvert_v1beta3_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in, out, s)
 }
 
-func autoconvert_v1beta3_ClusterRoleList_To_api_ClusterRoleList(in *v1beta3.ClusterRoleList, out *api.ClusterRoleList, s conversion.Scope) error {
+func autoconvert_v1beta3_ClusterRoleList_To_api_ClusterRoleList(in *apiv1beta3.ClusterRoleList, out *api.ClusterRoleList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.ClusterRoleList))(in)
+		defaulting.(func(*apiv1beta3.ClusterRoleList))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -755,13 +1793,13 @@ func autoconvert_v1beta3_ClusterRoleList_To_api_ClusterRoleList(in *v1beta3.Clus
 	return nil
 }
 
-func convert_v1beta3_ClusterRoleList_To_api_ClusterRoleList(in *v1beta3.ClusterRoleList, out *api.ClusterRoleList, s conversion.Scope) error {
+func convert_v1beta3_ClusterRoleList_To_api_ClusterRoleList(in *apiv1beta3.ClusterRoleList, out *api.ClusterRoleList, s conversion.Scope) error {
 	return autoconvert_v1beta3_ClusterRoleList_To_api_ClusterRoleList(in, out, s)
 }
 
-func autoconvert_v1beta3_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview(in *v1beta3.IsPersonalSubjectAccessReview, out *api.IsPersonalSubjectAccessReview, s conversion.Scope) error {
+func autoconvert_v1beta3_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview(in *apiv1beta3.IsPersonalSubjectAccessReview, out *api.IsPersonalSubjectAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.IsPersonalSubjectAccessReview))(in)
+		defaulting.(func(*apiv1beta3.IsPersonalSubjectAccessReview))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -769,13 +1807,13 @@ func autoconvert_v1beta3_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectA
 	return nil
 }
 
-func convert_v1beta3_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview(in *v1beta3.IsPersonalSubjectAccessReview, out *api.IsPersonalSubjectAccessReview, s conversion.Scope) error {
+func convert_v1beta3_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview(in *apiv1beta3.IsPersonalSubjectAccessReview, out *api.IsPersonalSubjectAccessReview, s conversion.Scope) error {
 	return autoconvert_v1beta3_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview(in, out, s)
 }
 
-func autoconvert_v1beta3_LocalResourceAccessReview_To_api_LocalResourceAccessReview(in *v1beta3.LocalResourceAccessReview, out *api.LocalResourceAccessReview, s conversion.Scope) error {
+func autoconvert_v1beta3_LocalResourceAccessReview_To_api_LocalResourceAccessReview(in *apiv1beta3.LocalResourceAccessReview, out *api.LocalResourceAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.LocalResourceAccessReview))(in)
+		defaulting.(func(*apiv1beta3.LocalResourceAccessReview))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -784,9 +1822,9 @@ func autoconvert_v1beta3_LocalResourceAccessReview_To_api_LocalResourceAccessRev
 	return nil
 }
 
-func autoconvert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in *v1beta3.LocalSubjectAccessReview, out *api.LocalSubjectAccessReview, s conversion.Scope) error {
+func autoconvert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in *apiv1beta3.LocalSubjectAccessReview, out *api.LocalSubjectAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.LocalSubjectAccessReview))(in)
+		defaulting.(func(*apiv1beta3.LocalSubjectAccessReview))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -797,9 +1835,9 @@ func autoconvert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessRevie
 	return nil
 }
 
-func autoconvert_v1beta3_Policy_To_api_Policy(in *v1beta3.Policy, out *api.Policy, s conversion.Scope) error {
+func autoconvert_v1beta3_Policy_To_api_Policy(in *apiv1beta3.Policy, out *api.Policy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.Policy))(in)
+		defaulting.(func(*apiv1beta3.Policy))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -816,9 +1854,9 @@ func autoconvert_v1beta3_Policy_To_api_Policy(in *v1beta3.Policy, out *api.Polic
 	return nil
 }
 
-func autoconvert_v1beta3_PolicyBinding_To_api_PolicyBinding(in *v1beta3.PolicyBinding, out *api.PolicyBinding, s conversion.Scope) error {
+func autoconvert_v1beta3_PolicyBinding_To_api_PolicyBinding(in *apiv1beta3.PolicyBinding, out *api.PolicyBinding, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.PolicyBinding))(in)
+		defaulting.(func(*apiv1beta3.PolicyBinding))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -838,9 +1876,9 @@ func autoconvert_v1beta3_PolicyBinding_To_api_PolicyBinding(in *v1beta3.PolicyBi
 	return nil
 }
 
-func autoconvert_v1beta3_PolicyBindingList_To_api_PolicyBindingList(in *v1beta3.PolicyBindingList, out *api.PolicyBindingList, s conversion.Scope) error {
+func autoconvert_v1beta3_PolicyBindingList_To_api_PolicyBindingList(in *apiv1beta3.PolicyBindingList, out *api.PolicyBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.PolicyBindingList))(in)
+		defaulting.(func(*apiv1beta3.PolicyBindingList))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -861,13 +1899,13 @@ func autoconvert_v1beta3_PolicyBindingList_To_api_PolicyBindingList(in *v1beta3.
 	return nil
 }
 
-func convert_v1beta3_PolicyBindingList_To_api_PolicyBindingList(in *v1beta3.PolicyBindingList, out *api.PolicyBindingList, s conversion.Scope) error {
+func convert_v1beta3_PolicyBindingList_To_api_PolicyBindingList(in *apiv1beta3.PolicyBindingList, out *api.PolicyBindingList, s conversion.Scope) error {
 	return autoconvert_v1beta3_PolicyBindingList_To_api_PolicyBindingList(in, out, s)
 }
 
-func autoconvert_v1beta3_PolicyList_To_api_PolicyList(in *v1beta3.PolicyList, out *api.PolicyList, s conversion.Scope) error {
+func autoconvert_v1beta3_PolicyList_To_api_PolicyList(in *apiv1beta3.PolicyList, out *api.PolicyList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.PolicyList))(in)
+		defaulting.(func(*apiv1beta3.PolicyList))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -888,13 +1926,13 @@ func autoconvert_v1beta3_PolicyList_To_api_PolicyList(in *v1beta3.PolicyList, ou
 	return nil
 }
 
-func convert_v1beta3_PolicyList_To_api_PolicyList(in *v1beta3.PolicyList, out *api.PolicyList, s conversion.Scope) error {
+func convert_v1beta3_PolicyList_To_api_PolicyList(in *apiv1beta3.PolicyList, out *api.PolicyList, s conversion.Scope) error {
 	return autoconvert_v1beta3_PolicyList_To_api_PolicyList(in, out, s)
 }
 
-func autoconvert_v1beta3_PolicyRule_To_api_PolicyRule(in *v1beta3.PolicyRule, out *api.PolicyRule, s conversion.Scope) error {
+func autoconvert_v1beta3_PolicyRule_To_api_PolicyRule(in *apiv1beta3.PolicyRule, out *api.PolicyRule, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.PolicyRule))(in)
+		defaulting.(func(*apiv1beta3.PolicyRule))(in)
 	}
 	// in.Verbs has no peer in out
 	if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
@@ -915,9 +1953,9 @@ func autoconvert_v1beta3_PolicyRule_To_api_PolicyRule(in *v1beta3.PolicyRule, ou
 	return nil
 }
 
-func autoconvert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview(in *v1beta3.ResourceAccessReview, out *api.ResourceAccessReview, s conversion.Scope) error {
+func autoconvert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview(in *apiv1beta3.ResourceAccessReview, out *api.ResourceAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.ResourceAccessReview))(in)
+		defaulting.(func(*apiv1beta3.ResourceAccessReview))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -926,9 +1964,9 @@ func autoconvert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview(in *v1
 	return nil
 }
 
-func autoconvert_v1beta3_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse(in *v1beta3.ResourceAccessReviewResponse, out *api.ResourceAccessReviewResponse, s conversion.Scope) error {
+func autoconvert_v1beta3_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse(in *apiv1beta3.ResourceAccessReviewResponse, out *api.ResourceAccessReviewResponse, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.ResourceAccessReviewResponse))(in)
+		defaulting.(func(*apiv1beta3.ResourceAccessReviewResponse))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -939,9 +1977,9 @@ func autoconvert_v1beta3_ResourceAccessReviewResponse_To_api_ResourceAccessRevie
 	return nil
 }
 
-func autoconvert_v1beta3_Role_To_api_Role(in *v1beta3.Role, out *api.Role, s conversion.Scope) error {
+func autoconvert_v1beta3_Role_To_api_Role(in *apiv1beta3.Role, out *api.Role, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.Role))(in)
+		defaulting.(func(*apiv1beta3.Role))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -962,13 +2000,13 @@ func autoconvert_v1beta3_Role_To_api_Role(in *v1beta3.Role, out *api.Role, s con
 	return nil
 }
 
-func convert_v1beta3_Role_To_api_Role(in *v1beta3.Role, out *api.Role, s conversion.Scope) error {
+func convert_v1beta3_Role_To_api_Role(in *apiv1beta3.Role, out *api.Role, s conversion.Scope) error {
 	return autoconvert_v1beta3_Role_To_api_Role(in, out, s)
 }
 
-func autoconvert_v1beta3_RoleBinding_To_api_RoleBinding(in *v1beta3.RoleBinding, out *api.RoleBinding, s conversion.Scope) error {
+func autoconvert_v1beta3_RoleBinding_To_api_RoleBinding(in *apiv1beta3.RoleBinding, out *api.RoleBinding, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.RoleBinding))(in)
+		defaulting.(func(*apiv1beta3.RoleBinding))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -994,9 +2032,9 @@ func autoconvert_v1beta3_RoleBinding_To_api_RoleBinding(in *v1beta3.RoleBinding,
 	return nil
 }
 
-func autoconvert_v1beta3_RoleBindingList_To_api_RoleBindingList(in *v1beta3.RoleBindingList, out *api.RoleBindingList, s conversion.Scope) error {
+func autoconvert_v1beta3_RoleBindingList_To_api_RoleBindingList(in *apiv1beta3.RoleBindingList, out *api.RoleBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.RoleBindingList))(in)
+		defaulting.(func(*apiv1beta3.RoleBindingList))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -1017,13 +2055,13 @@ func autoconvert_v1beta3_RoleBindingList_To_api_RoleBindingList(in *v1beta3.Role
 	return nil
 }
 
-func convert_v1beta3_RoleBindingList_To_api_RoleBindingList(in *v1beta3.RoleBindingList, out *api.RoleBindingList, s conversion.Scope) error {
+func convert_v1beta3_RoleBindingList_To_api_RoleBindingList(in *apiv1beta3.RoleBindingList, out *api.RoleBindingList, s conversion.Scope) error {
 	return autoconvert_v1beta3_RoleBindingList_To_api_RoleBindingList(in, out, s)
 }
 
-func autoconvert_v1beta3_RoleList_To_api_RoleList(in *v1beta3.RoleList, out *api.RoleList, s conversion.Scope) error {
+func autoconvert_v1beta3_RoleList_To_api_RoleList(in *apiv1beta3.RoleList, out *api.RoleList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.RoleList))(in)
+		defaulting.(func(*apiv1beta3.RoleList))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -1044,13 +2082,13 @@ func autoconvert_v1beta3_RoleList_To_api_RoleList(in *v1beta3.RoleList, out *api
 	return nil
 }
 
-func convert_v1beta3_RoleList_To_api_RoleList(in *v1beta3.RoleList, out *api.RoleList, s conversion.Scope) error {
+func convert_v1beta3_RoleList_To_api_RoleList(in *apiv1beta3.RoleList, out *api.RoleList, s conversion.Scope) error {
 	return autoconvert_v1beta3_RoleList_To_api_RoleList(in, out, s)
 }
 
-func autoconvert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview(in *v1beta3.SubjectAccessReview, out *api.SubjectAccessReview, s conversion.Scope) error {
+func autoconvert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview(in *apiv1beta3.SubjectAccessReview, out *api.SubjectAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.SubjectAccessReview))(in)
+		defaulting.(func(*apiv1beta3.SubjectAccessReview))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -1061,9 +2099,9 @@ func autoconvert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview(in *v1be
 	return nil
 }
 
-func autoconvert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in *v1beta3.SubjectAccessReviewResponse, out *api.SubjectAccessReviewResponse, s conversion.Scope) error {
+func autoconvert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in *apiv1beta3.SubjectAccessReviewResponse, out *api.SubjectAccessReviewResponse, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.SubjectAccessReviewResponse))(in)
+		defaulting.(func(*apiv1beta3.SubjectAccessReviewResponse))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -1074,11 +2112,11 @@ func autoconvert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewR
 	return nil
 }
 
-func convert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in *v1beta3.SubjectAccessReviewResponse, out *api.SubjectAccessReviewResponse, s conversion.Scope) error {
+func convert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in *apiv1beta3.SubjectAccessReviewResponse, out *api.SubjectAccessReviewResponse, s conversion.Scope) error {
 	return autoconvert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in, out, s)
 }
 
-func autoconvert_api_BinaryBuildRequestOptions_To_v1beta3_BinaryBuildRequestOptions(in *buildapi.BinaryBuildRequestOptions, out *apiv1beta3.BinaryBuildRequestOptions, s conversion.Scope) error {
+func autoconvert_api_BinaryBuildRequestOptions_To_v1beta3_BinaryBuildRequestOptions(in *buildapi.BinaryBuildRequestOptions, out *buildapiv1beta3.BinaryBuildRequestOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BinaryBuildRequestOptions))(in)
 	}
@@ -1098,11 +2136,11 @@ func autoconvert_api_BinaryBuildRequestOptions_To_v1beta3_BinaryBuildRequestOpti
 	return nil
 }
 
-func convert_api_BinaryBuildRequestOptions_To_v1beta3_BinaryBuildRequestOptions(in *buildapi.BinaryBuildRequestOptions, out *apiv1beta3.BinaryBuildRequestOptions, s conversion.Scope) error {
+func convert_api_BinaryBuildRequestOptions_To_v1beta3_BinaryBuildRequestOptions(in *buildapi.BinaryBuildRequestOptions, out *buildapiv1beta3.BinaryBuildRequestOptions, s conversion.Scope) error {
 	return autoconvert_api_BinaryBuildRequestOptions_To_v1beta3_BinaryBuildRequestOptions(in, out, s)
 }
 
-func autoconvert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in *buildapi.BinaryBuildSource, out *apiv1beta3.BinaryBuildSource, s conversion.Scope) error {
+func autoconvert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in *buildapi.BinaryBuildSource, out *buildapiv1beta3.BinaryBuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BinaryBuildSource))(in)
 	}
@@ -1110,11 +2148,11 @@ func autoconvert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in *buildapi
 	return nil
 }
 
-func convert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in *buildapi.BinaryBuildSource, out *apiv1beta3.BinaryBuildSource, s conversion.Scope) error {
+func convert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in *buildapi.BinaryBuildSource, out *buildapiv1beta3.BinaryBuildSource, s conversion.Scope) error {
 	return autoconvert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in, out, s)
 }
 
-func autoconvert_api_Build_To_v1beta3_Build(in *buildapi.Build, out *apiv1beta3.Build, s conversion.Scope) error {
+func autoconvert_api_Build_To_v1beta3_Build(in *buildapi.Build, out *buildapiv1beta3.Build, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.Build))(in)
 	}
@@ -1133,11 +2171,11 @@ func autoconvert_api_Build_To_v1beta3_Build(in *buildapi.Build, out *apiv1beta3.
 	return nil
 }
 
-func convert_api_Build_To_v1beta3_Build(in *buildapi.Build, out *apiv1beta3.Build, s conversion.Scope) error {
+func convert_api_Build_To_v1beta3_Build(in *buildapi.Build, out *buildapiv1beta3.Build, s conversion.Scope) error {
 	return autoconvert_api_Build_To_v1beta3_Build(in, out, s)
 }
 
-func autoconvert_api_BuildConfig_To_v1beta3_BuildConfig(in *buildapi.BuildConfig, out *apiv1beta3.BuildConfig, s conversion.Scope) error {
+func autoconvert_api_BuildConfig_To_v1beta3_BuildConfig(in *buildapi.BuildConfig, out *buildapiv1beta3.BuildConfig, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildConfig))(in)
 	}
@@ -1156,11 +2194,11 @@ func autoconvert_api_BuildConfig_To_v1beta3_BuildConfig(in *buildapi.BuildConfig
 	return nil
 }
 
-func convert_api_BuildConfig_To_v1beta3_BuildConfig(in *buildapi.BuildConfig, out *apiv1beta3.BuildConfig, s conversion.Scope) error {
+func convert_api_BuildConfig_To_v1beta3_BuildConfig(in *buildapi.BuildConfig, out *buildapiv1beta3.BuildConfig, s conversion.Scope) error {
 	return autoconvert_api_BuildConfig_To_v1beta3_BuildConfig(in, out, s)
 }
 
-func autoconvert_api_BuildConfigList_To_v1beta3_BuildConfigList(in *buildapi.BuildConfigList, out *apiv1beta3.BuildConfigList, s conversion.Scope) error {
+func autoconvert_api_BuildConfigList_To_v1beta3_BuildConfigList(in *buildapi.BuildConfigList, out *buildapiv1beta3.BuildConfigList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildConfigList))(in)
 	}
@@ -1171,7 +2209,7 @@ func autoconvert_api_BuildConfigList_To_v1beta3_BuildConfigList(in *buildapi.Bui
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]apiv1beta3.BuildConfig, len(in.Items))
+		out.Items = make([]buildapiv1beta3.BuildConfig, len(in.Items))
 		for i := range in.Items {
 			if err := convert_api_BuildConfig_To_v1beta3_BuildConfig(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
@@ -1183,16 +2221,16 @@ func autoconvert_api_BuildConfigList_To_v1beta3_BuildConfigList(in *buildapi.Bui
 	return nil
 }
 
-func convert_api_BuildConfigList_To_v1beta3_BuildConfigList(in *buildapi.BuildConfigList, out *apiv1beta3.BuildConfigList, s conversion.Scope) error {
+func convert_api_BuildConfigList_To_v1beta3_BuildConfigList(in *buildapi.BuildConfigList, out *buildapiv1beta3.BuildConfigList, s conversion.Scope) error {
 	return autoconvert_api_BuildConfigList_To_v1beta3_BuildConfigList(in, out, s)
 }
 
-func autoconvert_api_BuildConfigSpec_To_v1beta3_BuildConfigSpec(in *buildapi.BuildConfigSpec, out *apiv1beta3.BuildConfigSpec, s conversion.Scope) error {
+func autoconvert_api_BuildConfigSpec_To_v1beta3_BuildConfigSpec(in *buildapi.BuildConfigSpec, out *buildapiv1beta3.BuildConfigSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildConfigSpec))(in)
 	}
 	if in.Triggers != nil {
-		out.Triggers = make([]apiv1beta3.BuildTriggerPolicy, len(in.Triggers))
+		out.Triggers = make([]buildapiv1beta3.BuildTriggerPolicy, len(in.Triggers))
 		for i := range in.Triggers {
 			if err := s.Convert(&in.Triggers[i], &out.Triggers[i], 0); err != nil {
 				return err
@@ -1207,11 +2245,11 @@ func autoconvert_api_BuildConfigSpec_To_v1beta3_BuildConfigSpec(in *buildapi.Bui
 	return nil
 }
 
-func convert_api_BuildConfigSpec_To_v1beta3_BuildConfigSpec(in *buildapi.BuildConfigSpec, out *apiv1beta3.BuildConfigSpec, s conversion.Scope) error {
+func convert_api_BuildConfigSpec_To_v1beta3_BuildConfigSpec(in *buildapi.BuildConfigSpec, out *buildapiv1beta3.BuildConfigSpec, s conversion.Scope) error {
 	return autoconvert_api_BuildConfigSpec_To_v1beta3_BuildConfigSpec(in, out, s)
 }
 
-func autoconvert_api_BuildConfigStatus_To_v1beta3_BuildConfigStatus(in *buildapi.BuildConfigStatus, out *apiv1beta3.BuildConfigStatus, s conversion.Scope) error {
+func autoconvert_api_BuildConfigStatus_To_v1beta3_BuildConfigStatus(in *buildapi.BuildConfigStatus, out *buildapiv1beta3.BuildConfigStatus, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildConfigStatus))(in)
 	}
@@ -1219,11 +2257,11 @@ func autoconvert_api_BuildConfigStatus_To_v1beta3_BuildConfigStatus(in *buildapi
 	return nil
 }
 
-func convert_api_BuildConfigStatus_To_v1beta3_BuildConfigStatus(in *buildapi.BuildConfigStatus, out *apiv1beta3.BuildConfigStatus, s conversion.Scope) error {
+func convert_api_BuildConfigStatus_To_v1beta3_BuildConfigStatus(in *buildapi.BuildConfigStatus, out *buildapiv1beta3.BuildConfigStatus, s conversion.Scope) error {
 	return autoconvert_api_BuildConfigStatus_To_v1beta3_BuildConfigStatus(in, out, s)
 }
 
-func autoconvert_api_BuildList_To_v1beta3_BuildList(in *buildapi.BuildList, out *apiv1beta3.BuildList, s conversion.Scope) error {
+func autoconvert_api_BuildList_To_v1beta3_BuildList(in *buildapi.BuildList, out *buildapiv1beta3.BuildList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildList))(in)
 	}
@@ -1234,7 +2272,7 @@ func autoconvert_api_BuildList_To_v1beta3_BuildList(in *buildapi.BuildList, out 
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]apiv1beta3.Build, len(in.Items))
+		out.Items = make([]buildapiv1beta3.Build, len(in.Items))
 		for i := range in.Items {
 			if err := convert_api_Build_To_v1beta3_Build(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
@@ -1246,11 +2284,11 @@ func autoconvert_api_BuildList_To_v1beta3_BuildList(in *buildapi.BuildList, out 
 	return nil
 }
 
-func convert_api_BuildList_To_v1beta3_BuildList(in *buildapi.BuildList, out *apiv1beta3.BuildList, s conversion.Scope) error {
+func convert_api_BuildList_To_v1beta3_BuildList(in *buildapi.BuildList, out *buildapiv1beta3.BuildList, s conversion.Scope) error {
 	return autoconvert_api_BuildList_To_v1beta3_BuildList(in, out, s)
 }
 
-func autoconvert_api_BuildLog_To_v1beta3_BuildLog(in *buildapi.BuildLog, out *apiv1beta3.BuildLog, s conversion.Scope) error {
+func autoconvert_api_BuildLog_To_v1beta3_BuildLog(in *buildapi.BuildLog, out *buildapiv1beta3.BuildLog, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildLog))(in)
 	}
@@ -1260,11 +2298,11 @@ func autoconvert_api_BuildLog_To_v1beta3_BuildLog(in *buildapi.BuildLog, out *ap
 	return nil
 }
 
-func convert_api_BuildLog_To_v1beta3_BuildLog(in *buildapi.BuildLog, out *apiv1beta3.BuildLog, s conversion.Scope) error {
+func convert_api_BuildLog_To_v1beta3_BuildLog(in *buildapi.BuildLog, out *buildapiv1beta3.BuildLog, s conversion.Scope) error {
 	return autoconvert_api_BuildLog_To_v1beta3_BuildLog(in, out, s)
 }
 
-func autoconvert_api_BuildLogOptions_To_v1beta3_BuildLogOptions(in *buildapi.BuildLogOptions, out *apiv1beta3.BuildLogOptions, s conversion.Scope) error {
+func autoconvert_api_BuildLogOptions_To_v1beta3_BuildLogOptions(in *buildapi.BuildLogOptions, out *buildapiv1beta3.BuildLogOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildLogOptions))(in)
 	}
@@ -1310,16 +2348,16 @@ func autoconvert_api_BuildLogOptions_To_v1beta3_BuildLogOptions(in *buildapi.Bui
 	return nil
 }
 
-func convert_api_BuildLogOptions_To_v1beta3_BuildLogOptions(in *buildapi.BuildLogOptions, out *apiv1beta3.BuildLogOptions, s conversion.Scope) error {
+func convert_api_BuildLogOptions_To_v1beta3_BuildLogOptions(in *buildapi.BuildLogOptions, out *buildapiv1beta3.BuildLogOptions, s conversion.Scope) error {
 	return autoconvert_api_BuildLogOptions_To_v1beta3_BuildLogOptions(in, out, s)
 }
 
-func autoconvert_api_BuildOutput_To_v1beta3_BuildOutput(in *buildapi.BuildOutput, out *apiv1beta3.BuildOutput, s conversion.Scope) error {
+func autoconvert_api_BuildOutput_To_v1beta3_BuildOutput(in *buildapi.BuildOutput, out *buildapiv1beta3.BuildOutput, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildOutput))(in)
 	}
 	if in.To != nil {
-		out.To = new(pkgapiv1beta3.ObjectReference)
+		out.To = new(v1beta3.ObjectReference)
 		if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(in.To, out.To, s); err != nil {
 			return err
 		}
@@ -1327,7 +2365,7 @@ func autoconvert_api_BuildOutput_To_v1beta3_BuildOutput(in *buildapi.BuildOutput
 		out.To = nil
 	}
 	if in.PushSecret != nil {
-		out.PushSecret = new(pkgapiv1beta3.LocalObjectReference)
+		out.PushSecret = new(v1beta3.LocalObjectReference)
 		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.PushSecret, out.PushSecret, s); err != nil {
 			return err
 		}
@@ -1337,7 +2375,7 @@ func autoconvert_api_BuildOutput_To_v1beta3_BuildOutput(in *buildapi.BuildOutput
 	return nil
 }
 
-func autoconvert_api_BuildRequest_To_v1beta3_BuildRequest(in *buildapi.BuildRequest, out *apiv1beta3.BuildRequest, s conversion.Scope) error {
+func autoconvert_api_BuildRequest_To_v1beta3_BuildRequest(in *buildapi.BuildRequest, out *buildapiv1beta3.BuildRequest, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildRequest))(in)
 	}
@@ -1355,7 +2393,7 @@ func autoconvert_api_BuildRequest_To_v1beta3_BuildRequest(in *buildapi.BuildRequ
 		out.Revision = nil
 	}
 	if in.TriggeredByImage != nil {
-		out.TriggeredByImage = new(pkgapiv1beta3.ObjectReference)
+		out.TriggeredByImage = new(v1beta3.ObjectReference)
 		if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(in.TriggeredByImage, out.TriggeredByImage, s); err != nil {
 			return err
 		}
@@ -1363,7 +2401,7 @@ func autoconvert_api_BuildRequest_To_v1beta3_BuildRequest(in *buildapi.BuildRequ
 		out.TriggeredByImage = nil
 	}
 	if in.From != nil {
-		out.From = new(pkgapiv1beta3.ObjectReference)
+		out.From = new(v1beta3.ObjectReference)
 		if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(in.From, out.From, s); err != nil {
 			return err
 		}
@@ -1371,7 +2409,7 @@ func autoconvert_api_BuildRequest_To_v1beta3_BuildRequest(in *buildapi.BuildRequ
 		out.From = nil
 	}
 	if in.Binary != nil {
-		out.Binary = new(apiv1beta3.BinaryBuildSource)
+		out.Binary = new(buildapiv1beta3.BinaryBuildSource)
 		if err := convert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in.Binary, out.Binary, s); err != nil {
 			return err
 		}
@@ -1385,7 +2423,7 @@ func autoconvert_api_BuildRequest_To_v1beta3_BuildRequest(in *buildapi.BuildRequ
 		out.LastVersion = nil
 	}
 	if in.Env != nil {
-		out.Env = make([]pkgapiv1beta3.EnvVar, len(in.Env))
+		out.Env = make([]v1beta3.EnvVar, len(in.Env))
 		for i := range in.Env {
 			if err := convert_api_EnvVar_To_v1beta3_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
 				return err
@@ -1397,16 +2435,16 @@ func autoconvert_api_BuildRequest_To_v1beta3_BuildRequest(in *buildapi.BuildRequ
 	return nil
 }
 
-func convert_api_BuildRequest_To_v1beta3_BuildRequest(in *buildapi.BuildRequest, out *apiv1beta3.BuildRequest, s conversion.Scope) error {
+func convert_api_BuildRequest_To_v1beta3_BuildRequest(in *buildapi.BuildRequest, out *buildapiv1beta3.BuildRequest, s conversion.Scope) error {
 	return autoconvert_api_BuildRequest_To_v1beta3_BuildRequest(in, out, s)
 }
 
-func autoconvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource, out *apiv1beta3.BuildSource, s conversion.Scope) error {
+func autoconvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource, out *buildapiv1beta3.BuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildSource))(in)
 	}
 	if in.Binary != nil {
-		out.Binary = new(apiv1beta3.BinaryBuildSource)
+		out.Binary = new(buildapiv1beta3.BinaryBuildSource)
 		if err := convert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in.Binary, out.Binary, s); err != nil {
 			return err
 		}
@@ -1420,7 +2458,7 @@ func autoconvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource
 		out.Dockerfile = nil
 	}
 	if in.Git != nil {
-		out.Git = new(apiv1beta3.GitBuildSource)
+		out.Git = new(buildapiv1beta3.GitBuildSource)
 		if err := convert_api_GitBuildSource_To_v1beta3_GitBuildSource(in.Git, out.Git, s); err != nil {
 			return err
 		}
@@ -1428,7 +2466,7 @@ func autoconvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource
 		out.Git = nil
 	}
 	if in.Image != nil {
-		out.Image = new(apiv1beta3.ImageSource)
+		out.Image = new(buildapiv1beta3.ImageSource)
 		if err := convert_api_ImageSource_To_v1beta3_ImageSource(in.Image, out.Image, s); err != nil {
 			return err
 		}
@@ -1437,7 +2475,7 @@ func autoconvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource
 	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {
-		out.SourceSecret = new(pkgapiv1beta3.LocalObjectReference)
+		out.SourceSecret = new(v1beta3.LocalObjectReference)
 		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.SourceSecret, out.SourceSecret, s); err != nil {
 			return err
 		}
@@ -1447,7 +2485,7 @@ func autoconvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource
 	return nil
 }
 
-func autoconvert_api_BuildSpec_To_v1beta3_BuildSpec(in *buildapi.BuildSpec, out *apiv1beta3.BuildSpec, s conversion.Scope) error {
+func autoconvert_api_BuildSpec_To_v1beta3_BuildSpec(in *buildapi.BuildSpec, out *buildapiv1beta3.BuildSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildSpec))(in)
 	}
@@ -1480,17 +2518,17 @@ func autoconvert_api_BuildSpec_To_v1beta3_BuildSpec(in *buildapi.BuildSpec, out 
 	return nil
 }
 
-func convert_api_BuildSpec_To_v1beta3_BuildSpec(in *buildapi.BuildSpec, out *apiv1beta3.BuildSpec, s conversion.Scope) error {
+func convert_api_BuildSpec_To_v1beta3_BuildSpec(in *buildapi.BuildSpec, out *buildapiv1beta3.BuildSpec, s conversion.Scope) error {
 	return autoconvert_api_BuildSpec_To_v1beta3_BuildSpec(in, out, s)
 }
 
-func autoconvert_api_BuildStatus_To_v1beta3_BuildStatus(in *buildapi.BuildStatus, out *apiv1beta3.BuildStatus, s conversion.Scope) error {
+func autoconvert_api_BuildStatus_To_v1beta3_BuildStatus(in *buildapi.BuildStatus, out *buildapiv1beta3.BuildStatus, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildStatus))(in)
 	}
-	out.Phase = apiv1beta3.BuildPhase(in.Phase)
+	out.Phase = buildapiv1beta3.BuildPhase(in.Phase)
 	out.Cancelled = in.Cancelled
-	out.Reason = apiv1beta3.StatusReason(in.Reason)
+	out.Reason = buildapiv1beta3.StatusReason(in.Reason)
 	out.Message = in.Message
 	if in.StartTimestamp != nil {
 		if err := s.Convert(&in.StartTimestamp, &out.StartTimestamp, 0); err != nil {
@@ -1509,7 +2547,7 @@ func autoconvert_api_BuildStatus_To_v1beta3_BuildStatus(in *buildapi.BuildStatus
 	out.Duration = in.Duration
 	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {
-		out.Config = new(pkgapiv1beta3.ObjectReference)
+		out.Config = new(v1beta3.ObjectReference)
 		if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(in.Config, out.Config, s); err != nil {
 			return err
 		}
@@ -1519,11 +2557,11 @@ func autoconvert_api_BuildStatus_To_v1beta3_BuildStatus(in *buildapi.BuildStatus
 	return nil
 }
 
-func convert_api_BuildStatus_To_v1beta3_BuildStatus(in *buildapi.BuildStatus, out *apiv1beta3.BuildStatus, s conversion.Scope) error {
+func convert_api_BuildStatus_To_v1beta3_BuildStatus(in *buildapi.BuildStatus, out *buildapiv1beta3.BuildStatus, s conversion.Scope) error {
 	return autoconvert_api_BuildStatus_To_v1beta3_BuildStatus(in, out, s)
 }
 
-func autoconvert_api_BuildStrategy_To_v1beta3_BuildStrategy(in *buildapi.BuildStrategy, out *apiv1beta3.BuildStrategy, s conversion.Scope) error {
+func autoconvert_api_BuildStrategy_To_v1beta3_BuildStrategy(in *buildapi.BuildStrategy, out *buildapiv1beta3.BuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildStrategy))(in)
 	}
@@ -1551,13 +2589,13 @@ func autoconvert_api_BuildStrategy_To_v1beta3_BuildStrategy(in *buildapi.BuildSt
 	return nil
 }
 
-func autoconvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *buildapi.BuildTriggerPolicy, out *apiv1beta3.BuildTriggerPolicy, s conversion.Scope) error {
+func autoconvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *buildapi.BuildTriggerPolicy, out *buildapiv1beta3.BuildTriggerPolicy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildTriggerPolicy))(in)
 	}
-	out.Type = apiv1beta3.BuildTriggerType(in.Type)
+	out.Type = buildapiv1beta3.BuildTriggerType(in.Type)
 	if in.GitHubWebHook != nil {
-		out.GitHubWebHook = new(apiv1beta3.WebHookTrigger)
+		out.GitHubWebHook = new(buildapiv1beta3.WebHookTrigger)
 		if err := convert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in.GitHubWebHook, out.GitHubWebHook, s); err != nil {
 			return err
 		}
@@ -1565,7 +2603,7 @@ func autoconvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *builda
 		out.GitHubWebHook = nil
 	}
 	if in.GenericWebHook != nil {
-		out.GenericWebHook = new(apiv1beta3.WebHookTrigger)
+		out.GenericWebHook = new(buildapiv1beta3.WebHookTrigger)
 		if err := convert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in.GenericWebHook, out.GenericWebHook, s); err != nil {
 			return err
 		}
@@ -1573,7 +2611,7 @@ func autoconvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *builda
 		out.GenericWebHook = nil
 	}
 	if in.ImageChange != nil {
-		out.ImageChange = new(apiv1beta3.ImageChangeTrigger)
+		out.ImageChange = new(buildapiv1beta3.ImageChangeTrigger)
 		if err := convert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in.ImageChange, out.ImageChange, s); err != nil {
 			return err
 		}
@@ -1583,7 +2621,7 @@ func autoconvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *builda
 	return nil
 }
 
-func autoconvert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *buildapi.CustomBuildStrategy, out *apiv1beta3.CustomBuildStrategy, s conversion.Scope) error {
+func autoconvert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *buildapi.CustomBuildStrategy, out *buildapiv1beta3.CustomBuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.CustomBuildStrategy))(in)
 	}
@@ -1591,7 +2629,7 @@ func autoconvert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *buil
 		return err
 	}
 	if in.PullSecret != nil {
-		out.PullSecret = new(pkgapiv1beta3.LocalObjectReference)
+		out.PullSecret = new(v1beta3.LocalObjectReference)
 		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
 			return err
 		}
@@ -1599,7 +2637,7 @@ func autoconvert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *buil
 		out.PullSecret = nil
 	}
 	if in.Env != nil {
-		out.Env = make([]pkgapiv1beta3.EnvVar, len(in.Env))
+		out.Env = make([]v1beta3.EnvVar, len(in.Env))
 		for i := range in.Env {
 			if err := convert_api_EnvVar_To_v1beta3_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
 				return err
@@ -1611,7 +2649,7 @@ func autoconvert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *buil
 	out.ExposeDockerSocket = in.ExposeDockerSocket
 	out.ForcePull = in.ForcePull
 	if in.Secrets != nil {
-		out.Secrets = make([]apiv1beta3.SecretSpec, len(in.Secrets))
+		out.Secrets = make([]buildapiv1beta3.SecretSpec, len(in.Secrets))
 		for i := range in.Secrets {
 			if err := convert_api_SecretSpec_To_v1beta3_SecretSpec(&in.Secrets[i], &out.Secrets[i], s); err != nil {
 				return err
@@ -1623,12 +2661,12 @@ func autoconvert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *buil
 	return nil
 }
 
-func autoconvert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy(in *buildapi.DockerBuildStrategy, out *apiv1beta3.DockerBuildStrategy, s conversion.Scope) error {
+func autoconvert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy(in *buildapi.DockerBuildStrategy, out *buildapiv1beta3.DockerBuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.DockerBuildStrategy))(in)
 	}
 	if in.From != nil {
-		out.From = new(pkgapiv1beta3.ObjectReference)
+		out.From = new(v1beta3.ObjectReference)
 		if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(in.From, out.From, s); err != nil {
 			return err
 		}
@@ -1636,7 +2674,7 @@ func autoconvert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy(in *buil
 		out.From = nil
 	}
 	if in.PullSecret != nil {
-		out.PullSecret = new(pkgapiv1beta3.LocalObjectReference)
+		out.PullSecret = new(v1beta3.LocalObjectReference)
 		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
 			return err
 		}
@@ -1645,7 +2683,7 @@ func autoconvert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy(in *buil
 	}
 	out.NoCache = in.NoCache
 	if in.Env != nil {
-		out.Env = make([]pkgapiv1beta3.EnvVar, len(in.Env))
+		out.Env = make([]v1beta3.EnvVar, len(in.Env))
 		for i := range in.Env {
 			if err := convert_api_EnvVar_To_v1beta3_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
 				return err
@@ -1659,7 +2697,7 @@ func autoconvert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy(in *buil
 	return nil
 }
 
-func autoconvert_api_GitBuildSource_To_v1beta3_GitBuildSource(in *buildapi.GitBuildSource, out *apiv1beta3.GitBuildSource, s conversion.Scope) error {
+func autoconvert_api_GitBuildSource_To_v1beta3_GitBuildSource(in *buildapi.GitBuildSource, out *buildapiv1beta3.GitBuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.GitBuildSource))(in)
 	}
@@ -1670,11 +2708,11 @@ func autoconvert_api_GitBuildSource_To_v1beta3_GitBuildSource(in *buildapi.GitBu
 	return nil
 }
 
-func convert_api_GitBuildSource_To_v1beta3_GitBuildSource(in *buildapi.GitBuildSource, out *apiv1beta3.GitBuildSource, s conversion.Scope) error {
+func convert_api_GitBuildSource_To_v1beta3_GitBuildSource(in *buildapi.GitBuildSource, out *buildapiv1beta3.GitBuildSource, s conversion.Scope) error {
 	return autoconvert_api_GitBuildSource_To_v1beta3_GitBuildSource(in, out, s)
 }
 
-func autoconvert_api_GitSourceRevision_To_v1beta3_GitSourceRevision(in *buildapi.GitSourceRevision, out *apiv1beta3.GitSourceRevision, s conversion.Scope) error {
+func autoconvert_api_GitSourceRevision_To_v1beta3_GitSourceRevision(in *buildapi.GitSourceRevision, out *buildapiv1beta3.GitSourceRevision, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.GitSourceRevision))(in)
 	}
@@ -1689,17 +2727,17 @@ func autoconvert_api_GitSourceRevision_To_v1beta3_GitSourceRevision(in *buildapi
 	return nil
 }
 
-func convert_api_GitSourceRevision_To_v1beta3_GitSourceRevision(in *buildapi.GitSourceRevision, out *apiv1beta3.GitSourceRevision, s conversion.Scope) error {
+func convert_api_GitSourceRevision_To_v1beta3_GitSourceRevision(in *buildapi.GitSourceRevision, out *buildapiv1beta3.GitSourceRevision, s conversion.Scope) error {
 	return autoconvert_api_GitSourceRevision_To_v1beta3_GitSourceRevision(in, out, s)
 }
 
-func autoconvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in *buildapi.ImageChangeTrigger, out *apiv1beta3.ImageChangeTrigger, s conversion.Scope) error {
+func autoconvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in *buildapi.ImageChangeTrigger, out *buildapiv1beta3.ImageChangeTrigger, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.ImageChangeTrigger))(in)
 	}
 	out.LastTriggeredImageID = in.LastTriggeredImageID
 	if in.From != nil {
-		out.From = new(pkgapiv1beta3.ObjectReference)
+		out.From = new(v1beta3.ObjectReference)
 		if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(in.From, out.From, s); err != nil {
 			return err
 		}
@@ -1709,11 +2747,11 @@ func autoconvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in *builda
 	return nil
 }
 
-func convert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in *buildapi.ImageChangeTrigger, out *apiv1beta3.ImageChangeTrigger, s conversion.Scope) error {
+func convert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in *buildapi.ImageChangeTrigger, out *buildapiv1beta3.ImageChangeTrigger, s conversion.Scope) error {
 	return autoconvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in, out, s)
 }
 
-func autoconvert_api_ImageSource_To_v1beta3_ImageSource(in *buildapi.ImageSource, out *apiv1beta3.ImageSource, s conversion.Scope) error {
+func autoconvert_api_ImageSource_To_v1beta3_ImageSource(in *buildapi.ImageSource, out *buildapiv1beta3.ImageSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.ImageSource))(in)
 	}
@@ -1721,7 +2759,7 @@ func autoconvert_api_ImageSource_To_v1beta3_ImageSource(in *buildapi.ImageSource
 		return err
 	}
 	if in.Paths != nil {
-		out.Paths = make([]apiv1beta3.ImageSourcePath, len(in.Paths))
+		out.Paths = make([]buildapiv1beta3.ImageSourcePath, len(in.Paths))
 		for i := range in.Paths {
 			if err := convert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(&in.Paths[i], &out.Paths[i], s); err != nil {
 				return err
@@ -1731,7 +2769,7 @@ func autoconvert_api_ImageSource_To_v1beta3_ImageSource(in *buildapi.ImageSource
 		out.Paths = nil
 	}
 	if in.PullSecret != nil {
-		out.PullSecret = new(pkgapiv1beta3.LocalObjectReference)
+		out.PullSecret = new(v1beta3.LocalObjectReference)
 		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
 			return err
 		}
@@ -1741,11 +2779,11 @@ func autoconvert_api_ImageSource_To_v1beta3_ImageSource(in *buildapi.ImageSource
 	return nil
 }
 
-func convert_api_ImageSource_To_v1beta3_ImageSource(in *buildapi.ImageSource, out *apiv1beta3.ImageSource, s conversion.Scope) error {
+func convert_api_ImageSource_To_v1beta3_ImageSource(in *buildapi.ImageSource, out *buildapiv1beta3.ImageSource, s conversion.Scope) error {
 	return autoconvert_api_ImageSource_To_v1beta3_ImageSource(in, out, s)
 }
 
-func autoconvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in *buildapi.ImageSourcePath, out *apiv1beta3.ImageSourcePath, s conversion.Scope) error {
+func autoconvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in *buildapi.ImageSourcePath, out *buildapiv1beta3.ImageSourcePath, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.ImageSourcePath))(in)
 	}
@@ -1754,11 +2792,11 @@ func autoconvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in *buildapi.Ima
 	return nil
 }
 
-func convert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in *buildapi.ImageSourcePath, out *apiv1beta3.ImageSourcePath, s conversion.Scope) error {
+func convert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in *buildapi.ImageSourcePath, out *buildapiv1beta3.ImageSourcePath, s conversion.Scope) error {
 	return autoconvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in, out, s)
 }
 
-func autoconvert_api_SecretSpec_To_v1beta3_SecretSpec(in *buildapi.SecretSpec, out *apiv1beta3.SecretSpec, s conversion.Scope) error {
+func autoconvert_api_SecretSpec_To_v1beta3_SecretSpec(in *buildapi.SecretSpec, out *buildapiv1beta3.SecretSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.SecretSpec))(in)
 	}
@@ -1769,11 +2807,11 @@ func autoconvert_api_SecretSpec_To_v1beta3_SecretSpec(in *buildapi.SecretSpec, o
 	return nil
 }
 
-func convert_api_SecretSpec_To_v1beta3_SecretSpec(in *buildapi.SecretSpec, out *apiv1beta3.SecretSpec, s conversion.Scope) error {
+func convert_api_SecretSpec_To_v1beta3_SecretSpec(in *buildapi.SecretSpec, out *buildapiv1beta3.SecretSpec, s conversion.Scope) error {
 	return autoconvert_api_SecretSpec_To_v1beta3_SecretSpec(in, out, s)
 }
 
-func autoconvert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy(in *buildapi.SourceBuildStrategy, out *apiv1beta3.SourceBuildStrategy, s conversion.Scope) error {
+func autoconvert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy(in *buildapi.SourceBuildStrategy, out *buildapiv1beta3.SourceBuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.SourceBuildStrategy))(in)
 	}
@@ -1781,7 +2819,7 @@ func autoconvert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy(in *buil
 		return err
 	}
 	if in.PullSecret != nil {
-		out.PullSecret = new(pkgapiv1beta3.LocalObjectReference)
+		out.PullSecret = new(v1beta3.LocalObjectReference)
 		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
 			return err
 		}
@@ -1789,7 +2827,7 @@ func autoconvert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy(in *buil
 		out.PullSecret = nil
 	}
 	if in.Env != nil {
-		out.Env = make([]pkgapiv1beta3.EnvVar, len(in.Env))
+		out.Env = make([]v1beta3.EnvVar, len(in.Env))
 		for i := range in.Env {
 			if err := convert_api_EnvVar_To_v1beta3_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
 				return err
@@ -1804,7 +2842,7 @@ func autoconvert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy(in *buil
 	return nil
 }
 
-func autoconvert_api_SourceControlUser_To_v1beta3_SourceControlUser(in *buildapi.SourceControlUser, out *apiv1beta3.SourceControlUser, s conversion.Scope) error {
+func autoconvert_api_SourceControlUser_To_v1beta3_SourceControlUser(in *buildapi.SourceControlUser, out *buildapiv1beta3.SourceControlUser, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.SourceControlUser))(in)
 	}
@@ -1813,16 +2851,16 @@ func autoconvert_api_SourceControlUser_To_v1beta3_SourceControlUser(in *buildapi
 	return nil
 }
 
-func convert_api_SourceControlUser_To_v1beta3_SourceControlUser(in *buildapi.SourceControlUser, out *apiv1beta3.SourceControlUser, s conversion.Scope) error {
+func convert_api_SourceControlUser_To_v1beta3_SourceControlUser(in *buildapi.SourceControlUser, out *buildapiv1beta3.SourceControlUser, s conversion.Scope) error {
 	return autoconvert_api_SourceControlUser_To_v1beta3_SourceControlUser(in, out, s)
 }
 
-func autoconvert_api_SourceRevision_To_v1beta3_SourceRevision(in *buildapi.SourceRevision, out *apiv1beta3.SourceRevision, s conversion.Scope) error {
+func autoconvert_api_SourceRevision_To_v1beta3_SourceRevision(in *buildapi.SourceRevision, out *buildapiv1beta3.SourceRevision, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.SourceRevision))(in)
 	}
 	if in.Git != nil {
-		out.Git = new(apiv1beta3.GitSourceRevision)
+		out.Git = new(buildapiv1beta3.GitSourceRevision)
 		if err := convert_api_GitSourceRevision_To_v1beta3_GitSourceRevision(in.Git, out.Git, s); err != nil {
 			return err
 		}
@@ -1832,7 +2870,7 @@ func autoconvert_api_SourceRevision_To_v1beta3_SourceRevision(in *buildapi.Sourc
 	return nil
 }
 
-func autoconvert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in *buildapi.WebHookTrigger, out *apiv1beta3.WebHookTrigger, s conversion.Scope) error {
+func autoconvert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in *buildapi.WebHookTrigger, out *buildapiv1beta3.WebHookTrigger, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.WebHookTrigger))(in)
 	}
@@ -1840,13 +2878,13 @@ func autoconvert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in *buildapi.WebHo
 	return nil
 }
 
-func convert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in *buildapi.WebHookTrigger, out *apiv1beta3.WebHookTrigger, s conversion.Scope) error {
+func convert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in *buildapi.WebHookTrigger, out *buildapiv1beta3.WebHookTrigger, s conversion.Scope) error {
 	return autoconvert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in, out, s)
 }
 
-func autoconvert_v1beta3_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *apiv1beta3.BinaryBuildRequestOptions, out *buildapi.BinaryBuildRequestOptions, s conversion.Scope) error {
+func autoconvert_v1beta3_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *buildapiv1beta3.BinaryBuildRequestOptions, out *buildapi.BinaryBuildRequestOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BinaryBuildRequestOptions))(in)
+		defaulting.(func(*buildapiv1beta3.BinaryBuildRequestOptions))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -1864,25 +2902,25 @@ func autoconvert_v1beta3_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOpti
 	return nil
 }
 
-func convert_v1beta3_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *apiv1beta3.BinaryBuildRequestOptions, out *buildapi.BinaryBuildRequestOptions, s conversion.Scope) error {
+func convert_v1beta3_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *buildapiv1beta3.BinaryBuildRequestOptions, out *buildapi.BinaryBuildRequestOptions, s conversion.Scope) error {
 	return autoconvert_v1beta3_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in, out, s)
 }
 
-func autoconvert_v1beta3_BinaryBuildSource_To_api_BinaryBuildSource(in *apiv1beta3.BinaryBuildSource, out *buildapi.BinaryBuildSource, s conversion.Scope) error {
+func autoconvert_v1beta3_BinaryBuildSource_To_api_BinaryBuildSource(in *buildapiv1beta3.BinaryBuildSource, out *buildapi.BinaryBuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BinaryBuildSource))(in)
+		defaulting.(func(*buildapiv1beta3.BinaryBuildSource))(in)
 	}
 	out.AsFile = in.AsFile
 	return nil
 }
 
-func convert_v1beta3_BinaryBuildSource_To_api_BinaryBuildSource(in *apiv1beta3.BinaryBuildSource, out *buildapi.BinaryBuildSource, s conversion.Scope) error {
+func convert_v1beta3_BinaryBuildSource_To_api_BinaryBuildSource(in *buildapiv1beta3.BinaryBuildSource, out *buildapi.BinaryBuildSource, s conversion.Scope) error {
 	return autoconvert_v1beta3_BinaryBuildSource_To_api_BinaryBuildSource(in, out, s)
 }
 
-func autoconvert_v1beta3_Build_To_api_Build(in *apiv1beta3.Build, out *buildapi.Build, s conversion.Scope) error {
+func autoconvert_v1beta3_Build_To_api_Build(in *buildapiv1beta3.Build, out *buildapi.Build, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.Build))(in)
+		defaulting.(func(*buildapiv1beta3.Build))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -1899,13 +2937,13 @@ func autoconvert_v1beta3_Build_To_api_Build(in *apiv1beta3.Build, out *buildapi.
 	return nil
 }
 
-func convert_v1beta3_Build_To_api_Build(in *apiv1beta3.Build, out *buildapi.Build, s conversion.Scope) error {
+func convert_v1beta3_Build_To_api_Build(in *buildapiv1beta3.Build, out *buildapi.Build, s conversion.Scope) error {
 	return autoconvert_v1beta3_Build_To_api_Build(in, out, s)
 }
 
-func autoconvert_v1beta3_BuildConfig_To_api_BuildConfig(in *apiv1beta3.BuildConfig, out *buildapi.BuildConfig, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildConfig_To_api_BuildConfig(in *buildapiv1beta3.BuildConfig, out *buildapi.BuildConfig, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildConfig))(in)
+		defaulting.(func(*buildapiv1beta3.BuildConfig))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -1922,13 +2960,13 @@ func autoconvert_v1beta3_BuildConfig_To_api_BuildConfig(in *apiv1beta3.BuildConf
 	return nil
 }
 
-func convert_v1beta3_BuildConfig_To_api_BuildConfig(in *apiv1beta3.BuildConfig, out *buildapi.BuildConfig, s conversion.Scope) error {
+func convert_v1beta3_BuildConfig_To_api_BuildConfig(in *buildapiv1beta3.BuildConfig, out *buildapi.BuildConfig, s conversion.Scope) error {
 	return autoconvert_v1beta3_BuildConfig_To_api_BuildConfig(in, out, s)
 }
 
-func autoconvert_v1beta3_BuildConfigList_To_api_BuildConfigList(in *apiv1beta3.BuildConfigList, out *buildapi.BuildConfigList, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildConfigList_To_api_BuildConfigList(in *buildapiv1beta3.BuildConfigList, out *buildapi.BuildConfigList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildConfigList))(in)
+		defaulting.(func(*buildapiv1beta3.BuildConfigList))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -1949,13 +2987,13 @@ func autoconvert_v1beta3_BuildConfigList_To_api_BuildConfigList(in *apiv1beta3.B
 	return nil
 }
 
-func convert_v1beta3_BuildConfigList_To_api_BuildConfigList(in *apiv1beta3.BuildConfigList, out *buildapi.BuildConfigList, s conversion.Scope) error {
+func convert_v1beta3_BuildConfigList_To_api_BuildConfigList(in *buildapiv1beta3.BuildConfigList, out *buildapi.BuildConfigList, s conversion.Scope) error {
 	return autoconvert_v1beta3_BuildConfigList_To_api_BuildConfigList(in, out, s)
 }
 
-func autoconvert_v1beta3_BuildConfigSpec_To_api_BuildConfigSpec(in *apiv1beta3.BuildConfigSpec, out *buildapi.BuildConfigSpec, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildConfigSpec_To_api_BuildConfigSpec(in *buildapiv1beta3.BuildConfigSpec, out *buildapi.BuildConfigSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildConfigSpec))(in)
+		defaulting.(func(*buildapiv1beta3.BuildConfigSpec))(in)
 	}
 	if in.Triggers != nil {
 		out.Triggers = make([]buildapi.BuildTriggerPolicy, len(in.Triggers))
@@ -1973,25 +3011,25 @@ func autoconvert_v1beta3_BuildConfigSpec_To_api_BuildConfigSpec(in *apiv1beta3.B
 	return nil
 }
 
-func convert_v1beta3_BuildConfigSpec_To_api_BuildConfigSpec(in *apiv1beta3.BuildConfigSpec, out *buildapi.BuildConfigSpec, s conversion.Scope) error {
+func convert_v1beta3_BuildConfigSpec_To_api_BuildConfigSpec(in *buildapiv1beta3.BuildConfigSpec, out *buildapi.BuildConfigSpec, s conversion.Scope) error {
 	return autoconvert_v1beta3_BuildConfigSpec_To_api_BuildConfigSpec(in, out, s)
 }
 
-func autoconvert_v1beta3_BuildConfigStatus_To_api_BuildConfigStatus(in *apiv1beta3.BuildConfigStatus, out *buildapi.BuildConfigStatus, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildConfigStatus_To_api_BuildConfigStatus(in *buildapiv1beta3.BuildConfigStatus, out *buildapi.BuildConfigStatus, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildConfigStatus))(in)
+		defaulting.(func(*buildapiv1beta3.BuildConfigStatus))(in)
 	}
 	out.LastVersion = in.LastVersion
 	return nil
 }
 
-func convert_v1beta3_BuildConfigStatus_To_api_BuildConfigStatus(in *apiv1beta3.BuildConfigStatus, out *buildapi.BuildConfigStatus, s conversion.Scope) error {
+func convert_v1beta3_BuildConfigStatus_To_api_BuildConfigStatus(in *buildapiv1beta3.BuildConfigStatus, out *buildapi.BuildConfigStatus, s conversion.Scope) error {
 	return autoconvert_v1beta3_BuildConfigStatus_To_api_BuildConfigStatus(in, out, s)
 }
 
-func autoconvert_v1beta3_BuildList_To_api_BuildList(in *apiv1beta3.BuildList, out *buildapi.BuildList, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildList_To_api_BuildList(in *buildapiv1beta3.BuildList, out *buildapi.BuildList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildList))(in)
+		defaulting.(func(*buildapiv1beta3.BuildList))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -2012,13 +3050,13 @@ func autoconvert_v1beta3_BuildList_To_api_BuildList(in *apiv1beta3.BuildList, ou
 	return nil
 }
 
-func convert_v1beta3_BuildList_To_api_BuildList(in *apiv1beta3.BuildList, out *buildapi.BuildList, s conversion.Scope) error {
+func convert_v1beta3_BuildList_To_api_BuildList(in *buildapiv1beta3.BuildList, out *buildapi.BuildList, s conversion.Scope) error {
 	return autoconvert_v1beta3_BuildList_To_api_BuildList(in, out, s)
 }
 
-func autoconvert_v1beta3_BuildLog_To_api_BuildLog(in *apiv1beta3.BuildLog, out *buildapi.BuildLog, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildLog_To_api_BuildLog(in *buildapiv1beta3.BuildLog, out *buildapi.BuildLog, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildLog))(in)
+		defaulting.(func(*buildapiv1beta3.BuildLog))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -2026,13 +3064,13 @@ func autoconvert_v1beta3_BuildLog_To_api_BuildLog(in *apiv1beta3.BuildLog, out *
 	return nil
 }
 
-func convert_v1beta3_BuildLog_To_api_BuildLog(in *apiv1beta3.BuildLog, out *buildapi.BuildLog, s conversion.Scope) error {
+func convert_v1beta3_BuildLog_To_api_BuildLog(in *buildapiv1beta3.BuildLog, out *buildapi.BuildLog, s conversion.Scope) error {
 	return autoconvert_v1beta3_BuildLog_To_api_BuildLog(in, out, s)
 }
 
-func autoconvert_v1beta3_BuildLogOptions_To_api_BuildLogOptions(in *apiv1beta3.BuildLogOptions, out *buildapi.BuildLogOptions, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildLogOptions_To_api_BuildLogOptions(in *buildapiv1beta3.BuildLogOptions, out *buildapi.BuildLogOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildLogOptions))(in)
+		defaulting.(func(*buildapiv1beta3.BuildLogOptions))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -2076,13 +3114,13 @@ func autoconvert_v1beta3_BuildLogOptions_To_api_BuildLogOptions(in *apiv1beta3.B
 	return nil
 }
 
-func convert_v1beta3_BuildLogOptions_To_api_BuildLogOptions(in *apiv1beta3.BuildLogOptions, out *buildapi.BuildLogOptions, s conversion.Scope) error {
+func convert_v1beta3_BuildLogOptions_To_api_BuildLogOptions(in *buildapiv1beta3.BuildLogOptions, out *buildapi.BuildLogOptions, s conversion.Scope) error {
 	return autoconvert_v1beta3_BuildLogOptions_To_api_BuildLogOptions(in, out, s)
 }
 
-func autoconvert_v1beta3_BuildOutput_To_api_BuildOutput(in *apiv1beta3.BuildOutput, out *buildapi.BuildOutput, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildOutput_To_api_BuildOutput(in *buildapiv1beta3.BuildOutput, out *buildapi.BuildOutput, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildOutput))(in)
+		defaulting.(func(*buildapiv1beta3.BuildOutput))(in)
 	}
 	if in.To != nil {
 		out.To = new(pkgapi.ObjectReference)
@@ -2103,9 +3141,9 @@ func autoconvert_v1beta3_BuildOutput_To_api_BuildOutput(in *apiv1beta3.BuildOutp
 	return nil
 }
 
-func autoconvert_v1beta3_BuildRequest_To_api_BuildRequest(in *apiv1beta3.BuildRequest, out *buildapi.BuildRequest, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildRequest_To_api_BuildRequest(in *buildapiv1beta3.BuildRequest, out *buildapi.BuildRequest, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildRequest))(in)
+		defaulting.(func(*buildapiv1beta3.BuildRequest))(in)
 	}
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
@@ -2163,13 +3201,13 @@ func autoconvert_v1beta3_BuildRequest_To_api_BuildRequest(in *apiv1beta3.BuildRe
 	return nil
 }
 
-func convert_v1beta3_BuildRequest_To_api_BuildRequest(in *apiv1beta3.BuildRequest, out *buildapi.BuildRequest, s conversion.Scope) error {
+func convert_v1beta3_BuildRequest_To_api_BuildRequest(in *buildapiv1beta3.BuildRequest, out *buildapi.BuildRequest, s conversion.Scope) error {
 	return autoconvert_v1beta3_BuildRequest_To_api_BuildRequest(in, out, s)
 }
 
-func autoconvert_v1beta3_BuildSource_To_api_BuildSource(in *apiv1beta3.BuildSource, out *buildapi.BuildSource, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildSource_To_api_BuildSource(in *buildapiv1beta3.BuildSource, out *buildapi.BuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildSource))(in)
+		defaulting.(func(*buildapiv1beta3.BuildSource))(in)
 	}
 	// in.Type has no peer in out
 	if in.Binary != nil {
@@ -2214,9 +3252,9 @@ func autoconvert_v1beta3_BuildSource_To_api_BuildSource(in *apiv1beta3.BuildSour
 	return nil
 }
 
-func autoconvert_v1beta3_BuildSpec_To_api_BuildSpec(in *apiv1beta3.BuildSpec, out *buildapi.BuildSpec, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildSpec_To_api_BuildSpec(in *buildapiv1beta3.BuildSpec, out *buildapi.BuildSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildSpec))(in)
+		defaulting.(func(*buildapiv1beta3.BuildSpec))(in)
 	}
 	out.ServiceAccount = in.ServiceAccount
 	if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
@@ -2247,13 +3285,13 @@ func autoconvert_v1beta3_BuildSpec_To_api_BuildSpec(in *apiv1beta3.BuildSpec, ou
 	return nil
 }
 
-func convert_v1beta3_BuildSpec_To_api_BuildSpec(in *apiv1beta3.BuildSpec, out *buildapi.BuildSpec, s conversion.Scope) error {
+func convert_v1beta3_BuildSpec_To_api_BuildSpec(in *buildapiv1beta3.BuildSpec, out *buildapi.BuildSpec, s conversion.Scope) error {
 	return autoconvert_v1beta3_BuildSpec_To_api_BuildSpec(in, out, s)
 }
 
-func autoconvert_v1beta3_BuildStatus_To_api_BuildStatus(in *apiv1beta3.BuildStatus, out *buildapi.BuildStatus, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildStatus_To_api_BuildStatus(in *buildapiv1beta3.BuildStatus, out *buildapi.BuildStatus, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildStatus))(in)
+		defaulting.(func(*buildapiv1beta3.BuildStatus))(in)
 	}
 	out.Phase = buildapi.BuildPhase(in.Phase)
 	out.Cancelled = in.Cancelled
@@ -2286,13 +3324,13 @@ func autoconvert_v1beta3_BuildStatus_To_api_BuildStatus(in *apiv1beta3.BuildStat
 	return nil
 }
 
-func convert_v1beta3_BuildStatus_To_api_BuildStatus(in *apiv1beta3.BuildStatus, out *buildapi.BuildStatus, s conversion.Scope) error {
+func convert_v1beta3_BuildStatus_To_api_BuildStatus(in *buildapiv1beta3.BuildStatus, out *buildapi.BuildStatus, s conversion.Scope) error {
 	return autoconvert_v1beta3_BuildStatus_To_api_BuildStatus(in, out, s)
 }
 
-func autoconvert_v1beta3_BuildStrategy_To_api_BuildStrategy(in *apiv1beta3.BuildStrategy, out *buildapi.BuildStrategy, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildStrategy_To_api_BuildStrategy(in *buildapiv1beta3.BuildStrategy, out *buildapi.BuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildStrategy))(in)
+		defaulting.(func(*buildapiv1beta3.BuildStrategy))(in)
 	}
 	// in.Type has no peer in out
 	if in.DockerStrategy != nil {
@@ -2319,9 +3357,9 @@ func autoconvert_v1beta3_BuildStrategy_To_api_BuildStrategy(in *apiv1beta3.Build
 	return nil
 }
 
-func autoconvert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *apiv1beta3.BuildTriggerPolicy, out *buildapi.BuildTriggerPolicy, s conversion.Scope) error {
+func autoconvert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *buildapiv1beta3.BuildTriggerPolicy, out *buildapi.BuildTriggerPolicy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.BuildTriggerPolicy))(in)
+		defaulting.(func(*buildapiv1beta3.BuildTriggerPolicy))(in)
 	}
 	out.Type = buildapi.BuildTriggerType(in.Type)
 	if in.GitHubWebHook != nil {
@@ -2351,9 +3389,9 @@ func autoconvert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *apiv1b
 	return nil
 }
 
-func autoconvert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in *apiv1beta3.CustomBuildStrategy, out *buildapi.CustomBuildStrategy, s conversion.Scope) error {
+func autoconvert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in *buildapiv1beta3.CustomBuildStrategy, out *buildapi.CustomBuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.CustomBuildStrategy))(in)
+		defaulting.(func(*buildapiv1beta3.CustomBuildStrategy))(in)
 	}
 	if err := convert_v1beta3_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
@@ -2391,9 +3429,9 @@ func autoconvert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in *apiv
 	return nil
 }
 
-func autoconvert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy(in *apiv1beta3.DockerBuildStrategy, out *buildapi.DockerBuildStrategy, s conversion.Scope) error {
+func autoconvert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy(in *buildapiv1beta3.DockerBuildStrategy, out *buildapi.DockerBuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.DockerBuildStrategy))(in)
+		defaulting.(func(*buildapiv1beta3.DockerBuildStrategy))(in)
 	}
 	if in.From != nil {
 		out.From = new(pkgapi.ObjectReference)
@@ -2427,9 +3465,9 @@ func autoconvert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy(in *apiv
 	return nil
 }
 
-func autoconvert_v1beta3_GitBuildSource_To_api_GitBuildSource(in *apiv1beta3.GitBuildSource, out *buildapi.GitBuildSource, s conversion.Scope) error {
+func autoconvert_v1beta3_GitBuildSource_To_api_GitBuildSource(in *buildapiv1beta3.GitBuildSource, out *buildapi.GitBuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.GitBuildSource))(in)
+		defaulting.(func(*buildapiv1beta3.GitBuildSource))(in)
 	}
 	out.URI = in.URI
 	out.Ref = in.Ref
@@ -2438,13 +3476,13 @@ func autoconvert_v1beta3_GitBuildSource_To_api_GitBuildSource(in *apiv1beta3.Git
 	return nil
 }
 
-func convert_v1beta3_GitBuildSource_To_api_GitBuildSource(in *apiv1beta3.GitBuildSource, out *buildapi.GitBuildSource, s conversion.Scope) error {
+func convert_v1beta3_GitBuildSource_To_api_GitBuildSource(in *buildapiv1beta3.GitBuildSource, out *buildapi.GitBuildSource, s conversion.Scope) error {
 	return autoconvert_v1beta3_GitBuildSource_To_api_GitBuildSource(in, out, s)
 }
 
-func autoconvert_v1beta3_GitSourceRevision_To_api_GitSourceRevision(in *apiv1beta3.GitSourceRevision, out *buildapi.GitSourceRevision, s conversion.Scope) error {
+func autoconvert_v1beta3_GitSourceRevision_To_api_GitSourceRevision(in *buildapiv1beta3.GitSourceRevision, out *buildapi.GitSourceRevision, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.GitSourceRevision))(in)
+		defaulting.(func(*buildapiv1beta3.GitSourceRevision))(in)
 	}
 	out.Commit = in.Commit
 	if err := convert_v1beta3_SourceControlUser_To_api_SourceControlUser(&in.Author, &out.Author, s); err != nil {
@@ -2457,13 +3495,13 @@ func autoconvert_v1beta3_GitSourceRevision_To_api_GitSourceRevision(in *apiv1bet
 	return nil
 }
 
-func convert_v1beta3_GitSourceRevision_To_api_GitSourceRevision(in *apiv1beta3.GitSourceRevision, out *buildapi.GitSourceRevision, s conversion.Scope) error {
+func convert_v1beta3_GitSourceRevision_To_api_GitSourceRevision(in *buildapiv1beta3.GitSourceRevision, out *buildapi.GitSourceRevision, s conversion.Scope) error {
 	return autoconvert_v1beta3_GitSourceRevision_To_api_GitSourceRevision(in, out, s)
 }
 
-func autoconvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in *apiv1beta3.ImageChangeTrigger, out *buildapi.ImageChangeTrigger, s conversion.Scope) error {
+func autoconvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in *buildapiv1beta3.ImageChangeTrigger, out *buildapi.ImageChangeTrigger, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.ImageChangeTrigger))(in)
+		defaulting.(func(*buildapiv1beta3.ImageChangeTrigger))(in)
 	}
 	out.LastTriggeredImageID = in.LastTriggeredImageID
 	if in.From != nil {
@@ -2477,13 +3515,13 @@ func autoconvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in *apiv1b
 	return nil
 }
 
-func convert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in *apiv1beta3.ImageChangeTrigger, out *buildapi.ImageChangeTrigger, s conversion.Scope) error {
+func convert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in *buildapiv1beta3.ImageChangeTrigger, out *buildapi.ImageChangeTrigger, s conversion.Scope) error {
 	return autoconvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in, out, s)
 }
 
-func autoconvert_v1beta3_ImageSource_To_api_ImageSource(in *apiv1beta3.ImageSource, out *buildapi.ImageSource, s conversion.Scope) error {
+func autoconvert_v1beta3_ImageSource_To_api_ImageSource(in *buildapiv1beta3.ImageSource, out *buildapi.ImageSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.ImageSource))(in)
+		defaulting.(func(*buildapiv1beta3.ImageSource))(in)
 	}
 	if err := convert_v1beta3_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
@@ -2509,26 +3547,26 @@ func autoconvert_v1beta3_ImageSource_To_api_ImageSource(in *apiv1beta3.ImageSour
 	return nil
 }
 
-func convert_v1beta3_ImageSource_To_api_ImageSource(in *apiv1beta3.ImageSource, out *buildapi.ImageSource, s conversion.Scope) error {
+func convert_v1beta3_ImageSource_To_api_ImageSource(in *buildapiv1beta3.ImageSource, out *buildapi.ImageSource, s conversion.Scope) error {
 	return autoconvert_v1beta3_ImageSource_To_api_ImageSource(in, out, s)
 }
 
-func autoconvert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in *apiv1beta3.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
+func autoconvert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in *buildapiv1beta3.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.ImageSourcePath))(in)
+		defaulting.(func(*buildapiv1beta3.ImageSourcePath))(in)
 	}
 	out.SourcePath = in.SourcePath
 	out.DestinationDir = in.DestinationDir
 	return nil
 }
 
-func convert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in *apiv1beta3.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
+func convert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in *buildapiv1beta3.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
 	return autoconvert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in, out, s)
 }
 
-func autoconvert_v1beta3_SecretSpec_To_api_SecretSpec(in *apiv1beta3.SecretSpec, out *buildapi.SecretSpec, s conversion.Scope) error {
+func autoconvert_v1beta3_SecretSpec_To_api_SecretSpec(in *buildapiv1beta3.SecretSpec, out *buildapi.SecretSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.SecretSpec))(in)
+		defaulting.(func(*buildapiv1beta3.SecretSpec))(in)
 	}
 	if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(&in.SecretSource, &out.SecretSource, s); err != nil {
 		return err
@@ -2537,13 +3575,13 @@ func autoconvert_v1beta3_SecretSpec_To_api_SecretSpec(in *apiv1beta3.SecretSpec,
 	return nil
 }
 
-func convert_v1beta3_SecretSpec_To_api_SecretSpec(in *apiv1beta3.SecretSpec, out *buildapi.SecretSpec, s conversion.Scope) error {
+func convert_v1beta3_SecretSpec_To_api_SecretSpec(in *buildapiv1beta3.SecretSpec, out *buildapi.SecretSpec, s conversion.Scope) error {
 	return autoconvert_v1beta3_SecretSpec_To_api_SecretSpec(in, out, s)
 }
 
-func autoconvert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy(in *apiv1beta3.SourceBuildStrategy, out *buildapi.SourceBuildStrategy, s conversion.Scope) error {
+func autoconvert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy(in *buildapiv1beta3.SourceBuildStrategy, out *buildapi.SourceBuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.SourceBuildStrategy))(in)
+		defaulting.(func(*buildapiv1beta3.SourceBuildStrategy))(in)
 	}
 	if err := convert_v1beta3_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
@@ -2572,22 +3610,22 @@ func autoconvert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy(in *apiv
 	return nil
 }
 
-func autoconvert_v1beta3_SourceControlUser_To_api_SourceControlUser(in *apiv1beta3.SourceControlUser, out *buildapi.SourceControlUser, s conversion.Scope) error {
+func autoconvert_v1beta3_SourceControlUser_To_api_SourceControlUser(in *buildapiv1beta3.SourceControlUser, out *buildapi.SourceControlUser, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.SourceControlUser))(in)
+		defaulting.(func(*buildapiv1beta3.SourceControlUser))(in)
 	}
 	out.Name = in.Name
 	out.Email = in.Email
 	return nil
 }
 
-func convert_v1beta3_SourceControlUser_To_api_SourceControlUser(in *apiv1beta3.SourceControlUser, out *buildapi.SourceControlUser, s conversion.Scope) error {
+func convert_v1beta3_SourceControlUser_To_api_SourceControlUser(in *buildapiv1beta3.SourceControlUser, out *buildapi.SourceControlUser, s conversion.Scope) error {
 	return autoconvert_v1beta3_SourceControlUser_To_api_SourceControlUser(in, out, s)
 }
 
-func autoconvert_v1beta3_SourceRevision_To_api_SourceRevision(in *apiv1beta3.SourceRevision, out *buildapi.SourceRevision, s conversion.Scope) error {
+func autoconvert_v1beta3_SourceRevision_To_api_SourceRevision(in *buildapiv1beta3.SourceRevision, out *buildapi.SourceRevision, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.SourceRevision))(in)
+		defaulting.(func(*buildapiv1beta3.SourceRevision))(in)
 	}
 	// in.Type has no peer in out
 	if in.Git != nil {
@@ -2601,15 +3639,15 @@ func autoconvert_v1beta3_SourceRevision_To_api_SourceRevision(in *apiv1beta3.Sou
 	return nil
 }
 
-func autoconvert_v1beta3_WebHookTrigger_To_api_WebHookTrigger(in *apiv1beta3.WebHookTrigger, out *buildapi.WebHookTrigger, s conversion.Scope) error {
+func autoconvert_v1beta3_WebHookTrigger_To_api_WebHookTrigger(in *buildapiv1beta3.WebHookTrigger, out *buildapi.WebHookTrigger, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.WebHookTrigger))(in)
+		defaulting.(func(*buildapiv1beta3.WebHookTrigger))(in)
 	}
 	out.Secret = in.Secret
 	return nil
 }
 
-func convert_v1beta3_WebHookTrigger_To_api_WebHookTrigger(in *apiv1beta3.WebHookTrigger, out *buildapi.WebHookTrigger, s conversion.Scope) error {
+func convert_v1beta3_WebHookTrigger_To_api_WebHookTrigger(in *buildapiv1beta3.WebHookTrigger, out *buildapi.WebHookTrigger, s conversion.Scope) error {
 	return autoconvert_v1beta3_WebHookTrigger_To_api_WebHookTrigger(in, out, s)
 }
 
@@ -2619,7 +3657,7 @@ func autoconvert_api_CustomDeploymentStrategyParams_To_v1beta3_CustomDeploymentS
 	}
 	out.Image = in.Image
 	if in.Environment != nil {
-		out.Environment = make([]pkgapiv1beta3.EnvVar, len(in.Environment))
+		out.Environment = make([]v1beta3.EnvVar, len(in.Environment))
 		for i := range in.Environment {
 			if err := convert_api_EnvVar_To_v1beta3_EnvVar(&in.Environment[i], &out.Environment[i], s); err != nil {
 				return err
@@ -2789,7 +3827,7 @@ func autoconvert_api_DeploymentConfigSpec_To_v1beta3_DeploymentConfigSpec(in *de
 		out.Selector = nil
 	}
 	if in.Template != nil {
-		out.Template = new(pkgapiv1beta3.PodTemplateSpec)
+		out.Template = new(v1beta3.PodTemplateSpec)
 		if err := convert_api_PodTemplateSpec_To_v1beta3_PodTemplateSpec(in.Template, out.Template, s); err != nil {
 			return err
 		}
@@ -3015,7 +4053,7 @@ func autoconvert_api_ExecNewPodHook_To_v1beta3_ExecNewPodHook(in *deployapi.Exec
 		out.Command = nil
 	}
 	if in.Env != nil {
-		out.Env = make([]pkgapiv1beta3.EnvVar, len(in.Env))
+		out.Env = make([]v1beta3.EnvVar, len(in.Env))
 		for i := range in.Env {
 			if err := convert_api_EnvVar_To_v1beta3_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
 				return err
@@ -4560,9 +5598,9 @@ func autoconvert_api_ProjectSpec_To_v1beta3_ProjectSpec(in *projectapi.ProjectSp
 		defaulting.(func(*projectapi.ProjectSpec))(in)
 	}
 	if in.Finalizers != nil {
-		out.Finalizers = make([]pkgapiv1beta3.FinalizerName, len(in.Finalizers))
+		out.Finalizers = make([]v1beta3.FinalizerName, len(in.Finalizers))
 		for i := range in.Finalizers {
-			out.Finalizers[i] = pkgapiv1beta3.FinalizerName(in.Finalizers[i])
+			out.Finalizers[i] = v1beta3.FinalizerName(in.Finalizers[i])
 		}
 	} else {
 		out.Finalizers = nil
@@ -4578,7 +5616,7 @@ func autoconvert_api_ProjectStatus_To_v1beta3_ProjectStatus(in *projectapi.Proje
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*projectapi.ProjectStatus))(in)
 	}
-	out.Phase = pkgapiv1beta3.NamespacePhase(in.Phase)
+	out.Phase = v1beta3.NamespacePhase(in.Phase)
 	return nil
 }
 
@@ -5751,7 +6789,7 @@ func convert_v1beta3_UserList_To_api_UserList(in *userapiv1beta3.UserList, out *
 	return autoconvert_v1beta3_UserList_To_api_UserList(in, out, s)
 }
 
-func autoconvert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStoreVolumeSource(in *pkgapi.AWSElasticBlockStoreVolumeSource, out *pkgapiv1beta3.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
+func autoconvert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStoreVolumeSource(in *pkgapi.AWSElasticBlockStoreVolumeSource, out *v1beta3.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.AWSElasticBlockStoreVolumeSource))(in)
 	}
@@ -5762,26 +6800,26 @@ func autoconvert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlock
 	return nil
 }
 
-func convert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStoreVolumeSource(in *pkgapi.AWSElasticBlockStoreVolumeSource, out *pkgapiv1beta3.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
+func convert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStoreVolumeSource(in *pkgapi.AWSElasticBlockStoreVolumeSource, out *v1beta3.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStoreVolumeSource(in, out, s)
 }
 
-func autoconvert_api_Capabilities_To_v1beta3_Capabilities(in *pkgapi.Capabilities, out *pkgapiv1beta3.Capabilities, s conversion.Scope) error {
+func autoconvert_api_Capabilities_To_v1beta3_Capabilities(in *pkgapi.Capabilities, out *v1beta3.Capabilities, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.Capabilities))(in)
 	}
 	if in.Add != nil {
-		out.Add = make([]pkgapiv1beta3.Capability, len(in.Add))
+		out.Add = make([]v1beta3.Capability, len(in.Add))
 		for i := range in.Add {
-			out.Add[i] = pkgapiv1beta3.Capability(in.Add[i])
+			out.Add[i] = v1beta3.Capability(in.Add[i])
 		}
 	} else {
 		out.Add = nil
 	}
 	if in.Drop != nil {
-		out.Drop = make([]pkgapiv1beta3.Capability, len(in.Drop))
+		out.Drop = make([]v1beta3.Capability, len(in.Drop))
 		for i := range in.Drop {
-			out.Drop[i] = pkgapiv1beta3.Capability(in.Drop[i])
+			out.Drop[i] = v1beta3.Capability(in.Drop[i])
 		}
 	} else {
 		out.Drop = nil
@@ -5789,11 +6827,11 @@ func autoconvert_api_Capabilities_To_v1beta3_Capabilities(in *pkgapi.Capabilitie
 	return nil
 }
 
-func convert_api_Capabilities_To_v1beta3_Capabilities(in *pkgapi.Capabilities, out *pkgapiv1beta3.Capabilities, s conversion.Scope) error {
+func convert_api_Capabilities_To_v1beta3_Capabilities(in *pkgapi.Capabilities, out *v1beta3.Capabilities, s conversion.Scope) error {
 	return autoconvert_api_Capabilities_To_v1beta3_Capabilities(in, out, s)
 }
 
-func autoconvert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in *pkgapi.CephFSVolumeSource, out *pkgapiv1beta3.CephFSVolumeSource, s conversion.Scope) error {
+func autoconvert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in *pkgapi.CephFSVolumeSource, out *v1beta3.CephFSVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.CephFSVolumeSource))(in)
 	}
@@ -5808,7 +6846,7 @@ func autoconvert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in *pkgapi
 	out.User = in.User
 	out.SecretFile = in.SecretFile
 	if in.SecretRef != nil {
-		out.SecretRef = new(pkgapiv1beta3.LocalObjectReference)
+		out.SecretRef = new(v1beta3.LocalObjectReference)
 		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.SecretRef, out.SecretRef, s); err != nil {
 			return err
 		}
@@ -5819,11 +6857,11 @@ func autoconvert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in *pkgapi
 	return nil
 }
 
-func convert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in *pkgapi.CephFSVolumeSource, out *pkgapiv1beta3.CephFSVolumeSource, s conversion.Scope) error {
+func convert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in *pkgapi.CephFSVolumeSource, out *v1beta3.CephFSVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in, out, s)
 }
 
-func autoconvert_api_CinderVolumeSource_To_v1beta3_CinderVolumeSource(in *pkgapi.CinderVolumeSource, out *pkgapiv1beta3.CinderVolumeSource, s conversion.Scope) error {
+func autoconvert_api_CinderVolumeSource_To_v1beta3_CinderVolumeSource(in *pkgapi.CinderVolumeSource, out *v1beta3.CinderVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.CinderVolumeSource))(in)
 	}
@@ -5833,11 +6871,11 @@ func autoconvert_api_CinderVolumeSource_To_v1beta3_CinderVolumeSource(in *pkgapi
 	return nil
 }
 
-func convert_api_CinderVolumeSource_To_v1beta3_CinderVolumeSource(in *pkgapi.CinderVolumeSource, out *pkgapiv1beta3.CinderVolumeSource, s conversion.Scope) error {
+func convert_api_CinderVolumeSource_To_v1beta3_CinderVolumeSource(in *pkgapi.CinderVolumeSource, out *v1beta3.CinderVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_CinderVolumeSource_To_v1beta3_CinderVolumeSource(in, out, s)
 }
 
-func autoconvert_api_Container_To_v1beta3_Container(in *pkgapi.Container, out *pkgapiv1beta3.Container, s conversion.Scope) error {
+func autoconvert_api_Container_To_v1beta3_Container(in *pkgapi.Container, out *v1beta3.Container, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.Container))(in)
 	}
@@ -5861,7 +6899,7 @@ func autoconvert_api_Container_To_v1beta3_Container(in *pkgapi.Container, out *p
 	}
 	out.WorkingDir = in.WorkingDir
 	if in.Ports != nil {
-		out.Ports = make([]pkgapiv1beta3.ContainerPort, len(in.Ports))
+		out.Ports = make([]v1beta3.ContainerPort, len(in.Ports))
 		for i := range in.Ports {
 			if err := convert_api_ContainerPort_To_v1beta3_ContainerPort(&in.Ports[i], &out.Ports[i], s); err != nil {
 				return err
@@ -5871,7 +6909,7 @@ func autoconvert_api_Container_To_v1beta3_Container(in *pkgapi.Container, out *p
 		out.Ports = nil
 	}
 	if in.Env != nil {
-		out.Env = make([]pkgapiv1beta3.EnvVar, len(in.Env))
+		out.Env = make([]v1beta3.EnvVar, len(in.Env))
 		for i := range in.Env {
 			if err := convert_api_EnvVar_To_v1beta3_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
 				return err
@@ -5884,7 +6922,7 @@ func autoconvert_api_Container_To_v1beta3_Container(in *pkgapi.Container, out *p
 		return err
 	}
 	if in.VolumeMounts != nil {
-		out.VolumeMounts = make([]pkgapiv1beta3.VolumeMount, len(in.VolumeMounts))
+		out.VolumeMounts = make([]v1beta3.VolumeMount, len(in.VolumeMounts))
 		for i := range in.VolumeMounts {
 			if err := convert_api_VolumeMount_To_v1beta3_VolumeMount(&in.VolumeMounts[i], &out.VolumeMounts[i], s); err != nil {
 				return err
@@ -5894,7 +6932,7 @@ func autoconvert_api_Container_To_v1beta3_Container(in *pkgapi.Container, out *p
 		out.VolumeMounts = nil
 	}
 	if in.LivenessProbe != nil {
-		out.LivenessProbe = new(pkgapiv1beta3.Probe)
+		out.LivenessProbe = new(v1beta3.Probe)
 		if err := convert_api_Probe_To_v1beta3_Probe(in.LivenessProbe, out.LivenessProbe, s); err != nil {
 			return err
 		}
@@ -5902,7 +6940,7 @@ func autoconvert_api_Container_To_v1beta3_Container(in *pkgapi.Container, out *p
 		out.LivenessProbe = nil
 	}
 	if in.ReadinessProbe != nil {
-		out.ReadinessProbe = new(pkgapiv1beta3.Probe)
+		out.ReadinessProbe = new(v1beta3.Probe)
 		if err := convert_api_Probe_To_v1beta3_Probe(in.ReadinessProbe, out.ReadinessProbe, s); err != nil {
 			return err
 		}
@@ -5910,7 +6948,7 @@ func autoconvert_api_Container_To_v1beta3_Container(in *pkgapi.Container, out *p
 		out.ReadinessProbe = nil
 	}
 	if in.Lifecycle != nil {
-		out.Lifecycle = new(pkgapiv1beta3.Lifecycle)
+		out.Lifecycle = new(v1beta3.Lifecycle)
 		if err := convert_api_Lifecycle_To_v1beta3_Lifecycle(in.Lifecycle, out.Lifecycle, s); err != nil {
 			return err
 		}
@@ -5918,9 +6956,9 @@ func autoconvert_api_Container_To_v1beta3_Container(in *pkgapi.Container, out *p
 		out.Lifecycle = nil
 	}
 	out.TerminationMessagePath = in.TerminationMessagePath
-	out.ImagePullPolicy = pkgapiv1beta3.PullPolicy(in.ImagePullPolicy)
+	out.ImagePullPolicy = v1beta3.PullPolicy(in.ImagePullPolicy)
 	if in.SecurityContext != nil {
-		out.SecurityContext = new(pkgapiv1beta3.SecurityContext)
+		out.SecurityContext = new(v1beta3.SecurityContext)
 		if err := convert_api_SecurityContext_To_v1beta3_SecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
 			return err
 		}
@@ -5933,23 +6971,23 @@ func autoconvert_api_Container_To_v1beta3_Container(in *pkgapi.Container, out *p
 	return nil
 }
 
-func autoconvert_api_ContainerPort_To_v1beta3_ContainerPort(in *pkgapi.ContainerPort, out *pkgapiv1beta3.ContainerPort, s conversion.Scope) error {
+func autoconvert_api_ContainerPort_To_v1beta3_ContainerPort(in *pkgapi.ContainerPort, out *v1beta3.ContainerPort, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.ContainerPort))(in)
 	}
 	out.Name = in.Name
 	out.HostPort = in.HostPort
 	out.ContainerPort = in.ContainerPort
-	out.Protocol = pkgapiv1beta3.Protocol(in.Protocol)
+	out.Protocol = v1beta3.Protocol(in.Protocol)
 	out.HostIP = in.HostIP
 	return nil
 }
 
-func convert_api_ContainerPort_To_v1beta3_ContainerPort(in *pkgapi.ContainerPort, out *pkgapiv1beta3.ContainerPort, s conversion.Scope) error {
+func convert_api_ContainerPort_To_v1beta3_ContainerPort(in *pkgapi.ContainerPort, out *v1beta3.ContainerPort, s conversion.Scope) error {
 	return autoconvert_api_ContainerPort_To_v1beta3_ContainerPort(in, out, s)
 }
 
-func autoconvert_api_DownwardAPIVolumeFile_To_v1beta3_DownwardAPIVolumeFile(in *pkgapi.DownwardAPIVolumeFile, out *pkgapiv1beta3.DownwardAPIVolumeFile, s conversion.Scope) error {
+func autoconvert_api_DownwardAPIVolumeFile_To_v1beta3_DownwardAPIVolumeFile(in *pkgapi.DownwardAPIVolumeFile, out *v1beta3.DownwardAPIVolumeFile, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.DownwardAPIVolumeFile))(in)
 	}
@@ -5960,16 +6998,16 @@ func autoconvert_api_DownwardAPIVolumeFile_To_v1beta3_DownwardAPIVolumeFile(in *
 	return nil
 }
 
-func convert_api_DownwardAPIVolumeFile_To_v1beta3_DownwardAPIVolumeFile(in *pkgapi.DownwardAPIVolumeFile, out *pkgapiv1beta3.DownwardAPIVolumeFile, s conversion.Scope) error {
+func convert_api_DownwardAPIVolumeFile_To_v1beta3_DownwardAPIVolumeFile(in *pkgapi.DownwardAPIVolumeFile, out *v1beta3.DownwardAPIVolumeFile, s conversion.Scope) error {
 	return autoconvert_api_DownwardAPIVolumeFile_To_v1beta3_DownwardAPIVolumeFile(in, out, s)
 }
 
-func autoconvert_api_DownwardAPIVolumeSource_To_v1beta3_DownwardAPIVolumeSource(in *pkgapi.DownwardAPIVolumeSource, out *pkgapiv1beta3.DownwardAPIVolumeSource, s conversion.Scope) error {
+func autoconvert_api_DownwardAPIVolumeSource_To_v1beta3_DownwardAPIVolumeSource(in *pkgapi.DownwardAPIVolumeSource, out *v1beta3.DownwardAPIVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.DownwardAPIVolumeSource))(in)
 	}
 	if in.Items != nil {
-		out.Items = make([]pkgapiv1beta3.DownwardAPIVolumeFile, len(in.Items))
+		out.Items = make([]v1beta3.DownwardAPIVolumeFile, len(in.Items))
 		for i := range in.Items {
 			if err := convert_api_DownwardAPIVolumeFile_To_v1beta3_DownwardAPIVolumeFile(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
@@ -5981,30 +7019,30 @@ func autoconvert_api_DownwardAPIVolumeSource_To_v1beta3_DownwardAPIVolumeSource(
 	return nil
 }
 
-func convert_api_DownwardAPIVolumeSource_To_v1beta3_DownwardAPIVolumeSource(in *pkgapi.DownwardAPIVolumeSource, out *pkgapiv1beta3.DownwardAPIVolumeSource, s conversion.Scope) error {
+func convert_api_DownwardAPIVolumeSource_To_v1beta3_DownwardAPIVolumeSource(in *pkgapi.DownwardAPIVolumeSource, out *v1beta3.DownwardAPIVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_DownwardAPIVolumeSource_To_v1beta3_DownwardAPIVolumeSource(in, out, s)
 }
 
-func autoconvert_api_EmptyDirVolumeSource_To_v1beta3_EmptyDirVolumeSource(in *pkgapi.EmptyDirVolumeSource, out *pkgapiv1beta3.EmptyDirVolumeSource, s conversion.Scope) error {
+func autoconvert_api_EmptyDirVolumeSource_To_v1beta3_EmptyDirVolumeSource(in *pkgapi.EmptyDirVolumeSource, out *v1beta3.EmptyDirVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.EmptyDirVolumeSource))(in)
 	}
-	out.Medium = pkgapiv1beta3.StorageMedium(in.Medium)
+	out.Medium = v1beta3.StorageMedium(in.Medium)
 	return nil
 }
 
-func convert_api_EmptyDirVolumeSource_To_v1beta3_EmptyDirVolumeSource(in *pkgapi.EmptyDirVolumeSource, out *pkgapiv1beta3.EmptyDirVolumeSource, s conversion.Scope) error {
+func convert_api_EmptyDirVolumeSource_To_v1beta3_EmptyDirVolumeSource(in *pkgapi.EmptyDirVolumeSource, out *v1beta3.EmptyDirVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_EmptyDirVolumeSource_To_v1beta3_EmptyDirVolumeSource(in, out, s)
 }
 
-func autoconvert_api_EnvVar_To_v1beta3_EnvVar(in *pkgapi.EnvVar, out *pkgapiv1beta3.EnvVar, s conversion.Scope) error {
+func autoconvert_api_EnvVar_To_v1beta3_EnvVar(in *pkgapi.EnvVar, out *v1beta3.EnvVar, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.EnvVar))(in)
 	}
 	out.Name = in.Name
 	out.Value = in.Value
 	if in.ValueFrom != nil {
-		out.ValueFrom = new(pkgapiv1beta3.EnvVarSource)
+		out.ValueFrom = new(v1beta3.EnvVarSource)
 		if err := convert_api_EnvVarSource_To_v1beta3_EnvVarSource(in.ValueFrom, out.ValueFrom, s); err != nil {
 			return err
 		}
@@ -6014,16 +7052,16 @@ func autoconvert_api_EnvVar_To_v1beta3_EnvVar(in *pkgapi.EnvVar, out *pkgapiv1be
 	return nil
 }
 
-func convert_api_EnvVar_To_v1beta3_EnvVar(in *pkgapi.EnvVar, out *pkgapiv1beta3.EnvVar, s conversion.Scope) error {
+func convert_api_EnvVar_To_v1beta3_EnvVar(in *pkgapi.EnvVar, out *v1beta3.EnvVar, s conversion.Scope) error {
 	return autoconvert_api_EnvVar_To_v1beta3_EnvVar(in, out, s)
 }
 
-func autoconvert_api_EnvVarSource_To_v1beta3_EnvVarSource(in *pkgapi.EnvVarSource, out *pkgapiv1beta3.EnvVarSource, s conversion.Scope) error {
+func autoconvert_api_EnvVarSource_To_v1beta3_EnvVarSource(in *pkgapi.EnvVarSource, out *v1beta3.EnvVarSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.EnvVarSource))(in)
 	}
 	if in.FieldRef != nil {
-		out.FieldRef = new(pkgapiv1beta3.ObjectFieldSelector)
+		out.FieldRef = new(v1beta3.ObjectFieldSelector)
 		if err := convert_api_ObjectFieldSelector_To_v1beta3_ObjectFieldSelector(in.FieldRef, out.FieldRef, s); err != nil {
 			return err
 		}
@@ -6033,11 +7071,11 @@ func autoconvert_api_EnvVarSource_To_v1beta3_EnvVarSource(in *pkgapi.EnvVarSourc
 	return nil
 }
 
-func convert_api_EnvVarSource_To_v1beta3_EnvVarSource(in *pkgapi.EnvVarSource, out *pkgapiv1beta3.EnvVarSource, s conversion.Scope) error {
+func convert_api_EnvVarSource_To_v1beta3_EnvVarSource(in *pkgapi.EnvVarSource, out *v1beta3.EnvVarSource, s conversion.Scope) error {
 	return autoconvert_api_EnvVarSource_To_v1beta3_EnvVarSource(in, out, s)
 }
 
-func autoconvert_api_ExecAction_To_v1beta3_ExecAction(in *pkgapi.ExecAction, out *pkgapiv1beta3.ExecAction, s conversion.Scope) error {
+func autoconvert_api_ExecAction_To_v1beta3_ExecAction(in *pkgapi.ExecAction, out *v1beta3.ExecAction, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.ExecAction))(in)
 	}
@@ -6052,11 +7090,11 @@ func autoconvert_api_ExecAction_To_v1beta3_ExecAction(in *pkgapi.ExecAction, out
 	return nil
 }
 
-func convert_api_ExecAction_To_v1beta3_ExecAction(in *pkgapi.ExecAction, out *pkgapiv1beta3.ExecAction, s conversion.Scope) error {
+func convert_api_ExecAction_To_v1beta3_ExecAction(in *pkgapi.ExecAction, out *v1beta3.ExecAction, s conversion.Scope) error {
 	return autoconvert_api_ExecAction_To_v1beta3_ExecAction(in, out, s)
 }
 
-func autoconvert_api_FCVolumeSource_To_v1beta3_FCVolumeSource(in *pkgapi.FCVolumeSource, out *pkgapiv1beta3.FCVolumeSource, s conversion.Scope) error {
+func autoconvert_api_FCVolumeSource_To_v1beta3_FCVolumeSource(in *pkgapi.FCVolumeSource, out *v1beta3.FCVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.FCVolumeSource))(in)
 	}
@@ -6079,11 +7117,11 @@ func autoconvert_api_FCVolumeSource_To_v1beta3_FCVolumeSource(in *pkgapi.FCVolum
 	return nil
 }
 
-func convert_api_FCVolumeSource_To_v1beta3_FCVolumeSource(in *pkgapi.FCVolumeSource, out *pkgapiv1beta3.FCVolumeSource, s conversion.Scope) error {
+func convert_api_FCVolumeSource_To_v1beta3_FCVolumeSource(in *pkgapi.FCVolumeSource, out *v1beta3.FCVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_FCVolumeSource_To_v1beta3_FCVolumeSource(in, out, s)
 }
 
-func autoconvert_api_FlockerVolumeSource_To_v1beta3_FlockerVolumeSource(in *pkgapi.FlockerVolumeSource, out *pkgapiv1beta3.FlockerVolumeSource, s conversion.Scope) error {
+func autoconvert_api_FlockerVolumeSource_To_v1beta3_FlockerVolumeSource(in *pkgapi.FlockerVolumeSource, out *v1beta3.FlockerVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.FlockerVolumeSource))(in)
 	}
@@ -6091,11 +7129,11 @@ func autoconvert_api_FlockerVolumeSource_To_v1beta3_FlockerVolumeSource(in *pkga
 	return nil
 }
 
-func convert_api_FlockerVolumeSource_To_v1beta3_FlockerVolumeSource(in *pkgapi.FlockerVolumeSource, out *pkgapiv1beta3.FlockerVolumeSource, s conversion.Scope) error {
+func convert_api_FlockerVolumeSource_To_v1beta3_FlockerVolumeSource(in *pkgapi.FlockerVolumeSource, out *v1beta3.FlockerVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_FlockerVolumeSource_To_v1beta3_FlockerVolumeSource(in, out, s)
 }
 
-func autoconvert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolumeSource(in *pkgapi.GCEPersistentDiskVolumeSource, out *pkgapiv1beta3.GCEPersistentDiskVolumeSource, s conversion.Scope) error {
+func autoconvert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolumeSource(in *pkgapi.GCEPersistentDiskVolumeSource, out *v1beta3.GCEPersistentDiskVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.GCEPersistentDiskVolumeSource))(in)
 	}
@@ -6106,11 +7144,11 @@ func autoconvert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskV
 	return nil
 }
 
-func convert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolumeSource(in *pkgapi.GCEPersistentDiskVolumeSource, out *pkgapiv1beta3.GCEPersistentDiskVolumeSource, s conversion.Scope) error {
+func convert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolumeSource(in *pkgapi.GCEPersistentDiskVolumeSource, out *v1beta3.GCEPersistentDiskVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolumeSource(in, out, s)
 }
 
-func autoconvert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource(in *pkgapi.GitRepoVolumeSource, out *pkgapiv1beta3.GitRepoVolumeSource, s conversion.Scope) error {
+func autoconvert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource(in *pkgapi.GitRepoVolumeSource, out *v1beta3.GitRepoVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.GitRepoVolumeSource))(in)
 	}
@@ -6119,11 +7157,11 @@ func autoconvert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource(in *pkga
 	return nil
 }
 
-func convert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource(in *pkgapi.GitRepoVolumeSource, out *pkgapiv1beta3.GitRepoVolumeSource, s conversion.Scope) error {
+func convert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource(in *pkgapi.GitRepoVolumeSource, out *v1beta3.GitRepoVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource(in, out, s)
 }
 
-func autoconvert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource(in *pkgapi.GlusterfsVolumeSource, out *pkgapiv1beta3.GlusterfsVolumeSource, s conversion.Scope) error {
+func autoconvert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource(in *pkgapi.GlusterfsVolumeSource, out *v1beta3.GlusterfsVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.GlusterfsVolumeSource))(in)
 	}
@@ -6133,11 +7171,11 @@ func autoconvert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource(in *
 	return nil
 }
 
-func convert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource(in *pkgapi.GlusterfsVolumeSource, out *pkgapiv1beta3.GlusterfsVolumeSource, s conversion.Scope) error {
+func convert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource(in *pkgapi.GlusterfsVolumeSource, out *v1beta3.GlusterfsVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource(in, out, s)
 }
 
-func autoconvert_api_HTTPGetAction_To_v1beta3_HTTPGetAction(in *pkgapi.HTTPGetAction, out *pkgapiv1beta3.HTTPGetAction, s conversion.Scope) error {
+func autoconvert_api_HTTPGetAction_To_v1beta3_HTTPGetAction(in *pkgapi.HTTPGetAction, out *v1beta3.HTTPGetAction, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.HTTPGetAction))(in)
 	}
@@ -6146,20 +7184,20 @@ func autoconvert_api_HTTPGetAction_To_v1beta3_HTTPGetAction(in *pkgapi.HTTPGetAc
 		return err
 	}
 	out.Host = in.Host
-	out.Scheme = pkgapiv1beta3.URIScheme(in.Scheme)
+	out.Scheme = v1beta3.URIScheme(in.Scheme)
 	return nil
 }
 
-func convert_api_HTTPGetAction_To_v1beta3_HTTPGetAction(in *pkgapi.HTTPGetAction, out *pkgapiv1beta3.HTTPGetAction, s conversion.Scope) error {
+func convert_api_HTTPGetAction_To_v1beta3_HTTPGetAction(in *pkgapi.HTTPGetAction, out *v1beta3.HTTPGetAction, s conversion.Scope) error {
 	return autoconvert_api_HTTPGetAction_To_v1beta3_HTTPGetAction(in, out, s)
 }
 
-func autoconvert_api_Handler_To_v1beta3_Handler(in *pkgapi.Handler, out *pkgapiv1beta3.Handler, s conversion.Scope) error {
+func autoconvert_api_Handler_To_v1beta3_Handler(in *pkgapi.Handler, out *v1beta3.Handler, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.Handler))(in)
 	}
 	if in.Exec != nil {
-		out.Exec = new(pkgapiv1beta3.ExecAction)
+		out.Exec = new(v1beta3.ExecAction)
 		if err := convert_api_ExecAction_To_v1beta3_ExecAction(in.Exec, out.Exec, s); err != nil {
 			return err
 		}
@@ -6167,7 +7205,7 @@ func autoconvert_api_Handler_To_v1beta3_Handler(in *pkgapi.Handler, out *pkgapiv
 		out.Exec = nil
 	}
 	if in.HTTPGet != nil {
-		out.HTTPGet = new(pkgapiv1beta3.HTTPGetAction)
+		out.HTTPGet = new(v1beta3.HTTPGetAction)
 		if err := convert_api_HTTPGetAction_To_v1beta3_HTTPGetAction(in.HTTPGet, out.HTTPGet, s); err != nil {
 			return err
 		}
@@ -6175,7 +7213,7 @@ func autoconvert_api_Handler_To_v1beta3_Handler(in *pkgapi.Handler, out *pkgapiv
 		out.HTTPGet = nil
 	}
 	if in.TCPSocket != nil {
-		out.TCPSocket = new(pkgapiv1beta3.TCPSocketAction)
+		out.TCPSocket = new(v1beta3.TCPSocketAction)
 		if err := convert_api_TCPSocketAction_To_v1beta3_TCPSocketAction(in.TCPSocket, out.TCPSocket, s); err != nil {
 			return err
 		}
@@ -6185,11 +7223,11 @@ func autoconvert_api_Handler_To_v1beta3_Handler(in *pkgapi.Handler, out *pkgapiv
 	return nil
 }
 
-func convert_api_Handler_To_v1beta3_Handler(in *pkgapi.Handler, out *pkgapiv1beta3.Handler, s conversion.Scope) error {
+func convert_api_Handler_To_v1beta3_Handler(in *pkgapi.Handler, out *v1beta3.Handler, s conversion.Scope) error {
 	return autoconvert_api_Handler_To_v1beta3_Handler(in, out, s)
 }
 
-func autoconvert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in *pkgapi.HostPathVolumeSource, out *pkgapiv1beta3.HostPathVolumeSource, s conversion.Scope) error {
+func autoconvert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in *pkgapi.HostPathVolumeSource, out *v1beta3.HostPathVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.HostPathVolumeSource))(in)
 	}
@@ -6197,11 +7235,11 @@ func autoconvert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in *pk
 	return nil
 }
 
-func convert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in *pkgapi.HostPathVolumeSource, out *pkgapiv1beta3.HostPathVolumeSource, s conversion.Scope) error {
+func convert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in *pkgapi.HostPathVolumeSource, out *v1beta3.HostPathVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in, out, s)
 }
 
-func autoconvert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in *pkgapi.ISCSIVolumeSource, out *pkgapiv1beta3.ISCSIVolumeSource, s conversion.Scope) error {
+func autoconvert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in *pkgapi.ISCSIVolumeSource, out *v1beta3.ISCSIVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.ISCSIVolumeSource))(in)
 	}
@@ -6213,16 +7251,16 @@ func autoconvert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in *pkgapi.I
 	return nil
 }
 
-func convert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in *pkgapi.ISCSIVolumeSource, out *pkgapiv1beta3.ISCSIVolumeSource, s conversion.Scope) error {
+func convert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in *pkgapi.ISCSIVolumeSource, out *v1beta3.ISCSIVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in, out, s)
 }
 
-func autoconvert_api_Lifecycle_To_v1beta3_Lifecycle(in *pkgapi.Lifecycle, out *pkgapiv1beta3.Lifecycle, s conversion.Scope) error {
+func autoconvert_api_Lifecycle_To_v1beta3_Lifecycle(in *pkgapi.Lifecycle, out *v1beta3.Lifecycle, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.Lifecycle))(in)
 	}
 	if in.PostStart != nil {
-		out.PostStart = new(pkgapiv1beta3.Handler)
+		out.PostStart = new(v1beta3.Handler)
 		if err := convert_api_Handler_To_v1beta3_Handler(in.PostStart, out.PostStart, s); err != nil {
 			return err
 		}
@@ -6230,7 +7268,7 @@ func autoconvert_api_Lifecycle_To_v1beta3_Lifecycle(in *pkgapi.Lifecycle, out *p
 		out.PostStart = nil
 	}
 	if in.PreStop != nil {
-		out.PreStop = new(pkgapiv1beta3.Handler)
+		out.PreStop = new(v1beta3.Handler)
 		if err := convert_api_Handler_To_v1beta3_Handler(in.PreStop, out.PreStop, s); err != nil {
 			return err
 		}
@@ -6240,11 +7278,11 @@ func autoconvert_api_Lifecycle_To_v1beta3_Lifecycle(in *pkgapi.Lifecycle, out *p
 	return nil
 }
 
-func convert_api_Lifecycle_To_v1beta3_Lifecycle(in *pkgapi.Lifecycle, out *pkgapiv1beta3.Lifecycle, s conversion.Scope) error {
+func convert_api_Lifecycle_To_v1beta3_Lifecycle(in *pkgapi.Lifecycle, out *v1beta3.Lifecycle, s conversion.Scope) error {
 	return autoconvert_api_Lifecycle_To_v1beta3_Lifecycle(in, out, s)
 }
 
-func autoconvert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in *pkgapi.LocalObjectReference, out *pkgapiv1beta3.LocalObjectReference, s conversion.Scope) error {
+func autoconvert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in *pkgapi.LocalObjectReference, out *v1beta3.LocalObjectReference, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.LocalObjectReference))(in)
 	}
@@ -6252,11 +7290,11 @@ func autoconvert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in *pk
 	return nil
 }
 
-func convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in *pkgapi.LocalObjectReference, out *pkgapiv1beta3.LocalObjectReference, s conversion.Scope) error {
+func convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in *pkgapi.LocalObjectReference, out *v1beta3.LocalObjectReference, s conversion.Scope) error {
 	return autoconvert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in, out, s)
 }
 
-func autoconvert_api_NFSVolumeSource_To_v1beta3_NFSVolumeSource(in *pkgapi.NFSVolumeSource, out *pkgapiv1beta3.NFSVolumeSource, s conversion.Scope) error {
+func autoconvert_api_NFSVolumeSource_To_v1beta3_NFSVolumeSource(in *pkgapi.NFSVolumeSource, out *v1beta3.NFSVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.NFSVolumeSource))(in)
 	}
@@ -6266,11 +7304,11 @@ func autoconvert_api_NFSVolumeSource_To_v1beta3_NFSVolumeSource(in *pkgapi.NFSVo
 	return nil
 }
 
-func convert_api_NFSVolumeSource_To_v1beta3_NFSVolumeSource(in *pkgapi.NFSVolumeSource, out *pkgapiv1beta3.NFSVolumeSource, s conversion.Scope) error {
+func convert_api_NFSVolumeSource_To_v1beta3_NFSVolumeSource(in *pkgapi.NFSVolumeSource, out *v1beta3.NFSVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_NFSVolumeSource_To_v1beta3_NFSVolumeSource(in, out, s)
 }
 
-func autoconvert_api_ObjectFieldSelector_To_v1beta3_ObjectFieldSelector(in *pkgapi.ObjectFieldSelector, out *pkgapiv1beta3.ObjectFieldSelector, s conversion.Scope) error {
+func autoconvert_api_ObjectFieldSelector_To_v1beta3_ObjectFieldSelector(in *pkgapi.ObjectFieldSelector, out *v1beta3.ObjectFieldSelector, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.ObjectFieldSelector))(in)
 	}
@@ -6279,11 +7317,11 @@ func autoconvert_api_ObjectFieldSelector_To_v1beta3_ObjectFieldSelector(in *pkga
 	return nil
 }
 
-func convert_api_ObjectFieldSelector_To_v1beta3_ObjectFieldSelector(in *pkgapi.ObjectFieldSelector, out *pkgapiv1beta3.ObjectFieldSelector, s conversion.Scope) error {
+func convert_api_ObjectFieldSelector_To_v1beta3_ObjectFieldSelector(in *pkgapi.ObjectFieldSelector, out *v1beta3.ObjectFieldSelector, s conversion.Scope) error {
 	return autoconvert_api_ObjectFieldSelector_To_v1beta3_ObjectFieldSelector(in, out, s)
 }
 
-func autoconvert_api_ObjectMeta_To_v1beta3_ObjectMeta(in *pkgapi.ObjectMeta, out *pkgapiv1beta3.ObjectMeta, s conversion.Scope) error {
+func autoconvert_api_ObjectMeta_To_v1beta3_ObjectMeta(in *pkgapi.ObjectMeta, out *v1beta3.ObjectMeta, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.ObjectMeta))(in)
 	}
@@ -6329,11 +7367,11 @@ func autoconvert_api_ObjectMeta_To_v1beta3_ObjectMeta(in *pkgapi.ObjectMeta, out
 	return nil
 }
 
-func convert_api_ObjectMeta_To_v1beta3_ObjectMeta(in *pkgapi.ObjectMeta, out *pkgapiv1beta3.ObjectMeta, s conversion.Scope) error {
+func convert_api_ObjectMeta_To_v1beta3_ObjectMeta(in *pkgapi.ObjectMeta, out *v1beta3.ObjectMeta, s conversion.Scope) error {
 	return autoconvert_api_ObjectMeta_To_v1beta3_ObjectMeta(in, out, s)
 }
 
-func autoconvert_api_ObjectReference_To_v1beta3_ObjectReference(in *pkgapi.ObjectReference, out *pkgapiv1beta3.ObjectReference, s conversion.Scope) error {
+func autoconvert_api_ObjectReference_To_v1beta3_ObjectReference(in *pkgapi.ObjectReference, out *v1beta3.ObjectReference, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.ObjectReference))(in)
 	}
@@ -6347,11 +7385,11 @@ func autoconvert_api_ObjectReference_To_v1beta3_ObjectReference(in *pkgapi.Objec
 	return nil
 }
 
-func convert_api_ObjectReference_To_v1beta3_ObjectReference(in *pkgapi.ObjectReference, out *pkgapiv1beta3.ObjectReference, s conversion.Scope) error {
+func convert_api_ObjectReference_To_v1beta3_ObjectReference(in *pkgapi.ObjectReference, out *v1beta3.ObjectReference, s conversion.Scope) error {
 	return autoconvert_api_ObjectReference_To_v1beta3_ObjectReference(in, out, s)
 }
 
-func autoconvert_api_PersistentVolumeClaimVolumeSource_To_v1beta3_PersistentVolumeClaimVolumeSource(in *pkgapi.PersistentVolumeClaimVolumeSource, out *pkgapiv1beta3.PersistentVolumeClaimVolumeSource, s conversion.Scope) error {
+func autoconvert_api_PersistentVolumeClaimVolumeSource_To_v1beta3_PersistentVolumeClaimVolumeSource(in *pkgapi.PersistentVolumeClaimVolumeSource, out *v1beta3.PersistentVolumeClaimVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.PersistentVolumeClaimVolumeSource))(in)
 	}
@@ -6360,16 +7398,16 @@ func autoconvert_api_PersistentVolumeClaimVolumeSource_To_v1beta3_PersistentVolu
 	return nil
 }
 
-func convert_api_PersistentVolumeClaimVolumeSource_To_v1beta3_PersistentVolumeClaimVolumeSource(in *pkgapi.PersistentVolumeClaimVolumeSource, out *pkgapiv1beta3.PersistentVolumeClaimVolumeSource, s conversion.Scope) error {
+func convert_api_PersistentVolumeClaimVolumeSource_To_v1beta3_PersistentVolumeClaimVolumeSource(in *pkgapi.PersistentVolumeClaimVolumeSource, out *v1beta3.PersistentVolumeClaimVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_PersistentVolumeClaimVolumeSource_To_v1beta3_PersistentVolumeClaimVolumeSource(in, out, s)
 }
 
-func autoconvert_api_PodSpec_To_v1beta3_PodSpec(in *pkgapi.PodSpec, out *pkgapiv1beta3.PodSpec, s conversion.Scope) error {
+func autoconvert_api_PodSpec_To_v1beta3_PodSpec(in *pkgapi.PodSpec, out *v1beta3.PodSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.PodSpec))(in)
 	}
 	if in.Volumes != nil {
-		out.Volumes = make([]pkgapiv1beta3.Volume, len(in.Volumes))
+		out.Volumes = make([]v1beta3.Volume, len(in.Volumes))
 		for i := range in.Volumes {
 			if err := convert_api_Volume_To_v1beta3_Volume(&in.Volumes[i], &out.Volumes[i], s); err != nil {
 				return err
@@ -6379,7 +7417,7 @@ func autoconvert_api_PodSpec_To_v1beta3_PodSpec(in *pkgapi.PodSpec, out *pkgapiv
 		out.Volumes = nil
 	}
 	if in.Containers != nil {
-		out.Containers = make([]pkgapiv1beta3.Container, len(in.Containers))
+		out.Containers = make([]v1beta3.Container, len(in.Containers))
 		for i := range in.Containers {
 			if err := s.Convert(&in.Containers[i], &out.Containers[i], 0); err != nil {
 				return err
@@ -6388,7 +7426,7 @@ func autoconvert_api_PodSpec_To_v1beta3_PodSpec(in *pkgapi.PodSpec, out *pkgapiv
 	} else {
 		out.Containers = nil
 	}
-	out.RestartPolicy = pkgapiv1beta3.RestartPolicy(in.RestartPolicy)
+	out.RestartPolicy = v1beta3.RestartPolicy(in.RestartPolicy)
 	if in.TerminationGracePeriodSeconds != nil {
 		out.TerminationGracePeriodSeconds = new(int64)
 		*out.TerminationGracePeriodSeconds = *in.TerminationGracePeriodSeconds
@@ -6401,7 +7439,7 @@ func autoconvert_api_PodSpec_To_v1beta3_PodSpec(in *pkgapi.PodSpec, out *pkgapiv
 	} else {
 		out.ActiveDeadlineSeconds = nil
 	}
-	out.DNSPolicy = pkgapiv1beta3.DNSPolicy(in.DNSPolicy)
+	out.DNSPolicy = v1beta3.DNSPolicy(in.DNSPolicy)
 	if in.NodeSelector != nil {
 		out.NodeSelector = make(map[string]string)
 		for key, val := range in.NodeSelector {
@@ -6420,7 +7458,7 @@ func autoconvert_api_PodSpec_To_v1beta3_PodSpec(in *pkgapi.PodSpec, out *pkgapiv
 		out.SecurityContext = nil
 	}
 	if in.ImagePullSecrets != nil {
-		out.ImagePullSecrets = make([]pkgapiv1beta3.LocalObjectReference, len(in.ImagePullSecrets))
+		out.ImagePullSecrets = make([]v1beta3.LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
 			if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(&in.ImagePullSecrets[i], &out.ImagePullSecrets[i], s); err != nil {
 				return err
@@ -6432,7 +7470,7 @@ func autoconvert_api_PodSpec_To_v1beta3_PodSpec(in *pkgapi.PodSpec, out *pkgapiv
 	return nil
 }
 
-func autoconvert_api_PodTemplateSpec_To_v1beta3_PodTemplateSpec(in *pkgapi.PodTemplateSpec, out *pkgapiv1beta3.PodTemplateSpec, s conversion.Scope) error {
+func autoconvert_api_PodTemplateSpec_To_v1beta3_PodTemplateSpec(in *pkgapi.PodTemplateSpec, out *v1beta3.PodTemplateSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.PodTemplateSpec))(in)
 	}
@@ -6445,11 +7483,11 @@ func autoconvert_api_PodTemplateSpec_To_v1beta3_PodTemplateSpec(in *pkgapi.PodTe
 	return nil
 }
 
-func convert_api_PodTemplateSpec_To_v1beta3_PodTemplateSpec(in *pkgapi.PodTemplateSpec, out *pkgapiv1beta3.PodTemplateSpec, s conversion.Scope) error {
+func convert_api_PodTemplateSpec_To_v1beta3_PodTemplateSpec(in *pkgapi.PodTemplateSpec, out *v1beta3.PodTemplateSpec, s conversion.Scope) error {
 	return autoconvert_api_PodTemplateSpec_To_v1beta3_PodTemplateSpec(in, out, s)
 }
 
-func autoconvert_api_Probe_To_v1beta3_Probe(in *pkgapi.Probe, out *pkgapiv1beta3.Probe, s conversion.Scope) error {
+func autoconvert_api_Probe_To_v1beta3_Probe(in *pkgapi.Probe, out *v1beta3.Probe, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.Probe))(in)
 	}
@@ -6461,11 +7499,11 @@ func autoconvert_api_Probe_To_v1beta3_Probe(in *pkgapi.Probe, out *pkgapiv1beta3
 	return nil
 }
 
-func convert_api_Probe_To_v1beta3_Probe(in *pkgapi.Probe, out *pkgapiv1beta3.Probe, s conversion.Scope) error {
+func convert_api_Probe_To_v1beta3_Probe(in *pkgapi.Probe, out *v1beta3.Probe, s conversion.Scope) error {
 	return autoconvert_api_Probe_To_v1beta3_Probe(in, out, s)
 }
 
-func autoconvert_api_RBDVolumeSource_To_v1beta3_RBDVolumeSource(in *pkgapi.RBDVolumeSource, out *pkgapiv1beta3.RBDVolumeSource, s conversion.Scope) error {
+func autoconvert_api_RBDVolumeSource_To_v1beta3_RBDVolumeSource(in *pkgapi.RBDVolumeSource, out *v1beta3.RBDVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.RBDVolumeSource))(in)
 	}
@@ -6483,7 +7521,7 @@ func autoconvert_api_RBDVolumeSource_To_v1beta3_RBDVolumeSource(in *pkgapi.RBDVo
 	out.RadosUser = in.RadosUser
 	out.Keyring = in.Keyring
 	if in.SecretRef != nil {
-		out.SecretRef = new(pkgapiv1beta3.LocalObjectReference)
+		out.SecretRef = new(v1beta3.LocalObjectReference)
 		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.SecretRef, out.SecretRef, s); err != nil {
 			return err
 		}
@@ -6494,34 +7532,34 @@ func autoconvert_api_RBDVolumeSource_To_v1beta3_RBDVolumeSource(in *pkgapi.RBDVo
 	return nil
 }
 
-func convert_api_RBDVolumeSource_To_v1beta3_RBDVolumeSource(in *pkgapi.RBDVolumeSource, out *pkgapiv1beta3.RBDVolumeSource, s conversion.Scope) error {
+func convert_api_RBDVolumeSource_To_v1beta3_RBDVolumeSource(in *pkgapi.RBDVolumeSource, out *v1beta3.RBDVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_RBDVolumeSource_To_v1beta3_RBDVolumeSource(in, out, s)
 }
 
-func autoconvert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(in *pkgapi.ResourceRequirements, out *pkgapiv1beta3.ResourceRequirements, s conversion.Scope) error {
+func autoconvert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(in *pkgapi.ResourceRequirements, out *v1beta3.ResourceRequirements, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.ResourceRequirements))(in)
 	}
 	if in.Limits != nil {
-		out.Limits = make(pkgapiv1beta3.ResourceList)
+		out.Limits = make(v1beta3.ResourceList)
 		for key, val := range in.Limits {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
 				return err
 			}
-			out.Limits[pkgapiv1beta3.ResourceName(key)] = newVal
+			out.Limits[v1beta3.ResourceName(key)] = newVal
 		}
 	} else {
 		out.Limits = nil
 	}
 	if in.Requests != nil {
-		out.Requests = make(pkgapiv1beta3.ResourceList)
+		out.Requests = make(v1beta3.ResourceList)
 		for key, val := range in.Requests {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
 				return err
 			}
-			out.Requests[pkgapiv1beta3.ResourceName(key)] = newVal
+			out.Requests[v1beta3.ResourceName(key)] = newVal
 		}
 	} else {
 		out.Requests = nil
@@ -6529,11 +7567,11 @@ func autoconvert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(in *pk
 	return nil
 }
 
-func convert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(in *pkgapi.ResourceRequirements, out *pkgapiv1beta3.ResourceRequirements, s conversion.Scope) error {
+func convert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(in *pkgapi.ResourceRequirements, out *v1beta3.ResourceRequirements, s conversion.Scope) error {
 	return autoconvert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(in, out, s)
 }
 
-func autoconvert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in *pkgapi.SELinuxOptions, out *pkgapiv1beta3.SELinuxOptions, s conversion.Scope) error {
+func autoconvert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in *pkgapi.SELinuxOptions, out *v1beta3.SELinuxOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.SELinuxOptions))(in)
 	}
@@ -6544,11 +7582,11 @@ func autoconvert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in *pkgapi.SELinux
 	return nil
 }
 
-func convert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in *pkgapi.SELinuxOptions, out *pkgapiv1beta3.SELinuxOptions, s conversion.Scope) error {
+func convert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in *pkgapi.SELinuxOptions, out *v1beta3.SELinuxOptions, s conversion.Scope) error {
 	return autoconvert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in, out, s)
 }
 
-func autoconvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in *pkgapi.SecretVolumeSource, out *pkgapiv1beta3.SecretVolumeSource, s conversion.Scope) error {
+func autoconvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in *pkgapi.SecretVolumeSource, out *v1beta3.SecretVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.SecretVolumeSource))(in)
 	}
@@ -6556,16 +7594,16 @@ func autoconvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in *pkgapi
 	return nil
 }
 
-func convert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in *pkgapi.SecretVolumeSource, out *pkgapiv1beta3.SecretVolumeSource, s conversion.Scope) error {
+func convert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in *pkgapi.SecretVolumeSource, out *v1beta3.SecretVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in, out, s)
 }
 
-func autoconvert_api_SecurityContext_To_v1beta3_SecurityContext(in *pkgapi.SecurityContext, out *pkgapiv1beta3.SecurityContext, s conversion.Scope) error {
+func autoconvert_api_SecurityContext_To_v1beta3_SecurityContext(in *pkgapi.SecurityContext, out *v1beta3.SecurityContext, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.SecurityContext))(in)
 	}
 	if in.Capabilities != nil {
-		out.Capabilities = new(pkgapiv1beta3.Capabilities)
+		out.Capabilities = new(v1beta3.Capabilities)
 		if err := convert_api_Capabilities_To_v1beta3_Capabilities(in.Capabilities, out.Capabilities, s); err != nil {
 			return err
 		}
@@ -6579,7 +7617,7 @@ func autoconvert_api_SecurityContext_To_v1beta3_SecurityContext(in *pkgapi.Secur
 		out.Privileged = nil
 	}
 	if in.SELinuxOptions != nil {
-		out.SELinuxOptions = new(pkgapiv1beta3.SELinuxOptions)
+		out.SELinuxOptions = new(v1beta3.SELinuxOptions)
 		if err := convert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
 			return err
 		}
@@ -6601,11 +7639,11 @@ func autoconvert_api_SecurityContext_To_v1beta3_SecurityContext(in *pkgapi.Secur
 	return nil
 }
 
-func convert_api_SecurityContext_To_v1beta3_SecurityContext(in *pkgapi.SecurityContext, out *pkgapiv1beta3.SecurityContext, s conversion.Scope) error {
+func convert_api_SecurityContext_To_v1beta3_SecurityContext(in *pkgapi.SecurityContext, out *v1beta3.SecurityContext, s conversion.Scope) error {
 	return autoconvert_api_SecurityContext_To_v1beta3_SecurityContext(in, out, s)
 }
 
-func autoconvert_api_TCPSocketAction_To_v1beta3_TCPSocketAction(in *pkgapi.TCPSocketAction, out *pkgapiv1beta3.TCPSocketAction, s conversion.Scope) error {
+func autoconvert_api_TCPSocketAction_To_v1beta3_TCPSocketAction(in *pkgapi.TCPSocketAction, out *v1beta3.TCPSocketAction, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.TCPSocketAction))(in)
 	}
@@ -6615,11 +7653,11 @@ func autoconvert_api_TCPSocketAction_To_v1beta3_TCPSocketAction(in *pkgapi.TCPSo
 	return nil
 }
 
-func convert_api_TCPSocketAction_To_v1beta3_TCPSocketAction(in *pkgapi.TCPSocketAction, out *pkgapiv1beta3.TCPSocketAction, s conversion.Scope) error {
+func convert_api_TCPSocketAction_To_v1beta3_TCPSocketAction(in *pkgapi.TCPSocketAction, out *v1beta3.TCPSocketAction, s conversion.Scope) error {
 	return autoconvert_api_TCPSocketAction_To_v1beta3_TCPSocketAction(in, out, s)
 }
 
-func autoconvert_api_Volume_To_v1beta3_Volume(in *pkgapi.Volume, out *pkgapiv1beta3.Volume, s conversion.Scope) error {
+func autoconvert_api_Volume_To_v1beta3_Volume(in *pkgapi.Volume, out *v1beta3.Volume, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.Volume))(in)
 	}
@@ -6630,11 +7668,11 @@ func autoconvert_api_Volume_To_v1beta3_Volume(in *pkgapi.Volume, out *pkgapiv1be
 	return nil
 }
 
-func convert_api_Volume_To_v1beta3_Volume(in *pkgapi.Volume, out *pkgapiv1beta3.Volume, s conversion.Scope) error {
+func convert_api_Volume_To_v1beta3_Volume(in *pkgapi.Volume, out *v1beta3.Volume, s conversion.Scope) error {
 	return autoconvert_api_Volume_To_v1beta3_Volume(in, out, s)
 }
 
-func autoconvert_api_VolumeMount_To_v1beta3_VolumeMount(in *pkgapi.VolumeMount, out *pkgapiv1beta3.VolumeMount, s conversion.Scope) error {
+func autoconvert_api_VolumeMount_To_v1beta3_VolumeMount(in *pkgapi.VolumeMount, out *v1beta3.VolumeMount, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.VolumeMount))(in)
 	}
@@ -6644,16 +7682,16 @@ func autoconvert_api_VolumeMount_To_v1beta3_VolumeMount(in *pkgapi.VolumeMount, 
 	return nil
 }
 
-func convert_api_VolumeMount_To_v1beta3_VolumeMount(in *pkgapi.VolumeMount, out *pkgapiv1beta3.VolumeMount, s conversion.Scope) error {
+func convert_api_VolumeMount_To_v1beta3_VolumeMount(in *pkgapi.VolumeMount, out *v1beta3.VolumeMount, s conversion.Scope) error {
 	return autoconvert_api_VolumeMount_To_v1beta3_VolumeMount(in, out, s)
 }
 
-func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSource, out *pkgapiv1beta3.VolumeSource, s conversion.Scope) error {
+func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSource, out *v1beta3.VolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.VolumeSource))(in)
 	}
 	if in.HostPath != nil {
-		out.HostPath = new(pkgapiv1beta3.HostPathVolumeSource)
+		out.HostPath = new(v1beta3.HostPathVolumeSource)
 		if err := convert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in.HostPath, out.HostPath, s); err != nil {
 			return err
 		}
@@ -6661,7 +7699,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.HostPath = nil
 	}
 	if in.EmptyDir != nil {
-		out.EmptyDir = new(pkgapiv1beta3.EmptyDirVolumeSource)
+		out.EmptyDir = new(v1beta3.EmptyDirVolumeSource)
 		if err := convert_api_EmptyDirVolumeSource_To_v1beta3_EmptyDirVolumeSource(in.EmptyDir, out.EmptyDir, s); err != nil {
 			return err
 		}
@@ -6669,7 +7707,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.EmptyDir = nil
 	}
 	if in.GCEPersistentDisk != nil {
-		out.GCEPersistentDisk = new(pkgapiv1beta3.GCEPersistentDiskVolumeSource)
+		out.GCEPersistentDisk = new(v1beta3.GCEPersistentDiskVolumeSource)
 		if err := convert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolumeSource(in.GCEPersistentDisk, out.GCEPersistentDisk, s); err != nil {
 			return err
 		}
@@ -6677,7 +7715,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.GCEPersistentDisk = nil
 	}
 	if in.AWSElasticBlockStore != nil {
-		out.AWSElasticBlockStore = new(pkgapiv1beta3.AWSElasticBlockStoreVolumeSource)
+		out.AWSElasticBlockStore = new(v1beta3.AWSElasticBlockStoreVolumeSource)
 		if err := convert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStoreVolumeSource(in.AWSElasticBlockStore, out.AWSElasticBlockStore, s); err != nil {
 			return err
 		}
@@ -6685,7 +7723,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.AWSElasticBlockStore = nil
 	}
 	if in.GitRepo != nil {
-		out.GitRepo = new(pkgapiv1beta3.GitRepoVolumeSource)
+		out.GitRepo = new(v1beta3.GitRepoVolumeSource)
 		if err := convert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource(in.GitRepo, out.GitRepo, s); err != nil {
 			return err
 		}
@@ -6693,7 +7731,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.GitRepo = nil
 	}
 	if in.Secret != nil {
-		out.Secret = new(pkgapiv1beta3.SecretVolumeSource)
+		out.Secret = new(v1beta3.SecretVolumeSource)
 		if err := convert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in.Secret, out.Secret, s); err != nil {
 			return err
 		}
@@ -6701,7 +7739,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.Secret = nil
 	}
 	if in.NFS != nil {
-		out.NFS = new(pkgapiv1beta3.NFSVolumeSource)
+		out.NFS = new(v1beta3.NFSVolumeSource)
 		if err := convert_api_NFSVolumeSource_To_v1beta3_NFSVolumeSource(in.NFS, out.NFS, s); err != nil {
 			return err
 		}
@@ -6709,7 +7747,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.NFS = nil
 	}
 	if in.ISCSI != nil {
-		out.ISCSI = new(pkgapiv1beta3.ISCSIVolumeSource)
+		out.ISCSI = new(v1beta3.ISCSIVolumeSource)
 		if err := convert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in.ISCSI, out.ISCSI, s); err != nil {
 			return err
 		}
@@ -6717,7 +7755,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.ISCSI = nil
 	}
 	if in.Glusterfs != nil {
-		out.Glusterfs = new(pkgapiv1beta3.GlusterfsVolumeSource)
+		out.Glusterfs = new(v1beta3.GlusterfsVolumeSource)
 		if err := convert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource(in.Glusterfs, out.Glusterfs, s); err != nil {
 			return err
 		}
@@ -6725,7 +7763,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.Glusterfs = nil
 	}
 	if in.PersistentVolumeClaim != nil {
-		out.PersistentVolumeClaim = new(pkgapiv1beta3.PersistentVolumeClaimVolumeSource)
+		out.PersistentVolumeClaim = new(v1beta3.PersistentVolumeClaimVolumeSource)
 		if err := convert_api_PersistentVolumeClaimVolumeSource_To_v1beta3_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaim, out.PersistentVolumeClaim, s); err != nil {
 			return err
 		}
@@ -6733,7 +7771,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.PersistentVolumeClaim = nil
 	}
 	if in.RBD != nil {
-		out.RBD = new(pkgapiv1beta3.RBDVolumeSource)
+		out.RBD = new(v1beta3.RBDVolumeSource)
 		if err := convert_api_RBDVolumeSource_To_v1beta3_RBDVolumeSource(in.RBD, out.RBD, s); err != nil {
 			return err
 		}
@@ -6741,7 +7779,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.RBD = nil
 	}
 	if in.Cinder != nil {
-		out.Cinder = new(pkgapiv1beta3.CinderVolumeSource)
+		out.Cinder = new(v1beta3.CinderVolumeSource)
 		if err := convert_api_CinderVolumeSource_To_v1beta3_CinderVolumeSource(in.Cinder, out.Cinder, s); err != nil {
 			return err
 		}
@@ -6749,7 +7787,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.Cinder = nil
 	}
 	if in.CephFS != nil {
-		out.CephFS = new(pkgapiv1beta3.CephFSVolumeSource)
+		out.CephFS = new(v1beta3.CephFSVolumeSource)
 		if err := convert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
 			return err
 		}
@@ -6757,7 +7795,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.CephFS = nil
 	}
 	if in.Flocker != nil {
-		out.Flocker = new(pkgapiv1beta3.FlockerVolumeSource)
+		out.Flocker = new(v1beta3.FlockerVolumeSource)
 		if err := convert_api_FlockerVolumeSource_To_v1beta3_FlockerVolumeSource(in.Flocker, out.Flocker, s); err != nil {
 			return err
 		}
@@ -6765,7 +7803,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.Flocker = nil
 	}
 	if in.DownwardAPI != nil {
-		out.DownwardAPI = new(pkgapiv1beta3.DownwardAPIVolumeSource)
+		out.DownwardAPI = new(v1beta3.DownwardAPIVolumeSource)
 		if err := convert_api_DownwardAPIVolumeSource_To_v1beta3_DownwardAPIVolumeSource(in.DownwardAPI, out.DownwardAPI, s); err != nil {
 			return err
 		}
@@ -6773,1051 +7811,13 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.DownwardAPI = nil
 	}
 	if in.FC != nil {
-		out.FC = new(pkgapiv1beta3.FCVolumeSource)
+		out.FC = new(v1beta3.FCVolumeSource)
 		if err := convert_api_FCVolumeSource_To_v1beta3_FCVolumeSource(in.FC, out.FC, s); err != nil {
 			return err
 		}
 	} else {
 		out.FC = nil
 	}
-	return nil
-}
-
-func autoconvert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in *pkgapiv1beta3.AWSElasticBlockStoreVolumeSource, out *pkgapi.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.AWSElasticBlockStoreVolumeSource))(in)
-	}
-	out.VolumeID = in.VolumeID
-	out.FSType = in.FSType
-	out.Partition = in.Partition
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in *pkgapiv1beta3.AWSElasticBlockStoreVolumeSource, out *pkgapi.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_Capabilities_To_api_Capabilities(in *pkgapiv1beta3.Capabilities, out *pkgapi.Capabilities, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.Capabilities))(in)
-	}
-	if in.Add != nil {
-		out.Add = make([]pkgapi.Capability, len(in.Add))
-		for i := range in.Add {
-			out.Add[i] = pkgapi.Capability(in.Add[i])
-		}
-	} else {
-		out.Add = nil
-	}
-	if in.Drop != nil {
-		out.Drop = make([]pkgapi.Capability, len(in.Drop))
-		for i := range in.Drop {
-			out.Drop[i] = pkgapi.Capability(in.Drop[i])
-		}
-	} else {
-		out.Drop = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_Capabilities_To_api_Capabilities(in *pkgapiv1beta3.Capabilities, out *pkgapi.Capabilities, s conversion.Scope) error {
-	return autoconvert_v1beta3_Capabilities_To_api_Capabilities(in, out, s)
-}
-
-func autoconvert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in *pkgapiv1beta3.CephFSVolumeSource, out *pkgapi.CephFSVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.CephFSVolumeSource))(in)
-	}
-	if in.Monitors != nil {
-		out.Monitors = make([]string, len(in.Monitors))
-		for i := range in.Monitors {
-			out.Monitors[i] = in.Monitors[i]
-		}
-	} else {
-		out.Monitors = nil
-	}
-	out.User = in.User
-	out.SecretFile = in.SecretFile
-	if in.SecretRef != nil {
-		out.SecretRef = new(pkgapi.LocalObjectReference)
-		if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in.SecretRef, out.SecretRef, s); err != nil {
-			return err
-		}
-	} else {
-		out.SecretRef = nil
-	}
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func convert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in *pkgapiv1beta3.CephFSVolumeSource, out *pkgapi.CephFSVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource(in *pkgapiv1beta3.CinderVolumeSource, out *pkgapi.CinderVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.CinderVolumeSource))(in)
-	}
-	out.VolumeID = in.VolumeID
-	out.FSType = in.FSType
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func convert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource(in *pkgapiv1beta3.CinderVolumeSource, out *pkgapi.CinderVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_Container_To_api_Container(in *pkgapiv1beta3.Container, out *pkgapi.Container, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.Container))(in)
-	}
-	out.Name = in.Name
-	out.Image = in.Image
-	if in.Command != nil {
-		out.Command = make([]string, len(in.Command))
-		for i := range in.Command {
-			out.Command[i] = in.Command[i]
-		}
-	} else {
-		out.Command = nil
-	}
-	if in.Args != nil {
-		out.Args = make([]string, len(in.Args))
-		for i := range in.Args {
-			out.Args[i] = in.Args[i]
-		}
-	} else {
-		out.Args = nil
-	}
-	out.WorkingDir = in.WorkingDir
-	if in.Ports != nil {
-		out.Ports = make([]pkgapi.ContainerPort, len(in.Ports))
-		for i := range in.Ports {
-			if err := convert_v1beta3_ContainerPort_To_api_ContainerPort(&in.Ports[i], &out.Ports[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Ports = nil
-	}
-	if in.Env != nil {
-		out.Env = make([]pkgapi.EnvVar, len(in.Env))
-		for i := range in.Env {
-			if err := convert_v1beta3_EnvVar_To_api_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Env = nil
-	}
-	if err := convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
-		return err
-	}
-	if in.VolumeMounts != nil {
-		out.VolumeMounts = make([]pkgapi.VolumeMount, len(in.VolumeMounts))
-		for i := range in.VolumeMounts {
-			if err := convert_v1beta3_VolumeMount_To_api_VolumeMount(&in.VolumeMounts[i], &out.VolumeMounts[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.VolumeMounts = nil
-	}
-	if in.LivenessProbe != nil {
-		out.LivenessProbe = new(pkgapi.Probe)
-		if err := convert_v1beta3_Probe_To_api_Probe(in.LivenessProbe, out.LivenessProbe, s); err != nil {
-			return err
-		}
-	} else {
-		out.LivenessProbe = nil
-	}
-	if in.ReadinessProbe != nil {
-		out.ReadinessProbe = new(pkgapi.Probe)
-		if err := convert_v1beta3_Probe_To_api_Probe(in.ReadinessProbe, out.ReadinessProbe, s); err != nil {
-			return err
-		}
-	} else {
-		out.ReadinessProbe = nil
-	}
-	if in.Lifecycle != nil {
-		out.Lifecycle = new(pkgapi.Lifecycle)
-		if err := convert_v1beta3_Lifecycle_To_api_Lifecycle(in.Lifecycle, out.Lifecycle, s); err != nil {
-			return err
-		}
-	} else {
-		out.Lifecycle = nil
-	}
-	out.TerminationMessagePath = in.TerminationMessagePath
-	// in.Privileged has no peer in out
-	out.ImagePullPolicy = pkgapi.PullPolicy(in.ImagePullPolicy)
-	// in.Capabilities has no peer in out
-	if in.SecurityContext != nil {
-		out.SecurityContext = new(pkgapi.SecurityContext)
-		if err := convert_v1beta3_SecurityContext_To_api_SecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
-			return err
-		}
-	} else {
-		out.SecurityContext = nil
-	}
-	out.Stdin = in.Stdin
-	out.StdinOnce = in.StdinOnce
-	out.TTY = in.TTY
-	return nil
-}
-
-func autoconvert_v1beta3_ContainerPort_To_api_ContainerPort(in *pkgapiv1beta3.ContainerPort, out *pkgapi.ContainerPort, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.ContainerPort))(in)
-	}
-	out.Name = in.Name
-	out.HostPort = in.HostPort
-	out.ContainerPort = in.ContainerPort
-	out.Protocol = pkgapi.Protocol(in.Protocol)
-	out.HostIP = in.HostIP
-	return nil
-}
-
-func convert_v1beta3_ContainerPort_To_api_ContainerPort(in *pkgapiv1beta3.ContainerPort, out *pkgapi.ContainerPort, s conversion.Scope) error {
-	return autoconvert_v1beta3_ContainerPort_To_api_ContainerPort(in, out, s)
-}
-
-func autoconvert_v1beta3_DownwardAPIVolumeFile_To_api_DownwardAPIVolumeFile(in *pkgapiv1beta3.DownwardAPIVolumeFile, out *pkgapi.DownwardAPIVolumeFile, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.DownwardAPIVolumeFile))(in)
-	}
-	out.Path = in.Path
-	if err := convert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-func convert_v1beta3_DownwardAPIVolumeFile_To_api_DownwardAPIVolumeFile(in *pkgapiv1beta3.DownwardAPIVolumeFile, out *pkgapi.DownwardAPIVolumeFile, s conversion.Scope) error {
-	return autoconvert_v1beta3_DownwardAPIVolumeFile_To_api_DownwardAPIVolumeFile(in, out, s)
-}
-
-func autoconvert_v1beta3_DownwardAPIVolumeSource_To_api_DownwardAPIVolumeSource(in *pkgapiv1beta3.DownwardAPIVolumeSource, out *pkgapi.DownwardAPIVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.DownwardAPIVolumeSource))(in)
-	}
-	if in.Items != nil {
-		out.Items = make([]pkgapi.DownwardAPIVolumeFile, len(in.Items))
-		for i := range in.Items {
-			if err := convert_v1beta3_DownwardAPIVolumeFile_To_api_DownwardAPIVolumeFile(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_DownwardAPIVolumeSource_To_api_DownwardAPIVolumeSource(in *pkgapiv1beta3.DownwardAPIVolumeSource, out *pkgapi.DownwardAPIVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_DownwardAPIVolumeSource_To_api_DownwardAPIVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_EmptyDirVolumeSource_To_api_EmptyDirVolumeSource(in *pkgapiv1beta3.EmptyDirVolumeSource, out *pkgapi.EmptyDirVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.EmptyDirVolumeSource))(in)
-	}
-	out.Medium = pkgapi.StorageMedium(in.Medium)
-	return nil
-}
-
-func convert_v1beta3_EmptyDirVolumeSource_To_api_EmptyDirVolumeSource(in *pkgapiv1beta3.EmptyDirVolumeSource, out *pkgapi.EmptyDirVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_EmptyDirVolumeSource_To_api_EmptyDirVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_EnvVar_To_api_EnvVar(in *pkgapiv1beta3.EnvVar, out *pkgapi.EnvVar, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.EnvVar))(in)
-	}
-	out.Name = in.Name
-	out.Value = in.Value
-	if in.ValueFrom != nil {
-		out.ValueFrom = new(pkgapi.EnvVarSource)
-		if err := convert_v1beta3_EnvVarSource_To_api_EnvVarSource(in.ValueFrom, out.ValueFrom, s); err != nil {
-			return err
-		}
-	} else {
-		out.ValueFrom = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_EnvVar_To_api_EnvVar(in *pkgapiv1beta3.EnvVar, out *pkgapi.EnvVar, s conversion.Scope) error {
-	return autoconvert_v1beta3_EnvVar_To_api_EnvVar(in, out, s)
-}
-
-func autoconvert_v1beta3_EnvVarSource_To_api_EnvVarSource(in *pkgapiv1beta3.EnvVarSource, out *pkgapi.EnvVarSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.EnvVarSource))(in)
-	}
-	if in.FieldRef != nil {
-		out.FieldRef = new(pkgapi.ObjectFieldSelector)
-		if err := convert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector(in.FieldRef, out.FieldRef, s); err != nil {
-			return err
-		}
-	} else {
-		out.FieldRef = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_EnvVarSource_To_api_EnvVarSource(in *pkgapiv1beta3.EnvVarSource, out *pkgapi.EnvVarSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_EnvVarSource_To_api_EnvVarSource(in, out, s)
-}
-
-func autoconvert_v1beta3_ExecAction_To_api_ExecAction(in *pkgapiv1beta3.ExecAction, out *pkgapi.ExecAction, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.ExecAction))(in)
-	}
-	if in.Command != nil {
-		out.Command = make([]string, len(in.Command))
-		for i := range in.Command {
-			out.Command[i] = in.Command[i]
-		}
-	} else {
-		out.Command = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_ExecAction_To_api_ExecAction(in *pkgapiv1beta3.ExecAction, out *pkgapi.ExecAction, s conversion.Scope) error {
-	return autoconvert_v1beta3_ExecAction_To_api_ExecAction(in, out, s)
-}
-
-func autoconvert_v1beta3_FCVolumeSource_To_api_FCVolumeSource(in *pkgapiv1beta3.FCVolumeSource, out *pkgapi.FCVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.FCVolumeSource))(in)
-	}
-	if in.TargetWWNs != nil {
-		out.TargetWWNs = make([]string, len(in.TargetWWNs))
-		for i := range in.TargetWWNs {
-			out.TargetWWNs[i] = in.TargetWWNs[i]
-		}
-	} else {
-		out.TargetWWNs = nil
-	}
-	if in.Lun != nil {
-		out.Lun = new(int)
-		*out.Lun = *in.Lun
-	} else {
-		out.Lun = nil
-	}
-	out.FSType = in.FSType
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func convert_v1beta3_FCVolumeSource_To_api_FCVolumeSource(in *pkgapiv1beta3.FCVolumeSource, out *pkgapi.FCVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_FCVolumeSource_To_api_FCVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_FlockerVolumeSource_To_api_FlockerVolumeSource(in *pkgapiv1beta3.FlockerVolumeSource, out *pkgapi.FlockerVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.FlockerVolumeSource))(in)
-	}
-	out.DatasetName = in.DatasetName
-	return nil
-}
-
-func convert_v1beta3_FlockerVolumeSource_To_api_FlockerVolumeSource(in *pkgapiv1beta3.FlockerVolumeSource, out *pkgapi.FlockerVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_FlockerVolumeSource_To_api_FlockerVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource(in *pkgapiv1beta3.GCEPersistentDiskVolumeSource, out *pkgapi.GCEPersistentDiskVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.GCEPersistentDiskVolumeSource))(in)
-	}
-	out.PDName = in.PDName
-	out.FSType = in.FSType
-	out.Partition = in.Partition
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func convert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource(in *pkgapiv1beta3.GCEPersistentDiskVolumeSource, out *pkgapi.GCEPersistentDiskVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in *pkgapiv1beta3.GitRepoVolumeSource, out *pkgapi.GitRepoVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.GitRepoVolumeSource))(in)
-	}
-	out.Repository = in.Repository
-	out.Revision = in.Revision
-	return nil
-}
-
-func convert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in *pkgapiv1beta3.GitRepoVolumeSource, out *pkgapi.GitRepoVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in *pkgapiv1beta3.GlusterfsVolumeSource, out *pkgapi.GlusterfsVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.GlusterfsVolumeSource))(in)
-	}
-	out.EndpointsName = in.EndpointsName
-	out.Path = in.Path
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func convert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in *pkgapiv1beta3.GlusterfsVolumeSource, out *pkgapi.GlusterfsVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_HTTPGetAction_To_api_HTTPGetAction(in *pkgapiv1beta3.HTTPGetAction, out *pkgapi.HTTPGetAction, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.HTTPGetAction))(in)
-	}
-	out.Path = in.Path
-	if err := s.Convert(&in.Port, &out.Port, 0); err != nil {
-		return err
-	}
-	out.Host = in.Host
-	out.Scheme = pkgapi.URIScheme(in.Scheme)
-	return nil
-}
-
-func convert_v1beta3_HTTPGetAction_To_api_HTTPGetAction(in *pkgapiv1beta3.HTTPGetAction, out *pkgapi.HTTPGetAction, s conversion.Scope) error {
-	return autoconvert_v1beta3_HTTPGetAction_To_api_HTTPGetAction(in, out, s)
-}
-
-func autoconvert_v1beta3_Handler_To_api_Handler(in *pkgapiv1beta3.Handler, out *pkgapi.Handler, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.Handler))(in)
-	}
-	if in.Exec != nil {
-		out.Exec = new(pkgapi.ExecAction)
-		if err := convert_v1beta3_ExecAction_To_api_ExecAction(in.Exec, out.Exec, s); err != nil {
-			return err
-		}
-	} else {
-		out.Exec = nil
-	}
-	if in.HTTPGet != nil {
-		out.HTTPGet = new(pkgapi.HTTPGetAction)
-		if err := convert_v1beta3_HTTPGetAction_To_api_HTTPGetAction(in.HTTPGet, out.HTTPGet, s); err != nil {
-			return err
-		}
-	} else {
-		out.HTTPGet = nil
-	}
-	if in.TCPSocket != nil {
-		out.TCPSocket = new(pkgapi.TCPSocketAction)
-		if err := convert_v1beta3_TCPSocketAction_To_api_TCPSocketAction(in.TCPSocket, out.TCPSocket, s); err != nil {
-			return err
-		}
-	} else {
-		out.TCPSocket = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_Handler_To_api_Handler(in *pkgapiv1beta3.Handler, out *pkgapi.Handler, s conversion.Scope) error {
-	return autoconvert_v1beta3_Handler_To_api_Handler(in, out, s)
-}
-
-func autoconvert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in *pkgapiv1beta3.HostPathVolumeSource, out *pkgapi.HostPathVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.HostPathVolumeSource))(in)
-	}
-	out.Path = in.Path
-	return nil
-}
-
-func convert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in *pkgapiv1beta3.HostPathVolumeSource, out *pkgapi.HostPathVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in *pkgapiv1beta3.ISCSIVolumeSource, out *pkgapi.ISCSIVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.ISCSIVolumeSource))(in)
-	}
-	out.TargetPortal = in.TargetPortal
-	out.IQN = in.IQN
-	out.Lun = in.Lun
-	out.FSType = in.FSType
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func convert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in *pkgapiv1beta3.ISCSIVolumeSource, out *pkgapi.ISCSIVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_Lifecycle_To_api_Lifecycle(in *pkgapiv1beta3.Lifecycle, out *pkgapi.Lifecycle, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.Lifecycle))(in)
-	}
-	if in.PostStart != nil {
-		out.PostStart = new(pkgapi.Handler)
-		if err := convert_v1beta3_Handler_To_api_Handler(in.PostStart, out.PostStart, s); err != nil {
-			return err
-		}
-	} else {
-		out.PostStart = nil
-	}
-	if in.PreStop != nil {
-		out.PreStop = new(pkgapi.Handler)
-		if err := convert_v1beta3_Handler_To_api_Handler(in.PreStop, out.PreStop, s); err != nil {
-			return err
-		}
-	} else {
-		out.PreStop = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_Lifecycle_To_api_Lifecycle(in *pkgapiv1beta3.Lifecycle, out *pkgapi.Lifecycle, s conversion.Scope) error {
-	return autoconvert_v1beta3_Lifecycle_To_api_Lifecycle(in, out, s)
-}
-
-func autoconvert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in *pkgapiv1beta3.LocalObjectReference, out *pkgapi.LocalObjectReference, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.LocalObjectReference))(in)
-	}
-	out.Name = in.Name
-	return nil
-}
-
-func convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in *pkgapiv1beta3.LocalObjectReference, out *pkgapi.LocalObjectReference, s conversion.Scope) error {
-	return autoconvert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in, out, s)
-}
-
-func autoconvert_v1beta3_NFSVolumeSource_To_api_NFSVolumeSource(in *pkgapiv1beta3.NFSVolumeSource, out *pkgapi.NFSVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.NFSVolumeSource))(in)
-	}
-	out.Server = in.Server
-	out.Path = in.Path
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func convert_v1beta3_NFSVolumeSource_To_api_NFSVolumeSource(in *pkgapiv1beta3.NFSVolumeSource, out *pkgapi.NFSVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_NFSVolumeSource_To_api_NFSVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector(in *pkgapiv1beta3.ObjectFieldSelector, out *pkgapi.ObjectFieldSelector, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.ObjectFieldSelector))(in)
-	}
-	out.APIVersion = in.APIVersion
-	out.FieldPath = in.FieldPath
-	return nil
-}
-
-func convert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector(in *pkgapiv1beta3.ObjectFieldSelector, out *pkgapi.ObjectFieldSelector, s conversion.Scope) error {
-	return autoconvert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector(in, out, s)
-}
-
-func autoconvert_v1beta3_ObjectMeta_To_api_ObjectMeta(in *pkgapiv1beta3.ObjectMeta, out *pkgapi.ObjectMeta, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.ObjectMeta))(in)
-	}
-	out.Name = in.Name
-	out.GenerateName = in.GenerateName
-	out.Namespace = in.Namespace
-	out.SelfLink = in.SelfLink
-	out.UID = in.UID
-	out.ResourceVersion = in.ResourceVersion
-	out.Generation = in.Generation
-	if err := s.Convert(&in.CreationTimestamp, &out.CreationTimestamp, 0); err != nil {
-		return err
-	}
-	if in.DeletionTimestamp != nil {
-		if err := s.Convert(&in.DeletionTimestamp, &out.DeletionTimestamp, 0); err != nil {
-			return err
-		}
-	} else {
-		out.DeletionTimestamp = nil
-	}
-	if in.DeletionGracePeriodSeconds != nil {
-		out.DeletionGracePeriodSeconds = new(int64)
-		*out.DeletionGracePeriodSeconds = *in.DeletionGracePeriodSeconds
-	} else {
-		out.DeletionGracePeriodSeconds = nil
-	}
-	if in.Labels != nil {
-		out.Labels = make(map[string]string)
-		for key, val := range in.Labels {
-			out.Labels[key] = val
-		}
-	} else {
-		out.Labels = nil
-	}
-	if in.Annotations != nil {
-		out.Annotations = make(map[string]string)
-		for key, val := range in.Annotations {
-			out.Annotations[key] = val
-		}
-	} else {
-		out.Annotations = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_ObjectMeta_To_api_ObjectMeta(in *pkgapiv1beta3.ObjectMeta, out *pkgapi.ObjectMeta, s conversion.Scope) error {
-	return autoconvert_v1beta3_ObjectMeta_To_api_ObjectMeta(in, out, s)
-}
-
-func autoconvert_v1beta3_ObjectReference_To_api_ObjectReference(in *pkgapiv1beta3.ObjectReference, out *pkgapi.ObjectReference, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.ObjectReference))(in)
-	}
-	out.Kind = in.Kind
-	out.Namespace = in.Namespace
-	out.Name = in.Name
-	out.UID = in.UID
-	out.APIVersion = in.APIVersion
-	out.ResourceVersion = in.ResourceVersion
-	out.FieldPath = in.FieldPath
-	return nil
-}
-
-func convert_v1beta3_ObjectReference_To_api_ObjectReference(in *pkgapiv1beta3.ObjectReference, out *pkgapi.ObjectReference, s conversion.Scope) error {
-	return autoconvert_v1beta3_ObjectReference_To_api_ObjectReference(in, out, s)
-}
-
-func autoconvert_v1beta3_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in *pkgapiv1beta3.PersistentVolumeClaimVolumeSource, out *pkgapi.PersistentVolumeClaimVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.PersistentVolumeClaimVolumeSource))(in)
-	}
-	out.ClaimName = in.ClaimName
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func convert_v1beta3_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in *pkgapiv1beta3.PersistentVolumeClaimVolumeSource, out *pkgapi.PersistentVolumeClaimVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_PodSpec_To_api_PodSpec(in *pkgapiv1beta3.PodSpec, out *pkgapi.PodSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.PodSpec))(in)
-	}
-	if in.Volumes != nil {
-		out.Volumes = make([]pkgapi.Volume, len(in.Volumes))
-		for i := range in.Volumes {
-			if err := convert_v1beta3_Volume_To_api_Volume(&in.Volumes[i], &out.Volumes[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Volumes = nil
-	}
-	if in.Containers != nil {
-		out.Containers = make([]pkgapi.Container, len(in.Containers))
-		for i := range in.Containers {
-			if err := s.Convert(&in.Containers[i], &out.Containers[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Containers = nil
-	}
-	out.RestartPolicy = pkgapi.RestartPolicy(in.RestartPolicy)
-	if in.TerminationGracePeriodSeconds != nil {
-		out.TerminationGracePeriodSeconds = new(int64)
-		*out.TerminationGracePeriodSeconds = *in.TerminationGracePeriodSeconds
-	} else {
-		out.TerminationGracePeriodSeconds = nil
-	}
-	if in.ActiveDeadlineSeconds != nil {
-		out.ActiveDeadlineSeconds = new(int64)
-		*out.ActiveDeadlineSeconds = *in.ActiveDeadlineSeconds
-	} else {
-		out.ActiveDeadlineSeconds = nil
-	}
-	out.DNSPolicy = pkgapi.DNSPolicy(in.DNSPolicy)
-	if in.NodeSelector != nil {
-		out.NodeSelector = make(map[string]string)
-		for key, val := range in.NodeSelector {
-			out.NodeSelector[key] = val
-		}
-	} else {
-		out.NodeSelector = nil
-	}
-	// in.ServiceAccount has no peer in out
-	// in.Host has no peer in out
-	// in.HostNetwork has no peer in out
-	// in.HostPID has no peer in out
-	// in.HostIPC has no peer in out
-	if in.SecurityContext != nil {
-		if err := s.Convert(&in.SecurityContext, &out.SecurityContext, 0); err != nil {
-			return err
-		}
-	} else {
-		out.SecurityContext = nil
-	}
-	if in.ImagePullSecrets != nil {
-		out.ImagePullSecrets = make([]pkgapi.LocalObjectReference, len(in.ImagePullSecrets))
-		for i := range in.ImagePullSecrets {
-			if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(&in.ImagePullSecrets[i], &out.ImagePullSecrets[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.ImagePullSecrets = nil
-	}
-	return nil
-}
-
-func autoconvert_v1beta3_PodTemplateSpec_To_api_PodTemplateSpec(in *pkgapiv1beta3.PodTemplateSpec, out *pkgapi.PodTemplateSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.PodTemplateSpec))(in)
-	}
-	if err := convert_v1beta3_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
-		return err
-	}
-	return nil
-}
-
-func convert_v1beta3_PodTemplateSpec_To_api_PodTemplateSpec(in *pkgapiv1beta3.PodTemplateSpec, out *pkgapi.PodTemplateSpec, s conversion.Scope) error {
-	return autoconvert_v1beta3_PodTemplateSpec_To_api_PodTemplateSpec(in, out, s)
-}
-
-func autoconvert_v1beta3_Probe_To_api_Probe(in *pkgapiv1beta3.Probe, out *pkgapi.Probe, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.Probe))(in)
-	}
-	if err := convert_v1beta3_Handler_To_api_Handler(&in.Handler, &out.Handler, s); err != nil {
-		return err
-	}
-	out.InitialDelaySeconds = in.InitialDelaySeconds
-	out.TimeoutSeconds = in.TimeoutSeconds
-	return nil
-}
-
-func convert_v1beta3_Probe_To_api_Probe(in *pkgapiv1beta3.Probe, out *pkgapi.Probe, s conversion.Scope) error {
-	return autoconvert_v1beta3_Probe_To_api_Probe(in, out, s)
-}
-
-func autoconvert_v1beta3_RBDVolumeSource_To_api_RBDVolumeSource(in *pkgapiv1beta3.RBDVolumeSource, out *pkgapi.RBDVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.RBDVolumeSource))(in)
-	}
-	if in.CephMonitors != nil {
-		out.CephMonitors = make([]string, len(in.CephMonitors))
-		for i := range in.CephMonitors {
-			out.CephMonitors[i] = in.CephMonitors[i]
-		}
-	} else {
-		out.CephMonitors = nil
-	}
-	out.RBDImage = in.RBDImage
-	out.FSType = in.FSType
-	out.RBDPool = in.RBDPool
-	out.RadosUser = in.RadosUser
-	out.Keyring = in.Keyring
-	if in.SecretRef != nil {
-		out.SecretRef = new(pkgapi.LocalObjectReference)
-		if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in.SecretRef, out.SecretRef, s); err != nil {
-			return err
-		}
-	} else {
-		out.SecretRef = nil
-	}
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func convert_v1beta3_RBDVolumeSource_To_api_RBDVolumeSource(in *pkgapiv1beta3.RBDVolumeSource, out *pkgapi.RBDVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_RBDVolumeSource_To_api_RBDVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(in *pkgapiv1beta3.ResourceRequirements, out *pkgapi.ResourceRequirements, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.ResourceRequirements))(in)
-	}
-	if in.Limits != nil {
-		out.Limits = make(pkgapi.ResourceList)
-		for key, val := range in.Limits {
-			newVal := resource.Quantity{}
-			if err := s.Convert(&val, &newVal, 0); err != nil {
-				return err
-			}
-			out.Limits[pkgapi.ResourceName(key)] = newVal
-		}
-	} else {
-		out.Limits = nil
-	}
-	if in.Requests != nil {
-		out.Requests = make(pkgapi.ResourceList)
-		for key, val := range in.Requests {
-			newVal := resource.Quantity{}
-			if err := s.Convert(&val, &newVal, 0); err != nil {
-				return err
-			}
-			out.Requests[pkgapi.ResourceName(key)] = newVal
-		}
-	} else {
-		out.Requests = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(in *pkgapiv1beta3.ResourceRequirements, out *pkgapi.ResourceRequirements, s conversion.Scope) error {
-	return autoconvert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(in, out, s)
-}
-
-func autoconvert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in *pkgapiv1beta3.SELinuxOptions, out *pkgapi.SELinuxOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.SELinuxOptions))(in)
-	}
-	out.User = in.User
-	out.Role = in.Role
-	out.Type = in.Type
-	out.Level = in.Level
-	return nil
-}
-
-func convert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in *pkgapiv1beta3.SELinuxOptions, out *pkgapi.SELinuxOptions, s conversion.Scope) error {
-	return autoconvert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in, out, s)
-}
-
-func autoconvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in *pkgapiv1beta3.SecretVolumeSource, out *pkgapi.SecretVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.SecretVolumeSource))(in)
-	}
-	out.SecretName = in.SecretName
-	return nil
-}
-
-func convert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in *pkgapiv1beta3.SecretVolumeSource, out *pkgapi.SecretVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_SecurityContext_To_api_SecurityContext(in *pkgapiv1beta3.SecurityContext, out *pkgapi.SecurityContext, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.SecurityContext))(in)
-	}
-	if in.Capabilities != nil {
-		out.Capabilities = new(pkgapi.Capabilities)
-		if err := convert_v1beta3_Capabilities_To_api_Capabilities(in.Capabilities, out.Capabilities, s); err != nil {
-			return err
-		}
-	} else {
-		out.Capabilities = nil
-	}
-	if in.Privileged != nil {
-		out.Privileged = new(bool)
-		*out.Privileged = *in.Privileged
-	} else {
-		out.Privileged = nil
-	}
-	if in.SELinuxOptions != nil {
-		out.SELinuxOptions = new(pkgapi.SELinuxOptions)
-		if err := convert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
-			return err
-		}
-	} else {
-		out.SELinuxOptions = nil
-	}
-	if in.RunAsUser != nil {
-		out.RunAsUser = new(int64)
-		*out.RunAsUser = *in.RunAsUser
-	} else {
-		out.RunAsUser = nil
-	}
-	if in.RunAsNonRoot != nil {
-		out.RunAsNonRoot = new(bool)
-		*out.RunAsNonRoot = *in.RunAsNonRoot
-	} else {
-		out.RunAsNonRoot = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_SecurityContext_To_api_SecurityContext(in *pkgapiv1beta3.SecurityContext, out *pkgapi.SecurityContext, s conversion.Scope) error {
-	return autoconvert_v1beta3_SecurityContext_To_api_SecurityContext(in, out, s)
-}
-
-func autoconvert_v1beta3_TCPSocketAction_To_api_TCPSocketAction(in *pkgapiv1beta3.TCPSocketAction, out *pkgapi.TCPSocketAction, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.TCPSocketAction))(in)
-	}
-	if err := s.Convert(&in.Port, &out.Port, 0); err != nil {
-		return err
-	}
-	return nil
-}
-
-func convert_v1beta3_TCPSocketAction_To_api_TCPSocketAction(in *pkgapiv1beta3.TCPSocketAction, out *pkgapi.TCPSocketAction, s conversion.Scope) error {
-	return autoconvert_v1beta3_TCPSocketAction_To_api_TCPSocketAction(in, out, s)
-}
-
-func autoconvert_v1beta3_Volume_To_api_Volume(in *pkgapiv1beta3.Volume, out *pkgapi.Volume, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.Volume))(in)
-	}
-	out.Name = in.Name
-	if err := s.Convert(&in.VolumeSource, &out.VolumeSource, 0); err != nil {
-		return err
-	}
-	return nil
-}
-
-func convert_v1beta3_Volume_To_api_Volume(in *pkgapiv1beta3.Volume, out *pkgapi.Volume, s conversion.Scope) error {
-	return autoconvert_v1beta3_Volume_To_api_Volume(in, out, s)
-}
-
-func autoconvert_v1beta3_VolumeMount_To_api_VolumeMount(in *pkgapiv1beta3.VolumeMount, out *pkgapi.VolumeMount, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.VolumeMount))(in)
-	}
-	out.Name = in.Name
-	out.ReadOnly = in.ReadOnly
-	out.MountPath = in.MountPath
-	return nil
-}
-
-func convert_v1beta3_VolumeMount_To_api_VolumeMount(in *pkgapiv1beta3.VolumeMount, out *pkgapi.VolumeMount, s conversion.Scope) error {
-	return autoconvert_v1beta3_VolumeMount_To_api_VolumeMount(in, out, s)
-}
-
-func autoconvert_v1beta3_VolumeSource_To_api_VolumeSource(in *pkgapiv1beta3.VolumeSource, out *pkgapi.VolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.VolumeSource))(in)
-	}
-	if in.HostPath != nil {
-		out.HostPath = new(pkgapi.HostPathVolumeSource)
-		if err := convert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in.HostPath, out.HostPath, s); err != nil {
-			return err
-		}
-	} else {
-		out.HostPath = nil
-	}
-	if in.EmptyDir != nil {
-		out.EmptyDir = new(pkgapi.EmptyDirVolumeSource)
-		if err := convert_v1beta3_EmptyDirVolumeSource_To_api_EmptyDirVolumeSource(in.EmptyDir, out.EmptyDir, s); err != nil {
-			return err
-		}
-	} else {
-		out.EmptyDir = nil
-	}
-	if in.GCEPersistentDisk != nil {
-		out.GCEPersistentDisk = new(pkgapi.GCEPersistentDiskVolumeSource)
-		if err := convert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource(in.GCEPersistentDisk, out.GCEPersistentDisk, s); err != nil {
-			return err
-		}
-	} else {
-		out.GCEPersistentDisk = nil
-	}
-	if in.AWSElasticBlockStore != nil {
-		out.AWSElasticBlockStore = new(pkgapi.AWSElasticBlockStoreVolumeSource)
-		if err := convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in.AWSElasticBlockStore, out.AWSElasticBlockStore, s); err != nil {
-			return err
-		}
-	} else {
-		out.AWSElasticBlockStore = nil
-	}
-	if in.GitRepo != nil {
-		out.GitRepo = new(pkgapi.GitRepoVolumeSource)
-		if err := convert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in.GitRepo, out.GitRepo, s); err != nil {
-			return err
-		}
-	} else {
-		out.GitRepo = nil
-	}
-	if in.Secret != nil {
-		out.Secret = new(pkgapi.SecretVolumeSource)
-		if err := convert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in.Secret, out.Secret, s); err != nil {
-			return err
-		}
-	} else {
-		out.Secret = nil
-	}
-	if in.NFS != nil {
-		out.NFS = new(pkgapi.NFSVolumeSource)
-		if err := convert_v1beta3_NFSVolumeSource_To_api_NFSVolumeSource(in.NFS, out.NFS, s); err != nil {
-			return err
-		}
-	} else {
-		out.NFS = nil
-	}
-	if in.ISCSI != nil {
-		out.ISCSI = new(pkgapi.ISCSIVolumeSource)
-		if err := convert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in.ISCSI, out.ISCSI, s); err != nil {
-			return err
-		}
-	} else {
-		out.ISCSI = nil
-	}
-	if in.Glusterfs != nil {
-		out.Glusterfs = new(pkgapi.GlusterfsVolumeSource)
-		if err := convert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in.Glusterfs, out.Glusterfs, s); err != nil {
-			return err
-		}
-	} else {
-		out.Glusterfs = nil
-	}
-	if in.PersistentVolumeClaim != nil {
-		out.PersistentVolumeClaim = new(pkgapi.PersistentVolumeClaimVolumeSource)
-		if err := convert_v1beta3_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaim, out.PersistentVolumeClaim, s); err != nil {
-			return err
-		}
-	} else {
-		out.PersistentVolumeClaim = nil
-	}
-	if in.RBD != nil {
-		out.RBD = new(pkgapi.RBDVolumeSource)
-		if err := convert_v1beta3_RBDVolumeSource_To_api_RBDVolumeSource(in.RBD, out.RBD, s); err != nil {
-			return err
-		}
-	} else {
-		out.RBD = nil
-	}
-	if in.Cinder != nil {
-		out.Cinder = new(pkgapi.CinderVolumeSource)
-		if err := convert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource(in.Cinder, out.Cinder, s); err != nil {
-			return err
-		}
-	} else {
-		out.Cinder = nil
-	}
-	if in.CephFS != nil {
-		out.CephFS = new(pkgapi.CephFSVolumeSource)
-		if err := convert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
-			return err
-		}
-	} else {
-		out.CephFS = nil
-	}
-	if in.Flocker != nil {
-		out.Flocker = new(pkgapi.FlockerVolumeSource)
-		if err := convert_v1beta3_FlockerVolumeSource_To_api_FlockerVolumeSource(in.Flocker, out.Flocker, s); err != nil {
-			return err
-		}
-	} else {
-		out.Flocker = nil
-	}
-	if in.DownwardAPI != nil {
-		out.DownwardAPI = new(pkgapi.DownwardAPIVolumeSource)
-		if err := convert_v1beta3_DownwardAPIVolumeSource_To_api_DownwardAPIVolumeSource(in.DownwardAPI, out.DownwardAPI, s); err != nil {
-			return err
-		}
-	} else {
-		out.DownwardAPI = nil
-	}
-	if in.FC != nil {
-		out.FC = new(pkgapi.FCVolumeSource)
-		if err := convert_v1beta3_FCVolumeSource_To_api_FCVolumeSource(in.FC, out.FC, s); err != nil {
-			return err
-		}
-	} else {
-		out.FC = nil
-	}
-	// in.Metadata has no peer in out
 	return nil
 }
 
