@@ -3,6 +3,7 @@ package analysis
 import (
 	"testing"
 
+	osgraph "github.com/openshift/origin/pkg/api/graph"
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
 )
 
@@ -12,7 +13,7 @@ func TestRestartingPodWarning(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	markers := FindRestartingPods(g)
+	markers := FindRestartingPods(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}

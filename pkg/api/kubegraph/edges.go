@@ -34,6 +34,10 @@ func AddExposedPodTemplateSpecEdges(g osgraph.MutableUniqueGraph, node *kubegrap
 	for _, n := range g.(graph.Graph).Nodes() {
 		switch target := n.(type) {
 		case *kubegraph.PodTemplateSpecNode:
+			if target.Namespace != node.Namespace {
+				continue
+			}
+
 			if query.Matches(labels.Set(target.PodTemplateSpec.Labels)) {
 				g.AddEdge(target, node, ExposedThroughServiceEdgeKind)
 			}
@@ -60,6 +64,9 @@ func AddExposedPodEdges(g osgraph.MutableUniqueGraph, node *kubegraph.ServiceNod
 	for _, n := range g.(graph.Graph).Nodes() {
 		switch target := n.(type) {
 		case *kubegraph.PodNode:
+			if target.Namespace != node.Namespace {
+				continue
+			}
 			if query.Matches(labels.Set(target.Labels)) {
 				g.AddEdge(target, node, ExposedThroughServiceEdgeKind)
 			}
@@ -86,6 +93,9 @@ func AddManagedByRCPodEdges(g osgraph.MutableUniqueGraph, rcNode *kubegraph.Repl
 	for _, n := range g.(graph.Graph).Nodes() {
 		switch target := n.(type) {
 		case *kubegraph.PodNode:
+			if target.Namespace != rcNode.Namespace {
+				continue
+			}
 			if query.Matches(labels.Set(target.Labels)) {
 				g.AddEdge(target, rcNode, ManagedByRCEdgeKind)
 			}

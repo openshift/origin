@@ -8,6 +8,7 @@ import (
 	"github.com/gonum/graph/encoding/dot"
 	"github.com/spf13/cobra"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -41,11 +42,12 @@ graph in DOT format that is suitable for use by the "dot" command.`
 
 // StatusOptions contains all the necessary options for the Openshift cli status command.
 type StatusOptions struct {
-	namespace    string
-	outputFormat string
-	describer    *describe.ProjectStatusDescriber
-	out          io.Writer
-	verbose      bool
+	namespace     string
+	allNamespaces bool
+	outputFormat  string
+	describer     *describe.ProjectStatusDescriber
+	out           io.Writer
+	verbose       bool
 }
 
 // NewCmdStatus implements the OpenShift cli status command.
@@ -72,6 +74,7 @@ func NewCmdStatus(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 
 	cmd.Flags().StringVarP(&opts.outputFormat, "output", "o", opts.outputFormat, "Output format. One of: dot.")
 	cmd.Flags().BoolVarP(&opts.verbose, "verbose", "v", opts.verbose, "See details for resolving issues.")
+	cmd.Flags().BoolVar(&opts.allNamespaces, "all-namespaces", false, "Display status for all namespaces (must have cluster admin)")
 
 	return cmd
 }
@@ -92,11 +95,15 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args 
 		return err
 	}
 
-	namespace, _, err := f.DefaultNamespace()
-	if err != nil {
-		return err
+	if o.allNamespaces {
+		o.namespace = kapi.NamespaceAll
+	} else {
+		namespace, _, err := f.DefaultNamespace()
+		if err != nil {
+			return err
+		}
+		o.namespace = namespace
 	}
-	o.namespace = namespace
 
 	o.describer = &describe.ProjectStatusDescriber{K: kclient, C: client, Server: config.Host, Suggest: o.verbose}
 

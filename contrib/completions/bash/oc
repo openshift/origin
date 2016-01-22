@@ -607,6 +607,7 @@ _oc_status()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--all-namespaces")
     flags+=("--output=")
     two_word_flags+=("-o")
     flags+=("--verbose")

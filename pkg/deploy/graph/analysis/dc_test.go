@@ -3,6 +3,7 @@ package analysis
 import (
 	"testing"
 
+	osgraph "github.com/openshift/origin/pkg/api/graph"
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
@@ -18,7 +19,7 @@ func TestMissingImageStreamTag(t *testing.T) {
 	deployedges.AddAllTriggerEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 
-	markers := FindDeploymentConfigTriggerErrors(g)
+	markers := FindDeploymentConfigTriggerErrors(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
@@ -37,7 +38,7 @@ func TestMissingImageStream(t *testing.T) {
 	deployedges.AddAllTriggerEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 
-	markers := FindDeploymentConfigTriggerErrors(g)
+	markers := FindDeploymentConfigTriggerErrors(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}

@@ -25,7 +25,7 @@ const (
 )
 
 // FindUnpushableBuildConfigs checks all build configs that will output to an IST backed by an ImageStream and checks to make sure their builds can push.
-func FindUnpushableBuildConfigs(g osgraph.Graph) []osgraph.Marker {
+func FindUnpushableBuildConfigs(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
 bc:
@@ -42,7 +42,7 @@ bc:
 						Severity: osgraph.ErrorSeverity,
 						Key:      MissingImageStreamErr,
 						Message: fmt.Sprintf("%s is pushing to %s that is using %s, but that image stream does not exist.",
-							bcNode.(*buildgraph.BuildConfigNode).ResourceString(), istNode.(*imagegraph.ImageStreamTagNode).ResourceString(), imageStreamNode.ResourceString()),
+							f.ResourceName(bcNode), f.ResourceName(istNode), f.ResourceName(imageStreamNode)),
 					})
 
 					continue
@@ -56,7 +56,7 @@ bc:
 						Severity: osgraph.ErrorSeverity,
 						Key:      MissingRequiredRegistryErr,
 						Message: fmt.Sprintf("%s is pushing to %s that is using %s, but the administrator has not configured the integrated Docker registry.  (oadm registry)",
-							bcNode.(*buildgraph.BuildConfigNode).ResourceString(), istNode.(*imagegraph.ImageStreamTagNode).ResourceString(), imageStreamNode.ResourceString()),
+							f.ResourceName(bcNode), f.ResourceName(istNode), f.ResourceName(imageStreamNode)),
 					})
 
 					continue bc
@@ -69,7 +69,7 @@ bc:
 }
 
 // FindCircularBuilds checks all build configs for cycles
-func FindCircularBuilds(g osgraph.Graph) []osgraph.Marker {
+func FindCircularBuilds(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	// Filter out all but ImageStreamTag and BuildConfig nodes
 	nodeFn := osgraph.NodesOfKind(imagegraph.ImageStreamTagNodeKind, buildgraph.BuildConfigNodeKind)
 	// Filter out all but BuildInputImage and BuildOutput edges
@@ -84,9 +84,7 @@ func FindCircularBuilds(g osgraph.Graph) []osgraph.Marker {
 	for _, cycle := range topo.CyclesIn(sub) {
 		nodeNames := []string{}
 		for _, node := range cycle {
-			if resourceStringer, ok := node.(osgraph.ResourceNode); ok {
-				nodeNames = append(nodeNames, resourceStringer.ResourceString())
-			}
+			nodeNames = append(nodeNames, f.ResourceName(node))
 		}
 
 		markers = append(markers, osgraph.Marker{
@@ -108,7 +106,7 @@ func FindCircularBuilds(g osgraph.Graph) []osgraph.Marker {
 // Precedence of failures:
 // 1. A build config points to the non existent tag but no current build exists.
 // 2. A build config points to the non existent tag but the latest build has failed.
-func FindPendingTags(g osgraph.Graph) []osgraph.Marker {
+func FindPendingTags(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
 	for _, uncastIstNode := range g.NodesByKind(imagegraph.ImageStreamTagNodeKind) {
@@ -124,8 +122,8 @@ func FindPendingTags(g osgraph.Graph) []osgraph.Marker {
 
 					Severity:   osgraph.WarningSeverity,
 					Key:        TagNotAvailableWarning,
-					Message:    fmt.Sprintf("%s needs to be imported or created by a build.", istNode.ResourceString()),
-					Suggestion: osgraph.Suggestion(fmt.Sprintf("oc start-build %s", bcNode.ResourceString())),
+					Message:    fmt.Sprintf("%s needs to be imported or created by a build.", f.ResourceName(istNode)),
+					Suggestion: osgraph.Suggestion(fmt.Sprintf("oc start-build %s", f.ResourceName(bcNode))),
 				})
 				continue
 			}
@@ -150,8 +148,8 @@ func FindPendingTags(g osgraph.Graph) []osgraph.Marker {
 
 					Severity:   osgraph.ErrorSeverity,
 					Key:        LatestBuildFailedErr,
-					Message:    fmt.Sprintf("%s has failed.", latestBuild.ResourceString()),
-					Suggestion: osgraph.Suggestion(fmt.Sprintf("Inspect the build failure with 'oc logs %s'", latestBuild.ResourceString())),
+					Message:    fmt.Sprintf("%s has failed.", f.ResourceName(latestBuild)),
+					Suggestion: osgraph.Suggestion(fmt.Sprintf("Inspect the build failure with 'oc logs %s'", f.ResourceName(latestBuild))),
 				})
 			default:
 				// Do nothing when latest build is new, pending, or running.

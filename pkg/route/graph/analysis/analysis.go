@@ -25,7 +25,7 @@ const (
 // FindMissingPortMapping checks all routes and reports those that don't specify a port while
 // the service they are routing to, has multiple ports. Also if a service for a route doesn't
 // exist, will be reported.
-func FindMissingPortMapping(g osgraph.Graph) []osgraph.Marker {
+func FindMissingPortMapping(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
 route:
@@ -42,7 +42,7 @@ route:
 					Severity: osgraph.WarningSeverity,
 					Key:      MissingServiceWarning,
 					Message: fmt.Sprintf("%s is supposed to route traffic to %s but %s doesn't exist.",
-						routeNode.ResourceString(), svcNode.ResourceString(), svcNode.ResourceString()),
+						f.ResourceName(routeNode), f.ResourceName(svcNode), f.ResourceName(svcNode)),
 				})
 
 				continue route
@@ -56,7 +56,7 @@ route:
 					Severity: osgraph.WarningSeverity,
 					Key:      MissingRoutePortWarning,
 					Message: fmt.Sprintf("%s doesn't have a port specified and is routing traffic to %s which uses multiple ports.",
-						routeNode.ResourceString(), svcNode.ResourceString()),
+						f.ResourceName(routeNode), f.ResourceName(svcNode)),
 				})
 
 				continue route
@@ -67,7 +67,7 @@ route:
 	return markers
 }
 
-func FindMissingTLSTerminationType(g osgraph.Graph) []osgraph.Marker {
+func FindMissingTLSTerminationType(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
 	for _, uncastRouteNode := range g.NodesByKind(routegraph.RouteNodeKind) {
@@ -79,8 +79,8 @@ func FindMissingTLSTerminationType(g osgraph.Graph) []osgraph.Marker {
 
 				Severity:   osgraph.ErrorSeverity,
 				Key:        MissingTLSTerminationTypeErr,
-				Message:    fmt.Sprintf("%s has a TLS configuration but no termination type specified.", routeNode.ResourceString()),
-				Suggestion: osgraph.Suggestion(fmt.Sprintf("oc patch %s -p '{\"spec\":{\"tls\":{\"termination\":\"<type>\"}}}' (replace <type> with a valid termination type: edge, passthrough, reencrypt)", routeNode.ResourceString()))})
+				Message:    fmt.Sprintf("%s has a TLS configuration but no termination type specified.", f.ResourceName(routeNode)),
+				Suggestion: osgraph.Suggestion(fmt.Sprintf("oc patch %s -p '{\"spec\":{\"tls\":{\"termination\":\"<type>\"}}}' (replace <type> with a valid termination type: edge, passthrough, reencrypt)", f.ResourceName(routeNode)))})
 		}
 	}
 

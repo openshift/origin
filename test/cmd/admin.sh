@@ -224,8 +224,8 @@ echo "registry: ok"
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l build=sti | oc create -f -'
 # Test both the type/name resource syntax and the fact that istag/origin-ruby-sample:latest is still
 # not created but due to a buildConfig pointing to it, we get back its graph of deps.
-os::cmd::expect_success_and_text 'oadm build-chain istag/origin-ruby-sample' 'imagestreamtag/origin-ruby-sample:latest'
-os::cmd::expect_success_and_text 'oadm build-chain ruby-22-centos7 -o dot' 'graph'
+os::cmd::expect_success_and_text 'oadm build-chain istag/origin-ruby-sample' 'istag/origin-ruby-sample:latest'
+os::cmd::expect_success_and_text 'oadm build-chain ruby-22-centos7 -o dot' 'digraph'
 os::cmd::expect_success 'oc delete all -l build=sti'
 echo "ex build-chain: ok"
 

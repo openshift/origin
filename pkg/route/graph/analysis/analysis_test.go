@@ -3,6 +3,7 @@ package analysis
 import (
 	"testing"
 
+	osgraph "github.com/openshift/origin/pkg/api/graph"
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
 	routeedges "github.com/openshift/origin/pkg/route/graph"
 )
@@ -15,7 +16,7 @@ func TestMissingPortMapping(t *testing.T) {
 	}
 	routeedges.AddAllRouteEdges(g)
 
-	markers := FindMissingPortMapping(g)
+	markers := FindMissingPortMapping(g, osgraph.DefaultNamer)
 	if expected, got := 1, len(markers); expected != got {
 		t.Fatalf("expected %d markers, got %d", expected, got)
 	}
@@ -30,7 +31,7 @@ func TestMissingPortMapping(t *testing.T) {
 	}
 	routeedges.AddAllRouteEdges(g)
 
-	markers = FindMissingPortMapping(g)
+	markers = FindMissingPortMapping(g, osgraph.DefaultNamer)
 	if expected, got := 1, len(markers); expected != got {
 		t.Fatalf("expected %d markers, got %d", expected, got)
 	}
