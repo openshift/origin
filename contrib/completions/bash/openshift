@@ -14474,8 +14474,6 @@ _openshift_infra_diagnostic-pod()
 
     flags+=("--diaglevel=")
     two_word_flags+=("-l")
-    flags+=("--diagnostics=")
-    two_word_flags+=("-d")
     flags+=("--google-json-key=")
     flags+=("--log-flush-frequency=")
 

@@ -301,7 +301,3 @@ os::cmd::expect_success_and_not_text "oc get rolebindings/cluster-admin         
 os::cmd::expect_success_and_not_text "oc get scc/restricted                     --output-version=v1 --template='{{.groups}}'"              'cascaded-group'
 echo "user-group-cascade: ok"
 
-
-os::cmd::expect_failure_and_text 'openshift ex diagnostics FakeDiagnostic AlsoMissing' 'No requested diagnostics are available: requested=FakeDiagnostic AlsoMissing'
-os::cmd::expect_failure_and_text 'openshift ex diagnostics AnalyzeLogs AlsoMissing' 'Not all requested diagnostics are available: missing=AlsoMissing requested=AnalyzeLogs AlsoMissing available='
-echo "diagnostics: ok"
