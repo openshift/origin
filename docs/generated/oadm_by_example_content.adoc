@@ -346,6 +346,23 @@ Replace cluster SCCs to match the recommended bootstrap policy
 ====
 
 
+== oadm prune builds
+Remove old completed and failed builds
+
+====
+
+[options="nowrap"]
+----
+  # Dry run deleting older completed and failed builds and also including
+  # all builds whose associated BuildConfig no longer exists
+  $ oadm prune builds --orphans
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  $ oadm prune builds --orphans --confirm
+----
+====
+
+
 == oadm prune deployments
 Remove old completed and failed deployments
 
