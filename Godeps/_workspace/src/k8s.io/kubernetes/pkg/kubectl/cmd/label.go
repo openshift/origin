@@ -221,6 +221,16 @@ func RunLabel(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		return cmdutil.UsageError(cmd, "--resource-version may only be used with a single resource")
 	}
 
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	// TODO: get the negotiated version per group
+	negotiatedVersion := ""
+	if clientConfig.GroupVersion != nil {
+		negotiatedVersion = clientConfig.GroupVersion.String()
+	}
+
 	// TODO: support bulk generic output a la Get
 	return r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
@@ -236,7 +246,12 @@ func RunLabel(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []stri
 			}
 			outputObj = info.Object
 		} else {
-			name, namespace, obj := info.Name, info.Namespace, info.Object
+			// if the resource can't be converted to the negotiated version, AsVersionedObject falls back to the info.Mapping.GroupVersion
+			obj, err := resource.AsVersionedObject([]*resource.Info{info}, false, negotiatedVersion)
+			if err != nil {
+				return err
+			}
+			name, namespace := info.Name, info.Namespace
 			oldData, err := json.Marshal(obj)
 			if err != nil {
 				return err
