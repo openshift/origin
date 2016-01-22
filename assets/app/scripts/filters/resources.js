@@ -768,11 +768,17 @@ angular.module('openshiftConsole')
         'deployment': 'Deployment',
         'deploymentconfig': 'Deployment Config',
         'imagestream': 'Image Stream',
+        'persistentvolumeclaims': 'Persistent Volume Claims',
         'pod': 'Pod',
+        'pods': 'Pods',
         'project': 'Project',
+        'resourcequotas': 'Resource Quotas',
         'replicationcontroller': 'Replication Controller',
+        'replicationcontrollers': 'Replication Controllers',
         'route': 'Route',
-        'service': 'Service'
+        'secrets': 'Secrets',
+        'service': 'Service',
+        'services': 'Services'
       };
       return nameFormatMap[resourceType] || resourceType;
     };
