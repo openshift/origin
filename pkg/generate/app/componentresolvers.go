@@ -41,6 +41,7 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 	imperfect := ScoredComponentMatches{}
 	var group WeightedResolvers
 	for i, resolver := range r {
+		// lump all resolvers with the same weight into a single group
 		if len(group) == 0 || resolver.Weight == group[0].Weight {
 			group = append(group, resolver)
 			if i != len(r)-1 && r[i+1].Weight == group[0].Weight {
@@ -308,7 +309,10 @@ func resolveExact(resolver Resolver, value string) (exact *ComponentMatch, inexa
 			return nil, nil, err
 		}
 	}
-	return match, nil, nil
+	if match.Score == 0.0 {
+		return match, nil, nil
+	}
+	return nil, ComponentMatches{match}, nil
 }
 
 func searchExact(searcher Searcher, value string) (exact *ComponentMatch, inexact []*ComponentMatch, err error) {
@@ -319,7 +323,6 @@ func searchExact(searcher Searcher, value string) (exact *ComponentMatch, inexac
 
 	exactMatches := matches.Exact()
 	inexactMatches := matches.Inexact()
-
 	switch len(exactMatches) {
 	case 0:
 		return nil, inexactMatches, nil

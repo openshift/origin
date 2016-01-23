@@ -188,10 +188,8 @@ type BuildSource struct {
 	// Git contains optional information about git build source
 	Git *GitBuildSource
 
-	// Image describes an image to be used to provide source for the build
-	// EXPERIMENTAL.  This will be changing to an array of images in the near future
-	// and no migration/compatibility will be provided.  Use at your own risk.
-	Image *ImageSource
+	// Images describes a set of images to be used to provide source for the build
+	Images []ImageSource
 
 	// ContextDir specifies the sub-directory where the source code for the application exists.
 	// This allows to have buildable sources in directory other than root of

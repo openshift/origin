@@ -785,15 +785,29 @@ func TestValidateSource(t *testing.T) {
 		{
 			ok: true,
 			source: &buildapi.BuildSource{
-				Image: &buildapi.ImageSource{
-					From: kapi.ObjectReference{
-						Kind: "ImageStreamTag",
-						Name: "my-image:latest",
+				Images: []buildapi.ImageSource{
+					{
+						From: kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "my-image:latest",
+						},
+						Paths: []buildapi.ImageSourcePath{
+							{
+								SourcePath:     "/some/path",
+								DestinationDir: "test/dir",
+							},
+						},
 					},
-					Paths: []buildapi.ImageSourcePath{
-						{
-							SourcePath:     "/some/path",
-							DestinationDir: "test/dir",
+					{
+						From: kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "my-image:latest",
+						},
+						Paths: []buildapi.ImageSourcePath{
+							{
+								SourcePath:     "/some/path",
+								DestinationDir: "test/dir",
+							},
 						},
 					},
 				},
@@ -802,52 +816,121 @@ func TestValidateSource(t *testing.T) {
 		// 16
 		{
 			t:    fielderrors.ValidationErrorTypeRequired,
-			path: "image.paths",
+			path: "images[0].paths",
 			source: &buildapi.BuildSource{
-				Image: &buildapi.ImageSource{
-					From: kapi.ObjectReference{
-						Kind: "ImageStreamTag",
-						Name: "my-image:latest",
-					},
-				},
-			},
-		},
-		// 17
-		{
-			t:    fielderrors.ValidationErrorTypeInvalid,
-			path: "image.from.kind",
-			source: &buildapi.BuildSource{
-				Image: &buildapi.ImageSource{
-					From: kapi.ObjectReference{
-						Kind: "InvalidKind",
-						Name: "my-image:latest",
-					},
-					Paths: []buildapi.ImageSourcePath{
-						{
-							SourcePath:     "/some/path",
-							DestinationDir: "test/dir",
+				Images: []buildapi.ImageSource{
+					{
+						From: kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "my-image:latest",
 						},
 					},
 				},
 			},
 		},
-		// 18
+		// 17 - destinationdir is not relative.
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "images[0].paths[0].destinationDir",
+			source: &buildapi.BuildSource{
+				Images: []buildapi.ImageSource{
+					{
+						From: kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "my-image:latest",
+						},
+						Paths: []buildapi.ImageSourcePath{
+							{
+								SourcePath:     "/some/path",
+								DestinationDir: "/test/dir",
+							},
+						},
+					},
+				},
+			},
+		},
+		// 18 - sourcepath is not absolute.
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "images[0].paths[0].sourcePath",
+			source: &buildapi.BuildSource{
+				Images: []buildapi.ImageSource{
+					{
+						From: kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "my-image:latest",
+						},
+						Paths: []buildapi.ImageSourcePath{
+							{
+								SourcePath:     "some/path",
+								DestinationDir: "test/dir",
+							},
+						},
+					},
+				},
+			},
+		},
+		// 19 - destinationdir backsteps above basedir
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "images[0].paths[0].destinationDir",
+			source: &buildapi.BuildSource{
+				Images: []buildapi.ImageSource{
+					{
+						From: kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "my-image:latest",
+						},
+						Paths: []buildapi.ImageSourcePath{
+							{
+								SourcePath:     "/some/path",
+								DestinationDir: "test/../../dir",
+							},
+						},
+					},
+				},
+			},
+		},
+		// 20
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "images[0].from.kind",
+			source: &buildapi.BuildSource{
+				Images: []buildapi.ImageSource{
+					{
+						From: kapi.ObjectReference{
+							Kind: "InvalidKind",
+							Name: "my-image:latest",
+						},
+						Paths: []buildapi.ImageSourcePath{
+							{
+								SourcePath:     "/some/path",
+								DestinationDir: "test/dir",
+							},
+						},
+					},
+				},
+			},
+		},
+		// 21
 		{
 			t:    fielderrors.ValidationErrorTypeRequired,
-			path: "image.pullSecret.name",
+			path: "images[0].pullSecret.name",
 			source: &buildapi.BuildSource{
-				Image: &buildapi.ImageSource{
-					From: kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: "my-image:latest",
-					},
-					PullSecret: &kapi.LocalObjectReference{
-						Name: "",
-					},
-					Paths: []buildapi.ImageSourcePath{
-						{
-							SourcePath:     "/some/path",
-							DestinationDir: "test/dir",
+				Images: []buildapi.ImageSource{
+					{
+						From: kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "my-image:latest",
+						},
+						PullSecret: &kapi.LocalObjectReference{
+							Name: "",
+						},
+						Paths: []buildapi.ImageSourcePath{
+							{
+								SourcePath:     "/some/path",
+								DestinationDir: "test/dir",
+							},
 						},
 					},
 				},

@@ -173,6 +173,12 @@ type BuildConfigDescriber struct {
 	host string
 }
 
+func nameAndNamespace(ns, name string) string {
+	if len(ns) != 0 {
+		return fmt.Sprintf("%s/%s", ns, name)
+	}
+	return name
+}
 func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 	formatString(out, "Strategy", buildapi.StrategyType(p.Strategy))
 	if p.Source.Dockerfile != nil {
@@ -223,7 +229,18 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		}
 		formatString(out, "Build Secrets", strings.Join(result, ","))
 	}
-
+	if len(p.Source.Images) == 1 && len(p.Source.Images[0].Paths) == 1 {
+		image := p.Source.Images[0]
+		path := image.Paths[0]
+		formatString(out, "Image Source", fmt.Sprintf("copies %s from %s to %s", path.SourcePath, nameAndNamespace(image.From.Namespace, image.From.Name), path.DestinationDir))
+	} else {
+		for _, image := range p.Source.Images {
+			formatString(out, "Image Source", fmt.Sprintf("%s", nameAndNamespace(image.From.Namespace, image.From.Name)))
+			for _, path := range image.Paths {
+				fmt.Fprintf(out, "\t- %s -> %s\n", path.SourcePath, path.DestinationDir)
+			}
+		}
+	}
 	switch {
 	case p.Strategy.DockerStrategy != nil:
 		describeDockerStrategy(p.Strategy.DockerStrategy, out)
@@ -234,11 +251,7 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 	}
 
 	if p.Output.To != nil {
-		if len(p.Output.To.Namespace) != 0 {
-			formatString(out, "Output to", fmt.Sprintf("%s %s/%s", p.Output.To.Kind, p.Output.To.Namespace, p.Output.To.Name))
-		} else {
-			formatString(out, "Output to", fmt.Sprintf("%s %s", p.Output.To.Kind, p.Output.To.Name))
-		}
+		formatString(out, "Output to", fmt.Sprintf("%s %s", p.Output.To.Kind, nameAndNamespace(p.Output.To.Namespace, p.Output.To.Name)))
 	}
 
 	if p.Output.PushSecret != nil {
@@ -263,11 +276,7 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 
 func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writer) {
 	if len(s.From.Name) != 0 {
-		if len(s.From.Namespace) != 0 {
-			formatString(out, "From Image", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Namespace, s.From.Name))
-		} else {
-			formatString(out, "From Image", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
-		}
+		formatString(out, "From Image", fmt.Sprintf("%s %s", s.From.Kind, nameAndNamespace(s.From.Namespace, s.From.Name)))
 	}
 	if len(s.Scripts) != 0 {
 		formatString(out, "Scripts", s.Scripts)
@@ -285,11 +294,7 @@ func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writ
 
 func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writer) {
 	if s.From != nil && len(s.From.Name) != 0 {
-		if len(s.From.Namespace) != 0 {
-			formatString(out, "From Image", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Namespace, s.From.Name))
-		} else {
-			formatString(out, "From Image", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
-		}
+		formatString(out, "From Image", fmt.Sprintf("%s %s", s.From.Kind, nameAndNamespace(s.From.Namespace, s.From.Name)))
 	}
 	if len(s.DockerfilePath) != 0 {
 		formatString(out, "Dockerfile Path", s.DockerfilePath)
@@ -307,11 +312,7 @@ func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writ
 
 func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writer) {
 	if len(s.From.Name) != 0 {
-		if len(s.From.Namespace) != 0 {
-			formatString(out, "Image Reference", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Namespace, s.From.Name))
-		} else {
-			formatString(out, "Image Reference", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
-		}
+		formatString(out, "Image Reference", fmt.Sprintf("%s %s", s.From.Kind, nameAndNamespace(s.From.Namespace, s.From.Name)))
 	}
 	if s.ExposeDockerSocket {
 		formatString(out, "Expose Docker Socket", "yes")

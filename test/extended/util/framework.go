@@ -142,7 +142,7 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 				return nil
 			}
 			if isFailed(&list.Items[i]) {
-				return fmt.Errorf("The deployment %q status is %q",
+				return fmt.Errorf("The image stream %q status is %q",
 					name, list.Items[i].Annotations[imageapi.DockerImageRepositoryCheckAnnotation])
 			}
 		}

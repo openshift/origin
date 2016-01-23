@@ -241,6 +241,15 @@ func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 		if objectAccept.Accept(build) {
 			objects = append(objects, build)
 		}
+		if p.Build.Source != nil && p.Build.Source.SourceImage != nil && p.Build.Source.SourceImage.AsImageStream && accept.Accept(p.Build.Source.SourceImage) {
+			srcImage, err := p.Build.Source.SourceImage.ImageStream()
+			if err != nil {
+				return nil, err
+			}
+			if objectAccept.Accept(srcImage) {
+				objects = append(objects, srcImage)
+			}
+		}
 	}
 	if p.Deployment != nil && accept.Accept(p.Deployment) {
 		dc, err := p.Deployment.DeploymentConfig()

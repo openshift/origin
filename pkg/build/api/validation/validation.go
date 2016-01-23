@@ -159,8 +159,10 @@ func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrat
 	if input.Dockerfile != nil {
 		allErrs = append(allErrs, validateDockerfile(*input.Dockerfile)...)
 	}
-	if input.Image != nil {
-		allErrs = append(allErrs, validateImageSource(input.Image).Prefix("image")...)
+	if input.Images != nil {
+		for i, image := range input.Images {
+			allErrs = append(allErrs, validateImageSource(image).PrefixIndex(i).Prefix("images")...)
+		}
 	}
 
 	allErrs = append(allErrs, validateSecrets(input.Secrets, isDockerStrategy).Prefix("secrets")...)
@@ -244,7 +246,7 @@ func validateSecrets(secrets []buildapi.SecretBuildSource, isDockerStrategy bool
 	return allErrs
 }
 
-func validateImageSource(imageSource *buildapi.ImageSource) fielderrors.ValidationErrorList {
+func validateImageSource(imageSource buildapi.ImageSource) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validateFromImageReference(&imageSource.From).Prefix("from")...)
 	if imageSource.PullSecret != nil {
@@ -253,9 +255,32 @@ func validateImageSource(imageSource *buildapi.ImageSource) fielderrors.Validati
 	if len(imageSource.Paths) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("paths"))
 	}
+	for i, path := range imageSource.Paths {
+		allErrs = append(allErrs, validateImageSourcePath(path).PrefixIndex(i).Prefix("paths")...)
+
+	}
 	return allErrs
 }
 
+func validateImageSourcePath(imagePath buildapi.ImageSourcePath) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	if len(imagePath.SourcePath) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("sourcePath"))
+	}
+	if len(imagePath.DestinationDir) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("destinationDir"))
+	}
+	if !filepath.IsAbs(imagePath.SourcePath) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("sourcePath", imagePath.SourcePath, "must be an absolute path"))
+	}
+	if filepath.IsAbs(imagePath.DestinationDir) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("destinationDir", imagePath.DestinationDir, "must be a relative path"))
+	}
+	if strings.HasPrefix(path.Clean(imagePath.DestinationDir), "..") {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("destinationDir", imagePath.DestinationDir, "destination dir cannot start with '..'"))
+	}
+	return allErrs
+}
 func validateBinarySource(source *buildapi.BinaryBuildSource) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	if len(source.AsFile) != 0 {

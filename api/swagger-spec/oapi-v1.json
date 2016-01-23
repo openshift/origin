@@ -14704,9 +14704,12 @@
       "$ref": "v1.GitBuildSource",
       "description": "optional information about git build source"
      },
-     "image": {
-      "$ref": "v1.ImageSource",
-      "description": "optional image build source.  EXPERIMENTAL: This will be changing to an array of images in the near future and no migration/compatibility will be provided.  Use at your own risk."
+     "images": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ImageSource"
+      },
+      "description": "optional images for build source."
      },
      "contextDir": {
       "type": "string",

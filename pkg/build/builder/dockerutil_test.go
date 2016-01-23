@@ -46,7 +46,9 @@ func (d *FakeDocker) PullImage(opts docker.PullImageOptions, auth docker.AuthCon
 func (d *FakeDocker) RemoveContainer(opts docker.RemoveContainerOptions) error {
 	return nil
 }
-
+func (d *FakeDocker) InspectImage(name string) (*docker.Image, error) {
+	return nil, nil
+}
 func TestDockerPush(t *testing.T) {
 	verifyFunc := func(opts docker.PushImageOptions, auth docker.AuthConfiguration) error {
 		if opts.Name != "test/image" {

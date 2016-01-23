@@ -100,6 +100,10 @@ type SourceRef struct {
 	ContextDir string
 	Secrets    []buildapi.SecretBuildSource
 
+	SourceImage     *ImageRef
+	ImageSourcePath string
+	ImageDestPath   string
+
 	DockerfileContents string
 
 	Binary bool
@@ -152,6 +156,24 @@ func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTrigge
 	}
 	if r.Binary {
 		source.Binary = &buildapi.BinaryBuildSource{}
+	}
+	if r.SourceImage != nil {
+		objRef := r.SourceImage.ObjectReference()
+		imgSrc := buildapi.ImageSource{}
+		imgSrc.From = objRef
+		imgSrc.Paths = []buildapi.ImageSourcePath{
+			{
+				SourcePath:     r.ImageSourcePath,
+				DestinationDir: r.ImageDestPath,
+			},
+		}
+		triggers = append(triggers, buildapi.BuildTriggerPolicy{
+			Type: buildapi.ImageChangeBuildTriggerType,
+			ImageChange: &buildapi.ImageChangeTrigger{
+				From: &objRef,
+			},
+		})
+		source.Images = []buildapi.ImageSource{imgSrc}
 	}
 	return source, triggers
 }

@@ -51,7 +51,10 @@ You can use '%[1]s status' to check the progress.`
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world RACK_ENV=development
 
   # Create a build config from a remote repository and inject the npmrc into a build
-  $ %[1]s new-build https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc`
+  $ %[1]s new-build https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
+  
+  # Create a build config that gets its input from a remote repository and another Docker image
+  $ %[1]s new-build https://github.com/openshift/ruby-hello-world --image-source=openshift/jenkins-1-centos7 --image-source-path=/var/lib/jenkins:/tmp`
 
 	newBuildNoInput = `You must specify one or more images, image streams, or source code locations to create a build.
 
@@ -113,6 +116,8 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
 	cmd.Flags().BoolVar(&config.DryRun, "dry-run", false, "If true, do not actually create resources.")
 	cmd.Flags().BoolVar(&config.NoOutput, "no-output", false, "If true, the build output will not be pushed anywhere.")
+	cmd.Flags().StringVar(&config.SourceImage, "source-image", "", "Specify an image to use as source for the build.  You must also specify --source-image-path.")
+	cmd.Flags().StringVar(&config.SourceImagePath, "source-image-path", "", "Specify the file or directory to copy from the source image and its destination in the build directory. Format: [source]:[destination-dir].")
 	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd

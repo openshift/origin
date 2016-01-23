@@ -991,13 +991,15 @@ func deepCopy_v1_BuildSource(in apiv1.BuildSource, out *apiv1.BuildSource, c *co
 	} else {
 		out.Git = nil
 	}
-	if in.Image != nil {
-		out.Image = new(apiv1.ImageSource)
-		if err := deepCopy_v1_ImageSource(*in.Image, out.Image, c); err != nil {
-			return err
+	if in.Images != nil {
+		out.Images = make([]apiv1.ImageSource, len(in.Images))
+		for i := range in.Images {
+			if err := deepCopy_v1_ImageSource(in.Images[i], &out.Images[i], c); err != nil {
+				return err
+			}
 		}
 	} else {
-		out.Image = nil
+		out.Images = nil
 	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {

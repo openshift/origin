@@ -65,10 +65,22 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 		}
 	}
 
+	forcePull := false
+	switch {
+	case build.Spec.Strategy.SourceStrategy != nil:
+		forcePull = build.Spec.Strategy.SourceStrategy.ForcePull
+	case build.Spec.Strategy.DockerStrategy != nil:
+		forcePull = build.Spec.Strategy.DockerStrategy.ForcePull
+	case build.Spec.Strategy.CustomStrategy != nil:
+		forcePull = build.Spec.Strategy.CustomStrategy.ForcePull
+	}
 	// extract source from an Image if specified
-	if build.Spec.Source.Image != nil {
-		// fetch image source
-		err := extractSourceFromImage(dockerClient, build.Spec.Source.Image.From.Name, dir, build.Spec.Source.Image.Paths)
+	for i, image := range build.Spec.Source.Images {
+		imageSecretIndex := i
+		if image.PullSecret == nil {
+			imageSecretIndex = -1
+		}
+		err := extractSourceFromImage(dockerClient, image.From.Name, dir, imageSecretIndex, image.Paths, forcePull)
 		if err != nil {
 			return nil, err
 		}
@@ -256,16 +268,43 @@ func copyImageSource(dockerClient DockerClient, containerID, sourceDir, destDir 
 	return tarHelper.ExtractTarStreamWithLogging(destDir, file, tarOutput)
 }
 
-func extractSourceFromImage(dockerClient DockerClient, image, buildDir string, paths []api.ImageSourcePath) error {
+func extractSourceFromImage(dockerClient DockerClient, image, buildDir string, imageSecretIndex int, paths []api.ImageSourcePath, forcePull bool) error {
 	glog.V(4).Infof("Extracting image source from %s", image)
 
-	// Pre-pull image if a secret is specified
-	pullSecret := os.Getenv(dockercfg.PullSourceAuthType)
-	if len(pullSecret) > 0 {
-		dockerAuth, present := dockercfg.NewHelper().GetDockerAuth(image, dockercfg.PullSourceAuthType)
-		if present {
-			dockerClient.PullImage(docker.PullImageOptions{Repository: image}, dockerAuth)
+	dockerAuth := docker.AuthConfiguration{}
+	if imageSecretIndex != -1 {
+		pullSecret := os.Getenv(fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, imageSecretIndex))
+		if len(pullSecret) > 0 {
+			authPresent := false
+			dockerAuth, authPresent = dockercfg.NewHelper().GetDockerAuth(image, fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, imageSecretIndex))
+			if authPresent {
+				glog.V(5).Infof("Registry server Address: %s", dockerAuth.ServerAddress)
+				glog.V(5).Infof("Registry server User Name: %s", dockerAuth.Username)
+				glog.V(5).Infof("Registry server Email: %s", dockerAuth.Email)
+				passwordPresent := "<<empty>>"
+				if len(dockerAuth.Password) > 0 {
+					passwordPresent = "<<non-empty>>"
+				}
+				glog.V(5).Infof("Registry server Password: %s", passwordPresent)
+			}
 		}
+	}
+
+	exists := true
+	if !forcePull {
+		_, err := dockerClient.InspectImage(image)
+		if err != nil && err == docker.ErrNoSuchImage {
+			exists = false
+		} else if err != nil {
+			return err
+		}
+	}
+
+	if !exists || forcePull {
+		if err := dockerClient.PullImage(docker.PullImageOptions{Repository: image}, dockerAuth); err != nil {
+			return fmt.Errorf("error pulling image %v: %v", image, err)
+		}
+
 	}
 
 	// Create container to copy from
