@@ -316,6 +316,10 @@ func convert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conversi
 	} else {
 		out.ImagePullSecrets = nil
 	}
+
+	// carry conversion
+	out.DeprecatedHost = in.NodeName
+
 	return nil
 }
 
@@ -372,6 +376,12 @@ func convert_v1_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s conversi
 		out.ServiceAccountName = in.DeprecatedServiceAccount
 	}
 	out.NodeName = in.NodeName
+
+	// carry conversion
+	if in.NodeName == "" {
+		out.NodeName = in.DeprecatedHost
+	}
+
 	if in.SecurityContext != nil {
 		out.SecurityContext = new(api.PodSecurityContext)
 		if err := convert_v1_PodSecurityContext_To_api_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {

@@ -579,6 +579,7 @@ func deepCopy_v1_PodSpec(in v1.PodSpec, out *v1.PodSpec, c *conversion.Cloner) e
 	} else {
 		out.NodeSelector = nil
 	}
+	out.DeprecatedHost = in.DeprecatedHost
 	out.ServiceAccountName = in.ServiceAccountName
 	out.DeprecatedServiceAccount = in.DeprecatedServiceAccount
 	out.NodeName = in.NodeName
