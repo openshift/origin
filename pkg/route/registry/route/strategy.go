@@ -43,14 +43,15 @@ func (routeStrategy) NamespaceScoped() bool {
 func (s routeStrategy) PrepareForCreate(obj runtime.Object) {
 	route := obj.(*api.Route)
 	route.Status = api.RouteStatus{}
+	// TODO: this does not belong here, and should be removed
+	shard, err := s.RouteAllocator.AllocateRouterShard(route)
+	if err != nil {
+		// TODO: this will be changed when moved to a controller
+		util.HandleError(errors.NewInternalError(fmt.Errorf("allocation error: %v for route: %#v", err, obj)))
+		return
+	}
+	route.Spec.Shard = shard;
 	if len(route.Spec.Host) == 0 && s.RouteAllocator != nil {
-		// TODO: this does not belong here, and should be removed
-		shard, err := s.RouteAllocator.AllocateRouterShard(route)
-		if err != nil {
-			// TODO: this will be changed when moved to a controller
-			util.HandleError(errors.NewInternalError(fmt.Errorf("allocation error: %v for route: %#v", err, obj)))
-			return
-		}
 		route.Spec.Host = s.RouteAllocator.GenerateHostname(route, shard)
 		if route.Annotations == nil {
 			route.Annotations = map[string]string{}

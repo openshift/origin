@@ -4835,6 +4835,7 @@ func autoconvert_api_RouteSpec_To_v1_RouteSpec(in *routeapi.RouteSpec, out *rout
 	}
 	out.Host = in.Host
 	out.Path = in.Path
+	out.AppendDNSSuffix = in.AppendDNSSuffix
 	if err := convert_api_ObjectReference_To_v1_ObjectReference(&in.To, &out.To, s); err != nil {
 		return err
 	}
@@ -4853,6 +4854,14 @@ func autoconvert_api_RouteSpec_To_v1_RouteSpec(in *routeapi.RouteSpec, out *rout
 		}
 	} else {
 		out.TLS = nil
+	}
+	if in.Shard != nil {
+		out.Shard = new(routeapiv1.RouterShard)
+		if err := convert_api_RouterShard_To_v1_RouterShard(in.Shard, out.Shard, s); err != nil {
+			return err
+		}
+	} else {
+		out.Shard = nil
 	}
 	return nil
 }
@@ -4885,8 +4894,22 @@ func autoconvert_api_TLSConfig_To_v1_TLSConfig(in *routeapi.TLSConfig, out *rout
 	return nil
 }
 
+func autoconvert_api_RouterShard_To_v1_RouterShard(in *routeapi.RouterShard, out *routeapiv1.RouterShard, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapi.RouterShard))(in)
+	}
+	out.ShardName = in.ShardName
+	out.DNSSuffix = in.DNSSuffix
+	return nil
+}
+
 func convert_api_TLSConfig_To_v1_TLSConfig(in *routeapi.TLSConfig, out *routeapiv1.TLSConfig, s conversion.Scope) error {
 	return autoconvert_api_TLSConfig_To_v1_TLSConfig(in, out, s)
+}
+
+
+func convert_api_RouterShard_To_v1_RouterShard(in *routeapi.RouterShard, out *routeapiv1.RouterShard, s conversion.Scope) error {
+	return autoconvert_api_RouterShard_To_v1_RouterShard(in, out, s)
 }
 
 func autoconvert_v1_Route_To_api_Route(in *routeapiv1.Route, out *routeapi.Route, s conversion.Scope) error {
@@ -4959,6 +4982,7 @@ func autoconvert_v1_RouteSpec_To_api_RouteSpec(in *routeapiv1.RouteSpec, out *ro
 	}
 	out.Host = in.Host
 	out.Path = in.Path
+	out.AppendDNSSuffix = in.AppendDNSSuffix
 	if err := convert_v1_ObjectReference_To_api_ObjectReference(&in.To, &out.To, s); err != nil {
 		return err
 	}
@@ -4977,6 +5001,14 @@ func autoconvert_v1_RouteSpec_To_api_RouteSpec(in *routeapiv1.RouteSpec, out *ro
 		}
 	} else {
 		out.TLS = nil
+	}
+	if in.Shard != nil {
+		out.Shard = new(routeapi.RouterShard)
+		if err := convert_v1_RouterShard_To_api_RouterShard(in.Shard, out.Shard, s); err != nil {
+			return err
+		}
+	} else {
+		out.Shard = nil
 	}
 	return nil
 }
@@ -5009,8 +5041,21 @@ func autoconvert_v1_TLSConfig_To_api_TLSConfig(in *routeapiv1.TLSConfig, out *ro
 	return nil
 }
 
+func autoconvert_v1_RouterShard_To_api_RouterShard(in *routeapiv1.RouterShard, out *routeapi.RouterShard, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapiv1.RouterShard))(in)
+	}
+	out.ShardName = in.ShardName
+	out.DNSSuffix = in.DNSSuffix
+	return nil
+}
+
 func convert_v1_TLSConfig_To_api_TLSConfig(in *routeapiv1.TLSConfig, out *routeapi.TLSConfig, s conversion.Scope) error {
 	return autoconvert_v1_TLSConfig_To_api_TLSConfig(in, out, s)
+}
+
+func convert_v1_RouterShard_To_api_RouterShard(in *routeapiv1.RouterShard, out *routeapi.RouterShard, s conversion.Scope) error {
+	return autoconvert_v1_RouterShard_To_api_RouterShard(in, out, s)
 }
 
 func autoconvert_api_ClusterNetwork_To_v1_ClusterNetwork(in *sdnapi.ClusterNetwork, out *sdnapiv1.ClusterNetwork, s conversion.Scope) error {
@@ -8059,6 +8104,7 @@ func init() {
 		autoconvert_api_SubjectAccessReview_To_v1_SubjectAccessReview,
 		autoconvert_api_TCPSocketAction_To_v1_TCPSocketAction,
 		autoconvert_api_TLSConfig_To_v1_TLSConfig,
+		autoconvert_api_RouterShard_To_v1_RouterShard,
 		autoconvert_api_TemplateList_To_v1_TemplateList,
 		autoconvert_api_Template_To_v1_Template,
 		autoconvert_api_UserIdentityMapping_To_v1_UserIdentityMapping,

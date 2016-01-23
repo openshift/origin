@@ -36,6 +36,13 @@ type RouteSpec struct {
 
 	//TLS provides the ability to configure certificates and termination for the route
 	TLS *TLSConfig
+
+	// RouterShard has information of a routing shard and is used to
+	// generate host names
+	Shard *RouterShard
+
+	// If specfied and true then DNSSuffix is appended to display in UI when host is specified for a route
+	AppendDNSSuffix bool
 }
 
 // RoutePort defines a port mapping from a router to an endpoint in the service endpoints.
