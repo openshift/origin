@@ -49,6 +49,7 @@ func TestImageStreamByAnnotationSearcherAndResolver(t *testing.T) {
 	tests := []struct {
 		value       string
 		expectMatch bool
+		precise     bool
 	}{
 		{
 			value:       "ruby:2.0",
@@ -69,7 +70,10 @@ func TestImageStreamByAnnotationSearcherAndResolver(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		searchResults, _ := searcher.Search(test.value)
+		searchResults, errs := searcher.Search(test.precise, test.value)
+		if errs != nil {
+			t.Errorf("unexpected errors: %v", errs)
+		}
 		if len(searchResults) == 0 && test.expectMatch {
 			t.Errorf("Expected a search match for %s. Got none", test.value)
 		}
@@ -109,6 +113,7 @@ func TestImageStreamSearcher(t *testing.T) {
 	resolver := UniqueExactOrInexactMatchResolver{Searcher: searcher}
 	tests := []struct {
 		value       string
+		precise     bool
 		expectMatch bool
 		expectTag   string
 	}{
@@ -128,9 +133,9 @@ func TestImageStreamSearcher(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		searchResults, err := searcher.Search(test.value)
+		searchResults, errs := searcher.Search(test.precise, test.value)
 		if len(searchResults) == 0 && test.expectMatch {
-			t.Errorf("Expected a search match for %s. Got none: %v", test.value, err)
+			t.Errorf("Expected a search match for %s. Got none: %v", test.value, errs)
 		}
 		if len(searchResults) == 1 && !test.expectMatch {
 			t.Errorf("Did not expect search a match for %s. Got a match: %#v", test.value, searchResults[0])

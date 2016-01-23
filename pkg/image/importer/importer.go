@@ -16,6 +16,7 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
 	registryclient "github.com/docker/distribution/registry/client"
@@ -309,6 +310,8 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 	if err != nil {
 		glog.V(5).Infof("unable to access repository %#v: %#v", repository, err)
 		switch {
+		case err == reference.ErrReferenceInvalidFormat:
+			err = field.Invalid(field.NewPath("from", "name"), repository.Name, "the provided repository name is not valid")
 		case isDockerError(err, v2.ErrorCodeNameUnknown):
 			err = kapierrors.NewNotFound("DockerImage", repository.Ref.Exact())
 		case isDockerError(err, errcode.ErrorCodeUnauthorized):

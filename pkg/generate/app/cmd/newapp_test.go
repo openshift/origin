@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -16,9 +17,12 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/runtime"
+	utilerrs "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -491,10 +495,12 @@ func mapContains(a, b map[string]string) bool {
 
 // ExactMatchDockerSearcher returns a match with the value that was passed in
 // and a march score of 0.0(exact)
-type ExactMatchDockerSearcher struct{}
+type ExactMatchDockerSearcher struct {
+	Errs []error
+}
 
 // Search always returns a match for every term passed in
-func (r *ExactMatchDockerSearcher) Search(terms ...string) (app.ComponentMatches, error) {
+func (r *ExactMatchDockerSearcher) Search(precise bool, terms ...string) (app.ComponentMatches, []error) {
 	matches := app.ComponentMatches{}
 	for _, value := range terms {
 		matches = append(matches, &app.ComponentMatch{
@@ -505,7 +511,7 @@ func (r *ExactMatchDockerSearcher) Search(terms ...string) (app.ComponentMatches
 			Score:       0.0,
 		})
 	}
-	return matches, nil
+	return matches, r.Errs
 }
 
 func TestRunAll(t *testing.T) {
@@ -519,6 +525,7 @@ func TestRunAll(t *testing.T) {
 		expected        map[string][]string
 		expectedName    string
 		expectedErr     error
+		errFn           func(error) bool
 		expectInsecure  sets.String
 		expectedVolumes map[string]string
 		checkPort       string
@@ -868,6 +875,51 @@ func TestRunAll(t *testing.T) {
 			expectedName: "custom",
 			expectedErr:  nil,
 		},
+		{
+			name: "partial matches",
+			config: &AppConfig{
+				DockerImages: []string{"mysql"},
+				dockerSearcher: app.DockerClientSearcher{
+					RegistrySearcher: &ExactMatchDockerSearcher{Errs: []error{errors.NewInternalError(fmt.Errorf("test error"))}},
+				},
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client: client.NewSimpleFake(&unversioned.Status{
+						Status: unversioned.StatusFailure,
+						Code:   http.StatusInternalServerError,
+						Reason: unversioned.StatusReasonInternalError,
+					}),
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+				Name:            "custom",
+			},
+			expected: map[string][]string{
+				"imageStream":      {"custom"},
+				"deploymentConfig": {"custom"},
+				"service":          {"custom"},
+			},
+			expectedName: "custom",
+			errFn: func(err error) bool {
+				err = err.(utilerrs.Aggregate).Errors()[0]
+				match, ok := err.(app.ErrNoMatch)
+				if !ok {
+					return false
+				}
+				if match.Value != "mysql" {
+					return false
+				}
+				t.Logf("%#v", match.Errs[0])
+				return len(match.Errs) == 1 && strings.Contains(match.Errs[0].Error(), "test error")
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -875,8 +927,16 @@ func TestRunAll(t *testing.T) {
 		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
 		test.config.Deploy = true
 		res, err := test.config.Run()
-		if err != test.expectedErr {
+		if test.errFn != nil {
+			if !test.errFn(err) {
+				t.Errorf("%s: Error mismatch! Unexpected error: %#v", test.name, err)
+				continue
+			}
+		} else if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
+			continue
+		}
+		if err != nil {
 			continue
 		}
 		if res.Name != test.expectedName {

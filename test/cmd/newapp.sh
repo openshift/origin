@@ -9,6 +9,14 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
 # This test validates the new-app command
 
 os::cmd::expect_success_and_text 'oc new-app library/php mysql -o yaml' '3306'
@@ -109,14 +117,35 @@ os::cmd::expect_failure_and_text 'oc new-app --search winter-is-coming' 'no matc
 os::cmd::expect_failure_and_text 'oc new-app -S mysql --env=FOO=BAR' "can't be used"
 os::cmd::expect_failure_and_text 'oc new-app --search mysql --code=https://github.com/openshift/ruby-hello-world' "can't be used"
 os::cmd::expect_failure_and_text 'oc new-app --search mysql --param=FOO=BAR' "can't be used"
+
 # set context-dir
 os::cmd::expect_success_and_text 'oc new-app https://github.com/openshift/sti-ruby.git --context-dir="2.0/test/puma-test-app" -o yaml' 'contextDir: 2.0/test/puma-test-app'
 os::cmd::expect_success_and_text 'oc new-app ruby~https://github.com/openshift/sti-ruby.git --context-dir="2.0/test/puma-test-app" -o yaml' 'contextDir: 2.0/test/puma-test-app'
+
 # set strategy
 os::cmd::expect_success_and_text 'oc new-app ruby~https://github.com/openshift/ruby-hello-world.git --strategy=docker -o yaml' 'dockerStrategy'
 os::cmd::expect_success_and_text 'oc new-app https://github.com/openshift/ruby-hello-world.git --strategy=source -o yaml' 'sourceStrategy'
 
+# prints volume and root user info
+os::cmd::expect_success_and_text 'oc new-app --dry-run mysql' 'This image declares volumes'
+os::cmd::expect_success_and_not_text 'oc new-app --dry-run mysql' "runs as the 'root' user"
+os::cmd::expect_success_and_text 'oc new-app --dry-run --docker-image=mysql' 'This image declares volumes'
+os::cmd::expect_success_and_text 'oc new-app --dry-run --docker-image=mysql' "WARNING: Image \"mysql\" runs as the 'root' user"
+
+# verify multiple errors are displayed together, a nested error is returned, and that the usage message is displayed
+os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' 'error: no match for "__template_fail"'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' 'error: no match for "__templatefile_fail"'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' 'error: unable to find the specified template file'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' "The 'oc new-app' command will match arguments"
+
+# verify partial match error
+os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' 'error: only a partial match was found for "mysq"'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' 'The argument "mysq" only partially matched'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' "Image stream \"mysql\" \\(tag \"5.6\"\\) in project"
+
+
 os::cmd::expect_success 'oc delete imageStreams --all'
+
 # check that we can create from the template without errors
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -l app=helloworld' 'service "frontend" created'
 os::cmd::expect_success 'oc delete all -l app=helloworld'
@@ -129,6 +158,9 @@ os::cmd::expect_success 'oc delete template ruby-helloworld-sample'
 os::cmd::expect_success_and_text 'oc new-app mysql --name=db' 'db'
 os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world -l app=ruby'
 os::cmd::expect_success 'oc delete all -l app=ruby'
+# check for error when template JSON file has errors
+jsonfile="${OS_ROOT}/test/fixtures/invalid.json"
+os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to load template file \"${jsonfile}\": invalid character '}' after object key"
 
 # check new-build
 os::cmd::expect_failure_and_text 'oc new-build mysql -o yaml' 'you must specify at least one source repository URL'

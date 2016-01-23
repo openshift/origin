@@ -177,14 +177,6 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 		} else {
 			fmt.Fprintf(out, "    * This image will be deployed in deployment config %q\n", pipeline.Deployment.Name)
 		}
-
-		if pipeline.Image != nil && pipeline.Image.HasEmptyDir {
-			fmt.Fprintf(out, "    * This image declares volumes and will default to use non-persistent, host-local storage.\n")
-			fmt.Fprintf(out, "      You can add persistent volumes later by running 'volume dc/%s --add ...'\n", pipeline.Deployment.Name)
-		}
-		if pipeline.Image.Info != nil && (len(pipeline.Image.Info.Config.User) == 0 || pipeline.Image.Info.Config.User == "root" || pipeline.Image.Info.Config.User == "0") {
-			fmt.Fprintf(out, "    * [WARNING] Image %q runs as the 'root' user which may not be permitted by your cluster administrator\n", pipeline.Image.Reference.Name)
-		}
 	}
 	if match != nil && match.Image != nil {
 		if pipeline.Deployment != nil {
@@ -206,11 +198,32 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				} else {
 					fmt.Fprintf(out, "    * Ports %s will be load balanced by service %q\n", strings.Join(orderedPorts, ", "), pipeline.Deployment.Name)
 				}
-				fmt.Fprintf(out, "    * Other containers can access this service through the hostname %q\n", pipeline.Deployment.Name)
+				fmt.Fprintf(out, "      * Other containers can access this service through the hostname %q\n", pipeline.Deployment.Name)
+			}
+			if hasEmptyDir(match.Image) {
+				fmt.Fprintf(out, "    * This image declares volumes and will default to use non-persistent, host-local storage.\n")
+				fmt.Fprintf(out, "      You can add persistent volumes later by running 'volume dc/%s --add ...'\n", pipeline.Deployment.Name)
+			}
+			if hasRootUser(match.Image) {
+				fmt.Fprintf(out, "    * WARNING: Image %q runs as the 'root' user which may not be permitted by your cluster administrator\n", pipeline.Image.Reference.Name)
 			}
 		}
 	}
 	fmt.Fprintln(out)
+}
+
+func hasRootUser(image *imageapi.DockerImage) bool {
+	if image.Config == nil {
+		return false
+	}
+	return len(image.Config.User) == 0 || image.Config.User == "root" || image.Config.User == "0"
+}
+
+func hasEmptyDir(image *imageapi.DockerImage) bool {
+	if image.Config == nil {
+		return false
+	}
+	return len(image.Config.Volumes) > 0
 }
 
 func describeGeneratedTemplate(out io.Writer, ref app.ComponentReference, result *templateapi.Template, baseNamespace string) {

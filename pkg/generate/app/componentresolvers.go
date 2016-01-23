@@ -17,12 +17,13 @@ type Resolver interface {
 }
 
 // Searcher is responsible for performing a search based on the given terms and return
-// all results found as component matches. Notice they can even return zero or multiple
-// matches, meaning they will never return ErrNoMatch or ErrMultipleMatches and any error
-// returned is an actual error. The component match score can be used to determine how
-// precise a given match is, where 0.0 is an exact match.
+// all results found as component matches. The component match score can be used to
+// determine how precise a given match is, where 0.0 is an exact match. All errors
+// encountered during search should be returned. The precise flag is a hint to the
+// searchers that they may stop searching when they hit their first exact set of
+// matches
 type Searcher interface {
-	Search(terms ...string) (ComponentMatches, error)
+	Search(precise bool, terms ...string) (ComponentMatches, []error)
 }
 
 // WeightedResolver is a resolver identified as exact or not, depending on its weight
@@ -40,7 +41,8 @@ type PerfectMatchWeightedResolver []WeightedResolver
 
 // Resolve resolves the provided input and returns only exact matches
 func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, error) {
-	imperfect := ScoredComponentMatches{}
+	var errs []error
+	candidates := ScoredComponentMatches{}
 	var group MultiSimpleSearcher
 	var groupWeight float32 = 0.0
 	for i, resolver := range r {
@@ -52,59 +54,42 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 				continue
 			}
 		}
-		matches, err := group.Search(value)
-		switch {
-		case len(matches) > 0:
-			sort.Sort(ScoredComponentMatches(matches))
-			if matches[0].Score == 0.0 && (len(matches) == 1 || matches[1].Score != 0.0) {
-				return matches[0], nil
-			}
-			for _, m := range matches {
-				if resolver.Weight != 0.0 {
-					m.Score = resolver.Weight * m.Score
-				}
-				imperfect = append(imperfect, m)
-			}
-		case err != nil:
+		matches, err := group.Search(true, value)
+		if err != nil {
 			glog.V(5).Infof("Error from resolver: %v\n", err)
-			return nil, err
+			errs = append(errs, err...)
+		}
+
+		sort.Sort(ScoredComponentMatches(matches))
+		if len(matches) > 0 && matches[0].Score == 0.0 && (len(matches) == 1 || matches[1].Score != 0.0) {
+			return matches[0], errors.NewAggregate(errs)
+		}
+		for _, m := range matches {
+			if groupWeight != 0.0 {
+				m.Score = groupWeight * m.Score
+			}
+			candidates = append(candidates, m)
 		}
 		group = nil
 	}
 
-	switch len(imperfect) {
+	switch len(candidates) {
 	case 0:
-		// If value is a file and there is a TemplateFileSearcher in one of the resolvers
-		// and trying to use it gives an error, use this error instead of ErrNoMatch.
-		// E.g., calling `oc new-app template.json` where template.json is a file
-		// with invalid JSON, it's better to return the JSON syntax error than a more
-		// generic message.
-		if isFile(value) {
-			for _, resolver := range r {
-				if _, ok := resolver.Searcher.(*TemplateFileSearcher); ok {
-					if _, err := resolver.Search(value); err != nil {
-						return nil, err
-					}
-				}
-			}
-		}
-		return nil, ErrNoMatch{value: value}
+		return nil, ErrNoMatch{Value: value, Errs: errs}
 	case 1:
-		var err error
-		if imperfect[0].Score != 0.0 {
-			err = ErrPartialMatch{value, imperfect[0]}
+		if candidates[0].Score != 0.0 {
+			return nil, ErrPartialMatch{Value: value, Match: candidates[0], Errs: errs}
 		}
-		return imperfect[0], err
+		return candidates[0], errors.NewAggregate(errs)
 	default:
-		sort.Sort(imperfect)
-		if imperfect[0].Score < imperfect[1].Score {
-			var err error
-			if imperfect[0].Score != 0.0 {
-				err = ErrPartialMatch{value, imperfect[0]}
+		sort.Sort(candidates)
+		if candidates[0].Score < candidates[1].Score {
+			if candidates[0].Score != 0.0 {
+				return nil, ErrPartialMatch{Value: value, Match: candidates[0], Errs: errs}
 			}
-			return imperfect[0], err
+			return candidates[0], errors.NewAggregate(errs)
 		}
-		return nil, ErrMultipleMatches{value, imperfect}
+		return nil, ErrMultipleMatches{Value: value, Matches: candidates, Errs: errs}
 	}
 }
 
@@ -118,14 +103,11 @@ type FirstMatchResolver struct {
 
 // Resolve resolves as the first match returned by the Searcher
 func (r FirstMatchResolver) Resolve(value string) (*ComponentMatch, error) {
-	matches, err := r.Searcher.Search(value)
-	if err != nil {
-		return nil, err
-	}
+	matches, err := r.Searcher.Search(true, value)
 	if len(matches) == 0 {
-		return nil, ErrNoMatch{value: value}
+		return nil, ErrNoMatch{Value: value, Errs: err}
 	}
-	return matches[0], nil
+	return matches[0], errors.NewAggregate(err)
 }
 
 // HighestScoreResolver takes search result returned by the searcher it holds
@@ -138,15 +120,12 @@ type HighestScoreResolver struct {
 
 // Resolve resolves as the first highest scored match returned by the Searcher
 func (r HighestScoreResolver) Resolve(value string) (*ComponentMatch, error) {
-	matches, err := r.Searcher.Search(value)
-	if err != nil {
-		return nil, err
-	}
+	matches, err := r.Searcher.Search(true, value)
 	if len(matches) == 0 {
-		return nil, ErrNoMatch{value: value}
+		return nil, ErrNoMatch{Value: value, Errs: err}
 	}
 	sort.Sort(ScoredComponentMatches(matches))
-	return matches[0], nil
+	return matches[0], errors.NewAggregate(err)
 }
 
 // HighestUniqueScoreResolver takes search result returned by the searcher it
@@ -160,21 +139,25 @@ type HighestUniqueScoreResolver struct {
 // Resolve resolves as the highest scored match returned by the Searcher, and
 // guarantees the match is unique (the only match with that given score)
 func (r HighestUniqueScoreResolver) Resolve(value string) (*ComponentMatch, error) {
-	matches, err := r.Searcher.Search(value)
-	if err != nil {
-		return nil, err
-	}
+	matches, err := r.Searcher.Search(true, value)
 	sort.Sort(ScoredComponentMatches(matches))
 	switch len(matches) {
 	case 0:
-		return nil, ErrNoMatch{value: value}
+		return nil, ErrNoMatch{Value: value, Errs: err}
 	case 1:
-		return matches[0], nil
+		return matches[0], errors.NewAggregate(err)
 	default:
 		if matches[0].Score == matches[1].Score {
-			return nil, ErrMultipleMatches{value, matches}
+			equal := ComponentMatches{}
+			for _, m := range matches {
+				if m.Score != matches[0].Score {
+					break
+				}
+				equal = append(equal, m)
+			}
+			return nil, ErrMultipleMatches{Value: value, Matches: equal, Errs: err}
 		}
-		return matches[0], nil
+		return matches[0], errors.NewAggregate(err)
 	}
 }
 
@@ -187,12 +170,9 @@ type UniqueExactOrInexactMatchResolver struct {
 	Searcher Searcher
 }
 
-// Resolve resolves as the single exact or inexact match present
+// Resolve resolves as the single exact or inexact match present.
 func (r UniqueExactOrInexactMatchResolver) Resolve(value string) (*ComponentMatch, error) {
-	matches, err := r.Searcher.Search(value)
-	if err != nil {
-		return nil, err
-	}
+	matches, err := r.Searcher.Search(true, value)
 	sort.Sort(ScoredComponentMatches(matches))
 
 	exact := matches.Exact()
@@ -201,16 +181,16 @@ func (r UniqueExactOrInexactMatchResolver) Resolve(value string) (*ComponentMatc
 		inexact := matches.Inexact()
 		switch len(inexact) {
 		case 0:
-			return nil, ErrNoMatch{value: value}
+			return nil, ErrNoMatch{Value: value, Errs: err}
 		case 1:
-			return inexact[0], nil
+			return inexact[0], errors.NewAggregate(err)
 		default:
-			return nil, ErrMultipleMatches{value, exact}
+			return nil, ErrMultipleMatches{Value: value, Matches: matches, Errs: err}
 		}
 	case 1:
-		return exact[0], nil
+		return exact[0], errors.NewAggregate(err)
 	default:
-		return nil, ErrMultipleMatches{value, exact}
+		return nil, ErrMultipleMatches{Value: value, Matches: matches, Errs: err}
 	}
 }
 
@@ -218,20 +198,19 @@ func (r UniqueExactOrInexactMatchResolver) Resolve(value string) (*ComponentMatc
 type MultiSimpleSearcher []Searcher
 
 // Search searches using all searchers it holds
-func (s MultiSimpleSearcher) Search(terms ...string) (ComponentMatches, error) {
+func (s MultiSimpleSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	var errs []error
 	componentMatches := ComponentMatches{}
 	for _, searcher := range s {
-		matches, err := searcher.Search(terms...)
-		if err != nil {
-			glog.V(2).Infof("Error occurred during search: %s", err)
-			errs = append(errs, err)
+		matches, err := searcher.Search(precise, terms...)
+		if len(err) > 0 {
+			errs = append(errs, err...)
 			continue
 		}
 		componentMatches = append(componentMatches, matches...)
 	}
 	sort.Sort(ScoredComponentMatches(componentMatches))
-	return componentMatches, errors.NewAggregate(errs)
+	return componentMatches, errs
 }
 
 // WeightedSearcher is a searcher identified as exact or not, depending on its weight
@@ -245,12 +224,13 @@ type WeightedSearcher struct {
 type MultiWeightedSearcher []WeightedSearcher
 
 // Search searches using all searchers it holds and score according to searcher height
-func (s MultiWeightedSearcher) Search(terms ...string) (ComponentMatches, error) {
+func (s MultiWeightedSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	componentMatches := ComponentMatches{}
+	var errs []error
 	for _, searcher := range s {
-		matches, err := searcher.Search(terms...)
-		if err != nil {
-			glog.V(2).Infof("Error occurred during search: %#v", err)
+		matches, err := searcher.Search(precise, terms...)
+		if len(err) > 0 {
+			errs = append(errs, err...)
 			continue
 		}
 		for _, match := range matches {
@@ -259,23 +239,5 @@ func (s MultiWeightedSearcher) Search(terms ...string) (ComponentMatches, error)
 		}
 	}
 	sort.Sort(ScoredComponentMatches(componentMatches))
-	return componentMatches, nil
-}
-
-func searchExact(searcher Searcher, value string) (exact *ComponentMatch, inexact []*ComponentMatch, err error) {
-	matches, err := searcher.Search(value)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	exactMatches := matches.Exact()
-	inexactMatches := matches.Inexact()
-	switch len(exactMatches) {
-	case 0:
-		return nil, inexactMatches, nil
-	case 1:
-		return exactMatches[0], inexactMatches, nil
-	default:
-		return nil, nil, ErrMultipleMatches{value, exactMatches}
-	}
+	return componentMatches, errs
 }

@@ -9,7 +9,7 @@ type mockSearcher struct {
 	numResults int
 }
 
-func (m mockSearcher) Search(terms ...string) (ComponentMatches, error) {
+func (m mockSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	results := ComponentMatches{}
 	for i := 0; i < m.numResults; i++ {
 		results = append(results, &ComponentMatch{Argument: fmt.Sprintf("match%d", i), Score: 0.0})
