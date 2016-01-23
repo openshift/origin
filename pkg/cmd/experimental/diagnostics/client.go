@@ -29,7 +29,7 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 	}
 
 	diagnostics := []types.Diagnostic{}
-	requestedDiagnostics := intersection(sets.NewString(o.RequestedDiagnostics...), available).List()
+	requestedDiagnostics := available.Intersection(sets.NewString(o.RequestedDiagnostics...)).List()
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
 		case clientdiags.ConfigContextsName:

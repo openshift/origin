@@ -183,7 +183,7 @@ oc logs --version=1 dc/failing-dc
 
 echo "[INFO] Run pod diagnostics"
 # Requires a node to run the pod; uses origin-deployer pod, expects registry deployed
-openshift ex diagnostics -d DiagnosticPod --images="${USE_IMAGES}"
+openshift ex diagnostics DiagnosticPod --images="${USE_IMAGES}"
 
 echo "[INFO] Applying STI application config"
 oc create -f "${STI_CONFIG_FILE}"

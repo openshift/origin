@@ -9,7 +9,7 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
-# Cleanup cluster resources created by this test
+#Cleanup cluster resources created by this test
 (
   set +e
   oc delete project/example project/ui-test-project project/recreated-project
@@ -300,3 +300,4 @@ os::cmd::expect_success_and_not_text "oc get clusterrolebindings/cluster-admins 
 os::cmd::expect_success_and_not_text "oc get rolebindings/cluster-admin         --output-version=v1 --template='{{.subjects}}' -n default" 'cascaded-group'
 os::cmd::expect_success_and_not_text "oc get scc/restricted                     --output-version=v1 --template='{{.groups}}'"              'cascaded-group'
 echo "user-group-cascade: ok"
+

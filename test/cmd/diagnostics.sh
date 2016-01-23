@@ -16,12 +16,15 @@ os::log::install_errexit
 # Without things feeding into systemd, AnalyzeLogs and UnitStatus are irrelevant.
 # The rest should be included in some fashion.
 
-os::cmd::expect_success 'openshift ex diagnostics -d ClusterRoleBindings,ClusterRoles,ConfigContexts '
+os::cmd::expect_success 'openshift ex diagnostics ClusterRoleBindings ClusterRoles ConfigContexts '
 # DiagnosticPod can't run without Docker, would just time out. Exercise flags instead.
-os::cmd::expect_success "openshift ex diagnostics -d DiagnosticPod --prevent-modification --images=foo"
-os::cmd::expect_success "openshift ex diagnostics -d MasterConfigCheck,NodeConfigCheck --master-config=${MASTER_CONFIG_DIR}/master-config.yaml --node-config=${NODE_CONFIG_DIR}/node-config.yaml"
-os::cmd::expect_success_and_text 'openshift ex diagnostics -d ClusterRegistry' "DClu1002 from diagnostic ClusterRegistry"
+os::cmd::expect_success "openshift ex diagnostics DiagnosticPod --prevent-modification --images=foo"
+os::cmd::expect_success "openshift ex diagnostics MasterConfigCheck NodeConfigCheck --master-config=${MASTER_CONFIG_DIR}/master-config.yaml --node-config=${NODE_CONFIG_DIR}/node-config.yaml"
+os::cmd::expect_success_and_text 'openshift ex diagnostics ClusterRegistry' "DClu1002 from diagnostic ClusterRegistry"
 # ClusterRouter fails differently depending on whether other tests have run first, so don't test for specific error
-os::cmd::expect_failure 'openshift ex diagnostics -d ClusterRouter' # "DClu2001 from diagnostic ClusterRouter"
-os::cmd::expect_failure 'openshift ex diagnostics -d NodeDefinitions'
+# no ordering allowed
+#os::cmd::expect_failure 'openshift ex diagnostics ClusterRouter' # "DClu2001 from diagnostic ClusterRouter"
+os::cmd::expect_failure 'openshift ex diagnostics NodeDefinitions'
+os::cmd::expect_failure_and_text 'openshift ex diagnostics FakeDiagnostic AlsoMissing' 'No requested diagnostics are available: requested=FakeDiagnostic AlsoMissing'
+os::cmd::expect_failure_and_text 'openshift ex diagnostics AnalyzeLogs AlsoMissing' 'Not all requested diagnostics are available: missing=AlsoMissing requested=AnalyzeLogs AlsoMissing available='
 echo "diagnostics: ok"

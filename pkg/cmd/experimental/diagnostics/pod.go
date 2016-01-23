@@ -53,7 +53,7 @@ func NewCommandPodDiagnostics(name string, out io.Writer) *cobra.Command {
 		Short: "Within a pod, run pod diagnostics",
 		Long:  fmt.Sprintf(longPodDiagDescription),
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete())
+			kcmdutil.CheckErr(o.Complete(args))
 
 			failed, err, warnCount, errorCount := o.BuildAndRunDiagnostics()
 			o.Logger.Summary(warnCount, errorCount)
@@ -68,17 +68,21 @@ func NewCommandPodDiagnostics(name string, out io.Writer) *cobra.Command {
 	cmd.SetOutput(out) // for output re: usage / help
 
 	options.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, options.RecommendedLoggerOptionFlags())
-	options.BindDiagnosticFlag(cmd.Flags(), &o.RequestedDiagnostics, options.NewRecommendedDiagnosticFlag())
 
 	return cmd
 }
 
 // Complete fills in PodDiagnosticsOptions needed if the command is actually invoked.
-func (o *PodDiagnosticsOptions) Complete() error {
+func (o *PodDiagnosticsOptions) Complete(args []string) error {
 	var err error
 	o.Logger, err = o.LogOptions.NewLogger()
 	if err != nil {
 		return err
+	}
+
+	o.RequestedDiagnostics = append(o.RequestedDiagnostics, args...)
+	if len(o.RequestedDiagnostics) == 0 {
+		o.RequestedDiagnostics = availablePodDiagnostics.List()
 	}
 
 	return nil
@@ -196,7 +200,7 @@ func determineRequestedDiagnostics(available []string, requested []string, logge
 	diagnostics := []string{}
 	if len(requested) == 0 { // not specified, use the available list
 		diagnostics = available
-	} else if diagnostics = intersection(sets.NewString(requested...), sets.NewString(available...)).List(); len(diagnostics) == 0 {
+	} else if diagnostics = sets.NewString(requested...).Intersection(sets.NewString(available...)).List(); len(diagnostics) == 0 {
 		logger.Error("CED6001", log.EvalTemplate("CED6001", "None of the requested diagnostics are available:\n  {{.requested}}\nPlease try from the following:\n  {{.available}}",
 			log.Hash{"requested": requested, "available": available}))
 		return fmt.Errorf("No requested diagnostics available"), diagnostics

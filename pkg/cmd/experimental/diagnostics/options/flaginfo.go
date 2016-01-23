@@ -48,7 +48,6 @@ const (
 	FlagMasterConfigName        = "master-config"
 	FlagNodeConfigName          = "node-config"
 	FlagClusterContextName      = "cluster-context"
-	FlagDiagnosticsName         = "diagnostics"
 	FlagLevelName               = "diaglevel"
 	FlagIsHostName              = "host"
 	FlagImageTemplateName       = "images"
