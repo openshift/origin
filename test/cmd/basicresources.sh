@@ -110,3 +110,7 @@ os::cmd::expect_success 'oc delete all -l app=ruby-hello-world'
 os::cmd::expect_failure 'oc get dc/ruby-hello-world'
 echo "delete all: ok"
 
+# service accounts should not be allowed to request new projects
+SA_TOKEN=`oc get sa/builder --template='{{range .secrets}}{{ .name }} {{end}}' | xargs -n 1 oc get secret --template='{{ if .data.token }}{{ .data.token }}{{end}}' | base64 -d -`
+os::cmd::expect_failure_and_text "oc new-project --token=${SA_TOKEN} will-fail" 'Error from server: You may not request a new project via this API'
+

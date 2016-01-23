@@ -641,7 +641,7 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 			RoleRef: kapi.ObjectReference{
 				Name: SelfProvisionerRoleName,
 			},
-			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: AuthenticatedGroup}},
+			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: HumanGroup}},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
