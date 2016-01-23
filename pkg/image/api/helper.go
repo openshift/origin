@@ -18,6 +18,10 @@ const (
 	DockerDefaultNamespace = "library"
 	// DockerDefaultRegistry is the value for the registry when none was provided.
 	DockerDefaultRegistry = "docker.io"
+	// DockerDefaultV1Registry is the host name of the default v1 registry
+	DockerDefaultV1Registry = "index." + DockerDefaultRegistry
+	// DockerDefaultV2Registry is the host name of the default v2 registry
+	DockerDefaultV2Registry = "registry-1." + DockerDefaultRegistry
 )
 
 // TODO remove (base, tag, id)
@@ -47,6 +51,17 @@ func isRegistryName(str string) bool {
 	return false
 }
 
+// IsRegistryDockerHub returns true if the given registry name belongs to
+// Docker hub.
+func IsRegistryDockerHub(registry string) bool {
+	switch registry {
+	case DockerDefaultRegistry, DockerDefaultV1Registry, DockerDefaultV2Registry:
+		return true
+	default:
+		return false
+	}
+}
+
 // ParseDockerImageReference parses a Docker pull spec string into a
 // DockerImageReference.
 func ParseDockerImageReference(spec string) (DockerImageReference, error) {
@@ -60,8 +75,9 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		if isRegistryName(repoParts[0]) {
 			// registry/name
 			ref.Registry = repoParts[0]
-			// TODO: default this in all cases where Namespace ends up as ""?
-			ref.Namespace = DockerDefaultNamespace
+			if IsRegistryDockerHub(ref.Registry) {
+				ref.Namespace = DockerDefaultNamespace
+			}
 			if len(repoParts[1]) == 0 {
 				return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 			}
@@ -117,11 +133,11 @@ func (r DockerImageReference) Equal(other DockerImageReference) bool {
 
 // DockerClientDefaults sets the default values used by the Docker client.
 func (r DockerImageReference) DockerClientDefaults() DockerImageReference {
-	if len(r.Namespace) == 0 {
-		r.Namespace = DockerDefaultNamespace
-	}
 	if len(r.Registry) == 0 {
 		r.Registry = DockerDefaultRegistry
+	}
+	if len(r.Namespace) == 0 && IsRegistryDockerHub(r.Registry) {
+		r.Namespace = DockerDefaultNamespace
 	}
 	if len(r.Tag) == 0 {
 		r.Tag = DefaultImageTag
@@ -150,8 +166,8 @@ func (r DockerImageReference) DaemonMinimal() DockerImageReference {
 		r.Namespace = ""
 	}
 	switch r.Registry {
-	case "index.docker.io", "docker.io":
-		r.Registry = "docker.io"
+	case DockerDefaultV1Registry, DockerDefaultV2Registry:
+		r.Registry = DockerDefaultRegistry
 	}
 	return r.Minimal()
 }
@@ -198,7 +214,7 @@ func (r DockerImageReference) Exact() string {
 // String converts a DockerImageReference to a Docker pull spec (which implies a default namespace
 // according to V1 Docker registry rules). Use Exact() if you want no defaulting.
 func (r DockerImageReference) String() string {
-	if len(r.Namespace) == 0 {
+	if len(r.Namespace) == 0 && IsRegistryDockerHub(r.Registry) {
 		r.Namespace = DockerDefaultNamespace
 	}
 	return r.Exact()

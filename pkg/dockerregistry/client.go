@@ -21,12 +21,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-const (
-	publicV1DockerHubHost = "index.docker.io"
-	// TODO: is there a better URL?
-	publicV2DockerHubHost = "registry-1.docker.io"
-)
-
 type Image struct {
 	docker.Image
 
@@ -40,16 +34,17 @@ type Client interface {
 	Connect(registry string, allowInsecure bool) (Connection, error)
 }
 
-// Connection allows you to retrieve data from a Docker V1 registry.
+// Connection allows you to retrieve data from a Docker V1/V2 registry.
 type Connection interface {
-	// ImageTags will return a map of the tags for the image by namespace (if not
-	// specified, will be "library") and name.
+	// ImageTags will return a map of the tags for the image by namespace and name.
+	// If namespace is not specified, will default to "library" for Docker hub.
 	ImageTags(namespace, name string) (map[string]string, error)
-	// ImageByID will return the requested image by namespace (if not specified,
-	// will be "library"), name, and ID.
+	// ImageByID will return the requested image by namespace, name, and ID.
+	// If namespace is not specified, will default to "library" for Docker hub.
 	ImageByID(namespace, name, id string) (*Image, error)
-	// ImageByTag will return the requested image by namespace (if not specified,
-	// will be "library"), name, and tag (if not specified, "latest").
+	// ImageByTag will return the requested image by namespace, name, and tag
+	// (if not specified, "latest").
+	// If namespace is not specified, will default to "library" for Docker hub.
 	ImageByTag(namespace, name, tag string) (*Image, error)
 }
 
@@ -91,11 +86,11 @@ func (c *client) Connect(name string, allowInsecure bool) (Connection, error) {
 // segment and docker API version.
 func normalizeDockerHubHost(host string, v2 bool) string {
 	switch host {
-	case "docker.io", "www.docker.io", publicV1DockerHubHost, publicV2DockerHubHost:
+	case imageapi.DockerDefaultRegistry, "www." + imageapi.DockerDefaultRegistry, imageapi.DockerDefaultV1Registry, imageapi.DockerDefaultV2Registry:
 		if v2 {
-			return publicV2DockerHubHost
+			return imageapi.DockerDefaultV2Registry
 		}
-		return publicV1DockerHubHost
+		return imageapi.DockerDefaultV1Registry
 	}
 	return host
 }
@@ -105,7 +100,7 @@ func normalizeDockerHubHost(host string, v2 bool) string {
 func normalizeRegistryName(name string) (*url.URL, error) {
 	prefix := name
 	if len(prefix) == 0 {
-		prefix = publicV1DockerHubHost
+		prefix = imageapi.DockerDefaultV1Registry
 	}
 	hadPrefix := false
 	switch {
@@ -209,7 +204,7 @@ func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enable
 
 // ImageTags returns the tags for the named Docker image repository.
 func (c *connection) ImageTags(namespace, name string) (map[string]string, error) {
-	if len(namespace) == 0 {
+	if len(namespace) == 0 && imageapi.IsRegistryDockerHub(c.url.Host) {
 		namespace = imageapi.DockerDefaultNamespace
 	}
 	if len(name) == 0 {
@@ -226,7 +221,7 @@ func (c *connection) ImageTags(namespace, name string) (map[string]string, error
 
 // ImageByID returns the specified image within the named Docker image repository
 func (c *connection) ImageByID(namespace, name, imageID string) (*Image, error) {
-	if len(namespace) == 0 {
+	if len(namespace) == 0 && imageapi.IsRegistryDockerHub(c.url.Host) {
 		namespace = imageapi.DockerDefaultNamespace
 	}
 	if len(name) == 0 {
@@ -243,7 +238,7 @@ func (c *connection) ImageByID(namespace, name, imageID string) (*Image, error) 
 
 // ImageByTag returns the specified image within the named Docker image repository
 func (c *connection) ImageByTag(namespace, name, tag string) (*Image, error) {
-	if len(namespace) == 0 {
+	if len(namespace) == 0 && imageapi.IsRegistryDockerHub(c.url.Host) {
 		namespace = imageapi.DockerDefaultNamespace
 	}
 	if len(name) == 0 {

@@ -15,13 +15,13 @@ os::cmd::expect_success_and_text 'oc new-app library/php mysql -o yaml' '3306'
 os::cmd::expect_success_and_text 'oc new-app library/php mysql --dry-run' "Image \"mysql\" runs as the 'root' user which may not be permitted by your cluster administrator"
 os::cmd::expect_failure 'oc new-app unknownhubimage -o yaml'
 # verify we can generate a Docker image based component "mongodb" directly
-os::cmd::expect_success_and_text 'oc new-app mongo -o yaml' 'library/mongo'
+os::cmd::expect_success_and_text 'oc new-app mongo -o yaml' 'image:\s*mongo'
 # the local image repository takes precedence over the Docker Hub "mysql" image
 os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:latest'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'
-os::cmd::expect_success_and_not_text 'oc new-app mysql -o yaml' 'library/mysql'
+os::cmd::expect_success_and_not_text 'oc new-app mysql -o yaml' 'image:\s*mysql'
 os::cmd::expect_success_and_not_text 'oc new-app mysql --dry-run' "runs as the 'root' user which may not be permitted by your cluster administrator"
 
 # docker strategy with repo that has no dockerfile
