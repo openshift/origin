@@ -16,11 +16,11 @@ import (
 func TestDefaults(t *testing.T) {
 	defaultIntOrString := util.NewIntOrStringFromString("25%")
 	differentIntOrString := util.NewIntOrStringFromInt(5)
-	tests := []struct {
+	tests := map[string]struct {
 		original *deployv1.DeploymentConfig
 		expected *deployv1.DeploymentConfig
 	}{
-		{
+		"empty dc": {
 			original: &deployv1.DeploymentConfig{},
 			expected: &deployv1.DeploymentConfig{
 				Spec: deployv1.DeploymentConfigSpec{
@@ -34,10 +34,15 @@ func TestDefaults(t *testing.T) {
 							MaxUnavailable:      &defaultIntOrString,
 						},
 					},
+					Triggers: []deployv1.DeploymentTriggerPolicy{
+						{
+							Type: deployv1.DeploymentTriggerOnConfigChange,
+						},
+					},
 				},
 			},
 		},
-		{
+		"recreate": {
 			original: &deployv1.DeploymentConfig{
 				Spec: deployv1.DeploymentConfigSpec{
 					Strategy: deployv1.DeploymentStrategy{
@@ -77,7 +82,7 @@ func TestDefaults(t *testing.T) {
 				},
 			},
 		},
-		{
+		"rolling": {
 			original: &deployv1.DeploymentConfig{
 				Spec: deployv1.DeploymentConfigSpec{
 					Strategy: deployv1.DeploymentStrategy{
@@ -117,7 +122,7 @@ func TestDefaults(t *testing.T) {
 				},
 			},
 		},
-		{
+		"rolling-2": {
 			original: &deployv1.DeploymentConfig{
 				Spec: deployv1.DeploymentConfigSpec{
 					Strategy: deployv1.DeploymentStrategy{
@@ -159,8 +164,8 @@ func TestDefaults(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		t.Logf("test %d", i)
+	for name, test := range tests {
+		t.Logf("%s", name)
 		original := test.original
 		expected := test.expected
 		obj2 := roundTrip(t, runtime.Object(original))

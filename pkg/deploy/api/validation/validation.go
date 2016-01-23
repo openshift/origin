@@ -37,7 +37,7 @@ func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) fielderrors.Va
 	if config.Spec.Replicas < 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec.replicas", config.Spec.Replicas, "replicas cannot be negative"))
 	}
-	if config.Spec.Selector == nil || len(config.Spec.Selector) == 0 {
+	if len(config.Spec.Selector) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec.selector", config.Spec.Selector, "selector cannot be empty"))
 	}
 	return allErrs

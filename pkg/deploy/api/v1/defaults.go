@@ -19,6 +19,9 @@ func init() {
 					{Type: DeploymentTriggerOnConfigChange},
 				}
 			}
+			if len(obj.Selector) == 0 && obj.Template != nil {
+				obj.Selector = obj.Template.Labels
+			}
 		},
 		func(obj *DeploymentStrategy) {
 			if len(obj.Type) == 0 {
