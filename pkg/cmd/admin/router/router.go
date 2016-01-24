@@ -358,7 +358,11 @@ func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) 
 }
 
 func generateReadinessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
-	return generateProbeConfigForRouter(cfg, ports)
+	probe := generateProbeConfigForRouter(cfg, ports)
+	if probe != nil {
+		probe.InitialDelaySeconds = 10
+	}
+	return probe
 }
 
 func generateMetricsExporterContainer(cfg *RouterConfig, env app.Environment) *kapi.Container {
