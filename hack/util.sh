@@ -774,6 +774,14 @@ os::util::sed() {
   fi
 }
 
+os::util::base64decode() {
+  if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
+  	base64 -D $@
+  else
+  	base64 -d $@
+  fi
+}
+
 os::util::get_object_assert() {
   local object=$1
   local request=$2
