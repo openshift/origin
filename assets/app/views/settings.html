@@ -101,10 +101,8 @@
         </div>
       </div>
       <div ng-if="(limitRanges | hashSize) === 0">
-        <h2>
-          Limit Range
-          <div class="help-block">{{limitRangeHelp}}</div>
-        </h2>
+        <h2>Limit Range</h2>
+        <div class="help-block">{{limitRangeHelp}}</div>
         <p><em>{{emptyMessageLimitRanges}}</em></p>
       </div>
       <div ng-repeat="(limitRangeName, limitRange) in limitRanges">
