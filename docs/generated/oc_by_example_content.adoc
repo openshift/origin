@@ -614,7 +614,7 @@ Request a new project
 
 
 == oc patch
-Update field(s) of a resource by stdin.
+Update field(s) of a resource using strategic merge patch.
 
 ====
 
@@ -976,28 +976,6 @@ Show an overview of the current project
 
   # See an overview of the current project including details for any identified issues.
   $ oc status -v
-----
-====
-
-
-== oc stop
-Deprecated: Gracefully shut down a resource by name or filename.
-
-====
-
-[options="nowrap"]
-----
-  # Shut down foo.
-  $ oc stop replicationcontroller foo
-
-  # Stop pods and services with label name=myLabel.
-  $ oc stop pods,services -l name=myLabel
-
-  # Shut down the service defined in service.json
-  $ oc stop -f service.json
-
-  # Shut down all resources in the path/to/resources directory
-  $ oc stop -f path/to/resources
 ----
 ====
 

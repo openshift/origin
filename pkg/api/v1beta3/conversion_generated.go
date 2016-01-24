@@ -5840,33 +5840,6 @@ func convert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStor
 	return autoconvert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStoreVolumeSource(in, out, s)
 }
 
-func autoconvert_api_Capabilities_To_v1beta3_Capabilities(in *pkgapi.Capabilities, out *pkgapiv1beta3.Capabilities, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapi.Capabilities))(in)
-	}
-	if in.Add != nil {
-		out.Add = make([]pkgapiv1beta3.Capability, len(in.Add))
-		for i := range in.Add {
-			out.Add[i] = pkgapiv1beta3.Capability(in.Add[i])
-		}
-	} else {
-		out.Add = nil
-	}
-	if in.Drop != nil {
-		out.Drop = make([]pkgapiv1beta3.Capability, len(in.Drop))
-		for i := range in.Drop {
-			out.Drop[i] = pkgapiv1beta3.Capability(in.Drop[i])
-		}
-	} else {
-		out.Drop = nil
-	}
-	return nil
-}
-
-func convert_api_Capabilities_To_v1beta3_Capabilities(in *pkgapi.Capabilities, out *pkgapiv1beta3.Capabilities, s conversion.Scope) error {
-	return autoconvert_api_Capabilities_To_v1beta3_Capabilities(in, out, s)
-}
-
 func autoconvert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in *pkgapi.CephFSVolumeSource, out *pkgapiv1beta3.CephFSVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.CephFSVolumeSource))(in)
@@ -5968,16 +5941,14 @@ func autoconvert_api_Container_To_v1beta3_Container(in *pkgapi.Container, out *p
 		out.VolumeMounts = nil
 	}
 	if in.LivenessProbe != nil {
-		out.LivenessProbe = new(pkgapiv1beta3.Probe)
-		if err := convert_api_Probe_To_v1beta3_Probe(in.LivenessProbe, out.LivenessProbe, s); err != nil {
+		if err := s.Convert(&in.LivenessProbe, &out.LivenessProbe, 0); err != nil {
 			return err
 		}
 	} else {
 		out.LivenessProbe = nil
 	}
 	if in.ReadinessProbe != nil {
-		out.ReadinessProbe = new(pkgapiv1beta3.Probe)
-		if err := convert_api_Probe_To_v1beta3_Probe(in.ReadinessProbe, out.ReadinessProbe, s); err != nil {
+		if err := s.Convert(&in.ReadinessProbe, &out.ReadinessProbe, 0); err != nil {
 			return err
 		}
 	} else {
@@ -5994,8 +5965,7 @@ func autoconvert_api_Container_To_v1beta3_Container(in *pkgapi.Container, out *p
 	out.TerminationMessagePath = in.TerminationMessagePath
 	out.ImagePullPolicy = pkgapiv1beta3.PullPolicy(in.ImagePullPolicy)
 	if in.SecurityContext != nil {
-		out.SecurityContext = new(pkgapiv1beta3.SecurityContext)
-		if err := convert_api_SecurityContext_To_v1beta3_SecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
+		if err := s.Convert(&in.SecurityContext, &out.SecurityContext, 0); err != nil {
 			return err
 		}
 	} else {
@@ -6184,19 +6154,6 @@ func convert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolum
 	return autoconvert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolumeSource(in, out, s)
 }
 
-func autoconvert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource(in *pkgapi.GitRepoVolumeSource, out *pkgapiv1beta3.GitRepoVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapi.GitRepoVolumeSource))(in)
-	}
-	out.Repository = in.Repository
-	out.Revision = in.Revision
-	return nil
-}
-
-func convert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource(in *pkgapi.GitRepoVolumeSource, out *pkgapiv1beta3.GitRepoVolumeSource, s conversion.Scope) error {
-	return autoconvert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource(in, out, s)
-}
-
 func autoconvert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource(in *pkgapi.GlusterfsVolumeSource, out *pkgapiv1beta3.GlusterfsVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.GlusterfsVolumeSource))(in)
@@ -6273,22 +6230,6 @@ func autoconvert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in *pk
 
 func convert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in *pkgapi.HostPathVolumeSource, out *pkgapiv1beta3.HostPathVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in, out, s)
-}
-
-func autoconvert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in *pkgapi.ISCSIVolumeSource, out *pkgapiv1beta3.ISCSIVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapi.ISCSIVolumeSource))(in)
-	}
-	out.TargetPortal = in.TargetPortal
-	out.IQN = in.IQN
-	out.Lun = in.Lun
-	out.FSType = in.FSType
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func convert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in *pkgapi.ISCSIVolumeSource, out *pkgapiv1beta3.ISCSIVolumeSource, s conversion.Scope) error {
-	return autoconvert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in, out, s)
 }
 
 func autoconvert_api_Lifecycle_To_v1beta3_Lifecycle(in *pkgapi.Lifecycle, out *pkgapiv1beta3.Lifecycle, s conversion.Scope) error {
@@ -6523,22 +6464,6 @@ func convert_api_PodTemplateSpec_To_v1beta3_PodTemplateSpec(in *pkgapi.PodTempla
 	return autoconvert_api_PodTemplateSpec_To_v1beta3_PodTemplateSpec(in, out, s)
 }
 
-func autoconvert_api_Probe_To_v1beta3_Probe(in *pkgapi.Probe, out *pkgapiv1beta3.Probe, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapi.Probe))(in)
-	}
-	if err := convert_api_Handler_To_v1beta3_Handler(&in.Handler, &out.Handler, s); err != nil {
-		return err
-	}
-	out.InitialDelaySeconds = in.InitialDelaySeconds
-	out.TimeoutSeconds = in.TimeoutSeconds
-	return nil
-}
-
-func convert_api_Probe_To_v1beta3_Probe(in *pkgapi.Probe, out *pkgapiv1beta3.Probe, s conversion.Scope) error {
-	return autoconvert_api_Probe_To_v1beta3_Probe(in, out, s)
-}
-
 func autoconvert_api_RBDVolumeSource_To_v1beta3_RBDVolumeSource(in *pkgapi.RBDVolumeSource, out *pkgapiv1beta3.RBDVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.RBDVolumeSource))(in)
@@ -6607,21 +6532,6 @@ func convert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(in *pkgapi
 	return autoconvert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(in, out, s)
 }
 
-func autoconvert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in *pkgapi.SELinuxOptions, out *pkgapiv1beta3.SELinuxOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapi.SELinuxOptions))(in)
-	}
-	out.User = in.User
-	out.Role = in.Role
-	out.Type = in.Type
-	out.Level = in.Level
-	return nil
-}
-
-func convert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in *pkgapi.SELinuxOptions, out *pkgapiv1beta3.SELinuxOptions, s conversion.Scope) error {
-	return autoconvert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in, out, s)
-}
-
 func autoconvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in *pkgapi.SecretVolumeSource, out *pkgapiv1beta3.SecretVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapi.SecretVolumeSource))(in)
@@ -6632,51 +6542,6 @@ func autoconvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in *pkgapi
 
 func convert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in *pkgapi.SecretVolumeSource, out *pkgapiv1beta3.SecretVolumeSource, s conversion.Scope) error {
 	return autoconvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in, out, s)
-}
-
-func autoconvert_api_SecurityContext_To_v1beta3_SecurityContext(in *pkgapi.SecurityContext, out *pkgapiv1beta3.SecurityContext, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapi.SecurityContext))(in)
-	}
-	if in.Capabilities != nil {
-		out.Capabilities = new(pkgapiv1beta3.Capabilities)
-		if err := convert_api_Capabilities_To_v1beta3_Capabilities(in.Capabilities, out.Capabilities, s); err != nil {
-			return err
-		}
-	} else {
-		out.Capabilities = nil
-	}
-	if in.Privileged != nil {
-		out.Privileged = new(bool)
-		*out.Privileged = *in.Privileged
-	} else {
-		out.Privileged = nil
-	}
-	if in.SELinuxOptions != nil {
-		out.SELinuxOptions = new(pkgapiv1beta3.SELinuxOptions)
-		if err := convert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
-			return err
-		}
-	} else {
-		out.SELinuxOptions = nil
-	}
-	if in.RunAsUser != nil {
-		out.RunAsUser = new(int64)
-		*out.RunAsUser = *in.RunAsUser
-	} else {
-		out.RunAsUser = nil
-	}
-	if in.RunAsNonRoot != nil {
-		out.RunAsNonRoot = new(bool)
-		*out.RunAsNonRoot = *in.RunAsNonRoot
-	} else {
-		out.RunAsNonRoot = nil
-	}
-	return nil
-}
-
-func convert_api_SecurityContext_To_v1beta3_SecurityContext(in *pkgapi.SecurityContext, out *pkgapiv1beta3.SecurityContext, s conversion.Scope) error {
-	return autoconvert_api_SecurityContext_To_v1beta3_SecurityContext(in, out, s)
 }
 
 func autoconvert_api_TCPSocketAction_To_v1beta3_TCPSocketAction(in *pkgapi.TCPSocketAction, out *pkgapiv1beta3.TCPSocketAction, s conversion.Scope) error {
@@ -6759,8 +6624,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.AWSElasticBlockStore = nil
 	}
 	if in.GitRepo != nil {
-		out.GitRepo = new(pkgapiv1beta3.GitRepoVolumeSource)
-		if err := convert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource(in.GitRepo, out.GitRepo, s); err != nil {
+		if err := s.Convert(&in.GitRepo, &out.GitRepo, 0); err != nil {
 			return err
 		}
 	} else {
@@ -6783,8 +6647,7 @@ func autoconvert_api_VolumeSource_To_v1beta3_VolumeSource(in *pkgapi.VolumeSourc
 		out.NFS = nil
 	}
 	if in.ISCSI != nil {
-		out.ISCSI = new(pkgapiv1beta3.ISCSIVolumeSource)
-		if err := convert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in.ISCSI, out.ISCSI, s); err != nil {
+		if err := s.Convert(&in.ISCSI, &out.ISCSI, 0); err != nil {
 			return err
 		}
 	} else {
@@ -6870,33 +6733,6 @@ func autoconvert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlock
 
 func convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in *pkgapiv1beta3.AWSElasticBlockStoreVolumeSource, out *pkgapi.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
 	return autoconvert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_Capabilities_To_api_Capabilities(in *pkgapiv1beta3.Capabilities, out *pkgapi.Capabilities, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.Capabilities))(in)
-	}
-	if in.Add != nil {
-		out.Add = make([]pkgapi.Capability, len(in.Add))
-		for i := range in.Add {
-			out.Add[i] = pkgapi.Capability(in.Add[i])
-		}
-	} else {
-		out.Add = nil
-	}
-	if in.Drop != nil {
-		out.Drop = make([]pkgapi.Capability, len(in.Drop))
-		for i := range in.Drop {
-			out.Drop[i] = pkgapi.Capability(in.Drop[i])
-		}
-	} else {
-		out.Drop = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_Capabilities_To_api_Capabilities(in *pkgapiv1beta3.Capabilities, out *pkgapi.Capabilities, s conversion.Scope) error {
-	return autoconvert_v1beta3_Capabilities_To_api_Capabilities(in, out, s)
 }
 
 func autoconvert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in *pkgapiv1beta3.CephFSVolumeSource, out *pkgapi.CephFSVolumeSource, s conversion.Scope) error {
@@ -7000,16 +6836,14 @@ func autoconvert_v1beta3_Container_To_api_Container(in *pkgapiv1beta3.Container,
 		out.VolumeMounts = nil
 	}
 	if in.LivenessProbe != nil {
-		out.LivenessProbe = new(pkgapi.Probe)
-		if err := convert_v1beta3_Probe_To_api_Probe(in.LivenessProbe, out.LivenessProbe, s); err != nil {
+		if err := s.Convert(&in.LivenessProbe, &out.LivenessProbe, 0); err != nil {
 			return err
 		}
 	} else {
 		out.LivenessProbe = nil
 	}
 	if in.ReadinessProbe != nil {
-		out.ReadinessProbe = new(pkgapi.Probe)
-		if err := convert_v1beta3_Probe_To_api_Probe(in.ReadinessProbe, out.ReadinessProbe, s); err != nil {
+		if err := s.Convert(&in.ReadinessProbe, &out.ReadinessProbe, 0); err != nil {
 			return err
 		}
 	} else {
@@ -7028,8 +6862,7 @@ func autoconvert_v1beta3_Container_To_api_Container(in *pkgapiv1beta3.Container,
 	out.ImagePullPolicy = pkgapi.PullPolicy(in.ImagePullPolicy)
 	// in.Capabilities has no peer in out
 	if in.SecurityContext != nil {
-		out.SecurityContext = new(pkgapi.SecurityContext)
-		if err := convert_v1beta3_SecurityContext_To_api_SecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
+		if err := s.Convert(&in.SecurityContext, &out.SecurityContext, 0); err != nil {
 			return err
 		}
 	} else {
@@ -7218,19 +7051,6 @@ func convert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolum
 	return autoconvert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource(in, out, s)
 }
 
-func autoconvert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in *pkgapiv1beta3.GitRepoVolumeSource, out *pkgapi.GitRepoVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.GitRepoVolumeSource))(in)
-	}
-	out.Repository = in.Repository
-	out.Revision = in.Revision
-	return nil
-}
-
-func convert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in *pkgapiv1beta3.GitRepoVolumeSource, out *pkgapi.GitRepoVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in, out, s)
-}
-
 func autoconvert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in *pkgapiv1beta3.GlusterfsVolumeSource, out *pkgapi.GlusterfsVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapiv1beta3.GlusterfsVolumeSource))(in)
@@ -7307,22 +7127,6 @@ func autoconvert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in *pk
 
 func convert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in *pkgapiv1beta3.HostPathVolumeSource, out *pkgapi.HostPathVolumeSource, s conversion.Scope) error {
 	return autoconvert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in *pkgapiv1beta3.ISCSIVolumeSource, out *pkgapi.ISCSIVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.ISCSIVolumeSource))(in)
-	}
-	out.TargetPortal = in.TargetPortal
-	out.IQN = in.IQN
-	out.Lun = in.Lun
-	out.FSType = in.FSType
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func convert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in *pkgapiv1beta3.ISCSIVolumeSource, out *pkgapi.ISCSIVolumeSource, s conversion.Scope) error {
-	return autoconvert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in, out, s)
 }
 
 func autoconvert_v1beta3_Lifecycle_To_api_Lifecycle(in *pkgapiv1beta3.Lifecycle, out *pkgapi.Lifecycle, s conversion.Scope) error {
@@ -7560,22 +7364,6 @@ func convert_v1beta3_PodTemplateSpec_To_api_PodTemplateSpec(in *pkgapiv1beta3.Po
 	return autoconvert_v1beta3_PodTemplateSpec_To_api_PodTemplateSpec(in, out, s)
 }
 
-func autoconvert_v1beta3_Probe_To_api_Probe(in *pkgapiv1beta3.Probe, out *pkgapi.Probe, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.Probe))(in)
-	}
-	if err := convert_v1beta3_Handler_To_api_Handler(&in.Handler, &out.Handler, s); err != nil {
-		return err
-	}
-	out.InitialDelaySeconds = in.InitialDelaySeconds
-	out.TimeoutSeconds = in.TimeoutSeconds
-	return nil
-}
-
-func convert_v1beta3_Probe_To_api_Probe(in *pkgapiv1beta3.Probe, out *pkgapi.Probe, s conversion.Scope) error {
-	return autoconvert_v1beta3_Probe_To_api_Probe(in, out, s)
-}
-
 func autoconvert_v1beta3_RBDVolumeSource_To_api_RBDVolumeSource(in *pkgapiv1beta3.RBDVolumeSource, out *pkgapi.RBDVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapiv1beta3.RBDVolumeSource))(in)
@@ -7644,21 +7432,6 @@ func convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(in *pkgapi
 	return autoconvert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(in, out, s)
 }
 
-func autoconvert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in *pkgapiv1beta3.SELinuxOptions, out *pkgapi.SELinuxOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.SELinuxOptions))(in)
-	}
-	out.User = in.User
-	out.Role = in.Role
-	out.Type = in.Type
-	out.Level = in.Level
-	return nil
-}
-
-func convert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in *pkgapiv1beta3.SELinuxOptions, out *pkgapi.SELinuxOptions, s conversion.Scope) error {
-	return autoconvert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in, out, s)
-}
-
 func autoconvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in *pkgapiv1beta3.SecretVolumeSource, out *pkgapi.SecretVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*pkgapiv1beta3.SecretVolumeSource))(in)
@@ -7669,51 +7442,6 @@ func autoconvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in *pkgapi
 
 func convert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in *pkgapiv1beta3.SecretVolumeSource, out *pkgapi.SecretVolumeSource, s conversion.Scope) error {
 	return autoconvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in, out, s)
-}
-
-func autoconvert_v1beta3_SecurityContext_To_api_SecurityContext(in *pkgapiv1beta3.SecurityContext, out *pkgapi.SecurityContext, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*pkgapiv1beta3.SecurityContext))(in)
-	}
-	if in.Capabilities != nil {
-		out.Capabilities = new(pkgapi.Capabilities)
-		if err := convert_v1beta3_Capabilities_To_api_Capabilities(in.Capabilities, out.Capabilities, s); err != nil {
-			return err
-		}
-	} else {
-		out.Capabilities = nil
-	}
-	if in.Privileged != nil {
-		out.Privileged = new(bool)
-		*out.Privileged = *in.Privileged
-	} else {
-		out.Privileged = nil
-	}
-	if in.SELinuxOptions != nil {
-		out.SELinuxOptions = new(pkgapi.SELinuxOptions)
-		if err := convert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
-			return err
-		}
-	} else {
-		out.SELinuxOptions = nil
-	}
-	if in.RunAsUser != nil {
-		out.RunAsUser = new(int64)
-		*out.RunAsUser = *in.RunAsUser
-	} else {
-		out.RunAsUser = nil
-	}
-	if in.RunAsNonRoot != nil {
-		out.RunAsNonRoot = new(bool)
-		*out.RunAsNonRoot = *in.RunAsNonRoot
-	} else {
-		out.RunAsNonRoot = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_SecurityContext_To_api_SecurityContext(in *pkgapiv1beta3.SecurityContext, out *pkgapi.SecurityContext, s conversion.Scope) error {
-	return autoconvert_v1beta3_SecurityContext_To_api_SecurityContext(in, out, s)
 }
 
 func autoconvert_v1beta3_TCPSocketAction_To_api_TCPSocketAction(in *pkgapiv1beta3.TCPSocketAction, out *pkgapi.TCPSocketAction, s conversion.Scope) error {
@@ -7796,8 +7524,7 @@ func autoconvert_v1beta3_VolumeSource_To_api_VolumeSource(in *pkgapiv1beta3.Volu
 		out.AWSElasticBlockStore = nil
 	}
 	if in.GitRepo != nil {
-		out.GitRepo = new(pkgapi.GitRepoVolumeSource)
-		if err := convert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in.GitRepo, out.GitRepo, s); err != nil {
+		if err := s.Convert(&in.GitRepo, &out.GitRepo, 0); err != nil {
 			return err
 		}
 	} else {
@@ -7820,8 +7547,7 @@ func autoconvert_v1beta3_VolumeSource_To_api_VolumeSource(in *pkgapiv1beta3.Volu
 		out.NFS = nil
 	}
 	if in.ISCSI != nil {
-		out.ISCSI = new(pkgapi.ISCSIVolumeSource)
-		if err := convert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in.ISCSI, out.ISCSI, s); err != nil {
+		if err := s.Convert(&in.ISCSI, &out.ISCSI, 0); err != nil {
 			return err
 		}
 	} else {
@@ -7915,7 +7641,6 @@ func init() {
 		autoconvert_api_BuildStrategy_To_v1beta3_BuildStrategy,
 		autoconvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy,
 		autoconvert_api_Build_To_v1beta3_Build,
-		autoconvert_api_Capabilities_To_v1beta3_Capabilities,
 		autoconvert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource,
 		autoconvert_api_CinderVolumeSource_To_v1beta3_CinderVolumeSource,
 		autoconvert_api_ClusterNetworkList_To_v1beta3_ClusterNetworkList,
@@ -7958,7 +7683,6 @@ func init() {
 		autoconvert_api_FlockerVolumeSource_To_v1beta3_FlockerVolumeSource,
 		autoconvert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolumeSource,
 		autoconvert_api_GitBuildSource_To_v1beta3_GitBuildSource,
-		autoconvert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource,
 		autoconvert_api_GitSourceRevision_To_v1beta3_GitSourceRevision,
 		autoconvert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource,
 		autoconvert_api_GroupList_To_v1beta3_GroupList,
@@ -7968,7 +7692,6 @@ func init() {
 		autoconvert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource,
 		autoconvert_api_HostSubnetList_To_v1beta3_HostSubnetList,
 		autoconvert_api_HostSubnet_To_v1beta3_HostSubnet,
-		autoconvert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource,
 		autoconvert_api_IdentityList_To_v1beta3_IdentityList,
 		autoconvert_api_Identity_To_v1beta3_Identity,
 		autoconvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger,
@@ -8013,7 +7736,6 @@ func init() {
 		autoconvert_api_PolicyList_To_v1beta3_PolicyList,
 		autoconvert_api_PolicyRule_To_v1beta3_PolicyRule,
 		autoconvert_api_Policy_To_v1beta3_Policy,
-		autoconvert_api_Probe_To_v1beta3_Probe,
 		autoconvert_api_ProjectList_To_v1beta3_ProjectList,
 		autoconvert_api_ProjectRequest_To_v1beta3_ProjectRequest,
 		autoconvert_api_ProjectSpec_To_v1beta3_ProjectSpec,
@@ -8034,11 +7756,9 @@ func init() {
 		autoconvert_api_RouteSpec_To_v1beta3_RouteSpec,
 		autoconvert_api_RouteStatus_To_v1beta3_RouteStatus,
 		autoconvert_api_Route_To_v1beta3_Route,
-		autoconvert_api_SELinuxOptions_To_v1beta3_SELinuxOptions,
 		autoconvert_api_SecretBuildSource_To_v1beta3_SecretBuildSource,
 		autoconvert_api_SecretSpec_To_v1beta3_SecretSpec,
 		autoconvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource,
-		autoconvert_api_SecurityContext_To_v1beta3_SecurityContext,
 		autoconvert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy,
 		autoconvert_api_SourceControlUser_To_v1beta3_SourceControlUser,
 		autoconvert_api_SourceRevision_To_v1beta3_SourceRevision,
@@ -8073,7 +7793,6 @@ func init() {
 		autoconvert_v1beta3_BuildStrategy_To_api_BuildStrategy,
 		autoconvert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy,
 		autoconvert_v1beta3_Build_To_api_Build,
-		autoconvert_v1beta3_Capabilities_To_api_Capabilities,
 		autoconvert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource,
 		autoconvert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource,
 		autoconvert_v1beta3_ClusterNetworkList_To_api_ClusterNetworkList,
@@ -8116,7 +7835,6 @@ func init() {
 		autoconvert_v1beta3_FlockerVolumeSource_To_api_FlockerVolumeSource,
 		autoconvert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource,
 		autoconvert_v1beta3_GitBuildSource_To_api_GitBuildSource,
-		autoconvert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource,
 		autoconvert_v1beta3_GitSourceRevision_To_api_GitSourceRevision,
 		autoconvert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource,
 		autoconvert_v1beta3_GroupList_To_api_GroupList,
@@ -8126,7 +7844,6 @@ func init() {
 		autoconvert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource,
 		autoconvert_v1beta3_HostSubnetList_To_api_HostSubnetList,
 		autoconvert_v1beta3_HostSubnet_To_api_HostSubnet,
-		autoconvert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource,
 		autoconvert_v1beta3_IdentityList_To_api_IdentityList,
 		autoconvert_v1beta3_Identity_To_api_Identity,
 		autoconvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger,
@@ -8171,7 +7888,6 @@ func init() {
 		autoconvert_v1beta3_PolicyList_To_api_PolicyList,
 		autoconvert_v1beta3_PolicyRule_To_api_PolicyRule,
 		autoconvert_v1beta3_Policy_To_api_Policy,
-		autoconvert_v1beta3_Probe_To_api_Probe,
 		autoconvert_v1beta3_ProjectList_To_api_ProjectList,
 		autoconvert_v1beta3_ProjectRequest_To_api_ProjectRequest,
 		autoconvert_v1beta3_ProjectSpec_To_api_ProjectSpec,
@@ -8192,11 +7908,9 @@ func init() {
 		autoconvert_v1beta3_RouteSpec_To_api_RouteSpec,
 		autoconvert_v1beta3_RouteStatus_To_api_RouteStatus,
 		autoconvert_v1beta3_Route_To_api_Route,
-		autoconvert_v1beta3_SELinuxOptions_To_api_SELinuxOptions,
 		autoconvert_v1beta3_SecretBuildSource_To_api_SecretBuildSource,
 		autoconvert_v1beta3_SecretSpec_To_api_SecretSpec,
 		autoconvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource,
-		autoconvert_v1beta3_SecurityContext_To_api_SecurityContext,
 		autoconvert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy,
 		autoconvert_v1beta3_SourceControlUser_To_api_SourceControlUser,
 		autoconvert_v1beta3_SourceRevision_To_api_SourceRevision,

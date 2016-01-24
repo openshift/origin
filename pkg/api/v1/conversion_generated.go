@@ -6256,7 +6256,7 @@ func autoconvert_api_AWSElasticBlockStoreVolumeSource_To_v1_AWSElasticBlockStore
 	}
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int32(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -6441,8 +6441,8 @@ func autoconvert_api_ContainerPort_To_v1_ContainerPort(in *pkgapi.ContainerPort,
 		defaulting.(func(*pkgapi.ContainerPort))(in)
 	}
 	out.Name = in.Name
-	out.HostPort = in.HostPort
-	out.ContainerPort = in.ContainerPort
+	out.HostPort = int32(in.HostPort)
+	out.ContainerPort = int32(in.ContainerPort)
 	out.Protocol = pkgapiv1.Protocol(in.Protocol)
 	out.HostIP = in.HostIP
 	return nil
@@ -6572,8 +6572,8 @@ func autoconvert_api_FCVolumeSource_To_v1_FCVolumeSource(in *pkgapi.FCVolumeSour
 		out.TargetWWNs = nil
 	}
 	if in.Lun != nil {
-		out.Lun = new(int)
-		*out.Lun = *in.Lun
+		out.Lun = new(int32)
+		*out.Lun = int32(*in.Lun)
 	} else {
 		out.Lun = nil
 	}
@@ -6604,7 +6604,7 @@ func autoconvert_api_GCEPersistentDiskVolumeSource_To_v1_GCEPersistentDiskVolume
 	}
 	out.PDName = in.PDName
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int32(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -6619,6 +6619,7 @@ func autoconvert_api_GitRepoVolumeSource_To_v1_GitRepoVolumeSource(in *pkgapi.Gi
 	}
 	out.Repository = in.Repository
 	out.Revision = in.Revision
+	out.Directory = in.Directory
 	return nil
 }
 
@@ -6710,7 +6711,8 @@ func autoconvert_api_ISCSIVolumeSource_To_v1_ISCSIVolumeSource(in *pkgapi.ISCSIV
 	}
 	out.TargetPortal = in.TargetPortal
 	out.IQN = in.IQN
-	out.Lun = in.Lun
+	out.Lun = int32(in.Lun)
+	out.ISCSIInterface = in.ISCSIInterface
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
 	return nil
@@ -6959,8 +6961,11 @@ func autoconvert_api_Probe_To_v1_Probe(in *pkgapi.Probe, out *pkgapiv1.Probe, s 
 	if err := convert_api_Handler_To_v1_Handler(&in.Handler, &out.Handler, s); err != nil {
 		return err
 	}
-	out.InitialDelaySeconds = in.InitialDelaySeconds
-	out.TimeoutSeconds = in.TimeoutSeconds
+	out.InitialDelaySeconds = int32(in.InitialDelaySeconds)
+	out.TimeoutSeconds = int32(in.TimeoutSeconds)
+	out.PeriodSeconds = int32(in.PeriodSeconds)
+	out.SuccessThreshold = int32(in.SuccessThreshold)
+	out.FailureThreshold = int32(in.FailureThreshold)
 	return nil
 }
 
@@ -7292,7 +7297,7 @@ func autoconvert_v1_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStore
 	}
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -7477,8 +7482,8 @@ func autoconvert_v1_ContainerPort_To_api_ContainerPort(in *pkgapiv1.ContainerPor
 		defaulting.(func(*pkgapiv1.ContainerPort))(in)
 	}
 	out.Name = in.Name
-	out.HostPort = in.HostPort
-	out.ContainerPort = in.ContainerPort
+	out.HostPort = int(in.HostPort)
+	out.ContainerPort = int(in.ContainerPort)
 	out.Protocol = pkgapi.Protocol(in.Protocol)
 	out.HostIP = in.HostIP
 	return nil
@@ -7609,7 +7614,7 @@ func autoconvert_v1_FCVolumeSource_To_api_FCVolumeSource(in *pkgapiv1.FCVolumeSo
 	}
 	if in.Lun != nil {
 		out.Lun = new(int)
-		*out.Lun = *in.Lun
+		*out.Lun = int(*in.Lun)
 	} else {
 		out.Lun = nil
 	}
@@ -7640,7 +7645,7 @@ func autoconvert_v1_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolume
 	}
 	out.PDName = in.PDName
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -7655,6 +7660,7 @@ func autoconvert_v1_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in *pkgapiv1.
 	}
 	out.Repository = in.Repository
 	out.Revision = in.Revision
+	out.Directory = in.Directory
 	return nil
 }
 
@@ -7746,7 +7752,8 @@ func autoconvert_v1_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in *pkgapiv1.ISCS
 	}
 	out.TargetPortal = in.TargetPortal
 	out.IQN = in.IQN
-	out.Lun = in.Lun
+	out.Lun = int(in.Lun)
+	out.ISCSIInterface = in.ISCSIInterface
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
 	return nil
@@ -8000,8 +8007,11 @@ func autoconvert_v1_Probe_To_api_Probe(in *pkgapiv1.Probe, out *pkgapi.Probe, s 
 	if err := convert_v1_Handler_To_api_Handler(&in.Handler, &out.Handler, s); err != nil {
 		return err
 	}
-	out.InitialDelaySeconds = in.InitialDelaySeconds
-	out.TimeoutSeconds = in.TimeoutSeconds
+	out.InitialDelaySeconds = int(in.InitialDelaySeconds)
+	out.TimeoutSeconds = int(in.TimeoutSeconds)
+	out.PeriodSeconds = int(in.PeriodSeconds)
+	out.SuccessThreshold = int(in.SuccessThreshold)
+	out.FailureThreshold = int(in.FailureThreshold)
 	return nil
 }
 
