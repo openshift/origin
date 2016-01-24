@@ -14,7 +14,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/client"
@@ -46,8 +45,8 @@ type REST struct {
 // if v1 Docker Registry importing is not required
 func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStreams rest.CreaterUpdater,
 	images rest.Creater, secrets client.ImageStreamSecretsNamespacer, clientFn ImporterDockerRegistryFunc) *REST {
-	rt, err := kclient.TransportFor(&kclient.Config{})
 	// TODO: will be refactored upstream, or take this as input?
+	rt, err := kclient.TransportFor(&kclient.Config{})
 	if err != nil {
 		panic(err)
 	}
@@ -84,23 +83,42 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, kapierrors.NewBadRequest("a namespace must be specified to import images")
 	}
 
-	secrets, err := r.secrets.ImageStreamSecrets(namespace).Secrets(isi.Name, kapi.ListOptions{})
-	if err != nil {
-		util.HandleError(fmt.Errorf("unable to load secrets for namespace %q: %v", namespace, err))
-		secrets = &kapi.SecretList{}
-	}
-
 	if r.clientFn != nil {
 		if client := r.clientFn(); client != nil {
 			ctx = kapi.WithValue(ctx, importer.ContextKeyV1RegistryClient, client)
 		}
 	}
-	credentials := importer.NewCredentialsForSecrets(secrets.Items)
-	importCtx := importer.NewContext(r.transport).WithCredentials(credentials)
 
+	// only load secrets if we need them
+	credentials := importer.NewLazyCredentialsForSecrets(func() ([]kapi.Secret, error) {
+		secrets, err := r.secrets.ImageStreamSecrets(namespace).Secrets(isi.Name, kapi.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return secrets.Items, nil
+	})
+	importCtx := importer.NewContext(r.transport).WithCredentials(credentials)
 	imports := r.importFn(importCtx)
 	if err := imports.Import(ctx.(gocontext.Context), isi); err != nil {
 		return nil, kapierrors.NewInternalError(err)
+	}
+
+	// if we encountered an error loading credentials and any images could not be retrieved with an access
+	// related error, modify the message.
+	// TODO: set a status cause
+	if err := credentials.Err(); err != nil {
+		for i, image := range isi.Status.Images {
+			switch image.Status.Reason {
+			case unversioned.StatusReasonUnauthorized, unversioned.StatusReasonForbidden:
+				isi.Status.Images[i].Status.Message = fmt.Sprintf("Unable to load secrets for this image: %v; (%s)", err, image.Status.Message)
+			}
+		}
+		if r := isi.Status.Repository; r != nil {
+			switch r.Status.Reason {
+			case unversioned.StatusReasonUnauthorized, unversioned.StatusReasonForbidden:
+				r.Status.Message = fmt.Sprintf("Unable to load secrets for this repository: %v; (%s)", err, r.Status.Message)
+			}
+		}
 	}
 
 	// TODO: perform the transformation of the image stream and return it with the ISI if import is false

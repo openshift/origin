@@ -658,6 +658,7 @@ func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.UR
 	rt := transport.NewTransport(
 		r.context.Transport,
 		// TODO: slightly smarter authorizer that retries unauthenticated requests
+		// TODO: make multiple attempts if the first credential fails
 		auth.NewAuthorizer(
 			r.context.Challenges,
 			auth.NewTokenHandler(r.context.Transport, r.credentials, repoName, "pull"),
