@@ -363,8 +363,9 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		"happy path": {
 			repo: &api.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
-					Namespace: "default",
-					Name:      "test",
+					Namespace:  "default",
+					Name:       "test",
+					Generation: 2,
 				},
 				Spec: api.ImageStreamSpec{
 					Tags: map[string]api.TagReference{
@@ -390,6 +391,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 								{
 									DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
 									Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+									Generation:           2,
 								},
 							},
 						},
@@ -398,6 +400,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 								{
 									DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
 									Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+									Generation:           2,
 								},
 							},
 						},
@@ -406,6 +409,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 								{
 									DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
 									Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+									Generation:           2,
 								},
 							},
 						},
@@ -414,6 +418,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 								{
 									DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
 									Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+									Generation:           2,
 								},
 							},
 						},
@@ -458,19 +463,21 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		}
 		expectedStatus := &unversioned.Status{Status: unversioned.StatusSuccess}
 		if e, a := expectedStatus, obj; !reflect.DeepEqual(e, a) {
-			t.Errorf("%s: expected %#v, got %#v", name, e, a)
+			t.Errorf("%s:\nexpect=%#v\nactual=%#v", name, e, a)
 		}
 
 		updatedRepo := &api.ImageStream{}
 		if err := helper.Get(kapi.NewDefaultContext(), "/imagestreams/default/test", updatedRepo, false); err != nil {
 			t.Fatalf("%s: error retrieving updated repo: %s", name, err)
 		}
+		three := int64(3)
 		expectedStreamSpec := map[string]api.TagReference{
 			"another": {
 				From: &kapi.ObjectReference{
 					Kind: "ImageStreamTag",
 					Name: "test:foo",
 				},
+				Generation: &three,
 			},
 		}
 		expectedStreamStatus := map[string]api.TagEventList{
@@ -479,6 +486,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 					{
 						DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
 						Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+						Generation:           2,
 					},
 				},
 			},
@@ -487,6 +495,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 					{
 						DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
 						Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+						Generation:           2,
 					},
 				},
 			},
@@ -495,16 +504,20 @@ func TestDeleteImageStreamTag(t *testing.T) {
 					{
 						DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
 						Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+						Generation:           2,
 					},
 				},
 			},
 		}
 
+		if updatedRepo.Generation != 3 {
+			t.Errorf("%s: unexpected generation: %d", name, updatedRepo.Generation)
+		}
 		if e, a := expectedStreamStatus, updatedRepo.Status.Tags; !reflect.DeepEqual(e, a) {
-			t.Errorf("%s: stream status: expected\n%v\ngot\n%v\n", name, e, a)
+			t.Errorf("%s: stream spec:\nexpect=%#v\nactual=%#v", name, e, a)
 		}
 		if e, a := expectedStreamSpec, updatedRepo.Spec.Tags; !reflect.DeepEqual(e, a) {
-			t.Errorf("%s: stream spec: expected\n%v\ngot\n%v\n", name, e, a)
+			t.Errorf("%s: stream spec:\nexpect=%#v\nactual=%#v", name, e, a)
 		}
 
 	}

@@ -36,8 +36,7 @@ func (f *ImportControllerFactory) Create() controller.RunnableController {
 	cache.NewReflector(lw, &api.ImageStream{}, q, 2*time.Minute).Run()
 
 	c := &ImportController{
-		streams:  f.Client,
-		mappings: f.Client,
+		streams: f.Client,
 	}
 
 	return &controller.RetryController{

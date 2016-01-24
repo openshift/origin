@@ -52,16 +52,18 @@ type Connection interface {
 type client struct {
 	dialTimeout time.Duration
 	connections map[string]*connection
+	allowV2     bool
 }
 
 // NewClient returns a client object which allows public access to
 // a Docker registry. enableV2 allows a client to prefer V1 registry
 // API connections.
 // TODO: accept a docker auth config
-func NewClient(dialTimeout time.Duration) Client {
+func NewClient(dialTimeout time.Duration, allowV2 bool) Client {
 	return &client{
 		dialTimeout: dialTimeout,
 		connections: make(map[string]*connection),
+		allowV2:     allowV2,
 	}
 }
 
@@ -77,7 +79,7 @@ func (c *client) Connect(name string, allowInsecure bool) (Connection, error) {
 	if conn, ok := c.connections[prefix]; ok && conn.allowInsecure == allowInsecure {
 		return conn, nil
 	}
-	conn := newConnection(*target, c.dialTimeout, allowInsecure, true)
+	conn := newConnection(*target, c.dialTimeout, allowInsecure, c.allowV2)
 	c.connections[prefix] = conn
 	return conn, nil
 }

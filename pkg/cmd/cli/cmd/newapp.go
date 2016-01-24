@@ -585,8 +585,8 @@ The '%[2]s' command will match arguments to the following types:
 
 --allow-missing-images can be used to point to an image that does not exist yet.
 
-See '%[2]s' for examples.
-`, t, c.Name())
+See '%[2]s -h' for examples.
+`, t, c.CommandPath())
 	case newapp.ErrMultipleMatches:
 		return fmt.Errorf(err.(newapp.ErrMultipleMatches).UsageError(""))
 	case newapp.ErrPartialMatch:

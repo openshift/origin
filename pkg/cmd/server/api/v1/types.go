@@ -181,6 +181,9 @@ type MasterConfig struct {
 	// ImageConfig holds options that describe how to build image names for system components
 	ImageConfig ImageConfig `json:"imageConfig"`
 
+	// ImagePolicyConfig controls limits and behavior for importing images
+	ImagePolicyConfig ImagePolicyConfig `json:"imagePolicyConfig"`
+
 	// PolicyConfig holds information about where to locate critical pieces of bootstrapping policy
 	PolicyConfig PolicyConfig `json:"policyConfig"`
 
@@ -192,6 +195,13 @@ type MasterConfig struct {
 
 	// NetworkConfig to be passed to the compiled in network plugin
 	NetworkConfig MasterNetworkConfig `json:"networkConfig"`
+}
+
+type ImagePolicyConfig struct {
+	// MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user
+	// does a bulk import of a Docker repository. This number is set low to prevent users from
+	// importing large numbers of images accidentally.
+	MaxImagesBulkImportedPerRepository int `json:"maxImagesBulkImportedPerRepository"`
 }
 
 type ProjectConfig struct {

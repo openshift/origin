@@ -126,11 +126,16 @@
 			"Rev": "b965b613227fddccbfffe13eae360ed3fa822f8d"
 		},
 		{
+			"ImportPath": "github.com/blang/semver",
+			"Comment": "v3.0.b965b613227fddccbfffe13eae360ed3fa822f8d1",
+			"Rev": "31b736133b98f26d5e078ec9eb591666edfd091f"
+		},
+		{
 			"ImportPath": "github.com/boltdb/bolt",
 			"Comment": "v1.0-65-g3b44955",
 			"Rev": "3b449559cf34cbcc74460b59041a4399d3226e5a"
 		},
-		{
+    {
 			"ImportPath": "github.com/bradfitz/http2",
 			"Rev": "f8202bc903bda493ebba4aa54922d78430c2c42f"
 		},

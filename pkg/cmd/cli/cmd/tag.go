@@ -340,9 +340,15 @@ func (o TagOptions) RunTag() error {
 				localRef := o.ref
 				switch o.sourceKind {
 				case "DockerImage":
-					targetRef.From.Name = localRef.String()
-					// for external image we need to force re-import to fetch its metadata
-					delete(target.Annotations, imageapi.DockerImageRepositoryCheckAnnotation)
+					targetRef.From.Name = localRef.Exact()
+					if targetRef.Generation == nil {
+						// for servers that do not support tag generations, we need to force re-import to fetch its metadata
+						delete(target.Annotations, imageapi.DockerImageRepositoryCheckAnnotation)
+					} else {
+						// for newer servers we do not need to force re-import
+						gen := int64(0)
+						targetRef.Generation = &gen
+					}
 				default:
 					targetRef.From.Name = localRef.NameString()
 					targetRef.From.Namespace = o.ref.Namespace

@@ -9,8 +9,10 @@ import (
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -150,6 +152,76 @@ func (r MissingImageSearcher) Search(terms ...string) (ComponentMatches, error) 
 		})
 		glog.V(4).Infof("Added missing match for %v", term)
 	}
+	return componentMatches, nil
+}
+
+type ImageImportSearcher struct {
+	Client        client.ImageStreamInterface
+	AllowInsecure bool
+	Fallback      Searcher
+}
+
+func (s ImageImportSearcher) Search(terms ...string) (ComponentMatches, error) {
+	isi := &imageapi.ImageStreamImport{}
+	for _, term := range terms {
+		isi.Spec.Images = append(isi.Spec.Images, imageapi.ImageImportSpec{
+			From:         kapi.ObjectReference{Kind: "DockerImage", Name: term},
+			ImportPolicy: imageapi.TagImportPolicy{Insecure: s.AllowInsecure},
+		})
+	}
+	isi.Name = "newapp"
+	result, err := s.Client.Import(isi)
+	if err != nil {
+		if err == client.ErrImageStreamImportUnsupported {
+			return s.Fallback.Search(terms...)
+		}
+		return nil, fmt.Errorf("can't lookup images: %v", err)
+	}
+
+	var lastErr error
+	componentMatches := ComponentMatches{}
+	for i, image := range result.Status.Images {
+		term := result.Spec.Images[i].From.Name
+		if image.Status.Status != unversioned.StatusSuccess {
+			glog.V(4).Infof("image import failed: %#v", image)
+			// TODO: handle differently?
+			lastErr = fmt.Errorf("can't import image %q (%s): %s", term, image.Status.Reason, image.Status.Message)
+			continue
+		}
+		ref, err := imageapi.ParseDockerImageReference(term)
+		if err != nil {
+			glog.V(4).Infof("image import failed, can't parse ref %q: %v", term, err)
+			continue
+		}
+		if len(ref.Tag) == 0 {
+			ref.Tag = imageapi.DefaultImageTag
+		}
+		if len(ref.Registry) == 0 {
+			ref.Registry = "Docker Hub"
+		}
+
+		match := &ComponentMatch{
+			Value:       term,
+			Argument:    fmt.Sprintf("--docker-image=%q", term),
+			Name:        term,
+			Description: descriptionFor(&image.Image.DockerImageMetadata, term, ref.Registry, ref.Tag),
+			Score:       0,
+			Image:       &image.Image.DockerImageMetadata,
+			ImageTag:    ref.Tag,
+			Insecure:    s.AllowInsecure,
+			Meta:        map[string]string{"registry": ref.Registry, "direct-tag": "1"},
+		}
+		glog.V(2).Infof("Adding %s as component match for %q with score %v", match.Description, term, match.Score)
+		componentMatches = append(componentMatches, match)
+	}
+
+	if len(componentMatches) == 0 {
+		if lastErr != nil {
+			return nil, lastErr
+		}
+		return nil, ErrNoMatch{value: terms[0]}
+	}
+
 	return componentMatches, nil
 }
 

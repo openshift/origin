@@ -128,6 +128,8 @@ etcdStorageConfig:
 imageConfig:
   format: ""
   latest: false
+imagePolicyConfig:
+  maxImagesBulkImportedPerRepository: 0
 kind: MasterConfig
 kubeletClientInfo:
   ca: ""

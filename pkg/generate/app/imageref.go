@@ -140,6 +140,11 @@ type ImageRef struct {
 	OutputImage     bool
 	Insecure        bool
 	HasEmptyDir     bool
+	// If true, create the image stream using a tag for this reference, not a bulk
+	// import.
+	TagDirectly bool
+	// If set, the default tag for other components that reference this image
+	InternalDefaultTag string
 
 	Env Environment
 
@@ -157,7 +162,7 @@ func (r *ImageRef) Exists() bool {
 	return r.Stream != nil
 }
 
-// ObjectReference returns an object reference from the image reference
+// ObjectReference returns an object reference to this ref (as it would exist during generation)
 func (r *ImageRef) ObjectReference() kapi.ObjectReference {
 	switch {
 	case r.Stream != nil:
@@ -167,9 +172,10 @@ func (r *ImageRef) ObjectReference() kapi.ObjectReference {
 			Namespace: r.Stream.Namespace,
 		}
 	case r.AsImageStream:
+		name, _ := r.SuggestName()
 		return kapi.ObjectReference{
 			Kind: "ImageStreamTag",
-			Name: imageapi.JoinImageStreamTag(r.Reference.Name, r.Reference.Tag),
+			Name: imageapi.JoinImageStreamTag(name, r.InternalTag()),
 		}
 	default:
 		return kapi.ObjectReference{
@@ -179,11 +185,22 @@ func (r *ImageRef) ObjectReference() kapi.ObjectReference {
 	}
 }
 
+func (r *ImageRef) InternalTag() string {
+	tag := r.Reference.Tag
+	if len(tag) == 0 {
+		tag = r.InternalDefaultTag
+	}
+	if len(tag) == 0 {
+		tag = imageapi.DefaultImageTag
+	}
+	return tag
+}
+
 func (r *ImageRef) PullSpec() string {
 	if r.AsResolvedImage && r.ResolvedReference != nil {
-		return r.ResolvedReference.String()
+		return r.ResolvedReference.Exact()
 	}
-	return r.Reference.String()
+	return r.Reference.Exact()
 }
 
 // RepoName returns the name of the image in namespace/name format
@@ -261,7 +278,12 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 			Name: name,
 		},
 	}
-	if !r.OutputImage {
+	if r.OutputImage {
+		return stream, nil
+	}
+
+	// Legacy path, talking to a server that cannot do granular import of exact image stream spec tags.
+	if !r.TagDirectly {
 		// Ignore AsResolvedImage here because we are attempting to get images from this location.
 		stream.Spec.DockerImageRepository = r.Reference.AsRepository().String()
 		if r.Insecure {
@@ -269,6 +291,20 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 				imageapi.InsecureRepositoryAnnotation: "true",
 			}
 		}
+		return stream, nil
+	}
+
+	if stream.Spec.Tags == nil {
+		stream.Spec.Tags = make(map[string]imageapi.TagReference)
+	}
+	stream.Spec.Tags[r.InternalTag()] = imageapi.TagReference{
+		// Make this a constant
+		Annotations: map[string]string{"openshift.io/imported-from": r.Reference.Exact()},
+		From: &kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: r.PullSpec(),
+		},
+		ImportPolicy: imageapi.TagImportPolicy{Insecure: r.Insecure},
 	}
 
 	return stream, nil
@@ -281,30 +317,14 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 		return nil, nil, fmt.Errorf("unable to suggest a container name for the image %q", r.Reference.String())
 	}
 	if r.AsImageStream {
-		tag := r.Reference.Tag
-		if len(tag) == 0 {
-			tag = imageapi.DefaultImageTag
-		}
-		imageChangeParams := &deployapi.DeploymentTriggerImageChangeParams{
-			Automatic:      true,
-			ContainerNames: []string{name},
-		}
-		if r.Stream != nil {
-			imageChangeParams.From = kapi.ObjectReference{
-				Kind:      "ImageStreamTag",
-				Name:      imageapi.JoinImageStreamTag(r.Stream.Name, tag),
-				Namespace: r.Stream.Namespace,
-			}
-		} else {
-			imageChangeParams.From = kapi.ObjectReference{
-				Kind: "ImageStreamTag",
-				Name: imageapi.JoinImageStreamTag(name, tag),
-			}
-		}
 		triggers = []deployapi.DeploymentTriggerPolicy{
 			{
-				Type:              deployapi.DeploymentTriggerOnImageChange,
-				ImageChangeParams: imageChangeParams,
+				Type: deployapi.DeploymentTriggerOnImageChange,
+				ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
+					Automatic:      true,
+					ContainerNames: []string{name},
+					From:           r.ObjectReference(),
+				},
 			},
 		}
 	}

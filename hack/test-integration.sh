@@ -71,7 +71,7 @@ function exectest() {
 
 	result=1
 	if [ -n "${VERBOSE-}" ]; then
-		ETCD_PORT=${ETCD_PORT} "${testexec}" -test.v -test.run="^$1$" "${@:2}" 2>&1
+		ETCD_PORT=${ETCD_PORT} "${testexec}" -vmodule=*=5 -test.v -test.run="^$1$" "${@:2}" 2>&1
 		result=$?
 	else
 		out=$(ETCD_PORT=${ETCD_PORT} "${testexec}" -test.run="^$1$" "${@:2}" 2>&1)

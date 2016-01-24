@@ -3733,6 +3733,16 @@ func autoconvert_api_Image_To_v1beta3_Image(in *imageapi.Image, out *imageapiv1b
 	}
 	out.DockerImageMetadataVersion = in.DockerImageMetadataVersion
 	out.DockerImageManifest = in.DockerImageManifest
+	if in.DockerImageLayers != nil {
+		out.DockerImageLayers = make([]imageapiv1beta3.ImageLayer, len(in.DockerImageLayers))
+		for i := range in.DockerImageLayers {
+			if err := s.Convert(&in.DockerImageLayers[i], &out.DockerImageLayers[i], 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.DockerImageLayers = nil
+	}
 	return nil
 }
 
@@ -3924,6 +3934,16 @@ func autoconvert_v1beta3_Image_To_api_Image(in *imageapiv1beta3.Image, out *imag
 	}
 	out.DockerImageMetadataVersion = in.DockerImageMetadataVersion
 	out.DockerImageManifest = in.DockerImageManifest
+	if in.DockerImageLayers != nil {
+		out.DockerImageLayers = make([]imageapi.ImageLayer, len(in.DockerImageLayers))
+		for i := range in.DockerImageLayers {
+			if err := s.Convert(&in.DockerImageLayers[i], &out.DockerImageLayers[i], 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.DockerImageLayers = nil
+	}
 	return nil
 }
 

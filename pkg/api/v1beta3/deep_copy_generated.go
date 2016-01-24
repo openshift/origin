@@ -1852,6 +1852,22 @@ func deepCopy_v1beta3_Image(in imageapiv1beta3.Image, out *imageapiv1beta3.Image
 	}
 	out.DockerImageMetadataVersion = in.DockerImageMetadataVersion
 	out.DockerImageManifest = in.DockerImageManifest
+	if in.DockerImageLayers != nil {
+		out.DockerImageLayers = make([]imageapiv1beta3.ImageLayer, len(in.DockerImageLayers))
+		for i := range in.DockerImageLayers {
+			if err := deepCopy_v1beta3_ImageLayer(in.DockerImageLayers[i], &out.DockerImageLayers[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.DockerImageLayers = nil
+	}
+	return nil
+}
+
+func deepCopy_v1beta3_ImageLayer(in imageapiv1beta3.ImageLayer, out *imageapiv1beta3.ImageLayer, c *conversion.Cloner) error {
+	out.Name = in.Name
+	out.Size = in.Size
 	return nil
 }
 
@@ -2023,6 +2039,16 @@ func deepCopy_v1beta3_NamedTagEventList(in imageapiv1beta3.NamedTagEventList, ou
 	} else {
 		out.Items = nil
 	}
+	if in.Conditions != nil {
+		out.Conditions = make([]imageapiv1beta3.TagEventCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := deepCopy_v1beta3_TagEventCondition(in.Conditions[i], &out.Conditions[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	return nil
 }
 
@@ -2046,6 +2072,15 @@ func deepCopy_v1beta3_NamedTagReference(in imageapiv1beta3.NamedTagReference, ou
 		out.From = nil
 	}
 	out.Reference = in.Reference
+	if in.Generation != nil {
+		out.Generation = new(int64)
+		*out.Generation = *in.Generation
+	} else {
+		out.Generation = nil
+	}
+	if err := deepCopy_v1beta3_TagImportPolicy(in.ImportPolicy, &out.ImportPolicy, c); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -2057,6 +2092,26 @@ func deepCopy_v1beta3_TagEvent(in imageapiv1beta3.TagEvent, out *imageapiv1beta3
 	}
 	out.DockerImageReference = in.DockerImageReference
 	out.Image = in.Image
+	out.Generation = in.Generation
+	return nil
+}
+
+func deepCopy_v1beta3_TagEventCondition(in imageapiv1beta3.TagEventCondition, out *imageapiv1beta3.TagEventCondition, c *conversion.Cloner) error {
+	out.Type = in.Type
+	out.Status = in.Status
+	if newVal, err := c.DeepCopy(in.LastTransitionTime); err != nil {
+		return err
+	} else {
+		out.LastTransitionTime = newVal.(unversioned.Time)
+	}
+	out.Reason = in.Reason
+	out.Message = in.Message
+	out.Generation = in.Generation
+	return nil
+}
+
+func deepCopy_v1beta3_TagImportPolicy(in imageapiv1beta3.TagImportPolicy, out *imageapiv1beta3.TagImportPolicy, c *conversion.Cloner) error {
+	out.Insecure = in.Insecure
 	return nil
 }
 
@@ -2893,6 +2948,7 @@ func init() {
 		deepCopy_v1beta3_RecreateDeploymentStrategyParams,
 		deepCopy_v1beta3_RollingDeploymentStrategyParams,
 		deepCopy_v1beta3_Image,
+		deepCopy_v1beta3_ImageLayer,
 		deepCopy_v1beta3_ImageList,
 		deepCopy_v1beta3_ImageStream,
 		deepCopy_v1beta3_ImageStreamImage,
@@ -2905,6 +2961,8 @@ func init() {
 		deepCopy_v1beta3_NamedTagEventList,
 		deepCopy_v1beta3_NamedTagReference,
 		deepCopy_v1beta3_TagEvent,
+		deepCopy_v1beta3_TagEventCondition,
+		deepCopy_v1beta3_TagImportPolicy,
 		deepCopy_v1beta3_OAuthAccessToken,
 		deepCopy_v1beta3_OAuthAccessTokenList,
 		deepCopy_v1beta3_OAuthAuthorizeToken,

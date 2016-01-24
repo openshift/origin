@@ -176,16 +176,16 @@ func (c *AppConfig) SetClientMapper(clientMapper resource.ClientMapper) {
 	c.clientMapper = clientMapper
 }
 
-func (c *AppConfig) dockerRegistrySearcher() app.Searcher {
+func (c *AppConfig) dockerImageSearcher() app.Searcher {
 	return app.DockerRegistrySearcher{
-		Client:        dockerregistry.NewClient(30 * time.Second),
+		Client:        dockerregistry.NewClient(30*time.Second, true),
 		AllowInsecure: c.InsecureRegistry,
 	}
 }
 
 func (c *AppConfig) ensureDockerSearcher() {
 	if c.dockerSearcher == nil {
-		c.dockerSearcher = c.dockerRegistrySearcher()
+		c.dockerSearcher = c.dockerImageSearcher()
 	}
 }
 
@@ -193,7 +193,7 @@ func (c *AppConfig) ensureDockerSearcher() {
 func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
 	c.dockerSearcher = app.DockerClientSearcher{
 		Client:             dockerclient,
-		RegistrySearcher:   c.dockerRegistrySearcher(),
+		RegistrySearcher:   c.dockerImageSearcher(),
 		Insecure:           c.InsecureRegistry,
 		AllowMissingImages: c.AllowMissingImages,
 	}
@@ -224,6 +224,11 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespac
 		Mapper:       c.mapper,
 		ClientMapper: c.clientMapper,
 		Namespace:    originNamespace,
+	}
+	c.dockerSearcher = app.ImageImportSearcher{
+		Client:        osclient.ImageStreams(originNamespace),
+		AllowInsecure: c.InsecureRegistry,
+		Fallback:      c.dockerImageSearcher(),
 	}
 }
 

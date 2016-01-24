@@ -441,8 +441,31 @@ func describeImage(image *imageapi.Image, imageName string) (string, error) {
 		if len(imageName) > 0 {
 			formatString(out, "Image Name", imageName)
 		}
-		formatString(out, "Parent Image", image.DockerImageMetadata.Parent)
-		formatString(out, "Layer Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
+		switch l := len(image.DockerImageLayers); l {
+		case 0:
+			// legacy case, server does not know individual layers
+			formatString(out, "Layer Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
+		case 1:
+			formatString(out, "Image Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
+		default:
+			info := []string{}
+			if image.DockerImageLayers[0].Size > 0 {
+				info = append(info, fmt.Sprintf("first layer %s", units.HumanSize(float64(image.DockerImageLayers[0].Size))))
+			}
+			for i := l - 1; i > 0; i-- {
+				if image.DockerImageLayers[i].Size == 0 {
+					continue
+				}
+				info = append(info, fmt.Sprintf("last binary layer %s", units.HumanSize(float64(image.DockerImageLayers[i].Size))))
+				break
+			}
+			if len(info) > 0 {
+				formatString(out, "Image Size", fmt.Sprintf("%s (%s)", units.HumanSize(float64(image.DockerImageMetadata.Size)), strings.Join(info, ", ")))
+			} else {
+				formatString(out, "Image Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
+			}
+		}
+		//formatString(out, "Parent Image", image.DockerImageMetadata.Parent)
 		formatString(out, "Image Created", fmt.Sprintf("%s ago", formatRelativeTime(image.DockerImageMetadata.Created.Time)))
 		formatString(out, "Author", image.DockerImageMetadata.Author)
 		formatString(out, "Arch", image.DockerImageMetadata.Architecture)
@@ -474,6 +497,7 @@ func describeDockerImage(out *tabwriter.Writer, image *imageapi.DockerConfig) {
 		ports.Insert(k)
 	}
 	formatString(out, "Exposes Ports", strings.Join(ports.List(), ", "))
+	formatMapStringString(out, "Docker Labels", image.Labels)
 	for i, env := range image.Env {
 		if i == 0 {
 			formatString(out, "Environment", env)

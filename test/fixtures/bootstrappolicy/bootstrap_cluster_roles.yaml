@@ -57,6 +57,7 @@ items:
     - identities
     - images
     - imagestreamimages
+    - imagestreamimports
     - imagestreammappings
     - imagestreams
     - imagestreams/status
@@ -165,6 +166,7 @@ items:
     - endpoints
     - generatedeploymentconfigs
     - imagestreamimages
+    - imagestreamimports
     - imagestreammappings
     - imagestreams
     - imagestreamtags
@@ -280,6 +282,7 @@ items:
     - endpoints
     - generatedeploymentconfigs
     - imagestreamimages
+    - imagestreamimports
     - imagestreammappings
     - imagestreams
     - imagestreamtags
@@ -386,6 +389,7 @@ items:
     - events
     - generatedeploymentconfigs
     - imagestreamimages
+    - imagestreamimports
     - imagestreammappings
     - imagestreams
     - imagestreams/status

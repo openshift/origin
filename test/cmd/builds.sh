@@ -56,7 +56,8 @@ os::cmd::expect_success 'oc delete is/origin'
 os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1' --to origin-name-test --name origin-test2"
 os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}'" '^ImageStreamTag origin-name-test:latest$'
 
-os::cmd::expect_failure_and_text 'oc new-build centos/ruby-22-centos7~https://github.com/openshift/ruby-ex centos/php-56-centos7~https://github.com/openshift/cakephp-ex --to invalid/argument' 'error: only one component or source repository can be used when specifying an output image reference'
+os::cmd::try_until_text 'oc get is ruby-22-centos7' 'latest'
+os::cmd::expect_failure_and_text 'oc new-build ruby-22-centos7~https://github.com/openshift/ruby-ex ruby-22-centos7~https://github.com/openshift/ruby-ex --to invalid/argument' 'error: only one component or source repository can be used when specifying an output image reference'
 
 os::cmd::expect_success 'oc delete all --all'
 
@@ -72,7 +73,7 @@ os::cmd::expect_success 'oc get buildConfigs'
 os::cmd::expect_success 'oc get bc'
 os::cmd::expect_success 'oc get builds'
 
-# make sure the imagestream has the latest tag before starting a build or the build will immediately fail.
+# make sure the imagestream has the latest tag before trying to test it or start a build with it
 os::cmd::try_until_text 'oc get is ruby-22-centos7' 'latest'
 
 REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}')

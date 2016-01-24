@@ -223,8 +223,8 @@ The '%[2]s' command will match arguments to the following types:
 --allow-missing-images can be used to point to an image that does not exist yet
 or is only on the local system.
 
-See '%[2]s' for examples.
-`, t, c.Name())
+See '%[2]s -h' for examples.
+`, t, c.CommandPath())
 	}
 	switch err {
 	case newcmd.ErrNoInputs:

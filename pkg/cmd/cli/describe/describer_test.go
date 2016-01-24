@@ -44,6 +44,7 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&deployapi.DeploymentLog{}),                        // normal users don't ever look at these
 	reflect.TypeOf(&deployapi.DeploymentLogOptions{}),                 // normal users don't ever look at these
 	reflect.TypeOf(&imageapi.DockerImage{}),                           // not a top level resource
+	reflect.TypeOf(&imageapi.ImageStreamImport{}),                     // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthAccessToken{}),                      // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthAuthorizeToken{}),                   // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthClientAuthorization{}),              // normal users don't ever look at these

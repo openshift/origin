@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 	errs "k8s.io/kubernetes/pkg/util/fielderrors"
 
@@ -31,7 +32,13 @@ func (imageStrategy) NamespaceScoped() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
+// It extracts the latest information from the manifest (if available) and sets that onto the object.
 func (imageStrategy) PrepareForCreate(obj runtime.Object) {
+	newImage := obj.(*api.Image)
+	// ignore errors, change in place
+	if err := api.ImageWithMetadata(newImage); err != nil {
+		util.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
+	}
 }
 
 // Validate validates a new image.
@@ -50,13 +57,21 @@ func (imageStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
+// It extracts the latest info from the manifest and sets that on the object.
 func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	newImage := obj.(*api.Image)
 	oldImage := old.(*api.Image)
+
 	// image metadata cannot be altered
+	newImage.DockerImageReference = oldImage.DockerImageReference
 	newImage.DockerImageMetadata = oldImage.DockerImageMetadata
 	newImage.DockerImageManifest = oldImage.DockerImageManifest
 	newImage.DockerImageMetadataVersion = oldImage.DockerImageMetadataVersion
+	newImage.DockerImageLayers = oldImage.DockerImageLayers
+
+	if err := api.ImageWithMetadata(newImage); err != nil {
+		util.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
+	}
 }
 
 // ValidateUpdate is the default update validation for an end user.

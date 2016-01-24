@@ -48,7 +48,9 @@ func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, s
 	statusStore.UpdateStrategy = imagestream.NewStatusStrategy(strategy)
 
 	internalStore := store
-	internalStore.UpdateStrategy = imagestream.NewInternalStrategy(strategy)
+	internalStrategy := imagestream.NewInternalStrategy(strategy)
+	internalStore.CreateStrategy = internalStrategy
+	internalStore.UpdateStrategy = internalStrategy
 
 	store.CreateStrategy = strategy
 	store.UpdateStrategy = strategy
@@ -120,6 +122,11 @@ type InternalREST struct {
 
 func (r *InternalREST) New() runtime.Object {
 	return &api.ImageStream{}
+}
+
+// Create alters both the spec and status of the object.
+func (r *InternalREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+	return r.store.Create(ctx, obj)
 }
 
 // Update alters both the spec and status of the object.

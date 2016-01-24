@@ -49,6 +49,7 @@ func (s *strategy) PrepareForUpdate(obj, old runtime.Object) {
 	oldIST := old.(*api.ImageStreamTag)
 
 	newIST.SelfLink = oldIST.SelfLink
+	newIST.Image = oldIST.Image
 }
 
 func (s *strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {

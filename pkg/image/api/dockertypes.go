@@ -2,6 +2,8 @@ package api
 
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
+
+	"github.com/docker/distribution"
 )
 
 // DockerImage is the type representing a docker image and its various properties when
@@ -55,12 +57,19 @@ type DockerConfig struct {
 
 // DockerImageManifest represents the Docker v2 image format.
 type DockerImageManifest struct {
-	SchemaVersion int             `json:"schemaVersion"`
-	Name          string          `json:"name"`
-	Tag           string          `json:"tag"`
-	Architecture  string          `json:"architecture"`
-	FSLayers      []DockerFSLayer `json:"fsLayers"`
-	History       []DockerHistory `json:"history"`
+	SchemaVersion int    `json:"schemaVersion"`
+	MediaType     string `json:"mediaType,omitempty"`
+
+	// schema1
+	Name         string          `json:"name"`
+	Tag          string          `json:"tag"`
+	Architecture string          `json:"architecture"`
+	FSLayers     []DockerFSLayer `json:"fsLayers"`
+	History      []DockerHistory `json:"history"`
+
+	// schema2
+	Layers []distribution.Descriptor `json:"layers"`
+	Config distribution.Descriptor   `json:"config"`
 }
 
 // DockerFSLayer is a container struct for BlobSums defined in an image manifest
@@ -90,4 +99,10 @@ type DockerV1CompatibilityImage struct {
 	Config          *DockerConfig    `json:"config,omitempty"`
 	Architecture    string           `json:"architecture,omitempty"`
 	Size            int64            `json:"size,omitempty"`
+}
+
+// DockerV1CompatibilityImageSize represents the structured v1
+// compatibility information for size
+type DockerV1CompatibilityImageSize struct {
+	Size int64 `json:"size,omitempty"`
 }

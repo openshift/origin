@@ -142,6 +142,13 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			c.FuzzNoCustom(j)
 			j.DockerImageRepository = ""
 		},
+		func(j *image.ImageImportSpec, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if j.To == nil {
+				// To is defaulted to be not nil
+				j.To = &api.LocalObjectReference{}
+			}
+		},
 		func(j *image.ImageStreamImage, c fuzz.Continue) {
 			c.Fuzz(&j.Image)
 			// because we de-embedded Image from ImageStreamImage, in order to round trip

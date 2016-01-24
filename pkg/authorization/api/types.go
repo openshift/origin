@@ -75,7 +75,7 @@ const (
 var (
 	GroupsToResources = map[string][]string{
 		BuildGroupName:       {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/log", "builds/clone", "buildconfigs/webhooks"},
-		ImageGroupName:       {"imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
+		ImageGroupName:       {"imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages", "imagestreamimports"},
 		DeploymentGroupName:  {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks", "deploymentconfigs/log", "deploymentconfigs/scale"},
 		SDNGroupName:         {"clusternetworks", "hostsubnets", "netnamespaces"},
 		TemplateGroupName:    {"templates", "templateconfigs", "processedtemplates"},
@@ -88,7 +88,7 @@ var (
 		PermissionGrantingGroupName: {"roles", "rolebindings", "resourceaccessreviews" /* cluster scoped*/, "subjectaccessreviews" /* cluster scoped*/, "localresourceaccessreviews", "localsubjectaccessreviews"},
 		OpenshiftExposedGroupName:   {BuildGroupName, ImageGroupName, DeploymentGroupName, TemplateGroupName, "routes"},
 		OpenshiftAllGroupName: {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, SDNGroupName, PermissionGrantingGroupName, OpenshiftStatusGroupName, "projects",
-			"clusterroles", "clusterrolebindings", "clusterpolicies", "clusterpolicybindings", "images" /* cluster scoped*/, "projectrequests", "builds/details"},
+			"clusterroles", "clusterrolebindings", "clusterpolicies", "clusterpolicybindings", "images" /* cluster scoped*/, "projectrequests", "builds/details", "imagestreams/secrets"},
 		OpenshiftStatusGroupName: {"imagestreams/status", "routes/status"},
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
@@ -97,7 +97,7 @@ var (
 		KubeAllGroupName:       {KubeInternalsGroupName, KubeExposedGroupName, QuotaGroupName},
 		KubeStatusGroupName:    {"pods/status", "resourcequotas/status", "namespaces/status", "replicationcontrollers/status"},
 
-		OpenshiftEscalatingViewableGroupName: {"oauthauthorizetokens", "oauthaccesstokens"},
+		OpenshiftEscalatingViewableGroupName: {"oauthauthorizetokens", "oauthaccesstokens", "imagestreams/secrets"},
 		KubeEscalatingViewableGroupName:      {"secrets"},
 		EscalatingResourcesGroupName:         {OpenshiftEscalatingViewableGroupName, KubeEscalatingViewableGroupName},
 

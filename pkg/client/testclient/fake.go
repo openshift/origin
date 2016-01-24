@@ -141,6 +141,11 @@ func (c *Fake) Images() client.ImageInterface {
 }
 
 // ImageStreams provides a fake REST client for ImageStreams
+func (c *Fake) ImageStreamSecrets(namespace string) client.ImageStreamSecretInterface {
+	return &FakeImageStreamSecrets{Fake: c, Namespace: namespace}
+}
+
+// ImageStreams provides a fake REST client for ImageStreams
 func (c *Fake) ImageStreams(namespace string) client.ImageStreamInterface {
 	return &FakeImageStreams{Fake: c, Namespace: namespace}
 }

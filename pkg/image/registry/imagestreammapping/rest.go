@@ -101,6 +101,9 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	err = wait.ExponentialBackoff(wait.Backoff{Steps: maxRetriesOnConflict}, func() (bool, error) {
 		lastEvent := api.LatestTaggedImage(stream, tag)
+
+		next.Generation = stream.Generation
+
 		if !api.AddTagEventToImageStream(stream, tag, next) {
 			// nothing actually changed
 			return true, nil
@@ -119,12 +122,25 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		if findLatestErr != nil {
 			return false, findLatestErr
 		}
-		newerEvent := api.LatestTaggedImage(latestStream, tag)
-		if lastEvent == nil || kapi.Semantic.DeepEqual(lastEvent, newerEvent) {
+
+		// no previous tag
+		if lastEvent == nil {
 			// The tag hasn't changed, so try again with the updated stream.
 			stream = latestStream
 			return false, nil
 		}
+
+		// check for tag change
+		newerEvent := api.LatestTaggedImage(latestStream, tag)
+		// generation and creation time differences are ignored
+		lastEvent.Generation = newerEvent.Generation
+		lastEvent.Created = newerEvent.Created
+		if kapi.Semantic.DeepEqual(lastEvent, newerEvent) {
+			// The tag hasn't changed, so try again with the updated stream.
+			stream = latestStream
+			return false, nil
+		}
+
 		// The tag changed, so return the conflict error back to the client.
 		return false, err
 	})

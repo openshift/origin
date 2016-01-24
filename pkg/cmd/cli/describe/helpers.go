@@ -3,7 +3,8 @@ package describe
 import (
 	"bytes"
 	"fmt"
-	"sort"
+	"regexp"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -87,22 +88,30 @@ func extractAnnotations(annotations map[string]string, keys ...string) ([]string
 	return extracted, remaining
 }
 
+func formatMapStringString(out *tabwriter.Writer, label string, items map[string]string) {
+	keys := sets.NewString()
+	for k := range items {
+		keys.Insert(k)
+	}
+	if keys.Len() == 0 {
+		formatString(out, label, "")
+		return
+	}
+	for i, key := range keys.List() {
+		if i == 0 {
+			formatString(out, label, fmt.Sprintf("%s=%s", key, items[key]))
+		} else {
+			fmt.Fprintf(out, "%s\t%s=%s\n", "", key, items[key])
+		}
+	}
+}
+
 func formatAnnotations(out *tabwriter.Writer, m api.ObjectMeta, prefix string) {
 	values, annotations := extractAnnotations(m.Annotations, "description")
 	if len(values[0]) > 0 {
 		formatString(out, prefix+"Description", values[0])
 	}
-	keys := sets.NewString()
-	for k := range annotations {
-		keys.Insert(k)
-	}
-	for i, key := range keys.List() {
-		if i == 0 {
-			formatString(out, prefix+"Annotations", fmt.Sprintf("%s=%s", key, annotations[key]))
-		} else {
-			fmt.Fprintf(out, "%s\t%s=%s\n", prefix, key, annotations[key])
-		}
-	}
+	formatMapStringString(out, prefix+"Annotations", annotations)
 }
 
 var timeNowFn = func() time.Time {
@@ -153,6 +162,17 @@ func webhookURL(c *buildapi.BuildConfig, cli client.BuildConfigsNamespacer) map[
 	return result
 }
 
+var reLongImageID = regexp.MustCompile(`[a-f0-9]{60,}$`)
+
+// shortenImagePullSpec returns a version of the pull spec intended for display, which may
+// result in the image not being usable via cut-and-paste for users.
+func shortenImagePullSpec(spec string) string {
+	if reLongImageID.MatchString(spec) {
+		return spec[:len(spec)-50] + "..."
+	}
+	return spec
+}
+
 func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) {
 	if len(stream.Status.Tags) == 0 && len(stream.Spec.Tags) == 0 {
 		fmt.Fprintf(out, "Tags:\t<none>\n")
@@ -168,7 +188,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			sortedTags = append(sortedTags, k)
 		}
 	}
-	sort.Strings(sortedTags)
+	imageapi.PrioritizeTags(sortedTags)
 	for _, tag := range sortedTags {
 		tagRef, ok := stream.Spec.Tags[tag]
 		specTag := ""
@@ -194,27 +214,61 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			specTag = "<pushed>"
 		}
 		if taglist, ok := stream.Status.Tags[tag]; ok {
-			for _, event := range taglist.Items {
+			if len(taglist.Conditions) > 0 {
+				var lastTime time.Time
+				summary := []string{}
+				for _, condition := range taglist.Conditions {
+					if condition.LastTransitionTime.After(lastTime) {
+						lastTime = condition.LastTransitionTime.Time
+					}
+					switch condition.Type {
+					case imageapi.ImportSuccess:
+						if condition.Status == api.ConditionFalse {
+							summary = append(summary, fmt.Sprintf("import failed: %s", condition.Message))
+						}
+					default:
+						summary = append(summary, string(condition.Type))
+					}
+				}
+				if len(summary) > 0 {
+					description := strings.Join(summary, ", ")
+					if len(description) > 70 {
+						description = strings.TrimSpace(description[:70-3]) + "..."
+					}
+					d := timeNowFn().Sub(lastTime)
+					fmt.Fprintf(out, "%s\t%s\t%s ago\t%s\t%v\n",
+						tag,
+						shortenImagePullSpec(specTag),
+						units.HumanDuration(d),
+						"",
+						description)
+				}
+			}
+			for i, event := range taglist.Items {
 				d := timeNowFn().Sub(event.Created.Time)
 				image := event.Image
 				ref, err := imageapi.ParseDockerImageReference(event.DockerImageReference)
 				if err == nil {
 					if ref.ID == image {
-						image = ""
+						image = "<same>"
 					}
+				}
+				pullSpec := event.DockerImageReference
+				if pullSpec == specTag {
+					pullSpec = "<same>"
+				} else {
+					pullSpec = shortenImagePullSpec(pullSpec)
+				}
+				specTag = shortenImagePullSpec(specTag)
+				if i != 0 {
+					tag, specTag = "", ""
 				}
 				fmt.Fprintf(out, "%s\t%s\t%s ago\t%s\t%v\n",
 					tag,
 					specTag,
 					units.HumanDuration(d),
-					event.DockerImageReference,
+					pullSpec,
 					image)
-				if tag != "" {
-					tag = ""
-				}
-				if specTag != "" {
-					specTag = ""
-				}
 			}
 		} else {
 			fmt.Fprintf(out, "%s\t%s\t\t<not available>\t<not available>\n", tag, specTag)

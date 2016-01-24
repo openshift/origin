@@ -23,6 +23,7 @@ type Interface interface {
 	ImageStreamMappingsNamespacer
 	ImageStreamTagsNamespacer
 	ImageStreamImagesNamespacer
+	ImageStreamSecretsNamespacer
 	DeploymentConfigsNamespacer
 	DeploymentLogsNamespacer
 	RoutesNamespacer
@@ -72,6 +73,11 @@ func (c *Client) BuildLogs(namespace string) BuildLogsInterface {
 // Images provides a REST client for Images
 func (c *Client) Images() ImageInterface {
 	return newImages(c)
+}
+
+// ImageStreamImages provides a REST client for retrieving image secrets in a namespace
+func (c *Client) ImageStreamSecrets(namespace string) ImageStreamSecretInterface {
+	return newImageStreamSecrets(c, namespace)
 }
 
 // ImageStreams provides a REST client for ImageStream
