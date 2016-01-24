@@ -20,6 +20,7 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
+	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configchangecontroller "github.com/openshift/origin/pkg/deploy/controller/configchange"
@@ -344,10 +345,7 @@ func (c *MasterConfig) RunSDNController() {
 // RunImageImportController starts the image import trigger controller process.
 func (c *MasterConfig) RunImageImportController() {
 	osclient := c.ImageImportControllerClient()
-	factory := imagecontroller.ImportControllerFactory{
-		Client: osclient,
-	}
-	controller := factory.Create()
+	controller := imagecontroller.NewImportController(client.ImageStreamsNamespacer(osclient), client.ImageStreamMappingsNamespacer(osclient), 10, 2*time.Minute)
 	controller.Run()
 }
 
