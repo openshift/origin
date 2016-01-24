@@ -211,8 +211,20 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		storageVersions[configapi.APIGroupExtensions] = enabledExtensionsVersions[0]
 	}
 
+	// Preserve previous behavior of using the first non-loopback address
+	// TODO: Deprecate this behavior and just require a valid value to be passed in
+	publicAddress := net.ParseIP(options.KubernetesMasterConfig.MasterIP)
+	if publicAddress == nil || publicAddress.IsUnspecified() || publicAddress.IsLoopback() {
+		hostIP, err := util.ChooseHostInterface()
+		if err != nil {
+			glog.Fatalf("Unable to find suitable network address.error='%v'. Set the masterIP directly to avoid this error.", err)
+		}
+		publicAddress = hostIP
+		glog.Infof("Will report %v as public IP address.", publicAddress)
+	}
+
 	m := &master.Config{
-		PublicAddress: net.ParseIP(options.KubernetesMasterConfig.MasterIP),
+		PublicAddress: publicAddress,
 		ReadWritePort: port,
 
 		StorageDestinations: storageDestinations,
