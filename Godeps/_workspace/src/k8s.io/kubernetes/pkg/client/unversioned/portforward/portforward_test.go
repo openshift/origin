@@ -25,6 +25,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -280,6 +281,9 @@ func fakePortForwardServer(t *testing.T, testName string, serverSends, expectedF
 }
 
 func TestForwardPorts(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skipf("does not work on IPv6 systems")
+	}
 	tests := map[string]struct {
 		ports       []string
 		clientSends map[uint16]string
