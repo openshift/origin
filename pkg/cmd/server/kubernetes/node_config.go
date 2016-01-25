@@ -63,6 +63,8 @@ type NodeConfig struct {
 	ProxyConfig *proxyoptions.ProxyServerConfig
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
+	// EnableUnidling indicates whether or not the unidling hybrid proxy should be used
+	EnableUnidling bool
 
 	// ServiceStore is reused between proxy and DNS
 	ServiceStore cache.Store
@@ -307,7 +309,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 
 		ServicesReady: make(chan struct{}),
 
-		ProxyConfig: proxyconfig,
+		ProxyConfig:    proxyconfig,
+		EnableUnidling: options.EnableUnidling,
 
 		SDNPlugin:                 sdnPlugin,
 		FilteringEndpointsHandler: endpointFilter,

@@ -35,6 +35,7 @@ dnsDomain: ""
 dnsIP: ""
 dockerConfig:
   execHandlerName: ""
+enableUnidling: false
 imageConfig:
   format: ""
   latest: false

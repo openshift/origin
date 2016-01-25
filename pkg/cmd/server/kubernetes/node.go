@@ -14,6 +14,8 @@ import (
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/proxy/hybrid"
+	ouserspace "github.com/openshift/origin/pkg/proxy/userspace"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
@@ -421,14 +423,36 @@ func (c *NodeConfig) RunProxy() {
 	default:
 		glog.Fatalf("Unknown proxy mode %q", c.ProxyConfig.Mode)
 	}
-	iptInterface.AddReloadFunc(proxier.Sync)
 
 	// Create configs (i.e. Watches for Services and Endpoints)
 	// Note: RegisterHandler() calls need to happen before creation of Sources because sources
 	// only notify on changes, and the initial update (on process start) may be lost if no handlers
 	// are registered yet.
 	serviceConfig := pconfig.NewServiceConfig()
-	serviceConfig.RegisterHandler(proxier)
+
+	if c.EnableUnidling {
+		unidlingLoadBalancer := ouserspace.NewLoadBalancerRR()
+		unidlingUserspaceProxy, err := ouserspace.NewProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration)
+		if err != nil {
+			if c.Containerized {
+				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
+			} else {
+				glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
+			}
+		}
+		hybridProxier, err := hybrid.NewHybridProxier(unidlingLoadBalancer, unidlingUserspaceProxy, endpointsHandler, proxier, c.ProxyConfig.IPTablesSyncPeriod.Duration, serviceConfig)
+		if err != nil {
+			if c.Containerized {
+				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
+			} else {
+				glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
+			}
+		}
+		endpointsHandler = hybridProxier
+
+		iptInterface.AddReloadFunc(hybridProxier.Sync)
+		serviceConfig.RegisterHandler(hybridProxier)
+	}
 
 	endpointsConfig := pconfig.NewEndpointsConfig()
 	// customized handling registration that inserts a filter if needed
