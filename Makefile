@@ -136,6 +136,7 @@ test-int-plus: build
 endif
 test-int-plus:
 	hack/test-cmd.sh
+	hack/test-lib.sh
 	hack/test-tools.sh
 	KUBE_RACE=" " hack/test-integration-docker.sh
 	hack/test-end-to-end-docker.sh
