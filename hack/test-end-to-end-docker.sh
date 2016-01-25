@@ -10,9 +10,9 @@ set -o pipefail
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/system.sh"
 
 echo "[INFO] Starting containerized end-to-end test"
 
@@ -23,7 +23,7 @@ os::util::environment::setup_all_server_vars "test-end-to-end-docker/"
 os::util::environment::use_sudo
 reset_tmp_dir
 
-os::log::start_system_logger
+os::log::system::start
 
 out=$(
 	set +e

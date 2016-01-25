@@ -15,12 +15,11 @@ export KUBE_REPO_ROOT="${GOPATH}/src/k8s.io/kubernetes"
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
-
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::util::environment::setup_time_vars
 source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/system.sh"
 source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 
 os::util::trap::init
@@ -104,7 +103,7 @@ if [[ -z ${TEST_ONLY+x} ]]; then
   os::util::environment::use_sudo
   reset_tmp_dir
 
-  os::log::start_system_logger
+  os::log::system::start
 
   # when selinux is enforcing, the volume dir selinux label needs to be
   # svirt_sandbox_file_t
