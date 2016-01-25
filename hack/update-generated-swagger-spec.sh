@@ -12,24 +12,6 @@ source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
 source "${OS_ROOT}/hack/lib/os.sh"
 
-function cleanup()
-{
-    out=$?
-    cleanup_openshift
-
-    if [ $out -ne 0 ]; then
-        echo "[FAIL] !!!!! Generate Failed !!!!"
-        echo
-        tail -100 "${LOG_DIR}/openshift.log"
-        echo
-        echo -------------------------------------
-        echo
-    fi
-    exit $out
-}
-
-trap "exit" INT TERM
-trap "cleanup" EXIT
 
 export ALL_IP_ADDRESSES=127.0.0.1
 export SERVER_HOSTNAME_LIST=127.0.0.1

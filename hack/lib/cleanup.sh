@@ -32,6 +32,19 @@ function os::cleanup::dump_container_logs() {
     done
 }
 
+# os::cleanup::install_dump_container_logs installs the container log dump for the EXIT trap
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export OS_CLEANUP_DUMP_CONTAINER_LOGS
+function os::cleanup::install_dump_container_logs() {
+    export OS_CLEANUP_DUMP_CONTAINER_LOGS="true"
+    os::util::trap::init_exit
+}
+
 # os::cleanup::prune_artifacts deletes empty logs and truncates large logs in $ARTIFACT_DIR and $LOG_DIR
 #
 # Globals:
@@ -54,6 +67,19 @@ function os::cleanup::prune_artifacts() {
     done
 }
 
+# os::cleanup::install_prune_artifacts installs the artifact prune for the EXIT trap
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export OS_CLEANUP_PRUNE_ARTIFACTS
+function os::cleanup::install_prune_artifacts() {
+    export OS_CLEANUP_PRUNE_ARTIFACTS="true"
+    os::util::trap::init_exit
+}
+
 # os::cleanup::dump_all_resources exports all OpenShift resources using the system admin credentials to a JSON artifact
 #
 # Globals:
@@ -73,6 +99,19 @@ function os::cleanup::dump_all_resources() {
     oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
 }
 
+# os::cleanup::install_dump_all_resources installs the OpenShift resource dump for the EXIT trap
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export OS_CLEANUP_DUMP_OPENSHIFT_RESOURCES
+function os::cleanup::install_dump_all_resources() {
+    export OS_CLEANUP_DUMP_OPENSHIFT_RESOURCES="true"
+    os::util::trap::init_exit
+}
+
 # os::cleanup::dump_etcd_contents dumps all contents of etcd to a JSON artifact
 # 
 # Globals:
@@ -90,6 +129,19 @@ function os::cleanup::dump_etcd_contents() {
     curl -s ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
 }
 
+# os::cleanup::install_dump_etcd_contents installs the etcd content dump for the EXIT trap
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export OS_CLEANUP_DUMP_ETCD_CONTENTS
+function os::cleanup::install_dump_etcd_contents() {
+    export OS_CLEANUP_DUMP_ETCD_CONTENTS="true"
+    os::util::trap::init_exit
+}
+
 # os::cleanup::dump_pprof_output dumps pprof output to an artifact
 #
 # Globals:
@@ -103,6 +155,19 @@ function os::cleanup::dump_pprof_output() {
         echo "[INFO] Dumping pprof output for the OpenShift binary"
         go tool pprof -text ./_output/local/bin/$(os::util::host_platform)/openshift cpu.pprof > "${ARTIFACT_DIR}/pprof.out"
     fi
+}
+
+# os::cleanup::install_dump_pprof_output installs pprof dump for the EXIT trap
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export OS_CLEANUP_DUMP_PPROF_OUTPUT
+function os::cleanup::install_dump_pprof_output() {
+    export OS_CLEANUP_DUMP_PPROF_OUTPUT="true"
+    os::util::trap::init_exit
 }
 
 # os::cleanup::kill_all_running_jobs kills all of the running jobs for this shell and all of their descendants
@@ -163,6 +228,19 @@ function os::cleanup::internal::kill_process_tree() {
     echo "[WARNING] Giving up waiting for process ${root_pid}: \"${name}\" to exit after SIGKILL"
 }
 
+# os::cleanup::install_kill_all_running_jobs installs the job killing for the EXIT trap
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export OS_CLEANUP_KILL_RUNNING_JOBS
+function os::cleanup::install_kill_all_running_jobs() {
+    export OS_CLEANUP_KILL_RUNNING_JOBS="true"
+    os::util::trap::init_exit
+}
+
 # os::cleanup::kill_openshift_process_tree kills the OpenShift process and all of its descendants
 #
 # Globals:
@@ -179,6 +257,19 @@ function os::cleanup::kill_openshift_process_tree() {
 
     echo "[INFO] Killing OpenShift process ${OS_PID} and all descendants"
     os::cleanup::internal::kill_process_tree "${OS_PID}"
+}
+
+# os::cleanup::install_kill_openshift_process_tree installs the OpenShift process tree killing for the EXIT trap
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export OS_CLEANUP_KILL_OPENSHIFT
+function os::cleanup::install_kill_openshift_process_tree() {
+    export OS_CLEANUP_KILL_OPENSHIFT="true"
+    os::util::trap::init_exit
 }
 
 # os::cleanup::stop_origin_container stops the OpenShift Origin container, when OpenShift is started as a Docker
@@ -198,6 +289,19 @@ function os::cleanup::stop_origin_container() {
     echo "[INFO] Stopping and removing the OpenShift Origin container"
     docker stop origin
     docker rm origin
+}
+
+# os::cleanup::install_stop_origin_container installs the OpenShift Origin container cleanup for the EXIT trap
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export OS_CLEANUP_STOP_ORIGIN_CONTAINER
+function os::cleanup::install_stop_origin_container() {
+    export OS_CLEANUP_STOP_ORIGIN_CONTAINER="true"
+    os::util::trap::init_exit
 }
 
 # os::cleanup::tear_down_k8s_containers stops and removes k8s Docker containers
@@ -232,6 +336,19 @@ function os::cleanup::tear_down_k8s_containers() {
     done
 }
 
+# os::cleanup::install_tear_down_k8s_containers installs the k8s container tear down for the EXIT trap
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export OS_CLEANUP_TEARDOWN_K8S_CONTAINERS
+function os::cleanup::install_tear_down_k8s_containers() {
+    export OS_CLEANUP_TEARDOWN_K8S_CONTAINERS="true"
+    os::util::trap::init_exit
+}
+
 # os::cleanup::remove_scratch_image removes the test/scratchimage Docker image
 #
 # Globals:
@@ -243,4 +360,17 @@ function os::cleanup::tear_down_k8s_containers() {
 function os::cleanup::remove_scratch_image() {
     echo "[INFO] Removing scratch Docker images"
     docker rmi test/scratchimage
+}
+
+# os::cleanup::install_remove_scratch_image installs the removal the test/scratchimage Docker image for the EXIT trap
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export OS_CLEANUP_REMOVE_SCRATCH_IMAGE
+function os::cleanup::install_remove_scratch_image() {
+    export OS_CLEANUP_REMOVE_SCRATCH_IMAGE="true"
+    os::util::trap::init_exit
 }

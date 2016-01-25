@@ -21,52 +21,6 @@ os::util::environment::setup_all_server_vars "test-end-to-end-docker/"
 os::util::environment::use_sudo
 reset_tmp_dir
 
-function cleanup()
-{
-	out=$?
-	echo
-	if [ $out -ne 0 ]; then
-		echo "[FAIL] !!!!! Test Failed !!!!"
-	else
-		echo "[INFO] Test Succeeded"
-	fi
-	echo
-
-	set +e
-	dump_container_logs
-	
-	echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
-	oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
-
-	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
-	set_curl_args 0 1
-	ETCD_PORT="${ETCD_PORT:-4001}"
-	curl ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
-	echo
-
-	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
-		echo "[INFO] remove the openshift container"
-		docker stop origin
-		docker rm origin
-
-		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
-		fi
-		set -u
-	fi
-
-	delete_empty_logs
-	truncate_large_logs
-	set -e
-
-	echo "[INFO] Exiting"
-	ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
-	exit $out
-}
-
-trap "cleanup" EXIT INT TERM
-
 os::log::start_system_logger
 
 out=$(
