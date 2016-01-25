@@ -122,6 +122,7 @@ type RunContainerOptions struct {
 	TargetImage      bool
 	NetworkMode      string
 	User             string
+	CGroupLimits     *api.CGroupLimits
 }
 
 // CommitContainerOptions are options passed in to the CommitContainer method
@@ -136,9 +137,10 @@ type CommitContainerOptions struct {
 
 // BuildImageOptions are options passed in to the BuildImage method
 type BuildImageOptions struct {
-	Name   string
-	Stdin  io.Reader
-	Stdout io.Writer
+	Name         string
+	Stdin        io.Reader
+	Stdout       io.Writer
+	CGroupLimits *api.CGroupLimits
 }
 
 // New creates a new implementation of the STI Docker interface
@@ -592,14 +594,23 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 		config.AttachStdout = true
 	}
 
-	glog.V(2).Infof("Creating container using config: %+v", config)
 	ccopts := docker.CreateContainerOptions{Name: "", Config: &config}
+	ccopts.HostConfig = &docker.HostConfig{}
 	if opts.TargetImage {
-		ccopts.HostConfig = &docker.HostConfig{PublishAllPorts: true, NetworkMode: opts.NetworkMode}
+		ccopts.HostConfig.PublishAllPorts = true
+		ccopts.HostConfig.NetworkMode = opts.NetworkMode
 	} else if opts.NetworkMode != "" {
-		ccopts.HostConfig = &docker.HostConfig{NetworkMode: opts.NetworkMode}
+		ccopts.HostConfig.NetworkMode = opts.NetworkMode
 	}
 
+	if opts.CGroupLimits != nil {
+		ccopts.HostConfig.Memory = opts.CGroupLimits.MemoryLimitBytes
+		ccopts.HostConfig.MemorySwap = opts.CGroupLimits.MemorySwap
+		ccopts.HostConfig.CPUShares = opts.CGroupLimits.CPUShares
+		ccopts.HostConfig.CPUQuota = opts.CGroupLimits.CPUQuota
+		ccopts.HostConfig.CPUPeriod = opts.CGroupLimits.CPUPeriod
+	}
+	glog.V(2).Infof("Creating container %s using config: %+v, hostconfig: %+v", ccopts.Name, ccopts.Config, ccopts.HostConfig)
 	container, err := d.client.CreateContainer(ccopts)
 	if err != nil {
 		return err
@@ -669,7 +680,7 @@ func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error)
 			User:   opts.User,
 		}
 		dockerOpts.Run = &config
-		glog.V(2).Infof("Committing container with config: %+v", config)
+		glog.V(2).Infof("Committing container with dockerOpts: %+v, config: %+v", dockerOpts, config)
 	}
 
 	image, err := d.client.CommitContainer(dockerOpts)
@@ -695,5 +706,13 @@ func (d *stiDocker) BuildImage(opts BuildImageOptions) error {
 		InputStream:         opts.Stdin,
 		OutputStream:        opts.Stdout,
 	}
+	if opts.CGroupLimits != nil {
+		dockerOpts.Memory = opts.CGroupLimits.MemoryLimitBytes
+		dockerOpts.Memswap = opts.CGroupLimits.MemorySwap
+		dockerOpts.CPUShares = opts.CGroupLimits.CPUShares
+		dockerOpts.CPUPeriod = opts.CGroupLimits.CPUPeriod
+		dockerOpts.CPUQuota = opts.CGroupLimits.CPUQuota
+	}
+	glog.V(2).Info("Building container using config: %+v", dockerOpts)
 	return d.client.BuildImage(dockerOpts)
 }

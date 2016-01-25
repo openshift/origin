@@ -108,9 +108,10 @@ func (b *OnBuild) Build(config *api.Config) (*api.Result, error) {
 	defer tarStream.Close()
 
 	opts := docker.BuildImageOptions{
-		Name:   config.Tag,
-		Stdin:  tarStream,
-		Stdout: os.Stdout,
+		Name:         config.Tag,
+		Stdin:        tarStream,
+		Stdout:       os.Stdout,
+		CGroupLimits: config.CGroupLimits,
 	}
 
 	glog.V(2).Info("Building the application source")
