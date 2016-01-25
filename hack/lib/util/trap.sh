@@ -7,6 +7,7 @@
 
 # This script assumes ${OS_ROOT} is set
 source "${OS_ROOT}/hack/lib/util/misc.sh"
+source "${OS_ROOT}/hack/lib/log/system.sh"
 source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 source "${OS_ROOT}/hack/lib/cleanup.sh"
 
@@ -109,6 +110,10 @@ function os::util::trap::exit_handler() {
     # a subshell in order to sandbox them and not allow them to influence how this script will exit
     if [[ "${OS_DESCRIBE_RETURN_CODE:-}" = "true" ]]; then
         ( os::util::describe_return_code "${return_code}" )
+    fi
+
+    if [[ "${OS_CLEANUP_SYSTEM_LOGGER:-}" = "true" ]]; then
+        ( os::log::system::cleanup )
     fi
 
     if [[ "${OS_CLEANUP_DUMP_CONTAINER_LOGS:-}" = "true" ]]; then

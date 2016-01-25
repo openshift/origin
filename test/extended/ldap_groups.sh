@@ -11,12 +11,12 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
 
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::util::environment::setup_time_vars
 source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/system.sh"
 source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 
 os::util::trap::init
@@ -32,7 +32,7 @@ os::util::environment::setup_all_server_vars "test-extended/ldap_groups/"
 os::util::environment::use_sudo
 reset_tmp_dir
 
-os::log::start_system_logger
+os::log::system::start
 
 os::configure_server
 os::start_server
