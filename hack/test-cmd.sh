@@ -13,43 +13,12 @@ cd "${OS_ROOT}"
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/os.sh"
+source "${OS_ROOT}/hack/lib/cleanup.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
 
-function cleanup()
-{
-    out=$?
-    pkill -P $$
-    set +e
-    kill_all_processes
-
-    if [ $out -ne 0 ]; then
-        echo "[FAIL] !!!!! Test Failed !!!!"
-        echo
-        tail -40 "${LOG_DIR}/openshift.log"
-        echo
-        echo -------------------------------------
-        echo
-    else
-        if path=$(go tool -n pprof 2>&1); then
-          echo
-          echo "pprof: top output"
-          echo
-          go tool pprof -text ./_output/local/bin/$(os::util::host_platform)/openshift cpu.pprof | head -120
-        fi
-
-        echo
-        echo "Complete"
-    fi
-
-    ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
-    exit $out
-}
-
-trap "exit" INT TERM
-trap "cleanup" EXIT
-
-set -e
+os::internal::install_master_cleanup
+os::cleanup::install_dump_pprof_output
 
 function find_tests {
   find "${OS_ROOT}/test/cmd" -name '*.sh' | grep -E "${1}" | sort -u

@@ -3,6 +3,11 @@
 # This library contains functions related to configuring, starting, stopping, and cleaning up OpenShift
 # apiservers, OpenShift masters, and standalone etcds.
 
+# This script assumes OS_ROOT is set
+source "${OS_ROOT}/hack/lib/util/misc.sh"
+source "${OS_ROOT}/hack/lib/cleanup.sh"
+source "${OS_ROOT}/hack/util.sh"
+
 # os::configure_server creates and writes the master certificates, node configuration, bootstrap policy,
 # and master configuration for an OpenShift instance.
 #
@@ -124,6 +129,8 @@ function os::configure_server() {
 # Returns:
 #  - export OS_PID
 function os::start_server {
+    os::internal::install_server_cleanup
+
     local sudo="${SUDO:+sudo}"
 
     echo "[INFO] `openshift version`"
@@ -158,6 +165,25 @@ function os::start_server {
     date
 }
 
+# os::internal::install_server_cleanup installs all of the necessary cleanup modules for scripts that start OpenShift servers
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::internal::install_server_cleanup() {
+    os::util::install_describe_return_code
+    os::cleanup::install_dump_container_logs
+    os::cleanup::install_dump_all_resources
+    os::cleanup::install_dump_etcd_contents
+    os::cleanup::install_kill_openshift_process_tree
+    os::cleanup::install_kill_all_running_jobs
+    os::cleanup::install_tear_down_k8s_containers
+    os::cleanup::install_prune_artifacts
+}
+
 # os::start_master starts the OpenShift master, exports its PID and waits until endpoints are available
 #
 # Globals:
@@ -176,6 +202,8 @@ function os::start_server {
 # Returns:
 #  - export OS_PID
 function os::start_master {
+    os::internal::install_master_cleanup
+
     local sudo="${SUDO:+sudo}"
 
     echo "[INFO] `openshift version`"
@@ -206,6 +234,23 @@ function os::start_master {
     date
 }
 
+# os::internal::install_master_cleanup installs all of the necessary cleanup modules for scripts that start OpenShift masters
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::internal::install_master_cleanup() {
+    os::util::install_describe_return_code
+    os::cleanup::install_dump_all_resources
+    os::cleanup::install_dump_etcd_contents
+    os::cleanup::install_kill_openshift_process_tree
+    os::cleanup::install_kill_all_running_jobs
+    os::cleanup::install_prune_artifacts
+}
+
 # os::start_container starts the OpenShift Origin Docker container
 #
 # Globals:
@@ -227,6 +272,8 @@ function os::start_master {
 #  - export CLUSTER_ADMIN_CONTEXT
 #  - export KUBECONFIG
 function os::start_container() {
+    os::internal::install_containerized_cleanup
+
     echo "[INFO] `openshift version`"
     echo "[INFO] Using images:                          ${USE_IMAGES}"
 
@@ -257,4 +304,23 @@ function os::start_container() {
     wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
     wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
     wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
+}
+
+# os::internal::install_containerized_cleanup installs all of the necessary cleanup modules for scripts that start OpenShift in a container
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::internal::install_containerized_cleanup() {
+    os::util::install_describe_return_code
+    os::cleanup::install_dump_container_logs
+    os::cleanup::install_dump_all_resources
+    os::cleanup::install_dump_etcd_contents
+    os::cleanup::install_stop_origin_container
+    os::cleanup::install_kill_all_running_jobs
+    os::cleanup::install_tear_down_k8s_containers
+    os::cleanup::install_prune_artifacts
 }

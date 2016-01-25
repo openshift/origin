@@ -11,6 +11,7 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/text.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/os.sh"
+source "${OS_ROOT}/hack/lib/cleanup.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
 
@@ -25,17 +26,6 @@ export ETCD_PORT=${ETCD_PORT:-44001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-47001}
 os::util::environment::setup_all_server_vars "test-integration/"
 reset_tmp_dir
-
-function cleanup() {
-	out=$?
-	set +e
-
-	cleanup_openshift
-	echo "Complete"
-	exit $out
-}
-
-trap cleanup EXIT SIGINT
 
 package="${OS_TEST_PACKAGE:-test/integration}"
 tags="${OS_TEST_TAGS:-integration !docker etcd}"
@@ -61,6 +51,10 @@ popd &>/dev/null
 os::log::start_system_logger
 
 os::configure_server
+os::util::install_describe_return_code
+os::cleanup::install_dump_etcd_contents
+os::cleanup::install_kill_all_running_jobs
+os::cleanup::install_prune_artifacts
 openshift start etcd --config=${MASTER_CONFIG_DIR}/master-config.yaml &> ${LOG_DIR}/etcd.log &
 
 wait_for_url "http://${API_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160

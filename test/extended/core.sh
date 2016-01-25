@@ -96,16 +96,6 @@ SKIP="${SKIP:-$DEFAULT_SKIP}"
 if [[ -z ${TEST_ONLY+x} ]]; then
   ensure_iptables_or_die
 
-  function cleanup()
-  {
-    out=$?
-    cleanup_openshift
-    echo "[INFO] Exiting"
-    return $out
-  }
-
-  trap "exit" INT TERM
-  trap "cleanup" EXIT
   echo "[INFO] Starting server"
 
   os::util::environment::setup_all_server_vars "test-extended/core"

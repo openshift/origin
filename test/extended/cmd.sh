@@ -19,20 +19,12 @@ source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::util::environment::setup_time_vars
 
 source "${OS_ROOT}/hack/lib/os.sh"
+source "${OS_ROOT}/hack/lib/cleanup.sh"
+os::cleanup::install_remove_scratch_image
 cd "${OS_ROOT}"
 
 os::build::setup_env
 
-function cleanup()
-{
-	out=$?
-	cleanup_openshift
-	echo "[INFO] Exiting"
-	return $out
-}
-
-trap "exit" INT TERM
-trap "cleanup" EXIT
 
 echo "[INFO] Starting server"
 

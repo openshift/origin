@@ -22,17 +22,6 @@ cd "${OS_ROOT}"
 
 os::build::setup_env
 
-function cleanup()
-{
-	out=$?
-	cleanup_openshift
-	echo "[INFO] Exiting"
-	return $out
-}
-
-trap "exit" INT TERM
-trap "cleanup" EXIT
-
 echo "[INFO] Starting server"
 
 ensure_iptables_or_die
