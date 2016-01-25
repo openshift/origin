@@ -211,6 +211,10 @@ type MasterConfig struct {
 	// EtcdClientInfo contains information about how to connect to etcd
 	EtcdClientInfo EtcdConnectionInfo
 
+	// KubernetesEtcdClientInfo contains information about how to connect to another etcd
+	// for kuberenetes data storage
+	KubernetesEtcdClientInfo *EtcdConnectionInfo
+
 	// KubeletClientInfo contains information about how to connect to kubelets
 	KubeletClientInfo KubeletConnectionInfo
 

@@ -128,6 +128,17 @@ type MasterConfig struct {
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the
 // provided options
 func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
+	var kubeClient newetcdclient.Client
+	var err error
+	var serviceAccountTokenGetter serviceaccount.ServiceAccountTokenGetter
+
+	if options.KubernetesEtcdClientInfo != nil {
+		kubeClient, err = etcd.MakeNewEtcdClient(*options.KubernetesEtcdClientInfo)
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	client, err := etcd.EtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
@@ -200,7 +211,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 	admissionController := admission.NewChainHandler(plugins...)
 
-	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, etcdClient)
+	if kubeClient != nil {
+		serviceAccountTokenGetter, err = newServiceAccountTokenGetter(options, kubeClient)
+	} else {
+		serviceAccountTokenGetter, err = newServiceAccountTokenGetter(options, etcdClient)
+	}
 	if err != nil {
 		return nil, err
 	}

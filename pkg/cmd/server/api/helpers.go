@@ -132,6 +132,12 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 	refs = append(refs, &config.EtcdClientInfo.ClientCert.KeyFile)
 	refs = append(refs, &config.EtcdClientInfo.CA)
 
+	if config.KubernetesEtcdClientInfo != nil {
+		refs = append(refs, &config.KubernetesEtcdClientInfo.ClientCert.CertFile)
+		refs = append(refs, &config.KubernetesEtcdClientInfo.ClientCert.KeyFile)
+		refs = append(refs, &config.KubernetesEtcdClientInfo.CA)
+	}
+
 	refs = append(refs, &config.KubeletClientInfo.ClientCert.CertFile)
 	refs = append(refs, &config.KubeletClientInfo.ClientCert.KeyFile)
 	refs = append(refs, &config.KubeletClientInfo.CA)

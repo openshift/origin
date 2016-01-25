@@ -56,12 +56,19 @@ type MasterConfig struct {
 }
 
 func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client, projectCache *projectcache.ProjectCache) (*MasterConfig, error) {
+	var etcdClient newetcdclient.Client
+	var err error
+
 	if options.KubernetesMasterConfig == nil {
 		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
 	}
 
 	// Connect and setup etcd interfaces
-	etcdClient, err := etcd.MakeNewEtcdClient(options.EtcdClientInfo)
+	if options.KubernetesEtcdClientInfo != nil {
+		etcdClient, err = etcd.MakeNewEtcdClient(*options.KubernetesEtcdClientInfo)
+	} else {
+		etcdClient, err = etcd.MakeNewEtcdClient(options.EtcdClientInfo)
+	}
 	if err != nil {
 		return nil, err
 	}
