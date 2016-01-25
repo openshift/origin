@@ -84,8 +84,6 @@ func (d *DockerBuilder) Build() error {
 		return err
 	}
 
-	defer removeImage(d.dockerClient, d.build.Status.OutputDockerImageReference)
-
 	if push {
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
