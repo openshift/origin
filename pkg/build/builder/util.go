@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"io/ioutil"
+	"math"
 	"os"
 	"regexp"
 	"strconv"
@@ -64,7 +65,7 @@ func getDockerNetworkMode() s2iapi.DockerNetworkMode {
 
 // GetCGroupLimits returns a struct populated with cgroup limit values gathered
 // from the local /sys/fs/cgroup filesystem.  Overflow values are set to
-// MAX_INT_64.
+// math.MaxInt64.
 func GetCGroupLimits() (*s2iapi.CGroupLimits, error) {
 	byteLimit, err := readInt64("/sys/fs/cgroup/memory/memory.limit_in_bytes")
 	if err != nil {
@@ -90,7 +91,10 @@ func GetCGroupLimits() (*s2iapi.CGroupLimits, error) {
 		CPUPeriod:        cpuPeriod,
 		CPUQuota:         cpuQuota,
 		MemoryLimitBytes: byteLimit,
-		MemorySwap:       -1,
+		// Set memoryswap==memorylimit, this ensures no swapping occurs.
+		// see: https://docs.docker.com/engine/reference/run/#runtime-constraints-on-cpu-and-memory
+		//MemorySwap: byteLimit,
+		MemorySwap: 0,
 	}, nil
 }
 
@@ -101,9 +105,14 @@ func readInt64(filePath string) (int64, error) {
 	}
 	s := strings.TrimSpace(string(data))
 	val, err := strconv.ParseInt(s, 10, 64)
-	// overflow errors are ok because we'll get a MAX_INT_64 value which is more
-	// than enough anyway.
-	if err != nil && err.(*strconv.NumError).Err != strconv.ErrRange {
+	// overflow errors are ok, we'll get return a math.MaxInt64 value which is more
+	// than enough anyway.  For underflow we'll return MinInt64 and the error.
+	if err != nil && err.(*strconv.NumError).Err == strconv.ErrRange {
+		if s[0] == '-' {
+			return math.MinInt64, err
+		}
+		return math.MaxInt64, nil
+	} else if err != nil {
 		return -1, err
 	}
 	return val, nil
