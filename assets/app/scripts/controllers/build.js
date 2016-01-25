@@ -50,11 +50,14 @@ angular.module('openshiftConsole')
         // projectPromise rather than just a namespace, so we have to pass the
         // context into the log-viewer directive.
         $scope.logContext = context;
+        $scope.logOptions = {};
         DataService.get("builds", $routeParams.build, context).then(
           // success
           function(build) {
+
             $scope.loaded = true;
             $scope.build = build;
+            $scope.logOptions.container = $filter("annotation")(build, "buildPod");
             var buildNumber = $filter("annotation")(build, "buildNumber");
             if (buildNumber) {
               $scope.breadcrumbs[2].title = "#" + buildNumber;

@@ -30,7 +30,8 @@ angular.module('openshiftConsole')
         "deploymentVersion":        ["openshift.io/deployment-config.latest-version"],
         "displayName":              ["openshift.io/display-name"],
         "description":              ["openshift.io/description"],
-        "buildNumber":              ["openshift.io/build.number"]
+        "buildNumber":              ["openshift.io/build.number"],
+        "buildPod":                 ["openshift.io/build.pod-name"]
       };
       return annotationMap[annotationKey] || null;
     };
