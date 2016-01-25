@@ -241,9 +241,8 @@ type DeploymentConfigSpec struct {
 	Selector map[string]string `json:"selector,omitempty" description:"a label query over pods that should match the replicas count; if omitted, it will default to the podTemplate labels"`
 
 	// Template is the object that describes the pod that will be created if
-	// insufficient replicas are detected. Internally, this takes precedence over a
-	// TemplateRef.
-	Template *kapi.PodTemplateSpec `json:"template,omitempty" description:"describes the pod that will be created if insufficient replicas are detected; takes precedence over a template reference"`
+	// insufficient replicas are detected.
+	Template *kapi.PodTemplateSpec `json:"template,omitempty" description:"describes the pod that will be created if insufficient replicas are detected"`
 }
 
 // DeploymentConfigStatus represents the current deployment state.

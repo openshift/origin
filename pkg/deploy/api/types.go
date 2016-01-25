@@ -270,8 +270,7 @@ type DeploymentConfigSpec struct {
 	Selector map[string]string
 
 	// Template is the object that describes the pod that will be created if
-	// insufficient replicas are detected. Internally, this takes precedence over a
-	// TemplateRef.
+	// insufficient replicas are detected.
 	Template *kapi.PodTemplateSpec
 }
 
