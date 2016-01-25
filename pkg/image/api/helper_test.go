@@ -263,6 +263,79 @@ func TestDockerImageReferenceAsRepository(t *testing.T) {
 
 }
 
+func TestDockerImageReferenceDaemonMinimal(t *testing.T) {
+	testCases := []struct {
+		Registry, Namespace, Name, Tag, ID string
+		Expected                           string
+	}{
+		{
+			Namespace: "library",
+			Name:      "foo",
+			Tag:       "tag",
+			Expected:  "library/foo:tag",
+		},
+		{
+			Namespace: "bar",
+			Name:      "foo",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected:  "bar/foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
+			Registry:  "bar",
+			Namespace: "foo",
+			Name:      "baz",
+			Expected:  "bar/foo/baz",
+		},
+		{
+			Registry:  "localhost:5000",
+			Namespace: "library",
+			Name:      "bar",
+			Tag:       "latest",
+			Expected:  "localhost:5000/library/bar",
+		},
+		{
+			Registry:  "index.docker.io",
+			Namespace: "foo",
+			Name:      "bar",
+			Tag:       "latest",
+			Expected:  "docker.io/foo/bar",
+		},
+		{
+			Registry:  "registry-1.docker.io",
+			Namespace: "library",
+			Name:      "foo",
+			Tag:       "bar",
+			Expected:  "docker.io/foo:bar",
+		},
+		{
+			Registry:  "docker.io",
+			Namespace: "foo",
+			Name:      "library",
+			Expected:  "docker.io/foo/library",
+		},
+		{
+			Registry: "registry-1.docker.io",
+			Name:     "library",
+			Tag:      "foo",
+			Expected: "docker.io/library:foo",
+		},
+	}
+
+	for i, testCase := range testCases {
+		ref := DockerImageReference{
+			Registry:  testCase.Registry,
+			Namespace: testCase.Namespace,
+			Name:      testCase.Name,
+			Tag:       testCase.Tag,
+			ID:        testCase.ID,
+		}
+		actual := ref.DaemonMinimal().Exact()
+		if e, a := testCase.Expected, actual; e != a {
+			t.Errorf("%d: expected %q, got %q", i, e, a)
+		}
+	}
+}
+
 func TestDockerImageReferenceString(t *testing.T) {
 	testCases := []struct {
 		Registry, Namespace, Name, Tag, ID string

@@ -182,20 +182,20 @@ func (r DockerImageReference) RegistryURL() *url.URL {
 
 // DaemonMinimal clears defaults that Docker assumes.
 func (r DockerImageReference) DaemonMinimal() DockerImageReference {
-	if r.Namespace == "library" {
-		r.Namespace = ""
-	}
 	switch r.Registry {
 	case DockerDefaultV1Registry, DockerDefaultV2Registry:
 		r.Registry = DockerDefaultRegistry
+	}
+	if IsRegistryDockerHub(r.Registry) && r.Namespace == DockerDefaultNamespace {
+		r.Namespace = ""
 	}
 	return r.Minimal()
 }
 
 func (r DockerImageReference) AsV2() DockerImageReference {
 	switch r.Registry {
-	case "index.docker.io", "docker.io":
-		r.Registry = "registry-1.docker.io"
+	case DockerDefaultV1Registry, DockerDefaultRegistry:
+		r.Registry = DockerDefaultV2Registry
 	}
 	return r
 }

@@ -158,7 +158,7 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 		// Reduce the name to a minimal canonical form for the daemon
 		name := d.build.Spec.Strategy.DockerStrategy.From.Name
 		if ref, err := imageapi.ParseDockerImageReference(name); err == nil {
-			name = ref.DaemonMinimal().String()
+			name = ref.DaemonMinimal().Exact()
 		}
 		err := replaceLastFrom(node, name)
 		if err != nil {
@@ -270,7 +270,7 @@ func (d *DockerBuilder) dockerBuild(dir string, secrets []api.SecretBuildSource)
 }
 
 // replaceLastFrom changes the last FROM instruction of node to point to the
-// base image image.
+// base image.
 func replaceLastFrom(node *parser.Node, image string) error {
 	if node == nil {
 		return nil
