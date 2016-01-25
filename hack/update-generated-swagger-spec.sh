@@ -9,26 +9,12 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/os.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 
-function cleanup()
-{
-    out=$?
-    cleanup_openshift
-
-    if [ $out -ne 0 ]; then
-        echo "[FAIL] !!!!! Generate Failed !!!!"
-        echo
-        tail -100 "${LOG_DIR}/openshift.log"
-        echo
-        echo -------------------------------------
-        echo
-    fi
-    exit $out
-}
-
-trap "exit" INT TERM
-trap "cleanup" EXIT
+os::util::trap::init
+os::log::stacktrace::install
 
 export ALL_IP_ADDRESSES=127.0.0.1
 export SERVER_HOSTNAME_LIST=127.0.0.1
@@ -38,7 +24,7 @@ export ETCD_PORT=34001
 export ETCD_PEER_PORT=37001
 os::util::environment::setup_all_server_vars "generate-swagger-spec/"
 reset_tmp_dir
-configure_os_server
+os::configure_server
 
 
 SWAGGER_SPEC_REL_DIR=${1:-""}
@@ -47,7 +33,7 @@ mkdir -p "${SWAGGER_SPEC_OUT_DIR}" || true
 SWAGGER_API_PATH="${MASTER_ADDR}/swaggerapi/"
 
 # Start openshift
-start_os_master
+os::start_master
 
 echo "Updating ${SWAGGER_SPEC_OUT_DIR}:"
 

@@ -11,7 +11,13 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/os.sh"
+source "${OS_ROOT}/hack/lib/cleanup.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
+
+os::util::trap::init
+os::log::stacktrace::install
 cd "${OS_ROOT}"
 
 os::build::setup_env
@@ -20,23 +26,12 @@ export TMPDIR="${TMPDIR:-"/tmp"}"
 export BASETMPDIR="${TMPDIR}/openshift-extended-tests/alternate_launches"
 export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
-function cleanup()
-{
-	out=$?
-	cleanup_openshift
-	echo "[INFO] Exiting"
-	exit $out
-}
-
-trap "exit" INT TERM
-trap "cleanup" EXIT
-
-
 echo "[INFO] Starting server as distinct processes"
 ensure_iptables_or_die
 setup_env_vars
 reset_tmp_dir
-configure_os_server
+os::configure_server
+os::internal::install_server_cleanup
 
 echo "[INFO] `openshift version`"
 echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"

@@ -16,7 +16,11 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/contrib/node/install-sdn.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
+
+os::util::trap::init
+os::log::stacktrace::install
 
 # Go to the top of the tree.
 cd "${OS_ROOT}"
