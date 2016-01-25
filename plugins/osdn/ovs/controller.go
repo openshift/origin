@@ -189,14 +189,17 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 
 	// Table 0: initial dispatch based on in_port
 	// vxlan0
-	otx.AddFlow("table=0, priority=200, in_port=1, arp, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:1")
-	otx.AddFlow("table=0, priority=200, in_port=1, ip, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:1")
+	otx.AddFlow("table=0, priority=200, in_port=1, arp, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:1", clusterNetworkCIDR, localSubnetCIDR)
+	otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:1", clusterNetworkCIDR, localSubnetCIDR)
+	otx.AddFlow("table=0, priority=150, in_port=1, actions=drop")
 	// tun0
-	otx.AddFlow("table=0, priority=200, in_port=2, arp, actions=goto_table:5")
-	otx.AddFlow("table=0, priority=200, in_port=2, ip, actions=goto_table:5")
+	otx.AddFlow("table=0, priority=200, in_port=2, arp, nw_src=%s, nw_dst=%s, actions=goto_table:5", localSubnetGateway, clusterNetworkCIDR)
+	otx.AddFlow("table=0, priority=200, in_port=2, ip, nw_src=%s, nw_dst=%s, actions=goto_table:5", localSubnetGateway, clusterNetworkCIDR)
+	otx.AddFlow("table=0, priority=150, in_port=2, actions=drop")
 	// vovsbr
-	otx.AddFlow("table=0, priority=200, in_port=3, arp, actions=goto_table:5")
-	otx.AddFlow("table=0, priority=200, in_port=3, ip, actions=goto_table:5")
+	otx.AddFlow("table=0, priority=200, in_port=3, arp, nw_src=%s, actions=goto_table:5", localSubnetCIDR)
+	otx.AddFlow("table=0, priority=200, in_port=3, ip, nw_src=%s, actions=goto_table:5", localSubnetCIDR)
+	otx.AddFlow("table=0, priority=150, in_port=3, actions=drop")
 	// else, from a container
 	otx.AddFlow("table=0, priority=100, arp, actions=goto_table:2")
 	otx.AddFlow("table=0, priority=100, ip, actions=goto_table:2")
@@ -204,8 +207,8 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	// Table 1: VXLAN ingress filtering; filled in by AddOFRules()
 	// eg, "table=1, priority=100, tun_src=${remote_node_ip}, actions=goto_table:5"
 
-	// Table 2: from OpenShift container; validate IP, assign tenant-id; filled in by openshift-sdn-ovs
-	// eg, "table=2, priority=100, in_port=${ovs_port}, arp, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:5"
+	// Table 2: from OpenShift container; validate IP/MAC, assign tenant-id; filled in by openshift-sdn-ovs
+	// eg, "table=2, priority=100, in_port=${ovs_port}, arp, nw_src=${ipaddr}, arp_sha=${macaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:5"
 	//     "table=2, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:3"
 	// (${tenant_id} is always 0 for single-tenant)
 
