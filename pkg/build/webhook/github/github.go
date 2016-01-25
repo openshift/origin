@@ -1,6 +1,7 @@
 package github
 
 import (
+	"crypto/hmac"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,7 +42,7 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 		return
 	}
 	glog.V(4).Infof("Checking if the provided secret for BuildConfig %s/%s matches", buildCfg.Namespace, buildCfg.Name)
-	if trigger.GitHubWebHook.Secret != secret {
+	if !hmac.Equal([]byte(trigger.GitHubWebHook.Secret), []byte(secret)) {
 		err = webhook.ErrSecretMismatch
 		return
 	}
