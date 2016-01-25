@@ -6,7 +6,7 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/cmd.sh"
 source "${OS_ROOT}/hack/lib/util/trap.sh"
 source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 
