@@ -145,7 +145,7 @@ func (p *ProjectOptions) GetProjects() ([]*api.Project, error) {
 }
 
 func (p *ProjectOptions) GetNetNamespaces() (*sdnapi.NetNamespaceList, error) {
-	netNamespaces, err := p.Oclient.NetNamespaces().List()
+	netNamespaces, err := p.Oclient.NetNamespaces().List(kapi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
