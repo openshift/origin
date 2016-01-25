@@ -4,10 +4,14 @@ package integration
 
 import (
 	"testing"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -53,8 +57,8 @@ func TestProjectIsNamespace(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "new-project",
 			Annotations: map[string]string{
-				"openshift.io/display-name":  "Hello World",
-				"openshift.io/node-selector": "env=test",
+				projectapi.ProjectDisplayName: "Hello World",
+				"openshift.io/node-selector":  "env=test",
 			},
 		},
 	}
@@ -71,8 +75,8 @@ func TestProjectIsNamespace(t *testing.T) {
 	if project.Name != namespace.Name {
 		t.Fatalf("Project name did not match namespace name, project %v, namespace %v", project.Name, namespace.Name)
 	}
-	if project.Annotations["openshift.io/display-name"] != namespace.Annotations["openshift.io/display-name"] {
-		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.Annotations["openshift.io/display-name"], namespace.Annotations["openshift.io/display-name"])
+	if project.Annotations[projectapi.ProjectDisplayName] != namespace.Annotations[projectapi.ProjectDisplayName] {
+		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.Annotations[projectapi.ProjectDisplayName], namespace.Annotations[projectapi.ProjectDisplayName])
 	}
 	if project.Annotations["openshift.io/node-selector"] != namespace.Annotations["openshift.io/node-selector"] {
 		t.Fatalf("Project node selector did not match namespace node selector, project %v, namespace %v", project.Annotations["openshift.io/node-selector"], namespace.Annotations["openshift.io/node-selector"])
@@ -139,4 +143,131 @@ func TestProjectMustExist(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected an error on creation of a Origin resource because namespace does not exist")
 	}
+}
+
+func TestProjectWatch(t *testing.T) {
+	testutil.RequireEtcd(t)
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	bobClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "bob")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	w, err := bobClient.Projects().Watch(kapi.ListOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-01", "bob"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	select {
+	case event := <-w.ResultChan():
+		if event.Type != watch.Added {
+			t.Errorf("expected added, got %v", event)
+		}
+		project := event.Object.(*projectapi.Project)
+		if project.Name != "ns-01" {
+			t.Fatalf("expected %v, got %#v", "ns-01", project)
+		}
+
+	case <-time.After(3 * time.Second):
+		t.Fatalf("timeout")
+	}
+
+	select {
+	case event := <-w.ResultChan():
+		if event.Type != watch.Modified {
+			t.Errorf("expected Modified, got %v", event)
+		}
+		project := event.Object.(*projectapi.Project)
+		if project.Name != "ns-01" {
+			t.Fatalf("expected %v, got %#v", "ns-01", project)
+		}
+		project.Annotations[projectapi.ProjectDisplayName] = "whatever"
+		_, err := bobClient.Projects().Update(project)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+	case <-time.After(3 * time.Second):
+		t.Fatalf("timeout")
+	}
+
+	select {
+	case event := <-w.ResultChan():
+		if event.Type != watch.Modified {
+			t.Errorf("expected Modified, got %v", event)
+		}
+		project := event.Object.(*projectapi.Project)
+		if project.Name != "ns-01" {
+			t.Errorf("expected %v, got %#v", "ns-01", project)
+		}
+		if project.Annotations[projectapi.ProjectDisplayName] != "whatever" {
+			t.Errorf("expected %v, got %#v", "whatever", project)
+		}
+
+	case <-time.After(3 * time.Second):
+		t.Fatalf("timeout")
+	}
+
+	joeClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-02", "joe")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	addBob := &policy.RoleModificationOptions{
+		RoleNamespace:       "",
+		RoleName:            bootstrappolicy.EditRoleName,
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("ns-02", joeClient),
+		Users:               []string{"bob"},
+	}
+	if err := addBob.AddRole(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// wait for the add
+	for {
+		select {
+		case event := <-w.ResultChan():
+			project := event.Object.(*projectapi.Project)
+			t.Logf("got %#v %#v", event, project)
+			if event.Type == watch.Added && project.Name == "ns-02" {
+				return
+			}
+
+		case <-time.After(3 * time.Second):
+			t.Fatalf("timeout")
+		}
+	}
+
+	if err := addBob.RemoveRole(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// wait for the delete
+	for {
+		select {
+		case event := <-w.ResultChan():
+			project := event.Object.(*projectapi.Project)
+			t.Logf("got %#v %#v", event, project)
+			if event.Type == watch.Deleted && project.Name == "ns-02" {
+				return
+			}
+
+		case <-time.After(3 * time.Second):
+			t.Fatalf("timeout")
+		}
+	}
+
 }
