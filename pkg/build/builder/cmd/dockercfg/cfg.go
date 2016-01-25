@@ -17,12 +17,10 @@ import (
 
 //TODO: Remove this code once the methods in Kubernetes kubelet/dockertools/config.go are public
 
-// Default docker registry server
 const (
-	defaultRegistryServer = "https://index.docker.io/v1/"
-	PushAuthType          = "PUSH_DOCKERCFG_PATH"
-	PullAuthType          = "PULL_DOCKERCFG_PATH"
-	PullSourceAuthType    = "PULL_SOURCE_DOCKERCFG_PATH_"
+	PushAuthType       = "PUSH_DOCKERCFG_PATH"
+	PullAuthType       = "PULL_DOCKERCFG_PATH"
+	PullSourceAuthType = "PULL_SOURCE_DOCKERCFG_PATH_"
 )
 
 // Helper contains all the valid config options for reading the local dockercfg file
