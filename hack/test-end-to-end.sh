@@ -21,6 +21,7 @@ fi
 
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
 
@@ -56,8 +57,8 @@ reset_tmp_dir
 
 os::log::start_system_logger
 
-configure_os_server
-start_os_server
+os::configure_server
+os::start_server
 
 # set our default KUBECONFIG location
 export KUBECONFIG="${ADMIN_KUBECONFIG}"

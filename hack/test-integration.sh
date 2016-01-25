@@ -10,6 +10,7 @@ source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/text.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
 
@@ -65,7 +66,7 @@ popd &>/dev/null
 
 os::log::start_system_logger
 
-configure_os_server
+os::configure_server
 openshift start etcd --config=${MASTER_CONFIG_DIR}/master-config.yaml &> ${LOG_DIR}/etcd.log &
 
 wait_for_url "http://${API_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160

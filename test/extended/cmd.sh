@@ -18,6 +18,7 @@ os::log::install_errexit
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::util::environment::setup_time_vars
 
+source "${OS_ROOT}/hack/lib/os.sh"
 cd "${OS_ROOT}"
 
 os::build::setup_env
@@ -42,8 +43,8 @@ reset_tmp_dir
 
 os::log::start_system_logger
 
-configure_os_server
-start_os_server
+os::configure_server
+os::start_server
 
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 

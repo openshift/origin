@@ -76,37 +76,7 @@ out=$(
 	set -e
 )
 
-# Setup
-echo "[INFO] `openshift version`"
-echo "[INFO] Using images:							${USE_IMAGES}"
-
-mkdir -p /tmp/openshift-e2e/etcd || true
-
-echo "[INFO] Starting OpenShift containerized server"
-sudo docker run -d --name="origin" \
-	--privileged --net=host --pid=host \
-	-v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker:/var/lib/docker:rw \
-	-v "${VOLUME_DIR}:${VOLUME_DIR}" -v /tmp/openshift-e2e/etcd:/var/lib/origin/openshift.local.etcd:rw \
-	"openshift/origin:${TAG}" start --loglevel=4 --volume-dir=${VOLUME_DIR} --images="${USE_IMAGES}"
-
-
-# the CA is in the container, log in as a different cluster admin to run the test
-CURL_EXTRA="-k"
-wait_for_url "https://localhost:8443/healthz/ready" "apiserver(ready): " 0.25 160
-
-IMAGE_WORKING_DIR=/var/lib/origin
-docker cp origin:${IMAGE_WORKING_DIR}/openshift.local.config ${BASETMPDIR}
-
-export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template --template='{{index . "current-context"}}')
-sudo chmod -R a+rwX "${ADMIN_KUBECONFIG}"
-export KUBECONFIG="${ADMIN_KUBECONFIG}"
-echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
-
-
-wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
+os::start_container
 
 
 ${OS_ROOT}/test/end-to-end/core.sh

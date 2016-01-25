@@ -12,6 +12,7 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
 os::log::install_errexit
+source "${OS_ROOT}/hack/lib/os.sh"
 cd "${OS_ROOT}"
 
 os::build::setup_env
@@ -36,7 +37,7 @@ echo "[INFO] Starting server as distinct processes"
 ensure_iptables_or_die
 setup_env_vars
 reset_tmp_dir
-configure_os_server
+os::configure_server
 
 echo "[INFO] `openshift version`"
 echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"

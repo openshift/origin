@@ -20,6 +20,7 @@ os::log::install_errexit
 
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::util::environment::setup_time_vars
+source "${OS_ROOT}/hack/lib/os.sh"
 
 cd "${OS_ROOT}"
 
@@ -120,8 +121,8 @@ if [[ -z ${TEST_ONLY+x} ]]; then
   if selinuxenabled; then
          sudo chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
   fi
-  configure_os_server
-  start_os_server
+  os::configure_server
+  os::start_server
 
   export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
