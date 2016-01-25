@@ -26,7 +26,6 @@ os::build::setup_env
 function cleanup()
 {
 	out=$?
-	docker rmi test/scratchimage
 	cleanup_openshift
 	echo "[INFO] Exiting"
 	return $out

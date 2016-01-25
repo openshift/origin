@@ -253,59 +253,10 @@ reset_tmp_dir() {
 	set -e
 }
 
-# kill_all_processes function will kill all 
-# all processes created by the test script.
-function kill_all_processes()
-{
-	local sudo="${USE_SUDO:+sudo}"
-
-	pids=($(jobs -pr))
-	for i in ${pids[@]-}; do
-		ps --ppid=${i} | xargs $sudo kill &> /dev/null
-		$sudo kill ${i} &> /dev/null
-	done
-}
-
 # time_now return the time since the epoch in millis
 function time_now()
 {
 	echo $(date +%s000)
-}
-
-# dump_container_logs writes container logs to $LOG_DIR
-function dump_container_logs()
-{
-	mkdir -p ${LOG_DIR}
-
-	echo "[INFO] Dumping container logs to ${LOG_DIR}"
-	for container in $(docker ps -aq); do
-		container_name=$(docker inspect -f "{{.Name}}" $container)
-		# strip off leading /
-		container_name=${container_name:1}
-		if [[ "$container_name" =~ ^k8s_ ]]; then
-			pod_name=$(echo $container_name | awk 'BEGIN { FS="[_.]+" }; { print $4 }')
-			container_name=${pod_name}-$(echo $container_name | awk 'BEGIN { FS="[_.]+" }; { print $2 }')
-		fi
-		docker logs "$container" >&"${LOG_DIR}/container-${container_name}.log"
-	done
-}
-
-# delete_empty_logs deletes empty logs
-function delete_empty_logs() {
-	# Clean up zero byte log files
-	find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -empty \) -delete
-}
-
-# truncate_large_logs truncates large logs so we only download the last 20MB
-function truncate_large_logs() {
-	# Clean up large log files so they don't end up on jenkins		
-	local large_files=$(find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -size +20M \))
-	for file in ${large_files}; do
-		cp "${file}" "${file}.tmp"
-		echo "LOGFILE TOO LONG, PREVIOUS BYTES TRUNCATED. LAST 20M BYTES OF LOGFILE:" > "${file}"
-		tail -c 20M "${file}.tmp" >> "${file}"
-		rm "${file}.tmp"
-	done
 }
 
 ######
@@ -315,45 +266,6 @@ function truncate_large_logs() {
 # exit run if ginkgo not installed
 function ensure_ginkgo_or_die {
 	which ginkgo &>/dev/null || (echo 'Run: "go get github.com/onsi/ginkgo/ginkgo"' && exit 1)
-}
-
-# cleanup_openshift saves container logs, saves resources, and kills all processes and containers
-function cleanup_openshift {
-	ADMIN_KUBECONFIG="${ADMIN_KUBECONFIG:-${BASETMPDIR}/openshift.local.config/master/admin.kubeconfig}"
-	LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
-	ARTIFACT_DIR="${ARTIFACT_DIR:-${LOG_DIR}}"
-	API_HOST="${API_HOST:-127.0.0.1}"
-	API_SCHEME="${API_SCHEME:-https}"
-	ETCD_PORT="${ETCD_PORT:-4001}"
-
-	set +e
-	dump_container_logs
-	
-	echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
-	oc login -u system:admin -n default --config=${ADMIN_KUBECONFIG}
-	oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
-
-	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
-	set_curl_args 0 1
-	curl -s ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
-	echo
-
-	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
-		echo "[INFO] Tearing down test"
-		kill_all_processes
-
-		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop -t 1 >/dev/null
-		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm >/dev/null
-		fi
-		set -u
-	fi
-
-	delete_empty_logs
-	truncate_large_logs
-
-	echo "[INFO] Cleanup complete"
-	set -e
 }
 
 # create a .gitconfig for test-cmd secrets
