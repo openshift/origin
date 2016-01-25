@@ -12,10 +12,6 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
-
-source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::util::environment::setup_time_vars
-
 source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/cleanup.sh"
 source "${OS_ROOT}/hack/lib/util/trap.sh"
@@ -29,6 +25,8 @@ cd "${OS_ROOT}"
 
 os::build::setup_env
 
+source "${OS_ROOT}/hack/lib/util/environment.sh"
+os::util::environment::setup_time_vars
 
 echo "[INFO] Starting server"
 

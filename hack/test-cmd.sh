@@ -166,7 +166,7 @@ oc logout
 [ -z "$(oc get pods | grep 'system:anonymous')" ]
 
 # log in as an image-pruner and test that oadm prune images works against the atomic binary
-oadm policy add-cluster-role-to-user system:image-pruner pruner --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+oadm policy add-cluster-role-to-user system:image-pruner pruner --config="${ADMIN_KUBECONFIG}"
 oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u pruner -p anything
 # this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
 oadm prune images
@@ -177,19 +177,19 @@ oc get projects
 oc project project-foo
 [ "$(oc config view | grep current-context | grep project-foo/${API_HOST}:${API_PORT}/test-user)" ]
 [ "$(oc whoami | grep 'test-user')" ]
-[ "$(oc whoami --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" | grep 'system:admin')" ]
+[ "$(oc whoami --config="${ADMIN_KUBECONFIG}" | grep 'system:admin')" ]
 [ -n "$(oc whoami -t)" ]
 [ -n "$(oc whoami -c)" ]
 
 # test config files from the --config flag
-oc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+oc get services --config="${ADMIN_KUBECONFIG}"
 
 # test config files from env vars
-KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" oc get services
+KUBECONFIG="${ADMIN_KUBECONFIG}" oc get services
 
 # test config files in the home directory
 mkdir -p ${HOME}/.kube
-cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/config
+cp ${ADMIN_KUBECONFIG} ${HOME}/.kube/config
 oc get services
 mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
 echo "config files: ok"
