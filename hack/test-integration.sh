@@ -8,9 +8,9 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/text.sh"
 source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/cleanup.sh"
+source "${OS_ROOT}/hack/lib/util/text.sh"
 source "${OS_ROOT}/hack/lib/util/trap.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 source "${OS_ROOT}/hack/lib/log/system.sh"
@@ -77,13 +77,13 @@ function exectest() {
 		result=$?
 	fi
 
-	os::text::clear_last_line
+	os::util::text::clear_last_line
 
 	if [[ ${result} -eq 0 ]]; then
-		os::text::print_green "ok      $1"
+		os::util::text::print_green "ok      $1"
 		exit 0
 	else
-		os::text::print_red "failed  $1"
+		os::util::text::print_red "failed  $1"
 		echo "${out}"
 
 		# dump etcd for failing test
