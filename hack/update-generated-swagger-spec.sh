@@ -10,6 +10,7 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
+source "${OS_ROOT}/hack/lib/os.sh"
 
 function cleanup()
 {
@@ -38,7 +39,7 @@ export ETCD_PORT=34001
 export ETCD_PEER_PORT=37001
 os::util::environment::setup_all_server_vars "generate-swagger-spec/"
 reset_tmp_dir
-configure_os_server
+os::configure_server
 
 
 SWAGGER_SPEC_REL_DIR=${1:-""}
@@ -47,7 +48,7 @@ mkdir -p "${SWAGGER_SPEC_OUT_DIR}" || true
 SWAGGER_API_PATH="${MASTER_ADDR}/swaggerapi/"
 
 # Start openshift
-start_os_master
+os::start_master
 
 echo "Updating ${SWAGGER_SPEC_OUT_DIR}:"
 
