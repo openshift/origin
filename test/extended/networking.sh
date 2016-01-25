@@ -21,6 +21,8 @@ source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+os::util::trap::init
 
 # These strings filter the available tests.
 NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services}"
