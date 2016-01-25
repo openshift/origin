@@ -16128,7 +16128,7 @@
      },
      "template": {
       "$ref": "v1.PodTemplateSpec",
-      "description": "describes the pod that will be created if insufficient replicas are detected; takes precedence over a template reference"
+      "description": "describes the pod that will be created if insufficient replicas are detected"
      }
     }
    },
