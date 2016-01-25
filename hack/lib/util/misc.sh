@@ -39,5 +39,4 @@ function os::util::describe_return_code() {
 #  - export OS_DESCRIBE_RETURN_CODE 
 function os::util::install_describe_return_code() {
 	export OS_DESCRIBE_RETURN_CODE="true"
-	os::util::trap::init_err
 }

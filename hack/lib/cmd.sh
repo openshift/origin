@@ -283,7 +283,7 @@ function os::cmd::internal::run_collecting_output() {
 
 	local result=
 	$( eval "${cmd}" 1>>"${os_cmd_internal_tmpout}" 2>>"${os_cmd_internal_tmperr}" ) || result=$?
-	local result=${result:-0} # if we haven't set result yet, the command succeeded
+	result=${result:-0} # if we haven't set result yet, the command succeeded
 
 	echo "${result}"
 } 
