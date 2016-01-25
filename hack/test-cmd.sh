@@ -61,10 +61,13 @@ tests=( $(find_tests ${1:-.*}) )
 # test-cmd specific defaults
 API_HOST=${API_HOST:-127.0.0.1}
 export API_PORT=${API_PORT:-28443}
+export API_BIND_HOST=${API_BIND_HOST:-${API_HOST}}
 
 export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 export ETCD_PORT=${ETCD_PORT:-24001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
+
+export KUBELET_BIND_HOST=${KUBELET_BIND_HOST:-0.0.0.0}
 
 os::util::environment::setup_all_server_vars "test-cmd/"
 reset_tmp_dir
@@ -100,42 +103,7 @@ echo openshift: $out
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
-# Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
-echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
-# find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
-SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},$(openshift start --print-ip),localhost"
-
-openshift admin ca create-master-certs \
-  --overwrite=false \
-  --cert-dir="${MASTER_CONFIG_DIR}" \
-  --hostnames="${SERVER_HOSTNAME_LIST}" \
-  --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
-
-openshift admin create-node-config \
-  --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
-  --node-dir="${NODE_CONFIG_DIR}" \
-  --node="${KUBELET_HOST}" \
-  --hostnames="${KUBELET_HOST}" \
-  --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
-  --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
-
-oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
-
-# create openshift config
-openshift start \
-  --write-config=${SERVER_CONFIG_DIR} \
-  --create-certs=false \
-  --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --hostname="${KUBELET_HOST}" \
-  --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" \
-  --images="${USE_IMAGES}"
+configure_os_server
 
 # validate config that was generated
 os::cmd::expect_success_and_text "openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml" 'SUCCESS'
@@ -150,25 +118,13 @@ os::util::sed '5,10d' ${BASETMPDIR}/node-config-broken.yaml
 os::cmd::expect_failure_and_text "openshift ex validate node-config ${BASETMPDIR}/node-config-broken.yaml" 'ERROR'
 echo "validation: ok"
 
-# Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
-os::util::sed "s/:4001$/:${ETCD_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
-os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
-
-# Start openshift
-OPENSHIFT_ON_PANIC=crash openshift start master \
-  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
-  --loglevel=5 \
-  &>"${LOG_DIR}/openshift.log" &
-OS_PID=$!
+start_os_master
 
 if [[ "${API_SCHEME}" == "https" ]]; then
     export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
     export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
     export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 fi
-
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
