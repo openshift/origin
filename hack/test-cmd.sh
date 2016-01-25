@@ -17,9 +17,10 @@ source "${OS_ROOT}/hack/lib/cleanup.sh"
 source "${OS_ROOT}/hack/lib/util/trap.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 
 os::util::trap::init
+os::log::stacktrace::install
 os::internal::install_master_cleanup
 os::cleanup::install_dump_pprof_output
 

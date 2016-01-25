@@ -9,11 +9,12 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::log::install_errexit
 source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 
 os::util::trap::init
+os::log::stacktrace::install
 
 export ALL_IP_ADDRESSES=127.0.0.1
 export SERVER_HOSTNAME_LIST=127.0.0.1

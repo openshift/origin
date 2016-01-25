@@ -11,11 +11,13 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
-os::log::install_errexit
 source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/cleanup.sh"
 source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
+
 os::util::trap::init
+os::log::stacktrace::install
 cd "${OS_ROOT}"
 
 os::build::setup_env
