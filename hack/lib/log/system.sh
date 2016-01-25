@@ -1,6 +1,9 @@
 #!/bin/bash
 #
 # This library holds all of the system logging functions for OpenShift bash scripts.
+#
+# This library assumes $OS_ROOT is set
+source "${OS_ROOT}/hack/lib/cleanup.sh"
 
 # os::log::system::install_cleanup installs os::log::system::clean_up_logger as a trap on EXIT.
 #
@@ -28,22 +31,8 @@ function os::log::system::install_cleanup() {
 # Returns:  
 #  None
 function os::log::system::cleanup() {
-    echo "[INFO] Cleaning up system logger"
-    if jobs -pr | grep -q "${LOGGER_PID}"; then
-        kill -SIGTERM "${LOGGER_PID}"
-        # give logger ten seconds to gracefully exit before killing it
-        for (( i = 0; i < 10; i++ )); do
-            if ! jobs -pr | grep -q "${LOGGER_PID}"; then
-                # the logger has shutdown, we don't need to wait on it any longer
-                break
-            fi
-        done
-
-        if jobs -pr | grep -q "${LOGGER_PID}"; then
-            # the logger has not shutdown, so kill it
-            kill -SIGKILL "${LOGGER_PID}"
-        fi
-    fi
+    echo "[INFO] Cleaning up system logger process ${LOGGER_PID}"
+    os::cleanup::internal::kill_process_tree "${LOGGER_PID}"
 
     if ! which sadf >/dev/null 2>&1; then
         echo "[WARNING] System logger data could not be unpacked and graphed, 'sadf' binary not found in this environment."

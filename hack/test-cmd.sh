@@ -11,11 +11,11 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 cd "${OS_ROOT}"
 source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/cleanup.sh"
+source "${OS_ROOT}/hack/lib/cmd.sh"
+source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/util/trap.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
 source "${OS_ROOT}/hack/lib/log/system.sh"
 source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 
@@ -52,6 +52,8 @@ os::log::system::start
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
 
+os::configure_server
+
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
 unset OPENSHIFT_PROFILE
@@ -72,7 +74,6 @@ echo openshift: $out
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
-os::configure:server
 
 # validate config that was generated
 os::cmd::expect_success_and_text "openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml" 'SUCCESS'
@@ -167,7 +168,7 @@ os::cmd::expect_success 'oc logout'
 os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list pods'
 
 # log in as an image-pruner and test that oadm prune images works against the atomic binary
-os::cmd::expect_success "oadm policy add-cluster-role-to-user system:image-pruner pruner --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
+os::cmd::expect_success "oadm policy add-cluster-role-to-user system:image-pruner pruner --config='${ADMIN_KUBECONFIG}'"
 os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u pruner -p anything"
 # this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
 os::cmd::expect_success 'oadm prune images'
@@ -178,19 +179,19 @@ VERBOSE=true os::cmd::expect_success 'oc get projects'
 VERBOSE=true os::cmd::expect_success 'oc project project-foo'
 os::cmd::expect_success_and_text 'oc config view' "current-context.+project-foo/${API_HOST}:${API_PORT}/test-user"
 os::cmd::expect_success_and_text 'oc whoami' 'test-user'
-os::cmd::expect_success_and_text "oc whoami --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'system:admin'
+os::cmd::expect_success_and_text "oc whoami --config='${ADMIN_KUBECONFIG}'" 'system:admin'
 os::cmd::expect_success_and_text 'oc whoami -t' '.'
 os::cmd::expect_success_and_text 'oc whoami -c' '.'
 
 # test config files from the --config flag
-os::cmd::expect_success "oc get services --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
+os::cmd::expect_success "oc get services --config='${ADMIN_KUBECONFIG}'"
 
 # test config files from env vars
-os::cmd::expect_success "KUBECONFIG='${MASTER_CONFIG_DIR}/admin.kubeconfig' oc get services"
+os::cmd::expect_success "KUBECONFIG='${ADMIN_KUBECONFIG}' oc get services"
 
 # test config files in the home directory
 mkdir -p ${HOME}/.kube
-cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/config
+cp ${ADMIN_KUBECONFIG} ${HOME}/.kube/config
 os::cmd::expect_success 'oc get services'
 mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
 echo "config files: ok"

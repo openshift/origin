@@ -190,10 +190,10 @@ function os::cleanup::kill_all_running_jobs() {
 }
 
 # os::cleanup::internal::kill_process_tree recursively finds all processes in a tree and kills them, 
-# starting with the root. This function will use elevated privileges if $SUDO is set
+# starting with the root. This function will use elevated privileges if $USE_SUDO is set
 #
 # Globals:
-#  - SUDO
+#  - USE_SUDO
 # Arguments:
 #  - 1: PID of tree root
 # Returns:
@@ -204,15 +204,15 @@ function os::cleanup::internal::kill_process_tree() {
     local child_pids
     child_pids="$( ps --ppid="${root_pid}" --format=pid --no-headers )"
 
-    local sudo="${SUDO:+sudo}"
-    ${sudo} kill -SIGKILL "${root_pid}"
+    local sudo="${USE_SUDO:+sudo}"
+    ${sudo} kill -SIGTERM "${root_pid}"
 
     for child_pid in ${child_pids}; do
         os::cleanup::internal::kill_process_tree "${child_pid}"
     done
 
-    for (( i = 0; i < 30; i++ )); do
-        sleep 0.1
+    for (( i = 0; i < 10; i++ )); do
+        sleep 0.5
         if ! ps --pid="${root_pid}" >/dev/null 2>&1; then
             return 0
         fi

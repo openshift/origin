@@ -31,7 +31,7 @@ source "${OS_ROOT}/hack/util.sh"
 #  - ETCD_PEER_PORT
 #  - SERVER_CONFIG_DIR
 #  - USE_IMAGES
-#  - SUDO
+#  - USE_SUDO
 # Arguments:
 #  None
 # Returns:
@@ -101,7 +101,7 @@ function os::configure_server() {
     # Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
     export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
     export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template --template='{{index . "current-context"}}')
-    local sudo="${SUDO:+sudo}"
+    local sudo="${USE_SUDO:+sudo}"
     ${sudo} chmod -R a+rwX "${ADMIN_KUBECONFIG}"
     echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
 }
@@ -109,7 +109,7 @@ function os::configure_server() {
 # os::start_server starts the OpenShift server, exports its PID and waits until endpoints are available
 #
 # Globals:
-#  - SUDO
+#  - USE_SUDO
 #  - LOG_DIR
 #  - ARTIFACT_DIR
 #  - VOLUME_DIR
@@ -131,7 +131,7 @@ function os::configure_server() {
 function os::start_server {
     os::internal::install_server_cleanup
 
-    local sudo="${SUDO:+sudo}"
+    local sudo="${USE_SUDO:+sudo}"
 
     echo "[INFO] `openshift version`"
     echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
@@ -187,7 +187,7 @@ function os::internal::install_server_cleanup() {
 # os::start_master starts the OpenShift master, exports its PID and waits until endpoints are available
 #
 # Globals:
-#  - SUDO
+#  - USE_SUDO
 #  - LOG_DIR
 #  - ARTIFACT_DIR
 #  - SERVER_CONFIG_DIR
@@ -204,7 +204,7 @@ function os::internal::install_server_cleanup() {
 function os::start_master {
     os::internal::install_master_cleanup
 
-    local sudo="${SUDO:+sudo}"
+    local sudo="${USE_SUDO:+sudo}"
 
     echo "[INFO] `openshift version`"
     echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
