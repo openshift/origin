@@ -12,8 +12,10 @@ source "${OS_ROOT}/hack/text.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/cleanup.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
+os::util::trap::init
 
 # Go to the top of the tree.
 cd "${OS_ROOT}"

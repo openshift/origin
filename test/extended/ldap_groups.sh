@@ -17,7 +17,9 @@ os::log::install_errexit
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::util::environment::setup_time_vars
 source "${OS_ROOT}/hack/lib/os.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 
+os::util::trap::init
 cd "${OS_ROOT}"
 
 os::build::setup_env

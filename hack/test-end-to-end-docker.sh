@@ -12,11 +12,13 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 
 echo "[INFO] Starting containerized end-to-end test"
 
 unset KUBECONFIG
 
+os::util::trap::init
 os::util::environment::setup_all_server_vars "test-end-to-end-docker/"
 os::util::environment::use_sudo
 reset_tmp_dir

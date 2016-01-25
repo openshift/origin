@@ -20,6 +20,8 @@ os::util::environment::setup_time_vars
 
 source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/cleanup.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+os::util::trap::init
 os::cleanup::install_remove_scratch_image
 cd "${OS_ROOT}"
 
