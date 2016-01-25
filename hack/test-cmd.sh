@@ -102,58 +102,7 @@ echo openshift: $out
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
-# Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
-echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
-# find the same IP that openshift start will bind to. This allows access from pods that have to talk back to master
-if [[ -z "${ALL_IP_ADDRESSES-}" ]]; then
-  ALL_IP_ADDRESSES="$(openshift start --print-ip)"
-  SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost,172.30.0.1"
-              SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},kubernetes.default.svc.cluster.local,kubernetes.default.svc,kubernetes.default,kubernetes"
-              SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},openshift.default.svc.cluster.local,openshift.default.svc,openshift.default,openshift"
-
-  while read -r IP_ADDRESS
-  do
-    SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
-  done <<< "${ALL_IP_ADDRESSES}"
-
-  export ALL_IP_ADDRESSES
-  export SERVER_HOSTNAME_LIST
-fi
-
-echo "[INFO] Creating certificates for the OpenShift server"
-openshift admin ca create-master-certs \
-  --overwrite=false \
-  --cert-dir="${MASTER_CONFIG_DIR}" \
-  --hostnames="${SERVER_HOSTNAME_LIST}" \
-  --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
-
-echo "[INFO] Creating OpenShift node config"
-openshift admin create-node-config \
-  --listen="${KUBELET_SCHEME}://${KUBELET_BIND_HOST}:${KUBELET_PORT}" \
-  --node-dir="${NODE_CONFIG_DIR}" \
-  --node="${KUBELET_HOST}" \
-  --hostnames="${KUBELET_HOST}" \
-  --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
-  --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
-
-oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
-
-echo "[INFO] Creating OpenShift config"
-openshift start \
-  --write-config=${SERVER_CONFIG_DIR} \
-  --create-certs=false \
-  --listen="${API_SCHEME}://${API_BIND_HOST}:${API_PORT}" \
-  --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}" \
-  --hostname="${KUBELET_HOST}" \
-  --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" \
-  --images="${USE_IMAGES}"
+configure_os_server
 
 # validate config that was generated
 [ "$(openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml 2>&1 | grep SUCCESS)" ]
@@ -168,31 +117,13 @@ os::util::sed '5,10d' ${BASETMPDIR}/node-config-broken.yaml
 [ "$(openshift ex validate node-config ${BASETMPDIR}/node-config-broken.yaml 2>&1 | grep ERROR)" ]
 echo "validation: ok"
 
-# Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
-os::util::sed "s/:4001$/:${ETCD_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
-os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
-
-# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
-export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template --template='{{index . "current-context"}}')
-local sudo="${USE_SUDO:+sudo}"
-${sudo} chmod -R a+rwX "${ADMIN_KUBECONFIG}"
-echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
-
-${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE="${OPENSHIFT_PROFILE:-web}" OPENSHIFT_ON_PANIC=crash openshift start master \
-  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
-  --loglevel=4 \
-  &>"${LOG_DIR}/openshift.log" &
-export OS_PID=$!
+start_os_master
 
 if [[ "${API_SCHEME}" == "https" ]]; then
     export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
     export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
     export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 fi
-
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
