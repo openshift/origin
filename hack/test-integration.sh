@@ -15,7 +15,9 @@ source "${OS_ROOT}/hack/lib/cleanup.sh"
 source "${OS_ROOT}/hack/lib/util/trap.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 os::util::trap::init
+os::log::stacktrace::install
 
 # Go to the top of the tree.
 cd "${OS_ROOT}"

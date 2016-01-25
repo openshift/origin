@@ -14,8 +14,9 @@ source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/os.sh"
 source "${OS_ROOT}/hack/lib/util/trap.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 os::util::trap::init
+os::log::stacktrace::install
 
 ensure_iptables_or_die
 

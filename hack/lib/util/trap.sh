@@ -7,6 +7,7 @@
 
 # This script assumes ${OS_ROOT} is set
 source "${OS_ROOT}/hack/lib/util/misc.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 source "${OS_ROOT}/hack/lib/cleanup.sh"
 
 
@@ -73,6 +74,13 @@ function os::util::trap::err_handler() {
 
     if [[ "${OS_TRAP_DEBUG:-}" = "true" ]]; then
         echo "[DEBUG] Error handler executing with return code \`${return_code}\`, last command \`${last_command}\`, and errexit set \`${errexit_set:-}\`" 
+    fi
+
+    if [[ "${OS_USE_STACKTRACE:-}" = "true" ]]; then
+        # the OpenShift stacktrace function is treated as a privileged handler for this signal
+        # and is therefore allowed to run outside of a subshell in order to allow it to `exit`
+        # if necessary
+        os::log::stacktrace::print "${return_code}" "${last_command}" "${errexit_set:-}"
     fi
 
     return "${return_code}"
