@@ -203,14 +203,17 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	// else, from a container
 	otx.AddFlow("table=0, priority=100, arp, actions=goto_table:2")
 	otx.AddFlow("table=0, priority=100, ip, actions=goto_table:2")
+	otx.AddFlow("table=0, priority=0, actions=drop")
 
 	// Table 1: VXLAN ingress filtering; filled in by AddOFRules()
 	// eg, "table=1, priority=100, tun_src=${remote_node_ip}, actions=goto_table:5"
+	otx.AddFlow("table=1, priority=0, actions=drop")
 
 	// Table 2: from OpenShift container; validate IP/MAC, assign tenant-id; filled in by openshift-sdn-ovs
 	// eg, "table=2, priority=100, in_port=${ovs_port}, arp, nw_src=${ipaddr}, arp_sha=${macaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:5"
 	//     "table=2, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:3"
 	// (${tenant_id} is always 0 for single-tenant)
+	otx.AddFlow("table=2, priority=0, actions=drop")
 
 	// Table 3: from OpenShift container; service vs non-service
 	otx.AddFlow("table=3, priority=100, ip, nw_dst=%s, actions=goto_table:4", servicesNetworkCIDR)
@@ -219,6 +222,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	// Table 4: from OpenShift container; service dispatch; filled in by AddServiceOFRules()
 	otx.AddFlow("table=4, priority=200, reg0=0, actions=output:2")
 	// eg, "table=4, priority=100, reg0=${tenant_id}, ${service_proto}, nw_dst=${service_ip}, tp_dst=${service_port}, actions=output:2"
+	otx.AddFlow("table=4, priority=0, actions=drop")
 
 	// Table 5: general routing
 	otx.AddFlow("table=5, priority=300, arp, nw_dst=%s, actions=output:2", localSubnetGateway)
@@ -228,6 +232,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	otx.AddFlow("table=5, priority=100, arp, nw_dst=%s, actions=goto_table:8", clusterNetworkCIDR)
 	otx.AddFlow("table=5, priority=100, ip, nw_dst=%s, actions=goto_table:8", clusterNetworkCIDR)
 	otx.AddFlow("table=5, priority=0, ip, actions=output:2")
+	otx.AddFlow("table=5, priority=0, arp, actions=drop")
 
 	// Table 6: ARP to container, filled in by openshift-sdn-ovs
 	// eg, "table=6, priority=100, arp, nw_dst=${container_ip}, actions=output:${ovs_port}"
@@ -241,6 +246,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	// Table 8: to remote container; filled in by AddOFRules()
 	// eg, "table=8, priority=100, arp, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
 	// eg, "table=8, priority=100, ip, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
+	otx.AddFlow("table=8, priority=0, actions=drop")
 
 	err = otx.EndTransaction()
 	if err != nil {
