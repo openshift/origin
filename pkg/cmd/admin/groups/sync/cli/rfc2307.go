@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/rfc2307"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/syncerror"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
@@ -17,6 +18,8 @@ type RFC2307Builder struct {
 	Config       *api.RFC2307Config
 
 	rfc2307LDAPInterface *rfc2307.LDAPInterface
+
+	ErrorHandler syncerror.Handler
 }
 
 func (b *RFC2307Builder) GetGroupLister() (interfaces.LDAPGroupLister, error) {
@@ -58,7 +61,7 @@ func (b *RFC2307Builder) getRFC2307LDAPInterface() (*rfc2307.LDAPInterface, erro
 	}
 	b.rfc2307LDAPInterface = rfc2307.NewLDAPInterface(b.ClientConfig,
 		groupQuery, b.Config.GroupNameAttributes, b.Config.GroupMembershipAttributes,
-		userQuery, b.Config.UserNameAttributes)
+		userQuery, b.Config.UserNameAttributes, b.ErrorHandler)
 	return b.rfc2307LDAPInterface, nil
 }
 

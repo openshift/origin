@@ -927,6 +927,21 @@ type RFC2307Config struct {
 	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its OpenShift user name.
 	// This should match your PreferredUsername setting for your LDAPPasswordIdentityProvider
 	UserNameAttributes []string
+
+	// TolerateMissingMembers determines the behavior of the LDAP sync job when missing user entries are
+	// encountered. If 'true', an LDAP query for users that doesn't find any will be tolerated and an only
+	// and error will be logged. If 'false', the LDAP sync job will fail if a query for users doesn't find
+	// any. The default value is 'false'. Misconfigured LDAP sync jobs with this flag set to 'true' can cause
+	// group membership to be removed, so it is recommended to use this flag with caution.
+	TolerateMissingMembers bool
+
+	// TolerateOutOfScopeMembers determines the behavior of the LDAP sync job when out-of-scope user entries
+	// are encountered. If 'true', an LDAP query for a user that falls outside of the base DN given for the all
+	// user query will be tolerated and only an error will be logged. If 'false', the LDAP sync job will fail
+	// if a user query would search outside of the base DN specified by the all user query. Misconfigured LDAP
+	// sync jobs with this flag set to 'true' can result in groups missing users, so it is recommended to use
+	// this flag with caution.
+	TolerateOutOfScopeMembers bool
 }
 
 type ActiveDirectoryConfig struct {
