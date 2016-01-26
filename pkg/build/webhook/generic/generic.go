@@ -1,6 +1,7 @@
 package generic
 
 import (
+	"crypto/hmac"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -28,7 +29,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		return
 	}
 	glog.V(4).Infof("Checking if the provided secret for BuildConfig %s/%s matches", buildCfg.Namespace, buildCfg.Name)
-	if trigger.GenericWebHook.Secret != secret {
+	if !hmac.Equal([]byte(trigger.GenericWebHook.Secret), []byte(secret)) {
 		err = webhook.ErrSecretMismatch
 		return
 	}
