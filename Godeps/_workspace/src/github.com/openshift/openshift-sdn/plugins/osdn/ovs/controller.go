@@ -114,13 +114,22 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
 
+	glog.V(5).Infof("[SDN setup] node pod subnet %s gateway %s", ipnet.String(), localSubnetGateway)
+
+	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
+	if alreadySetUp(c.multitenant, gwCIDR) {
+		glog.V(5).Infof("[SDN setup] no SDN setup required")
+		return nil
+	}
+	glog.V(5).Infof("[SDN setup] full SDN setup required")
+
 	itx := ipcmd.NewTransaction(LBR)
 	itx.SetLink("down")
 	itx.IgnoreError()
 	itx.DeleteLink()
 	itx.IgnoreError()
 	itx.AddLink("type", "bridge")
-	itx.AddAddress(fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength))
+	itx.AddAddress(gwCIDR)
 	itx.SetLink("up")
 	err = itx.EndTransaction()
 	if err != nil {
@@ -128,15 +137,16 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 		return err
 	}
 	defer deleteLocalSubnetRoute(LBR, localSubnetCIDR)
+
+	glog.V(5).Infof("[SDN setup] docker setup %s mtu %d", LBR, mtu)
 	out, err := exec.Command("openshift-sdn-docker-setup.sh", LBR, fmt.Sprint(mtu)).CombinedOutput()
 	if err != nil {
 		glog.Errorf("Failed to configure docker networking: %v\n%s", err, out)
 		return err
+	} else {
+		glog.V(5).Infof("[SDN setup] docker setup success:\n%s", out)
 	}
 
-	if alreadySetUp(c.multitenant, fmt.Sprintf("%s/%s", localSubnetGateway, localSubnetMaskLength)) {
-		return nil
-	}
 	config := fmt.Sprintf("export OPENSHIFT_CLUSTER_SUBNET=%s", clusterNetworkCIDR)
 	err = ioutil.WriteFile("/run/openshift-sdn/config.env", []byte(config), 0644)
 	if err != nil {
@@ -238,7 +248,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	}
 
 	itx = ipcmd.NewTransaction(TUN)
-	itx.AddAddress(localSubnetGateway)
+	itx.AddAddress(gwCIDR)
 	defer deleteLocalSubnetRoute(TUN, localSubnetCIDR)
 	itx.SetLink("up")
 	itx.AddRoute(clusterNetworkCIDR, "proto", "kernel", "scope", "link")
@@ -263,6 +273,8 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	err = sysctl.SetSysctl("net/bridge/bridge-nf-call-iptables", 0)
 	if err != nil {
 		glog.Warningf("Could not set net.bridge.bridge-nf-call-iptables sysctl: %s", err)
+	} else {
+		glog.V(5).Infof("[SDN setup] set net.bridge.bridge-nf-call-iptables to 0")
 	}
 
 	// Enable IP forwarding for ipv4 packets
