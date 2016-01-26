@@ -8,6 +8,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/db"
 	testutil "github.com/openshift/origin/test/util"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 )
@@ -32,18 +33,18 @@ func CreateMySQLReplicationHelpers(c kclient.PodInterface, masterDeployment, sla
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Create MySQL helper for master
-	master := exutil.NewMysql(masterPod, "")
+	master := db.NewMysql(masterPod, "")
 
 	// Create MySQL helpers for slaves
 	slaves := make([]exutil.Database, len(slavePods))
 	for i := range slavePods {
-		slave := exutil.NewMysql(slavePods[i], masterPod)
+		slave := db.NewMysql(slavePods[i], masterPod)
 		slaves[i] = slave
 	}
 
 	helperNames, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", helperDeployment)), exutil.CheckPodIsRunningFn, 1, 1*time.Minute)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	helper := exutil.NewMysql(helperNames[0], masterPod)
+	helper := db.NewMysql(helperNames[0], masterPod)
 
 	return master, slaves, helper
 }
@@ -114,20 +115,20 @@ func replicationTestFactory(oc *exutil.CLI, template string) func() {
 		g.By("after master is restarted by changing the Deployment Config")
 		err = oc.Run("env").Args("dc", "mysql-master", "MYSQL_ROOT_PASSWORD=newpass").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), master.GetPodName(), 1*time.Minute)
+		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), master.PodName(), 1*time.Minute)
 		master, _, _ = assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 1)
 
 		g.By("after master is restarted by deleting the pod")
 		err = oc.Run("delete").Args("pod", "-l", "deployment=mysql-master-2").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), master.GetPodName(), 1*time.Minute)
+		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), master.PodName(), 1*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		_, slaves, _ := assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 1)
 
 		g.By("after slave is restarted by deleting the pod")
 		err = oc.Run("delete").Args("pod", "-l", "deployment=mysql-slave-1").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), slaves[0].GetPodName(), 1*time.Minute)
+		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), slaves[0].PodName(), 1*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 1)
 
