@@ -44,7 +44,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		"ImageStream":          &ImageStreamDescriber{c},
 		"ImageStreamTag":       &ImageStreamTagDescriber{c},
 		"ImageStreamImage":     &ImageStreamImageDescriber{c},
-		"Route":                &RouteDescriber{c},
+		"Route":                &RouteDescriber{c, kclient},
 		"Project":              &ProjectDescriber{c, kclient},
 		"Template":             &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
 		"Policy":               &PolicyDescriber{c},
@@ -580,6 +580,7 @@ func (d *ImageStreamDescriber) Describe(namespace, name string) (string, error) 
 // RouteDescriber generates information about a Route
 type RouteDescriber struct {
 	client.Interface
+	kubeClient kclient.Interface
 }
 
 // Describe returns the description of a route
@@ -590,11 +591,40 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 
+	endpoints, endsErr := d.kubeClient.Endpoints(namespace).Get(route.Spec.To.Name)
+
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, route.ObjectMeta)
 		formatString(out, "Host", route.Spec.Host)
 		formatString(out, "Path", route.Spec.Path)
 		formatString(out, "Service", route.Spec.To.Name)
+
+		ends := "<none>"
+		if endsErr != nil {
+			ends = fmt.Sprintf("Unable to get endpoints: %v", endsErr)
+		} else if len(endpoints.Subsets) > 0 {
+			list := []string{}
+
+			max := 3
+			count := 0
+
+			for i := range endpoints.Subsets {
+				ss := &endpoints.Subsets[i]
+				for p := range ss.Ports {
+					for a := range ss.Addresses {
+						if len(list) < max {
+							list = append(list, fmt.Sprintf("%s:%d", ss.Addresses[a].IP, ss.Ports[p].Port))
+						}
+						count++
+					}
+				}
+			}
+			ends = strings.Join(list, ",")
+			if count > max {
+				ends += fmt.Sprintf(" + %d more...", count-max)
+			}
+		}
+		formatString(out, "Endpoints", ends)
 
 		tlsTerm := ""
 		insecurePolicy := ""

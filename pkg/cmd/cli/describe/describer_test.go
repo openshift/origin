@@ -115,7 +115,7 @@ func TestDescribers(t *testing.T) {
 		&ImageStreamDescriber{c},
 		&ImageStreamTagDescriber{c},
 		&ImageStreamImageDescriber{c},
-		&RouteDescriber{c},
+		&RouteDescriber{c, fakeKube},
 		&ProjectDescriber{c, fakeKube},
 		&PolicyDescriber{c},
 		&PolicyBindingDescriber{c},
