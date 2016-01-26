@@ -187,62 +187,57 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	otx.AddPort(TUN, 2, "type=internal")
 	otx.AddPort(VOVSBR, 3)
 
-	// Table 0; VXLAN filtering; the first rule sends un-tunnelled packets
-	// to table 1. Additional per-node rules are filled in by controller.go
-	otx.AddFlow("table=0, tun_src=0.0.0.0, actions=goto_table:1")
-	// eg, "table=0, tun_src=${remote_node}, actions=goto_table:1"
+	// Table 0: initial dispatch based on in_port
+	// vxlan0
+	otx.AddFlow("table=0, priority=200, in_port=1, arp, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:1")
+	otx.AddFlow("table=0, priority=200, in_port=1, ip, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:1")
+	// tun0
+	otx.AddFlow("table=0, priority=200, in_port=2, arp, actions=goto_table:5")
+	otx.AddFlow("table=0, priority=200, in_port=2, ip, actions=goto_table:5")
+	// vovsbr
+	otx.AddFlow("table=0, priority=200, in_port=3, arp, actions=goto_table:5")
+	otx.AddFlow("table=0, priority=200, in_port=3, ip, actions=goto_table:5")
+	// else, from a container
+	otx.AddFlow("table=0, priority=100, arp, actions=goto_table:2")
+	otx.AddFlow("table=0, priority=100, ip, actions=goto_table:2")
 
-	// Table 1; learn MAC addresses and continue with table 2
-	otx.AddFlow("table=1, actions=learn(table=9, priority=200, hard_timeout=900, NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[], load:NXM_NX_TUN_IPV4_SRC[]->NXM_NX_TUN_IPV4_DST[], output:NXM_OF_IN_PORT[]), goto_table:2")
+	// Table 1: VXLAN ingress filtering; filled in by AddOFRules()
+	// eg, "table=1, priority=100, tun_src=${remote_node_ip}, actions=goto_table:5"
 
-	// Table 2; initial dispatch
-	otx.AddFlow("table=2, priority=200, arp, actions=goto_table:9")
-	otx.AddFlow("table=2, priority=100, in_port=1, actions=goto_table:3") // vxlan0
-	otx.AddFlow("table=2, priority=100, in_port=2, actions=goto_table:6") // tun0
-	otx.AddFlow("table=2, priority=100, in_port=3, actions=goto_table:6") // vovsbr
-	otx.AddFlow("table=2, priority=0, actions=goto_table:4")              // container
+	// Table 2: from OpenShift container; validate IP, assign tenant-id; filled in by openshift-sdn-ovs
+	// eg, "table=2, priority=100, in_port=${ovs_port}, arp, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:5"
+	//     "table=2, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:3"
+	// (${tenant_id} is always 0 for single-tenant)
 
-	// Table 3; incoming from vxlan
-	otx.AddFlow("table=3, priority=200, ip, nw_dst=%s, actions=output:2", localSubnetGateway)
-	if c.multitenant {
-		otx.AddFlow("table=3, priority=100, ip, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[], goto_table:6", localSubnetCIDR)
-	} else {
-		otx.AddFlow("table=3, priority=100, ip, nw_dst=%s, actions=goto_table:9", localSubnetCIDR)
-	}
+	// Table 3: from OpenShift container; service vs non-service
+	otx.AddFlow("table=3, priority=100, ip, nw_dst=%s, actions=goto_table:4", servicesNetworkCIDR)
+	otx.AddFlow("table=3, priority=0, actions=goto_table:5")
 
-	// Table 4; incoming from container; filled in by openshift-sdn-ovs
-	// eg, single-tenant: "table=4, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, goto_table:6"
-	//     multitenant:   "table=4, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:5"
+	// Table 4: from OpenShift container; service dispatch; filled in by AddServiceOFRules()
+	otx.AddFlow("table=4, priority=200, reg0=0, actions=output:2")
+	// eg, "table=4, priority=100, reg0=${tenant_id}, ${service_proto}, nw_dst=${service_ip}, tp_dst=${service_port}, actions=output:2"
 
-	// Table 5; service isolation; mostly filled in by AddServiceOFRules()
-	if c.multitenant {
-		otx.AddFlow("table=5, priority=200, reg0=0, ip, nw_dst=%s, actions=output:2", servicesNetworkCIDR)
-		// eg, "table=5, priority=200, ${service_proto}, nw_dst=${service_ip}, tp_dst=${service_port}, actions=output:2"
-		otx.AddFlow("table=5, priority=100, ip, nw_dst=%s, actions=drop", servicesNetworkCIDR)
-		otx.AddFlow("table=5, priority=0, actions=goto_table:6")
-	}
+	// Table 5: general routing
+	otx.AddFlow("table=5, priority=300, arp, nw_dst=%s, actions=output:2", localSubnetGateway)
+	otx.AddFlow("table=5, priority=300, ip, nw_dst=%s, actions=output:2", localSubnetGateway)
+	otx.AddFlow("table=5, priority=200, arp, nw_dst=%s, actions=goto_table:6", localSubnetCIDR)
+	otx.AddFlow("table=5, priority=200, ip, nw_dst=%s, actions=goto_table:7", localSubnetCIDR)
+	otx.AddFlow("table=5, priority=100, arp, nw_dst=%s, actions=goto_table:8", clusterNetworkCIDR)
+	otx.AddFlow("table=5, priority=100, ip, nw_dst=%s, actions=goto_table:8", clusterNetworkCIDR)
+	otx.AddFlow("table=5, priority=0, ip, actions=output:2")
 
-	// Table 6; general routing
-	otx.AddFlow("table=6, priority=200, ip, nw_dst=%s, actions=output:2", localSubnetGateway)
-	if c.multitenant {
-		otx.AddFlow("table=6, priority=175, ip, reg0=0, nw_dst=%s, actions=goto_table:9", localSubnetCIDR)
-		otx.AddFlow("table=6, priority=150, ip, nw_dst=%s, actions=goto_table:7", localSubnetCIDR)
-	} else {
-		otx.AddFlow("table=6, priority=150, ip, nw_dst=%s, actions=goto_table:9", localSubnetCIDR)
-	}
-	otx.AddFlow("table=6, priority=100, ip, nw_dst=%s, actions=goto_table:8", clusterNetworkCIDR)
-	otx.AddFlow("table=6, priority=0, ip, actions=output:2")
+	// Table 6: ARP to container, filled in by openshift-sdn-ovs
+	// eg, "table=6, priority=100, arp, nw_dst=${container_ip}, actions=output:${ovs_port}"
+	otx.AddFlow("table=6, priority=0, actions=output:3")
 
-	// Table 7; to local container with isolation; filled in by openshift-sdn-ovs
-	// eg, "table=7, priority=100, ip, nw_dst=${ipaddr}, reg0=${tenant_id}, actions=output:${ovs_port}"
+	// Table 7: IP to container; filled in by openshift-sdn-ovs
+	// eg, "table=7, priority=100, reg0=0, ip, nw_dst=${ipaddr}, actions=output:${ovs_port}"
+	// eg, "table=7, priority=100, reg0=${tenant_id}, ip, nw_dst=${ipaddr}, actions=output:${ovs_port}"
+	otx.AddFlow("table=7, priority=0, actions=output:3")
 
-	// Table 8; to remote container; filled in by AddOFRules()
+	// Table 8: to remote container; filled in by AddOFRules()
+	// eg, "table=8, priority=100, arp, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
 	// eg, "table=8, priority=100, ip, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
-
-	// Table 9; MAC dispatch / ARP, filled in by Table 1's learn() rule
-	// and with per-node vxlan ARP rules by AddOFRules()
-	otx.AddFlow("table=9, priority=0, arp, actions=flood")
-	// eg, "table=9, priority=100, arp, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
 
 	err = otx.EndTransaction()
 	if err != nil {
@@ -310,9 +305,9 @@ func (c *FlowController) AddOFRules(nodeIP, nodeSubnetCIDR, localIP string) erro
 	cookie := generateCookie(nodeIP)
 	otx := ovs.NewTransaction(BR)
 
-	otx.AddFlow("table=0,cookie=0x%s,tun_src=%s,actions=goto_table:1", cookie, nodeIP)
-	otx.AddFlow("table=8,cookie=0x%s,priority=100,ip,nw_dst=%s,actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, nodeSubnetCIDR, nodeIP)
-	otx.AddFlow("table=9,cookie=0x%s,priority=100,arp,nw_dst=%s,actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, nodeSubnetCIDR, nodeIP)
+	otx.AddFlow("table=1, cookie=0x%s, priority=100, tun_src=%s, actions=goto_table:5", cookie, nodeIP)
+	otx.AddFlow("table=8, cookie=0x%s, priority=100, arp, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, nodeSubnetCIDR, nodeIP)
+	otx.AddFlow("table=8, cookie=0x%s, priority=100, ip, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, nodeSubnetCIDR, nodeIP)
 
 	err := otx.EndTransaction()
 	if err != nil {
@@ -342,7 +337,7 @@ func generateCookie(ip string) string {
 }
 
 func (c *FlowController) AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
-	if !c.multitenant {
+	if !c.multitenant || netID == 0 {
 		return nil
 	}
 
@@ -358,7 +353,7 @@ func (c *FlowController) AddServiceOFRules(netID uint, IP string, protocol api.S
 }
 
 func (c *FlowController) DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
-	if !c.multitenant {
+	if !c.multitenant || netID == 0 {
 		return nil
 	}
 
@@ -374,16 +369,12 @@ func (c *FlowController) DelServiceOFRules(netID uint, IP string, protocol api.S
 }
 
 func generateBaseServiceRule(IP string, protocol api.ServiceProtocol, port uint) string {
-	return fmt.Sprintf("table=5,%s,nw_dst=%s,tp_dst=%d", strings.ToLower(string(protocol)), IP, port)
+	return fmt.Sprintf("table=4, %s, nw_dst=%s, tp_dst=%d", strings.ToLower(string(protocol)), IP, port)
 }
 
 func generateAddServiceRule(netID uint, IP string, protocol api.ServiceProtocol, port uint) string {
 	baseRule := generateBaseServiceRule(IP, protocol, port)
-	if netID == 0 {
-		return fmt.Sprintf("%s,priority=200,actions=output:2", baseRule)
-	} else {
-		return fmt.Sprintf("%s,priority=200,reg0=%d,actions=output:2", baseRule, netID)
-	}
+	return fmt.Sprintf("%s, priority=100, reg0=%d, actions=output:2", baseRule, netID)
 }
 
 func generateDelServiceRule(IP string, protocol api.ServiceProtocol, port uint) string {
