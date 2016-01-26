@@ -134,7 +134,7 @@ func validateBuildSpec(spec *buildapi.BuildSpec, fldPath *field.Path) field.Erro
 const maxDockerfileLengthBytes = 60 * 1000
 
 func hasProxy(source *buildapi.GitBuildSource) bool {
-	return len(source.HTTPProxy) > 0 || len(source.HTTPSProxy) > 0
+	return (source.HTTPProxy != nil && len(*source.HTTPProxy) > 0) || (source.HTTPSProxy != nil && len(*source.HTTPSProxy) > 0)
 }
 
 func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrategy bool, fldPath *field.Path) field.ErrorList {
@@ -216,11 +216,11 @@ func validateGitSource(git *buildapi.GitBuildSource, fldPath *field.Path) field.
 	} else if !isValidURL(git.URI) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("uri"), git.URI, "uri is not a valid url"))
 	}
-	if len(git.HTTPProxy) != 0 && !isValidURL(git.HTTPProxy) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("httpproxy"), git.HTTPProxy, "proxy is not a valid url"))
+	if git.HTTPProxy != nil && len(*git.HTTPProxy) != 0 && !isValidURL(*git.HTTPProxy) {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("httpproxy"), *git.HTTPProxy, "proxy is not a valid url"))
 	}
-	if len(git.HTTPSProxy) != 0 && !isValidURL(git.HTTPSProxy) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("httpsproxy"), git.HTTPSProxy, "proxy is not a valid url"))
+	if git.HTTPSProxy != nil && len(*git.HTTPSProxy) != 0 && !isValidURL(*git.HTTPSProxy) {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("httpsproxy"), *git.HTTPSProxy, "proxy is not a valid url"))
 	}
 	if hasProxy(git) && !isHTTPScheme(git.URI) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("uri"), git.URI, "only http:// and https:// GIT protocols are allowed with HTTP or HTTPS proxy set"))

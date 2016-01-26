@@ -1678,8 +1678,18 @@ func autoconvert_api_GitBuildSource_To_v1beta3_GitBuildSource(in *buildapi.GitBu
 	}
 	out.URI = in.URI
 	out.Ref = in.Ref
-	out.HTTPProxy = in.HTTPProxy
-	out.HTTPSProxy = in.HTTPSProxy
+	if in.HTTPProxy != nil {
+		out.HTTPProxy = new(string)
+		*out.HTTPProxy = *in.HTTPProxy
+	} else {
+		out.HTTPProxy = nil
+	}
+	if in.HTTPSProxy != nil {
+		out.HTTPSProxy = new(string)
+		*out.HTTPSProxy = *in.HTTPSProxy
+	} else {
+		out.HTTPSProxy = nil
+	}
 	return nil
 }
 
@@ -2474,8 +2484,18 @@ func autoconvert_v1beta3_GitBuildSource_To_api_GitBuildSource(in *apiv1beta3.Git
 	}
 	out.URI = in.URI
 	out.Ref = in.Ref
-	out.HTTPProxy = in.HTTPProxy
-	out.HTTPSProxy = in.HTTPSProxy
+	if in.HTTPProxy != nil {
+		out.HTTPProxy = new(string)
+		*out.HTTPProxy = *in.HTTPProxy
+	} else {
+		out.HTTPProxy = nil
+	}
+	if in.HTTPSProxy != nil {
+		out.HTTPSProxy = new(string)
+		*out.HTTPSProxy = *in.HTTPSProxy
+	} else {
+		out.HTTPSProxy = nil
+	}
 	return nil
 }
 

@@ -268,10 +268,10 @@ type GitBuildSource struct {
 	Ref string `json:"ref,omitempty" description:"identifies the branch/tag/ref to build"`
 
 	// HTTPProxy is a proxy used to reach the git repository over http
-	HTTPProxy string `json:"httpProxy,omitempty" description:"specifies a http proxy to be used during git clone operations"`
+	HTTPProxy *string `json:"httpProxy,omitempty" description:"specifies a http proxy to be used during git clone operations"`
 
 	// HTTPSProxy is a proxy used to reach the git repository over https
-	HTTPSProxy string `json:"httpsProxy,omitempty" description:"specifies a https proxy to be used during git clone operations"`
+	HTTPSProxy *string `json:"httpsProxy,omitempty" description:"specifies a https proxy to be used during git clone operations"`
 }
 
 // SourceControlUser defines the identity of a user of source control

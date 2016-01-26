@@ -1209,8 +1209,18 @@ func deepCopy_api_DockerBuildStrategy(in buildapi.DockerBuildStrategy, out *buil
 func deepCopy_api_GitBuildSource(in buildapi.GitBuildSource, out *buildapi.GitBuildSource, c *conversion.Cloner) error {
 	out.URI = in.URI
 	out.Ref = in.Ref
-	out.HTTPProxy = in.HTTPProxy
-	out.HTTPSProxy = in.HTTPSProxy
+	if in.HTTPProxy != nil {
+		out.HTTPProxy = new(string)
+		*out.HTTPProxy = *in.HTTPProxy
+	} else {
+		out.HTTPProxy = nil
+	}
+	if in.HTTPSProxy != nil {
+		out.HTTPSProxy = new(string)
+		*out.HTTPSProxy = *in.HTTPSProxy
+	} else {
+		out.HTTPSProxy = nil
+	}
 	return nil
 }
 
