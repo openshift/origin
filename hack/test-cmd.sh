@@ -211,6 +211,8 @@ fi
 
 
 # login and logout tests
+# bad --api-version should error
+os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} -u test-user -p test-password --api-version=foo/bar/baz" 'error.*foo/bar/baz'
 # --token and --username are mutually exclusive
 os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify" 'mutually exclusive'
 # must only accept one arg (server)
