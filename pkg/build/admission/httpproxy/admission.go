@@ -93,11 +93,12 @@ func (a *buildHTTPProxy) Admit(attributes admission.Attributes) error {
 			*envVars = append(*envVars, kapi.EnvVar{Name: "HTTP_PROXY", Value: a.proxyConfig.HTTPProxy})
 		}
 
-		// if buildConfig.Spec.Source.Git != nil {
-		// 	if buildConfig.Spec.Source.Git.HTTPProxy == nil {
-		// 		buildConfig.Spec.Source.Git.HTTPProxy = a.proxyConfig.HTTPProxy
-		// 	}
-		// }
+		if buildConfig.Spec.Source.Git != nil {
+			if buildConfig.Spec.Source.Git.HTTPProxy == nil {
+				t := a.proxyConfig.HTTPProxy
+				buildConfig.Spec.Source.Git.HTTPProxy = &t
+			}
+		}
 	}
 
 	if len(a.proxyConfig.HTTPSProxy) != 0 {
@@ -121,11 +122,12 @@ func (a *buildHTTPProxy) Admit(attributes admission.Attributes) error {
 			*envVars = append(*envVars, kapi.EnvVar{Name: "HTTPS_PROXY", Value: a.proxyConfig.HTTPSProxy})
 		}
 
-		// if buildConfig.Spec.Source.Git != nil {
-		// 	if buildConfig.Spec.Source.Git.HTTPSProxy == nil {
-		// 		buildConfig.Spec.Source.Git.HTTPSProxy = a.proxyConfig.HTTPSProxy
-		// 	}
-		// }
+		if buildConfig.Spec.Source.Git != nil {
+			if buildConfig.Spec.Source.Git.HTTPSProxy == nil {
+				t := a.proxyConfig.HTTPSProxy
+				buildConfig.Spec.Source.Git.HTTPSProxy = &t
+			}
+		}
 	}
 
 	return nil
