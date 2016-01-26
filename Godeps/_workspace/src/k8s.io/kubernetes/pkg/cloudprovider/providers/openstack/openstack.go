@@ -34,6 +34,7 @@ import (
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/flavors"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
+	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/members"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/monitors"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/pools"
@@ -48,6 +49,12 @@ import (
 )
 
 const ProviderName = "openstack"
+
+// metadataUrl is URL to OpenStack metadata server. It's hadrcoded IPv4
+// link-local address as documented in "OpenStack Cloud Administrator Guide",
+// chapter Compute - Networking with nova-network.
+// http://docs.openstack.org/admin-guide-cloud/compute-networking-nova.html#metadata-service
+const metadataUrl = "http://169.254.169.254/openstack/2012-08-10/meta_data.json"
 
 var ErrNotFound = errors.New("Failed to find object")
 var ErrMultipleResults = errors.New("Multiple results where only one expected")
@@ -75,6 +82,7 @@ func (d *MyDuration) UnmarshalText(text []byte) error {
 
 type LoadBalancerOpts struct {
 	SubnetId          string     `gcfg:"subnet-id"` // required
+	FloatingNetworkId string     `gcfg:"floating-network-id"`
 	LBMethod          string     `gfcg:"lb-method"`
 	CreateMonitor     bool       `gcfg:"create-monitor"`
 	MonitorDelay      MyDuration `gcfg:"monitor-delay"`
@@ -126,6 +134,8 @@ func (cfg Config) toAuthOptions() gophercloud.AuthOptions {
 		APIKey:           cfg.Global.ApiKey,
 		TenantID:         cfg.Global.TenantId,
 		TenantName:       cfg.Global.TenantName,
+		DomainID:         cfg.Global.DomainId,
+		DomainName:       cfg.Global.DomainName,
 
 		// Persistent service, so we need to be able to renew tokens.
 		AllowReauth: true,
@@ -146,29 +156,18 @@ func readConfig(config io.Reader) (Config, error) {
 // parseMetadataUUID reads JSON from OpenStack metadata server and parses
 // instance ID out of it.
 func parseMetadataUUID(jsonData []byte) (string, error) {
-	// We should receive an object with { 'uuid': '<uuid> } and couple of other
+	// We should receive an object with { 'uuid': '<uuid>' } and couple of other
 	// properties (which we ignore).
 
-	var obj map[string]interface{}
+	obj := struct{ UUID string }{}
 	err := json.Unmarshal(jsonData, &obj)
 	if err != nil {
 		return "", err
 	}
 
-	tmp, ok := obj["uuid"]
-	if !ok {
-		err = fmt.Errorf("cannot parse OpenStack metadata, no uuid found")
-		return "", err
-	}
-
-	uuid, ok := tmp.(string)
-	if !ok {
-		err = fmt.Errorf("cannot parse OpenStack metadata, uuid has invalid format")
-		return "", err
-	}
-
+	uuid := obj.UUID
 	if uuid == "" {
-		err = fmt.Errorf("got empty uuid")
+		err = fmt.Errorf("cannot parse OpenStack metadata, got empty uuid")
 		return "", err
 	}
 
@@ -191,7 +190,6 @@ func readInstanceID() (string, error) {
 	glog.V(5).Infof("Cannot read %s: '%v', trying metadata server", instanceIDFile, err)
 
 	// Try to get JSON from metdata server.
-	const metadataUrl = "http://169.254.169.254/openstack/2012-08-10/meta_data.json"
 	resp, err := http.Get(metadataUrl)
 	if err != nil {
 		glog.V(3).Infof("Cannot read %s: %v", metadataUrl, err)
@@ -486,6 +484,11 @@ func (os *OpenStack) ProviderName() string {
 	return ProviderName
 }
 
+// ScrubDNS filters DNS settings for pods.
+func (os *OpenStack) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []string) {
+	return nameservers, searches
+}
+
 type LoadBalancer struct {
 	network *gophercloud.ServiceClient
 	compute *gophercloud.ServiceClient
@@ -590,6 +593,41 @@ func getVipByName(client *gophercloud.ServiceClient, name string) (*vips.Virtual
 	}
 
 	return &vipList[0], nil
+}
+
+func getFloatingIPByPortID(client *gophercloud.ServiceClient, portID string) (*floatingips.FloatingIP, error) {
+	opts := floatingips.ListOpts{
+		PortID: portID,
+	}
+	pager := floatingips.List(client, opts)
+
+	floatingIPList := make([]floatingips.FloatingIP, 0, 1)
+
+	err := pager.EachPage(func(page pagination.Page) (bool, error) {
+		f, err := floatingips.ExtractFloatingIPs(page)
+		if err != nil {
+			return false, err
+		}
+		floatingIPList = append(floatingIPList, f...)
+		if len(floatingIPList) > 1 {
+			return false, ErrMultipleResults
+		}
+		return true, nil
+	})
+	if err != nil {
+		if isNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	if len(floatingIPList) == 0 {
+		return nil, ErrNotFound
+	} else if len(floatingIPList) > 1 {
+		return nil, ErrMultipleResults
+	}
+
+	return &floatingIPList[0], nil
 }
 
 func (lb *LoadBalancer) GetTCPLoadBalancer(name, region string) (*api.LoadBalancerStatus, bool, error) {
@@ -719,9 +757,24 @@ func (lb *LoadBalancer) EnsureTCPLoadBalancer(name, region string, loadBalancerI
 	}
 
 	status := &api.LoadBalancerStatus{}
+
 	status.Ingress = []api.LoadBalancerIngress{{IP: vip.Address}}
 
+	if lb.opts.FloatingNetworkId != "" {
+		floatIPOpts := floatingips.CreateOpts{
+			FloatingNetworkID: lb.opts.FloatingNetworkId,
+			PortID:            vip.PortID,
+		}
+		floatIP, err := floatingips.Create(lb.network, floatIPOpts).Extract()
+		if err != nil {
+			return nil, err
+		}
+
+		status.Ingress = append(status.Ingress, api.LoadBalancerIngress{IP: floatIP.FloatingIP})
+	}
+
 	return status, nil
+
 }
 
 func (lb *LoadBalancer) UpdateTCPLoadBalancer(name, region string, hosts []string) error {
@@ -791,6 +844,19 @@ func (lb *LoadBalancer) EnsureTCPLoadBalancerDeleted(name, region string) error 
 	vip, err := getVipByName(lb.network, name)
 	if err != nil && err != ErrNotFound {
 		return err
+	}
+
+	if lb.opts.FloatingNetworkId != "" && vip != nil {
+		floatingIP, err := getFloatingIPByPortID(lb.network, vip.PortID)
+		if err != nil && !isNotFound(err) {
+			return err
+		}
+		if floatingIP != nil {
+			err = floatingips.Delete(lb.network, floatingIP.ID).ExtractErr()
+			if err != nil && !isNotFound(err) {
+				return err
+			}
+		}
 	}
 
 	// We have to delete the VIP before the pool can be deleted,
@@ -957,42 +1023,3 @@ func (os *OpenStack) getVolume(diskName string) (volumes.Volume, error) {
 	}
 	return volume, err
 }
-
-// Create a volume of given size (in GiB)
-func (os *OpenStack) CreateVolume(size int) (volumeName string, err error) {
-
-	sClient, err := openstack.NewBlockStorageV1(os.provider, gophercloud.EndpointOpts{
-		Region: os.region,
-	})
-
-	if err != nil || sClient == nil {
-		glog.Errorf("Unable to initialize cinder client for region: %s", os.region)
-		return "", err
-	}
-
-	opts := volumes.CreateOpts{Size: size}
-	vol, err := volumes.Create(sClient, opts).Extract()
-	if err != nil {
-		glog.Errorf("Failed to create a %d GB volume: %v", size, err)
-		return "", err
-	}
-	glog.Infof("Created volume %v", vol.ID)
-	return vol.ID, err
-}
-
-func (os *OpenStack) DeleteVolume(volumeName string) error {
-	sClient, err := openstack.NewBlockStorageV1(os.provider, gophercloud.EndpointOpts{
-		Region: os.region,
-	})
-
-	if err != nil || sClient == nil {
-		glog.Errorf("Unable to initialize cinder client for region: %s", os.region)
-		return err
-	}
-	err = volumes.Delete(sClient, volumeName).ExtractErr()
-	if err != nil {
-		glog.Errorf("Cannot delete volume %s: %v", volumeName, err)
-	}
-	return err
-}
-

@@ -21,8 +21,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/registry/service"
 	"k8s.io/kubernetes/pkg/registry/service/portallocator"
 	"k8s.io/kubernetes/pkg/util"
@@ -81,7 +80,8 @@ func (c *Repair) RunOnce() error {
 	}
 
 	ctx := api.WithNamespace(api.NewDefaultContext(), api.NamespaceAll)
-	list, err := c.registry.ListServices(ctx, labels.Everything(), fields.Everything())
+	options := &unversioned.ListOptions{ResourceVersion: latest.ObjectMeta.ResourceVersion}
+	list, err := c.registry.ListServices(ctx, options)
 	if err != nil {
 		return fmt.Errorf("unable to refresh the port block: %v", err)
 	}

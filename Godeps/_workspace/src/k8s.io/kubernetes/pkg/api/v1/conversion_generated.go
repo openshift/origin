@@ -32,7 +32,7 @@ func autoconvert_api_AWSElasticBlockStoreVolumeSource_To_v1_AWSElasticBlockStore
 	}
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int32(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -306,8 +306,8 @@ func autoconvert_api_ContainerPort_To_v1_ContainerPort(in *api.ContainerPort, ou
 		defaulting.(func(*api.ContainerPort))(in)
 	}
 	out.Name = in.Name
-	out.HostPort = in.HostPort
-	out.ContainerPort = in.ContainerPort
+	out.HostPort = int32(in.HostPort)
+	out.ContainerPort = int32(in.ContainerPort)
 	out.Protocol = Protocol(in.Protocol)
 	out.HostIP = in.HostIP
 	return nil
@@ -370,8 +370,8 @@ func autoconvert_api_ContainerStateTerminated_To_v1_ContainerStateTerminated(in 
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ContainerStateTerminated))(in)
 	}
-	out.ExitCode = in.ExitCode
-	out.Signal = in.Signal
+	out.ExitCode = int32(in.ExitCode)
+	out.Signal = int32(in.Signal)
 	out.Reason = in.Reason
 	out.Message = in.Message
 	if err := s.Convert(&in.StartedAt, &out.StartedAt, 0); err != nil {
@@ -413,7 +413,7 @@ func autoconvert_api_ContainerStatus_To_v1_ContainerStatus(in *api.ContainerStat
 		return err
 	}
 	out.Ready = in.Ready
-	out.RestartCount = in.RestartCount
+	out.RestartCount = int32(in.RestartCount)
 	out.Image = in.Image
 	out.ImageID = in.ImageID
 	out.ContainerID = in.ContainerID
@@ -428,7 +428,7 @@ func autoconvert_api_DaemonEndpoint_To_v1_DaemonEndpoint(in *api.DaemonEndpoint,
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.DaemonEndpoint))(in)
 	}
-	out.Port = in.Port
+	out.Port = int32(in.Port)
 	return nil
 }
 
@@ -529,7 +529,7 @@ func autoconvert_api_EndpointPort_To_v1_EndpointPort(in *api.EndpointPort, out *
 		defaulting.(func(*api.EndpointPort))(in)
 	}
 	out.Name = in.Name
-	out.Port = in.Port
+	out.Port = int32(in.Port)
 	out.Protocol = Protocol(in.Protocol)
 	return nil
 }
@@ -697,7 +697,8 @@ func autoconvert_api_Event_To_v1_Event(in *api.Event, out *Event, s conversion.S
 	if err := s.Convert(&in.LastTimestamp, &out.LastTimestamp, 0); err != nil {
 		return err
 	}
-	out.Count = in.Count
+	out.Count = int32(in.Count)
+	out.Type = in.Type
 	return nil
 }
 
@@ -777,8 +778,8 @@ func autoconvert_api_FCVolumeSource_To_v1_FCVolumeSource(in *api.FCVolumeSource,
 		out.TargetWWNs = nil
 	}
 	if in.Lun != nil {
-		out.Lun = new(int)
-		*out.Lun = *in.Lun
+		out.Lun = new(int32)
+		*out.Lun = int32(*in.Lun)
 	} else {
 		out.Lun = nil
 	}
@@ -809,7 +810,7 @@ func autoconvert_api_GCEPersistentDiskVolumeSource_To_v1_GCEPersistentDiskVolume
 	}
 	out.PDName = in.PDName
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int32(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -824,6 +825,7 @@ func autoconvert_api_GitRepoVolumeSource_To_v1_GitRepoVolumeSource(in *api.GitRe
 	}
 	out.Repository = in.Repository
 	out.Revision = in.Revision
+	out.Directory = in.Directory
 	return nil
 }
 
@@ -915,7 +917,8 @@ func autoconvert_api_ISCSIVolumeSource_To_v1_ISCSIVolumeSource(in *api.ISCSIVolu
 	}
 	out.TargetPortal = in.TargetPortal
 	out.IQN = in.IQN
-	out.Lun = in.Lun
+	out.Lun = int32(in.Lun)
+	out.ISCSIInterface = in.ISCSIInterface
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
 	return nil
@@ -1127,6 +1130,12 @@ func autoconvert_api_ListOptions_To_v1_ListOptions(in *api.ListOptions, out *Lis
 	}
 	out.Watch = in.Watch
 	out.ResourceVersion = in.ResourceVersion
+	if in.TimeoutSeconds != nil {
+		out.TimeoutSeconds = new(int64)
+		*out.TimeoutSeconds = *in.TimeoutSeconds
+	} else {
+		out.TimeoutSeconds = nil
+	}
 	return nil
 }
 
@@ -2235,8 +2244,11 @@ func autoconvert_api_Probe_To_v1_Probe(in *api.Probe, out *Probe, s conversion.S
 	if err := convert_api_Handler_To_v1_Handler(&in.Handler, &out.Handler, s); err != nil {
 		return err
 	}
-	out.InitialDelaySeconds = in.InitialDelaySeconds
-	out.TimeoutSeconds = in.TimeoutSeconds
+	out.InitialDelaySeconds = int32(in.InitialDelaySeconds)
+	out.TimeoutSeconds = int32(in.TimeoutSeconds)
+	out.PeriodSeconds = int32(in.PeriodSeconds)
+	out.SuccessThreshold = int32(in.SuccessThreshold)
+	out.FailureThreshold = int32(in.FailureThreshold)
 	return nil
 }
 
@@ -2378,7 +2390,7 @@ func autoconvert_api_ReplicationControllerStatus_To_v1_ReplicationControllerStat
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ReplicationControllerStatus))(in)
 	}
-	out.Replicas = in.Replicas
+	out.Replicas = int32(in.Replicas)
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
@@ -2541,48 +2553,6 @@ func autoconvert_api_SELinuxOptions_To_v1_SELinuxOptions(in *api.SELinuxOptions,
 	return nil
 }
 
-func convert_api_RunAsUserStrategyOptions_To_v1_RunAsUserStrategyOptions(in *api.RunAsUserStrategyOptions, out *RunAsUserStrategyOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.RunAsUserStrategyOptions))(in)
-	}
-	out.Type = RunAsUserStrategyType(in.Type)
-	if in.UID != nil {
-		out.UID = new(int64)
-		*out.UID = *in.UID
-	} else {
-		out.UID = nil
-	}
-	if in.UIDRangeMin != nil {
-		out.UIDRangeMin = new(int64)
-		*out.UIDRangeMin = *in.UIDRangeMin
-	} else {
-		out.UIDRangeMin = nil
-	}
-	if in.UIDRangeMax != nil {
-		out.UIDRangeMax = new(int64)
-		*out.UIDRangeMax = *in.UIDRangeMax
-	} else {
-		out.UIDRangeMax = nil
-	}
-	return nil
-}
-
-func convert_api_SELinuxContextStrategyOptions_To_v1_SELinuxContextStrategyOptions(in *api.SELinuxContextStrategyOptions, out *SELinuxContextStrategyOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.SELinuxContextStrategyOptions))(in)
-	}
-	out.Type = SELinuxContextStrategyType(in.Type)
-	if in.SELinuxOptions != nil {
-		out.SELinuxOptions = new(SELinuxOptions)
-		if err := convert_api_SELinuxOptions_To_v1_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
-			return err
-		}
-	} else {
-		out.SELinuxOptions = nil
-	}
-	return nil
-}
-
 func convert_api_SELinuxOptions_To_v1_SELinuxOptions(in *api.SELinuxOptions, out *SELinuxOptions, s conversion.Scope) error {
 	return autoconvert_api_SELinuxOptions_To_v1_SELinuxOptions(in, out, s)
 }
@@ -2718,106 +2688,6 @@ func convert_api_SerializedReference_To_v1_SerializedReference(in *api.Serialize
 	return autoconvert_api_SerializedReference_To_v1_SerializedReference(in, out, s)
 }
 
-func convert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints(in *api.SecurityContextConstraints, out *SecurityContextConstraints, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.SecurityContextConstraints))(in)
-	}
-	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
-		return err
-	}
-	if err := convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if in.Priority != nil {
-		out.Priority = new(int)
-		*out.Priority = *in.Priority
-	} else {
-		out.Priority = nil
-	}
-	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
-	if in.AllowedCapabilities != nil {
-		out.AllowedCapabilities = make([]Capability, len(in.AllowedCapabilities))
-		for i := range in.AllowedCapabilities {
-			out.AllowedCapabilities[i] = Capability(in.AllowedCapabilities[i])
-		}
-	} else {
-		out.AllowedCapabilities = nil
-	}
-	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
-	out.AllowHostNetwork = in.AllowHostNetwork
-	out.AllowHostPorts = in.AllowHostPorts
-	out.AllowHostPID = in.AllowHostPID
-	out.AllowHostIPC = in.AllowHostIPC
-	if err := convert_api_SELinuxContextStrategyOptions_To_v1_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, s); err != nil {
-		return err
-	}
-	if err := convert_api_RunAsUserStrategyOptions_To_v1_RunAsUserStrategyOptions(&in.RunAsUser, &out.RunAsUser, s); err != nil {
-		return err
-	}
-	if err := convert_api_FSGroupStrategyOptions_To_v1_FSGroupStrategyOptions(&in.FSGroup, &out.FSGroup, s); err != nil {
-		return err
-	}
-	if err := convert_api_SupplementalGroupsStrategyOptions_To_v1_SupplementalGroupsStrategyOptions(&in.SupplementalGroups, &out.SupplementalGroups, s); err != nil {
-		return err
-	}
-	if in.DefaultAddCapabilities != nil {
-		out.DefaultAddCapabilities = make([]Capability, len(in.DefaultAddCapabilities))
-		for i := range in.DefaultAddCapabilities {
-			out.DefaultAddCapabilities[i] = Capability(in.DefaultAddCapabilities[i])
-		}
-	} else {
-		out.DefaultAddCapabilities = nil
-	}
-	if in.RequiredDropCapabilities != nil {
-		out.RequiredDropCapabilities = make([]Capability, len(in.RequiredDropCapabilities))
-		for i := range in.RequiredDropCapabilities {
-			out.RequiredDropCapabilities[i] = Capability(in.RequiredDropCapabilities[i])
-		}
-	} else {
-		out.RequiredDropCapabilities = nil
-	}
-	if in.Users != nil {
-		out.Users = make([]string, len(in.Users))
-		for i := range in.Users {
-			out.Users[i] = in.Users[i]
-		}
-	} else {
-		out.Users = nil
-	}
-	if in.Groups != nil {
-		out.Groups = make([]string, len(in.Groups))
-		for i := range in.Groups {
-			out.Groups[i] = in.Groups[i]
-		}
-	} else {
-		out.Groups = nil
-	}
-	return nil
-}
-
-func convert_api_SecurityContextConstraintsList_To_v1_SecurityContextConstraintsList(in *api.SecurityContextConstraintsList, out *SecurityContextConstraintsList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.SecurityContextConstraintsList))(in)
-	}
-	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
-		return err
-	}
-	if err := s.Convert(&in.ListMeta, &out.ListMeta, 0); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]SecurityContextConstraints, len(in.Items))
-		for i := range in.Items {
-			if err := convert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
 func autoconvert_api_Service_To_v1_Service(in *api.Service, out *Service, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.Service))(in)
@@ -2938,11 +2808,11 @@ func autoconvert_api_ServicePort_To_v1_ServicePort(in *api.ServicePort, out *Ser
 	}
 	out.Name = in.Name
 	out.Protocol = Protocol(in.Protocol)
-	out.Port = in.Port
+	out.Port = int32(in.Port)
 	if err := s.Convert(&in.TargetPort, &out.TargetPort, 0); err != nil {
 		return err
 	}
-	out.NodePort = in.NodePort
+	out.NodePort = int32(in.NodePort)
 	return nil
 }
 
@@ -2984,10 +2854,6 @@ func autoconvert_api_ServiceSpec_To_v1_ServiceSpec(in *api.ServiceSpec, out *Ser
 	}
 	out.LoadBalancerIP = in.LoadBalancerIP
 	out.SessionAffinity = ServiceAffinity(in.SessionAffinity)
-
-	// Carry conversion
-	out.DeprecatedPortalIP = in.ClusterIP
-
 	return nil
 }
 
@@ -3048,13 +2914,152 @@ func convert_api_VolumeMount_To_v1_VolumeMount(in *api.VolumeMount, out *VolumeM
 	return autoconvert_api_VolumeMount_To_v1_VolumeMount(in, out, s)
 }
 
+func autoconvert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *VolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.VolumeSource))(in)
+	}
+	if in.HostPath != nil {
+		out.HostPath = new(HostPathVolumeSource)
+		if err := convert_api_HostPathVolumeSource_To_v1_HostPathVolumeSource(in.HostPath, out.HostPath, s); err != nil {
+			return err
+		}
+	} else {
+		out.HostPath = nil
+	}
+	if in.EmptyDir != nil {
+		out.EmptyDir = new(EmptyDirVolumeSource)
+		if err := convert_api_EmptyDirVolumeSource_To_v1_EmptyDirVolumeSource(in.EmptyDir, out.EmptyDir, s); err != nil {
+			return err
+		}
+	} else {
+		out.EmptyDir = nil
+	}
+	if in.GCEPersistentDisk != nil {
+		out.GCEPersistentDisk = new(GCEPersistentDiskVolumeSource)
+		if err := convert_api_GCEPersistentDiskVolumeSource_To_v1_GCEPersistentDiskVolumeSource(in.GCEPersistentDisk, out.GCEPersistentDisk, s); err != nil {
+			return err
+		}
+	} else {
+		out.GCEPersistentDisk = nil
+	}
+	if in.AWSElasticBlockStore != nil {
+		out.AWSElasticBlockStore = new(AWSElasticBlockStoreVolumeSource)
+		if err := convert_api_AWSElasticBlockStoreVolumeSource_To_v1_AWSElasticBlockStoreVolumeSource(in.AWSElasticBlockStore, out.AWSElasticBlockStore, s); err != nil {
+			return err
+		}
+	} else {
+		out.AWSElasticBlockStore = nil
+	}
+	if in.GitRepo != nil {
+		out.GitRepo = new(GitRepoVolumeSource)
+		if err := convert_api_GitRepoVolumeSource_To_v1_GitRepoVolumeSource(in.GitRepo, out.GitRepo, s); err != nil {
+			return err
+		}
+	} else {
+		out.GitRepo = nil
+	}
+	if in.Secret != nil {
+		out.Secret = new(SecretVolumeSource)
+		if err := convert_api_SecretVolumeSource_To_v1_SecretVolumeSource(in.Secret, out.Secret, s); err != nil {
+			return err
+		}
+	} else {
+		out.Secret = nil
+	}
+	if in.NFS != nil {
+		out.NFS = new(NFSVolumeSource)
+		if err := convert_api_NFSVolumeSource_To_v1_NFSVolumeSource(in.NFS, out.NFS, s); err != nil {
+			return err
+		}
+	} else {
+		out.NFS = nil
+	}
+	if in.ISCSI != nil {
+		out.ISCSI = new(ISCSIVolumeSource)
+		if err := convert_api_ISCSIVolumeSource_To_v1_ISCSIVolumeSource(in.ISCSI, out.ISCSI, s); err != nil {
+			return err
+		}
+	} else {
+		out.ISCSI = nil
+	}
+	if in.Glusterfs != nil {
+		out.Glusterfs = new(GlusterfsVolumeSource)
+		if err := convert_api_GlusterfsVolumeSource_To_v1_GlusterfsVolumeSource(in.Glusterfs, out.Glusterfs, s); err != nil {
+			return err
+		}
+	} else {
+		out.Glusterfs = nil
+	}
+	if in.PersistentVolumeClaim != nil {
+		out.PersistentVolumeClaim = new(PersistentVolumeClaimVolumeSource)
+		if err := convert_api_PersistentVolumeClaimVolumeSource_To_v1_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaim, out.PersistentVolumeClaim, s); err != nil {
+			return err
+		}
+	} else {
+		out.PersistentVolumeClaim = nil
+	}
+	if in.RBD != nil {
+		out.RBD = new(RBDVolumeSource)
+		if err := convert_api_RBDVolumeSource_To_v1_RBDVolumeSource(in.RBD, out.RBD, s); err != nil {
+			return err
+		}
+	} else {
+		out.RBD = nil
+	}
+	if in.Cinder != nil {
+		out.Cinder = new(CinderVolumeSource)
+		if err := convert_api_CinderVolumeSource_To_v1_CinderVolumeSource(in.Cinder, out.Cinder, s); err != nil {
+			return err
+		}
+	} else {
+		out.Cinder = nil
+	}
+	if in.CephFS != nil {
+		out.CephFS = new(CephFSVolumeSource)
+		if err := convert_api_CephFSVolumeSource_To_v1_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
+			return err
+		}
+	} else {
+		out.CephFS = nil
+	}
+	if in.Flocker != nil {
+		out.Flocker = new(FlockerVolumeSource)
+		if err := convert_api_FlockerVolumeSource_To_v1_FlockerVolumeSource(in.Flocker, out.Flocker, s); err != nil {
+			return err
+		}
+	} else {
+		out.Flocker = nil
+	}
+	if in.DownwardAPI != nil {
+		out.DownwardAPI = new(DownwardAPIVolumeSource)
+		if err := convert_api_DownwardAPIVolumeSource_To_v1_DownwardAPIVolumeSource(in.DownwardAPI, out.DownwardAPI, s); err != nil {
+			return err
+		}
+	} else {
+		out.DownwardAPI = nil
+	}
+	if in.FC != nil {
+		out.FC = new(FCVolumeSource)
+		if err := convert_api_FCVolumeSource_To_v1_FCVolumeSource(in.FC, out.FC, s); err != nil {
+			return err
+		}
+	} else {
+		out.FC = nil
+	}
+	return nil
+}
+
+func convert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *VolumeSource, s conversion.Scope) error {
+	return autoconvert_api_VolumeSource_To_v1_VolumeSource(in, out, s)
+}
+
 func autoconvert_v1_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in *AWSElasticBlockStoreVolumeSource, out *api.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*AWSElasticBlockStoreVolumeSource))(in)
 	}
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -3328,8 +3333,8 @@ func autoconvert_v1_ContainerPort_To_api_ContainerPort(in *ContainerPort, out *a
 		defaulting.(func(*ContainerPort))(in)
 	}
 	out.Name = in.Name
-	out.HostPort = in.HostPort
-	out.ContainerPort = in.ContainerPort
+	out.HostPort = int(in.HostPort)
+	out.ContainerPort = int(in.ContainerPort)
 	out.Protocol = api.Protocol(in.Protocol)
 	out.HostIP = in.HostIP
 	return nil
@@ -3392,8 +3397,8 @@ func autoconvert_v1_ContainerStateTerminated_To_api_ContainerStateTerminated(in 
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*ContainerStateTerminated))(in)
 	}
-	out.ExitCode = in.ExitCode
-	out.Signal = in.Signal
+	out.ExitCode = int(in.ExitCode)
+	out.Signal = int(in.Signal)
 	out.Reason = in.Reason
 	out.Message = in.Message
 	if err := s.Convert(&in.StartedAt, &out.StartedAt, 0); err != nil {
@@ -3435,7 +3440,7 @@ func autoconvert_v1_ContainerStatus_To_api_ContainerStatus(in *ContainerStatus, 
 		return err
 	}
 	out.Ready = in.Ready
-	out.RestartCount = in.RestartCount
+	out.RestartCount = int(in.RestartCount)
 	out.Image = in.Image
 	out.ImageID = in.ImageID
 	out.ContainerID = in.ContainerID
@@ -3450,7 +3455,7 @@ func autoconvert_v1_DaemonEndpoint_To_api_DaemonEndpoint(in *DaemonEndpoint, out
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*DaemonEndpoint))(in)
 	}
-	out.Port = in.Port
+	out.Port = int(in.Port)
 	return nil
 }
 
@@ -3551,7 +3556,7 @@ func autoconvert_v1_EndpointPort_To_api_EndpointPort(in *EndpointPort, out *api.
 		defaulting.(func(*EndpointPort))(in)
 	}
 	out.Name = in.Name
-	out.Port = in.Port
+	out.Port = int(in.Port)
 	out.Protocol = api.Protocol(in.Protocol)
 	return nil
 }
@@ -3719,7 +3724,8 @@ func autoconvert_v1_Event_To_api_Event(in *Event, out *api.Event, s conversion.S
 	if err := s.Convert(&in.LastTimestamp, &out.LastTimestamp, 0); err != nil {
 		return err
 	}
-	out.Count = in.Count
+	out.Count = int(in.Count)
+	out.Type = in.Type
 	return nil
 }
 
@@ -3800,7 +3806,7 @@ func autoconvert_v1_FCVolumeSource_To_api_FCVolumeSource(in *FCVolumeSource, out
 	}
 	if in.Lun != nil {
 		out.Lun = new(int)
-		*out.Lun = *in.Lun
+		*out.Lun = int(*in.Lun)
 	} else {
 		out.Lun = nil
 	}
@@ -3831,7 +3837,7 @@ func autoconvert_v1_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolume
 	}
 	out.PDName = in.PDName
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -3846,6 +3852,7 @@ func autoconvert_v1_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in *GitRepoVo
 	}
 	out.Repository = in.Repository
 	out.Revision = in.Revision
+	out.Directory = in.Directory
 	return nil
 }
 
@@ -3937,7 +3944,8 @@ func autoconvert_v1_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in *ISCSIVolumeSo
 	}
 	out.TargetPortal = in.TargetPortal
 	out.IQN = in.IQN
-	out.Lun = in.Lun
+	out.Lun = int(in.Lun)
+	out.ISCSIInterface = in.ISCSIInterface
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
 	return nil
@@ -4149,6 +4157,12 @@ func autoconvert_v1_ListOptions_To_api_ListOptions(in *ListOptions, out *api.Lis
 	}
 	out.Watch = in.Watch
 	out.ResourceVersion = in.ResourceVersion
+	if in.TimeoutSeconds != nil {
+		out.TimeoutSeconds = new(int64)
+		*out.TimeoutSeconds = *in.TimeoutSeconds
+	} else {
+		out.TimeoutSeconds = nil
+	}
 	return nil
 }
 
@@ -5261,8 +5275,11 @@ func autoconvert_v1_Probe_To_api_Probe(in *Probe, out *api.Probe, s conversion.S
 	if err := convert_v1_Handler_To_api_Handler(&in.Handler, &out.Handler, s); err != nil {
 		return err
 	}
-	out.InitialDelaySeconds = in.InitialDelaySeconds
-	out.TimeoutSeconds = in.TimeoutSeconds
+	out.InitialDelaySeconds = int(in.InitialDelaySeconds)
+	out.TimeoutSeconds = int(in.TimeoutSeconds)
+	out.PeriodSeconds = int(in.PeriodSeconds)
+	out.SuccessThreshold = int(in.SuccessThreshold)
+	out.FailureThreshold = int(in.FailureThreshold)
 	return nil
 }
 
@@ -5402,7 +5419,7 @@ func autoconvert_v1_ReplicationControllerStatus_To_api_ReplicationControllerStat
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*ReplicationControllerStatus))(in)
 	}
-	out.Replicas = in.Replicas
+	out.Replicas = int(in.Replicas)
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
@@ -5569,48 +5586,6 @@ func convert_v1_SELinuxOptions_To_api_SELinuxOptions(in *SELinuxOptions, out *ap
 	return autoconvert_v1_SELinuxOptions_To_api_SELinuxOptions(in, out, s)
 }
 
-func convert_v1_RunAsUserStrategyOptions_To_api_RunAsUserStrategyOptions(in *RunAsUserStrategyOptions, out *api.RunAsUserStrategyOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RunAsUserStrategyOptions))(in)
-	}
-	out.Type = api.RunAsUserStrategyType(in.Type)
-	if in.UID != nil {
-		out.UID = new(int64)
-		*out.UID = *in.UID
-	} else {
-		out.UID = nil
-	}
-	if in.UIDRangeMin != nil {
-		out.UIDRangeMin = new(int64)
-		*out.UIDRangeMin = *in.UIDRangeMin
-	} else {
-		out.UIDRangeMin = nil
-	}
-	if in.UIDRangeMax != nil {
-		out.UIDRangeMax = new(int64)
-		*out.UIDRangeMax = *in.UIDRangeMax
-	} else {
-		out.UIDRangeMax = nil
-	}
-	return nil
-}
-
-func convert_v1_SELinuxContextStrategyOptions_To_api_SELinuxContextStrategyOptions(in *SELinuxContextStrategyOptions, out *api.SELinuxContextStrategyOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SELinuxContextStrategyOptions))(in)
-	}
-	out.Type = api.SELinuxContextStrategyType(in.Type)
-	if in.SELinuxOptions != nil {
-		out.SELinuxOptions = new(api.SELinuxOptions)
-		if err := convert_v1_SELinuxOptions_To_api_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
-			return err
-		}
-	} else {
-		out.SELinuxOptions = nil
-	}
-	return nil
-}
-
 func autoconvert_v1_Secret_To_api_Secret(in *Secret, out *api.Secret, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*Secret))(in)
@@ -5742,106 +5717,6 @@ func convert_v1_SerializedReference_To_api_SerializedReference(in *SerializedRef
 	return autoconvert_v1_SerializedReference_To_api_SerializedReference(in, out, s)
 }
 
-func convert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints(in *SecurityContextConstraints, out *api.SecurityContextConstraints, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SecurityContextConstraints))(in)
-	}
-	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
-		return err
-	}
-	if err := convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if in.Priority != nil {
-		out.Priority = new(int)
-		*out.Priority = *in.Priority
-	} else {
-		out.Priority = nil
-	}
-	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
-	if in.AllowedCapabilities != nil {
-		out.AllowedCapabilities = make([]api.Capability, len(in.AllowedCapabilities))
-		for i := range in.AllowedCapabilities {
-			out.AllowedCapabilities[i] = api.Capability(in.AllowedCapabilities[i])
-		}
-	} else {
-		out.AllowedCapabilities = nil
-	}
-	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
-	out.AllowHostNetwork = in.AllowHostNetwork
-	out.AllowHostPorts = in.AllowHostPorts
-	out.AllowHostPID = in.AllowHostPID
-	out.AllowHostIPC = in.AllowHostIPC
-	if err := convert_v1_SELinuxContextStrategyOptions_To_api_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, s); err != nil {
-		return err
-	}
-	if err := convert_v1_RunAsUserStrategyOptions_To_api_RunAsUserStrategyOptions(&in.RunAsUser, &out.RunAsUser, s); err != nil {
-		return err
-	}
-	if err := convert_v1_FSGroupStrategyOptions_To_api_FSGroupStrategyOptions(&in.FSGroup, &out.FSGroup, s); err != nil {
-		return err
-	}
-	if err := convert_v1_SupplementalGroupsStrategyOptions_To_api_SupplementalGroupsStrategyOptions(&in.SupplementalGroups, &out.SupplementalGroups, s); err != nil {
-		return err
-	}
-	if in.DefaultAddCapabilities != nil {
-		out.DefaultAddCapabilities = make([]api.Capability, len(in.DefaultAddCapabilities))
-		for i := range in.DefaultAddCapabilities {
-			out.DefaultAddCapabilities[i] = api.Capability(in.DefaultAddCapabilities[i])
-		}
-	} else {
-		out.DefaultAddCapabilities = nil
-	}
-	if in.RequiredDropCapabilities != nil {
-		out.RequiredDropCapabilities = make([]api.Capability, len(in.RequiredDropCapabilities))
-		for i := range in.RequiredDropCapabilities {
-			out.RequiredDropCapabilities[i] = api.Capability(in.RequiredDropCapabilities[i])
-		}
-	} else {
-		out.RequiredDropCapabilities = nil
-	}
-	if in.Users != nil {
-		out.Users = make([]string, len(in.Users))
-		for i := range in.Users {
-			out.Users[i] = in.Users[i]
-		}
-	} else {
-		out.Users = nil
-	}
-	if in.Groups != nil {
-		out.Groups = make([]string, len(in.Groups))
-		for i := range in.Groups {
-			out.Groups[i] = in.Groups[i]
-		}
-	} else {
-		out.Groups = nil
-	}
-	return nil
-}
-
-func convert_v1_SecurityContextConstraintsList_To_api_SecurityContextConstraintsList(in *SecurityContextConstraintsList, out *api.SecurityContextConstraintsList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SecurityContextConstraintsList))(in)
-	}
-	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
-		return err
-	}
-	if err := s.Convert(&in.ListMeta, &out.ListMeta, 0); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]api.SecurityContextConstraints, len(in.Items))
-		for i := range in.Items {
-			if err := convert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
 func autoconvert_v1_Service_To_api_Service(in *Service, out *api.Service, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*Service))(in)
@@ -5962,11 +5837,11 @@ func autoconvert_v1_ServicePort_To_api_ServicePort(in *ServicePort, out *api.Ser
 	}
 	out.Name = in.Name
 	out.Protocol = api.Protocol(in.Protocol)
-	out.Port = in.Port
+	out.Port = int(in.Port)
 	if err := s.Convert(&in.TargetPort, &out.TargetPort, 0); err != nil {
 		return err
 	}
-	out.NodePort = in.NodePort
+	out.NodePort = int(in.NodePort)
 	return nil
 }
 
@@ -6069,100 +5944,147 @@ func convert_v1_VolumeMount_To_api_VolumeMount(in *VolumeMount, out *api.VolumeM
 	return autoconvert_v1_VolumeMount_To_api_VolumeMount(in, out, s)
 }
 
-func convert_api_FSGroupStrategyOptions_To_v1_FSGroupStrategyOptions(in *api.FSGroupStrategyOptions, out *FSGroupStrategyOptions, s conversion.Scope) error {
+func autoconvert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.VolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.FSGroupStrategyOptions))(in)
+		defaulting.(func(*VolumeSource))(in)
 	}
-	out.Type = FSGroupStrategyType(in.Type)
-	if in.Ranges != nil {
-		out.Ranges = make([]IDRange, len(in.Ranges))
-		for i := range in.Ranges {
-			if err := convert_api_IDRange_To_v1_IDRange(&in.Ranges[i], &out.Ranges[i], s); err != nil {
-				return err
-			}
+	if in.HostPath != nil {
+		out.HostPath = new(api.HostPathVolumeSource)
+		if err := convert_v1_HostPathVolumeSource_To_api_HostPathVolumeSource(in.HostPath, out.HostPath, s); err != nil {
+			return err
 		}
 	} else {
-		out.Ranges = nil
+		out.HostPath = nil
 	}
-	return nil
-}
-
-func convert_api_SupplementalGroupsStrategyOptions_To_v1_SupplementalGroupsStrategyOptions(in *api.SupplementalGroupsStrategyOptions, out *SupplementalGroupsStrategyOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.SupplementalGroupsStrategyOptions))(in)
-	}
-	out.Type = SupplementalGroupsStrategyType(in.Type)
-	if in.Ranges != nil {
-		out.Ranges = make([]IDRange, len(in.Ranges))
-		for i := range in.Ranges {
-			if err := convert_api_IDRange_To_v1_IDRange(&in.Ranges[i], &out.Ranges[i], s); err != nil {
-				return err
-			}
+	if in.EmptyDir != nil {
+		out.EmptyDir = new(api.EmptyDirVolumeSource)
+		if err := convert_v1_EmptyDirVolumeSource_To_api_EmptyDirVolumeSource(in.EmptyDir, out.EmptyDir, s); err != nil {
+			return err
 		}
 	} else {
-		out.Ranges = nil
+		out.EmptyDir = nil
 	}
-	return nil
-}
-
-func convert_api_IDRange_To_v1_IDRange(in *api.IDRange, out *IDRange, s conversion.Scope) error {
-	out.Min = in.Min
-	out.Max = in.Max
-
-	return nil
-}
-
-func convert_v1_FSGroupStrategyOptions_To_api_FSGroupStrategyOptions(in *FSGroupStrategyOptions, out *api.FSGroupStrategyOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*FSGroupStrategyOptions))(in)
-	}
-	out.Type = api.FSGroupStrategyType(in.Type)
-	if in.Ranges != nil {
-		out.Ranges = make([]api.IDRange, len(in.Ranges))
-		for i := range in.Ranges {
-			if err := convert_v1_IDRange_To_api_IDRange(&in.Ranges[i], &out.Ranges[i], s); err != nil {
-				return err
-			}
+	if in.GCEPersistentDisk != nil {
+		out.GCEPersistentDisk = new(api.GCEPersistentDiskVolumeSource)
+		if err := convert_v1_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource(in.GCEPersistentDisk, out.GCEPersistentDisk, s); err != nil {
+			return err
 		}
 	} else {
-		out.Ranges = nil
+		out.GCEPersistentDisk = nil
 	}
-	return nil
-}
-
-func convert_v1_SupplementalGroupsStrategyOptions_To_api_SupplementalGroupsStrategyOptions(in *SupplementalGroupsStrategyOptions, out *api.SupplementalGroupsStrategyOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SupplementalGroupsStrategyOptions))(in)
-	}
-	out.Type = api.SupplementalGroupsStrategyType(in.Type)
-	if in.Ranges != nil {
-		out.Ranges = make([]api.IDRange, len(in.Ranges))
-		for i := range in.Ranges {
-			if err := convert_v1_IDRange_To_api_IDRange(&in.Ranges[i], &out.Ranges[i], s); err != nil {
-				return err
-			}
+	if in.AWSElasticBlockStore != nil {
+		out.AWSElasticBlockStore = new(api.AWSElasticBlockStoreVolumeSource)
+		if err := convert_v1_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in.AWSElasticBlockStore, out.AWSElasticBlockStore, s); err != nil {
+			return err
 		}
 	} else {
-		out.Ranges = nil
+		out.AWSElasticBlockStore = nil
+	}
+	if in.GitRepo != nil {
+		out.GitRepo = new(api.GitRepoVolumeSource)
+		if err := convert_v1_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in.GitRepo, out.GitRepo, s); err != nil {
+			return err
+		}
+	} else {
+		out.GitRepo = nil
+	}
+	if in.Secret != nil {
+		out.Secret = new(api.SecretVolumeSource)
+		if err := convert_v1_SecretVolumeSource_To_api_SecretVolumeSource(in.Secret, out.Secret, s); err != nil {
+			return err
+		}
+	} else {
+		out.Secret = nil
+	}
+	if in.NFS != nil {
+		out.NFS = new(api.NFSVolumeSource)
+		if err := convert_v1_NFSVolumeSource_To_api_NFSVolumeSource(in.NFS, out.NFS, s); err != nil {
+			return err
+		}
+	} else {
+		out.NFS = nil
+	}
+	if in.ISCSI != nil {
+		out.ISCSI = new(api.ISCSIVolumeSource)
+		if err := convert_v1_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in.ISCSI, out.ISCSI, s); err != nil {
+			return err
+		}
+	} else {
+		out.ISCSI = nil
+	}
+	if in.Glusterfs != nil {
+		out.Glusterfs = new(api.GlusterfsVolumeSource)
+		if err := convert_v1_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in.Glusterfs, out.Glusterfs, s); err != nil {
+			return err
+		}
+	} else {
+		out.Glusterfs = nil
+	}
+	if in.PersistentVolumeClaim != nil {
+		out.PersistentVolumeClaim = new(api.PersistentVolumeClaimVolumeSource)
+		if err := convert_v1_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaim, out.PersistentVolumeClaim, s); err != nil {
+			return err
+		}
+	} else {
+		out.PersistentVolumeClaim = nil
+	}
+	if in.RBD != nil {
+		out.RBD = new(api.RBDVolumeSource)
+		if err := convert_v1_RBDVolumeSource_To_api_RBDVolumeSource(in.RBD, out.RBD, s); err != nil {
+			return err
+		}
+	} else {
+		out.RBD = nil
+	}
+	if in.Cinder != nil {
+		out.Cinder = new(api.CinderVolumeSource)
+		if err := convert_v1_CinderVolumeSource_To_api_CinderVolumeSource(in.Cinder, out.Cinder, s); err != nil {
+			return err
+		}
+	} else {
+		out.Cinder = nil
+	}
+	if in.CephFS != nil {
+		out.CephFS = new(api.CephFSVolumeSource)
+		if err := convert_v1_CephFSVolumeSource_To_api_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
+			return err
+		}
+	} else {
+		out.CephFS = nil
+	}
+	if in.Flocker != nil {
+		out.Flocker = new(api.FlockerVolumeSource)
+		if err := convert_v1_FlockerVolumeSource_To_api_FlockerVolumeSource(in.Flocker, out.Flocker, s); err != nil {
+			return err
+		}
+	} else {
+		out.Flocker = nil
+	}
+	if in.DownwardAPI != nil {
+		out.DownwardAPI = new(api.DownwardAPIVolumeSource)
+		if err := convert_v1_DownwardAPIVolumeSource_To_api_DownwardAPIVolumeSource(in.DownwardAPI, out.DownwardAPI, s); err != nil {
+			return err
+		}
+	} else {
+		out.DownwardAPI = nil
+	}
+	if in.FC != nil {
+		out.FC = new(api.FCVolumeSource)
+		if err := convert_v1_FCVolumeSource_To_api_FCVolumeSource(in.FC, out.FC, s); err != nil {
+			return err
+		}
+	} else {
+		out.FC = nil
 	}
 	return nil
 }
 
-func convert_v1_IDRange_To_api_IDRange(in *IDRange, out *api.IDRange, s conversion.Scope) error {
-	out.Min = in.Min
-	out.Max = in.Max
-	return nil
+func convert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.VolumeSource, s conversion.Scope) error {
+	return autoconvert_v1_VolumeSource_To_api_VolumeSource(in, out, s)
 }
 
 func init() {
 	err := api.Scheme.AddGeneratedConversionFuncs(
-		convert_api_FSGroupStrategyOptions_To_v1_FSGroupStrategyOptions,
-		convert_api_SupplementalGroupsStrategyOptions_To_v1_SupplementalGroupsStrategyOptions,
-		convert_api_IDRange_To_v1_IDRange,
-		convert_v1_FSGroupStrategyOptions_To_api_FSGroupStrategyOptions,
-		convert_v1_SupplementalGroupsStrategyOptions_To_api_SupplementalGroupsStrategyOptions,
-		convert_v1_IDRange_To_api_IDRange,
-
 		autoconvert_api_AWSElasticBlockStoreVolumeSource_To_v1_AWSElasticBlockStoreVolumeSource,
 		autoconvert_api_Binding_To_v1_Binding,
 		autoconvert_api_Capabilities_To_v1_Capabilities,
@@ -6279,6 +6201,7 @@ func init() {
 		autoconvert_api_Service_To_v1_Service,
 		autoconvert_api_TCPSocketAction_To_v1_TCPSocketAction,
 		autoconvert_api_VolumeMount_To_v1_VolumeMount,
+		autoconvert_api_VolumeSource_To_v1_VolumeSource,
 		autoconvert_api_Volume_To_v1_Volume,
 		autoconvert_v1_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource,
 		autoconvert_v1_Binding_To_api_Binding,
@@ -6396,16 +6319,8 @@ func init() {
 		autoconvert_v1_Service_To_api_Service,
 		autoconvert_v1_TCPSocketAction_To_api_TCPSocketAction,
 		autoconvert_v1_VolumeMount_To_api_VolumeMount,
+		autoconvert_v1_VolumeSource_To_api_VolumeSource,
 		autoconvert_v1_Volume_To_api_Volume,
-
-		convert_api_RunAsUserStrategyOptions_To_v1_RunAsUserStrategyOptions,
-		convert_api_SELinuxContextStrategyOptions_To_v1_SELinuxContextStrategyOptions,
-		convert_api_SecurityContextConstraintsList_To_v1_SecurityContextConstraintsList,
-		convert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints,
-		convert_v1_RunAsUserStrategyOptions_To_api_RunAsUserStrategyOptions,
-		convert_v1_SELinuxContextStrategyOptions_To_api_SELinuxContextStrategyOptions,
-		convert_v1_SecurityContextConstraintsList_To_api_SecurityContextConstraintsList,
-		convert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

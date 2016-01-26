@@ -18,9 +18,10 @@ package e2e
 
 import (
 	"fmt"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	deploymentUtil "k8s.io/kubernetes/pkg/util/deployment"
+	deploymentutil "k8s.io/kubernetes/pkg/util/deployment"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -53,8 +54,8 @@ func testNewDeployment(f *Framework) {
 		Spec: extensions.DeploymentSpec{
 			Replicas:       1,
 			Selector:       podLabels,
-			UniqueLabelKey: "deployment.kubernetes.io/podTemplateHash",
-			Template: &api.PodTemplateSpec{
+			UniqueLabelKey: extensions.DefaultDeploymentUniqueLabelKey,
+			Template: api.PodTemplateSpec{
 				ObjectMeta: api.ObjectMeta{
 					Labels: podLabels,
 				},
@@ -146,8 +147,8 @@ func testRollingUpdateDeployment(f *Framework) {
 		Spec: extensions.DeploymentSpec{
 			Replicas:       3,
 			Selector:       deploymentPodLabels,
-			UniqueLabelKey: "deployment.kubernetes.io/podTemplateHash",
-			Template: &api.PodTemplateSpec{
+			UniqueLabelKey: extensions.DefaultDeploymentUniqueLabelKey,
+			Template: api.PodTemplateSpec{
 				ObjectMeta: api.ObjectMeta{
 					Labels: deploymentPodLabels,
 				},
@@ -169,7 +170,7 @@ func testRollingUpdateDeployment(f *Framework) {
 		Expect(c.Deployments(ns).Delete(deploymentName, nil)).NotTo(HaveOccurred())
 	}()
 
-	err = waitForDeploymentStatus(c, ns, deploymentName, 3, 2, 4)
+	err = waitForDeploymentStatus(c, ns, deploymentName, 3, 2, 4, 0)
 	Expect(err).NotTo(HaveOccurred())
 }
 
@@ -227,8 +228,8 @@ func testRollingUpdateDeploymentEvents(f *Framework) {
 		Spec: extensions.DeploymentSpec{
 			Replicas:       1,
 			Selector:       deploymentPodLabels,
-			UniqueLabelKey: "deployment.kubernetes.io/podTemplateHash",
-			Template: &api.PodTemplateSpec{
+			UniqueLabelKey: extensions.DefaultDeploymentUniqueLabelKey,
+			Template: api.PodTemplateSpec{
 				ObjectMeta: api.ObjectMeta{
 					Labels: deploymentPodLabels,
 				},
@@ -250,7 +251,7 @@ func testRollingUpdateDeploymentEvents(f *Framework) {
 		Expect(c.Deployments(ns).Delete(deploymentName, nil)).NotTo(HaveOccurred())
 	}()
 
-	err = waitForDeploymentStatus(c, ns, deploymentName, 1, 0, 2)
+	err = waitForDeploymentStatus(c, ns, deploymentName, 1, 0, 2, 0)
 	Expect(err).NotTo(HaveOccurred())
 	// Verify that the pods were scaled up and down as expected. We use events to verify that.
 	deployment, err := c.Deployments(ns).Get(deploymentName)
@@ -263,7 +264,7 @@ func testRollingUpdateDeploymentEvents(f *Framework) {
 	}
 	// There should be 2 events, one to scale up the new RC and then to scale down the old RC.
 	Expect(len(events.Items)).Should(Equal(2))
-	newRC, err := deploymentUtil.GetNewRC(*deployment, c)
+	newRC, err := deploymentutil.GetNewRC(*deployment, c)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(newRC).NotTo(Equal(nil))
 	Expect(events.Items[0].Message).Should(Equal(fmt.Sprintf("Scaled up rc %s to 1", newRC.Name)))

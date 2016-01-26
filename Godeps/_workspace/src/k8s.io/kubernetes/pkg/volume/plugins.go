@@ -27,7 +27,7 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util/errors"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/util/validation"
@@ -49,8 +49,6 @@ type VolumeOptions struct {
 	AccessModes []api.PersistentVolumeAccessMode
 	// Reclamation policy for a persistent volume
 	PersistentVolumeReclaimPolicy api.PersistentVolumeReclaimPolicy
-	// Tags to attach to the real volume in the cloud provider - e.g. AWS EBS
-	CloudTags *map[string]string
 }
 
 // VolumePlugin is an interface to volume plugins that can be used on a
@@ -159,6 +157,9 @@ type VolumeHost interface {
 
 	// Get writer interface for writing data to disk.
 	GetWriter() io.Writer
+
+	// Returns the hostname of the host kubelet is running on
+	GetHostName() string
 }
 
 // VolumePluginMgr tracks registered plugins.
@@ -264,7 +265,7 @@ func (pm *VolumePluginMgr) InitPlugins(plugins []VolumePlugin, host VolumeHost) 
 		pm.plugins[name] = plugin
 		glog.V(1).Infof("Loaded volume plugin %q", name)
 	}
-	return errors.NewAggregate(allErrs)
+	return utilerrors.NewAggregate(allErrs)
 }
 
 // FindPluginBySpec looks for a plugin that can support a given volume

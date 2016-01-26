@@ -22,8 +22,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -104,7 +106,38 @@ type Cacher struct {
 // Create a new Cacher responsible from service WATCH and LIST requests from its
 // internal cache and updating its cache in the background based on the given
 // configuration.
-func NewCacher(config CacherConfig) *Cacher {
+func NewCacher(
+	storage Interface,
+	capacity int,
+	versioner Versioner,
+	objectType runtime.Object,
+	resourcePrefix string,
+	namespaceScoped bool,
+	newListFunc func() runtime.Object) Interface {
+	config := CacherConfig{
+		CacheCapacity:  capacity,
+		Storage:        storage,
+		Versioner:      versioner,
+		Type:           objectType,
+		ResourcePrefix: resourcePrefix,
+		NewListFunc:    newListFunc,
+	}
+	if namespaceScoped {
+		config.KeyFunc = func(obj runtime.Object) (string, error) {
+			return NamespaceKeyFunc(resourcePrefix, obj)
+		}
+	} else {
+		config.KeyFunc = func(obj runtime.Object) (string, error) {
+			return NoNamespaceKeyFunc(resourcePrefix, obj)
+		}
+	}
+	return NewCacherFromConfig(config)
+}
+
+// Create a new Cacher responsible from service WATCH and LIST requests from its
+// internal cache and updating its cache in the background based on the given
+// configuration.
+func NewCacherFromConfig(config CacherConfig) *Cacher {
 	watchCache := newWatchCache(config.CacheCapacity)
 	listerWatcher := newCacherListerWatcher(config.Storage, config.ResourcePrefix, config.NewListFunc)
 
@@ -178,7 +211,12 @@ func (c *Cacher) Delete(ctx context.Context, key string, out runtime.Object) err
 }
 
 // Implements storage.Interface.
-func (c *Cacher) Watch(ctx context.Context, key string, resourceVersion uint64, filter FilterFunc) (watch.Interface, error) {
+func (c *Cacher) Watch(ctx context.Context, key string, resourceVersion string, filter FilterFunc) (watch.Interface, error) {
+	watchRV, err := ParseWatchResourceVersion(resourceVersion)
+	if err != nil {
+		return nil, err
+	}
+
 	// Do NOT allow Watch to start when the underlying structures are not propagated.
 	c.usable.RLock()
 	defer c.usable.RUnlock()
@@ -190,7 +228,7 @@ func (c *Cacher) Watch(ctx context.Context, key string, resourceVersion uint64, 
 	// underlying watchCache is calling processEvent under its lock.
 	c.watchCache.RLock()
 	defer c.watchCache.RUnlock()
-	initEvents, err := c.watchCache.GetAllEventsSinceThreadUnsafe(resourceVersion)
+	initEvents, err := c.watchCache.GetAllEventsSinceThreadUnsafe(watchRV)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +242,7 @@ func (c *Cacher) Watch(ctx context.Context, key string, resourceVersion uint64, 
 }
 
 // Implements storage.Interface.
-func (c *Cacher) WatchList(ctx context.Context, key string, resourceVersion uint64, filter FilterFunc) (watch.Interface, error) {
+func (c *Cacher) WatchList(ctx context.Context, key string, resourceVersion string, filter FilterFunc) (watch.Interface, error) {
 	return c.Watch(ctx, key, resourceVersion, filter)
 }
 
@@ -219,23 +257,32 @@ func (c *Cacher) GetToList(ctx context.Context, key string, filter FilterFunc, l
 }
 
 // Implements storage.Interface.
-func (c *Cacher) List(ctx context.Context, key string, filter FilterFunc, listObj runtime.Object) error {
-	return c.storage.List(ctx, key, filter, listObj)
-}
+func (c *Cacher) List(ctx context.Context, key string, resourceVersion string, filter FilterFunc, listObj runtime.Object) error {
+	if resourceVersion == "" {
+		// If resourceVersion is not specified, serve it from underlying
+		// storage (for backward compatibility).
+		return c.storage.List(ctx, key, resourceVersion, filter, listObj)
+	}
 
-// ListFromMemory implements list operation (the same signature as List method)
-// but it serves the contents from memory.
-// Current we cannot use ListFromMemory() instead of List(), because it only
-// guarantees eventual consistency (e.g. it's possible for Get called right after
-// Create to return not-exist, before the change is propagate).
-// TODO: We may consider changing to use ListFromMemory in the future, but this
-// requires wider discussion as an "api semantic change".
-func (c *Cacher) ListFromMemory(key string, listObj runtime.Object) error {
-	// Do NOT allow Watch to start when the underlying structures are not propagated.
+	// If resourceVersion is specified, serve it from cache.
+	// It's guaranteed that the returned value is at least that
+	// fresh as the given resourceVersion.
+
+	listRV, err := ParseListResourceVersion(resourceVersion)
+	if err != nil {
+		return err
+	}
+
+	// To avoid situation when List is proceesed before the underlying
+	// watchCache is propagated for the first time, we acquire and immediately
+	// release the 'usable' lock.
+	// We don't need to hold it all the time, because watchCache is thread-safe
+	// and it would complicate already very difficult locking pattern.
 	c.usable.RLock()
-	defer c.usable.RUnlock()
+	c.usable.RUnlock()
 
-	listPtr, err := runtime.GetItemsPtr(listObj)
+	// List elements from cache, with at least 'listRV'.
+	listPtr, err := meta.GetItemsPtr(listObj)
 	if err != nil {
 		return err
 	}
@@ -243,20 +290,20 @@ func (c *Cacher) ListFromMemory(key string, listObj runtime.Object) error {
 	if err != nil || listVal.Kind() != reflect.Slice {
 		return fmt.Errorf("need a pointer to slice, got %v", listVal.Kind())
 	}
-	filter := filterFunction(key, c.keyFunc, Everything)
+	filterFunc := filterFunction(key, c.keyFunc, filter)
 
-	objs, resourceVersion := c.watchCache.ListWithVersion()
+	objs, readResourceVersion := c.watchCache.WaitUntilFreshAndList(listRV)
 	for _, obj := range objs {
 		object, ok := obj.(runtime.Object)
 		if !ok {
 			return fmt.Errorf("non runtime.Object returned from storage: %v", obj)
 		}
-		if filter(object) {
+		if filterFunc(object) {
 			listVal.Set(reflect.Append(listVal, reflect.ValueOf(object).Elem()))
 		}
 	}
 	if c.versioner != nil {
-		if err := c.versioner.UpdateList(listObj, resourceVersion); err != nil {
+		if err := c.versioner.UpdateList(listObj, readResourceVersion); err != nil {
 			return err
 		}
 	}
@@ -290,10 +337,12 @@ func (c *Cacher) terminateAllWatchers() {
 	}
 }
 
-func forgetWatcher(c *Cacher, index int) func() {
-	return func() {
-		c.Lock()
-		defer c.Unlock()
+func forgetWatcher(c *Cacher, index int) func(bool) {
+	return func(lock bool) {
+		if lock {
+			c.Lock()
+			defer c.Unlock()
+		}
 		// It's possible that the watcher is already not in the map (e.g. in case of
 		// simulaneous Stop() and terminateAllWatchers(), but it doesn't break anything.
 		delete(c.watchers, index)
@@ -342,21 +391,17 @@ func newCacherListerWatcher(storage Interface, resourcePrefix string, newListFun
 }
 
 // Implements cache.ListerWatcher interface.
-func (lw *cacherListerWatcher) List() (runtime.Object, error) {
+func (lw *cacherListerWatcher) List(options api.ListOptions) (runtime.Object, error) {
 	list := lw.newListFunc()
-	if err := lw.storage.List(context.TODO(), lw.resourcePrefix, Everything, list); err != nil {
+	if err := lw.storage.List(context.TODO(), lw.resourcePrefix, "", Everything, list); err != nil {
 		return nil, err
 	}
 	return list, nil
 }
 
 // Implements cache.ListerWatcher interface.
-func (lw *cacherListerWatcher) Watch(resourceVersion string) (watch.Interface, error) {
-	version, err := ParseWatchResourceVersion(resourceVersion, lw.resourcePrefix)
-	if err != nil {
-		return nil, err
-	}
-	return lw.storage.WatchList(context.TODO(), lw.resourcePrefix, version, Everything)
+func (lw *cacherListerWatcher) Watch(options api.ListOptions) (watch.Interface, error) {
+	return lw.storage.WatchList(context.TODO(), lw.resourcePrefix, options.ResourceVersion, Everything)
 }
 
 // cacherWatch implements watch.Interface
@@ -366,10 +411,10 @@ type cacheWatcher struct {
 	result  chan watch.Event
 	filter  FilterFunc
 	stopped bool
-	forget  func()
+	forget  func(bool)
 }
 
-func newCacheWatcher(initEvents []watchCacheEvent, filter FilterFunc, forget func()) *cacheWatcher {
+func newCacheWatcher(initEvents []watchCacheEvent, filter FilterFunc, forget func(bool)) *cacheWatcher {
 	watcher := &cacheWatcher{
 		input:   make(chan watchCacheEvent, 10),
 		result:  make(chan watch.Event, 10),
@@ -388,7 +433,7 @@ func (c *cacheWatcher) ResultChan() <-chan watch.Event {
 
 // Implements watch.Interface.
 func (c *cacheWatcher) Stop() {
-	c.forget()
+	c.forget(true)
 	c.stop()
 }
 
@@ -402,7 +447,15 @@ func (c *cacheWatcher) stop() {
 }
 
 func (c *cacheWatcher) add(event watchCacheEvent) {
-	c.input <- event
+	select {
+	case c.input <- event:
+	case <-time.After(5 * time.Second):
+		// This means that we couldn't send event to that watcher.
+		// Since we don't want to blockin on it infinitely,
+		// we simply terminate it.
+		c.forget(false)
+		c.stop()
+	}
 }
 
 func (c *cacheWatcher) sendWatchCacheEvent(event watchCacheEvent) {

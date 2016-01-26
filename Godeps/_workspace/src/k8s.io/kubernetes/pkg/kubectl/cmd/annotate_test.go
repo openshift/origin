@@ -392,7 +392,7 @@ func TestAnnotateErrors(t *testing.T) {
 		f, tf, _ := NewAPIFactory()
 		tf.Printer = &testPrinter{}
 		tf.Namespace = "test"
-		tf.ClientConfig = &client.Config{Version: testapi.Default.Version()}
+		tf.ClientConfig = &client.Config{GroupVersion: testapi.Default.GroupVersion()}
 
 		buf := bytes.NewBuffer([]byte{})
 		cmd := NewCmdAnnotate(f, buf)
@@ -402,7 +402,7 @@ func TestAnnotateErrors(t *testing.T) {
 			cmd.Flags().Set(k, v)
 		}
 		options := &AnnotateOptions{}
-		err := options.Complete(f, testCase.args)
+		err := options.Complete(f, buf, cmd, testCase.args)
 		if !testCase.errFn(err) {
 			t.Errorf("%s: unexpected error: %v", k, err)
 			continue
@@ -423,7 +423,7 @@ func TestAnnotateObject(t *testing.T) {
 	tf.Printer = &testPrinter{}
 	tf.Client = &fake.RESTClient{
 		Codec: codec,
-		Client: fake.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch req.Method {
 			case "GET":
 				switch req.URL.Path {
@@ -433,7 +433,7 @@ func TestAnnotateObject(t *testing.T) {
 					t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
 					return nil, nil
 				}
-			case "PUT":
+			case "PATCH":
 				switch req.URL.Path {
 				case "/namespaces/test/pods/foo":
 					return &http.Response{StatusCode: 200, Body: objBody(codec, &pods.Items[0])}, nil
@@ -448,11 +448,14 @@ func TestAnnotateObject(t *testing.T) {
 		}),
 	}
 	tf.Namespace = "test"
-	tf.ClientConfig = &client.Config{Version: testapi.Default.Version()}
+	tf.ClientConfig = &client.Config{GroupVersion: testapi.Default.GroupVersion()}
 
+	buf := bytes.NewBuffer([]byte{})
+	cmd := NewCmdAnnotate(f, buf)
+	cmd.SetOutput(buf)
 	options := &AnnotateOptions{}
 	args := []string{"pods/foo", "a=b", "c-"}
-	if err := options.Complete(f, args); err != nil {
+	if err := options.Complete(f, buf, cmd, args); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := options.Validate(args); err != nil {
@@ -470,7 +473,7 @@ func TestAnnotateObjectFromFile(t *testing.T) {
 	tf.Printer = &testPrinter{}
 	tf.Client = &fake.RESTClient{
 		Codec: codec,
-		Client: fake.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch req.Method {
 			case "GET":
 				switch req.URL.Path {
@@ -480,7 +483,7 @@ func TestAnnotateObjectFromFile(t *testing.T) {
 					t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
 					return nil, nil
 				}
-			case "PUT":
+			case "PATCH":
 				switch req.URL.Path {
 				case "/namespaces/test/pods/cassandra":
 					return &http.Response{StatusCode: 200, Body: objBody(codec, &pods.Items[0])}, nil
@@ -495,12 +498,15 @@ func TestAnnotateObjectFromFile(t *testing.T) {
 		}),
 	}
 	tf.Namespace = "test"
-	tf.ClientConfig = &client.Config{Version: testapi.Default.Version()}
+	tf.ClientConfig = &client.Config{GroupVersion: testapi.Default.GroupVersion()}
 
+	buf := bytes.NewBuffer([]byte{})
+	cmd := NewCmdAnnotate(f, buf)
+	cmd.SetOutput(buf)
 	options := &AnnotateOptions{}
 	options.filenames = []string{"../../../examples/cassandra/cassandra.yaml"}
 	args := []string{"a=b", "c-"}
-	if err := options.Complete(f, args); err != nil {
+	if err := options.Complete(f, buf, cmd, args); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := options.Validate(args); err != nil {
@@ -518,7 +524,7 @@ func TestAnnotateMultipleObjects(t *testing.T) {
 	tf.Printer = &testPrinter{}
 	tf.Client = &fake.RESTClient{
 		Codec: codec,
-		Client: fake.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch req.Method {
 			case "GET":
 				switch req.URL.Path {
@@ -528,7 +534,7 @@ func TestAnnotateMultipleObjects(t *testing.T) {
 					t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
 					return nil, nil
 				}
-			case "PUT":
+			case "PATCH":
 				switch req.URL.Path {
 				case "/namespaces/test/pods/foo":
 					return &http.Response{StatusCode: 200, Body: objBody(codec, &pods.Items[0])}, nil
@@ -545,12 +551,15 @@ func TestAnnotateMultipleObjects(t *testing.T) {
 		}),
 	}
 	tf.Namespace = "test"
-	tf.ClientConfig = &client.Config{Version: testapi.Default.Version()}
+	tf.ClientConfig = &client.Config{GroupVersion: testapi.Default.GroupVersion()}
 
+	buf := bytes.NewBuffer([]byte{})
+	cmd := NewCmdAnnotate(f, buf)
+	cmd.SetOutput(buf)
 	options := &AnnotateOptions{}
 	options.all = true
 	args := []string{"pods", "a=b", "c-"}
-	if err := options.Complete(f, args); err != nil {
+	if err := options.Complete(f, buf, cmd, args); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := options.Validate(args); err != nil {

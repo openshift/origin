@@ -31,7 +31,6 @@ import (
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/fields"
 	kubelet "k8s.io/kubernetes/pkg/kubelet/types"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
@@ -90,11 +89,11 @@ type serviceAccount struct {
 func NewServiceAccount(cl client.Interface) *serviceAccount {
 	serviceAccountsIndexer, serviceAccountsReflector := cache.NewNamespaceKeyedIndexerAndReflector(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return cl.ServiceAccounts(api.NamespaceAll).List(labels.Everything(), fields.Everything())
+			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+				return cl.ServiceAccounts(api.NamespaceAll).List(options)
 			},
-			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return cl.ServiceAccounts(api.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				return cl.ServiceAccounts(api.NamespaceAll).Watch(options)
 			},
 		},
 		&api.ServiceAccount{},
@@ -104,11 +103,13 @@ func NewServiceAccount(cl client.Interface) *serviceAccount {
 	tokenSelector := fields.SelectorFromSet(map[string]string{client.SecretType: string(api.SecretTypeServiceAccountToken)})
 	secretsIndexer, secretsReflector := cache.NewNamespaceKeyedIndexerAndReflector(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return cl.Secrets(api.NamespaceAll).List(labels.Everything(), tokenSelector)
+			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+				options.FieldSelector = tokenSelector
+				return cl.Secrets(api.NamespaceAll).List(options)
 			},
-			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return cl.Secrets(api.NamespaceAll).Watch(labels.Everything(), tokenSelector, resourceVersion)
+			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				options.FieldSelector = tokenSelector
+				return cl.Secrets(api.NamespaceAll).Watch(options)
 			},
 		},
 		&api.Secret{},
@@ -147,7 +148,7 @@ func (s *serviceAccount) Stop() {
 }
 
 func (s *serviceAccount) Admit(a admission.Attributes) (err error) {
-	if a.GetResource() != string(api.ResourcePods) {
+	if a.GetResource() != api.Resource("pods") {
 		return nil
 	}
 	obj := a.GetObject()

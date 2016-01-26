@@ -17,14 +17,13 @@ limitations under the License.
 package aws_ebs
 
 import (
-	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
-
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/mount"
@@ -32,8 +31,13 @@ import (
 )
 
 func TestCanSupport(t *testing.T) {
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "awsebsTest")
+	if err != nil {
+		t.Fatalf("can't make a temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost(tmpDir, nil, nil))
 
 	plug, err := plugMgr.FindPluginByName("kubernetes.io/aws-ebs")
 	if err != nil {
@@ -51,8 +55,13 @@ func TestCanSupport(t *testing.T) {
 }
 
 func TestGetAccessModes(t *testing.T) {
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "awsebsTest")
+	if err != nil {
+		t.Fatalf("can't make a temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost(tmpDir, nil, nil))
 
 	plug, err := plugMgr.FindPersistentPluginByName("kubernetes.io/aws-ebs")
 	if err != nil {
@@ -97,20 +106,14 @@ func (fake *fakePDManager) DetachDisk(c *awsElasticBlockStoreCleaner) error {
 	return nil
 }
 
-func (fake *fakePDManager) CreateVolume(c *awsElasticBlockStoreProvisioner) (volumeID string, volumeSizeGB int, err error) {
-	return "test-aws-volume-name", 100, nil
-}
-
-func (fake *fakePDManager) DeleteVolume(cd *awsElasticBlockStoreDeleter) error {
-	if cd.volumeID != "test-aws-volume-name" {
-		return fmt.Errorf("Deleter got unexpected volume name: %s", cd.volumeID)
-	}
-	return nil
-}
-
 func TestPlugin(t *testing.T) {
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "awsebsTest")
+	if err != nil {
+		t.Fatalf("can't make a temp dir: %v")
+	}
+	defer os.RemoveAll(tmpDir)
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost(tmpDir, nil, nil))
 
 	plug, err := plugMgr.FindPluginByName("kubernetes.io/aws-ebs")
 	if err != nil {
@@ -132,9 +135,9 @@ func TestPlugin(t *testing.T) {
 	if builder == nil {
 		t.Errorf("Got a nil Builder")
 	}
-
+	volPath := path.Join(tmpDir, "pods/poduid/volumes/kubernetes.io~aws-ebs/vol1")
 	path := builder.GetPath()
-	if path != "/tmp/fake/pods/poduid/volumes/kubernetes.io~aws-ebs/vol1" {
+	if path != volPath {
 		t.Errorf("Got unexpected path: %s", path)
 	}
 
@@ -172,47 +175,6 @@ func TestPlugin(t *testing.T) {
 	} else if !os.IsNotExist(err) {
 		t.Errorf("SetUp() failed: %v", err)
 	}
-
-	// Test Provisioner
-	cap := resource.MustParse("100Gi")
-	options := volume.VolumeOptions{
-		Capacity: cap,
-		AccessModes: []api.PersistentVolumeAccessMode{
-			api.ReadWriteOnce,
-		},
-		PersistentVolumeReclaimPolicy: api.PersistentVolumeReclaimDelete,
-	}
-	provisioner, err := plug.(*awsElasticBlockStorePlugin).newProvisionerInternal(options, &fakePDManager{})
-	persistentSpec, err := provisioner.NewPersistentVolumeTemplate()
-	if err != nil {
-		t.Errorf("NewPersistentVolumeTemplate() failed: %v", err)
-	}
-
-	// get 2nd Provisioner - persistent volume controller will do the same
-	provisioner, err = plug.(*awsElasticBlockStorePlugin).newProvisionerInternal(options, &fakePDManager{})
-	err = provisioner.Provision(persistentSpec)
-	if err != nil {
-		t.Errorf("Provision() failed: %v", err)
-	}
-
-	if persistentSpec.Spec.PersistentVolumeSource.AWSElasticBlockStore.VolumeID != "test-aws-volume-name" {
-		t.Errorf("Provision() returned unexpected volume ID: %s", persistentSpec.Spec.PersistentVolumeSource.AWSElasticBlockStore.VolumeID)
-	}
-	cap = persistentSpec.Spec.Capacity[api.ResourceStorage]
-	size := cap.Value()
-	if size != 100*1024*1024*1024 {
-		t.Errorf("Provision() returned unexpected volume size: %v", size)
-	}
-
-	// Test Deleter
-	volSpec := &volume.Spec{
-		PersistentVolume: persistentSpec,
-	}
-	deleter, err := plug.(*awsElasticBlockStorePlugin).newDeleterInternal(volSpec, &fakePDManager{})
-	err = deleter.Delete()
-	if err != nil {
-		t.Errorf("Deleter() failed: %v", err)
-	}
 }
 
 func TestPersistentClaimReadOnlyFlag(t *testing.T) {
@@ -249,8 +211,13 @@ func TestPersistentClaimReadOnlyFlag(t *testing.T) {
 	client := &testclient.Fake{}
 	client.AddReactor("*", "*", testclient.ObjectReaction(o, testapi.Default.RESTMapper()))
 
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "awsebsTest")
+	if err != nil {
+		t.Fatalf("can't make a temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost("/tmp/fake", client, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost(tmpDir, client, nil))
 	plug, _ := plugMgr.FindPluginByName(awsElasticBlockStorePluginName)
 
 	// readOnly bool is supplied by persistent-claim volume source when its builder creates other volumes
@@ -258,14 +225,19 @@ func TestPersistentClaimReadOnlyFlag(t *testing.T) {
 	pod := &api.Pod{ObjectMeta: api.ObjectMeta{UID: types.UID("poduid")}}
 	builder, _ := plug.NewBuilder(spec, pod, volume.VolumeOptions{})
 
-	if !builder.IsReadOnly() {
+	if !builder.GetAttributes().ReadOnly {
 		t.Errorf("Expected true for builder.IsReadOnly")
 	}
 }
 
 func TestBuilderAndCleanerTypeAssert(t *testing.T) {
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "awsebsTest")
+	if err != nil {
+		t.Fatalf("can't make a temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost(tmpDir, nil, nil))
 
 	plug, err := plugMgr.FindPluginByName("kubernetes.io/aws-ebs")
 	if err != nil {

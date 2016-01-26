@@ -26,10 +26,16 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 
 	heapster "k8s.io/heapster/api/v1/types"
+)
+
+const (
+	DefaultHeapsterNamespace = "kube-system"
+	DefaultHeapsterScheme    = "http"
+	DefaultHeapsterService   = "heapster"
+	DefaultHeapsterPort      = "" // use the first exposed port on the service
 )
 
 var heapsterQueryStart = -5 * time.Minute
@@ -111,8 +117,9 @@ func (h *HeapsterMetricsClient) GetCPUUtilization(namespace string, selector map
 }
 
 func (h *HeapsterMetricsClient) GetResourceConsumptionAndRequest(resourceName api.ResourceName, namespace string, selector map[string]string) (consumption *ResourceConsumption, request *resource.Quantity, timestamp time.Time, err error) {
+	labelSelector := labels.SelectorFromSet(labels.Set(selector))
 	podList, err := h.client.Pods(namespace).
-		List(labels.SelectorFromSet(labels.Set(selector)), fields.Everything())
+		List(api.ListOptions{LabelSelector: labelSelector})
 
 	if err != nil {
 		return nil, nil, time.Time{}, fmt.Errorf("failed to get pod list: %v", err)

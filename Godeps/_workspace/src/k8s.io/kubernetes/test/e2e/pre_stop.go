@@ -92,7 +92,7 @@ func testPreStop(c *client.Client, ns string) {
 		},
 	}
 
-	By(fmt.Sprintf("Creating tester pod %s in namespace %s", podDescr.Name, ns))
+	By(fmt.Sprintf("Creating tester pod %s in namespace %s", preStopDescr.Name, ns))
 	_, err = c.Pods(ns).Create(preStopDescr)
 	expectNoError(err, fmt.Sprintf("creating pod %s", preStopDescr.Name))
 	deletePreStop := true
@@ -118,8 +118,9 @@ func testPreStop(c *client.Client, ns string) {
 	// Validate that the server received the web poke.
 	err = wait.Poll(time.Second*5, time.Second*60, func() (bool, error) {
 		if body, err := c.Get().
-			Namespace(ns).Prefix("proxy").
+			Namespace(ns).
 			Resource("pods").
+			SubResource("proxy").
 			Name(podDescr.Name).
 			Suffix("read").
 			DoRaw(); err != nil {

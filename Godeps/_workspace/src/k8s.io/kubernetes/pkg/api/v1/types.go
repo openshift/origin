@@ -21,7 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 // The comments for the structs and fields can be used from go-resful to
@@ -246,6 +246,7 @@ type VolumeSource struct {
 	// Cinder represents a cinder volume attached and mounted on kubelets host machine
 	// More info: http://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md
 	Cinder *CinderVolumeSource `json:"cinder,omitempty"`
+
 	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
 	CephFS *CephFSVolumeSource `json:"cephfs,omitempty"`
 
@@ -256,10 +257,6 @@ type VolumeSource struct {
 	DownwardAPI *DownwardAPIVolumeSource `json:"downwardAPI,omitempty"`
 	// FC represents a Fibre Channel resource that is attached to a kubelet's host machine and then exposed to the pod.
 	FC *FCVolumeSource `json:"fc,omitempty"`
-
-	// Metadata represents metadata about the pod that should populate this volume
-	// NOTE: Deprecated in favor of DownwardAPI
-	Metadata *MetadataVolumeSource `json:"metadata,omitempty" description: "Metadata volume containing information about the pod"`
 }
 
 // PersistentVolumeClaimVolumeSource references the user's PVC in the same namespace.
@@ -638,7 +635,7 @@ type GCEPersistentDiskVolumeSource struct {
 	// Examples: For volume /dev/sda1, you specify the partition as "1".
 	// Similarly, the volume partition for /dev/sda is "0" (or you can leave the property empty).
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#gcepersistentdisk
-	Partition int `json:"partition,omitempty"`
+	Partition int32 `json:"partition,omitempty"`
 	// ReadOnly here will force the ReadOnly setting in VolumeMounts.
 	// Defaults to false.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#gcepersistentdisk
@@ -664,7 +661,7 @@ type AWSElasticBlockStoreVolumeSource struct {
 	// If omitted, the default is to mount by volume name.
 	// Examples: For volume /dev/sda1, you specify the partition as "1".
 	// Similarly, the volume partition for /dev/sda is "0" (or you can leave the property empty).
-	Partition int `json:"partition,omitempty"`
+	Partition int32 `json:"partition,omitempty"`
 	// Specify "true" to force and set the ReadOnly property in VolumeMounts to "true".
 	// If omitted, the default is "false".
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#awselasticblockstore
@@ -676,7 +673,12 @@ type GitRepoVolumeSource struct {
 	// Repository URL
 	Repository string `json:"repository"`
 	// Commit hash for the specified revision.
-	Revision string `json:"revision"`
+	Revision string `json:"revision,omitempty"`
+	// Target directory name.
+	// Must not contain or start with '..'.  If '.' is supplied, the volume directory will be the
+	// git repository.  Otherwise, if specified, the volume will contain the git repository in
+	// the subdirectory with the given name.
+	Directory string `json:"directory,omitempty"`
 }
 
 // SecretVolumeSource adapts a Secret into a VolumeSource.
@@ -712,7 +714,9 @@ type ISCSIVolumeSource struct {
 	// Target iSCSI Qualified Name.
 	IQN string `json:"iqn"`
 	// iSCSI target lun number.
-	Lun int `json:"lun"`
+	Lun int32 `json:"lun"`
+	// Optional: Defaults to 'default' (tcp). iSCSI interface name that uses an iSCSI transport.
+	ISCSIInterface string `json:"iscsiInterface,omitempty"`
 	// Filesystem type of the volume that you want to mount.
 	// Tip: Ensure that the filesystem type is supported by the host operating system.
 	// Examples: "ext4", "xfs", "ntfs".
@@ -729,7 +733,7 @@ type FCVolumeSource struct {
 	// Required: FC target world wide names (WWNs)
 	TargetWWNs []string `json:"targetWWNs"`
 	// Required: FC target lun number
-	Lun *int `json:"lun"`
+	Lun *int32 `json:"lun"`
 	// Required: Filesystem type to mount.
 	// Must be a filesystem type supported by the host operating system.
 	// Ex. "ext4", "xfs", "ntfs"
@@ -750,10 +754,10 @@ type ContainerPort struct {
 	// If specified, this must be a valid port number, 0 < x < 65536.
 	// If HostNetwork is specified, this must match ContainerPort.
 	// Most containers do not need this.
-	HostPort int `json:"hostPort,omitempty"`
+	HostPort int32 `json:"hostPort,omitempty"`
 	// Number of port to expose on the pod's IP address.
 	// This must be a valid port number, 0 < x < 65536.
-	ContainerPort int `json:"containerPort"`
+	ContainerPort int32 `json:"containerPort"`
 	// Protocol for port. Must be UDP or TCP.
 	// Defaults to "TCP".
 	Protocol Protocol `json:"protocol,omitempty"`
@@ -813,7 +817,7 @@ type HTTPGetAction struct {
 	// Name or number of the port to access on the container.
 	// Number must be in the range 1 to 65535.
 	// Name must be an IANA_SVC_NAME.
-	Port util.IntOrString `json:"port"`
+	Port intstr.IntOrString `json:"port"`
 	// Host name to connect to, defaults to the pod IP.
 	Host string `json:"host,omitempty"`
 	// Scheme to use for connecting to the host.
@@ -836,7 +840,7 @@ type TCPSocketAction struct {
 	// Number or name of the port to access on the container.
 	// Number must be in the range 1 to 65535.
 	// Name must be an IANA_SVC_NAME.
-	Port util.IntOrString `json:"port"`
+	Port intstr.IntOrString `json:"port"`
 }
 
 // ExecAction describes a "run in container" action.
@@ -849,17 +853,27 @@ type ExecAction struct {
 	Command []string `json:"command,omitempty"`
 }
 
-// Probe describes a liveness probe to be examined to the container.
+// Probe describes a health check to be performed against a container to determine whether it is
+// alive or ready to receive traffic.
 type Probe struct {
 	// The action taken to determine the health of a container
 	Handler `json:",inline"`
 	// Number of seconds after the container has started before liveness probes are initiated.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/pod-states.md#container-probes
-	InitialDelaySeconds int64 `json:"initialDelaySeconds,omitempty"`
-	// Number of seconds after which liveness probes timeout.
-	// Defaults to 1 second.
+	InitialDelaySeconds int32 `json:"initialDelaySeconds,omitempty"`
+	// Number of seconds after which the probe times out.
+	// Defaults to 1 second. Minimum value is 1.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/pod-states.md#container-probes
-	TimeoutSeconds int64 `json:"timeoutSeconds,omitempty"`
+	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty"`
+	// How often (in seconds) to perform the probe.
+	// Default to 10 seconds. Minimum value is 1.
+	PeriodSeconds int32 `json:"periodSeconds,omitempty"`
+	// Minimum consecutive successes for the probe to be considered successful after having failed.
+	// Defaults to 1. Must be 1 for liveness. Minimum value is 1.
+	SuccessThreshold int32 `json:"successThreshold,omitempty"`
+	// Minimum consecutive failures for the probe to be considered failed after having succeeded.
+	// Defaults to 3. Minimum value is 1.
+	FailureThreshold int32 `json:"failureThreshold,omitempty"`
 }
 
 // PullPolicy describes a policy for if/when to pull a container image
@@ -1057,9 +1071,9 @@ type ContainerStateRunning struct {
 // ContainerStateTerminated is a terminated state of a container.
 type ContainerStateTerminated struct {
 	// Exit status from the last termination of the container
-	ExitCode int `json:"exitCode"`
+	ExitCode int32 `json:"exitCode"`
 	// Signal from the last termination of the container
-	Signal int `json:"signal,omitempty"`
+	Signal int32 `json:"signal,omitempty"`
 	// (brief) reason from the last termination of the container
 	Reason string `json:"reason,omitempty"`
 	// Message regarding the last termination of the container
@@ -1099,7 +1113,7 @@ type ContainerStatus struct {
 	// the number of dead containers that have not yet been removed.
 	// Note that this is calculated from dead containers. But those containers are subject to
 	// garbage collection. This value will get capped at 5 by GC.
-	RestartCount int `json:"restartCount"`
+	RestartCount int32 `json:"restartCount"`
 	// The image the container is running.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/images.md
 	// TODO(dchen1107): Which image the container is running with?
@@ -1228,9 +1242,6 @@ type PodSpec struct {
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/node-selection/README.md
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-
-	// DeprecatedHost is a request to schedule this pod onto a specific node
-	DeprecatedHost string `json:"host,omitempty" description:"deprecated, use nodeName instead"`
 
 	// ServiceAccountName is the name of the ServiceAccount to use to run this pod.
 	// More info: http://releases.k8s.io/HEAD/docs/design/service_accounts.md
@@ -1419,7 +1430,7 @@ type ReplicationControllerSpec struct {
 	// This is a pointer to distinguish between explicit zero and unspecified.
 	// Defaults to 1.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#what-is-a-replication-controller
-	Replicas *int `json:"replicas,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Selector is a label query over pods that should match the Replicas count.
 	// If Selector is empty, it is defaulted to the labels present on the Pod template.
@@ -1444,7 +1455,7 @@ type ReplicationControllerSpec struct {
 type ReplicationControllerStatus struct {
 	// Replicas is the most recently oberved number of replicas.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#what-is-a-replication-controller
-	Replicas int `json:"replicas"`
+	Replicas int32 `json:"replicas"`
 
 	// ObservedGeneration reflects the generation of the most recently observed replication controller.
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
@@ -1550,9 +1561,6 @@ type ServiceSpec struct {
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/services.md#overview
 	Selector map[string]string `json:"selector,omitempty"`
 
-	// DeprecatedPortalIP
-	DeprecatedPortalIP string `json:"portalIP,omitempty" description:"deprecated, use clusterIP instead"`
-
 	// ClusterIP is usually assigned by the master and is the IP address of the service.
 	// If specified, it will be allocated to the service if it is unused
 	// or else creation of the service will fail.
@@ -1611,7 +1619,7 @@ type ServicePort struct {
 	Protocol Protocol `json:"protocol,omitempty"`
 
 	// The port that will be exposed by this service.
-	Port int `json:"port"`
+	Port int32 `json:"port"`
 
 	// Number or name of the port to access on the pods targeted by the service.
 	// Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.
@@ -1620,14 +1628,14 @@ type ServicePort struct {
 	// of Port is used (an identity map).
 	// Defaults to the service port.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/services.md#defining-a-service
-	TargetPort util.IntOrString `json:"targetPort,omitempty"`
+	TargetPort intstr.IntOrString `json:"targetPort,omitempty"`
 
 	// The port on each node on which this service is exposed when type=NodePort or LoadBalancer.
 	// Usually assigned by the system. If specified, it will be allocated to the service
 	// if unused or else creation of the service will fail.
 	// Default is to auto-allocate a port if the ServiceType of this Service requires one.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/services.md#type--nodeport
-	NodePort int `json:"nodePort,omitempty"`
+	NodePort int32 `json:"nodePort,omitempty"`
 }
 
 // Service is a named abstraction of software service (for example, mysql) consisting of local port
@@ -1770,7 +1778,7 @@ type EndpointPort struct {
 	Name string `json:"name,omitempty"`
 
 	// The port number of the endpoint.
-	Port int `json:"port"`
+	Port int32 `json:"port"`
 
 	// The IP protocol for this port.
 	// Must be UDP or TCP.
@@ -1806,7 +1814,7 @@ type NodeSpec struct {
 // DaemonEndpoint contains information about a single Daemon endpoint.
 type DaemonEndpoint struct {
 	// Port number of the given endpoint.
-	Port int `json:port`
+	Port int32 `json:port`
 }
 
 // NodeDaemonEndpoints lists ports opened by daemons running on the Node.
@@ -1877,6 +1885,9 @@ type NodeConditionType string
 const (
 	// NodeReady means kubelet is healthy and ready to accept pods.
 	NodeReady NodeConditionType = "Ready"
+	// NodeOutOfDisk means the kubelet will not accept new pods due to insufficient free disk
+	// space on the node.
+	NodeOutOfDisk NodeConditionType = "OutOfDisk"
 )
 
 // NodeCondition contains condition infromation for a node.
@@ -2056,6 +2067,8 @@ type ListOptions struct {
 	// When specified with a watch call, shows changes that occur after that particular version of a resource.
 	// Defaults to changes from the beginning of history.
 	ResourceVersion string `json:"resourceVersion,omitempty"`
+	// Timeout for the list/watch call.
+	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty"`
 }
 
 // PodLogOptions is the query options for a Pod's logs REST call.
@@ -2214,6 +2227,14 @@ type EventSource struct {
 	Host string `json:"host,omitempty"`
 }
 
+// Valid values for event types (new types could be added in future)
+const (
+	// Information only and will not cause any problems
+	EventTypeNormal string = "Normal"
+	// These events are to warn that something might go wrong
+	EventTypeWarning string = "Warning"
+)
+
 // Event is a report of an event somewhere in the cluster.
 // TODO: Decide whether to store these separately or with the object they apply to.
 type Event struct {
@@ -2244,7 +2265,10 @@ type Event struct {
 	LastTimestamp unversioned.Time `json:"lastTimestamp,omitempty"`
 
 	// The number of times this event has occurred.
-	Count int `json:"count,omitempty"`
+	Count int32 `json:"count,omitempty"`
+
+	// Type of this event (Normal, Warning), new types could be added in the future
+	Type string `json:"type,omitempty"`
 }
 
 // EventList is a list of events.
@@ -2499,22 +2523,6 @@ type ComponentStatusList struct {
 	Items []ComponentStatus `json:"items"`
 }
 
-// MetadataVolumeSource represents a volume containing metadata about a pod.
-// NOTE: Deprecated in favor of DownwardAPIVolumeSource
-type MetadataVolumeSource struct {
-	// Items is a list of metadata file name
-	Items []MetadataFile `json:"items,omitempty" description:"list of metadata files"`
-}
-
-// MetadataFile expresses information about a file holding pod metadata.
-// NOTE: Deprecated in favor of DownwardAPIVolumeFile
-type MetadataFile struct {
-	// Required: Name is the name of the file
-	Name string `json:"name" description:"the name of the file to be created"`
-	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
-	FieldRef ObjectFieldSelector `json:"fieldRef" description:"selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace"`
-}
-
 // DownwardAPIVolumeSource represents a volume containing downward API info
 type DownwardAPIVolumeSource struct {
 	// Items is a list of downward API volume file
@@ -2582,151 +2590,4 @@ type RangeAllocation struct {
 	Range string `json:"range"`
 	// Data is a bit array containing all allocated addresses in the previous segment.
 	Data []byte `json:"data"`
-}
-
-// SecurityContextConstraints governs the ability to make requests that affect the SecurityContext
-// that will be applied to a container.
-type SecurityContextConstraints struct {
-	unversioned.TypeMeta `json:",inline"`
-	ObjectMeta           `json:"metadata,omitempty"`
-
-	// Priority influences the sort order of SCCs when evaluating which SCCs to try first for
-	// a given pod request based on access in the Users and Groups fields.  The higher the int, the
-	// higher priority.  If scores for multiple SCCs are equal they will be sorted by name.
-	Priority *int `json:"priority" description:"determines which SCC is used when multiple SCCs allow a particular pod; higher priority SCCs are preferred"`
-
-	// AllowPrivilegedContainer determines if a container can request to be run as privileged.
-	AllowPrivilegedContainer bool `json:"allowPrivilegedContainer" description:"allow containers to run as privileged"`
-	// DefaultAddCapabilities is the default set of capabilities that will be added to the container
-	// unless the pod spec specifically drops the capability.  You may not list a capabiility in both
-	// DefaultAddCapabilities and RequiredDropCapabilities.
-	DefaultAddCapabilities []Capability `json:"defaultAddCapabilities" description:"capabilities that are added by default but may be dropped"`
-	// RequiredDropCapabilities are the capabilities that will be dropped from the container.  These
-	// are required to be dropped and cannot be added.
-	RequiredDropCapabilities []Capability `json:"requiredDropCapabilities" description:"capabilities that will be dropped by default and may not be added"`
-	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
-	// Capabilities in this field maybe added at the pod author's discretion.
-	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
-	AllowedCapabilities []Capability `json:"allowedCapabilities" description:"capabilities that are allowed to be added"`
-	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
-	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin" description:"allow the use of the host dir volume plugin"`
-	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
-	AllowHostNetwork bool `json:"allowHostNetwork" description:"allow the use of the hostNetwork in the pod spec"`
-	// AllowHostPorts determines if the policy allows host ports in the containers.
-	AllowHostPorts bool `json:"allowHostPorts" description:"allow the use of the host ports in the containers"`
-	// AllowHostPID determines if the policy allows host pid in the containers.
-	AllowHostPID bool `json:"allowHostPID" description:"allow the use of the host pid in the containers"`
-	// AllowHostIPC determines if the policy allows host ipc in the containers.
-	AllowHostIPC bool `json:"allowHostIPC" description:"allow the use of the host ipc in the containers"`
-	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
-	SELinuxContext SELinuxContextStrategyOptions `json:"seLinuxContext,omitempty" description:"strategy used to generate SELinuxOptions"`
-	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
-	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty" description:"strategy used to generate RunAsUser"`
-	// SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.
-	SupplementalGroups SupplementalGroupsStrategyOptions `json:"supplementalGroups,omitempty" description:"strategy used to generate supplemental groups"`
-	// FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.
-	FSGroup FSGroupStrategyOptions `json:"fsGroup,omitempty" description:"strategy used to generate fsGroup"`
-
-	// The users who have permissions to use this security context constraints
-	Users []string `json:"users,omitempty" description:"users allowed to use this SecurityContextConstraints"`
-	// The groups that have permission to use this security context constraints
-	Groups []string `json:"groups,omitempty" description:"groups allowed to use this SecurityContextConstraints"`
-}
-
-// SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.
-type SELinuxContextStrategyOptions struct {
-	// Type is the strategy that will dictate what SELinux context is used in the SecurityContext.
-	Type SELinuxContextStrategyType `json:"type,omitempty" description:"strategy used to generate the SELinux context"`
-	// seLinuxOptions required to run as; required for MustRunAs
-	SELinuxOptions *SELinuxOptions `json:"seLinuxOptions,omitempty" description:"seLinuxOptions required to run as; required for MustRunAs"`
-}
-
-// RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
-type RunAsUserStrategyOptions struct {
-	// Type is the strategy that will dictate what RunAsUser is used in the SecurityContext.
-	Type RunAsUserStrategyType `json:"type,omitempty" description:"strategy used to generate RunAsUser"`
-	// UID is the user id that containers must run as.  Required for the MustRunAs strategy if not using
-	// namespace/service account allocated uids.
-	UID *int64 `json:"uid,omitempty" description:"the uid to always run as; required for MustRunAs"`
-	// UIDRangeMin defines the min value for a strategy that allocates by range.
-	UIDRangeMin *int64 `json:"uidRangeMin,omitempty" description:"min value for range based allocators"`
-	// UIDRangeMax defines the max value for a strategy that allocates by range.
-	UIDRangeMax *int64 `json:"uidRangeMax,omitempty" description:"max value for range based allocators"`
-}
-
-// FSGroupStrategyOptions defines the strategy type and options used to create the strategy.
-type FSGroupStrategyOptions struct {
-	// Type is the strategy that will dictate what FSGroup is used in the SecurityContext.
-	Type FSGroupStrategyType `json:"type,omitempty" description:"strategy used to generate fsGroup"`
-	// Ranges are the allowed ranges of fs groups.  If you would like to force a single
-	// fs group then supply a single range with the same start and end.
-	Ranges []IDRange `json:"ranges,omitempty" description:"ranges of allowable IDs for fsGroup"`
-}
-
-// SupplementalGroupsStrategyOptions defines the strategy type and options used to create the strategy.
-type SupplementalGroupsStrategyOptions struct {
-	// Type is the strategy that will dictate what supplemental groups is used in the SecurityContext.
-	Type SupplementalGroupsStrategyType `json:"type,omitempty" description:"strategy used to generate supplemental groups"`
-	// Ranges are the allowed ranges of supplemental groups.  If you would like to force a single
-	// supplemental group then supply a single range with the same start and end.
-	Ranges []IDRange `json:"ranges,omitempty" description:"ranges of allowable IDs for supplemental groups"`
-}
-
-// IDRange provides a min/max of an allowed range of IDs.
-// TODO: this could be reused for UIDs.
-type IDRange struct {
-	// Min is the start of the range, inclusive.
-	Min int64 `json:"min,omitempty" description:"min value for the range"`
-	// Max is the end of the range, inclusive.
-	Max int64 `json:"max,omitempty" description:"min value for the range"`
-}
-
-// SELinuxContextStrategyType denotes strategy types for generating SELinux options for a
-// SecurityContext
-type SELinuxContextStrategyType string
-
-// RunAsUserStrategyType denotes strategy types for generating RunAsUser values for a
-// SecurityContext
-type RunAsUserStrategyType string
-
-// SupplementalGroupsStrategyType denotes strategy types for determining valid supplemental
-// groups for a SecurityContext.
-type SupplementalGroupsStrategyType string
-
-// FSGroupStrategyType denotes strategy types for generating FSGroup values for a
-// SecurityContext
-type FSGroupStrategyType string
-
-const (
-	// container must have SELinux labels of X applied.
-	SELinuxStrategyMustRunAs SELinuxContextStrategyType = "MustRunAs"
-	// container may make requests for any SELinux context labels.
-	SELinuxStrategyRunAsAny SELinuxContextStrategyType = "RunAsAny"
-
-	// container must run as a particular uid.
-	RunAsUserStrategyMustRunAs RunAsUserStrategyType = "MustRunAs"
-	// container must run as a particular uid.
-	RunAsUserStrategyMustRunAsRange RunAsUserStrategyType = "MustRunAsRange"
-	// container must run as a non-root uid
-	RunAsUserStrategyMustRunAsNonRoot RunAsUserStrategyType = "MustRunAsNonRoot"
-	// container may make requests for any uid.
-	RunAsUserStrategyRunAsAny RunAsUserStrategyType = "RunAsAny"
-
-	// container must have FSGroup of X applied.
-	FSGroupStrategyMustRunAs FSGroupStrategyType = "MustRunAs"
-	// container may make requests for any FSGroup labels.
-	FSGroupStrategyRunAsAny FSGroupStrategyType = "RunAsAny"
-
-	// container must run as a particular gid.
-	SupplementalGroupsStrategyMustRunAs SupplementalGroupsStrategyType = "MustRunAs"
-	// container may make requests for any gid.
-	SupplementalGroupsStrategyRunAsAny SupplementalGroupsStrategyType = "RunAsAny"
-)
-
-// SecurityContextConstraintsList is a list of SecurityContextConstraints objects
-type SecurityContextConstraintsList struct {
-	unversioned.TypeMeta `json:",inline"`
-	unversioned.ListMeta `json:"metadata,omitempty"`
-
-	Items []SecurityContextConstraints `json:"items"`
 }

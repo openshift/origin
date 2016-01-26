@@ -25,9 +25,8 @@ import (
 
 	"github.com/emicklei/go-restful/swagger"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/version"
 )
 
@@ -35,7 +34,6 @@ import (
 // an interface to allow mock testing.
 type Interface interface {
 	PodsNamespacer
-	PodLogsNamespacer
 	PodTemplatesNamespacer
 	ReplicationControllersNamespacer
 	ServicesNamespacer
@@ -53,8 +51,7 @@ type Interface interface {
 	ComponentStatusesInterface
 	SwaggerSchemaInterface
 	Extensions() ExtensionsInterface
-
-	SecurityContextConstraintsInterface
+	Discovery() DiscoveryInterface
 }
 
 func (c *Client) ReplicationControllers(namespace string) ReplicationControllerInterface {
@@ -63,10 +60,6 @@ func (c *Client) ReplicationControllers(namespace string) ReplicationControllerI
 
 func (c *Client) Nodes() NodeInterface {
 	return newNodes(c)
-}
-
-func (c *Client) SecurityContextConstraints() SecurityContextConstraintInterface {
-	return newSecurityContextConstraints(c)
 }
 
 func (c *Client) Events(namespace string) EventInterface {
@@ -79,10 +72,6 @@ func (c *Client) Endpoints(namespace string) EndpointsInterface {
 
 func (c *Client) Pods(namespace string) PodInterface {
 	return newPods(c, namespace)
-}
-
-func (c *Client) PodLogs(namespace string) PodLogsInterface {
-	return newPodLogs(c, namespace)
 }
 
 func (c *Client) PodTemplates(namespace string) PodTemplateInterface {
@@ -130,16 +119,12 @@ type VersionInterface interface {
 	ServerAPIVersions() (*unversioned.APIVersions, error)
 }
 
-// APIStatus is exposed by errors that can be converted to an api.Status object
-// for finer grained details.
-type APIStatus interface {
-	Status() unversioned.Status
-}
-
 // Client is the implementation of a Kubernetes client.
 type Client struct {
 	*RESTClient
 	*ExtensionsClient
+	// TODO: remove this when we re-structure pkg/client.
+	*DiscoveryClient
 }
 
 // ServerVersion retrieves and parses the server's version.
@@ -158,7 +143,7 @@ func (c *Client) ServerVersion() (*version.Info, error) {
 
 // ServerAPIVersions retrieves and parses the list of API versions the server supports.
 func (c *Client) ServerAPIVersions() (*unversioned.APIVersions, error) {
-	body, err := c.Get().UnversionedPath("").Do().Raw()
+	body, err := c.Get().AbsPath("/api").Do().Raw()
 	if err != nil {
 		return nil, err
 	}
@@ -170,48 +155,35 @@ func (c *Client) ServerAPIVersions() (*unversioned.APIVersions, error) {
 	return &v, nil
 }
 
-type ComponentValidatorInterface interface {
-	ValidateComponents() (*api.ComponentStatusList, error)
-}
-
-// ValidateComponents retrieves and parses the master's self-monitored cluster state.
-// TODO: This should hit the versioned endpoint when that is implemented.
-func (c *Client) ValidateComponents() (*api.ComponentStatusList, error) {
-	body, err := c.Get().AbsPath("/validate").DoRaw()
-	if err != nil {
-		return nil, err
-	}
-
-	statuses := []api.ComponentStatus{}
-	if err := json.Unmarshal(body, &statuses); err != nil {
-		return nil, fmt.Errorf("got '%s': %v", string(body), err)
-	}
-	return &api.ComponentStatusList{Items: statuses}, nil
-}
-
 // SwaggerSchemaInterface has a method to retrieve the swagger schema. Used in
 // client.Interface
 type SwaggerSchemaInterface interface {
-	SwaggerSchema(version string) (*swagger.ApiDeclaration, error)
+	SwaggerSchema(version unversioned.GroupVersion) (*swagger.ApiDeclaration, error)
 }
 
 // SwaggerSchema retrieves and parses the swagger API schema the server supports.
-func (c *Client) SwaggerSchema(version string) (*swagger.ApiDeclaration, error) {
-	if version == "" {
-		version = latest.GroupOrDie("").Version
+func (c *Client) SwaggerSchema(version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
+	if version.IsEmpty() {
+		return nil, fmt.Errorf("groupVersion cannot be empty")
 	}
 
-	vers, err := c.ServerAPIVersions()
+	groupList, err := c.Discovery().ServerGroups()
 	if err != nil {
 		return nil, err
 	}
-
+	groupVersions := ExtractGroupVersions(groupList)
 	// This check also takes care the case that kubectl is newer than the running endpoint
-	if stringDoesntExistIn(version, vers.Versions) {
-		return nil, fmt.Errorf("API version: %s is not supported by the server. Use one of: %v", version, vers.Versions)
+	if stringDoesntExistIn(version.String(), groupVersions) {
+		return nil, fmt.Errorf("API version: %v is not supported by the server. Use one of: %v", version, groupVersions)
+	}
+	var path string
+	if version == v1.SchemeGroupVersion {
+		path = "/swaggerapi/api/" + version.Version
+	} else {
+		path = "/swaggerapi/apis/" + version.Group + "/" + version.Version
 	}
 
-	body, err := c.Get().AbsPath("/swaggerapi/api/" + version).Do().Raw()
+	body, err := c.Get().AbsPath(path).Do().Raw()
 	if err != nil {
 		return nil, err
 	}
@@ -256,4 +228,8 @@ func IsTimeout(err error) bool {
 
 func (c *Client) Extensions() ExtensionsInterface {
 	return c.ExtensionsClient
+}
+
+func (c *Client) Discovery() DiscoveryInterface {
+	return c.DiscoveryClient
 }

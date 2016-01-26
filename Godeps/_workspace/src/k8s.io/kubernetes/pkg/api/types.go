@@ -23,7 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 // Common string formats
@@ -451,6 +451,8 @@ type ISCSIVolumeSource struct {
 	IQN string `json:"iqn,omitempty"`
 	// Required: iSCSI target lun number
 	Lun int `json:"lun,omitempty"`
+	// Optional: Defaults to 'default' (tcp). iSCSI interface name that uses an iSCSI transport.
+	ISCSIInterface string `json:"iscsiInterface,omitempty"`
 	// Required: Filesystem type to mount.
 	// Must be a filesystem type supported by the host operating system.
 	// Ex. "ext4", "xfs", "ntfs"
@@ -504,7 +506,12 @@ type GitRepoVolumeSource struct {
 	// Repository URL
 	Repository string `json:"repository"`
 	// Commit hash, this is optional
-	Revision string `json:"revision"`
+	Revision string `json:"revision,omitempty"`
+	// Clone target, this is optional
+	// Must not contain or start with '..'.  If '.' is supplied, the volume directory will be the
+	// git repository.  Otherwise, if specified, the volume will contain the git repository in
+	// the subdirectory with the given name.
+	Directory string `json:"directory,omitempty"`
 	// TODO: Consider credentials here.
 }
 
@@ -681,7 +688,7 @@ type HTTPGetAction struct {
 	// Optional: Path to access on the HTTP server.
 	Path string `json:"path,omitempty"`
 	// Required: Name or number of the port to access on the container.
-	Port util.IntOrString `json:"port,omitempty"`
+	Port intstr.IntOrString `json:"port,omitempty"`
 	// Optional: Host name to connect to, defaults to the pod IP.
 	Host string `json:"host,omitempty"`
 	// Optional: Scheme to use for connecting to the host, defaults to HTTP.
@@ -701,7 +708,7 @@ const (
 // TCPSocketAction describes an action based on opening a socket
 type TCPSocketAction struct {
 	// Required: Port to connect to.
-	Port util.IntOrString `json:"port,omitempty"`
+	Port intstr.IntOrString `json:"port,omitempty"`
 }
 
 // ExecAction describes a "run in container" action.
@@ -713,14 +720,22 @@ type ExecAction struct {
 	Command []string `json:"command,omitempty"`
 }
 
-// Probe describes a liveness probe to be examined to the container.
+// Probe describes a health check to be performed against a container to determine whether it is
+// alive or ready to receive traffic.
 type Probe struct {
 	// The action taken to determine the health of a container
 	Handler `json:",inline"`
 	// Length of time before health checking is activated.  In seconds.
-	InitialDelaySeconds int64 `json:"initialDelaySeconds,omitempty"`
+	InitialDelaySeconds int `json:"initialDelaySeconds,omitempty"`
 	// Length of time before health checking times out.  In seconds.
-	TimeoutSeconds int64 `json:"timeoutSeconds,omitempty"`
+	TimeoutSeconds int `json:"timeoutSeconds,omitempty"`
+	// How often (in seconds) to perform the probe.
+	PeriodSeconds int `json:"periodSeconds,omitempty"`
+	// Minimum consecutive successes for the probe to be considered successful after having failed.
+	// Must be 1 for liveness.
+	SuccessThreshold int `json:"successThreshold,omitempty"`
+	// Minimum consecutive failures for the probe to be considered failed after having succeeded.
+	FailureThreshold int `json:"failureThreshold,omitempty"`
 }
 
 // PullPolicy describes a policy for if/when to pull a container image
@@ -1137,7 +1152,6 @@ type ReplicationControllerSpec struct {
 	// Template is the object that describes the pod that will be created if
 	// insufficient replicas are detected. Internally, this takes precedence over a
 	// TemplateRef.
-	// Must be set before converting to a v1beta1 or v1beta2 API object.
 	Template *PodTemplateSpec `json:"template,omitempty"`
 }
 
@@ -1293,7 +1307,7 @@ type ServicePort struct {
 	// is a string, it will be looked up as a named port in the target
 	// Pod's container ports.  If this is not specified, the default value
 	// is the sames as the Port field (an identity map).
-	TargetPort util.IntOrString `json:"targetPort"`
+	TargetPort intstr.IntOrString `json:"targetPort"`
 
 	// The port on each node on which this service is exposed.
 	// Default is to auto-allocate a port if the ServiceType of this Service requires one.
@@ -1491,6 +1505,9 @@ type NodeConditionType string
 const (
 	// NodeReady means kubelet is healthy and ready to accept pods.
 	NodeReady NodeConditionType = "Ready"
+	// NodeOutOfDisk means the kubelet will not accept new pods due to insufficient free disk
+	// space on the node.
+	NodeOutOfDisk NodeConditionType = "OutOfDisk"
 )
 
 type NodeCondition struct {
@@ -1645,6 +1662,8 @@ type ListOptions struct {
 	Watch bool
 	// The resource version to watch (no effect on list yet)
 	ResourceVersion string
+	// Timeout for the list/watch call.
+	TimeoutSeconds *int64
 }
 
 // PodLogOptions is the query options for a Pod's logs REST call
@@ -1769,6 +1788,14 @@ type EventSource struct {
 	Host string `json:"host,omitempty"`
 }
 
+// Valid values for event types (new types could be added in future)
+const (
+	// Information only and will not cause any problems
+	EventTypeNormal string = "Normal"
+	// These events are to warn that something might go wrong
+	EventTypeWarning string = "Warning"
+)
+
 // Event is a report of an event somewhere in the cluster.
 // TODO: Decide whether to store these separately or with the object they apply to.
 type Event struct {
@@ -1799,6 +1826,9 @@ type Event struct {
 
 	// The number of times this event has occurred.
 	Count int `json:"count,omitempty"`
+
+	// Type of this event (Normal, Warning), new types could be added in the future.
+	Type string `json:"type,omitempty"`
 }
 
 // EventList is a list of events.
@@ -2128,151 +2158,4 @@ type RangeAllocation struct {
 	// represented as a bit array starting at the base IP of the CIDR in Range, with each bit representing
 	// a single allocated address (the fifth bit on CIDR 10.0.0.0/8 is 10.0.0.4).
 	Data []byte `json:"data"`
-}
-
-// SecurityContextConstraints governs the ability to make requests that affect the SecurityContext
-// that will be applied to a container.
-type SecurityContextConstraints struct {
-	unversioned.TypeMeta
-	ObjectMeta
-
-	// Priority influences the sort order of SCCs when evaluating which SCCs to try first for
-	// a given pod request based on access in the Users and Groups fields.  The higher the int, the
-	// higher priority.  If scores for multiple SCCs are equal they will be sorted by name.
-	Priority *int
-
-	// AllowPrivilegedContainer determines if a container can request to be run as privileged.
-	AllowPrivilegedContainer bool
-	// DefaultAddCapabilities is the default set of capabilities that will be added to the container
-	// unless the pod spec specifically drops the capability.  You may not list a capabiility in both
-	// DefaultAddCapabilities and RequiredDropCapabilities.
-	DefaultAddCapabilities []Capability
-	// RequiredDropCapabilities are the capabilities that will be dropped from the container.  These
-	// are required to be dropped and cannot be added.
-	RequiredDropCapabilities []Capability
-	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
-	// Capabilities in this field maybe added at the pod author's discretion.
-	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
-	AllowedCapabilities []Capability
-	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
-	AllowHostDirVolumePlugin bool
-	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
-	AllowHostNetwork bool
-	// AllowHostPorts determines if the policy allows host ports in the containers.
-	AllowHostPorts bool
-	// AllowHostPID determines if the policy allows host pid in the containers.
-	AllowHostPID bool
-	// AllowHostIPC determines if the policy allows host ipc in the containers.
-	AllowHostIPC bool
-	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
-	SELinuxContext SELinuxContextStrategyOptions
-	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
-	RunAsUser RunAsUserStrategyOptions
-	// SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.
-	SupplementalGroups SupplementalGroupsStrategyOptions
-	// FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.
-	FSGroup FSGroupStrategyOptions
-
-	// The users who have permissions to use this security context constraints
-	Users []string
-	// The groups that have permission to use this security context constraints
-	Groups []string
-}
-
-// SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.
-type SELinuxContextStrategyOptions struct {
-	// Type is the strategy that will dictate what SELinux context is used in the SecurityContext.
-	Type SELinuxContextStrategyType
-	// seLinuxOptions required to run as; required for MustRunAs
-	SELinuxOptions *SELinuxOptions
-}
-
-// RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
-type RunAsUserStrategyOptions struct {
-	// Type is the strategy that will dictate what RunAsUser is used in the SecurityContext.
-	Type RunAsUserStrategyType
-	// UID is the user id that containers must run as.  Required for the MustRunAs strategy if not using
-	// namespace/service account allocated uids.
-	UID *int64
-	// UIDRangeMin defines the min value for a strategy that allocates by range.
-	UIDRangeMin *int64
-	// UIDRangeMax defines the max value for a strategy that allocates by range.
-	UIDRangeMax *int64
-}
-
-// FSGroupStrategyOptions defines the strategy type and options used to create the strategy.
-type FSGroupStrategyOptions struct {
-	// Type is the strategy that will dictate what FSGroup is used in the SecurityContext.
-	Type FSGroupStrategyType
-	// Ranges are the allowed ranges of fs groups.  If you would like to force a single
-	// fs group then supply a single range with the same start and end.
-	Ranges []IDRange
-}
-
-// SupplementalGroupsStrategyOptions defines the strategy type and options used to create the strategy.
-type SupplementalGroupsStrategyOptions struct {
-	// Type is the strategy that will dictate what supplemental groups is used in the SecurityContext.
-	Type SupplementalGroupsStrategyType
-	// Ranges are the allowed ranges of supplemental groups.  If you would like to force a single
-	// supplemental group then supply a single range with the same start and end.
-	Ranges []IDRange
-}
-
-// IDRange provides a min/max of an allowed range of IDs.
-// TODO: this could be reused for UIDs.
-type IDRange struct {
-	// Min is the start of the range, inclusive.
-	Min int64
-	// Max is the end of the range, inclusive.
-	Max int64
-}
-
-// SELinuxContextStrategyType denotes strategy types for generating SELinux options for a
-// SecurityContext
-type SELinuxContextStrategyType string
-
-// RunAsUserStrategyType denotes strategy types for generating RunAsUser values for a
-// SecurityContext
-type RunAsUserStrategyType string
-
-// SupplementalGroupsStrategyType denotes strategy types for determining valid supplemental
-// groups for a SecurityContext.
-type SupplementalGroupsStrategyType string
-
-// FSGroupStrategyType denotes strategy types for generating FSGroup values for a
-// SecurityContext
-type FSGroupStrategyType string
-
-const (
-	// container must have SELinux labels of X applied.
-	SELinuxStrategyMustRunAs SELinuxContextStrategyType = "MustRunAs"
-	// container may make requests for any SELinux context labels.
-	SELinuxStrategyRunAsAny SELinuxContextStrategyType = "RunAsAny"
-
-	// container must run as a particular uid.
-	RunAsUserStrategyMustRunAs RunAsUserStrategyType = "MustRunAs"
-	// container must run as a particular uid.
-	RunAsUserStrategyMustRunAsRange RunAsUserStrategyType = "MustRunAsRange"
-	// container must run as a non-root uid
-	RunAsUserStrategyMustRunAsNonRoot RunAsUserStrategyType = "MustRunAsNonRoot"
-	// container may make requests for any uid.
-	RunAsUserStrategyRunAsAny RunAsUserStrategyType = "RunAsAny"
-
-	// container must have FSGroup of X applied.
-	FSGroupStrategyMustRunAs FSGroupStrategyType = "MustRunAs"
-	// container may make requests for any FSGroup labels.
-	FSGroupStrategyRunAsAny FSGroupStrategyType = "RunAsAny"
-
-	// container must run as a particular gid.
-	SupplementalGroupsStrategyMustRunAs SupplementalGroupsStrategyType = "MustRunAs"
-	// container may make requests for any gid.
-	SupplementalGroupsStrategyRunAsAny SupplementalGroupsStrategyType = "RunAsAny"
-)
-
-// SecurityContextConstraintsList is a list of SecurityContextConstraints objects
-type SecurityContextConstraintsList struct {
-	unversioned.TypeMeta `json:",inline"`
-	unversioned.ListMeta `json:"metadata,omitempty"`
-
-	Items []SecurityContextConstraints `json:"items"`
 }

@@ -27,8 +27,6 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apiserver"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
 )
 
@@ -78,12 +76,12 @@ func createTestStatus(name string, status api.ConditionStatus, msg string, err s
 
 func TestList_NoError(t *testing.T) {
 	r := NewTestREST(testResponse{code: 200, data: "ok"})
-	got, err := r.List(api.NewContext(), labels.Everything(), fields.Everything())
+	got, err := r.List(api.NewContext(), nil)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	expect := &api.ComponentStatusList{
-		Items: []api.ComponentStatus{*(createTestStatus("test1", api.ConditionTrue, "ok", "nil"))},
+		Items: []api.ComponentStatus{*(createTestStatus("test1", api.ConditionTrue, "ok", ""))},
 	}
 	if e, a := expect, got; !reflect.DeepEqual(e, a) {
 		t.Errorf("Got unexpected object. Diff: %s", util.ObjectDiff(e, a))
@@ -92,7 +90,7 @@ func TestList_NoError(t *testing.T) {
 
 func TestList_FailedCheck(t *testing.T) {
 	r := NewTestREST(testResponse{code: 500, data: ""})
-	got, err := r.List(api.NewContext(), labels.Everything(), fields.Everything())
+	got, err := r.List(api.NewContext(), nil)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -107,7 +105,7 @@ func TestList_FailedCheck(t *testing.T) {
 
 func TestList_UnknownError(t *testing.T) {
 	r := NewTestREST(testResponse{code: 500, data: "", err: fmt.Errorf("fizzbuzz error")})
-	got, err := r.List(api.NewContext(), labels.Everything(), fields.Everything())
+	got, err := r.List(api.NewContext(), nil)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -126,7 +124,7 @@ func TestGet_NoError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	expect := createTestStatus("test1", api.ConditionTrue, "ok", "nil")
+	expect := createTestStatus("test1", api.ConditionTrue, "ok", "")
 	if e, a := expect, got; !reflect.DeepEqual(e, a) {
 		t.Errorf("Got unexpected object. Diff: %s", util.ObjectDiff(e, a))
 	}

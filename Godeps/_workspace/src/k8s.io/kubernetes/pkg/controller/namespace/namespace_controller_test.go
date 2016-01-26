@@ -73,7 +73,7 @@ func TestFinalizeNamespaceFunc(t *testing.T) {
 	}
 }
 
-func testSyncNamespaceThatIsTerminating(t *testing.T, experimentalMode bool) {
+func testSyncNamespaceThatIsTerminating(t *testing.T, versions *unversioned.APIVersions) {
 	now := unversioned.Now()
 	testNamespacePendingFinalize := &api.Namespace{
 		ObjectMeta: api.ObjectMeta{
@@ -109,19 +109,20 @@ func testSyncNamespaceThatIsTerminating(t *testing.T, experimentalMode bool) {
 		strings.Join([]string{"list", "resourcequotas", ""}, "-"),
 		strings.Join([]string{"list", "secrets", ""}, "-"),
 		strings.Join([]string{"list", "limitranges", ""}, "-"),
-		strings.Join([]string{"list", "events", ""}, "-"),
+		strings.Join([]string{"delete-collection", "events", ""}, "-"),
 		strings.Join([]string{"list", "serviceaccounts", ""}, "-"),
 		strings.Join([]string{"list", "persistentvolumeclaims", ""}, "-"),
 		strings.Join([]string{"create", "namespaces", "finalize"}, "-"),
 	)
 
-	if experimentalMode {
+	if containsVersion(versions, "extensions/v1beta1") {
 		pendingActionSet.Insert(
 			strings.Join([]string{"list", "daemonsets", ""}, "-"),
 			strings.Join([]string{"list", "deployments", ""}, "-"),
 			strings.Join([]string{"list", "jobs", ""}, "-"),
 			strings.Join([]string{"list", "horizontalpodautoscalers", ""}, "-"),
-			strings.Join([]string{"list", "ingress", ""}, "-"),
+			strings.Join([]string{"list", "ingresses", ""}, "-"),
+			strings.Join([]string{"get", "resource", ""}, "-"),
 		)
 	}
 
@@ -144,7 +145,19 @@ func testSyncNamespaceThatIsTerminating(t *testing.T, experimentalMode bool) {
 
 	for scenario, testInput := range scenarios {
 		mockClient := testclient.NewSimpleFake(testInput.testNamespace)
-		err := syncNamespace(mockClient, experimentalMode, testInput.testNamespace)
+		if containsVersion(versions, "extensions/v1beta1") {
+			resources := []unversioned.APIResource{}
+			for _, resource := range []string{"daemonsets", "deployments", "jobs", "horizontalpodautoscalers", "ingresses"} {
+				resources = append(resources, unversioned.APIResource{Name: resource})
+			}
+			mockClient.Resources = map[string]*unversioned.APIResourceList{
+				"extensions/v1beta1": {
+					GroupVersion: "extensions/v1beta1",
+					APIResources: resources,
+				},
+			}
+		}
+		err := syncNamespace(mockClient, versions, testInput.testNamespace)
 		if err != nil {
 			t.Errorf("scenario %s - Unexpected error when synching namespace %v", scenario, err)
 		}
@@ -182,11 +195,11 @@ func TestRetryOnConflictError(t *testing.T) {
 }
 
 func TestSyncNamespaceThatIsTerminatingNonExperimental(t *testing.T) {
-	testSyncNamespaceThatIsTerminating(t, false)
+	testSyncNamespaceThatIsTerminating(t, &unversioned.APIVersions{})
 }
 
-func TestSyncNamespaceThatIsTerminatingExperimental(t *testing.T) {
-	testSyncNamespaceThatIsTerminating(t, true)
+func TestSyncNamespaceThatIsTerminatingV1Beta1(t *testing.T) {
+	testSyncNamespaceThatIsTerminating(t, &unversioned.APIVersions{Versions: []string{"extensions/v1beta1"}})
 }
 
 func TestSyncNamespaceThatIsActive(t *testing.T) {
@@ -203,7 +216,7 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 			Phase: api.NamespaceActive,
 		},
 	}
-	err := syncNamespace(mockClient, false, testNamespace)
+	err := syncNamespace(mockClient, &unversioned.APIVersions{}, testNamespace)
 	if err != nil {
 		t.Errorf("Unexpected error when synching namespace %v", err)
 	}
@@ -214,7 +227,8 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 
 func TestRunStop(t *testing.T) {
 	mockClient := &testclient.Fake{}
-	nsController := NewNamespaceController(mockClient, false, 1*time.Second)
+
+	nsController := NewNamespaceController(mockClient, &unversioned.APIVersions{}, 1*time.Second)
 
 	if nsController.StopEverything != nil {
 		t.Errorf("Non-running manager should not have a stop channel.  Got %v", nsController.StopEverything)

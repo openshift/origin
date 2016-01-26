@@ -23,7 +23,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -32,7 +31,7 @@ import (
 
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	clientcmdlatest "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api/latest"
-	"k8s.io/kubernetes/pkg/util/errors"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 const (
@@ -43,23 +42,9 @@ const (
 	RecommendedSchemaName       = "schema"
 )
 
-var RecommendedHomeFile = path.Join(HomeDir(), RecommendedHomeDir, RecommendedFileName)
-var RecommendedSchemaFile = path.Join(HomeDir(), RecommendedHomeDir, RecommendedSchemaName)
-
-// currentMigrationRules returns a map that holds the history of recommended home directories used in previous versions.
-// Any future changes to RecommendedHomeFile and related are expected to add a migration rule here, in order to make
-// sure existing config files are migrated to their new locations properly.
-func currentMigrationRules() map[string]string {
-	oldRecommendedHomeFile := path.Join(os.Getenv("HOME"), "/.kube/.kubeconfig")
-	oldRecommendedWindowsHomeFile := path.Join(os.Getenv("HOME"), RecommendedHomeDir, RecommendedFileName)
-
-	migrationRules := map[string]string{}
-	migrationRules[RecommendedHomeFile] = oldRecommendedHomeFile
-	if runtime.GOOS == "windows" {
-		migrationRules[RecommendedHomeFile] = oldRecommendedWindowsHomeFile
-	}
-	return migrationRules
-}
+var OldRecommendedHomeFile = path.Join(os.Getenv("HOME"), "/.kube/.kubeconfig")
+var RecommendedHomeFile = path.Join(os.Getenv("HOME"), RecommendedHomeDir, RecommendedFileName)
+var RecommendedSchemaFile = path.Join(os.Getenv("HOME"), RecommendedHomeDir, RecommendedSchemaName)
 
 // ClientConfigLoadingRules is an ExplicitPath and string slice of specific locations that are used for merging together a Config
 // Callers can put the chain together however they want, but we'd recommend:
@@ -82,6 +67,7 @@ type ClientConfigLoadingRules struct {
 // use this constructor
 func NewDefaultClientConfigLoadingRules() *ClientConfigLoadingRules {
 	chain := []string{}
+	migrationRules := map[string]string{}
 
 	envVarFiles := os.Getenv(RecommendedConfigPathEnvVar)
 	if len(envVarFiles) != 0 {
@@ -89,11 +75,13 @@ func NewDefaultClientConfigLoadingRules() *ClientConfigLoadingRules {
 
 	} else {
 		chain = append(chain, RecommendedHomeFile)
+		migrationRules[RecommendedHomeFile] = OldRecommendedHomeFile
+
 	}
 
 	return &ClientConfigLoadingRules{
 		Precedence:     chain,
-		MigrationRules: currentMigrationRules(),
+		MigrationRules: migrationRules,
 	}
 }
 
@@ -159,7 +147,7 @@ func (rules *ClientConfigLoadingRules) Load() (*clientcmdapi.Config, error) {
 		}
 	}
 
-	return config, errors.NewAggregate(errlist)
+	return config, utilerrors.NewAggregate(errlist)
 }
 
 // Migrate uses the MigrationRules map.  If a destination file is not present, then the source file is checked.
@@ -252,6 +240,16 @@ func LoadFromFile(filename string) (*clientcmdapi.Config, error) {
 	for key, obj := range config.Contexts {
 		obj.LocationOfOrigin = filename
 		config.Contexts[key] = obj
+	}
+
+	if config.AuthInfos == nil {
+		config.AuthInfos = map[string]*clientcmdapi.AuthInfo{}
+	}
+	if config.Clusters == nil {
+		config.Clusters = map[string]*clientcmdapi.Cluster{}
+	}
+	if config.Contexts == nil {
+		config.Contexts = map[string]*clientcmdapi.Context{}
 	}
 
 	return config, nil
@@ -463,17 +461,4 @@ func MakeRelative(path, base string) (string, error) {
 		return rel, nil
 	}
 	return path, nil
-}
-
-// HomeDir returns the home directory for the current user
-func HomeDir() string {
-	if runtime.GOOS == "windows" {
-		if homeDrive, homePath := os.Getenv("HOMEDRIVE"), os.Getenv("HOMEPATH"); len(homeDrive) > 0 && len(homePath) > 0 {
-			return homeDrive + homePath
-		}
-		if userProfile := os.Getenv("USERPROFILE"); len(userProfile) > 0 {
-			return userProfile
-		}
-	}
-	return os.Getenv("HOME")
 }

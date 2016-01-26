@@ -25,7 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/errors"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 )
@@ -41,7 +41,7 @@ type Result struct {
 	sources  []Visitor
 	singular bool
 
-	ignoreErrors []errors.Matcher
+	ignoreErrors []utilerrors.Matcher
 
 	// populated by a call to Infos
 	info []*Info
@@ -56,7 +56,7 @@ type Result struct {
 // err.
 func (r *Result) IgnoreErrors(fns ...ErrMatchFunc) *Result {
 	for _, fn := range fns {
-		r.ignoreErrors = append(r.ignoreErrors, errors.Matcher(fn))
+		r.ignoreErrors = append(r.ignoreErrors, utilerrors.Matcher(fn))
 	}
 	return r
 }
@@ -77,7 +77,7 @@ func (r *Result) Visit(fn VisitorFunc) error {
 		return r.err
 	}
 	err := r.visitor.Visit(fn)
-	return errors.FilterOut(err, r.ignoreErrors...)
+	return utilerrors.FilterOut(err, r.ignoreErrors...)
 }
 
 // IntoSingular sets the provided boolean pointer to true if the Builder input
@@ -106,7 +106,7 @@ func (r *Result) Infos() ([]*Info, error) {
 		infos = append(infos, info)
 		return nil
 	})
-	err = errors.FilterOut(err, r.ignoreErrors...)
+	err = utilerrors.FilterOut(err, r.ignoreErrors...)
 
 	r.info, r.err = infos, err
 	return infos, err
@@ -138,7 +138,7 @@ func (r *Result) Object() (runtime.Object, error) {
 			return objects[0], nil
 		}
 		// if the item is a list already, don't create another list
-		if runtime.IsListType(objects[0]) {
+		if meta.IsListType(objects[0]) {
 			return objects[0], nil
 		}
 	}
@@ -199,7 +199,7 @@ func (r *Result) Watch(resourceVersion string) (watch.Interface, error) {
 			return nil, err
 		}
 		if len(info) != 1 {
-			return nil, fmt.Errorf("watch is only supported on a single resource - %d resources were found", len(info))
+			return nil, fmt.Errorf("watch is only supported on individual resources and resource collections - %d resources were found", len(info))
 		}
 		return info[0].Watch(resourceVersion)
 	}
@@ -221,7 +221,7 @@ func AsVersionedObject(infos []*Info, forceList bool, version string) (runtime.O
 		object = objects[0]
 	} else {
 		object = &api.List{Items: objects}
-		converted, err := tryConvert(api.Scheme, object, version, latest.GroupOrDie("").Version)
+		converted, err := tryConvert(api.Scheme, object, version, latest.GroupOrDie("").GroupVersion.Version)
 		if err != nil {
 			return nil, err
 		}
@@ -243,7 +243,7 @@ func AsVersionedObjects(infos []*Info, version string) ([]runtime.Object, error)
 		// objects that are not part of api.Scheme must be converted to JSON
 		// TODO: convert to map[string]interface{}, attach to runtime.Unknown?
 		if len(version) > 0 {
-			if _, _, err := api.Scheme.ObjectVersionAndKind(info.Object); runtime.IsNotRegisteredError(err) {
+			if _, err := api.Scheme.ObjectKind(info.Object); runtime.IsNotRegisteredError(err) {
 				// TODO: ideally this would encode to version, but we don't expose multiple codecs here.
 				data, err := info.Mapping.Codec.Encode(info.Object)
 				if err != nil {
@@ -254,7 +254,7 @@ func AsVersionedObjects(infos []*Info, version string) ([]runtime.Object, error)
 			}
 		}
 
-		converted, err := tryConvert(info.Mapping.ObjectConvertor, info.Object, version, info.Mapping.APIVersion)
+		converted, err := tryConvert(info.Mapping.ObjectConvertor, info.Object, version, info.Mapping.GroupVersionKind.GroupVersion().String())
 		if err != nil {
 			return nil, err
 		}
