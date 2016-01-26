@@ -50,6 +50,9 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				// The final value of OAuthConfig.MasterCA should never be nil
 				obj.OAuthConfig.MasterCA = &s
 			}
+			if obj.KubernetesMasterConfig.KubernetesEtcdClientInfo == nil {
+				obj.KubernetesMasterConfig.KubernetesEtcdClientInfo = &obj.EtcdClientInfo
+			}
 		},
 		func(obj *KubernetesMasterConfig) {
 			if obj.MasterCount == 0 {

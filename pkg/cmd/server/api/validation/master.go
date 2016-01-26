@@ -114,27 +114,21 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 			// Validate the etcdClientInfo with the internal etcdConfig
 			validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, config.EtcdConfig, fldPath.Child("etcdClientInfo"))...)
 
-			// Validate the kubernetesEtcdClientInfo if it exists with the internal etcdConfig
-			if config.KubernetesEtcdClientInfo != nil {
-				validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.KubernetesEtcdClientInfo, config.EtcdConfig, fldPath.Child("kubernetesEtcdClientInfo"))...)
-			}
+			// Validate the kubernetesEtcdClientInfo with the internal etcdConfig
+			validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.KubernetesMasterConfig.KubernetesEtcdClientInfo, config.EtcdConfig, fldPath.Child("kubernetesEtcdClientInfo"))...)
 		} else {
 			// Validate the etcdClientInfo by itself
 			validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil, fldPath.Child("etcdClientInfo"))...)
 
-			// Validate the kubernetesEtcdClientInfo by itself if it exists
-			if config.KubernetesEtcdClientInfo != nil {
-				validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.KubernetesEtcdClientInfo, nil, fldPath.Child("kubernetesEtcdClientInfo"))...)
-			}
+			// Validate the kubernetesEtcdClientInfo by itself
+			validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.KubernetesMasterConfig.KubernetesEtcdClientInfo, nil, fldPath.Child("kubernetesEtcdClientInfo"))...)
 		}
 	} else {
 		// Validate the etcdClientInfo by itself
 		validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil, fldPath.Child("etcdClientInfo"))...)
 
-		// Validate the kubernetesEtcdClientInfo by itself if it exists
-		if config.KubernetesEtcdClientInfo != nil {
-			validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.KubernetesEtcdClientInfo, nil, fldPath.Child("kubernetesEtcdClientInfo"))...)
-		}
+		// Validate the kubernetesEtcdClientInfo by itself
+		validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.KubernetesMasterConfig.KubernetesEtcdClientInfo, nil, fldPath.Child("kubernetesEtcdClientInfo"))...)
 	}
 	validationResults.AddErrors(ValidateEtcdStorageConfig(config.EtcdStorageConfig, fldPath.Child("etcdStorageConfig"))...)
 

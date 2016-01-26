@@ -163,10 +163,6 @@ type MasterConfig struct {
 
 	// EtcdClientInfo contains information about how to connect to etcd
 	EtcdClientInfo EtcdConnectionInfo `json:"etcdClientInfo"`
-
-	// KubernetesEtcdClientInfo, if present store kubernetes data in a different etcd instance
-	KubernetesEtcdClientInfo *EtcdConnectionInfo `json:"kubernetesEtcdClientInfo"`
-
 	// KubeletClientInfo contains information about how to connect to kubelets
 	KubeletClientInfo KubeletConnectionInfo `json:"kubeletClientInfo"`
 
@@ -788,6 +784,9 @@ type KubernetesMasterConfig struct {
 	// the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid
 	// configurations.
 	ControllerArguments ExtendedArguments `json:"controllerArguments"`
+
+	// KubernetesEtcdClientInfo, if present store kubernetes data in a different etcd instance
+	KubernetesEtcdClientInfo *EtcdConnectionInfo `json:"kubernetesEtcdClientInfo"`
 }
 
 type CertInfo struct {
