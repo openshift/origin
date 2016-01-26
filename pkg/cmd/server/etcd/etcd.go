@@ -11,7 +11,7 @@ import (
 	"github.com/golang/glog"
 
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
@@ -70,7 +70,7 @@ func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client
 func TestEtcdClient(etcdClient *etcdclient.Client) error {
 	for i := 0; ; i++ {
 		_, err := etcdClient.Get("/", false, false)
-		if err == nil || etcdstorage.IsEtcdNotFound(err) {
+		if err == nil || etcdutil.IsEtcdNotFound(err) {
 			break
 		}
 		if i > 100 {

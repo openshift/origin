@@ -9,8 +9,9 @@ import (
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
-	"github.com/openshift/origin/pkg/template/api"
-	_ "github.com/openshift/origin/pkg/template/api/install"
+	"github.com/openshift/origin/pkg/build/api"
+	_ "github.com/openshift/origin/pkg/build/api/install"
+	"github.com/openshift/origin/pkg/build/registry/buildconfig"
 )
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
@@ -19,10 +20,31 @@ func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	return storage, server
 }
 
-func validTemplate() *api.Template {
-	return &api.Template{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "foo",
+func TestStorage(t *testing.T) {
+	storage, _ := newStorage(t)
+	buildconfig.NewRegistry(storage)
+}
+
+func validBuildConfig() *api.BuildConfig {
+	return &api.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "configid"},
+		Spec: api.BuildConfigSpec{
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Git: &api.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: api.BuildStrategy{
+					DockerStrategy: &api.DockerBuildStrategy{},
+				},
+				Output: api.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
 		},
 	}
 }
@@ -31,13 +53,13 @@ func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
 	test := registrytest.New(t, storage.Etcd)
-	valid := validTemplate()
+	valid := validBuildConfig()
 	valid.Name = ""
 	valid.GenerateName = "test-"
 	test.TestCreate(
 		valid,
 		// invalid
-		&api.Template{},
+		&api.BuildConfig{},
 	)
 }
 
@@ -46,7 +68,7 @@ func TestList(t *testing.T) {
 	defer server.Terminate(t)
 	test := registrytest.New(t, storage.Etcd)
 	test.TestList(
-		validTemplate(),
+		validBuildConfig(),
 	)
 }
 
@@ -55,16 +77,16 @@ func TestGet(t *testing.T) {
 	defer server.Terminate(t)
 	test := registrytest.New(t, storage.Etcd)
 	test.TestGet(
-		validTemplate(),
+		validBuildConfig(),
 	)
 }
 
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ReturnDeletedObject()
+	test := registrytest.New(t, storage.Etcd)
 	test.TestDelete(
-		validTemplate(),
+		validBuildConfig(),
 	)
 }
 
@@ -73,7 +95,7 @@ func TestWatch(t *testing.T) {
 	defer server.Terminate(t)
 	test := registrytest.New(t, storage.Etcd)
 
-	valid := validTemplate()
+	valid := validBuildConfig()
 	valid.Name = "foo"
 	valid.Labels = map[string]string{"foo": "bar"}
 

@@ -3,41 +3,44 @@ package etcd
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
-	"github.com/openshift/origin/pkg/template/api"
-	_ "github.com/openshift/origin/pkg/template/api/install"
+	"github.com/openshift/origin/pkg/deploy/api"
+	_ "github.com/openshift/origin/pkg/deploy/api/install"
+	"github.com/openshift/origin/pkg/deploy/api/test"
+	"github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 )
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	storage := NewREST(etcdStorage)
+	storage, _ := NewREST(etcdStorage, testclient.NewSimpleFake())
 	return storage, server
 }
 
-func validTemplate() *api.Template {
-	return &api.Template{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "foo",
-		},
-	}
+func TestStorage(t *testing.T) {
+	storage, _ := newStorage(t)
+	deployconfig.NewRegistry(storage)
+}
+
+func validDeploymentConfig() *api.DeploymentConfig {
+	return test.OkDeploymentConfig(1)
 }
 
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
 	test := registrytest.New(t, storage.Etcd)
-	valid := validTemplate()
+	valid := validDeploymentConfig()
 	valid.Name = ""
 	valid.GenerateName = "test-"
 	test.TestCreate(
 		valid,
 		// invalid
-		&api.Template{},
+		&api.DeploymentConfig{},
 	)
 }
 
@@ -46,7 +49,7 @@ func TestList(t *testing.T) {
 	defer server.Terminate(t)
 	test := registrytest.New(t, storage.Etcd)
 	test.TestList(
-		validTemplate(),
+		validDeploymentConfig(),
 	)
 }
 
@@ -55,16 +58,16 @@ func TestGet(t *testing.T) {
 	defer server.Terminate(t)
 	test := registrytest.New(t, storage.Etcd)
 	test.TestGet(
-		validTemplate(),
+		validDeploymentConfig(),
 	)
 }
 
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ReturnDeletedObject()
+	test := registrytest.New(t, storage.Etcd)
 	test.TestDelete(
-		validTemplate(),
+		validDeploymentConfig(),
 	)
 }
 
@@ -73,7 +76,7 @@ func TestWatch(t *testing.T) {
 	defer server.Terminate(t)
 	test := registrytest.New(t, storage.Etcd)
 
-	valid := validTemplate()
+	valid := validDeploymentConfig()
 	valid.Name = "foo"
 	valid.Labels = map[string]string{"foo": "bar"}
 

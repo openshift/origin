@@ -337,18 +337,18 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		glog.Fatalf("Unable to configure Kubelet client: %v", err)
 	}
 
-	buildStorage, buildDetailsStorage := buildetcd.NewStorage(c.EtcdHelper)
+	buildStorage, buildDetailsStorage := buildetcd.NewREST(c.EtcdHelper)
 	buildRegistry := buildregistry.NewRegistry(buildStorage)
 
-	buildConfigStorage := buildconfigetcd.NewStorage(c.EtcdHelper)
+	buildConfigStorage := buildconfigetcd.NewREST(c.EtcdHelper)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
-	deployConfigStorage := deployconfigetcd.NewStorage(c.EtcdHelper, c.DeploymentConfigScaleClient())
-	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage.DeploymentConfig)
+	deployConfigStorage, deployConfigScaleStorage := deployconfigetcd.NewREST(c.EtcdHelper, c.DeploymentConfigScaleClient())
+	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
 	routeAllocator := c.RouteAllocator()
 
-	routeEtcd := routeetcd.NewREST(c.EtcdHelper, routeAllocator)
+	routeStorage, routeStatusStorage := routeetcd.NewREST(c.EtcdHelper, routeAllocator)
 	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
 	netNamespaceStorage := netnamespaceetcd.NewREST(c.EtcdHelper)
 	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
@@ -458,8 +458,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"imageStreamMappings":  imageStreamMappingStorage,
 		"imageStreamTags":      imageStreamTagStorage,
 
-		"deploymentConfigs":         deployConfigStorage.DeploymentConfig,
-		"deploymentConfigs/scale":   deployConfigStorage.Scale,
+		"deploymentConfigs":         deployConfigStorage,
+		"deploymentConfigs/scale":   deployConfigScaleStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec()),
 		"deploymentConfigs/log":     deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
@@ -467,8 +467,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
 
-		"routes":        routeEtcd.Route,
-		"routes/status": routeEtcd.Status,
+		"routes":        routeStorage,
+		"routes/status": routeStatusStorage,
 
 		"projects":        projectStorage,
 		"projectRequests": projectRequestStorage,

@@ -113,7 +113,8 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	etcdHelper, err := origin.NewEtcdStorage(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
+	storageVersion := unversioned.GroupVersion{Group: "", Version: masterConfig.EtcdStorageConfig.OpenShiftStorageVersion}
+	etcdHelper, err := origin.NewEtcdStorage(etcdClient, storageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
