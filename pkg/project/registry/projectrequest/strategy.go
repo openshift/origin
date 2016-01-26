@@ -3,7 +3,7 @@ package projectrequest
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectvalidation "github.com/openshift/origin/pkg/project/api/validation"
@@ -31,13 +31,13 @@ func (strategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // Validate validates a new client
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	projectrequest := obj.(*projectapi.ProjectRequest)
 	return projectvalidation.ValidateProjectRequest(projectrequest)
 }
 
 // ValidateUpdate validates a client update
-func (strategy) ValidateUpdate(ctx kapi.Context, obj runtime.Object, old runtime.Object) fielderrors.ValidationErrorList {
+func (strategy) ValidateUpdate(ctx kapi.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
 	return nil
 }
 

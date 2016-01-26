@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/runtime"
+	kfield "k8s.io/kubernetes/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/api"
@@ -86,7 +87,7 @@ func (c *readOnlyPolicyBindingCache) List(options *unversioned.ListOptions, name
 		items, err := c.indexer.Index("namespace", &authorizationapi.PolicyBinding{ObjectMeta: kapi.ObjectMeta{Namespace: namespace}})
 		returnedList = items
 		if err != nil {
-			return &authorizationapi.PolicyBindingList{}, errors.NewInvalid("PolicyBindingList", "policyBindingList", []error{err})
+			return &authorizationapi.PolicyBindingList{}, errors.NewInvalid("PolicyBindingList", "policyBindingList", kfield.ErrorList{kfield.Invalid(kfield.NewPath("policyBindingList"), nil, err.Error())})
 		}
 	}
 	policyBindingList := &authorizationapi.PolicyBindingList{}
@@ -94,7 +95,7 @@ func (c *readOnlyPolicyBindingCache) List(options *unversioned.ListOptions, name
 	for i := range returnedList {
 		policyBinding, castOK := returnedList[i].(*authorizationapi.PolicyBinding)
 		if !castOK {
-			return policyBindingList, errors.NewInvalid("PolicyBindingList", "policyBindingList", []error{})
+			return policyBindingList, errors.NewInvalid("PolicyBindingList", "policyBindingList", kfield.ErrorList{})
 		}
 		if matches, err := matcher.Matches(policyBinding); err == nil && matches {
 			policyBindingList.Items = append(policyBindingList.Items, *policyBinding)
@@ -117,7 +118,7 @@ func (c *readOnlyPolicyBindingCache) Get(name, namespace string) (*authorization
 	}
 	policyBinding, castOK := item.(*authorizationapi.PolicyBinding)
 	if !castOK {
-		castErr := errors.NewInvalid("PolicyBinding", name, []error{})
+		castErr := errors.NewInvalid("PolicyBinding", name, kfield.ErrorList{})
 		return &authorizationapi.PolicyBinding{}, castErr
 	}
 	return policyBinding, nil

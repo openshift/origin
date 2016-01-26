@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // strategy implements behavior for OAuthAccessTokens
@@ -37,7 +37,7 @@ func (strategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // Validate validates a new token
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	token := obj.(*api.OAuthAccessToken)
 	return validation.ValidateAccessToken(token)
 }

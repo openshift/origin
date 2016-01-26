@@ -10,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/route"
@@ -66,7 +65,7 @@ func (routeStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	route.Status = oldRoute.Status
 }
 
-func (routeStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (routeStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	route := obj.(*api.Route)
 	return validation.ValidateRoute(route)
 }
@@ -101,7 +100,7 @@ func (routeStatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	newRoute.Spec = oldRoute.Spec
 }
 
-func (routeStatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (routeStatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateRouteStatusUpdate(obj.(*api.Route), old.(*api.Route))
 }
 

@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/runtime"
+	kfield "k8s.io/kubernetes/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/api"
@@ -85,7 +86,7 @@ func (c *readOnlyClusterPolicyBindingCache) List(options *unversioned.ListOption
 	for i := range returnedList {
 		clusterPolicyBinding, castOK := returnedList[i].(*authorizationapi.ClusterPolicyBinding)
 		if !castOK {
-			return clusterPolicyBindingList, errors.NewInvalid("ClusterPolicyBinding", "clusterPolicyBinding", []error{})
+			return clusterPolicyBindingList, errors.NewInvalid("ClusterPolicyBinding", "clusterPolicyBinding", kfield.ErrorList{})
 		}
 		if matches, err := matcher.Matches(clusterPolicyBinding); err == nil && matches {
 			clusterPolicyBindingList.Items = append(clusterPolicyBindingList.Items, *clusterPolicyBinding)
@@ -108,7 +109,7 @@ func (c *readOnlyClusterPolicyBindingCache) Get(name string) (*authorizationapi.
 	}
 	clusterPolicyBinding, castOK := item.(*authorizationapi.ClusterPolicyBinding)
 	if !castOK {
-		castErr := errors.NewInvalid("ClusterPolicyBinding", name, []error{})
+		castErr := errors.NewInvalid("ClusterPolicyBinding", name, kfield.ErrorList{})
 		return &authorizationapi.ClusterPolicyBinding{}, castErr
 	}
 	return clusterPolicyBinding, nil

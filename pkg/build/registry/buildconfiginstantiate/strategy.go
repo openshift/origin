@@ -3,7 +3,7 @@ package buildconfiginstantiate
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildvalidation "github.com/openshift/origin/pkg/build/api/validation"
@@ -36,7 +36,7 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new role.
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	return buildvalidation.ValidateBuildRequest(obj.(*buildapi.BuildRequest))
 }
 
@@ -67,7 +67,7 @@ func (binaryStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new role.
-func (binaryStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (binaryStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	// TODO: validate
 	return nil
 }

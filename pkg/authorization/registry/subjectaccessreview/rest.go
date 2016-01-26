@@ -8,7 +8,6 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
@@ -36,8 +35,8 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a subjectAccessReview: %#v", obj))
 	}
-	if err := kutilerrors.NewAggregate(authorizationvalidation.ValidateSubjectAccessReview(subjectAccessReview)); err != nil {
-		return nil, err
+	if errs := authorizationvalidation.ValidateSubjectAccessReview(subjectAccessReview); len(errs) > 0 {
+		return nil, kapierrors.NewInvalid(subjectAccessReview.Kind, "", errs)
 	}
 	// if a namespace is present on the request, then the namespace on the on the SAR is overwritten.
 	// This is to support backwards compatibility.  To have gotten here in this state, it means that
@@ -49,7 +48,6 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		// this check is mutually exclusive to the condition above.  localSAR and localRAR both clear the namespace before delegating their calls
 		// We only need to check if the SAR is allowed **again** if the authorizer didn't already approve the request for a legacy call.
 		return nil, err
-
 	}
 
 	var userToCheck user.Info

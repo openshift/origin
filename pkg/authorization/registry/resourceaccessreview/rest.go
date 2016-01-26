@@ -7,7 +7,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
@@ -35,8 +34,8 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a resourceAccessReview: %#v", obj))
 	}
-	if err := kutilerrors.NewAggregate(authorizationvalidation.ValidateResourceAccessReview(resourceAccessReview)); err != nil {
-		return nil, err
+	if errs := authorizationvalidation.ValidateResourceAccessReview(resourceAccessReview); len(errs) > 0 {
+		return nil, kapierrors.NewInvalid(resourceAccessReview.Kind, "", errs)
 	}
 	// if a namespace is present on the request, then the namespace on the on the RAR is overwritten.
 	// This is to support backwards compatibility.  To have gotten here in this state, it means that

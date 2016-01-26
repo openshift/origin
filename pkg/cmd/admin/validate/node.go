@@ -85,7 +85,7 @@ func (o *ValidateNodeConfigOptions) Run() (ok bool, err error) {
 		return true, err
 	}
 
-	results := validation.ValidateNodeConfig(nodeConfig)
+	results := validation.ValidateNodeConfig(nodeConfig, nil)
 	writer := tabwriter.NewWriter(o.Out, minColumnWidth, tabWidth, padding, padchar, flags)
 	err = prettyPrintValidationResults(results, writer)
 	if err != nil {

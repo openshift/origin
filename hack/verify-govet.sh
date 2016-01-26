@@ -23,8 +23,7 @@ FAILURE=false
 test_dirs=$(find_files | cut -d '/' -f 1-2 | sort -u)
 for test_dir in $test_dirs
 do
-  # composites are disabled because fielderrors.ValidationErrorList{...} is incorrectly flagged
-  go tool vet -shadow=false -composites=false $test_dir
+  go tool vet -shadow=false $test_dir
   if [ "$?" -ne 0 ]
   then
     FAILURE=true

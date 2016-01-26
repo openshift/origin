@@ -9,8 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
-	errs "k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
@@ -42,7 +41,7 @@ func (imageStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // Validate validates a new image.
-func (imageStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (imageStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	image := obj.(*api.Image)
 	return validation.ValidateImage(image)
 }
@@ -79,7 +78,7 @@ func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (imageStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) errs.ValidationErrorList {
+func (imageStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateImageUpdate(old.(*api.Image), obj.(*api.Image))
 }
 

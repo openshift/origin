@@ -21,7 +21,7 @@ import (
 	allocator "github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/uid"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/golang/glog"
 )
@@ -134,10 +134,10 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	}
 
 	// all containers in a single pod must validate under a single provider or we will reject the request
-	validationErrs := fielderrors.ValidationErrorList{}
+	validationErrs := field.ErrorList{}
 	for _, provider := range providers {
-		if errs := assignSecurityContext(provider, pod); len(errs) > 0 {
-			validationErrs = append(validationErrs, errs.Prefix(fmt.Sprintf("provider %s: ", provider.GetSCCName()))...)
+		if errs := assignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
+			validationErrs = append(validationErrs, errs...)
 			continue
 		}
 
@@ -158,14 +158,14 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 // assignSecurityContext creates a security context for each container in the pod
 // and validates that the sc falls within the scc constraints.  All containers must validate against
 // the same scc or is not considered valid.
-func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod *kapi.Pod) fielderrors.ValidationErrorList {
+func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod *kapi.Pod, fldPath *field.Path) field.ErrorList {
 	generatedSCs := make([]*kapi.SecurityContext, len(pod.Spec.Containers))
 
-	errs := fielderrors.ValidationErrorList{}
+	errs := field.ErrorList{}
 
 	psc, err := provider.CreatePodSecurityContext(pod)
 	if err != nil {
-		errs = append(errs, fielderrors.NewFieldInvalid("spec.securityContext", pod.Spec.SecurityContext, err.Error()))
+		errs = append(errs, field.Invalid(field.NewPath("spec", "securityContext"), pod.Spec.SecurityContext, err.Error()))
 	}
 
 	// save the original PSC and validate the generated PSC.  Leave the generated PSC
@@ -173,7 +173,7 @@ func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod 
 	// validation.
 	originalPSC := pod.Spec.SecurityContext
 	pod.Spec.SecurityContext = psc
-	errs = append(errs, provider.ValidatePodSecurityContext(pod).Prefix("spec.securityContext")...)
+	errs = append(errs, provider.ValidatePodSecurityContext(pod, field.NewPath("spec", "securityContext"))...)
 
 	// Note: this is not changing the original container, we will set container SCs later so long
 	// as all containers validated under the same SCC.
@@ -186,13 +186,13 @@ func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod 
 
 		sc, err := provider.CreateContainerSecurityContext(pod, &containerCopy)
 		if err != nil {
-			errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.containers[%d].securityContext", i), "", err.Error()))
+			errs = append(errs, field.Invalid(field.NewPath("spec", "containers").Index(i).Child("securityContext"), "", err.Error()))
 			continue
 		}
 		generatedSCs[i] = sc
 
 		containerCopy.SecurityContext = sc
-		errs = append(errs, provider.ValidateContainerSecurityContext(pod, &containerCopy).Prefix(fmt.Sprintf("spec.containers[%d].securityContext", i))...)
+		errs = append(errs, provider.ValidateContainerSecurityContext(pod, &containerCopy, field.NewPath("spec", "containers").Index(i).Child("securityContext"))...)
 	}
 
 	if len(errs) > 0 {

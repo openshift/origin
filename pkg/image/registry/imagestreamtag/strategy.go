@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
@@ -30,7 +30,7 @@ func (s *strategy) NamespaceScoped() bool {
 func (s *strategy) PrepareForCreate(obj runtime.Object) {
 }
 
-func (s *strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (s *strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	istag := obj.(*api.ImageStreamTag)
 
 	return validation.ValidateImageStreamTag(istag)
@@ -56,7 +56,7 @@ func (s *strategy) PrepareForUpdate(obj, old runtime.Object) {
 	newIST.Image = oldIST.Image
 }
 
-func (s *strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (s *strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	newIST := obj.(*api.ImageStreamTag)
 	oldIST := old.(*api.ImageStreamTag)
 

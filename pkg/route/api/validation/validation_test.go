@@ -381,7 +381,7 @@ func TestValidateTLS(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		errs := validateTLS(tc.route)
+		errs := validateTLS(tc.route, nil)
 
 		if len(errs) != tc.expectedErrors {
 			t.Errorf("Test case %s expected %d error(s), got %d. %v", tc.name, tc.expectedErrors, len(errs), errs)
@@ -426,20 +426,20 @@ func TestValidateTLSInsecureEdgeTerminationPolicy(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		if errs := validateTLS(tc.route); len(errs) != 0 {
+		if errs := validateTLS(tc.route, nil); len(errs) != 0 {
 			t.Errorf("Test case %s got %d errors where none were expected. %v",
 				tc.name, len(errs), errs)
 		}
 
 		tc.route.Spec.TLS.InsecureEdgeTerminationPolicy = ""
-		if errs := validateTLS(tc.route); len(errs) != 0 {
+		if errs := validateTLS(tc.route, nil); len(errs) != 0 {
 			t.Errorf("Test case %s got %d errors where none were expected. %v",
 				tc.name, len(errs), errs)
 		}
 
 		for _, val := range insecureTypes {
 			tc.route.Spec.TLS.InsecureEdgeTerminationPolicy = val
-			if errs := validateTLS(tc.route); len(errs) != 1 {
+			if errs := validateTLS(tc.route, nil); len(errs) != 1 {
 				t.Errorf("Test case %s with insecure=%q got %d errors where one was expected. %v",
 					tc.name, val, len(errs), errs)
 			}
@@ -494,7 +494,7 @@ func TestValidateInsecureEdgeTerminationPolicy(t *testing.T) {
 				},
 			},
 		}
-		errs := validateTLS(route)
+		errs := validateTLS(route, nil)
 
 		if len(errs) != tc.expectedErrors {
 			t.Errorf("Test case %s expected %d error(s), got %d. %v", tc.name, tc.expectedErrors, len(errs), errs)
@@ -520,7 +520,7 @@ func TestValidateNoTLSInsecureEdgeTerminationPolicy(t *testing.T) {
 				},
 			},
 		}
-		errs := validateTLS(route)
+		errs := validateTLS(route, nil)
 		if !expected && len(errs) != 0 {
 			t.Errorf("Test case for edge termination with insecure=%s got %d errors where none were expected. %v",
 				key, len(errs), errs)

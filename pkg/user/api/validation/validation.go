@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/user/api"
@@ -73,128 +73,128 @@ func ValidateIdentityProviderUserName(name string) (bool, string) {
 	return ValidateUserName(name, false)
 }
 
-func ValidateGroup(group *api.Group) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&group.ObjectMeta, false, ValidateGroupName).Prefix("metadata")...)
+func ValidateGroup(group *api.Group) field.ErrorList {
+	allErrs := kvalidation.ValidateObjectMeta(&group.ObjectMeta, false, ValidateGroupName, field.NewPath("metadata"))
 
+	userPath := field.NewPath("user")
 	for index, user := range group.Users {
+		idxPath := userPath.Index(index)
 		if len(user) == 0 {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("users[%d]", index), user, "may not be empty"))
+			allErrs = append(allErrs, field.Invalid(idxPath, user, "may not be empty"))
 			continue
 		}
 		if ok, msg := ValidateUserName(user, false); !ok {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("users[%d]", index), user, msg))
+			allErrs = append(allErrs, field.Invalid(idxPath, user, msg))
 		}
 	}
 
 	return allErrs
 }
 
-func ValidateGroupUpdate(group *api.Group, old *api.Group) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&group.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
+func ValidateGroupUpdate(group *api.Group, old *api.Group) field.ErrorList {
+	allErrs := kvalidation.ValidateObjectMetaUpdate(&group.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateGroup(group)...)
 	return allErrs
 }
 
-func ValidateUser(user *api.User) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&user.ObjectMeta, false, ValidateUserName).Prefix("metadata")...)
+func ValidateUser(user *api.User) field.ErrorList {
+	allErrs := kvalidation.ValidateObjectMeta(&user.ObjectMeta, false, ValidateUserName, field.NewPath("metadata"))
+	identitiesPath := field.NewPath("identities")
 	for index, identity := range user.Identities {
+		idxPath := identitiesPath.Index(index)
 		if ok, msg := ValidateIdentityName(identity, false); !ok {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("identities[%d]", index), identity, msg))
+			allErrs = append(allErrs, field.Invalid(idxPath, identity, msg))
 		}
 	}
 
+	groupsPath := field.NewPath("groups")
 	for index, group := range user.Groups {
+		idxPath := groupsPath.Index(index)
 		if len(group) == 0 {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("groups[%d]", index), group, "may not be empty"))
+			allErrs = append(allErrs, field.Invalid(idxPath, group, "may not be empty"))
 			continue
 		}
 		if ok, msg := ValidateGroupName(group, false); !ok {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("groups[%d]", index), group, msg))
+			allErrs = append(allErrs, field.Invalid(idxPath, group, msg))
 		}
 	}
 
 	return allErrs
 }
 
-func ValidateUserUpdate(user *api.User, old *api.User) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&user.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
+func ValidateUserUpdate(user *api.User, old *api.User) field.ErrorList {
+	allErrs := kvalidation.ValidateObjectMetaUpdate(&user.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateUser(user)...)
 	return allErrs
 }
 
-func ValidateIdentity(identity *api.Identity) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&identity.ObjectMeta, false, ValidateIdentityName).Prefix("metadata")...)
+func ValidateIdentity(identity *api.Identity) field.ErrorList {
+	allErrs := kvalidation.ValidateObjectMeta(&identity.ObjectMeta, false, ValidateIdentityName, field.NewPath("metadata"))
 
 	if len(identity.ProviderName) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("providerName"))
+		allErrs = append(allErrs, field.Required(field.NewPath("providerName")))
 	} else if ok, msg := ValidateIdentityProviderName(identity.ProviderName); !ok {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("providerName", identity.ProviderName, msg))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("providerName"), identity.ProviderName, msg))
 	}
 
 	if len(identity.ProviderUserName) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("providerUserName"))
+		allErrs = append(allErrs, field.Required(field.NewPath("providerUserName")))
 	} else if ok, msg := ValidateIdentityProviderName(identity.ProviderUserName); !ok {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("providerUserName", identity.ProviderUserName, msg))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("providerUserName"), identity.ProviderUserName, msg))
 	}
 
+	userPath := field.NewPath("user")
 	if len(identity.ProviderName) > 0 && len(identity.ProviderUserName) > 0 {
 		expectedIdentityName := identity.ProviderName + ":" + identity.ProviderUserName
 		if identity.Name != expectedIdentityName {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("user.name", identity.User.Name, fmt.Sprintf("must be %s", expectedIdentityName)))
+			allErrs = append(allErrs, field.Invalid(userPath.Child("name"), identity.User.Name, fmt.Sprintf("must be %s", expectedIdentityName)))
 		}
 	}
 
 	if ok, msg := ValidateUserName(identity.User.Name, false); !ok {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("user.name", identity.User.Name, msg))
+		allErrs = append(allErrs, field.Invalid(userPath.Child("name"), identity.User.Name, msg))
 	}
 	if len(identity.User.Name) == 0 && len(identity.User.UID) != 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("user.uid", identity.User.UID, "may not be set if user.name is empty"))
+		allErrs = append(allErrs, field.Invalid(userPath.Child("uid"), identity.User.UID, "may not be set if user.name is empty"))
 	}
 	if len(identity.User.Name) != 0 && len(identity.User.UID) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("user.uid"))
+		allErrs = append(allErrs, field.Required(userPath.Child("uid")))
 	}
 	return allErrs
 }
 
-func ValidateIdentityUpdate(identity *api.Identity, old *api.Identity) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-
-	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&identity.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
+func ValidateIdentityUpdate(identity *api.Identity, old *api.Identity) field.ErrorList {
+	allErrs := kvalidation.ValidateObjectMetaUpdate(&identity.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateIdentity(identity)...)
 
 	if identity.ProviderName != old.ProviderName {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("providerName", identity.ProviderName, "may not change providerName"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("providerName"), identity.ProviderName, "may not change providerName"))
 	}
 	if identity.ProviderUserName != old.ProviderUserName {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("providerUserName", identity.ProviderUserName, "may not change providerUserName"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("providerUserName"), identity.ProviderUserName, "may not change providerUserName"))
 	}
 
 	return allErrs
 }
 
-func ValidateUserIdentityMapping(mapping *api.UserIdentityMapping) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&mapping.ObjectMeta, false, ValidateIdentityName).Prefix("metadata")...)
+func ValidateUserIdentityMapping(mapping *api.UserIdentityMapping) field.ErrorList {
+	allErrs := kvalidation.ValidateObjectMeta(&mapping.ObjectMeta, false, ValidateIdentityName, field.NewPath("metadata"))
+
+	identityPath := field.NewPath("identity")
 	if len(mapping.Identity.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("identity.name"))
+		allErrs = append(allErrs, field.Required(identityPath.Child("name")))
 	}
 	if mapping.Identity.Name != mapping.Name {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("identity.name", mapping.Identity.Name, "must match metadata.name"))
+		allErrs = append(allErrs, field.Invalid(identityPath.Child("name"), mapping.Identity.Name, "must match metadata.name"))
 	}
 	if len(mapping.User.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("user.name"))
+		allErrs = append(allErrs, field.Required(field.NewPath("user", "name")))
 	}
 	return allErrs
 }
 
-func ValidateUserIdentityMappingUpdate(mapping *api.UserIdentityMapping, old *api.UserIdentityMapping) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&mapping.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
+func ValidateUserIdentityMappingUpdate(mapping *api.UserIdentityMapping, old *api.UserIdentityMapping) field.ErrorList {
+	allErrs := kvalidation.ValidateObjectMetaUpdate(&mapping.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateUserIdentityMapping(mapping)...)
 	return allErrs
 }

@@ -14,9 +14,9 @@ import (
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
 	"k8s.io/kubernetes/pkg/util/sets"
 	kuval "k8s.io/kubernetes/pkg/util/validation"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -27,8 +27,8 @@ import (
 
 // TODO: this should just be two return arrays, no need to be clever
 type ValidationResults struct {
-	Warnings fielderrors.ValidationErrorList
-	Errors   fielderrors.ValidationErrorList
+	Warnings field.ErrorList
+	Errors   field.ErrorList
 }
 
 func (r *ValidationResults) Append(additionalResults ValidationResults) {
@@ -36,30 +36,24 @@ func (r *ValidationResults) Append(additionalResults ValidationResults) {
 	r.AddWarnings(additionalResults.Warnings...)
 }
 
-func (r *ValidationResults) AddErrors(errors ...error) {
+func (r *ValidationResults) AddErrors(errors ...*field.Error) {
 	if len(errors) == 0 {
 		return
 	}
 	r.Errors = append(r.Errors, errors...)
 }
 
-func (r *ValidationResults) AddWarnings(warnings ...error) {
+func (r *ValidationResults) AddWarnings(warnings ...*field.Error) {
 	if len(warnings) == 0 {
 		return
 	}
 	r.Warnings = append(r.Warnings, warnings...)
 }
 
-func (r ValidationResults) Prefix(prefix string) ValidationResults {
-	r.Warnings = r.Warnings.Prefix(prefix)
-	r.Errors = r.Errors.Prefix(prefix)
-	return r
-}
-
-func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
+func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
-	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {
+	if _, urlErrs := ValidateURL(config.MasterPublicURL, fldPath.Child("masterPublicURL")); len(urlErrs) > 0 {
 		validationResults.AddErrors(urlErrs...)
 	}
 
@@ -67,32 +61,33 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 	case config.ControllerLeaseTTL > 300,
 		config.ControllerLeaseTTL < -1,
 		config.ControllerLeaseTTL > 0 && config.ControllerLeaseTTL < 10:
-		validationResults.AddErrors(fielderrors.NewFieldInvalid("controllerLeaseTTL", config.ControllerLeaseTTL, "TTL must be -1 (disabled), 0 (default), or between 10 and 300 seconds"))
+		validationResults.AddErrors(field.Invalid(fldPath.Child("controllerLeaseTTL"), config.ControllerLeaseTTL, "TTL must be -1 (disabled), 0 (default), or between 10 and 300 seconds"))
 	}
 
-	validationResults.AddErrors(ValidateDisabledFeatures(config.DisabledFeatures, "disabledFeatures")...)
+	validationResults.AddErrors(ValidateDisabledFeatures(config.DisabledFeatures, fldPath.Child("disabledFeatures"))...)
 
 	if config.AssetConfig != nil {
-		validationResults.Append(ValidateAssetConfig(config.AssetConfig).Prefix("assetConfig"))
+		assetConfigPath := fldPath.Child("assetConfig")
+		validationResults.Append(ValidateAssetConfig(config.AssetConfig, assetConfigPath))
 		colocated := config.AssetConfig.ServingInfo.BindAddress == config.ServingInfo.BindAddress
 		if colocated {
 			publicURL, _ := url.Parse(config.AssetConfig.PublicURL)
 			if publicURL.Path == "/" {
-				validationResults.AddErrors(fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
+				validationResults.AddErrors(field.Invalid(assetConfigPath.Child("publicURL"), config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
 			}
 
 			// Warn if they have customized the asset certificates in ways that will be ignored
 			if !reflect.DeepEqual(config.AssetConfig.ServingInfo.ServerCert, config.ServingInfo.ServerCert) ||
 				!reflect.DeepEqual(config.AssetConfig.ServingInfo.NamedCertificates, config.ServingInfo.NamedCertificates) {
-				validationResults.AddWarnings(fielderrors.NewFieldInvalid("assetConfig.servingInfo", "<not displayed>", "changes to assetConfig certificate configuration are not used when colocated with master API"))
+				validationResults.AddWarnings(field.Invalid(assetConfigPath.Child("servingInfo"), "<not displayed>", "changes to assetConfig certificate configuration are not used when colocated with master API"))
 			}
 		}
 
 		if config.OAuthConfig != nil {
 			if config.OAuthConfig.AssetPublicURL != config.AssetConfig.PublicURL {
 				validationResults.AddErrors(
-					fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "must match oauthConfig.assetPublicURL"),
-					fielderrors.NewFieldInvalid("oauthConfig.assetPublicURL", config.OAuthConfig.AssetPublicURL, "must match assetConfig.publicURL"),
+					field.Invalid(assetConfigPath.Child("publicURL"), config.AssetConfig.PublicURL, "must match oauthConfig.assetPublicURL"),
+					field.Invalid(fldPath.Child("oauthConfig", "assetPublicURL"), config.OAuthConfig.AssetPublicURL, "must match assetConfig.publicURL"),
 				)
 			}
 		}
@@ -102,251 +97,257 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 	}
 
 	if config.DNSConfig != nil {
-		validationResults.AddErrors(ValidateHostPort(config.DNSConfig.BindAddress, "bindAddress").Prefix("dnsConfig")...)
+		dnsConfigPath := fldPath.Child("dnsConfig")
+		validationResults.AddErrors(ValidateHostPort(config.DNSConfig.BindAddress, dnsConfigPath.Child("bindAddress"))...)
 		switch config.DNSConfig.BindNetwork {
 		case "tcp", "tcp4", "tcp6":
 		default:
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("dnsConfig.bindNetwork", config.DNSConfig.BindNetwork, "must be 'tcp', 'tcp4', or 'tcp6'"))
+			validationResults.AddErrors(field.Invalid(dnsConfigPath.Child("bindNetwork"), config.DNSConfig.BindNetwork, "must be 'tcp', 'tcp4', or 'tcp6'"))
 		}
 	}
 
 	if config.EtcdConfig != nil {
-		etcdConfigErrs := ValidateEtcdConfig(config.EtcdConfig).Prefix("etcdConfig")
+		etcdConfigErrs := ValidateEtcdConfig(config.EtcdConfig, fldPath.Child("etcdConfig"))
 		validationResults.Append(etcdConfigErrs)
 
 		if len(etcdConfigErrs.Errors) == 0 {
 			// Validate the etcdClientInfo with the internal etcdConfig
-			validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, config.EtcdConfig).Prefix("etcdClientInfo")...)
+			validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, config.EtcdConfig, fldPath.Child("etcdClientInfo"))...)
 		} else {
 			// Validate the etcdClientInfo by itself
-			validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil).Prefix("etcdClientInfo")...)
+			validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil, fldPath.Child("etcdClientInfo"))...)
 		}
 	} else {
 		// Validate the etcdClientInfo by itself
-		validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil).Prefix("etcdClientInfo")...)
+		validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil, fldPath.Child("etcdClientInfo"))...)
 	}
-	validationResults.AddErrors(ValidateEtcdStorageConfig(config.EtcdStorageConfig).Prefix("etcdStorageConfig")...)
+	validationResults.AddErrors(ValidateEtcdStorageConfig(config.EtcdStorageConfig, fldPath.Child("etcdStorageConfig"))...)
 
-	validationResults.AddErrors(ValidateImageConfig(config.ImageConfig).Prefix("imageConfig")...)
+	validationResults.AddErrors(ValidateImageConfig(config.ImageConfig, fldPath.Child("imageConfig"))...)
 
-	validationResults.AddErrors(ValidateKubeletConnectionInfo(config.KubeletClientInfo).Prefix("kubeletClientInfo")...)
+	validationResults.AddErrors(ValidateKubeletConnectionInfo(config.KubeletClientInfo, fldPath.Child("kubeletClientInfo"))...)
 
 	builtInKubernetes := config.KubernetesMasterConfig != nil
 	if config.KubernetesMasterConfig != nil {
-		validationResults.Append(ValidateKubernetesMasterConfig(config.KubernetesMasterConfig).Prefix("kubernetesMasterConfig"))
+		validationResults.Append(ValidateKubernetesMasterConfig(config.KubernetesMasterConfig, fldPath.Child("kubernetesMasterConfig")))
 	}
 	if (config.KubernetesMasterConfig == nil) && (len(config.MasterClients.ExternalKubernetesKubeConfig) == 0) {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid("kubernetesMasterConfig", config.KubernetesMasterConfig, "either kubernetesMasterConfig or masterClients.externalKubernetesKubeConfig must have a value"))
+		validationResults.AddErrors(field.Invalid(fldPath.Child("kubernetesMasterConfig"), config.KubernetesMasterConfig, "either kubernetesMasterConfig or masterClients.externalKubernetesKubeConfig must have a value"))
 	}
 	if (config.KubernetesMasterConfig != nil) && (len(config.MasterClients.ExternalKubernetesKubeConfig) != 0) {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid("kubernetesMasterConfig", config.KubernetesMasterConfig, "kubernetesMasterConfig and masterClients.externalKubernetesKubeConfig are mutually exclusive"))
+		validationResults.AddErrors(field.Invalid(fldPath.Child("kubernetesMasterConfig"), config.KubernetesMasterConfig, "kubernetesMasterConfig and masterClients.externalKubernetesKubeConfig are mutually exclusive"))
 	}
 
 	if len(config.NetworkConfig.ServiceNetworkCIDR) > 0 {
 		if _, _, err := net.ParseCIDR(strings.TrimSpace(config.NetworkConfig.ServiceNetworkCIDR)); err != nil {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("networkConfig.serviceNetworkCIDR", config.NetworkConfig.ServiceNetworkCIDR, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))
+			validationResults.AddErrors(field.Invalid(fldPath.Child("networkConfig", "serviceNetworkCIDR"), config.NetworkConfig.ServiceNetworkCIDR, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))
 		} else if config.KubernetesMasterConfig != nil && len(config.KubernetesMasterConfig.ServicesSubnet) > 0 && config.KubernetesMasterConfig.ServicesSubnet != config.NetworkConfig.ServiceNetworkCIDR {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("networkConfig.serviceNetworkCIDR", config.NetworkConfig.ServiceNetworkCIDR, fmt.Sprintf("must match kubernetesMasterConfig.servicesSubnet value of %q", config.KubernetesMasterConfig.ServicesSubnet)))
+			validationResults.AddErrors(field.Invalid(fldPath.Child("networkConfig", "serviceNetworkCIDR"), config.NetworkConfig.ServiceNetworkCIDR, fmt.Sprintf("must match kubernetesMasterConfig.servicesSubnet value of %q", config.KubernetesMasterConfig.ServicesSubnet)))
 		}
 	}
 
-	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, "openShiftLoopbackKubeConfig").Prefix("masterClients")...)
+	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, fldPath.Child("masterClients", "openShiftLoopbackKubeConfig"))...)
 
 	if len(config.MasterClients.ExternalKubernetesKubeConfig) > 0 {
-		validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.ExternalKubernetesKubeConfig, "externalKubernetesKubeConfig").Prefix("masterClients")...)
+		validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.ExternalKubernetesKubeConfig, fldPath.Child("masterClients", "externalKubernetesKubeConfig"))...)
 	}
 
-	validationResults.AddErrors(ValidatePolicyConfig(config.PolicyConfig).Prefix("policyConfig")...)
+	validationResults.AddErrors(ValidatePolicyConfig(config.PolicyConfig, fldPath.Child("policyConfig"))...)
 	if config.OAuthConfig != nil {
-		validationResults.Append(ValidateOAuthConfig(config.OAuthConfig).Prefix("oauthConfig"))
+		validationResults.Append(ValidateOAuthConfig(config.OAuthConfig, fldPath.Child("oauthConfig")))
 	}
 
-	validationResults.Append(ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes).Prefix("serviceAccountConfig"))
+	validationResults.Append(ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes, fldPath.Child("serviceAccountConfig")))
 
-	validationResults.Append(ValidateHTTPServingInfo(config.ServingInfo).Prefix("servingInfo"))
+	validationResults.Append(ValidateHTTPServingInfo(config.ServingInfo, fldPath.Child("servingInfo")))
 
-	validationResults.Append(ValidateProjectConfig(config.ProjectConfig).Prefix("projectConfig"))
+	validationResults.Append(ValidateProjectConfig(config.ProjectConfig, fldPath.Child("projectConfig")))
 
-	validationResults.AddErrors(ValidateRoutingConfig(config.RoutingConfig).Prefix("routingConfig")...)
+	validationResults.AddErrors(ValidateRoutingConfig(config.RoutingConfig, fldPath.Child("routingConfig"))...)
 
-	validationResults.Append(ValidateAPILevels(config.APILevels, api.KnownOpenShiftAPILevels, api.DeadOpenShiftAPILevels, "apiLevels"))
+	validationResults.Append(ValidateAPILevels(config.APILevels, api.KnownOpenShiftAPILevels, api.DeadOpenShiftAPILevels, fldPath.Child("apiLevels")))
 
 	if config.AdmissionConfig.PluginConfig != nil {
-		validationResults.AddErrors(ValidateAdmissionPluginConfig(config.AdmissionConfig.PluginConfig).Prefix("admissionConfig.pluginConfig")...)
+		validationResults.AddErrors(ValidateAdmissionPluginConfig(config.AdmissionConfig.PluginConfig, fldPath.Child("admissionConfig", "pluginConfig"))...)
 	}
 
 	return validationResults
 }
 
-func ValidateAPILevels(apiLevels []string, knownAPILevels, deadAPILevels []string, name string) ValidationResults {
+func ValidateAPILevels(apiLevels []string, knownAPILevels, deadAPILevels []string, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
 	if len(apiLevels) == 0 {
-		validationResults.AddErrors(fielderrors.NewFieldRequired(name))
+		validationResults.AddErrors(field.Required(fldPath))
 	}
 
 	deadLevels := sets.NewString(deadAPILevels...)
 	knownLevels := sets.NewString(knownAPILevels...)
 	for i, apiLevel := range apiLevels {
+		idxPath := fldPath.Index(i)
 		if deadLevels.Has(apiLevel) {
-			validationResults.AddWarnings(fielderrors.NewFieldInvalid(fmt.Sprintf(name+"[%d]", i), apiLevel, "unsupported level"))
+			validationResults.AddWarnings(field.Invalid(idxPath, apiLevel, "unsupported level"))
 		}
 		if !knownLevels.Has(apiLevel) {
-			validationResults.AddWarnings(fielderrors.NewFieldInvalid(fmt.Sprintf(name+"[%d]", i), apiLevel, "unknown level"))
+			validationResults.AddWarnings(field.Invalid(idxPath, apiLevel, "unknown level"))
 		}
 	}
 
 	return validationResults
 }
 
-func ValidateEtcdStorageConfig(config api.EtcdStorageConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateEtcdStorageConfig(config api.EtcdStorageConfig, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 
 	allErrs = append(allErrs, ValidateStorageVersionLevel(
 		config.KubernetesStorageVersion,
 		api.KnownKubernetesStorageVersionLevels,
 		api.DeadKubernetesStorageVersionLevels,
-		"kubernetesStorageVersion")...)
+		fldPath.Child("kubernetesStorageVersion"))...)
 	allErrs = append(allErrs, ValidateStorageVersionLevel(
 		config.OpenShiftStorageVersion,
 		api.KnownOpenShiftStorageVersionLevels,
 		api.DeadOpenShiftStorageVersionLevels,
-		"openShiftStorageVersion")...)
+		fldPath.Child("openShiftStorageVersion"))...)
 
 	if strings.ContainsRune(config.KubernetesStoragePrefix, '%') {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("kubernetesStoragePrefix", config.KubernetesStoragePrefix, "the '%' character may not be used in etcd path prefixes"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("kubernetesStoragePrefix"), config.KubernetesStoragePrefix, "the '%' character may not be used in etcd path prefixes"))
 	}
 	if strings.ContainsRune(config.OpenShiftStoragePrefix, '%') {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("openShiftStoragePrefix", config.OpenShiftStoragePrefix, "the '%' character may not be used in etcd path prefixes"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("openShiftStoragePrefix"), config.OpenShiftStoragePrefix, "the '%' character may not be used in etcd path prefixes"))
 	}
 
 	return allErrs
 }
 
-func ValidateStorageVersionLevel(level string, knownAPILevels, deadAPILevels []string, name string) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateStorageVersionLevel(level string, knownAPILevels, deadAPILevels []string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 
 	if len(level) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired(name))
+		allErrs = append(allErrs, field.Required(fldPath))
 		return allErrs
 	}
 	supportedLevels := sets.NewString(knownAPILevels...)
 	supportedLevels.Delete(deadAPILevels...)
 	if !supportedLevels.Has(level) {
-		allErrs = append(allErrs, fielderrors.NewFieldValueNotSupported(name, level, supportedLevels.List()))
+		allErrs = append(allErrs, field.NotSupported(fldPath, level, supportedLevels.List()))
 	}
 
 	return allErrs
 }
 
-func ValidateServiceAccountConfig(config api.ServiceAccountConfig, builtInKubernetes bool) ValidationResults {
+func ValidateServiceAccountConfig(config api.ServiceAccountConfig, builtInKubernetes bool, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
 	managedNames := sets.NewString(config.ManagedNames...)
+	managedNamesPath := fldPath.Child("managedNames")
 	if !managedNames.Has(bootstrappolicy.BuilderServiceAccountName) {
-		validationResults.AddWarnings(fielderrors.NewFieldInvalid("managedNames", "", fmt.Sprintf("missing %q, which will require manual creation in each namespace before builds can run", bootstrappolicy.BuilderServiceAccountName)))
+		validationResults.AddWarnings(field.Invalid(managedNamesPath, "", fmt.Sprintf("missing %q, which will require manual creation in each namespace before builds can run", bootstrappolicy.BuilderServiceAccountName)))
 	}
 	if !managedNames.Has(bootstrappolicy.DeployerServiceAccountName) {
-		validationResults.AddWarnings(fielderrors.NewFieldInvalid("managedNames", "", fmt.Sprintf("missing %q, which will require manual creation in each namespace before deployments can run", bootstrappolicy.DeployerServiceAccountName)))
+		validationResults.AddWarnings(field.Invalid(managedNamesPath, "", fmt.Sprintf("missing %q, which will require manual creation in each namespace before deployments can run", bootstrappolicy.DeployerServiceAccountName)))
 	}
 	if builtInKubernetes && !managedNames.Has(bootstrappolicy.DefaultServiceAccountName) {
-		validationResults.AddWarnings(fielderrors.NewFieldInvalid("managedNames", "", fmt.Sprintf("missing %q, which will prevent creation of pods that do not specify a valid service account", bootstrappolicy.DefaultServiceAccountName)))
+		validationResults.AddWarnings(field.Invalid(managedNamesPath, "", fmt.Sprintf("missing %q, which will prevent creation of pods that do not specify a valid service account", bootstrappolicy.DefaultServiceAccountName)))
 	}
 
 	for i, name := range config.ManagedNames {
 		if ok, msg := kvalidation.ValidateServiceAccountName(name, false); !ok {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid(fmt.Sprintf("managedNames[%d]", i), name, msg))
+			validationResults.AddErrors(field.Invalid(managedNamesPath.Index(i), name, msg))
 		}
 	}
 
 	if len(config.PrivateKeyFile) > 0 {
-		if fileErrs := ValidateFile(config.PrivateKeyFile, "privateKeyFile"); len(fileErrs) > 0 {
+		privateKeyFilePath := fldPath.Child("privateKeyFile")
+		if fileErrs := ValidateFile(config.PrivateKeyFile, privateKeyFilePath); len(fileErrs) > 0 {
 			validationResults.AddErrors(fileErrs...)
 		} else if privateKey, err := serviceaccount.ReadPrivateKey(config.PrivateKeyFile); err != nil {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("privateKeyFile", config.PrivateKeyFile, err.Error()))
+			validationResults.AddErrors(field.Invalid(privateKeyFilePath, config.PrivateKeyFile, err.Error()))
 		} else if err := privateKey.Validate(); err != nil {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("privateKeyFile", config.PrivateKeyFile, err.Error()))
+			validationResults.AddErrors(field.Invalid(privateKeyFilePath, config.PrivateKeyFile, err.Error()))
 		}
 	} else if builtInKubernetes {
-		validationResults.AddWarnings(fielderrors.NewFieldInvalid("privateKeyFile", "", "no service account tokens will be generated, which could prevent builds and deployments from working"))
+		validationResults.AddWarnings(field.Invalid(fldPath.Child("privateKeyFile"), "", "no service account tokens will be generated, which could prevent builds and deployments from working"))
 	}
 
 	if len(config.PublicKeyFiles) == 0 {
-		validationResults.AddWarnings(fielderrors.NewFieldInvalid("publicKeyFiles", "", "no service account tokens will be accepted by the API, which will prevent builds and deployments from working"))
+		validationResults.AddWarnings(field.Invalid(fldPath.Child("publicKeyFiles"), "", "no service account tokens will be accepted by the API, which will prevent builds and deployments from working"))
 	}
 	for i, publicKeyFile := range config.PublicKeyFiles {
-		if fileErrs := ValidateFile(publicKeyFile, fmt.Sprintf("publicKeyFiles[%d]", i)); len(fileErrs) > 0 {
+		idxPath := fldPath.Child("publicKeyFiles").Index(i)
+		if fileErrs := ValidateFile(publicKeyFile, idxPath); len(fileErrs) > 0 {
 			validationResults.AddErrors(fileErrs...)
 		} else if _, err := serviceaccount.ReadPublicKey(publicKeyFile); err != nil {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid(fmt.Sprintf("publicKeyFiles[%d]", i), publicKeyFile, err.Error()))
+			validationResults.AddErrors(field.Invalid(idxPath, publicKeyFile, err.Error()))
 		}
 	}
 
 	if len(config.MasterCA) > 0 {
-		validationResults.AddErrors(ValidateFile(config.MasterCA, "masterCA")...)
+		validationResults.AddErrors(ValidateFile(config.MasterCA, fldPath.Child("masterCA"))...)
 	} else if builtInKubernetes {
-		validationResults.AddWarnings(fielderrors.NewFieldInvalid("masterCA", "", "master CA information will not be automatically injected into pods, which will prevent verification of the API server from inside a pod"))
+		validationResults.AddWarnings(field.Invalid(fldPath.Child("masterCA"), "", "master CA information will not be automatically injected into pods, which will prevent verification of the API server from inside a pod"))
 	}
 
 	return validationResults
 }
 
-func ValidateAssetConfig(config *api.AssetConfig) ValidationResults {
+func ValidateAssetConfig(config *api.AssetConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
-	validationResults.Append(ValidateHTTPServingInfo(config.ServingInfo).Prefix("servingInfo"))
+	validationResults.Append(ValidateHTTPServingInfo(config.ServingInfo, fldPath.Child("servingInfo")))
 
 	if len(config.LogoutURL) > 0 {
-		_, urlErrs := ValidateURL(config.LogoutURL, "logoutURL")
+		_, urlErrs := ValidateURL(config.LogoutURL, fldPath.Child("logoutURL"))
 		if len(urlErrs) > 0 {
 			validationResults.AddErrors(urlErrs...)
 		}
 	}
 
-	urlObj, urlErrs := ValidateURL(config.PublicURL, "publicURL")
+	urlObj, urlErrs := ValidateURL(config.PublicURL, fldPath.Child("publicURL"))
 	if len(urlErrs) > 0 {
 		validationResults.AddErrors(urlErrs...)
 	}
 	if urlObj != nil {
 		if !strings.HasSuffix(urlObj.Path, "/") {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("publicURL", config.PublicURL, "must have a trailing slash in path"))
+			validationResults.AddErrors(field.Invalid(fldPath.Child("publicURL"), config.PublicURL, "must have a trailing slash in path"))
 		}
 	}
 
-	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {
+	if _, urlErrs := ValidateURL(config.MasterPublicURL, fldPath.Child("masterPublicURL")); len(urlErrs) > 0 {
 		validationResults.AddErrors(urlErrs...)
 	}
 
 	if len(config.LoggingPublicURL) > 0 {
-		if _, loggingURLErrs := ValidateSecureURL(config.LoggingPublicURL, "loggingPublicURL"); len(loggingURLErrs) > 0 {
+		if _, loggingURLErrs := ValidateSecureURL(config.LoggingPublicURL, fldPath.Child("loggingPublicURL")); len(loggingURLErrs) > 0 {
 			validationResults.AddErrors(loggingURLErrs...)
 		}
 	} else {
-		validationResults.AddWarnings(fielderrors.NewFieldInvalid("loggingPublicURL", "", "required to view aggregated container logs in the console"))
+		validationResults.AddWarnings(field.Invalid(fldPath.Child("loggingPublicURL"), "", "required to view aggregated container logs in the console"))
 	}
 
 	if len(config.MetricsPublicURL) > 0 {
-		if _, metricsURLErrs := ValidateSecureURL(config.MetricsPublicURL, "metricsPublicURL"); len(metricsURLErrs) > 0 {
+		if _, metricsURLErrs := ValidateSecureURL(config.MetricsPublicURL, fldPath.Child("metricsPublicURL")); len(metricsURLErrs) > 0 {
 			validationResults.AddErrors(metricsURLErrs...)
 		}
 	} else {
-		validationResults.AddWarnings(fielderrors.NewFieldInvalid("metricsPublicURL", "", "required to view cluster metrics in the console"))
+		validationResults.AddWarnings(field.Invalid(fldPath.Child("metricsPublicURL"), "", "required to view cluster metrics in the console"))
 	}
 
 	for i, scriptFile := range config.ExtensionScripts {
-		validationResults.AddErrors(ValidateFile(scriptFile, fmt.Sprintf("extensionScripts[%d]", i))...)
+		validationResults.AddErrors(ValidateFile(scriptFile, fldPath.Child("extensionScripts").Index(i))...)
 	}
 
 	for i, stylesheetFile := range config.ExtensionStylesheets {
-		validationResults.AddErrors(ValidateFile(stylesheetFile, fmt.Sprintf("extensionStylesheets[%d]", i))...)
+		validationResults.AddErrors(ValidateFile(stylesheetFile, fldPath.Child("extensionStylesheets").Index(i))...)
 	}
 
 	nameTaken := map[string]bool{}
 	for i, extConfig := range config.Extensions {
-		extConfigErrors := ValidateAssetExtensionsConfig(extConfig).Prefix(fmt.Sprintf("extensions[%d]", i))
+		idxPath := fldPath.Child("extensions").Index(i)
+		extConfigErrors := ValidateAssetExtensionsConfig(extConfig, idxPath)
 		validationResults.AddErrors(extConfigErrors...)
 		if nameTaken[extConfig.Name] {
-			dupError := fielderrors.NewFieldInvalid(fmt.Sprintf("extensions[%d].name", i), extConfig.Name, "duplicate extension name")
+			dupError := field.Invalid(idxPath.Child("name"), extConfig.Name, "duplicate extension name")
 			validationResults.AddErrors(dupError)
 		} else {
 			nameTaken[extConfig.Name] = true
@@ -358,94 +359,94 @@ func ValidateAssetConfig(config *api.AssetConfig) ValidationResults {
 
 var extNameExp = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
 
-func ValidateAssetExtensionsConfig(extConfig api.AssetExtensionsConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateAssetExtensionsConfig(extConfig api.AssetExtensionsConfig, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, ValidateDir(extConfig.SourceDirectory, "sourceDirectory")...)
+	allErrs = append(allErrs, ValidateDir(extConfig.SourceDirectory, fldPath.Child("sourceDirectory"))...)
 
 	if len(extConfig.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("name")))
 	} else if !extNameExp.MatchString(extConfig.Name) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", extConfig.Name, fmt.Sprintf("does not match %v", extNameExp)))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), extConfig.Name, fmt.Sprintf("does not match %v", extNameExp)))
 	}
 
 	return allErrs
 }
 
-func ValidateImageConfig(config api.ImageConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateImageConfig(config api.ImageConfig, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 
 	if len(config.Format) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("format"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("format")))
 	}
 
 	return allErrs
 }
 
-func ValidateKubeletConnectionInfo(config api.KubeletConnectionInfo) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateKubeletConnectionInfo(config api.KubeletConnectionInfo, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 	if config.Port == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("port"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("port")))
 	}
 
 	if len(config.CA) > 0 {
-		allErrs = append(allErrs, ValidateFile(config.CA, "ca")...)
+		allErrs = append(allErrs, ValidateFile(config.CA, fldPath.Child("ca"))...)
 	}
-	allErrs = append(allErrs, ValidateCertInfo(config.ClientCert, false)...)
+	allErrs = append(allErrs, ValidateCertInfo(config.ClientCert, false, fldPath)...)
 
 	return allErrs
 }
 
-func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) ValidationResults {
+func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
 	if len(config.MasterIP) > 0 {
-		validationResults.AddErrors(ValidateSpecifiedIP(config.MasterIP, "masterIP")...)
+		validationResults.AddErrors(ValidateSpecifiedIP(config.MasterIP, fldPath.Child("masterIP"))...)
 	}
 
 	if config.MasterCount == 0 || config.MasterCount < -1 {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid("masterCount", config.MasterCount, "must be a positive integer or -1"))
+		validationResults.AddErrors(field.Invalid(fldPath.Child("masterCount"), config.MasterCount, "must be a positive integer or -1"))
 	}
 
-	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false).Prefix("proxyClientInfo")...)
+	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false, fldPath.Child("proxyClientInfo"))...)
 	if len(config.ProxyClientInfo.CertFile) == 0 && len(config.ProxyClientInfo.KeyFile) == 0 {
-		validationResults.AddWarnings(fielderrors.NewFieldInvalid("proxyClientInfo", "", "if no client certificate is specified, TLS pods and services cannot validate requests came from the proxy"))
+		validationResults.AddWarnings(field.Invalid(fldPath.Child("proxyClientInfo"), "", "if no client certificate is specified, TLS pods and services cannot validate requests came from the proxy"))
 	}
 
 	if len(config.ServicesSubnet) > 0 {
 		if _, _, err := net.ParseCIDR(strings.TrimSpace(config.ServicesSubnet)); err != nil {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("servicesSubnet", config.ServicesSubnet, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))
+			validationResults.AddErrors(field.Invalid(fldPath.Child("servicesSubnet"), config.ServicesSubnet, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))
 		}
 	}
 
 	if len(config.ServicesNodePortRange) > 0 {
 		if _, err := util.ParsePortRange(strings.TrimSpace(config.ServicesNodePortRange)); err != nil {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("servicesNodePortRange", config.ServicesNodePortRange, "must be a valid port range (e.g. 30000-32000)"))
+			validationResults.AddErrors(field.Invalid(fldPath.Child("servicesNodePortRange"), config.ServicesNodePortRange, "must be a valid port range (e.g. 30000-32000)"))
 		}
 	}
 
 	if len(config.SchedulerConfigFile) > 0 {
-		validationResults.AddErrors(ValidateFile(config.SchedulerConfigFile, "schedulerConfigFile")...)
+		validationResults.AddErrors(ValidateFile(config.SchedulerConfigFile, fldPath.Child("schedulerConfigFile"))...)
 	}
 
 	for i, nodeName := range config.StaticNodeNames {
 		if len(nodeName) == 0 {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid(fmt.Sprintf("staticNodeName[%d]", i), nodeName, "may not be empty"))
+			validationResults.AddErrors(field.Invalid(fldPath.Child("staticNodeName").Index(i), nodeName, "may not be empty"))
 		} else {
-			validationResults.AddWarnings(fielderrors.NewFieldInvalid(fmt.Sprintf("staticNodeName[%d]", i), nodeName, "static nodes are not supported"))
+			validationResults.AddWarnings(field.Invalid(fldPath.Child("staticNodeName").Index(i), nodeName, "static nodes are not supported"))
 		}
 	}
 
 	if len(config.PodEvictionTimeout) > 0 {
 		if _, err := time.ParseDuration(config.PodEvictionTimeout); err != nil {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("podEvictionTimeout", config.PodEvictionTimeout, "must be a valid time duration string (e.g. '300ms' or '2m30s'). Valid time units are 'ns', 'us', 'ms', 's', 'm', 'h'"))
+			validationResults.AddErrors(field.Invalid(fldPath.Child("podEvictionTimeout"), config.PodEvictionTimeout, "must be a valid time duration string (e.g. '300ms' or '2m30s'). Valid time units are 'ns', 'us', 'ms', 's', 'm', 'h'"))
 		}
 	}
 
 	for group, versions := range config.DisabledAPIGroupVersions {
-		name := "disabledAPIGroupVersions[" + group + "]"
+		keyPath := fldPath.Child("disabledAPIGroupVersions").Key(group)
 		if !api.KnownKubeAPIGroups.Has(group) {
-			validationResults.AddWarnings(fielderrors.NewFieldValueNotSupported(name, group, api.KnownKubeAPIGroups.List()))
+			validationResults.AddWarnings(field.NotSupported(keyPath, group, api.KnownKubeAPIGroups.List()))
 			continue
 		}
 
@@ -456,92 +457,93 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) Validati
 			}
 
 			if !allowedVersions.Has(version) {
-				validationResults.AddWarnings(fielderrors.NewFieldValueNotSupported(fmt.Sprintf("%s[%d]", name, i), version, allowedVersions.List()))
+				validationResults.AddWarnings(field.NotSupported(keyPath.Index(i), version, allowedVersions.List()))
 			}
 		}
 	}
 
 	if config.AdmissionConfig.PluginConfig != nil {
-		validationResults.AddErrors(ValidateAdmissionPluginConfig(config.AdmissionConfig.PluginConfig).Prefix("admissionConfig.pluginConfig")...)
+		validationResults.AddErrors(ValidateAdmissionPluginConfig(config.AdmissionConfig.PluginConfig, fldPath.Child("admissionConfig", "pluginConfig"))...)
 	}
 
-	validationResults.AddErrors(ValidateAPIServerExtendedArguments(config.APIServerArguments).Prefix("apiServerArguments")...)
-	validationResults.AddErrors(ValidateControllerExtendedArguments(config.ControllerArguments).Prefix("controllerArguments")...)
+	validationResults.AddErrors(ValidateAPIServerExtendedArguments(config.APIServerArguments, fldPath.Child("apiServerArguments"))...)
+	validationResults.AddErrors(ValidateControllerExtendedArguments(config.ControllerArguments, fldPath.Child("controllerArguments"))...)
 
 	return validationResults
 }
 
-func ValidatePolicyConfig(config api.PolicyConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidatePolicyConfig(config api.PolicyConfig, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, ValidateFile(config.BootstrapPolicyFile, "bootstrapPolicyFile")...)
-	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftSharedResourcesNamespace, "openShiftSharedResourcesNamespace")...)
-	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftInfrastructureNamespace, "openShiftInfrastructureNamespace")...)
+	allErrs = append(allErrs, ValidateFile(config.BootstrapPolicyFile, fldPath.Child("bootstrapPolicyFile"))...)
+	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftSharedResourcesNamespace, fldPath.Child("openShiftSharedResourcesNamespace"))...)
+	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftInfrastructureNamespace, fldPath.Child("openShiftInfrastructureNamespace"))...)
 
 	return allErrs
 }
 
-func ValidateProjectConfig(config api.ProjectConfig) ValidationResults {
+func ValidateProjectConfig(config api.ProjectConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
 	if _, _, err := api.ParseNamespaceAndName(config.ProjectRequestTemplate); err != nil {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid("projectRequestTemplate", config.ProjectRequestTemplate, "must be in the form: namespace/templateName"))
+		validationResults.AddErrors(field.Invalid(fldPath.Child("projectRequestTemplate"), config.ProjectRequestTemplate, "must be in the form: namespace/templateName"))
 	}
 
 	if len(config.DefaultNodeSelector) > 0 {
 		_, err := labelselector.Parse(config.DefaultNodeSelector)
 		if err != nil {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("defaultNodeSelector", config.DefaultNodeSelector, "must be a valid label selector"))
+			validationResults.AddErrors(field.Invalid(fldPath.Child("defaultNodeSelector"), config.DefaultNodeSelector, "must be a valid label selector"))
 		}
 	}
 
 	if alloc := config.SecurityAllocator; alloc != nil {
+		securityAllocatorPath := fldPath.Child("securityAllocator")
 		if _, err := uid.ParseRange(alloc.UIDAllocatorRange); err != nil {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("securityAllocator.uidAllocatorRange", alloc.UIDAllocatorRange, err.Error()))
+			validationResults.AddErrors(field.Invalid(securityAllocatorPath.Child("uidAllocatorRange"), alloc.UIDAllocatorRange, err.Error()))
 		}
 		if _, err := mcs.ParseRange(alloc.MCSAllocatorRange); err != nil {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("securityAllocator.mcsAllocatorRange", alloc.MCSAllocatorRange, err.Error()))
+			validationResults.AddErrors(field.Invalid(securityAllocatorPath.Child("mcsAllocatorRange"), alloc.MCSAllocatorRange, err.Error()))
 		}
 		if alloc.MCSLabelsPerProject <= 0 {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("securityAllocator.mcsLabelsPerProject", alloc.MCSLabelsPerProject, "must be a positive integer"))
+			validationResults.AddErrors(field.Invalid(securityAllocatorPath.Child("mcsLabelsPerProject"), alloc.MCSLabelsPerProject, "must be a positive integer"))
 		}
 
 	} else {
-		validationResults.AddWarnings(fielderrors.NewFieldInvalid("securityAllocator", "null", "allocation of UIDs and MCS labels to a project must be done manually"))
+		validationResults.AddWarnings(field.Invalid(fldPath.Child("securityAllocator"), "null", "allocation of UIDs and MCS labels to a project must be done manually"))
 
 	}
 
 	return validationResults
 }
 
-func ValidateRoutingConfig(config api.RoutingConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateRoutingConfig(config api.RoutingConfig, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 
 	if len(config.Subdomain) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("subdomain"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("subdomain")))
 	} else if !kuval.IsDNS1123Subdomain(config.Subdomain) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("subdomain", config.Subdomain, "must be a valid subdomain"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("subdomain"), config.Subdomain, "must be a valid subdomain"))
 	}
 
 	return allErrs
 }
 
-func ValidateAPIServerExtendedArguments(config api.ExtendedArguments) fielderrors.ValidationErrorList {
-	return ValidateExtendedArguments(config, kapp.NewAPIServer().AddFlags)
+func ValidateAPIServerExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) field.ErrorList {
+	return ValidateExtendedArguments(config, kapp.NewAPIServer().AddFlags, fldPath)
 }
 
-func ValidateControllerExtendedArguments(config api.ExtendedArguments) fielderrors.ValidationErrorList {
-	return ValidateExtendedArguments(config, cmapp.NewCMServer().AddFlags)
+func ValidateControllerExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) field.ErrorList {
+	return ValidateExtendedArguments(config, cmapp.NewCMServer().AddFlags, fldPath)
 }
 
-func ValidateAdmissionPluginConfig(pluginConfig map[string]api.AdmissionPluginConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateAdmissionPluginConfig(pluginConfig map[string]api.AdmissionPluginConfig, fieldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 	for name, config := range pluginConfig {
 		if len(config.Location) > 0 && config.Configuration.Object != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(name, "", "cannot specify both location and embedded config"))
+			allErrs = append(allErrs, field.Invalid(fieldPath.Key(name), "", "cannot specify both location and embedded config"))
 		}
 		if len(config.Location) == 0 && config.Configuration.Object == nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(name, "", "must specify either a location or an embedded config"))
+			allErrs = append(allErrs, field.Invalid(fieldPath.Key(name), "", "must specify either a location or an embedded config"))
 		}
 	}
 	return allErrs

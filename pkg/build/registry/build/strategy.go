@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/validation"
@@ -75,12 +75,12 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new policy.
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateBuild(obj.(*api.Build))
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateBuildUpdate(obj.(*api.Build), old.(*api.Build))
 }
 
@@ -119,16 +119,16 @@ func (detailsStrategy) PrepareForUpdate(obj, old runtime.Object) {
 }
 
 // Validates that an update is valid by ensuring that no Revision exists and that it's not getting updated to blank
-func (detailsStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (detailsStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	newBuild := obj.(*api.Build)
 	oldBuild := old.(*api.Build)
-	errors := fielderrors.ValidationErrorList{}
+	errors := field.ErrorList{}
 	if oldBuild.Spec.Revision != nil {
 		// If there was already a revision, then return an error
-		errors = append(errors, fielderrors.NewFieldDuplicate("status.Revision", oldBuild.Spec.Revision))
+		errors = append(errors, field.Duplicate(field.NewPath("status", "revision"), oldBuild.Spec.Revision))
 	}
 	if newBuild.Spec.Revision == nil {
-		errors = append(errors, fielderrors.NewFieldInvalid("status.Revision", nil, "cannot set an empty revision in build status"))
+		errors = append(errors, field.Invalid(field.NewPath("status", "revision"), nil, "cannot set an empty revision in build status"))
 	}
 	return errors
 }
