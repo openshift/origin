@@ -10,8 +10,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	"github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -57,7 +59,7 @@ func TestPrinterCoverage(t *testing.T) {
 	printer := NewHumanReadablePrinter(false, false, false, false, false, []string{})
 
 main:
-	for _, apiType := range kapi.Scheme.KnownTypes("") {
+	for _, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
 		if !strings.Contains(apiType.PkgPath(), "openshift/origin") {
 			continue
 		}
@@ -88,11 +90,10 @@ func TestPrintImageStream(t *testing.T) {
 	streams := mockStreams()
 
 	tests := []struct {
-		name          string
-		stream        *imageapi.ImageStream
-		withNamespace bool
-		expectedOut   string
-		expectedErr   error
+		name        string
+		stream      *imageapi.ImageStream
+		expectedOut string
+		expectedErr error
 	}{
 		{
 			name:        "less than three tags",

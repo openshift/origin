@@ -100,7 +100,7 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 		policyTemplate.Objects = append(policyTemplate.Objects, &openshiftRoleBindings[i])
 	}
 
-	versionedPolicyTemplate, err := kapi.Scheme.ConvertToVersion(policyTemplate, latest.Version)
+	versionedPolicyTemplate, err := kapi.Scheme.ConvertToVersion(policyTemplate, latest.Version.String())
 	if err != nil {
 		return err
 	}

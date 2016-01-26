@@ -109,7 +109,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 	}
 
 	version := cmdutil.GetFlagInt64(cmd, "version")
-	_, resource := meta.KindToResource(infos[0].Mapping.Kind, false)
+	_, resource := meta.KindToResource(infos[0].Mapping.GroupVersionKind.Kind, false)
 
 	// TODO: podLogOptions should be included in our own logOptions objects.
 	switch resource {

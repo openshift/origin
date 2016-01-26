@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	pkg_runtime "k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -21,6 +22,7 @@ import (
 
 var (
 	functionDest = flag.StringP("funcDest", "f", "-", "Output for conversion functions; '-' means stdout")
+	group        = flag.StringP("group", "g", "", "Group for conversion.")
 	version      = flag.StringP("version", "v", "v1beta3", "Version for conversion.")
 )
 
@@ -46,11 +48,12 @@ func main() {
 	generator.AssumePrivateConversions()
 	// TODO(wojtek-t): Change the overwrites to a flag.
 	generator.OverwritePackage(*version, "")
-	for _, knownType := range api.Scheme.KnownTypes(*version) {
+	gv := unversioned.GroupVersion{Group: *group, Version: *version}
+	for _, knownType := range api.Scheme.KnownTypes(gv) {
 		if !strings.Contains(knownType.PkgPath(), "openshift/origin") {
 			continue
 		}
-		if err := generator.GenerateConversionsForType(*version, knownType); err != nil {
+		if err := generator.GenerateConversionsForType(gv, knownType); err != nil {
 			glog.Errorf("error while generating conversion functions for %v: %v", knownType, err)
 		}
 	}

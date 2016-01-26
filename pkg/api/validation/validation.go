@@ -118,12 +118,12 @@ func (v *RuntimeObjectsValidator) getSpecificValidationInfo(obj runtime.Object) 
 }
 
 func GetRequiresNamespace(obj runtime.Object) (bool, error) {
-	version, kind, err := kapi.Scheme.ObjectVersionAndKind(obj)
+	groupVersionKind, err := kapi.Scheme.ObjectKind(obj)
 	if err != nil {
 		return false, err
 	}
 
-	restMapping, err := latest.RESTMapper.RESTMapping(kind, version)
+	restMapping, err := latest.RESTMapper.RESTMapping(groupVersionKind.GroupKind())
 	if err != nil {
 		return false, err
 	}

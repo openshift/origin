@@ -10,6 +10,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
@@ -188,7 +189,8 @@ func (c *MasterConfig) RunBuildController() {
 	stiImage := c.ImageFor("sti-builder")
 
 	storageVersion := c.Options.EtcdStorageConfig.OpenShiftStorageVersion
-	interfaces, err := latest.InterfacesFor(storageVersion)
+	groupVersion := unversioned.GroupVersion{Group: "", Version: storageVersion}
+	interfaces, err := latest.InterfacesFor(groupVersion)
 	if err != nil {
 		glog.Fatalf("Unable to load storage version %s: %v", storageVersion, err)
 	}

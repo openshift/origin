@@ -104,9 +104,9 @@ func parseStreamName(defaultNamespace, name string) (string, string, error) {
 
 func determineSourceKind(f *clientcmd.Factory, input string) string {
 	mapper, _ := f.Object()
-	_, kind, err := mapper.VersionAndKindForResource(input)
+	gvk, err := mapper.KindFor(input)
 	if err == nil {
-		return kind
+		return gvk.Kind
 	}
 
 	// DockerImage isn't in RESTMapper

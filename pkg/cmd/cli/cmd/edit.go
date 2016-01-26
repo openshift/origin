@@ -37,7 +37,7 @@ type EditOptions struct {
 
 	ext       string
 	filenames []string
-	version   string
+	version   unversioned.GroupVersion
 	fullName  string
 }
 
@@ -145,8 +145,8 @@ func (o *EditOptions) Complete(fullName string, f *clientcmd.Factory, out io.Wri
 		return err
 	}
 
-	o.version = cmdutil.OutputVersion(cmd, clientConfig.Version)
-	return nil
+	o.version, err = cmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
+	return err
 }
 
 // RunEdit contains all the necessary functionality for the OpenShift cli edit command.
@@ -158,7 +158,7 @@ func (o *EditOptions) RunEdit() error {
 		return err
 	}
 	for {
-		obj, err := resource.AsVersionedObject(infos, false, o.version)
+		obj, err := resource.AsVersionedObject(infos, false, o.version.String())
 		if err != nil {
 			return preservedFile(err, results.file, o.out)
 		}
@@ -332,7 +332,7 @@ type editResults struct {
 	file      string
 
 	delta   *jsonmerge.Delta
-	version string
+	version unversioned.GroupVersion
 }
 
 func (r *editResults) AddError(err error, info *resource.Info) string {
@@ -340,7 +340,7 @@ func (r *editResults) AddError(err error, info *resource.Info) string {
 	case errors.IsInvalid(err):
 		r.edit = append(r.edit, info)
 		reason := editReason{
-			head: fmt.Sprintf("%s %s was not valid", info.Mapping.Kind, info.Name),
+			head: fmt.Sprintf("%s %s was not valid", info.Mapping.GroupVersionKind.Kind, info.Name),
 		}
 		if err, ok := err.(errors.APIStatus); ok {
 			if details := err.Status().Details; details != nil {
@@ -350,15 +350,15 @@ func (r *editResults) AddError(err error, info *resource.Info) string {
 			}
 		}
 		r.header.reasons = append(r.header.reasons, reason)
-		return fmt.Sprintf("Error: the %s %s is invalid", info.Mapping.Kind, info.Name)
+		return fmt.Sprintf("Error: the %s %s is invalid", info.Mapping.GroupVersionKind.Kind, info.Name)
 	case errors.IsNotFound(err):
 		r.notfound++
-		return fmt.Sprintf("Error: the %s %s has been deleted on the server", info.Mapping.Kind, info.Name)
+		return fmt.Sprintf("Error: the %s %s has been deleted on the server", info.Mapping.GroupVersionKind.Kind, info.Name)
 
 	case errors.IsConflict(err):
 		if r.delta != nil {
 			v1 := info.ResourceVersion
-			if perr := applyPatch(r.delta, info, r.version); perr != nil {
+			if perr := applyPatch(r.delta, info, r.version.String()); perr != nil {
 				// the error was related to the patching process
 				if nerr, ok := perr.(patchError); ok {
 					r.conflict++
@@ -368,7 +368,7 @@ func (r *editResults) AddError(err error, info *resource.Info) string {
 					// the patch is in conflict, report to user and exit
 					if jsonmerge.IsConflicting(nerr.error) {
 						// TODO: read message
-						return fmt.Sprintf("Error: a conflicting change was made to the %s %s on the server", info.Mapping.Kind, info.Name)
+						return fmt.Sprintf("Error: a conflicting change was made to the %s %s on the server", info.Mapping.GroupVersionKind.Kind, info.Name)
 					}
 					glog.V(4).Infof("Attempted to patch the resource, but failed: %v", perr)
 					return fmt.Sprintf("Error: %v", err)
@@ -384,7 +384,7 @@ func (r *editResults) AddError(err error, info *resource.Info) string {
 		return fmt.Sprintf("Error: %v", err)
 	default:
 		r.retryable++
-		return fmt.Sprintf("Error: the %s %s could not be updated: %v", info.Mapping.Kind, info.Name, err)
+		return fmt.Sprintf("Error: the %s %s could not be updated: %v", info.Mapping.GroupVersionKind.Kind, info.Name, err)
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/intstr"
 	kuval "k8s.io/kubernetes/pkg/util/validation"
 
+	build "github.com/openshift/origin/pkg/build/api"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
 	route "github.com/openshift/origin/pkg/route/api"
@@ -428,11 +429,11 @@ func (a *acceptUnique) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	_, kind, err := a.typer.ObjectVersionAndKind(obj)
+	gvk, err := a.typer.ObjectKind(obj)
 	if err != nil {
 		return false
 	}
-	key := fmt.Sprintf("%s/%s/%s", kind, meta.Namespace, meta.Name)
+	key := fmt.Sprintf("%s/%s/%s", gvk.Kind, meta.Namespace, meta.Name)
 	_, exists := a.objects[key]
 	if exists {
 		return false
@@ -472,11 +473,11 @@ func (a *acceptBuildConfigs) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	_, kind, err := a.typer.ObjectVersionAndKind(obj)
+	gvk, err := a.typer.ObjectKind(obj)
 	if err != nil {
 		return false
 	}
-	return kind == "BuildConfig" || kind == "ImageStream"
+	return gvk.GroupKind() == build.Kind("BuildConfig") || gvk.GroupKind() == image.Kind("ImageStream")
 }
 
 // NewAcceptBuildConfigs creates an acceptor accepting BuildConfig objects

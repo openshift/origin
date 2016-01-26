@@ -11,6 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -155,23 +156,23 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 }
 
 func (n *NodeOptions) GetPrintersByObject(obj runtime.Object) (kubectl.ResourcePrinter, kubectl.ResourcePrinter, error) {
-	version, kind, err := kapi.Scheme.ObjectVersionAndKind(obj)
+	gvk, err := kapi.Scheme.ObjectKind(obj)
 	if err != nil {
 		return nil, nil, err
 	}
-	return n.GetPrinters(kind, version)
+	return n.GetPrinters(gvk)
 }
 
 func (n *NodeOptions) GetPrintersByResource(resource string) (kubectl.ResourcePrinter, kubectl.ResourcePrinter, error) {
-	version, kind, err := n.Mapper.VersionAndKindForResource(resource)
+	gvk, err := n.Mapper.KindFor(resource)
 	if err != nil {
 		return nil, nil, err
 	}
-	return n.GetPrinters(kind, version)
+	return n.GetPrinters(gvk)
 }
 
-func (n *NodeOptions) GetPrinters(kind, version string) (kubectl.ResourcePrinter, kubectl.ResourcePrinter, error) {
-	mapping, err := n.Mapper.RESTMapping(kind, version)
+func (n *NodeOptions) GetPrinters(gvk unversioned.GroupVersionKind) (kubectl.ResourcePrinter, kubectl.ResourcePrinter, error) {
+	mapping, err := n.Mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 	if err != nil {
 		return nil, nil, err
 	}

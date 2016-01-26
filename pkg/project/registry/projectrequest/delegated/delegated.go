@@ -129,7 +129,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		Mapper: latest.RESTMapper,
 		Typer:  kapi.Scheme,
 		RESTClientFactory: func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-			if latest.OriginKind(mapping.Kind, mapping.APIVersion) {
+			if latest.OriginKind(mapping.GroupVersionKind) {
 				return r.openshiftClient, nil
 			}
 			return r.kubeClient, nil

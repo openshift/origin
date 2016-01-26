@@ -4,8 +4,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
-
-	"github.com/openshift/origin/pkg/api/latest"
 )
 
 // A new entry shall be added to FeatureAliases for every change to following values.
@@ -29,10 +27,10 @@ var (
 	KnownKubernetesStorageVersionLevels = []string{"v1", "v1beta3"}
 	// KnownOpenShiftStorageVersionLevels are storage versions that can be dealt
 	// with internally
-	KnownOpenShiftStorageVersionLevels = latest.Versions
+	KnownOpenShiftStorageVersionLevels = []string{"v1", "v1beta3"}
 	// DefaultOpenShiftStorageVersionLevel is the default storage version for
 	// resources.
-	DefaultOpenShiftStorageVersionLevel = latest.Versions[0]
+	DefaultOpenShiftStorageVersionLevel = "v1"
 	// DeadKubernetesStorageVersionLevels are storage versions which shouldn't
 	// be exposed externally.
 	DeadKubernetesStorageVersionLevels = []string{"v1beta3"}

@@ -38,7 +38,7 @@ type LoginOptions struct {
 	Server      string
 	CAFile      string
 	InsecureTLS bool
-	APIVersion  string
+	APIVersion  unversioned.GroupVersion
 
 	// flags and printing helpers
 	Username string
@@ -166,8 +166,8 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 	}
 
 	// check for matching api version
-	if len(o.APIVersion) > 0 {
-		clientConfig.Version = o.APIVersion
+	if !o.APIVersion.IsEmpty() {
+		clientConfig.GroupVersion = &o.APIVersion
 	}
 
 	o.Config = clientConfig

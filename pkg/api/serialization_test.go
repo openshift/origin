@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/google/gofuzz"
-	"k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -147,7 +147,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			c.FuzzNoCustom(j)
 			if j.To == nil {
 				// To is defaulted to be not nil
-				j.To = &api.LocalObjectReference{}
+				j.To = &kapi.LocalObjectReference{}
 			}
 		},
 		func(j *image.ImageStreamImage, c fuzz.Continue) {
@@ -221,7 +221,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *route.RouteSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.To = api.ObjectReference{
+			j.To = kapi.ObjectReference{
 				Kind: "Service",
 				Name: j.To.Name,
 			}
@@ -299,7 +299,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			j.From.Kind = "DockerImage"
 			j.From.Name = specs[c.Intn(len(specs))]
 		},
-		func(j *api.PodSecurityContext, c fuzz.Continue) {
+		func(j *kapi.PodSecurityContext, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			if forVersion == "v1beta3" {
 				// v1beta3 does not contain the PodSecurityContext type.  For this API version, only fuzz
@@ -312,7 +312,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.FSGroup = nil
 			}
 		},
-		func(j *api.GitRepoVolumeSource, c fuzz.Continue) {
+		func(j *kapi.GitRepoVolumeSource, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			if forVersion == "v1beta3" {
 				// these fields are set to their empty state when testing v1beta3
@@ -320,7 +320,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.Directory = ""
 			}
 		},
-		func(j *api.ISCSIVolumeSource, c fuzz.Continue) {
+		func(j *kapi.ISCSIVolumeSource, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			if forVersion == "v1beta3" {
 				// these fields are set to their empty state when testing v1beta3
@@ -331,7 +331,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.ISCSIInterface = "default"
 			}
 		},
-		func(j *api.Event, c fuzz.Continue) {
+		func(j *kapi.Event, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			if forVersion == "v1beta3" {
 				// these fields are set to their empty state when testing v1beta3
@@ -339,7 +339,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.Type = ""
 			}
 		},
-		func(j *api.Probe, c fuzz.Continue) {
+		func(j *kapi.Probe, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			if forVersion == "v1beta3" {
 				// these fields are set to their empty state when testing v1beta3
@@ -381,7 +381,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	// Make a copy of the originalItem to give to conversion functions
 	// This lets us know if conversion messed with the input object
-	deepCopy, err := api.Scheme.DeepCopy(originalItem)
+	deepCopy, err := kapi.Scheme.DeepCopy(originalItem)
 	if err != nil {
 		t.Errorf("Could not copy object: %v", err)
 		return
@@ -406,13 +406,13 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	}
 	if reflect.TypeOf(item) != reflect.TypeOf(obj2) {
 		obj2conv := reflect.New(reflect.TypeOf(item).Elem()).Interface().(runtime.Object)
-		if err := api.Scheme.Convert(obj2, obj2conv); err != nil {
+		if err := kapi.Scheme.Convert(obj2, obj2conv); err != nil {
 			t.Errorf("0X: no conversion from %v to %v: %v", reflect.TypeOf(item), reflect.TypeOf(obj2), err)
 			return
 		}
 		obj2 = obj2conv
 	}
-	if !api.Semantic.DeepEqual(originalItem, obj2) {
+	if !kapi.Semantic.DeepEqual(originalItem, obj2) {
 		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, util.ObjectDiff(originalItem, obj2), codec, string(data), util.ObjectGoPrintSideBySide(originalItem, obj2))
 		return
 	}
@@ -423,7 +423,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 		t.Errorf("2: %v: %v", name, err)
 		return
 	}
-	if !api.Semantic.DeepEqual(originalItem, obj3) {
+	if !kapi.Semantic.DeepEqual(originalItem, obj3) {
 		t.Errorf("3: %v: diff: %v\nCodec: %v", name, util.ObjectDiff(originalItem, obj3), codec)
 		return
 	}
@@ -440,11 +440,11 @@ const fuzzIters = 20
 
 // For debugging problems
 func TestSpecificKind(t *testing.T) {
-	api.Scheme.Log(t)
-	defer api.Scheme.Log(nil)
+	kapi.Scheme.Log(t)
+	defer kapi.Scheme.Log(nil)
 
 	kind := "DeploymentConfig"
-	item, err := api.Scheme.New("", kind)
+	item, err := kapi.Scheme.New(osapi.SchemeGroupVersion.WithKind(kind))
 	if err != nil {
 		t.Errorf("Couldn't make a %v? %v", kind, err)
 		return
@@ -468,7 +468,7 @@ var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions", "PodE
 
 // TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {
-	for kind, reflectType := range api.Scheme.KnownTypes("") {
+	for kind, reflectType := range kapi.Scheme.KnownTypes(osapi.SchemeGroupVersion) {
 		if !strings.Contains(reflectType.PkgPath(), "/origin/") && reflectType.PkgPath() != "k8s.io/kubernetes/pkg/api" {
 			continue
 		}
@@ -477,7 +477,7 @@ func TestTypes(t *testing.T) {
 		}
 		// Try a few times, since runTest uses random values.
 		for i := 0; i < fuzzIters; i++ {
-			item, err := api.Scheme.New("", kind)
+			item, err := kapi.Scheme.New(osapi.SchemeGroupVersion.WithKind(kind))
 			if err != nil {
 				t.Errorf("Couldn't make a %v? %v", kind, err)
 				continue
@@ -491,7 +491,7 @@ func TestTypes(t *testing.T) {
 				for _, v := range versions {
 					t.Logf("About to test %v with %q", kind, v)
 					fuzzInternalObject(t, v, item, seed)
-					roundTrip(t, runtime.CodecFor(api.Scheme, v), item)
+					roundTrip(t, runtime.CodecFor(kapi.Scheme, v), item)
 				}
 				continue
 			}

@@ -10,11 +10,13 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
+
+	"github.com/openshift/origin/pkg/api"
 )
 
 func TestDescriptions(t *testing.T) {
 	for _, version := range Versions {
-		if version == "v1beta3" {
+		if version == OldestVersion {
 			// we don't care about descriptions here
 			continue
 		}
@@ -63,7 +65,7 @@ func checkDescriptions(objType reflect.Type, seen *map[reflect.Type]bool, t *tes
 func TestInternalJsonTags(t *testing.T) {
 	seen := map[reflect.Type]bool{}
 
-	for _, apiType := range kapi.Scheme.KnownTypes("") {
+	for _, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
 		checkJsonTags(apiType, &seen, t)
 	}
 }

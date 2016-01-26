@@ -78,7 +78,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 
 // NewDeployer makes a new Deployer from a kube client.
 func NewDeployer(client kclient.Interface) *Deployer {
-	scaler, _ := kubectl.ScalerFor("ReplicationController", client)
+	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
 	return &Deployer{
 		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return client.ReplicationControllers(namespace).Get(name)

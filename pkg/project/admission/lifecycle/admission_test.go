@@ -28,7 +28,7 @@ func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
 	handler := &lifecycle{}
 	unknown := &UnknownObject{}
 
-	err := handler.Admit(admission.NewAttributesRecord(unknown, "kind", "namespace", "name", "resource", "subresource", "CREATE", nil))
+	err := handler.Admit(admission.NewAttributesRecord(unknown, kapi.Kind("kind"), "namespace", "name", kapi.Resource("resource"), "subresource", "CREATE", nil))
 	if err != nil {
 		t.Errorf("Admission control should not error if it finds an object it knows nothing about %v", err)
 	}
@@ -67,7 +67,7 @@ func TestAdmissionExists(t *testing.T) {
 			Phase: buildapi.BuildPhaseNew,
 		},
 	}
-	err := handler.Admit(admission.NewAttributesRecord(build, "Build", "namespace", "name", "builds", "", "CREATE", nil))
+	err := handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build"), "namespace", "name", kapi.Resource("builds"), "", "CREATE", nil))
 	if err == nil {
 		t.Errorf("Expected an error because namespace does not exist")
 	}
@@ -113,7 +113,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 			Phase: buildapi.BuildPhaseNew,
 		},
 	}
-	err := handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "name", "builds", "", "CREATE", nil))
+	err := handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build"), build.Namespace, "name", kapi.Resource("builds"), "", "CREATE", nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
@@ -123,19 +123,19 @@ func TestAdmissionLifecycle(t *testing.T) {
 	store.Add(namespaceObj)
 
 	// verify create operations in the namespace cause an error
-	err = handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "name", "builds", "", "CREATE", nil))
+	err = handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build"), build.Namespace, "name", kapi.Resource("builds"), "", "CREATE", nil))
 	if err == nil {
 		t.Errorf("Expected error rejecting creates in a namespace when it is terminating")
 	}
 
 	// verify update operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "name", "builds", "", "UPDATE", nil))
+	err = handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build"), build.Namespace, "name", kapi.Resource("builds"), "", "UPDATE", nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
 
 	// verify delete operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(nil, "Build", build.Namespace, "name", "builds", "", "DELETE", nil))
+	err = handler.Admit(admission.NewAttributesRecord(nil, kapi.Kind("Build"), build.Namespace, "name", kapi.Resource("builds"), "", "DELETE", nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestSAR(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		err := handler.Admit(admission.NewAttributesRecord(nil, v.kind, "foo", "name", v.resource, "", "CREATE", nil))
+		err := handler.Admit(admission.NewAttributesRecord(nil, kapi.Kind(v.kind), "foo", "name", kapi.Resource(v.resource), "", "CREATE", nil))
 		if err != nil {
 			t.Errorf("Unexpected error for %s returned from admission handler: %v", k, err)
 		}

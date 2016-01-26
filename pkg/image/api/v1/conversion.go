@@ -4,6 +4,7 @@ import (
 	"sort"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	v1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/conversion"
 
@@ -59,7 +60,7 @@ func convert_v1_Image_To_api_Image(in *Image, out *newer.Image, s conversion.Sco
 	}
 	if len(in.DockerImageMetadata.RawJSON) > 0 {
 		// TODO: add a way to default the expected kind and version of an object if not set
-		obj, err := kapi.Scheme.New(version, "DockerImage")
+		obj, err := kapi.Scheme.New(unversioned.GroupVersionKind{Version: version, Kind: "DockerImage"})
 		if err != nil {
 			return err
 		}
