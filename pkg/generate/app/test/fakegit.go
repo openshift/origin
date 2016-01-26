@@ -7,11 +7,12 @@ import (
 )
 
 type FakeGit struct {
-	RootDir        string
-	GitURL         string
-	Ref            string
-	CloneCalled    bool
-	CheckoutCalled bool
+	RootDir               string
+	GitURL                string
+	Ref                   string
+	CloneCalled           bool
+	CheckoutCalled        bool
+	SubmoduleUpdateCalled bool
 }
 
 func (g *FakeGit) GetRootDir(dir string) (string, error) {
@@ -47,6 +48,11 @@ func (g *FakeGit) CloneMirror(source, target string) error {
 
 func (g *FakeGit) Checkout(dir string, ref string) error {
 	g.CheckoutCalled = true
+	return nil
+}
+
+func (g *FakeGit) SubmoduleUpdate(dir string, init, recurse bool) error {
+	g.SubmoduleUpdateCalled = true
 	return nil
 }
 
