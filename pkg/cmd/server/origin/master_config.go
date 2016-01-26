@@ -551,7 +551,7 @@ func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kc
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
-// NewEtcdHelper returns an EtcdHelper for the provided storage version.
+// NewEtcdStorage returns a storage interface for the provided storage version.
 func NewEtcdStorage(client *etcdclient.Client, version unversioned.GroupVersion, prefix string) (oshelper storage.Interface, err error) {
 	interfaces, err := latest.InterfacesFor(version)
 	if err != nil {

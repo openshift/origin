@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -516,4 +517,16 @@ func GetEnabledAPIVersionsForGroup(config KubernetesMasterConfig, apiGroup strin
 	}
 
 	return enabledVersions
+}
+
+// GetDisabledAPIVersionsForGroup returns the list of API Versions that are disabled for that group
+func GetDisabledAPIVersionsForGroup(config KubernetesMasterConfig, apiGroup string) []string {
+	allowedVersions := sets.NewString(KubeAPIGroupsToAllowedVersions[apiGroup]...)
+	enabledVersions := sets.NewString(GetEnabledAPIVersionsForGroup(config, apiGroup)...)
+	return allowedVersions.Difference(enabledVersions).List()
+}
+
+func HasKubernetesAPIVersion(config KubernetesMasterConfig, groupVersion unversioned.GroupVersion) bool {
+	enabledVersions := GetEnabledAPIVersionsForGroup(config, groupVersion.Group)
+	return sets.NewString(enabledVersions...).Has(groupVersion.Version)
 }

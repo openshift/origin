@@ -10,10 +10,16 @@ import (
 	"github.com/golang/glog"
 
 	osclient "github.com/openshift/origin/pkg/client"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/api/v1"
+	extv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/client/record"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/controller"
 	endpointcontroller "k8s.io/kubernetes/pkg/controller/endpoint"
 	jobcontroller "k8s.io/kubernetes/pkg/controller/job"
 	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
@@ -55,11 +61,11 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	_ = master.New(c.Master)
 
 	messages := []string{}
-	if !c.Master.DisableV1 {
+	if configapi.HasKubernetesAPIVersion(c.Options, v1.SchemeGroupVersion) {
 		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1))
 	}
 
-	if c.Master.EnableExp {
+	if configapi.HasKubernetesAPIVersion(c.Options, extv1beta1.SchemeGroupVersion) {
 		messages = append(messages, fmt.Sprintf("Started Kubernetes API Extensions at %%s%s", KubeAPIExtensionsPrefixV1beta1))
 	}
 
@@ -68,10 +74,15 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 
 // RunNamespaceController starts the Kubernetes Namespace Manager
 func (c *MasterConfig) RunNamespaceController() {
-	// we now have several of the kube "experimental" pieces enabled in Origin, so this needs to be
-	// enabled whenever we have the "experimental" APIs enabled.
-	experimentalMode := c.Master.EnableExp
-	namespaceController := namespacecontroller.NewNamespaceController(c.KubeClient, experimentalMode, c.ControllerManager.NamespaceSyncPeriod)
+	versions := []string{}
+	for _, version := range configapi.GetEnabledAPIVersionsForGroup(c.Options, configapi.APIGroupKube) {
+		versions = append(versions, unversioned.GroupVersion{Group: configapi.APIGroupKube, Version: version}.String())
+	}
+	for _, version := range configapi.GetEnabledAPIVersionsForGroup(c.Options, configapi.APIGroupExtensions) {
+		versions = append(versions, unversioned.GroupVersion{Group: configapi.APIGroupExtensions, Version: version}.String())
+	}
+	apiVersions := &unversioned.APIVersions{Versions: versions}
+	namespaceController := namespacecontroller.NewNamespaceController(c.KubeClient, apiVersions, c.ControllerManager.NamespaceSyncPeriod)
 	namespaceController.Run()
 }
 
