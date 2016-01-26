@@ -2113,6 +2113,10 @@ type SecurityContextConstraints struct {
 	AllowHostPID bool `json:"allowHostPID" description:"allow the use of the host pid in the containers"`
 	// AllowHostIPC determines if the policy allows host ipc in the containers.
 	AllowHostIPC bool `json:"allowHostIPC" description:"allow the use of the host ipc in the containers"`
+	// AllowNodeName determines if policy allows setting nodeName in the pod spec.
+	AllowNodeName *bool `json:"allowNodeName" description:"allow the use of the nodeName specifier in the pod spec"`
+	// AllowNodeSelector determines if policy allows setting nodeSelector in the pod spec.
+	AllowNodeSelector *bool `json:"allowNodeSelector" description:"allow the use of the nodeSelector in the pod spec"`
 	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
 	SELinuxContext SELinuxContextStrategyOptions `json:"seLinuxContext,omitempty" description:"strategy used to generate SELinuxOptions"`
 	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.

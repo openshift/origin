@@ -63,6 +63,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			AllowHostPorts:           true,
 			AllowHostPID:             true,
 			AllowHostIPC:             true,
+			AllowNodeName:            true,
+			AllowNodeSelector:        true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				Type: kapi.SELinuxStrategyRunAsAny,
 			},
@@ -85,6 +87,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintNonRootDesc,
 				},
 			},
+			AllowNodeName:     true,
+			AllowNodeSelector: true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -113,6 +117,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 				},
 			},
 			AllowHostDirVolumePlugin: true,
+			AllowNodeName:            true,
+			AllowNodeSelector:        true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -146,6 +152,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			AllowHostPorts:           true,
 			AllowHostPID:             true,
 			AllowHostIPC:             true,
+			AllowNodeName:            true,
+			AllowNodeSelector:        true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -173,6 +181,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintRestrictedDesc,
 				},
 			},
+			AllowNodeName:     true,
+			AllowNodeSelector: true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -200,6 +210,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintsAnyUIDDesc,
 				},
 			},
+			AllowNodeName:     true,
+			AllowNodeSelector: true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy

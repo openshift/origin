@@ -303,4 +303,12 @@ func defaultSecurityContextConstraints(scc *SecurityContextConstraints) {
 	if len(scc.SupplementalGroups.Type) == 0 {
 		scc.SupplementalGroups.Type = SupplementalGroupsStrategyRunAsAny
 	}
+	if scc.AllowNodeName == nil {
+		scc.AllowNodeName = new(bool)
+		*scc.AllowNodeName = true
+	}
+	if scc.AllowNodeSelector == nil {
+		scc.AllowNodeSelector = new(bool)
+		*scc.AllowNodeSelector = true
+	}
 }

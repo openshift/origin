@@ -16283,7 +16283,9 @@
      "allowHostNetwork",
      "allowHostPorts",
      "allowHostPID",
-     "allowHostIPC"
+     "allowHostIPC",
+     "allowNodeName",
+     "allowNodeSelector"
     ],
     "properties": {
      "kind": {
@@ -16346,6 +16348,14 @@
      "allowHostIPC": {
       "type": "boolean",
       "description": "allow the use of the host ipc in the containers"
+     },
+     "allowNodeName": {
+      "type": "boolean",
+      "description": "allow the use of the nodeName specifier in the pod spec"
+     },
+     "allowNodeSelector": {
+      "type": "boolean",
+      "description": "allow the use of the nodeSelector in the pod spec"
      },
      "seLinuxContext": {
       "$ref": "v1.SELinuxContextStrategyOptions",

@@ -2132,6 +2132,8 @@ func convert_api_SecurityContextConstraints_To_v1beta3_SecurityContextConstraint
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID
 	out.AllowHostIPC = in.AllowHostIPC
+	out.AllowNodeName = &in.AllowNodeName
+	out.AllowNodeSelector = &in.AllowNodeSelector
 	if err := convert_api_SELinuxContextStrategyOptions_To_v1beta3_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, s); err != nil {
 		return err
 	}
@@ -4482,6 +4484,12 @@ func convert_v1beta3_SecurityContextConstraints_To_api_SecurityContextConstraint
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID
 	out.AllowHostIPC = in.AllowHostIPC
+	if in.AllowNodeName != nil {
+		out.AllowNodeName = *in.AllowNodeName
+	}
+	if in.AllowNodeSelector != nil {
+		out.AllowNodeSelector = *in.AllowNodeSelector
+	}
 	if err := convert_v1beta3_SELinuxContextStrategyOptions_To_api_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, s); err != nil {
 		return err
 	}

@@ -251,6 +251,18 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 		}
 	}
 
+	if !s.scc.AllowNodeName {
+		if pod.Spec.NodeName != "" {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("nodeName"), pod.Spec.NodeName, "Node Names are not allowed to be used"))
+		}
+	}
+
+	if !s.scc.AllowNodeSelector {
+		if pod.Spec.NodeSelector != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("nodeName"), pod.Spec.NodeSelector, "Node Selectors are not allowed to be used"))
+		}
+	}
+
 	if !s.scc.AllowHostNetwork && pod.Spec.SecurityContext.HostNetwork {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostNetwork"), pod.Spec.SecurityContext.HostNetwork, "Host network is not allowed to be used"))
 	}

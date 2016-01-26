@@ -2131,6 +2131,18 @@ func deepCopy_v1beta3_SecurityContextConstraints(in SecurityContextConstraints, 
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID
 	out.AllowHostIPC = in.AllowHostIPC
+	if in.AllowNodeName != nil {
+		out.AllowNodeName = new(bool)
+		*out.AllowNodeName = *in.AllowNodeName
+	} else {
+		out.AllowNodeName = nil
+	}
+	if in.AllowNodeSelector != nil {
+		out.AllowNodeSelector = new(bool)
+		*out.AllowNodeSelector = *in.AllowNodeSelector
+	} else {
+		out.AllowNodeSelector = nil
+	}
 	if err := deepCopy_v1beta3_SELinuxContextStrategyOptions(in.SELinuxContext, &out.SELinuxContext, c); err != nil {
 		return err
 	}
