@@ -15,6 +15,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/proxy/hybrid"
+	"github.com/openshift/origin/pkg/proxy/unidler"
 	ouserspace "github.com/openshift/origin/pkg/proxy/userspace"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -432,7 +433,8 @@ func (c *NodeConfig) RunProxy() {
 
 	if c.EnableUnidling {
 		unidlingLoadBalancer := ouserspace.NewLoadBalancerRR()
-		unidlingUserspaceProxy, err := ouserspace.NewProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration)
+		signaler := unidler.NewEventSignaler(recorder)
+		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration, signaler)
 		if err != nil {
 			if c.Containerized {
 				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
