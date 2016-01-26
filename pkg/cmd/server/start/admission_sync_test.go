@@ -22,6 +22,7 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 	"DenyEscalatingExec",     // from kube, it denies exec to pods that have certain privileges.  This is superceded in origin by SCCExecRestrictions that checks against SCC rules.
 
 	"BuildByStrategy",          // from origin, only needed for managing builds, not kubernetes resources
+	"BuildHTTPProxy",           // from origin, only needed for managing builds, not kubernetes resources
 	"OriginNamespaceLifecycle", // from origin, only needed for rejecting openshift resources, so not needed by kube
 
 	"NamespaceExists",  // superceded by NamespaceLifecycle
