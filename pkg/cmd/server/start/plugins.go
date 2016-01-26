@@ -3,7 +3,7 @@ package start
 import (
 
 	// Admission control plug-ins used by OpenShift
-	_ "github.com/openshift/origin/pkg/build/admission"
+	_ "github.com/openshift/origin/pkg/build/admission/strategyrestriction"
 	_ "github.com/openshift/origin/pkg/project/admission/lifecycle"
 	_ "github.com/openshift/origin/pkg/project/admission/nodeenv"
 	_ "github.com/openshift/origin/pkg/security/admission"
