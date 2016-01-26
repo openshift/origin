@@ -9,6 +9,16 @@ set -o pipefail
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+
+if [[ "${TEST_END_TO_END:-}" != "direct" ]]; then
+	if docker version >/dev/null 2>&1; then
+		echo "++ Docker is installed, running hack/test-end-to-end-docker.sh instead."
+		"${OS_ROOT}/hack/test-end-to-end-docker.sh"
+		exit $?
+	fi
+	echo "++ Docker is not installed, running end-to-end against local binaries"
+fi
+
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"

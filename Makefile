@@ -31,31 +31,20 @@ all build:
 	hack/build-go.sh $(WHAT)
 .PHONY: all build
 
-# Build and run unit tests
-#
-# Args:
-#   WHAT: Directory names to test.  All *_test.go files under these
-#     directories will be run.  If not specified, "everything" will be tested.
-#   TESTS: Same as WHAT.
-#   GOFLAGS: Extra flags to pass to 'go' when building.
-#   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
+# Run core verification and all self contained tests.
 #
 # Example:
 #   make check
-#   make check WHAT=pkg/build GOFLAGS=-v
-check:
-	TEST_KUBE=1 hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
+check: | build verify
+	$(MAKE) test-unit test-cmd -o build -o verify
 .PHONY: check
 
-# Verify code is properly organized.
+
+# Verify code conventions are properly setup.
 #
 # Example:
 #   make verify
-ifeq ($(SKIP_BUILD), true)
-verify:
-else
 verify: build
-endif
 	hack/verify-upstream-commits.sh
 	hack/verify-gofmt.sh
 	hack/verify-govet.sh
@@ -66,91 +55,76 @@ endif
 	hack/verify-generated-swagger-spec.sh
 .PHONY: verify
 
-# check and verify can't run concurently because of strange concurrent build issues.
-check-verify:
-	# delegate to another make process that runs serially against the check and verify targets
-	$(MAKE) -j1 check verify
-.PHONY: check-verify
-
-# Install travis dependencies
+# Run unit tests.
 #
 # Args:
-#   TEST_ASSETS: Instead of running tests, test assets only.
-ifeq ($(TEST_ASSETS), true)
-install-travis:
-	hack/install-assets.sh
-else
-install-travis:
-	hack/install-etcd.sh
-	hack/install-tools.sh
-endif
-.PHONY: install-travis
-
-# Run unit and integration tests that don't require Docker.
-#
-# Args:
+#   WHAT: Directory names to test.  All *_test.go files under these
+#     directories will be run.  If not specified, "everything" will be tested.
+#   TESTS: Same as WHAT.
 #   GOFLAGS: Extra flags to pass to 'go' when building.
 #   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
-#   TEST_ASSETS: Instead of running tests, test assets only.
 #
 # Example:
-#   make check-test
-check-test: export KUBE_COVER= -cover -covermode=atomic
-check-test: export KUBE_RACE=  -race
-ifeq ($(TEST_ASSETS), true)
-check-test:
-	hack/test-assets.sh
-else
-check-test: 
-	check-verify
+#   make test-unit
+#   make test-unit WHAT=pkg/build GOFLAGS=-v
+test-unit:
+	TEST_KUBE=1 hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
+.PHONY: test-unit
+
+# Run integration tests. Compiles its own tests, cannot be run
+# in parallel with any other go compilation.
+#
+# Example:
+#   make test-integration
+test-integration:
+	KUBE_COVER=" " KUBE_RACE=" " hack/test-integration.sh
+.PHONY: test-integration
+
+# Run command tests. Uses whatever binaries are currently built.
+#
+# Example:
+#   make test-cmd
+test-cmd: build
 	hack/test-cmd.sh
-	KUBE_RACE=" " hack/test-integration.sh
+.PHONY: test-cmd
+
+# Run end to end tests. Uses whatever binaries are currently built.
+#
+# Example:
+#   make test-cmd
+test-end-to-end: build
+	hack/test-end-to-end.sh
+.PHONY: test-end-to-end
+
+# Run tools tests.
+#
+# Example:
+#   make test-cmd
+test-tools:
+	hack/test-tools.sh
+.PHONY: test-tools
+
+test-assets:
+ifeq ($(TEST_ASSETS),true)
+	hack/test-assets.sh
 endif
-.PHONY: check-test
+.PHONY: test-assets
 
 # Build and run the complete test-suite.
 #
-# Args:
-#   GOFLAGS: Extra flags to pass to 'go' when building.
-#   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
-#
 # Example:
 #   make test
-#   make test GOFLAGS=-v
-test: export KUBE_COVER= -cover -covermode=atomic
-test: export KUBE_RACE=  -race
-ifeq ($(SKIP_BUILD), true)
-test: check-verify test-int-plus
-else
-test: build check-verify test-int-plus
-endif
+test: check
+	$(MAKE) test-tools test-integration test-assets -o build
+	$(MAKE) test-end-to-end -o build
 .PHONY: test
-
-# Split out of `test`.  This allows `make -j --output-sync=recurse test` to parallelize as expected
-test-int-plus: export KUBE_COVER= -cover -covermode=atomic
-test-int-plus: export KUBE_RACE=  -race
-ifeq ($(SKIP_BUILD), true)
-test-int-plus: 
-else
-test-int-plus: build
-endif
-test-int-plus:
-	hack/test-cmd.sh
-	hack/test-tools.sh
-	KUBE_RACE=" " hack/test-integration-docker.sh
-	hack/test-end-to-end-docker.sh
-ifeq ($(EXTENDED),true)
-	hack/test-extended.sh
-endif
-.PHONY: test-int-plus
-
 
 # Run All-in-one OpenShift server.
 #
 # Example:
 #   make run
-OS_OUTPUT_BINPATH=$(shell bash -c 'source hack/common.sh; echo $${OS_OUTPUT_BINPATH}')
-PLATFORM=$(shell bash -c 'source hack/common.sh; os::build::host_platform')
+run: export OS_OUTPUT_BINPATH=$(shell bash -c 'source hack/common.sh; echo $${OS_OUTPUT_BINPATH}')
+run: export PLATFORM=$(shell bash -c 'source hack/common.sh; os::build::host_platform')
 run: build
 	$(OS_OUTPUT_BINPATH)/$(PLATFORM)/openshift start
 .PHONY: run
@@ -181,3 +155,10 @@ release-binaries: clean
 	hack/build-release.sh
 	hack/extract-release.sh
 .PHONY: release-binaries
+
+# Install travis dependencies
+#
+install-travis:
+	hack/install-tools.sh
+.PHONY: install-travis
+

@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -39,6 +40,9 @@ func containsAny(s string, substrs []string) bool {
 }
 
 func TestTcpHealthChecker(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skipf("doesn't work on Macs")
+	}
 	prober := New()
 	tests := []struct {
 		expectedStatus probe.Result
