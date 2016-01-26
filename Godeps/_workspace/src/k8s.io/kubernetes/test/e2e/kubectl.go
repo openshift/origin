@@ -362,7 +362,7 @@ var _ = Describe("Kubectl client", func() {
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 
 			By("executing a command with run and attach with stdin")
-			runOutput := newKubectlCommand(nsFlag, "run", "run-test", "--image=busybox", "--restart=Never", "--attach=true", "--stdin", "--", "sh", "-c", "cat && echo 'stdin closed'").
+			runOutput := newKubectlCommand(nsFlag, "run", "run-test", "--generator=job/v1beta1", "--image=busybox", "--restart=Never", "--attach=true", "--stdin", "--", "sh", "-c", "cat && echo 'stdin closed'").
 				withStdinData("abcd1234").
 				execOrDie()
 			Expect(runOutput).To(ContainSubstring("abcd1234"))
@@ -370,7 +370,7 @@ var _ = Describe("Kubectl client", func() {
 			Expect(c.Extensions().Jobs(ns).Delete("run-test", api.NewDeleteOptions(0))).To(BeNil())
 
 			By("executing a command with run and attach without stdin")
-			runOutput = newKubectlCommand(fmt.Sprintf("--namespace=%v", ns), "run", "run-test-2", "--image=busybox", "--restart=Never", "--attach=true", "--leave-stdin-open=true", "--", "sh", "-c", "cat && echo 'stdin closed'").
+			runOutput = newKubectlCommand(fmt.Sprintf("--namespace=%v", ns), "run", "run-test-2", "--generator=job/v1beta1", "--image=busybox", "--restart=Never", "--attach=true", "--leave-stdin-open=true", "--", "sh", "-c", "cat && echo 'stdin closed'").
 				withStdinData("abcd1234").
 				execOrDie()
 			Expect(runOutput).ToNot(ContainSubstring("abcd1234"))
@@ -378,7 +378,7 @@ var _ = Describe("Kubectl client", func() {
 			Expect(c.Extensions().Jobs(ns).Delete("run-test-2", api.NewDeleteOptions(0))).To(BeNil())
 
 			By("executing a command with run and attach with stdin with open stdin should remain running")
-			runOutput = newKubectlCommand(nsFlag, "run", "run-test-3", "--image=busybox", "--restart=Never", "--attach=true", "--leave-stdin-open=true", "--stdin", "--", "sh", "-c", "cat && echo 'stdin closed'").
+			runOutput = newKubectlCommand(nsFlag, "run", "run-test-3", "--generator=job/v1beta1", "--image=busybox", "--restart=Never", "--attach=true", "--leave-stdin-open=true", "--stdin", "--", "sh", "-c", "cat && echo 'stdin closed'").
 				withStdinData("abcd1234\n").
 				execOrDie()
 			Expect(runOutput).ToNot(ContainSubstring("stdin closed"))
@@ -782,7 +782,7 @@ var _ = Describe("Kubectl client", func() {
 			image := "nginx"
 
 			By("running the image " + image)
-			runKubectlOrDie("run", rcName, "--image="+image, nsFlag)
+			runKubectlOrDie("run", rcName, "--generator=run-controller/v1", "--image="+image, nsFlag)
 			By("verifying the rc " + rcName + " was created")
 			rc, err := c.ReplicationControllers(ns).Get(rcName)
 			if err != nil {
@@ -825,7 +825,7 @@ var _ = Describe("Kubectl client", func() {
 			image := "nginx"
 
 			By("running the image " + image)
-			runKubectlOrDie("run", jobName, "--restart=OnFailure", "--image="+image, nsFlag)
+			runKubectlOrDie("run", jobName, "--generator=job/v1beta1", "--restart=OnFailure", "--image="+image, nsFlag)
 			By("verifying the job " + jobName + " was created")
 			job, err := c.Extensions().Jobs(ns).Get(jobName)
 			if err != nil {
@@ -844,7 +844,7 @@ var _ = Describe("Kubectl client", func() {
 			image := "nginx"
 
 			By("running the image " + image)
-			runKubectlOrDie("run", jobName, "--restart=Never", "--image="+image, nsFlag)
+			runKubectlOrDie("run", jobName, "--generator=job/v1beta1", "--restart=Never", "--image="+image, nsFlag)
 			By("verifying the job " + jobName + " was created")
 			job, err := c.Extensions().Jobs(ns).Get(jobName)
 			if err != nil {
