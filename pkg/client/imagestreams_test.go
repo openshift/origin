@@ -38,6 +38,10 @@ func TestImageStreamImportUnsupported(t *testing.T) {
 			status: errors.NewConflict("Other", "", nil).(kclient.APIStatus).Status(),
 			errFn:  func(err error) bool { return err != ErrImageStreamImportUnsupported && errors.IsConflict(err) },
 		},
+		{
+			status: errors.NewForbidden("Any", "", nil).(kclient.APIStatus).Status(),
+			errFn:  func(err error) bool { return err == ErrImageStreamImportUnsupported },
+		},
 	}
 	for i, test := range testCases {
 		c, err := New(&kclient.Config{
