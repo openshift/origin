@@ -19,6 +19,9 @@ func TestSubstitution(t *testing.T) {
 	bc := &buildapi.BuildConfig{
 		Spec: buildapi.BuildConfigSpec{
 			BuildSpec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{},
+				},
 				Strategy: buildapi.BuildStrategy{
 					DockerStrategy: &buildapi.DockerBuildStrategy{},
 				},
@@ -50,6 +53,13 @@ func TestSubstitution(t *testing.T) {
 	}
 	if !foundHTTPS {
 		t.Errorf("failed to find https proxy in %v", bc.Spec.Strategy.DockerStrategy.Env)
+	}
+
+	if bc.Spec.Source.Git.HTTPProxy == nil || len(*bc.Spec.Source.Git.HTTPProxy) == 0 || *bc.Spec.Source.Git.HTTPProxy != "http" {
+		t.Errorf("failed to find http proxy in git source")
+	}
+	if bc.Spec.Source.Git.HTTPSProxy == nil || len(*bc.Spec.Source.Git.HTTPSProxy) == 0 || *bc.Spec.Source.Git.HTTPSProxy != "https" {
+		t.Errorf("failed to find http proxy in git source")
 	}
 
 }
