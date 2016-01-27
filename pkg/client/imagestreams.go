@@ -140,5 +140,12 @@ func transformUnsupported(err error) error {
 			return ErrImageStreamImportUnsupported
 		}
 	}
+	// The ImageStreamImport resource exists in v1.1.1 of origin but is not yet
+	// enabled by policy. A create request will return a Forbidden(403) error.
+	// We want to return ErrImageStreamImportUnsupported to allow fallback behavior
+	// in clients.
+	if apierrs.IsForbidden(err) {
+		return ErrImageStreamImportUnsupported
+	}
 	return err
 }
