@@ -183,12 +183,27 @@ os::provision::get-network-plugin() {
 }
 
 os::provision::base-provision() {
+  local is_master=${1:-false}
+
   os::provision::fixup-net-udev
 
   os::provision::setup-hosts-file "${MASTER_NAME}" "${MASTER_IP}" NODE_NAMES \
     NODE_IPS
 
   os::provision::install-pkgs
+
+  # Avoid enabling iptables on the master since it will
+  # prevent access to the openshift api from outside the master.
+  if [[ "${is_master}" != "true" ]]; then
+    # Avoid enabling iptables when firewalld is already enabled.
+    if ! systemctl is-enabled -q firewalld 2> /dev/null; then
+      # A default deny firewall (either iptables or firewalld) is
+      # installed by default on non-cloud fedora and rhel, so all
+      # network plugins need to be able to work with one enabled.
+      systemctl enable iptables.service
+      systemctl start iptables.service
+    fi
+  fi
 }
 
 os::provision::fixup-net-udev() {
@@ -218,7 +233,8 @@ os::provision::install-pkgs() {
   if ! os::provision::in-container; then
     yum install -y deltarpm
     yum update -y
-    yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils which ethtool bash-completion
+    yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils \
+      which ethtool bash-completion iptables-services
 
     systemctl enable docker
     systemctl start docker
