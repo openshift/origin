@@ -56,9 +56,8 @@ const (
 // TODO: pass the various interfaces on the factory directly into the command constructors (so the
 // commands are decoupled from the factory).
 type Factory struct {
-	clients    *ClientCache
-	flags      *pflag.FlagSet
-	generators map[string]kubectl.Generator
+	clients *ClientCache
+	flags   *pflag.FlagSet
 
 	// Returns interfaces for dealing with arbitrary runtime.Objects.
 	Object func() (meta.RESTMapper, runtime.ObjectTyper)
@@ -91,8 +90,8 @@ type Factory struct {
 	// other namespace is specified and whether the namespace was
 	// overriden.
 	DefaultNamespace func() (string, bool, error)
-	// Returns the generator for the provided generator name
-	Generator func(name string) (kubectl.Generator, bool)
+	// Returns the generators for the provided command name
+	Generators func(name string) map[string]kubectl.Generator
 	// Check whether the kind of resources could be exposed
 	CanBeExposed func(kind string) error
 	// AttachablePodForObject returns the pod to which to attach given an object.
@@ -108,11 +107,14 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 	flags.SetNormalizeFunc(util.WarnWordSepNormalizeFunc) // Warn for "_" flags
 
-	generators := map[string]kubectl.Generator{
-		"run/v1":     kubectl.BasicReplicationController{},
-		"run-pod/v1": kubectl.BasicPod{},
+	generators := map[string]map[string]kubectl.Generator{}
+	generators["expose"] = map[string]kubectl.Generator{
 		"service/v1": kubectl.ServiceGeneratorV1{},
 		"service/v2": kubectl.ServiceGeneratorV2{},
+	}
+	generators["run"] = map[string]kubectl.Generator{
+		"run/v1":     kubectl.BasicReplicationController{},
+		"run-pod/v1": kubectl.BasicPod{},
 	}
 
 	clientConfig := optionalClientConfig
@@ -123,9 +125,8 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 	clients := NewClientCache(clientConfig)
 
 	return &Factory{
-		clients:    clients,
-		flags:      flags,
-		generators: generators,
+		clients: clients,
+		flags:   flags,
 
 		Object: func() (meta.RESTMapper, runtime.ObjectTyper) {
 			cfg, err := clientConfig.ClientConfig()
@@ -277,9 +278,12 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 		DefaultNamespace: func() (string, bool, error) {
 			return clientConfig.Namespace()
 		},
-		Generator: func(name string) (kubectl.Generator, bool) {
-			generator, ok := generators[name]
-			return generator, ok
+		Generators: func(cmdName string) map[string]kubectl.Generator {
+			copy := map[string]kubectl.Generator{}
+			for name, gen := range generators[cmdName] {
+				copy[name] = gen
+			}
+			return copy
 		},
 		CanBeExposed: func(kind string) error {
 			if kind != "ReplicationController" && kind != "Service" && kind != "Pod" {
