@@ -55,7 +55,7 @@ angular.module('openshiftConsole')
           function(pod) {
             $scope.loaded = true;
             $scope.pod = pod;
-            $scope.logOptions.container = $routeParams.container || pod.spec.containers[0].name;
+            $scope.logOptions.container = $routeParams.container || _.get(pod, 'spec.containers[0].name');
             var pods = {};
             pods[pod.metadata.name] = pod;
             ImageStreamResolver.fetchReferencedImageStreamImages(pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, context);

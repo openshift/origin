@@ -233,16 +233,8 @@ angular.module('openshiftConsole')
             APIDiscovery
               .getLoggingURL()
               .then(function(url) {
-                // TODO: update lodash for _.get, would rather do this:
-                // var projectName = _.get($scope, 'context', 'project', 'metadata', 'name');
-                // var containerName = _.get($scope, 'options', 'container');
-                var projectName = $scope.context &&
-                                  $scope.context.project &&
-                                  $scope.context.project.metadata &&
-                                  $scope.context.project.metadata.name;
-
-                var containerName = $scope.options &&
-                                    $scope.options.container;
+                var projectName = _.get($scope.context, 'project.metadata.name');
+                var containerName = _.get($scope.options, 'container');
 
                 if(!(projectName && containerName && $scope.name && url)) {
                   return;
