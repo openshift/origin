@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/util/yaml"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -152,11 +153,18 @@ func (o *EditOptions) Complete(fullName string, f *clientcmd.Factory, out io.Wri
 // RunEdit contains all the necessary functionality for the OpenShift cli edit command.
 func (o *EditOptions) RunEdit() error {
 	r := o.builder.Flatten().Do()
-	results := editResults{}
 	infos, err := r.Infos()
 	if err != nil {
 		return err
 	}
+	var (
+		edit      = editor.NewDefaultEditor()
+		results   editResults
+		syntaxErr bool
+		edited    []byte
+		original  []byte
+		file      string
+	)
 	for {
 		obj, err := resource.AsVersionedObject(infos, false, o.version.String())
 		if err != nil {
@@ -175,15 +183,20 @@ func (o *EditOptions) RunEdit() error {
 		if _, err := results.header.WriteTo(w); err != nil {
 			return preservedFile(err, results.file, o.out)
 		}
-		if err := o.printer.PrintObj(obj, w); err != nil {
-			return preservedFile(err, results.file, o.out)
+		if !syntaxErr {
+			if err := o.printer.PrintObj(obj, w); err != nil {
+				return preservedFile(err, results.file, o.out)
+			}
+			original = buf.Bytes()
+		} else {
+			// In case of a syntax error, preserve the edited file.
+			// Remove the comments (header) from it since we already
+			// have included the latest header in the buffer above.
+			buf.Write(manualStrip(edited))
 		}
 
-		original := buf.Bytes()
-
 		// launch the editor
-		edit := editor.NewDefaultEditor()
-		edited, file, err := edit.LaunchTempFile("oc-edit-", o.ext, buf)
+		edited, file, err = edit.LaunchTempFile("oc-edit-", o.ext, buf)
 		if err != nil {
 			return preservedFile(err, results.file, o.out)
 		}
@@ -198,23 +211,24 @@ func (o *EditOptions) RunEdit() error {
 		if err != nil {
 			return preservedFile(err, file, o.out)
 		}
-		if bytes.Equal(original, edited) {
+		// Compare content without comments
+		if bytes.Equal(stripComments(original), stripComments(edited)) {
 			if len(results.edit) > 0 {
-				preservedFile(nil, file, o.out)
+				err = preservedFile(nil, file, o.out)
 			} else {
-				os.Remove(file)
+				err = os.Remove(file)
 			}
 			fmt.Fprintln(o.out, "Edit cancelled, no changes made.")
-			return nil
+			return err
 		}
 		if !lines {
 			if len(results.edit) > 0 {
-				preservedFile(nil, file, o.out)
+				err = preservedFile(nil, file, o.out)
 			} else {
-				os.Remove(file)
+				err = os.Remove(file)
 			}
 			fmt.Fprintln(o.out, "Edit cancelled, saved file was empty.")
-			return nil
+			return err
 		}
 
 		results = editResults{
@@ -227,8 +241,10 @@ func (o *EditOptions) RunEdit() error {
 			results.header.reasons = append(results.header.reasons, editReason{
 				head: fmt.Sprintf("The edited file had a syntax error: %v", err),
 			})
+			syntaxErr = true
 			continue
 		}
+		syntaxErr = false
 
 		visitor := resource.NewFlattenListVisitor(updates, o.rmap)
 
@@ -275,11 +291,11 @@ func (o *EditOptions) RunEdit() error {
 		}
 		if len(results.edit) == 0 {
 			if results.notfound == 0 {
-				os.Remove(file)
+				err = os.Remove(file)
 			} else {
 				fmt.Fprintf(o.out, "The edits you made on deleted resources have been saved to %q\n", file)
 			}
-			return nil
+			return err
 		}
 
 		// loop again and edit the remaining items
@@ -451,4 +467,28 @@ func hasLines(r io.Reader) (bool, error) {
 		return false, err
 	}
 	return false, nil
+}
+
+// stripComments will transform a YAML file into JSON, thus dropping any comments
+// in it. Note that if the given file has a syntax error, the transformation will
+// fail and we will manually drop all comments from the file.
+func stripComments(file []byte) []byte {
+	stripped, err := yaml.ToJSON(file)
+	if err != nil {
+		stripped = manualStrip(file)
+	}
+	return stripped
+}
+
+// manualStrip is used for dropping comments from a YAML file
+func manualStrip(file []byte) []byte {
+	stripped := []byte{}
+	for _, line := range bytes.Split(file, []byte("\n")) {
+		if bytes.HasPrefix(bytes.TrimSpace(line), []byte("#")) {
+			continue
+		}
+		stripped = append(stripped, line...)
+		stripped = append(stripped, '\n')
+	}
+	return stripped
 }
