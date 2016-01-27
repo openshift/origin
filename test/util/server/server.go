@@ -128,6 +128,8 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 		return nil, err
 	}
 
+	masterConfig.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds = 1
+
 	// force strict handling of service account secret references by default, so that all our examples and controllers will handle it.
 	masterConfig.ServiceAccountConfig.LimitSecretReferences = true
 	return masterConfig, nil

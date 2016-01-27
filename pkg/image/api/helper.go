@@ -438,6 +438,19 @@ func LatestTaggedImage(stream *ImageStream, tag string) *TagEvent {
 	return nil
 }
 
+// DifferentTagEvent returns true if the supplied tag event matches the current stream tag event.
+// Generation is not compared.
+func DifferentTagEvent(stream *ImageStream, tag string, next TagEvent) bool {
+	tags, ok := stream.Status.Tags[tag]
+	if !ok || len(tags.Items) == 0 {
+		return true
+	}
+	previous := &tags.Items[0]
+	sameRef := previous.DockerImageReference == next.DockerImageReference
+	sameImage := previous.Image == next.Image
+	return !(sameRef && sameImage)
+}
+
 // AddTagEventToImageStream attempts to update the given image stream with a tag event. It will
 // collapse duplicate entries - returning true if a change was made or false if no change
 // occurred. Any successful tag resets the status field.
@@ -654,6 +667,17 @@ func ShortDockerImageID(image *DockerImage, length int) string {
 		id = id[:length]
 	}
 	return id
+}
+
+// HasTagCondition returns true if the specified image stream tag has a condition with the same type, status, and
+// reason (does not check generation, date, or message).
+func HasTagCondition(stream *ImageStream, tag string, condition TagEventCondition) bool {
+	for _, existing := range stream.Status.Tags[tag].Conditions {
+		if condition.Type == existing.Type && condition.Status == existing.Status && condition.Reason == existing.Reason {
+			return true
+		}
+	}
+	return false
 }
 
 // SetTagConditions applies the specified conditions to the status of the given tag.

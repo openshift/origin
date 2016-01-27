@@ -1,16 +1,35 @@
 package controller
 
 import (
+	"errors"
+
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	apierrs "k8s.io/kubernetes/pkg/api/errors"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/image/api"
 )
 
+var ErrNotImportable = errors.New("the specified stream cannot be imported")
+
 type ImportController struct {
 	streams client.ImageStreamsNamespacer
+}
+
+// Notifier provides information about when the controller makes a decision
+type Notifier interface {
+	// Importing is invoked when the controller is going to import an image stream
+	Importing(stream *api.ImageStream)
+}
+
+// NotifierFunc implements Notifier
+type NotifierFunc func(stream *api.ImageStream)
+
+// Importing adapts NotifierFunc to Notifier
+func (fn NotifierFunc) Importing(stream *api.ImageStream) {
+	fn(stream)
 }
 
 // tagImportable is true if the given TagReference is importable by this controller
@@ -61,6 +80,27 @@ func needsImport(stream *api.ImageStream) (ok bool, partial bool) {
 	return false, false
 }
 
+// needsScheduling returns true if this image stream has any scheduled tags
+func needsScheduling(stream *api.ImageStream) bool {
+	for _, tagRef := range stream.Spec.Tags {
+		if tagImportable(tagRef) && tagRef.ImportPolicy.Scheduled {
+			return true
+		}
+	}
+	return false
+}
+
+// resetScheduledTags artificially increments the generation on the tags that should be imported.
+func resetScheduledTags(stream *api.ImageStream) {
+	next := stream.Generation + 1
+	for tag, tagRef := range stream.Spec.Tags {
+		if tagImportable(tagRef) && tagRef.ImportPolicy.Scheduled {
+			tagRef.Generation = &next
+			stream.Spec.Tags[tag] = tagRef
+		}
+	}
+}
+
 // retryCount is the number of times to retry on a conflict when updating an image stream
 const retryCount = 2
 
@@ -83,12 +123,17 @@ const retryCount = 2
 //
 // 3. spec.DockerImageRepository not defined - import tags per each definition.
 //
-func (c *ImportController) Next(stream *api.ImageStream) error {
+// Notifier, if passed, will be invoked if the stream is going to be imported.
+func (c *ImportController) Next(stream *api.ImageStream, notifier Notifier) error {
 	ok, partial := needsImport(stream)
 	if !ok {
 		return nil
 	}
 	glog.V(3).Infof("Importing stream %s/%s partial=%t...", stream.Namespace, stream.Name, partial)
+
+	if notifier != nil {
+		notifier.Importing(stream)
+	}
 
 	isi := &api.ImageStreamImport{
 		ObjectMeta: kapi.ObjectMeta{
@@ -118,9 +163,34 @@ func (c *ImportController) Next(stream *api.ImageStream) error {
 	}
 	result, err := c.streams.ImageStreams(stream.Namespace).Import(isi)
 	if err != nil {
+		if apierrs.IsNotFound(err) && client.IsStatusErrorKind(err, "imageStream") {
+			return ErrNotImportable
+		}
 		glog.V(4).Infof("Import stream %s/%s partial=%t error: %v", stream.Namespace, stream.Name, partial, err)
 	} else {
 		glog.V(5).Infof("Import stream %s/%s partial=%t import: %#v", stream.Namespace, stream.Name, partial, result.Status.Import)
 	}
 	return err
+}
+
+func (c *ImportController) NextTimedByName(namespace, name string) error {
+	stream, err := c.streams.ImageStreams(namespace).Get(name)
+	if err != nil {
+		if apierrs.IsNotFound(err) {
+			return ErrNotImportable
+		}
+		return err
+	}
+	return c.NextTimed(stream)
+}
+
+func (c *ImportController) NextTimed(stream *api.ImageStream) error {
+	if !needsScheduling(stream) {
+		return ErrNotImportable
+	}
+	resetScheduledTags(stream)
+
+	glog.V(3).Infof("Scheduled import of stream %s/%s...", stream.Namespace, stream.Name)
+
+	return c.Next(stream, nil)
 }

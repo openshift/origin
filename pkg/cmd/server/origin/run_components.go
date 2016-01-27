@@ -346,11 +346,21 @@ func (c *MasterConfig) RunSDNController() {
 // RunImageImportController starts the image import trigger controller process.
 func (c *MasterConfig) RunImageImportController() {
 	osclient := c.ImageImportControllerClient()
+	importRate := float32(c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute) / float32(time.Minute/time.Second)
+	importBurst := c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute * 2
 	factory := imagecontroller.ImportControllerFactory{
-		Client: osclient,
+		Client:               osclient,
+		ResyncInterval:       10 * time.Minute,
+		MinimumCheckInterval: time.Duration(c.Options.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds) * time.Second,
+		ImportRateLimiter:    util.NewTokenBucketRateLimiter(importRate, importBurst),
 	}
-	controller := factory.Create()
+	controller, background := factory.Create()
 	controller.Run()
+	if c.Options.ImagePolicyConfig.DisableScheduledImport {
+		glog.V(2).Infof("Scheduled image import is disabled - the 'scheduled' flag on image streams will be ignored")
+	} else {
+		background.RunUntil(util.NeverStop)
+	}
 }
 
 // RunSecurityAllocationController starts the security allocation controller process.

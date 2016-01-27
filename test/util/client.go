@@ -30,11 +30,11 @@ func KubeConfigPath() string {
 }
 
 func GetClusterAdminKubeClient(adminKubeConfigFile string) (*kclient.Client, error) {
-	if c, _, err := configapi.GetKubeClient(adminKubeConfigFile); err != nil {
+	c, _, err := configapi.GetKubeClient(adminKubeConfigFile)
+	if err != nil {
 		return nil, err
-	} else {
-		return c, nil
 	}
+	return c, nil
 }
 
 func GetClusterAdminClient(adminKubeConfigFile string) (*client.Client, error) {

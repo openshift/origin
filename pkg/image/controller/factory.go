@@ -3,11 +3,12 @@ package controller
 import (
 	"time"
 
+	"github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
-	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
@@ -17,11 +18,14 @@ import (
 
 // ImportControllerFactory can create an ImportController.
 type ImportControllerFactory struct {
-	Client client.Interface
+	Client               client.Interface
+	ResyncInterval       time.Duration
+	MinimumCheckInterval time.Duration
+	ImportRateLimiter    util.RateLimiter
 }
 
 // Create creates an ImportController.
-func (f *ImportControllerFactory) Create() controller.RunnableController {
+func (f *ImportControllerFactory) Create() (controller.RunnableController, controller.StoppableController) {
 	lw := &cache.ListWatch{
 		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 			return f.Client.ImageStreams(kapi.NamespaceAll).List(options)
@@ -31,13 +35,24 @@ func (f *ImportControllerFactory) Create() controller.RunnableController {
 		},
 	}
 	q := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(lw, &api.ImageStream{}, q, 2*time.Minute).Run()
+	cache.NewReflector(lw, &api.ImageStream{}, q, f.ResyncInterval).Run()
 
-	c := &ImportController{
-		streams: f.Client,
+	// instantiate a scheduled importer using a number of buckets
+	buckets := 4
+	switch {
+	case f.MinimumCheckInterval > time.Hour:
+		buckets = 8
+	case f.MinimumCheckInterval < 10*time.Minute:
+		buckets = 2
 	}
+	seconds := f.MinimumCheckInterval / time.Second
+	bucketQPS := 1.0 / float32(seconds) * float32(buckets)
 
-	return &controller.RetryController{
+	limiter := util.NewTokenBucketRateLimiter(bucketQPS, 1)
+	b := newScheduled(f.Client, buckets, limiter, f.ImportRateLimiter)
+
+	// instantiate an importer for changes that happen to the image stream
+	changed := &controller.RetryController{
 		Queue: q,
 		RetryManager: controller.NewQueueRetryManager(
 			q,
@@ -46,11 +61,75 @@ func (f *ImportControllerFactory) Create() controller.RunnableController {
 				util.HandleError(err)
 				return retries.Count < 5
 			},
-			kutil.NewTokenBucketRateLimiter(1, 10),
+			util.NewTokenBucketRateLimiter(1, 10),
 		),
-		Handle: func(obj interface{}) error {
-			r := obj.(*api.ImageStream)
-			return c.Next(r)
+		Handle: b.Handle,
+	}
+
+	return changed, b.scheduler
+}
+
+type uniqueItem struct {
+	uid             string
+	resourceVersion string
+}
+
+// scheduled watches for changes to image streams and adds them to the list of streams to be
+// periodically imported (later) or directly imported (now).
+type scheduled struct {
+	scheduler   *controller.Scheduler
+	rateLimiter util.RateLimiter
+	controller  *ImportController
+}
+
+// newScheduled initializes a scheduled import object and sets its scheduler. Limiter is optional.
+func newScheduled(client client.ImageStreamsNamespacer, buckets int, bucketLimiter, importLimiter util.RateLimiter) *scheduled {
+	b := &scheduled{
+		rateLimiter: importLimiter,
+		controller: &ImportController{
+			streams: client,
 		},
 	}
+	b.scheduler = controller.NewScheduler(buckets, bucketLimiter, b.HandleTimed)
+	return b
+}
+
+// Handle ensures an image stream is checked for scheduling and then runs a direct import
+func (b *scheduled) Handle(obj interface{}) error {
+	stream := obj.(*api.ImageStream)
+	if needsScheduling(stream) {
+		key, _ := cache.MetaNamespaceKeyFunc(stream)
+		b.scheduler.Add(key, uniqueItem{uid: string(stream.UID), resourceVersion: stream.ResourceVersion})
+	}
+	return b.controller.Next(stream, b)
+}
+
+// HandleTimed is invoked when a key is ready to be processed.
+func (b *scheduled) HandleTimed(key, value interface{}) {
+	glog.V(5).Infof("DEBUG: checking %s", key)
+	if b.rateLimiter != nil && !b.rateLimiter.TryAccept() {
+		glog.V(5).Infof("DEBUG: check of %s exceeded rate limit, will retry later", key)
+		return
+	}
+	namespace, name, _ := cache.SplitMetaNamespaceKey(key.(string))
+	if err := b.controller.NextTimedByName(namespace, name); err != nil {
+		// the stream cannot be imported
+		if err == ErrNotImportable {
+			// value must match to be removed, so we avoid races against creation by ensuring that we only
+			// remove the stream if the uid and resource version in the scheduler are exactly the same.
+			b.scheduler.Remove(key, value)
+			return
+		}
+		util.HandleError(err)
+		return
+	}
+}
+
+// Importing is invoked when the controller decides to import a stream in order to push back
+// the next schedule time.
+func (b *scheduled) Importing(stream *api.ImageStream) {
+	glog.V(5).Infof("DEBUG: stream %s was just imported", stream.Name)
+	// Push the current key back to the end of the queue because it's just been imported
+	key, _ := cache.MetaNamespaceKeyFunc(stream)
+	b.scheduler.Delay(key)
 }

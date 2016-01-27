@@ -6,6 +6,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util"
 
@@ -275,7 +276,7 @@ func TestControllerStart(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := c.Next(test.stream); err != nil {
+		if err := c.Next(test.stream, nil); err != nil {
 			t.Errorf("%d: unexpected error: %v", i, err)
 		}
 		if test.run {
@@ -313,7 +314,7 @@ func TestControllerExternalRepo(t *testing.T) {
 			},
 		},
 	}
-	if err := c.Next(&stream); err != nil {
+	if err := c.Next(&stream, nil); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	actions := fake.Actions()
@@ -322,5 +323,102 @@ func TestControllerExternalRepo(t *testing.T) {
 	}
 	if !actions[0].Matches("create", "imagestreamimports") {
 		t.Errorf("expected a create action: %#v", actions)
+	}
+}
+
+func TestScheduledImport(t *testing.T) {
+	fake := &client.Fake{}
+	b := newScheduled(fake, 1, nil, nil)
+
+	one := int64(1)
+	stream := &api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "test", Namespace: "other", UID: "1", ResourceVersion: "1",
+			Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: "done"},
+			Generation:  1,
+		},
+		Spec: api.ImageStreamSpec{
+			Tags: map[string]api.TagReference{
+				"default": {
+					From:         &kapi.ObjectReference{Kind: "DockerImage", Name: "mysql:latest"},
+					Generation:   &one,
+					ImportPolicy: api.TagImportPolicy{Scheduled: true},
+				},
+			},
+		},
+		Status: api.ImageStreamStatus{
+			Tags: map[string]api.TagEventList{
+				"default": {Items: []api.TagEvent{{Generation: 1}}},
+			},
+		},
+	}
+	successfulImport := &api.ImageStreamImport{
+		ObjectMeta: kapi.ObjectMeta{Name: "test"},
+		Spec: api.ImageStreamImportSpec{
+			Import: true,
+			Images: []api.ImageImportSpec{{From: kapi.ObjectReference{Kind: "DockerImage", Name: "mysql:latest"}}},
+		},
+		Status: api.ImageStreamImportStatus{
+			Images: []api.ImageImportStatus{{
+				Status: unversioned.Status{Status: unversioned.StatusSuccess},
+				Image:  &api.Image{},
+			}},
+		},
+	}
+
+	// queue, but don't import the stream
+	if err := b.Handle(stream); err != nil {
+		t.Fatal(err)
+	}
+	if b.scheduler.Len() != 1 {
+		t.Fatalf("should have scheduled: %#v", b.scheduler)
+	}
+	if len(fake.Actions()) != 0 {
+		t.Fatalf("should have made no calls: %#v", fake)
+	}
+
+	// run a background import
+	fake = client.NewSimpleFake(stream, successfulImport)
+	b.controller.streams = fake
+	b.scheduler.RunOnce()
+	if b.scheduler.Len() != 1 {
+		t.Fatalf("should have left item in scheduler: %#v", b.scheduler)
+	}
+	if len(fake.Actions()) != 2 || !fake.Actions()[0].Matches("get", "imagestreams") || !fake.Actions()[1].Matches("create", "imagestreamimports") {
+		t.Fatalf("invalid actions: %#v", fake.Actions())
+	}
+	var key, value interface{}
+	for k, v := range b.scheduler.Map() {
+		key, value = k, v
+		break
+	}
+
+	// encountering a not found error for image streams should drop the controller
+	status := apierrs.NewNotFound("imageStreams", "test").(*apierrs.StatusError).ErrStatus
+	fake = client.NewSimpleFake(&status)
+	b.controller.streams = fake
+	b.scheduler.RunOnce()
+	if b.scheduler.Len() != 0 {
+		t.Fatalf("should have removed item in scheduler: %#v", b.scheduler)
+	}
+	if len(fake.Actions()) != 1 || !fake.Actions()[0].Matches("get", "imagestreams") {
+		t.Fatalf("invalid actions: %#v", fake.Actions())
+	}
+
+	// requeue the stream with a new resource version
+	stream.ResourceVersion = "2"
+	if err := b.Handle(stream); err != nil {
+		t.Fatal(err)
+	}
+	if b.scheduler.Len() != 1 {
+		t.Fatalf("should have scheduled: %#v", b.scheduler)
+	}
+
+	// simulate a race where another caller attempts to dequeue the item
+	if b.scheduler.Remove(key, value) {
+		t.Fatalf("should not have removed %s: %#v", key, b.scheduler)
+	}
+	if b.scheduler.Len() != 1 {
+		t.Fatalf("should have left scheduled: %#v", b.scheduler)
 	}
 }
