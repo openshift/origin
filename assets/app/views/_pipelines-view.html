@@ -1,0 +1,104 @@
+<!--
+  Expects
+
+  services
+  deploymentConfigsByService
+  deploymentsByServiceByDeploymentConfig
+
+ -->
+
+<!--
+<div ng-repeat="imageStream in imageStreams track by (imageStream | uid)">
+  {{imageStream.metadata.name}}
+</div>
+-->
+
+<div class="pipelines container-fluid container-cards-pf" ng-repeat="(serviceId, service) in services">
+  <div class="row row-cards-pf">
+    <div class="pipeline-stage col-xs-6 col-sm-4 col-md-4">
+      <div class="card-pf card-pf-aggregate-status">
+        <h2 class="card-pf-title">
+          0 Ipsum
+        </h2>
+        <div class="card-pf-body">
+          <p class="card-pf-aggregate-status-notifications">
+            <span class="card-pf-aggregate-status-notification"><span class="pficon pficon-ok"></span></span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector">
+      &rarr;
+    </div>
+
+    <div class="pipeline-stage col-xs-6 col-sm-4 col-md-4" ng-repeat="(deploymentConfigId, deploymentConfig) in deploymentConfigsByService[serviceId]">
+      <div ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig[serviceId]">
+        <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)">
+          <div>{{deployment.metadata.name}}</div>
+        </div>
+      </div>
+
+      <div class="card-pf card-pf-aggregate-status">
+        <h2 class="card-pf-title">
+          Deployment <a href="#">{{deploymentConfig.metadata.name}}</a>
+        </h2>
+        <div class="card-pf-body">
+          <p class="card-pf-aggregate-status-notifications">
+            <span class="card-pf-aggregate-status-notification"><span class="pficon pficon-running"></span></span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector">
+      &rarr;
+    </div>
+
+    <div class="pipeline-stage col-xs-6 col-sm-4 col-md-4">
+      <div class="card-pf card-pf-aggregate-status">
+        <h2 class="card-pf-title">
+          Service <a href="#">{{service.metadata.name}}</a>
+        </h2>
+        <div class="card-pf-body">
+           <p class="card-pf-aggregate-status-notifications">
+            <span class="card-pf-aggregate-status-notification"><span class="pficon pficon-ok"></span></span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div><!-- /row -->
+</div><!-- /container -->
+
+<script src="bower_components/patternfly/components/matchHeight/jquery.matchHeight-min.js"></script>
+<script>
+  $(function() {
+    // matchHeight the contents of each .card-pf and then the .card-pf itself
+    $(".row-cards-pf > [class*='col'] > .card-pf .card-pf-title").matchHeight();
+    $(".row-cards-pf > [class*='col'] > .card-pf > .card-pf-body").matchHeight();
+    $(".row-cards-pf > [class*='col'] > .card-pf > .card-pf-footer").matchHeight();
+    $(".row-cards-pf > [class*='col'] > .card-pf").matchHeight();
+  });
+</script>
+
+<!--
+<h2>Debug</h2>
+
+<div ng-repeat="(serviceId, service) in services">
+  <h3>Service {{service.metadata.name}}</h3>
+  <pre>
+{{service | json}}</pre>
+  <div ng-repeat="(deploymentConfigId, deploymentConfig) in deploymentConfigsByService[serviceId]">
+    <h4>Deployment config {{deploymentConfig.metadata.name}}</h4>
+    <pre>
+{{deploymentConfig | json}}</pre>
+    <div ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig[serviceId]">
+      <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)">
+        <h5>Deployment {{deployment.metadata.name}}</h5>
+        <pre>
+  {{deployment | json}}</pre>
+      </div>
+    </div>
+  </div>
+</div>
+-->

@@ -166,7 +166,8 @@ angular.module('openshiftConsole')
         });
       }
     };
-  }).directive('onEnter', function(){
+  })
+  .directive('onEnter', function(){
     return function (scope, element, attrs) {
       element.bind("keydown keypress", function (event) {
         if(event.which === 13 && !scope.form.$invalid) {
@@ -176,5 +177,18 @@ angular.module('openshiftConsole')
           event.preventDefault();
         }
       });
+    };
+  })
+  .directive('elementReady', function($parse) {
+    return {
+      restrict: 'A',
+      link: function(scope, elem, attrs) {    
+        elem.ready(function(){
+          scope.$apply(function(){
+            var func = $parse(attrs.elemReady);
+            func(scope);
+          });
+        });
+      }
     };
   });

@@ -14,6 +14,7 @@ angular.module('openshiftConsole')
                         DataService,
                         DeploymentsService,
                         ProjectsService,
+                        PipelinesService,
                         annotationFilter,
                         hashSizeFilter,
                         imageObjectRefFilter,
@@ -40,6 +41,9 @@ angular.module('openshiftConsole')
     // Initialize to undefined so we know when deployment configs are actually loaded.
     $scope.deploymentConfigs = undefined;
     $scope.builds = {};
+    $scope.buildConfigs = {};
+    $scope.buildsByBuildConfig = {};
+
     $scope.imageStreams = {};
     $scope.imagesByDockerReference = {};
     $scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream
@@ -73,7 +77,7 @@ angular.module('openshiftConsole')
     $scope.renderOptions.showToolbar = false;
     $scope.renderOptions.showSidebarRight = false;
     $scope.renderOptions.showGetStarted = false;
-    $scope.overviewMode = 'tiles';
+    $scope.overviewMode = 'pipelines';
     $scope.routeWarningsByService = {};
 
     // Make sure only one deployment per deployment config is scalable on the overview page.
@@ -100,8 +104,15 @@ angular.module('openshiftConsole')
     $scope.topologyItems = { };
     $scope.topologyRelations = [ ];
 
+    $scope.pipelines = {};
+
     var intervals = [];
     var watches = [];
+
+    var orderByDate = $filter('orderObjectsByDate');
+    var isRecentDeployment = $filter('isRecentDeployment');
+    var buildForImage = $filter('buildForImage');
+    var label = $filter('label');
 
     ProjectsService
       .get($routeParams.project)
@@ -196,7 +207,6 @@ angular.module('openshiftConsole')
             svcSelectors[svcName] = new LabelSelector(service.spec.selector);
             $scope.podsByService[svcName] = {};
           });
-
 
           angular.forEach($scope.pods, function(pod, name){
             var deployments = [];
@@ -423,7 +433,21 @@ angular.module('openshiftConsole')
           intervals.push($interval(updateRecentBuildsByOutputImage, 5 * 60 * 1000)); // prune the list every 5 minutes
 
           updateTopologyLater();
+
+          $scope.buildsByBuildConfig = {};
+          angular.forEach($scope.builds, function(build){
+            var bcName = labelFilter(build, "openshift.io/build-config.name");
+            $scope.buildsByBuildConfig[bcName] = $scope.buildsByBuildConfig[bcName]  || [];
+            $scope.buildsByBuildConfig[bcName].push(build);
+          });
+
           Logger.log("builds (subscribe)", $scope.builds);
+        }));
+
+        // Sets up subscription for buildConfigs
+        watches.push(DataService.watch("buildconfigs", context, function(buildConfigs) {
+          $scope.buildConfigs = buildConfigs.by("metadata.name");
+          Logger.log("buildconfigs (subscribe)", $scope.buildConfigs);
         }));
 
         // Show the "Get Started" message if the project is empty.
@@ -460,9 +484,92 @@ angular.module('openshiftConsole')
           });
         });
 
+        function updatePipelinesNow() {
+          updatePipelinesTimeout = null;
+
+          angular.forEach($scope.services, function(service, serviceName) {
+            var pipeline = PipelinesService.newPipeline();
+
+            // services
+            var svcId = "service/" + serviceName;
+            var svcStage = PipelinesService.newStage(svcId, service, "service");
+            pipeline.addStage(svcStage);
+
+            // deployments
+            var deploymentConfigs = $scope.deploymentsByServiceByDeploymentConfig[serviceName];
+            angular.forEach(deploymentConfigs, function(deployments, deploymentConfigName) {
+              angular.forEach(orderByDate(deployments, true), function(deployment) {
+                if (isVisibleDeployment(deployment)) {
+                  var deploymentId = "dc/" + deploymentConfigName + "/deployment/" + deployment.metadata.name;
+                  var deploymentStage = PipelinesService.newStage(deploymentId, deployment, "deployment");
+                  deploymentStage.connectTo(svcStage);
+                  pipeline.addStage(deploymentStage);
+
+                  // builds
+                  angular.forEach(deployment.spec.template.spec.containers, function(container) {
+                    if (container.image) {
+                      var image = $scope.imagesByDockerReference[container.image];
+                      if (image) {
+                        var build = buildForImage(image, $scope.builds);
+                        var buildConfigName = label(build, 'openshift.io/build-config.name');
+
+                        var buildId = "bc/" + buildConfigName + "/build/" + build.metadata.name;
+                        var buildStage = PipelinesService.newStage(buildId, build, "build");
+                        buildStage.connectTo(deploymentStage);
+                        pipeline.addStage(buildStage);
+                      }
+                    }
+                  });
+                }
+              });
+
+            });
+
+            $scope.pipelines[serviceName] = pipeline;
+          });
+        }
+
+        var updatePipelinesTimeout = null;
+
+        function updatePipelines() {
+          if (!updatePipelinesTimeout) {
+            updatePipelinesTimeout = window.setTimeout(updatePipelinesNow, 500);
+          }
+        }
+
+        function isVisibleDeployment(deployment) {
+          // If this is a replication controller and not a deployment, then it's visible.
+          var dcName = annotationFilter(deployment, 'deploymentConfig');
+          if (!dcName) {
+            return true;
+          }
+
+          // If the deployment is active, it's visible.
+          if (hashSizeFilter($scope.podsByDeployment[deployment.metadata.name]) > 0) {
+            return true;
+          }
+
+          // Wait for deployment configs to load.
+          if (!$scope.deploymentConfigs) {
+            return false;
+          }
+
+          // If the deployment config has been deleted and the deployment has no replicas, hide it.
+          // Otherwise all old deployments for a deleted deployment config will be visible.
+          var dc = $scope.deploymentConfigs[dcName];
+          if (!dc) {
+            return false;
+          }
+
+          // Show the deployment if it's recent (latest or in progress) or if it's scalable.
+          return isRecentDeployment(deployment, dc) || $scope.isScalable(deployment, dcName);
+        }
+
         var updateTimeout = null;
 
         function updateTopology() {
+          updatePipelines();
+
           updateTimeout = null;
 
           var topologyRelations = [];
@@ -478,34 +585,7 @@ angular.module('openshiftConsole')
             topologyItems[makeId(service)] = service;
           });
 
-          var isRecentDeployment = $filter('isRecentDeployment');
-          $scope.isVisibleDeployment = function(deployment) {
-            // If this is a replication controller and not a deployment, then it's visible.
-            var dcName = annotationFilter(deployment, 'deploymentConfig');
-            if (!dcName) {
-              return true;
-            }
-
-            // If the deployment is active, it's visible.
-            if (hashSizeFilter($scope.podsByDeployment[deployment.metadata.name]) > 0) {
-              return true;
-            }
-
-            // Wait for deployment configs to load.
-            if (!$scope.deploymentConfigs) {
-              return false;
-            }
-
-            // If the deployment config has been deleted and the deployment has no replicas, hide it.
-            // Otherwise all old deployments for a deleted deployment config will be visible.
-            var dc = $scope.deploymentConfigs[dcName];
-            if (!dc) {
-              return false;
-            }
-
-            // Show the deployment if it's recent (latest or in progress) or if it's scalable.
-            return isRecentDeployment(deployment, dc) || $scope.isScalable(deployment, dcName);
-          };
+          $scope.isVisibleDeployment = isVisibleDeployment;
 
           // Add everything related to services, each of these tables are in
           // standard form with string keys, pointing to a map of further
@@ -566,9 +646,9 @@ angular.module('openshiftConsole')
 
           // Link deployment configs to their deployment
           angular.forEach($scope.deployments, function(deployment, deploymentName) {
-      var deploymentConfig, annotations = deployment.metadata.annotations || {};
-      var deploymentConfigName = annotations["openshift.io/deployment-config.name"] || deploymentName;
-      if (deploymentConfigName && $scope.deploymentConfigs) {
+            var deploymentConfig, annotations = deployment.metadata.annotations || {};
+            var deploymentConfigName = annotations["openshift.io/deployment-config.name"] || deploymentName;
+            if (deploymentConfigName && $scope.deploymentConfigs) {
               deploymentConfig = $scope.deploymentConfigs[deploymentConfigName];
               if (deploymentConfig) {
                 topologyRelations.push({ source: makeId(deploymentConfig), target: makeId(deployment) });
@@ -580,6 +660,8 @@ angular.module('openshiftConsole')
             $scope.topologyItems = topologyItems;
             $scope.topologyRelations = topologyRelations;
           });
+
+          $scope.matchElementsHeight();
         }
 
         function updateTopologyLater() {
@@ -603,6 +685,28 @@ angular.module('openshiftConsole')
           $scope.topologySelection = resource;
         }
 
+        $scope.matchElementsHeight = function() {
+          //$(".pipeline-stage-body > .pipeline-stage-header").matchHeight();
+          //$(".pipeline-stage-body > .pipeline-stage-content").matchHeight();
+          //$(".pipeline-stage-body").matchHeight();
+          $(".pipeline-stage > .pipeline-stage-body").matchHeight();
+        };
+
+        $scope.drawConnectors = function() {
+          var pipelineStages = $('.pipeline-stage');
+          angular.forEach(pipelineStages, function(p) {
+            var elemOffset = $(p).offset();
+            var elemWidth = $(p).width();
+            var elemX = elemOffset.left + elemWidth + 1;
+            var elemY = elemOffset.top;
+            var length = 50;
+            var color = "#0F0";
+            var thickness = 5;
+            var htmlLine = "<div style='padding:0px; margin:0px; height:" + thickness + "px; background-color:" + color + "; line-height:1px; position:absolute; left:" + elemX + "px; top:" + elemY + "px; width:" + length + "px;' />"; 
+            window.document.body.innerHTML += htmlLine;
+          });
+        };
+
         ObjectDescriber.onResourceChanged(selectionChanged);
 
         // When view changes to topology, clear source of ObjectDescriber object
@@ -616,6 +720,7 @@ angular.module('openshiftConsole')
         $scope.$on('$destroy', function(){
           DataService.unwatchAll(watches);
           window.clearTimeout(updateTimeout);
+          window.clearTimeout(updatePipelinesTimeout);
           ObjectDescriber.removeResourceChangedCallback(selectionChanged);
           angular.forEach(intervals, function (interval){
             $interval.cancel(interval);
