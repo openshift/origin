@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	scc "github.com/openshift/origin/pkg/securitycontextconstraints"
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
@@ -14,7 +15,6 @@ import (
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/runtime"
 	sc "k8s.io/kubernetes/pkg/securitycontext"
-	scc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 

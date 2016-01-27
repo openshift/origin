@@ -59,11 +59,11 @@ func TestMustRunAsGenerate(t *testing.T) {
 	}
 	mustRunAs, err := NewMustRunAs(opts)
 	if err != nil {
-		t.Fatal("unexpected error initializing NewMustRunAs %v", err)
+		t.Fatalf("unexpected error initializing NewMustRunAs %v", err)
 	}
 	generated, err := mustRunAs.Generate(nil, nil)
 	if err != nil {
-		t.Fatal("unexpected error generating selinux %v", err)
+		t.Fatalf("unexpected error generating selinux %v", err)
 	}
 	if !reflect.DeepEqual(generated, opts.SELinuxOptions) {
 		t.Errorf("generated selinux does not equal configured selinux")
