@@ -1,9 +1,8 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -25,8 +24,8 @@ func (c *FakeRoutes) Get(name string) (*routeapi.Route, error) {
 	return obj.(*routeapi.Route), err
 }
 
-func (c *FakeRoutes) List(label labels.Selector, field fields.Selector) (*routeapi.RouteList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewListAction("routes", c.Namespace, label, field), &routeapi.RouteList{})
+func (c *FakeRoutes) List(opts kapi.ListOptions) (*routeapi.RouteList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("routes", c.Namespace, opts), &routeapi.RouteList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -57,6 +56,6 @@ func (c *FakeRoutes) Delete(name string) error {
 	return err
 }
 
-func (c *FakeRoutes) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("routes", c.Namespace, label, field, resourceVersion))
+func (c *FakeRoutes) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("routes", c.Namespace, opts))
 }

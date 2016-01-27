@@ -18,7 +18,9 @@ package cinder
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -29,8 +31,13 @@ import (
 )
 
 func TestCanSupport(t *testing.T) {
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "cinderTest")
+	if err != nil {
+		t.Fatalf("can't make a temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost(tmpDir, nil, nil))
 
 	plug, err := plugMgr.FindPluginByName("kubernetes.io/cinder")
 	if err != nil {
@@ -80,8 +87,13 @@ func (fake *fakePDManager) DeleteVolume(cd *cinderVolumeDeleter) error {
 }
 
 func TestPlugin(t *testing.T) {
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "cinderTest")
+	if err != nil {
+		t.Fatalf("can't make a temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost(tmpDir, nil, nil))
 
 	plug, err := plugMgr.FindPluginByName("kubernetes.io/cinder")
 	if err != nil {
@@ -103,9 +115,9 @@ func TestPlugin(t *testing.T) {
 	if builder == nil {
 		t.Errorf("Got a nil Builder: %v")
 	}
-
+	volPath := path.Join(tmpDir, "pods/poduid/volumes/kubernetes.io~cinder/vol1")
 	path := builder.GetPath()
-	if path != "/tmp/fake/pods/poduid/volumes/kubernetes.io~cinder/vol1" {
+	if path != volPath {
 		t.Errorf("Got unexpected path: %s", path)
 	}
 

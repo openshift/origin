@@ -143,7 +143,7 @@ var map_DeploymentSpec = map[string]string{
 	"selector":       "Label selector for pods. Existing ReplicationControllers whose pods are selected by this will be the ones affected by this deployment.",
 	"template":       "Template describes the pods that will be created.",
 	"strategy":       "The deployment strategy to use to replace existing pods with new ones.",
-	"uniqueLabelKey": "Key of the selector that is added to existing RCs (and label key that is added to its pods) to prevent the existing RCs to select new pods (and old pods being selected by new RC). Users can set this to an empty string to indicate that the system should not add any selector and label. If unspecified, system uses \"deployment.kubernetes.io/podTemplateHash\". Value of this key is hash of DeploymentSpec.PodTemplateSpec. No label is added if this is set to empty string.",
+	"uniqueLabelKey": "Key of the selector that is added to existing RCs (and label key that is added to its pods) to prevent the existing RCs to select new pods (and old pods being selected by new RC). Users can set this to an empty string to indicate that the system should not add any selector and label. If unspecified, system uses DefaultDeploymentUniqueLabelKey(\"deployment.kubernetes.io/podTemplateHash\"). Value of this key is hash of DeploymentSpec.PodTemplateSpec. No label is added if this is set to empty string.",
 }
 
 func (DeploymentSpec) SwaggerDoc() map[string]string {
@@ -363,6 +363,40 @@ func (JobStatus) SwaggerDoc() map[string]string {
 	return map_JobStatus
 }
 
+var map_LabelSelector = map[string]string{
+	"":                 "A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are ANDed. An empty label selector matches all objects. A null label selector matches no objects.",
+	"matchLabels":      "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is \"key\", the operator is \"In\", and the values array contains only \"value\". The requirements are ANDed.",
+	"matchExpressions": "matchExpressions is a list of label selector requirements. The requirements are ANDed.",
+}
+
+func (LabelSelector) SwaggerDoc() map[string]string {
+	return map_LabelSelector
+}
+
+var map_LabelSelectorRequirement = map[string]string{
+	"":         "A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.",
+	"key":      "key is the label key that the selector applies to.",
+	"operator": "operator represents a key's relationship to a set of values. Valid operators ard In, NotIn, Exists and DoesNotExist.",
+	"values":   "values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.",
+}
+
+func (LabelSelectorRequirement) SwaggerDoc() map[string]string {
+	return map_LabelSelectorRequirement
+}
+
+var map_ListOptions = map[string]string{
+	"":                "ListOptions is the query options to a standard REST list call.",
+	"labelSelector":   "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+	"fieldSelector":   "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+	"watch":           "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+	"resourceVersion": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+	"timeoutSeconds":  "Timeout for the list/watch call.",
+}
+
+func (ListOptions) SwaggerDoc() map[string]string {
+	return map_ListOptions
+}
+
 var map_NodeUtilization = map[string]string{
 	"":      "NodeUtilization describes what percentage of a particular resource is used on a node.",
 	"value": "The accepted values are from 0 to 1.",
@@ -370,27 +404,6 @@ var map_NodeUtilization = map[string]string{
 
 func (NodeUtilization) SwaggerDoc() map[string]string {
 	return map_NodeUtilization
-}
-
-var map_PodSelector = map[string]string{
-	"":                 "A pod selector is a label query over a set of pods. The result of matchLabels and matchExpressions are ANDed. An empty pod selector matches all objects. A null pod selector matches no objects.",
-	"matchLabels":      "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is \"key\", the operator is \"In\", and the values array contains only \"value\". The requirements are ANDed.",
-	"matchExpressions": "matchExpressions is a list of pod selector requirements. The requirements are ANDed.",
-}
-
-func (PodSelector) SwaggerDoc() map[string]string {
-	return map_PodSelector
-}
-
-var map_PodSelectorRequirement = map[string]string{
-	"":         "A pod selector requirement is a selector that contains values, a key, and an operator that relates the key and values.",
-	"key":      "key is the label key that the selector applies to.",
-	"operator": "operator represents a key's relationship to a set of values. Valid operators ard In, NotIn, Exists and DoesNotExist.",
-	"values":   "values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.",
-}
-
-func (PodSelectorRequirement) SwaggerDoc() map[string]string {
-	return map_PodSelectorRequirement
 }
 
 var map_ReplicationControllerDummy = map[string]string{

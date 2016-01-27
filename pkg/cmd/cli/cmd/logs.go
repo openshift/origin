@@ -64,7 +64,7 @@ func NewCmdLogs(name, parent string, f *clientcmd.Factory, out io.Writer) *cobra
 	o := OpenShiftLogsOptions{
 		KubeLogOptions: &kcmd.LogsOptions{},
 	}
-	cmd := kcmd.NewCmdLog(f.Factory, out)
+	cmd := kcmd.NewCmdLogs(f.Factory, out)
 	cmd.Short = "Print the logs for a resource."
 	cmd.Long = logsLong
 	cmd.Example = fmt.Sprintf(logsExample, parent+" "+name)
@@ -109,7 +109,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 	}
 
 	version := cmdutil.GetFlagInt64(cmd, "version")
-	_, resource := meta.KindToResource(infos[0].Mapping.Kind, false)
+	_, resource := meta.KindToResource(infos[0].Mapping.GroupVersionKind.Kind, false)
 
 	// TODO: podLogOptions should be included in our own logOptions objects.
 	switch resource {
@@ -166,6 +166,6 @@ func (o OpenShiftLogsOptions) RunLog() error {
 		// Use our own options object.
 		o.KubeLogOptions.Options = o.Options
 	}
-	_, err := o.KubeLogOptions.RunLog()
+	_, err := o.KubeLogOptions.RunLogs()
 	return err
 }

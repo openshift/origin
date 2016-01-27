@@ -13,6 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
+	"k8s.io/kubernetes/pkg/kubelet/cm"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 	proxy "k8s.io/kubernetes/pkg/proxy/iptables"
@@ -152,6 +153,8 @@ func (c *NodeConfig) RunKubelet() {
 
 	// hook for overriding the cadvisor interface for integration tests
 	c.KubeletConfig.CAdvisorInterface = defaultCadvisorInterface
+	// hook for overriding the container manager interface for integration tests
+	c.KubeletConfig.ContainerManager = defaultContainerManagerInterface
 
 	go func() {
 		glog.Fatal(c.KubeletServer.Run(c.KubeletConfig))
@@ -165,6 +168,15 @@ var defaultCadvisorInterface cadvisor.Interface = nil
 // SetFakeCadvisorInterfaceForIntegrationTest sets a fake cadvisor implementation to allow the node to run in integration tests
 func SetFakeCadvisorInterfaceForIntegrationTest() {
 	defaultCadvisorInterface = &cadvisor.Fake{}
+}
+
+// defaultContainerManagerInterface holds the overridden default interface
+// exists only to allow stubbing integration tests, should always be nil in production
+var defaultContainerManagerInterface cm.ContainerManager = nil
+
+// SetFakeContainerManagerInterfaceForIntegrationTest sets a fake container manager implementation to allow the node to run in integration tests
+func SetFakeContainerManagerInterfaceForIntegrationTest() {
+	defaultContainerManagerInterface = cm.NewStubContainerManager()
 }
 
 func (c *NodeConfig) RunSDN() {
@@ -232,7 +244,7 @@ func (c *NodeConfig) RunProxy() {
 		c.FilteringEndpointsHandler.SetBaseEndpointsHandler(proxier)
 		endpointsConfig.RegisterHandler(c.FilteringEndpointsHandler)
 	}
-	recorder.Eventf(nodeRef, "Starting", "Starting kube-proxy.")
+	recorder.Eventf(nodeRef, kapi.EventTypeNormal, "Starting", "Starting kube-proxy.")
 	glog.Infof("Started Kubernetes Proxy on %s", host)
 }
 

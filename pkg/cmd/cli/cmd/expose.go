@@ -92,8 +92,8 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	mapping := info.ResourceMapping()
 
 	generator := cmdutil.GetFlagString(cmd, "generator")
-	switch mapping.Kind {
-	case "Service":
+	switch mapping.GroupVersionKind.GroupKind() {
+	case kapi.Kind("Service"):
 		switch generator {
 		case "service/v1", "service/v2":
 			// Set default protocol back for generating services
@@ -135,7 +135,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	default:
 		switch generator {
 		case "route/v1":
-			return fmt.Errorf("cannot expose a %s as a route", mapping.Kind)
+			return fmt.Errorf("cannot expose a %s as a route", mapping.GroupVersionKind.Kind)
 		case "":
 			// Default exposing everything except services as a service
 			generator = "service/v2"

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,9 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -29,35 +26,38 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-func describerMap(c *client.Client, kclient kclient.Interface, host string) map[string]kctl.Describer {
-	m := map[string]kctl.Describer{
-		"Build":                &BuildDescriber{c, kclient},
-		"BuildConfig":          &BuildConfigDescriber{c, host},
-		"DeploymentConfig":     NewDeploymentConfigDescriber(c, kclient),
-		"Identity":             &IdentityDescriber{c},
-		"Image":                &ImageDescriber{c},
-		"ImageStream":          &ImageStreamDescriber{c},
-		"ImageStreamTag":       &ImageStreamTagDescriber{c},
-		"ImageStreamImage":     &ImageStreamImageDescriber{c},
-		"Route":                &RouteDescriber{c, kclient},
-		"Project":              &ProjectDescriber{c, kclient},
-		"Template":             &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
-		"Policy":               &PolicyDescriber{c},
-		"PolicyBinding":        &PolicyBindingDescriber{c},
-		"RoleBinding":          &RoleBindingDescriber{c},
-		"Role":                 &RoleDescriber{c},
-		"ClusterPolicy":        &ClusterPolicyDescriber{c},
-		"ClusterPolicyBinding": &ClusterPolicyBindingDescriber{c},
-		"ClusterRoleBinding":   &ClusterRoleBindingDescriber{c},
-		"ClusterRole":          &ClusterRoleDescriber{c},
-		"User":                 &UserDescriber{c},
-		"Group":                &GroupDescriber{c.Groups()},
-		"UserIdentityMapping":  &UserIdentityMappingDescriber{c},
+func describerMap(c *client.Client, kclient kclient.Interface, host string) map[unversioned.GroupKind]kctl.Describer {
+	m := map[unversioned.GroupKind]kctl.Describer{
+		buildapi.Kind("Build"):                        &BuildDescriber{c, kclient},
+		buildapi.Kind("BuildConfig"):                  &BuildConfigDescriber{c, host},
+		deployapi.Kind("DeploymentConfig"):            NewDeploymentConfigDescriber(c, kclient),
+		authorizationapi.Kind("Identity"):             &IdentityDescriber{c},
+		imageapi.Kind("Image"):                        &ImageDescriber{c},
+		imageapi.Kind("ImageStream"):                  &ImageStreamDescriber{c},
+		imageapi.Kind("ImageStreamTag"):               &ImageStreamTagDescriber{c},
+		imageapi.Kind("ImageStreamImage"):             &ImageStreamImageDescriber{c},
+		routeapi.Kind("Route"):                        &RouteDescriber{c, kclient},
+		projectapi.Kind("Project"):                    &ProjectDescriber{c, kclient},
+		templateapi.Kind("Template"):                  &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
+		authorizationapi.Kind("Policy"):               &PolicyDescriber{c},
+		authorizationapi.Kind("PolicyBinding"):        &PolicyBindingDescriber{c},
+		authorizationapi.Kind("RoleBinding"):          &RoleBindingDescriber{c},
+		authorizationapi.Kind("Role"):                 &RoleDescriber{c},
+		authorizationapi.Kind("ClusterPolicy"):        &ClusterPolicyDescriber{c},
+		authorizationapi.Kind("ClusterPolicyBinding"): &ClusterPolicyBindingDescriber{c},
+		authorizationapi.Kind("ClusterRoleBinding"):   &ClusterRoleBindingDescriber{c},
+		authorizationapi.Kind("ClusterRole"):          &ClusterRoleDescriber{c},
+		userapi.Kind("User"):                          &UserDescriber{c},
+		userapi.Kind("Group"):                         &GroupDescriber{c.Groups()},
+		userapi.Kind("UserIdentityMapping"):           &UserIdentityMappingDescriber{c},
 	}
 	return m
 }
@@ -68,14 +68,14 @@ func DescribableResources() []string {
 	keys := kctl.DescribableResources()
 
 	for k := range describerMap(nil, nil, "") {
-		resource := strings.ToLower(k)
+		resource := strings.ToLower(k.Kind)
 		keys = append(keys, resource)
 	}
 	return keys
 }
 
 // DescriberFor returns a describer for a given kind of resource
-func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host string) (kctl.Describer, bool) {
+func DescriberFor(kind unversioned.GroupKind, c *client.Client, kclient kclient.Interface, host string) (kctl.Describer, bool) {
 	f, ok := describerMap(c, kclient, host)[kind]
 	if ok {
 		return f, true
@@ -380,7 +380,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	buildList, err := d.Builds(namespace).List(labels.Everything(), fields.Everything())
+	buildList, err := d.Builds(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -652,12 +652,12 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 	resourceQuotasClient := d.kubeClient.ResourceQuotas(name)
-	resourceQuotaList, err := resourceQuotasClient.List(labels.Everything(), fields.Everything())
+	resourceQuotaList, err := resourceQuotasClient.List(kapi.ListOptions{})
 	if err != nil {
 		return "", err
 	}
 	limitRangesClient := d.kubeClient.LimitRanges(name)
-	limitRangeList, err := limitRangesClient.List(labels.Everything(), fields.Everything())
+	limitRangeList, err := limitRangesClient.List(kapi.ListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -810,10 +810,10 @@ func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwr
 			continue
 		}
 
-		_, kind, _ := d.ObjectTyper.ObjectVersionAndKind(obj)
+		gvk, _ := d.ObjectTyper.ObjectKind(obj)
 		meta := kapi.ObjectMeta{}
 		meta.Name, _ = d.MetadataAccessor.Name(obj)
-		fmt.Fprintf(out, fmt.Sprintf("%s%s\t%s\n", indent, kind, meta.Name))
+		fmt.Fprintf(out, fmt.Sprintf("%s%s\t%s\n", indent, gvk.Kind, meta.Name))
 		//meta.Annotations, _ = d.MetadataAccessor.Annotations(obj)
 		//meta.Labels, _ = d.MetadataAccessor.Labels(obj)
 		/*if len(meta.Labels) > 0 {
@@ -1026,7 +1026,7 @@ func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 		formatString(out, "Last Modified", policy.LastModified)
 
 		// using .List() here because I always want the sorted order that it provides
-		for _, key := range sets.KeySet(reflect.ValueOf(policy.Roles)).List() {
+		for _, key := range sets.StringKeySet(policy.Roles).List() {
 			role := policy.Roles[key]
 			fmt.Fprint(out, key+"\t"+policyRuleHeadings+"\n")
 			for _, rule := range role.Rules {
@@ -1046,7 +1046,7 @@ func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule,
 		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions.Object)
 
 		buffer := new(bytes.Buffer)
-		printer := NewHumanReadablePrinter(true, false, false, false, []string{})
+		printer := NewHumanReadablePrinter(true, false, false, false, false, []string{})
 		if err := printer.PrintObj(rule.AttributeRestrictions.Object, buffer); err == nil {
 			extensionString = strings.TrimSpace(buffer.String())
 		}
@@ -1116,7 +1116,7 @@ func DescribePolicyBinding(policyBinding *authorizationapi.PolicyBinding) (strin
 		formatString(out, "Policy", policyBinding.PolicyRef.Namespace)
 
 		// using .List() here because I always want the sorted order that it provides
-		for _, key := range sets.KeySet(reflect.ValueOf(policyBinding.RoleBindings)).List() {
+		for _, key := range sets.StringKeySet(policyBinding.RoleBindings).List() {
 			roleBinding := policyBinding.RoleBindings[key]
 			users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
 

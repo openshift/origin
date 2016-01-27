@@ -42,7 +42,7 @@ func (d MasterConfigCheck) Check() types.DiagnosticResult {
 
 	r.Info("DH0003", fmt.Sprintf("Found a master config file: %[1]s", d.MasterConfigFile))
 
-	results := configvalidation.ValidateMasterConfig(masterConfig)
+	results := configvalidation.ValidateMasterConfig(masterConfig, nil)
 	if len(results.Errors) > 0 {
 		errText := fmt.Sprintf("Validation of master config file '%s' failed:\n", d.MasterConfigFile)
 		for _, err := range results.Errors {

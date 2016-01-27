@@ -5,9 +5,8 @@ package integration
 import (
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
@@ -41,7 +40,7 @@ func TestOAuthDisabled(t *testing.T) {
 	}
 
 	// Make sure cert auth still works
-	namespaces, err := client.Namespaces().List(labels.Everything(), fields.Everything())
+	namespaces, err := client.Namespaces().List(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}

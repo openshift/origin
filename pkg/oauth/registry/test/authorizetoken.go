@@ -2,7 +2,7 @@ package test
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 )
@@ -14,7 +14,7 @@ type AuthorizeTokenRegistry struct {
 	DeletedAuthorizeTokenName string
 }
 
-func (r *AuthorizeTokenRegistry) ListAuthorizeTokens(ctx kapi.Context, labels labels.Selector) (*api.OAuthAuthorizeTokenList, error) {
+func (r *AuthorizeTokenRegistry) ListAuthorizeTokens(ctx kapi.Context, options *unversioned.ListOptions) (*api.OAuthAuthorizeTokenList, error) {
 	return r.AuthorizeTokens, r.Err
 }
 

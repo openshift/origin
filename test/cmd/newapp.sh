@@ -115,9 +115,9 @@ os::cmd::expect_success_and_text 'oc new-app https://github.com/openshift/ruby-h
 
 os::cmd::expect_success 'oc delete imageStreams --all'
 # check that we can create from the template without errors
-os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -l app=helloworld' 'Service "frontend" created'
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -l app=helloworld' 'service "frontend" created'
 os::cmd::expect_success 'oc delete all -l app=helloworld'
-os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -l app=helloworld -o name' 'Service/frontend'
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -l app=helloworld -o name' 'service/frontend'
 os::cmd::expect_success 'oc delete all -l app=helloworld'
 # create from template with code explicitly set is not supported
 os::cmd::expect_failure 'oc new-app ruby-helloworld-sample~git@github.com:mfojtik/sinatra-app-example'

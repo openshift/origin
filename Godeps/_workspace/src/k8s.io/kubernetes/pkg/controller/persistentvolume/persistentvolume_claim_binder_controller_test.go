@@ -262,7 +262,6 @@ func TestExampleObjects(t *testing.T) {
 }
 
 func TestBindingWithExamples(t *testing.T) {
-	api.ForTesting_ReferencesAllowBlankSelfLinks = true
 	o := testclient.NewObjects(api.Scheme, api.Scheme)
 	if err := testclient.AddObjectsFromPath("../../../docs/user-guide/persistent-volumes/claims/claim-01.yaml", o, api.Scheme); err != nil {
 		t.Fatal(err)
@@ -443,6 +442,7 @@ func newMockRecycler(spec *volume.Spec, host volume.VolumeHost, config volume.Vo
 type mockRecycler struct {
 	path string
 	host volume.VolumeHost
+	volume.MetricsNil
 }
 
 func (r *mockRecycler) GetPath() string {

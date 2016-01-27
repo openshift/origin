@@ -18,7 +18,7 @@ package capabilities
 
 import (
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // CapabilitiesSecurityContextConstraintsStrategy defines the interface for all cap constraint strategies.
@@ -26,5 +26,5 @@ type CapabilitiesSecurityContextConstraintsStrategy interface {
 	// Generate creates the capabilities based on policy rules.
 	Generate(pod *api.Pod, container *api.Container) (*api.Capabilities, error)
 	// Validate ensures that the specified values fall within the range of the strategy.
-	Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList
+	Validate(pod *api.Pod, container *api.Container) field.ErrorList
 }

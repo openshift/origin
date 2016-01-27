@@ -1,9 +1,8 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -24,8 +23,8 @@ func (c *FakeRoles) Get(name string) (*authorizationapi.Role, error) {
 	return obj.(*authorizationapi.Role), err
 }
 
-func (c *FakeRoles) List(label labels.Selector, field fields.Selector) (*authorizationapi.RoleList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewListAction("roles", c.Namespace, label, field), &authorizationapi.RoleList{})
+func (c *FakeRoles) List(opts kapi.ListOptions) (*authorizationapi.RoleList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("roles", c.Namespace, opts), &authorizationapi.RoleList{})
 	if obj == nil {
 		return nil, err
 	}

@@ -17,7 +17,7 @@ limitations under the License.
 package dockertools
 
 import (
-	cadvisorApi "github.com/google/cadvisor/info/v1"
+	cadvisorapi "github.com/google/cadvisor/info/v1"
 	"k8s.io/kubernetes/pkg/client/record"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/network"
@@ -33,7 +33,7 @@ func NewFakeDockerManager(
 	recorder record.EventRecorder,
 	livenessManager proberesults.Manager,
 	containerRefManager *kubecontainer.RefManager,
-	machineInfo *cadvisorApi.MachineInfo,
+	machineInfo *cadvisorapi.MachineInfo,
 	podInfraContainerImage string,
 	qps float32,
 	burst int,
@@ -44,7 +44,7 @@ func NewFakeDockerManager(
 	httpClient kubetypes.HttpGetter, imageBackOff *util.Backoff) *DockerManager {
 
 	fakeOOMAdjuster := oom.NewFakeOOMAdjuster()
-	fakeProcFs := procfs.NewFakeProcFs()
+	fakeProcFs := procfs.NewFakeProcFS()
 	dm := NewDockerManager(client, recorder, livenessManager, containerRefManager, machineInfo, podInfraContainerImage, qps,
 		burst, containerLogsDir, osInterface, networkPlugin, generator, httpClient, &NativeExecHandler{},
 		fakeOOMAdjuster, fakeProcFs, false, imageBackOff, true)

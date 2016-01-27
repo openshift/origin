@@ -86,7 +86,7 @@ func TestDNS(t *testing.T) {
 	}
 	found := false
 	for _, port := range kubernetesService.Spec.Ports {
-		if port.Port == 53 && port.TargetPort.IntVal == dnsPort && port.Protocol == kapi.ProtocolTCP {
+		if port.Port == 53 && port.TargetPort.IntVal == int32(dnsPort) && port.Protocol == kapi.ProtocolTCP {
 			found = true
 		}
 	}

@@ -11,18 +11,24 @@ import (
 
 	"github.com/golang/glog"
 
+	etcdclient "github.com/coreos/go-etcd/etcd"
+
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapilatest "k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/storage"
+	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -59,7 +65,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
-	kubeletClient, err := kclient.NewKubeletClient(kubeletClientConfig)
+	kubeletClient, err := kubeletclient.NewStaticKubeletClient(kubeletClientConfig)
 	if err != nil {
 		return nil, fmt.Errorf("unable to configure Kubelet client: %v", err)
 	}
@@ -184,9 +190,9 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	storageVersions := map[string]string{}
 
 	enabledKubeVersions := configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, configapi.APIGroupKube)
-	enabledKubeVersionSet := sets.NewString(enabledKubeVersions...)
 	if len(enabledKubeVersions) > 0 {
-		databaseStorage, err := master.NewEtcdStorage(etcdClient, kapilatest.InterfacesForLegacyGroup, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+		kubeStorageVersion := unversioned.GroupVersion{Group: configapi.APIGroupKube, Version: options.EtcdStorageConfig.KubernetesStorageVersion}
+		databaseStorage, err := NewEtcdStorage(etcdClient, kubeStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
 		if err != nil {
 			return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
@@ -201,7 +207,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			return nil, fmt.Errorf("Error setting up Kubernetes extensions server storage: %v", err)
 		}
 		// TODO expose storage version options for api groups
-		databaseStorage, err := master.NewEtcdStorage(etcdClient, groupMeta.InterfacesFor, groupMeta.GroupVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+		databaseStorage, err := NewEtcdStorage(etcdClient, groupMeta.GroupVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
 		if err != nil {
 			return nil, fmt.Errorf("Error setting up Kubernetes extensions server storage: %v", err)
 		}
@@ -209,8 +215,20 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		storageVersions[configapi.APIGroupExtensions] = enabledExtensionsVersions[0]
 	}
 
+	// Preserve previous behavior of using the first non-loopback address
+	// TODO: Deprecate this behavior and just require a valid value to be passed in
+	publicAddress := net.ParseIP(options.KubernetesMasterConfig.MasterIP)
+	if publicAddress == nil || publicAddress.IsUnspecified() || publicAddress.IsLoopback() {
+		hostIP, err := util.ChooseHostInterface()
+		if err != nil {
+			glog.Fatalf("Unable to find suitable network address.error='%v'. Set the masterIP directly to avoid this error.", err)
+		}
+		publicAddress = hostIP
+		glog.Infof("Will report %v as public IP address.", publicAddress)
+	}
+
 	m := &master.Config{
-		PublicAddress: net.ParseIP(options.KubernetesMasterConfig.MasterIP),
+		PublicAddress: publicAddress,
 		ReadWritePort: port,
 
 		StorageDestinations: storageDestinations,
@@ -235,8 +253,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
 		AdmissionControl: admissionController,
 
-		EnableExp: len(enabledExtensionsVersions) > 0,
-		DisableV1: !enabledKubeVersionSet.Has("v1"),
+		APIGroupVersionOverrides: getAPIGroupVersionOverrides(options),
 
 		// Set the TLS options for proxying to pods and services
 		// Proxying to nodes uses the kubeletClient TLS config (so can provide a different cert, and verify the node hostname)
@@ -246,9 +263,6 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			Certificates:       proxyClientCerts,
 		},
 	}
-
-	// set for consistency -- Origin only used m.EnableExp
-	cmserver.EnableExperimental = m.EnableExp
 
 	if options.DNSConfig != nil {
 		_, dnsPortStr, err := net.SplitHostPort(options.DNSConfig.BindAddress)
@@ -260,8 +274,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			return nil, fmt.Errorf("invalid DNS port: %v", err)
 		}
 		m.ExtraServicePorts = append(m.ExtraServicePorts,
-			kapi.ServicePort{Name: "dns", Port: 53, Protocol: kapi.ProtocolUDP, TargetPort: util.NewIntOrStringFromInt(dnsPort)},
-			kapi.ServicePort{Name: "dns-tcp", Port: 53, Protocol: kapi.ProtocolTCP, TargetPort: util.NewIntOrStringFromInt(dnsPort)},
+			kapi.ServicePort{Name: "dns", Port: 53, Protocol: kapi.ProtocolUDP, TargetPort: intstr.FromInt(dnsPort)},
+			kapi.ServicePort{Name: "dns-tcp", Port: 53, Protocol: kapi.ProtocolTCP, TargetPort: intstr.FromInt(dnsPort)},
 		)
 		m.ExtraEndpointPorts = append(m.ExtraEndpointPorts,
 			kapi.EndpointPort{Name: "dns", Port: dnsPort, Protocol: kapi.ProtocolUDP},
@@ -279,4 +293,34 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	return kmaster, nil
+}
+
+// getAPIGroupVersionOverrides builds the overrides in the format expected by master.Config.APIGroupVersionOverrides
+func getAPIGroupVersionOverrides(options configapi.MasterConfig) map[string]master.APIGroupVersionOverride {
+	apiGroupVersionOverrides := map[string]master.APIGroupVersionOverride{}
+	for group := range options.KubernetesMasterConfig.DisabledAPIGroupVersions {
+		for _, version := range configapi.GetDisabledAPIVersionsForGroup(*options.KubernetesMasterConfig, group) {
+			gv := unversioned.GroupVersion{Group: group, Version: version}
+			if group == "" {
+				// TODO: when rebasing, check the parseRuntimeConfig impl to make sure we're still building the right magic container
+				// Create "disabled" key for v1 identically to k8s.io/kubernetes/cmd/kube-apiserver/app/server.go#parseRuntimeConfig
+				gv.Group = "api"
+			}
+			apiGroupVersionOverrides[gv.String()] = master.APIGroupVersionOverride{Disable: true}
+		}
+	}
+	return apiGroupVersionOverrides
+}
+
+// NewEtcdStorage returns a storage interface for the provided storage version.
+func NewEtcdStorage(client *etcdclient.Client, version unversioned.GroupVersion, prefix string) (helper storage.Interface, err error) {
+	group, err := kapilatest.Group(version.Group)
+	if err != nil {
+		return nil, err
+	}
+	interfaces, err := group.InterfacesFor(version)
+	if err != nil {
+		return nil, err
+	}
+	return etcdstorage.NewEtcdStorage(client, interfaces.Codec, prefix), nil
 }

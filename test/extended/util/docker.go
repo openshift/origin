@@ -9,9 +9,8 @@ import (
 	gson "encoding/json"
 	dockerClient "github.com/fsouza/go-dockerclient"
 	tutil "github.com/openshift/origin/test/util"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/credentialprovider"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 //TagImage will apply the "tagor" tag string to the image current tagged by "tagee"
@@ -57,7 +56,7 @@ func PushImage(name string, authCfg dockerClient.AuthConfiguration) error {
 //BuildAuthConfiguration constructs a non-standard dockerClient.AuthConfiguration that can be used to communicate with the openshift internal docker registry
 func BuildAuthConfiguration(credKey string, oc *CLI) (*dockerClient.AuthConfiguration, error) {
 	authCfg := &dockerClient.AuthConfiguration{}
-	secretList, err := oc.AdminKubeREST().Secrets(oc.Namespace()).List(labels.Everything(), fields.Everything())
+	secretList, err := oc.AdminKubeREST().Secrets(oc.Namespace()).List(kapi.ListOptions{})
 
 	g.By(fmt.Sprintf("get secret list err %v ", err))
 	if err == nil {

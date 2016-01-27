@@ -75,7 +75,7 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 	}
 	// wait longer for the build to run to completion
 	err = wait.Poll(5*time.Second, 60*time.Minute, func() (bool, error) {
-		list, err := c.List(labels.Everything(), fields.Set{"name": name}.AsSelector())
+		list, err := c.List(kapi.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector()})
 		if err != nil {
 			return false, err
 		}
@@ -133,7 +133,7 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 	name string,
 	isOK, isFailed func(*imageapi.ImageStream) bool) error {
 	for {
-		list, err := client.List(labels.Everything(), fields.Set{"name": name}.AsSelector())
+		list, err := client.List(kapi.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector()})
 		if err != nil {
 			return err
 		}
@@ -148,7 +148,7 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 		}
 
 		rv := list.ResourceVersion
-		w, err := client.Watch(labels.Everything(), fields.Set{"name": name}.AsSelector(), rv)
+		w, err := client.Watch(kapi.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector(), ResourceVersion: rv})
 		if err != nil {
 			return err
 		}
@@ -197,7 +197,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 			return fmt.Errorf("unexpected error generating label selector: %v", err)
 		}
 
-		list, err := client.List(labels.LabelSelector{*requirement}, fields.Everything())
+		list, err := client.List(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement)})
 		if err != nil {
 			return err
 		}
@@ -212,7 +212,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 		}
 
 		rv := list.ResourceVersion
-		w, err := client.Watch(labels.LabelSelector{*requirement}, fields.Everything(), rv)
+		w, err := client.Watch(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement), ResourceVersion: rv})
 		if err != nil {
 			return err
 		}
@@ -250,7 +250,7 @@ var CheckDeploymentFailedFn = func(d *kapi.ReplicationController) bool {
 
 // GetPodNamesByFilter looks up pods that satisfy the predicate and returns their names.
 func GetPodNamesByFilter(c kclient.PodInterface, label labels.Selector, predicate func(kapi.Pod) bool) (podNames []string, err error) {
-	podList, err := c.List(label, nil)
+	podList, err := c.List(kapi.ListOptions{LabelSelector: label})
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +401,7 @@ func SetupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix, capacity 
 // CleanupHostPathVolumes removes all PersistentVolumes created by
 // SetupHostPathVolumes, with a given prefix
 func CleanupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix string) error {
-	pvs, err := c.List(labels.Everything(), nil)
+	pvs, err := c.List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}

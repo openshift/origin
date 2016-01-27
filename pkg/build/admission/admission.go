@@ -38,9 +38,9 @@ func NewBuildByStrategy() admission.Interface {
 	}
 }
 
-const (
-	buildsResource       = "builds"
-	buildConfigsResource = "buildconfigs"
+var (
+	buildsResource       = buildapi.Resource("builds")
+	buildConfigsResource = buildapi.Resource("buildconfigs")
 )
 
 func (a *buildByStrategy) Admit(attr admission.Attributes) error {

@@ -20,6 +20,7 @@ import (
 	"io"
 
 	"k8s.io/kubernetes/pkg/admission"
+	kapi "k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
@@ -43,7 +44,7 @@ func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
 	if a.GetOperation() != admission.Connect {
 		return nil
 	}
-	if a.GetResource() != "pods" {
+	if a.GetResource() != kapi.Resource("pods") {
 		return nil
 	}
 	if a.GetSubresource() != "attach" && a.GetSubresource() != "exec" {
@@ -58,7 +59,7 @@ func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
 	// create a synthentic admission attribute to check SCC admission status for this pod
 	// clear the SA name, so that any permissions MUST be based on your user's power, not the SAs power.
 	pod.Spec.ServiceAccountName = ""
-	createAttributes := admission.NewAttributesRecord(pod, "pods", a.GetNamespace(), a.GetName(), a.GetResource(), a.GetSubresource(), admission.Create, a.GetUserInfo())
+	createAttributes := admission.NewAttributesRecord(pod, kapi.Kind("Pod"), a.GetNamespace(), a.GetName(), a.GetResource(), a.GetSubresource(), admission.Create, a.GetUserInfo())
 	if err := d.constraintAdmission.Admit(createAttributes); err != nil {
 		return admission.NewForbidden(a, err)
 	}

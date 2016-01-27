@@ -3,8 +3,7 @@ package hostsubnet
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/sdn/api"
@@ -45,7 +44,7 @@ func NewRegistry(s Storage) Registry {
 }
 
 func (s *storage) ListSubnets(ctx kapi.Context) (*api.HostSubnetList, error) {
-	obj, err := s.List(ctx, labels.Everything(), fields.Everything())
+	obj, err := s.List(ctx, &unversioned.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

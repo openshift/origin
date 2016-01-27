@@ -27,7 +27,7 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
-	"k8s.io/kubernetes/pkg/util/errors"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/validation"
 )
 
@@ -56,7 +56,7 @@ type NetworkPlugin interface {
 }
 
 // PodNetworkStatus stores the network status of a pod (currently just the primary IP address)
-// This struct represents version "v1"
+// This struct represents version "v1beta1"
 type PodNetworkStatus struct {
 	unversioned.TypeMeta `json:",inline"`
 
@@ -116,7 +116,7 @@ func InitNetworkPlugin(plugins []NetworkPlugin, networkPluginName string, host H
 		allErrs = append(allErrs, fmt.Errorf("Network plugin %q not found.", networkPluginName))
 	}
 
-	return chosenPlugin, errors.NewAggregate(allErrs)
+	return chosenPlugin, utilerrors.NewAggregate(allErrs)
 }
 
 func UnescapePluginName(in string) string {

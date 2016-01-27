@@ -18,7 +18,7 @@ package selinux
 
 import (
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // runAsAny implements the SELinuxSecurityContextConstraintsStrategy interface.
@@ -37,6 +37,6 @@ func (s *runAsAny) Generate(pod *api.Pod, container *api.Container) (*api.SELinu
 }
 
 // Validate ensures that the specified values fall within the range of the strategy.
-func (s *runAsAny) Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList {
-	return fielderrors.ValidationErrorList{}
+func (s *runAsAny) Validate(pod *api.Pod, container *api.Container) field.ErrorList {
+	return field.ErrorList{}
 }

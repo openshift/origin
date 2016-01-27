@@ -197,12 +197,21 @@ type routeLW struct {
 	namespace string
 }
 
-func (lw *routeLW) List() (runtime.Object, error) {
-	return lw.client.Routes(lw.namespace).List(lw.label, lw.field)
+func (lw *routeLW) List(options kapi.ListOptions) (runtime.Object, error) {
+	opts := kapi.ListOptions{
+		LabelSelector: lw.label,
+		FieldSelector: lw.field,
+	}
+	return lw.client.Routes(lw.namespace).List(opts)
 }
 
-func (lw *routeLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.Routes(lw.namespace).Watch(lw.label, lw.field, resourceVersion)
+func (lw *routeLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
+	opts := kapi.ListOptions{
+		LabelSelector:   lw.label,
+		FieldSelector:   lw.field,
+		ResourceVersion: options.ResourceVersion,
+	}
+	return lw.client.Routes(lw.namespace).Watch(opts)
 }
 
 // endpointsLW is a list watcher for routes.
@@ -213,10 +222,15 @@ type endpointsLW struct {
 	namespace string
 }
 
-func (lw *endpointsLW) List() (runtime.Object, error) {
-	return lw.client.Endpoints(lw.namespace).List(labels.Everything())
+func (lw *endpointsLW) List(options kapi.ListOptions) (runtime.Object, error) {
+	return lw.client.Endpoints(lw.namespace).List(options)
 }
 
-func (lw *endpointsLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.Endpoints(lw.namespace).Watch(lw.label, lw.field, resourceVersion)
+func (lw *endpointsLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
+	opts := kapi.ListOptions{
+		LabelSelector:   lw.label,
+		FieldSelector:   lw.field,
+		ResourceVersion: options.ResourceVersion,
+	}
+	return lw.client.Endpoints(lw.namespace).Watch(opts)
 }

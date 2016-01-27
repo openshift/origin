@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	newer "github.com/openshift/origin/pkg/deploy/api"
@@ -66,7 +66,7 @@ func convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategy
 	}
 
 	if in.UpdatePercent != nil {
-		pct := kutil.NewIntOrStringFromString(fmt.Sprintf("%d%%", int(math.Abs(float64(*in.UpdatePercent)))))
+		pct := intstr.FromString(fmt.Sprintf("%d%%", int(math.Abs(float64(*in.UpdatePercent)))))
 		if *in.UpdatePercent > 0 {
 			out.MaxSurge = pct
 		} else {
@@ -101,13 +101,13 @@ func convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategy
 	}
 
 	if out.MaxUnavailable == nil {
-		out.MaxUnavailable = &kutil.IntOrString{}
+		out.MaxUnavailable = &intstr.IntOrString{}
 	}
 	if out.MaxSurge == nil {
-		out.MaxSurge = &kutil.IntOrString{}
+		out.MaxSurge = &intstr.IntOrString{}
 	}
 	if in.UpdatePercent != nil {
-		pct := kutil.NewIntOrStringFromString(fmt.Sprintf("%d%%", int(math.Abs(float64(*in.UpdatePercent)))))
+		pct := intstr.FromString(fmt.Sprintf("%d%%", int(math.Abs(float64(*in.UpdatePercent)))))
 		if *in.UpdatePercent > 0 {
 			out.MaxSurge = &pct
 		} else {

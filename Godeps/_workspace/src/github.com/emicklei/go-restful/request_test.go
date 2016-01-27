@@ -29,7 +29,7 @@ type Sample struct {
 	Value string
 }
 
-func TestReadEntityXml(t *testing.T) {
+func TestReadEntityXmlCached(t *testing.T) {
 	SetCacheReadEntity(true)
 	bodyReader := strings.NewReader("<Sample><Value>42</Value></Sample>")
 	httpRequest, _ := http.NewRequest("GET", "/test", bodyReader)

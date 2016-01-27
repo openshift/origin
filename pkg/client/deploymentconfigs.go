@@ -3,8 +3,6 @@ package client
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -17,12 +15,12 @@ type DeploymentConfigsNamespacer interface {
 
 // DeploymentConfigInterface contains methods for working with DeploymentConfigs
 type DeploymentConfigInterface interface {
-	List(label labels.Selector, field fields.Selector) (*deployapi.DeploymentConfigList, error)
+	List(opts kapi.ListOptions) (*deployapi.DeploymentConfigList, error)
 	Get(name string) (*deployapi.DeploymentConfig, error)
 	Create(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Update(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Delete(name string) error
-	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(opts kapi.ListOptions) (watch.Interface, error)
 	Generate(name string) (*deployapi.DeploymentConfig, error)
 	Rollback(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
 	GetScale(name string) (*extensions.Scale, error)
@@ -44,13 +42,12 @@ func newDeploymentConfigs(c *Client, namespace string) *deploymentConfigs {
 }
 
 // List takes a label and field selectors, and returns the list of deploymentConfigs that match that selectors
-func (c *deploymentConfigs) List(label labels.Selector, field fields.Selector) (result *deployapi.DeploymentConfigList, err error) {
+func (c *deploymentConfigs) List(opts kapi.ListOptions) (result *deployapi.DeploymentConfigList, err error) {
 	result = &deployapi.DeploymentConfigList{}
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("deploymentConfigs").
-		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		VersionedParams(&opts, kapi.Scheme).
 		Do().
 		Into(result)
 	return
@@ -83,14 +80,12 @@ func (c *deploymentConfigs) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *deploymentConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *deploymentConfigs) Watch(opts kapi.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).
 		Resource("deploymentConfigs").
-		Param("resourceVersion", resourceVersion).
-		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		VersionedParams(&opts, kapi.Scheme).
 		Watch()
 }
 

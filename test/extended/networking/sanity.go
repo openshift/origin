@@ -1,8 +1,7 @@
 package networking
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/test/e2e"
 
 	. "github.com/onsi/ginkgo"
@@ -17,7 +16,7 @@ var _ = Describe("networking: sanity", func() {
 	It("should function for pod communication on a single node", func() {
 
 		By("Picking a node")
-		nodes, err := f.Client.Nodes().List(labels.Everything(), fields.Everything())
+		nodes, err := f.Client.Nodes().List(api.ListOptions{})
 		if err != nil {
 			e2e.Failf("Failed to list nodes: %v", err)
 		}

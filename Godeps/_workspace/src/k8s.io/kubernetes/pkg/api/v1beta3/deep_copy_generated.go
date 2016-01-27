@@ -26,7 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
-	util "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	inf "speter.net/go/exp/math/dec/inf"
 )
 
@@ -2511,8 +2511,8 @@ func deepCopy_runtime_RawExtension(in runtime.RawExtension, out *runtime.RawExte
 	return nil
 }
 
-func deepCopy_util_IntOrString(in util.IntOrString, out *util.IntOrString, c *conversion.Cloner) error {
-	out.Kind = in.Kind
+func deepCopy_util_IntOrString(in intstr.IntOrString, out *intstr.IntOrString, c *conversion.Cloner) error {
+	out.Type = in.Type
 	out.IntVal = in.IntVal
 	out.StrVal = in.StrVal
 	return nil

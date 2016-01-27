@@ -10,7 +10,6 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
@@ -32,11 +31,13 @@ func NewDockercfgTokenDeletedController(cl client.Interface, options DockercfgTo
 	dockercfgSelector := fields.OneTermEqualSelector(client.SecretType, string(api.SecretTypeServiceAccountToken))
 	_, e.secretController = framework.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return e.client.Secrets(api.NamespaceAll).List(labels.Everything(), dockercfgSelector)
+			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+				opts := api.ListOptions{FieldSelector: dockercfgSelector}
+				return e.client.Secrets(api.NamespaceAll).List(opts)
 			},
-			WatchFunc: func(rv string) (watch.Interface, error) {
-				return e.client.Secrets(api.NamespaceAll).Watch(labels.Everything(), dockercfgSelector, rv)
+			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				opts := api.ListOptions{FieldSelector: dockercfgSelector, ResourceVersion: options.ResourceVersion}
+				return e.client.Secrets(api.NamespaceAll).Watch(opts)
 			},
 		},
 		&api.Secret{},
@@ -103,8 +104,8 @@ func (e *DockercfgTokenDeletedController) secretDeleted(obj interface{}) {
 func (e *DockercfgTokenDeletedController) findDockercfgSecrets(tokenSecret *api.Secret) ([]*api.Secret, error) {
 	dockercfgSecrets := []*api.Secret{}
 
-	dockercfgSelector := fields.OneTermEqualSelector(client.SecretType, string(api.SecretTypeDockercfg))
-	potentialSecrets, err := e.client.Secrets(tokenSecret.Namespace).List(labels.Everything(), dockercfgSelector)
+	options := api.ListOptions{FieldSelector: fields.OneTermEqualSelector(client.SecretType, string(api.SecretTypeDockercfg))}
+	potentialSecrets, err := e.client.Secrets(tokenSecret.Namespace).List(options)
 	if err != nil {
 		return nil, err
 	}

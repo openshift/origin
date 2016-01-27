@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -40,8 +40,8 @@ func TestGenerateRoute(t *testing.T) {
 						Name: "someservice",
 					},
 					Port: &routeapi.RoutePort{
-						TargetPort: util.IntOrString{
-							Kind:   util.IntstrString,
+						TargetPort: intstr.IntOrString{
+							Type:   intstr.String,
 							StrVal: "svcportname",
 						},
 					},

@@ -17,6 +17,8 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	kyaml "k8s.io/kubernetes/pkg/util/yaml"
 
+	"github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/v1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -159,8 +161,8 @@ func checkAdmissionObjectLabelValues(labels, expected map[string]string) error {
 }
 
 func registerAdmissionPluginTestConfigType() {
-	configapi.Scheme.AddKnownTypes("", &TestPluginConfig{})
-	configapi.Scheme.AddKnownTypes("v1", &TestPluginConfig{})
+	configapi.Scheme.AddKnownTypes(api.SchemeGroupVersion, &TestPluginConfig{})
+	configapi.Scheme.AddKnownTypes(v1.SchemeGroupVersion, &TestPluginConfig{})
 }
 
 func setupAdmissionPluginTestConfig(t *testing.T, value string) string {

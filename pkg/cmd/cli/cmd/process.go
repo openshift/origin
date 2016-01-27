@@ -117,8 +117,8 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		mapping *meta.RESTMapping
 	)
 
-	version, kind, err := mapper.VersionAndKindForResource("template")
-	if mapping, err = mapper.RESTMapping(kind, version); err != nil {
+	gvk, err := mapper.KindFor("template")
+	if mapping, err = mapper.RESTMapping(gvk.GroupKind(), gvk.Version); err != nil {
 		return err
 	}
 
@@ -238,7 +238,12 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	if err != nil {
 		return err
 	}
-	p = kubectl.NewVersionedPrinter(p, kapi.Scheme, kcmdutil.OutputVersion(cmd, mapping.APIVersion))
+	gv := mapping.GroupVersionKind.GroupVersion()
+	version, err := kcmdutil.OutputVersion(cmd, &gv)
+	if err != nil {
+		return err
+	}
+	p = kubectl.NewVersionedPrinter(p, kapi.Scheme, version)
 
 	// use generic output
 	if kcmdutil.GetFlagBool(cmd, "raw") {

@@ -6,8 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
@@ -34,13 +33,13 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a localResourceAccessReview: %#v", obj))
 	}
-	if err := kutilerrors.NewAggregate(authorizationvalidation.ValidateLocalResourceAccessReview(localRAR)); err != nil {
-		return nil, err
+	if errs := authorizationvalidation.ValidateLocalResourceAccessReview(localRAR); len(errs) > 0 {
+		return nil, kapierrors.NewInvalid(localRAR.Kind, "", errs)
 	}
 	if namespace := kapi.NamespaceValue(ctx); len(namespace) == 0 {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("namespace is required on this type: %v", namespace))
 	} else if (len(localRAR.Action.Namespace) > 0) && (namespace != localRAR.Action.Namespace) {
-		return nil, fielderrors.NewFieldInvalid("namespace", localRAR.Action.Namespace, fmt.Sprintf("namespace must be: %v", namespace))
+		return nil, field.Invalid(field.NewPath("namespace"), localRAR.Action.Namespace, fmt.Sprintf("namespace must be: %v", namespace))
 	}
 
 	// transform this into a ResourceAccessReview

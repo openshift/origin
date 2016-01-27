@@ -354,8 +354,8 @@ type AdmissionPluginTestConfig struct {
 func (*AdmissionPluginTestConfig) IsAnAPIObject() {}
 
 func TestMasterConfig(t *testing.T) {
-	internal.Scheme.AddKnownTypes("v1", &AdmissionPluginTestConfig{})
-	internal.Scheme.AddKnownTypes("", &AdmissionPluginTestConfig{})
+	internal.Scheme.AddKnownTypes(SchemeGroupVersion, &AdmissionPluginTestConfig{})
+	internal.Scheme.AddKnownTypes(internal.SchemeGroupVersion, &AdmissionPluginTestConfig{})
 	config := &internal.MasterConfig{
 		ServingInfo: internal.HTTPServingInfo{
 			ServingInfo: internal.ServingInfo{

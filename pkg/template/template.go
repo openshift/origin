@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/template/api"
 	. "github.com/openshift/origin/pkg/template/generator"
@@ -31,19 +31,22 @@ func NewProcessor(generators map[string]Generator) *Processor {
 // Parameter values using the defined set of generators first, and then it
 // substitutes all Parameter expression occurrences with their corresponding
 // values (currently in the containers' Environment variables only).
-func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorList {
-	templateErrors := fielderrors.ValidationErrorList{}
+func (p *Processor) Process(template *api.Template) field.ErrorList {
+	templateErrors := field.ErrorList{}
 
 	if err, badParam := p.GenerateParameterValues(template); err != nil {
-		return append(templateErrors.Prefix("Template"), fielderrors.NewFieldInvalid("parameters", *badParam, err.Error()))
+		templatePath := field.NewPath("template")
+		return append(templateErrors, field.Invalid(templatePath.Child("parameters"), badParam, err.Error()))
 	}
 
+	itemPath := field.NewPath("item")
 	for i, item := range template.Objects {
+		idxPath := itemPath.Index(i)
 		if obj, ok := item.(*runtime.Unknown); ok {
 			// TODO: use runtime.DecodeList when it returns ValidationErrorList
 			decodedObj, err := runtime.UnstructuredJSONScheme.Decode(obj.RawJSON)
 			if err != nil {
-				util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("objects", obj, "unable to handle object"))
+				templateErrors = append(templateErrors, field.Invalid(idxPath.Child("objects"), obj, "unable to handle object"))
 				continue
 			}
 			item = decodedObj
@@ -51,7 +54,7 @@ func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorL
 
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
 		if err != nil {
-			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("parameters", template.Parameters, err.Error()))
+			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("parameters"), template.Parameters, err.Error()))
 		}
 		// If an object definition's metadata includes a namespace field, the field will be stripped out of
 		// the definition during template instantiation.  This is necessary because all objects created during
@@ -59,7 +62,7 @@ func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorL
 		//a different namespace.
 		stripNamespace(newItem)
 		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {
-			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("labels", err, "label could not be applied"))
+			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("labels"), err, "label could not be applied"))
 		}
 		template.Objects[i] = newItem
 	}

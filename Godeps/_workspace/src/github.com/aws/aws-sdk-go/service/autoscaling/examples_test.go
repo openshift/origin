@@ -144,6 +144,7 @@ func ExampleAutoScaling_CreateLaunchConfiguration() {
 				DeviceName: aws.String("XmlStringMaxLen255"), // Required
 				Ebs: &autoscaling.Ebs{
 					DeleteOnTermination: aws.Bool(true),
+					Encrypted:           aws.Bool(true),
 					Iops:                aws.Int64(1),
 					SnapshotId:          aws.String("XmlStringMaxLen255"),
 					VolumeSize:          aws.Int64(1),

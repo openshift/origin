@@ -107,11 +107,11 @@ func (plugin *fcPlugin) newBuilderInternal(spec *volume.Spec, podUID types.UID, 
 			wwns:    fc.TargetWWNs,
 			lun:     lun,
 			manager: manager,
-			mounter: &mount.SafeFormatAndMount{mounter, exec.New()},
 			io:      &osIOHandler{},
 			plugin:  plugin},
 		fsType:   fc.FSType,
 		readOnly: readOnly,
+		mounter:  &mount.SafeFormatAndMount{mounter, exec.New()},
 	}, nil
 }
 
@@ -121,14 +121,16 @@ func (plugin *fcPlugin) NewCleaner(volName string, podUID types.UID) (volume.Cle
 }
 
 func (plugin *fcPlugin) newCleanerInternal(volName string, podUID types.UID, manager diskManager, mounter mount.Interface) (volume.Cleaner, error) {
-	return &fcDiskCleaner{&fcDisk{
-		podUID:  podUID,
-		volName: volName,
-		manager: manager,
+	return &fcDiskCleaner{
+		fcDisk: &fcDisk{
+			podUID:  podUID,
+			volName: volName,
+			manager: manager,
+			plugin:  plugin,
+			io:      &osIOHandler{},
+		},
 		mounter: mounter,
-		plugin:  plugin,
-		io:      &osIOHandler{},
-	}}, nil
+	}, nil
 }
 
 func (plugin *fcPlugin) execCommand(command string, args []string) ([]byte, error) {
@@ -143,11 +145,11 @@ type fcDisk struct {
 	wwns    []string
 	lun     string
 	plugin  *fcPlugin
-	mounter mount.Interface
 	// Utility interface that provides API calls to the provider to attach/detach disks.
 	manager diskManager
 	// io handler interface
 	io ioHandler
+	volume.MetricsNil
 }
 
 func (fc *fcDisk) GetPath() string {
@@ -160,14 +162,19 @@ type fcDiskBuilder struct {
 	*fcDisk
 	readOnly bool
 	fsType   string
+	mounter  *mount.SafeFormatAndMount
 }
 
 var _ volume.Builder = &fcDiskBuilder{}
 
-func (_ *fcDiskBuilder) SupportsOwnershipManagement() bool {
-	return true
+func (b *fcDiskBuilder) GetAttributes() volume.Attributes {
+	return volume.Attributes{
+		ReadOnly:                    b.readOnly,
+		Managed:                     !b.readOnly,
+		SupportsOwnershipManagement: true,
+		SupportsSELinux:             true,
+	}
 }
-
 func (b *fcDiskBuilder) SetUp() error {
 	return b.SetUpAt(b.GetPath())
 }
@@ -183,17 +190,10 @@ func (b *fcDiskBuilder) SetUpAt(dir string) error {
 
 type fcDiskCleaner struct {
 	*fcDisk
+	mounter mount.Interface
 }
 
 var _ volume.Cleaner = &fcDiskCleaner{}
-
-func (b *fcDiskBuilder) IsReadOnly() bool {
-	return b.readOnly
-}
-
-func (b *fcDiskBuilder) SupportsSELinux() bool {
-	return true
-}
 
 // Unmounts the bind mount, and detaches the disk only if the disk
 // resource was the last reference to that disk on the kubelet.

@@ -20,8 +20,8 @@ import (
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // defaultCapabilities implements the CapabilitiesSecurityContextConstraintsStrategy interface
@@ -76,13 +76,13 @@ func (s *defaultCapabilities) Generate(pod *api.Pod, container *api.Container) (
 }
 
 // Validate ensures that the specified values fall within the range of the strategy.
-func (s *defaultCapabilities) Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func (s *defaultCapabilities) Validate(pod *api.Pod, container *api.Container) field.ErrorList {
+	allErrs := field.ErrorList{}
 
 	// if the security context isn't set then we haven't generated correctly.  Shouldn't get here
 	// if using the provider correctly
 	if container.SecurityContext == nil {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext", container.SecurityContext, "no security context is set"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("securityContext"), container.SecurityContext, "no security context is set"))
 		return allErrs
 	}
 
@@ -96,7 +96,7 @@ func (s *defaultCapabilities) Validate(pod *api.Pod, container *api.Container) f
 
 		// container has no requested caps but we have required caps.  We should have something in
 		// at least the drops on the container.
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("capabilities", container.SecurityContext.Capabilities,
+		allErrs = append(allErrs, field.Invalid(field.NewPath("capabilities"), container.SecurityContext.Capabilities,
 			"required capabilities are not set on the securityContext"))
 		return allErrs
 	}
@@ -108,7 +108,7 @@ func (s *defaultCapabilities) Validate(pod *api.Pod, container *api.Container) f
 	for _, cap := range container.SecurityContext.Capabilities.Add {
 		sCap := string(cap)
 		if !defaultAdd.Has(sCap) && !allowedAdd.Has(sCap) {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("capabilities.add", sCap, "capability may not be added"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("capabilities", "add"), sCap, "capability may not be added"))
 		}
 	}
 
@@ -118,7 +118,7 @@ func (s *defaultCapabilities) Validate(pod *api.Pod, container *api.Container) f
 	for _, requiredDrop := range s.requiredDropCapabilities {
 		sDrop := string(requiredDrop)
 		if !containerDrops.Has(sDrop) {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("capabilities.drop", container.SecurityContext.Capabilities.Drop,
+			allErrs = append(allErrs, field.Invalid(field.NewPath("capabilities", "drop"), container.SecurityContext.Capabilities.Drop,
 				fmt.Sprintf("%s is required to be dropped but was not found", sDrop)))
 		}
 	}

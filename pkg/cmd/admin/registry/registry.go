@@ -16,7 +16,7 @@ import (
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -367,9 +367,7 @@ func generateLivenessProbeConfig(port int) *kapi.Probe {
 		Handler: kapi.Handler{
 			HTTPGet: &kapi.HTTPGetAction{
 				Path: healthzRoute,
-				Port: kutil.IntOrString{
-					IntVal: port,
-				},
+				Port: intstr.FromInt(port),
 			},
 		},
 	}
@@ -381,9 +379,7 @@ func generateReadinessProbeConfig(port int) *kapi.Probe {
 		Handler: kapi.Handler{
 			HTTPGet: &kapi.HTTPGetAction{
 				Path: healthzRoute,
-				Port: kutil.IntOrString{
-					IntVal: port,
-				},
+				Port: intstr.FromInt(port),
 			},
 		},
 	}

@@ -9,14 +9,13 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/pkg/fields"
 	kcmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
@@ -39,7 +38,7 @@ type LoginOptions struct {
 	Server      string
 	CAFile      string
 	InsecureTLS bool
-	APIVersion  string
+	APIVersion  unversioned.GroupVersion
 
 	// flags and printing helpers
 	Username string
@@ -167,8 +166,8 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 	}
 
 	// check for matching api version
-	if len(o.APIVersion) > 0 {
-		clientConfig.Version = o.APIVersion
+	if !o.APIVersion.IsEmpty() {
+		clientConfig.GroupVersion = &o.APIVersion
 	}
 
 	o.Config = clientConfig
@@ -302,7 +301,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		return err
 	}
 
-	projects, err := oClient.Projects().List(labels.Everything(), fields.Everything())
+	projects, err := oClient.Projects().List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}

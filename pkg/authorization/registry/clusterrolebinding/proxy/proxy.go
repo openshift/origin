@@ -3,8 +3,6 @@ package proxy
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -42,8 +40,8 @@ func (s *ClusterRoleBindingStorage) NewList() runtime.Object {
 	return &authorizationapi.ClusterRoleBindingList{}
 }
 
-func (s *ClusterRoleBindingStorage) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	ret, err := s.roleBindingStorage.List(ctx, label, field)
+func (s *ClusterRoleBindingStorage) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+	ret, err := s.roleBindingStorage.List(ctx, options)
 	if ret == nil {
 		return nil, err
 	}

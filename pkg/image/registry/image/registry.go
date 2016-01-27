@@ -4,8 +4,7 @@ import (
 	"github.com/openshift/origin/pkg/image/api"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 )
@@ -13,7 +12,7 @@ import (
 // Registry is an interface for things that know how to store Image objects.
 type Registry interface {
 	// ListImages obtains a list of images that match a selector.
-	ListImages(ctx kapi.Context, selector labels.Selector) (*api.ImageList, error)
+	ListImages(ctx kapi.Context, options *unversioned.ListOptions) (*api.ImageList, error)
 	// GetImage retrieves a specific image.
 	GetImage(ctx kapi.Context, id string) (*api.Image, error)
 	// CreateImage creates a new image.
@@ -21,7 +20,7 @@ type Registry interface {
 	// DeleteImage deletes an image.
 	DeleteImage(ctx kapi.Context, id string) error
 	// WatchImages watches for new or deleted images.
-	WatchImages(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	WatchImages(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -45,8 +44,8 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListImages(ctx kapi.Context, label labels.Selector) (*api.ImageList, error) {
-	obj, err := s.List(ctx, label, fields.Everything())
+func (s *storage) ListImages(ctx kapi.Context, options *unversioned.ListOptions) (*api.ImageList, error) {
+	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +70,6 @@ func (s *storage) DeleteImage(ctx kapi.Context, imageID string) error {
 	return err
 }
 
-func (s *storage) WatchImages(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return s.Watch(ctx, label, field, resourceVersion)
+func (s *storage) WatchImages(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+	return s.Watch(ctx, options)
 }

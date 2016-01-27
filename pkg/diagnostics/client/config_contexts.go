@@ -9,8 +9,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -233,7 +231,7 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	osClient, _, err := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context})).Clients()
 	// client create now *fails* if cannot connect to server; so, address connectivity errors below
 	if err == nil {
-		if projects, projerr := osClient.Projects().List(labels.Everything(), fields.Everything()); projerr != nil {
+		if projects, projerr := osClient.Projects().List(kapi.ListOptions{}); projerr != nil {
 			err = projerr
 		} else { // success!
 			list := []string{}

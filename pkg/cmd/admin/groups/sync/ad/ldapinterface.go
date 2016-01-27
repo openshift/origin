@@ -1,8 +1,6 @@
 package ad
 
 import (
-	"reflect"
-
 	"gopkg.in/ldap.v2"
 
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -96,7 +94,7 @@ func (e *ADLDAPInterface) ListGroups() ([]string, error) {
 		return nil, err
 	}
 
-	return sets.KeySet(reflect.ValueOf(e.ldapGroupToLDAPMembers)).List(), nil
+	return sets.StringKeySet(e.ldapGroupToLDAPMembers).List(), nil
 }
 
 // populateCache queries all users to build a map of all the groups.  If the cache has already been

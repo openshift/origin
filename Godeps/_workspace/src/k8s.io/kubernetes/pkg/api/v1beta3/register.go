@@ -23,12 +23,15 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
-// Codec encodes internal objects to the v1beta3 scheme
-var Codec = runtime.CodecFor(api.Scheme, "v1beta3")
+// SchemeGroupVersion is group version used to register these objects
+var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: "v1beta3"}
+
+// Codec encodes internal objects to the v1 scheme
+var Codec = runtime.CodecFor(api.Scheme, SchemeGroupVersion.String())
 
 func init() {
 	// Check if v1beta3 is in the list of supported API versions.
-	if !registered.IsRegisteredAPIVersion("v1beta3") {
+	if !registered.IsRegisteredAPIGroupVersion(SchemeGroupVersion) {
 		return
 	}
 
@@ -40,7 +43,7 @@ func init() {
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes() {
-	api.Scheme.AddKnownTypes("v1beta3",
+	api.Scheme.AddKnownTypes(SchemeGroupVersion,
 		&Pod{},
 		&PodList{},
 		&PodStatusResult{},
@@ -86,11 +89,11 @@ func addKnownTypes() {
 		&SecurityContextConstraintsList{},
 	)
 	// Legacy names are supported
-	api.Scheme.AddKnownTypeWithName("v1beta3", "Minion", &Node{})
-	api.Scheme.AddKnownTypeWithName("v1beta3", "MinionList", &NodeList{})
+	api.Scheme.AddKnownTypeWithName(SchemeGroupVersion.WithKind("Minion"), &Node{})
+	api.Scheme.AddKnownTypeWithName(SchemeGroupVersion.WithKind("MinionList"), &NodeList{})
 
 	// Add common types
-	api.Scheme.AddKnownTypes("v1beta3", &unversioned.Status{})
+	api.Scheme.AddKnownTypes(SchemeGroupVersion, &unversioned.Status{})
 }
 
 func (*Pod) IsAnAPIObject()                            {}

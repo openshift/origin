@@ -18,12 +18,11 @@ package etcd
 
 import (
 	"fmt"
-	"reflect"
-	"time"
 
 	"k8s.io/kubernetes/pkg/api"
 	kubeerr "k8s.io/kubernetes/pkg/api/errors"
 	etcderr "k8s.io/kubernetes/pkg/api/errors/etcd"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -32,7 +31,6 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
@@ -54,6 +52,8 @@ import (
 // logic specific to the API.
 //
 // TODO: make the default exposed methods exactly match a generic RESTStorage
+// TODO: because all aspects of etcd have been removed it should really
+//       just be called a registry implementation.
 type Etcd struct {
 	// Called to make a new object, should return e.g., &api.Pod{}
 	NewFunc func() runtime.Object
@@ -159,42 +159,39 @@ func (e *Etcd) NewList() runtime.Object {
 }
 
 // List returns a list of items matching labels and field
-func (e *Etcd) List(ctx api.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	return e.ListPredicate(ctx, e.PredicateFunc(label, field))
+func (e *Etcd) List(ctx api.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+	label := labels.Everything()
+	if options != nil && options.LabelSelector.Selector != nil {
+		label = options.LabelSelector.Selector
+	}
+	field := fields.Everything()
+	if options != nil && options.FieldSelector.Selector != nil {
+		field = options.FieldSelector.Selector
+	}
+	return e.ListPredicate(ctx, e.PredicateFunc(label, field), options)
 }
 
 // ListPredicate returns a list of all the items matching m.
-func (e *Etcd) ListPredicate(ctx api.Context, m generic.Matcher) (runtime.Object, error) {
+func (e *Etcd) ListPredicate(ctx api.Context, m generic.Matcher, options *unversioned.ListOptions) (runtime.Object, error) {
 	list := e.NewListFunc()
-	trace := util.NewTrace("List " + reflect.TypeOf(list).String())
 	filterFunc := e.filterAndDecorateFunction(m)
-	defer trace.LogIfLong(600 * time.Millisecond)
 	if name, ok := m.MatchesSingle(); ok {
 		if key, err := e.KeyFunc(ctx, name); err == nil {
-			trace.Step("About to read single object")
 			err := e.Storage.GetToList(ctx, key, filterFunc, list)
-			trace.Step("Object extracted")
-			if err != nil {
-				return nil, err
-			}
-			return list, nil
+			return list, etcderr.InterpretListError(err, e.EndpointName)
 		}
 		// if we cannot extract a key based on the current context, the optimization is skipped
 	}
 
-	trace.Step("About to list directory")
-	err := e.Storage.List(ctx, e.KeyRootFunc(ctx), filterFunc, list)
-	trace.Step("List extracted")
-	if err != nil {
-		return nil, err
+	if options == nil {
+		options = &unversioned.ListOptions{ResourceVersion: "0"}
 	}
-	return list, nil
+	err := e.Storage.List(ctx, e.KeyRootFunc(ctx), options.ResourceVersion, filterFunc, list)
+	return list, etcderr.InterpretListError(err, e.EndpointName)
 }
 
 // Create inserts a new item according to the unique key from the object.
 func (e *Etcd) Create(ctx api.Context, obj runtime.Object) (runtime.Object, error) {
-	trace := util.NewTrace("Create " + reflect.TypeOf(obj).String())
-	defer trace.LogIfLong(time.Second)
 	if err := rest.BeforeCreate(e.CreateStrategy, ctx, obj); err != nil {
 		return nil, err
 	}
@@ -210,14 +207,12 @@ func (e *Etcd) Create(ctx api.Context, obj runtime.Object) (runtime.Object, erro
 	if err != nil {
 		return nil, err
 	}
-	trace.Step("About to create object")
 	out := e.NewFunc()
 	if err := e.Storage.Create(ctx, key, obj, out, ttl); err != nil {
 		err = etcderr.InterpretCreateError(err, e.EndpointName, name)
 		err = rest.CheckGeneratedNameError(e.CreateStrategy, err, obj)
 		return nil, err
 	}
-	trace.Step("Object created")
 	if e.AfterCreate != nil {
 		if err := e.AfterCreate(out); err != nil {
 			return nil, err
@@ -235,8 +230,6 @@ func (e *Etcd) Create(ctx api.Context, obj runtime.Object) (runtime.Object, erro
 // or an error. If the registry allows create-on-update, the create flow will be executed.
 // A bool is returned along with the object and any errors, to indicate object creation.
 func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	trace := util.NewTrace("Update " + reflect.TypeOf(obj).String())
-	defer trace.LogIfLong(time.Second)
 	name, err := e.ObjectNameFunc(obj)
 	if err != nil {
 		return nil, false, err
@@ -339,17 +332,13 @@ func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool
 // Get retrieves the item from etcd.
 func (e *Etcd) Get(ctx api.Context, name string) (runtime.Object, error) {
 	obj := e.NewFunc()
-	trace := util.NewTrace("Get " + reflect.TypeOf(obj).String())
-	defer trace.LogIfLong(time.Second)
 	key, err := e.KeyFunc(ctx, name)
 	if err != nil {
 		return nil, err
 	}
-	trace.Step("About to read object")
 	if err := e.Storage.Get(ctx, key, obj, false); err != nil {
 		return nil, etcderr.InterpretGetError(err, e.EndpointName, name)
 	}
-	trace.Step("Object read")
 	if e.Decorator != nil {
 		if err := e.Decorator(obj); err != nil {
 			return nil, err
@@ -371,9 +360,6 @@ func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 	}
 
 	obj := e.NewFunc()
-	trace := util.NewTrace("Delete " + reflect.TypeOf(obj).String())
-	defer trace.LogIfLong(time.Second)
-	trace.Step("About to read object")
 	if err := e.Storage.Get(ctx, key, obj, false); err != nil {
 		return nil, etcderr.InterpretDeleteError(err, e.EndpointName, name)
 	}
@@ -390,7 +376,6 @@ func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 		return e.finalizeDelete(obj, false)
 	}
 	if graceful {
-		trace.Step("Graceful deletion")
 		out := e.NewFunc()
 		lastGraceful := int64(0)
 		err := e.Storage.GuaranteedUpdate(
@@ -428,11 +413,41 @@ func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 
 	// delete immediately, or no graceful deletion supported
 	out := e.NewFunc()
-	trace.Step("About to delete object")
 	if err := e.Storage.Delete(ctx, key, out); err != nil {
 		return nil, etcderr.InterpretDeleteError(err, e.EndpointName, name)
 	}
 	return e.finalizeDelete(out, true)
+}
+
+// DeleteCollection remove all items returned by List with a given ListOptions from etcd.
+//
+// DeleteCollection is currently NOT atomic. It can happen that only subset of objects
+// will be deleted from etcd, and then an error will be returned.
+// In case of success, the list of deleted objects will be returned.
+//
+// TODO: Currently, there is no easy way to remove 'directory' entry from etcd (if we
+// are removing all objects of a given type) with the current API (it's technically
+// possibly with etcd API, but watch is not delivered correctly then).
+// It will be possible to fix it with v3 etcd API.
+func (e *Etcd) DeleteCollection(ctx api.Context, options *api.DeleteOptions, listOptions *unversioned.ListOptions) (runtime.Object, error) {
+	listObj, err := e.List(ctx, listOptions)
+	if err != nil {
+		return nil, err
+	}
+	items, err := meta.ExtractList(listObj)
+	if err != nil {
+		return nil, err
+	}
+	for _, item := range items {
+		accessor, err := meta.Accessor(item)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := e.Delete(ctx, accessor.Name(), options); err != nil {
+			return nil, err
+		}
+	}
+	return listObj, nil
 }
 
 func (e *Etcd) finalizeDelete(obj runtime.Object, runHooks bool) (runtime.Object, error) {
@@ -456,16 +471,24 @@ func (e *Etcd) finalizeDelete(obj runtime.Object, runHooks bool) (runtime.Object
 // WatchPredicate. If possible, you should customize PredicateFunc to produre a
 // matcher that matches by key. generic.SelectionPredicate does this for you
 // automatically.
-func (e *Etcd) Watch(ctx api.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (e *Etcd) Watch(ctx api.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+	label := labels.Everything()
+	if options != nil && options.LabelSelector.Selector != nil {
+		label = options.LabelSelector.Selector
+	}
+	field := fields.Everything()
+	if options != nil && options.FieldSelector.Selector != nil {
+		field = options.FieldSelector.Selector
+	}
+	resourceVersion := ""
+	if options != nil {
+		resourceVersion = options.ResourceVersion
+	}
 	return e.WatchPredicate(ctx, e.PredicateFunc(label, field), resourceVersion)
 }
 
 // WatchPredicate starts a watch for the items that m matches.
 func (e *Etcd) WatchPredicate(ctx api.Context, m generic.Matcher, resourceVersion string) (watch.Interface, error) {
-	version, err := storage.ParseWatchResourceVersion(resourceVersion, e.EndpointName)
-	if err != nil {
-		return nil, err
-	}
 	filterFunc := e.filterAndDecorateFunction(m)
 
 	if name, ok := m.MatchesSingle(); ok {
@@ -473,12 +496,12 @@ func (e *Etcd) WatchPredicate(ctx api.Context, m generic.Matcher, resourceVersio
 			if err != nil {
 				return nil, err
 			}
-			return e.Storage.Watch(ctx, key, version, filterFunc)
+			return e.Storage.Watch(ctx, key, resourceVersion, filterFunc)
 		}
 		// if we cannot extract a key based on the current context, the optimization is skipped
 	}
 
-	return e.Storage.WatchList(ctx, e.KeyRootFunc(ctx), version, filterFunc)
+	return e.Storage.WatchList(ctx, e.KeyRootFunc(ctx), resourceVersion, filterFunc)
 }
 
 func (e *Etcd) filterAndDecorateFunction(m generic.Matcher) func(runtime.Object) bool {

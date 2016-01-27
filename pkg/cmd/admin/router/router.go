@@ -17,11 +17,9 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
-	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -341,8 +339,9 @@ func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort)
 
 		probe.Handler.HTTPGet = &kapi.HTTPGetAction{
 			Path: "/healthz",
-			Port: kutil.IntOrString{
-				IntVal: healthzPort,
+			Port: intstr.IntOrString{
+				Type:   intstr.Int,
+				IntVal: int32(healthzPort),
 			},
 		}
 	}
@@ -680,7 +679,7 @@ func generateStatsPassword() string {
 
 func validateServiceAccount(kClient *kclient.Client, ns string, sa string) error {
 	// get cluster sccs
-	sccList, err := kClient.SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+	sccList, err := kClient.SecurityContextConstraints().List(kapi.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("unable to validate service account %v", err)
 	}

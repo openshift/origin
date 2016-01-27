@@ -10,7 +10,6 @@ import (
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
@@ -97,7 +96,7 @@ func GetClientForServiceAccount(adminClient *kclient.Client, clientConfig kclien
 	token := ""
 	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
 		selector := fields.OneTermEqualSelector(kclient.SecretType, string(kapi.SecretTypeServiceAccountToken))
-		secrets, err := adminClient.Secrets(namespace).List(labels.Everything(), selector)
+		secrets, err := adminClient.Secrets(namespace).List(kapi.ListOptions{FieldSelector: selector})
 		if err != nil {
 			return false, err
 		}

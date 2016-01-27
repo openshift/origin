@@ -92,7 +92,10 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	if err != nil {
 		return err
 	}
-	outputVersion := cmdutil.OutputVersion(cmd, clientConfig.Version)
+	outputVersion, err := cmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
+	if err != nil {
+		return err
+	}
 
 	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
@@ -137,7 +140,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 
 	var result runtime.Object
 	if len(asTemplate) > 0 {
-		objects, err := resource.AsVersionedObjects(infos, outputVersion)
+		objects, err := resource.AsVersionedObjects(infos, outputVersion.String())
 		if err != nil {
 			return err
 		}
@@ -145,12 +148,12 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 			Objects: objects,
 		}
 		template.Name = asTemplate
-		result, err = kapi.Scheme.ConvertToVersion(template, outputVersion)
+		result, err = kapi.Scheme.ConvertToVersion(template, outputVersion.String())
 		if err != nil {
 			return err
 		}
 	} else {
-		object, err := resource.AsVersionedObject(infos, !one, outputVersion)
+		object, err := resource.AsVersionedObject(infos, !one, outputVersion.String())
 		if err != nil {
 			return err
 		}

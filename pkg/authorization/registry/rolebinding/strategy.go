@@ -7,7 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -53,13 +53,17 @@ func (s strategy) PrepareForUpdate(obj, old runtime.Object) {
 	_ = obj.(*authorizationapi.RoleBinding)
 }
 
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
+}
+
 // Validate validates a new role.
-func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateRoleBinding(obj.(*authorizationapi.RoleBinding), s.namespaced)
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (s strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (s strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateRoleBindingUpdate(obj.(*authorizationapi.RoleBinding), old.(*authorizationapi.RoleBinding), s.namespaced)
 }
 

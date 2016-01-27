@@ -329,7 +329,7 @@ func followInstallation(f *clientcmd.Factory, input string, pod *kapi.Pod, kclie
 		LogsForObject: f.LogsForObject,
 		Out:           out,
 	}
-	_, logErr := opts.RunLog()
+	_, logErr := opts.RunLogs()
 
 	// status of the pod may take tens of seconds to propagate
 	if err := wait.PollImmediate(500*time.Millisecond, 30*time.Second, installationComplete(podClient, pod.Name, out)); err != nil {
@@ -510,7 +510,7 @@ func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 		buildapi.GenericWebHookBuildTriggerType: {},
 		buildapi.ImageChangeBuildTriggerType:    {},
 	}
-	if info.Mapping.Kind == "BuildConfig" && isInvalidTriggerError(err) {
+	if info.Mapping.GroupVersionKind.GroupKind() == buildapi.Kind("BuildConfig") && isInvalidTriggerError(err) {
 		bc, ok := info.Object.(*buildapi.BuildConfig)
 		if !ok {
 			return nil

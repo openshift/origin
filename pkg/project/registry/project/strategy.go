@@ -3,7 +3,7 @@ package project
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/project/api"
 	"github.com/openshift/origin/pkg/project/api/validation"
@@ -52,7 +52,7 @@ func (projectStrategy) PrepareForUpdate(obj, old runtime.Object) {
 }
 
 // Validate validates a new project.
-func (projectStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (projectStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateProject(obj.(*api.Project))
 }
 
@@ -65,7 +65,11 @@ func (projectStrategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+// Canonicalize normalizes the object after validation.
+func (projectStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // ValidateUpdate is the default update validation for an end user.
-func (projectStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (projectStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateProjectUpdate(obj.(*api.Project), old.(*api.Project))
 }

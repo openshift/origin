@@ -1,8 +1,7 @@
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -15,10 +14,10 @@ type ClusterPoliciesInterface interface {
 
 // ClusterPolicyInterface exposes methods on ClusterPolicies resources
 type ClusterPolicyInterface interface {
-	List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyList, error)
+	List(opts kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error)
 	Get(name string) (*authorizationapi.ClusterPolicy, error)
 	Delete(name string) error
-	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(opts kapi.ListOptions) (watch.Interface, error)
 }
 
 type clusterPolicies struct {
@@ -32,9 +31,9 @@ func newClusterPolicies(c *Client) *clusterPolicies {
 }
 
 // List returns a list of policies that match the label and field selectors.
-func (c *clusterPolicies) List(label labels.Selector, field fields.Selector) (result *authorizationapi.ClusterPolicyList, err error) {
+func (c *clusterPolicies) List(opts kapi.ListOptions) (result *authorizationapi.ClusterPolicyList, err error) {
 	result = &authorizationapi.ClusterPolicyList{}
-	err = c.r.Get().Resource("clusterPolicies").LabelsSelectorParam(label).FieldsSelectorParam(field).Do().Into(result)
+	err = c.r.Get().Resource("clusterPolicies").VersionedParams(&opts, kapi.Scheme).Do().Into(result)
 	return
 }
 
@@ -52,6 +51,6 @@ func (c *clusterPolicies) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested clusterPolicies
-func (c *clusterPolicies) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.r.Get().Prefix("watch").Resource("clusterPolicies").Param("resourceVersion", resourceVersion).LabelsSelectorParam(label).FieldsSelectorParam(field).Watch()
+func (c *clusterPolicies) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.r.Get().Prefix("watch").Resource("clusterPolicies").VersionedParams(&opts, kapi.Scheme).Watch()
 }

@@ -27,7 +27,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
+	awscloud "k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/exec"
@@ -185,6 +185,7 @@ type awsElasticBlockStore struct {
 	// Mounter interface that provides system calls to mount the global path to the pod local path.
 	mounter mount.Interface
 	plugin  *awsElasticBlockStorePlugin
+	volume.MetricsNil
 }
 
 func detachDiskLogError(ebs *awsElasticBlockStore) {
@@ -195,9 +196,9 @@ func detachDiskLogError(ebs *awsElasticBlockStore) {
 }
 
 // getVolumeProvider returns the AWS Volumes interface
-func (ebs *awsElasticBlockStore) getVolumeProvider() (aws_cloud.Volumes, error) {
+func (ebs *awsElasticBlockStore) getVolumeProvider() (awscloud.Volumes, error) {
 	cloud := ebs.plugin.host.GetCloudProvider()
-	volumes, ok := cloud.(aws_cloud.Volumes)
+	volumes, ok := cloud.(awscloud.Volumes)
 	if !ok {
 		return nil, fmt.Errorf("Cloud provider does not support volumes")
 	}
@@ -213,13 +214,18 @@ type awsElasticBlockStoreBuilder struct {
 	// Specifies whether the disk will be attached as read-only.
 	readOnly bool
 	// diskMounter provides the interface that is used to mount the actual block device.
-	diskMounter mount.Interface
+	diskMounter *mount.SafeFormatAndMount
 }
 
 var _ volume.Builder = &awsElasticBlockStoreBuilder{}
 
-func (_ *awsElasticBlockStoreBuilder) SupportsOwnershipManagement() bool {
-	return true
+func (b *awsElasticBlockStoreBuilder) GetAttributes() volume.Attributes {
+	return volume.Attributes{
+		ReadOnly:                    b.readOnly,
+		Managed:                     !b.readOnly,
+		SupportsOwnershipManagement: true,
+		SupportsSELinux:             true,
+	}
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.
@@ -285,14 +291,6 @@ func (b *awsElasticBlockStoreBuilder) SetUpAt(dir string) error {
 	}
 
 	return nil
-}
-
-func (b *awsElasticBlockStoreBuilder) IsReadOnly() bool {
-	return b.readOnly
-}
-
-func (b *awsElasticBlockStoreBuilder) SupportsSELinux() bool {
-	return true
 }
 
 func makeGlobalPDPath(host volume.VolumeHost, volumeID string) string {

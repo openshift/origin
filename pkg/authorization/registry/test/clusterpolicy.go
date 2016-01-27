@@ -6,8 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -32,7 +31,7 @@ func NewClusterPolicyRegistry(policies []authorizationapi.ClusterPolicy, err err
 }
 
 // ListClusterPolicies obtains list of ListClusterPolicy that match a selector.
-func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyList, error) {
+func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -138,7 +137,7 @@ func (r *ClusterPolicyRegistry) DeleteClusterPolicy(ctx kapi.Context, id string)
 	return nil
 }
 
-func (r *ClusterPolicyRegistry) WatchClusterPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *ClusterPolicyRegistry) WatchClusterPolicies(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

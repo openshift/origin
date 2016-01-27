@@ -31,6 +31,7 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 const (
@@ -56,7 +57,7 @@ func NewCmdAttach(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer)
 	cmd := &cobra.Command{
 		Use:     "attach POD -c CONTAINER",
 		Short:   "Attach to a running container.",
-		Long:    "Attach to a a process that is already running inside an existing container.",
+		Long:    "Attach to a process that is already running inside an existing container.",
 		Example: attach_example,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(options.Complete(f, cmd, args))
@@ -137,16 +138,17 @@ func (p *AttachOptions) Complete(f *cmdutil.Factory, cmd *cobra.Command, argsIn 
 
 // Validate checks that the provided attach options are specified.
 func (p *AttachOptions) Validate() error {
+	allErrs := []error{}
 	if len(p.PodName) == 0 {
-		return fmt.Errorf("pod name must be specified")
+		allErrs = append(allErrs, fmt.Errorf("pod name must be specified"))
 	}
 	if p.Out == nil || p.Err == nil {
-		return fmt.Errorf("both output and error output must be provided")
+		allErrs = append(allErrs, fmt.Errorf("both output and error output must be provided"))
 	}
 	if p.Attach == nil || p.Client == nil || p.Config == nil {
-		return fmt.Errorf("client, client config, and attach must be provided")
+		allErrs = append(allErrs, fmt.Errorf("client, client config, and attach must be provided"))
 	}
-	return nil
+	return utilerrors.NewAggregate(allErrs)
 }
 
 // Run executes a validated remote execution against a pod.
@@ -180,6 +182,7 @@ func (p *AttachOptions) Run() error {
 					if err != nil {
 						glog.Fatal(err)
 					}
+					fmt.Fprintln(p.Out, "\nHit enter for command prompt")
 					// this handles a clean exit, where the command finished
 					defer term.RestoreTerminal(inFd, oldState)
 

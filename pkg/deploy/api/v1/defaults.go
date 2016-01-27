@@ -2,7 +2,7 @@ package v1
 
 import (
 	"k8s.io/kubernetes/pkg/api"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -52,11 +52,11 @@ func init() {
 			if obj.UpdatePercent == nil {
 				// Apply defaults.
 				if obj.MaxUnavailable == nil {
-					maxUnavailable := kutil.NewIntOrStringFromString("25%")
+					maxUnavailable := intstr.FromString("25%")
 					obj.MaxUnavailable = &maxUnavailable
 				}
 				if obj.MaxSurge == nil {
-					maxSurge := kutil.NewIntOrStringFromString("25%")
+					maxSurge := intstr.FromString("25%")
 					obj.MaxSurge = &maxSurge
 				}
 			}

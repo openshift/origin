@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
@@ -40,7 +40,7 @@ func (identityStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // Validate validates a new user
-func (identityStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (identityStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	identity := obj.(*api.Identity)
 	return validation.ValidateIdentity(identity)
 }
@@ -54,8 +54,12 @@ func (identityStrategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+// Canonicalize normalizes the object after validation.
+func (identityStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // ValidateUpdate is the default update validation for an identity
-func (identityStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (identityStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateIdentityUpdate(obj.(*api.Identity), old.(*api.Identity))
 }
 

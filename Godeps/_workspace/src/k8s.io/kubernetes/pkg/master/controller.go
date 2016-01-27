@@ -31,6 +31,7 @@ import (
 	servicecontroller "k8s.io/kubernetes/pkg/registry/service/ipallocator/controller"
 	portallocatorcontroller "k8s.io/kubernetes/pkg/registry/service/portallocator/controller"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	"github.com/golang/glog"
 )
@@ -157,7 +158,7 @@ func createPortAndServiceSpec(servicePort int, nodePort int, servicePortName str
 	servicePorts := []api.ServicePort{{Protocol: api.ProtocolTCP,
 		Port:       servicePort,
 		Name:       servicePortName,
-		TargetPort: util.NewIntOrStringFromInt(servicePort)}}
+		TargetPort: intstr.FromInt(servicePort)}}
 	serviceType := api.ServiceTypeClusterIP
 	if nodePort > 0 {
 		servicePorts[0].NodePort = nodePort
@@ -211,7 +212,7 @@ func (c *Controller) CreateOrUpdateMasterServiceIfNeeded(serviceName string, ser
 			Type:            serviceType,
 		},
 	}
-	if err := rest.BeforeCreate(rest.Services, ctx, svc); err != nil {
+	if err := rest.BeforeCreate(service.Strategy, ctx, svc); err != nil {
 		return err
 	}
 
@@ -263,18 +264,22 @@ func (c *Controller) ReconcileEndpoints(serviceName string, ip net.IP, endpointP
 		return nil
 	}
 	if !ipCorrect {
-		// We *always* add our own IP address; if there are too many IP
-		// addresses, we remove the ones lexicographically after our
+		// We *always* add our own IP address.
+		e.Subsets[0].Addresses = append(e.Subsets[0].Addresses, api.EndpointAddress{IP: ip.String()})
+
+		// Lexicographic order is retained by this step.
+		e.Subsets = endpoints.RepackSubsets(e.Subsets)
+
+		// If too many IP addresses, remove the ones lexicographically after our
 		// own IP address.  Given the requirements stated at the top of
 		// this function, this should cause the list of IP addresses to
 		// become eventually correct.
-		e.Subsets[0].Addresses = append(e.Subsets[0].Addresses, api.EndpointAddress{IP: ip.String()})
-		e.Subsets = endpoints.RepackSubsets(e.Subsets)
 		if addrs := &e.Subsets[0].Addresses; len(*addrs) > c.MasterCount {
 			// addrs is a pointer because we're going to mutate it.
 			for i, addr := range *addrs {
 				if addr.IP == ip.String() {
 					for len(*addrs) > c.MasterCount {
+						// wrap around if necessary.
 						remove := (i + 1) % len(*addrs)
 						*addrs = append((*addrs)[:remove], (*addrs)[remove+1:]...)
 					}

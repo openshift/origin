@@ -32,6 +32,7 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/latest"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/project/cache"
@@ -69,15 +70,13 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	if isSubjectAccessReview(a) {
 		return nil
 	}
-	defaultVersion, kind, err := latest.RESTMapper.VersionAndKindForResource(a.GetResource())
+	fmt.Println(a.GetKind())
+	mapping, err := latest.RESTMapper.RESTMapping(a.GetKind())
 	if err != nil {
 		glog.V(4).Infof("Ignoring life-cycle enforcement for resource %v; no associated default version and kind could be found.", a.GetResource())
 		return nil
 	}
-	mapping, err := latest.RESTMapper.RESTMapping(kind, defaultVersion)
-	if err != nil {
-		return admission.NewForbidden(a, err)
-	}
+	fmt.Println(mapping)
 	if mapping.Scope.Name() != meta.RESTScopeNameNamespace {
 		return nil
 	}
@@ -106,8 +105,8 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 		return nil
 	}
 
-	if namespace.Status.Phase == kapi.NamespaceTerminating && !e.creatableResources.Has(strings.ToLower(a.GetResource())) {
-		return apierrors.NewForbidden(kind, name, fmt.Errorf("Namespace %s is terminating", a.GetNamespace()))
+	if namespace.Status.Phase == kapi.NamespaceTerminating && !e.creatableResources.Has(strings.ToLower(a.GetResource().Resource)) {
+		return apierrors.NewForbidden(a.GetKind().Kind, name, fmt.Errorf("Namespace %s is terminating", a.GetNamespace()))
 	}
 
 	// in case of concurrency issues, we will retry this logic
@@ -160,7 +159,11 @@ func NewLifecycle(client client.Interface, creatableResources sets.String) (admi
 	}, nil
 }
 
+var (
+	sar  = api.Kind("SubjectAccessReview")
+	lsar = api.Kind("LocalSubjectAccessReview")
+)
+
 func isSubjectAccessReview(a admission.Attributes) bool {
-	return a.GetResource() == "subjectaccessreviews" ||
-		a.GetResource() == "localsubjectaccessreviews"
+	return a.GetKind() == sar || a.GetKind() == lsar
 }

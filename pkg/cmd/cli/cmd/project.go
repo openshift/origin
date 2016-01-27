@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"io"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/pkg/fields"
 	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
@@ -265,7 +264,7 @@ func (o ProjectOptions) RunProject() error {
 }
 
 func getProjects(oClient *client.Client) ([]api.Project, error) {
-	projects, err := oClient.Projects().List(labels.Everything(), fields.Everything())
+	projects, err := oClient.Projects().List(kapi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

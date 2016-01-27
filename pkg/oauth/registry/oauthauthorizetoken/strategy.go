@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // strategy implements behavior for OAuthAuthorizeTokens
@@ -36,8 +36,12 @@ func (strategy) GenerateName(base string) string {
 func (strategy) PrepareForCreate(obj runtime.Object) {
 }
 
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
+}
+
 // Validate validates a new token
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	token := obj.(*api.OAuthAuthorizeToken)
 	return validation.ValidateAuthorizeToken(token)
 }

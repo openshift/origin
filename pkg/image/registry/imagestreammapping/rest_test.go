@@ -8,16 +8,14 @@ import (
 	"testing"
 
 	"github.com/coreos/go-etcd/etcd"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/runtime"
-	kstorage "k8s.io/kubernetes/pkg/storage"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	"k8s.io/kubernetes/pkg/tools"
-	"k8s.io/kubernetes/pkg/tools/etcdtest"
+	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
+	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -41,16 +39,19 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 	return nil, nil
 }
 
-func setup(t *testing.T) (*tools.FakeEtcdClient, kstorage.Interface, *REST) {
-	fakeEtcdClient := tools.NewFakeEtcdClient(t)
-	fakeEtcdClient.TestIndex = true
-	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
-	imageStorage := imageetcd.NewREST(helper)
+func setup(t *testing.T) (*etcd.Client, *etcdtesting.EtcdTestServer, *REST) {
+
+	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
+
+	imageStorage := imageetcd.NewREST(etcdStorage)
+	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(etcdStorage, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
+
 	storage := NewREST(imageRegistry, imageStreamRegistry)
-	return fakeEtcdClient, helper, storage
+
+	return server.Client, server, storage
 }
 
 func validImageStream() *api.ImageStream {
@@ -88,7 +89,8 @@ func validNewMappingWithName() *api.ImageStreamMapping {
 }
 
 func TestCreateConflictingNamespace(t *testing.T) {
-	_, _, storage := setup(t)
+	_, server, storage := setup(t)
+	defer server.Terminate(t)
 
 	mapping := validNewMappingWithName()
 	mapping.Namespace = "some-value"
@@ -107,8 +109,8 @@ func TestCreateConflictingNamespace(t *testing.T) {
 }
 
 func TestCreateImageStreamNotFoundWithName(t *testing.T) {
-	fakeEtcdClient, _, storage := setup(t)
-	fakeEtcdClient.ExpectNotFoundGet("/imagestreams/default/somerepo")
+	_, server, storage := setup(t)
+	defer server.Terminate(t)
 
 	obj, err := storage.Create(kapi.NewDefaultContext(), validNewMappingWithName())
 	if obj != nil {
@@ -121,7 +123,7 @@ func TestCreateImageStreamNotFoundWithName(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected StatusError, got %#v", err)
 	}
-	if e, a := http.StatusNotFound, e.ErrStatus.Code; e != a {
+	if e, a := http.StatusNotFound, e.ErrStatus.Code; int32(e) != a {
 		t.Errorf("error status code: expected %d, got %d", e, a)
 	}
 	if e, a := "imageStream", e.ErrStatus.Details.Kind; e != a {
@@ -133,29 +135,26 @@ func TestCreateImageStreamNotFoundWithName(t *testing.T) {
 }
 
 func TestCreateSuccessWithName(t *testing.T) {
-	fakeEtcdClient, helper, storage := setup(t)
+	client, server, storage := setup(t)
+	defer server.Terminate(t)
 
 	initialRepo := &api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "somerepo"},
 	}
 
-	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/somerepo")] = tools.EtcdResponseWithError{
-		R: &etcd.Response{
-			Node: &etcd.Node{
-				Value:         runtime.EncodeOrDie(latest.Codec, initialRepo),
-				ModifiedIndex: 1,
-			},
-		},
+	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/somerepo"), runtime.EncodeOrDie(latest.Codec, initialRepo), 0)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	mapping := validNewMappingWithName()
-	_, err := storage.Create(kapi.NewDefaultContext(), mapping)
+	_, err = storage.Create(kapi.NewDefaultContext(), mapping)
 	if err != nil {
 		t.Fatalf("Unexpected error creating mapping: %#v", err)
 	}
 
-	image := &api.Image{}
-	if err := helper.Get(kapi.NewDefaultContext(), "/images/imageID1", image, false); err != nil {
+	image, err := storage.imageRegistry.GetImage(kapi.NewDefaultContext(), "imageID1")
+	if err != nil {
 		t.Errorf("Unexpected error retrieving image: %#v", err)
 	}
 	if e, a := mapping.Image.DockerImageReference, image.DockerImageReference; e != a {
@@ -165,8 +164,8 @@ func TestCreateSuccessWithName(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo := &api.ImageStream{}
-	if err := helper.Get(kapi.NewDefaultContext(), "/imagestreams/default/somerepo", repo, false); err != nil {
+	repo, err := storage.imageStreamRegistry.GetImageStream(kapi.NewDefaultContext(), "somerepo")
+	if err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
 	if e, a := "imageID1", repo.Status.Tags["latest"].Items[0].Image; e != a {
@@ -218,41 +217,24 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 		},
 	}
 
-	fakeEtcdClient, _, storage := setup(t)
-	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default")] = tools.EtcdResponseWithError{
-		R: &etcd.Response{
-			Node: &etcd.Node{
-				Nodes: []*etcd.Node{
-					{
-						Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
-						ModifiedIndex: 1,
-					},
-				},
-			},
-		},
+	client, server, storage := setup(t)
+	defer server.Terminate(t)
+
+	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/somerepo"), runtime.EncodeOrDie(latest.Codec, existingRepo), 0)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
 	}
-	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/somerepo")] = tools.EtcdResponseWithError{
-		R: &etcd.Response{
-			Node: &etcd.Node{
-				Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
-				ModifiedIndex: 1,
-			},
-		},
-	}
-	fakeEtcdClient.Data[etcdtest.AddPrefix("/images/default/"+imageID)] = tools.EtcdResponseWithError{
-		R: &etcd.Response{
-			Node: &etcd.Node{
-				Value:         runtime.EncodeOrDie(latest.Codec, existingImage),
-				ModifiedIndex: 1,
-			},
-		},
+
+	_, err = client.Create(etcdtest.AddPrefix("/images/default/"+imageID), runtime.EncodeOrDie(latest.Codec, existingImage), 0)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	mapping := api.ImageStreamMapping{
 		Image: *existingImage,
 		Tag:   "latest",
 	}
-	_, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+	_, err = storage.Create(kapi.NewDefaultContext(), &mapping)
 	if !errors.IsInvalid(err) {
 		t.Fatalf("Unexpected non-error creating mapping: %#v", err)
 	}
@@ -297,51 +279,34 @@ func TestAddExistingImageAndTag(t *testing.T) {
 		},
 	}
 
-	fakeEtcdClient, _, storage := setup(t)
-	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default")] = tools.EtcdResponseWithError{
-		R: &etcd.Response{
-			Node: &etcd.Node{
-				Nodes: []*etcd.Node{
-					{
-						Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
-						ModifiedIndex: 1,
-					},
-				},
-			},
-		},
+	client, server, storage := setup(t)
+	defer server.Terminate(t)
+
+	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/somerepo"), runtime.EncodeOrDie(latest.Codec, existingRepo), 0)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
 	}
-	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/somerepo")] = tools.EtcdResponseWithError{
-		R: &etcd.Response{
-			Node: &etcd.Node{
-				Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
-				ModifiedIndex: 1,
-			},
-		},
-	}
-	fakeEtcdClient.Data[etcdtest.AddPrefix("/images/default/existingImage")] = tools.EtcdResponseWithError{
-		R: &etcd.Response{
-			Node: &etcd.Node{
-				Value:         runtime.EncodeOrDie(latest.Codec, existingImage),
-				ModifiedIndex: 1,
-			},
-		},
+
+	_, err = client.Create(etcdtest.AddPrefix("/images/default/existingImage"), runtime.EncodeOrDie(latest.Codec, existingImage), 0)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	mapping := api.ImageStreamMapping{
 		Image: *existingImage,
 		Tag:   "existingTag",
 	}
-	_, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+	_, err = storage.Create(kapi.NewDefaultContext(), &mapping)
 	if !errors.IsInvalid(err) {
 		t.Fatalf("Unexpected non-error creating mapping: %#v", err)
 	}
 }
 
 func TestTrackingTags(t *testing.T) {
-	etcdClient, etcdHelper, storage := setup(t)
-	_ = etcdClient
+	client, server, storage := setup(t)
+	defer server.Terminate(t)
 
-	stream := api.ImageStream{
+	stream := &api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: "default",
 			Name:      "stream",
@@ -392,8 +357,9 @@ func TestTrackingTags(t *testing.T) {
 		},
 	}
 
-	if err := etcdHelper.Create(kapi.NewDefaultContext(), "/imagestreams/default/stream", &stream, nil, 0); err != nil {
-		t.Fatalf("Unable to create stream: %v", err)
+	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/stream"), runtime.EncodeOrDie(latest.Codec, stream), 0)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	image := &api.Image{
@@ -412,17 +378,18 @@ func TestTrackingTags(t *testing.T) {
 		Tag:   "2.0",
 	}
 
-	_, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+	_, err = storage.Create(kapi.NewDefaultContext(), &mapping)
 	if err != nil {
 		t.Fatalf("Unexpected error creating mapping: %v", err)
 	}
 
-	if err := etcdHelper.Get(kapi.NewDefaultContext(), "/imagestreams/default/stream", &stream, false); err != nil {
+	stream, err = storage.imageStreamRegistry.GetImageStream(kapi.NewDefaultContext(), "stream")
+	if err != nil {
 		t.Fatalf("error extracting updated stream: %v", err)
 	}
 
 	for _, trackingTag := range []string{"tracking", "tracking2"} {
-		tracking := api.LatestTaggedImage(&stream, trackingTag)
+		tracking := api.LatestTaggedImage(stream, trackingTag)
 		if tracking == nil {
 			t.Fatalf("unexpected nil %s TagEvent", trackingTag)
 		}
@@ -435,7 +402,7 @@ func TestTrackingTags(t *testing.T) {
 		}
 	}
 
-	nonTracking := api.LatestTaggedImage(&stream, "nontracking")
+	nonTracking := api.LatestTaggedImage(stream, "nontracking")
 	if nonTracking == nil {
 		t.Fatal("unexpected nil nontracking TagEvent")
 	}
@@ -461,7 +428,7 @@ func TestCreateRetryUnrecoverable(t *testing.T) {
 			getImageStream: func(ctx kapi.Context, id string) (*api.ImageStream, error) {
 				return validImageStream(), nil
 			},
-			listImageStreams: func(ctx kapi.Context, selector labels.Selector) (*api.ImageStreamList, error) {
+			listImageStreams: func(ctx kapi.Context, options *unversioned.ListOptions) (*api.ImageStreamList, error) {
 				s := validImageStream()
 				return &api.ImageStreamList{Items: []api.ImageStream{*s}}, nil
 			},
@@ -578,15 +545,15 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 }
 
 type fakeImageRegistry struct {
-	listImages  func(ctx kapi.Context, selector labels.Selector) (*api.ImageList, error)
+	listImages  func(ctx kapi.Context, options *unversioned.ListOptions) (*api.ImageList, error)
 	getImage    func(ctx kapi.Context, id string) (*api.Image, error)
 	createImage func(ctx kapi.Context, image *api.Image) error
 	deleteImage func(ctx kapi.Context, id string) error
-	watchImages func(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	watchImages func(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error)
 }
 
-func (f *fakeImageRegistry) ListImages(ctx kapi.Context, selector labels.Selector) (*api.ImageList, error) {
-	return f.listImages(ctx, selector)
+func (f *fakeImageRegistry) ListImages(ctx kapi.Context, options *unversioned.ListOptions) (*api.ImageList, error) {
+	return f.listImages(ctx, options)
 }
 func (f *fakeImageRegistry) GetImage(ctx kapi.Context, id string) (*api.Image, error) {
 	return f.getImage(ctx, id)
@@ -597,23 +564,23 @@ func (f *fakeImageRegistry) CreateImage(ctx kapi.Context, image *api.Image) erro
 func (f *fakeImageRegistry) DeleteImage(ctx kapi.Context, id string) error {
 	return f.deleteImage(ctx, id)
 }
-func (f *fakeImageRegistry) WatchImages(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return f.watchImages(ctx, label, field, resourceVersion)
+func (f *fakeImageRegistry) WatchImages(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+	return f.watchImages(ctx, options)
 }
 
 type fakeImageStreamRegistry struct {
-	listImageStreams        func(ctx kapi.Context, selector labels.Selector) (*api.ImageStreamList, error)
+	listImageStreams        func(ctx kapi.Context, options *unversioned.ListOptions) (*api.ImageStreamList, error)
 	getImageStream          func(ctx kapi.Context, id string) (*api.ImageStream, error)
 	createImageStream       func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	updateImageStream       func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	updateImageStreamSpec   func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	updateImageStreamStatus func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	deleteImageStream       func(ctx kapi.Context, id string) (*unversioned.Status, error)
-	watchImageStreams       func(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	watchImageStreams       func(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error)
 }
 
-func (f *fakeImageStreamRegistry) ListImageStreams(ctx kapi.Context, selector labels.Selector) (*api.ImageStreamList, error) {
-	return f.listImageStreams(ctx, selector)
+func (f *fakeImageStreamRegistry) ListImageStreams(ctx kapi.Context, options *unversioned.ListOptions) (*api.ImageStreamList, error) {
+	return f.listImageStreams(ctx, options)
 }
 func (f *fakeImageStreamRegistry) GetImageStream(ctx kapi.Context, id string) (*api.ImageStream, error) {
 	return f.getImageStream(ctx, id)
@@ -633,6 +600,6 @@ func (f *fakeImageStreamRegistry) UpdateImageStreamStatus(ctx kapi.Context, repo
 func (f *fakeImageStreamRegistry) DeleteImageStream(ctx kapi.Context, id string) (*unversioned.Status, error) {
 	return f.deleteImageStream(ctx, id)
 }
-func (f *fakeImageStreamRegistry) WatchImageStreams(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return f.watchImageStreams(ctx, label, field, resourceVersion)
+func (f *fakeImageStreamRegistry) WatchImageStreams(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+	return f.watchImageStreams(ctx, options)
 }

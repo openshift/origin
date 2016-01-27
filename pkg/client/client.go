@@ -268,17 +268,18 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 	if len(config.UserAgent) == 0 {
 		config.UserAgent = DefaultOpenShiftUserAgent()
 	}
-	if config.Version == "" {
+	if config.GroupVersion == nil {
 		// Clients default to the preferred code API version
-		config.Version = latest.Version
+		groupVersionCopy := latest.Version
+		config.GroupVersion = &groupVersionCopy
 	}
 	if config.Prefix == "" {
 		config.Prefix = "/oapi"
 	}
-	version := config.Version
-	versionInterfaces, err := latest.InterfacesFor(version)
+	version := config.GroupVersion
+	versionInterfaces, err := latest.InterfacesFor(*version)
 	if err != nil {
-		return fmt.Errorf("API version '%s' is not recognized (valid values: %s)", version, strings.Join(latest.Versions, ", "))
+		return fmt.Errorf("API version %q is not recognized (valid values: %v)", version, latest.Versions)
 	}
 	if config.Codec == nil {
 		config.Codec = versionInterfaces.Codec

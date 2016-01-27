@@ -27,20 +27,20 @@ import (
 	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
+	awscloud "k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 )
 
 const (
 	serveHostnameImage        = "gcr.io/google_containers/serve_hostname:1.1"
 	resizeNodeReadyTimeout    = 2 * time.Minute
 	resizeNodeNotReadyTimeout = 2 * time.Minute
+	testPort                  = 9376
 )
 
 func resizeGroup(size int) error {
@@ -56,7 +56,7 @@ func resizeGroup(size int) error {
 		return err
 	} else {
 		// Supported by aws
-		instanceGroups, ok := testContext.CloudConfig.Provider.(aws_cloud.InstanceGroups)
+		instanceGroups, ok := testContext.CloudConfig.Provider.(awscloud.InstanceGroups)
 		if !ok {
 			return fmt.Errorf("Provider does not support InstanceGroups")
 		}
@@ -78,7 +78,7 @@ func groupSize() (int, error) {
 		return len(re.FindAllString(string(output), -1)), nil
 	} else {
 		// Supported by aws
-		instanceGroups, ok := testContext.CloudConfig.Provider.(aws_cloud.InstanceGroups)
+		instanceGroups, ok := testContext.CloudConfig.Provider.(awscloud.InstanceGroups)
 		if !ok {
 			return -1, fmt.Errorf("provider does not support InstanceGroups")
 		}
@@ -111,25 +111,26 @@ func waitForGroupSize(size int) error {
 	return fmt.Errorf("timeout waiting %v for node instance group size to be %d", timeout, size)
 }
 
-func svcByName(name string) *api.Service {
+func svcByName(name string, port int) *api.Service {
 	return &api.Service{
 		ObjectMeta: api.ObjectMeta{
-			Name: "test-service",
+			Name: name,
 		},
 		Spec: api.ServiceSpec{
+			Type: api.ServiceTypeNodePort,
 			Selector: map[string]string{
 				"name": name,
 			},
 			Ports: []api.ServicePort{{
-				Port:       9376,
-				TargetPort: util.NewIntOrStringFromInt(9376),
+				Port:       port,
+				TargetPort: intstr.FromInt(port),
 			}},
 		},
 	}
 }
 
 func newSVCByName(c *client.Client, ns, name string) error {
-	_, err := c.Services(ns).Create(svcByName(name))
+	_, err := c.Services(ns).Create(svcByName(name, testPort))
 	return err
 }
 
@@ -183,10 +184,11 @@ func rcByNamePort(name string, replicas int, image string, port int, labels map[
 func rcByNameContainer(name string, replicas int, image string, labels map[string]string, c api.Container) *api.ReplicationController {
 	// Add "name": name to the labels, overwriting if it exists.
 	labels["name"] = name
+	gracePeriod := int64(0)
 	return &api.ReplicationController{
 		TypeMeta: unversioned.TypeMeta{
 			Kind:       "ReplicationController",
-			APIVersion: latest.GroupOrDie("").Version,
+			APIVersion: latest.GroupOrDie("").GroupVersion.Version,
 		},
 		ObjectMeta: api.ObjectMeta{
 			Name: name,
@@ -201,7 +203,8 @@ func rcByNameContainer(name string, replicas int, image string, labels map[strin
 					Labels: labels,
 				},
 				Spec: api.PodSpec{
-					Containers: []api.Container{c},
+					Containers:                    []api.Container{c},
+					TerminationGracePeriodSeconds: &gracePeriod,
 				},
 			},
 		},
@@ -230,7 +233,8 @@ func podsCreated(c *client.Client, ns, name string, replicas int) (*api.PodList,
 	// List the pods, making sure we observe all the replicas.
 	label := labels.SelectorFromSet(labels.Set(map[string]string{"name": name}))
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(5 * time.Second) {
-		pods, err := c.Pods(ns).List(label, fields.Everything())
+		options := api.ListOptions{LabelSelector: label}
+		pods, err := c.Pods(ns).List(options)
 		if err != nil {
 			return nil, err
 		}
@@ -336,14 +340,15 @@ func performTemporaryNetworkFailure(c *client.Client, ns, rcName string, replica
 		// may fail). Manual intervention is required in such case (recreating the
 		// cluster solves the problem too).
 		err := wait.Poll(time.Millisecond*100, time.Second*30, func() (bool, error) {
-			_, _, code, err := SSHVerbose(undropCmd, host, testContext.Provider)
-			if code == 0 && err == nil {
+			result, err := SSH(undropCmd, host, testContext.Provider)
+			if result.Code == 0 && err == nil {
 				return true, nil
-			} else {
-				Logf("Expected 0 exit code and nil error when running '%s' on %s, got %d and %v",
-					undropCmd, node.Name, code, err)
-				return false, nil
 			}
+			LogSSHResult(result)
+			if err != nil {
+				Logf("Unexpected error: %v", err)
+			}
+			return false, nil
 		})
 		if err != nil {
 			Failf("Failed to remove the iptable REJECT rule. Manual intervention is "+
@@ -352,7 +357,7 @@ func performTemporaryNetworkFailure(c *client.Client, ns, rcName string, replica
 	}()
 
 	Logf("Waiting %v to ensure node %s is ready before beginning test...", resizeNodeReadyTimeout, node.Name)
-	if !waitForNodeToBe(c, node.Name, true, resizeNodeReadyTimeout) {
+	if !waitForNodeToBe(c, node.Name, api.NodeReady, true, resizeNodeReadyTimeout) {
 		Failf("Node %s did not become ready within %v", node.Name, resizeNodeReadyTimeout)
 	}
 
@@ -362,13 +367,13 @@ func performTemporaryNetworkFailure(c *client.Client, ns, rcName string, replica
 	// We could also block network traffic from the master(s) to this node,
 	// but blocking it one way is sufficient for this test.
 	dropCmd := fmt.Sprintf("sudo iptables --insert %s", iptablesRule)
-	if _, _, code, err := SSHVerbose(dropCmd, host, testContext.Provider); code != 0 || err != nil {
-		Failf("Expected 0 exit code and nil error when running %s on %s, got %d and %v",
-			dropCmd, node.Name, code, err)
+	if result, err := SSH(dropCmd, host, testContext.Provider); result.Code != 0 || err != nil {
+		LogSSHResult(result)
+		Failf("Unexpected error: %v", err)
 	}
 
 	Logf("Waiting %v for node %s to be not ready after simulated network failure", resizeNodeNotReadyTimeout, node.Name)
-	if !waitForNodeToBe(c, node.Name, false, resizeNodeNotReadyTimeout) {
+	if !waitForNodeToBe(c, node.Name, api.NodeReady, false, resizeNodeNotReadyTimeout) {
 		Failf("Node %s did not become not-ready within %v", node.Name, resizeNodeNotReadyTimeout)
 	}
 
@@ -385,12 +390,16 @@ func performTemporaryNetworkFailure(c *client.Client, ns, rcName string, replica
 
 var _ = Describe("Nodes", func() {
 	framework := NewFramework("resize-nodes")
+	var systemPodsNo int
 	var c *client.Client
 	var ns string
 
 	BeforeEach(func() {
 		c = framework.Client
 		ns = framework.Namespace.Name
+		systemPods, err := c.Pods(api.NamespaceSystem).List(api.ListOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		systemPodsNo = len(systemPods.Items)
 	})
 
 	Describe("Resize", func() {
@@ -418,6 +427,12 @@ var _ = Describe("Nodes", func() {
 			if err := waitForClusterSize(c, testContext.CloudConfig.NumNodes, 10*time.Minute); err != nil {
 				Failf("Couldn't restore the original cluster size: %v", err)
 			}
+			// Many e2e tests assume that the cluster is fully healthy before they start.  Wait until
+			// the cluster is restored to health.
+			By("waiting for system pods to successfully restart")
+
+			err := waitForPodsRunningReady(api.NamespaceSystem, systemPodsNo, podReadyBeforeTimeout)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should be able to delete nodes", func() {
@@ -470,7 +485,7 @@ var _ = Describe("Nodes", func() {
 	})
 
 	Describe("Network", func() {
-		Context("when a minion node becomes unreachable", func() {
+		Context("when a node becomes unreachable", func() {
 			BeforeEach(func() {
 				SkipUnlessProviderIs("gce", "gke", "aws")
 				SkipUnlessNodeCountIsAtLeast(2)
@@ -482,8 +497,8 @@ var _ = Describe("Nodes", func() {
 			// 1. pods from a uncontactable nodes are rescheduled
 			// 2. when a node joins the cluster, it can host new pods.
 			// Factor out the cases into two separate tests.
-			It("[replication controller] recreates pods scheduled on the unreachable minion node "+
-				"AND allows scheduling of pods on a minion after it rejoins the cluster", func() {
+			It("[replication controller] recreates pods scheduled on the unreachable node "+
+				"AND allows scheduling of pods on a node after it rejoins the cluster", func() {
 
 				// Create a replication controller for a service that serves its hostname.
 				// The source for the Docker container kubernetes/serve_hostname is in contrib/for-demos/serve_hostname
@@ -496,7 +511,8 @@ var _ = Describe("Nodes", func() {
 
 				By("choose a node with at least one pod - we will block some network traffic on this node")
 				label := labels.SelectorFromSet(labels.Set(map[string]string{"name": name}))
-				pods, err := c.Pods(ns).List(label, fields.Everything()) // list pods after all have been scheduled
+				options := api.ListOptions{LabelSelector: label}
+				pods, err := c.Pods(ns).List(options) // list pods after all have been scheduled
 				Expect(err).NotTo(HaveOccurred())
 				nodeName := pods.Items[0].Spec.NodeName
 

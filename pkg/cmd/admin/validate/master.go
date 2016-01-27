@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
@@ -86,7 +86,7 @@ func (o *ValidateMasterConfigOptions) Run() (bool, error) {
 		return true, err
 	}
 
-	results := validation.ValidateMasterConfig(masterConfig)
+	results := validation.ValidateMasterConfig(masterConfig, nil)
 	writer := tabwriter.NewWriter(o.Out, minColumnWidth, tabWidth, padding, padchar, flags)
 	err = prettyPrintValidationResults(results, writer)
 	if err != nil {
@@ -128,22 +128,13 @@ func prettyPrintValidationResults(results validation.ValidationResults, writer *
 
 // prettyPrintValidationErrorList prints the contents of the ValidationErrorList into the buffer of a tabwriter.Writer.
 // The writer must be Flush()ed after calling this to write the buffered data.
-func prettyPrintValidationErrorList(headings string, validationErrors fielderrors.ValidationErrorList, writer *tabwriter.Writer) error {
+func prettyPrintValidationErrorList(headings string, validationErrors field.ErrorList, writer *tabwriter.Writer) error {
 	if len(validationErrors) > 0 {
 		fmt.Fprintf(writer, headings)
 		for _, err := range validationErrors {
-			switch validationError := err.(type) {
-			case (*fielderrors.ValidationError):
-				err := prettyPrintValidationError(validationError, writer)
-				if err != nil {
-					return err
-				}
-			default:
-				// This is not a validation error but we can grab the error message for details nonetheless
-				err := prettyPrintGenericError(validationError, writer)
-				if err != nil {
-					return err
-				}
+			err := prettyPrintValidationError(err, writer)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -152,7 +143,7 @@ func prettyPrintValidationErrorList(headings string, validationErrors fielderror
 
 // prettyPrintValidationError prints the contents of the ValidationError into the buffer of a tabwriter.Writer.
 // The writer must be Flush()ed after calling this to write the buffered data.
-func prettyPrintValidationError(validationError *fielderrors.ValidationError, writer *tabwriter.Writer) error {
+func prettyPrintValidationError(validationError *field.Error, writer *tabwriter.Writer) error {
 	_, printError := fmt.Fprintf(writer, "%s\t%s\t%s\t%s\n",
 		toString(validationError.Type),
 		validationError.Field,

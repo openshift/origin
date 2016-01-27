@@ -21,8 +21,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient/simple"
 
 	"net/url"
 )
@@ -35,14 +34,14 @@ func TestSecurityContextConstraintsCreate(t *testing.T) {
 		},
 	}
 
-	c := &testClient{
-		Request: testRequest{
+	c := &simple.Client{
+		Request: simple.Request{
 			Method: "POST",
 			Path:   testapi.Default.ResourcePath(getSCCResoureName(), ns, ""),
-			Query:  buildQueryValues(nil),
+			Query:  simple.BuildQueryValues(nil),
 			Body:   scc,
 		},
-		Response: Response{StatusCode: 200, Body: scc},
+		Response: simple.Response{StatusCode: 200, Body: scc},
 	}
 
 	response, err := c.Setup(t).SecurityContextConstraints().Create(scc)
@@ -56,14 +55,14 @@ func TestSecurityContextConstraintsGet(t *testing.T) {
 			Name: "abc",
 		},
 	}
-	c := &testClient{
-		Request: testRequest{
+	c := &simple.Client{
+		Request: simple.Request{
 			Method: "GET",
 			Path:   testapi.Default.ResourcePath(getSCCResoureName(), ns, "abc"),
-			Query:  buildQueryValues(nil),
+			Query:  simple.BuildQueryValues(nil),
 			Body:   nil,
 		},
-		Response: Response{StatusCode: 200, Body: scc},
+		Response: simple.Response{StatusCode: 200, Body: scc},
 	}
 
 	response, err := c.Setup(t).SecurityContextConstraints().Get("abc")
@@ -81,16 +80,16 @@ func TestSecurityContextConstraintsList(t *testing.T) {
 			},
 		},
 	}
-	c := &testClient{
-		Request: testRequest{
+	c := &simple.Client{
+		Request: simple.Request{
 			Method: "GET",
 			Path:   testapi.Default.ResourcePath(getSCCResoureName(), ns, ""),
-			Query:  buildQueryValues(nil),
+			Query:  simple.BuildQueryValues(nil),
 			Body:   nil,
 		},
-		Response: Response{StatusCode: 200, Body: sccList},
+		Response: simple.Response{StatusCode: 200, Body: sccList},
 	}
-	response, err := c.Setup(t).SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+	response, err := c.Setup(t).SecurityContextConstraints().List(api.ListOptions{})
 	c.Validate(t, response, err)
 }
 
@@ -102,9 +101,9 @@ func TestSecurityContextConstraintsUpdate(t *testing.T) {
 			ResourceVersion: "1",
 		},
 	}
-	c := &testClient{
-		Request:  testRequest{Method: "PUT", Path: testapi.Default.ResourcePath(getSCCResoureName(), ns, "abc"), Query: buildQueryValues(nil)},
-		Response: Response{StatusCode: 200, Body: scc},
+	c := &simple.Client{
+		Request:  simple.Request{Method: "PUT", Path: testapi.Default.ResourcePath(getSCCResoureName(), ns, "abc"), Query: simple.BuildQueryValues(nil)},
+		Response: simple.Response{StatusCode: 200, Body: scc},
 	}
 	response, err := c.Setup(t).SecurityContextConstraints().Update(scc)
 	c.Validate(t, response, err)
@@ -112,23 +111,24 @@ func TestSecurityContextConstraintsUpdate(t *testing.T) {
 
 func TestSecurityContextConstraintsDelete(t *testing.T) {
 	ns := api.NamespaceNone
-	c := &testClient{
-		Request:  testRequest{Method: "DELETE", Path: testapi.Default.ResourcePath(getSCCResoureName(), ns, "foo"), Query: buildQueryValues(nil)},
-		Response: Response{StatusCode: 200},
+	c := &simple.Client{
+		Request:  simple.Request{Method: "DELETE", Path: testapi.Default.ResourcePath(getSCCResoureName(), ns, "foo"), Query: simple.BuildQueryValues(nil)},
+		Response: simple.Response{StatusCode: 200},
 	}
 	err := c.Setup(t).SecurityContextConstraints().Delete("foo")
 	c.Validate(t, nil, err)
 }
 
 func TestSecurityContextConstraintsWatch(t *testing.T) {
-	c := &testClient{
-		Request: testRequest{
+	ns := api.NamespaceNone
+	c := &simple.Client{
+		Request: simple.Request{
 			Method: "GET",
-			Path:   "/api/" + testapi.Default.Version() + "/watch/" + getSCCResoureName(),
+			Path:   testapi.Default.ResourcePathWithPrefix("watch", getSCCResoureName(), ns, ""),
 			Query:  url.Values{"resourceVersion": []string{}}},
-		Response: Response{StatusCode: 200},
+		Response: simple.Response{StatusCode: 200},
 	}
-	_, err := c.Setup(t).SecurityContextConstraints().Watch(labels.Everything(), fields.Everything(), "")
+	_, err := c.Setup(t).SecurityContextConstraints().Watch(api.ListOptions{})
 	c.Validate(t, nil, err)
 }
 

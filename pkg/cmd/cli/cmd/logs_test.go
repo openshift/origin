@@ -14,7 +14,7 @@ import (
 
 // TestFlagParity makes sure that our copied flags don't slip during rebases
 func TestFlagParity(t *testing.T) {
-	kubeCmd := kcmd.NewCmdLog(nil, ioutil.Discard)
+	kubeCmd := kcmd.NewCmdLogs(nil, ioutil.Discard)
 	f := clientcmd.NewFactory(nil)
 	originCmd := NewCmdLogs("oc", "logs", f, ioutil.Discard)
 

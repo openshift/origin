@@ -3,7 +3,7 @@ package imagestreamimport
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
@@ -24,12 +24,15 @@ func (s *strategy) GenerateName(string) string {
 	return ""
 }
 
+func (s *strategy) Canonicalize(runtime.Object) {
+}
+
 func (s *strategy) PrepareForCreate(obj runtime.Object) {
 	newIST := obj.(*api.ImageStreamImport)
 	newIST.Status = api.ImageStreamImportStatus{}
 }
 
-func (s *strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (s *strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	isi := obj.(*api.ImageStreamImport)
 	return validation.ValidateImageStreamImport(isi)
 }

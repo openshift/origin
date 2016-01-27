@@ -33,3 +33,9 @@ func ExampleServiceError() {
 	resp := new(Response)
 	resp.WriteEntity(NewError(http.StatusBadRequest, "Non-integer {id} path parameter"))
 }
+
+func ExampleBoundedCachedCompressors() {
+	// Register a compressor provider (gzip/deflate read/write) that uses
+	// a bounded cache with a maximum of 20 writers and 20 readers.
+	SetCompressorProvider(NewBoundedCachedCompressors(20, 20))
+}

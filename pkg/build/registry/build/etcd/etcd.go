@@ -13,37 +13,23 @@ import (
 	"github.com/openshift/origin/pkg/build/registry/build"
 )
 
-const BuildPath = "/builds"
-
 type REST struct {
 	*etcdgeneric.Etcd
 }
 
-type DetailsREST struct {
-	store *etcdgeneric.Etcd
-}
-
-// New returns an empty object that can be used with Update after request data has been put into it.
-func (r *DetailsREST) New() runtime.Object {
-	return r.store.New()
-}
-
-// Update finds a resource in the storage and updates it.
-func (r *DetailsREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, obj)
-}
-
 // NewStorage returns a RESTStorage object that will work against Build objects.
-func NewStorage(s storage.Interface) (buildStorage *REST, detailsStorage *DetailsREST) {
+func NewREST(s storage.Interface) (*REST, *DetailsREST) {
+	prefix := "/builds"
+
 	store := &etcdgeneric.Etcd{
 		NewFunc:      func() runtime.Object { return &api.Build{} },
 		NewListFunc:  func() runtime.Object { return &api.BuildList{} },
-		EndpointName: "build",
+		EndpointName: "builds",
 		KeyRootFunc: func(ctx kapi.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, BuildPath)
+			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
 		},
 		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, BuildPath, id)
+			return etcdgeneric.NamespaceKeyFunc(ctx, prefix, id)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Build).Name, nil
@@ -59,10 +45,22 @@ func NewStorage(s storage.Interface) (buildStorage *REST, detailsStorage *Detail
 		Storage:             s,
 	}
 
-	buildStorage = &REST{store}
 	detailsStore := *store
 	detailsStore.UpdateStrategy = build.DetailsStrategy
-	detailsStorage = &DetailsREST{&detailsStore}
 
-	return
+	return &REST{store}, &DetailsREST{&detailsStore}
+}
+
+type DetailsREST struct {
+	store *etcdgeneric.Etcd
+}
+
+// New returns an empty object that can be used with Update after request data has been put into it.
+func (r *DetailsREST) New() runtime.Object {
+	return r.store.New()
+}
+
+// Update finds a resource in the storage and updates it.
+func (r *DetailsREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, obj)
 }

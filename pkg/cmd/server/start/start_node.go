@@ -163,7 +163,7 @@ func (o NodeOptions) RunNode() error {
 		return err
 	}
 
-	validationResults := validation.ValidateNodeConfig(nodeConfig)
+	validationResults := validation.ValidateNodeConfig(nodeConfig, nil)
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
 			glog.Warningf("%v", warning)

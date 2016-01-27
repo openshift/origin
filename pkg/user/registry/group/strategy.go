@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
@@ -38,7 +38,7 @@ func (groupStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // Validate validates a new group
-func (groupStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (groupStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateGroup(obj.(*api.Group))
 }
 
@@ -51,8 +51,12 @@ func (groupStrategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+// Canonicalize normalizes the object after validation.
+func (groupStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // ValidateUpdate is the default update validation for an end group.
-func (groupStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (groupStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateGroupUpdate(obj.(*api.Group), old.(*api.Group))
 }
 

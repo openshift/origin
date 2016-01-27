@@ -4,11 +4,10 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -38,7 +37,7 @@ func (r TemplateSearcher) Search(terms ...string) (ComponentMatches, error) {
 			checkedNamespaces.Insert(namespace)
 
 			glog.V(4).Infof("checking template %s/%s", namespace, term)
-			templates, err := r.Client.Templates(namespace).List(labels.Everything(), fields.Everything())
+			templates, err := r.Client.Templates(namespace).List(kapi.ListOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) || errors.IsForbidden(err) {
 					continue

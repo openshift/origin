@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	klatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
@@ -160,26 +161,23 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 	originResources := sets.NewString()
 	k8sResources := sets.NewString()
 
-	versions := sets.NewString()
-	versions.Insert(latest.Versions...)
-	versions.Insert(klatest.VersionsForLegacyGroup()...)
+	versions := []unversioned.GroupVersion{}
+	versions = append(versions, latest.Versions...)
+	versions = append(versions, klatest.ExternalVersions...)
 	deadOriginVersions := sets.NewString(configapi.DeadOpenShiftAPILevels...)
 	deadKubernetesVersions := sets.NewString(configapi.DeadKubernetesAPILevels...)
-	for _, version := range versions.List() {
-		for kind, t := range api.Scheme.KnownTypes(version) {
-			if strings.Contains(t.PkgPath(), "kubernetes/pkg/expapi") {
-				continue
-			}
+	for _, version := range versions {
+		for kind := range api.Scheme.KnownTypes(version) {
 			if strings.HasSuffix(kind, "List") {
 				continue
 			}
 			resource, _ := meta.KindToResource(kind, false)
-			if latest.OriginKind(kind, version) {
-				if !deadOriginVersions.Has(version) {
+			if latest.OriginKind(version.WithKind(kind)) {
+				if !deadOriginVersions.Has(version.String()) {
 					originResources.Insert(resource)
 				}
 			} else {
-				if !deadKubernetesVersions.Has(version) {
+				if !deadKubernetesVersions.Has(version.String()) {
 					k8sResources.Insert(resource)
 				}
 			}

@@ -19,7 +19,7 @@ package validation
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/util/errors"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 )
 
@@ -34,5 +34,10 @@ func ValidatePolicy(policy schedulerapi.Policy) error {
 		}
 	}
 
-	return errors.NewAggregate(validationErrors)
+	for _, extender := range policy.ExtenderConfigs {
+		if extender.Weight < 0 {
+			validationErrors = append(validationErrors, fmt.Errorf("Priority for extender %s should have a non negative weight applied to it", extender.URLPrefix))
+		}
+	}
+	return utilerrors.NewAggregate(validationErrors)
 }

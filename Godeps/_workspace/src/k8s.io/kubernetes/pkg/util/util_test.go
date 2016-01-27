@@ -17,15 +17,12 @@ limitations under the License.
 package util
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
-	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/ghodss/yaml"
+	"time"
 )
 
 func TestUntil(t *testing.T) {
@@ -46,6 +43,17 @@ func TestUntil(t *testing.T) {
 	<-called
 	close(ch)
 	<-called
+}
+
+func TestUntilReturnsImmediately(t *testing.T) {
+	now := time.Now()
+	ch := make(chan struct{})
+	Until(func() {
+		close(ch)
+	}, 30*time.Second, ch)
+	if now.Add(25 * time.Second).Before(time.Now()) {
+		t.Errorf("Until did not return immediately when the stop chan was closed inside the func")
+	}
 }
 
 func TestHandleCrash(t *testing.T) {
@@ -94,133 +102,6 @@ func TestCustomHandleError(t *testing.T) {
 	HandleError(err)
 	if result != err {
 		t.Errorf("did not receive custom handler")
-	}
-}
-
-func TestNewIntOrStringFromInt(t *testing.T) {
-	i := NewIntOrStringFromInt(93)
-	if i.Kind != IntstrInt || i.IntVal != 93 {
-		t.Errorf("Expected IntVal=93, got %+v", i)
-	}
-}
-
-func TestNewIntOrStringFromString(t *testing.T) {
-	i := NewIntOrStringFromString("76")
-	if i.Kind != IntstrString || i.StrVal != "76" {
-		t.Errorf("Expected StrVal=\"76\", got %+v", i)
-	}
-}
-
-type IntOrStringHolder struct {
-	IOrS IntOrString `json:"val"`
-}
-
-func TestIntOrStringUnmarshalYAML(t *testing.T) {
-	cases := []struct {
-		input  string
-		result IntOrString
-	}{
-		{"val: 123\n", IntOrString{Kind: IntstrInt, IntVal: 123}},
-		{"val: \"123\"\n", IntOrString{Kind: IntstrString, StrVal: "123"}},
-	}
-
-	for _, c := range cases {
-		var result IntOrStringHolder
-		if err := yaml.Unmarshal([]byte(c.input), &result); err != nil {
-			t.Errorf("Failed to unmarshal input '%v': %v", c.input, err)
-		}
-		if result.IOrS != c.result {
-			t.Errorf("Failed to unmarshal input '%v': expected: %+v, got %+v", c.input, c.result, result)
-		}
-	}
-}
-
-func TestIntOrStringMarshalYAML(t *testing.T) {
-	cases := []struct {
-		input  IntOrString
-		result string
-	}{
-		{IntOrString{Kind: IntstrInt, IntVal: 123}, "val: 123\n"},
-		{IntOrString{Kind: IntstrString, StrVal: "123"}, "val: \"123\"\n"},
-	}
-
-	for _, c := range cases {
-		input := IntOrStringHolder{c.input}
-		result, err := yaml.Marshal(&input)
-		if err != nil {
-			t.Errorf("Failed to marshal input '%v': %v", input, err)
-		}
-		if string(result) != c.result {
-			t.Errorf("Failed to marshal input '%v': expected: %+v, got %q", input, c.result, string(result))
-		}
-	}
-}
-
-func TestIntOrStringUnmarshalJSON(t *testing.T) {
-	cases := []struct {
-		input  string
-		result IntOrString
-	}{
-		{"{\"val\": 123}", IntOrString{Kind: IntstrInt, IntVal: 123}},
-		{"{\"val\": \"123\"}", IntOrString{Kind: IntstrString, StrVal: "123"}},
-	}
-
-	for _, c := range cases {
-		var result IntOrStringHolder
-		if err := json.Unmarshal([]byte(c.input), &result); err != nil {
-			t.Errorf("Failed to unmarshal input '%v': %v", c.input, err)
-		}
-		if result.IOrS != c.result {
-			t.Errorf("Failed to unmarshal input '%v': expected %+v, got %+v", c.input, c.result, result)
-		}
-	}
-}
-
-func TestIntOrStringMarshalJSON(t *testing.T) {
-	cases := []struct {
-		input  IntOrString
-		result string
-	}{
-		{IntOrString{Kind: IntstrInt, IntVal: 123}, "{\"val\":123}"},
-		{IntOrString{Kind: IntstrString, StrVal: "123"}, "{\"val\":\"123\"}"},
-	}
-
-	for _, c := range cases {
-		input := IntOrStringHolder{c.input}
-		result, err := json.Marshal(&input)
-		if err != nil {
-			t.Errorf("Failed to marshal input '%v': %v", input, err)
-		}
-		if string(result) != c.result {
-			t.Errorf("Failed to marshal input '%v': expected: %+v, got %q", input, c.result, string(result))
-		}
-	}
-}
-
-func TestIntOrStringMarshalJSONUnmarshalYAML(t *testing.T) {
-	cases := []struct {
-		input IntOrString
-	}{
-		{IntOrString{Kind: IntstrInt, IntVal: 123}},
-		{IntOrString{Kind: IntstrString, StrVal: "123"}},
-	}
-
-	for _, c := range cases {
-		input := IntOrStringHolder{c.input}
-		jsonMarshalled, err := json.Marshal(&input)
-		if err != nil {
-			t.Errorf("1: Failed to marshal input: '%v': %v", input, err)
-		}
-
-		var result IntOrStringHolder
-		err = yaml.Unmarshal(jsonMarshalled, &result)
-		if err != nil {
-			t.Errorf("2: Failed to unmarshal '%+v': %v", string(jsonMarshalled), err)
-		}
-
-		if !reflect.DeepEqual(input, result) {
-			t.Errorf("3: Failed to marshal input '%+v': got %+v", input, result)
-		}
 	}
 }
 

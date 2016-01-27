@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/service"
 	"k8s.io/kubernetes/pkg/util"
 
@@ -63,7 +62,7 @@ func (c *Repair) RunOnce() error {
 		return fmt.Errorf("unable to refresh the security allocation UID blocks: %v", err)
 	}
 
-	list, err := c.client.List(labels.Everything(), fields.Everything())
+	list, err := c.client.List(kapi.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("unable to refresh the security allocation UID blocks: %v", err)
 	}

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/google/gofuzz"
-	"k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	osapi "github.com/openshift/origin/pkg/api"
@@ -146,7 +147,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			c.FuzzNoCustom(j)
 			if j.To == nil {
 				// To is defaulted to be not nil
-				j.To = &api.LocalObjectReference{}
+				j.To = &kapi.LocalObjectReference{}
 			}
 		},
 		func(j *image.ImageStreamImage, c fuzz.Continue) {
@@ -220,7 +221,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *route.RouteSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.To = api.ObjectReference{
+			j.To = kapi.ObjectReference{
 				Kind: "Service",
 				Name: j.To.Name,
 			}
@@ -234,16 +235,6 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		func(j *deploy.DeploymentConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.Spec.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}
-			if forVersion == "v1beta3" {
-				// v1beta3 does not contain the PodSecurityContext type.  For this API version, only fuzz
-				// the host namespace fields.  The fields set to nil here are the other fields of the
-				// PodSecurityContext that will not roundtrip correctly from internal->v1beta3->internal.
-				j.Spec.Template.Spec.SecurityContext.SELinuxOptions = nil
-				j.Spec.Template.Spec.SecurityContext.RunAsUser = nil
-				j.Spec.Template.Spec.SecurityContext.RunAsNonRoot = nil
-				j.Spec.Template.Spec.SecurityContext.SupplementalGroups = nil
-				j.Spec.Template.Spec.SecurityContext.FSGroup = nil
-			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
@@ -282,11 +273,11 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 					}
 				}
 				if c.RandBool() {
-					params.MaxUnavailable = util.NewIntOrStringFromInt(int(c.RandUint64()))
-					params.MaxSurge = util.NewIntOrStringFromInt(int(c.RandUint64()))
+					params.MaxUnavailable = intstr.FromInt(int(c.RandUint64()))
+					params.MaxSurge = intstr.FromInt(int(c.RandUint64()))
 				} else {
-					params.MaxSurge = util.NewIntOrStringFromString(fmt.Sprintf("%d%%", c.RandUint64()))
-					params.MaxUnavailable = util.NewIntOrStringFromString(fmt.Sprintf("%d%%", c.RandUint64()))
+					params.MaxSurge = intstr.FromString(fmt.Sprintf("%d%%", c.RandUint64()))
+					params.MaxUnavailable = intstr.FromString(fmt.Sprintf("%d%%", c.RandUint64()))
 				}
 				j.RollingParams = params
 			default:
@@ -307,6 +298,56 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			specs := []string{"a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
 			j.From.Kind = "DockerImage"
 			j.From.Name = specs[c.Intn(len(specs))]
+		},
+		func(j *kapi.PodSecurityContext, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if forVersion == "v1beta3" {
+				// v1beta3 does not contain the PodSecurityContext type.  For this API version, only fuzz
+				// the host namespace fields.  The fields set to nil here are the other fields of the
+				// PodSecurityContext that will not roundtrip correctly from internal->v1beta3->internal.
+				j.SELinuxOptions = nil
+				j.RunAsUser = nil
+				j.RunAsNonRoot = nil
+				j.SupplementalGroups = nil
+				j.FSGroup = nil
+			}
+		},
+		func(j *kapi.GitRepoVolumeSource, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if forVersion == "v1beta3" {
+				// these fields are set to their empty state when testing v1beta3
+				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
+				j.Directory = ""
+			}
+		},
+		func(j *kapi.ISCSIVolumeSource, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if forVersion == "v1beta3" {
+				// these fields are set to their empty state when testing v1beta3
+				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
+				j.ISCSIInterface = ""
+			} else if j.ISCSIInterface == "" {
+				// otherwise an empty value defaults to "default"
+				j.ISCSIInterface = "default"
+			}
+		},
+		func(j *kapi.Event, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if forVersion == "v1beta3" {
+				// these fields are set to their empty state when testing v1beta3
+				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
+				j.Type = ""
+			}
+		},
+		func(j *kapi.Probe, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if forVersion == "v1beta3" {
+				// these fields are set to their empty state when testing v1beta3
+				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
+				j.PeriodSeconds = 0
+				j.SuccessThreshold = 0
+				j.FailureThreshold = 0
+			}
 		},
 		func(j *runtime.EmbeddedObject, c fuzz.Continue) {
 			// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.
@@ -340,7 +381,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	// Make a copy of the originalItem to give to conversion functions
 	// This lets us know if conversion messed with the input object
-	deepCopy, err := api.Scheme.DeepCopy(originalItem)
+	deepCopy, err := kapi.Scheme.DeepCopy(originalItem)
 	if err != nil {
 		t.Errorf("Could not copy object: %v", err)
 		return
@@ -365,13 +406,13 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	}
 	if reflect.TypeOf(item) != reflect.TypeOf(obj2) {
 		obj2conv := reflect.New(reflect.TypeOf(item).Elem()).Interface().(runtime.Object)
-		if err := api.Scheme.Convert(obj2, obj2conv); err != nil {
+		if err := kapi.Scheme.Convert(obj2, obj2conv); err != nil {
 			t.Errorf("0X: no conversion from %v to %v: %v", reflect.TypeOf(item), reflect.TypeOf(obj2), err)
 			return
 		}
 		obj2 = obj2conv
 	}
-	if !api.Semantic.DeepEqual(originalItem, obj2) {
+	if !kapi.Semantic.DeepEqual(originalItem, obj2) {
 		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, util.ObjectDiff(originalItem, obj2), codec, string(data), util.ObjectGoPrintSideBySide(originalItem, obj2))
 		return
 	}
@@ -382,7 +423,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 		t.Errorf("2: %v: %v", name, err)
 		return
 	}
-	if !api.Semantic.DeepEqual(originalItem, obj3) {
+	if !kapi.Semantic.DeepEqual(originalItem, obj3) {
 		t.Errorf("3: %v: diff: %v\nCodec: %v", name, util.ObjectDiff(originalItem, obj3), codec)
 		return
 	}
@@ -399,11 +440,11 @@ const fuzzIters = 20
 
 // For debugging problems
 func TestSpecificKind(t *testing.T) {
-	api.Scheme.Log(t)
-	defer api.Scheme.Log(nil)
+	kapi.Scheme.Log(t)
+	defer kapi.Scheme.Log(nil)
 
 	kind := "DeploymentConfig"
-	item, err := api.Scheme.New("", kind)
+	item, err := kapi.Scheme.New(osapi.SchemeGroupVersion.WithKind(kind))
 	if err != nil {
 		t.Errorf("Couldn't make a %v? %v", kind, err)
 		return
@@ -427,7 +468,7 @@ var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions", "PodE
 
 // TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {
-	for kind, reflectType := range api.Scheme.KnownTypes("") {
+	for kind, reflectType := range kapi.Scheme.KnownTypes(osapi.SchemeGroupVersion) {
 		if !strings.Contains(reflectType.PkgPath(), "/origin/") && reflectType.PkgPath() != "k8s.io/kubernetes/pkg/api" {
 			continue
 		}
@@ -436,7 +477,7 @@ func TestTypes(t *testing.T) {
 		}
 		// Try a few times, since runTest uses random values.
 		for i := 0; i < fuzzIters; i++ {
-			item, err := api.Scheme.New("", kind)
+			item, err := kapi.Scheme.New(osapi.SchemeGroupVersion.WithKind(kind))
 			if err != nil {
 				t.Errorf("Couldn't make a %v? %v", kind, err)
 				continue
@@ -450,7 +491,7 @@ func TestTypes(t *testing.T) {
 				for _, v := range versions {
 					t.Logf("About to test %v with %q", kind, v)
 					fuzzInternalObject(t, v, item, seed)
-					roundTrip(t, runtime.CodecFor(api.Scheme, v), item)
+					roundTrip(t, runtime.CodecFor(kapi.Scheme, v), item)
 				}
 				continue
 			}

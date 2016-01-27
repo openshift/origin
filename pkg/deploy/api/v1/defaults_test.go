@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	v1 "github.com/openshift/origin/pkg/api/v1"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -14,8 +15,8 @@ import (
 )
 
 func TestDefaults(t *testing.T) {
-	defaultIntOrString := util.NewIntOrStringFromString("25%")
-	differentIntOrString := util.NewIntOrStringFromInt(5)
+	defaultIntOrString := intstr.FromString("25%")
+	differentIntOrString := intstr.FromInt(5)
 	tests := []struct {
 		original *deployv1.DeploymentConfig
 		expected *deployv1.DeploymentConfig
@@ -110,8 +111,8 @@ func TestDefaults(t *testing.T) {
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
 							UpdatePercent:       newInt(50),
-							MaxSurge:            newIntOrString(util.NewIntOrStringFromString("50%")),
-							MaxUnavailable:      newIntOrString(util.NewIntOrStringFromInt(0)),
+							MaxSurge:            newIntOrString(intstr.FromString("50%")),
+							MaxUnavailable:      newIntOrString(intstr.FromInt(0)),
 						},
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
@@ -150,8 +151,8 @@ func TestDefaults(t *testing.T) {
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
 							UpdatePercent:       newInt(-25),
-							MaxSurge:            newIntOrString(util.NewIntOrStringFromInt(0)),
-							MaxUnavailable:      newIntOrString(util.NewIntOrStringFromString("25%")),
+							MaxSurge:            newIntOrString(intstr.FromInt(0)),
+							MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 						},
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
@@ -208,6 +209,6 @@ func newInt(val int) *int {
 	return &val
 }
 
-func newIntOrString(ios util.IntOrString) *util.IntOrString {
+func newIntOrString(ios intstr.IntOrString) *intstr.IntOrString {
 	return &ios
 }

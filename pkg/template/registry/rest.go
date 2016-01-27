@@ -8,7 +8,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/runtime"
-	utilerr "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
@@ -49,7 +48,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 	processor := template.NewProcessor(generators)
 	if errs := processor.Process(tpl); len(errs) > 0 {
-		glog.V(1).Infof(utilerr.NewAggregate(errs).Error())
+		glog.V(1).Infof(errs.ToAggregate().Error())
 		return nil, errors.NewInvalid("template", tpl.Name, errs)
 	}
 

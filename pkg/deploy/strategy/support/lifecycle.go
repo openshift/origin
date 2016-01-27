@@ -51,11 +51,7 @@ func NewHookExecutor(client kclient.Interface, podLogDestination io.Writer, code
 			},
 		},
 		podLogStream: func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error) {
-			req, err := client.PodLogs(namespace).Get(name, opts)
-			if err != nil {
-				return nil, err
-			}
-			return req.Stream()
+			return client.Pods(namespace).GetLogs(name, opts).Stream()
 		},
 		podLogDestination: podLogDestination,
 		codec:             codec,
@@ -310,12 +306,14 @@ func (i *HookExecutorPodClientImpl) PodWatch(namespace, name, resourceVersion st
 // It is the caller's responsibility to defer closing the stop channel to prevent leaking resources.
 func NewPodWatch(client kclient.Interface, namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
 	fieldSelector := fields.OneTermEqualSelector("metadata.name", name)
-	podLW := &deployutil.ListWatcherImpl{
-		ListFunc: func() (runtime.Object, error) {
-			return client.Pods(namespace).List(labels.Everything(), fieldSelector)
+	podLW := &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			opts := kapi.ListOptions{FieldSelector: fieldSelector}
+			return client.Pods(namespace).List(opts)
 		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return client.Pods(namespace).Watch(labels.Everything(), fieldSelector, resourceVersion)
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			opts := kapi.ListOptions{FieldSelector: fieldSelector, ResourceVersion: options.ResourceVersion}
+			return client.Pods(namespace).Watch(opts)
 		},
 	}
 
@@ -338,12 +336,14 @@ func NewAcceptNewlyObservedReadyPods(kclient kclient.Interface, timeout time.Dur
 		getDeploymentPodStore: func(deployment *kapi.ReplicationController) (cache.Store, chan struct{}) {
 			selector := labels.Set(deployment.Spec.Selector).AsSelector()
 			store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-			lw := &deployutil.ListWatcherImpl{
-				ListFunc: func() (runtime.Object, error) {
-					return kclient.Pods(deployment.Namespace).List(selector, fields.Everything())
+			lw := &cache.ListWatch{
+				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+					opts := kapi.ListOptions{LabelSelector: selector}
+					return kclient.Pods(deployment.Namespace).List(opts)
 				},
-				WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-					return kclient.Pods(deployment.Namespace).Watch(selector, fields.Everything(), resourceVersion)
+				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+					opts := kapi.ListOptions{LabelSelector: selector, ResourceVersion: options.ResourceVersion}
+					return kclient.Pods(deployment.Namespace).Watch(opts)
 				},
 			}
 			stop := make(chan struct{})

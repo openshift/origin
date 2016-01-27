@@ -264,7 +264,7 @@ func (o MasterOptions) RunMaster() error {
 	// regardless of configuration. They aren't written to config file to
 	// prevent upgrade path issues.
 	masterConfig.DisabledFeatures.Add(o.DisabledFeatures...)
-	validationResults := validation.ValidateMasterConfig(masterConfig)
+	validationResults := validation.ValidateMasterConfig(masterConfig, nil)
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
 			glog.Warningf("%v", warning)
@@ -550,7 +550,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunNodeController()
 		kc.RunScheduler()
 		kc.RunReplicationController(rcClient)
-		if kc.Master.EnableExp {
+		if len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, configapi.APIGroupExtensions)) > 0 {
 			kc.RunJobController(jobClient)
 			kc.RunHPAController(hpaOClient, hpaKClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
 		}

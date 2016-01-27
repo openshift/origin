@@ -25,10 +25,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/api"
@@ -120,7 +119,7 @@ func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api
 		}
 		ref, err := api.ParseDockerImageReference(from.Name)
 		if err != nil {
-			isi.Status.Images[i].Status = invalidStatus("", fielderrors.NewFieldInvalid("from.name", from.Name, fmt.Sprintf("invalid name: %v", err)))
+			isi.Status.Images[i].Status = invalidStatus("", field.Invalid(field.NewPath("from", "name"), from.Name, fmt.Sprintf("invalid name: %v", err)))
 			continue
 		}
 		defaultRef := ref.DockerClientDefaults()
@@ -226,7 +225,7 @@ func importFromRepository(ctx gocontext.Context, retriever RepositoryRetriever, 
 	}
 	ref, err := api.ParseDockerImageReference(from.Name)
 	if err != nil {
-		status.Status = invalidStatus("", fielderrors.NewFieldInvalid("from.name", from.Name, fmt.Sprintf("invalid name: %v", err)))
+		status.Status = invalidStatus("", field.Invalid(field.NewPath("from", "name"), from.Name, fmt.Sprintf("invalid name: %v", err)))
 		return
 	}
 	defaultRef := ref.DockerClientDefaults()
@@ -586,12 +585,12 @@ type manifestKey struct {
 
 func imageImportStatus(err error, kind, position string) unversioned.Status {
 	switch t := err.(type) {
-	case client.APIStatus:
+	case kapierrors.APIStatus:
 		return t.Status()
-	case *fielderrors.ValidationError:
-		return kapierrors.NewInvalid(kind, position, fielderrors.ValidationErrorList{t}).(client.APIStatus).Status()
+	case *field.Error:
+		return kapierrors.NewInvalid(kind, position, field.ErrorList{t}).(kapierrors.APIStatus).Status()
 	default:
-		return kapierrors.NewInternalError(err).(client.APIStatus).Status()
+		return kapierrors.NewInternalError(err).(kapierrors.APIStatus).Status()
 	}
 }
 
@@ -599,8 +598,8 @@ func setImageImportStatus(images *api.ImageStreamImport, i int, err error) {
 	images.Status.Images[i].Status = imageImportStatus(err, "", "")
 }
 
-func invalidStatus(position string, errs ...error) unversioned.Status {
-	return kapierrors.NewInvalid("", position, errs).(client.APIStatus).Status()
+func invalidStatus(position string, errs ...*field.Error) unversioned.Status {
+	return kapierrors.NewInvalid("", position, errs).(kapierrors.APIStatus).Status()
 }
 
 // NewContext is capable of creating RepositoryRetrievers.

@@ -45,6 +45,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/oom"
 
 	"github.com/golang/glog"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
@@ -60,18 +61,22 @@ type ProxyServerConfig struct {
 	PortRange          util.PortRange
 	HostnameOverride   string
 	ProxyMode          string
-	SyncPeriod         time.Duration
-	nodeRef            *api.ObjectReference // Reference to this node.
+	IptablesSyncPeriod time.Duration
+	ConfigSyncPeriod   time.Duration
+	NodeRef            *api.ObjectReference // Reference to this node.
 	MasqueradeAll      bool
 	CleanupAndExit     bool
-	KubeApiQps         float32
-	KubeApiBurst       int
+	KubeAPIQPS         float32
+	KubeAPIBurst       int
+	UDPIdleTimeout     time.Duration
 }
 
 type ProxyServer struct {
+	Client       *kubeclient.Client
 	Config       *ProxyServerConfig
 	IptInterface utiliptables.Interface
 	Proxier      proxy.ProxyProvider
+	Broadcaster  record.EventBroadcaster
 	Recorder     record.EventRecorder
 }
 
@@ -83,15 +88,18 @@ func (s *ProxyServerConfig) AddFlags(fs *pflag.FlagSet) {
 	fs.IPVar(&s.HealthzBindAddress, "healthz-bind-address", s.HealthzBindAddress, "The IP address for the health check server to serve on, defaulting to 127.0.0.1 (set to 0.0.0.0 for all interfaces)")
 	fs.IntVar(&s.OOMScoreAdj, "oom-score-adj", s.OOMScoreAdj, "The oom-score-adj value for kube-proxy process. Values must be within the range [-1000, 1000]")
 	fs.StringVar(&s.ResourceContainer, "resource-container", s.ResourceContainer, "Absolute name of the resource-only container to create and run the Kube-proxy in (Default: /kube-proxy).")
+	fs.MarkDeprecated("resource-container", "This feature will be removed in a later release.")
 	fs.StringVar(&s.Kubeconfig, "kubeconfig", s.Kubeconfig, "Path to kubeconfig file with authorization information (the master location is set by the master flag).")
 	fs.Var(&s.PortRange, "proxy-port-range", "Range of host ports (beginPort-endPort, inclusive) that may be consumed in order to proxy service traffic. If unspecified (0-0) then ports will be randomly chosen.")
 	fs.StringVar(&s.HostnameOverride, "hostname-override", s.HostnameOverride, "If non-empty, will use this string as identification instead of the actual hostname.")
-	fs.StringVar(&s.ProxyMode, "proxy-mode", "", "Which proxy mode to use: 'userspace' (older, stable) or 'iptables' (experimental). If blank, look at the Node object on the Kubernetes API and respect the '"+experimentalProxyModeAnnotation+"' annotation if provided.  Otherwise use the best-available proxy (currently userspace, but may change in future versions).  If the iptables proxy is selected, regardless of how, but the system's kernel or iptables versions are insufficient, this always falls back to the userspace proxy.")
-	fs.DurationVar(&s.SyncPeriod, "iptables-sync-period", s.SyncPeriod, "How often iptables rules are refreshed (e.g. '5s', '1m', '2h22m').  Must be greater than 0.")
+	fs.StringVar(&s.ProxyMode, "proxy-mode", "", "Which proxy mode to use: 'userspace' (older) or 'iptables' (faster). If blank, look at the Node object on the Kubernetes API and respect the '"+experimentalProxyModeAnnotation+"' annotation if provided.  Otherwise use the best-available proxy (currently iptables).  If the iptables proxy is selected, regardless of how, but the system's kernel or iptables versions are insufficient, this always falls back to the userspace proxy.")
+	fs.DurationVar(&s.IptablesSyncPeriod, "iptables-sync-period", s.IptablesSyncPeriod, "How often iptables rules are refreshed (e.g. '5s', '1m', '2h22m').  Must be greater than 0.")
+	fs.DurationVar(&s.ConfigSyncPeriod, "config-sync-period", s.ConfigSyncPeriod, "How often configuration from the apiserver is refreshed.  Must be greater than 0.")
 	fs.BoolVar(&s.MasqueradeAll, "masquerade-all", false, "If using the pure iptables proxy, SNAT everything")
 	fs.BoolVar(&s.CleanupAndExit, "cleanup-iptables", false, "If true cleanup iptables rules and exit.")
-	fs.Float32Var(&s.KubeApiQps, "kube-api-qps", s.KubeApiQps, "QPS to use while talking with kubernetes apiserver")
-	fs.IntVar(&s.KubeApiBurst, "kube-api-burst", s.KubeApiBurst, "Burst to use while talking with kubernetes apiserver")
+	fs.Float32Var(&s.KubeAPIQPS, "kube-api-qps", s.KubeAPIQPS, "QPS to use while talking with kubernetes apiserver")
+	fs.IntVar(&s.KubeAPIBurst, "kube-api-burst", s.KubeAPIBurst, "Burst to use while talking with kubernetes apiserver")
+	fs.DurationVar(&s.UDPIdleTimeout, "udp-timeout", s.UDPIdleTimeout, "How long an idle UDP connection will be kept open (e.g. '250ms', '2s').  Must be greater than 0. Only applicable for proxy-mode=userspace")
 }
 
 const (
@@ -116,24 +124,50 @@ func NewProxyConfig() *ProxyServerConfig {
 		HealthzBindAddress: net.ParseIP("127.0.0.1"),
 		OOMScoreAdj:        qos.KubeProxyOOMScoreAdj,
 		ResourceContainer:  "/kube-proxy",
-		SyncPeriod:         30 * time.Second,
-		KubeApiQps:         5.0,
-		KubeApiBurst:       10,
+		IptablesSyncPeriod: 30 * time.Second,
+		ConfigSyncPeriod:   15 * time.Minute,
+		KubeAPIQPS:         5.0,
+		KubeAPIBurst:       10,
+		UDPIdleTimeout:     250 * time.Millisecond,
 	}
 }
 
 func NewProxyServer(
+	client *kubeclient.Client,
 	config *ProxyServerConfig,
 	iptInterface utiliptables.Interface,
 	proxier proxy.ProxyProvider,
+	broadcaster record.EventBroadcaster,
 	recorder record.EventRecorder,
 ) (*ProxyServer, error) {
 	return &ProxyServer{
+		Client:       client,
 		Config:       config,
 		IptInterface: iptInterface,
 		Proxier:      proxier,
+		Broadcaster:  broadcaster,
 		Recorder:     recorder,
 	}, nil
+}
+
+// NewProxyCommand creates a *cobra.Command object with default parameters
+func NewProxyCommand() *cobra.Command {
+	s := NewProxyConfig()
+	s.AddFlags(pflag.CommandLine)
+	cmd := &cobra.Command{
+		Use: "kube-proxy",
+		Long: `The Kubernetes network proxy runs on each node. This
+reflects services as defined in the Kubernetes API on each node and can do simple
+TCP,UDP stream forwarding or round robin TCP,UDP forwarding across a set of backends.
+Service cluster ips and ports are currently found through Docker-links-compatible
+environment variables specifying ports opened by the service proxy. There is an optional
+addon that provides cluster DNS for these cluster IPs. The user must create a service
+with the apiserver API to configure the proxy.`,
+		Run: func(cmd *cobra.Command, args []string) {
+		},
+	}
+
+	return cmd
 }
 
 // NewProxyServerDefault creates a new ProxyServer object with default parameters.
@@ -189,8 +223,8 @@ func NewProxyServerDefault(config *ProxyServerConfig) (*ProxyServer, error) {
 	}
 
 	// Override kubeconfig qps/burst settings from flags
-	kubeconfig.QPS = config.KubeApiQps
-	kubeconfig.Burst = config.KubeApiBurst
+	kubeconfig.QPS = config.KubeAPIQPS
+	kubeconfig.Burst = config.KubeAPIBurst
 
 	client, err := kubeclient.New(kubeconfig)
 	if err != nil {
@@ -201,24 +235,14 @@ func NewProxyServerDefault(config *ProxyServerConfig) (*ProxyServer, error) {
 	hostname := nodeutil.GetHostname(config.HostnameOverride)
 	eventBroadcaster := record.NewBroadcaster()
 	recorder := eventBroadcaster.NewRecorder(api.EventSource{Component: "kube-proxy", Host: hostname})
-	eventBroadcaster.StartRecordingToSink(client.Events(""))
 
 	var proxier proxy.ProxyProvider
 	var endpointsHandler proxyconfig.EndpointsConfigHandler
 
-	useIptablesProxy := false
-	if mayTryIptablesProxy(config.ProxyMode, client.Nodes(), hostname) {
-		var err error
-		// guaranteed false on error, error only necessary for debugging
-		useIptablesProxy, err = iptables.ShouldUseIptablesProxier()
-		if err != nil {
-			glog.Errorf("Can't determine whether to use iptables proxy, using userspace proxier: %v", err)
-		}
-	}
-
-	if useIptablesProxy {
+	proxyMode := getProxyMode(config.ProxyMode, client.Nodes(), hostname, iptInterface)
+	if proxyMode == proxyModeIptables {
 		glog.V(2).Info("Using iptables Proxier.")
-		proxierIptables, err := iptables.NewProxier(iptInterface, execer, config.SyncPeriod, config.MasqueradeAll)
+		proxierIptables, err := iptables.NewProxier(iptInterface, execer, config.IptablesSyncPeriod, config.MasqueradeAll)
 		if err != nil {
 			glog.Fatalf("Unable to create proxier: %v", err)
 		}
@@ -235,7 +259,7 @@ func NewProxyServerDefault(config *ProxyServerConfig) (*ProxyServer, error) {
 		// set EndpointsConfigHandler to our loadBalancer
 		endpointsHandler = loadBalancer
 
-		proxierUserspace, err := userspace.NewProxier(loadBalancer, config.BindAddress, iptInterface, config.PortRange, config.SyncPeriod)
+		proxierUserspace, err := userspace.NewProxier(loadBalancer, config.BindAddress, iptInterface, config.PortRange, config.IptablesSyncPeriod, config.UDPIdleTimeout)
 		if err != nil {
 			glog.Fatalf("Unable to create proxier: %v", err)
 		}
@@ -258,18 +282,18 @@ func NewProxyServerDefault(config *ProxyServerConfig) (*ProxyServer, error) {
 
 	proxyconfig.NewSourceAPI(
 		client,
-		30*time.Second,
+		config.ConfigSyncPeriod,
 		serviceConfig.Channel("api"),
 		endpointsConfig.Channel("api"),
 	)
 
-	config.nodeRef = &api.ObjectReference{
+	config.NodeRef = &api.ObjectReference{
 		Kind:      "Node",
 		Name:      hostname,
 		UID:       types.UID(hostname),
 		Namespace: "",
 	}
-	return NewProxyServer(config, iptInterface, proxier, recorder)
+	return NewProxyServer(client, config, iptInterface, proxier, eventBroadcaster, recorder)
 }
 
 // Run runs the specified ProxyServer.  This should never exit (unless CleanupAndExit is set).
@@ -283,6 +307,8 @@ func (s *ProxyServer) Run(_ []string) error {
 		}
 		return nil
 	}
+
+	s.Broadcaster.StartRecordingToSink(s.Client.Events(""))
 
 	// Birth Cry after the birth is successful
 	s.birthCry()
@@ -306,27 +332,28 @@ type nodeGetter interface {
 	Get(hostname string) (*api.Node, error)
 }
 
-func mayTryIptablesProxy(proxyMode string, client nodeGetter, hostname string) bool {
-	if proxyMode == proxyModeIptables {
-		glog.V(1).Infof("Flag proxy-mode allows iptables proxy")
-		return true
+func getProxyMode(proxyMode string, client nodeGetter, hostname string, iptver iptables.IptablesVersioner) string {
+	if proxyMode == proxyModeUserspace {
+		return proxyModeUserspace
+	} else if proxyMode == proxyModeIptables {
+		return tryIptablesProxy(iptver)
 	} else if proxyMode != "" {
-		glog.V(1).Infof("Flag proxy-mode=%q forbids iptables proxy", proxyMode)
-		return false
+		glog.V(1).Infof("Flag proxy-mode=%q unknown, assuming iptables proxy", proxyMode)
+		return tryIptablesProxy(iptver)
 	}
 	// proxyMode == "" - choose the best option.
 	if client == nil {
-		glog.Errorf("Not trying iptables proxy: nodeGetter is nil")
-		return false
+		glog.Errorf("nodeGetter is nil: assuming iptables proxy")
+		return tryIptablesProxy(iptver)
 	}
 	node, err := client.Get(hostname)
 	if err != nil {
-		glog.Errorf("Not trying iptables proxy: can't get Node %q: %v", hostname, err)
-		return false
+		glog.Errorf("Can't get Node %q, assuming iptables proxy: %v", hostname, err)
+		return tryIptablesProxy(iptver)
 	}
 	if node == nil {
-		glog.Errorf("Not trying iptables proxy: got nil Node %q", hostname)
-		return false
+		glog.Errorf("Got nil Node %q, assuming iptables proxy: %v", hostname)
+		return tryIptablesProxy(iptver)
 	}
 	proxyMode, found := node.Annotations[betaProxyModeAnnotation]
 	if found {
@@ -338,14 +365,29 @@ func mayTryIptablesProxy(proxyMode string, client nodeGetter, hostname string) b
 			glog.V(1).Infof("Found experimental annotation %q = %q", experimentalProxyModeAnnotation, proxyMode)
 		}
 	}
-	if proxyMode == proxyModeIptables {
-		glog.V(1).Infof("Annotation allows iptables proxy")
-		return true
+	if proxyMode == proxyModeUserspace {
+		glog.V(1).Infof("Annotation demands userspace proxy")
+		return proxyModeUserspace
 	}
-	glog.V(1).Infof("Not trying iptables proxy: %+v", node)
-	return false
+	return tryIptablesProxy(iptver)
+}
+
+func tryIptablesProxy(iptver iptables.IptablesVersioner) string {
+	var err error
+	// guaranteed false on error, error only necessary for debugging
+	useIptablesProxy, err := iptables.CanUseIptablesProxier(iptver)
+	if err != nil {
+		glog.Errorf("Can't determine whether to use iptables proxy, using userspace proxier: %v", err)
+		return proxyModeUserspace
+	}
+	if useIptablesProxy {
+		return proxyModeIptables
+	}
+	// Fallback.
+	glog.V(1).Infof("Can't use iptables proxy, using userspace proxier: %v", err)
+	return proxyModeUserspace
 }
 
 func (s *ProxyServer) birthCry() {
-	s.Recorder.Eventf(s.Config.nodeRef, "Starting", "Starting kube-proxy.")
+	s.Recorder.Eventf(s.Config.NodeRef, api.EventTypeNormal, "Starting", "Starting kube-proxy.")
 }

@@ -13,23 +13,23 @@ import (
 	"github.com/openshift/origin/pkg/build/registry/buildconfig"
 )
 
-const BuildConfigPath = "/buildconfigs"
-
 type REST struct {
 	*etcdgeneric.Etcd
 }
 
 // NewStorage returns a RESTStorage object that will work against nodes.
-func NewStorage(s storage.Interface) *REST {
+func NewREST(s storage.Interface) *REST {
+	prefix := "/buildconfigs"
+
 	store := &etcdgeneric.Etcd{
 		NewFunc:      func() runtime.Object { return &api.BuildConfig{} },
 		NewListFunc:  func() runtime.Object { return &api.BuildConfigList{} },
-		EndpointName: "buildconfig",
+		EndpointName: "buildconfigs",
 		KeyRootFunc: func(ctx kapi.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, BuildConfigPath)
+			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
 		},
 		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, BuildConfigPath, id)
+			return etcdgeneric.NamespaceKeyFunc(ctx, prefix, id)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.BuildConfig).Name, nil

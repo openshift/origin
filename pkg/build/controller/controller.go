@@ -159,12 +159,12 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 
 	if _, err := bc.PodManager.CreatePod(build.Namespace, podSpec); err != nil {
 		if errors.IsAlreadyExists(err) {
-			bc.Recorder.Eventf(build, "failedCreate", "Pod already exists: %s/%s", podSpec.Namespace, podSpec.Name)
+			bc.Recorder.Eventf(build, kapi.EventTypeWarning, "failedCreate", "Pod already exists: %s/%s", podSpec.Namespace, podSpec.Name)
 			glog.V(4).Infof("Build pod already existed: %#v", podSpec)
 			return nil
 		}
 		// Log an event if the pod is not created (most likely due to quota denial).
-		bc.Recorder.Eventf(build, "FailedCreate", "Error creating: %v", err)
+		bc.Recorder.Eventf(build, kapi.EventTypeWarning, "FailedCreate", "Error creating: %v", err)
 		build.Status.Reason = buildapi.StatusReasonCannotCreateBuildPod
 		return fmt.Errorf("failed to create build pod: %v", err)
 	}
@@ -218,7 +218,7 @@ func (bc *BuildController) resolveOutputDockerImageReference(build *buildapi.Bui
 		}
 		if len(stream.Status.DockerImageRepository) == 0 {
 			e := fmt.Errorf("the image stream %s/%s cannot be used as the output for build %s/%s because the integrated Docker registry is not configured and no external registry was defined", namespace, outputTo.Name, build.Namespace, build.Name)
-			bc.Recorder.Eventf(build, "invalidOutput", "Error starting build: %v", e)
+			bc.Recorder.Eventf(build, kapi.EventTypeWarning, "invalidOutput", "Error starting build: %v", e)
 			return "", e
 		}
 		ref = fmt.Sprintf("%s%s", stream.Status.DockerImageRepository, tag)

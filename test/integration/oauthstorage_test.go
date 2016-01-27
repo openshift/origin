@@ -12,7 +12,7 @@ import (
 	"golang.org/x/oauth2"
 	kapi "k8s.io/kubernetes/pkg/api"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	"k8s.io/kubernetes/pkg/tools/etcdtest"
+	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/oauth/api"

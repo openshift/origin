@@ -15,6 +15,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry"
@@ -326,13 +327,13 @@ func newImportFailedCondition(err error, gen int64, now unversioned.Time) api.Ta
 
 		LastTransitionTime: now,
 	}
-	if status, ok := err.(kclient.APIStatus); ok {
+	if status, ok := err.(kapierrors.APIStatus); ok {
 		s := status.Status()
 		c.Reason, c.Message = string(s.Reason), s.Message
 	}
 	return c
 }
 
-func invalidStatus(kind, position string, errs ...error) unversioned.Status {
-	return kapierrors.NewInvalid(kind, position, errs).(kclient.APIStatus).Status()
+func invalidStatus(kind, position string, errs ...*field.Error) unversioned.Status {
+	return kapierrors.NewInvalid(kind, position, errs).(kapierrors.APIStatus).Status()
 }

@@ -12,8 +12,6 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -836,7 +834,7 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 		return " no ports"
 
 	case 1:
-		if spec.Ports[0].TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone || spec.Ports[0].Port == spec.Ports[0].TargetPort.IntVal {
+		if spec.Ports[0].TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone || spec.Ports[0].Port == int(spec.Ports[0].TargetPort.IntVal) {
 			return fmt.Sprintf(":%d", spec.Ports[0].Port)
 		}
 		return fmt.Sprintf(":%d -> %s", spec.Ports[0].Port, spec.Ports[0].TargetPort.String())
@@ -848,7 +846,7 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 				pairs = append(pairs, fmt.Sprintf("%d", port.Port))
 				continue
 			}
-			if port.Port == port.TargetPort.IntVal {
+			if port.Port == int(port.TargetPort.IntVal) {
 				pairs = append(pairs, port.TargetPort.String())
 			} else {
 				pairs = append(pairs, fmt.Sprintf("%d->%s", port.Port, port.TargetPort.String()))
@@ -873,7 +871,7 @@ type rcLoader struct {
 }
 
 func (l *rcLoader) Load() error {
-	list, err := l.lister.ReplicationControllers(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.ReplicationControllers(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -897,7 +895,7 @@ type serviceLoader struct {
 }
 
 func (l *serviceLoader) Load() error {
-	list, err := l.lister.Services(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.Services(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -921,7 +919,7 @@ type podLoader struct {
 }
 
 func (l *podLoader) Load() error {
-	list, err := l.lister.Pods(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.Pods(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -945,7 +943,7 @@ type serviceAccountLoader struct {
 }
 
 func (l *serviceAccountLoader) Load() error {
-	list, err := l.lister.ServiceAccounts(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.ServiceAccounts(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -969,7 +967,7 @@ type secretLoader struct {
 }
 
 func (l *secretLoader) Load() error {
-	list, err := l.lister.Secrets(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.Secrets(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -993,7 +991,7 @@ type isLoader struct {
 }
 
 func (l *isLoader) Load() error {
-	list, err := l.lister.ImageStreams(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.ImageStreams(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1018,7 +1016,7 @@ type dcLoader struct {
 }
 
 func (l *dcLoader) Load() error {
-	list, err := l.lister.DeploymentConfigs(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.DeploymentConfigs(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1042,7 +1040,7 @@ type bcLoader struct {
 }
 
 func (l *bcLoader) Load() error {
-	list, err := l.lister.BuildConfigs(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.BuildConfigs(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return errors.TolerateNotFoundError(err)
 	}
@@ -1066,7 +1064,7 @@ type buildLoader struct {
 }
 
 func (l *buildLoader) Load() error {
-	list, err := l.lister.Builds(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.Builds(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return errors.TolerateNotFoundError(err)
 	}
@@ -1090,7 +1088,7 @@ type routeLoader struct {
 }
 
 func (l *routeLoader) Load() error {
-	list, err := l.lister.Routes(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.Routes(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}

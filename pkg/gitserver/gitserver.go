@@ -113,7 +113,7 @@ type statusError struct {
 }
 
 func (e *statusError) StatusCode() int {
-	return e.StatusError.Status().Code
+	return int(e.StatusError.Status().Code)
 }
 
 // NewDefaultConfig returns a default server config.

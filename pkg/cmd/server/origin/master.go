@@ -16,8 +16,11 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	kmaster "k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -331,23 +334,23 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		glog.Fatalf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
 	}
 
-	kubeletClient, err := kclient.NewKubeletClient(c.KubeletClientConfig)
+	kubeletClient, err := kubeletclient.NewStaticKubeletClient(c.KubeletClientConfig)
 	if err != nil {
 		glog.Fatalf("Unable to configure Kubelet client: %v", err)
 	}
 
-	buildStorage, buildDetailsStorage := buildetcd.NewStorage(c.EtcdHelper)
+	buildStorage, buildDetailsStorage := buildetcd.NewREST(c.EtcdHelper)
 	buildRegistry := buildregistry.NewRegistry(buildStorage)
 
-	buildConfigStorage := buildconfigetcd.NewStorage(c.EtcdHelper)
+	buildConfigStorage := buildconfigetcd.NewREST(c.EtcdHelper)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
-	deployConfigStorage := deployconfigetcd.NewStorage(c.EtcdHelper, c.DeploymentConfigScaleClient())
-	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage.DeploymentConfig)
+	deployConfigStorage, deployConfigScaleStorage := deployconfigetcd.NewREST(c.EtcdHelper, c.DeploymentConfigScaleClient())
+	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
 	routeAllocator := c.RouteAllocator()
 
-	routeEtcd := routeetcd.NewREST(c.EtcdHelper, routeAllocator)
+	routeStorage, routeStatusStorage := routeetcd.NewREST(c.EtcdHelper, routeAllocator)
 	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
 	netNamespaceStorage := netnamespaceetcd.NewREST(c.EtcdHelper)
 	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
@@ -457,8 +460,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"imageStreamMappings":  imageStreamMappingStorage,
 		"imageStreamTags":      imageStreamTagStorage,
 
-		"deploymentConfigs":         deployConfigStorage.DeploymentConfig,
-		"deploymentConfigs/scale":   deployConfigStorage.Scale,
+		"deploymentConfigs":         deployConfigStorage,
+		"deploymentConfigs/scale":   deployConfigScaleStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec()),
 		"deploymentConfigs/log":     deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
@@ -466,8 +469,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
 
-		"routes":        routeEtcd.Route,
-		"routes/status": routeEtcd.Status,
+		"routes":        routeStorage,
+		"routes/status": routeStatusStorage,
 
 		"projects":        projectStorage,
 		"projectRequests": projectRequestStorage,
@@ -578,9 +581,9 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 		Convertor: kapi.Scheme,
 		Linker:    latest.SelfLinker,
 
-		Admit:                   c.AdmissionControl,
-		Context:                 c.getRequestContextMapper(),
-		NonDefaultGroupVersions: map[string]string{},
+		Admit:                       c.AdmissionControl,
+		Context:                     c.getRequestContextMapper(),
+		NonDefaultGroupVersionKinds: map[string]unversioned.GroupVersionKind{},
 	}
 }
 
@@ -596,9 +599,9 @@ func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGr
 	version := c.defaultAPIGroupVersion()
 	version.Root = LegacyOpenShiftAPIPrefix
 	version.Storage = storage
-	version.Version = OpenShiftAPIV1Beta3
+	version.GroupVersion = v1beta3.SchemeGroupVersion
 	version.Codec = v1beta3.Codec
-	version.NonDefaultGroupVersions["deploymentconfigs/scale"] = "extensions/v1beta1"
+	version.NonDefaultGroupVersionKinds["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 	return version
 }
 
@@ -613,9 +616,9 @@ func (c *MasterConfig) api_v1(all map[string]rest.Storage) *apiserver.APIGroupVe
 	}
 	version := c.defaultAPIGroupVersion()
 	version.Storage = storage
-	version.Version = OpenShiftAPIV1
+	version.GroupVersion = v1.SchemeGroupVersion
 	version.Codec = v1.Codec
-	version.NonDefaultGroupVersions["deploymentconfigs/scale"] = "extensions/v1beta1"
+	version.NonDefaultGroupVersionKinds["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 	return version
 }
 

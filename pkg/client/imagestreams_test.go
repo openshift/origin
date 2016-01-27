@@ -27,19 +27,19 @@ func TestImageStreamImportUnsupported(t *testing.T) {
 		errFn  func(err error) bool
 	}{
 		{
-			status: errors.NewNotFound("", "").(kclient.APIStatus).Status(),
+			status: errors.NewNotFound("", "").(errors.APIStatus).Status(),
 			errFn:  func(err error) bool { return err == ErrImageStreamImportUnsupported },
 		},
 		{
-			status: errors.NewNotFound("Other", "").(kclient.APIStatus).Status(),
+			status: errors.NewNotFound("Other", "").(errors.APIStatus).Status(),
 			errFn:  func(err error) bool { return err != ErrImageStreamImportUnsupported && errors.IsNotFound(err) },
 		},
 		{
-			status: errors.NewConflict("Other", "", nil).(kclient.APIStatus).Status(),
+			status: errors.NewConflict("Other", "", nil).(errors.APIStatus).Status(),
 			errFn:  func(err error) bool { return err != ErrImageStreamImportUnsupported && errors.IsConflict(err) },
 		},
 		{
-			status: errors.NewForbidden("Any", "", nil).(kclient.APIStatus).Status(),
+			status: errors.NewForbidden("Any", "", nil).(errors.APIStatus).Status(),
 			errFn:  func(err error) bool { return err == ErrImageStreamImportUnsupported },
 		},
 	}

@@ -10,7 +10,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
 	"k8s.io/kubernetes/pkg/types"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
@@ -86,7 +87,8 @@ func TestUserInitialization(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	etcdHelper, err := origin.NewEtcdStorage(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
+	storageVersion := unversioned.GroupVersion{Group: "", Version: masterConfig.EtcdStorageConfig.OpenShiftStorageVersion}
+	etcdHelper, err := origin.NewEtcdStorage(etcdClient, storageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -402,10 +404,10 @@ func TestUserInitialization(t *testing.T) {
 
 	for k, testcase := range testcases {
 		// Cleanup
-		if _, err := etcdClient.Delete(path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, useretcd.EtcdPrefix), true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
+		if _, err := etcdClient.Delete(path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, useretcd.EtcdPrefix), true); err != nil && !etcdutil.IsEtcdNotFound(err) {
 			t.Fatalf("Could not clean up users: %v", err)
 		}
-		if _, err := etcdClient.Delete(path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, identityetcd.EtcdPrefix), true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
+		if _, err := etcdClient.Delete(path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, identityetcd.EtcdPrefix), true); err != nil && !etcdutil.IsEtcdNotFound(err) {
 			t.Fatalf("Could not clean up identities: %v", err)
 		}
 

@@ -47,12 +47,12 @@ func ResolveResource(defaultResource, resourceString string, mapper meta.RESTMap
 	case 1:
 		name = parts[0]
 	case 2:
-		_, kind, err := mapper.VersionAndKindForResource(parts[0])
+		gvk, err := mapper.KindFor(parts[0])
 		if err != nil {
 			return "", "", err
 		}
 		name = parts[1]
-		resource, _ := meta.KindToResource(kind, false)
+		resource, _ := meta.KindToResource(gvk.Kind, false)
 		return resource, name, nil
 	default:
 		return "", "", fmt.Errorf("invalid resource format: %s", resourceString)

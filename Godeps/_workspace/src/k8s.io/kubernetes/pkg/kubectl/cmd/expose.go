@@ -36,11 +36,12 @@ type ExposeOptions struct {
 }
 
 const (
-	expose_long = `Take a replication controller, service or pod and expose it as a new Kubernetes Service.
+	expose_long = `Take a replication controller, service, or pod and expose it as a new Kubernetes service.
 
-Looks up a replication controller, service or pod by name and uses the selector for that resource as the
-selector for a new Service on the specified port. If no labels are specified, the new service will
-re-use the labels from the resource it exposes.`
+Looks up a replication controller, service, or pod by name and uses the selector for that resource as the
+selector for a new service on the specified port. Note that if no port is specified via --port and the 
+exposed resource has multiple ports, all will be re-used by the new service. Also if no labels are specified,
+the new service will re-use the labels from the resource it exposes.`
 
 	expose_example = `# Create a service for a replicated nginx, which serves on port 80 and connects to the containers on port 8000.
 $ kubectl expose rc nginx --port=80 --target-port=8000
@@ -92,6 +93,7 @@ func NewCmdExposeService(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 
 	usage := "Filename, directory, or URL to a file identifying the resource to expose a service"
 	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
+	cmdutil.AddApplyAnnotationFlags(cmd)
 	return cmd
 }
 
@@ -118,7 +120,7 @@ func RunExpose(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []str
 	}
 	info := infos[0]
 	mapping := info.ResourceMapping()
-	if err := f.CanBeExposed(mapping.Kind); err != nil {
+	if err := f.CanBeExposed(mapping.GroupVersionKind.GroupKind()); err != nil {
 		return err
 	}
 	// Get the input object
@@ -185,7 +187,7 @@ func RunExpose(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []str
 	}
 
 	if inline := cmdutil.GetFlagString(cmd, "overrides"); len(inline) > 0 {
-		object, err = cmdutil.Merge(object, inline, mapping.Kind)
+		object, err = cmdutil.Merge(object, inline, mapping.GroupVersionKind.Kind)
 		if err != nil {
 			return err
 		}
@@ -200,8 +202,7 @@ func RunExpose(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []str
 	if cmdutil.GetFlagBool(cmd, "dry-run") {
 		return f.PrintObject(cmd, object, out)
 	}
-	// Serialize the configuration into an annotation.
-	if err := kubectl.UpdateApplyAnnotation(info); err != nil {
+	if err := kubectl.CreateOrUpdateAnnotation(cmdutil.GetFlagBool(cmd, cmdutil.ApplyAnnotationsFlag), info); err != nil {
 		return err
 	}
 

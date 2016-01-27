@@ -14,7 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package unversioned
+package unversioned_test
+
+import (
+	. "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient/simple"
+)
 
 import (
 	"net/url"
@@ -23,8 +28,6 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 func getLimitRangesResourceName() string {
@@ -53,14 +56,14 @@ func TestLimitRangeCreate(t *testing.T) {
 			},
 		},
 	}
-	c := &testClient{
-		Request: testRequest{
+	c := &simple.Client{
+		Request: simple.Request{
 			Method: "POST",
 			Path:   testapi.Default.ResourcePath(getLimitRangesResourceName(), ns, ""),
-			Query:  buildQueryValues(nil),
+			Query:  simple.BuildQueryValues(nil),
 			Body:   limitRange,
 		},
-		Response: Response{StatusCode: 200, Body: limitRange},
+		Response: simple.Response{StatusCode: 200, Body: limitRange},
 	}
 
 	response, err := c.Setup(t).LimitRanges(ns).Create(limitRange)
@@ -89,14 +92,14 @@ func TestLimitRangeGet(t *testing.T) {
 			},
 		},
 	}
-	c := &testClient{
-		Request: testRequest{
+	c := &simple.Client{
+		Request: simple.Request{
 			Method: "GET",
 			Path:   testapi.Default.ResourcePath(getLimitRangesResourceName(), ns, "abc"),
-			Query:  buildQueryValues(nil),
+			Query:  simple.BuildQueryValues(nil),
 			Body:   nil,
 		},
-		Response: Response{StatusCode: 200, Body: limitRange},
+		Response: simple.Response{StatusCode: 200, Body: limitRange},
 	}
 
 	response, err := c.Setup(t).LimitRanges(ns).Get("abc")
@@ -113,16 +116,16 @@ func TestLimitRangeList(t *testing.T) {
 			},
 		},
 	}
-	c := &testClient{
-		Request: testRequest{
+	c := &simple.Client{
+		Request: simple.Request{
 			Method: "GET",
 			Path:   testapi.Default.ResourcePath(getLimitRangesResourceName(), ns, ""),
-			Query:  buildQueryValues(nil),
+			Query:  simple.BuildQueryValues(nil),
 			Body:   nil,
 		},
-		Response: Response{StatusCode: 200, Body: limitRangeList},
+		Response: simple.Response{StatusCode: 200, Body: limitRangeList},
 	}
-	response, err := c.Setup(t).LimitRanges(ns).List(labels.Everything(), fields.Everything())
+	response, err := c.Setup(t).LimitRanges(ns).List(api.ListOptions{})
 	c.Validate(t, response, err)
 }
 
@@ -149,9 +152,9 @@ func TestLimitRangeUpdate(t *testing.T) {
 			},
 		},
 	}
-	c := &testClient{
-		Request:  testRequest{Method: "PUT", Path: testapi.Default.ResourcePath(getLimitRangesResourceName(), ns, "abc"), Query: buildQueryValues(nil)},
-		Response: Response{StatusCode: 200, Body: limitRange},
+	c := &simple.Client{
+		Request:  simple.Request{Method: "PUT", Path: testapi.Default.ResourcePath(getLimitRangesResourceName(), ns, "abc"), Query: simple.BuildQueryValues(nil)},
+		Response: simple.Response{StatusCode: 200, Body: limitRange},
 	}
 	response, err := c.Setup(t).LimitRanges(ns).Update(limitRange)
 	c.Validate(t, response, err)
@@ -179,9 +182,9 @@ func TestInvalidLimitRangeUpdate(t *testing.T) {
 			},
 		},
 	}
-	c := &testClient{
-		Request:  testRequest{Method: "PUT", Path: testapi.Default.ResourcePath(getLimitRangesResourceName(), ns, "abc"), Query: buildQueryValues(nil)},
-		Response: Response{StatusCode: 200, Body: limitRange},
+	c := &simple.Client{
+		Request:  simple.Request{Method: "PUT", Path: testapi.Default.ResourcePath(getLimitRangesResourceName(), ns, "abc"), Query: simple.BuildQueryValues(nil)},
+		Response: simple.Response{StatusCode: 200, Body: limitRange},
 	}
 	_, err := c.Setup(t).LimitRanges(ns).Update(limitRange)
 	if err == nil {
@@ -191,22 +194,22 @@ func TestInvalidLimitRangeUpdate(t *testing.T) {
 
 func TestLimitRangeDelete(t *testing.T) {
 	ns := api.NamespaceDefault
-	c := &testClient{
-		Request:  testRequest{Method: "DELETE", Path: testapi.Default.ResourcePath(getLimitRangesResourceName(), ns, "foo"), Query: buildQueryValues(nil)},
-		Response: Response{StatusCode: 200},
+	c := &simple.Client{
+		Request:  simple.Request{Method: "DELETE", Path: testapi.Default.ResourcePath(getLimitRangesResourceName(), ns, "foo"), Query: simple.BuildQueryValues(nil)},
+		Response: simple.Response{StatusCode: 200},
 	}
 	err := c.Setup(t).LimitRanges(ns).Delete("foo")
 	c.Validate(t, nil, err)
 }
 
 func TestLimitRangeWatch(t *testing.T) {
-	c := &testClient{
-		Request: testRequest{
+	c := &simple.Client{
+		Request: simple.Request{
 			Method: "GET",
 			Path:   testapi.Default.ResourcePathWithPrefix("watch", getLimitRangesResourceName(), "", ""),
 			Query:  url.Values{"resourceVersion": []string{}}},
-		Response: Response{StatusCode: 200},
+		Response: simple.Response{StatusCode: 200},
 	}
-	_, err := c.Setup(t).LimitRanges(api.NamespaceAll).Watch(labels.Everything(), fields.Everything(), "")
+	_, err := c.Setup(t).LimitRanges(api.NamespaceAll).Watch(api.ListOptions{})
 	c.Validate(t, nil, err)
 }

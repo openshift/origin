@@ -42,7 +42,12 @@ func makePluginUnderTest(t *testing.T, plugName, basePath string) volume.VolumeP
 }
 
 func TestCanSupport(t *testing.T) {
-	plug := makePluginUnderTest(t, "kubernetes.io/empty-dir", "/tmp/fake")
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "emptydirTest")
+	if err != nil {
+		t.Fatalf("can't make a temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+	plug := makePluginUnderTest(t, "kubernetes.io/empty-dir", tmpDir)
 
 	if plug.Name() != "kubernetes.io/empty-dir" {
 		t.Errorf("Wrong name: %s", plug.Name())
@@ -112,10 +117,11 @@ type pluginTestConfig struct {
 
 // doTestPlugin sets up a volume and tears it back down.
 func doTestPlugin(t *testing.T, config pluginTestConfig) {
-	basePath, err := ioutil.TempDir("/tmp", "emptydir_volume_test")
+	basePath, err := ioutil.TempDir(os.TempDir(), "emptydir_volume_test")
 	if err != nil {
-		t.Fatalf("can't make a temp rootdir")
+		t.Fatalf("can't make a temp rootdir: %v", err)
 	}
+	defer os.RemoveAll(basePath)
 
 	var (
 		volumePath  = path.Join(basePath, "pods/poduid/volumes/kubernetes.io~empty-dir/test-volume")
@@ -243,7 +249,12 @@ func doTestPlugin(t *testing.T, config pluginTestConfig) {
 }
 
 func TestPluginBackCompat(t *testing.T) {
-	basePath := "/tmp/fake"
+	basePath, err := ioutil.TempDir(os.TempDir(), "emptydirTest")
+	if err != nil {
+		t.Fatalf("can't make a temp dir： %v", err)
+	}
+	defer os.RemoveAll(basePath)
+
 	plug := makePluginUnderTest(t, "kubernetes.io/empty-dir", basePath)
 
 	spec := &api.Volume{
@@ -261,5 +272,49 @@ func TestPluginBackCompat(t *testing.T) {
 	volPath := builder.GetPath()
 	if volPath != path.Join(basePath, "pods/poduid/volumes/kubernetes.io~empty-dir/vol1") {
 		t.Errorf("Got unexpected path: %s", volPath)
+	}
+}
+
+// TestMetrics tests that MetricProvider methods return sane values.
+func TestMetrics(t *testing.T) {
+	// Create an empty temp directory for the volume
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "empty_dir_test")
+	if err != nil {
+		t.Fatalf("Can't make a tmp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	plug := makePluginUnderTest(t, "kubernetes.io/empty-dir", tmpDir)
+
+	spec := &api.Volume{
+		Name: "vol1",
+	}
+	pod := &api.Pod{ObjectMeta: api.ObjectMeta{UID: types.UID("poduid")}}
+	builder, err := plug.NewBuilder(volume.NewSpecFromVolume(spec), pod, volume.VolumeOptions{RootContext: ""})
+	if err != nil {
+		t.Errorf("Failed to make a new Builder: %v", err)
+	}
+
+	// Need to create the subdirectory
+	os.MkdirAll(builder.GetPath(), 0755)
+
+	expectedEmptyDirUsage, err := volume.FindEmptyDirectoryUsageOnTmpfs()
+	if err != nil {
+		t.Errorf("Unexpected error finding expected empty directory usage on tmpfs: %v", err)
+	}
+
+	// TODO(pwittroc): Move this into a reusable testing utility
+	metrics, err := builder.GetMetrics()
+	if err != nil {
+		t.Errorf("Unexpected error when calling GetMetrics %v", err)
+	}
+	if e, a := expectedEmptyDirUsage.Value(), metrics.Used.Value(); e != a {
+		t.Errorf("Unexpected value for empty directory; expected %v, got %v", e, a)
+	}
+	if metrics.Capacity.Value() <= 0 {
+		t.Errorf("Expected Capacity to be greater than 0")
+	}
+	if metrics.Available.Value() <= 0 {
+		t.Errorf("Expected Available to be greater than 0")
 	}
 }

@@ -11,9 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/prune"
@@ -69,12 +67,12 @@ func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Wri
 				cmdutil.CheckErr(err)
 			}
 
-			buildConfigList, err := osClient.BuildConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+			buildConfigList, err := osClient.BuildConfigs(kapi.NamespaceAll).List(kapi.ListOptions{})
 			if err != nil {
 				cmdutil.CheckErr(err)
 			}
 
-			buildList, err := osClient.Builds(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+			buildList, err := osClient.Builds(kapi.NamespaceAll).List(kapi.ListOptions{})
 			if err != nil {
 				cmdutil.CheckErr(err)
 			}

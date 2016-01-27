@@ -24,7 +24,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 func TestReconcileEndpoints(t *testing.T) {
@@ -501,14 +501,14 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			testName:    "service does not exist",
 			serviceName: "foo",
 			servicePorts: []api.ServicePort{
-				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 			},
 			serviceType: api.ServiceTypeClusterIP,
 			expectCreate: &api.Service{
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -549,14 +549,14 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			testName:    "service definition wrong port",
 			serviceName: "foo",
 			servicePorts: []api.ServicePort{
-				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 			},
 			serviceType: api.ServiceTypeClusterIP,
 			service: &api.Service{
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8000, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+						{Name: "foo", Port: 8000, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -568,7 +568,7 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -581,15 +581,15 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			testName:    "service definition missing port",
 			serviceName: "foo",
 			servicePorts: []api.ServicePort{
-				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
-				{Name: "baz", Port: 1000, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(1000)},
+				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
+				{Name: "baz", Port: 1000, Protocol: "TCP", TargetPort: intstr.FromInt(1000)},
 			},
 			serviceType: api.ServiceTypeClusterIP,
 			service: &api.Service{
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -601,8 +601,8 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
-						{Name: "baz", Port: 1000, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(1000)},
+						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
+						{Name: "baz", Port: 1000, Protocol: "TCP", TargetPort: intstr.FromInt(1000)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -615,14 +615,14 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			testName:    "service definition incorrect port",
 			serviceName: "foo",
 			servicePorts: []api.ServicePort{
-				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 			},
 			serviceType: api.ServiceTypeClusterIP,
 			service: &api.Service{
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "bar", Port: 1000, Protocol: "UDP", TargetPort: util.NewIntOrStringFromInt(1000)},
+						{Name: "bar", Port: 1000, Protocol: "UDP", TargetPort: intstr.FromInt(1000)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -634,7 +634,7 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -647,14 +647,14 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			testName:    "service definition incorrect port name",
 			serviceName: "foo",
 			servicePorts: []api.ServicePort{
-				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 			},
 			serviceType: api.ServiceTypeClusterIP,
 			service: &api.Service{
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 1000, Protocol: "UDP", TargetPort: util.NewIntOrStringFromInt(1000)},
+						{Name: "foo", Port: 1000, Protocol: "UDP", TargetPort: intstr.FromInt(1000)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -666,7 +666,7 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -679,14 +679,14 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			testName:    "service definition incorrect target port",
 			serviceName: "foo",
 			servicePorts: []api.ServicePort{
-				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 			},
 			serviceType: api.ServiceTypeClusterIP,
 			service: &api.Service{
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(1000)},
+						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(1000)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -698,7 +698,7 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -711,14 +711,14 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			testName:    "service definition incorrect protocol",
 			serviceName: "foo",
 			servicePorts: []api.ServicePort{
-				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 			},
 			serviceType: api.ServiceTypeClusterIP,
 			service: &api.Service{
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "UDP", TargetPort: util.NewIntOrStringFromInt(8080)},
+						{Name: "foo", Port: 8080, Protocol: "UDP", TargetPort: intstr.FromInt(8080)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -730,7 +730,7 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -743,14 +743,14 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			testName:    "service definition has incorrect type",
 			serviceName: "foo",
 			servicePorts: []api.ServicePort{
-				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 			},
 			serviceType: api.ServiceTypeClusterIP,
 			service: &api.Service{
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -762,7 +762,7 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -775,14 +775,14 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			testName:    "service definition satisfies",
 			serviceName: "foo",
 			servicePorts: []api.ServicePort{
-				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 			},
 			serviceType: api.ServiceTypeClusterIP,
 			service: &api.Service{
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+						{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",
@@ -827,14 +827,14 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			testName:    "service definition wrong port, no expected update",
 			serviceName: "foo",
 			servicePorts: []api.ServicePort{
-				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(8080)},
+				{Name: "foo", Port: 8080, Protocol: "TCP", TargetPort: intstr.FromInt(8080)},
 			},
 			serviceType: api.ServiceTypeClusterIP,
 			service: &api.Service{
 				ObjectMeta: om("foo"),
 				Spec: api.ServiceSpec{
 					Ports: []api.ServicePort{
-						{Name: "foo", Port: 1000, Protocol: "TCP", TargetPort: util.NewIntOrStringFromInt(1000)},
+						{Name: "foo", Port: 1000, Protocol: "TCP", TargetPort: intstr.FromInt(1000)},
 					},
 					Selector:        nil,
 					ClusterIP:       "1.2.3.4",

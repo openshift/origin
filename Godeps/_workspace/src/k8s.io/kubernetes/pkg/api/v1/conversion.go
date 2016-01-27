@@ -115,7 +115,8 @@ func addConversionFuncs() {
 				"involvedObject.resourceVersion",
 				"involvedObject.fieldPath",
 				"reason",
-				"source":
+				"source",
+				"type":
 				return label, value, nil
 			default:
 				return "", "", fmt.Errorf("field label not supported: %s", label)
@@ -183,8 +184,8 @@ func convert_api_ReplicationControllerSpec_To_v1_ReplicationControllerSpec(in *a
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ReplicationControllerSpec))(in)
 	}
-	out.Replicas = new(int)
-	*out.Replicas = in.Replicas
+	out.Replicas = new(int32)
+	*out.Replicas = int32(in.Replicas)
 	if in.Selector != nil {
 		out.Selector = make(map[string]string)
 		for key, val := range in.Selector {
@@ -216,7 +217,7 @@ func convert_v1_ReplicationControllerSpec_To_api_ReplicationControllerSpec(in *R
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*ReplicationControllerSpec))(in)
 	}
-	out.Replicas = *in.Replicas
+	out.Replicas = int(*in.Replicas)
 	if in.Selector != nil {
 		out.Selector = make(map[string]string)
 		for key, val := range in.Selector {
@@ -399,7 +400,6 @@ func convert_v1_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s conversi
 	out.SecurityContext.HostNetwork = in.HostNetwork
 	out.SecurityContext.HostPID = in.HostPID
 	out.SecurityContext.HostIPC = in.HostIPC
-
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]api.LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {

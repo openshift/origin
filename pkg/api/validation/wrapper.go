@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 type WrappingValidator struct {
@@ -13,14 +13,14 @@ type WrappingValidator struct {
 	validateUpdate *reflect.Value
 }
 
-func (v *WrappingValidator) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
+func (v *WrappingValidator) Validate(obj runtime.Object) field.ErrorList {
 	return callValidate(reflect.ValueOf(obj), *v.validate)
 }
 
-func (v *WrappingValidator) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (v *WrappingValidator) ValidateUpdate(obj, old runtime.Object) field.ErrorList {
 	if v.validateUpdate == nil {
 		// if there is no update validation, fail.
-		return fielderrors.ValidationErrorList{fielderrors.NewFieldForbidden("obj", obj)}
+		return field.ErrorList{field.Forbidden(field.NewPath("obj"), obj)}
 	}
 
 	return callValidateUpdate(reflect.ValueOf(obj), reflect.ValueOf(old), *v.validateUpdate)
@@ -60,9 +60,9 @@ func verifyValidateFunctionSignature(ft reflect.Type) error {
 	if ft.In(0).Kind() != reflect.Ptr {
 		return fmt.Errorf("expected pointer arg for 'in' param 0, got: %v", ft)
 	}
-	errorType := reflect.TypeOf(&fielderrors.ValidationErrorList{}).Elem()
+	errorType := reflect.TypeOf(&field.ErrorList{}).Elem()
 	if ft.Out(0) != errorType {
-		return fmt.Errorf("expected fielderrors.ValidationErrorList return, got: %v", ft)
+		return fmt.Errorf("expected field.ErrorList return, got: %v", ft)
 	}
 	return nil
 }
@@ -83,15 +83,15 @@ func verifyValidateUpdateFunctionSignature(ft reflect.Type) error {
 	if ft.In(1).Kind() != reflect.Ptr {
 		return fmt.Errorf("expected pointer arg for 'in' param 1, got: %v", ft)
 	}
-	errorType := reflect.TypeOf(&fielderrors.ValidationErrorList{}).Elem()
+	errorType := reflect.TypeOf(&field.ErrorList{}).Elem()
 	if ft.Out(0) != errorType {
-		return fmt.Errorf("expected fielderrors.ValidationErrorList return, got: %v", ft)
+		return fmt.Errorf("expected field.ErrorList return, got: %v", ft)
 	}
 	return nil
 }
 
 // callCustom calls 'custom' with sv & dv. custom must be a conversion function.
-func callValidate(obj, validateMethod reflect.Value) fielderrors.ValidationErrorList {
+func callValidate(obj, validateMethod reflect.Value) field.ErrorList {
 	args := []reflect.Value{obj}
 	ret := validateMethod.Call(args)[0].Interface()
 
@@ -100,10 +100,10 @@ func callValidate(obj, validateMethod reflect.Value) fielderrors.ValidationError
 	if ret == nil {
 		return nil
 	}
-	return ret.(fielderrors.ValidationErrorList)
+	return ret.(field.ErrorList)
 }
 
-func callValidateUpdate(obj, old, validateMethod reflect.Value) fielderrors.ValidationErrorList {
+func callValidateUpdate(obj, old, validateMethod reflect.Value) field.ErrorList {
 	args := []reflect.Value{obj, old}
 	ret := validateMethod.Call(args)[0].Interface()
 
@@ -112,5 +112,5 @@ func callValidateUpdate(obj, old, validateMethod reflect.Value) fielderrors.Vali
 	if ret == nil {
 		return nil
 	}
-	return ret.(fielderrors.ValidationErrorList)
+	return ret.(field.ErrorList)
 }

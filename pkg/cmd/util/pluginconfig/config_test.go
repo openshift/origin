@@ -7,6 +7,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	oapi "github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 )
@@ -20,8 +22,8 @@ type TestConfig struct {
 func (*TestConfig) IsAnAPIObject() {}
 
 func TestGetPluginConfig(t *testing.T) {
-	api.Scheme.AddKnownTypes("", &TestConfig{})
-	api.Scheme.AddKnownTypes("v1", &TestConfig{})
+	api.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &TestConfig{})
+	api.Scheme.AddKnownTypes(v1.SchemeGroupVersion, &TestConfig{})
 
 	testConfig := &TestConfig{
 		Item1: "item1value",

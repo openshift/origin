@@ -28,7 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/errors"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -187,12 +187,12 @@ func (b *Builder) ResourceTypes(types ...string) *Builder {
 	return b
 }
 
-// ResourceNames accepts a default type or group/type and one or more names, and creates tuples of
+// ResourceNames accepts a default type and one or more names, and creates tuples of
 // resources
 func (b *Builder) ResourceNames(resource string, names ...string) *Builder {
 	for _, name := range names {
-		// See if this input string is of type/name or group/type/name format
-		tuple, ok, err := splitGroupResourceTypeName(name)
+		// See if this input string is of type/name format
+		tuple, ok, err := splitResourceTypeName(name)
 		if err != nil {
 			b.errs = append(b.errs, err)
 			return b
@@ -275,18 +275,11 @@ func (b *Builder) SelectAllParam(selectAll bool) *Builder {
 	return b
 }
 
-func getResource(groupResource string) string {
-	if strings.Contains(groupResource, "/") {
-		return strings.Split(groupResource, "/")[1]
-	}
-	return groupResource
-}
-
-// ResourceTypeOrNameArgs indicates that the builder should accept arguments of the form
-// `(<type1>[,<type2>,...] [<name1>[ <name2> ...]]|<type1>/<name1> [<type2>/<name2>...]|)`
-// When one argument is received, the types provided will be retrieved from the server (and be comma delimited).
+// ResourceTypeOrNameArgs indicates that the builder should accept arguments
+// of the form `(<type1>[,<type2>,...]|<type> <name1>[,<name2>,...])`. When one argument is
+// received, the types provided will be retrieved from the server (and be comma delimited).
+// When two or more arguments are received, they must be a single type and resource name(s).
 // The allowEmptySelector permits to select all the resources (via Everything func).
-// <type> = (<group>/<resource type> | <resource type>)
 func (b *Builder) ResourceTypeOrNameArgs(allowEmptySelector bool, args ...string) *Builder {
 	args = normalizeMultipleResourcesArgs(args)
 	if ok, err := hasCombinedTypeArgs(args); ok {
@@ -334,7 +327,7 @@ func (b *Builder) ResourceTypeOrNameArgs(allowEmptySelector bool, args ...string
 func (b *Builder) replaceAliases(input string) string {
 	replaced := []string{}
 	for _, arg := range strings.Split(input, ",") {
-		if aliases, ok := b.mapper.AliasesForResource(getResource(arg)); ok {
+		if aliases, ok := b.mapper.AliasesForResource(arg); ok {
 			arg = strings.Join(aliases, ",")
 		}
 		replaced = append(replaced, arg)
@@ -357,28 +350,6 @@ func hasCombinedTypeArgs(args []string) (bool, error) {
 	default:
 		return false, nil
 	}
-}
-
-// splitGroupResourceTypeName handles group/type/name resource formats and returns a resource tuple
-// (empty or not), whether it successfully found one, and an error
-func splitGroupResourceTypeName(s string) (resourceTuple, bool, error) {
-	if !strings.Contains(s, "/") {
-		return resourceTuple{}, false, nil
-	}
-	seg := strings.Split(s, "/")
-	if len(seg) != 2 && len(seg) != 3 {
-		return resourceTuple{}, false, fmt.Errorf("arguments in group/resource/name form may not have more than two slashes")
-	}
-	resource, name := "", ""
-	if len(seg) == 2 {
-		resource, name = seg[0], seg[1]
-	} else {
-		resource, name = fmt.Sprintf("%s/%s", seg[0], seg[1]), seg[2]
-	}
-	if len(resource) == 0 || len(name) == 0 || len(SplitResourceArgument(resource)) != 1 {
-		return resourceTuple{}, false, fmt.Errorf("arguments in group/resource/name form must have a single resource and name")
-	}
-	return resourceTuple{Resource: resource, Name: name}, true, nil
 }
 
 // Normalize args convert multiple resources to resource tuples, a,b,c d
@@ -460,11 +431,11 @@ func (b *Builder) resourceMappings() ([]*meta.RESTMapping, error) {
 	}
 	mappings := []*meta.RESTMapping{}
 	for _, r := range b.resources {
-		version, kind, err := b.mapper.VersionAndKindForResource(r)
+		gvk, err := b.mapper.KindFor(r)
 		if err != nil {
 			return nil, err
 		}
-		mapping, err := b.mapper.RESTMapping(kind, version)
+		mapping, err := b.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
 			return nil, err
 		}
@@ -480,11 +451,11 @@ func (b *Builder) resourceTupleMappings() (map[string]*meta.RESTMapping, error) 
 		if _, ok := mappings[r.Resource]; ok {
 			continue
 		}
-		version, kind, err := b.mapper.VersionAndKindForResource(r.Resource)
+		gvk, err := b.mapper.KindFor(r.Resource)
 		if err != nil {
 			return nil, err
 		}
-		mapping, err := b.mapper.RESTMapping(kind, version)
+		mapping, err := b.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
 			return nil, err
 		}
@@ -500,7 +471,7 @@ func (b *Builder) resourceTupleMappings() (map[string]*meta.RESTMapping, error) 
 
 func (b *Builder) visitorResult() *Result {
 	if len(b.errs) > 0 {
-		return &Result{err: errors.NewAggregate(b.errs)}
+		return &Result{err: utilerrors.NewAggregate(b.errs)}
 	}
 
 	if b.selectAll {

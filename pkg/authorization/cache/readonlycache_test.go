@@ -6,8 +6,6 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -114,11 +112,9 @@ func TestListLocalPolicyBindings(t *testing.T) {
 
 	namespace := "namespaceTwo"
 	context := kapi.WithNamespace(kapi.NewContext(), namespace)
-	label := labels.Everything()
-	field := fields.Everything()
 
 	util.Until(func() {
-		policyBindings, err = testClient.ListPolicyBindings(context, label, field)
+		policyBindings, err = testClient.ListPolicyBindings(context, nil)
 
 		if (err == nil) &&
 			(policyBindings != nil) &&
@@ -153,11 +149,9 @@ func TestListClusterPolicyBindings(t *testing.T) {
 
 	namespace := ""
 	context := kapi.WithNamespace(kapi.NewContext(), namespace)
-	label := labels.Everything()
-	field := fields.Everything()
 
 	util.Until(func() {
-		clusterPolicyBindings, err = testClient.ListPolicyBindings(context, label, field)
+		clusterPolicyBindings, err = testClient.ListPolicyBindings(context, nil)
 
 		if (err == nil) &&
 			(clusterPolicyBindings != nil) &&

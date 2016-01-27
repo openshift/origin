@@ -12,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/labels"
 
+	api "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -75,7 +76,7 @@ func TestDescriberCoverage(t *testing.T) {
 	c := &client.Client{}
 
 main:
-	for _, apiType := range kapi.Scheme.KnownTypes("") {
+	for _, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
 		if !strings.Contains(apiType.PkgPath(), "openshift/origin") {
 			continue
 		}
@@ -96,7 +97,7 @@ main:
 			}
 		}
 
-		_, ok := DescriberFor(apiType.Name(), c, &ktestclient.Fake{}, "")
+		_, ok := DescriberFor(api.SchemeGroupVersion.WithKind(apiType.Name()).GroupKind(), c, &ktestclient.Fake{}, "")
 		if !ok {
 			t.Errorf("missing printer for %v.  Check pkg/cmd/cli/describe/describer.go", apiType)
 		}
