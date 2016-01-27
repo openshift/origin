@@ -558,6 +558,8 @@ type IdentityProvider struct {
 	UseAsLogin bool
 	// MappingMethod determines how identities from this provider are mapped to users
 	MappingMethod string
+	// MappingMethodConfig is configuration for third-party mappingMethods.
+	MappingMethodConfig *runtime.EmbeddedObject
 	// Provider contains the information about how to set up a specific identity provider
 	Provider runtime.EmbeddedObject
 }
