@@ -2,7 +2,7 @@
   <div ng-if="(projects | hashSize) === 0" class="text-muted">Loading...</div>
   <div ng-if="(projects | hashSize) !== 0">
     <h1 style="display: inline-block;">Projects</h1>
-    <a ng-if="canCreate" href="createProject" style="margin-top: 10px;" class="btn btn-lg btn-primary pull-right">New Project</a>
+    <a ng-if="canCreate" href="create-project" style="margin-top: 10px;" class="btn btn-lg btn-primary pull-right">New Project</a>
     <alerts alerts="alerts"></alerts>
     <div ng-repeat="project in projects | orderByDisplayName">
       <div row flex cross-axis="center" class="tile tile-project tile-click tile-flex">
@@ -48,7 +48,7 @@
     <span ng-if="canCreate">Create a project for your application.</span>
   </p>
 
-  <a ng-if="canCreate" href="createProject" class="btn btn-lg btn-primary">New Project</a>
+  <a ng-if="canCreate" href="create-project" class="btn btn-lg btn-primary">New Project</a>
 
   <p>To learn more, visit the OpenShift <a ng-href="{{'' | helpLink}}">documentation</a>.</p>
 
