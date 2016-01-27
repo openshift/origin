@@ -139,11 +139,11 @@ func (b *Layered) Build(config *api.Config) (*api.Result, error) {
 	defer outReader.Close()
 	defer outWriter.Close()
 	opts := docker.BuildImageOptions{
-		Name:   newBuilderImage,
-		Stdin:  tarStream,
-		Stdout: outWriter,
+		Name:         newBuilderImage,
+		Stdin:        tarStream,
+		Stdout:       outWriter,
+		CGroupLimits: config.CGroupLimits,
 	}
-
 	// goroutine to stream container's output
 	go func(reader io.Reader) {
 		scanner := bufio.NewReader(reader)

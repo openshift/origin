@@ -396,6 +396,7 @@ func (b *STI) Save(config *api.Config) (err error) {
 		Stderr:          errWriter,
 		OnStart:         extractFunc,
 		NetworkMode:     string(config.DockerNetworkMode),
+		CGroupLimits:    config.CGroupLimits,
 	}
 
 	go dockerpkg.StreamContainerIO(errReader, nil, glog.Error)
@@ -446,6 +447,7 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 		User:            user,
 		PostExec:        b.postExecutor,
 		NetworkMode:     string(config.DockerNetworkMode),
+		CGroupLimits:    config.CGroupLimits,
 	}
 
 	// If there are injections specified, override the original assemble script

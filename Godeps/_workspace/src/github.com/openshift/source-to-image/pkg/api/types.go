@@ -167,6 +167,18 @@ type Config struct {
 	// the container that runs assemble.
 	// All files we inject will be truncated after the assemble script finishes.
 	Injections InjectionList
+
+	// CGroupLimits describes the cgroups limits that will be applied to any containers
+	// run by s2i.
+	CGroupLimits *CGroupLimits
+}
+
+type CGroupLimits struct {
+	MemoryLimitBytes int64
+	CPUShares        int64
+	CPUPeriod        int64
+	CPUQuota         int64
+	MemorySwap       int64
 }
 
 // InjectPath contains definition of source directory and the injection path.
