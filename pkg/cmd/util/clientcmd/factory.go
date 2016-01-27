@@ -355,6 +355,13 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kCanBeExposed(kind)
 	}
+	kCanBeAutoscaled := w.Factory.CanBeAutoscaled
+	w.CanBeAutoscaled = func(kind unversioned.GroupKind) error {
+		if kind == deployapi.Kind("DeploymentConfig") {
+			return nil
+		}
+		return kCanBeAutoscaled(kind)
+	}
 	kAttachablePodForObjectFunc := w.Factory.AttachablePodForObject
 	w.AttachablePodForObject = func(object runtime.Object) (*api.Pod, error) {
 		oc, kc, err := w.Clients()

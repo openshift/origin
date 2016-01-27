@@ -97,3 +97,11 @@ os::cmd::expect_success 'oc delete dc/database'
 os::cmd::expect_failure 'oc get dc/database'
 os::cmd::expect_failure 'oc get rc/database-1'
 echo "stop: ok"
+
+os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.yaml'
+os::cmd::expect_success 'oc autoscale dc/test-deployment-config --max 5'
+os::cmd::expect_success_and_text "oc get hpa/test-deployment-config --template='{{.spec.maxReplicas}}'" "5"
+os::cmd::expect_success 'oc delete dc/test-deployment-config'
+os::cmd::expect_success 'oc delete hpa/test-deployment-config'
+echo "autoscale: ok"
+

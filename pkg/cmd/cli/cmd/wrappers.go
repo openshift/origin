@@ -273,6 +273,29 @@ func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 }
 
 const (
+	autoScaleLong = `Autoscale a deployment config or replication controller.
+
+Looks up a deployment config or replication controller by name and creates an autoscaler that uses
+this deployment config or replication controller as a reference. An autoscaler can automatically
+increase or decrease number of pods deployed within the system as needed.`
+
+	autoScaleExample = `  # Auto scale a deployment config "foo", with the number of pods between 2 to 10, target CPU utilization at a default value that server applies:
+  $ %[1]s autoscale dc/foo --min=2 --max=10
+
+  # Auto scale a replication controller "foo", with the number of pods between 1 to 5, target CPU utilization at 80%%
+  $ %[1]s autoscale rc/foo --max=5 --cpu-percent=80`
+)
+
+// NewCmdAutoscale is a wrapper for the Kubernetes cli autoscale command
+func NewCmdAutoscale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdAutoscale(f.Factory, out)
+	cmd.Short = "Autoscale a deployment config or replication controller"
+	cmd.Long = autoScaleLong
+	cmd.Example = fmt.Sprintf(autoScaleExample, fullName)
+	return cmd
+}
+
+const (
 	runLong = `Create and run a particular image, possibly replicated
 
 Creates a deployment config to manage the created container(s). You can choose to run in the
