@@ -207,6 +207,7 @@ func TestValidateBuildUpdate(t *testing.T) {
 }
 
 func TestBuildConfigGitSourceWithProxyFailure(t *testing.T) {
+	proxyAddress := "127.0.0.1:3128"
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
@@ -214,8 +215,8 @@ func TestBuildConfigGitSourceWithProxyFailure(t *testing.T) {
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI:        "git://github.com/my/repository",
-						HTTPProxy:  "127.0.0.1:3128",
-						HTTPSProxy: "127.0.0.1:3128",
+						HTTPProxy:  &proxyAddress,
+						HTTPSProxy: &proxyAddress,
 					},
 				},
 				Strategy: buildapi.BuildStrategy{
@@ -624,6 +625,7 @@ func TestValidateBuildRequest(t *testing.T) {
 
 func TestValidateSource(t *testing.T) {
 	dockerfile := "FROM something"
+	invalidProxyAddress := "some!@#$%^&*()url"
 	errorCases := []struct {
 		t        field.ErrorType
 		path     string
@@ -757,7 +759,7 @@ func TestValidateSource(t *testing.T) {
 			source: &buildapi.BuildSource{
 				Git: &buildapi.GitBuildSource{
 					URI:       "https://example.com/repo.git",
-					HTTPProxy: "some!@#$%^&*()url",
+					HTTPProxy: &invalidProxyAddress,
 				},
 				ContextDir: "contextDir",
 			},
@@ -769,7 +771,7 @@ func TestValidateSource(t *testing.T) {
 			source: &buildapi.BuildSource{
 				Git: &buildapi.GitBuildSource{
 					URI:        "https://example.com/repo.git",
-					HTTPSProxy: "some!@#$%^&*()url",
+					HTTPSProxy: &invalidProxyAddress,
 				},
 				ContextDir: "contextDir",
 			},
@@ -1725,5 +1727,86 @@ func TestValidateToImageReference(t *testing.T) {
 	}
 	if err.Field != "namespace" {
 		t.Errorf("Error on wrong field, expected %s, got %s", "namespace", err.Field)
+	}
+}
+
+func TestValidateStrategyEnvVars(t *testing.T) {
+	tests := []struct {
+		env         []kapi.EnvVar
+		errExpected bool
+		errField    string
+		errType     field.ErrorType
+	}{
+		// 0: missing Env variable name
+		{
+			env: []kapi.EnvVar{
+				{
+					Name:  "",
+					Value: "test",
+				},
+			},
+			errExpected: true,
+			errField:    "env[0].name",
+			errType:     field.ErrorTypeRequired,
+		},
+		// 1: invalid Env variable name
+		{
+			env: []kapi.EnvVar{
+				{
+					Name:  " invalid,name",
+					Value: "test",
+				},
+			},
+			errExpected: true,
+			errField:    "env[0].name",
+			errType:     field.ErrorTypeInvalid,
+		},
+		// 2: valueFrom present in env var
+		{
+			env: []kapi.EnvVar{
+				{
+					Name:      "name",
+					Value:     "test",
+					ValueFrom: &kapi.EnvVarSource{},
+				},
+			},
+			errExpected: true,
+			errField:    "env[0].valueFrom",
+			errType:     field.ErrorTypeInvalid,
+		},
+		// 3: valid env
+		{
+			env: []kapi.EnvVar{
+				{
+					Name:  "VAR1",
+					Value: "value1",
+				},
+				{
+					Name:  "VAR2",
+					Value: "value2",
+				},
+			},
+		},
+	}
+
+	for i, tc := range tests {
+		errs := ValidateStrategyEnv(tc.env, field.NewPath("env"))
+		if !tc.errExpected {
+			if len(errs) > 0 {
+				t.Errorf("%d: unexpected error: %v", i, errs.ToAggregate())
+			}
+			continue
+		}
+		if tc.errExpected && len(errs) == 0 {
+			t.Errorf("%d: expected error. Got none.", i)
+			continue
+		}
+		err := errs[0]
+		if err.Field != tc.errField {
+			t.Errorf("%d: unexpected error field: %s", i, err.Field)
+		}
+		if err.Type != tc.errType {
+			t.Errorf("%d: unexpected error type: %s", i, err.Type)
+		}
 	}
 }
