@@ -189,14 +189,7 @@
                       <tbody>
                         <tr ng-repeat-start="limit in limitRange.spec.limits"></tr>
                         <tr ng-repeat="(type, typeLimits) in limitsByType[limitRangeName][limit.type]">
-                          <td>
-                            {{limit.type}}
-                            <span ng-switch="type" class="hide-ng-leave">
-                              <span ng-switch-when="cpu">CPU</span>
-                              <span ng-switch-when="memory">Memory</span>
-                              <span ng-switch-default>{{type}}</span>
-                            </span>
-                          </td>
+                          <td>{{limit.type}} {{type | computeResourceLabel : true}}</td>
                           <td>{{(typeLimits.min | usageWithUnits : type) || "&mdash;"}}</td>
                           <td>{{(typeLimits.max | usageWithUnits : type) || "&mdash;"}}</td>
                           <td>{{(typeLimits.defaultRequest | usageWithUnits : type) || "&mdash;"}}</td>

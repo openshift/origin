@@ -33,6 +33,11 @@
                       ><i class="fa fa-play fa-fw" aria-hidden="true"></i> Deploy</a>
                   </li>
                   <li>
+                    <a href="project/{{projectName}}/set-limits?dcName={{deploymentConfig.metadata.name}}"
+                      role="button"
+                      ><i class="fa fa-area-chart fa-fw" aria-hidden="true"></i> Set Resource Limits</a>
+                  </li>
+                  <li>
                     <edit-link
                       resource="deploymentConfig"
                       kind="deploymentconfigs"

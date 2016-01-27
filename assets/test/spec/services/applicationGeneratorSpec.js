@@ -65,6 +65,9 @@ describe("ApplicationGenerator", function(){
       scaling: {
         replicas: 1
       },
+      container: {
+        resources: {}
+      },
       imageName: "origin-ruby-sample",
       imageTag: "latest",
       imageStream: {
@@ -422,7 +425,8 @@ describe("ApplicationGenerator", function(){
                         "name": "MYSQL_DATABASE",
                         "value": "root"
                       }
-                    ]
+                    ],
+                    "resources": {}
                   }
                 ]
               }
@@ -480,6 +484,27 @@ describe("ApplicationGenerator", function(){
             }
         }
       );
+    });
+  });
+
+  describe("generating pod template with requests and limits set", function(){
+    var resources, computeResources;
+    beforeEach(function(){
+      var testInput = _.clone(input);
+      testInput.container.resources = computeResources = {
+        limits: {
+          cpu: "1",
+          memory: "512M"
+        },
+        requests: {
+          memory: "128Mi"
+        }
+      };
+      resources = ApplicationGenerator.generate(testInput);
+    });
+
+    it("should create service ports for all exposed ports", function(){
+      expect(resources.deploymentConfig.spec.template.spec.containers[0].resources).toEqual(computeResources);
     });
   });
 

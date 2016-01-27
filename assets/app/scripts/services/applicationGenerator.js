@@ -175,6 +175,14 @@ angular.module("openshiftConsole")
       var templateLabels = angular.copy(input.labels);
       templateLabels.deploymentconfig = input.name;
 
+      var container = {
+        image: imageSpec.toString(),
+        name: input.name,
+        ports: ports,
+        env: env,
+        resources: _.get(input, "container.resources")
+      };
+
       var deploymentConfig = {
         apiVersion: oApiVersion,
         kind: "DeploymentConfig",
@@ -194,14 +202,7 @@ angular.module("openshiftConsole")
               labels: templateLabels
             },
             spec: {
-              containers: [
-                {
-                  image: imageSpec.toString(),
-                  name: input.name,
-                  ports: ports,
-                  env: env
-                }
-              ]
+              containers: [ container ]
             }
           }
         }
