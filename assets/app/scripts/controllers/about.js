@@ -7,29 +7,21 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('AboutController', function ($scope, DataService, AuthService, CLI_TOOLS, VERSION) {
-  	$scope.version = {
-  		api: {
-  			openshift: DataService.oApiVersion,
-  			kubernetes: DataService.k8sApiVersion,
-  		},
-  		master: {
-  			openshift: {
-	  			major: VERSION.openshift.major,
-	  			minor: VERSION.openshift.minor,
-	  			gitCommit: VERSION.openshift.gitCommit,
-	  			gitVersion: VERSION.openshift.gitVersion
-  			},
-	  		kubernetes: {
-	  			major: VERSION.kubernetes.major,
-	  			minor: VERSION.kubernetes.minor,
-	  			gitCommit: VERSION.kubernetes.gitCommit,
-	  			gitVersion: VERSION.kubernetes.gitVersion
-	  		}
-  		},
-  	};
-  	$scope.cliDownloadURL = CLI_TOOLS.downloadURL;
-  	$scope.cliDownloadURLPresent = CLI_TOOLS.downloadURL && !_.isEmpty(CLI_TOOLS.downloadURL);
+  .controller('AboutController', function ($scope, DataService, AuthService, Constants) {
+    AuthService.withUser();
+    
+    $scope.version = {
+      api: {
+        openshift: DataService.oApiVersion,
+        kubernetes: DataService.k8sApiVersion,
+      },
+      master: {
+        openshift: Constants.VERSION.openshift,
+        kubernetes: Constants.VERSION.kubernetes,
+      },
+    };
+    $scope.cliDownloadURL = Constants.CLI;
+    $scope.cliDownloadURLPresent = $scope.cliDownloadURL && !_.isEmpty($scope.cliDownloadURL);
     $scope.loginBaseURL = DataService.openshiftAPIBaseUrl();
     $scope.sessionToken = AuthService.UserStore().getToken();
   });

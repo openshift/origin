@@ -14,9 +14,6 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/util"
-
-	oversion "github.com/openshift/origin/pkg/version"
-	kversion "k8s.io/kubernetes/pkg/version"
 )
 
 var varyHeaderRegexp = regexp.MustCompile("\\s*,\\s*")
@@ -146,24 +143,14 @@ func HTML5ModeHandler(contextRoot string, subcontextMap map[string]string, h htt
 
 var versionTemplate = template.Must(template.New("webConsoleVersion").Parse(`
 window.OPENSHIFT_VERSION = {
-  openshift: {
-  	major: "{{ .OpenShiftVersionInfo.Major | js}}",
-  	minor: "{{ .OpenShiftVersionInfo.Minor | js}}",
-  	gitCommit: "{{ .OpenShiftVersionInfo.GitCommit | js}}",
-  	gitVersion: "{{ .OpenShiftVersionInfo.GitVersion | js}}"
-  },
-  kubernetes: {
-  	major: "{{ .KubernetesVersionInfo.Major | js}}",
-  	minor: "{{ .KubernetesVersionInfo.Minor | js}}",
-  	gitCommit: "{{ .KubernetesVersionInfo.GitCommit | js}}",
-  	gitVersion: "{{ .KubernetesVersionInfo.GitVersion | js}}"
-  }
+  openshift: "{{ .OpenShiftVersion | js}}",
+  kubernetes: "{{ .KubernetesVersion | js}}"
 };
 `))
 
 type WebConsoleVersion struct {
-	KubernetesVersionInfo kversion.Info
-	OpenShiftVersionInfo  oversion.Info
+	KubernetesVersion string
+	OpenShiftVersion  string
 }
 
 var configTemplate = template.Must(template.New("webConsoleConfig").Parse(`
@@ -201,13 +188,7 @@ window.OPENSHIFT_CONFIG = {
   	logout_uri: "{{ .LogoutURI | js}}"
   },
   loggingURL: "{{ .LoggingURL | js}}",
-  metricsURL: "{{ .MetricsURL | js}}",
-  cli: {
-  	downloadURL: {
-{{range $i,$e := .CLIDownloadURLs}}{{if $i}},
-{{end}}        "{{$i | js}}": "{{$e | js}}"{{end}}
-  	}
-  }
+  metricsURL: "{{ .MetricsURL | js}}"
 };
 `))
 
@@ -241,8 +222,6 @@ type WebConsoleConfig struct {
 	LoggingURL string
 	// MetricsURL is the endpoint for metrics (optional)
 	MetricsURL string
-	// CLIDownloadURL is a map that holds links to download the client tools, where key is the platform name and value is the download URL (optional)
-	CLIDownloadURLs map[string]string
 }
 
 func GeneratedConfigHandler(config WebConsoleConfig, version WebConsoleVersion) (http.Handler, error) {

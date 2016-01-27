@@ -395,9 +395,6 @@ type AssetConfig struct {
 	// MetricsPublicURL is the public endpoint for metrics (optional)
 	MetricsPublicURL string `json:"metricsPublicURL"`
 
-	// CLIDownloadPublicURLs holds links to download client tools, where key is the platform name and value is the download URL (optional)
-	CLIDownloadPublicURLs map[string]string `json:"cliDownloadPublicURLs"`
-
 	// ExtensionScripts are file paths on the asset server files to load as scripts when the Web
 	// Console loads
 	ExtensionScripts []string `json:"extensionScripts"`

@@ -211,13 +211,12 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 		LogoutURI:           c.Options.LogoutURL,
 		LoggingURL:          c.Options.LoggingPublicURL,
 		MetricsURL:          c.Options.MetricsPublicURL,
-		CLIDownloadURLs:     c.Options.CLIDownloadPublicURLs,
 	}
 	kVersionInfo := kversion.Get()
 	oVersionInfo := oversion.Get()
 	versionInfo := assets.WebConsoleVersion{
-		KubernetesVersionInfo: kVersionInfo,
-		OpenShiftVersionInfo:  oVersionInfo,
+		KubernetesVersion: kVersionInfo.GitVersion,
+		OpenShiftVersion:  oVersionInfo.GitVersion,
 	}
 	configPath := path.Join(publicURL.Path, "config.js")
 	configHandler, err := assets.GeneratedConfigHandler(config, versionInfo)

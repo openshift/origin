@@ -343,17 +343,6 @@ func ValidateAssetConfig(config *api.AssetConfig, fldPath *field.Path) Validatio
 		validationResults.AddErrors(ValidateFile(stylesheetFile, fldPath.Child("extensionStylesheets").Index(i))...)
 	}
 
-	for platform, downloadURL := range config.CLIDownloadPublicURLs {
-		if len(platform) == 0 {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("cliDownloadPublicURLs", config.CLIDownloadPublicURLs, "key must be the title of the public download URL (usually the platform name)"))
-		} else {
-			_, urlErrs := ValidateURL(downloadURL, fmt.Sprintf("cliDownloadPublicURLs[%q]", platform))
-			if len(urlErrs) > 0 {
-				validationResults.AddErrors(urlErrs...)
-			}
-		}
-	}
-
 	nameTaken := map[string]bool{}
 	for i, extConfig := range config.Extensions {
 		idxPath := fldPath.Child("extensions").Index(i)

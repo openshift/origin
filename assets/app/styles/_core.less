@@ -550,12 +550,17 @@ code {
   white-space: normal;
 }
 
-pre {
+pre,
+div {
   &.code {
     background-color: #fff;
     border: none;
     border-left: 2px solid rgb(204, 204, 204);
   }
+}
+
+div.code {
+  &:extend(pre);
 }
 
 [data-toggle="tooltip"] {
