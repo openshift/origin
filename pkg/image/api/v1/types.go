@@ -90,6 +90,8 @@ type NamedTagReference struct {
 type TagImportPolicy struct {
 	// Insecure is true if the server may bypass certificate verification or connect directly over HTTP during image import.
 	Insecure bool `json:"insecure,omitempty" description:"if true, the server may bypass certificate verification or connect directly over HTTP during image import"`
+	// Scheduled indicates to the server that this tag should be periodically checked to ensure it is up to date, and imported
+	Scheduled bool `json:"scheduled,omitempty" description:"if true, the server will periodically check to ensure this tag is up to date"`
 }
 
 // ImageStreamStatus contains information about the state of this image stream.
