@@ -4114,6 +4114,7 @@ func autoconvert_api_TagImportPolicy_To_v1_TagImportPolicy(in *imageapi.TagImpor
 		defaulting.(func(*imageapi.TagImportPolicy))(in)
 	}
 	out.Insecure = in.Insecure
+	out.Scheduled = in.Scheduled
 	return nil
 }
 
@@ -4526,6 +4527,7 @@ func autoconvert_v1_TagImportPolicy_To_api_TagImportPolicy(in *imageapiv1.TagImp
 		defaulting.(func(*imageapiv1.TagImportPolicy))(in)
 	}
 	out.Insecure = in.Insecure
+	out.Scheduled = in.Scheduled
 	return nil
 }
 

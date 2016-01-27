@@ -2352,6 +2352,7 @@ func deepCopy_api_TagEventList(in imageapi.TagEventList, out *imageapi.TagEventL
 
 func deepCopy_api_TagImportPolicy(in imageapi.TagImportPolicy, out *imageapi.TagImportPolicy, c *conversion.Cloner) error {
 	out.Insecure = in.Insecure
+	out.Scheduled = in.Scheduled
 	return nil
 }
 

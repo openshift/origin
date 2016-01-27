@@ -112,6 +112,8 @@ type TagReference struct {
 type TagImportPolicy struct {
 	// Insecure is true if the server may bypass certificate verification or connect directly over HTTP during image import.
 	Insecure bool
+	// Scheduled indicates to the server that this tag should be periodically checked to ensure it is up to date, and imported
+	Scheduled bool
 }
 
 // ImageStreamStatus contains information about the state of this image stream.

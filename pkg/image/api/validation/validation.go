@@ -95,7 +95,14 @@ func ValidateImageStream(stream *api.ImageStream) field.ErrorList {
 	for tag, tagRef := range stream.Spec.Tags {
 		if tagRef.From != nil {
 			switch tagRef.From.Kind {
-			case "DockerImage", "ImageStreamImage", "ImageStreamTag":
+			case "DockerImage":
+				if ref, err := api.ParseDockerImageReference(stream.Spec.DockerImageRepository); err == nil && tagRef.ImportPolicy.Scheduled && len(ref.ID) > 0 {
+					result = append(result, field.Invalid(field.NewPath("spec", "tags").Key(tag).Child("from", "name"), tagRef.From.Name, "only tags can be scheduled for import"))
+				}
+			case "ImageStreamImage", "ImageStreamTag":
+				if tagRef.ImportPolicy.Scheduled {
+					result = append(result, field.Invalid(field.NewPath("spec", "tags").Key(tag).Child("importPolicy", "scheduled"), tagRef.ImportPolicy.Scheduled, "only tags pointing to Docker repositories may be scheduled for background import"))
+				}
 			default:
 				result = append(result, field.Invalid(field.NewPath("spec", "tags").Key(tag).Child("from", "kind"), tagRef.From.Kind, "valid values are 'DockerImage', 'ImageStreamImage', 'ImageStreamTag'"))
 			}
@@ -191,8 +198,12 @@ func ValidateImageStreamImport(isi *api.ImageStreamImport) field.ErrorList {
 			if len(spec.From.Name) == 0 {
 				errs = append(errs, field.Required(imagesPath.Index(i).Child("from", "name")))
 			} else {
-				if _, err := api.ParseDockerImageReference(spec.From.Name); err != nil {
+				if ref, err := api.ParseDockerImageReference(spec.From.Name); err != nil {
 					errs = append(errs, field.Invalid(imagesPath.Index(i).Child("from", "name"), spec.From.Name, err.Error()))
+				} else {
+					if len(ref.ID) > 0 && spec.ImportPolicy.Scheduled {
+						errs = append(errs, field.Invalid(imagesPath.Index(i).Child("from", "name"), spec.From.Name, "only tags can be scheduled for import"))
+					}
 				}
 			}
 		default:
@@ -207,8 +218,12 @@ func ValidateImageStreamImport(isi *api.ImageStreamImport) field.ErrorList {
 			if len(spec.From.Name) == 0 {
 				errs = append(errs, field.Required(repoPath.Child("from", "name")))
 			} else {
-				if _, err := api.ParseDockerImageReference(spec.From.Name); err != nil {
-					errs = append(errs, field.Invalid(repoPath.Child("from", "name"), spec.From.Name, err.Error()))
+				if ref, err := api.ParseDockerImageReference(from.Name); err != nil {
+					errs = append(errs, field.Invalid(repoPath.Child("from", "name"), from.Name, err.Error()))
+				} else {
+					if len(ref.ID) > 0 || len(ref.Tag) > 0 {
+						errs = append(errs, field.Invalid(repoPath.Child("from", "name"), from.Name, "you must specify an image repository, not a tag or ID"))
+					}
 				}
 			}
 		default:

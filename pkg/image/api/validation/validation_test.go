@@ -276,6 +276,29 @@ func TestValidateImageStream(t *testing.T) {
 				field.Required(field.NewPath("status", "tags").Key("tag").Child("items").Index(2).Child("dockerImageReference")),
 			},
 		},
+		"only DockerImage tags can be scheduled": {
+			namespace: "namespace",
+			name:      "foo",
+			specTags: map[string]api.TagReference{
+				"tag": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "abc",
+					},
+					ImportPolicy: api.TagImportPolicy{Scheduled: true},
+				},
+				"other": {
+					From: &kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "other:latest",
+					},
+					ImportPolicy: api.TagImportPolicy{Scheduled: true},
+				},
+			},
+			expected: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "tags").Key("other").Child("importPolicy", "scheduled"), true, "only tags pointing to Docker repositories may be scheduled for background import"),
+			},
+		},
 		"valid": {
 			namespace: "namespace",
 			name:      "foo",

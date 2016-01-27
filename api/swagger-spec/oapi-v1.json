@@ -19859,6 +19859,10 @@
      "insecure": {
       "type": "boolean",
       "description": "if true, the server may bypass certificate verification or connect directly over HTTP during image import"
+     },
+     "scheduled": {
+      "type": "boolean",
+      "description": "if true, the server will periodically check to ensure this tag is up to date"
      }
     }
    },
