@@ -833,8 +833,8 @@ type KubernetesMasterConfig struct {
 	// configurations.
 	ControllerArguments ExtendedArguments
 
-	// KubernetesEtcdClientInfo, if present store kubernetes data in a different etcd instance
-	KubernetesEtcdClientInfo *EtcdConnectionInfo
+	// EtcdClientInfo, if present store kubernetes data in a different etcd instance
+	EtcdClientInfo *EtcdConnectionInfo
 }
 
 type CertInfo struct {

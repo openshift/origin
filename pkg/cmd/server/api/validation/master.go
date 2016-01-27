@@ -115,20 +115,20 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 			validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, config.EtcdConfig, fldPath.Child("etcdClientInfo"))...)
 
 			// Validate the kubernetesEtcdClientInfo with the internal etcdConfig
-			validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.KubernetesMasterConfig.KubernetesEtcdClientInfo, config.EtcdConfig, fldPath.Child("kubernetesEtcdClientInfo"))...)
+			validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.KubernetesMasterConfig.EtcdClientInfo, config.EtcdConfig, fldPath.Child("etcdClientInfo"))...)
 		} else {
 			// Validate the etcdClientInfo by itself
 			validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil, fldPath.Child("etcdClientInfo"))...)
 
 			// Validate the kubernetesEtcdClientInfo by itself
-			validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.KubernetesMasterConfig.KubernetesEtcdClientInfo, nil, fldPath.Child("kubernetesEtcdClientInfo"))...)
+			validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.KubernetesMasterConfig.EtcdClientInfo, nil, fldPath.Child("etcdClientInfo"))...)
 		}
 	} else {
 		// Validate the etcdClientInfo by itself
 		validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil, fldPath.Child("etcdClientInfo"))...)
 
 		// Validate the kubernetesEtcdClientInfo by itself
-		validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.KubernetesMasterConfig.KubernetesEtcdClientInfo, nil, fldPath.Child("kubernetesEtcdClientInfo"))...)
+		validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.KubernetesMasterConfig.EtcdClientInfo, nil, fldPath.Child("etcdClientInfo"))...)
 	}
 	validationResults.AddErrors(ValidateEtcdStorageConfig(config.EtcdStorageConfig, fldPath.Child("etcdStorageConfig"))...)
 

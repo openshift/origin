@@ -158,6 +158,11 @@ kubernetesMasterConfig:
         location: ""
     pluginOrderOverride:
     - plugin
+    etcdClientInfo:
+      ca: ""
+      certFile: ""
+      keyFile: ""
+      urls: null
   apiLevels: null
   apiServerArguments: null
   controllerArguments: null
