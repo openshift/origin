@@ -125,6 +125,8 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 
 	validationResults.AddErrors(ValidateImageConfig(config.ImageConfig, fldPath.Child("imageConfig"))...)
 
+	validationResults.AddErrors(ValidateImagePolicyConfig(config.ImagePolicyConfig, fldPath.Child("imagePolicyConfig"))...)
+
 	validationResults.AddErrors(ValidateKubeletConnectionInfo(config.KubeletClientInfo, fldPath.Child("kubeletClientInfo"))...)
 
 	builtInKubernetes := config.KubernetesMasterConfig != nil
@@ -383,8 +385,24 @@ func ValidateImageConfig(config api.ImageConfig, fldPath *field.Path) field.Erro
 	return allErrs
 }
 
+func ValidateImagePolicyConfig(config api.ImagePolicyConfig, fldPath *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
+
+	if config.MaxImagesBulkImportedPerRepository == 0 || config.MaxImagesBulkImportedPerRepository < -1 {
+		errs = append(errs, field.Invalid(fldPath.Child("maxImagesBulkImportedPerRepository"), config.MaxImagesBulkImportedPerRepository, "must be a positive integer or -1"))
+	}
+	if config.ScheduledImageImportMinimumIntervalSeconds <= 0 {
+		errs = append(errs, field.Invalid(fldPath.Child("scheduledImageImportMinimumIntervalSeconds"), config.ScheduledImageImportMinimumIntervalSeconds, "must be a positive integer"))
+	}
+	if config.MaxScheduledImageImportsPerMinute == 0 || config.MaxScheduledImageImportsPerMinute < -1 {
+		errs = append(errs, field.Invalid(fldPath.Child("maxScheduledImageImportsPerMinute"), config.MaxScheduledImageImportsPerMinute, "must be a positive integer or -1"))
+	}
+	return errs
+}
+
 func ValidateKubeletConnectionInfo(config api.KubeletConnectionInfo, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
+
 	if config.Port == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("port")))
 	}
