@@ -6,26 +6,29 @@ import (
 	"io/ioutil"
 	"reflect"
 
+	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
+	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 )
 
 func init() {
-	admission.RegisterPlugin("BuildHTTPProxy", func(c kclient.Interface, config io.Reader) (admission.Interface, error) {
-		proxyConfig, err := readConfig(config)
+	admission.RegisterPlugin("BuildDefaulter", func(c kclient.Interface, config io.Reader) (admission.Interface, error) {
+		defaultConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err
 		}
 
-		return NewBuildHTTPProxy(proxyConfig), nil
+		return NewBuildDefaulter(defaultConfig), nil
 	})
 }
 
-func readConfig(reader io.Reader) (*ProxyConfig, error) {
+func readConfig(reader io.Reader) (*DefaultConfig, error) {
 	if reader == nil || reflect.ValueOf(reader).IsNil() {
 		return nil, nil
 	}
@@ -34,7 +37,7 @@ func readConfig(reader io.Reader) (*ProxyConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	config := &ProxyConfig{}
+	config := &DefaultConfig{}
 	err = configlatest.ReadYAML(configBytes, config)
 	if err != nil {
 		return nil, err
@@ -42,91 +45,93 @@ func readConfig(reader io.Reader) (*ProxyConfig, error) {
 	return config, nil
 }
 
-type buildHTTPProxy struct {
+type buildDefaulter struct {
 	*admission.Handler
-	proxyConfig *ProxyConfig
+	defaultConfig *DefaultConfig
 }
 
-// NewBuildHTTPProxy returns an admission control for builds that checks
-// on policy based on the build strategy type
-func NewBuildHTTPProxy(proxyConfig *ProxyConfig) admission.Interface {
-	return &buildHTTPProxy{
-		Handler:     admission.NewHandler(admission.Create, admission.Update),
-		proxyConfig: proxyConfig,
+// NewBuildDefaulter returns an admission control for builds that will
+// set default values on a build pod from the global config.
+func NewBuildDefaulter(defaultConfig *DefaultConfig) admission.Interface {
+	return &buildDefaulter{
+		Handler:       admission.NewHandler(admission.Create, admission.Update),
+		defaultConfig: defaultConfig,
 	}
 }
 
-func (a *buildHTTPProxy) Admit(attributes admission.Attributes) error {
-	if a.proxyConfig == nil {
+func (a *buildDefaulter) Admit(attributes admission.Attributes) error {
+	if a.defaultConfig == nil {
 		return nil
 	}
-	if attributes.GetResource() != "buildconfigs" {
+
+	if attributes.GetResource().Resource != string(kapi.ResourcePods) {
 		return nil
 	}
 	if len(attributes.GetSubresource()) != 0 {
 		return nil
 	}
 
-	buildConfig, ok := attributes.GetObject().(*buildapi.BuildConfig)
+	pod, ok := attributes.GetObject().(*kapi.Pod)
+
 	if !ok {
 		return admission.NewForbidden(attributes, fmt.Errorf("unrecognized request object %#v", attributes.GetObject()))
 	}
 
-	if len(a.proxyConfig.HTTPProxy) != 0 {
-		var envVars *[]kapi.EnvVar
-		switch {
-		case buildConfig.Spec.Strategy.DockerStrategy != nil:
-			envVars = &buildConfig.Spec.Strategy.DockerStrategy.Env
-		case buildConfig.Spec.Strategy.SourceStrategy != nil:
-			envVars = &buildConfig.Spec.Strategy.SourceStrategy.Env
-		case buildConfig.Spec.Strategy.CustomStrategy != nil:
-			envVars = &buildConfig.Spec.Strategy.CustomStrategy.Env
-		}
-
+	if len(pod.Annotations[buildapi.BuildAnnotation]) != 0 {
 		found := false
-		for i := range *envVars {
-			if (*envVars)[i].Name == "HTTP_PROXY" {
+		for i, env := range pod.Spec.Containers[0].Env {
+			if env.Name == "BUILD" {
 				found = true
+				build := &buildapi.Build{}
+				if err := latest.Codec.DecodeInto([]byte(env.Value), build); err != nil {
+					return fmt.Errorf("failed to decode build: %v", err)
+				}
+
+				// default the http proxy for git cloning
+				if len(a.defaultConfig.HTTPProxy) != 0 && build.Spec.Strategy.SourceStrategy != nil && build.Spec.Source.Git != nil && len(*build.Spec.Source.Git.HTTPProxy) == 0 {
+					build.Spec.Source.Git.HTTPProxy = &a.defaultConfig.HTTPProxy
+				}
+
+				// default the https proxy for git cloning
+				if len(a.defaultConfig.HTTPSProxy) != 0 && build.Spec.Strategy.SourceStrategy != nil && build.Spec.Source.Git != nil && len(*build.Spec.Source.Git.HTTPSProxy) == 0 {
+					build.Spec.Source.Git.HTTPSProxy = &a.defaultConfig.HTTPSProxy
+				}
+
+				var envVars *[]kapi.EnvVar
+				switch {
+				case build.Spec.Strategy.DockerStrategy != nil:
+					envVars = &build.Spec.Strategy.DockerStrategy.Env
+				case build.Spec.Strategy.SourceStrategy != nil:
+					envVars = &build.Spec.Strategy.SourceStrategy.Env
+				case build.Spec.Strategy.CustomStrategy != nil:
+					envVars = &build.Spec.Strategy.CustomStrategy.Env
+				}
+
+				if envVars != nil {
+					for _, defaultEnv := range a.defaultConfig.Env {
+						exists := false
+						for _, buildEnv := range *envVars {
+							if buildEnv.Name == defaultEnv.Name {
+								exists = true
+							}
+						}
+						if !exists {
+							*envVars = append(*envVars, defaultEnv)
+						}
+					}
+				}
+
+				data, err := latest.Codec.Encode(build)
+				if err != nil {
+					return fmt.Errorf("failed to encode build %s/%s: %v", build.Namespace, build.Name, err)
+				}
+				pod.Spec.Containers[0].Env[i].Value = string(data)
+
+				break
 			}
 		}
 		if !found {
-			*envVars = append(*envVars, kapi.EnvVar{Name: "HTTP_PROXY", Value: a.proxyConfig.HTTPProxy})
-		}
-
-		if buildConfig.Spec.Source.Git != nil {
-			if buildConfig.Spec.Source.Git.HTTPProxy == nil {
-				t := a.proxyConfig.HTTPProxy
-				buildConfig.Spec.Source.Git.HTTPProxy = &t
-			}
-		}
-	}
-
-	if len(a.proxyConfig.HTTPSProxy) != 0 {
-		var envVars *[]kapi.EnvVar
-		switch {
-		case buildConfig.Spec.Strategy.DockerStrategy != nil:
-			envVars = &buildConfig.Spec.Strategy.DockerStrategy.Env
-		case buildConfig.Spec.Strategy.SourceStrategy != nil:
-			envVars = &buildConfig.Spec.Strategy.SourceStrategy.Env
-		case buildConfig.Spec.Strategy.CustomStrategy != nil:
-			envVars = &buildConfig.Spec.Strategy.CustomStrategy.Env
-		}
-
-		found := false
-		for i := range *envVars {
-			if (*envVars)[i].Name == "HTTPS_PROXY" {
-				found = true
-			}
-		}
-		if !found {
-			*envVars = append(*envVars, kapi.EnvVar{Name: "HTTPS_PROXY", Value: a.proxyConfig.HTTPSProxy})
-		}
-
-		if buildConfig.Spec.Source.Git != nil {
-			if buildConfig.Spec.Source.Git.HTTPSProxy == nil {
-				t := a.proxyConfig.HTTPSProxy
-				buildConfig.Spec.Source.Git.HTTPSProxy = &t
-			}
+			glog.Warningf("Unable to find and update build definition on pod %#v", *pod)
 		}
 	}
 
