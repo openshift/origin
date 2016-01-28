@@ -366,6 +366,9 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return kAttachablePodForObjectFunc(object)
 		}
 	}
+	w.EditorEnvs = func() []string {
+		return []string{"OC_EDITOR", "EDITOR"}
+	}
 
 	return w
 }
