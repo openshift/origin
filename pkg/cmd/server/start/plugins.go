@@ -9,6 +9,7 @@ import (
 	_ "github.com/openshift/origin/pkg/project/admission/lifecycle"
 	_ "github.com/openshift/origin/pkg/project/admission/nodeenv"
 	_ "github.com/openshift/origin/pkg/project/admission/requestlimit"
+	_ "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
 	_ "github.com/openshift/origin/pkg/quota/admission/runonceduration"
 	_ "github.com/openshift/origin/pkg/security/admission"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/admit"
