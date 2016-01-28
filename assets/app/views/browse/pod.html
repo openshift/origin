@@ -84,7 +84,8 @@
                     context="logContext"
                     options="logOptions"
                     status="pod.status.phase"
-                    start="pod.status.startTime | date : 'short'">
+                    start="pod.status.startTime | date : 'short'"
+                    run="logCanRun">
                 </log-viewer>
               </uib-tab>
 

@@ -72,6 +72,9 @@ angular.module('openshiftConsole')
                 };
               }
               $scope.build = build;
+              // TODO: if build.status.phase === 'Error' then we should not
+              // fetch the log, BUT ALSO indicate this somehow in UI
+              $scope.logCanRun = !(_.includes(['New', 'Pending', 'Error'], build.status.phase));
             }));
           },
           // failure
