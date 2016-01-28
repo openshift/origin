@@ -1,12 +1,14 @@
 package api
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
+const GroupName = ""
+
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: ""}
+var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: ""}
 
 // Kind takes an unqualified kind and returns back a Group qualified GroupKind
 func Kind(kind string) unversioned.GroupKind {
@@ -18,8 +20,14 @@ func Resource(resource string) unversioned.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
 
-func init() {
-	api.Scheme.AddKnownTypes(SchemeGroupVersion,
+func AddToScheme(scheme *runtime.Scheme) {
+	// Add the API to Scheme.
+	addKnownTypes(scheme)
+}
+
+// Adds the list of known types to api.Scheme.
+func addKnownTypes(scheme *runtime.Scheme) {
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Role{},
 		&RoleBinding{},
 		&Policy{},
@@ -48,28 +56,28 @@ func init() {
 	)
 }
 
-func (*ClusterRole) IsAnAPIObject()              {}
-func (*ClusterPolicy) IsAnAPIObject()            {}
-func (*ClusterPolicyBinding) IsAnAPIObject()     {}
-func (*ClusterRoleBinding) IsAnAPIObject()       {}
-func (*ClusterPolicyList) IsAnAPIObject()        {}
-func (*ClusterPolicyBindingList) IsAnAPIObject() {}
-func (*ClusterRoleBindingList) IsAnAPIObject()   {}
-func (*ClusterRoleList) IsAnAPIObject()          {}
+func (obj *ClusterRoleList) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
+func (obj *ClusterRoleBindingList) GetObjectKind() unversioned.ObjectKind   { return &obj.TypeMeta }
+func (obj *ClusterPolicyBindingList) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *ClusterPolicyList) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
+func (obj *ClusterPolicyBinding) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
+func (obj *ClusterPolicy) GetObjectKind() unversioned.ObjectKind            { return &obj.TypeMeta }
+func (obj *ClusterRoleBinding) GetObjectKind() unversioned.ObjectKind       { return &obj.TypeMeta }
+func (obj *ClusterRole) GetObjectKind() unversioned.ObjectKind              { return &obj.TypeMeta }
 
-func (*Role) IsAnAPIObject()              {}
-func (*Policy) IsAnAPIObject()            {}
-func (*PolicyBinding) IsAnAPIObject()     {}
-func (*RoleBinding) IsAnAPIObject()       {}
-func (*PolicyList) IsAnAPIObject()        {}
-func (*PolicyBindingList) IsAnAPIObject() {}
-func (*RoleBindingList) IsAnAPIObject()   {}
-func (*RoleList) IsAnAPIObject()          {}
+func (obj *IsPersonalSubjectAccessReview) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *SubjectAccessReviewResponse) GetObjectKind() unversioned.ObjectKind   { return &obj.TypeMeta }
+func (obj *ResourceAccessReviewResponse) GetObjectKind() unversioned.ObjectKind  { return &obj.TypeMeta }
+func (obj *LocalSubjectAccessReview) GetObjectKind() unversioned.ObjectKind      { return &obj.TypeMeta }
+func (obj *LocalResourceAccessReview) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
+func (obj *SubjectAccessReview) GetObjectKind() unversioned.ObjectKind           { return &obj.TypeMeta }
+func (obj *ResourceAccessReview) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
 
-func (*ResourceAccessReview) IsAnAPIObject()          {}
-func (*SubjectAccessReview) IsAnAPIObject()           {}
-func (*LocalResourceAccessReview) IsAnAPIObject()     {}
-func (*LocalSubjectAccessReview) IsAnAPIObject()      {}
-func (*ResourceAccessReviewResponse) IsAnAPIObject()  {}
-func (*SubjectAccessReviewResponse) IsAnAPIObject()   {}
-func (*IsPersonalSubjectAccessReview) IsAnAPIObject() {}
+func (obj *RoleList) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
+func (obj *RoleBindingList) GetObjectKind() unversioned.ObjectKind   { return &obj.TypeMeta }
+func (obj *PolicyBindingList) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *PolicyList) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
+func (obj *PolicyBinding) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
+func (obj *Policy) GetObjectKind() unversioned.ObjectKind            { return &obj.TypeMeta }
+func (obj *RoleBinding) GetObjectKind() unversioned.ObjectKind       { return &obj.TypeMeta }
+func (obj *Role) GetObjectKind() unversioned.ObjectKind              { return &obj.TypeMeta }

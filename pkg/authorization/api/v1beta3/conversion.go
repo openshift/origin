@@ -3,8 +3,8 @@ package v1beta3
 import (
 	"sort"
 
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	newer "github.com/openshift/origin/pkg/authorization/api"
@@ -269,8 +269,8 @@ func convert_api_ClusterPolicyBinding_To_v1beta3_ClusterPolicyBinding(in *newer.
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
-func init() {
-	err := api.Scheme.AddConversionFuncs(
+func addConversionFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddConversionFuncs(
 		convert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview,
 		convert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview,
 		convert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview,

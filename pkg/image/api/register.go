@@ -1,8 +1,8 @@
 package api
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
 const GroupName = ""
@@ -20,8 +20,14 @@ func Resource(resource string) unversioned.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
 
-func init() {
-	api.Scheme.AddKnownTypes(SchemeGroupVersion,
+func AddToScheme(scheme *runtime.Scheme) {
+	// Add the API to Scheme.
+	addKnownTypes(scheme)
+}
+
+// Adds the list of known types to api.Scheme.
+func addKnownTypes(scheme *runtime.Scheme) {
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Image{},
 		&ImageList{},
 		&DockerImage{},
@@ -35,13 +41,13 @@ func init() {
 	)
 }
 
-func (*Image) IsAnAPIObject()              {}
-func (*ImageList) IsAnAPIObject()          {}
-func (*DockerImage) IsAnAPIObject()        {}
-func (*ImageStream) IsAnAPIObject()        {}
-func (*ImageStreamList) IsAnAPIObject()    {}
-func (*ImageStreamMapping) IsAnAPIObject() {}
-func (*ImageStreamTag) IsAnAPIObject()     {}
-func (*ImageStreamTagList) IsAnAPIObject() {}
-func (*ImageStreamImage) IsAnAPIObject()   {}
-func (*ImageStreamImport) IsAnAPIObject()  {}
+func (obj *Image) GetObjectKind() unversioned.ObjectKind              { return &obj.TypeMeta }
+func (obj *ImageList) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
+func (obj *DockerImage) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
+func (obj *ImageStream) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
+func (obj *ImageStreamList) GetObjectKind() unversioned.ObjectKind    { return &obj.TypeMeta }
+func (obj *ImageStreamMapping) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *ImageStreamTag) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
+func (obj *ImageStreamTagList) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *ImageStreamImage) GetObjectKind() unversioned.ObjectKind   { return &obj.TypeMeta }
+func (obj *ImageStreamImport) GetObjectKind() unversioned.ObjectKind  { return &obj.TypeMeta }

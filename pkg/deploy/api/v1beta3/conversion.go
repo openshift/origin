@@ -5,8 +5,8 @@ import (
 	"math"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
 	newer "github.com/openshift/origin/pkg/deploy/api"
@@ -123,8 +123,8 @@ func convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeploymentStr
 	return nil
 }
 
-func init() {
-	err := api.Scheme.AddConversionFuncs(
+func addConversionFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddConversionFuncs(
 		convert_v1beta3_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImageChangeParams,
 		convert_api_DeploymentTriggerImageChangeParams_To_v1beta3_DeploymentTriggerImageChangeParams,
 

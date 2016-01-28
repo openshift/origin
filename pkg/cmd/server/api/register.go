@@ -23,13 +23,18 @@ func Resource(resource string) unversioned.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
 
-func init() {
-	Scheme.AddKnownTypes(SchemeGroupVersion,
+func AddToScheme(scheme *runtime.Scheme) {
+	// Add the API to Scheme.
+	addKnownTypes(scheme)
+}
+
+// Adds the list of known types to api.Scheme.
+func addKnownTypes(scheme *runtime.Scheme) {
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&MasterConfig{},
 		&NodeConfig{},
 		&SessionSecrets{},
 
-		&IdentityProvider{},
 		&BasicAuthPasswordIdentityProvider{},
 		&AllowAllPasswordIdentityProvider{},
 		&DenyAllPasswordIdentityProvider{},
@@ -41,30 +46,35 @@ func init() {
 		&GitLabIdentityProvider{},
 		&GoogleIdentityProvider{},
 		&OpenIDIdentityProvider{},
-		&GrantConfig{},
-		&AdmissionPluginConfig{},
 
 		&LDAPSyncConfig{},
 	)
 }
 
-func (*IdentityProvider) IsAnAPIObject()                  {}
-func (*BasicAuthPasswordIdentityProvider) IsAnAPIObject() {}
-func (*AllowAllPasswordIdentityProvider) IsAnAPIObject()  {}
-func (*DenyAllPasswordIdentityProvider) IsAnAPIObject()   {}
-func (*HTPasswdPasswordIdentityProvider) IsAnAPIObject()  {}
-func (*LDAPPasswordIdentityProvider) IsAnAPIObject()      {}
-func (*KeystonePasswordIdentityProvider) IsAnAPIObject()  {}
-func (*RequestHeaderIdentityProvider) IsAnAPIObject()     {}
-func (*GitHubIdentityProvider) IsAnAPIObject()            {}
-func (*GitLabIdentityProvider) IsAnAPIObject()            {}
-func (*GoogleIdentityProvider) IsAnAPIObject()            {}
-func (*OpenIDIdentityProvider) IsAnAPIObject()            {}
-func (*GrantConfig) IsAnAPIObject()                       {}
-func (*AdmissionPluginConfig) IsAnAPIObject()             {}
+func (obj *LDAPSyncConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
 
-func (*MasterConfig) IsAnAPIObject()   {}
-func (*NodeConfig) IsAnAPIObject()     {}
-func (*SessionSecrets) IsAnAPIObject() {}
+func (obj *OpenIDIdentityProvider) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
+func (obj *GoogleIdentityProvider) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
+func (obj *GitLabIdentityProvider) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
+func (obj *GitHubIdentityProvider) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
+func (obj *RequestHeaderIdentityProvider) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *KeystonePasswordIdentityProvider) GetObjectKind() unversioned.ObjectKind {
+	return &obj.TypeMeta
+}
+func (obj *LDAPPasswordIdentityProvider) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *HTPasswdPasswordIdentityProvider) GetObjectKind() unversioned.ObjectKind {
+	return &obj.TypeMeta
+}
+func (obj *DenyAllPasswordIdentityProvider) GetObjectKind() unversioned.ObjectKind {
+	return &obj.TypeMeta
+}
+func (obj *AllowAllPasswordIdentityProvider) GetObjectKind() unversioned.ObjectKind {
+	return &obj.TypeMeta
+}
+func (obj *BasicAuthPasswordIdentityProvider) GetObjectKind() unversioned.ObjectKind {
+	return &obj.TypeMeta
+}
 
-func (*LDAPSyncConfig) IsAnAPIObject() {}
+func (obj *SessionSecrets) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *NodeConfig) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
+func (obj *MasterConfig) GetObjectKind() unversioned.ObjectKind   { return &obj.TypeMeta }

@@ -1,14 +1,14 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
-func init() {
-	err := api.Scheme.AddDefaultingFuncs(
+func addConversionFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddDefaultingFuncs(
 		func(obj *RouteSpec) {
 			obj.To.Kind = "Service"
 		},
@@ -30,12 +30,12 @@ func init() {
 		panic(err)
 	}
 
-	err = api.Scheme.AddConversionFuncs()
+	err = scheme.AddConversionFuncs()
 	if err != nil {
 		panic(err)
 	}
 
-	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "Route",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "Route",
 		oapi.GetFieldLabelConversionFunc(routeapi.RouteToSelectableFields(&routeapi.Route{}), nil),
 	); err != nil {
 		panic(err)

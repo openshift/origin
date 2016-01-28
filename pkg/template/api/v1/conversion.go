@@ -1,8 +1,8 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	newer "github.com/openshift/origin/pkg/template/api"
@@ -25,8 +25,8 @@ func convert_v1_Template_To_api_Template(in *Template, out *newer.Template, s co
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
-func init() {
-	err := api.Scheme.AddConversionFuncs(
+func addConversionFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddConversionFuncs(
 		convert_api_Template_To_v1_Template,
 		convert_v1_Template_To_api_Template,
 	)
@@ -34,7 +34,7 @@ func init() {
 		panic(err)
 	}
 
-	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "Template",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "Template",
 		oapi.GetFieldLabelConversionFunc(newer.TemplateToSelectableFields(&newer.Template{}), nil),
 	); err != nil {
 		panic(err)
