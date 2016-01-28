@@ -245,6 +245,10 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 		return nil, err
 	}
 
+	if request.Annotations != nil && request.Annotations[buildapi.BuildAlwaysPullImagesAnnotation] == "true" {
+		buildapi.SetBuildForcePull(newBuild.Spec.Strategy)
+	}
+
 	// Ideally we would create the build *before* updating the BC to ensure that we don't set the LastTriggeredImageID
 	// on the BC and then fail to create the corresponding build, however doing things in that order allows for a race
 	// condition in which two builds get kicked off.  Doing it in this order ensures that we catch the race while
@@ -336,6 +340,10 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 			glog.V(4).Infof("Failed to update BuildConfig %s/%s so no Build will be created", buildConfig.Namespace, buildConfig.Name)
 			return nil, err
 		}
+	}
+
+	if request.Annotations != nil && request.Annotations[buildapi.BuildAlwaysPullImagesAnnotation] == "true" {
+		buildapi.SetBuildForcePull(newBuild.Spec.Strategy)
 	}
 
 	return g.createBuild(ctx, newBuild)

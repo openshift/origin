@@ -50,3 +50,15 @@ func hasBuildConfigLabel(build Build, labelName, labelValue string) bool {
 	value, ok := build.Labels[labelName]
 	return ok && value == labelValue
 }
+
+// SetBuildForcePull sets the appropriate strategy's ForcePull value to true.
+func SetBuildForcePull(strategy BuildStrategy) {
+	switch {
+	case strategy.DockerStrategy != nil:
+		strategy.DockerStrategy.ForcePull = true
+	case strategy.CustomStrategy != nil:
+		strategy.CustomStrategy.ForcePull = true
+	case strategy.SourceStrategy != nil:
+		strategy.SourceStrategy.ForcePull = true
+	}
+}
