@@ -71,8 +71,7 @@ angular.module('openshiftConsole')
           select.selectpicker('refresh');
         };
 
-
-        DataService.list("projects", $scope, function(items) {
+        DataService.list("projects", {}, function(items) {
           projects = items.by("metadata.name");
           updateOptions();
         });
@@ -114,10 +113,10 @@ angular.module('openshiftConsole')
       restrict: 'E',
       scope: {
         breadcrumbs: '='
-      },      
+      },
       templateUrl: 'views/directives/breadcrumbs.html'
     };
-  })  
+  })
   .directive('back', ['$window', function($window) {
     return {
       restrict: 'A',

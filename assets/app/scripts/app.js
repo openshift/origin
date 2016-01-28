@@ -254,6 +254,7 @@ angular
       });
   })
   .constant("API_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).api))
+  .constant("APIGROUP_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).apiGroups))
   .constant("AUTH_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).auth))
   .constant("LOGGING_URL", (window.OPENSHIFT_CONFIG || {}).loggingURL)
   .constant("METRICS_URL", (window.OPENSHIFT_CONFIG || {}).metricsURL)

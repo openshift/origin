@@ -257,9 +257,9 @@ angular.module('openshiftConsole')
       return null;
     };
   })
-  .filter('webhookURL', function(DataService) {
+  .filter('webhookURL', function(APIService) {
     return function(buildConfig, type, secret, project) {
-      return DataService.url({
+      return APIService.url({
       	// arbitrarily many subresources can be included
       	// url encoding of the segments is handled by the url() function
       	// subresource segments cannot contain '/'
