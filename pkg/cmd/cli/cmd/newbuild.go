@@ -54,7 +54,7 @@ You can use '%[1]s status' to check the progress.`
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
   
   # Create a build config that gets its input from a remote repository and another Docker image
-  $ %[1]s new-build https://github.com/openshift/ruby-hello-world --source-image=openshift/jenkins-1-centos7 --source-image-path=/var/lib/jenkins:/tmp`
+  $ %[1]s new-build https://github.com/openshift/ruby-hello-world --source-image=openshift/jenkins-1-centos7 --source-image-path=/var/lib/jenkins:tmp`
 
 	newBuildNoInput = `You must specify one or more images, image streams, or source code locations to create a build.
 
