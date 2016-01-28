@@ -69,10 +69,10 @@ func getExpectedAccess() (map[string][]string, map[string][]string) {
 	}
 
 	buildControllerUsername := serviceaccount.MakeUsername(DefaultOpenShiftInfraNamespace, InfraBuildControllerServiceAccountName)
-	pvControllerUsername := serviceaccount.MakeUsername(DefaultOpenShiftInfraNamespace, InfraPersistentVolumeBinderControllerServiceAccountName)
+	pvRecyclerControllerUsername := serviceaccount.MakeUsername(DefaultOpenShiftInfraNamespace, InfraPersistentVolumeRecyclerControllerServiceAccountName)
 	users := map[string][]string{
 		SecurityContextConstraintPrivileged:         {buildControllerUsername},
-		SecurityContextConstraintHostMountAndAnyUID: {pvControllerUsername},
+		SecurityContextConstraintHostMountAndAnyUID: {pvRecyclerControllerUsername},
 	}
 	return groups, users
 }
