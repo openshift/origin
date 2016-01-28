@@ -1,6 +1,7 @@
 package analysis
 
 import (
+	"sort"
 	"testing"
 	"time"
 
@@ -19,11 +20,12 @@ func TestRestartingPodWarning(t *testing.T) {
 
 	recent, _ := time.Parse(time.RFC3339, "2015-07-13T19:36:06Z")
 	nowFn = func() unversioned.Time { return unversioned.NewTime(recent.UTC()) }
-	markers := FindRestartingPods(g, osgraph.DefaultNamer)
-	if e, a := 3, len(markers); e != a {
+	markers := FindRestartingPods(g, osgraph.DefaultNamer, "oc logs", "oadm policy")
+	sort.Sort(osgraph.BySeverity(markers))
+	if e, a := 4, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
-	if e, a := RestartingPodWarning, markers[0].Key; e != a {
+	if e, a := CrashLoopingPodError, markers[0].Key; e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 	if e, a := CrashLoopingPodError, markers[1].Key; e != a {
@@ -32,17 +34,24 @@ func TestRestartingPodWarning(t *testing.T) {
 	if e, a := RestartingPodWarning, markers[2].Key; e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
+	if e, a := RestartingPodWarning, markers[3].Key; e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
 
 	future, _ := time.Parse(time.RFC3339, "2015-07-13T19:46:06Z")
 	nowFn = func() unversioned.Time { return unversioned.NewTime(future.UTC()) }
-	markers = FindRestartingPods(g, osgraph.DefaultNamer)
-	if e, a := 2, len(markers); e != a {
+	markers = FindRestartingPods(g, osgraph.DefaultNamer, "oc logs", "oadm policy")
+	sort.Sort(osgraph.BySeverity(markers))
+	if e, a := 3, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 	if e, a := CrashLoopingPodError, markers[0].Key; e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
-	if e, a := RestartingPodWarning, markers[1].Key; e != a {
+	if e, a := CrashLoopingPodError, markers[1].Key; e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+	if e, a := RestartingPodWarning, markers[2].Key; e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 }

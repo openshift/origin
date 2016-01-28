@@ -1,8 +1,6 @@
 package graph
 
 import (
-	"fmt"
-
 	"github.com/gonum/graph"
 )
 
@@ -107,5 +105,5 @@ func (m ByKey) Less(i, j int) bool {
 type Suggestion string
 
 func (s Suggestion) String() string {
-	return fmt.Sprintf("try: %s", string(s))
+	return string(s)
 }

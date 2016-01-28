@@ -17,15 +17,18 @@ const (
 	CrashLoopingPodError = "CrashLoopingPod"
 	RestartingPodWarning = "RestartingPod"
 
-	RestartThreshold      = 5
+	RestartThreshold = 5
+	// TODO: if you change this, you must change the messages below.
 	RestartRecentDuration = 10 * time.Minute
 )
 
 // exposed for testing
 var nowFn = unversioned.Now
 
-// FindRestartingPods inspects all Pods to see if they've restarted more than the threshold
-func FindRestartingPods(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
+// FindRestartingPods inspects all Pods to see if they've restarted more than the threshold. logsCommandName is the name of
+// the command that should be invoked to see pod logs. securityPolicyCommandPattern is a format string accepting two replacement
+// variables for fmt.Sprintf - 1, the namespace of the current pod, 2 the service account of the pod.
+func FindRestartingPods(g osgraph.Graph, f osgraph.Namer, logsCommandName, securityPolicyCommandPattern string) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
 	for _, uncastPodNode := range g.NodesByKind(kubegraph.PodNodeKind) {
@@ -41,22 +44,25 @@ func FindRestartingPods(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 				var suggestion string
 				switch {
 				case containerIsNonRoot(pod, containerStatus.Name):
-					suggestion = D(`
-						The container is starting and exiting repeatedly, which usually means the container cannot
-						start, is misconfigured, or is unable to perform an action due to security restrictions on
-						the container. The container logs may contain messages indicating the reason the pod cannot
-						start.
+					suggestion = Df(`
+						The container is starting and exiting repeatedly. This usually means the container is unable
+						to start, misconfigured, or limited by security restrictions. Check the container logs with
 
-						This container is being run as as a non-root user due to administrative policy, and
-						some images may fail expecting to be able to change ownership or set permissions on
-						directories. Your administrator may need to grant permission for you to run root
-						containers.`)
+						  %s %s -c %s
+
+						Current security policy prevents your containers from being run as the root user. Some images
+						may fail expecting to be able to change ownership or permissions on directories. Your admin
+						can grant you access to run containers that need to run as the root user with this command:
+
+						  %s
+						`, logsCommandName, pod.Name, containerStatus.Name, fmt.Sprintf(securityPolicyCommandPattern, pod.Namespace, pod.Spec.ServiceAccountName))
 				default:
-					suggestion = D(`
-						The container is starting and exiting repeatedly, which usually means the container cannot
-						start, is misconfigured, or is unable to perform an action due to security restrictions on
-						the container. The container logs may contain messages indicating the reason the pod cannot
-						start.`)
+					suggestion = Df(`
+						The container is starting and exiting repeatedly. This usually means the container is unable
+						to start, misconfigured, or limited by security restrictions. Check the container logs with
+
+						  %s %s -c %s
+						`, logsCommandName, pod.Name, containerStatus.Name)
 				}
 				markers = append(markers, osgraph.Marker{
 					Node: podNode,
