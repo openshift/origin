@@ -288,6 +288,7 @@ func (t *stiTar) ExtractTarStreamWithLogging(dir string, reader io.Reader, logge
 			}
 			if header.FileInfo().IsDir() {
 				dirPath := filepath.Join(dir, header.Name)
+				glog.V(3).Infof("Creating directory %s", dirPath)
 				if err = os.MkdirAll(dirPath, 0700); err != nil {
 					glog.Errorf("Error creating dir %q: %v", dirPath, err)
 					errorChannel <- err
@@ -296,6 +297,7 @@ func (t *stiTar) ExtractTarStreamWithLogging(dir string, reader io.Reader, logge
 			} else {
 				fileDir := filepath.Dir(header.Name)
 				dirPath := filepath.Join(dir, fileDir)
+				glog.V(3).Infof("Creating directory %s", dirPath)
 				if err = os.MkdirAll(dirPath, 0700); err != nil {
 					glog.Errorf("Error creating dir %q: %v", dirPath, err)
 					errorChannel <- err

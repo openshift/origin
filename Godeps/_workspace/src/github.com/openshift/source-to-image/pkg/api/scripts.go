@@ -26,8 +26,7 @@ const (
 	// DefaultScripts is the location of scripts downloaded from default location (io.openshift.s2i.scripts-url label).
 	DefaultScripts = "downloads" + string(os.PathSeparator) + "defaultScripts"
 	// SourceScripts is the location of scripts downloaded with application sources.
-	SourceScripts = "upload" + string(os.PathSeparator) + "src" + string(os.PathSeparator) + ".sti" + string(os.PathSeparator) + "bin"
-
+	SourceScripts = "upload" + string(os.PathSeparator) + "src" + string(os.PathSeparator) + ".s2i" + string(os.PathSeparator) + "bin"
 	// UploadScripts is the location of scripts that will be uploaded to the image during STI build.
 	UploadScripts = "upload" + string(os.PathSeparator) + "scripts"
 	// Source is the location of application sources.

@@ -283,10 +283,11 @@ func (d *stiDocker) CheckAndPullImage(name string) (*docker.Image, error) {
 		return nil, err
 	}
 	if image == nil {
+		glog.Infof("Image %q not available locally, pulling ...", name)
 		return d.PullImage(name)
 	}
 
-	glog.V(2).Infof("Image %s available locally", name)
+	glog.V(1).Infof("Using locally available image %q", name)
 	return image, nil
 }
 

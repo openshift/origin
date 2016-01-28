@@ -218,7 +218,6 @@ func (b *STI) Prepare(config *api.Config) error {
 
 	for _, r := range append(required, optional...) {
 		if r.Error == nil {
-			glog.V(1).Infof("Using %v from %s", r.Script, r.URL)
 			b.externalScripts[r.Script] = r.Downloaded
 			b.installedScripts[r.Script] = r.Installed
 			b.scriptsURL[r.Script] = r.URL
@@ -277,7 +276,7 @@ func (b *STI) PostExecute(containerID, location string) error {
 		// scripts from inside of the image, we need to strip the image part
 		// NOTE: We use path.Join instead of filepath.Join to avoid converting the
 		// path to UNC (Windows) format as we always run this inside container.
-		runCmd = path.Join(strings.TrimPrefix(runCmd, "image://"), api.Run)
+		runCmd = strings.TrimPrefix(runCmd, "image://")
 	} else {
 		// external scripts, in which case we're taking the directory to which they
 		// were extracted and append scripts dir and name
@@ -453,6 +452,8 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 	// If there are injections specified, override the original assemble script
 	// and wait till all injections are uploaded into the container that runs the
 	// assemble script.
+	injectionComplete := make(chan struct{})
+	var injectionError error
 	if len(config.Injections) > 0 && command == api.Assemble {
 		workdir, err := b.docker.GetImageWorkdir(config.BuilderImage)
 		if err != nil {
@@ -468,22 +469,26 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 			return err
 		}
 		defer os.Remove(rmScript)
-		glog.V(5).Infof("Waiting for injected files to be copied into assemble container...")
 		opts.CommandOverrides = func(cmd string) string {
 			return fmt.Sprintf("while [ ! -f %q ]; do sleep 0.5; done; %s; result=$?; source %[1]s; exit $result",
 				"/tmp/rm-injections", cmd)
 		}
 		originalOnStart := opts.OnStart
 		opts.OnStart = func(containerID string) error {
+			defer close(injectionComplete)
 			if err != nil {
+				injectionError = err
 				return err
 			}
+			glog.V(2).Info("starting the injections uploading ...")
 			for _, s := range config.Injections {
 				if err := b.docker.UploadToContainer(s.SourcePath, s.DestinationDir, containerID); err != nil {
+					injectionError = util.HandleInjectionError(s, err)
 					return err
 				}
 			}
 			if err := b.docker.UploadToContainer(rmScript, "/tmp/rm-injections", containerID); err != nil {
+				injectionError = util.HandleInjectionError(api.InjectPath{SourcePath: rmScript, DestinationDir: "/tmp/rm-injections"}, err)
 				return err
 			}
 			if originalOnStart != nil {
@@ -491,16 +496,25 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 			}
 			return nil
 		}
+	} else {
+		close(injectionComplete)
 	}
 
 	if !config.LayeredBuild {
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 		uploadDir := filepath.Join(config.WorkingDir, "upload")
-
 		// TODO: be able to pass a stream directly to the Docker build to avoid the double temp hit
 		r, w := io.Pipe()
 		go func() {
+			// Wait for the injections to complete and check the error. Do not start
+			// streaming the sources when the injection failed.
+			<-injectionComplete
+			if injectionError != nil {
+				wg.Done()
+				return
+			}
+			glog.V(2).Info("starting the source uploading ...")
 			var err error
 			defer func() {
 				w.CloseWithError(err)
