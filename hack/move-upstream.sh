@@ -1,6 +1,11 @@
 #!/bin/bash
 
 # See HACKING.md for usage
+# To apply all the kube UPSTREAM patches to a kubernetes git directory, you can
+#  1. Set UPSTREAM_DIR for your kube working directory
+#  2. Set TARGET_BRANCH for the new branch to work in
+#  3. In your kube git directory, set the current branch to the level to want to apply patches to
+#  4. Run `hack/move-upstream.sh master...<commit hash you want to start pulling patches from>`
 
 set -o errexit
 set -o nounset
@@ -20,7 +25,7 @@ package="${UPSTREAM_PACKAGE:-pkg/api}"
 patch="${TMPDIR}/patch"
 rm -rf "${patch}"
 mkdir -p "${patch}"
-relativedir="../../../${repo}"
+relativedir="${UPSTREAM_DIR-../../../${repo}}"
 if [[ ! -d "${relativedir}" ]]; then
   echo "Expected ${relativedir} to exist" 1>&2
   exit 1
@@ -30,7 +35,7 @@ if [[ -z "${NO_REBASE-}" ]]; then
   lastrev="$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json ${repo}/${package})"
 fi
 
-branch="$(git rev-parse --abbrev-ref HEAD)"
+branch="${TARGET_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
 selector="origin/master...${branch}"
 if [[ -n "${1-}" ]]; then
   selector="$1"
