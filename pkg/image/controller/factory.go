@@ -22,6 +22,7 @@ type ImportControllerFactory struct {
 	ResyncInterval       time.Duration
 	MinimumCheckInterval time.Duration
 	ImportRateLimiter    util.RateLimiter
+	ScheduleEnabled      bool
 }
 
 // Create creates an ImportController.
@@ -49,7 +50,7 @@ func (f *ImportControllerFactory) Create() (controller.RunnableController, contr
 	bucketQPS := 1.0 / float32(seconds) * float32(buckets)
 
 	limiter := util.NewTokenBucketRateLimiter(bucketQPS, 1)
-	b := newScheduled(f.Client, buckets, limiter, f.ImportRateLimiter)
+	b := newScheduled(f.ScheduleEnabled, f.Client, buckets, limiter, f.ImportRateLimiter)
 
 	// instantiate an importer for changes that happen to the image stream
 	changed := &controller.RetryController{
@@ -77,14 +78,16 @@ type uniqueItem struct {
 // scheduled watches for changes to image streams and adds them to the list of streams to be
 // periodically imported (later) or directly imported (now).
 type scheduled struct {
+	enabled     bool
 	scheduler   *controller.Scheduler
 	rateLimiter util.RateLimiter
 	controller  *ImportController
 }
 
 // newScheduled initializes a scheduled import object and sets its scheduler. Limiter is optional.
-func newScheduled(client client.ImageStreamsNamespacer, buckets int, bucketLimiter, importLimiter util.RateLimiter) *scheduled {
+func newScheduled(enabled bool, client client.ImageStreamsNamespacer, buckets int, bucketLimiter, importLimiter util.RateLimiter) *scheduled {
 	b := &scheduled{
+		enabled:     enabled,
 		rateLimiter: importLimiter,
 		controller: &ImportController{
 			streams: client,
@@ -97,7 +100,7 @@ func newScheduled(client client.ImageStreamsNamespacer, buckets int, bucketLimit
 // Handle ensures an image stream is checked for scheduling and then runs a direct import
 func (b *scheduled) Handle(obj interface{}) error {
 	stream := obj.(*api.ImageStream)
-	if needsScheduling(stream) {
+	if b.enabled && needsScheduling(stream) {
 		key, _ := cache.MetaNamespaceKeyFunc(stream)
 		b.scheduler.Add(key, uniqueItem{uid: string(stream.UID), resourceVersion: stream.ResourceVersion})
 	}
@@ -106,6 +109,10 @@ func (b *scheduled) Handle(obj interface{}) error {
 
 // HandleTimed is invoked when a key is ready to be processed.
 func (b *scheduled) HandleTimed(key, value interface{}) {
+	if !b.enabled {
+		b.scheduler.Remove(key, value)
+		return
+	}
 	glog.V(5).Infof("DEBUG: checking %s", key)
 	if b.rateLimiter != nil && !b.rateLimiter.TryAccept() {
 		glog.V(5).Infof("DEBUG: check of %s exceeded rate limit, will retry later", key)
@@ -128,6 +135,9 @@ func (b *scheduled) HandleTimed(key, value interface{}) {
 // Importing is invoked when the controller decides to import a stream in order to push back
 // the next schedule time.
 func (b *scheduled) Importing(stream *api.ImageStream) {
+	if !b.enabled {
+		return
+	}
 	glog.V(5).Infof("DEBUG: stream %s was just imported", stream.Name)
 	// Push the current key back to the end of the queue because it's just been imported
 	key, _ := cache.MetaNamespaceKeyFunc(stream)

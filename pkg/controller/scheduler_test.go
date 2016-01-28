@@ -56,8 +56,9 @@ func TestScheduler(t *testing.T) {
 	}
 }
 
-func TestSchedulerAdd(t *testing.T) {
+func TestSchedulerAddAndDelay(t *testing.T) {
 	s := NewScheduler(3, kutil.NewFakeRateLimiter(), func(key, value interface{}) {})
+	// 3 is the last bucket, 0 is the current bucket
 	s.Add("first", "other")
 	if s.buckets[3]["first"] != "other" {
 		t.Fatalf("placed key in wrong bucket: %#v", s.buckets)
@@ -82,6 +83,22 @@ func TestSchedulerAdd(t *testing.T) {
 	s.Add("sixth", "other")
 	if s.buckets[1]["sixth"] != "other" {
 		t.Fatalf("placed key in wrong bucket: %#v", s.buckets)
+	}
+
+	// delaying an item moves it to the last bucket
+	s.Delay("second")
+	if s.buckets[3]["second"] != "other" {
+		t.Fatalf("delay placed key in wrong bucket: %#v", s.buckets)
+	}
+	// delaying an item that is not in the map does nothing
+	s.Delay("third")
+	if _, ok := s.buckets[3]["third"]; ok {
+		t.Fatalf("delay placed key in wrong bucket: %#v", s.buckets)
+	}
+	// delaying an item that is already in the latest bucket does nothing
+	s.Delay("fourth")
+	if s.buckets[3]["fourth"] != "other" {
+		t.Fatalf("delay placed key in wrong bucket: %#v", s.buckets)
 	}
 }
 

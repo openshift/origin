@@ -96,7 +96,7 @@ func ValidateImageStream(stream *api.ImageStream) field.ErrorList {
 		if tagRef.From != nil {
 			switch tagRef.From.Kind {
 			case "DockerImage":
-				if ref, err := api.ParseDockerImageReference(stream.Spec.DockerImageRepository); err == nil && tagRef.ImportPolicy.Scheduled && len(ref.ID) > 0 {
+				if ref, err := api.ParseDockerImageReference(tagRef.From.Name); err == nil && tagRef.ImportPolicy.Scheduled && len(ref.ID) > 0 {
 					result = append(result, field.Invalid(field.NewPath("spec", "tags").Key(tag).Child("from", "name"), tagRef.From.Name, "only tags can be scheduled for import"))
 				}
 			case "ImageStreamImage", "ImageStreamTag":

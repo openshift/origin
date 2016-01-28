@@ -43,7 +43,14 @@ Tag existing images into image streams
 The tag command allows you to take an existing tag or image from an image
 stream, or a Docker image pull spec, and set it as the most recent image for a
 tag in 1 or more other image streams. It is similar to the 'docker tag'
-command, but it operates on image streams instead.`
+command, but it operates on image streams instead.
+
+Pass the --insecure flag if your external registry does not have a valid HTTPS
+certificate, or is only served over HTTP. Pass --scheduled to have the server
+regularly check the tag for updates and import the latest version (which can
+then trigger builds and deployments). Note that --scheduled is only allowed for
+Docker images.
+`
 
 	tagExample = `  # Tag the current image for the image stream 'openshift/ruby' and tag '2.0' into the image stream 'yourproject/ruby with tag 'tip'.
   $ %[1]s tag openshift/ruby:2.0 yourproject/ruby:tip
@@ -77,7 +84,7 @@ func NewCmdTag(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 	cmd.Flags().StringVar(&opts.sourceKind, "source", opts.sourceKind, "Optional hint for the source type; valid values are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'")
 	cmd.Flags().BoolVarP(&opts.deleteTag, "delete", "d", opts.deleteTag, "Delete the provided spec tags")
 	cmd.Flags().BoolVar(&opts.aliasTag, "alias", false, "Should the destination tag be updated whenever the source tag changes. Defaults to false.")
-	cmd.Flags().BoolVar(&opts.scheduleTag, "schedule", false, "Set a Docker image to be periodically imported from a remote repository.")
+	cmd.Flags().BoolVar(&opts.scheduleTag, "scheduled", false, "Set a Docker image to be periodically imported from a remote repository.")
 	cmd.Flags().BoolVar(&opts.insecureTag, "insecure", false, "Set to true if importing the specified Docker image requires HTTP or has a self-signed certificate.")
 
 	return cmd

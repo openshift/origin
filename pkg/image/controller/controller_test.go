@@ -328,7 +328,7 @@ func TestControllerExternalRepo(t *testing.T) {
 
 func TestScheduledImport(t *testing.T) {
 	fake := &client.Fake{}
-	b := newScheduled(fake, 1, nil, nil)
+	b := newScheduled(true, fake, 1, nil, nil)
 
 	one := int64(1)
 	stream := &api.ImageStream{

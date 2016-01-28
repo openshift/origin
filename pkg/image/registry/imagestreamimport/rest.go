@@ -265,6 +265,10 @@ func checkImportFailure(status api.ImageImportStatus, stream *api.ImageStream, t
 	return true
 }
 
+// importSuccessful records a successful import into an image stream, setting the spec tag, status tag or conditions, and ensuring
+// the image is created in etcd. Images are cached so they are not created multiple times in a row (when multiple tags point to the
+// same image), and a failure to persist the image will be summarized before we update the stream. If an image was imported by this
+// operation, it *replaces* the imported image (from the remote repository) with the updated image.
 func (r *REST) importSuccessful(
 	ctx kapi.Context,
 	image *api.Image, stream *api.ImageStream, tag string, from string, nextGeneration int64, now unversioned.Time, importPolicy api.TagImportPolicy,

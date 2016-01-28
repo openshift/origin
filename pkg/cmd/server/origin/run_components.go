@@ -353,13 +353,14 @@ func (c *MasterConfig) RunImageImportController() {
 		ResyncInterval:       10 * time.Minute,
 		MinimumCheckInterval: time.Duration(c.Options.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds) * time.Second,
 		ImportRateLimiter:    util.NewTokenBucketRateLimiter(importRate, importBurst),
+		ScheduleEnabled:      !c.Options.ImagePolicyConfig.DisableScheduledImport,
 	}
-	controller, background := factory.Create()
+	controller, scheduledController := factory.Create()
 	controller.Run()
 	if c.Options.ImagePolicyConfig.DisableScheduledImport {
 		glog.V(2).Infof("Scheduled image import is disabled - the 'scheduled' flag on image streams will be ignored")
 	} else {
-		background.RunUntil(util.NeverStop)
+		scheduledController.RunUntil(util.NeverStop)
 	}
 }
 
