@@ -116,6 +116,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 	case "build", "buildconfig":
 		bopts := &buildapi.BuildLogOptions{
 			Follow:       podLogOptions.Follow,
+			Previous:     podLogOptions.Previous,
 			SinceSeconds: podLogOptions.SinceSeconds,
 			SinceTime:    podLogOptions.SinceTime,
 			Timestamps:   podLogOptions.Timestamps,
@@ -129,6 +130,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 	case "deploymentconfig":
 		dopts := &deployapi.DeploymentLogOptions{
 			Follow:       podLogOptions.Follow,
+			Previous:     podLogOptions.Previous,
 			SinceSeconds: podLogOptions.SinceSeconds,
 			SinceTime:    podLogOptions.SinceTime,
 			Timestamps:   podLogOptions.Timestamps,
@@ -155,7 +157,18 @@ func (o OpenShiftLogsOptions) Validate() error {
 	if o.Options == nil {
 		return nil
 	}
-	// TODO: Validate our own options.
+	switch t := o.Options.(type) {
+	case *buildapi.BuildLogOptions:
+		if t.Previous && t.Version != nil {
+			return errors.New("cannot use both --previous and --version")
+		}
+	case *deployapi.DeploymentLogOptions:
+		if t.Previous && t.Version != nil {
+			return errors.New("cannot use both --previous and --version")
+		}
+	default:
+		return errors.New("invalid log options object provided")
+	}
 	return nil
 }
 

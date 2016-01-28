@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -23,7 +24,7 @@ func GetBuildPodName(build *buildapi.Build) string {
 
 // GetBuildName returns name of the build pod.
 func GetBuildName(pod *kapi.Pod) string {
-	if pod.Annotations == nil {
+	if pod == nil {
 		return ""
 	}
 	return pod.Annotations[buildapi.BuildAnnotation]
@@ -72,7 +73,7 @@ func IsPaused(bc *buildapi.BuildConfig) bool {
 }
 
 // BuildNameForConfigVersion returns the name of the version-th build
-// for the config that has the provided name
+// for the config that has the provided name.
 func BuildNameForConfigVersion(name string, version int) string {
 	return fmt.Sprintf("%s-%d", name, version)
 }
@@ -87,4 +88,30 @@ func BuildConfigSelector(name string) labels.Selector {
 // all builds for a BuildConfig that use the deprecated labels.
 func BuildConfigSelectorDeprecated(name string) labels.Selector {
 	return labels.Set{buildapi.BuildConfigLabelDeprecated: name}.AsSelector()
+}
+
+// ConfigNameForBuild returns the name of the build config from a
+// build name.
+func ConfigNameForBuild(build *buildapi.Build) string {
+	if build == nil {
+		return ""
+	}
+	if _, exists := build.Labels[buildapi.BuildConfigLabel]; exists {
+		return build.Labels[buildapi.BuildConfigLabel]
+	}
+	return build.Labels[buildapi.BuildConfigLabelDeprecated]
+}
+
+// VersionForBuild returns the version from the provided build name.
+// If no version can be found, 0 is returned to indicate no version.
+func VersionForBuild(build *buildapi.Build) int {
+	if build == nil {
+		return 0
+	}
+	versionString := build.Annotations[buildapi.BuildNumberAnnotation]
+	version, err := strconv.Atoi(versionString)
+	if err != nil {
+		return 0
+	}
+	return version
 }

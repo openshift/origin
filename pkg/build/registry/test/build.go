@@ -58,14 +58,23 @@ func (r *BuildRegistry) WatchBuilds(ctx kapi.Context, options *unversioned.ListO
 }
 
 type BuildStorage struct {
-	Err   error
-	Build *buildapi.Build
+	Err    error
+	Build  *buildapi.Build
+	Builds *buildapi.BuildList
 	sync.Mutex
 }
 
 func (r *BuildStorage) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	r.Lock()
 	defer r.Unlock()
+	// TODO: Use the list of builds in all of the rest registry calls
+	if r.Builds != nil {
+		for _, build := range r.Builds.Items {
+			if build.Name == id {
+				return &build, r.Err
+			}
+		}
+	}
 	return r.Build, r.Err
 }
 

@@ -285,7 +285,6 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 				return nil, errors.New("provided options object is not a BuildLogOptions")
 			}
 			if bopts.Version != nil {
-				// should --version work with builds at all?
 				return nil, errors.New("cannot specify a version and a build")
 			}
 			return oc.BuildLogs(t.Namespace).Get(t.Name, *bopts), nil
@@ -300,7 +299,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			}
 			builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigLabelPredicate(t.Name))
 			if len(builds.Items) == 0 {
-				return nil, fmt.Errorf("no builds found for %s", t.Name)
+				return nil, fmt.Errorf("no builds found for %q", t.Name)
 			}
 			if bopts.Version != nil {
 				// If a version has been specified, try to get the logs from that build.

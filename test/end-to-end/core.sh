@@ -172,14 +172,15 @@ cat ${LOG_DIR}/kubectl-with-token.log
 [ "$(cat ${LOG_DIR}/kubectl-with-token.log | grep 'Using in-cluster configuration')" ]
 [ "$(cat ${LOG_DIR}/kubectl-with-token.log | grep 'kubectl-with-token')" ]
 
-echo "[INFO] Streaming the logs from a deployment twice..."
+echo "[INFO] Streaming the logs from a deployment a bunch of times..."
 oc create -f test/fixtures/failing-dc.yaml
 tryuntil oc get rc/failing-dc-1
 oc logs -f dc/failing-dc
 wait_for_command "oc get rc/failing-dc-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((60*TIME_SEC))
 oc logs dc/failing-dc | grep 'test pre hook executed'
 oc deploy failing-dc --latest
-oc logs --version=1 dc/failing-dc
+oc logs --version=1 dc/failing-dc | grep 'test pre hook executed'
+oc logs --previous dc/failing-dc | grep 'test pre hook executed'
 
 echo "[INFO] Run pod diagnostics"
 # Requires a node to run the pod; uses origin-deployer pod, expects registry deployed
