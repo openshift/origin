@@ -21,11 +21,14 @@
   "globals": {
     "after": false,
     "afterEach": false,
+    "afterAll": false,
     "angular": false,
+    "by": false,
     "before": false,
     "beforeEach": false,
     "browser": false,
     "describe": false,
+    "element" : false,
     "expect": false,
     "inject": false,
     "it": false,
@@ -37,6 +40,7 @@
     "LabelSelector": false,
     "moment": false,
     "Messenger" : false,
+    "protractor" : false,
     "URI": false,
     "ZeroClipboard": false,
     "$": false,
@@ -44,4 +48,3 @@
 
   }
 }
-

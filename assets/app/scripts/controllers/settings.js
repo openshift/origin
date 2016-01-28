@@ -9,7 +9,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('SettingsController', function ($routeParams, $scope, DataService, ProjectsService, AlertMessageService, $filter, $location, LabelFilter, $timeout, Logger) {
+  .controller('SettingsController', function ($routeParams, $scope, DataService, ProjectsService, AlertMessageService, $filter, $location, LabelFilter, $timeout, Logger, annotationFilter, annotationNameFilter) {
     $scope.projectName = $routeParams.project;
     $scope.quotas = {};
     $scope.limitRanges = {};
@@ -28,7 +28,58 @@ angular.module('openshiftConsole')
     ProjectsService
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
-        $scope.project = project;
+
+        var editableFields = function(resource) {
+          return {
+            description: annotationFilter(resource, 'description'),
+            displayName: annotationFilter(resource, 'displayName')
+          };
+        };
+
+        var mergeEditable = function(resource, editable) {
+          var toSubmit = angular.copy(resource);
+          toSubmit.metadata.annotations[annotationNameFilter('description')] = editable.description;
+          toSubmit.metadata.annotations[annotationNameFilter('displayName')] = editable.displayName;
+          return toSubmit;
+        };
+
+        angular.extend($scope, {
+          project: project,
+          editableFields: editableFields(project),
+          show: {
+            editing: false
+          },
+          actions: {
+            canSubmit: false
+          },
+          canSubmit: function(bool) {
+            $scope.actions.canSubmit = bool;
+          },
+          setEditing: function(bool) {
+            $scope.show.editing = bool;
+          },
+          cancel: function() {
+            $scope.setEditing(false);
+            $scope.editableFields = editableFields(project);
+          },
+          update: function() {
+            $scope.setEditing(false);
+            ProjectsService
+              .update($routeParams.project, mergeEditable(project, $scope.editableFields))
+              .then(function(updated) {
+                project = $scope.project = updated;
+                $scope.editableFields = editableFields(updated);
+              }, function(result) {
+                $scope.editableFields = editableFields(project);
+                $scope.alerts["update"] = {
+                  type: "error",
+                  message: "An error occurred while updating the project",
+                  details: $filter('getErrorDetails')(result)
+                };
+              });
+          }
+        });
+
         DataService.list("resourcequotas", context, function(quotas) {
           $scope.quotas = quotas.by("metadata.name");
           $scope.emptyMessageQuotas = "There are no resource quotas set on this project.";
