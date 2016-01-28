@@ -203,7 +203,7 @@ func (c *MasterConfig) RunHPAController(oc *osclient.Client, kc *client.Client, 
 }
 
 func (c *MasterConfig) RunDaemonSetsController(client *client.Client) {
-	controller := daemon.NewDaemonSetsController(client, c.ControllerManager.ResyncPeriod)
+	controller := daemon.NewDaemonSetsController(client, kctrlmgr.ResyncPeriod(c.ControllerManager))
 	go controller.Run(c.ControllerManager.ConcurrentDSCSyncs, util.NeverStop)
 }
 

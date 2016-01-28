@@ -19,7 +19,7 @@ type BuildRegistry struct {
 	sync.Mutex
 }
 
-func (r *BuildRegistry) ListBuilds(ctx kapi.Context, options *unversioned.ListOptions) (*buildapi.BuildList, error) {
+func (r *BuildRegistry) ListBuilds(ctx kapi.Context, options *kapi.ListOptions) (*buildapi.BuildList, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.Builds, r.Err
@@ -53,7 +53,7 @@ func (r *BuildRegistry) DeleteBuild(ctx kapi.Context, id string) error {
 	return r.Err
 }
 
-func (r *BuildRegistry) WatchBuilds(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+func (r *BuildRegistry) WatchBuilds(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
 	return nil, r.Err
 }
 

@@ -14,7 +14,7 @@ type AccessTokenRegistry struct {
 	DeletedAccessTokenName string
 }
 
-func (r *AccessTokenRegistry) ListAccessTokens(ctx kapi.Context, options *unversioned.ListOptions) (*api.OAuthAccessTokenList, error) {
+func (r *AccessTokenRegistry) ListAccessTokens(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthAccessTokenList, error) {
 	return r.AccessTokens, r.Err
 }
 

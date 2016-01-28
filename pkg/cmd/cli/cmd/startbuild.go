@@ -540,7 +540,7 @@ func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, p
 	if hook.Scheme == "https" {
 		config, err := f.OpenShiftClientConfig.ClientConfig()
 		if err == nil {
-			if url, err := client.DefaultServerURL(config.Host, "", unversioned.GroupVersion{}, true); err == nil {
+			if url, _, err := client.DefaultServerURL(config.Host, "", unversioned.GroupVersion{}, true); err == nil {
 				if url.Host == hook.Host && url.Scheme == hook.Scheme {
 					if rt, err := client.TransportFor(config); err == nil {
 						httpClient = &http.Client{Transport: rt}

@@ -38,7 +38,7 @@ func NewREST(s storage.Interface, allocator route.RouteAllocator) (*REST, *Statu
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return rest.Matcher(label, field)
 		},
-		EndpointName: "routes",
+		QualifiedResource: api.Resource("routes"),
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,

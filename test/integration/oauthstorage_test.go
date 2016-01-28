@@ -10,11 +10,12 @@ import (
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"golang.org/x/oauth2"
+
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/oauth/api"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"

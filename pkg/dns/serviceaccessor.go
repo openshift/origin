@@ -57,7 +57,7 @@ func (a *cachedServiceAccessor) ServiceByPortalIP(ip string) (*api.Service, erro
 		return nil, err
 	}
 	if len(items) == 0 {
-		return nil, errors.NewNotFound("service", "portalIP="+ip)
+		return nil, errors.NewNotFound(api.Resource("service"), "portalIP="+ip)
 	}
 	return items[0].(*api.Service), nil
 }
@@ -86,7 +86,7 @@ func (a cachedServiceNamespacer) Get(name string) (*api.Service, error) {
 		return nil, err
 	}
 	if !ok {
-		return nil, errors.NewNotFound("service", name)
+		return nil, errors.NewNotFound(api.Resource("service"), name)
 	}
 	return item.(*api.Service), nil
 }

@@ -28,7 +28,7 @@ func ValidateOAuthConfig(config *api.OAuthConfig, fldPath *field.Path) Validatio
 	}
 
 	if len(config.MasterURL) == 0 {
-		validationResults.AddErrors(field.Required(fldPath.Child("masterURL")))
+		validationResults.AddErrors(field.Required(fldPath.Child("masterURL"), ""))
 	} else if _, urlErrs := ValidateURL(config.MasterURL, fldPath.Child("masterURL")); len(urlErrs) > 0 {
 		validationResults.AddErrors(urlErrs...)
 	}
@@ -38,7 +38,7 @@ func ValidateOAuthConfig(config *api.OAuthConfig, fldPath *field.Path) Validatio
 	}
 
 	if len(config.AssetPublicURL) == 0 {
-		validationResults.AddErrors(field.Required(fldPath.Child("assetPublicURL")))
+		validationResults.AddErrors(field.Required(fldPath.Child("assetPublicURL"), ""))
 	}
 
 	if config.SessionConfig != nil {
@@ -138,14 +138,14 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider, fldPath *fi
 	validationResults := ValidationResults{}
 
 	if len(identityProvider.Name) == 0 {
-		validationResults.AddErrors(field.Required(fldPath.Child("name")))
+		validationResults.AddErrors(field.Required(fldPath.Child("name"), ""))
 	}
 	if ok, err := validation.ValidateIdentityProviderName(identityProvider.Name); !ok {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("name"), identityProvider.Name, err))
 	}
 
 	if len(identityProvider.MappingMethod) == 0 {
-		validationResults.AddErrors(field.Required(fldPath.Child("mappingMethod")))
+		validationResults.AddErrors(field.Required(fldPath.Child("mappingMethod"), ""))
 	} else if !validMappingMethods.Has(identityProvider.MappingMethod) {
 		validationResults.AddErrors(field.NotSupported(fldPath.Child("mappingMethod"), identityProvider.MappingMethod, validMappingMethods.List()))
 	}
@@ -212,7 +212,7 @@ func ValidateKeystoneIdentityProvider(provider *api.KeystonePasswordIdentityProv
 		}
 	}
 	if len(provider.DomainName) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("domainName")))
+		validationResults.AddErrors(field.Required(field.NewPath("domainName"), ""))
 	}
 
 	return validationResults
@@ -225,15 +225,15 @@ func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityPr
 		validationResults.AddErrors(ValidateFile(provider.ClientCA, field.NewPath("provider", "clientCA"))...)
 	}
 	if len(provider.Headers) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("provider", "headers")))
+		validationResults.AddErrors(field.Required(field.NewPath("provider", "headers"), ""))
 	}
 	if identityProvider.UseAsChallenger && len(provider.ChallengeURL) == 0 {
-		err := field.Required(field.NewPath("provider", "challengeURL"))
+		err := field.Required(field.NewPath("provider", "challengeURL"), "")
 		err.Detail = "challengeURL is required if challenge=true"
 		validationResults.AddErrors(err)
 	}
 	if identityProvider.UseAsLogin && len(provider.LoginURL) == 0 {
-		err := field.Required(field.NewPath("provider", "loginURL"))
+		err := field.Required(field.NewPath("provider", "loginURL"), "")
 		err.Detail = "loginURL is required if login=true"
 		validationResults.AddErrors(err)
 	}
@@ -277,10 +277,10 @@ func ValidateOAuthIdentityProvider(clientID, clientSecret string, challenge bool
 	allErrs := field.ErrorList{}
 
 	if len(clientID) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("provider", "clientID")))
+		allErrs = append(allErrs, field.Required(field.NewPath("provider", "clientID"), ""))
 	}
 	if len(clientSecret) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("provider", "clientSecret")))
+		allErrs = append(allErrs, field.Required(field.NewPath("provider", "clientSecret"), ""))
 	}
 	if challenge {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("challenge"), challenge, "oauth providers cannot be used for challenges"))
@@ -375,7 +375,7 @@ func validateSessionConfig(config *api.SessionConfig, fldPath *field.Path) field
 	}
 
 	if len(config.SessionName) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("sessionName")))
+		allErrs = append(allErrs, field.Required(field.NewPath("sessionName"), ""))
 	}
 
 	return allErrs
@@ -386,14 +386,14 @@ func ValidateSessionSecrets(config *api.SessionSecrets) field.ErrorList {
 
 	secretsPath := field.NewPath("secrets")
 	if len(config.Secrets) == 0 {
-		allErrs = append(allErrs, field.Required(secretsPath))
+		allErrs = append(allErrs, field.Required(secretsPath, ""))
 	}
 
 	for i, secret := range config.Secrets {
 		idxPath := secretsPath.Index(i)
 		switch {
 		case len(secret.Authentication) == 0:
-			allErrs = append(allErrs, field.Required(idxPath.Child("authentication")))
+			allErrs = append(allErrs, field.Required(idxPath.Child("authentication"), ""))
 		case len(secret.Authentication) < 32:
 			// Don't output current value in error message... we don't want it logged
 			allErrs = append(allErrs,
@@ -408,7 +408,7 @@ func ValidateSessionSecrets(config *api.SessionSecrets) field.ErrorList {
 		switch len(secret.Encryption) {
 		case 0:
 			// Require encryption secrets
-			allErrs = append(allErrs, field.Required(idxPath.Child("encryption")))
+			allErrs = append(allErrs, field.Required(idxPath.Child("encryption"), ""))
 		case 16, 24, 32:
 			// Valid lengths
 		default:

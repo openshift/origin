@@ -28,7 +28,7 @@ func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) field.ErrorLis
 	specPath := field.NewPath("spec")
 	allErrs = append(allErrs, validateDeploymentStrategy(&config.Spec.Strategy, field.NewPath("spec", "strategy"))...)
 	if config.Spec.Template == nil {
-		allErrs = append(allErrs, field.Required(specPath.Child("template")))
+		allErrs = append(allErrs, field.Required(specPath.Child("template"), ""))
 	} else {
 		allErrs = append(allErrs, validation.ValidatePodTemplateSpec(config.Spec.Template, specPath.Child("template"))...)
 	}
@@ -61,7 +61,7 @@ func ValidateDeploymentConfigRollback(rollback *deployapi.DeploymentConfigRollba
 
 	fromPath := field.NewPath("spec", "from")
 	if len(rollback.Spec.From.Name) == 0 {
-		result = append(result, field.Required(fromPath.Child("name")))
+		result = append(result, field.Required(fromPath.Child("name"), ""))
 	}
 
 	if len(rollback.Spec.From.Kind) == 0 {
@@ -79,7 +79,7 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, fldPath 
 	errs := field.ErrorList{}
 
 	if len(strategy.Type) == 0 {
-		errs = append(errs, field.Required(fldPath.Child("type")))
+		errs = append(errs, field.Required(fldPath.Child("type"), ""))
 	}
 
 	switch strategy.Type {
@@ -89,13 +89,13 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, fldPath 
 		}
 	case deployapi.DeploymentStrategyTypeRolling:
 		if strategy.RollingParams == nil {
-			errs = append(errs, field.Required(fldPath.Child("rollingParams")))
+			errs = append(errs, field.Required(fldPath.Child("rollingParams"), ""))
 		} else {
 			errs = append(errs, validateRollingParams(strategy.RollingParams, fldPath.Child("rollingParams"))...)
 		}
 	case deployapi.DeploymentStrategyTypeCustom:
 		if strategy.CustomParams == nil {
-			errs = append(errs, field.Required(fldPath.Child("customParams")))
+			errs = append(errs, field.Required(fldPath.Child("customParams"), ""))
 		} else {
 			errs = append(errs, validateCustomParams(strategy.CustomParams, fldPath.Child("customParams"))...)
 		}
@@ -117,7 +117,7 @@ func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams, fldP
 	errs := field.ErrorList{}
 
 	if len(params.Image) == 0 {
-		errs = append(errs, field.Required(fldPath.Child("image")))
+		errs = append(errs, field.Required(fldPath.Child("image"), ""))
 	}
 
 	return errs
@@ -143,11 +143,11 @@ func validateLifecycleHook(hook *deployapi.LifecycleHook, fldPath *field.Path) f
 	errs := field.ErrorList{}
 
 	if len(hook.FailurePolicy) == 0 {
-		errs = append(errs, field.Required(fldPath.Child("failurePolicy")))
+		errs = append(errs, field.Required(fldPath.Child("failurePolicy"), ""))
 	}
 
 	if hook.ExecNewPod == nil {
-		errs = append(errs, field.Required(fldPath.Child("execNewPod")))
+		errs = append(errs, field.Required(fldPath.Child("execNewPod"), ""))
 	} else {
 		errs = append(errs, validateExecNewPod(hook.ExecNewPod, fldPath.Child("execNewPod"))...)
 	}
@@ -159,11 +159,11 @@ func validateExecNewPod(hook *deployapi.ExecNewPodHook, fldPath *field.Path) fie
 	errs := field.ErrorList{}
 
 	if len(hook.Command) == 0 {
-		errs = append(errs, field.Required(fldPath.Child("command")))
+		errs = append(errs, field.Required(fldPath.Child("command"), ""))
 	}
 
 	if len(hook.ContainerName) == 0 {
-		errs = append(errs, field.Required(fldPath.Child("containerName")))
+		errs = append(errs, field.Required(fldPath.Child("containerName"), ""))
 	}
 
 	if len(hook.Env) > 0 {
@@ -182,7 +182,7 @@ func validateEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorList {
 		vErrs := field.ErrorList{}
 		idxPath := fldPath.Child("name").Index(i)
 		if len(ev.Name) == 0 {
-			vErrs = append(vErrs, field.Required(idxPath))
+			vErrs = append(vErrs, field.Required(idxPath, ""))
 		}
 		if !kvalidation.IsCIdentifier(ev.Name) {
 			vErrs = append(vErrs, field.Invalid(idxPath, ev.Name, "must match regex "+kvalidation.CIdentifierFmt))
@@ -251,12 +251,12 @@ func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy, fldPath *field.
 	errs := field.ErrorList{}
 
 	if len(trigger.Type) == 0 {
-		errs = append(errs, field.Required(fldPath.Child("type")))
+		errs = append(errs, field.Required(fldPath.Child("type"), ""))
 	}
 
 	if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
 		if trigger.ImageChangeParams == nil {
-			errs = append(errs, field.Required(fldPath.Child("imageChangeParams")))
+			errs = append(errs, field.Required(fldPath.Child("imageChangeParams"), ""))
 		} else {
 			errs = append(errs, validateImageChangeParams(trigger.ImageChangeParams, fldPath.Child("imageChangeParams"))...)
 		}
@@ -270,7 +270,7 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 
 	fromPath := fldPath.Child("from")
 	if len(params.From.Name) == 0 {
-		errs = append(errs, field.Required(fromPath))
+		errs = append(errs, field.Required(fromPath, ""))
 	} else {
 		if params.From.Kind != "ImageStreamTag" {
 			errs = append(errs, field.Invalid(fromPath.Child("kind"), params.From.Kind, "kind must be an ImageStreamTag"))
@@ -284,7 +284,7 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 	}
 
 	if len(params.ContainerNames) == 0 {
-		errs = append(errs, field.Required(fldPath.Child("containerNames")))
+		errs = append(errs, field.Required(fldPath.Child("containerNames"), ""))
 	}
 
 	return errs

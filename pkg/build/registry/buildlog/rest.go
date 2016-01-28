@@ -66,7 +66,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 		return nil, errors.NewBadRequest("did not get an expected options.")
 	}
 	if errs := validation.ValidateBuildLogOptions(buildLogOpts); len(errs) > 0 {
-		return nil, errors.NewInvalid("buildLogOptions", "", errs)
+		return nil, errors.NewInvalid(api.Kind("BuildLogOptions"), "", errs)
 	}
 	obj, err := r.Getter.Get(ctx, name)
 	if err != nil {
@@ -121,7 +121,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 	location, transport, err := pod.LogLocation(r.PodGetter, r.ConnectionInfo, ctx, buildPodName, logOpts)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil, errors.NewNotFound("pod", buildPodName)
+			return nil, errors.NewNotFound(kapi.Resource("pod"), buildPodName)
 		}
 		return nil, errors.NewBadRequest(err.Error())
 	}
@@ -130,7 +130,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 		Transport:       transport,
 		ContentType:     "text/plain",
 		Flush:           buildLogOpts.Follow,
-		ResponseChecker: genericrest.NewGenericHttpResponseChecker("Pod", buildPodName),
+		ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), buildPodName),
 	}, nil
 }
 

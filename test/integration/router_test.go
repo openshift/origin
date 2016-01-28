@@ -1097,7 +1097,7 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 
 // eventString marshals the event into a string
 func eventString(e *watch.Event) string {
-	obj, _ := watchjson.Object(v1beta3.Codec, e)
+	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(v1beta3.SchemeGroupVersion), e)
 	s, _ := json.Marshal(obj)
 	return string(s)
 }

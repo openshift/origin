@@ -179,7 +179,7 @@ func TestPolicyBindingListRespectingLabels(t *testing.T) {
 	label := labels.NewSelector().Add(*requirement)
 
 	util.Until(func() {
-		policyBindings, err = testCache.List(&unversioned.ListOptions{LabelSelector: unversioned.LabelSelector{Selector: label}}, namespace)
+		policyBindings, err = testCache.List(&kapi.ListOptions{LabelSelector: unversioned.LabelSelector{Selector: label}}, namespace)
 
 		if (err == nil) &&
 			(policyBindings != nil) &&
@@ -215,7 +215,7 @@ func TestPolicyBindingListRespectingFields(t *testing.T) {
 	field := fields.OneTermEqualSelector("metadata.name", name)
 
 	util.Until(func() {
-		policyBindings, err = testCache.List(&unversioned.ListOptions{FieldSelector: unversioned.FieldSelector{Selector: field}}, namespace)
+		policyBindings, err = testCache.List(&kapi.ListOptions{FieldSelector: unversioned.FieldSelector{Selector: field}}, namespace)
 
 		if (err == nil) &&
 			(policyBindings != nil) &&

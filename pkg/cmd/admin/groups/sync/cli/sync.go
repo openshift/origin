@@ -308,7 +308,7 @@ func (o *SyncOptions) Validate() error {
 
 	results := validation.ValidateLDAPSyncConfig(o.Config)
 	if o.GroupInterface == nil {
-		results.Errors = append(results.Errors, field.Required(field.NewPath("groupInterface")))
+		results.Errors = append(results.Errors, field.Required(field.NewPath("groupInterface"), ""))
 	}
 	// TODO(skuznets): pretty-print validation results
 	if len(results.Errors) > 0 {

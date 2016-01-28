@@ -323,7 +323,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	v.Err = errOut
 	v.Mapper = mapper
 	v.Typer = typer
-	v.RESTClientFactory = f.Factory.RESTClient
+	v.RESTClientFactory = f.Factory.ClientForMapping
 	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 
 	// In case of volume source ignore the default volume type

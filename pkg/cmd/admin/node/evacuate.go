@@ -93,7 +93,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		return err
 	}
 
-	printerWithHeaders, printerNoHeaders, err := e.Options.GetPrintersByResource("pod")
+	printerWithHeaders, printerNoHeaders, err := e.Options.GetPrintersByResource(kapi.SchemeGroupVersion.WithResource("pod"))
 	if err != nil {
 		return err
 	}

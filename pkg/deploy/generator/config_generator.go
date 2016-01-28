@@ -5,7 +5,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -100,7 +99,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 	}
 
 	if len(errs) > 0 {
-		return nil, errors.NewInvalid("DeploymentConfig", config.Name, errs)
+		return nil, errors.NewInvalid(deployapi.Kind("DeploymentConfig"), config.Name, errs)
 	}
 
 	// Bump the version if we updated containers or if this is an initial
@@ -142,7 +141,7 @@ type Client struct {
 	DCFn   func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
 	ISFn   func(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
 	LISFn  func(ctx kapi.Context) (*imageapi.ImageStreamList, error)
-	LISFn2 func(ctx kapi.Context, options *unversioned.ListOptions) (*imageapi.ImageStreamList, error)
+	LISFn2 func(ctx kapi.Context, options *kapi.ListOptions) (*imageapi.ImageStreamList, error)
 }
 
 func (c Client) GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
@@ -153,7 +152,7 @@ func (c Client) GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageSt
 }
 func (c Client) ListImageStreams(ctx kapi.Context) (*imageapi.ImageStreamList, error) {
 	if c.LISFn2 != nil {
-		return c.LISFn2(ctx, &unversioned.ListOptions{})
+		return c.LISFn2(ctx, &kapi.ListOptions{})
 	}
 	return c.LISFn(ctx)
 }

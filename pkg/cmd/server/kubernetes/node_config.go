@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	kapp "k8s.io/kubernetes/cmd/kubelet/app"
+	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
+	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
@@ -43,9 +44,9 @@ type NodeConfig struct {
 	// DockerClient is a client to connect to Docker
 	DockerClient dockertools.DockerInterface
 	// KubeletServer contains the KubeletServer configuration
-	KubeletServer *kapp.KubeletServer
+	KubeletServer *kubeletoptions.KubeletServer
 	// KubeletConfig is the configuration for the kubelet, fully initialized
-	KubeletConfig *kapp.KubeletConfig
+	KubeletConfig *kubeletapp.KubeletConfig
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
 

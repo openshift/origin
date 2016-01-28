@@ -22,7 +22,6 @@ import (
 	oversion "github.com/openshift/origin/pkg/version"
 
 	"k8s.io/kubernetes/pkg/api"
-	klatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util"

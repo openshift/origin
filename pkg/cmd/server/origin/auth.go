@@ -15,11 +15,12 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	"github.com/pborman/uuid"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/unversioned"
-	kutil "k8s.io/kubernetes/pkg/util"
+	knet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
@@ -148,7 +149,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 			glog.Fatal(err)
 		}
 
-		osOAuthClient.Transport = kutil.SetTransportDefaults(&http.Transport{
+		osOAuthClient.Transport = knet.SetTransportDefaults(&http.Transport{
 			TLSClientConfig: &tls.Config{RootCAs: rootCAs},
 		})
 	}
@@ -408,7 +409,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 			if identityProvider.UseAsChallenger {
 				return nil, errors.New("oauth identity providers cannot issue challenges")
 			}
-		} else if requestHeaderProvider, isRequestHeader := identityProvider.Provider.Object.(*configapi.RequestHeaderIdentityProvider); isRequestHeader {
+		} else if requestHeaderProvider, isRequestHeader := identityProvider.Provider.(*configapi.RequestHeaderIdentityProvider); isRequestHeader {
 			// We might be redirecting to an external site, we need to fully resolve the request URL to the public master
 			baseRequestURL, err := url.Parse(c.Options.MasterPublicURL + OpenShiftOAuthAPIPrefix + osinserver.AuthorizePath)
 			if err != nil {
@@ -444,7 +445,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 }
 
 func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvider) (external.Provider, error) {
-	switch provider := identityProvider.Provider.Object.(type) {
+	switch provider := identityProvider.Provider.(type) {
 	case (*configapi.GitHubIdentityProvider):
 		return github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret), nil
 
@@ -501,7 +502,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 		return nil, err
 	}
 
-	switch provider := identityProvider.Provider.Object.(type) {
+	switch provider := identityProvider.Provider.(type) {
 	case (*configapi.AllowAllPasswordIdentityProvider):
 		return allowanypassword.New(identityProvider.Name, identityMapper), nil
 
@@ -591,7 +592,7 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 			authRequestHandlers = append(authRequestHandlers, basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator, true))
 
 		} else {
-			switch provider := identityProvider.Provider.Object.(type) {
+			switch provider := identityProvider.Provider.(type) {
 			case (*configapi.RequestHeaderIdentityProvider):
 				var authRequestHandler authenticator.Request
 

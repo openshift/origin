@@ -150,11 +150,11 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	} else {
 		if len(inputMeta.ResourceVersion) > 0 && inputMeta.ResourceVersion != stream.ResourceVersion {
 			glog.V(4).Infof("DEBUG: mismatch between requested UID %s and located UID %s", inputMeta.UID, stream.UID)
-			return nil, kapierrors.NewConflict("imageStream", inputMeta.Name, fmt.Errorf("the image stream was updated from %q to %q", inputMeta.ResourceVersion, stream.ResourceVersion))
+			return nil, kapierrors.NewConflict(api.Resource("imagestream"), inputMeta.Name, fmt.Errorf("the image stream was updated from %q to %q", inputMeta.ResourceVersion, stream.ResourceVersion))
 		}
 		if len(inputMeta.UID) > 0 && inputMeta.UID != stream.UID {
 			glog.V(4).Infof("DEBUG: mismatch between requested UID %s and located UID %s", inputMeta.UID, stream.UID)
-			return nil, kapierrors.NewNotFound("imageStream", inputMeta.Name)
+			return nil, kapierrors.NewNotFound(api.Resource("imagestream"), inputMeta.Name)
 		}
 	}
 
@@ -414,5 +414,5 @@ func newImportFailedCondition(err error, gen int64, now unversioned.Time) api.Ta
 }
 
 func invalidStatus(kind, position string, errs ...*field.Error) unversioned.Status {
-	return kapierrors.NewInvalid(kind, position, errs).(kapierrors.APIStatus).Status()
+	return kapierrors.NewInvalid(api.Kind(kind), position, errs).(kapierrors.APIStatus).Status()
 }

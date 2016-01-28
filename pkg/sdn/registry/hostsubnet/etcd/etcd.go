@@ -37,7 +37,7 @@ func NewREST(s storage.Interface) *REST {
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return hostsubnet.Matcher(label, field)
 		},
-		EndpointName: "hostsubnet",
+		QualifiedResource: api.Resource("hostsubnets"),
 
 		Storage: s,
 	}

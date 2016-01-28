@@ -7,10 +7,10 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
+	schedulerapp "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
+	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 )
 
 const schedulerLong = `
@@ -20,7 +20,7 @@ This command launches an instance of the Kubernetes controller-manager (kube-con
 
 // NewSchedulerCommand provides a CLI handler for the 'scheduler' command
 func NewSchedulerCommand(name, fullName string, out io.Writer) *cobra.Command {
-	s := app.NewSchedulerServer()
+	schedulerOptions := scheduleroptions.NewSchedulerServer()
 
 	cmd := &cobra.Command{
 		Use:   name,
@@ -32,7 +32,7 @@ func NewSchedulerCommand(name, fullName string, out io.Writer) *cobra.Command {
 			util.InitLogs()
 			defer util.FlushLogs()
 
-			if err := s.Run(pflag.CommandLine.Args()); err != nil {
+			if err := schedulerapp.Run(schedulerOptions); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
@@ -43,7 +43,7 @@ func NewSchedulerCommand(name, fullName string, out io.Writer) *cobra.Command {
 	flags := cmd.Flags()
 	flags.SetNormalizeFunc(util.WordSepNormalizeFunc)
 	flags.AddGoFlagSet(flag.CommandLine)
-	s.AddFlags(flags)
+	schedulerOptions.AddFlags(flags)
 
 	return cmd
 }

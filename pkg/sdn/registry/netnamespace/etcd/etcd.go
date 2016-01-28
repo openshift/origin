@@ -37,7 +37,7 @@ func NewREST(s storage.Interface) *REST {
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return netnamespace.Matcher(label, field)
 		},
-		EndpointName: "netnamespace",
+		QualifiedResource: api.Resource("netnamespace"),
 
 		Storage: s,
 	}

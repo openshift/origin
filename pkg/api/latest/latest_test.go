@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	klatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 )
 
 func TestRESTRootScope(t *testing.T) {
@@ -35,7 +36,7 @@ func TestResourceToKind(t *testing.T) {
 func TestUpstreamResourceToKind(t *testing.T) {
 	// Ensure we resolve to klatest.ExternalVersions[0]
 	expectedGVK := klatest.ExternalVersions[0].WithKind("Pod")
-	gvk, err := klatest.GroupOrDie(kapi.SchemeGroupVersion.Group).RESTMapper.KindFor("pod")
+	gvk, err := registered.GroupOrDie(kapi.SchemeGroupVersion.Group).RESTMapper.KindFor("pod")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

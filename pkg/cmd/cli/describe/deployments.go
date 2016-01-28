@@ -75,13 +75,13 @@ func NewDeploymentConfigDescriberForConfig(client client.Interface, kclient kcli
 				return config, nil
 			},
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound("ReplicatonController", name)
+				return nil, kerrors.NewNotFound(kapi.Resource("replicatoncontroller"), name)
 			},
 			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return nil, kerrors.NewNotFound("ReplicationControllerList", fmt.Sprintf("%v", selector))
+				return nil, kerrors.NewNotFound(kapi.Resource("replicationcontrollerlist"), fmt.Sprintf("%v", selector))
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
-				return nil, kerrors.NewNotFound("PodList", fmt.Sprintf("%v", selector))
+				return nil, kerrors.NewNotFound(kapi.Resource("podlist"), fmt.Sprintf("%v", selector))
 			},
 			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
 				return kclient.Events(config.Namespace).Search(config)

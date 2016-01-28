@@ -12,12 +12,12 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapilatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/controller/serviceaccount"
+	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	kutilrand "k8s.io/kubernetes/pkg/util/rand"
@@ -272,7 +272,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client *etcdcl
 		if err != nil {
 			return nil, err
 		}
-		tokenGetter = serviceaccount.NewGetterFromClient(kubeClient)
+		tokenGetter = sacontroller.NewGetterFromClient(kubeClient)
 	} else {
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
 		legacyGroup, err := kapilatest.Group(kapi.SchemeGroupVersion.Group)

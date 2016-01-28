@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -34,10 +33,8 @@ func TestOAuthHTPasswd(t *testing.T) {
 		UseAsChallenger: true,
 		UseAsLogin:      true,
 		MappingMethod:   "claim",
-		Provider: runtime.EmbeddedObject{
-			Object: &configapi.HTPasswdPasswordIdentityProvider{
-				File: htpasswdFile.Name(),
-			},
+		Provider: &configapi.HTPasswdPasswordIdentityProvider{
+			File: htpasswdFile.Name(),
 		},
 	}
 

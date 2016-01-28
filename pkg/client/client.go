@@ -274,8 +274,8 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 		groupVersionCopy := latest.Version
 		config.GroupVersion = &groupVersionCopy
 	}
-	if config.Prefix == "" {
-		config.Prefix = "/oapi"
+	if config.APIPath == "" {
+		config.APIPath = "/oapi"
 	}
 	version := config.GroupVersion
 	versionInterfaces, err := latest.InterfacesFor(*version)

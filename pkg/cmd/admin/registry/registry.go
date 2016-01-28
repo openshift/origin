@@ -346,7 +346,7 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 		bulk := configcmd.Bulk{
 			Mapper:            mapper,
 			Typer:             typer,
-			RESTClientFactory: f.Factory.RESTClient,
+			RESTClientFactory: f.Factory.ClientForMapping,
 
 			After: configcmd.NewPrintNameOrErrorAfter(mapper, cmdutil.GetFlagString(cmd, "output") == "name", "created", out, cmd.Out()),
 		}

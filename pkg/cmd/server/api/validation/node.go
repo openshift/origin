@@ -15,7 +15,7 @@ func ValidateNodeConfig(config *api.NodeConfig, fldPath *field.Path) ValidationR
 	validationResults := ValidationResults{}
 
 	if len(config.NodeName) == 0 {
-		validationResults.AddErrors(field.Required(fldPath.Child("nodeName")))
+		validationResults.AddErrors(field.Required(fldPath.Child("nodeName"), ""))
 	}
 	if len(config.NodeIP) > 0 {
 		validationResults.AddErrors(ValidateSpecifiedIP(config.NodeIP, fldPath.Child("nodeIP"))...)
@@ -58,7 +58,7 @@ func ValidateNodeAuthConfig(config api.NodeAuthConfig, fldPath *field.Path) fiel
 
 	authenticationCacheTTLPath := fldPath.Child("authenticationCacheTTL")
 	if len(config.AuthenticationCacheTTL) == 0 {
-		allErrs = append(allErrs, field.Required(authenticationCacheTTLPath))
+		allErrs = append(allErrs, field.Required(authenticationCacheTTLPath, ""))
 	} else if ttl, err := time.ParseDuration(config.AuthenticationCacheTTL); err != nil {
 		allErrs = append(allErrs, field.Invalid(authenticationCacheTTLPath, config.AuthenticationCacheTTL, fmt.Sprintf("%v", err)))
 	} else if ttl < 0 {
@@ -71,7 +71,7 @@ func ValidateNodeAuthConfig(config api.NodeAuthConfig, fldPath *field.Path) fiel
 
 	authorizationCacheTTLPath := fldPath.Child("authorizationCacheTTL")
 	if len(config.AuthorizationCacheTTL) == 0 {
-		allErrs = append(allErrs, field.Required(authorizationCacheTTLPath))
+		allErrs = append(allErrs, field.Required(authorizationCacheTTLPath, ""))
 	} else if ttl, err := time.ParseDuration(config.AuthorizationCacheTTL); err != nil {
 		allErrs = append(allErrs, field.Invalid(authorizationCacheTTLPath, config.AuthorizationCacheTTL, fmt.Sprintf("%v", err)))
 	} else if ttl < 0 {

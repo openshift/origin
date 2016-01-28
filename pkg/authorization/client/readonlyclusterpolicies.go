@@ -1,7 +1,7 @@
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -13,6 +13,6 @@ type ClusterPoliciesReadOnlyInterface interface {
 
 // ReadOnlyClusterPolicyInterface exposes methods on ClusterPolicies resources
 type ReadOnlyClusterPolicyInterface interface {
-	List(options *unversioned.ListOptions) (*authorizationapi.ClusterPolicyList, error)
+	List(options *kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error)
 	Get(name string) (*authorizationapi.ClusterPolicy, error)
 }

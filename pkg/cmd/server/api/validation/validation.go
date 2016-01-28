@@ -25,7 +25,7 @@ func ValidateHostPort(value string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(value) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath))
+		allErrs = append(allErrs, field.Required(fldPath, ""))
 	} else if _, _, err := net.SplitHostPort(value); err != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath, value, "must be a host:port"))
 	}
@@ -38,10 +38,10 @@ func ValidateCertInfo(certInfo api.CertInfo, required bool, fldPath *field.Path)
 
 	if required || len(certInfo.CertFile) > 0 || len(certInfo.KeyFile) > 0 {
 		if len(certInfo.CertFile) == 0 {
-			allErrs = append(allErrs, field.Required(fldPath.Child("certFile")))
+			allErrs = append(allErrs, field.Required(fldPath.Child("certFile"), ""))
 		}
 		if len(certInfo.KeyFile) == 0 {
-			allErrs = append(allErrs, field.Required(fldPath.Child("keyFile")))
+			allErrs = append(allErrs, field.Required(fldPath.Child("keyFile"), ""))
 		}
 	}
 
@@ -98,7 +98,7 @@ func ValidateNamedCertificates(fldPath *field.Path, namedCertificates []api.Name
 
 		certDNSNames := []string{}
 		if len(namedCertificate.CertFile) == 0 {
-			validationResults.AddErrors(field.Required(idxPath.Child("certInfo")))
+			validationResults.AddErrors(field.Required(idxPath.Child("certInfo"), ""))
 		} else if certInfoErrors := ValidateCertInfo(namedCertificate.CertInfo, false, idxPath); len(certInfoErrors) > 0 {
 			validationResults.AddErrors(certInfoErrors...)
 		} else if cert, err := tls.LoadX509KeyPair(namedCertificate.CertFile, namedCertificate.KeyFile); err != nil {
@@ -110,12 +110,12 @@ func ValidateNamedCertificates(fldPath *field.Path, namedCertificates []api.Name
 		}
 
 		if len(namedCertificate.Names) == 0 {
-			validationResults.AddErrors(field.Required(idxPath.Child("names")))
+			validationResults.AddErrors(field.Required(idxPath.Child("names"), ""))
 		}
 		for j, name := range namedCertificate.Names {
 			jdxPath := idxPath.Child("names").Index(j)
 			if len(name) == 0 {
-				validationResults.AddErrors(field.Required(jdxPath))
+				validationResults.AddErrors(field.Required(jdxPath, ""))
 				continue
 			}
 
@@ -198,7 +198,7 @@ func ValidateRemoteConnectionInfo(remoteConnectionInfo api.RemoteConnectionInfo,
 	allErrs := field.ErrorList{}
 
 	if len(remoteConnectionInfo.URL) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("url")))
+		allErrs = append(allErrs, field.Required(fldPath.Child("url"), ""))
 	} else {
 		_, urlErrs := ValidateURL(remoteConnectionInfo.URL, fldPath.Child("url"))
 		allErrs = append(allErrs, urlErrs...)
@@ -267,7 +267,7 @@ func ValidateNamespace(namespace string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(namespace) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath))
+		allErrs = append(allErrs, field.Required(fldPath, ""))
 	} else if ok, _ := kvalidation.ValidateNamespaceName(namespace, false); !ok {
 		allErrs = append(allErrs, field.Invalid(fldPath, namespace, "must be a valid namespace"))
 	}
@@ -279,7 +279,7 @@ func ValidateFile(path string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(path) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath))
+		allErrs = append(allErrs, field.Required(fldPath, ""))
 	} else if _, err := os.Stat(path); err != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath, path, "could not read file"))
 	}
@@ -290,7 +290,7 @@ func ValidateFile(path string, fldPath *field.Path) field.ErrorList {
 func ValidateDir(path string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if len(path) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath))
+		allErrs = append(allErrs, field.Required(fldPath, ""))
 	} else {
 		fileInfo, err := os.Stat(path)
 		if err != nil {

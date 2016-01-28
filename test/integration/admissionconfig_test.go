@@ -17,12 +17,11 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	kyaml "k8s.io/kubernetes/pkg/util/yaml"
 
-	"github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/v1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -32,7 +31,7 @@ type TestPluginConfig struct {
 	Data                 string `json:"data"`
 }
 
-func (*TestPluginConfig) IsAnAPIObject() {}
+func (obj *TestPluginConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
 
 func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (*kclient.Client, *client.Client) {
 	masterConfig, err := testserver.DefaultMasterOptions()
@@ -68,7 +67,7 @@ func (p *testAdmissionPlugin) Admit(a admission.Attributes) (err error) {
 	if err != nil {
 		return err
 	}
-	labels := accessor.Labels()
+	labels := accessor.GetLabels()
 	if labels == nil {
 		labels = map[string]string{}
 	}
@@ -102,7 +101,7 @@ func registerAdmissionPlugins(t *testing.T, names ...string) {
 					return nil, err
 				}
 				configObj := &TestPluginConfig{}
-				err = configapilatest.Codec.DecodeInto(configData, configObj)
+				err = runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), configData, configObj)
 				if err != nil {
 					return nil, err
 				}
@@ -161,8 +160,8 @@ func checkAdmissionObjectLabelValues(labels, expected map[string]string) error {
 }
 
 func registerAdmissionPluginTestConfigType() {
-	configapi.Scheme.AddKnownTypes(api.SchemeGroupVersion, &TestPluginConfig{})
-	configapi.Scheme.AddKnownTypes(v1.SchemeGroupVersion, &TestPluginConfig{})
+	kapi.Scheme.AddKnownTypes(configapi.SchemeGroupVersion, &TestPluginConfig{})
+	kapi.Scheme.AddKnownTypes(configapiv1.SchemeGroupVersion, &TestPluginConfig{})
 }
 
 func setupAdmissionPluginTestConfig(t *testing.T, value string) string {
@@ -222,10 +221,8 @@ func TestKubernetesAdmissionPluginEmbeddedConfig(t *testing.T) {
 		config.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 		config.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 			"plugin1": {
-				Configuration: runtime.EmbeddedObject{
-					Object: &TestPluginConfig{
-						Data: "embeddedvalue1",
-					},
+				Configuration: &TestPluginConfig{
+					Data: "embeddedvalue1",
 				},
 			},
 		}
@@ -276,10 +273,8 @@ func TestOpenshiftAdmissionPluginEmbeddedConfig(t *testing.T) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 		config.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 			"plugin2": {
-				Configuration: runtime.EmbeddedObject{
-					Object: &TestPluginConfig{
-						Data: "embeddedvalue2",
-					},
+				Configuration: &TestPluginConfig{
+					Data: "embeddedvalue2",
 				},
 			},
 		}

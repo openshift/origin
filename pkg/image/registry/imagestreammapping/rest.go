@@ -159,7 +159,7 @@ func (s *REST) findStreamForMapping(ctx kapi.Context, mapping *api.ImageStreamMa
 		return s.imageStreamRegistry.GetImageStream(ctx, mapping.Name)
 	}
 	if len(mapping.DockerImageRepository) != 0 {
-		list, err := s.imageStreamRegistry.ListImageStreams(ctx, &unversioned.ListOptions{})
+		list, err := s.imageStreamRegistry.ListImageStreams(ctx, &kapi.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -168,9 +168,9 @@ func (s *REST) findStreamForMapping(ctx kapi.Context, mapping *api.ImageStreamMa
 				return &list.Items[i], nil
 			}
 		}
-		return nil, errors.NewInvalid("imageStreamMapping", "", field.ErrorList{
+		return nil, errors.NewInvalid(api.Kind("ImageStreamMapping"), "", field.ErrorList{
 			field.NotFound(field.NewPath("dockerImageStream"), mapping.DockerImageRepository),
 		})
 	}
-	return nil, errors.NewNotFound("ImageStream", "")
+	return nil, errors.NewNotFound(api.Resource("imagestream"), "")
 }

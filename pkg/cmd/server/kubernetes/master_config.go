@@ -14,14 +14,15 @@ import (
 	etcdclient "github.com/coreos/go-etcd/etcd"
 
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
-	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
+	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapilatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/storage"
@@ -202,7 +203,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 
 	enabledExtensionsVersions := configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, configapi.APIGroupExtensions)
 	if len(enabledExtensionsVersions) > 0 {
-		groupMeta, err := kapilatest.Group(configapi.APIGroupExtensions)
+		groupMeta, err := registered.Group(configapi.APIGroupExtensions)
 		if err != nil {
 			return nil, fmt.Errorf("Error setting up Kubernetes extensions server storage: %v", err)
 		}
@@ -296,8 +297,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 }
 
 // getAPIGroupVersionOverrides builds the overrides in the format expected by master.Config.APIGroupVersionOverrides
-func getAPIGroupVersionOverrides(options configapi.MasterConfig) map[string]master.APIGroupVersionOverride {
-	apiGroupVersionOverrides := map[string]master.APIGroupVersionOverride{}
+func getAPIGroupVersionOverrides(options configapi.MasterConfig) map[string]genericapiserver.APIGroupVersionOverride {
+	apiGroupVersionOverrides := map[string]genericapiserver.APIGroupVersionOverride{}
 	for group := range options.KubernetesMasterConfig.DisabledAPIGroupVersions {
 		for _, version := range configapi.GetDisabledAPIVersionsForGroup(*options.KubernetesMasterConfig, group) {
 			gv := unversioned.GroupVersion{Group: group, Version: version}
@@ -306,7 +307,7 @@ func getAPIGroupVersionOverrides(options configapi.MasterConfig) map[string]mast
 				// Create "disabled" key for v1 identically to k8s.io/kubernetes/cmd/kube-apiserver/app/server.go#parseRuntimeConfig
 				gv.Group = "api"
 			}
-			apiGroupVersionOverrides[gv.String()] = master.APIGroupVersionOverride{Disable: true}
+			apiGroupVersionOverrides[gv.String()] = genericapiserver.APIGroupVersionOverride{Disable: true}
 		}
 	}
 	return apiGroupVersionOverrides
@@ -314,7 +315,7 @@ func getAPIGroupVersionOverrides(options configapi.MasterConfig) map[string]mast
 
 // NewEtcdStorage returns a storage interface for the provided storage version.
 func NewEtcdStorage(client *etcdclient.Client, version unversioned.GroupVersion, prefix string) (helper storage.Interface, err error) {
-	group, err := kapilatest.Group(version.Group)
+	group, err := registered.Group(version.Group)
 	if err != nil {
 		return nil, err
 	}

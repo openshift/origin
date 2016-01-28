@@ -29,7 +29,6 @@ func TestTemplate(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		config.GroupVersion = &version
-		config.Prefix = ""
 		c, err := client.New(config)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)

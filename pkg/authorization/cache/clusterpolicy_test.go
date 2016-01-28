@@ -106,7 +106,7 @@ func TestClusterPolicyListRespectingLabels(t *testing.T) {
 	label := labels.NewSelector().Add(*requirement)
 
 	util.Until(func() {
-		clusterPolicies, err = testCache.List(&unversioned.ListOptions{LabelSelector: unversioned.LabelSelector{Selector: label}})
+		clusterPolicies, err = testCache.List(&kapi.ListOptions{LabelSelector: unversioned.LabelSelector{Selector: label}})
 
 		if (err == nil) &&
 			(clusterPolicies != nil) &&
@@ -141,7 +141,7 @@ func TestClusterPolicyListRespectingFields(t *testing.T) {
 	field := fields.OneTermEqualSelector("metadata.name", name)
 
 	util.Until(func() {
-		clusterPolicies, err = testCache.List(&unversioned.ListOptions{FieldSelector: unversioned.FieldSelector{Selector: field}})
+		clusterPolicies, err = testCache.List(&kapi.ListOptions{FieldSelector: unversioned.FieldSelector{Selector: field}})
 
 		if (err == nil) &&
 			(clusterPolicies != nil) &&

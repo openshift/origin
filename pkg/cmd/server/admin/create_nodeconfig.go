@@ -14,7 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	kapi "k8s.io/kubernetes/pkg/api"
-	klatest "k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/master/ports"
 
@@ -431,7 +431,7 @@ func (o CreateNodeConfigOptions) MakeNodeJSON(nodeJSONFile string) error {
 	node := &kapi.Node{}
 	node.Name = o.NodeName
 
-	json, err := klatest.GroupOrDie("").Codec.Encode(node)
+	json, err := registered.GroupOrDie(configapi.GroupName).Codec.Encode(node)
 	if err != nil {
 		return err
 	}

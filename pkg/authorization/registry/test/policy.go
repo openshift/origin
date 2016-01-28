@@ -28,7 +28,7 @@ func NewPolicyRegistry(policies []authorizationapi.Policy, err error) *PolicyReg
 }
 
 // ListPolicies obtains a list of policies that match a selector.
-func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.PolicyList, error) {
+func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.PolicyList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -134,7 +134,7 @@ func (r *PolicyRegistry) DeletePolicy(ctx kapi.Context, id string) error {
 	return nil
 }
 
-func (r *PolicyRegistry) WatchPolicies(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+func (r *PolicyRegistry) WatchPolicies(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

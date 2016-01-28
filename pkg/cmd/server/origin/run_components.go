@@ -11,9 +11,10 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/controller/serviceaccount"
+	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
@@ -66,7 +67,7 @@ func (c *MasterConfig) RunServiceAccountsController() {
 		glog.Infof("Skipped starting Service Account Manager, no managed names specified")
 		return
 	}
-	options := serviceaccount.DefaultServiceAccountsControllerOptions()
+	options := sacontroller.DefaultServiceAccountsControllerOptions()
 	options.ServiceAccounts = []kapi.ServiceAccount{}
 
 	for _, saName := range c.Options.ServiceAccountConfig.ManagedNames {
@@ -76,7 +77,7 @@ func (c *MasterConfig) RunServiceAccountsController() {
 		options.ServiceAccounts = append(options.ServiceAccounts, sa)
 	}
 
-	serviceaccount.NewServiceAccountsController(c.KubeClient(), options).Run()
+	sacontroller.NewServiceAccountsController(c.KubeClient(), options).Run()
 }
 
 // RunServiceAccountTokensController starts the service account token controller
@@ -101,12 +102,12 @@ func (c *MasterConfig) RunServiceAccountTokensController() {
 		}
 	}
 
-	options := serviceaccount.TokensControllerOptions{
+	options := sacontroller.TokensControllerOptions{
 		TokenGenerator: serviceaccount.JWTTokenGenerator(privateKey),
 		RootCA:         rootCA,
 	}
 
-	serviceaccount.NewTokensController(c.KubeClient(), options).Run()
+	sacontroller.NewTokensController(c.KubeClient(), options).Run()
 }
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers

@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -46,7 +47,7 @@ func TestImageStreamImportUnsupported(t *testing.T) {
 	for i, test := range testCases {
 		c, err := New(&kclient.Config{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				buf := bytes.NewBuffer([]byte(runtime.EncodeOrDie(latest.GroupOrDie("").Codec, &test.status)))
+				buf := bytes.NewBuffer([]byte(runtime.EncodeOrDie(registered.GroupOrDie(api.GroupName).Codec, &test.status)))
 				return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(buf)}, nil
 			}),
 		})

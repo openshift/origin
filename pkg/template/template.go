@@ -44,7 +44,7 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 		idxPath := itemPath.Index(i)
 		if obj, ok := item.(*runtime.Unknown); ok {
 			// TODO: use runtime.DecodeList when it returns ValidationErrorList
-			decodedObj, err := runtime.UnstructuredJSONScheme.Decode(obj.RawJSON)
+			decodedObj, err := runtime.Decode(runtime.UnstructuredJSONScheme, obj.RawJSON)
 			if err != nil {
 				templateErrors = append(templateErrors, field.Invalid(idxPath.Child("objects"), obj, "unable to handle object"))
 				continue

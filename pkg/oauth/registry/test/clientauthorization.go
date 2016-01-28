@@ -22,7 +22,7 @@ func (r *ClientAuthorizationRegistry) ClientAuthorizationName(userName, clientNa
 	return fmt.Sprintf("%s:%s", userName, clientName)
 }
 
-func (r *ClientAuthorizationRegistry) ListClientAuthorizations(ctx kapi.Context, options *unversioned.ListOptions) (*api.OAuthClientAuthorizationList, error) {
+func (r *ClientAuthorizationRegistry) ListClientAuthorizations(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientAuthorizationList, error) {
 	return r.ClientAuthorizations, r.Err
 }
 

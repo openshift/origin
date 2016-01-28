@@ -49,7 +49,7 @@ func validateImage(image *api.Image, fldPath *field.Path) field.ErrorList {
 	result := validation.ValidateObjectMeta(&image.ObjectMeta, false, oapi.MinimalNameRequirements, fldPath.Child("metadata"))
 
 	if len(image.DockerImageReference) == 0 {
-		result = append(result, field.Required(fldPath.Child("dockerImageReference")))
+		result = append(result, field.Required(fldPath.Child("dockerImageReference"), ""))
 	} else {
 		if _, err := api.ParseDockerImageReference(image.DockerImageReference); err != nil {
 			result = append(result, field.Invalid(fldPath.Child("dockerImageReference"), image.DockerImageReference, err.Error()))
@@ -107,7 +107,7 @@ func ValidateImageStream(stream *api.ImageStream) field.ErrorList {
 	for tag, history := range stream.Status.Tags {
 		for i, tagEvent := range history.Items {
 			if len(tagEvent.DockerImageReference) == 0 {
-				result = append(result, field.Required(field.NewPath("status", "tags").Key(tag).Child("items").Index(i).Child("dockerImageReference")))
+				result = append(result, field.Required(field.NewPath("status", "tags").Key(tag).Child("items").Index(i).Child("dockerImageReference"), ""))
 			}
 		}
 	}
@@ -141,15 +141,15 @@ func ValidateImageStreamMapping(mapping *api.ImageStreamMapping) field.ErrorList
 		}
 	case hasName:
 	default:
-		result = append(result, field.Required(field.NewPath("name")))
-		result = append(result, field.Required(field.NewPath("dockerImageRepository")))
+		result = append(result, field.Required(field.NewPath("name"), ""))
+		result = append(result, field.Required(field.NewPath("dockerImageRepository"), ""))
 	}
 
 	if ok, msg := validation.ValidateNamespaceName(mapping.Namespace, false); !ok {
 		result = append(result, field.Invalid(field.NewPath("metadata", "namespace"), mapping.Namespace, msg))
 	}
 	if len(mapping.Tag) == 0 {
-		result = append(result, field.Required(field.NewPath("tag")))
+		result = append(result, field.Required(field.NewPath("tag"), ""))
 	}
 	if errs := validateImage(&mapping.Image, field.NewPath("image")); len(errs) != 0 {
 		result = append(result, errs...)
@@ -192,7 +192,7 @@ func ValidateImageStreamImport(isi *api.ImageStreamImport) field.ErrorList {
 				errs = append(errs, field.Invalid(imagesPath.Index(i).Child("to", "name"), spec.To.Name, "the name of the target tag must be specified"))
 			}
 			if len(spec.From.Name) == 0 {
-				errs = append(errs, field.Required(imagesPath.Index(i).Child("from", "name")))
+				errs = append(errs, field.Required(imagesPath.Index(i).Child("from", "name"), ""))
 			} else {
 				if ref, err := api.ParseDockerImageReference(spec.From.Name); err != nil {
 					errs = append(errs, field.Invalid(imagesPath.Index(i).Child("from", "name"), spec.From.Name, err.Error()))
@@ -212,7 +212,7 @@ func ValidateImageStreamImport(isi *api.ImageStreamImport) field.ErrorList {
 		switch from.Kind {
 		case "DockerImage":
 			if len(spec.From.Name) == 0 {
-				errs = append(errs, field.Required(repoPath.Child("from", "name")))
+				errs = append(errs, field.Required(repoPath.Child("from", "name"), ""))
 			} else {
 				if ref, err := api.ParseDockerImageReference(from.Name); err != nil {
 					errs = append(errs, field.Invalid(repoPath.Child("from", "name"), from.Name, err.Error()))

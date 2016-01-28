@@ -74,7 +74,7 @@ func main() {
 		for _, k := range yours {
 			fmt.Println(k)
 		}
-		fmt.Println("\n\n")
+		fmt.Printf("\n\n\n")
 	}
 
 	// Check `mine` for unused local deps (might be used transitively by other Godeps)

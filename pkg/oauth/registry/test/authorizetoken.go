@@ -14,7 +14,7 @@ type AuthorizeTokenRegistry struct {
 	DeletedAuthorizeTokenName string
 }
 
-func (r *AuthorizeTokenRegistry) ListAuthorizeTokens(ctx kapi.Context, options *unversioned.ListOptions) (*api.OAuthAuthorizeTokenList, error) {
+func (r *AuthorizeTokenRegistry) ListAuthorizeTokens(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthAuthorizeTokenList, error) {
 	return r.AuthorizeTokens, r.Err
 }
 

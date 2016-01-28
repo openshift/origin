@@ -14,7 +14,7 @@ type ClientRegistry struct {
 	DeletedClientName string
 }
 
-func (r *ClientRegistry) ListClients(ctx kapi.Context, options *unversioned.ListOptions) (*api.OAuthClientList, error) {
+func (r *ClientRegistry) ListClients(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientList, error) {
 	return r.Clients, r.Err
 }
 

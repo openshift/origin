@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
@@ -50,13 +51,13 @@ func ResolveResource(defaultResource, resourceString string, mapper meta.RESTMap
 	case 1:
 		name = parts[0]
 	case 2:
-		gvk, err := mapper.KindFor(parts[0])
+		gvk, err := mapper.KindFor(unversioned.GroupVersionResource{Resource: parts[0]})
 		if err != nil {
 			return "", "", err
 		}
 		name = parts[1]
-		resource, _ := meta.KindToResource(gvk.Kind, false)
-		return resource, name, nil
+		resource, _ := meta.KindToResource(gvk, false)
+		return resource.Resource, name, nil
 	default:
 		return "", "", fmt.Errorf("invalid resource format: %s", resourceString)
 	}

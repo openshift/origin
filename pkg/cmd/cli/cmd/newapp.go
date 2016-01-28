@@ -535,7 +535,7 @@ func createObjects(f *clientcmd.Factory, after configcmd.AfterFunc, result *newc
 	bulk := configcmd.Bulk{
 		Mapper:            mapper,
 		Typer:             typer,
-		RESTClientFactory: f.Factory.RESTClient,
+		RESTClientFactory: f.Factory.ClientForMapping,
 
 		After: after,
 		// Retry is used to support previous versions of the API server that will

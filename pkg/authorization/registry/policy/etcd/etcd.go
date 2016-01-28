@@ -22,9 +22,9 @@ type REST struct {
 // NewStorage returns a RESTStorage object that will work against nodes.
 func NewStorage(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
-		NewFunc:      func() runtime.Object { return &authorizationapi.Policy{} },
-		NewListFunc:  func() runtime.Object { return &authorizationapi.PolicyList{} },
-		EndpointName: "policy",
+		NewFunc:           func() runtime.Object { return &authorizationapi.Policy{} },
+		NewListFunc:       func() runtime.Object { return &authorizationapi.PolicyList{} },
+		QualifiedResource: authorizationapi.Resource("policy"),
 		KeyRootFunc: func(ctx kapi.Context) string {
 			return etcdgeneric.NamespaceKeyRootFunc(ctx, PolicyPath)
 		},

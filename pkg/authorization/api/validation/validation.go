@@ -1,6 +1,8 @@
 package validation
 
 import (
+	"fmt"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
@@ -15,10 +17,10 @@ func ValidateSubjectAccessReview(review *authorizationapi.SubjectAccessReview) f
 	allErrs := field.ErrorList{}
 
 	if len(review.Action.Verb) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("verb")))
+		allErrs = append(allErrs, field.Required(field.NewPath("verb"), ""))
 	}
 	if len(review.Action.Resource) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("resource")))
+		allErrs = append(allErrs, field.Required(field.NewPath("resource"), ""))
 	}
 
 	return allErrs
@@ -28,10 +30,10 @@ func ValidateResourceAccessReview(review *authorizationapi.ResourceAccessReview)
 	allErrs := field.ErrorList{}
 
 	if len(review.Action.Verb) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("verb")))
+		allErrs = append(allErrs, field.Required(field.NewPath("verb"), ""))
 	}
 	if len(review.Action.Resource) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("resource")))
+		allErrs = append(allErrs, field.Required(field.NewPath("resource"), ""))
 	}
 
 	return allErrs
@@ -41,10 +43,10 @@ func ValidateLocalSubjectAccessReview(review *authorizationapi.LocalSubjectAcces
 	allErrs := field.ErrorList{}
 
 	if len(review.Action.Verb) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("verb")))
+		allErrs = append(allErrs, field.Required(field.NewPath("verb"), ""))
 	}
 	if len(review.Action.Resource) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("resource")))
+		allErrs = append(allErrs, field.Required(field.NewPath("resource"), ""))
 	}
 
 	return allErrs
@@ -54,10 +56,10 @@ func ValidateLocalResourceAccessReview(review *authorizationapi.LocalResourceAcc
 	allErrs := field.ErrorList{}
 
 	if len(review.Action.Verb) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("verb")))
+		allErrs = append(allErrs, field.Required(field.NewPath("verb"), ""))
 	}
 	if len(review.Action.Resource) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("resource")))
+		allErrs = append(allErrs, field.Required(field.NewPath("resource"), ""))
 	}
 
 	return allErrs
@@ -98,7 +100,7 @@ func ValidatePolicy(policy *authorizationapi.Policy, isNamespaced bool) field.Er
 	for roleKey, role := range policy.Roles {
 		keyPath := rolePath.Key(roleKey)
 		if role == nil {
-			allErrs = append(allErrs, field.Required(keyPath))
+			allErrs = append(allErrs, field.Required(keyPath, ""))
 		}
 
 		if roleKey != role.Name {
@@ -161,7 +163,7 @@ func ValidatePolicyBinding(policyBinding *authorizationapi.PolicyBinding, isName
 	for roleBindingKey, roleBinding := range policyBinding.RoleBindings {
 		keyPath := roleBindingsPath.Key(roleBindingKey)
 		if roleBinding == nil {
-			allErrs = append(allErrs, field.Required(keyPath))
+			allErrs = append(allErrs, field.Required(keyPath, ""))
 		}
 
 		if roleBinding.RoleRef.Namespace != policyBinding.PolicyRef.Namespace {
@@ -250,7 +252,7 @@ func validateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced
 	}
 
 	if len(roleBinding.RoleRef.Name) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("roleRef", "name")))
+		allErrs = append(allErrs, field.Required(fldPath.Child("roleRef", "name"), ""))
 	} else {
 		if valid, err := oapi.MinimalNameRequirements(roleBinding.RoleRef.Name, false); !valid {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("roleRef", "name"), roleBinding.RoleRef.Name, err))
@@ -269,10 +271,10 @@ func validateRoleBindingSubject(subject kapi.ObjectReference, isNamespaced bool,
 	allErrs := field.ErrorList{}
 
 	if len(subject.Name) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("name")))
+		allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 	}
 	if len(subject.UID) != 0 {
-		allErrs = append(allErrs, field.Forbidden(fldPath.Child("uid"), subject.UID))
+		allErrs = append(allErrs, field.Forbidden(fldPath.Child("uid"), fmt.Sprintf("%v", subject.UID)))
 	}
 	if len(subject.APIVersion) != 0 {
 		allErrs = append(allErrs, field.Forbidden(fldPath.Child("apiVersion"), subject.APIVersion))
@@ -290,7 +292,7 @@ func validateRoleBindingSubject(subject kapi.ObjectReference, isNamespaced bool,
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), subject.Name, reason))
 		}
 		if !isNamespaced && len(subject.Namespace) == 0 {
-			allErrs = append(allErrs, field.Required(fldPath.Child("namespace")))
+			allErrs = append(allErrs, field.Required(fldPath.Child("namespace"), ""))
 		}
 
 	case authorizationapi.UserKind:

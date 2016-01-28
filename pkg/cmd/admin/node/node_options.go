@@ -64,7 +64,7 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	n.Writer = out
 	n.Mapper = mapper
 	n.Typer = typer
-	n.RESTClientFactory = f.Factory.RESTClient
+	n.RESTClientFactory = f.Factory.ClientForMapping
 	n.Printer = f.Printer
 	n.NodeNames = []string{}
 	n.CmdPrinter = cmdPrinter
@@ -108,7 +108,7 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 		nameArgs = append(nameArgs, n.NodeNames...)
 	}
 
-	r := resource.NewBuilder(n.Mapper, n.Typer, resource.ClientMapperFunc(n.RESTClientFactory)).
+	r := resource.NewBuilder(n.Mapper, n.Typer, resource.ClientMapperFunc(n.RESTClientFactory), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(n.DefaultNamespace).
 		SelectorParam(n.Selector).
@@ -163,7 +163,7 @@ func (n *NodeOptions) GetPrintersByObject(obj runtime.Object) (kubectl.ResourceP
 	return n.GetPrinters(gvk)
 }
 
-func (n *NodeOptions) GetPrintersByResource(resource string) (kubectl.ResourcePrinter, kubectl.ResourcePrinter, error) {
+func (n *NodeOptions) GetPrintersByResource(resource unversioned.GroupVersionResource) (kubectl.ResourcePrinter, kubectl.ResourcePrinter, error) {
 	gvk, err := n.Mapper.KindFor(resource)
 	if err != nil {
 		return nil, nil, err

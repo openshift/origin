@@ -8,8 +8,10 @@ import (
 // Scheme is the default instance of runtime.Scheme to which types in the Kubernetes API are already registered.
 var Scheme = runtime.NewScheme()
 
+const GroupName = ""
+
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: ""}
+var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: ""}
 
 // Kind takes an unqualified kind and returns back a Group qualified GroupKind
 func Kind(kind string) unversioned.GroupKind {

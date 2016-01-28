@@ -12,8 +12,8 @@ import (
 	kapp "k8s.io/kubernetes/cmd/kube-apiserver/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/controller/serviceaccount"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/serviceaccount"
+	knet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/sets"
 	kuval "k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -180,7 +180,7 @@ func ValidateAPILevels(apiLevels []string, knownAPILevels, deadAPILevels []strin
 	validationResults := ValidationResults{}
 
 	if len(apiLevels) == 0 {
-		validationResults.AddErrors(field.Required(fldPath))
+		validationResults.AddErrors(field.Required(fldPath, ""))
 	}
 
 	deadLevels := sets.NewString(deadAPILevels...)
@@ -226,7 +226,7 @@ func ValidateStorageVersionLevel(level string, knownAPILevels, deadAPILevels []s
 	allErrs := field.ErrorList{}
 
 	if len(level) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath))
+		allErrs = append(allErrs, field.Required(fldPath, ""))
 		return allErrs
 	}
 	supportedLevels := sets.NewString(knownAPILevels...)
@@ -367,7 +367,7 @@ func ValidateAssetExtensionsConfig(extConfig api.AssetExtensionsConfig, fldPath 
 	allErrs = append(allErrs, ValidateDir(extConfig.SourceDirectory, fldPath.Child("sourceDirectory"))...)
 
 	if len(extConfig.Name) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("name")))
+		allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 	} else if !extNameExp.MatchString(extConfig.Name) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), extConfig.Name, fmt.Sprintf("does not match %v", extNameExp)))
 	}
@@ -379,7 +379,7 @@ func ValidateImageConfig(config api.ImageConfig, fldPath *field.Path) field.Erro
 	allErrs := field.ErrorList{}
 
 	if len(config.Format) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("format")))
+		allErrs = append(allErrs, field.Required(fldPath.Child("format"), ""))
 	}
 
 	return allErrs
@@ -404,7 +404,7 @@ func ValidateKubeletConnectionInfo(config api.KubeletConnectionInfo, fldPath *fi
 	allErrs := field.ErrorList{}
 
 	if config.Port == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("port")))
+		allErrs = append(allErrs, field.Required(fldPath.Child("port"), ""))
 	}
 
 	if len(config.CA) > 0 {
@@ -438,7 +438,7 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig, fldPath 
 	}
 
 	if len(config.ServicesNodePortRange) > 0 {
-		if _, err := util.ParsePortRange(strings.TrimSpace(config.ServicesNodePortRange)); err != nil {
+		if _, err := knet.ParsePortRange(strings.TrimSpace(config.ServicesNodePortRange)); err != nil {
 			validationResults.AddErrors(field.Invalid(fldPath.Child("servicesNodePortRange"), config.ServicesNodePortRange, "must be a valid port range (e.g. 30000-32000)"))
 		}
 	}
@@ -538,7 +538,7 @@ func ValidateRoutingConfig(config api.RoutingConfig, fldPath *field.Path) field.
 	allErrs := field.ErrorList{}
 
 	if len(config.Subdomain) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("subdomain")))
+		allErrs = append(allErrs, field.Required(fldPath.Child("subdomain"), ""))
 	} else if !kuval.IsDNS1123Subdomain(config.Subdomain) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("subdomain"), config.Subdomain, "must be a valid subdomain"))
 	}
@@ -557,10 +557,10 @@ func ValidateControllerExtendedArguments(config api.ExtendedArguments, fldPath *
 func ValidateAdmissionPluginConfig(pluginConfig map[string]api.AdmissionPluginConfig, fieldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	for name, config := range pluginConfig {
-		if len(config.Location) > 0 && config.Configuration.Object != nil {
+		if len(config.Location) > 0 && config.Configuration != nil {
 			allErrs = append(allErrs, field.Invalid(fieldPath.Key(name), "", "cannot specify both location and embedded config"))
 		}
-		if len(config.Location) == 0 && config.Configuration.Object == nil {
+		if len(config.Location) == 0 && config.Configuration == nil {
 			allErrs = append(allErrs, field.Invalid(fieldPath.Key(name), "", "must specify either a location or an embedded config"))
 		}
 	}

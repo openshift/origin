@@ -103,6 +103,19 @@ Change configuration files for the client
 ====
 
 
+== oc config current-context
+Displays the current-context
+
+====
+
+[options="nowrap"]
+----
+  # Display the current-context
+  $ oc config current-context
+----
+====
+
+
 == oc config set-cluster
 Sets a cluster entry in kubeconfig
 
@@ -208,6 +221,19 @@ Create a resource by filename or stdin
 ====
 
 
+== oc create namespace
+Create a namespace with the specified name.
+
+====
+
+[options="nowrap"]
+----
+  # Create a new namespace named my-namespace
+  $ kubectl create namespace my-namespace
+----
+====
+
+
 == oc create route edge
 Create a route that uses edge TLS termination
 
@@ -255,6 +281,38 @@ Create a route that uses reencrypt TLS termination
   # Create a reencrypt route that exposes the frontend service and re-use
   # the service name as the route name.
   $ oc create route reencrypt --service=frontend --dest-ca-cert cert.cert
+----
+====
+
+
+== oc create secret docker-registry
+Create a secret for use with a Docker registry.
+
+====
+
+[options="nowrap"]
+----
+  # If you don't already have a .dockercfg file, you can create a dockercfg secret directly by using:
+  $ kubectl create secret docker-registry my-secret --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
+----
+====
+
+
+== oc create secret generic
+Create a secret from a local file, directory or literal value.
+
+====
+
+[options="nowrap"]
+----
+  # Create a new secret named my-secret with keys for each file in folder bar
+  $ kubectl create secret generic my-secret --from-file=path/to/bar
+
+  # Create a new secret named my-secret with specified keys instead of names on disk
+  $ kubectl create secret generic my-secret --from-file=ssh-privatekey=~/.ssh/id_rsa --from-file=ssh-publickey=~/.ssh/id_rsa.pub
+
+  # Create a new secret named my-secret with key1=supersecret and key2=topsecret
+  $ kubectl create secret generic my-secret --from-literal=key1=supersecret --from-literal=key2=topsecret
 ----
 ====
 

@@ -14,6 +14,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
@@ -105,11 +106,11 @@ func (o *EtcdOptions) RunEtcdServer() error {
 		}
 	}
 	if len(validationResults.Errors) != 0 {
-		return kerrors.NewInvalid("MasterConfig", o.ConfigFile, validationResults.Errors)
+		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), o.ConfigFile, validationResults.Errors)
 	}
 
 	if masterConfig.EtcdConfig == nil {
-		return kerrors.NewInvalid("MasterConfig.EtcConfig", o.ConfigFile, field.ErrorList{field.Required(field.NewPath("etcdConfig"))})
+		return kerrors.NewInvalid(configapi.Kind("MasterConfig.EtcConfig"), o.ConfigFile, field.ErrorList{field.Required(field.NewPath("etcdConfig"), "")})
 	}
 
 	etcdserver.RunEtcd(masterConfig.EtcdConfig)

@@ -16,7 +16,7 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/client/transport"
-	kutil "k8s.io/kubernetes/pkg/util"
+	knet "k8s.io/kubernetes/pkg/util/net"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -165,7 +165,7 @@ func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enable
 
 	var rt http.RoundTripper
 	if allowInsecure {
-		rt = kutil.SetTransportDefaults(&http.Transport{
+		rt = knet.SetTransportDefaults(&http.Transport{
 			Dial: (&net.Dialer{
 				Timeout:   dialTimeout,
 				KeepAlive: 30 * time.Second,
@@ -173,7 +173,7 @@ func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enable
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		})
 	} else {
-		rt = kutil.SetTransportDefaults(&http.Transport{
+		rt = knet.SetTransportDefaults(&http.Transport{
 			Dial: (&net.Dialer{
 				Timeout:   dialTimeout,
 				KeepAlive: 30 * time.Second,
