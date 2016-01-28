@@ -41,7 +41,7 @@ func TestAdmissionExists(t *testing.T) {
 		return true, &kapi.Namespace{}, fmt.Errorf("DOES NOT EXIST")
 	})
 
-	cache := projectcache.NewFake(mockClient.Namespaces(), cache.NewStore(cache.MetaNamespaceKeyFunc), "")
+	cache := projectcache.NewFake(mockClient.Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
 	handler := &lifecycle{client: mockClient}
 	handler.SetProjectCache(cache)
 	build := &buildapi.Build{
@@ -84,7 +84,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 			Phase: kapi.NamespaceActive,
 		},
 	}
-	store := cache.NewStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
+	store := projectcache.NewCacheStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	store.Add(namespaceObj)
 	mockClient := &testclient.Fake{}
 	cache := projectcache.NewFake(mockClient.Namespaces(), store, "")
@@ -163,7 +163,7 @@ func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 }
 
 func TestSAR(t *testing.T) {
-	store := cache.NewStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
+	store := projectcache.NewCacheStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	mockClient := &testclient.Fake{}
 	mockClient.AddReactor("get", "namespaces", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, fmt.Errorf("shouldn't get here")

@@ -23,6 +23,7 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 
 	"BuildByStrategy",          // from origin, only needed for managing builds, not kubernetes resources
 	"OriginNamespaceLifecycle", // from origin, only needed for rejecting openshift resources, so not needed by kube
+	"ProjectRequestLimit",      // from origin, used for limiting project requests by user (online use case)
 
 	"NamespaceExists",  // superceded by NamespaceLifecycle
 	"InitialResources", // do we want this? https://github.com/kubernetes/kubernetes/blob/master/docs/proposals/initial-resources.md
