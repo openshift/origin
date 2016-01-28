@@ -56,7 +56,6 @@ func newTestCacher(s storage.Interface) *storage.Cacher {
 		ResourcePrefix: prefix,
 		KeyFunc:        func(obj runtime.Object) (string, error) { return storage.NamespaceKeyFunc(prefix, obj) },
 		NewListFunc:    func() runtime.Object { return &api.PodList{} },
-		StopChannel:    util.NeverStop,
 	}
 	return storage.NewCacherFromConfig(config)
 }
@@ -91,6 +90,7 @@ func TestList(t *testing.T) {
 	server, etcdStorage := newEtcdTestStorage(t, testapi.Default.Codec(), etcdtest.PathPrefix())
 	defer server.Terminate(t)
 	cacher := newTestCacher(etcdStorage)
+	defer cacher.Stop()
 
 	podFoo := makeTestPod("foo")
 	podBar := makeTestPod("bar")
@@ -167,6 +167,7 @@ func TestWatch(t *testing.T) {
 	server, etcdStorage := newEtcdTestStorage(t, testapi.Default.Codec(), etcdtest.PathPrefix())
 	defer server.Terminate(t)
 	cacher := newTestCacher(etcdStorage)
+	defer cacher.Stop()
 
 	podFoo := makeTestPod("foo")
 	podBar := makeTestPod("bar")
@@ -177,11 +178,20 @@ func TestWatch(t *testing.T) {
 	podFooBis := makeTestPod("foo")
 	podFooBis.Spec.NodeName = "anotherFakeNode"
 
-	// Set up Watch for object "podFoo".
-	watcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", "1", storage.Everything)
+	// initialVersion is used to initate the watcher at the beginning of the world,
+	// which is not defined precisely in etcd.
+	initialVersion, err := cacher.LastSyncResourceVersion()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	startVersion := strconv.Itoa(int(initialVersion))
+
+	// Set up Watch for object "podFoo".
+	watcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", startVersion, storage.Everything)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	defer watcher.Stop()
 
 	fooCreated := updatePod(t, etcdStorage, podFoo, nil)
 	_ = updatePod(t, etcdStorage, podBar, nil)
@@ -196,17 +206,11 @@ func TestWatch(t *testing.T) {
 		t.Errorf("Expected 'error too old' error")
 	}
 
-	// Now test watch with initial state.
-	// We want to observe fooCreation too, so need to pass smaller resource version.
-	initialVersion, err := strconv.Atoi(fooCreated.ResourceVersion)
-	if err != nil {
-		t.Fatalf("Incorrect resourceVersion: %s", fooCreated.ResourceVersion)
-	}
-	initialVersion--
-	initialWatcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", strconv.Itoa(initialVersion), storage.Everything)
+	initialWatcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", fooCreated.ResourceVersion, storage.Everything)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	defer initialWatcher.Stop()
 
 	verifyWatchEvent(t, initialWatcher, watch.Added, podFoo)
 	verifyWatchEvent(t, initialWatcher, watch.Modified, podFooPrime)
@@ -216,6 +220,7 @@ func TestWatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	defer nowWatcher.Stop()
 
 	verifyWatchEvent(t, nowWatcher, watch.Added, podFooPrime)
 
@@ -228,16 +233,25 @@ func TestWatcherTimeout(t *testing.T) {
 	server, etcdStorage := newEtcdTestStorage(t, testapi.Default.Codec(), etcdtest.PathPrefix())
 	defer server.Terminate(t)
 	cacher := newTestCacher(etcdStorage)
+	defer cacher.Stop()
+
+	// initialVersion is used to initate the watcher at the beginning of the world,
+	// which is not defined precisely in etcd.
+	initialVersion, err := cacher.LastSyncResourceVersion()
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	startVersion := strconv.Itoa(int(initialVersion))
 
 	// Create a watcher that will not be reading any result.
-	watcher, err := cacher.WatchList(context.TODO(), "pods/ns", "1", storage.Everything)
+	watcher, err := cacher.WatchList(context.TODO(), "pods/ns", startVersion, storage.Everything)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer watcher.Stop()
 
 	// Create a second watcher that will be reading result.
-	readingWatcher, err := cacher.WatchList(context.TODO(), "pods/ns", "1", storage.Everything)
+	readingWatcher, err := cacher.WatchList(context.TODO(), "pods/ns", startVersion, storage.Everything)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -254,6 +268,15 @@ func TestFiltering(t *testing.T) {
 	server, etcdStorage := newEtcdTestStorage(t, testapi.Default.Codec(), etcdtest.PathPrefix())
 	defer server.Terminate(t)
 	cacher := newTestCacher(etcdStorage)
+	defer cacher.Stop()
+
+	// Ensure that the cacher is initialized, before creating any pods,
+	// so that we are sure that all events will be present in cacher.
+	syncWatcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", "0", storage.Everything)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	syncWatcher.Stop()
 
 	podFoo := makeTestPod("foo")
 	podFoo.Labels = map[string]string{"filter": "foo"}
@@ -280,18 +303,13 @@ func TestFiltering(t *testing.T) {
 			t.Errorf("Unexpected error: %v", err)
 			return false
 		}
-		return selector.Matches(labels.Set(metadata.Labels()))
+		return selector.Matches(labels.Set(metadata.GetLabels()))
 	}
-	// We want to observe fooCreation too, so need to pass smaller resource version.
-	initialVersion, err := strconv.Atoi(fooCreated.ResourceVersion)
-	if err != nil {
-		t.Fatalf("Incorrect resourceVersion: %s", fooCreated.ResourceVersion)
-	}
-	initialVersion--
-	watcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", strconv.Itoa(initialVersion), filter)
+	watcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", fooCreated.ResourceVersion, filter)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	defer watcher.Stop()
 
 	verifyWatchEvent(t, watcher, watch.Added, podFoo)
 	verifyWatchEvent(t, watcher, watch.Deleted, podFooFiltered)
@@ -299,23 +317,3 @@ func TestFiltering(t *testing.T) {
 	verifyWatchEvent(t, watcher, watch.Modified, podFooPrime)
 	verifyWatchEvent(t, watcher, watch.Deleted, podFooPrime)
 }
-
-/* TODO: So believe it or not... but this test is flakey with the go-etcd client library
- * which I'm surprised by.  Apprently you can close the client that is performing the watch
- * and the watch *never returns.*  I would like to still keep this test here and re-enable
- * with the new 2.2+ client library.
-func TestStorageError(t *testing.T) {
-	server, etcdStorage := newEtcdTestStorage(t, testapi.Default.Codec(), etcdtest.PathPrefix())
-	cacher := newTestCacher(etcdStorage)
-
-	watcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", 1, storage.Everything)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	server.Terminate(t)
-
-	got := <-watcher.ResultChan()
-	if got.Type != watch.Error {
-		t.Errorf("Unexpected non-error")
-	}
-} */

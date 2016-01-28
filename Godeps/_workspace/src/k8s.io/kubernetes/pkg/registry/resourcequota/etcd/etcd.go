@@ -37,7 +37,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 
 	newListFunc := func() runtime.Object { return &api.ResourceQuotaList{} }
 	storageInterface := storageDecorator(
-		s, 100, &api.ResourceQuota{}, prefix, true, newListFunc)
+		s, 100, &api.ResourceQuota{}, prefix, resourcequota.Strategy, newListFunc)
 
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.ResourceQuota{} },
@@ -54,7 +54,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return resourcequota.MatchResourceQuota(label, field)
 		},
-		EndpointName: "resourcequotas",
+		QualifiedResource: api.Resource("resourcequotas"),
 
 		CreateStrategy:      resourcequota.Strategy,
 		UpdateStrategy:      resourcequota.Strategy,

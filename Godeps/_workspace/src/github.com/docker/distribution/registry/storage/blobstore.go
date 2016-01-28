@@ -1,9 +1,6 @@
 package storage
 
 import (
-	"io"
-	"path"
-
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
@@ -15,17 +12,11 @@ import (
 // intentionally a leaky abstraction, providing utility methods that support
 // creating and traversing backend links.
 type blobStore struct {
-	driver        driver.StorageDriver
-	statter       distribution.BlobDescriptorService
-	deleteEnabled bool
-	// Causes directory containing blob's data to be removed recursively upon
-	// Delete.
-	removeParentsOnDelete bool
+	driver  driver.StorageDriver
+	statter distribution.BlobStatter
 }
 
-var _ distribution.BlobService = &blobStore{}
-var _ distribution.BlobEnumerator = &blobStore{}
-var _ distribution.BlobDeleter = &blobStore{}
+var _ distribution.BlobProvider = &blobStore{}
 
 // Get implements the BlobReadService.Get call.
 func (bs *blobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
@@ -97,64 +88,6 @@ func (bs *blobStore) Put(ctx context.Context, mediaType string, p []byte) (distr
 		MediaType: "application/octet-stream",
 		Digest:    dgst,
 	}, bs.driver.PutContent(ctx, bp, p)
-}
-
-func (bs *blobStore) Enumerate(ctx context.Context, ingest func(digest.Digest) error) error {
-	context.GetLogger(ctx).Debug("(*blobStore).Enumerate")
-	rootPath := path.Join(storagePathRoot, storagePathVersion, "blobs")
-
-	walkFn, err := makeBlobStoreWalkFunc(rootPath, true, ingest)
-	if err != nil {
-		return err
-	}
-
-	err = Walk(ctx, bs.driver, rootPath, walkFn)
-	if err != nil {
-		switch err.(type) {
-		case driver.PathNotFoundError:
-			return io.EOF
-		}
-		if err == ErrFinishedWalk {
-			return nil
-		}
-		return err
-	}
-
-	return io.EOF
-}
-
-func (bs *blobStore) Create(ctx context.Context) (distribution.BlobWriter, error) {
-	return nil, distribution.ErrUnsupported
-}
-
-func (bs *blobStore) Resume(ctx context.Context, id string) (distribution.BlobWriter, error) {
-	return nil, distribution.ErrUnsupported
-}
-
-func (bs *blobStore) Delete(ctx context.Context, dgst digest.Digest) error {
-	var (
-		blobPath string
-		err      error
-	)
-	if !bs.deleteEnabled {
-		return distribution.ErrUnsupported
-	}
-
-	if bs.removeParentsOnDelete {
-		blobPath, err = pathFor(blobPathSpec{digest: dgst})
-	} else {
-		blobPath, err = pathFor(blobDataPathSpec{digest: dgst})
-	}
-	if err != nil {
-		return err
-	}
-
-	context.GetLogger(ctx).Infof("Deleting blob path: %s", blobPath)
-	return bs.driver.Delete(ctx, blobPath)
-}
-
-func (bs *blobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
-	return bs.statter.Stat(ctx, dgst)
 }
 
 // path returns the canonical path for the blob identified by digest. The blob

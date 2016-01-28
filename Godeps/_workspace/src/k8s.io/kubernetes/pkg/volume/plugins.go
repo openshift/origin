@@ -59,7 +59,7 @@ type VolumePlugin interface {
 	// Init initializes the plugin.  This will be called exactly once
 	// before any New* calls are made - implementations of plugins may
 	// depend on this.
-	Init(host VolumeHost)
+	Init(host VolumeHost) error
 
 	// Name returns the plugin's name.  Plugins should use namespaced names
 	// such as "example.com/volume".  The "kubernetes.io" namespace is
@@ -144,12 +144,12 @@ type VolumeHost interface {
 	// the provided spec.  This is used to implement volume plugins which
 	// "wrap" other plugins.  For example, the "secret" volume is
 	// implemented in terms of the "emptyDir" volume.
-	NewWrapperBuilder(spec *Spec, pod *api.Pod, opts VolumeOptions) (Builder, error)
+	NewWrapperBuilder(volName string, spec Spec, pod *api.Pod, opts VolumeOptions) (Builder, error)
 
 	// NewWrapperCleaner finds an appropriate plugin with which to handle
 	// the provided spec.  See comments on NewWrapperBuilder for more
 	// context.
-	NewWrapperCleaner(spec *Spec, podUID types.UID) (Cleaner, error)
+	NewWrapperCleaner(volName string, spec Spec, podUID types.UID) (Cleaner, error)
 
 	// Get cloud provider from kubelet.
 	GetCloudProvider() cloudprovider.Interface
@@ -263,7 +263,12 @@ func (pm *VolumePluginMgr) InitPlugins(plugins []VolumePlugin, host VolumeHost) 
 			allErrs = append(allErrs, fmt.Errorf("volume plugin %q was registered more than once", name))
 			continue
 		}
-		plugin.Init(host)
+		err := plugin.Init(host)
+		if err != nil {
+			glog.Errorf("Failed to load volume plugin %s, error: %s", plugin, err.Error())
+			allErrs = append(allErrs, err)
+			continue
+		}
 		pm.plugins[name] = plugin
 		glog.V(1).Infof("Loaded volume plugin %q", name)
 	}

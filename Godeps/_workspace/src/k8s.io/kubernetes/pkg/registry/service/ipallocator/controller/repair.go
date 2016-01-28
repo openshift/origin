@@ -22,7 +22,8 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/api/errors"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/registry/service"
 	"k8s.io/kubernetes/pkg/registry/service/ipallocator"
 	"k8s.io/kubernetes/pkg/util"
@@ -73,6 +74,11 @@ func (c *Repair) RunUntil(ch chan struct{}) {
 
 // RunOnce verifies the state of the cluster IP allocations and returns an error if an unrecoverable problem occurs.
 func (c *Repair) RunOnce() error {
+	return client.RetryOnConflict(client.DefaultBackoff, c.runOnce)
+}
+
+// runOnce verifies the state of the cluster IP allocations and returns an error if an unrecoverable problem occurs.
+func (c *Repair) runOnce() error {
 	// TODO: (per smarterclayton) if Get() or ListServices() is a weak consistency read,
 	// or if they are executed against different leaders,
 	// the ordering guarantee required to ensure no IP is allocated twice is violated.
@@ -93,7 +99,7 @@ func (c *Repair) RunOnce() error {
 	}
 
 	ctx := api.WithNamespace(api.NewDefaultContext(), api.NamespaceAll)
-	options := &unversioned.ListOptions{ResourceVersion: latest.ObjectMeta.ResourceVersion}
+	options := &api.ListOptions{ResourceVersion: latest.ObjectMeta.ResourceVersion}
 	list, err := c.registry.ListServices(ctx, options)
 	if err != nil {
 		return fmt.Errorf("unable to refresh the service IP block: %v", err)
@@ -128,12 +134,14 @@ func (c *Repair) RunOnce() error {
 		}
 	}
 
-	err = r.Snapshot(latest)
-	if err != nil {
-		return fmt.Errorf("unable to persist the updated service IP allocations: %v", err)
+	if err := r.Snapshot(latest); err != nil {
+		return fmt.Errorf("unable to snapshot the updated service IP allocations: %v", err)
 	}
 
 	if err := c.alloc.CreateOrUpdate(latest); err != nil {
+		if errors.IsConflict(err) {
+			return err
+		}
 		return fmt.Errorf("unable to persist the updated service IP allocations: %v", err)
 	}
 	return nil

@@ -92,4 +92,19 @@ func TestNewClaims(t *testing.T) {
 	if !reflect.DeepEqual(want, got) {
 		t.Fatalf("want=%#v got=%#v", want, got)
 	}
+
+	want2 := jose.Claims{
+		"iss": "https://example.com",
+		"sub": "user-123",
+		"aud": []string{"client-abc", "client-def"},
+		"iat": float64(issAt.Unix()),
+		"exp": float64(expAt.Unix()),
+	}
+
+	got2 := NewClaims("https://example.com", "user-123", []string{"client-abc", "client-def"}, issAt, expAt)
+
+	if !reflect.DeepEqual(want2, got2) {
+		t.Fatalf("want=%#v got=%#v", want2, got2)
+	}
+
 }

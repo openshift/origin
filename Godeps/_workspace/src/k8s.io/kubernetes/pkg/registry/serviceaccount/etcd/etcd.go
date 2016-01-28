@@ -37,7 +37,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) *RE
 
 	newListFunc := func() runtime.Object { return &api.ServiceAccountList{} }
 	storageInterface := storageDecorator(
-		s, 100, &api.ServiceAccount{}, prefix, true, newListFunc)
+		s, 100, &api.ServiceAccount{}, prefix, serviceaccount.Strategy, newListFunc)
 
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.ServiceAccount{} },
@@ -54,7 +54,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) *RE
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return serviceaccount.Matcher(label, field)
 		},
-		EndpointName: "serviceaccounts",
+		QualifiedResource: api.Resource("serviceaccounts"),
 
 		CreateStrategy:      serviceaccount.Strategy,
 		UpdateStrategy:      serviceaccount.Strategy,

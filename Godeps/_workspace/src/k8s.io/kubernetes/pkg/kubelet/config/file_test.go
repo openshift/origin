@@ -93,6 +93,9 @@ func TestReadPodsFromFile(t *testing.T) {
 					Containers:      []api.Container{{Name: "image", Image: "test/image", SecurityContext: securitycontext.ValidSecurityContextWithContainerDefaults()}},
 					SecurityContext: &api.PodSecurityContext{},
 				},
+				Status: api.PodStatus{
+					Phase: api.PodPending,
+				},
 			},
 			expected: CreatePodUpdate(kubetypes.SET, kubetypes.FileSource, &api.Pod{
 				ObjectMeta: api.ObjectMeta{
@@ -115,6 +118,9 @@ func TestReadPodsFromFile(t *testing.T) {
 						SecurityContext:        securitycontext.ValidSecurityContextWithContainerDefaults()}},
 					SecurityContext: &api.PodSecurityContext{},
 				},
+				Status: api.PodStatus{
+					Phase: api.PodPending,
+				},
 			}),
 		},
 	}
@@ -126,7 +132,7 @@ func TestReadPodsFromFile(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%s: error in versioning the pod: %v", testCase.desc, err)
 			}
-			fileContents, err := testapi.Default.Codec().Encode(versionedPod)
+			fileContents, err := runtime.Encode(testapi.Default.Codec(), versionedPod)
 			if err != nil {
 				t.Fatalf("%s: error in encoding the pod: %v", testCase.desc, err)
 			}

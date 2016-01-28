@@ -38,7 +38,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 
 	newListFunc := func() runtime.Object { return &extensions.HorizontalPodAutoscalerList{} }
 	storageInterface := storageDecorator(
-		s, 100, &extensions.HorizontalPodAutoscaler{}, prefix, false, newListFunc)
+		s, 100, &extensions.HorizontalPodAutoscaler{}, prefix, horizontalpodautoscaler.Strategy, newListFunc)
 
 	store := &etcdgeneric.Etcd{
 		NewFunc: func() runtime.Object { return &extensions.HorizontalPodAutoscaler{} },
@@ -62,7 +62,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return horizontalpodautoscaler.MatchAutoscaler(label, field)
 		},
-		EndpointName: "horizontalPodAutoscalers",
+		QualifiedResource: extensions.Resource("horizontalpodautoscalers"),
 
 		// Used to validate autoscaler creation
 		CreateStrategy: horizontalpodautoscaler.Strategy,

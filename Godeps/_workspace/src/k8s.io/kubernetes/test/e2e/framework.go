@@ -19,6 +19,7 @@ package e2e
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/metrics"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -51,7 +53,12 @@ type Framework struct {
 	logsSizeVerifier     *LogsSizeVerifier
 
 	// Allows to override the initialization of the namespace
-	nsCreateFunc func(string, *client.Client) (*api.Namespace, error)
+	nsCreateFunc func(string, *client.Client, map[string]string) (*api.Namespace, error)
+}
+
+type TestDataSummary interface {
+	PrintHumanReadable() string
+	PrintJSON() string
 }
 
 // NewFramework makes a new framework and sets up a BeforeEach/AfterEach for
@@ -62,7 +69,7 @@ func NewFramework(baseName string) *Framework {
 
 // InitializeFramework initialize the framework by allowing to pass a custom
 // namespace creation function.
-func InitializeFramework(baseName string, nsCreateFunc func(string, *client.Client) (*api.Namespace, error)) *Framework {
+func InitializeFramework(baseName string, nsCreateFunc func(string, *client.Client, map[string]string) (*api.Namespace, error)) *Framework {
 	f := &Framework{
 		BaseName:                 baseName,
 		addonResourceConstraints: make(map[string]resourceConstraint),
@@ -84,7 +91,9 @@ func (f *Framework) beforeEach() {
 	f.Client = c
 
 	By("Building a namespace api object")
-	namespace, err := f.nsCreateFunc(f.BaseName, f.Client)
+	namespace, err := f.nsCreateFunc(f.BaseName, f.Client, map[string]string{
+		"e2e-framework": f.BaseName,
+	})
 	Expect(err).NotTo(HaveOccurred())
 
 	f.Namespace = namespace
@@ -98,7 +107,7 @@ func (f *Framework) beforeEach() {
 	}
 
 	if testContext.GatherKubeSystemResourceUsageData {
-		f.gatherer.startGatheringData(c, time.Minute)
+		f.gatherer.startGatheringData(c, resourceDataGatheringPeriodSeconds*time.Second)
 	}
 
 	if testContext.GatherLogsSizes {
@@ -138,6 +147,32 @@ func (f *Framework) afterEach() {
 		Failf("All nodes should be ready after test, %v", err)
 	}
 
+	summaries := make([]TestDataSummary, 0)
+	if testContext.GatherKubeSystemResourceUsageData {
+		summaries = append(summaries, f.gatherer.stopAndSummarize([]int{90, 99}, f.addonResourceConstraints))
+	}
+
+	if testContext.GatherLogsSizes {
+		close(f.logsSizeCloseChannel)
+		f.logsSizeWaitGroup.Wait()
+		summaries = append(summaries, f.logsSizeVerifier.GetSummary())
+	}
+
+	if testContext.GatherMetricsAfterTest {
+		// TODO: enable Scheduler and ControllerManager metrics grabbing when Master's Kubelet will be registered.
+		grabber, err := metrics.NewMetricsGrabber(f.Client, true, false, false, true)
+		if err != nil {
+			Logf("Failed to create MetricsGrabber. Skipping metrics gathering.")
+		} else {
+			received, err := grabber.Grab(nil)
+			if err != nil {
+				Logf("MetricsGrabber failed grab metrics. Skipping metrics gathering.")
+			} else {
+				summaries = append(summaries, (*MetricsForE2E)(&received))
+			}
+		}
+	}
+
 	if testContext.DeleteNamespace {
 		By(fmt.Sprintf("Destroying namespace %q for this suite.", f.Namespace.Name))
 
@@ -152,17 +187,32 @@ func (f *Framework) afterEach() {
 		Logf("Found DeleteNamespace=false, skipping namespace deletion!")
 	}
 
-	if testContext.GatherKubeSystemResourceUsageData {
-		f.gatherer.stopAndPrintData([]int{50, 90, 99, 100}, f.addonResourceConstraints)
+	outputTypes := strings.Split(testContext.OutputPrintType, ",")
+	for _, printType := range outputTypes {
+		switch printType {
+		case "hr":
+			for i := range summaries {
+				Logf(summaries[i].PrintHumanReadable())
+			}
+		case "json":
+			for i := range summaries {
+				typeName := reflect.TypeOf(summaries[i]).String()
+				Logf("%v JSON\n%v", typeName[strings.LastIndex(typeName, ".")+1:len(typeName)], summaries[i].PrintJSON())
+				Logf("Finished")
+			}
+		default:
+			Logf("Unknown ouptut type: %v. Skipping.", printType)
+		}
 	}
 
-	if testContext.GatherLogsSizes {
-		close(f.logsSizeCloseChannel)
-		f.logsSizeWaitGroup.Wait()
-	}
 	// Paranoia-- prevent reuse!
 	f.Namespace = nil
 	f.Client = nil
+}
+
+// WaitForPodTerminated waits for the pod to be terminated with the given reason.
+func (f *Framework) WaitForPodTerminated(podName, reason string) error {
+	return waitForPodTerminatedInNamespace(f.Client, podName, reason, f.Namespace.Name)
 }
 
 // WaitForPodRunning waits for the pod to run in the namespace.

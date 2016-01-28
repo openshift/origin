@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/intstr"
@@ -44,6 +44,10 @@ const (
 )
 
 func resizeGroup(size int) error {
+	if testContext.ReportDir != "" {
+		CoreDump(testContext.ReportDir)
+		defer CoreDump(testContext.ReportDir)
+	}
 	if testContext.Provider == "gce" || testContext.Provider == "gke" {
 		// TODO: make this hit the compute API directly instead of shelling out to gcloud.
 		// TODO: make gce/gke implement InstanceGroups, so we can eliminate the per-provider logic
@@ -173,11 +177,11 @@ func rcByName(name string, replicas int, image string, labels map[string]string)
 	})
 }
 
-func rcByNamePort(name string, replicas int, image string, port int, labels map[string]string) *api.ReplicationController {
+func rcByNamePort(name string, replicas int, image string, port int, protocol api.Protocol, labels map[string]string) *api.ReplicationController {
 	return rcByNameContainer(name, replicas, image, labels, api.Container{
 		Name:  name,
 		Image: image,
-		Ports: []api.ContainerPort{{ContainerPort: port}},
+		Ports: []api.ContainerPort{{ContainerPort: port, Protocol: protocol}},
 	})
 }
 
@@ -188,7 +192,7 @@ func rcByNameContainer(name string, replicas int, image string, labels map[strin
 	return &api.ReplicationController{
 		TypeMeta: unversioned.TypeMeta{
 			Kind:       "ReplicationController",
-			APIVersion: latest.GroupOrDie("").GroupVersion.Version,
+			APIVersion: registered.GroupOrDie(api.GroupName).GroupVersion.String(),
 		},
 		ObjectMeta: api.ObjectMeta{
 			Name: name,
@@ -215,7 +219,7 @@ func rcByNameContainer(name string, replicas int, image string, labels map[strin
 func newRCByName(c *client.Client, ns, name string, replicas int) (*api.ReplicationController, error) {
 	By(fmt.Sprintf("creating replication controller %s", name))
 	return c.ReplicationControllers(ns).Create(rcByNamePort(
-		name, replicas, serveHostnameImage, 9376, map[string]string{}))
+		name, replicas, serveHostnameImage, 9376, api.ProtocolTCP, map[string]string{}))
 }
 
 func resizeRC(c *client.Client, ns, name string, replicas int) error {
@@ -388,7 +392,7 @@ func performTemporaryNetworkFailure(c *client.Client, ns, rcName string, replica
 	// network traffic is unblocked in a deferred function
 }
 
-var _ = Describe("Nodes", func() {
+var _ = Describe("Nodes [Disruptive]", func() {
 	framework := NewFramework("resize-nodes")
 	var systemPodsNo int
 	var c *client.Client
@@ -402,7 +406,8 @@ var _ = Describe("Nodes", func() {
 		systemPodsNo = len(systemPods.Items)
 	})
 
-	Describe("Resize", func() {
+	// Slow issue #13323 (8 min)
+	Describe("Resize [Slow]", func() {
 		var skipped bool
 
 		BeforeEach(func() {
@@ -420,6 +425,18 @@ var _ = Describe("Nodes", func() {
 			By("restoring the original node instance group size")
 			if err := resizeGroup(testContext.CloudConfig.NumNodes); err != nil {
 				Failf("Couldn't restore the original node instance group size: %v", err)
+			}
+			// In GKE, our current tunneling setup has the potential to hold on to a broken tunnel (from a
+			// rebooted/deleted node) for up to 5 minutes before all tunnels are dropped and recreated.
+			// Most tests make use of some proxy feature to verify functionality. So, if a reboot test runs
+			// right before a test that tries to get logs, for example, we may get unlucky and try to use a
+			// closed tunnel to a node that was recently rebooted. There's no good way to poll for proxies
+			// being closed, so we sleep.
+			//
+			// TODO(cjcullen) reduce this sleep (#19314)
+			if providerIs("gke") {
+				By("waiting 5 minutes for all dead tunnels to be dropped")
+				time.Sleep(5 * time.Minute)
 			}
 			if err := waitForGroupSize(testContext.CloudConfig.NumNodes); err != nil {
 				Failf("Couldn't restore the original node instance group size: %v", err)

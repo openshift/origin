@@ -429,11 +429,12 @@ var statusTests = []*testTransport{
 }
 
 func TestTransferStatus(t *testing.T) {
+	ctx := context.Background()
 	for _, tr := range statusTests {
 		rx := &ResumableUpload{
 			Client: &http.Client{Transport: tr},
 		}
-		g, _, err := rx.transferStatus()
+		g, _, err := rx.transferStatus(ctx)
 		if err != nil {
 			t.Error(err)
 		}
@@ -494,16 +495,16 @@ func (t *interruptedTransport) RoundTrip(req *http.Request) (*http.Response, err
 }
 
 type interruptedTransport struct {
-	req            *http.Request
-	statusCode     int
-	rangeVal       string
-	interruptCount int
-	buf            []byte
-	progressBuf    string
+	req             *http.Request
+	statusCode      int
+	rangeVal        string
+	interruptCount  int
+	buf             []byte
+	progressUpdates []int64
 }
 
-func (tr *interruptedTransport) ProgressUpdate(current, total int64) {
-	tr.progressBuf += fmt.Sprintf("%v, %v\n", current, total)
+func (tr *interruptedTransport) ProgressUpdate(current int64) {
+	tr.progressUpdates = append(tr.progressUpdates, current)
 }
 
 func TestInterruptedTransferChunks(t *testing.T) {
@@ -545,17 +546,17 @@ func TestInterruptedTransferChunks(t *testing.T) {
 		}
 	}
 	if len(tr.buf) != len(slurp) || bytes.Compare(tr.buf, slurp) != 0 {
-		t.Errorf("transfered file corrupted:\ngot %s\nwant %s", tr.buf, slurp)
+		t.Errorf("transferred file corrupted:\ngot %s\nwant %s", tr.buf, slurp)
 	}
-	w := ""
+	want := []int64{}
 	for i := chunkSize; i <= st.Size(); i += chunkSize {
-		w += fmt.Sprintf("%v, %v\n", i, st.Size())
+		want = append(want, i)
 	}
 	if st.Size()%chunkSize != 0 {
-		w += fmt.Sprintf("%v, %v\n", st.Size(), st.Size())
+		want = append(want, st.Size())
 	}
-	if tr.progressBuf != w {
-		t.Errorf("progress update error, got %v, want %v", tr.progressBuf, w)
+	if !reflect.DeepEqual(tr.progressUpdates, want) {
+		t.Errorf("progress update error, got %v, want %v", tr.progressUpdates, want)
 	}
 }
 

@@ -19,9 +19,19 @@ import (
 	"testing"
 )
 
-func TestVolumeFromString(t *testing.T) {
-	trueVar := true
-	falseVar := false
+func bp(b bool) *bool {
+	return &b
+}
+
+func sp(s string) *string {
+	return &s
+}
+
+func ip(i int) *int {
+	return &i
+}
+
+func TestVolumeToFromString(t *testing.T) {
 	tests := []struct {
 		s string
 		v Volume
@@ -33,6 +43,9 @@ func TestVolumeFromString(t *testing.T) {
 				Kind:     "host",
 				Source:   "/tmp",
 				ReadOnly: nil,
+				Mode:     nil,
+				UID:      nil,
+				GID:      nil,
 			},
 		},
 		{
@@ -41,7 +54,10 @@ func TestVolumeFromString(t *testing.T) {
 				Name:     "foobar",
 				Kind:     "host",
 				Source:   "/tmp",
-				ReadOnly: &falseVar,
+				ReadOnly: bp(false),
+				Mode:     nil,
+				UID:      nil,
+				GID:      nil,
 			},
 		},
 		{
@@ -50,7 +66,10 @@ func TestVolumeFromString(t *testing.T) {
 				Name:     "foobar",
 				Kind:     "host",
 				Source:   "/tmp",
-				ReadOnly: &trueVar,
+				ReadOnly: bp(true),
+				Mode:     nil,
+				UID:      nil,
+				GID:      nil,
 			},
 		},
 		{
@@ -59,6 +78,9 @@ func TestVolumeFromString(t *testing.T) {
 				Name:     "foobar",
 				Kind:     "empty",
 				ReadOnly: nil,
+				Mode:     sp(emptyVolumeDefaultMode),
+				UID:      ip(emptyVolumeDefaultUID),
+				GID:      ip(emptyVolumeDefaultGID),
 			},
 		},
 		{
@@ -66,7 +88,43 @@ func TestVolumeFromString(t *testing.T) {
 			Volume{
 				Name:     "foobar",
 				Kind:     "empty",
-				ReadOnly: &trueVar,
+				ReadOnly: bp(true),
+				Mode:     sp(emptyVolumeDefaultMode),
+				UID:      ip(emptyVolumeDefaultUID),
+				GID:      ip(emptyVolumeDefaultGID),
+			},
+		},
+		{
+			"foobar,kind=empty,readOnly=true,mode=0777",
+			Volume{
+				Name:     "foobar",
+				Kind:     "empty",
+				ReadOnly: bp(true),
+				Mode:     sp("0777"),
+				UID:      ip(emptyVolumeDefaultUID),
+				GID:      ip(emptyVolumeDefaultGID),
+			},
+		},
+		{
+			"foobar,kind=empty,mode=0777,uid=1000",
+			Volume{
+				Name:     "foobar",
+				Kind:     "empty",
+				ReadOnly: nil,
+				Mode:     sp("0777"),
+				UID:      ip(1000),
+				GID:      ip(emptyVolumeDefaultGID),
+			},
+		},
+		{
+			"foobar,kind=empty,mode=0777,uid=1000,gid=1000",
+			Volume{
+				Name:     "foobar",
+				Kind:     "empty",
+				ReadOnly: nil,
+				Mode:     sp("0777"),
+				UID:      ip(1000),
+				GID:      ip(1000),
 			},
 		},
 	}
@@ -78,6 +136,11 @@ func TestVolumeFromString(t *testing.T) {
 		if !reflect.DeepEqual(*v, tt.v) {
 			t.Errorf("#%d: v=%v, want %v", i, *v, tt.v)
 		}
+		// volume serialization should be reversible
+		o := v.String()
+		if o != tt.s {
+			t.Errorf("#%d: v.String()=%s, want %s", i, o, tt.s)
+		}
 	}
 }
 
@@ -85,6 +148,10 @@ func TestVolumeFromStringBad(t *testing.T) {
 	tests := []string{
 		"#foobar,kind=host,source=/tmp",
 		"foobar,kind=host,source=/tmp,readOnly=true,asdf=asdf",
+		"foobar,kind=host,source=tmp",
+		"foobar,kind=host,uid=3",
+		"foobar,kind=host,mode=0755",
+		"foobar,kind=host,mode=0600,readOnly=true,gid=0",
 		"foobar,kind=empty,source=/tmp",
 	}
 	for i, in := range tests {
@@ -95,5 +162,19 @@ func TestVolumeFromStringBad(t *testing.T) {
 		if err == nil {
 			t.Errorf("#%d: got err=nil, want non-nil", i)
 		}
+	}
+}
+
+func BenchmarkVolumeToString(b *testing.B) {
+	vol := Volume{
+		Name:     "foobar",
+		Kind:     "empty",
+		ReadOnly: bp(true),
+		Mode:     sp("0777"),
+		UID:      ip(3),
+		GID:      ip(4),
+	}
+	for i := 0; i < b.N; i++ {
+		_ = vol.String()
 	}
 }

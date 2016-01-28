@@ -67,12 +67,12 @@ func TestValidateOk(t *testing.T) {
 	}
 
 	seed := rand.Int63()
-	apiObjectFuzzer := apitesting.FuzzerFor(nil, "", rand.NewSource(seed))
+	apiObjectFuzzer := apitesting.FuzzerFor(nil, testapi.Default.InternalGroupVersion(), rand.NewSource(seed))
 	for i := 0; i < 5; i++ {
 		for _, test := range tests {
 			testObj := test.obj
 			apiObjectFuzzer.Fuzz(testObj)
-			data, err := testapi.Default.Codec().Encode(testObj)
+			data, err := runtime.Encode(testapi.Default.Codec(), testObj)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}

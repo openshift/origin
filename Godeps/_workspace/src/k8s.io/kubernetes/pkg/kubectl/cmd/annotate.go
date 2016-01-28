@@ -152,7 +152,7 @@ func (o *AnnotateOptions) Complete(f *cmdutil.Factory, out io.Writer, cmd *cobra
 	}
 
 	mapper, typer := f.Object()
-	o.builder = resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+	o.builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, o.filenames...).
@@ -205,7 +205,7 @@ func (o AnnotateOptions) RunAnnotate() error {
 		}
 
 		// if the resource can't be converted to the negotiated version, AsVersionedObject falls back to the info.Mapping.GroupVersion
-		obj, err := resource.AsVersionedObject([]*resource.Info{info}, false, negotiatedVersion)
+		obj, err := resource.AsVersionedObject([]*resource.Info{info}, false, negotiatedVersion, o.f.JSONEncoder())
 		if err != nil {
 			return err
 		}
@@ -228,7 +228,7 @@ func (o AnnotateOptions) RunAnnotate() error {
 		}
 
 		mapping := info.ResourceMapping()
-		client, err := o.f.RESTClient(mapping)
+		client, err := o.f.ClientForMapping(mapping)
 		if err != nil {
 			return err
 		}

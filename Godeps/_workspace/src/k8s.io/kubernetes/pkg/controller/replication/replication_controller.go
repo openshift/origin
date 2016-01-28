@@ -182,6 +182,8 @@ func (rm *ReplicationManager) SetEventRecorder(recorder record.EventRecorder) {
 // Run begins watching and syncing.
 func (rm *ReplicationManager) Run(workers int, stopCh <-chan struct{}) {
 	defer util.HandleCrash()
+	glog.Infof("Starting RC Manager")
+	controller.SyncAllPodsWithStore(rm.kubeClient, rm.podStore.Store)
 	go rm.rcController.Run(stopCh)
 	go rm.podController.Run(stopCh)
 	for i := 0; i < workers; i++ {
@@ -210,7 +212,7 @@ func (rm *ReplicationManager) getPodController(pod *api.Pod) *api.ReplicationCon
 		// overlap, sort by creation timestamp, subsort by name, then pick
 		// the first.
 		glog.Errorf("user error! more than one replication controller is selecting pods with labels: %+v", pod.Labels)
-		sort.Sort(overlappingControllers(controllers))
+		sort.Sort(OverlappingControllers(controllers))
 	}
 	return &controllers[0]
 }
@@ -383,7 +385,7 @@ func (rm *ReplicationManager) manageReplicas(filteredPods []*api.Pod, rc *api.Re
 		for i := 0; i < diff; i++ {
 			go func(ix int) {
 				defer wait.Done()
-				if err := rm.podControl.DeletePod(rc.Namespace, filteredPods[ix].Name); err != nil {
+				if err := rm.podControl.DeletePod(rc.Namespace, filteredPods[ix].Name, rc); err != nil {
 					// Decrement the expected number of deletes because the informer won't observe this deletion
 					glog.V(2).Infof("Failed deletion, decrementing expectations for controller %q/%q", rc.Namespace, rc.Name)
 					rm.expectations.DeletionObserved(rcKey)

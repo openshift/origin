@@ -11,7 +11,7 @@ func TestAPItoV1VolumeSourceConversion(t *testing.T) {
 	c := conversion.NewConverter()
 	c.Debug = t
 
-	if err := c.RegisterConversionFunc(convert_api_VolumeSource_To_v1_VolumeSource); err != nil {
+	if err := c.RegisterConversionFunc(Convert_api_VolumeSource_To_v1_VolumeSource); err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
 
@@ -41,7 +41,7 @@ func TestV1toAPIVolumeSourceConversion(t *testing.T) {
 	c := conversion.NewConverter()
 	c.Debug = t
 
-	if err := c.RegisterConversionFunc(convert_v1_VolumeSource_To_api_VolumeSource); err != nil {
+	if err := c.RegisterConversionFunc(Convert_v1_VolumeSource_To_api_VolumeSource); err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
 

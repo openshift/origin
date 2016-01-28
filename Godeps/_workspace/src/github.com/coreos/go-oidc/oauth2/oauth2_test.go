@@ -2,8 +2,11 @@ package oauth2
 
 import (
 	"errors"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -258,5 +261,149 @@ func TestNewAuthenticatedRequest(t *testing.T) {
 			t.Errorf("case %d: want URL==%q, got URL==%q", i, tt.url, req.URL.String())
 		}
 
+	}
+}
+
+func TestParseTokenResponse(t *testing.T) {
+	type response struct {
+		body        string
+		contentType string
+		statusCode  int // defaults to http.StatusOK
+	}
+	tests := []struct {
+		resp      response
+		wantResp  TokenResponse
+		wantError *Error
+	}{
+		{
+			resp: response{
+				body:        "{ \"error\": \"invalid_client\", \"state\": \"foo\" }",
+				contentType: "application/json",
+				statusCode:  http.StatusBadRequest,
+			},
+			wantError: &Error{Type: "invalid_client", State: "foo"},
+		},
+		{
+			resp: response{
+				body:        "{ \"error\": \"invalid_request\", \"state\": \"bar\" }",
+				contentType: "application/json",
+				statusCode:  http.StatusBadRequest,
+			},
+			wantError: &Error{Type: "invalid_request", State: "bar"},
+		},
+		{
+			// Actual response from bitbucket
+			resp: response{
+				body:        `{"error_description": "Invalid OAuth client credentials", "error": "unauthorized_client"}`,
+				contentType: "application/json",
+				statusCode:  http.StatusBadRequest,
+			},
+			wantError: &Error{Type: "unauthorized_client", Description: "Invalid OAuth client credentials"},
+		},
+		{
+			// Actual response from github
+			resp: response{
+				body:        `error=incorrect_client_credentials&error_description=The+client_id+and%2For+client_secret+passed+are+incorrect.&error_uri=https%3A%2F%2Fdeveloper.github.com%2Fv3%2Foauth%2F%23incorrect-client-credentials`,
+				contentType: "application/x-www-form-urlencoded; charset=utf-8",
+			},
+			wantError: &Error{Type: "incorrect_client_credentials", Description: "The client_id and/or client_secret passed are incorrect."},
+		},
+		{
+			resp: response{
+				body:        `{"access_token":"e72e16c7e42f292c6912e7710c838347ae178b4a", "scope":"repo,gist", "token_type":"bearer"}`,
+				contentType: "application/json",
+			},
+			wantResp: TokenResponse{
+				AccessToken: "e72e16c7e42f292c6912e7710c838347ae178b4a",
+				TokenType:   "bearer",
+				Scope:       "repo,gist",
+			},
+		},
+		{
+			resp: response{
+				body:        `access_token=e72e16c7e42f292c6912e7710c838347ae178b4a&scope=user%2Cgist&token_type=bearer`,
+				contentType: "application/x-www-form-urlencoded",
+			},
+			wantResp: TokenResponse{
+				AccessToken: "e72e16c7e42f292c6912e7710c838347ae178b4a",
+				TokenType:   "bearer",
+				Scope:       "user,gist",
+			},
+		},
+		{
+			resp: response{
+				body:        `{"access_token":"foo","id_token":"bar","expires_in":200,"token_type":"bearer","refresh_token":"spam"}`,
+				contentType: "application/json; charset=utf-8",
+			},
+			wantResp: TokenResponse{
+				AccessToken:  "foo",
+				IDToken:      "bar",
+				Expires:      200,
+				TokenType:    "bearer",
+				RefreshToken: "spam",
+			},
+		},
+		{
+			resp: response{
+				body:        `{"access_token":"foo","id_token":"bar","expires":200,"token_type":"bearer","refresh_token":"spam"}`,
+				contentType: "application/json; charset=utf-8",
+			},
+			wantResp: TokenResponse{
+				AccessToken:  "foo",
+				IDToken:      "bar",
+				Expires:      200,
+				TokenType:    "bearer",
+				RefreshToken: "spam",
+			},
+		},
+		{
+			resp: response{
+				body:        `access_token=foo&id_token=bar&expires_in=200&token_type=bearer&refresh_token=spam`,
+				contentType: "application/x-www-form-urlencoded",
+			},
+			wantResp: TokenResponse{
+				AccessToken:  "foo",
+				IDToken:      "bar",
+				Expires:      200,
+				TokenType:    "bearer",
+				RefreshToken: "spam",
+			},
+		},
+	}
+
+	for i, tt := range tests {
+		r := &http.Response{
+			StatusCode: http.StatusOK,
+			Header: http.Header{
+				"Content-Type":   []string{tt.resp.contentType},
+				"Content-Length": []string{strconv.Itoa(len([]byte(tt.resp.body)))},
+			},
+			Body:          ioutil.NopCloser(strings.NewReader(tt.resp.body)),
+			ContentLength: int64(len([]byte(tt.resp.body))),
+		}
+		if tt.resp.statusCode != 0 {
+			r.StatusCode = tt.resp.statusCode
+		}
+
+		result, err := parseTokenResponse(r)
+		if err != nil {
+			if tt.wantError == nil {
+				t.Errorf("case %d: got error==%v", i, err)
+				continue
+			}
+			if !reflect.DeepEqual(tt.wantError, err) {
+				t.Errorf("case %d: want=%+v, got=%+v", i, tt.wantError, err)
+			}
+		} else {
+			if tt.wantError != nil {
+				t.Errorf("case %d: want error==%v, got==nil", i, tt.wantError)
+				continue
+			}
+			// don't compare the raw body (it's really big and clogs error messages)
+			result.RawBody = tt.wantResp.RawBody
+			if !reflect.DeepEqual(tt.wantResp, result) {
+				t.Errorf("case %d: want=%+v, got=%+v", i, tt.wantResp, result)
+			}
+		}
 	}
 }

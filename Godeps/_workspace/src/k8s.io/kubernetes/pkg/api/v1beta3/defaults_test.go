@@ -22,17 +22,18 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	versioned "k8s.io/kubernetes/pkg/api/v1beta3"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
-	data, err := versioned.Codec.Encode(obj)
+	data, err := runtime.Encode(v1beta3Codec, obj)
 	if err != nil {
 		t.Errorf("%v\n %#v", err, obj)
 		return nil
 	}
-	obj2, err := api.Codec.Decode(data)
+	obj2, err := runtime.Decode(v1beta3Codec, data)
 	if err != nil {
 		t.Errorf("%v\nData: %s\nSource: %#v", err, string(data), obj)
 		return nil
@@ -47,6 +48,10 @@ func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
 }
 
 func TestSetDefaultReplicationController(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	tests := []struct {
 		rc             *versioned.ReplicationController
 		expectLabels   bool
@@ -156,6 +161,10 @@ func TestSetDefaultReplicationController(t *testing.T) {
 }
 
 func TestSetDefaultService(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	svc := &versioned.Service{}
 	obj2 := roundTrip(t, runtime.Object(svc))
 	svc2 := obj2.(*versioned.Service)
@@ -168,6 +177,10 @@ func TestSetDefaultService(t *testing.T) {
 }
 
 func TestSetDefaultServiceWithLoadbalancer(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	svc := &versioned.Service{}
 	svc.Spec.CreateExternalLoadBalancer = true
 	obj2 := roundTrip(t, runtime.Object(svc))
@@ -178,6 +191,10 @@ func TestSetDefaultServiceWithLoadbalancer(t *testing.T) {
 }
 
 func TestSetDefaultSecret(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	s := &versioned.Secret{}
 	obj2 := roundTrip(t, runtime.Object(s))
 	s2 := obj2.(*versioned.Secret)
@@ -188,6 +205,10 @@ func TestSetDefaultSecret(t *testing.T) {
 }
 
 func TestSetDefaultPersistentVolume(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	pv := &versioned.PersistentVolume{}
 	obj2 := roundTrip(t, runtime.Object(pv))
 	pv2 := obj2.(*versioned.PersistentVolume)
@@ -201,6 +222,10 @@ func TestSetDefaultPersistentVolume(t *testing.T) {
 }
 
 func TestSetDefaultPersistentVolumeClaim(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	pvc := &versioned.PersistentVolumeClaim{}
 	obj2 := roundTrip(t, runtime.Object(pvc))
 	pvc2 := obj2.(*versioned.PersistentVolumeClaim)
@@ -211,6 +236,10 @@ func TestSetDefaultPersistentVolumeClaim(t *testing.T) {
 }
 
 func TestSetDefaulEndpointsProtocol(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	in := &versioned.Endpoints{Subsets: []versioned.EndpointSubset{
 		{Ports: []versioned.EndpointPort{{}, {Protocol: "UDP"}, {}}},
 	}}
@@ -233,6 +262,10 @@ func TestSetDefaulEndpointsProtocol(t *testing.T) {
 }
 
 func TestSetDefaulServiceTargetPort(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	in := &versioned.Service{Spec: versioned.ServiceSpec{Ports: []versioned.ServicePort{{Port: 1234}}}}
 	obj := roundTrip(t, runtime.Object(in))
 	out := obj.(*versioned.Service)
@@ -249,6 +282,10 @@ func TestSetDefaulServiceTargetPort(t *testing.T) {
 }
 
 func TestSetDefaultServicePort(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	// Unchanged if set.
 	in := &versioned.Service{Spec: versioned.ServiceSpec{
 		Ports: []versioned.ServicePort{
@@ -293,6 +330,10 @@ func TestSetDefaultServicePort(t *testing.T) {
 }
 
 func TestSetDefaultNamespace(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	s := &versioned.Namespace{}
 	obj2 := roundTrip(t, runtime.Object(s))
 	s2 := obj2.(*versioned.Namespace)
@@ -303,6 +344,10 @@ func TestSetDefaultNamespace(t *testing.T) {
 }
 
 func TestSetDefaultPodSpecHostNetwork(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	portNum := 8080
 	s := versioned.PodSpec{}
 	s.HostNetwork = true
@@ -329,6 +374,10 @@ func TestSetDefaultPodSpecHostNetwork(t *testing.T) {
 }
 
 func TestSetDefaultNodeExternalID(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	name := "node0"
 	n := &versioned.Node{}
 	n.Name = name
@@ -343,6 +392,10 @@ func TestSetDefaultNodeExternalID(t *testing.T) {
 }
 
 func TestSetDefaultObjectFieldSelectorAPIVersion(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	s := versioned.PodSpec{
 		Containers: []versioned.Container{
 			{
@@ -370,6 +423,10 @@ func TestSetDefaultObjectFieldSelectorAPIVersion(t *testing.T) {
 }
 
 func TestSetDefaultSecurityContext(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	priv := false
 	privTrue := true
 	testCases := map[string]struct {
@@ -471,6 +528,10 @@ func areSecurityContextAndContainerEqual(c *versioned.Container) (bool, []string
 }
 
 func TestDefaultSecurityContextConstraints(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	tests := map[string]struct {
 		scc              *versioned.SecurityContextConstraints
 		expectedFSGroup  versioned.FSGroupStrategyType
