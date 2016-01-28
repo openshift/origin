@@ -21,6 +21,9 @@ const (
 	BuildLabel = "openshift.io/build.name"
 	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
 	DefaultDockerLabelNamespace = "io.openshift."
+	// OriginVersion is an environment variable key that indicates the version of origin that
+	// created this build definition.
+	OriginVersion = "ORIGIN_VERSION"
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as

@@ -37,6 +37,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	addSourceEnvVars(build.Spec.Source, &containerEnv)
+	addOriginVersionVar(&containerEnv)
 
 	if len(strategy.Env) > 0 {
 		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)

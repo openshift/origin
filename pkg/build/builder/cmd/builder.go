@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/version"
 )
 
 type builder interface {
@@ -42,6 +43,14 @@ func newBuilderConfigFromEnvironment() (*builderConfig, error) {
 	cfg.build = &api.Build{}
 	if err = latest.Codec.DecodeInto([]byte(buildStr), cfg.build); err != nil {
 		return nil, fmt.Errorf("unable to parse build: %v", err)
+	}
+
+	masterVersion := os.Getenv(api.OriginVersion)
+	thisVersion := version.Get().String()
+	if len(masterVersion) != 0 && masterVersion != thisVersion {
+		glog.Warningf("Master version %q does not match Builder image version %q", masterVersion, thisVersion)
+	} else {
+		glog.V(2).Infof("Master version %q, Builder versions %q", masterVersion, thisVersion)
 	}
 
 	// sourceSecretsDir (SOURCE_SECRET_PATH)
