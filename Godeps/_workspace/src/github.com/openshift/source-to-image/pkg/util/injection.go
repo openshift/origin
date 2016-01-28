@@ -88,3 +88,17 @@ func CreateInjectedFilesRemovalScript(files []string, scriptName string) (string
 	err = ioutil.WriteFile(f.Name(), []byte(rmScript), 0700)
 	return f.Name(), err
 }
+
+// HandleInjectionError handles the error caused by injection and provide
+// reasonable suggestion to users.
+func HandleInjectionError(p api.InjectPath, err error) error {
+	if err == nil {
+		return nil
+	}
+	if strings.Contains(err.Error(), "no such file or directory") {
+		glog.Errorf("The destination directory for %q injection must exist in container (%q)", p.SourcePath, p.DestinationDir)
+		return err
+	}
+	glog.Errorf("Error occured during injecting %q to %q: %v", p.SourcePath, p.DestinationDir, err)
+	return err
+}

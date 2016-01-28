@@ -183,8 +183,10 @@ func PullImage(name string, d Docker, policy api.PullPolicy, force bool) (*PullR
 	case api.PullIfNotPresent:
 		image, err = d.CheckAndPullImage(name)
 	case api.PullAlways:
+		glog.Infof("Pulling image %q ...", name)
 		image, err = d.PullImage(name)
 	case api.PullNever:
+		glog.Infof("Checking if image %q is available locally ...", name)
 		image, err = d.CheckImage(name)
 	}
 	return &PullResult{Image: image, OnBuild: d.IsImageOnBuild(name)}, err
