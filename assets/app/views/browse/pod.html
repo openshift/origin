@@ -42,7 +42,14 @@
                 <uib-tab-heading>Details</uib-tab-heading>
                 <ng-include src=" 'views/browse/_pod-details.html' "></ng-include>
               </uib-tab>
-
+              <uib-tab heading="Environment" active="selectedTab.environment">
+                <uib-tab-heading>Environment</uib-tab-heading>
+                <div ng-repeat="container in pod.spec.containers">
+                  <h3>Container {{container.name}}</h3>
+                  <environment env-vars="container.env" ng-if="container.env.length"></environment>
+                  <em ng-if="!container.env.length">The container specification has no environment variables set.</em>
+                </div>
+              </uib-tab>
               <uib-tab ng-if="metricsAvailable" heading="Metrics" active="selectedTab.metrics">
                 <!-- Use ng-if to remove the pod-metrics directive when the tab is not active so
                      we don't update in the background. -->

@@ -53,6 +53,14 @@
                   <ng-include src=" 'views/browse/_deployment-details.html' "></ng-include>
                 </div>
               </uib-tab>
+              <uib-tab heading="Environment" active="selectedTab.environment">
+                <uib-tab-heading>Environment</uib-tab-heading>
+                <div ng-repeat="container in deployment.spec.template.spec.containers">
+                  <h3>Container {{container.name}}</h3>
+                  <environment env-vars="container.env" ng-if="container.env.length"></environment>
+                  <em ng-if="!container.env.length">The container specification has no environment variables set.</em>
+                </div>
+              </uib-tab>              
               <uib-tab ng-if="deploymentConfigName && logOptions.version" active="selectedTab.logs">
                 <uib-tab-heading>Logs</uib-tab-heading>
                 <log-viewer

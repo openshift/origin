@@ -156,13 +156,6 @@
                         <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
                       </div>
                     </dl>
-                    <div ng-if="(buildConfig | buildStrategy).env">
-                      <h3>Environment Variables</h3>
-                      <dl class="dl-horizontal left">
-                        <dt ng-repeat-start="envVar in (buildConfig | buildStrategy).env">{{envVar.name}}:</dt>
-                        <dd ng-repeat-end>{{envVar.value}}</dd>
-                      </dl>
-                    </div>
                   </div>
                   <div class="col-lg-6">
                     <h3>Triggers</h3>
@@ -241,6 +234,11 @@
               <annotations annotations="buildConfig.metadata.annotations"></annotations>
             </div>
           </uib-tab>
+          <uib-tab heading="Environment" active="selectedTab.environment">
+            <uib-tab-heading>Environment</uib-tab-heading>
+            <environment env-vars="(buildConfig | buildStrategy).env"></environment>
+            <em ng-if="!(buildConfig | buildStrategy).env">The build strategy had no environment variables defined.</em>
+          </uib-tab>          
         </uib-tabset>
       </div>
     </div><!-- /buildConfig .tile -->
