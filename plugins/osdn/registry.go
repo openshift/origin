@@ -47,7 +47,7 @@ func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
 }
 
 func (registry *Registry) GetSubnets() ([]osdnapi.Subnet, string, error) {
-	hostSubnetList, err := registry.oClient.HostSubnets().List()
+	hostSubnetList, err := registry.oClient.HostSubnets().List(kapi.ListOptions{})
 	if err != nil {
 		return nil, "", err
 	}
