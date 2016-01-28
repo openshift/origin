@@ -464,7 +464,7 @@ func TestSpecificKind(t *testing.T) {
 }
 
 // Keep this in sync with the respective upstream set
-var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions", "PodExecOptions", "PodAttachOptions")
+var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions")
 
 // TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {
