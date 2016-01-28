@@ -19,6 +19,8 @@ items:
     uid: 669a3b5d-2996-11e5-b9e2-28d2447dc82b
   spec:
     containers:
+    - name: container2
+    - name: container3
     - env:
       - name: ADMIN_USERNAME
         value: admin6TM
@@ -63,6 +65,16 @@ items:
     - status: "False"
       type: Ready
     containerStatuses:
+    - name: container2
+      restartCount: 1
+      lastState:
+        terminated:
+          finishedAt: 2015-07-13T19:36:05Z
+    - name: container3
+      restartCount: 8
+      state:
+        waiting:
+          reason: CrashLoopBackOff
     - image: openshift/ruby-hello-world
       imageID: ""
       lastState: {}
