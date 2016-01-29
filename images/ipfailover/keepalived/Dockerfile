@@ -5,6 +5,10 @@
 #
 FROM openshift/origin-base
 
+# TODO: systemd update from centos 7.1 -> 7.2 is broken, remove this once 7.2
+# base images land
+RUN yum swap -y -- remove systemd-container\* -- install systemd systemd-libs
+
 RUN yum -y install kmod keepalived iproute psmisc nc net-tools && \
     yum clean all
 
