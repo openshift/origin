@@ -92,16 +92,18 @@ do_master () {
 	    continue
 	fi
 
-	resolv_ip=$(awk '/\s'$node'$/ { print $1; exit; }' /etc/hosts)
-	if [ -z "$resolv_ip" ]; then
-	    resolv_ip=$(host $node 2>/dev/null | sed -ne 's/.*has address //p' | head -1)
+	if ! [[ $node =~ ^[0-9.]*$ ]]; then
+	    resolv_ip=$(awk '/\s'$node'$/ { print $1; exit; }' /etc/hosts)
 	    if [ -z "$resolv_ip" ]; then
-		echo "Node $node: no IP address in either DNS or /etc/hosts"
+		resolv_ip=$(host $node 2>/dev/null | sed -ne 's/.*has address //p' | head -1)
+		if [ -z "$resolv_ip" ]; then
+		    echo "Node $node: no IP address in either DNS or /etc/hosts"
+		fi
 	    fi
-	fi
 
-	if [ "$reg_ip" != "$resolv_ip" ]; then
-	    echo "Node $node: the IP in OpenShift ($reg_ip) does not match DNS/hosts ($resolv_ip)"
+	    if [ "$reg_ip" != "$resolv_ip" ]; then
+		echo "Node $node: the IP in OpenShift ($reg_ip) does not match DNS/hosts ($resolv_ip)"
+	    fi
 	fi
 
 	try_eval ping -c1 -W2 $node
