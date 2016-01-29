@@ -33,13 +33,16 @@ When creating applications, you may have a Docker registry that requires authent
 nodes to pull images on your behalf, they have to have the credentials.  You can provide this information
 by creating a dockercfg secret and attaching it to your service account.`
 
-	createDockercfgExample = `  // If you don't already have a .dockercfg file, you can create a dockercfg secret directly by using:
+	createDockercfgExample = `  # Create a new .dockercfg secret:
   $ %[1]s SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
 
-  // If you do already have a .dockercfg file, you can create a dockercfg secret by using:
+  # Create a new .dockercfg secret from an existing file:
   $ %[2]s SECRET path/to/.dockercfg
 
-  // To add new secret to 'imagePullSecrets' for the node, or 'secrets' for builds, use:
+  # Create a new .docker/config.json secret from an existing file:
+  $ %[2]s SECRET .dockerconfigjson=path/to/.docker/config.json
+
+  # To add new secret to 'imagePullSecrets' for the node, or 'secrets' for builds, use:
   $ %[3]s SERVICE_ACCOUNT`
 )
 

@@ -900,13 +900,16 @@ Create a new dockercfg secret
 
 [options="nowrap"]
 ----
-  // If you don't already have a .dockercfg file, you can create a dockercfg secret directly by using:
+  # Create a new .dockercfg secret:
   $ oc secrets new-dockercfg SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
 
-  // If you do already have a .dockercfg file, you can create a dockercfg secret by using:
+  # Create a new .dockercfg secret from an existing file:
   $ oc secrets new SECRET path/to/.dockercfg
 
-  // To add new secret to 'imagePullSecrets' for the node, or 'secrets' for builds, use:
+  # Create a new .docker/config.json secret from an existing file:
+  $ oc secrets new SECRET .dockerconfigjson=path/to/.docker/config.json
+
+  # To add new secret to 'imagePullSecrets' for the node, or 'secrets' for builds, use:
   $ oc edit SERVICE_ACCOUNT
 ----
 ====
