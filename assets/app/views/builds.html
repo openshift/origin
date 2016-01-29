@@ -27,7 +27,7 @@
                     <th>Name</th>
                     <th>Last Build</th>
                     <th>Status</th>
-                    <th>Started</th>
+                    <th>Created</th>
                     <th>Type</th>
                     <th>Source</th>
                   </tr>
@@ -78,7 +78,7 @@
                           <!-- Build duration -->
                           <span ng-switch="build.status.phase" class="hide-ng-leave">
                             <span ng-switch-when="Complete"> in {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
-                            <span ng-switch-when="Failed">after {{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+                            <span ng-switch-when="Failed">after <span ng-if="!build.status.startTimestamp">waiting </span>{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
                             <span ng-switch-when="Cancelled"> after {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
                             <span ng-switch-when="Running"> for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
                             <span ng-switch-when="New">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
@@ -91,9 +91,9 @@
                         </span>
                       </div>
                     </td>
-                    <td data-title="Started">
-                      <relative-timestamp timestamp="build.status.startTimestamp || build.metadata.creationTimestamp"></relative-timestamp>
-                      <span>- {{(build.status.startTimestamp || build.metadata.creationTimestamp) | date : 'short'}}</span>
+                    <td data-title="Created">
+                      <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp>
+                      <span>- {{build.metadata.creationTimestamp | date : 'short'}}</span>
                     </td>
                     <td data-title="Type">{{build.spec.strategy.type}}</td>
                     <td data-title="Source">

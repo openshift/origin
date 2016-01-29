@@ -113,7 +113,12 @@
                         <a ng-href="{{latestBuild | navigateResourceURL}}?tab=logs">View Log</a>
                       </div>
                       <div class="latest-build-timestamp meta text-muted">
-                        started <relative-timestamp timestamp="latestBuild.status.startTimestamp || latestBuild.metadata.creationTimestamp"></relative-timestamp>
+                        <span ng-if="!latestBuild.status.startTimestamp">
+                          created <relative-timestamp timestamp="latestBuild.metadata.creationTimestamp"></relative-timestamp>
+                        </span>
+                        <span ng-if="latestBuild.status.startTimestamp">
+                          started <relative-timestamp timestamp="latestBuild.status.startTimestamp"></relative-timestamp>
+                        </span>
                       </div>
 
                       <build-trends-chart builds="builds"></build-trends-chart>
@@ -256,7 +261,7 @@
                       <tr>
                         <th>Build</th>
                         <th>Status</th>
-                        <th>Started</th>
+                        <th>Created</th>
                       </tr>
                     </thead>
                     <tbody ng-if="(builds | hashSize) == 0">
@@ -282,7 +287,7 @@
                               <!-- Build duration -->
                               <span ng-switch="build.status.phase" class="hide-ng-leave">
                                 <span ng-switch-when="Complete"> in {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
-                                <span ng-switch-when="Failed">after {{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+                                <span ng-switch-when="Failed">after <span ng-if="!build.status.startTimestamp">waiting </span>{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
                                 <span ng-switch-when="Cancelled"> after {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
                                 <span ng-switch-when="Running"> for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
                                 <span ng-switch-when="New">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
@@ -295,9 +300,9 @@
                             </span>
                           </div>
                         </td>
-                        <td data-title="Started">
-                          <relative-timestamp timestamp="build.status.startTimestamp || build.metadata.creationTimestamp"></relative-timestamp>
-                          <span>- {{(build.status.startTimestamp || build.metadata.creationTimestamp) | date : 'short'}}</span>
+                        <td data-title="Created">
+                          <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp>
+                          <span>- {{build.metadata.creationTimestamp | date : 'short'}}</span>
                         </td>
                       </tr>
                     </tbody>

@@ -13,8 +13,11 @@
         </dd>
         <dt>Started:</dt>
         <dd>
-          <relative-timestamp timestamp="build.status.startTimestamp"></relative-timestamp>
-          <span>- {{(build.status.startTimestamp || build.metadata.creationTimestamp) | date : 'short'}}</span>
+          <span ng-if="build.status.startTimestamp">
+            <relative-timestamp timestamp="build.status.startTimestamp"></relative-timestamp>
+            <span>- {{build.status.startTimestamp | date : 'short'}}</span>
+          </span>
+          <span ng-if="!build.status.startTimestamp"><em>not started</em></span>
         </dd>
         <dt>Duration:</dt>
         <dd>
