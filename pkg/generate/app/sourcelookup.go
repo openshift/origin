@@ -16,6 +16,7 @@ import (
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/validation"
 )
 
 type Dockerfile interface {
@@ -318,6 +319,9 @@ func (r *SourceRepository) AddBuildSecrets(secrets []string) error {
 		return false
 	}
 	for _, in := range injections {
+		if ok, _ := validation.ValidateSecretName(in.SourcePath, false); !ok {
+			return fmt.Errorf("the %q must be valid secret name", in.SourcePath)
+		}
 		if secretExists(in.SourcePath) {
 			return fmt.Errorf("the %q secret can be used just once", in.SourcePath)
 		}

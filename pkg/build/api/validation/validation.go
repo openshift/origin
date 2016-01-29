@@ -234,6 +234,9 @@ func validateSecrets(secrets []buildapi.SecretBuildSource, isDockerStrategy bool
 		if len(s.Secret.Name) == 0 {
 			allErrs = append(allErrs, field.Required(fldPath.Index(i).Child("secret")))
 		}
+		if ok, _ := validation.ValidateSecretName(s.Secret.Name, false); !ok {
+			allErrs = append(allErrs, field.Invalid(fldPath.Index(i).Child("secret"), s, "must be valid secret name"))
+		}
 		if strings.HasPrefix(path.Clean(s.DestinationDir), "..") {
 			allErrs = append(allErrs, field.Invalid(fldPath.Index(i).Child("destinationDir"), s.DestinationDir, "destination dir cannot start with '..'"))
 		}
