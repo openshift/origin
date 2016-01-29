@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path"
 
+	newetcdclient "github.com/coreos/etcd/client"
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 
@@ -132,8 +133,12 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	etcdClient, err := etcd.MakeNewEtcdClient(options.EtcdClientInfo)
+	if err != nil {
+		return nil, err
+	}
 	groupVersion := unversioned.GroupVersion{Group: "", Version: options.EtcdStorageConfig.OpenShiftStorageVersion}
-	etcdHelper, err := NewEtcdStorage(client, groupVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
+	etcdHelper, err := NewEtcdStorage(etcdClient, groupVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}
@@ -196,7 +201,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 	admissionController := admission.NewChainHandler(plugins...)
 
-	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, client)
+	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, etcdClient)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +268,7 @@ func newControllerPlug(options configapi.MasterConfig, client *etcdclient.Client
 	}
 }
 
-func newServiceAccountTokenGetter(options configapi.MasterConfig, client *etcdclient.Client) (serviceaccount.ServiceAccountTokenGetter, error) {
+func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcdclient.Client) (serviceaccount.ServiceAccountTokenGetter, error) {
 	var tokenGetter serviceaccount.ServiceAccountTokenGetter
 	if options.KubernetesMasterConfig == nil {
 		// When we're running against an external Kubernetes, use the external kubernetes client to validate service account tokens
@@ -284,7 +289,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client *etcdcl
 			return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
 		ketcdHelper := etcdstorage.NewEtcdStorage(client, versionedInterface.Codec, options.EtcdStorageConfig.KubernetesStoragePrefix)
-		tokenGetter = serviceaccount.NewGetterFromStorageInterface(ketcdHelper)
+		tokenGetter = sacontroller.NewGetterFromStorageInterface(ketcdHelper)
 	}
 	return tokenGetter, nil
 }
@@ -552,7 +557,7 @@ func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kc
 }
 
 // NewEtcdStorage returns a storage interface for the provided storage version.
-func NewEtcdStorage(client *etcdclient.Client, version unversioned.GroupVersion, prefix string) (oshelper storage.Interface, err error) {
+func NewEtcdStorage(client newetcdclient.Client, version unversioned.GroupVersion, prefix string) (oshelper storage.Interface, err error) {
 	interfaces, err := latest.InterfacesFor(version)
 	if err != nil {
 		return nil, err

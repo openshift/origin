@@ -11,7 +11,7 @@ import (
 
 	"github.com/golang/glog"
 
-	etcdclient "github.com/coreos/go-etcd/etcd"
+	newetcdclient "github.com/coreos/etcd/client"
 
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
@@ -60,7 +60,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	// Connect and setup etcd interfaces
-	etcdClient, err := etcd.EtcdClient(options.EtcdClientInfo)
+	etcdClient, err := etcd.MakeNewEtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -314,14 +314,6 @@ func getAPIGroupVersionOverrides(options configapi.MasterConfig) map[string]gene
 }
 
 // NewEtcdStorage returns a storage interface for the provided storage version.
-func NewEtcdStorage(client *etcdclient.Client, version unversioned.GroupVersion, prefix string) (helper storage.Interface, err error) {
-	group, err := registered.Group(version.Group)
-	if err != nil {
-		return nil, err
-	}
-	interfaces, err := group.InterfacesFor(version)
-	if err != nil {
-		return nil, err
-	}
-	return etcdstorage.NewEtcdStorage(client, interfaces.Codec, prefix), nil
+func NewEtcdStorage(client newetcdclient.Client, version unversioned.GroupVersion, prefix string) (helper storage.Interface, err error) {
+	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix), nil
 }

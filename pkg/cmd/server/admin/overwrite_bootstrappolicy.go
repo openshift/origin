@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	etcdclient "github.com/coreos/go-etcd/etcd"
+	newetcdclient "github.com/coreos/etcd/client"
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -106,10 +106,15 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 	}
 
 	// Connect and setup etcd interfaces
-	etcdClient, err := etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
+	_, err = etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
 	if err != nil {
 		return err
 	}
+	etcdClient, err := etcd.MakeNewEtcdClient(masterConfig.EtcdClientInfo)
+	if err != nil {
+		return err
+	}
+
 	storage, err := newStorage(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return err
@@ -228,6 +233,6 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 }
 
 // newStorage returns an EtcdHelper for the provided storage version.
-func newStorage(client *etcdclient.Client, version, prefix string) (oshelper storage.Interface, err error) {
+func newStorage(client newetcdclient.Client, version, prefix string) (oshelper storage.Interface, err error) {
 	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: version}), prefix), nil
 }

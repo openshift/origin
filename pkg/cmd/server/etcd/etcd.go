@@ -7,6 +7,7 @@ import (
 	"net/http/httputil"
 	"time"
 
+	newetcdclient "github.com/coreos/etcd/client"
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 
@@ -62,6 +63,42 @@ func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client
 	etcdClient.SetTransport(transport)
 	etcdClient.CheckRetry = NeverRetryOnFailure
 	return etcdClient, nil
+}
+
+// MakeNewEtcdClient creates an etcd client based on the provided config.
+func MakeNewEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (newetcdclient.Client, error) {
+	tlsConfig, err := client.TLSConfigFor(&client.Config{
+		TLSClientConfig: client.TLSClientConfig{
+			CertFile: etcdClientInfo.ClientCert.CertFile,
+			KeyFile:  etcdClientInfo.ClientCert.KeyFile,
+			CAFile:   etcdClientInfo.CA,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		Dial: (&net.Dialer{
+			// default from http.DefaultTransport
+			Timeout: 30 * time.Second,
+			// Lower the keep alive for connections.
+			KeepAlive: 1 * time.Second,
+		}).Dial,
+		// Because watches are very bursty, defends against long delays in watch reconnections.
+		MaxIdleConnsPerHost: 500,
+		// defaults from http.DefaultTransport
+		Proxy:               http.ProxyFromEnvironment,
+		TLSHandshakeTimeout: 10 * time.Second,
+	}
+
+	cfg := newetcdclient.Config{
+		Endpoints: etcdClientInfo.URLs,
+		// TODO: Determine if transport needs optimization
+		Transport: transport,
+	}
+	return newetcdclient.New(cfg)
 }
 
 // TestEtcdClient verifies a client is functional.  It will attempt to

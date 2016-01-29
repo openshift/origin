@@ -41,12 +41,12 @@ type AuthConfig struct {
 }
 
 func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
-	client, err := etcd.EtcdClient(options.EtcdClientInfo)
+	etcdClient, err := etcd.MakeNewEtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
 	}
 	groupVersion := unversioned.GroupVersion{Group: "", Version: options.EtcdStorageConfig.OpenShiftStorageVersion}
-	etcdHelper, err := NewEtcdStorage(client, groupVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
+	etcdHelper, err := NewEtcdStorage(etcdClient, groupVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}
@@ -56,7 +56,7 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 	for _, url := range options.EtcdClientInfo.URLs {
 		backendClientInfo := options.EtcdClientInfo
 		backendClientInfo.URLs = []string{url}
-		backendClient, err := etcd.EtcdClient(backendClientInfo)
+		backendClient, err := etcd.MakeNewEtcdClient(backendClientInfo)
 		if err != nil {
 			return nil, err
 		}
