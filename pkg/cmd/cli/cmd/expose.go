@@ -53,6 +53,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	// when validating the use of it (invalid for routes)
 	cmd.Flags().Set("protocol", "")
 	cmd.Flag("protocol").DefValue = ""
+	cmd.Flag("protocol").Changed = false
 	defRun := cmd.Run
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		err := validate(cmd, f, args)

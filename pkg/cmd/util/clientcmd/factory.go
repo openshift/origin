@@ -124,6 +124,19 @@ type Factory struct {
 	clients               *clientCache
 }
 
+func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
+	generators := map[string]map[string]kubectl.Generator{}
+	generators["run"] = map[string]kubectl.Generator{
+		"run/v1":            deploygen.BasicDeploymentConfigController{},
+		"run-controller/v1": kubectl.BasicReplicationController{},
+	}
+	generators["expose"] = map[string]kubectl.Generator{
+		"route/v1": routegen.RouteGenerator{},
+	}
+
+	return generators[cmdName]
+}
+
 // NewFactory creates an object that holds common methods across all OpenShift commands
 func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	mapper := ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: latest.RESTMapper}}
@@ -132,12 +145,6 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		clients: make(map[string]*client.Client),
 		configs: make(map[string]*kclient.Config),
 		loader:  clientConfig,
-	}
-
-	generators := map[string]kubectl.Generator{
-		"route/v1":          routegen.RouteGenerator{},
-		"run/v1":            deploygen.BasicDeploymentConfigController{},
-		"run-controller/v1": kubectl.BasicReplicationController{},
 	}
 
 	w := &Factory{
@@ -241,12 +248,19 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kReaperFunc(mapping)
 	}
-	kGeneratorFunc := w.Factory.Generator
-	w.Generator = func(name string) (kubectl.Generator, bool) {
-		if generator, ok := generators[name]; ok {
-			return generator, true
+	kGenerators := w.Factory.Generators
+	w.Generators = func(cmdName string) map[string]kubectl.Generator {
+		originGenerators := DefaultGenerators(cmdName)
+		kubeGenerators := kGenerators(cmdName)
+
+		ret := map[string]kubectl.Generator{}
+		for k, v := range kubeGenerators {
+			ret[k] = v
 		}
-		return kGeneratorFunc(name)
+		for k, v := range originGenerators {
+			ret[k] = v
+		}
+		return ret
 	}
 	kPodSelectorForObjectFunc := w.Factory.PodSelectorForObject
 	w.PodSelectorForObject = func(object runtime.Object) (string, error) {
