@@ -748,47 +748,47 @@
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
 			"Comment": "v1.0.4-50-g78f4e4f",
-			"Rev": "56dd02330716bd0ed94b87236a9989933b490237"
+			"Rev": "91769895109ea8f193f41bc0e2eb6ba83b30a894"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build",
 			"Comment": "v1.0.4-50-g78f4e4f",
-			"Rev": "56dd02330716bd0ed94b87236a9989933b490237"
+			"Rev": "91769895109ea8f193f41bc0e2eb6ba83b30a894"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/docker",
 			"Comment": "v1.0.4-50-g78f4e4f",
-			"Rev": "56dd02330716bd0ed94b87236a9989933b490237"
+			"Rev": "91769895109ea8f193f41bc0e2eb6ba83b30a894"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/errors",
 			"Comment": "v1.0.4-50-g78f4e4f",
-			"Rev": "56dd02330716bd0ed94b87236a9989933b490237"
+			"Rev": "91769895109ea8f193f41bc0e2eb6ba83b30a894"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/ignore",
 			"Comment": "v1.0.4-50-g78f4e4f",
-			"Rev": "56dd02330716bd0ed94b87236a9989933b490237"
+			"Rev": "91769895109ea8f193f41bc0e2eb6ba83b30a894"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scm",
 			"Comment": "v1.0.4-50-g78f4e4f",
-			"Rev": "56dd02330716bd0ed94b87236a9989933b490237"
+			"Rev": "91769895109ea8f193f41bc0e2eb6ba83b30a894"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scripts",
 			"Comment": "v1.0.4-50-g78f4e4f",
-			"Rev": "56dd02330716bd0ed94b87236a9989933b490237"
+			"Rev": "91769895109ea8f193f41bc0e2eb6ba83b30a894"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/tar",
 			"Comment": "v1.0.4-50-g78f4e4f",
-			"Rev": "56dd02330716bd0ed94b87236a9989933b490237"
+			"Rev": "91769895109ea8f193f41bc0e2eb6ba83b30a894"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util",
 			"Comment": "v1.0.4-50-g78f4e4f",
-			"Rev": "56dd02330716bd0ed94b87236a9989933b490237"
+			"Rev": "91769895109ea8f193f41bc0e2eb6ba83b30a894"
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",

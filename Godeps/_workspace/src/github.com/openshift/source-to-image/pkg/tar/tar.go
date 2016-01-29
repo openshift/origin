@@ -111,17 +111,20 @@ func (t *stiTar) StreamDirAsTar(source, dest string, writer io.Writer) error {
 	if err := fs.Copy(source, tmpDir); err != nil {
 		return err
 	}
-	err = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
+	// Skip chmod if on windows OS
+	if runtime.GOOS != "windows" {
+		err = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return os.Chmod(path, 0777)
+			}
+			return os.Chmod(path, 0666)
+		})
 		if err != nil {
 			return err
 		}
-		if info.IsDir() {
-			return os.Chmod(path, 0777)
-		}
-		return os.Chmod(path, 0666)
-	})
-	if err != nil {
-		return err
 	}
 	return t.CreateTarStream(tmpDir, false, writer)
 }
@@ -147,8 +150,10 @@ func (t *stiTar) StreamFileAsTar(source, name string, writer io.Writer) error {
 	if err := fs.Copy(source, dst); err != nil {
 		return err
 	}
-	if err := os.Chmod(dst, 0666); err != nil {
-		return err
+	if runtime.GOOS != "windows" {
+		if err := os.Chmod(dst, 0666); err != nil {
+			return err
+		}
 	}
 	return t.CreateTarStream(tmpDir, false, writer)
 }
@@ -194,9 +199,9 @@ func (t *stiTar) CreateTarStreamWithLogging(dir string, includeDirInPath bool, w
 			// if file is a link just writing header info is enough
 			if info.Mode()&os.ModeSymlink != 0 {
 				if err := t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
-					glog.Errorf("	Error writing header for %s: %v", info.Name(), err)
+					glog.Errorf("Error writing header for %q: %v", info.Name(), err)
 				}
-				return nil
+				return err
 			}
 
 			// regular files are copied into tar, if accessible
@@ -207,11 +212,11 @@ func (t *stiTar) CreateTarStreamWithLogging(dir string, includeDirInPath bool, w
 			}
 			defer file.Close()
 			if err := t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
-				glog.Errorf("Error writing header for %s: %v", info.Name(), err)
-				return nil
+				glog.Errorf("Error writing header for %q: %v", info.Name(), err)
+				return err
 			}
 			if _, err = io.Copy(tarWriter, file); err != nil {
-				glog.Errorf("Error copying file %s to tar: %v", path, err)
+				glog.Errorf("Error copying file %q to tar: %v", path, err)
 				return err
 			}
 		}
