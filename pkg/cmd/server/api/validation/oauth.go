@@ -67,7 +67,7 @@ func ValidateOAuthConfig(config *api.OAuthConfig, fldPath *field.Path) Validatio
 		if identityProvider.UseAsChallenger {
 			// RequestHeaderIdentityProvider is special, it can only react to challenge clients by redirecting them
 			// Make sure we don't have more than a single redirector, and don't have a mix of challenge issuers and redirectors
-			if _, isRequestHeader := identityProvider.Provider.Object.(*api.RequestHeaderIdentityProvider); isRequestHeader {
+			if _, isRequestHeader := identityProvider.Provider.(*api.RequestHeaderIdentityProvider); isRequestHeader {
 				challengeRedirectingIdentityProviders = append(challengeRedirectingIdentityProviders, identityProvider.Name)
 			} else {
 				challengeIssuingIdentityProviders = append(challengeIssuingIdentityProviders, identityProvider.Name)
@@ -154,7 +154,7 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider, fldPath *fi
 	if !api.IsIdentityProviderType(identityProvider.Provider) {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("provider"), identityProvider.Provider, fmt.Sprintf("%v is invalid in this context", identityProvider.Provider)))
 	} else {
-		switch provider := identityProvider.Provider.Object.(type) {
+		switch provider := identityProvider.Provider.(type) {
 		case (*api.RequestHeaderIdentityProvider):
 			validationResults.Append(ValidateRequestHeaderIdentityProvider(provider, identityProvider))
 

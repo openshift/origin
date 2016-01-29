@@ -570,7 +570,7 @@ type IdentityProvider struct {
 	// MappingMethod determines how identities from this provider are mapped to users
 	MappingMethod string
 	// Provider contains the information about how to set up a specific identity provider
-	Provider runtime.EmbeddedObject
+	Provider runtime.Object
 }
 
 type BasicAuthPasswordIdentityProvider struct {
@@ -983,7 +983,7 @@ type AdmissionPluginConfig struct {
 
 	// Configuration is an embedded configuration object to be used as the plugin's
 	// configuration. If present, it will be used instead of the path to the configuration file.
-	Configuration runtime.EmbeddedObject
+	Configuration runtime.Object
 }
 
 type AdmissionConfig struct {

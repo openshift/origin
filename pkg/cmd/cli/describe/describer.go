@@ -1042,12 +1042,12 @@ const policyRuleHeadings = "Verbs\tNon-Resource URLs\tExtension\tResource Names\
 
 func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
 	extensionString := ""
-	if rule.AttributeRestrictions != (runtime.EmbeddedObject{}) {
-		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions.Object)
+	if rule.AttributeRestrictions != nil {
+		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions)
 
 		buffer := new(bytes.Buffer)
 		printer := NewHumanReadablePrinter(true, false, false, false, false, []string{})
-		if err := printer.PrintObj(rule.AttributeRestrictions.Object, buffer); err == nil {
+		if err := printer.PrintObj(rule.AttributeRestrictions, buffer); err == nil {
 			extensionString = strings.TrimSpace(buffer.String())
 		}
 	}
