@@ -18,17 +18,15 @@ import (
 
 // TestRouter provides an implementation of the plugin's router interface suitable for unit testing.
 type TestRouter struct {
-	State         map[string]ServiceUnit
-	Committed     bool
-	ErrorOnCommit error
+	State     map[string]ServiceUnit
+	Committed bool
 }
 
 // NewTestRouter creates a new TestRouter and registers the initial state.
 func newTestRouter(state map[string]ServiceUnit) *TestRouter {
 	return &TestRouter{
-		State:         state,
-		Committed:     false,
-		ErrorOnCommit: nil,
+		State:     state,
+		Committed: false,
 	}
 }
 
@@ -121,9 +119,8 @@ func (r *TestRouter) routeKey(route *routeapi.Route) string {
 }
 
 // Commit saves router state
-func (r *TestRouter) Commit() error {
+func (r *TestRouter) Commit() {
 	r.Committed = true
-	return r.ErrorOnCommit
 }
 
 // TestHandleEndpoints test endpoint watch events
