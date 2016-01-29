@@ -97,7 +97,7 @@ func (p *ProjectOptions) GetProjects() ([]*api.Project, error) {
 		nameArgs = append(nameArgs, p.ProjectNames...)
 	}
 
-	r := resource.NewBuilder(p.Mapper, p.Typer, resource.ClientMapperFunc(p.RESTClientFactory)).
+	r := resource.NewBuilder(p.Mapper, p.Typer, resource.ClientMapperFunc(p.RESTClientFactory), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(p.DefaultNamespace).
 		SelectorParam(p.Selector).
