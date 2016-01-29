@@ -70,7 +70,8 @@
                   context="logContext"
                   options="logOptions"
                   status="deployment | deploymentStatus"
-                  start="deployment.metadata.creationTimestamp | date : 'short'">
+                  start="deployment.metadata.creationTimestamp | date : 'short'"
+                  run="logCanRun">
                 </log-viewer>
               </uib-tab>
             </uib-tabset>

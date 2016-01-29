@@ -37,11 +37,13 @@ angular.module('openshiftConsole')
           status: '=?',
           start: '=?',
           end: '=?',
-          chromeless: '=?'
+          chromeless: '=?',
+          run: '=?'  // will wait for run to be truthy before requesting logs
         },
         controller: [
           '$scope',
           function($scope) {
+
             $scope.loading = true;
 
             // Default to false. Let the user click the follow link to start auto-scrolling.
@@ -138,6 +140,10 @@ angular.module('openshiftConsole')
               stopStreaming();
 
               if (!$scope.name) {
+                return;
+              }
+
+              if(!$scope.run) {
                 return;
               }
 
