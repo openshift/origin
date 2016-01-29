@@ -36,6 +36,7 @@ func init() {
 		&KeystonePasswordIdentityProvider{},
 		&RequestHeaderIdentityProvider{},
 		&GitHubIdentityProvider{},
+		&GitLabIdentityProvider{},
 		&GoogleIdentityProvider{},
 		&OpenIDIdentityProvider{},
 		&GrantConfig{},
@@ -54,6 +55,7 @@ func (*LDAPPasswordIdentityProvider) IsAnAPIObject()      {}
 func (*KeystonePasswordIdentityProvider) IsAnAPIObject()  {}
 func (*RequestHeaderIdentityProvider) IsAnAPIObject()     {}
 func (*GitHubIdentityProvider) IsAnAPIObject()            {}
+func (*GitLabIdentityProvider) IsAnAPIObject()            {}
 func (*GoogleIdentityProvider) IsAnAPIObject()            {}
 func (*OpenIDIdentityProvider) IsAnAPIObject()            {}
 func (*GrantConfig) IsAnAPIObject()                       {}

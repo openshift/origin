@@ -187,6 +187,9 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.KeyFile)
 
+			case (*GitLabIdentityProvider):
+				refs = append(refs, &provider.CA)
+
 			case (*OpenIDIdentityProvider):
 				refs = append(refs, &provider.CA)
 
@@ -475,6 +478,7 @@ func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
 		(*KeystonePasswordIdentityProvider),
 		(*OpenIDIdentityProvider),
 		(*GitHubIdentityProvider),
+		(*GitLabIdentityProvider),
 		(*GoogleIdentityProvider):
 
 		return true
@@ -488,6 +492,7 @@ func IsOAuthIdentityProvider(provider IdentityProvider) bool {
 	case
 		(*OpenIDIdentityProvider),
 		(*GitHubIdentityProvider),
+		(*GitLabIdentityProvider),
 		(*GoogleIdentityProvider):
 
 		return true

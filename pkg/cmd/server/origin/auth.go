@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
+	"github.com/openshift/origin/pkg/auth/oauth/external/gitlab"
 	"github.com/openshift/origin/pkg/auth/oauth/external/google"
 	"github.com/openshift/origin/pkg/auth/oauth/external/openid"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
@@ -446,6 +447,13 @@ func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvide
 	switch provider := identityProvider.Provider.Object.(type) {
 	case (*configapi.GitHubIdentityProvider):
 		return github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret), nil
+
+	case (*configapi.GitLabIdentityProvider):
+		transport, err := cmdutil.TransportFor(provider.CA, "", "")
+		if err != nil {
+			return nil, err
+		}
+		return gitlab.NewProvider(identityProvider.Name, transport, provider.URL, provider.ClientID, provider.ClientSecret)
 
 	case (*configapi.GoogleIdentityProvider):
 		return google.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret, provider.HostedDomain)
