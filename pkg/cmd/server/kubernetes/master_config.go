@@ -13,12 +13,13 @@ import (
 
 	newetcdclient "github.com/coreos/etcd/client"
 
-	"k8s.io/kubernetes/cmd/kube-apiserver/app"
+	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
@@ -27,9 +28,9 @@ import (
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	"k8s.io/kubernetes/pkg/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/intstr"
+	knet "k8s.io/kubernetes/pkg/util/net"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -83,7 +84,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		return nil, err
 	}
 
-	portRange, err := util.ParsePortRange(options.KubernetesMasterConfig.ServicesNodePortRange)
+	portRange, err := knet.ParsePortRange(options.KubernetesMasterConfig.ServicesNodePortRange)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +94,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		return nil, fmt.Errorf("unable to parse PodEvictionTimeout: %v", err)
 	}
 
-	server := app.NewAPIServer()
+	server := apiserveroptions.NewAPIServer()
 	server.EventTTL = 2 * time.Hour
 	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
@@ -185,7 +186,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 
 	// TODO you have to know every APIGroup you're enabling or upstream will panic.  It's alternative to panicing is Fataling
 	// It needs a refactor to return errors
-	storageDestinations := master.NewStorageDestinations()
+	storageDestinations := genericapiserver.NewStorageDestinations()
 	// storageVersions is a map from API group to allowed versions that must be a version exposed by the REST API or it breaks.
 	// We need to fix the upstream to stop using the storage version as a preferred api version.
 	storageVersions := map[string]string{}
@@ -213,14 +214,14 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			return nil, fmt.Errorf("Error setting up Kubernetes extensions server storage: %v", err)
 		}
 		storageDestinations.AddAPIGroup(configapi.APIGroupExtensions, databaseStorage)
-		storageVersions[configapi.APIGroupExtensions] = enabledExtensionsVersions[0]
+		storageVersions[configapi.APIGroupExtensions] = unversioned.GroupVersion{Group: extensions.GroupName, Version: enabledExtensionsVersions[0]}.String()
 	}
 
 	// Preserve previous behavior of using the first non-loopback address
 	// TODO: Deprecate this behavior and just require a valid value to be passed in
 	publicAddress := net.ParseIP(options.KubernetesMasterConfig.MasterIP)
 	if publicAddress == nil || publicAddress.IsUnspecified() || publicAddress.IsLoopback() {
-		hostIP, err := util.ChooseHostInterface()
+		hostIP, err := knet.ChooseHostInterface()
 		if err != nil {
 			glog.Fatalf("Unable to find suitable network address.error='%v'. Set the masterIP directly to avoid this error.", err)
 		}
@@ -229,40 +230,44 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	m := &master.Config{
-		PublicAddress: publicAddress,
-		ReadWritePort: port,
+		Config: &genericapiserver.Config{
+			PublicAddress: publicAddress,
+			ReadWritePort: port,
 
-		StorageDestinations: storageDestinations,
-		StorageVersions:     storageVersions,
+			Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
+			AdmissionControl: admissionController,
+
+			StorageDestinations: storageDestinations,
+			StorageVersions:     storageVersions,
+
+			ServiceClusterIPRange: (*net.IPNet)(&server.ServiceClusterIPRange),
+			ServiceNodePortRange:  server.ServiceNodePortRange,
+
+			RequestContextMapper: requestContextMapper,
+
+			APIGroupVersionOverrides: getAPIGroupVersionOverrides(options),
+			APIPrefix:                KubeAPIPrefix,
+			APIGroupPrefix:           KubeAPIGroupPrefix,
+
+			MasterCount: options.KubernetesMasterConfig.MasterCount,
+
+			// Set the TLS options for proxying to pods and services
+			// Proxying to nodes uses the kubeletClient TLS config (so can provide a different cert, and verify the node hostname)
+			ProxyTLSClientConfig: &tls.Config{
+				// Proxying to pods and services cannot verify hostnames, since they are contacted on randomly allocated IPs
+				InsecureSkipVerify: true,
+				Certificates:       proxyClientCerts,
+			},
+
+			Serializer: kapi.Codecs,
+		},
 
 		EventTTL: server.EventTTL,
 		//MinRequestTimeout: server.MinRequestTimeout,
 
-		ServiceClusterIPRange: (*net.IPNet)(&server.ServiceClusterIPRange),
-		ServiceNodePortRange:  server.ServiceNodePortRange,
-
-		RequestContextMapper: requestContextMapper,
-
-		KubeletClient:  kubeletClient,
-		APIPrefix:      KubeAPIPrefix,
-		APIGroupPrefix: KubeAPIGroupPrefix,
+		KubeletClient: kubeletClient,
 
 		EnableCoreControllers: true,
-
-		MasterCount: options.KubernetesMasterConfig.MasterCount,
-
-		Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
-		AdmissionControl: admissionController,
-
-		APIGroupVersionOverrides: getAPIGroupVersionOverrides(options),
-
-		// Set the TLS options for proxying to pods and services
-		// Proxying to nodes uses the kubeletClient TLS config (so can provide a different cert, and verify the node hostname)
-		ProxyTLSClientConfig: &tls.Config{
-			// Proxying to pods and services cannot verify hostnames, since they are contacted on randomly allocated IPs
-			InsecureSkipVerify: true,
-			Certificates:       proxyClientCerts,
-		},
 	}
 
 	if options.DNSConfig != nil {

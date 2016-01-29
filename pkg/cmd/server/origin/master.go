@@ -17,11 +17,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	kmaster "k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -142,8 +144,8 @@ func (fn APIInstallFunc) InstallAPI(container *restful.Container) []string {
 func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller) {
 	var extra []string
 
-	safe := kmaster.NewHandlerContainer(http.NewServeMux())
-	open := kmaster.NewHandlerContainer(http.NewServeMux())
+	safe := genericapiserver.NewHandlerContainer(http.NewServeMux(), kapi.Codecs)
+	open := genericapiserver.NewHandlerContainer(http.NewServeMux(), kapi.Codecs)
 
 	// enforce authentication on protected endpoints
 	protected = append(protected, APIInstallFunc(c.InstallProtectedAPI))
@@ -216,7 +218,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 func (c *MasterConfig) RunHealth() {
 	ws := &restful.WebService{}
 	mux := http.NewServeMux()
-	hc := kmaster.NewHandlerContainer(mux)
+	hc := genericapiserver.NewHandlerContainer(mux, kapi.Codecs)
 	hc.Add(ws)
 
 	initHealthCheckRoute(ws, "/healthz")
@@ -536,7 +538,7 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 
 // initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
 func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...string) {
-	versionHandler := apiserver.APIVersionHandler(versions...)
+	versionHandler := apiserver.APIVersionHandler(kapi.Codecs, versions...)
 	root.Route(root.GET(prefix).To(versionHandler).
 		Doc("list supported server API versions").
 		Produces(restful.MIME_JSON).
@@ -585,7 +587,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 	return &apiserver.APIGroupVersion{
 		Root: OpenShiftAPIPrefix,
 
-		Mapper: latest.RESTMapper,
+		Mapper: registered.GroupOrDie("").RESTMapper,
 
 		Creater:   kapi.Scheme,
 		Typer:     kapi.Scheme,
@@ -611,7 +613,8 @@ func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGr
 	version.Root = LegacyOpenShiftAPIPrefix
 	version.Storage = storage
 	version.GroupVersion = v1beta3.SchemeGroupVersion
-	version.Codec = v1beta3.Codec
+	version.Serializer = kapi.Codecs
+	version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
 	version.NonDefaultGroupVersionKinds["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 	return version
 }
@@ -628,7 +631,8 @@ func (c *MasterConfig) api_v1(all map[string]rest.Storage) *apiserver.APIGroupVe
 	version := c.defaultAPIGroupVersion()
 	version.Storage = storage
 	version.GroupVersion = v1.SchemeGroupVersion
-	version.Codec = v1.Codec
+	version.Serializer = kapi.Codecs
+	version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
 	version.NonDefaultGroupVersionKinds["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 	return version
 }

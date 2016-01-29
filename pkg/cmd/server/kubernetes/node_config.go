@@ -11,10 +11,11 @@ import (
 	"github.com/golang/glog"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
@@ -77,14 +78,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		glog.Warningf(`Using "localhost" as node name will not resolve from all locations`)
 	}
 
-	var dnsIP net.IP
-	if len(options.DNSIP) > 0 {
-		dnsIP = net.ParseIP(options.DNSIP)
-		if dnsIP == nil {
-			return nil, fmt.Errorf("Invalid DNS IP: %s", options.DNSIP)
-		}
-	}
-
 	clientCAs, err := util.CertPoolFromFile(options.ServingInfo.ClientCA)
 	if err != nil {
 		return nil, err
@@ -118,39 +111,28 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse node port: %v", err)
 	}
-	kubeAddress := net.ParseIP(kubeAddressStr)
-	if kubeAddress == nil {
-		return nil, fmt.Errorf("Invalid DNS IP: %s", kubeAddressStr)
-	}
 
 	// declare the OpenShift defaults from config
-	server := kapp.NewKubeletServer()
+	server := kubeletoptions.NewKubeletServer()
 	server.Config = path
 	server.RootDirectory = options.VolumeDirectory
-
-	if len(options.NodeIP) > 0 {
-		nodeIP := net.ParseIP(options.NodeIP)
-		if nodeIP == nil {
-			return nil, fmt.Errorf("Invalid Node IP: %s", options.NodeIP)
-		}
-		server.NodeIP = nodeIP
-	}
+	server.NodeIP = options.NodeIP
 	server.HostnameOverride = options.NodeName
 	server.AllowPrivileged = true
 	server.RegisterNode = true
-	server.Address = kubeAddress
+	server.Address = kubeAddressStr
 	server.Port = uint(kubePort)
 	server.ReadOnlyPort = 0 // no read only access
 	server.CAdvisorPort = 0 // no unsecured cadvisor access
 	server.HealthzPort = 0  // no unsecured healthz access
-	server.ClusterDNS = dnsIP
+	server.ClusterDNS = options.DNSIP
 	server.ClusterDomain = options.DNSDomain
 	server.NetworkPluginName = options.NetworkConfig.NetworkPluginName
 	server.HostNetworkSources = strings.Join([]string{kubelettypes.ApiserverSource, kubelettypes.FileSource}, ",")
 	server.HostPIDSources = strings.Join([]string{kubelettypes.ApiserverSource, kubelettypes.FileSource}, ",")
 	server.HostIPCSources = strings.Join([]string{kubelettypes.ApiserverSource, kubelettypes.FileSource}, ",")
-	server.HTTPCheckFrequency = 0 // no remote HTTP pod creation access
-	server.FileCheckFrequency = time.Duration(fileCheckInterval) * time.Second
+	server.HTTPCheckFrequency = unversioned.Duration{Duration: time.Duration(0)} // no remote HTTP pod creation access
+	server.FileCheckFrequency = unversioned.Duration{Duration: time.Duration(fileCheckInterval) * time.Second}
 	server.PodInfraContainerImage = imageTemplate.ExpandOrDie("pod")
 	server.CPUCFSQuota = true // enable cpu cfs quota enforcement by default
 
@@ -169,7 +151,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		return nil, errors.NewAggregate(err)
 	}
 
-	cfg, err := server.UnsecuredKubeletConfig()
+	cfg, err := kubeletapp.UnsecuredKubeletConfig(server)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +206,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		return nil, err
 	}
 
-	cfg.Auth = kubelet.NewKubeletAuth(authn, authzAttr, authz)
+	cfg.Auth = kubeletserver.NewKubeletAuth(authn, authzAttr, authz)
 
 	// Make sure the node doesn't think it is in standalone mode
 	// This is required for the node to enforce nodeSelectors on pods, to set hostIP on pod status updates, etc
@@ -236,7 +218,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		if err != nil {
 			return nil, err
 		}
-		cfg.TLSOptions = &kubelet.TLSOptions{
+		cfg.TLSOptions = &kubeletserver.TLSOptions{
 			Config: crypto.SecureTLSConfig(&tls.Config{
 				// RequestClientCert lets us request certs, but allow requests without client certs
 				// Verification is done by the authn layer

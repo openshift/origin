@@ -24,7 +24,6 @@ import (
 	kutilrand "k8s.io/kubernetes/pkg/util/rand"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
@@ -280,15 +279,8 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcd
 		tokenGetter = sacontroller.NewGetterFromClient(kubeClient)
 	} else {
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
-		legacyGroup, err := kapilatest.Group(kapi.SchemeGroupVersion.Group)
-		if err != nil {
-			return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
-		}
-		versionedInterface, err := legacyGroup.InterfacesFor(unversioned.GroupVersion{Group: kapi.SchemeGroupVersion.Group, Version: options.EtcdStorageConfig.KubernetesStorageVersion})
-		if err != nil {
-			return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
-		}
-		ketcdHelper := etcdstorage.NewEtcdStorage(client, versionedInterface.Codec, options.EtcdStorageConfig.KubernetesStoragePrefix)
+		codec := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion})
+		ketcdHelper := etcdstorage.NewEtcdStorage(client, codec, options.EtcdStorageConfig.KubernetesStoragePrefix)
 		tokenGetter = sacontroller.NewGetterFromStorageInterface(ketcdHelper)
 	}
 	return tokenGetter, nil
@@ -558,11 +550,7 @@ func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kc
 
 // NewEtcdStorage returns a storage interface for the provided storage version.
 func NewEtcdStorage(client newetcdclient.Client, version unversioned.GroupVersion, prefix string) (oshelper storage.Interface, err error) {
-	interfaces, err := latest.InterfacesFor(version)
-	if err != nil {
-		return nil, err
-	}
-	return etcdstorage.NewEtcdStorage(client, interfaces.Codec, prefix), nil
+	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix), nil
 }
 
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the

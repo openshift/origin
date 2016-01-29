@@ -10,6 +10,7 @@ import (
 
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
@@ -157,7 +158,7 @@ func (c *NodeConfig) RunKubelet() {
 	c.KubeletConfig.ContainerManager = defaultContainerManagerInterface
 
 	go func() {
-		glog.Fatal(c.KubeletServer.Run(c.KubeletConfig))
+		glog.Fatal(kubeletapp.Run(c.KubeletServer, c.KubeletConfig))
 	}()
 }
 

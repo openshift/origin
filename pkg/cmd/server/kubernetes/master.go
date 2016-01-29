@@ -186,13 +186,13 @@ func attemptToLoadRecycler(path string, config *volume.VolumeConfig) error {
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunReplicationController(client *client.Client) {
-	controllerManager := replicationcontroller.NewReplicationManager(client, c.ControllerManager.ResyncPeriod, replicationcontroller.BurstReplicas)
+	controllerManager := replicationcontroller.NewReplicationManager(client, kctrlmgr.ResyncPeriod(c.ControllerManager), replicationcontroller.BurstReplicas)
 	go controllerManager.Run(c.ControllerManager.ConcurrentRCSyncs, util.NeverStop)
 }
 
 // RunJobController starts the Kubernetes job controller sync loop
 func (c *MasterConfig) RunJobController(client *client.Client) {
-	controller := jobcontroller.NewJobController(client, c.ControllerManager.ResyncPeriod)
+	controller := jobcontroller.NewJobController(client, kctrlmgr.ResyncPeriod(c.ControllerManager))
 	go controller.Run(c.ControllerManager.ConcurrentJobSyncs, util.NeverStop)
 }
 
@@ -210,7 +210,7 @@ func (c *MasterConfig) RunDaemonSetsController(client *client.Client) {
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunEndpointController() {
-	endpoints := endpointcontroller.NewEndpointController(c.KubeClient, c.ControllerManager.ResyncPeriod)
+	endpoints := endpointcontroller.NewEndpointController(c.KubeClient, kctrlmgr.ResyncPeriod(c.ControllerManager))
 	go endpoints.Run(c.ControllerManager.ConcurrentEndpointSyncs, util.NeverStop)
 
 }
