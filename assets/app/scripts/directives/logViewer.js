@@ -216,7 +216,7 @@ angular.module('openshiftConsole')
               streamer.start();
             };
 
-            $scope.$watchGroup(['name', 'options.container'], streamLogs);
+            $scope.$watchGroup(['name', 'options.container', 'run'], streamLogs);
 
             $scope.$on('$destroy', function() {
               // Close streamer if open. (No-op if not streaming.)
