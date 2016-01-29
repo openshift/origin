@@ -99,7 +99,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 	podLogOptions := o.KubeLogOptions.Options.(*kapi.PodLogOptions)
 
 	mapper, typer := f.Object()
-	infos, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+	infos, err := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(namespace).DefaultNamespace().
 		ResourceNames("pods", args...).
 		SingleResourceType().RequireObject(false).

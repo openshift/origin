@@ -18,7 +18,6 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -191,10 +190,7 @@ func (c *MasterConfig) RunBuildController() {
 
 	storageVersion := c.Options.EtcdStorageConfig.OpenShiftStorageVersion
 	groupVersion := unversioned.GroupVersion{Group: "", Version: storageVersion}
-	interfaces, err := latest.InterfacesFor(groupVersion)
-	if err != nil {
-		glog.Fatalf("Unable to load storage version %s: %v", storageVersion, err)
-	}
+	codec := kapi.Codecs.LegacyCodec(groupVersion)
 
 	admissionControl := admission.NewFromPlugins(c.PrivilegedLoopbackKubernetesClient, []string{"SecurityContextConstraint"}, "")
 
@@ -206,18 +202,18 @@ func (c *MasterConfig) RunBuildController() {
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: dockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: interfaces.Codec,
+			Codec: codec,
 		},
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
 			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec:            interfaces.Codec,
+			Codec:            codec,
 			AdmissionControl: admissionControl,
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: interfaces.Codec,
+			Codec: codec,
 		},
 	}
 
@@ -383,7 +379,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 	var etcdAlloc *etcdallocator.Etcd
 	uidAllocator := uidallocator.New(uidRange, func(max int, rangeSpec string) allocator.Interface {
 		mem := allocator.NewContiguousAllocationMap(max, rangeSpec)
-		etcdAlloc = etcdallocator.NewEtcd(mem, "/ranges/uids", "uidallocation", c.EtcdHelper)
+		etcdAlloc = etcdallocator.NewEtcd(mem, "/ranges/uids", kapi.Resource("uidallocation"), c.EtcdHelper)
 		return etcdAlloc
 	})
 	mcsRange, err := mcs.ParseRange(alloc.MCSAllocatorRange)

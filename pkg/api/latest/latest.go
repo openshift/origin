@@ -29,12 +29,6 @@ var OldestVersion = v1beta3.SchemeGroupVersion
 // with a set of versions to choose.
 var Versions = []unversioned.GroupVersion{v1.SchemeGroupVersion, v1beta3.SchemeGroupVersion}
 
-// Codec is the default codec for serializing output that should use
-// the latest supported version.  Use this Codec when writing to
-// disk, a data store that is not dynamically versioned, or in tests.
-// This codec can decode any object that OpenShift is aware of.
-var Codec = v1.Codec
-
 // accessor is the shared static metadata accessor for the API.
 var accessor = kmeta.NewAccessor()
 
@@ -59,13 +53,11 @@ func InterfacesFor(version unversioned.GroupVersion) (*kmeta.VersionInterfaces, 
 	switch version {
 	case v1beta3.SchemeGroupVersion:
 		return &kmeta.VersionInterfaces{
-			Codec:            v1beta3.Codec,
 			ObjectConvertor:  api.Scheme,
 			MetadataAccessor: accessor,
 		}, nil
 	case v1.SchemeGroupVersion:
 		return &kmeta.VersionInterfaces{
-			Codec:            v1.Codec,
 			ObjectConvertor:  api.Scheme,
 			MetadataAccessor: accessor,
 		}, nil

@@ -71,7 +71,7 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 	buildClient := client.Builds(namespace)
 
 	mapper, typer := f.Object()
-	obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+	obj, err := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(namespace).
 		ResourceNames("builds", buildName).
 		SingleResourceType().

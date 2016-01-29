@@ -31,6 +31,7 @@ import (
 	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
 	resourcequotacontroller "k8s.io/kubernetes/pkg/controller/resourcequota"
 	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/volume"
@@ -261,13 +262,13 @@ func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
 	var configData []byte
 
 	// TODO make the rate limiter configurable
-	configFactory := factory.NewConfigFactory(c.KubeClient, util.NewTokenBucketRateLimiter(15.0, 20))
+	configFactory := factory.NewConfigFactory(c.KubeClient, kapi.DefaultSchedulerName)
 	if _, err := os.Stat(c.Options.SchedulerConfigFile); err == nil {
 		configData, err = ioutil.ReadFile(c.Options.SchedulerConfigFile)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read scheduler config: %v", err)
 		}
-		err = latestschedulerapi.Codec.DecodeInto(configData, &policy)
+		err = runtime.DecodeInto(latestschedulerapi.Codec, configData, &policy)
 		if err != nil {
 			return nil, fmt.Errorf("invalid scheduler configuration: %v", err)
 		}

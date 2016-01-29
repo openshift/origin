@@ -35,12 +35,12 @@ type HookExecutor struct {
 	podLogDestination io.Writer
 	// podLogStream provides a reader for a pod's logs.
 	podLogStream func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error)
-	// Codec is used for encoding/decoding.
-	codec runtime.Codec
+	// decoder is used for encoding/decoding.
+	decoder runtime.Decoder
 }
 
 // NewHookExecutor makes a HookExecutor from a client.
-func NewHookExecutor(client kclient.Interface, podLogDestination io.Writer, codec runtime.Codec) *HookExecutor {
+func NewHookExecutor(client kclient.Interface, podLogDestination io.Writer, decoder runtime.Decoder) *HookExecutor {
 	return &HookExecutor{
 		podClient: &HookExecutorPodClientImpl{
 			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
@@ -54,7 +54,7 @@ func NewHookExecutor(client kclient.Interface, podLogDestination io.Writer, code
 			return client.Pods(namespace).GetLogs(name, opts).Stream()
 		},
 		podLogDestination: podLogDestination,
-		codec:             codec,
+		decoder:           decoder,
 	}
 }
 
@@ -93,7 +93,7 @@ func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.R
 //   * Working directory
 //   * Resources
 func (e *HookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
-	config, err := deployutil.DecodeDeploymentConfig(deployment, e.codec)
+	config, err := deployutil.DecodeDeploymentConfig(deployment, e.decoder)
 	if err != nil {
 		return err
 	}

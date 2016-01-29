@@ -357,7 +357,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 
 func (v *VolumeOptions) RunVolume(args []string) error {
 	mapper := resource.ClientMapperFunc(v.RESTClientFactory)
-	b := resource.NewBuilder(v.Mapper, v.Typer, mapper).
+	b := resource.NewBuilder(v.Mapper, v.Typer, mapper, kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
 		FilenameParam(v.ExplicitNamespace, v.Filenames...).
@@ -429,7 +429,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		return nil
 	}
 
-	objects, err := resource.AsVersionedObject(infos, false, v.OutputVersion.String())
+	objects, err := resource.AsVersionedObject(infos, false, v.OutputVersion.String(), kapi.Codecs.LegacyCodec(v.OutputVersion))
 	if err != nil {
 		return err
 	}

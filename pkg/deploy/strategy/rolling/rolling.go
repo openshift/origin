@@ -49,8 +49,8 @@ type RollingDeploymentStrategy struct {
 	client kclient.Interface
 	// rollingUpdate knows how to perform a rolling update.
 	rollingUpdate func(config *kubectl.RollingUpdaterConfig) error
-	// codec is used to access the encoded config on a deployment.
-	codec runtime.Codec
+	// decoder is used to access the encoded config on a deployment.
+	decoder runtime.Decoder
 	// hookExecutor can execute a lifecycle hook.
 	hookExecutor hookExecutor
 	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
@@ -76,9 +76,9 @@ type acceptingDeploymentStrategy interface {
 const AcceptorInterval = 1 * time.Second
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, codec runtime.Codec, initialStrategy acceptingDeploymentStrategy) *RollingDeploymentStrategy {
+func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy) *RollingDeploymentStrategy {
 	return &RollingDeploymentStrategy{
-		codec:           codec,
+		decoder:         decoder,
 		initialStrategy: initialStrategy,
 		client:          client,
 		apiRetryPeriod:  DefaultApiRetryPeriod,
@@ -87,7 +87,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, co
 			updater := kubectl.NewRollingUpdater(namespace, client)
 			return updater.Update(config)
 		},
-		hookExecutor: stratsupport.NewHookExecutor(client, os.Stdout, codec),
+		hookExecutor: stratsupport.NewHookExecutor(client, os.Stdout, decoder),
 		getUpdateAcceptor: func(timeout time.Duration) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptNewlyObservedReadyPods(client, timeout, AcceptorInterval)
 		},
@@ -95,7 +95,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, co
 }
 
 func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error {
-	config, err := deployutil.DecodeDeploymentConfig(to, s.codec)
+	config, err := deployutil.DecodeDeploymentConfig(to, s.decoder)
 	if err != nil {
 		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s: %v", deployutil.LabelForDeployment(to), err)
 	}

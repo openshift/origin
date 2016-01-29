@@ -10,9 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/runtime"
 	kerrs "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -250,7 +250,7 @@ func decodeSyncConfigFromFile(configFile string) (*api.LDAPSyncConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not parse file %s: %v", configFile, err)
 	}
-	if err := configapilatest.Codec.DecodeInto(jsonConfig, &config); err != nil {
+	if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), jsonConfig, &config); err != nil {
 		return nil, fmt.Errorf("couldg not decode file into config: %v", err)
 	}
 	return &config, nil

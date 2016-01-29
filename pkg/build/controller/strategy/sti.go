@@ -41,7 +41,7 @@ var STITempDirectoryCreator = &tempDirectoryCreator{}
 // CreateBuildPod creates a pod that will execute the STI build
 // TODO: Make the Pod definition configurable
 func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
-	data, err := bs.Codec.Encode(build)
+	data, err := runtime.Encode(bs.Codec, build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode the Build %s/%s: %v", build.Namespace, build.Name, err)
 	}

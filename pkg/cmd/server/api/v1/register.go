@@ -3,8 +3,6 @@ package v1
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
-
-	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 const GroupName = ""

@@ -131,7 +131,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 			mapper, typer := f.Object()
 			config.SetMapper(mapper)
 			config.SetTyper(typer)
-			config.SetClientMapper(f.ClientMapperForCommand())
+			config.SetClientMapper(resource.ClientMapperFunc(f.ClientForMapping))
 
 			err := RunNewApplication(fullName, f, out, c, args, config)
 			if err == cmdutil.ErrExit {
@@ -328,7 +328,7 @@ func followInstallation(f *clientcmd.Factory, input string, pod *kapi.Pod, kclie
 		},
 		Mapper:        mapper,
 		Typer:         typer,
-		ClientMapper:  f.ClientMapperForCommand(),
+		ClientMapper:  resource.ClientMapperFunc(f.ClientForMapping),
 		LogsForObject: f.LogsForObject,
 		Out:           out,
 	}

@@ -129,7 +129,7 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 		return nil, nil
 	})
 
-	r := resource.NewBuilder(mapper, typer, clientMapper).
+	r := resource.NewBuilder(mapper, typer, clientMapper, kapi.Codecs.UniversalDecoder()).
 		FilenameParam(false, policyFile).
 		Flatten().
 		Do()
@@ -158,7 +158,7 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 		if !ok {
 			return errors.New("policy must be contained in a template.  One can be created with '" + createBootstrapPolicyCommand + "'.")
 		}
-		runtime.DecodeList(template.Objects, kapi.Scheme)
+		runtime.DecodeList(template.Objects, kapi.Codecs.UniversalDecoder())
 
 		for _, item := range template.Objects {
 			switch t := item.(type) {
@@ -229,10 +229,5 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 
 // newStorage returns an EtcdHelper for the provided storage version.
 func newStorage(client *etcdclient.Client, version, prefix string) (oshelper storage.Interface, err error) {
-	// TODO: this will need more care after the rebase
-	interfaces, err := latest.InterfacesFor(unversioned.GroupVersion{Group: "", Version: version})
-	if err != nil {
-		return nil, err
-	}
-	return etcdstorage.NewEtcdStorage(client, interfaces.Codec, prefix), nil
+	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: version}), prefix), nil
 }

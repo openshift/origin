@@ -3,7 +3,9 @@ package v1beta3
 import (
 	"fmt"
 	"sort"
+	"strings"
 
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -20,16 +22,24 @@ func convert_api_Image_To_v1beta3_Image(in *newer.Image, out *Image, s conversio
 	out.DockerImageReference = in.DockerImageReference
 	out.DockerImageManifest = in.DockerImageManifest
 
-	version := in.DockerImageMetadataVersion
-	if len(version) == 0 {
-		version = "1.0"
+	gvString := in.DockerImageMetadataVersion
+	if len(gvString) == 0 {
+		gvString = "1.0"
 	}
-	data, err := scheme.EncodeToVersion(&in.DockerImageMetadata, version)
+	if !strings.Contains(gvString, "/") {
+		gvString = "/" + gvString
+	}
+
+	version, err := unversioned.ParseGroupVersion(gvString)
+	if err != nil {
+		return err
+	}
+	data, err := runtime.Encode(api.Codecs.LegacyCodec(version), &in.DockerImageMetadata, version)
 	if err != nil {
 		return err
 	}
 	out.DockerImageMetadata.RawJSON = data
-	out.DockerImageMetadataVersion = version
+	out.DockerImageMetadataVersion = version.Version
 
 	return nil
 }
@@ -48,11 +58,11 @@ func convert_v1beta3_Image_To_api_Image(in *Image, out *newer.Image, s conversio
 	}
 	if len(in.DockerImageMetadata.RawJSON) > 0 {
 		// TODO: add a way to default the expected kind and version of an object if not set
-		obj, err := scheme.New(unversioned.GroupVersionKind{Version: version, Kind: "DockerImage"})
+		obj, err := api.Scheme.New(unversioned.GroupVersionKind{Version: version, Kind: "DockerImage"})
 		if err != nil {
 			return err
 		}
-		if err := scheme.DecodeInto(in.DockerImageMetadata.RawJSON, obj); err != nil {
+		if err := runtime.DecodeInto(api.Codecs.UniversalDecoder(), in.DockerImageMetadata.RawJSON, obj); err != nil {
 			return err
 		}
 		if err := s.Convert(obj, &out.DockerImageMetadata, 0); err != nil {

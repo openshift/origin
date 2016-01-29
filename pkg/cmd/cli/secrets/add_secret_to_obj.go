@@ -120,7 +120,7 @@ func (o *AddSecretOptions) Complete(f *kcmdutil.Factory, args []string, typeFlag
 	}
 
 	o.Mapper, o.Typer = f.Object()
-	o.ClientMapper = f.ClientMapperForCommand()
+	o.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
 
 	return nil
 }
@@ -152,7 +152,7 @@ func (o AddSecretOptions) Validate() error {
 }
 
 func (o AddSecretOptions) AddSecrets() error {
-	r := resource.NewBuilder(o.Mapper, o.Typer, o.ClientMapper).
+	r := resource.NewBuilder(o.Mapper, o.Typer, o.ClientMapper, kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(o.Namespace).
 		ResourceNames("serviceaccounts", o.TargetName).
 		SingleResourceType().
@@ -213,7 +213,7 @@ func (o AddSecretOptions) addSecretsToServiceAccount(serviceaccount *kapi.Servic
 }
 
 func (o AddSecretOptions) getSecrets() ([]*kapi.Secret, error) {
-	r := resource.NewBuilder(o.Mapper, o.Typer, o.ClientMapper).
+	r := resource.NewBuilder(o.Mapper, o.Typer, o.ClientMapper, kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(o.Namespace).
 		ResourceNames("secrets", o.SecretNames...).
 		SingleResourceType().

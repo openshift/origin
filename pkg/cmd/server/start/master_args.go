@@ -9,6 +9,8 @@ import (
 
 	"github.com/spf13/pflag"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/registry/service/ipallocator"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -18,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/spf13/cobra"
@@ -298,7 +301,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		config.ServiceAccountConfig.PublicKeyFiles = []string{}
 	}
 
-	internal, err := applyDefaults(config, "v1")
+	internal, err := applyDefaults(config, configapiv1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -626,12 +629,12 @@ func getPort(theURL url.URL) int {
 }
 
 // applyDefaults roundtrips the config to v1 and back to ensure proper defaults are set.
-func applyDefaults(config runtime.Object, version string) (runtime.Object, error) {
-	ext, err := configapi.Scheme.ConvertToVersion(config, version)
+func applyDefaults(config runtime.Object, version unversioned.GroupVersion) (runtime.Object, error) {
+	ext, err := kapi.Scheme.ConvertToVersion(config, version.String())
 	if err != nil {
 		return nil, err
 	}
-	return configapi.Scheme.ConvertToVersion(ext, "")
+	return kapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion.String())
 }
 
 func servingInfoForAddr(addr *flagtypes.Addr) configapi.ServingInfo {

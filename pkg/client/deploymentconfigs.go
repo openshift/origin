@@ -3,6 +3,8 @@ package client
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -119,7 +121,7 @@ func (c *deploymentConfigs) UpdateScale(scale *extensions.Scale) (result *extens
 	result = &extensions.Scale{}
 
 	// TODO fix by making the client understand how to encode using different codecs for different resources
-	encodedBytes, err := kapi.Scheme.EncodeToVersion(scale, "extensions/v1beta1")
+	encodedBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(extensionsv1beta1.SchemeGroupVersion), scale)
 	if err != nil {
 		return result, err
 	}
