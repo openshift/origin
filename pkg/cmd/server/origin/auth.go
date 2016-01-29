@@ -45,6 +45,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	"github.com/openshift/origin/pkg/auth/server/grant"
 	"github.com/openshift/origin/pkg/auth/server/login"
+	"github.com/openshift/origin/pkg/auth/server/selectprovider"
 	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -324,6 +325,7 @@ func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
 }
 
 func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (handlers.AuthenticationHandler, error) {
+	// TODO: make these ordered once we can have more than one
 	challengers := map[string]handlers.AuthenticationChallenger{}
 	redirectors := map[string]handlers.AuthenticationRedirector{}
 
@@ -350,7 +352,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				passwordSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, redirectSuccessHandler{}}
 
 				// Since we're redirecting to a local login page, we don't need to force absolute URL resolution
-				redirectors["login-"+identityProvider.Name+"-redirect"] = redirector.NewRedirector(nil, OpenShiftLoginPrefix+"?then=${url}")
+				redirectors[identityProvider.Name] = redirector.NewRedirector(nil, OpenShiftLoginPrefix+"?then=${url}")
 
 				var loginTemplateFile string
 				if c.Options.Templates != nil {
@@ -396,7 +398,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 
 			mux.Handle(callbackPath, oauthHandler)
 			if identityProvider.UseAsLogin {
-				redirectors["oauth-"+identityProvider.Name+"-redirect"] = oauthHandler
+				redirectors[identityProvider.Name] = oauthHandler
 			}
 			if identityProvider.UseAsChallenger {
 				return nil, errors.New("oauth identity providers cannot issue challenges")
@@ -411,7 +413,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				challengers["requestheader-"+identityProvider.Name+"-redirect"] = redirector.NewChallenger(baseRequestURL, requestHeaderProvider.ChallengeURL)
 			}
 			if identityProvider.UseAsLogin {
-				redirectors["requestheader-"+identityProvider.Name+"-redirect"] = redirector.NewRedirector(baseRequestURL, requestHeaderProvider.LoginURL)
+				redirectors[identityProvider.Name] = redirector.NewRedirector(baseRequestURL, requestHeaderProvider.LoginURL)
 			}
 		}
 	}
@@ -421,7 +423,18 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 		challengers["placeholder"] = placeholderchallenger.New(OpenShiftOAuthTokenRequestURL(c.Options.MasterPublicURL))
 	}
 
-	authHandler := handlers.NewUnionAuthenticationHandler(challengers, redirectors, errorHandler)
+	var selectProviderTemplateFile string
+	if c.Options.Templates != nil {
+		selectProviderTemplateFile = c.Options.Templates.ProviderSelection
+	}
+	selectProviderRenderer, err := selectprovider.NewSelectProviderRenderer(selectProviderTemplateFile)
+	if err != nil {
+		return nil, err
+	}
+
+	selectProvider := selectprovider.NewSelectProvider(selectProviderRenderer, c.Options.AlwaysShowProviderSelection)
+
+	authHandler := handlers.NewUnionAuthenticationHandler(challengers, redirectors, errorHandler, selectProvider)
 	return authHandler, nil
 }
 

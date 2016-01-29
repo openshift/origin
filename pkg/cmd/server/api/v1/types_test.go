@@ -171,6 +171,7 @@ networkConfig:
   networkPluginName: ""
   serviceNetworkCIDR: ""
 oauthConfig:
+  alwaysShowProviderSelection: false
   assetPublicURL: ""
   grantConfig:
     method: ""
@@ -297,6 +298,7 @@ oauthConfig:
     sessionSecretsFile: ""
   templates:
     login: ""
+    providerSelection: ""
   tokenConfig:
     accessTokenMaxAgeSeconds: 0
     authorizeTokenMaxAgeSeconds: 0
