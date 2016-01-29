@@ -543,6 +543,11 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for persistent volume provisioner controller: %v", err)
 		}
 
+		_, daemonSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDaemonSetControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for daemonset controller: %v", err)
+		}
+
 		// called by admission control
 		kc.RunResourceQuotaManager()
 
@@ -553,6 +558,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, configapi.APIGroupExtensions)) > 0 {
 			kc.RunJobController(jobClient)
 			kc.RunHPAController(hpaOClient, hpaKClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
+			kc.RunDaemonSetsController(daemonSetClient)
 		}
 		kc.RunEndpointController()
 		kc.RunNamespaceController()

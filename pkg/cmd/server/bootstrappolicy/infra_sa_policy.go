@@ -22,6 +22,9 @@ const (
 	InfraJobControllerServiceAccountName = "job-controller"
 	JobControllerRoleName                = "system:job-controller"
 
+	InfraDaemonSetControllerServiceAccountName = "daemonset-controller"
+	DaemonSetControllerRoleName                = "system:daemonset-controller"
+
 	InfraHPAControllerServiceAccountName = "hpa-controller"
 	HPAControllerRoleName                = "system:hpa-controller"
 
@@ -436,6 +439,52 @@ func init() {
 				{
 					Verbs:     sets.NewString("update"),
 					Resources: sets.NewString("persistentvolumeclaims/status"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraDaemonSetControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: DaemonSetControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// DaemonSetsController.dsStore.ListWatch
+				{
+					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("daemonsets"),
+				},
+				// DaemonSetsController.podStore.ListWatch
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("pods"),
+				},
+				// DaemonSetsController.nodeStore.ListWatch
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("nodes"),
+				},
+				// DaemonSetsController.storeDaemonSetStatus
+				{
+					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("daemonsets/status"),
+				},
+				// DaemonSetsController.podControl (RealPodControl)
+				{
+					Verbs:     sets.NewString("create", "delete"),
+					Resources: sets.NewString("pods"),
+				},
+				// DaemonSetsController.podControl.recorder
+				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
 				},
 			},
 		},

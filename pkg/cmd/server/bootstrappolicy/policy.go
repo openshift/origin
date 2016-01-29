@@ -71,7 +71,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 				{
 					Verbs:     sets.NewString("get", "list", "watch"),
-					Resources: sets.NewString("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale"),
+					Resources: sets.NewString("daemonsets", "jobs", "horizontalpodautoscalers", "replicationcontrollers/scale"),
 					APIGroups: []string{authorizationapi.APIGroupExtensions},
 				},
 				{ // permissions to check access.  These creates are non-mutating
@@ -107,7 +107,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{
 					APIGroups: []string{authorizationapi.APIGroupExtensions},
 					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete"),
-					Resources: sets.NewString("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale"),
+					Resources: sets.NewString("daemonsets", "jobs", "horizontalpodautoscalers", "replicationcontrollers/scale"),
 				},
 				{
 					Verbs:     sets.NewString("get", "list", "watch"),
@@ -132,7 +132,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{
 					APIGroups: []string{authorizationapi.APIGroupExtensions},
 					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete"),
-					Resources: sets.NewString("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale"),
+					Resources: sets.NewString("daemonsets", "jobs", "horizontalpodautoscalers", "replicationcontrollers/scale"),
 				},
 				{
 					Verbs:     sets.NewString("get", "list", "watch"),
@@ -157,7 +157,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{
 					APIGroups: []string{authorizationapi.APIGroupExtensions},
 					Verbs:     sets.NewString("get", "list", "watch"),
-					Resources: sets.NewString("jobs", "horizontalpodautoscalers"),
+					Resources: sets.NewString("daemonsets", "jobs", "horizontalpodautoscalers"),
 				},
 			},
 		},
