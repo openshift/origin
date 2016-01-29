@@ -18,8 +18,14 @@ angular.module('openshiftConsole')
       link: function(scope) {
         scope.toggles = {expanded: false};
         scope.$watch('content', function(content) {
-          scope.truncatedContent = truncateFilter(content, scope.limit, scope.useWordBoundary, scope.newlineLimit);
-          scope.truncated = scope.truncatedContent.length !== content.length;
+          if (content) {
+            scope.truncatedContent = truncateFilter(content, scope.limit, scope.useWordBoundary, scope.newlineLimit);
+            scope.truncated = scope.truncatedContent.length !== content.length;
+          }
+          else {
+            scope.truncatedContent = null;
+            scope.truncated = false;
+          }
         });
       }
     };
