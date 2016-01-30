@@ -342,7 +342,7 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 	}
 
 	// if repository import is requested (MaximumTags), attempt to load the tags, sort them, and request the first N
-	if count := repository.MaximumTags; count > 0 {
+	if count := repository.MaximumTags; count > 0 || count == -1 {
 		tags, err := s.Tags()
 		if err != nil {
 			glog.V(5).Infof("unable to access tags for repository %#v: %#v", repository, err)
@@ -365,7 +365,7 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 		// include only the top N tags in the result, put the rest in AdditionalTags
 		api.PrioritizeTags(tags)
 		for _, s := range tags {
-			if count <= 0 {
+			if count <= 0 && repository.MaximumTags != -1 {
 				repository.AdditionalTags = append(repository.AdditionalTags, s)
 				continue
 			}

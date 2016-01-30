@@ -129,7 +129,10 @@ imageConfig:
   format: ""
   latest: false
 imagePolicyConfig:
+  disableScheduledImport: false
   maxImagesBulkImportedPerRepository: 0
+  maxScheduledImageImportsPerMinute: 0
+  scheduledImageImportMinimumIntervalSeconds: 0
 kind: MasterConfig
 kubeletClientInfo:
   ca: ""

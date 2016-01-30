@@ -134,6 +134,16 @@ os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.t
 os::cmd::expect_success 'oc tag mysql:5.5 newrepo:latest --alias'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
 
+# test scheduled and insecure tagging
+os::cmd::expect_success 'oc tag --source=docker mysql:5.7 newrepo:latest --scheduled'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).importPolicy.scheduled}}'" 'true'
+os::cmd::expect_success_and_text "oc describe is/newrepo" '\* tag is scheduled'
+os::cmd::expect_success 'oc tag --source=docker mysql:5.7 newrepo:latest --insecure'
+os::cmd::expect_success_and_text "oc describe is/newrepo" '\! tag is insecure'
+os::cmd::expect_success_and_not_text "oc describe is/newrepo" '\* tag is scheduled'
+oc get -o yaml is/newrepo
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).importPolicy.insecure}}'" 'true'
+
 # test creating streams that don't exist
 os::cmd::expect_failure_and_text 'oc get imageStreams tagtest3' 'not found'
 os::cmd::expect_failure_and_text 'oc get imageStreams tagtest4' 'not found'

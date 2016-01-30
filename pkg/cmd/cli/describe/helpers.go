@@ -188,10 +188,13 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			sortedTags = append(sortedTags, k)
 		}
 	}
+	hasScheduled, hasInsecure := false, false
 	imageapi.PrioritizeTags(sortedTags)
 	for _, tag := range sortedTags {
 		tagRef, ok := stream.Spec.Tags[tag]
 		specTag := ""
+		scheduled := false
+		insecure := false
 		if ok {
 			if tagRef.From != nil {
 				namePair := ""
@@ -210,6 +213,9 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 					specTag = fmt.Sprintf("<unknown %s> %s", tagRef.From.Kind, namePair)
 				}
 			}
+			scheduled, insecure = tagRef.ImportPolicy.Scheduled, tagRef.ImportPolicy.Insecure
+			hasScheduled = hasScheduled || scheduled
+			hasInsecure = hasScheduled || insecure
 		} else {
 			specTag = "<pushed>"
 		}
@@ -262,6 +268,17 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 				specTag = shortenImagePullSpec(specTag)
 				if i != 0 {
 					tag, specTag = "", ""
+				} else {
+					extra := ""
+					if scheduled {
+						extra += "*"
+					}
+					if insecure {
+						extra += "!"
+					}
+					if len(extra) > 0 {
+						specTag += " " + extra
+					}
 				}
 				fmt.Fprintf(out, "%s\t%s\t%s ago\t%s\t%v\n",
 					tag,
@@ -272,6 +289,15 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			}
 		} else {
 			fmt.Fprintf(out, "%s\t%s\t\t<not available>\t<not available>\n", tag, specTag)
+		}
+	}
+	if hasInsecure || hasScheduled {
+		fmt.Fprintln(out)
+		if hasScheduled {
+			fmt.Fprintf(out, "  * tag is scheduled for periodic import\n")
+		}
+		if hasInsecure {
+			fmt.Fprintf(out, "  ! tag is insecure and can be imported over HTTP or self-signed HTTPS\n")
 		}
 	}
 }

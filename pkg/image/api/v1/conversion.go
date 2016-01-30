@@ -195,7 +195,8 @@ func init() {
 					Annotations: curr.Annotations,
 					Reference:   curr.Reference,
 					ImportPolicy: newer.TagImportPolicy{
-						Insecure: curr.ImportPolicy.Insecure,
+						Insecure:  curr.ImportPolicy.Insecure,
+						Scheduled: curr.ImportPolicy.Scheduled,
 					},
 				}
 				if curr.Generation != nil {
@@ -223,7 +224,8 @@ func init() {
 					Annotations: newTagReference.Annotations,
 					Reference:   newTagReference.Reference,
 					ImportPolicy: TagImportPolicy{
-						Insecure: newTagReference.ImportPolicy.Insecure,
+						Insecure:  newTagReference.ImportPolicy.Insecure,
+						Scheduled: newTagReference.ImportPolicy.Scheduled,
 					},
 				}
 				if newTagReference.Generation != nil {

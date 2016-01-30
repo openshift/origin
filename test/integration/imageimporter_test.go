@@ -3,6 +3,10 @@
 package integration
 
 import (
+	"encoding/base64"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"strings"
 	"testing"
@@ -14,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/api"
@@ -131,30 +136,351 @@ func TestImageStreamImport(t *testing.T) {
 	}
 }
 
-/*
-// re-add this test as an integration test
-func TestOpenShiftRegistry(t *testing.T) {
-  token := `eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tNmpsOW0iLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjNiNWRmMGRlLWExZTctMTFlNS05ZDkzLTA4MDAyN2M1YmZhOSIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.L5Hc0eHjZHo5BGeAI_SeHMSpYy4WK4_bSsbm-4UGBoyti7WOhTlJcAgUFTgEGu1mxDRmNtEA-xXdv0jXe377Q52C73Oli0ZuAnLgkBbL3wnIkWKUOZvrbcDw5hJaeTdhUvri5_ZkC4kbNXwJKpAIh8MonOfUjnmY7hQbISMLirhIj_orAKMql9nQbQTOfO4goAqscNMRHsJqYTCneMBuWbO2apZX5t--JTycgsxdMejms4XCbSg0m_jjmWyBJtM3BI3_k0kU4mDDv3rY_XHflcoGnpFOVs3BjhCJOYR0h7BNke4IYrta7XGc88OasbIZ1m-UbMQaPvfeht0t9IgkoQ`
-  creds := NewBasicCredentials()
-  creds.Add(&url.URL{}, "anything", token)
-  rt, _ := client.TransportFor(&client.Config{})
-  importCtx := NewContext(rt, kapi.NewContext()).WithCredentials(creds)
+func TestImageStreamImportAuthenticated(t *testing.T) {
+	count := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		count++
+		t.Logf("%d got %s %s", count, r.Method, r.URL.Path)
 
-  imports := &api.ImageStreamImport{
-    Images: []api.ImageImport{
-      {From: kapi.ObjectReference{Kind: "DockerImage", Name: "172.30.213.112:5000/default/redis:test"}, Insecure: true},
-    },
-  }
-  NewImageStreamImporter(100, nil).Import(importCtx, imports)
-  d := imports.Images[0].ImageImportStatus
-  if d.Image == nil || len(d.Image.DockerImageManifest) > 0 || d.Image.DockerImageReference != "172.30.213.112:5000/default/redis:test" || len(d.Image.DockerImageMetadata.ID) == 0 {
-    t.Errorf("unexpected object: %#v", d.Image)
-  }
-  t.Logf("image: %#v\nstatus: %#v", d.Image, d.Status)
+		w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
+		if len(r.Header.Get("Authorization")) == 0 {
+			w.Header().Set("WWW-Authenticate", "BASIC")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		switch r.URL.Path {
+		case "/v2/":
+			w.Write([]byte(`{}`))
+		case "/v2/test/image/manifests/" + phpDigest:
+			w.Write([]byte(phpManifest))
+		case "/v2/test/image2/manifests/" + etcdDigest:
+			w.Write([]byte(etcdManifest))
+		default:
+			t.Fatalf("unexpected request %s: %#v", r.URL.Path, r)
+		}
+	}))
+	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
+		if len(r.Header.Get("Authorization")) == 0 {
+			w.Header().Set("WWW-Authenticate", "BASIC")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusForbidden)
+	}))
+
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	kc, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	c, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	url1, _ := url.Parse(server.URL)
+	url2, _ := url.Parse(server2.URL)
+
+	importSpec := &api.ImageStreamImport{
+		ObjectMeta: kapi.ObjectMeta{Name: "test"},
+		Spec: api.ImageStreamImportSpec{
+			Import: true,
+			Images: []api.ImageImportSpec{
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url1.Host + "/test/image@" + phpDigest},
+					To:           &kapi.LocalObjectReference{Name: "latest"},
+					ImportPolicy: api.TagImportPolicy{Insecure: true},
+				},
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url1.Host + "/test/image2@" + etcdDigest},
+					To:           &kapi.LocalObjectReference{Name: "other"},
+					ImportPolicy: api.TagImportPolicy{Insecure: true},
+				},
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url2.Host + "/test/image:other"},
+					To:           &kapi.LocalObjectReference{Name: "failed"},
+					ImportPolicy: api.TagImportPolicy{Insecure: true},
+				},
+			},
+		},
+	}
+
+	// import expecting auth errors
+	isi, err := c.ImageStreams(testutil.Namespace()).Import(importSpec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if isi == nil || isi.Status.Import == nil {
+		t.Fatalf("unexpected responses: %#v", isi)
+	}
+	for i, image := range isi.Status.Images {
+		if image.Status.Status != unversioned.StatusFailure || image.Status.Reason != unversioned.StatusReasonUnauthorized {
+			t.Fatalf("import of image %d did not report unauthorized: %#v", i, image.Status)
+		}
+	}
+
+	_, err = kc.Secrets(testutil.Namespace()).Create(&kapi.Secret{
+		ObjectMeta: kapi.ObjectMeta{Name: "secret1"},
+		Type:       kapi.SecretTypeDockerConfigJson,
+		Data: map[string][]byte{
+			kapi.DockerConfigJsonKey: []byte(`{"auths":{"` + url1.Host + `/v2/test/image/":{"auth":"` + base64.StdEncoding.EncodeToString([]byte("user:password")) + `"}}}`),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// import expecting regular image to pass
+	isi, err = c.ImageStreams(testutil.Namespace()).Import(importSpec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, image := range isi.Status.Images {
+		switch i {
+		case 1, 2:
+			if image.Status.Status != unversioned.StatusFailure || image.Status.Reason != unversioned.StatusReasonUnauthorized {
+				t.Fatalf("import of image %d did not report unauthorized: %#v", i, image.Status)
+			}
+		default:
+			if image.Status.Status != unversioned.StatusSuccess {
+				t.Fatalf("import of image %d did not succeed: %#v", i, image.Status)
+			}
+		}
+	}
+
+	if items := isi.Status.Import.Status.Tags["latest"].Items; len(items) != 1 || items[0].Image != phpDigest {
+		t.Fatalf("import of first image does not point to the correct image: %#v", items)
+	}
+	if isi.Status.Images[0].Image == nil || isi.Status.Images[0].Image.DockerImageMetadata.Size == 0 || len(isi.Status.Images[0].Image.DockerImageLayers) == 0 {
+		t.Fatalf("unexpected image output: %#v", isi.Status.Images[0].Image)
+	}
+
+	is, err := c.ImageStreams(testutil.Namespace()).Get("test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tagEvent := api.LatestTaggedImage(is, "latest")
+	if tagEvent == nil {
+		t.Fatalf("no image tagged for latest: %#v", is)
+	}
+	if tagEvent == nil || tagEvent.Image != phpDigest || tagEvent.Generation != 2 || tagEvent.DockerImageReference != url1.Host+"/test/image@"+phpDigest {
+		t.Fatalf("expected the php image to be tagged: %#v", tagEvent)
+	}
+	tag, ok := is.Spec.Tags["latest"]
+	if !ok {
+		t.Fatalf("object at generation %d did not have tag latest: %#v", is.Generation)
+	}
+	tagGen := tag.Generation
+	if is.Generation != 2 || tagGen == nil || *tagGen != 2 {
+		t.Fatalf("expected generation 2 for stream and spec tag: %v %#v", tagGen, is)
+	}
+
+	if !api.HasTagCondition(is, "other", api.TagEventCondition{Type: api.ImportSuccess, Status: kapi.ConditionFalse, Reason: "Unauthorized"}) {
+		t.Fatalf("incorrect condition: %#v", is.Status.Tags["other"].Conditions)
+	}
+
+	/*
+		tagEvent = api.LatestTaggedImage(is, "other")
+		if tagEvent == nil {
+			t.Fatalf("no image tagged for latest: %#v", is)
+		}
+		if tagEvent == nil || tagEvent.Image != phpDigest || tagEvent.Generation != 1 || tagEvent.DockerImageReference != url1.Host+"/test/image2@"+etcdDigest {
+			t.Fatalf("expected the etcd image to be tagged: %#v", tagEvent)
+		}
+		tag, ok = is.Spec.Tags["other"]
+		if !ok {
+			t.Fatalf("object at generation %d did not have tag latest: %#v", is.Generation)
+		}
+		tagGen = tag.Generation
+		if is.Generation != 1 || tagGen == nil || *tagGen != 1 {
+			t.Fatalf("expected generation 1 for stream and spec tag: %v %#v", tagGen, is)
+		}
+	*/
 }
-*/
 
-func TestImportImageDockerHub(t *testing.T) {
+// Verifies that the import scheduler fetches an image repeatedly (every 1s as per the default
+// test controller interval), updates the image stream only when there are changes, and if an
+// error occurs writes the error only once (instead of every interval)
+func TestImageStreamImportScheduled(t *testing.T) {
+	written := make(chan struct{}, 1)
+	count := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("got %s %s", r.Method, r.URL.Path)
+		switch r.URL.Path {
+		case "/v2/":
+			w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
+			w.Write([]byte(`{}`))
+		case "/v2/test/image/manifests/latest":
+			count++
+			t.Logf("serving %d", count)
+			var manifest string
+			switch count {
+			case 1:
+				manifest = etcdManifest
+			case 2, 3:
+				manifest = phpManifest
+			default:
+				w.WriteHeader(500)
+				return
+			}
+			written <- struct{}{}
+			w.Write([]byte(manifest))
+		default:
+			t.Fatalf("unexpected request %s: %#v", r.URL.Path, r)
+		}
+	}))
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	c, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	url, _ := url.Parse(server.URL)
+
+	// import with commit
+	isi, err := c.ImageStreams(testutil.Namespace()).Import(&api.ImageStreamImport{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "test",
+		},
+		Spec: api.ImageStreamImportSpec{
+			Import: true,
+			Images: []api.ImageImportSpec{
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url.Host + "/test/image:latest"},
+					To:           &kapi.LocalObjectReference{Name: "latest"},
+					ImportPolicy: api.TagImportPolicy{Insecure: true, Scheduled: true},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if isi == nil || isi.Status.Import == nil {
+		t.Fatalf("unexpected responses: %#v", isi)
+	}
+
+	if !isi.Status.Import.Spec.Tags["latest"].ImportPolicy.Scheduled {
+		t.Fatalf("scheduled tag not saved: %#v", isi.Status.Import)
+	}
+	if items := isi.Status.Import.Status.Tags["latest"].Items; len(items) != 1 || items[0].Image != etcdDigest {
+		t.Fatalf("import of first image does not point to the correct image: %#v", items)
+	}
+
+	if isi.Status.Images[0].Image == nil || isi.Status.Images[0].Image.DockerImageMetadata.Size == 0 || len(isi.Status.Images[0].Image.DockerImageLayers) == 0 {
+		t.Fatalf("unexpected image output: %#v", isi.Status.Images[0].Image)
+	}
+
+	// initial import
+	<-written
+	// scheduled import
+	<-written
+
+	is := isi.Status.Import
+	w, err := c.ImageStreams(is.Namespace).Watch(kapi.ListOptions{ResourceVersion: is.ResourceVersion})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Stop()
+
+	ch := w.ResultChan()
+	var event watch.Event
+	select {
+	case event = <-ch:
+	case <-time.After(2 * time.Second):
+		t.Fatal("never got watch event")
+	}
+	change, ok := event.Object.(*api.ImageStream)
+	if !ok {
+		t.Fatalf("unexpected object: %#v", event.Object)
+	}
+	tagEvent := api.LatestTaggedImage(change, "latest")
+	if tagEvent == nil {
+		t.Fatalf("no image tagged for latest: %#v", change)
+	}
+	if tagEvent == nil || tagEvent.Image != phpDigest || tagEvent.Generation != 2 {
+		t.Fatalf("expected the php image to be tagged: %#v", tagEvent)
+	}
+	tagGen := change.Spec.Tags["latest"].Generation
+	if change.Generation != 2 || tagGen == nil || *tagGen != 2 {
+		t.Fatalf("expected generation 2 for stream and spec tag: %v %#v", tagGen, change)
+	}
+
+	tag, ok := change.Spec.Tags["latest"]
+	if !ok {
+		t.Fatalf("object at generation %d did not have tag latest: %#v", change.Generation)
+	}
+	if gen := tag.Generation; gen == nil || *gen != 2 {
+		t.Fatalf("object at generation %d had spec tag: %#v", change.Generation, tag)
+	}
+	items := change.Status.Tags["latest"].Items
+	if len(items) != 2 {
+		t.Fatalf("object at generation %d should have two tagged images", change.Generation, change.Status.Tags["latest"])
+	}
+	if items[0].Image != phpDigest || items[0].DockerImageReference != url.Host+"/test/image@"+phpDigest {
+		t.Fatalf("expected tagged image: %#v", items[0])
+	}
+	if items[1].Image != etcdDigest || items[1].DockerImageReference != url.Host+"/test/image@"+etcdDigest {
+		t.Fatalf("expected tagged image: %#v", items[1])
+	}
+
+	// wait for next event
+	select {
+	case <-written:
+	case <-time.After(2 * time.Second):
+		t.Fatalf("waited too long for 3rd write")
+	}
+
+	// expect to have the error recorded on the server
+	event = <-ch
+	change, ok = event.Object.(*api.ImageStream)
+	if !ok {
+		t.Fatalf("unexpected object: %#v", event.Object)
+	}
+	tagEvent = api.LatestTaggedImage(change, "latest")
+	if tagEvent == nil {
+		t.Fatalf("no image tagged for latest: %#v", change)
+	}
+	if tagEvent == nil || tagEvent.Image != phpDigest || tagEvent.Generation != 2 {
+		t.Fatalf("expected the php image to be tagged: %#v", tagEvent)
+	}
+	tagGen = change.Spec.Tags["latest"].Generation
+	if change.Generation != 3 || tagGen == nil || *tagGen != 3 {
+		t.Fatalf("expected generation 2 for stream and spec tag: %v %#v", tagGen, change)
+	}
+	conditions := change.Status.Tags["latest"].Conditions
+	if len(conditions) == 0 || conditions[0].Type != api.ImportSuccess || conditions[0].Generation != 3 {
+		t.Fatalf("expected generation 3 for condition and import failed: %#v", conditions)
+	}
+
+	// sleep for a period of time to check for a second scheduled import
+	time.Sleep(2 * time.Second)
+	select {
+	case event := <-ch:
+		t.Fatalf("there should not have been a second import after failure: %s %#v", event.Type, event.Object)
+	default:
+	}
+}
+
+func TestImageStreamImportDockerHub(t *testing.T) {
 	rt, _ := kclient.TransportFor(&kclient.Config{})
 	importCtx := importer.NewContext(rt).WithCredentials(importer.NoCredentials)
 
@@ -201,7 +527,7 @@ func TestImportImageDockerHub(t *testing.T) {
 	}
 }
 
-func TestImportImageQuayIO(t *testing.T) {
+func TestImageStreamImportQuayIO(t *testing.T) {
 	rt, _ := kclient.TransportFor(&kclient.Config{})
 	importCtx := importer.NewContext(rt).WithCredentials(importer.NoCredentials)
 
@@ -242,7 +568,7 @@ func TestImportImageQuayIO(t *testing.T) {
 	}
 }
 
-func TestImportImageRedHatRegistry(t *testing.T) {
+func TestImageStreamImportRedHatRegistry(t *testing.T) {
 	rt, _ := kclient.TransportFor(&kclient.Config{})
 	importCtx := importer.NewContext(rt).WithCredentials(importer.NoCredentials)
 
@@ -298,3 +624,179 @@ func TestImportImageRedHatRegistry(t *testing.T) {
 		t.Logf("imports: %#v", imports.Status.Images[0].Image)
 	}
 }
+
+const etcdDigest = "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238"
+const etcdManifest = `{
+   "schemaVersion": 1, 
+   "tag": "latest", 
+   "name": "coreos/etcd", 
+   "architecture": "amd64", 
+   "fsLayers": [
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      }, 
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      }, 
+      {
+         "blobSum": "sha256:2560187847cadddef806eaf244b7755af247a9dbabb90ca953dd2703cf423766"
+      }, 
+      {
+         "blobSum": "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe"
+      }
+   ], 
+   "history": [
+      {
+         "v1Compatibility": "{\"id\":\"fe50ac14986497fa6b5d2cc24feb4a561d01767bc64413752c0988cb70b0b8b9\",\"parent\":\"a5a18474fa96a3c6e240bc88e41de2afd236520caf904356ad9d5f8d875c3481\",\"created\":\"2015-12-30T22:29:13.967754365Z\",\"container\":\"c8d0f1a274b5f52fa5beb280775ef07cf18ec0f95e5ae42fbad01157e2614d42\",\"container_config\":{\"Hostname\":\"1b97abade59e\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"ExposedPorts\":{\"2379/tcp\":{},\"2380/tcp\":{},\"4001/tcp\":{},\"7001/tcp\":{}},\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) ENTRYPOINT \\u0026{[\\\"/etcd\\\"]}\"],\"Image\":\"a5a18474fa96a3c6e240bc88e41de2afd236520caf904356ad9d5f8d875c3481\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":[\"/etcd\"],\"OnBuild\":null,\"Labels\":{}},\"docker_version\":\"1.9.1\",\"config\":{\"Hostname\":\"1b97abade59e\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"ExposedPorts\":{\"2379/tcp\":{},\"2380/tcp\":{},\"4001/tcp\":{},\"7001/tcp\":{}},\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":null,\"Image\":\"a5a18474fa96a3c6e240bc88e41de2afd236520caf904356ad9d5f8d875c3481\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":[\"/etcd\"],\"OnBuild\":null,\"Labels\":{}},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+      }, 
+      {
+         "v1Compatibility": "{\"id\":\"a5a18474fa96a3c6e240bc88e41de2afd236520caf904356ad9d5f8d875c3481\",\"parent\":\"796d581500e960cc02095dcdeccf55db215b8e54c57e3a0b11392145ffe60cf6\",\"created\":\"2015-12-30T22:29:13.504159783Z\",\"container\":\"080708d544f85052a46fab72e701b4358c1b96cb4b805a5b2d66276fc2aaf85d\",\"container_config\":{\"Hostname\":\"1b97abade59e\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"ExposedPorts\":{\"2379/tcp\":{},\"2380/tcp\":{},\"4001/tcp\":{},\"7001/tcp\":{}},\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) EXPOSE 2379/tcp 2380/tcp 4001/tcp 7001/tcp\"],\"Image\":\"796d581500e960cc02095dcdeccf55db215b8e54c57e3a0b11392145ffe60cf6\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":{}},\"docker_version\":\"1.9.1\",\"config\":{\"Hostname\":\"1b97abade59e\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"ExposedPorts\":{\"2379/tcp\":{},\"2380/tcp\":{},\"4001/tcp\":{},\"7001/tcp\":{}},\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":null,\"Image\":\"796d581500e960cc02095dcdeccf55db215b8e54c57e3a0b11392145ffe60cf6\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":{}},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+      }, 
+      {
+         "v1Compatibility": "{\"id\":\"796d581500e960cc02095dcdeccf55db215b8e54c57e3a0b11392145ffe60cf6\",\"parent\":\"309c960c7f875411ae2ee2bfb97b86eee5058f3dad77206dd0df4f97df8a77fa\",\"created\":\"2015-12-30T22:29:12.912813629Z\",\"container\":\"f28be899c9b8680d4cf8585e663ad20b35019db062526844e7cfef117ce9037f\",\"container_config\":{\"Hostname\":\"1b97abade59e\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) ADD file:e330b1da49d993059975e46560b3bd360691498b0f2f6e00f39fc160cf8d4ec3 in /\"],\"Image\":\"309c960c7f875411ae2ee2bfb97b86eee5058f3dad77206dd0df4f97df8a77fa\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":{}},\"docker_version\":\"1.9.1\",\"config\":{\"Hostname\":\"1b97abade59e\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":null,\"Image\":\"309c960c7f875411ae2ee2bfb97b86eee5058f3dad77206dd0df4f97df8a77fa\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":{}},\"architecture\":\"amd64\",\"os\":\"linux\",\"Size\":13502144}"
+      }, 
+      {
+         "v1Compatibility": "{\"id\":\"309c960c7f875411ae2ee2bfb97b86eee5058f3dad77206dd0df4f97df8a77fa\",\"created\":\"2015-12-30T22:29:12.346834862Z\",\"container\":\"1b97abade59e4b5b935aede236980a54fb500cd9ee5bd4323c832c6d7b3ffc6e\",\"container_config\":{\"Hostname\":\"1b97abade59e\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) ADD file:74912593c6783292c4520514f5cc9313acbd1da0f46edee0fdbed2a24a264d6f in /\"],\"Image\":\"\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":null},\"docker_version\":\"1.9.1\",\"config\":{\"Hostname\":\"1b97abade59e\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":null,\"Image\":\"\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\",\"Size\":15141568}"
+      }
+   ], 
+   "signatures": [
+      {
+         "header": {
+            "alg": "RS256", 
+            "jwk": {
+               "e": "AQAB", 
+               "kty": "RSA", 
+               "n": "yB40ou1GMvIxYs1jhxWaeoDiw3oa0_Q2UJThUPtArvO0tRzaun9FnSphhOEHIGcezfq95jy-3MN-FIjmsWgbPHY8lVDS38fF75aCw6qkholwqjmMtUIgPNYoMrg0rLUE5RRyJ84-hKf9Fk7V3fItp1mvCTGKaS3ze-y5dTTrfbNGE7qG638Dla2Fuz-9CNgRQj0JH54o547WkKJC-pG-j0jTDr8lzsXhrZC7lJas4yc-vpt3D60iG4cW_mkdtIj52ZFEgHZ56sUj7AhnNVly0ZP9W1hmw4xEHDn9WLjlt7ivwARVeb2qzsNdguUitcI5hUQNwpOVZ_O3f1rUIL_kRw"
+            }
+         }, 
+         "protected": "eyJmb3JtYXRUYWlsIjogIkNuMCIsICJmb3JtYXRMZW5ndGgiOiA1OTI2LCAidGltZSI6ICIyMDE2LTAxLTAyVDAyOjAxOjMzWiJ9", 
+         "signature": "DrQ43UWeit-thDoRGTCP0Gd2wL5K2ecyPhHo_au0FoXwuKODja0tfwHexB9ypvFWngk-ijXuwO02x3aRIZqkWpvKLxxzxwkrZnPSje4o_VrFU4z5zwmN8sJw52ODkQlW38PURIVksOxCrb0zRl87yTAAsUAJ_4UUPNltZSLnhwy-qPb2NQ8ghgsONcBxRQrhPFiWNkxDKZ3kjvzYyrXDxTcvwK3Kk_YagZ4rCOhH1B7mAdVSiSHIvvNV5grPshw_ipAoqL2iNMsxWxLjYZl9xSJQI2asaq3fvh8G8cZ7T-OahDUos_GyhnIj39C-9ouqdJqMUYFETqbzRCR6d36CpQ"
+      }
+   ]
+}`
+
+const phpDigest = "sha256:28ba1e77e05a16a44e27250ff4f7116290eba339cc1a57d1652557eca4f25133"
+const phpManifest = `{
+   "schemaVersion": 1,
+   "name": "library/php",
+   "tag": "latest",
+   "architecture": "amd64",
+   "fsLayers": [
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:4f792c7eb9b01ebb4dd917ec65e27792356511424799aa900b5808fd6590be18"
+      },
+      {
+         "blobSum": "sha256:411817073dac032f58aa0914c211dff2eb9c5708689cd4ece56d53e05c21ded2"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:7dd26e858d19ce36e309be7f7491103c7b1c3b79422f6e5da4fb35a10ab9ee63"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:be29438d43e16dc0b63fbf64d7f989e85ccbab9546ac4b23ecd385194d0ff675"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:b0d203755789778bc81f787fcc925880446a55beb6244747719f62a928ff0ec3"
+      },
+      {
+         "blobSum": "sha256:062e822a6a238cb0bb38f986572009b82aad1ab7f6fda0a236fa0fabc1080dc8"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:81cc5f26a6a083c024fb4138326e4d00f9a73f60c0e2a4399e1f7617ebe8c6c9"
+      }
+   ],
+   "history": [
+      {
+         "v1Compatibility": "{\"id\":\"15bf13fd4c6eea6896b5e106fe7afbae13f76814b1752836197511d4d7a9cecf\",\"parent\":\"67f8a8991ac4021603d9a22c9ed1a1761eafe65bc294dd997d5ef3f07912f458\",\"created\":\"2016-01-07T23:11:43.954877182Z\",\"container\":\"b9c0ed8089b555bed5409aa908287247c07eae9f4e692cecfefd956e96181d7f\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\",\"PHP_VERSION=7.0.2\",\"PHP_FILENAME=php-7.0.2.tar.xz\",\"PHP_SHA256=556121271a34c442b48e3d7fa3d3bbb4413d91897abbb92aaeced4a7df5f2ab2\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) CMD [\\\"php\\\" \\\"-a\\\"]\"],\"Image\":\"67f8a8991ac4021603d9a22c9ed1a1761eafe65bc294dd997d5ef3f07912f458\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\",\"PHP_VERSION=7.0.2\",\"PHP_FILENAME=php-7.0.2.tar.xz\",\"PHP_SHA256=556121271a34c442b48e3d7fa3d3bbb4413d91897abbb92aaeced4a7df5f2ab2\"],\"Cmd\":[\"php\",\"-a\"],\"Image\":\"67f8a8991ac4021603d9a22c9ed1a1761eafe65bc294dd997d5ef3f07912f458\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"67f8a8991ac4021603d9a22c9ed1a1761eafe65bc294dd997d5ef3f07912f458\",\"parent\":\"968bf28b055cb971927f838f92378f68f554f68438b0f4afa296a4bc1dd02545\",\"created\":\"2016-01-07T23:11:43.425996875Z\",\"container\":\"0cc18444b3e3a49e295b36aeef2fa96084ab10365bb6b173e90865d97a5f0562\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\",\"PHP_VERSION=7.0.2\",\"PHP_FILENAME=php-7.0.2.tar.xz\",\"PHP_SHA256=556121271a34c442b48e3d7fa3d3bbb4413d91897abbb92aaeced4a7df5f2ab2\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) COPY multi:16473ef1e9e5136ff00d9f0d8e08ce89e246c7c07a954838c49a9bb12d8a777c in /usr/local/bin/\"],\"Image\":\"968bf28b055cb971927f838f92378f68f554f68438b0f4afa296a4bc1dd02545\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\",\"PHP_VERSION=7.0.2\",\"PHP_FILENAME=php-7.0.2.tar.xz\",\"PHP_SHA256=556121271a34c442b48e3d7fa3d3bbb4413d91897abbb92aaeced4a7df5f2ab2\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"968bf28b055cb971927f838f92378f68f554f68438b0f4afa296a4bc1dd02545\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\",\"Size\":3243}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"968bf28b055cb971927f838f92378f68f554f68438b0f4afa296a4bc1dd02545\",\"parent\":\"8de0073e0049f1f30f744ea3e8b363259d3fe8a2b58920c69e53448effd40b03\",\"created\":\"2016-01-07T23:11:37.735362743Z\",\"container\":\"715ba2bafc47921fae5de9a8a2425fccfda1b618e455bb6c886dfd4e100fa5f3\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\",\"PHP_VERSION=7.0.2\",\"PHP_FILENAME=php-7.0.2.tar.xz\",\"PHP_SHA256=556121271a34c442b48e3d7fa3d3bbb4413d91897abbb92aaeced4a7df5f2ab2\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"buildDeps=\\\" \\t\\t$PHP_EXTRA_BUILD_DEPS \\t\\tlibcurl4-openssl-dev \\t\\tlibreadline6-dev \\t\\tlibrecode-dev \\t\\tlibsqlite3-dev \\t\\tlibssl-dev \\t\\tlibxml2-dev \\t\\txz-utils \\t\\\" \\t\\u0026\\u0026 set -x \\t\\u0026\\u0026 apt-get update \\u0026\\u0026 apt-get install -y $buildDeps --no-install-recommends \\u0026\\u0026 rm -rf /var/lib/apt/lists/* \\t\\u0026\\u0026 curl -fSL \\\"http://php.net/get/$PHP_FILENAME/from/this/mirror\\\" -o \\\"$PHP_FILENAME\\\" \\t\\u0026\\u0026 echo \\\"$PHP_SHA256 *$PHP_FILENAME\\\" | sha256sum -c - \\t\\u0026\\u0026 curl -fSL \\\"http://php.net/get/$PHP_FILENAME.asc/from/this/mirror\\\" -o \\\"$PHP_FILENAME.asc\\\" \\t\\u0026\\u0026 gpg --verify \\\"$PHP_FILENAME.asc\\\" \\t\\u0026\\u0026 mkdir -p /usr/src/php \\t\\u0026\\u0026 tar -xf \\\"$PHP_FILENAME\\\" -C /usr/src/php --strip-components=1 \\t\\u0026\\u0026 rm \\\"$PHP_FILENAME\\\"* \\t\\u0026\\u0026 cd /usr/src/php \\t\\u0026\\u0026 ./configure \\t\\t--with-config-file-path=\\\"$PHP_INI_DIR\\\" \\t\\t--with-config-file-scan-dir=\\\"$PHP_INI_DIR/conf.d\\\" \\t\\t$PHP_EXTRA_CONFIGURE_ARGS \\t\\t--disable-cgi \\t\\t--enable-mysqlnd \\t\\t--with-curl \\t\\t--with-openssl \\t\\t--with-readline \\t\\t--with-recode \\t\\t--with-zlib \\t\\u0026\\u0026 make -j\\\"$(nproc)\\\" \\t\\u0026\\u0026 make install \\t\\u0026\\u0026 { find /usr/local/bin /usr/local/sbin -type f -executable -exec strip --strip-all '{}' + || true; } \\t\\u0026\\u0026 apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false -o APT::AutoRemove::SuggestsImportant=false $buildDeps \\t\\u0026\\u0026 make clean\"],\"Image\":\"8de0073e0049f1f30f744ea3e8b363259d3fe8a2b58920c69e53448effd40b03\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\",\"PHP_VERSION=7.0.2\",\"PHP_FILENAME=php-7.0.2.tar.xz\",\"PHP_SHA256=556121271a34c442b48e3d7fa3d3bbb4413d91897abbb92aaeced4a7df5f2ab2\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"8de0073e0049f1f30f744ea3e8b363259d3fe8a2b58920c69e53448effd40b03\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\",\"Size\":163873449}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"8de0073e0049f1f30f744ea3e8b363259d3fe8a2b58920c69e53448effd40b03\",\"parent\":\"f852296c35b495eedab0372f83aa29867033f523457be8f21301b2844369fcbb\",\"created\":\"2016-01-07T23:06:01.686374288Z\",\"container\":\"cfd0a2931a32a9d83b9fe62704ab553c83892819d3e638bee7eaf3fb6f3f173e\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\",\"PHP_VERSION=7.0.2\",\"PHP_FILENAME=php-7.0.2.tar.xz\",\"PHP_SHA256=556121271a34c442b48e3d7fa3d3bbb4413d91897abbb92aaeced4a7df5f2ab2\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) ENV PHP_SHA256=556121271a34c442b48e3d7fa3d3bbb4413d91897abbb92aaeced4a7df5f2ab2\"],\"Image\":\"f852296c35b495eedab0372f83aa29867033f523457be8f21301b2844369fcbb\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\",\"PHP_VERSION=7.0.2\",\"PHP_FILENAME=php-7.0.2.tar.xz\",\"PHP_SHA256=556121271a34c442b48e3d7fa3d3bbb4413d91897abbb92aaeced4a7df5f2ab2\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"f852296c35b495eedab0372f83aa29867033f523457be8f21301b2844369fcbb\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"f852296c35b495eedab0372f83aa29867033f523457be8f21301b2844369fcbb\",\"parent\":\"faf69a3945b94cffec8865f042fda50040c2a4787184a41bab795d016cd241bd\",\"created\":\"2016-01-07T23:06:01.114172084Z\",\"container\":\"193d86a0600b1d0f7bf681aeb59691f024aeb0a838af2891f15c4fa04ee17115\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\",\"PHP_VERSION=7.0.2\",\"PHP_FILENAME=php-7.0.2.tar.xz\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) ENV PHP_FILENAME=php-7.0.2.tar.xz\"],\"Image\":\"faf69a3945b94cffec8865f042fda50040c2a4787184a41bab795d016cd241bd\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\",\"PHP_VERSION=7.0.2\",\"PHP_FILENAME=php-7.0.2.tar.xz\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"faf69a3945b94cffec8865f042fda50040c2a4787184a41bab795d016cd241bd\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"faf69a3945b94cffec8865f042fda50040c2a4787184a41bab795d016cd241bd\",\"parent\":\"515ddb30f9738bb7c640c7b8d0db0310f2680069de0d64f6a03d20e3b5867c2c\",\"created\":\"2016-01-07T23:06:00.510214735Z\",\"container\":\"d08440176be49255bc6aa3aa62a8297ede04a543c4f4391a6af61fda8a0cb90e\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\",\"PHP_VERSION=7.0.2\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) ENV PHP_VERSION=7.0.2\"],\"Image\":\"515ddb30f9738bb7c640c7b8d0db0310f2680069de0d64f6a03d20e3b5867c2c\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\",\"PHP_VERSION=7.0.2\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"515ddb30f9738bb7c640c7b8d0db0310f2680069de0d64f6a03d20e3b5867c2c\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"515ddb30f9738bb7c640c7b8d0db0310f2680069de0d64f6a03d20e3b5867c2c\",\"parent\":\"7f0a7d8f6cb84260f4c9a9faec7ad5de6612a1cbe8b0a3c224f4cbd34abb8919\",\"created\":\"2016-01-07T18:41:49.343381571Z\",\"container\":\"acd6399faa8484a67b99760e34692152e3b1a700250f48b0b1bd7c9807cd12d2\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"set -xe \\t\\u0026\\u0026 for key in $GPG_KEYS; do \\t\\tgpg --keyserver ha.pool.sks-keyservers.net --recv-keys \\\"$key\\\"; \\tdone\"],\"Image\":\"7f0a7d8f6cb84260f4c9a9faec7ad5de6612a1cbe8b0a3c224f4cbd34abb8919\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"7f0a7d8f6cb84260f4c9a9faec7ad5de6612a1cbe8b0a3c224f4cbd34abb8919\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\",\"Size\":13364}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"7f0a7d8f6cb84260f4c9a9faec7ad5de6612a1cbe8b0a3c224f4cbd34abb8919\",\"parent\":\"2f593162b03c46b0c42b4391b667c86a42f68ec627fba6e004ed4f48ccd1fdf2\",\"created\":\"2016-01-07T18:41:47.002504914Z\",\"container\":\"66952bd5d81f704838b23414dc9df69a428c9f36de7593f734d4a799aea7175a\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) ENV GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\"],\"Image\":\"2f593162b03c46b0c42b4391b667c86a42f68ec627fba6e004ed4f48ccd1fdf2\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\",\"GPG_KEYS=1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"2f593162b03c46b0c42b4391b667c86a42f68ec627fba6e004ed4f48ccd1fdf2\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"2f593162b03c46b0c42b4391b667c86a42f68ec627fba6e004ed4f48ccd1fdf2\",\"parent\":\"f24f231219c8b4ae4f455072c50c384876d6e1bef1279d06c9b20afcd197279a\",\"created\":\"2016-01-07T17:56:35.94340792Z\",\"container\":\"d4d137cb31f5892b41211de536574f55f5c1f9900fc586071bef36c6f4fbc352\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"mkdir -p $PHP_INI_DIR/conf.d\"],\"Image\":\"f24f231219c8b4ae4f455072c50c384876d6e1bef1279d06c9b20afcd197279a\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"f24f231219c8b4ae4f455072c50c384876d6e1bef1279d06c9b20afcd197279a\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"f24f231219c8b4ae4f455072c50c384876d6e1bef1279d06c9b20afcd197279a\",\"parent\":\"c45a8c0edcbfa141fcec8f774beefd76c4dfca71fd9e0080a20a10058ae94c87\",\"created\":\"2016-01-07T17:56:34.330366706Z\",\"container\":\"7e7788ced2d8dfd25ad8ca3e59939d54a54a374cb35fd5561f9a01a66cf8ba76\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) ENV PHP_INI_DIR=/usr/local/etc/php\"],\"Image\":\"c45a8c0edcbfa141fcec8f774beefd76c4dfca71fd9e0080a20a10058ae94c87\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"PHP_INI_DIR=/usr/local/etc/php\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"c45a8c0edcbfa141fcec8f774beefd76c4dfca71fd9e0080a20a10058ae94c87\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"c45a8c0edcbfa141fcec8f774beefd76c4dfca71fd9e0080a20a10058ae94c87\",\"parent\":\"3d6e8b29f2649dbe7fcae02dc5c89e011f5f39b4fc9a5a5364e187e23bd35936\",\"created\":\"2016-01-07T17:56:32.007219215Z\",\"container\":\"dd2435019bd6d833dec2d621aa8b297fc6cdd265a1684d64767e0c3a33e171f8\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"apt-get update \\u0026\\u0026 apt-get install -y autoconf file g++ gcc libc-dev make pkg-config re2c --no-install-recommends \\u0026\\u0026 rm -r /var/lib/apt/lists/*\"],\"Image\":\"3d6e8b29f2649dbe7fcae02dc5c89e011f5f39b4fc9a5a5364e187e23bd35936\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"3d6e8b29f2649dbe7fcae02dc5c89e011f5f39b4fc9a5a5364e187e23bd35936\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\",\"Size\":177217456}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"3d6e8b29f2649dbe7fcae02dc5c89e011f5f39b4fc9a5a5364e187e23bd35936\",\"parent\":\"d4b2ba78e3b4b44bdfab5b625c210d6e410debba50446520fe1c3e1a5ee9cdea\",\"created\":\"2016-01-07T17:55:06.00749166Z\",\"container\":\"56966f28765b9579d30b6a6faf2401e9d4686741ee28c85d269bd3670d05bae9\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"apt-get update \\u0026\\u0026 apt-get install -y ca-certificates curl librecode0 libsqlite3-0 libxml2 --no-install-recommends \\u0026\\u0026 rm -r /var/lib/apt/lists/*\"],\"Image\":\"d4b2ba78e3b4b44bdfab5b625c210d6e410debba50446520fe1c3e1a5ee9cdea\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"d4b2ba78e3b4b44bdfab5b625c210d6e410debba50446520fe1c3e1a5ee9cdea\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":[],\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\",\"Size\":18619656}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"d4b2ba78e3b4b44bdfab5b625c210d6e410debba50446520fe1c3e1a5ee9cdea\",\"parent\":\"cb6fb082434ea9d7f25798e96abc06cb176cbe910970ec86874555e7c9fbc04a\",\"created\":\"2016-01-07T01:07:11.982173215Z\",\"container\":\"1a9173a681853efd414d3ffc036871ac5a6c46e2aefbe839d186cce595d48a4d\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) CMD [\\\"/bin/bash\\\"]\"],\"Image\":\"cb6fb082434ea9d7f25798e96abc06cb176cbe910970ec86874555e7c9fbc04a\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":[\"/bin/bash\"],\"Image\":\"cb6fb082434ea9d7f25798e96abc06cb176cbe910970ec86874555e7c9fbc04a\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"cb6fb082434ea9d7f25798e96abc06cb176cbe910970ec86874555e7c9fbc04a\",\"created\":\"2016-01-07T01:07:09.137000568Z\",\"container\":\"30db80bfe262b3b727e41bfe6e627075f5918e4b9f5c1276e626ff20a3dd6725\",\"container_config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) ADD file:0098703cdfd5b5eda3aececc4d4600b0fb4b753e19c832c73df4f9d5fdcf3598 in /\"],\"Image\":\"\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":null},\"docker_version\":\"1.8.3\",\"config\":{\"Hostname\":\"30db80bfe262\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":null,\"Image\":\"\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":null},\"architecture\":\"amd64\",\"os\":\"linux\",\"Size\":125115267}"
+      }
+   ],
+   "signatures": [
+      {
+         "header": {
+            "jwk": {
+               "crv": "P-256",
+               "kid": "OIH7:HQFS:44FK:45VB:3B53:OIAG:TPL4:ATF5:6PNE:MGHN:NHQX:2GE4",
+               "kty": "EC",
+               "x": "Cu_UyxwLgHzE9rvlYSmvVdqYCXY42E9eNhBb0xNv0SQ",
+               "y": "zUsjWJkeKQ5tv7S-hl1Tg71cd-CqnrtiiLxSi6N_yc8"
+            },
+            "alg": "ES256"
+         },
+         "signature": "-A245lemaBLzMCdlIwtSIJGcAUsMae5s1hBZdRNAJ_0VuX6hm-hFe4zL5zEt0NREsgtTpY1oZzAIvu4bLXG9ig",
+         "protected": "eyJmb3JtYXRMZW5ndGgiOjI1ODkxLCJmb3JtYXRUYWlsIjoiQ24wIiwidGltZSI6IjIwMTYtMDEtMDhUMDI6MTg6MzVaIn0"
+      },
+      {
+         "header": {
+            "jwk": {
+               "crv": "P-256",
+               "kid": "OIH7:HQFS:44FK:45VB:3B53:OIAG:TPL4:ATF5:6PNE:MGHN:NHQX:2GE4",
+               "kty": "EC",
+               "x": "Cu_UyxwLgHzE9rvlYSmvVdqYCXY42E9eNhBb0xNv0SQ",
+               "y": "zUsjWJkeKQ5tv7S-hl1Tg71cd-CqnrtiiLxSi6N_yc8"
+            },
+            "alg": "ES256"
+         },
+         "signature": "1Xd_eR22enboeB638OlQf_r7Q4PSNrqxSWMJWSisiNVZfgcE7kpCkOWxmB0e28MXQp6LEgoJFkC9mYgUHhXZLw",
+         "protected": "eyJmb3JtYXRMZW5ndGgiOjI1ODkxLCJmb3JtYXRUYWlsIjoiQ24wIiwidGltZSI6IjIwMTYtMDEtMTJUMDA6NDI6MTZaIn0"
+      }
+   ]
+}`
