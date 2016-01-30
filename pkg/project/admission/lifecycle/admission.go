@@ -70,13 +70,11 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	if isSubjectAccessReview(a) {
 		return nil
 	}
-	fmt.Println(a.GetKind())
 	mapping, err := latest.RESTMapper.RESTMapping(a.GetKind())
 	if err != nil {
 		glog.V(4).Infof("Ignoring life-cycle enforcement for resource %v; no associated default version and kind could be found.", a.GetResource())
 		return nil
 	}
-	fmt.Println(mapping)
 	if mapping.Scope.Name() != meta.RESTScopeNameNamespace {
 		return nil
 	}
