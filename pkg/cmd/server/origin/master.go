@@ -105,6 +105,7 @@ const (
 	LegacyOpenShiftAPIPrefix  = "/osapi" // TODO: make configurable
 	OpenShiftAPIPrefix        = "/oapi"  // TODO: make configurable
 	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
+	KubernetesAPIGroupPrefix  = "/apis"  // TODO: make configurable
 	OpenShiftAPIV1Beta3       = "v1beta3"
 	OpenShiftAPIV1            = "v1"
 	OpenShiftAPIPrefixV1Beta3 = LegacyOpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3

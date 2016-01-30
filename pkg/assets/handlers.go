@@ -143,6 +143,10 @@ func HTML5ModeHandler(contextRoot string, subcontextMap map[string]string, h htt
 
 var configTemplate = template.Must(template.New("webConsoleConfig").Parse(`
 window.OPENSHIFT_CONFIG = {
+  apis: {
+    hostPort: "{{ .APIGroupAddr | js}}",
+    prefix: "{{ .APIGroupPrefix | js}}"
+  },
   api: {
     openshift: {
       hostPort: "{{ .MasterAddr | js}}",
@@ -177,6 +181,10 @@ window.OPENSHIFT_CONFIG = {
 `))
 
 type WebConsoleConfig struct {
+	// APIGroupAddr is the host:port the UI should call the API groups on. Scheme is derived from the scheme the UI is served on, so they must be the same.
+	APIGroupAddr string
+	// APIGroupPrefix is the API group context root
+	APIGroupPrefix string
 	// MasterAddr is the host:port the UI should call the master API on. Scheme is derived from the scheme the UI is served on, so they must be the same.
 	MasterAddr string
 	// MasterPrefix is the OpenShift API context root
