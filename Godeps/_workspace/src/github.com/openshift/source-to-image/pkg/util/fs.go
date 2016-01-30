@@ -53,6 +53,9 @@ func (h *fs) ReadDir(path string) ([]os.FileInfo, error) {
 
 // Chmod sets the file mode
 func (h *fs) Chmod(file string, mode os.FileMode) error {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
 	return os.Chmod(file, mode)
 }
 
@@ -113,10 +116,7 @@ func (h *fs) Copy(source string, dest string) (err error) {
 		return err
 	}
 
-	if runtime.GOOS == "windows" {
-		return
-	}
-	return os.Chmod(dest, sourceinfo.Mode())
+	return h.Chmod(dest, sourceinfo.Mode())
 }
 
 // CopyContents copies the content of the source directory to a destination
@@ -164,7 +164,7 @@ func (h *fs) RemoveDirectory(dir string) error {
 
 // CreateWorkingDirectory creates a directory to be used for STI
 func (h *fs) CreateWorkingDirectory() (directory string, err error) {
-	directory, err = ioutil.TempDir("", "sti")
+	directory, err = ioutil.TempDir("", "s2i")
 	if err != nil {
 		return "", errors.NewWorkDirError(directory, err)
 	}

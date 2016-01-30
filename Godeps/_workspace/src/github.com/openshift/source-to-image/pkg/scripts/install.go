@@ -106,7 +106,7 @@ func (s *SourceScriptHandler) Get(script string) *api.InstallResult {
 	}
 	// TODO: The '.sti/bin' path inside the source code directory is deprecated
 	// and this should (and will) be removed soon.
-	location = strings.Replace(location, "s2i", "sti", 1)
+	location = strings.Replace(location, "s2i/bin", "sti/bin", 1)
 	if s.fs.Exists(location) {
 		glog.Infof("DEPRECATED: Use .s2i/bin instead of .sti/bin")
 		return &api.InstallResult{Script: script, URL: location}

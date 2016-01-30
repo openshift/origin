@@ -74,7 +74,7 @@ func LoadAndGetImageRegistryAuth(dockerCfg io.Reader, imageName string) client.A
 	return GetImageRegistryAuth(auths, imageName)
 }
 
-// StreamContainerIO takes data from the Reader and redirects to the log functin (typically we pass in
+// StreamContainerIO takes data from the Reader and redirects to the log function (typically we pass in
 // glog.Error for stderr and glog.Info for stdout
 func StreamContainerIO(errStream io.Reader, errOutput *string, log func(...interface{})) {
 	scanner := bufio.NewReader(errStream)
