@@ -17,15 +17,24 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/importer"
 )
 
-// cachedLayers is a shared cache of blob digests to remote repositories that have previously
-// been identified as containing that blob. Thread safe and reused by all middleware layers.
-var cachedLayers digestToRepositoryCache
+var (
+	// cachedLayers is a shared cache of blob digests to remote repositories that have previously
+	// been identified as containing that blob. Thread safe and reused by all middleware layers.
+	cachedLayers digestToRepositoryCache
+	// secureTransport is the transport pool used for pullthrough to remote registries marked as
+	// secure.
+	secureTransport http.RoundTripper
+	// insecureTransport is the transport pool that does not verify remote TLS certificates for use
+	// during pullthrough against registries marked as insecure.
+	insecureTransport http.RoundTripper
+)
 
 func init() {
 	cache, err := newDigestToRepositoryCache(1024)
@@ -34,6 +43,12 @@ func init() {
 	}
 	cachedLayers = cache
 	repomw.Register("openshift", repomw.InitFunc(newRepository))
+
+	secureTransport = http.DefaultTransport
+	insecureTransport, err = kclient.TransportFor(&kclient.Config{Insecure: true})
+	if err != nil {
+		panic(fmt.Sprintf("Unable to configure a default transport for importing insecure images: %v", err))
+	}
 }
 
 // repository wraps a distribution.Repository and allows manifests to be served from the OpenShift image
@@ -393,7 +408,7 @@ func (r *repository) importContext() importer.RepositoryRetriever {
 		secrets = &kapi.SecretList{}
 	}
 	credentials := importer.NewCredentialsForSecrets(secrets.Items)
-	return importer.NewContext(http.DefaultTransport).WithCredentials(credentials)
+	return importer.NewContext(secureTransport, insecureTransport).WithCredentials(credentials)
 }
 
 // getImageStream retrieves the ImageStream for r.

@@ -12,8 +12,8 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/client"
@@ -32,32 +32,33 @@ type ImporterDockerRegistryFunc func() dockerregistry.Client
 
 // REST implements the RESTStorage interface for ImageStreamImport
 type REST struct {
-	importFn        ImporterFunc
-	streams         imagestream.Registry
-	internalStreams rest.CreaterUpdater
-	images          rest.Creater
-	secrets         client.ImageStreamSecretsNamespacer
-	transport       http.RoundTripper
-	clientFn        ImporterDockerRegistryFunc
+	importFn          ImporterFunc
+	streams           imagestream.Registry
+	internalStreams   rest.CreaterUpdater
+	images            rest.Creater
+	secrets           client.ImageStreamSecretsNamespacer
+	transport         http.RoundTripper
+	insecureTransport http.RoundTripper
+	clientFn          ImporterDockerRegistryFunc
 }
 
 // NewREST returns a REST storage implementation that handles importing images. The clientFn argument is optional
-// if v1 Docker Registry importing is not required
+// if v1 Docker Registry importing is not required. Insecure transport is optional, and both transports should not
+// include client certs unless you wish to allow the entire cluster to import using those certs.
 func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStreams rest.CreaterUpdater,
-	images rest.Creater, secrets client.ImageStreamSecretsNamespacer, clientFn ImporterDockerRegistryFunc) *REST {
-	// TODO: will be refactored upstream, or take this as input?
-	rt, err := kclient.TransportFor(&kclient.Config{})
-	if err != nil {
-		panic(err)
-	}
+	images rest.Creater, secrets client.ImageStreamSecretsNamespacer,
+	transport, insecureTransport http.RoundTripper,
+	clientFn ImporterDockerRegistryFunc,
+) *REST {
 	return &REST{
-		importFn:        importFn,
-		streams:         streams,
-		internalStreams: internalStreams,
-		images:          images,
-		secrets:         secrets,
-		transport:       rt,
-		clientFn:        clientFn,
+		importFn:          importFn,
+		streams:           streams,
+		internalStreams:   internalStreams,
+		images:            images,
+		secrets:           secrets,
+		transport:         transport,
+		insecureTransport: insecureTransport,
+		clientFn:          clientFn,
 	}
 }
 
@@ -97,7 +98,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		}
 		return secrets.Items, nil
 	})
-	importCtx := importer.NewContext(r.transport).WithCredentials(credentials)
+	importCtx := importer.NewContext(r.transport, r.insecureTransport).WithCredentials(credentials)
 	imports := r.importFn(importCtx)
 	if err := imports.Import(ctx.(gocontext.Context), isi); err != nil {
 		return nil, kapierrors.NewInternalError(err)
@@ -242,7 +243,9 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 			glog.V(4).Infof("stream did not change: %#v", stream)
 			obj, err = original.(*api.ImageStream), nil
 		} else {
-			glog.V(4).Infof("updated stream %s", util.ObjectDiff(original, stream))
+			if glog.V(4) {
+				glog.V(4).Infof("updated stream %s", util.ObjectDiff(original, stream))
+			}
 			stream.Annotations[api.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)
 			obj, _, err = r.internalStreams.Update(ctx, stream)
 		}

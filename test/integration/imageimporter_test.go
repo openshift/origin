@@ -482,7 +482,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 
 func TestImageStreamImportDockerHub(t *testing.T) {
 	rt, _ := kclient.TransportFor(&kclient.Config{})
-	importCtx := importer.NewContext(rt).WithCredentials(importer.NoCredentials)
+	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
 	imports := &api.ImageStreamImport{
 		Spec: api.ImageStreamImportSpec{
@@ -529,7 +529,7 @@ func TestImageStreamImportDockerHub(t *testing.T) {
 
 func TestImageStreamImportQuayIO(t *testing.T) {
 	rt, _ := kclient.TransportFor(&kclient.Config{})
-	importCtx := importer.NewContext(rt).WithCredentials(importer.NoCredentials)
+	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
 	imports := &api.ImageStreamImport{
 		Spec: api.ImageStreamImportSpec{
@@ -570,7 +570,7 @@ func TestImageStreamImportQuayIO(t *testing.T) {
 
 func TestImageStreamImportRedHatRegistry(t *testing.T) {
 	rt, _ := kclient.TransportFor(&kclient.Config{})
-	importCtx := importer.NewContext(rt).WithCredentials(importer.NoCredentials)
+	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
 	// test without the client on the context
 	imports := &api.ImageStreamImport{
@@ -606,7 +606,7 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 		},
 	}
 	context := gocontext.WithValue(gocontext.Background(), importer.ContextKeyV1RegistryClient, dockerregistry.NewClient(20*time.Second, false))
-	importCtx = importer.NewContext(rt).WithCredentials(importer.NoCredentials)
+	importCtx = importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 	i = importer.NewImageStreamImporter(importCtx, 3, nil)
 	if err := i.Import(context, imports); err != nil {
 		t.Fatal(err)
