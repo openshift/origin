@@ -50,6 +50,9 @@ type ProjectStatusDescriber struct {
 	C       client.Interface
 	Server  string
 	Suggest bool
+
+	LogsCommandName             string
+	SecurityPolicyCommandFormat string
 }
 
 func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, sets.String, error) {
@@ -213,7 +216,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 		allMarkers := osgraph.Markers{}
 		allMarkers = append(allMarkers, createForbiddenMarkers(forbiddenResources)...)
-		for _, scanner := range getMarkerScanners() {
+		for _, scanner := range getMarkerScanners(d.LogsCommandName, d.SecurityPolicyCommandFormat) {
 			allMarkers = append(allMarkers, scanner(g, f)...)
 		}
 
@@ -231,7 +234,15 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 				if len(marker.Suggestion) > 0 {
 					errorSuggestions++
 					if d.Suggest {
-						fmt.Fprintln(out, indent+"  "+marker.Suggestion.String())
+						switch s := marker.Suggestion.String(); {
+						case strings.Contains(s, "\n"):
+							fmt.Fprintln(out)
+							for _, line := range strings.Split(s, "\n") {
+								fmt.Fprintln(out, indent+"  "+line)
+							}
+						case len(s) > 0:
+							fmt.Fprintln(out, indent+"  try: "+s)
+						}
 					}
 				}
 			}
@@ -245,8 +256,14 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			for _, marker := range warningMarkers {
 				if d.Suggest {
 					fmt.Fprintln(out, indent+"* "+marker.Message)
-					if len(marker.Suggestion) > 0 {
-						fmt.Fprintln(out, indent+"  "+marker.Suggestion.String())
+					switch s := marker.Suggestion.String(); {
+					case strings.Contains(s, "\n"):
+						fmt.Fprintln(out)
+						for _, line := range strings.Split(s, "\n") {
+							fmt.Fprintln(out, indent+"  "+line)
+						}
+					case len(s) > 0:
+						fmt.Fprintln(out, indent+"  try: "+s)
 					}
 				}
 			}
@@ -304,9 +321,11 @@ func createForbiddenMarkers(forbiddenResources sets.String) []osgraph.Marker {
 	return markers
 }
 
-func getMarkerScanners() []osgraph.MarkerScanner {
+func getMarkerScanners(logsCommandName, securityPolicyCommandFormat string) []osgraph.MarkerScanner {
 	return []osgraph.MarkerScanner{
-		kubeanalysis.FindRestartingPods,
+		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
+			return kubeanalysis.FindRestartingPods(g, f, logsCommandName, securityPolicyCommandFormat)
+		},
 		kubeanalysis.FindDuelingReplicationControllers,
 		kubeanalysis.FindMissingSecrets,
 		buildanalysis.FindUnpushableBuildConfigs,

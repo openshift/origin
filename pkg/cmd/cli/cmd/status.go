@@ -48,6 +48,9 @@ type StatusOptions struct {
 	describer     *describe.ProjectStatusDescriber
 	out           io.Writer
 	verbose       bool
+
+	logsCommandName             string
+	securityPolicyCommandFormat string
 }
 
 // NewCmdStatus implements the OpenShift cli status command.
@@ -85,6 +88,9 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args 
 		return cmdutil.UsageError(cmd, "no arguments should be provided")
 	}
 
+	o.logsCommandName = fmt.Sprintf("%s logs -p", cmd.Parent().CommandPath())
+	o.securityPolicyCommandFormat = "oadm policy add-scc-to-user anyuid -n %s -z %s"
+
 	client, kclient, err := f.Clients()
 	if err != nil {
 		return err
@@ -105,7 +111,15 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args 
 		o.namespace = namespace
 	}
 
-	o.describer = &describe.ProjectStatusDescriber{K: kclient, C: client, Server: config.Host, Suggest: o.verbose}
+	o.describer = &describe.ProjectStatusDescriber{
+		K:       kclient,
+		C:       client,
+		Server:  config.Host,
+		Suggest: o.verbose,
+
+		LogsCommandName:             o.logsCommandName,
+		SecurityPolicyCommandFormat: o.securityPolicyCommandFormat,
+	}
 
 	o.out = out
 

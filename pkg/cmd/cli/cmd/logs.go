@@ -30,7 +30,10 @@ Print the logs for a resource.
 Supported resources are builds, build configs (bc), deployment configs (dc), and pods.
 When a pod is specified and has more than one container, the container name should be
 specified via -c. When a build config or deployment config is specified, you can view
-the logs for a particular version of it via --version.`
+the logs for a particular version of it via --version.
+
+If your pod is failing to start, you may need to use the --previous option to see the
+logs of the last attempt.`
 
 	logsExample = `  # Start streaming the logs of the most recent build of the openldap build config.
   $ %[1]s -f bc/openldap
