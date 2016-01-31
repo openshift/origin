@@ -16,3 +16,5 @@ auth:
 middleware:
   repository:
     - name: openshift
+      options:
+        pullthrough: true

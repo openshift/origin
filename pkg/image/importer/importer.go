@@ -66,7 +66,7 @@ type ImageStreamImporter struct {
 	retriever RepositoryRetriever
 	limiter   util.RateLimiter
 
-	imageCache map[gocontext.Context]map[manifestKey]*api.Image
+	digestToRepositoryCache map[gocontext.Context]map[manifestKey]*api.Image
 }
 
 // NewImageStreamImport creates an importer that will load images from a remote Docker registry into an
@@ -81,16 +81,16 @@ func NewImageStreamImporter(retriever RepositoryRetriever, maximumTagsPerRepo in
 		retriever: retriever,
 		limiter:   limiter,
 
-		imageCache: make(map[gocontext.Context]map[manifestKey]*api.Image),
+		digestToRepositoryCache: make(map[gocontext.Context]map[manifestKey]*api.Image),
 	}
 }
 
 // contextImageCache returns the image cache entry for a context.
 func (i *ImageStreamImporter) contextImageCache(ctx gocontext.Context) map[manifestKey]*api.Image {
-	cache := i.imageCache[ctx]
+	cache := i.digestToRepositoryCache[ctx]
 	if cache == nil {
 		cache = make(map[manifestKey]*api.Image)
-		i.imageCache[ctx] = cache
+		i.digestToRepositoryCache[ctx] = cache
 	}
 	return cache
 }

@@ -14,6 +14,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/manifest/schema1"
 	"github.com/golang/glog"
 )
 
@@ -298,7 +299,28 @@ func NormalizeImageStreamTag(name string) string {
 	return name
 }
 
-// ImageWithMetadata modifies the image to fill in DockerImageMetadata
+// ManifestMatchesImage returns true if the provided manifest matches the name of the image.
+func ManifestMatchesImage(image *Image, newManifest []byte) (bool, error) {
+	dgst, err := digest.ParseDigest(image.Name)
+	if err != nil {
+		return false, err
+	}
+	v, err := digest.NewDigestVerifier(dgst)
+	if err != nil {
+		return false, err
+	}
+	sm := schema1.SignedManifest{Raw: newManifest}
+	raw, err := sm.Payload()
+	if err != nil {
+		return false, err
+	}
+	if _, err := v.Write(raw); err != nil {
+		return false, err
+	}
+	return v.Verified(), nil
+}
+
+// ImageWithMetadata returns a copy of image with the DockerImageMetadata filled in
 // from the raw DockerImageManifest data stored in the image.
 func ImageWithMetadata(image *Image) error {
 	if len(image.DockerImageManifest) == 0 {

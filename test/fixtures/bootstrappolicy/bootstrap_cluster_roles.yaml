@@ -689,6 +689,7 @@ items:
     resources:
     - imagestreamimages
     - imagestreams
+    - imagestreams/secrets
     - imagestreamtags
     verbs:
     - get

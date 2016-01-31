@@ -337,7 +337,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 				{
 					Verbs:     sets.NewString("get"),
-					Resources: sets.NewString("imagestreamimages", "imagestreamtags", "imagestreams"),
+					Resources: sets.NewString("imagestreamimages", "imagestreamtags", "imagestreams", "imagestreams/secrets"),
 				},
 				{
 					Verbs:     sets.NewString("update"),
