@@ -481,6 +481,11 @@ func init() {
 					Verbs:     sets.NewString("create", "delete"),
 					Resources: sets.NewString("pods"),
 				},
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("create"),
+					Resources: sets.NewString("pods/binding"),
+				},
 				// DaemonSetsController.podControl.recorder
 				{
 					Verbs:     sets.NewString("create", "update", "patch"),

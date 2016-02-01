@@ -107,6 +107,9 @@ type MasterConfig struct {
 	// APIClientCAs is used to verify client certificates presented for API auth
 	APIClientCAs *x509.CertPool
 
+	// PluginInitializer carries types used when instantiating both origin and kubernetes admission control plugins
+	PluginInitializer oadmission.PluginInitializer
+
 	// PrivilegedLoopbackClientConfig is the client configuration used to call OpenShift APIs from system components
 	// To apply different access control to a system component, create a client config specifically for that component.
 	PrivilegedLoopbackClientConfig kclient.Config
@@ -171,14 +174,17 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
-	admissionControlPluginNames := []string{"OriginNamespaceLifecycle", "BuildByStrategy", "OriginResourceQuota"}
+	admissionControlPluginNames := []string{"OriginNamespaceLifecycle", "PodNodeConstraints", "BuildByStrategy", "OriginResourceQuota"}
 	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
 		admissionControlPluginNames = options.AdmissionConfig.PluginOrderOverride
 	}
 
+	authorizer := newAuthorizer(policyClient, options.ProjectConfig.ProjectRequestMessage)
+
 	pluginInitializer := oadmission.PluginInitializer{
 		OpenshiftClient: privilegedLoopbackOpenShiftClient,
 		ProjectCache:    projectCache,
+		Authorizer:      authorizer,
 	}
 
 	plugins := []admission.Interface{}
@@ -207,8 +213,6 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	plug, plugStart := newControllerPlug(options, client)
 
-	authorizer := newAuthorizer(policyClient, options.ProjectConfig.ProjectRequestMessage)
-
 	config := &MasterConfig{
 		Options: options,
 
@@ -236,6 +240,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 		ClientCAs:    clientCAs,
 		APIClientCAs: apiClientCAs,
+
+		PluginInitializer: pluginInitializer,
 
 		PrivilegedLoopbackClientConfig:     *privilegedLoopbackClientConfig,
 		PrivilegedLoopbackOpenShiftClient:  privilegedLoopbackOpenShiftClient,

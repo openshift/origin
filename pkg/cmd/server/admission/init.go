@@ -3,6 +3,7 @@ package admission
 import (
 	"k8s.io/kubernetes/pkg/admission"
 
+	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/project/cache"
 )
@@ -10,6 +11,7 @@ import (
 type PluginInitializer struct {
 	OpenshiftClient client.Interface
 	ProjectCache    *cache.ProjectCache
+	Authorizer      authorizer.Authorizer
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -21,6 +23,9 @@ func (i *PluginInitializer) Initialize(plugins []admission.Interface) {
 		}
 		if wantsProjectCache, ok := plugin.(WantsProjectCache); ok {
 			wantsProjectCache.SetProjectCache(i.ProjectCache)
+		}
+		if wantsAuthorizer, ok := plugin.(WantsAuthorizer); ok {
+			wantsAuthorizer.SetAuthorizer(i.Authorizer)
 		}
 	}
 }
