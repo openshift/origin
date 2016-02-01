@@ -192,32 +192,12 @@
                                     </dd>
                                 </div>
                                 <div ng-switch-when="ImageChange">
-                                  <div ng-switch="buildConfig.spec.strategy.type">
-                                    <div ng-switch-when="Source" ng-if="buildConfig.spec.strategy.sourceStrategy.from && buildConfig.spec.strategy.sourceStrategy.from.kind!='ImageStreamImage'">
-                                      <dt>
-                                        New image for:
-                                      </dt>
-                                      <dd>
-                                        Image stream {{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                                      </dd>
-                                    </div>
-                                    <div ng-switch-when="Docker" ng-if="buildConfig.spec.strategy.dockerStrategy.from && buildConfig.spec.strategy.dockerStrategy.from.kind!='ImageStreamImage'">
-                                      <dt>
-                                        New image for:
-                                      </dt>
-                                      <dd>
-                                        Image stream {{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                                      </dd>
-                                    </div>
-                                    <div ng-switch-when="Custom" ng-if="buildConfig.spec.strategy.customStrategy.from && buildConfig.spec.strategy.customStrategy.from.kind!='ImageStreamImage'">
-                                      <dt>
-                                        New image for:
-                                      </dt>
-                                      <dd>
-                                        Image stream {{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                                      </dd>
-                                    </div>
-                                  </div>
+                                  <dt>
+                                    New image for:
+                                  </dt>
+                                  <dd>
+                                    {{(trigger.imageChange.from || (buildConfig | buildStrategy).from) | imageObjectRef : buildConfig.metadata.namespace}}
+                                  </dd>
                                 </div>
                                 <div ng-switch-when="ConfigChange">
                                   <dt>Config change for:</dt>
