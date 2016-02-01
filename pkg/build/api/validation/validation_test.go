@@ -282,8 +282,8 @@ func TestBuildConfigDockerStrategyImageChangeTrigger(t *testing.T) {
 		t.Errorf("Expected validation error, got nothing")
 	case 1:
 		err := errors[0]
-		if err.Type != field.ErrorTypeRequired {
-			t.Errorf("Expected error to be '%v', got '%v'", field.ErrorTypeRequired, err.Type)
+		if err.Type != field.ErrorTypeInvalid {
+			t.Errorf("Expected error to be '%v', got '%v'", field.ErrorTypeInvalid, err.Type)
 		}
 	default:
 		t.Errorf("Expected a single validation error, got %v", errors)
@@ -330,18 +330,44 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 	tests := []struct {
 		name        string
 		triggers    []buildapi.BuildTriggerPolicy
+		fromKind    string
 		expectError bool
 		errorType   field.ErrorType
 	}{
 		{
-			name: "valid default trigger",
+			name: "valid default trigger with imagestreamtag",
 			triggers: []buildapi.BuildTriggerPolicy{
 				{
 					Type:        buildapi.ImageChangeBuildTriggerType,
 					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
+			fromKind:    "ImageStreamTag",
 			expectError: false,
+		},
+		{
+			name: "invalid default trigger (imagestreamimage)",
+			triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{},
+				},
+			},
+			fromKind:    "ImageStreamImage",
+			expectError: true,
+			errorType:   field.ErrorTypeInvalid,
+		},
+		{
+			name: "invalid default trigger (dockerimage)",
+			triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{},
+				},
+			},
+			fromKind:    "DockerImage",
+			expectError: true,
+			errorType:   field.ErrorTypeInvalid,
 		},
 		{
 			name: "more than one default trigger",
@@ -355,6 +381,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
+			fromKind:    "ImageStreamTag",
 			expectError: true,
 			errorType:   field.ErrorTypeInvalid,
 		},
@@ -365,6 +392,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 					Type: buildapi.ImageChangeBuildTriggerType,
 				},
 			},
+			fromKind:    "ImageStreamTag",
 			expectError: true,
 			errorType:   field.ErrorTypeRequired,
 		},
@@ -385,6 +413,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 					},
 				},
 			},
+			fromKind:    "ImageStreamTag",
 			expectError: false,
 		},
 		{
@@ -404,6 +433,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 					},
 				},
 			},
+			fromKind:    "ImageStreamTag",
 			expectError: true,
 			errorType:   field.ErrorTypeInvalid,
 		},
@@ -423,6 +453,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 					},
 				},
 			},
+			fromKind:    "ImageStreamTag",
 			expectError: true,
 			errorType:   field.ErrorTypeInvalid,
 		},
@@ -448,6 +479,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 					},
 				},
 			},
+			fromKind:    "ImageStreamTag",
 			expectError: true,
 			errorType:   field.ErrorTypeInvalid,
 		},
@@ -468,6 +500,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 					},
 				},
 			},
+			fromKind:    "ImageStreamTag",
 			expectError: true,
 			errorType:   field.ErrorTypeInvalid,
 		},
@@ -495,6 +528,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 					},
 				},
 			},
+			fromKind:    "ImageStreamTag",
 			expectError: false,
 		},
 		{
@@ -521,6 +555,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 					},
 				},
 			},
+			fromKind:    "ImageStreamTag",
 			expectError: true,
 			errorType:   field.ErrorTypeInvalid,
 		},
@@ -540,7 +575,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 					Strategy: buildapi.BuildStrategy{
 						SourceStrategy: &buildapi.SourceBuildStrategy{
 							From: kapi.ObjectReference{
-								Kind: "ImageStreamTag",
+								Kind: tc.fromKind,
 								Name: "builderimage:latest",
 							},
 						},
@@ -1685,7 +1720,7 @@ func TestValidateTrigger(t *testing.T) {
 		},
 	}
 	for desc, test := range tests {
-		errors := validateTrigger(&test.trigger, nil)
+		errors := validateTrigger(&test.trigger, &kapi.ObjectReference{Kind: "ImageStreamTag"}, nil)
 		if len(test.expected) == 0 {
 			if len(errors) != 0 {
 				t.Errorf("%s: Got unexpected validation errors: %#v", desc, errors)
