@@ -3,9 +3,12 @@ package api
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/runtime/serializer"
 )
 
 var Scheme = runtime.NewScheme()
+
+var Codecs = serializer.NewCodecFactory(Scheme)
 
 const GroupName = ""
 

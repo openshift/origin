@@ -329,7 +329,7 @@ func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kuberne
 	if openshiftConfig.Options.KubernetesMasterConfig == nil {
 		return nil, nil
 	}
-	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient(), openshiftConfig.ProjectCache)
+	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient(), openshiftConfig.PluginInitializer)
 	return kubeConfig, err
 }
 
