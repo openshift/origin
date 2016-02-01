@@ -13,12 +13,12 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/deploy/api"
-	"github.com/openshift/origin/pkg/deploy/api/v1"
-	"github.com/openshift/origin/pkg/deploy/api/v1beta3"
+	"github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/api/v1"
+	"github.com/openshift/origin/pkg/oauth/api/v1beta3"
 )
 
-const importPrefix = "github.com/openshift/origin/pkg/deploy/api"
+const importPrefix = "github.com/openshift/origin/pkg/oauth/api"
 
 var accessor = meta.NewAccessor()
 
@@ -92,7 +92,7 @@ func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
 }
 
 func newRESTMapper(externalVersions []unversioned.GroupVersion) meta.RESTMapper {
-	rootScoped := sets.NewString()
+	rootScoped := sets.NewString("OAuthAccessToken", "OAuthAuthorizeToken", "OAuthClient", "OAuthClientAuthorization")
 	ignoredKinds := sets.NewString()
 	return kapi.NewDefaultRESTMapper(externalVersions, interfacesFor, importPrefix, ignoredKinds, rootScoped)
 }

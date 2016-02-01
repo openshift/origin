@@ -8,9 +8,10 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/v1"
-	"github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
+
+	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
 )
 
 type TestConfig struct {
@@ -19,22 +20,28 @@ type TestConfig struct {
 	Item2                []string `json:"item2"`
 }
 
-func (*TestConfig) IsAnAPIObject() {}
+func (obj *TestConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+
+type TestConfigV1 struct {
+	unversioned.TypeMeta `json:",inline"`
+	Item1                string   `json:"item1"`
+	Item2                []string `json:"item2"`
+}
+
+func (obj *TestConfigV1) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
 
 func TestGetPluginConfig(t *testing.T) {
-	api.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &TestConfig{})
-	api.Scheme.AddKnownTypes(v1.SchemeGroupVersion, &TestConfig{})
+	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &TestConfig{})
+	configapi.Scheme.AddKnownTypeWithName(latest.Version.WithKind("TestConfig"), &TestConfigV1{})
 
 	testConfig := &TestConfig{
 		Item1: "item1value",
 		Item2: []string{"element1", "element2"},
 	}
 
-	cfg := api.AdmissionPluginConfig{
-		Location: "/path/to/my/config",
-		Configuration: runtime.EmbeddedObject{
-			Object: testConfig,
-		},
+	cfg := configapi.AdmissionPluginConfig{
+		Location:      "/path/to/my/config",
+		Configuration: testConfig,
 	}
 	fileName, err := GetPluginConfig(cfg)
 	if err != nil {

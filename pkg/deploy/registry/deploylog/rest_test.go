@@ -20,6 +20,9 @@ import (
 	"github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 var testSelector = map[string]string{"test": "rest"}
@@ -178,7 +181,7 @@ func TestRESTGet(t *testing.T) {
 				Transport:       nil,
 				ContentType:     "text/plain",
 				Flush:           true,
-				ResponseChecker: genericrest.NewGenericHttpResponseChecker("Pod", "config-1-deploy"),
+				ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), "config-1-deploy"),
 			},
 			expectedErr: nil,
 		},
@@ -215,7 +218,7 @@ func TestRESTGet(t *testing.T) {
 				Transport:       nil,
 				ContentType:     "text/plain",
 				Flush:           false,
-				ResponseChecker: genericrest.NewGenericHttpResponseChecker("Pod", "config-2-deploy"),
+				ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), "config-2-deploy"),
 			},
 			expectedErr: nil,
 		},
@@ -233,7 +236,7 @@ func TestRESTGet(t *testing.T) {
 				Transport:       nil,
 				ContentType:     "text/plain",
 				Flush:           false,
-				ResponseChecker: genericrest.NewGenericHttpResponseChecker("Pod", "config-2-deploy"),
+				ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), "config-2-deploy"),
 			},
 			expectedErr: nil,
 		},

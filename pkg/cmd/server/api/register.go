@@ -8,7 +8,7 @@ import (
 const GroupName = ""
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: ""}
+var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 
 // Kind takes an unqualified kind and returns back a Group qualified GroupKind
 func Kind(kind string) unversioned.GroupKind {
@@ -27,6 +27,9 @@ func AddToScheme(scheme *runtime.Scheme) {
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) {
+	if err := Scheme.AddIgnoredConversionType(&unversioned.TypeMeta{}, &unversioned.TypeMeta{}); err != nil {
+		panic(err)
+	}
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&MasterConfig{},
 		&NodeConfig{},
