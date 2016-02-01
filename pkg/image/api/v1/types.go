@@ -67,11 +67,11 @@ type ImageStreamSpec struct {
 	// DockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server
 	DockerImageRepository string `json:"dockerImageRepository,omitempty" description:"optional field if specified this stream is backed by a Docker repository on this server"`
 	// Tags map arbitrary string values to specific image locators
-	Tags []NamedTagReference `json:"tags,omitempty" description:"map arbitrary string values to specific image locators"`
+	Tags []TagReference `json:"tags,omitempty" description:"map arbitrary string values to specific image locators"`
 }
 
-// NamedTagReference specifies optional annotations for images using this tag and an optional reference to an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.
-type NamedTagReference struct {
+// TagReference specifies optional annotations for images using this tag and an optional reference to an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.
+type TagReference struct {
 	// Name of the tag
 	Name string `json:"name" description:"name of tag"`
 	// Annotations associated with images using this tag
