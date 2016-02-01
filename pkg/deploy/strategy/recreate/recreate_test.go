@@ -44,7 +44,7 @@ func TestRecreate_initialDeployment(t *testing.T) {
 
 func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
-	config.Spec.Strategy.RecreateParams = recreateParams(deployapi.LifecycleHookFailurePolicyAbort, "")
+	config.Spec.Strategy.RecreateParams = recreateParams(deployapi.LifecycleHookFailurePolicyAbort, "", "")
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 	scaler := &scalertest.FakeScaler{}
 
@@ -76,7 +76,7 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 
 func TestRecreate_deploymentPreHookFail(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
-	config.Spec.Strategy.RecreateParams = recreateParams(deployapi.LifecycleHookFailurePolicyAbort, "")
+	config.Spec.Strategy.RecreateParams = recreateParams(deployapi.LifecycleHookFailurePolicyAbort, "", "")
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 	scaler := &scalertest.FakeScaler{}
 
@@ -104,9 +104,70 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 	}
 }
 
+func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
+	config := deploytest.OkDeploymentConfig(1)
+	config.Spec.Strategy.RecreateParams = recreateParams("", deployapi.LifecycleHookFailurePolicyAbort, "")
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	scaler := &scalertest.FakeScaler{}
+
+	hookExecuted := false
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
+			return deployment, nil
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
+				hookExecuted = true
+				return nil
+			},
+		},
+		scaler: scaler,
+	}
+
+	err := strategy.Deploy(nil, deployment, 2)
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+	if !hookExecuted {
+		t.Fatalf("expected hook execution")
+	}
+}
+
+func TestRecreate_deploymentMidHookFail(t *testing.T) {
+	config := deploytest.OkDeploymentConfig(1)
+	config.Spec.Strategy.RecreateParams = recreateParams("", deployapi.LifecycleHookFailurePolicyAbort, "")
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	scaler := &scalertest.FakeScaler{}
+
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
+			return deployment, nil
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
+				return fmt.Errorf("hook execution failure")
+			},
+		},
+		scaler: scaler,
+	}
+
+	err := strategy.Deploy(nil, deployment, 2)
+	if err == nil {
+		t.Fatalf("expected a deploy error")
+	}
+	if len(scaler.Events) > 0 {
+		t.Fatalf("unexpected scaling events: %v", scaler.Events)
+	}
+}
 func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
-	config.Spec.Strategy.RecreateParams = recreateParams("", deployapi.LifecycleHookFailurePolicyAbort)
+	config.Spec.Strategy.RecreateParams = recreateParams("", "", deployapi.LifecycleHookFailurePolicyAbort)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 	scaler := &scalertest.FakeScaler{}
 
@@ -138,7 +199,7 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 
 func TestRecreate_deploymentPostHookFail(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
-	config.Spec.Strategy.RecreateParams = recreateParams("", deployapi.LifecycleHookFailurePolicyAbort)
+	config.Spec.Strategy.RecreateParams = recreateParams("", "", deployapi.LifecycleHookFailurePolicyAbort)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 	scaler := &scalertest.FakeScaler{}
 
@@ -246,13 +307,18 @@ func TestRecreate_acceptorFail(t *testing.T) {
 	}
 }
 
-func recreateParams(preFailurePolicy, postFailurePolicy deployapi.LifecycleHookFailurePolicy) *deployapi.RecreateDeploymentStrategyParams {
-	var pre *deployapi.LifecycleHook
-	var post *deployapi.LifecycleHook
+func recreateParams(preFailurePolicy, midFailurePolicy, postFailurePolicy deployapi.LifecycleHookFailurePolicy) *deployapi.RecreateDeploymentStrategyParams {
+	var pre, mid, post *deployapi.LifecycleHook
 
 	if len(preFailurePolicy) > 0 {
 		pre = &deployapi.LifecycleHook{
 			FailurePolicy: preFailurePolicy,
+			ExecNewPod:    &deployapi.ExecNewPodHook{},
+		}
+	}
+	if len(midFailurePolicy) > 0 {
+		mid = &deployapi.LifecycleHook{
+			FailurePolicy: midFailurePolicy,
 			ExecNewPod:    &deployapi.ExecNewPodHook{},
 		}
 	}
@@ -264,6 +330,7 @@ func recreateParams(preFailurePolicy, postFailurePolicy deployapi.LifecycleHookF
 	}
 	return &deployapi.RecreateDeploymentStrategyParams{
 		Pre:  pre,
+		Mid:  mid,
 		Post: post,
 	}
 }

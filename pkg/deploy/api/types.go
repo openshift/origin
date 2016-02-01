@@ -70,6 +70,9 @@ type RecreateDeploymentStrategyParams struct {
 	// Pre is a lifecycle hook which is executed before the strategy manipulates
 	// the deployment. All LifecycleHookFailurePolicy values are supported.
 	Pre *LifecycleHook
+	// Mid is a lifecycle hook which is executed while the deployment is scaled down to zero before the first new
+	// pod is created. All LifecycleHookFailurePolicy values are supported.
+	Mid *LifecycleHook
 	// Post is a lifecycle hook which is executed after the strategy has
 	// finished all deployment logic. The LifecycleHookFailurePolicyAbort policy
 	// is NOT supported.

@@ -3140,6 +3140,14 @@ func autoconvert_api_RecreateDeploymentStrategyParams_To_v1_RecreateDeploymentSt
 	} else {
 		out.Pre = nil
 	}
+	if in.Mid != nil {
+		out.Mid = new(deployapiv1.LifecycleHook)
+		if err := convert_api_LifecycleHook_To_v1_LifecycleHook(in.Mid, out.Mid, s); err != nil {
+			return err
+		}
+	} else {
+		out.Mid = nil
+	}
 	if in.Post != nil {
 		out.Post = new(deployapiv1.LifecycleHook)
 		if err := convert_api_LifecycleHook_To_v1_LifecycleHook(in.Post, out.Post, s); err != nil {
@@ -3667,6 +3675,14 @@ func autoconvert_v1_RecreateDeploymentStrategyParams_To_api_RecreateDeploymentSt
 		}
 	} else {
 		out.Pre = nil
+	}
+	if in.Mid != nil {
+		out.Mid = new(deployapi.LifecycleHook)
+		if err := convert_v1_LifecycleHook_To_api_LifecycleHook(in.Mid, out.Mid, s); err != nil {
+			return err
+		}
+	} else {
+		out.Mid = nil
 	}
 	if in.Post != nil {
 		out.Post = new(deployapi.LifecycleHook)

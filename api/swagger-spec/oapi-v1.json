@@ -18267,6 +18267,10 @@
       "$ref": "v1.LifecycleHook",
       "description": "a hook executed before the strategy starts the deployment"
      },
+     "mid": {
+      "$ref": "v1.LifecycleHook",
+      "description": "a hook executed after the strategy scales down the deployment and before it scales up"
+     },
      "post": {
       "$ref": "v1.LifecycleHook",
       "description": "a hook executed after the strategy finishes the deployment"

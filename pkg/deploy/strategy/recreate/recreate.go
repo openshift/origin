@@ -83,9 +83,8 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	if params != nil && params.Pre != nil {
 		if err := s.hookExecutor.Execute(params.Pre, to, "prehook"); err != nil {
 			return fmt.Errorf("Pre hook failed: %s", err)
-		} else {
-			glog.Infof("Pre hook finished")
 		}
+		glog.Infof("Pre hook finished")
 	}
 
 	// Scale down the from deployment.
@@ -95,6 +94,13 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		if err != nil {
 			return fmt.Errorf("couldn't scale %s to 0: %v", deployutil.LabelForDeployment(from), err)
 		}
+	}
+
+	if params != nil && params.Mid != nil {
+		if err := s.hookExecutor.Execute(params.Mid, to, "mid"); err != nil {
+			return fmt.Errorf("mid hook failed: %s", err)
+		}
+		glog.Infof("Mid hook finished")
 	}
 
 	// Scale up the to deployment.
@@ -128,9 +134,8 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	if params != nil && params.Post != nil {
 		if err := s.hookExecutor.Execute(params.Post, to, "posthook"); err != nil {
 			util.HandleError(fmt.Errorf("post hook failed: %s", err))
-		} else {
-			glog.Infof("Post hook finished")
 		}
+		glog.Infof("Post hook finished")
 	}
 
 	glog.Infof("Deployment %s successfully made active", to.Name)

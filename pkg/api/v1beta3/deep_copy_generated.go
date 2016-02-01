@@ -1772,6 +1772,14 @@ func deepCopy_v1beta3_RecreateDeploymentStrategyParams(in deployapiv1beta3.Recre
 	} else {
 		out.Pre = nil
 	}
+	if in.Mid != nil {
+		out.Mid = new(deployapiv1beta3.LifecycleHook)
+		if err := deepCopy_v1beta3_LifecycleHook(*in.Mid, out.Mid, c); err != nil {
+			return err
+		}
+	} else {
+		out.Mid = nil
+	}
 	if in.Post != nil {
 		out.Post = new(deployapiv1beta3.LifecycleHook)
 		if err := deepCopy_v1beta3_LifecycleHook(*in.Post, out.Post, c); err != nil {

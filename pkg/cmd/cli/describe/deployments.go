@@ -178,9 +178,13 @@ func printStrategy(strategy deployapi.DeploymentStrategy, w *tabwriter.Writer) {
 	case deployapi.DeploymentStrategyTypeRecreate:
 		if strategy.RecreateParams != nil {
 			pre := strategy.RecreateParams.Pre
+			mid := strategy.RecreateParams.Mid
 			post := strategy.RecreateParams.Post
 			if pre != nil {
 				printHook("Pre-deployment", pre, w)
+			}
+			if mid != nil {
+				printHook("Mid-deployment", mid, w)
 			}
 			if post != nil {
 				printHook("Post-deployment", post, w)
