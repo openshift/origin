@@ -543,6 +543,67 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 			},
 		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: RegistryAdminRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     sets.NewString("create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"),
+					Resources: sets.NewString("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags"),
+				},
+				{
+					Verbs:     sets.NewString("create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"),
+					Resources: sets.NewString("localresourceaccessreviews", "localsubjectaccessreviews", "resourceaccessreviews", "rolebindings", "roles", "subjectaccessreviews"),
+				},
+				{
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("imagestreams/layers"),
+				},
+				{
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("policies", "policybindings"),
+				},
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("namespaces", "projects"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: RegistryViewerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreamtags"),
+				},
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("imagestreams/layers", "namespaces", "projects"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: RegistryEditorRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("namespaces", "projects"),
+				},
+				{
+					Verbs:     sets.NewString("create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"),
+					Resources: sets.NewString("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags"),
+				},
+				{
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("imagestreams/layers"),
+				},
+			},
+		},
 	}
 
 	saRoles := InfraSAs.AllRoles()

@@ -59,6 +59,10 @@ const (
 	BasicUserRoleName       = "basic-user"
 	StatusCheckerRoleName   = "cluster-status"
 
+	RegistryAdminRoleName  = "system:registry-admin"
+	RegistryViewerRoleName = "system:registry-viewer"
+	RegistryEditorRoleName = "system:registry-editor"
+
 	ImagePullerRoleName       = "system:image-puller"
 	ImagePusherRoleName       = "system:image-pusher"
 	ImageBuilderRoleName      = "system:image-builder"
@@ -103,6 +107,9 @@ const (
 	SDNReaderRoleBindingName         = SDNReaderRoleName + "s"
 	SDNManagerRoleBindingName        = SDNManagerRoleName + "s"
 	WebHooksRoleBindingName          = WebHooksRoleName + "s"
+	RegistryAdminRoleBindingName     = RegistryAdminRoleName + "s"
+	RegistryViewerRoleBindingName    = RegistryViewerRoleName + "s"
+	RegistryEditorRoleBindingName    = RegistryEditorRoleName + "s"
 
 	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
 )
