@@ -344,6 +344,13 @@ func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort)
 				IntVal: int32(healthzPort),
 			},
 		}
+
+		// Workaround for misconfigured environments where the Node's InternalIP is
+		// physically present on the Node.  In those environments the probes will
+		// fail unless a host firewall port is opened
+		if cfg.HostNetwork {
+			probe.Handler.HTTPGet.Host = "localhost"
+		}
 	}
 
 	return probe
