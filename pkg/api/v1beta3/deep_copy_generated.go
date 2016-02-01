@@ -1968,9 +1968,9 @@ func deepCopy_v1beta3_ImageStreamMapping(in imageapiv1beta3.ImageStreamMapping, 
 func deepCopy_v1beta3_ImageStreamSpec(in imageapiv1beta3.ImageStreamSpec, out *imageapiv1beta3.ImageStreamSpec, c *conversion.Cloner) error {
 	out.DockerImageRepository = in.DockerImageRepository
 	if in.Tags != nil {
-		out.Tags = make([]imageapiv1beta3.NamedTagReference, len(in.Tags))
+		out.Tags = make([]imageapiv1beta3.TagReference, len(in.Tags))
 		for i := range in.Tags {
-			if err := deepCopy_v1beta3_NamedTagReference(in.Tags[i], &out.Tags[i], c); err != nil {
+			if err := deepCopy_v1beta3_TagReference(in.Tags[i], &out.Tags[i], c); err != nil {
 				return err
 			}
 		}
@@ -2052,38 +2052,6 @@ func deepCopy_v1beta3_NamedTagEventList(in imageapiv1beta3.NamedTagEventList, ou
 	return nil
 }
 
-func deepCopy_v1beta3_NamedTagReference(in imageapiv1beta3.NamedTagReference, out *imageapiv1beta3.NamedTagReference, c *conversion.Cloner) error {
-	out.Name = in.Name
-	if in.Annotations != nil {
-		out.Annotations = make(map[string]string)
-		for key, val := range in.Annotations {
-			out.Annotations[key] = val
-		}
-	} else {
-		out.Annotations = nil
-	}
-	if in.From != nil {
-		if newVal, err := c.DeepCopy(in.From); err != nil {
-			return err
-		} else {
-			out.From = newVal.(*pkgapiv1beta3.ObjectReference)
-		}
-	} else {
-		out.From = nil
-	}
-	out.Reference = in.Reference
-	if in.Generation != nil {
-		out.Generation = new(int64)
-		*out.Generation = *in.Generation
-	} else {
-		out.Generation = nil
-	}
-	if err := deepCopy_v1beta3_TagImportPolicy(in.ImportPolicy, &out.ImportPolicy, c); err != nil {
-		return err
-	}
-	return nil
-}
-
 func deepCopy_v1beta3_TagEvent(in imageapiv1beta3.TagEvent, out *imageapiv1beta3.TagEvent, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.Created); err != nil {
 		return err
@@ -2113,6 +2081,38 @@ func deepCopy_v1beta3_TagEventCondition(in imageapiv1beta3.TagEventCondition, ou
 func deepCopy_v1beta3_TagImportPolicy(in imageapiv1beta3.TagImportPolicy, out *imageapiv1beta3.TagImportPolicy, c *conversion.Cloner) error {
 	out.Insecure = in.Insecure
 	out.Scheduled = in.Scheduled
+	return nil
+}
+
+func deepCopy_v1beta3_TagReference(in imageapiv1beta3.TagReference, out *imageapiv1beta3.TagReference, c *conversion.Cloner) error {
+	out.Name = in.Name
+	if in.Annotations != nil {
+		out.Annotations = make(map[string]string)
+		for key, val := range in.Annotations {
+			out.Annotations[key] = val
+		}
+	} else {
+		out.Annotations = nil
+	}
+	if in.From != nil {
+		if newVal, err := c.DeepCopy(in.From); err != nil {
+			return err
+		} else {
+			out.From = newVal.(*pkgapiv1beta3.ObjectReference)
+		}
+	} else {
+		out.From = nil
+	}
+	out.Reference = in.Reference
+	if in.Generation != nil {
+		out.Generation = new(int64)
+		*out.Generation = *in.Generation
+	} else {
+		out.Generation = nil
+	}
+	if err := deepCopy_v1beta3_TagImportPolicy(in.ImportPolicy, &out.ImportPolicy, c); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -2960,10 +2960,10 @@ func init() {
 		deepCopy_v1beta3_ImageStreamTag,
 		deepCopy_v1beta3_ImageStreamTagList,
 		deepCopy_v1beta3_NamedTagEventList,
-		deepCopy_v1beta3_NamedTagReference,
 		deepCopy_v1beta3_TagEvent,
 		deepCopy_v1beta3_TagEventCondition,
 		deepCopy_v1beta3_TagImportPolicy,
+		deepCopy_v1beta3_TagReference,
 		deepCopy_v1beta3_OAuthAccessToken,
 		deepCopy_v1beta3_OAuthAccessTokenList,
 		deepCopy_v1beta3_OAuthAuthorizeToken,

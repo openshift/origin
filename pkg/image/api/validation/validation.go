@@ -75,10 +75,6 @@ func ValidateImageStream(stream *api.ImageStream) field.ErrorList {
 		result = append(result, field.Invalid(field.NewPath("metadata", "name"), stream.Name, fmt.Sprintf("'namespace/name' cannot be longer than %d characters", reference.NameTotalLengthMax)))
 	}
 
-	if stream.Spec.Tags == nil {
-		stream.Spec.Tags = make(map[string]api.TagReference)
-	}
-
 	if len(stream.Spec.DockerImageRepository) != 0 {
 		dockerImageRepositoryPath := field.NewPath("spec", "dockerImageRepository")
 		if ref, err := api.ParseDockerImageReference(stream.Spec.DockerImageRepository); err != nil {

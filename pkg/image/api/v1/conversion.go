@@ -104,7 +104,7 @@ func convert_api_ImageStreamSpec_To_v1_ImageStreamSpec(in *newer.ImageStreamSpec
 			}
 		}
 	}
-	out.Tags = make([]NamedTagReference, 0, 0)
+	out.Tags = make([]TagReference, 0, 0)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
 
@@ -189,28 +189,17 @@ func init() {
 
 			return nil
 		},
-		func(in *[]NamedTagReference, out *map[string]newer.TagReference, s conversion.Scope) error {
+		func(in *[]TagReference, out *map[string]newer.TagReference, s conversion.Scope) error {
 			for _, curr := range *in {
-				r := newer.TagReference{
-					Annotations: curr.Annotations,
-					Reference:   curr.Reference,
-					ImportPolicy: newer.TagImportPolicy{
-						Insecure:  curr.ImportPolicy.Insecure,
-						Scheduled: curr.ImportPolicy.Scheduled,
-					},
-				}
-				if curr.Generation != nil {
-					gen := *curr.Generation
-					r.Generation = &gen
-				}
-				if err := s.Convert(&curr.From, &r.From, 0); err != nil {
+				r := newer.TagReference{}
+				if err := s.Convert(&curr, &r, 0); err != nil {
 					return err
 				}
 				(*out)[curr.Name] = r
 			}
 			return nil
 		},
-		func(in *map[string]newer.TagReference, out *[]NamedTagReference, s conversion.Scope) error {
+		func(in *map[string]newer.TagReference, out *[]TagReference, s conversion.Scope) error {
 			allTags := make([]string, 0, len(*in))
 			for tag := range *in {
 				allTags = append(allTags, tag)
@@ -219,22 +208,11 @@ func init() {
 
 			for _, tag := range allTags {
 				newTagReference := (*in)[tag]
-				oldTagReference := NamedTagReference{
-					Name:        tag,
-					Annotations: newTagReference.Annotations,
-					Reference:   newTagReference.Reference,
-					ImportPolicy: TagImportPolicy{
-						Insecure:  newTagReference.ImportPolicy.Insecure,
-						Scheduled: newTagReference.ImportPolicy.Scheduled,
-					},
-				}
-				if newTagReference.Generation != nil {
-					gen := *newTagReference.Generation
-					oldTagReference.Generation = &gen
-				}
-				if err := s.Convert(&newTagReference.From, &oldTagReference.From, 0); err != nil {
+				oldTagReference := TagReference{}
+				if err := s.Convert(&newTagReference, &oldTagReference, 0); err != nil {
 					return err
 				}
+				oldTagReference.Name = tag
 				*out = append(*out, oldTagReference)
 			}
 			return nil

@@ -89,6 +89,8 @@ type ImageStreamSpec struct {
 // TagReference specifies optional annotations for images using this tag and an optional reference to
 // an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.
 type TagReference struct {
+	// Name of the tag
+	Name string
 	// Optional; if specified, annotations that are applied to images retrieved via ImageStreamTags.
 	Annotations map[string]string
 	// Optional; if specified, a reference to another image that this tag should point to. Valid values

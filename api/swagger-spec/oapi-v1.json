@@ -19947,14 +19947,14 @@
      "tags": {
       "type": "array",
       "items": {
-       "$ref": "v1.NamedTagReference"
+       "$ref": "v1.TagReference"
       },
       "description": "map arbitrary string values to specific image locators"
      }
     }
    },
-   "v1.NamedTagReference": {
-    "id": "v1.NamedTagReference",
+   "v1.TagReference": {
+    "id": "v1.TagReference",
     "required": [
      "name",
      "generation"

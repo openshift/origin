@@ -2357,6 +2357,7 @@ func deepCopy_api_TagImportPolicy(in imageapi.TagImportPolicy, out *imageapi.Tag
 }
 
 func deepCopy_api_TagReference(in imageapi.TagReference, out *imageapi.TagReference, c *conversion.Cloner) error {
+	out.Name = in.Name
 	if in.Annotations != nil {
 		out.Annotations = make(map[string]string)
 		for key, val := range in.Annotations {

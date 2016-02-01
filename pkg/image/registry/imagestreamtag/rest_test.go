@@ -426,6 +426,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		three := int64(3)
 		expectedStreamSpec := map[string]api.TagReference{
 			"another": {
+				Name: "another",
 				From: &kapi.ObjectReference{
 					Kind: "ImageStreamTag",
 					Name: "test:foo",
