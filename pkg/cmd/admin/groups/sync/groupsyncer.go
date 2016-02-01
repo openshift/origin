@@ -105,7 +105,7 @@ func (s *LDAPGroupSyncer) Sync() ([]*userapi.Group, []error) {
 
 // determineUsers determines the OpenShift Users that correspond to a list of LDAP member entries
 func (s *LDAPGroupSyncer) determineUsernames(members []*ldap.Entry) ([]string, error) {
-	var usernames []string
+	usernames := []string{}
 	for _, member := range members {
 		username, err := s.UserNameMapper.UserNameFor(member)
 		if err != nil {
