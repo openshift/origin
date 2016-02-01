@@ -18170,7 +18170,8 @@
     "required": [
      "strategy",
      "triggers",
-     "replicas"
+     "replicas",
+     "test"
     ],
     "properties": {
      "strategy": {
@@ -18188,6 +18189,10 @@
       "type": "integer",
       "format": "int32",
       "description": "the desired number of replicas"
+     },
+     "test": {
+      "type": "boolean",
+      "description": "if true, this deployment config will always be scaled to 0 except while a deployment is running"
      },
      "selector": {
       "type": "any",

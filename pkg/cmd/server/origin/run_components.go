@@ -289,6 +289,7 @@ func (c *MasterConfig) RunDeployerPodController() {
 	_, kclient := c.DeployerPodControllerClients()
 	factory := deployerpodcontroller.DeployerPodControllerFactory{
 		KubeClient: kclient,
+		Codec:      c.EtcdHelper.Codec(),
 	}
 
 	controller := factory.Create()

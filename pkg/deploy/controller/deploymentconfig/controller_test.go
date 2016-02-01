@@ -24,6 +24,8 @@ func TestHandleScenarios(t *testing.T) {
 		version int
 		// replicas is the spec replicas of the deployment
 		replicas int
+		// test is whether this is a test deployment config
+		test bool
 		// replicasA is the annotated replica value for backwards compat checks
 		replicasA *int
 		desiredA  *int
@@ -32,7 +34,11 @@ func TestHandleScenarios(t *testing.T) {
 	}
 
 	mkdeployment := func(d deployment) kapi.ReplicationController {
-		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(d.version), kapi.Codec)
+		config := deploytest.OkDeploymentConfig(d.version)
+		if d.test {
+			config = deploytest.TestDeploymentConfig(config)
+		}
+		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(d.status)
 		if d.cancelled {
 			deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
@@ -56,6 +62,8 @@ func TestHandleScenarios(t *testing.T) {
 		name string
 		// replicas is the config replicas prior to the update
 		replicas int
+		// test is whether this is a test deployment config
+		test bool
 		// newVersion is the version of the config at the time of the update
 		newVersion int
 		// expectedReplicas is the expected config replica count after the update
@@ -424,6 +432,28 @@ func TestHandleScenarios(t *testing.T) {
 			errExpected: false,
 		},
 		{
+			name:             "(compat) steady state replica corrections of a test config (latest == active)",
+			test:             true,
+			replicas:         5,
+			newVersion:       5,
+			expectedReplicas: 5,
+			before: []deployment{
+				{version: 1, replicas: 0, status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 2, replicas: 1, status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 3, replicas: 1, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true, test: true},
+				{version: 4, replicas: 0, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false, test: true},
+				{version: 5, replicas: 1, status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+			},
+			after: []deployment{
+				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 2, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 3, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true, test: true},
+				{version: 4, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false, test: true},
+				{version: 5, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+			},
+			errExpected: false,
+		},
+		{
 			name:             "(compat) steady state replica corrections (latest != active)",
 			replicas:         5,
 			newVersion:       5,
@@ -471,6 +501,38 @@ func TestHandleScenarios(t *testing.T) {
 			after: []deployment{
 				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
 				{version: 2, replicas: 5, replicasA: newint(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
+			},
+			errExpected: false,
+		},
+		{
+			name:             "(compat) scale up latest/active completed test deployment",
+			test:             true,
+			replicas:         1,
+			newVersion:       2,
+			expectedReplicas: 1,
+			before: []deployment{
+				{version: 1, replicas: 0, status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 2, replicas: 5, status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+			},
+			after: []deployment{
+				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 2, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+			},
+			errExpected: false,
+		},
+		{
+			name:             "(compat) scale up latest/active running test deployment",
+			test:             true,
+			replicas:         1,
+			newVersion:       2,
+			expectedReplicas: 1,
+			before: []deployment{
+				{version: 1, replicas: 0, status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 2, replicas: 5, status: deployapi.DeploymentStatusRunning, cancelled: false, test: true},
+			},
+			after: []deployment{
+				{version: 1, replicas: 0, replicasA: nil, status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 2, replicas: 5, replicasA: nil, status: deployapi.DeploymentStatusRunning, cancelled: false, test: true},
 			},
 			errExpected: false,
 		},
@@ -593,6 +655,9 @@ func TestHandleScenarios(t *testing.T) {
 		}
 
 		config := deploytest.OkDeploymentConfig(test.newVersion)
+		if test.test {
+			config = deploytest.TestDeploymentConfig(config)
+		}
 		config.Spec.Replicas = test.replicas
 		err := controller.Handle(config)
 		if err != nil && !test.errExpected {

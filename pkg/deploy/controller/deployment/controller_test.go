@@ -355,6 +355,59 @@ func TestHandle_noop(t *testing.T) {
 	}
 }
 
+// TestHandle_failedTest ensures that failed test deployments have their
+// replicas set to zero.
+func TestHandle_failedTest(t *testing.T) {
+	var updatedDeployment *kapi.ReplicationController
+	controller := &DeploymentController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+		},
+		deploymentClient: &deploymentClientImpl{
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedDeployment = deployment
+				return deployment, nil
+			},
+		},
+		podClient: &podClientImpl{
+			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+				t.Fatalf("unexpected call to create pod")
+				return nil, nil
+			},
+			deletePodFunc: func(namespace, name string) error {
+				t.Fatalf("unexpected call to delete pod")
+				return nil
+			},
+			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
+				t.Fatalf("unexpected call to deployer pods")
+				return nil, nil
+			},
+		},
+		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
+			t.Fatalf("unexpected call to make container")
+			return nil, nil
+		},
+		recorder: &record.FakeRecorder{},
+	}
+
+	// Verify successful cleanup
+	config := deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1))
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment.Spec.Replicas = 1
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusFailed)
+
+	if err := controller.Handle(deployment); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if updatedDeployment == nil {
+		t.Fatal("deployment not updated")
+	}
+	if e, a := 0, updatedDeployment.Spec.Replicas; e != a {
+		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
+	}
+}
+
 // TestHandle_cleanupPodOk ensures that deployer pods are cleaned up for
 // deployments in a completed state.
 func TestHandle_cleanupPodOk(t *testing.T) {
@@ -413,6 +466,73 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 		t.Fatalf("pod deletions - expected: %v, actual: %v", deployerPodNames, deletedPodNames)
 	}
 
+}
+
+// TestHandle_cleanupPodOk ensures that deployer pods are cleaned up for
+// deployments in a completed state on test deployment configs, and
+// replicas is set back to zero.
+func TestHandle_cleanupPodOkTest(t *testing.T) {
+	deployerPodNames := []string{"pod1", "pod2", "pod3"}
+	deletedPodNames := []string{}
+	var updatedDeployment *kapi.ReplicationController
+	controller := &DeploymentController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+		},
+		deploymentClient: &deploymentClientImpl{
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedDeployment = deployment
+				return deployment, nil
+			},
+		},
+		podClient: &podClientImpl{
+			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+				t.Fatalf("unexpected call to create pod")
+				return nil, nil
+			},
+			deletePodFunc: func(namespace, name string) error {
+				deletedPodNames = append(deletedPodNames, name)
+				return nil
+			},
+			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
+				pods := []kapi.Pod{}
+				for _, podName := range deployerPodNames {
+					pod := *ttlNonZeroPod()
+					pod.Name = podName
+					pods = append(pods, pod)
+				}
+				return pods, nil
+			},
+		},
+		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
+			t.Fatalf("unexpected call to make container")
+			return nil, nil
+		},
+		recorder: &record.FakeRecorder{},
+	}
+
+	// Verify successful cleanup
+	config := deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1))
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment.Spec.Replicas = 1
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
+	err := controller.Handle(deployment)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	sort.Strings(deployerPodNames)
+	sort.Strings(deletedPodNames)
+	if !reflect.DeepEqual(deletedPodNames, deletedPodNames) {
+		t.Fatalf("pod deletions - expected: %v, actual: %v", deployerPodNames, deletedPodNames)
+	}
+	if updatedDeployment == nil {
+		t.Fatal("deployment not updated")
+	}
+	if e, a := 0, updatedDeployment.Spec.Replicas; e != a {
+		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
+	}
 }
 
 // TestHandle_cleanupPodNoop ensures that an attempt to delete pods are not made

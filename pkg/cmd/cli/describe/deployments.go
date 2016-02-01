@@ -246,9 +246,15 @@ func printTriggers(triggers []deployapi.DeploymentTriggerPolicy, w *tabwriter.Wr
 func printDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec, w io.Writer) error {
 	fmt.Fprint(w, "Template:\n")
 
-	fmt.Fprintf(w, "  Selector:\t%s\n  Replicas:\t%d\n",
-		formatLabels(spec.Selector),
-		spec.Replicas)
+	if spec.Test {
+		fmt.Fprintf(w, "  Selector:\t%s\n  Replicas:\t%d (test, will be scaled down between deployments)\n",
+			formatLabels(spec.Selector),
+			spec.Replicas)
+	} else {
+		fmt.Fprintf(w, "  Selector:\t%s\n  Replicas:\t%d\n",
+			formatLabels(spec.Selector),
+			spec.Replicas)
+	}
 
 	fmt.Fprintf(w, "  Containers:\n  NAME\tIMAGE\tENV\n")
 	for _, container := range spec.Template.Spec.Containers {

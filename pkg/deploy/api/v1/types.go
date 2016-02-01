@@ -237,6 +237,11 @@ type DeploymentConfigSpec struct {
 	// Replicas is the number of desired replicas.
 	Replicas int `json:"replicas" description:"the desired number of replicas"`
 
+	// Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the
+	// deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding
+	// or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.
+	Test bool `json:"test" description:"if true, this deployment config will always be scaled to 0 except while a deployment is running"`
+
 	// Selector is a label query over pods that should match the Replicas count.
 	Selector map[string]string `json:"selector,omitempty" description:"a label query over pods that should match the replicas count; if omitted, it will default to the podTemplate labels"`
 
