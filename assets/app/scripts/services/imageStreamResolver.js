@@ -11,7 +11,7 @@ angular.module('openshiftConsole')
   // context - the context to be passed to any server requests, in general this is the $scope of the calling controller
   // returns a promise that will be resolved when all referenced images are loaded
   ImageStreamResolver.prototype.fetchReferencedImageStreamImages = function(pods, imagesByDockerReference, imageStreamImageRefByDockerReference, context) {
-    var promises = [];
+    var promises = {};
     angular.forEach(pods, function(pod){
       angular.forEach(pod.spec.containers, function(container){
         var dockerRef = container.image;
@@ -19,8 +19,8 @@ angular.module('openshiftConsole')
           return;
         }
 
-        if (imagesByDockerReference[dockerRef]) {
-          // Already have an image for this ref
+        if (imagesByDockerReference[dockerRef] || promises[dockerRef]) {
+          // Already have an image for this ref, or we already have a promise to go get it
           return;
         }
 
@@ -41,7 +41,7 @@ angular.module('openshiftConsole')
             imagesByDockerReference[dockerRef] = image;
           }
         });
-        promises.push(imageStreamImagePromise);
+        promises[dockerRef] = imageStreamImagePromise;
       });
     });
     return $q.all(promises);
