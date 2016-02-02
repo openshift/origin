@@ -32,7 +32,10 @@ labels from the object it exposes.`
   $ %[1]s expose service nginx --hostname=www.example.com
 
   # Expose a deployment configuration as a service and use the specified port
-  $ %[1]s expose dc ruby-hello-world --port=8080`
+  $ %[1]s expose dc ruby-hello-world --port=8080
+
+  # Expose a service as a route in the specified path
+  $ %[1]s expose service nginx --path=/nginx`
 )
 
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command
@@ -57,6 +60,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 		defRun(cmd, args)
 	}
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
+	cmd.Flags().String("path", "", "Set a path for the new route")
 	return cmd
 }
 
@@ -162,6 +166,9 @@ func validateFlags(cmd *cobra.Command, generator string) error {
 	case "service/v1", "service/v2":
 		if len(cmdutil.GetFlagString(cmd, "hostname")) != 0 {
 			invalidFlags = append(invalidFlags, "--hostname")
+		}
+		if len(cmdutil.GetFlagString(cmd, "path")) != 0 {
+			invalidFlags = append(invalidFlags, "--path")
 		}
 	case "route/v1":
 		if len(cmdutil.GetFlagString(cmd, "protocol")) != 0 {

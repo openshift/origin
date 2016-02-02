@@ -385,6 +385,9 @@ Expose a replicated application as a service or route
 
   # Expose a deployment configuration as a service and use the specified port
   $ oc expose dc ruby-hello-world --port=8080
+
+  # Expose a service as a route in the specified path
+  $ oc expose service nginx --path=/nginx
 ----
 ====
 
