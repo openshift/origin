@@ -1,4 +1,5 @@
 'use strict';
+/*jshint -W030 */
 
 angular.module('openshiftConsole')
   .directive('logViewer', [
@@ -9,8 +10,10 @@ angular.module('openshiftConsole')
     'APIDiscovery',
     'DataService',
     'logLinks',
-    function($sce, $timeout, $window, AuthService, APIDiscovery, DataService, logLinks) {
-
+    'BREAKPOINTS',
+    function($sce, $timeout, $window, AuthService, APIDiscovery, DataService, logLinks, BREAKPOINTS) {
+      // cache the jQuery win, but not clobber angular's $window
+      var $win = $(window);
       // Keep a reference the DOM node rather than the jQuery object for cloneNode.
       var logLineTemplate =
         $('<tr class="log-line">' +
@@ -24,6 +27,7 @@ angular.module('openshiftConsole')
 
         return line;
       };
+
 
       return {
         restrict: 'AE',
@@ -43,19 +47,26 @@ angular.module('openshiftConsole')
         controller: [
           '$scope',
           function($scope) {
+            // cached node's are set by the directive's postLink fn after render (see link: func below)
+            var cachedLogNode;
+            var cachedScrollableNode;
+            var scrollableDOMNode;
 
-            $scope.loading = true;
 
-            // Default to false. Let the user click the follow link to start auto-scrolling.
-            $scope.autoScroll = false;
+            angular.extend($scope, {
+              loading: true,
+              autoScroll: false
+            });
+
 
             var updateScrollLinks = function() {
               $scope.$apply(function() {
                 // Show scroll links if the top or bottom of the log is off screen.
-                var html = document.documentElement, r = document.getElementById('logContent').getBoundingClientRect();
+                var html = document.documentElement, r = cachedLogNode.getBoundingClientRect();
                 $scope.showScrollLinks = r && ((r.top < 0) || (r.bottom > html.clientHeight));
               });
             };
+
 
             // Set to true before auto-scrolling.
             var autoScrollingNow = false;
@@ -71,52 +82,45 @@ angular.module('openshiftConsole')
                 });
               }
             };
-            $(window).scroll(onScroll);
+            $win.scroll(onScroll);
+
 
             var onResize = _.debounce(updateScrollLinks, 50);
-            $(window).resize(onResize);
+            $win.on('resize', onResize);
 
-            var scrollBottom = function() {
+
+            var autoScrollBottom = function() {
               // Tell the scroll listener this is an auto-scroll. The listener
               // will reset it to false.
               autoScrollingNow = true;
-              logLinks.scrollBottom();
+              logLinks.scrollBottom(scrollableDOMNode);
             };
 
             var toggleAutoScroll = function() {
               $scope.autoScroll = !$scope.autoScroll;
               if ($scope.autoScroll) {
                 // Scroll immediately. Don't wait the next message.
-                scrollBottom();
+                autoScrollBottom();
               }
             };
 
-            var scrollTop = function() {
-              // Stop auto-scrolling when the user clicks the scroll top link.
-              $scope.autoScroll = false;
-              logLinks.scrollTop();
-            };
 
             var buffer = document.createDocumentFragment();
 
-            // https://lodash.com/docs#debounce
             var update = _.debounce(function() {
-              // Display all buffered lines.
-              var logContent = document.getElementById('logContent');
-              logContent.appendChild(buffer);
-
-              // Clear the buffer.
+              cachedLogNode.appendChild(buffer);
               buffer = document.createDocumentFragment();
 
               // Follow the bottom of the log if auto-scroll is on.
               if ($scope.autoScroll) {
-                scrollBottom();
+                autoScrollBottom();
               }
 
               if (!$scope.showScrollLinks) {
                 updateScrollLinks();
               }
             }, 100, { maxWait: 300 });
+
 
             // maintaining one streamer reference & ensuring its closed before we open a new,
             // since the user can (potentially) swap between multiple containers
@@ -130,7 +134,7 @@ angular.module('openshiftConsole')
               if (!keepContent) {
                 // Cancel any pending updates. (No-op if none pending.)
                 update.cancel();
-                $('#logContent').empty();
+                cachedLogNode && (cachedLogNode.innerHTML = '');
                 buffer = document.createDocumentFragment();
               }
             };
@@ -223,18 +227,26 @@ angular.module('openshiftConsole')
               stopStreaming();
 
               // Stop listening for scroll and resize events.
-              $(window).off('scroll', onScroll);
-              $(window).off('resize', onResize);
+              $win.off('scroll', onScroll);
+              $win.off('resize', onResize);
             });
+
 
             angular.extend($scope, {
               ready: true,
-              scrollBottom: logLinks.scrollBottom,
-              scrollTop: scrollTop,
+              onScrollBottom: function() {
+                logLinks.scrollBottom(scrollableDOMNode);
+              },
+              onScrollTop: function() {
+                $scope.autoScroll = false;
+                logLinks.scrollTop(scrollableDOMNode);
+              },
               toggleAutoScroll: toggleAutoScroll,
               goChromeless: logLinks.chromelessLink,
               restartLogs: streamLogs
             });
+
+
 
             APIDiscovery
               .getLoggingURL()
@@ -266,8 +278,45 @@ angular.module('openshiftConsole')
                   });
                 });
               });
+
+
+
+              // scrollable node is window if mobile, else a particular DOM node.
+              var detectScrollableNode = function() {
+                if(window.innerWidth < BREAKPOINTS.screenSmMin) {
+                  scrollableDOMNode = null;
+                } else {
+                  scrollableDOMNode = cachedScrollableNode;
+                }
+              };
+
+              var debounceScrollable = _.debounce(detectScrollableNode, 200);
+
+              // API to share w/link fn
+              this.cacheScollableNode = function(node) {
+                cachedScrollableNode = node;
+                detectScrollableNode();
+              };
+
+              this.cacheLogNode = function(node) {
+                cachedLogNode = node;
+              };
+              // maintain the correct scrollable node
+              $win.on('resize', debounceScrollable);
+              $scope.$on('$destroy', function() {
+                $win.off('resize', debounceScrollable);
+              });
           }
-        ]
+        ],
+        require: 'logViewer',
+        link: function($scope, $elem, $attrs, ctrl) {
+          // TODO:
+          // unfortuntely this directive has to search for a parent elem to use as scrollable :(
+          // would be better if 'scrollable' was a directive on a parent div
+          // and we were sending it messages telling it when to scroll.
+          ctrl.cacheScollableNode(document.getElementById('scrollable-content'));
+          ctrl.cacheLogNode(document.getElementById('logContent'));
+        }
       };
     }
   ]);

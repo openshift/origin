@@ -257,6 +257,15 @@ angular
   .constant("AUTH_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).auth))
   .constant("LOGGING_URL", (window.OPENSHIFT_CONFIG || {}).loggingURL)
   .constant("METRICS_URL", (window.OPENSHIFT_CONFIG || {}).metricsURL)
+  // Sometimes we need to know the css breakpoints, make sure to update this
+  // if they ever change!
+  .constant("BREAKPOINTS", {
+    screenXsMin:  480,   // screen-xs
+    screenSmMin:  768,   // screen-sm
+    screenMdMin:  992,   // screen-md
+    screenLgMin:  1200,  // screen-lg
+    screenXlgMin: 1600   // screen-xlg
+  })
   .config(function($httpProvider, AuthServiceProvider, RedirectLoginServiceProvider, AUTH_CFG, API_CFG, kubernetesContainerSocketProvider) {
     $httpProvider.interceptors.push('AuthInterceptor');
 

@@ -1,12 +1,16 @@
-<div class="content">
+<project-header class="top-header"></project-header>
   <project-page>
-    <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
-    <alerts alerts="alerts"></alerts>
-    <div ng-if="!loaded">Loading...</div>
+
     <div ng-if="build">
-      <div class="row">
-        <div class="col-md-12">
-          <div class="tile">
+    <!-- Middle section -->
+    <div class="middle-section">
+      <div id="scrollable-content" class="middle-container has-scroll">
+        <div class="middle-header">
+          <div class="container-fluid">
+            <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
+            <alerts alerts="alerts"></alerts>
+            <div ng-if="!loaded">Loading...</div>
+            <alerts alerts="alerts"></alerts>
             <h1>
               {{build.metadata.name}}
               <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
@@ -34,37 +38,46 @@
             </h1>
             <labels ng-if="buildConfigName" labels="build.metadata.labels" clickable="true" kind="builds" title-kind="builds for build config {{buildConfigName}}" project-name="{{build.metadata.namespace}}" limit="3" navigate-url="project/{{build.metadata.namespace}}/browse/builds/{{buildConfigName}}"></labels>
             <labels ng-if="!buildConfigName" labels="build.metadata.labels" limit="3"></labels>
-
-            <uib-tabset>
-              <uib-tab active="selectedTab.details">
-                <uib-tab-heading>Details</uib-tab-heading>
-                <ng-include src=" 'views/browse/_build-details.html' "></ng-include>
-              </uib-tab>
-
-              <uib-tab heading="Environment" active="selectedTab.environment">
-                <uib-tab-heading>Environment</uib-tab-heading>
-                <environment env-vars="(build | buildStrategy).env"></environment>
-                <em ng-if="!(build | buildStrategy).env">The build strategy had no environment variables defined.</em>
-              </uib-tab>
-
-              <uib-tab active="selectedTab.logs">
-                <uib-tab-heading>Logs</uib-tab-heading>
-                <log-viewer
-                  ng-if="selectedTab.logs"
-                  kind="builds/log"
-                  name="build.metadata.name"
-                  context="logContext"
-                  options="logOptions"
-                  status="build.status.phase"
-                  start="build.status.startTimestamp | date : 'short'"
-                  end="build.status.completionTimestamp | date : 'short'"
-                  run="logCanRun">
-                </log-viewer>
-              </uib-tab>
-            </uib-tabset>
           </div>
-        </div>
-      </div><!-- /.row -->
+        </div><!-- /middle-header-->
+        <div class="middle-content">
+          <div class="container-fluid">
+            <div class="row">
+              <div class="col-md-12">
+
+                  <uib-tabset>
+                    <uib-tab active="selectedTab.details">
+                      <uib-tab-heading>Details</uib-tab-heading>
+                      <ng-include src=" 'views/browse/_build-details.html' "></ng-include>
+                    </uib-tab>
+
+                    <uib-tab heading="Environment" active="selectedTab.environment">
+                      <uib-tab-heading>Environment</uib-tab-heading>
+                      <environment env-vars="(build | buildStrategy).env"></environment>
+                      <em ng-if="!(build | buildStrategy).env">The build strategy had no environment variables defined.</em>
+                    </uib-tab>
+
+                    <uib-tab active="selectedTab.logs">
+                      <uib-tab-heading>Logs</uib-tab-heading>
+                      <log-viewer
+                        ng-if="selectedTab.logs"
+                        kind="builds/log"
+                        name="build.metadata.name"
+                        context="logContext"
+                        options="logOptions"
+                        status="build.status.phase"
+                        start="build.status.startTimestamp | date : 'short'"
+                        end="build.status.completionTimestamp | date : 'short'"
+                        run="logCanRun">
+                      </log-viewer>
+                    </uib-tab>
+                  </uib-tabset>
+
+              </div><!-- /col-* -->
+            </div>
+          </div>
+        </div><!-- /middle-content -->
+      </div><!-- /middle-container -->
+    </div><!-- /middle-section -->
     </div><!-- /build -->
   </project-page>
-</div>
