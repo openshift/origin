@@ -635,16 +635,17 @@ func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
 	var event *TagEvent
 	set := sets.NewString()
 	for _, history := range stream.Status.Tags {
-		for _, tagging := range history.Items {
+		for i := range history.Items {
+			tagging := &history.Items[i]
 			if d, err := digest.ParseDigest(tagging.Image); err == nil {
 				if strings.HasPrefix(d.Hex(), imageID) || strings.HasPrefix(tagging.Image, imageID) {
-					event = &tagging
+					event = tagging
 					set.Insert(tagging.Image)
 				}
 				continue
 			}
 			if strings.HasPrefix(tagging.Image, imageID) {
-				event = &tagging
+				event = tagging
 				set.Insert(tagging.Image)
 			}
 		}
