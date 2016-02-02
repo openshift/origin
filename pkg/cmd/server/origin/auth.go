@@ -18,6 +18,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/client/unversioned"
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -69,29 +70,8 @@ const (
 	OpenShiftApprovePrefix       = "/oauth/approve"
 	OpenShiftOAuthCallbackPrefix = "/oauth2callback"
 	OpenShiftWebConsoleClientID  = "openshift-web-console"
-)
-
-var (
-	OSWebConsoleClientBase = oauthapi.OAuthClient{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: OpenShiftWebConsoleClientID,
-		},
-		Secret: uuid.New(), // random secret so no one knows what it is ahead of time.
-	}
-	// OSBrowserClientBase is used as a skeleton for building a Client.  We can't set the allowed redirecturis because we don't yet know the host:port of the auth server
-	OSBrowserClientBase = oauthapi.OAuthClient{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "openshift-browser-client",
-		},
-		Secret: uuid.New(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
-	}
-	OSCliClientBase = oauthapi.OAuthClient{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "openshift-challenging-client",
-		},
-		Secret:                uuid.New(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
-		RespondWithChallenges: true,
-	}
+	OpenShiftBrowserClientID     = "openshift-browser-client"
+	OpenShiftCLIClientID         = "openshift-challenging-client"
 )
 
 // InstallAPI registers endpoints for an OAuth2 server into the provided mux,
@@ -150,8 +130,14 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	)
 	server.Install(mux, OpenShiftOAuthAPIPrefix)
 
-	CreateOrUpdateDefaultOAuthClients(c.Options.MasterPublicURL, c.AssetPublicAddresses, clientRegistry)
-	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(&OSBrowserClientBase)
+	if err := CreateOrUpdateDefaultOAuthClients(c.Options.MasterPublicURL, c.AssetPublicAddresses, clientRegistry); err != nil {
+		glog.Fatal(err)
+	}
+	browserClient, err := clientRegistry.GetClient(kapi.NewContext(), OpenShiftBrowserClientID)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(browserClient)
 	osOAuthClientConfig.RedirectUrl = c.Options.MasterPublicURL + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)
 
 	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
@@ -205,66 +191,84 @@ func OpenShiftOAuthTokenRequestURL(masterAddr string) string {
 	return masterAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.RequestTokenEndpoint)
 }
 
-func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry clientregistry.Registry) {
-	clientsToEnsure := []*oauthapi.OAuthClient{
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: OSWebConsoleClientBase.Name,
-			},
-			Secret:                OSWebConsoleClientBase.Secret,
-			RespondWithChallenges: OSWebConsoleClientBase.RespondWithChallenges,
-			RedirectURIs:          assetPublicAddresses,
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: OSBrowserClientBase.Name,
-			},
-			Secret:                OSBrowserClientBase.Secret,
-			RespondWithChallenges: OSBrowserClientBase.RespondWithChallenges,
-			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: OSCliClientBase.Name,
-			},
-			Secret:                OSCliClientBase.Secret,
-			RespondWithChallenges: OSCliClientBase.RespondWithChallenges,
-			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},
-		},
+func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistry.Registry, preserveExistingRedirects bool) error {
+	ctx := kapi.NewContext()
+	_, err := clientRegistry.CreateClient(ctx, &client)
+	if err == nil || !kerrs.IsAlreadyExists(err) {
+		return err
 	}
 
-	ctx := kapi.NewContext()
-	for _, currClient := range clientsToEnsure {
-		existing, err := clientRegistry.GetClient(ctx, currClient.Name)
-		if err == nil {
-			// Update the existing resource version
-			currClient.ResourceVersion = existing.ResourceVersion
+	return unversioned.RetryOnConflict(unversioned.DefaultRetry, func() error {
+		existing, err := clientRegistry.GetClient(ctx, client.Name)
+		if err != nil {
+			return err
+		}
 
-			// Preserve redirects for clients other than the CLI client
-			// The CLI client doesn't care about the redirect URL, just the token or error fragment
-			if currClient.Name != OSCliClientBase.Name {
-				// Add in any redirects from the existing one
-				// This preserves any additional customized redirects in the default clients
-				redirects := sets.NewString(currClient.RedirectURIs...)
-				for _, redirect := range existing.RedirectURIs {
-					if !redirects.Has(redirect) {
-						currClient.RedirectURIs = append(currClient.RedirectURIs, redirect)
-						redirects.Insert(redirect)
-					}
+		// Ensure the correct challenge setting
+		existing.RespondWithChallenges = client.RespondWithChallenges
+		// Preserve an existing client secret
+		if len(existing.Secret) == 0 {
+			existing.Secret = client.Secret
+		}
+
+		// Preserve redirects for clients other than the CLI client
+		// The CLI client doesn't care about the redirect URL, just the token or error fragment
+		if preserveExistingRedirects {
+			// Add in any redirects from the existing one
+			// This preserves any additional customized redirects in the default clients
+			redirects := sets.NewString(client.RedirectURIs...)
+			for _, redirect := range existing.RedirectURIs {
+				if !redirects.Has(redirect) {
+					client.RedirectURIs = append(client.RedirectURIs, redirect)
+					redirects.Insert(redirect)
 				}
 			}
+		}
+		existing.RedirectURIs = client.RedirectURIs
 
-			if _, err := clientRegistry.UpdateClient(ctx, currClient); err != nil {
-				glog.Errorf("Error updating OAuthClient %v: %v", currClient.Name, err)
-			}
-		} else if kerrs.IsNotFound(err) {
-			if _, err = clientRegistry.CreateClient(ctx, currClient); err != nil {
-				glog.Errorf("Error creating OAuthClient %v: %v", currClient.Name, err)
-			}
-		} else {
-			glog.Errorf("Error getting OAuthClient %v: %v", currClient.Name, err)
+		_, err = clientRegistry.UpdateClient(ctx, existing)
+		return err
+	})
+}
+
+func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry clientregistry.Registry) error {
+	{
+		webConsoleClient := oauthapi.OAuthClient{
+			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftWebConsoleClientID},
+			Secret:                uuid.New(),
+			RespondWithChallenges: false,
+			RedirectURIs:          assetPublicAddresses,
+		}
+		if err := ensureOAuthClient(webConsoleClient, clientRegistry, true); err != nil {
+			return err
 		}
 	}
+
+	{
+		browserClient := oauthapi.OAuthClient{
+			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftBrowserClientID},
+			Secret:                uuid.New(),
+			RespondWithChallenges: false,
+			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
+		}
+		if err := ensureOAuthClient(browserClient, clientRegistry, true); err != nil {
+			return err
+		}
+	}
+
+	{
+		cliClient := oauthapi.OAuthClient{
+			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftCLIClientID},
+			Secret:                uuid.New(),
+			RespondWithChallenges: true,
+			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},
+		}
+		if err := ensureOAuthClient(cliClient, clientRegistry, false); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // getCSRF returns the object responsible for generating and checking CSRF tokens
