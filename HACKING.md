@@ -162,6 +162,16 @@ specifying them using a regex filter, passed through `grep -E` like with integra
 
     $ hack/test-cmd.sh <regex>
 
+During development, you can run a file `test/cmd/*.sh` directly to test against
+a running server. This can speed up the feedback loop considerably.
+
+For example, start the OpenShift server, create a "test" project, and then run
+`oc new-app` tests against the server:
+
+    $ oc new-project test
+    $ test/cmd/newapp.sh
+
+
 ### End-to-End (e2e) Tests
 
 The final test category is end to end tests (e2e) which should verify a long set of flows in the
