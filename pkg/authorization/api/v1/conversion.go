@@ -131,8 +131,11 @@ func convert_api_ResourceAccessReviewResponse_To_v1_ResourceAccessReviewResponse
 }
 
 func convert_v1_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
-	if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
+	if err := oapi.Convert_runtime_RawExtension_To_runtime_Object(&in.AttributeRestrictions, out.AttributeRestrictions, s); err != nil {
 		return err
+	}
+	if in.AttributeRestrictions.Object != nil {
+		out.AttributeRestrictions = in.AttributeRestrictions.Object
 	}
 
 	out.APIGroups = in.APIGroups
@@ -151,7 +154,7 @@ func convert_v1_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRu
 }
 
 func convert_api_PolicyRule_To_v1_PolicyRule(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
-	if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
+	if err := oapi.Convert_runtime_Object_To_runtime_RawExtension(in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
 		return err
 	}
 

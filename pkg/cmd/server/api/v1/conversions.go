@@ -1,15 +1,17 @@
 package v1
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/api"
 	internal "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
-func addConversionFuncs(scheme *runtime.Scheme) {
+func addDefaultingFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddDefaultingFuncs(
 		func(obj *MasterConfig) {
 			if len(obj.APILevels) == 0 {
@@ -154,7 +156,10 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-	err = scheme.AddConversionFuncs(
+}
+
+func addConversionFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddConversionFuncs(
 		func(in *NodeConfig, out *internal.NodeConfig, s conversion.Scope) error {
 			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 		},
@@ -252,6 +257,54 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 			out.CA = in.CA
 			out.CertFile = in.ClientCert.CertFile
 			out.KeyFile = in.ClientCert.KeyFile
+			return nil
+		},
+		func(in *internal.IdentityProvider, out *IdentityProvider, s conversion.Scope) error {
+			if err := api.Convert_runtime_Object_To_runtime_RawExtension(in.Provider, &out.Provider, s); err != nil {
+				return err
+			}
+			out.Name = in.Name
+			out.UseAsChallenger = in.UseAsChallenger
+			out.UseAsLogin = in.UseAsLogin
+			out.MappingMethod = in.MappingMethod
+			return nil
+		},
+		func(in *IdentityProvider, out *internal.IdentityProvider, s conversion.Scope) error {
+			if err := api.Convert_runtime_RawExtension_To_runtime_Object(&in.Provider, out.Provider, s); err != nil {
+				return err
+			}
+			if in.Provider.Object != nil {
+				var err error
+				out.Provider, err = kapi.Scheme.ConvertToVersion(in.Provider.Object, internal.SchemeGroupVersion.String())
+				if err != nil {
+					return err
+				}
+			}
+			out.Name = in.Name
+			out.UseAsChallenger = in.UseAsChallenger
+			out.UseAsLogin = in.UseAsLogin
+			out.MappingMethod = in.MappingMethod
+			return nil
+		},
+		func(in *internal.AdmissionPluginConfig, out *AdmissionPluginConfig, s conversion.Scope) error {
+			if err := api.Convert_runtime_Object_To_runtime_RawExtension(in.Configuration, &out.Configuration, s); err != nil {
+				return err
+			}
+			out.Location = in.Location
+			return nil
+		},
+		func(in *AdmissionPluginConfig, out *internal.AdmissionPluginConfig, s conversion.Scope) error {
+			if err := api.Convert_runtime_RawExtension_To_runtime_Object(&in.Configuration, out.Configuration, s); err != nil {
+				return err
+			}
+			if in.Configuration.Object != nil {
+				var err error
+				out.Configuration, err = kapi.Scheme.ConvertToVersion(in.Configuration.Object, internal.SchemeGroupVersion.String())
+				if err != nil {
+					return err
+				}
+			}
+			out.Location = in.Location
 			return nil
 		},
 	)
