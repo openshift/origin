@@ -43,8 +43,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.Env) != 8 {
-		t.Fatalf("Expected 8 elements in Env table, got %d: %+v", len(container.Env), container.Env)
+	if len(container.Env) != 9 {
+		t.Fatalf("Expected 9 elements in Env table, got %d: %+v", len(container.Env), container.Env)
 	}
 	if len(container.VolumeMounts) != 4 {
 		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))

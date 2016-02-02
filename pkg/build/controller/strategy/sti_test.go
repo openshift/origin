@@ -77,13 +77,13 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
 	// strategy ENV is whitelisted into the container environment, and not all
-	// the values are allowed, so only expect 6 not 7 values.
-	expectedEnvCount := 8
+	// the values are allowed, so only expect 9 not 10 values.
+	expectedEnvCount := 9
 	if !rootAllowed {
-		expectedEnvCount = 9
+		expectedEnvCount = 10
 	}
 	if len(container.Env) != expectedEnvCount {
-		t.Fatalf("Expected 9 elements in Env table, got %d: %+v", len(container.Env), container.Env)
+		t.Fatalf("Expected 10 elements in Env table, got %d: %+v", len(container.Env), container.Env)
 	}
 	if len(container.VolumeMounts) != 4 {
 		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))

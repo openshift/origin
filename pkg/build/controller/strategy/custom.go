@@ -49,6 +49,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	if build.Spec.Source.Git != nil {
 		addSourceEnvVars(build.Spec.Source, &containerEnv)
 	}
+	addOriginVersionVar(&containerEnv)
 
 	if strategy == nil || len(strategy.From.Name) == 0 {
 		return nil, errors.New("CustomBuildStrategy cannot be executed without image")

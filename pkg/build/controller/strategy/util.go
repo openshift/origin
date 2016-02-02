@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/namer"
+	"github.com/openshift/origin/pkg/version"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 )
@@ -120,7 +121,7 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret *kapi.LocalObjectR
 	if pushSecret != nil {
 		mountSecretVolume(pod, pushSecret.Name, DockerPushSecretMountPath, "push")
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
-			{Name: "PUSH_DOCKERCFG_PATH", Value: filepath.Join(DockerPushSecretMountPath, kapi.DockerConfigKey)},
+			{Name: "PUSH_DOCKERCFG_PATH", Value: DockerPushSecretMountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker push in %s", DockerPullSecretMountPath, pod.Name)
 	}
@@ -128,7 +129,7 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret *kapi.LocalObjectR
 	if pullSecret != nil {
 		mountSecretVolume(pod, pullSecret.Name, DockerPullSecretMountPath, "pull")
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
-			{Name: "PULL_DOCKERCFG_PATH", Value: filepath.Join(DockerPullSecretMountPath, kapi.DockerConfigKey)},
+			{Name: "PULL_DOCKERCFG_PATH", Value: DockerPullSecretMountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker pull in %s", DockerPullSecretMountPath, pod.Name)
 	}
@@ -140,7 +141,7 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret *kapi.LocalObjectR
 		mountPath := filepath.Join(SourceImagePullSecretMountPath, strconv.Itoa(i))
 		mountSecretVolume(pod, imageSource.PullSecret.Name, mountPath, "source-image")
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
-			{Name: fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, i), Value: filepath.Join(mountPath, kapi.DockerConfigKey)},
+			{Name: fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, i), Value: mountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker pull in %s", mountPath, pod.Name)
 
@@ -185,6 +186,11 @@ func addSourceEnvVars(source buildapi.BuildSource, output *[]kapi.EnvVar) {
 		sourceVars = append(sourceVars, kapi.EnvVar{Name: "SOURCE_REF", Value: source.Git.Ref})
 	}
 	*output = append(*output, sourceVars...)
+}
+
+func addOriginVersionVar(output *[]kapi.EnvVar) {
+	version := kapi.EnvVar{Name: buildapi.OriginVersion, Value: version.Get().String()}
+	*output = append(*output, version)
 }
 
 // setupAdditionalSecrets creates secret volume mounts in the given pod for the given list of secrets
