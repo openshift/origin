@@ -120,3 +120,16 @@ echo "delete all: ok"
 SA_TOKEN=`oc get sa/builder --template='{{range .secrets}}{{ .name }} {{end}}' | xargs -n 1 oc get secret --template='{{ if .data.token }}{{ .data.token }}{{end}}' | os::util::base64decode -`
 os::cmd::expect_failure_and_text "oc new-project --token=${SA_TOKEN} will-fail" 'Error from server: You may not request a new project via this API'
 
+
+# Validate patching works correctly
+oc login -u system:admin
+# Clean up group if needed to be re-entrant
+oc delete group patch-group || true
+group_json='{"kind":"Group","apiVersion":"v1","metadata":{"name":"patch-group"}}'
+os::cmd::expect_success          "echo '${group_json}' | oc create -f -"
+os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'users: null'
+os::cmd::expect_success          "oc patch group patch-group -p 'users: [\"myuser\"]' --loglevel=8"
+os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'myuser'
+os::cmd::expect_success          "oc patch group patch-group -p 'users: []' --loglevel=8"
+os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'users: \[\]'
+echo "patch: ok"
