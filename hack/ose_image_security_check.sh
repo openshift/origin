@@ -53,19 +53,22 @@ usage() {
   echo "Usage ${0} [action] <options>" >&2
   echo >&2
   echo "Actions:" >&2
-  echo "  check_security  :: Print out yaml from Dockerfile for release" >&2
-  echo "  test            :: Display what packages would be worked on" >&2
+  echo "  check_security  :: Check for security updates in a docker image" >&2
+  echo "  list            :: Display full list of packages / images" >&2
+  echo "  test            :: Display what packages / images would be worked on" >&2
   echo >&2
   echo "Options:" >&2
   echo "  -h, --help          :: Show this options menu" >&2
   echo "  -v, --verbose       :: Be verbose" >&2
-  echo "  --group [group]     :: Which group list to use (base sti metrics logging misc)" >&2
+  echo "  --group [group]     :: Which group list to use (base sti metrics logging misc all)" >&2
   echo "  --package [package] :: Which package to use e.g. openshift-enterprise-pod-docker" >&2
-  echo "  --version [version] :: Change Dockerfile version e.g. 3.1.1.2" >&2
-  echo "  --release [version] :: Change Dockerfile release e.g. 3" >&2
-  echo "  --rhel [version]    :: Change RHEL version e.g. rhel7.2:7.2-35 or rhel7:latest" >&2
+  echo "  --version [version] :: Change image version e.g. 3.1.1 (Not Implemented Yet)" >&2
+  echo "  --release [version] :: Change image release e.g. 3 (Not Implemented Yet)" >&2
+  echo "  --rhel [version]    :: Change RHEL version e.g. rhel7.2:7.2-35 or rhel7.2 (Not Implemented Yet)" >&2
   echo >&2
+  echo "Required: You must be able to run docker.  root is usually used" >&2
   echo "Note: --group and --package can be used multiple times" >&2
+  echo >&2
   popd &>/dev/null
   exit 1
 }
@@ -177,7 +180,7 @@ check_container() {
 }
 
 test_function() {
-  echo "brew_name: ${brew_name} container: ${container} base: ${base_type}"
+  echo -e "brew_name: ${brew_name} \tcontainer: ${container} \tbase: ${base_type}"
 }
 
 if [ "$#" -lt 1 ] ; then
@@ -191,6 +194,14 @@ key="$1"
 case $key in
     check_security | test)
       export action="${key}"
+      ;;
+    list)
+      export action="${key}"
+      add_group_to_list base
+      add_group_to_list sti
+      add_group_to_list misc
+      add_group_to_list logging
+      add_group_to_list metrics
       ;;
     --group)
       add_group_to_list "$2"
@@ -241,8 +252,10 @@ shift # past argument or value
 done
 
 # Setup directory
+if ! [ "$action" == "test" ] && ! [ "$action" == "list" ] ; then
 workingdir=$(mktemp -d /var/tmp/check-image-security-XXXXXX)
 echo "Using working directory: ${workingdir}"
+fi
 
 echo "${list}" | while read spec
 do
@@ -256,7 +269,7 @@ do
       echo "=== ${container} ==="
       check_container
       ;;
-    test )
+    test | list )
       test_function
       ;;
     * )
