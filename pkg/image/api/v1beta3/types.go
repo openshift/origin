@@ -65,11 +65,11 @@ type ImageStreamSpec struct {
 	// Optional, if specified this stream is backed by a Docker repository on this server
 	DockerImageRepository string `json:"dockerImageRepository,omitempty"`
 	// Tags map arbitrary string values to specific image locators
-	Tags []NamedTagReference `json:"tags,omitempty"`
+	Tags []TagReference `json:"tags,omitempty"`
 }
 
-// NamedTagReference specifies optional annotations for images using this tag and an optional reference to an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.
-type NamedTagReference struct {
+// TagReference specifies optional annotations for images using this tag and an optional reference to an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.
+type TagReference struct {
 	Name        string                `json:"name"`
 	Annotations map[string]string     `json:"annotations,omitempty"`
 	From        *kapi.ObjectReference `json:"from,omitempty"`

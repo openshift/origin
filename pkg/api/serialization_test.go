@@ -165,6 +165,10 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			if j.Tags == nil {
 				j.Tags = make(map[string]image.TagReference)
 			}
+			for k, v := range j.Tags {
+				v.Name = k
+				j.Tags[k] = v
+			}
 		},
 		func(j *image.ImageStreamStatus, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
