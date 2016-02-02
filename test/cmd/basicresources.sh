@@ -66,6 +66,15 @@ echo "nodes: ok"
 os::cmd::expect_success 'oc get routes'
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-route.json'
 os::cmd::expect_success 'oc delete routes testroute'
+os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.json'
+os::cmd::expect_success 'oc create route passthrough --service=svc/frontend'
+os::cmd::expect_success 'oc delete routes frontend'
+os::cmd::expect_success 'oc create route edge --path /test --service=services/non-existent --port=80'
+os::cmd::expect_success 'oc delete routes non-existent'
+os::cmd::expect_success 'oc create route edge test-route --service=frontend'
+os::cmd::expect_success 'oc delete routes test-route'
+os::cmd::expect_failure 'oc create route edge new-route'
+os::cmd::expect_success 'oc delete services frontend'
 echo "routes: ok"
 
 # Expose service as a route

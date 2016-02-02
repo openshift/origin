@@ -149,6 +149,9 @@ func NewCmdCreate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	cmd := kcmd.NewCmdCreate(f.Factory, out)
 	cmd.Long = createLong
 	cmd.Example = fmt.Sprintf(createExample, fullName)
+
+	// create subcommands
+	cmd.AddCommand(NewCmdCreateRoute(fullName, f, out))
 	return cmd
 }
 

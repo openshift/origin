@@ -192,6 +192,57 @@ Create a resource by filename or stdin
 ====
 
 
+== oc create route edge
+Create a route that uses edge TLS termination
+
+====
+
+[options="nowrap"]
+----
+  # Create an edge route named "my-route" that exposes frontend service.
+  $ oc create route edge my-route --service=frontend
+
+  # Create an edge route that exposes the frontend service and specify a path.
+  # If the route name is omitted, the service name will be re-used.
+  $ oc create route edge --service=frontend --path /assets
+----
+====
+
+
+== oc create route passthrough
+Create a route that uses passthrough TLS termination
+
+====
+
+[options="nowrap"]
+----
+  # Create a passthrough route named "my-route" that exposes the frontend service.
+  $ oc create route passthrough my-route --service=frontend
+
+  # Create a passthrough route that exposes the frontend service and specify
+  # a hostname. If the route name is omitted, the service name will be re-used.
+  $ oc create route passthrough --service=frontend --hostname=www.example.com
+----
+====
+
+
+== oc create route reencrypt
+Create a route that uses reencrypt TLS termination
+
+====
+
+[options="nowrap"]
+----
+  # Create a route named "my-route" that exposes the frontend service.
+  $ oc create route reencrypt my-route --service=frontend --dest-ca-cert cert.cert
+
+  # Create a reencrypt route that exposes the frontend service and re-use
+  # the service name as the route name.
+  $ oc create route reencrypt --service=frontend --dest-ca-cert cert.cert
+----
+====
+
+
 == oc delete
 Delete resources by filenames, stdin, resources and names, or by resources and label selector.
 
