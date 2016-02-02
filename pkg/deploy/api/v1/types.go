@@ -278,6 +278,8 @@ const (
 // DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.
 type DeploymentTriggerImageChangeParams struct {
 	// Automatic means that the detection of a new tag value should result in a new deployment.
+	// Note that if this is set to false, the image field in the container specification will
+	// not be automatically resolved to an image stream tag specified in field from.
 	Automatic bool `json:"automatic,omitempty" description:"whether detection of a new tag value should trigger a deployment"`
 	// ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
 	ContainerNames []string `json:"containerNames,omitempty" description:"restricts tag updates to a set of container names in the pod"`
