@@ -142,6 +142,7 @@ function os::cleanup::install_dump_etcd_contents() {
 #
 # Globals:
 #  - ARTIFACT_DIR
+#  - OS_ROOT
 # Arguments:
 #  None
 # Returns:
@@ -149,7 +150,7 @@ function os::cleanup::install_dump_etcd_contents() {
 function os::cleanup::dump_pprof_output() {
     if go tool -n pprof >/dev/null 2>&1; then
         echo "[INFO] Dumping pprof output for the OpenShift binary"
-        go tool pprof -text ./_output/local/bin/$(os::util::host_platform)/openshift cpu.pprof > "${ARTIFACT_DIR}/pprof.out"
+        go tool pprof -text "${OS_ROOT}/_output/local/bin/$(os::util::host_platform)/openshift" "${OS_ROOT}/cpu.pprof" > "${ARTIFACT_DIR}/cpu.pprof.out"
     fi
 }
 
