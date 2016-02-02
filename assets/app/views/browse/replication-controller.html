@@ -9,49 +9,49 @@
           <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
           <alerts alerts="alerts"></alerts>
           <div ng-if="!loaded">Loading...</div>
+          <div class="deployment" ng-if="deployment">
+            <h1>
+              {{deployment.metadata.name}}
+              <small class="meta">created <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp></small>
+              <div class="pull-right dropdown">
+                <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                <ul class="dropdown-menu actions action-button">
+                  <li>
+                    <a href="project/{{projectName}}/set-limits?rcName={{deployment.metadata.name}}"
+                      role="button"
+                      ><i class="fa fa-area-chart fa-fw" aria-hidden="true"></i> Set Resource Limits</a>
+                  </li>
+                  <li>
+                    <edit-link
+                      resource="deployment"
+                      kind="replicationcontrollers"
+                      alerts="alerts">
+                    </edit-link>
+                  </li>
+                  <li ng-class="{disabled: deployment.status.replicas}">
+                    <delete-link
+                      resource-type="replicationcontroller"
+                      type-display-name="Replication Controller"
+                      resource-name="{{deployment.metadata.name}}"
+                      project-name="{{deployment.metadata.namespace}}"
+                      alerts="alerts"
+                      disable-delete="!!deployment.status.replicas">
+                    </delete-link>
+                  </li>
+                </ul>
+              </div>
+            </h1>
+            <labels labels="deployment.metadata.labels" clickable="true" kind="deployments" project-name="{{deployment.metadata.namespace}}" limit="3"></labels>
+          </div><!-- /deployment -->          
         </div>
       </div><!-- /middle-header-->
       <div class="middle-content">
         <div class="container-fluid">
-          <div class="row">
+          <div class="row" ng-if="deployment" >
             <div class="col-md-12 gutter-top">
-              <div ng-if="deployment" class="deployment">
-                <h1>
-                  {{deployment.metadata.name}}
-                  <small class="meta">created <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp></small>
-                  <div class="pull-right dropdown">
-                    <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
-                    <ul class="dropdown-menu actions action-button">
-                      <li>
-                        <a href="project/{{projectName}}/set-limits?rcName={{deployment.metadata.name}}"
-                          role="button"
-                          ><i class="fa fa-area-chart fa-fw" aria-hidden="true"></i> Set Resource Limits</a>
-                      </li>
-                      <li>
-                        <edit-link
-                          resource="deployment"
-                          kind="replicationcontrollers"
-                          alerts="alerts">
-                        </edit-link>
-                      </li>
-                      <li ng-class="{disabled: deployment.status.replicas}">
-                        <delete-link
-                          resource-type="replicationcontroller"
-                          type-display-name="Replication Controller"
-                          resource-name="{{deployment.metadata.name}}"
-                          project-name="{{deployment.metadata.namespace}}"
-                          alerts="alerts"
-                          disable-delete="!!deployment.status.replicas">
-                        </delete-link>
-                      </li>
-                    </ul>
-                  </div>
-                </h1>
-                <labels labels="deployment.metadata.labels" clickable="true" kind="deployments" project-name="{{deployment.metadata.namespace}}" limit="3"></labels>
-                <div class="resource-details">
-                  <ng-include src=" 'views/browse/_deployment-details.html' "></ng-include>
-                </div>
-              </div><!-- /deployment -->
+              <div class="resource-details">
+                <ng-include src=" 'views/browse/_deployment-details.html' "></ng-include>
+              </div>
             </div><!-- /col-* -->
           </div>
         </div>
