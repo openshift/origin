@@ -15,6 +15,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
@@ -23,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -139,7 +141,21 @@ func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
 
 // NewFactory creates an object that holds common methods across all OpenShift commands
 func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
-	mapper := ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: latest.RESTMapper}}
+	var restMapper meta.MultiRESTMapper
+	seenGroups := sets.String{}
+	for _, gv := range registered.EnabledVersions() {
+		if seenGroups.Has(gv.Group) {
+			continue
+		}
+		seenGroups.Insert(gv.Group)
+
+		groupMeta, err := registered.Group(gv.Group)
+		if err != nil {
+			continue
+		}
+		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
+	}
+	mapper := ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: restMapper}}
 
 	clients := &clientCache{
 		clients: make(map[string]*client.Client),

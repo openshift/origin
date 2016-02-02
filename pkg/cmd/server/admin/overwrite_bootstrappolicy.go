@@ -12,12 +12,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
@@ -129,7 +129,7 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 		fmt.Fprintf(out, "Performing a dry run of policy overwrite:\n\n")
 	}
 
-	mapper := cmdclientcmd.ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: latest.RESTMapper}}
+	mapper := cmdclientcmd.ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: registered.GroupOrDie(authorizationapi.GroupName).RESTMapper}}
 	typer := kapi.Scheme
 	clientMapper := resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 		return nil, nil

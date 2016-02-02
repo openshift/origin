@@ -29,11 +29,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/latest"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/project/cache"
 	projectutil "github.com/openshift/origin/pkg/project/util"
@@ -70,7 +70,12 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	if isSubjectAccessReview(a) {
 		return nil
 	}
-	mapping, err := latest.RESTMapper.RESTMapping(a.GetKind())
+
+	groupMeta, err := registered.Group(a.GetKind().Group)
+	if err != nil {
+		return err
+	}
+	mapping, err := groupMeta.RESTMapper.RESTMapping(a.GetKind())
 	if err != nil {
 		glog.V(4).Infof("Ignoring life-cycle enforcement for resource %v; no associated default version and kind could be found.", a.GetResource())
 		return nil

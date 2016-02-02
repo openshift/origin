@@ -83,10 +83,6 @@ type DefaultRESTMapper struct {
 	interfacesFunc VersionInterfacesFunc
 }
 
-func (m *DefaultRESTMapper) String() string {
-	return fmt.Sprintf("DefaultRESTMapper{kindToPluralResource=%v}", m.kindToPluralResource)
-}
-
 var _ RESTMapper = &DefaultRESTMapper{}
 
 // VersionInterfacesFunc returns the appropriate typer, and metadata accessor for a

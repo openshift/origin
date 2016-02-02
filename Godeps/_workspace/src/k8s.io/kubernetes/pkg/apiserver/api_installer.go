@@ -201,6 +201,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 
 		parentMapping, err := a.group.Mapper.RESTMapping(parentFQKindToRegister.GroupKind(), a.group.GroupVersion.Version)
 		if err != nil {
+			fmt.Printf("#### failed to see parent for \n%v\n", a.group.Mapper)
 			return nil, err
 		}
 		mapping.Scope = parentMapping.Scope

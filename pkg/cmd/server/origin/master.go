@@ -15,8 +15,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kubeapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
@@ -27,7 +29,6 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -584,15 +585,34 @@ func initMetricsRoute(root *restful.WebService, path string) {
 }
 
 func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
+	var restMapper meta.MultiRESTMapper
+	seenGroups := sets.String{}
+	for _, gv := range registered.EnabledVersions() {
+		if seenGroups.Has(gv.Group) {
+			continue
+		}
+		seenGroups.Insert(gv.Group)
+
+		groupMeta, err := registered.Group(gv.Group)
+		if err != nil {
+			continue
+		}
+		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
+	}
+
+	statusMapper := meta.NewDefaultRESTMapper([]unversioned.GroupVersion{kubeapiv1.SchemeGroupVersion}, registered.GroupOrDie(kapi.GroupName).InterfacesFor)
+	statusMapper.Add(kubeapiv1.SchemeGroupVersion.WithKind("Status"), meta.RESTScopeRoot, false)
+	restMapper = meta.MultiRESTMapper(append(restMapper, statusMapper))
+
 	return &apiserver.APIGroupVersion{
 		Root: OpenShiftAPIPrefix,
 
-		Mapper: registered.GroupOrDie("").RESTMapper,
+		Mapper: restMapper,
 
 		Creater:   kapi.Scheme,
 		Typer:     kapi.Scheme,
 		Convertor: kapi.Scheme,
-		Linker:    latest.SelfLinker,
+		Linker:    registered.GroupOrDie("").SelfLinker,
 
 		Admit:                       c.AdmissionControl,
 		Context:                     c.getRequestContextMapper(),
