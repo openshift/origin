@@ -1245,6 +1245,7 @@ func deepCopy_v1beta3_GitBuildSource(in apiv1beta3.GitBuildSource, out *apiv1bet
 	out.Ref = in.Ref
 	out.HTTPProxy = in.HTTPProxy
 	out.HTTPSProxy = in.HTTPSProxy
+	out.DisableSSLCheck = in.DisableSSLCheck
 	return nil
 }
 

@@ -1211,6 +1211,7 @@ func deepCopy_api_GitBuildSource(in buildapi.GitBuildSource, out *buildapi.GitBu
 	out.Ref = in.Ref
 	out.HTTPProxy = in.HTTPProxy
 	out.HTTPSProxy = in.HTTPSProxy
+	out.DisableSSLCheck = in.DisableSSLCheck
 	return nil
 }
 

@@ -79,6 +79,11 @@ func (c *builderConfig) setupGitEnvironment() ([]string, error) {
 
 	sourceSecret := c.build.Spec.Source.SourceSecret
 	gitEnv := []string{"GIT_ASKPASS=true"}
+
+	if gitSource.DisableSSLCheck {
+		gitEnv = append(gitEnv, "GIT_SSL_NO_VERIFY=true")
+	}
+
 	// If a source secret is present, set it up and add its environment variables
 	if sourceSecret != nil {
 		// TODO: this should be refactored to let each source type manage which secrets
