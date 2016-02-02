@@ -41,6 +41,9 @@ os::cmd::expect_success_and_not_text 'SKIP_IMAGE_CLEANUP="true" os::cleanup::tea
 os::cmd::expect_success_and_not_text './ptree.sh &
 parent_pid=$!
 os::cleanup::internal::kill_process_tree "${parent_pid}"
-ps --ppid=$$ --format=command' 'ptree'
+ps -A' 'ptree'
 
+# test running job process killing
+os::cmd::expect_success_and_not_text './jobs.sh
+ps -A' '[0-9] ptree\.sh'
 popd >/dev/null

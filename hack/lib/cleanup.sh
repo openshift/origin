@@ -170,6 +170,7 @@ function os::cleanup::install_dump_pprof_output() {
 #
 # Gloabls:
 #  - SKIP_TEARDOWN
+#  - BASHPID
 # Arguments:
 #  None
 # Returns:
@@ -180,9 +181,16 @@ function os::cleanup::kill_all_running_jobs() {
     fi
 
     echo "[INFO] Killing all running jobs and their descendants"
+    # we expect to be running in a subshell from a trap, so we should be able to get the list of running
+    # jobs by taking the list of processes that are children of our parent and removing ourselves
+    # NOTE: inside of a subshell, $BASHPID gives current PID, $$ gives parent PID
     local running_jobs
-    running_jobs="$( jobs -pr )"
+    running_jobs="$( ps --ppid="$$" --format=pid --no-headers )"
     for job in ${running_jobs}; do
+        if [[ "${job}" = "${BASHPID}" ]]; then
+            continue
+        fi
+
         local name
         name="$( ps --pid="${job}" --format=cmd --no-headers )"
         echo "[INFO] Killing top-level job ${job}: \"${name}\" and all descendants"
