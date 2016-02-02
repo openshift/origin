@@ -134,7 +134,27 @@ func (b *Layered) Build(config *api.Config) (*api.Result, error) {
 	}
 	defer tarStream.Close()
 
-	newBuilderImage := fmt.Sprintf("%s-%d", b.config.BuilderImage, time.Now().UnixNano())
+	dockerImageReference, err := docker.ParseDockerImageReference(b.config.BuilderImage)
+	if err != nil {
+		return nil, err
+	}
+	// if we fall down this path via oc new-app, the builder image will be a docker image ref ending
+	// with a @<hex image id> instead of a tag; simply appending the time stamp to the end of a
+	// hex image id ref is not kosher with the docker API; so we remove the ID piece, and then
+	// construct the new image name
+	var newBuilderImage string
+	if len(dockerImageReference.ID) == 0 {
+		newBuilderImage = fmt.Sprintf("%s-%d", b.config.BuilderImage, time.Now().UnixNano())
+	} else {
+		if len(dockerImageReference.Registry) > 0 {
+			newBuilderImage = fmt.Sprintf("%s/", dockerImageReference.Registry)
+		}
+		if len(dockerImageReference.Namespace) > 0 {
+			newBuilderImage = fmt.Sprintf("%s%s/", newBuilderImage, dockerImageReference.Namespace)
+		}
+		newBuilderImage = fmt.Sprintf("%s%s:s2i-layered-%d", newBuilderImage, dockerImageReference.Name, time.Now().UnixNano())
+	}
+
 	outReader, outWriter := io.Pipe()
 	defer outReader.Close()
 	defer outWriter.Close()
