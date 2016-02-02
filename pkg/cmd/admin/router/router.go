@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
+	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
@@ -622,6 +623,11 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		list := &kapi.List{Items: objects}
 
 		if output {
+			list.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
+			if err != nil {
+				return err
+			}
+
 			if err := f.PrintObject(cmd, list, out); err != nil {
 				return fmt.Errorf("Unable to print object: %v", err)
 			}

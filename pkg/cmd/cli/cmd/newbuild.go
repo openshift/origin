@@ -9,12 +9,14 @@ import (
 
 	. "github.com/MakeNowJust/heredoc/dot"
 	"github.com/spf13/cobra"
+
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/util/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newapp "github.com/openshift/origin/pkg/generate/app"
@@ -168,6 +170,11 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 	case shortOutput:
 		indent = ""
 	case len(output) != 0:
+		result.List.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(c, result.List.Items)
+		if err != nil {
+			return err
+		}
+
 		return f.Factory.PrintObject(c, result.List, out)
 	default:
 		if len(config.Labels) > 0 {

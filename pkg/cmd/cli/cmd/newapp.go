@@ -29,6 +29,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
@@ -190,6 +191,11 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 		}
 
 		if len(output) != 0 {
+			result.List.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(c, result.List.Items)
+			if err != nil {
+				return err
+			}
+
 			return f.Factory.PrintObject(c, result.List, out)
 		}
 
@@ -220,6 +226,11 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	case shortOutput:
 		indent = ""
 	case len(output) != 0:
+		result.List.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(c, result.List.Items)
+		if err != nil {
+			return err
+		}
+
 		return f.Factory.PrintObject(c, result.List, out)
 	case !result.GeneratedJobs:
 		if len(config.Labels) > 0 {

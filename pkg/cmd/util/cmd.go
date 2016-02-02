@@ -9,9 +9,12 @@ import (
 
 	"github.com/spf13/cobra"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // ErrExit is a marker interface for cli commands indicating that the response has been processed
@@ -63,4 +66,60 @@ func ResolveResource(defaultResource, resourceString string, mapper meta.RESTMap
 	}
 
 	return defaultResource, name, nil
+}
+
+// ConvertItemsForDisplay returns a new list that contains parallel elements that have been converted to the most preferred external version
+func ConvertItemsForDisplay(objs []runtime.Object, preferredVersions ...unversioned.GroupVersion) ([]runtime.Object, error) {
+	ret := []runtime.Object{}
+
+	for i := range objs {
+		obj := objs[i]
+		kind, err := kapi.Scheme.ObjectKind(obj)
+		if err != nil {
+			return nil, err
+		}
+		groupMeta, err := registered.Group(kind.Group)
+		if err != nil {
+			return nil, err
+		}
+
+		requestedVersion := unversioned.GroupVersion{}
+		for _, preferredVersion := range preferredVersions {
+			if preferredVersion.Group == kind.Group {
+				requestedVersion = preferredVersion
+				break
+			}
+		}
+
+		actualOutputVersion := unversioned.GroupVersion{}
+		for _, externalVersion := range groupMeta.GroupVersions {
+			if externalVersion == requestedVersion {
+				actualOutputVersion = externalVersion
+				break
+			}
+			if actualOutputVersion.IsEmpty() {
+				actualOutputVersion = externalVersion
+			}
+		}
+
+		convertedObject, err := kapi.Scheme.ConvertToVersion(obj, actualOutputVersion.String())
+		if err != nil {
+			return nil, err
+		}
+
+		ret = append(ret, convertedObject)
+	}
+
+	return ret, nil
+}
+
+// ConvertItemsForDisplayFromDefaultCommand returns a new list that contains parallel elements that have been converted to the most preferred external version
+func ConvertItemsForDisplayFromDefaultCommand(cmd *cobra.Command, objs []runtime.Object) ([]runtime.Object, error) {
+	requestedOutputVersionString := kcmdutil.GetFlagString(cmd, "output-version")
+	requestedOutputVersion, err := unversioned.ParseGroupVersion(requestedOutputVersionString)
+	if err != nil {
+		return nil, err
+	}
+
+	return ConvertItemsForDisplay(objs, requestedOutputVersion)
 }

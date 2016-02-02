@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
+	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -385,6 +386,11 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 	for _, item := range openshiftGroups {
 		list.Items = append(list.Items, item)
 	}
+	list.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
+	if err != nil {
+		return err
+	}
+
 	if err := f.Factory.PrintObject(cmd, list, o.Out); err != nil {
 		return err
 	}

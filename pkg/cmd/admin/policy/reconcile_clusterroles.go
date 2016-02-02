@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -143,6 +144,11 @@ func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Comma
 		list := &kapi.List{}
 		for _, item := range changedClusterRoles {
 			list.Items = append(list.Items, item)
+		}
+
+		list.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
+		if err != nil {
+			return err
 		}
 
 		if err := f.Factory.PrintObject(cmd, list, o.Out); err != nil {

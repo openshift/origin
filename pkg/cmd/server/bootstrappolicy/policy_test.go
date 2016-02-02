@@ -1,4 +1,4 @@
-package bootstrappolicy
+package bootstrappolicy_test
 
 import (
 	"fmt"
@@ -12,10 +12,14 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/v1"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestOpenshiftRoles(t *testing.T) {
-	roles := GetBootstrapOpenshiftRoles("openshift")
+	roles := bootstrappolicy.GetBootstrapOpenshiftRoles("openshift")
 	list := &api.List{}
 	for i := range roles {
 		list.Items = append(list.Items, &roles[i])
@@ -24,7 +28,7 @@ func TestOpenshiftRoles(t *testing.T) {
 }
 
 func TestBootstrapProjectRoleBindings(t *testing.T) {
-	roleBindings := GetBootstrapServiceAccountProjectRoleBindings("myproject")
+	roleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings("myproject")
 	list := &api.List{}
 	for i := range roleBindings {
 		list.Items = append(list.Items, &roleBindings[i])
@@ -33,7 +37,7 @@ func TestBootstrapProjectRoleBindings(t *testing.T) {
 }
 
 func TestBootstrapClusterRoleBindings(t *testing.T) {
-	roleBindings := GetBootstrapClusterRoleBindings()
+	roleBindings := bootstrappolicy.GetBootstrapClusterRoleBindings()
 	list := &api.List{}
 	for i := range roleBindings {
 		list.Items = append(list.Items, &roleBindings[i])
@@ -42,7 +46,7 @@ func TestBootstrapClusterRoleBindings(t *testing.T) {
 }
 
 func TestBootstrapClusterRoles(t *testing.T) {
-	roles := GetBootstrapClusterRoles()
+	roles := bootstrappolicy.GetBootstrapClusterRoles()
 	list := &api.List{}
 	for i := range roles {
 		list.Items = append(list.Items, &roles[i])
@@ -57,7 +61,11 @@ func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 		t.Fatal(err)
 	}
 
-	jsonData, err := v1.Codec.Encode(list)
+	if err := runtime.EncodeList(api.Codecs.LegacyCodec(v1.SchemeGroupVersion), list.Items); err != nil {
+		t.Fatal(err)
+	}
+
+	jsonData, err := runtime.Encode(api.Codecs.LegacyCodec(v1.SchemeGroupVersion), list)
 	if err != nil {
 		t.Fatal(err)
 	}
