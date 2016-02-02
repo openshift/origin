@@ -123,18 +123,9 @@
     margin: 0;
 }
 .nav-tabs {
-  font-size: @font-size-base;
-  a {
-    // ui.bootstrap.tabs doesn't set the href attr, so the cursor style is
-    // required or it's a vertical bar
-    cursor: pointer;
-  }
-  li.active {
-    a, a:hover {
-      // Remove when we update patternfly
-      background-color: #fff;
-    }
-  }
+  // Use Patternfly secondary tab style on tabs
+  // https://www.patternfly.org/widgets/#tabs
+  .nav-tabs-pf;
 }
 
 .nav-tabs, .tab-content {
