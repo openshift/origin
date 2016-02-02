@@ -52,5 +52,12 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, errors.NewInvalid(api.Kind("Template"), tpl.Name, errs)
 	}
 
+	// we know that we get back runtime.Unstructured objects from the Process call.  We need to encode those
+	// objects using the unstructured codec BEFORE the REST layers gets its shot at encoding to avoid a layered
+	// encode being done.
+	for i := range tpl.Objects {
+		tpl.Objects[i] = runtime.NewEncodable(runtime.UnstructuredJSONScheme, tpl.Objects[i])
+	}
+
 	return tpl, nil
 }

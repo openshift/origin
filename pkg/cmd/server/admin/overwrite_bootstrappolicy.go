@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 
 	newetcdclient "github.com/coreos/etcd/client"
 	"github.com/spf13/cobra"
@@ -222,7 +223,7 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 				}
 
 			default:
-				return errors.New("only roles and rolebindings may be created in this mode")
+				return fmt.Errorf("only roles and rolebindings may be created in this mode, not: %v", reflect.TypeOf(t))
 			}
 		}
 		if !change {

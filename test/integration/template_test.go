@@ -41,19 +41,21 @@ func TestTemplate(t *testing.T) {
 					Value: "test",
 				},
 			},
-			Objects: []runtime.Object{
-				&v1.Service{
-					ObjectMeta: v1.ObjectMeta{
-						Name:      "${NAME}-tester",
-						Namespace: "somevalue",
-					},
-					Spec: v1.ServiceSpec{
-						ClusterIP:       "1.2.3.4",
-						SessionAffinity: "some-bad-${VALUE}",
-					},
+		}
+
+		templateObjects := []runtime.Object{
+			&v1.Service{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "${NAME}-tester",
+					Namespace: "somevalue",
+				},
+				Spec: v1.ServiceSpec{
+					ClusterIP:       "1.2.3.4",
+					SessionAffinity: "some-bad-${VALUE}",
 				},
 			},
 		}
+		templateapi.AddObjectsToTemplate(template, templateObjects, v1.SchemeGroupVersion)
 
 		obj, err := c.TemplateConfigs("default").Create(template)
 		if err != nil {
