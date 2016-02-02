@@ -356,6 +356,9 @@ type CustomBuildStrategy struct {
 
 	// Secrets is a list of additional secrets that will be included in the custom build pod
 	Secrets []SecretSpec
+
+	// BuildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder
+	BuildAPIVersion string
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.

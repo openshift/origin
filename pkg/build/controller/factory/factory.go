@@ -32,13 +32,16 @@ const maxRetries = 60
 // limitedLogAndRetry stops retrying after maxTimeout, failing the build.
 func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.Duration) controller.RetryFunc {
 	return func(obj interface{}, err error, retries controller.Retry) bool {
+		isFatal := strategy.IsFatal(err)
 		build := obj.(*buildapi.Build)
-		if time.Since(retries.StartTimestamp.Time) < maxTimeout {
+		if !isFatal && time.Since(retries.StartTimestamp.Time) < maxTimeout {
 			glog.V(4).Infof("Retrying Build %s/%s with error: %v", build.Namespace, build.Name, err)
 			return true
 		}
 		build.Status.Phase = buildapi.BuildPhaseFailed
-		build.Status.Reason = buildapi.StatusReasonExceededRetryTimeout
+		if !isFatal {
+			build.Status.Reason = buildapi.StatusReasonExceededRetryTimeout
+		}
 		build.Status.Message = errors.ErrorToSentence(err)
 		now := unversioned.Now()
 		build.Status.CompletionTimestamp = &now

@@ -1,7 +1,9 @@
 package strategy
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -101,6 +103,36 @@ func TestCustomCreateBuildPodExpectedForcePull(t *testing.T) {
 	container := actual.Spec.Containers[0]
 	if container.ImagePullPolicy != kapi.PullAlways {
 		t.Errorf("Expected %v, got %v", kapi.PullAlways, container.ImagePullPolicy)
+	}
+}
+
+func TestCustomCreateBuildPodWithCustomCodec(t *testing.T) {
+	strategy := CustomBuildStrategy{
+		Codec: latest.Codec,
+	}
+
+	for _, version := range latest.Versions {
+		// Create new Build specification and modify Spec API version
+		build := mockCustomBuild(false)
+		build.Spec.Strategy.CustomStrategy.BuildAPIVersion = fmt.Sprintf("%s/%s", version.Group, version.Version)
+
+		pod, err := strategy.CreateBuildPod(build)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		versionFound := false
+		for _, envVar := range pod.Spec.Containers[0].Env {
+			if envVar.Name == "BUILD" {
+				if strings.Contains(envVar.Value, fmt.Sprintf(`"apiVersion":"%s"`, version)) {
+					versionFound = true
+					break
+				}
+				t.Fatalf("BUILD environment variable doesn't contain correct API version")
+			}
+		}
+		if !versionFound {
+			t.Fatalf("Couldn't find BUILD environment variable in pod spec")
+		}
 	}
 }
 

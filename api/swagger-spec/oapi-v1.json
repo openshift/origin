@@ -17295,6 +17295,10 @@
        "$ref": "v1.SecretSpec"
       },
       "description": "a list of secrets to include in the build pod in addition to pull, push and source secrets"
+     },
+     "buildAPIVersion": {
+      "type": "string",
+      "description": "requested API version for the Build object serialized and passed to the custom builder"
      }
     }
    },
