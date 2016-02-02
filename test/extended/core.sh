@@ -135,5 +135,10 @@ fi
 
 echo "[INFO] Running extended tests"
 
+args=("$@")
+if [[ $# -eq 0 ]]; then
+  args=("--ginkgo.skip=${SKIP}")
+fi
+
 # Run the tests
-TMPDIR=${BASETMPDIR} go test -timeout 6h ./test/extended/ --test.v "--ginkgo.skip=${SKIP}" "$@"
+TMPDIR=${BASETMPDIR} go test -timeout 6h ./test/extended/ --test.v "${args[@]}"
