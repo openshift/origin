@@ -295,10 +295,10 @@ type GitBuildSource struct {
 	Ref string
 
 	// HTTPProxy is a proxy used to reach the git repository over http
-	HTTPProxy string
+	HTTPProxy *string
 
 	// HTTPSProxy is a proxy used to reach the git repository over https
-	HTTPSProxy string
+	HTTPSProxy *string
 }
 
 // SourceControlUser defines the identity of a user of source control
