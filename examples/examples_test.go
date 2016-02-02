@@ -13,6 +13,7 @@ import (
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/capabilities"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/yaml"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/validation"
@@ -50,6 +51,12 @@ func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error 
 		data, err := ioutil.ReadFile(path)
 		if err != nil {
 			return err
+		}
+		if ext == ".yaml" {
+			data, err = yaml.ToJSON(data)
+			if err != nil {
+				return err
+			}
 		}
 		fn(name, path, data)
 		return nil

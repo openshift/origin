@@ -3141,6 +3141,12 @@ func autoconvert_api_RecreateDeploymentStrategyParams_To_v1beta3_RecreateDeploym
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*deployapi.RecreateDeploymentStrategyParams))(in)
 	}
+	if in.TimeoutSeconds != nil {
+		out.TimeoutSeconds = new(int64)
+		*out.TimeoutSeconds = *in.TimeoutSeconds
+	} else {
+		out.TimeoutSeconds = nil
+	}
 	if in.Pre != nil {
 		out.Pre = new(deployapiv1beta3.LifecycleHook)
 		if err := convert_api_LifecycleHook_To_v1beta3_LifecycleHook(in.Pre, out.Pre, s); err != nil {
@@ -3676,6 +3682,12 @@ func convert_v1beta3_LifecycleHook_To_api_LifecycleHook(in *deployapiv1beta3.Lif
 func autoconvert_v1beta3_RecreateDeploymentStrategyParams_To_api_RecreateDeploymentStrategyParams(in *deployapiv1beta3.RecreateDeploymentStrategyParams, out *deployapi.RecreateDeploymentStrategyParams, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*deployapiv1beta3.RecreateDeploymentStrategyParams))(in)
+	}
+	if in.TimeoutSeconds != nil {
+		out.TimeoutSeconds = new(int64)
+		*out.TimeoutSeconds = *in.TimeoutSeconds
+	} else {
+		out.TimeoutSeconds = nil
 	}
 	if in.Pre != nil {
 		out.Pre = new(deployapi.LifecycleHook)

@@ -11,7 +11,7 @@ import (
 
 func TestNewClient(t *testing.T) {
 	o := testclient.NewObjects(kapi.Scheme, kapi.Scheme)
-	if err := testclient.AddObjectsFromPath("../../../test/integration/fixtures/test-deployment-config.json", o, kapi.Scheme); err != nil {
+	if err := testclient.AddObjectsFromPath("../../../test/integration/fixtures/test-deployment-config.yaml", o, kapi.Scheme); err != nil {
 		t.Fatal(err)
 	}
 	oc, _ := NewFixtureClients(o)

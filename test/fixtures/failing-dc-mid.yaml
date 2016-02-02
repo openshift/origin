@@ -1,14 +1,15 @@
 apiVersion: v1
 kind: DeploymentConfig
 metadata:
-  name: failing-dc
+  name: failing-dc-mid
 spec:
   replicas: 2
   selector:
-    name: failing-dc
+    name: failing-dc-mid
   strategy:
     type: Recreate
     recreateParams:
+      timeoutSeconds: 5
       mid:
         failurePolicy: Abort
         execNewPod:
@@ -19,7 +20,7 @@ spec:
   template:
     metadata:
       labels:
-        name: failing-dc
+        name: failing-dc-mid
     spec:
       containers:
       - image: "docker.io/centos:centos7"

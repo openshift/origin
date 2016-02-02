@@ -67,6 +67,9 @@ type CustomDeploymentStrategyParams struct {
 // RecreateDeploymentStrategyParams are the input to the Recreate deployment
 // strategy.
 type RecreateDeploymentStrategyParams struct {
+	// TimeoutSeconds is the time to wait for updates before giving up. If the
+	// value is nil, a default will be used.
+	TimeoutSeconds *int64
 	// Pre is a lifecycle hook which is executed before the strategy manipulates
 	// the deployment. All LifecycleHookFailurePolicy values are supported.
 	Pre *LifecycleHook

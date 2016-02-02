@@ -11,7 +11,7 @@ os::log::install_errexit
 
 # This test validates the 'volume' command
 
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.json'
+os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.yaml'
 
 os::cmd::expect_success_and_text 'oc volume dc/test-deployment-config --list' 'vol1'
 os::cmd::expect_success 'oc volume dc/test-deployment-config --add --name=vol0 -m /opt5'

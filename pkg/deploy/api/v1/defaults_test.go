@@ -48,6 +48,9 @@ func TestDefaults(t *testing.T) {
 				Spec: deployv1.DeploymentConfigSpec{
 					Strategy: deployv1.DeploymentStrategy{
 						Type: deployv1.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployv1.RecreateDeploymentStrategyParams{
+							TimeoutSeconds: newInt64(deployapi.DefaultRollingTimeoutSeconds),
+						},
 						RollingParams: &deployv1.RollingDeploymentStrategyParams{
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
@@ -67,6 +70,9 @@ func TestDefaults(t *testing.T) {
 				Spec: deployv1.DeploymentConfigSpec{
 					Strategy: deployv1.DeploymentStrategy{
 						Type: deployv1.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployv1.RecreateDeploymentStrategyParams{
+							TimeoutSeconds: newInt64(deployapi.DefaultRollingTimeoutSeconds),
+						},
 						RollingParams: &deployv1.RollingDeploymentStrategyParams{
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),

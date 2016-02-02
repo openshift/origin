@@ -18263,6 +18263,11 @@
    "v1.RecreateDeploymentStrategyParams": {
     "id": "v1.RecreateDeploymentStrategyParams",
     "properties": {
+     "timeoutSeconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "the time to wait for updates before giving up"
+     },
      "pre": {
       "$ref": "v1.LifecycleHook",
       "description": "a hook executed before the strategy starts the deployment"

@@ -28,6 +28,9 @@ import (
 type RecreateDeploymentStrategy struct {
 	// getReplicationController knows how to get a replication controller.
 	getReplicationController func(namespace, name string) (*kapi.ReplicationController, error)
+	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
+	// of the deployment.
+	getUpdateAcceptor func(timeout time.Duration) strat.UpdateAcceptor
 	// scaler is used to scale replication controllers.
 	scaler kubectl.Scaler
 	// codec is used to decode DeploymentConfigs contained in deployments.
@@ -41,6 +44,10 @@ type RecreateDeploymentStrategy struct {
 	retryPeriod time.Duration
 }
 
+// AcceptorInterval is how often the UpdateAcceptor should check for
+// readiness.
+const AcceptorInterval = 1 * time.Second
+
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
 func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec) *RecreateDeploymentStrategy {
@@ -48,6 +55,9 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec
 	return &RecreateDeploymentStrategy{
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return client.ReplicationControllers(namespace).Get(name)
+		},
+		getUpdateAcceptor: func(timeout time.Duration) strat.UpdateAcceptor {
+			return stratsupport.NewAcceptNewlyObservedReadyPods(client, timeout, AcceptorInterval)
 		},
 		scaler:       scaler,
 		codec:        codec,
@@ -79,6 +89,10 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	retryParams := kubectl.NewRetryParams(s.retryPeriod, s.retryTimeout)
 	waitParams := kubectl.NewRetryParams(s.retryPeriod, s.retryTimeout)
 
+	if updateAcceptor == nil {
+		updateAcceptor = s.getUpdateAcceptor(time.Duration(*params.TimeoutSeconds) * time.Second)
+	}
+
 	// Execute any pre-hook.
 	if params != nil && params.Pre != nil {
 		if err := s.hookExecutor.Execute(params.Pre, to, "prehook"); err != nil {
@@ -105,20 +119,19 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 
 	// Scale up the to deployment.
 	if desiredReplicas > 0 {
-		// If an UpdateAcceptor is provided, scale up to 1 and validate the replica,
+		// Scale up to 1 and validate the replica,
 		// aborting if the replica isn't acceptable.
-		if updateAcceptor != nil {
-			glog.Infof("Scaling %s to 1 before performing acceptance check", deployutil.LabelForDeployment(to))
-			updatedTo, err := s.scaleAndWait(to, 1, retryParams, waitParams)
-			if err != nil {
-				return fmt.Errorf("couldn't scale %s to 1: %v", deployutil.LabelForDeployment(to), err)
-			}
-			glog.Infof("Performing acceptance check of %s", deployutil.LabelForDeployment(to))
-			if err := updateAcceptor.Accept(updatedTo); err != nil {
-				return fmt.Errorf("update acceptor rejected %s: %v", deployutil.LabelForDeployment(to), err)
-			}
-			to = updatedTo
+		glog.Infof("Scaling %s to 1 before performing acceptance check", deployutil.LabelForDeployment(to))
+		updatedTo, err := s.scaleAndWait(to, 1, retryParams, waitParams)
+		if err != nil {
+			return fmt.Errorf("couldn't scale %s to 1: %v", deployutil.LabelForDeployment(to), err)
 		}
+		glog.Infof("Performing acceptance check of %s", deployutil.LabelForDeployment(to))
+		if err := updateAcceptor.Accept(updatedTo); err != nil {
+			return fmt.Errorf("update acceptor rejected %s: %v", deployutil.LabelForDeployment(to), err)
+		}
+		to = updatedTo
+
 		// Complete the scale up.
 		if to.Spec.Replicas != desiredReplicas {
 			glog.Infof("Scaling %s to %d", deployutil.LabelForDeployment(to), desiredReplicas)
