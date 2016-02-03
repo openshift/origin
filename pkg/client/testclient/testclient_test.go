@@ -7,6 +7,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
+
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 func TestNewClient(t *testing.T) {
@@ -38,8 +40,8 @@ func TestErrors(t *testing.T) {
 	o := testclient.NewObjects(kapi.Scheme, kapi.Scheme)
 	o.Add(&kapi.List{
 		Items: []runtime.Object{
-			&(errors.NewNotFound("DeploymentConfigList", "").(*errors.StatusError).ErrStatus),
-			&(errors.NewForbidden("DeploymentConfigList", "", nil).(*errors.StatusError).ErrStatus),
+			&(errors.NewNotFound(deployapi.Resource("DeploymentConfigList"), "").(*errors.StatusError).ErrStatus),
+			&(errors.NewForbidden(deployapi.Resource("DeploymentConfigList"), "", nil).(*errors.StatusError).ErrStatus),
 		},
 	})
 	oc, _ := NewFixtureClients(o)

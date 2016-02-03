@@ -9,8 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
-
-	"github.com/openshift/origin/pkg/api/latest"
 )
 
 type RuntimeObjectValidator interface {
@@ -123,7 +121,7 @@ func GetRequiresNamespace(obj runtime.Object) (bool, error) {
 		return false, err
 	}
 
-	restMapping, err := latest.RESTMapper.RESTMapping(groupVersionKind.GroupKind())
+	restMapping, err := kapi.RESTMapper.RESTMapping(groupVersionKind.GroupKind())
 	if err != nil {
 		return false, err
 	}

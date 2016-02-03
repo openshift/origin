@@ -20,7 +20,7 @@ func (v *WrappingValidator) Validate(obj runtime.Object) field.ErrorList {
 func (v *WrappingValidator) ValidateUpdate(obj, old runtime.Object) field.ErrorList {
 	if v.validateUpdate == nil {
 		// if there is no update validation, fail.
-		return field.ErrorList{field.Forbidden(field.NewPath("obj"), obj)}
+		return field.ErrorList{field.Forbidden(field.NewPath("obj"), fmt.Sprintf("%v", obj))}
 	}
 
 	return callValidateUpdate(reflect.ValueOf(obj), reflect.ValueOf(old), *v.validateUpdate)

@@ -6,7 +6,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -91,7 +90,7 @@ func (r *ClusterPolicyRegistry) CreateClusterPolicy(ctx kapi.Context, policy *au
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
 	if existing, _ := r.GetClusterPolicy(ctx, policy.Name); existing != nil {
-		return kapierrors.NewAlreadyExists("ClusterPolicy", policy.Name)
+		return kapierrors.NewAlreadyExists(authorizationapi.Resource("ClusterPolicy"), policy.Name)
 	}
 
 	addClusterPolicy(r.ClusterPolicies, *policy)

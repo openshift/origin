@@ -85,7 +85,7 @@ func TestProvision(t *testing.T) {
 			ExistingIdentity: nil,
 			ExistingUser:     nil,
 			NewIdentityGetterResponses: []interface{}{
-				kerrs.NewAlreadyExists("User", "bob"),
+				kerrs.NewAlreadyExists(userapi.Resource("User"), "bob"),
 				makeUser("bobUserUID", "bob", "idp:bob"),
 			},
 
@@ -105,7 +105,7 @@ func TestProvision(t *testing.T) {
 			ExistingIdentity: nil,
 			ExistingUser:     nil,
 			NewIdentityGetterResponses: []interface{}{
-				kerrs.NewConflict("User", "bob", fmt.Errorf("conflict")),
+				kerrs.NewConflict(userapi.Resource("User"), "bob", fmt.Errorf("conflict")),
 				makeUser("bobUserUID", "bob", "idp:bob"),
 			},
 
@@ -125,10 +125,10 @@ func TestProvision(t *testing.T) {
 			ExistingIdentity: nil,
 			ExistingUser:     nil,
 			NewIdentityGetterResponses: []interface{}{
-				kerrs.NewConflict("User", "bob", fmt.Errorf("conflict")),
-				kerrs.NewConflict("User", "bob", fmt.Errorf("conflict")),
-				kerrs.NewConflict("User", "bob", fmt.Errorf("conflict")),
-				kerrs.NewConflict("User", "bob", fmt.Errorf("conflict")),
+				kerrs.NewConflict(userapi.Resource("User"), "bob", fmt.Errorf("conflict")),
+				kerrs.NewConflict(userapi.Resource("User"), "bob", fmt.Errorf("conflict")),
+				kerrs.NewConflict(userapi.Resource("User"), "bob", fmt.Errorf("conflict")),
+				kerrs.NewConflict(userapi.Resource("User"), "bob", fmt.Errorf("conflict")),
 			},
 
 			ExpectedActions: []test.Action{

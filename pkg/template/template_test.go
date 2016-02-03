@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	_ "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"

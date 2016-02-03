@@ -229,7 +229,7 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 				return deployerPod, nil
 			},
 			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				return nil, kerrors.NewAlreadyExists("Pod", pod.Name)
+				return nil, kerrors.NewAlreadyExists(kapi.Resource("Pod"), pod.Name)
 			},
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {

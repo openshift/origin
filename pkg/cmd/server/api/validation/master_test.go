@@ -157,7 +157,7 @@ func TestValidate_ValidateEtcdStorageConfig(t *testing.T) {
 			kubeStorageVersion:      "v1",
 			openshiftStorageVersion: "",
 			expected: field.ErrorList{
-				field.Required(field.NewPath(osField)),
+				field.Required(field.NewPath(osField), ""),
 			},
 		},
 		{
@@ -181,7 +181,7 @@ func TestValidate_ValidateEtcdStorageConfig(t *testing.T) {
 			kubeStorageVersion:      "",
 			openshiftStorageVersion: "v1",
 			expected: field.ErrorList{
-				field.Required(field.NewPath(kubeField)),
+				field.Required(field.NewPath(kubeField), ""),
 			},
 		},
 	}

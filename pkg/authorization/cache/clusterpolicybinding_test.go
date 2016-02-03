@@ -5,7 +5,6 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
@@ -106,7 +105,7 @@ func TestClusterPolicyBindingListRespectingLabels(t *testing.T) {
 	label := labels.NewSelector().Add(*requirement)
 
 	util.Until(func() {
-		clusterPolicyBindings, err = testCache.List(&kapi.ListOptions{LabelSelector: unversioned.LabelSelector{Selector: label}})
+		clusterPolicyBindings, err = testCache.List(&kapi.ListOptions{LabelSelector: label})
 
 		if (err == nil) &&
 			(clusterPolicyBindings != nil) &&
@@ -141,7 +140,7 @@ func TestClusterPolicyBindingListRespectingFields(t *testing.T) {
 	field := fields.OneTermEqualSelector("metadata.name", name)
 
 	util.Until(func() {
-		clusterPolicyBindings, err = testCache.List(&kapi.ListOptions{FieldSelector: unversioned.FieldSelector{Selector: field}})
+		clusterPolicyBindings, err = testCache.List(&kapi.ListOptions{FieldSelector: field})
 
 		if (err == nil) &&
 			(clusterPolicyBindings != nil) &&

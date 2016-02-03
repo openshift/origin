@@ -45,7 +45,7 @@ func (r fakeRetriever) Get(name string) (*api.Service, error) {
 
 func TestServiceResolverCache(t *testing.T) {
 	c := fakeRetriever{
-		err: errors.NewNotFound("Service", "bar"),
+		err: errors.NewNotFound(kapi.Resource("Service"), "bar"),
 	}
 	cache := NewServiceResolverCache(c.Get)
 	if v, ok := cache.resolve("FOO_SERVICE_HOST"); v != "" || ok {

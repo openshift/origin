@@ -17,7 +17,7 @@ type FakeLabelsResource struct {
 	kapi.ObjectMeta      `json:"metadata,omitempty"`
 }
 
-func (*FakeLabelsResource) IsAnAPIObject() {}
+func (*FakeLabelsResource) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
 
 func TestAddConfigLabels(t *testing.T) {
 	var nilLabels map[string]string
