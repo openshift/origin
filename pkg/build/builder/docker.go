@@ -15,6 +15,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
 
@@ -38,10 +39,11 @@ type DockerBuilder struct {
 	build        *api.Build
 	urlTimeout   time.Duration
 	client       client.BuildInterface
+	cgLimits     *s2iapi.CGroupLimits
 }
 
 // NewDockerBuilder creates a new instance of DockerBuilder
-func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterface, build *api.Build, gitClient GitClient) *DockerBuilder {
+func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterface, build *api.Build, gitClient GitClient, cgLimits *s2iapi.CGroupLimits) *DockerBuilder {
 	return &DockerBuilder{
 		dockerClient: dockerClient,
 		build:        build,
@@ -49,6 +51,7 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterf
 		tar:          tar.New(),
 		urlTimeout:   urlCheckTimeout,
 		client:       buildsClient,
+		cgLimits:     cgLimits,
 	}
 }
 
@@ -266,7 +269,7 @@ func (d *DockerBuilder) dockerBuild(dir string, secrets []api.SecretBuildSource)
 	if err := d.copySecrets(secrets, dir); err != nil {
 		return err
 	}
-	return buildImage(d.dockerClient, dir, dockerfilePath, noCache, d.build.Status.OutputDockerImageReference, d.tar, auth, forcePull)
+	return buildImage(d.dockerClient, dir, dockerfilePath, noCache, d.build.Status.OutputDockerImageReference, d.tar, auth, forcePull, d.cgLimits)
 }
 
 // replaceLastFrom changes the last FROM instruction of node to point to the
