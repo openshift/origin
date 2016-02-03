@@ -217,7 +217,7 @@ func (o *LoginOptions) gatherAuthInfo() error {
 				return err
 			}
 
-			fmt.Fprint(o.Out, "The token provided is invalid (probably expired).\n\n")
+			return fmt.Errorf("The token provided is invalid or expired.\n\n")
 		}
 	}
 
