@@ -5,12 +5,12 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"sort"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	pkg_runtime "k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/golang/glog"
 	flag "github.com/spf13/pflag"
@@ -18,6 +18,11 @@ import (
 	_ "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/v1"
 	_ "github.com/openshift/origin/pkg/api/v1beta3"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 
 var (
@@ -49,7 +54,16 @@ func main() {
 	// TODO(wojtek-t): Change the overwrites to a flag.
 	generator.OverwritePackage(*version, "")
 	gv := unversioned.GroupVersion{Group: *group, Version: *version}
-	for _, knownType := range api.Scheme.KnownTypes(gv) {
+
+	knownTypes := api.Scheme.KnownTypes(gv)
+	knownTypeKeys := []string{}
+	for key := range knownTypes {
+		knownTypeKeys = append(knownTypeKeys, key)
+	}
+	sort.Strings(knownTypeKeys)
+
+	for _, knownTypeKey := range knownTypeKeys {
+		knownType := knownTypes[knownTypeKey]
 		if !strings.Contains(knownType.PkgPath(), "openshift/origin") {
 			continue
 		}
@@ -58,7 +72,7 @@ func main() {
 		}
 	}
 
-	generator.RepackImports(sets.NewString("k8s.io/kubernetes/pkg/runtime"))
+	// generator.RepackImports(sets.NewString("k8s.io/kubernetes/pkg/runtime"))
 	// the repack changes the name of the import
 	apiShort = generator.AddImport("k8s.io/kubernetes/pkg/api")
 
