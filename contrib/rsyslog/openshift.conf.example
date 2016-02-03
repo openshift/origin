@@ -1,0 +1,24 @@
+# openshift.conf
+# 
+template(name="openshift_logfile" type="list") {
+    constant(value="/var/log/")
+    property(name="programname"
+       regex.expression="(atomic-openshift|origin)-((master|node)[^:]*)"
+        regex.type="ERE"
+        regex.nomatchmode="BLANK"
+       regex.submatch="1")
+    constant(value="/")
+    property(name="programname"
+       regex.expression="(atomic-openshift|origin)-((master|node)[^:]*)"
+        regex.type="ERE"
+        regex.nomatchmode="BLANK"
+       regex.submatch="2")
+    constant(value=".log")
+}
+
+
+if $programname startswith 'atomic-openshift-' or $programname startswith
+'origin-' then {
+    action(type="omfile" DynaFile="openshift_logfile")
+    stop
+}
