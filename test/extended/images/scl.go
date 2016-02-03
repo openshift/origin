@@ -14,7 +14,7 @@ func getPodNameForTest(image string, t tc) string {
 	return fmt.Sprintf("%s-%s-%s", image, t.Version, t.BaseOS)
 }
 
-var _ = g.Describe("images: Usage and SCL enablement of the S2I images", func() {
+var _ = g.Describe("[images] openshift images should be SCL enabled", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("s2i-usage", exutil.KubeConfigPath())
 

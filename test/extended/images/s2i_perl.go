@@ -12,7 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("images: s2i: perl", func() {
+var _ = g.Describe("[images][perl] openshift perl image", func() {
 	defer g.GinkgoRecover()
 	var (
 		dancerTemplate = "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json"

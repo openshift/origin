@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("builds: deleting buildconfig", func() {
+var _ = g.Describe("[builds] remove all builds when build configuration is removed", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("..", "extended", "fixtures", "test-build.json")

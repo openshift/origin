@@ -10,7 +10,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("builds: no name specified for the output image", func() {
+var _ = g.Describe("[builds] build without output image", func() {
 	defer g.GinkgoRecover()
 	var (
 		dockerImageFixture = filepath.Join("fixtures", "test-docker-no-outputname.json")

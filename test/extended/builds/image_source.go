@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("builds: image source", func() {
+var _ = g.Describe("[builds] build can have Docker image source", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture     = exutil.FixturePath("fixtures", "test-imagesource-build.yaml")
