@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('EditModalController', function ($scope, $filter, $uibModalInstance, DataService) {
+  .controller('EditModalController', function ($scope, $filter, $uibModalInstance, APIService, DataService) {
     // Use angular.copy to avoid $$hashKey properties inserted by ng-repeat.
     var resource = angular.copy($scope.resource);
 
@@ -79,6 +79,21 @@ angular.module('openshiftConsole')
         $scope.error = {
           message: 'Cannot change resource kind (original: ' + resource.kind + ', modified: ' + (updatedResource.kind || '<unspecified>') + ').'
         };
+        return;
+      }
+      
+      var groupVersion = APIService.objectToResourceGroupVersion(resource);
+      var updatedGroupVersion = APIService.objectToResourceGroupVersion(updatedResource);
+      if (!updatedGroupVersion) {
+        $scope.error = { message: APIService.invalidObjectKindOrVersion(updatedResource) };
+        return;
+      }
+      if (updatedGroupVersion.group !== groupVersion.group) {
+        $scope.error = { message: 'Cannot change resource group (original: ' + (groupVersion.group || '<none>') + ', modified: ' + (updatedGroupVersion.group || '<none>') + ').' };
+        return;
+      }
+      if (!APIService.apiInfo(updatedGroupVersion)) {
+        $scope.error = { message: APIService.unsupportedObjectKindOrVersion(updatedResource) };
         return;
       }
 

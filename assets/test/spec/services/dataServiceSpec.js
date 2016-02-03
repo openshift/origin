@@ -72,13 +72,16 @@ describe("DataService", function(){
       [{resource:'pods/proxy', name:"mypod", namespace:"myns", myparam1:"myvalue"}, "http://localhost:8443/api/v1/namespaces/myns/pods/mypod/proxy?myparam1=myvalue"],
 
       // Different API versions
-      [{resource:'builds',apiVersion:'v1beta3'}, null],
-      [{resource:'builds',apiVersion:'v1'     }, "http://localhost:8443/oapi/v1/builds"],
-      [{resource:'builds',apiVersion:'unknown'}, null],
+      [{resource:'builds',version:'v1beta3'}, null],
+      [{resource:'builds',version:'v1'     }, "http://localhost:8443/oapi/v1/builds"],
+      [{resource:'builds',version:'unknown'}, null],
 
-      [{resource:'pods',  apiVersion:'v1beta3'}, null],
-      [{resource:'pods',  apiVersion:'v1'     }, "http://localhost:8443/api/v1/pods"],
-      [{resource:'pods',  apiVersion:'unknown'}, null]
+      [{resource:'pods',  version:'v1beta3'}, null],
+      [{resource:'pods',  version:'v1'     }, "http://localhost:8443/api/v1/pods"],
+      [{resource:'pods',  version:'unknown'}, null],
+
+      // Different API groups
+      [{resource:'jobs',  group: 'extensions', version:'v1beta1'}, "http://localhost:8443/apis/extensions/v1beta1/jobs"]
     ];
 
     angular.forEach(tc, function(item) {
