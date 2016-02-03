@@ -6,13 +6,15 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 
-	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	scalertest "github.com/openshift/origin/pkg/deploy/scaler/test"
 	"github.com/openshift/origin/pkg/deploy/strategy"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestRecreate_initialDeployment(t *testing.T) {
@@ -20,7 +22,7 @@ func TestRecreate_initialDeployment(t *testing.T) {
 	scaler := &scalertest.FakeScaler{}
 
 	strategy := &RecreateDeploymentStrategy{
-		codec:        api.Codec,
+		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -32,7 +34,7 @@ func TestRecreate_initialDeployment(t *testing.T) {
 
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", "")
-	deployment, _ = deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ = deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	err := strategy.Deploy(nil, deployment, 3)
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -52,12 +54,12 @@ func TestRecreate_initialDeployment(t *testing.T) {
 func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, deployapi.LifecycleHookFailurePolicyAbort, "", "")
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &scalertest.FakeScaler{}
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
-		codec:        api.Codec,
+		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -85,11 +87,11 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 func TestRecreate_deploymentPreHookFail(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, deployapi.LifecycleHookFailurePolicyAbort, "", "")
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &scalertest.FakeScaler{}
 
 	strategy := &RecreateDeploymentStrategy{
-		codec:        api.Codec,
+		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -116,12 +118,12 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", deployapi.LifecycleHookFailurePolicyAbort, "")
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	scaler := &scalertest.FakeScaler{}
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
-		codec:        api.Codec,
+		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -149,11 +151,11 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 func TestRecreate_deploymentMidHookFail(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", deployapi.LifecycleHookFailurePolicyAbort, "")
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	scaler := &scalertest.FakeScaler{}
 
 	strategy := &RecreateDeploymentStrategy{
-		codec:        api.Codec,
+		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -179,12 +181,12 @@ func TestRecreate_deploymentMidHookFail(t *testing.T) {
 func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", deployapi.LifecycleHookFailurePolicyAbort)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &scalertest.FakeScaler{}
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
-		codec:        api.Codec,
+		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -212,12 +214,12 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 func TestRecreate_deploymentPostHookFail(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", deployapi.LifecycleHookFailurePolicyAbort)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &scalertest.FakeScaler{}
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
-		codec:        api.Codec,
+		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -247,7 +249,7 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 	scaler := &scalertest.FakeScaler{}
 
 	strategy := &RecreateDeploymentStrategy{
-		codec:        api.Codec,
+		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -264,7 +266,7 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 		},
 	}
 
-	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	err := strategy.DeployWithAcceptor(nil, deployment, 2, acceptor)
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -290,7 +292,7 @@ func TestRecreate_acceptorFail(t *testing.T) {
 	scaler := &scalertest.FakeScaler{}
 
 	strategy := &RecreateDeploymentStrategy{
-		codec:        api.Codec,
+		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -305,7 +307,7 @@ func TestRecreate_acceptorFail(t *testing.T) {
 		},
 	}
 
-	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	err := strategy.DeployWithAcceptor(nil, deployment, 2, acceptor)
 	if err == nil {
 		t.Fatalf("expected a deployment failure")

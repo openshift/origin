@@ -21,6 +21,9 @@ var MissingCommands = sets.NewString(
 	"cluster-info", "api-versions",
 	"autoscale", // TODO
 	"stop",
+	"cordon",
+	"drain",
+	"uncordon",
 )
 
 // WhitelistedCommands is the list of commands we're never going to have in oc

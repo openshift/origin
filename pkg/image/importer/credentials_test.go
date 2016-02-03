@@ -9,7 +9,9 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	_ "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/runtime"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestCredentialsForSecrets(t *testing.T) {
@@ -17,7 +19,7 @@ func TestCredentialsForSecrets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	obj, err := kapi.Codec.Decode(data)
+	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), data)
 	if err != nil {
 		t.Fatal(err)
 	}

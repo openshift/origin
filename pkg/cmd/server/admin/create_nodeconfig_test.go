@@ -8,6 +8,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/util/sets"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/api/install"
 )
 
 func TestNodeConfigNonTLS(t *testing.T) {

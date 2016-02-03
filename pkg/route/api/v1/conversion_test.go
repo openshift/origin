@@ -1,4 +1,4 @@
-package v1
+package v1_test
 
 import (
 	"testing"
@@ -6,7 +6,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/route/api/v1"
 	testutil "github.com/openshift/origin/test/util/api"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
@@ -19,12 +23,12 @@ func TestFieldSelectorConversions(t *testing.T) {
 }
 
 func TestSupportingCamelConstants(t *testing.T) {
-	for k, v := range map[TLSTerminationType]api.TLSTerminationType{
+	for k, v := range map[v1.TLSTerminationType]api.TLSTerminationType{
 		"Reencrypt":   api.TLSTerminationReencrypt,
 		"Edge":        api.TLSTerminationEdge,
 		"Passthrough": api.TLSTerminationPassthrough,
 	} {
-		obj := &TLSConfig{Termination: k}
+		obj := &v1.TLSConfig{Termination: k}
 		out := &api.TLSConfig{}
 		if err := kapi.Scheme.Convert(obj, out); err != nil {
 			t.Errorf("%s: did not convert: %v", k, err)

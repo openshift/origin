@@ -22,7 +22,7 @@ var OldestVersion = unversioned.GroupVersion{Group: "", Version: "v1"}
 // may be assumed to be least feature rich to most feature rich, and clients may
 // choose to prefer the latter items in the list over the former items when presented
 // with a set of versions to choose.
-var Versions = []unversioned.GroupVersion{unversioned.GroupVersion{Group: "", Version: "v1"}}
+var Versions = []unversioned.GroupVersion{{Group: "", Version: "v1"}}
 
 var Codec = serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(unversioned.GroupVersion{Group: "", Version: "v1"})
 

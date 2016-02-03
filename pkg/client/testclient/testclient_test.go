@@ -9,11 +9,12 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	_ "github.com/openshift/origin/pkg/deploy/api/install"
 )
 
 func TestNewClient(t *testing.T) {
-	o := testclient.NewObjects(kapi.Scheme, kapi.Scheme)
-	if err := testclient.AddObjectsFromPath("../../../test/integration/fixtures/test-deployment-config.yaml", o, kapi.Scheme); err != nil {
+	o := testclient.NewObjects(kapi.Scheme, kapi.Codecs.UniversalDecoder())
+	if err := testclient.AddObjectsFromPath("../../../test/integration/fixtures/test-deployment-config.yaml", o, kapi.Codecs.UniversalDecoder()); err != nil {
 		t.Fatal(err)
 	}
 	oc, _ := NewFixtureClients(o)
@@ -37,7 +38,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestErrors(t *testing.T) {
-	o := testclient.NewObjects(kapi.Scheme, kapi.Scheme)
+	o := testclient.NewObjects(kapi.Scheme, kapi.Codecs.UniversalDecoder())
 	o.Add(&kapi.List{
 		Items: []runtime.Object{
 			&(errors.NewNotFound(deployapi.Resource("DeploymentConfigList"), "").(*errors.StatusError).ErrStatus),

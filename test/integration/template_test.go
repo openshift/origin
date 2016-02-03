@@ -3,8 +3,12 @@
 package integration
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -87,4 +91,60 @@ func TestTemplate(t *testing.T) {
 			t.Fatalf("unexpected object: %#v", svc)
 		}
 	}
+}
+
+func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error {
+	err := filepath.Walk(inDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() && path != inDir {
+			return filepath.SkipDir
+		}
+		name := filepath.Base(path)
+		ext := filepath.Ext(name)
+		if ext != "" {
+			name = name[:len(name)-len(ext)]
+		}
+		if !(ext == ".json" || ext == ".yaml") {
+			return nil
+		}
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		fn(name, path, data)
+		return nil
+	})
+	return err
+}
+
+func TestTemplateTransformationFromConfig(t *testing.T) {
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	walkJSONFiles("../templates/fixtures", func(name, path string, data []byte) {
+		template, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), data)
+		if err != nil {
+			t.Errorf("%q: unexpected error: %v", path, err)
+			return
+		}
+		config, err := clusterAdminClient.TemplateConfigs("default").Create(template.(*templateapi.Template))
+		if err != nil {
+			t.Errorf("%q: unexpected error: %v", path, err)
+			return
+		}
+		if len(config.Objects) == 0 {
+			t.Errorf("%q: no items in config object", path)
+			return
+		}
+		t.Logf("tested %q", path)
+	})
 }

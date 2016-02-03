@@ -28,7 +28,7 @@ import (
 var testSelector = map[string]string{"test": "rest"}
 
 func makeDeployment(version int) kapi.ReplicationController {
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(api.SchemeGroupVersion))
 	deployment.Namespace = kapi.NamespaceDefault
 	deployment.Spec.Selector = testSelector
 	return *deployment
@@ -200,7 +200,7 @@ func TestRESTGet(t *testing.T) {
 				Transport:       nil,
 				ContentType:     "text/plain",
 				Flush:           true,
-				ResponseChecker: genericrest.NewGenericHttpResponseChecker("Pod", "config-5-application-pod-1"),
+				ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), "config-5-application-pod-1"),
 			},
 			expectedErr: nil,
 		},

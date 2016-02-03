@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	kapp "k8s.io/kubernetes/cmd/kube-apiserver/app"
-	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
+	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
+	controlleroptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	knet "k8s.io/kubernetes/pkg/util/net"
@@ -547,11 +547,11 @@ func ValidateRoutingConfig(config api.RoutingConfig, fldPath *field.Path) field.
 }
 
 func ValidateAPIServerExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) field.ErrorList {
-	return ValidateExtendedArguments(config, kapp.NewAPIServer().AddFlags, fldPath)
+	return ValidateExtendedArguments(config, apiserveroptions.NewAPIServer().AddFlags, fldPath)
 }
 
 func ValidateControllerExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) field.ErrorList {
-	return ValidateExtendedArguments(config, cmapp.NewCMServer().AddFlags, fldPath)
+	return ValidateExtendedArguments(config, controlleroptions.NewCMServer().AddFlags, fldPath)
 }
 
 func ValidateAdmissionPluginConfig(pluginConfig map[string]api.AdmissionPluginConfig, fieldPath *field.Path) field.ErrorList {

@@ -160,8 +160,8 @@ func checkAdmissionObjectLabelValues(labels, expected map[string]string) error {
 }
 
 func registerAdmissionPluginTestConfigType() {
-	kapi.Scheme.AddKnownTypes(configapi.SchemeGroupVersion, &TestPluginConfig{})
-	kapi.Scheme.AddKnownTypes(configapiv1.SchemeGroupVersion, &TestPluginConfig{})
+	configapi.Scheme.AddKnownTypes(configapi.SchemeGroupVersion, &TestPluginConfig{})
+	configapi.Scheme.AddKnownTypes(configapiv1.SchemeGroupVersion, &TestPluginConfig{})
 }
 
 func setupAdmissionPluginTestConfig(t *testing.T, value string) string {

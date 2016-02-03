@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -205,15 +204,11 @@ func TestValidateAdmissionPluginConfig(t *testing.T) {
 		Location: "/some/location",
 	}
 	configOnly := configapi.AdmissionPluginConfig{
-		Configuration: runtime.EmbeddedObject{
-			Object: &configapi.AdmissionPluginConfig{},
-		},
+		Configuration: &configapi.NodeConfig{},
 	}
 	locationAndConfig := configapi.AdmissionPluginConfig{
-		Location: "/some/location",
-		Configuration: runtime.EmbeddedObject{
-			Object: &configapi.AdmissionPluginConfig{},
-		},
+		Location:      "/some/location",
+		Configuration: &configapi.NodeConfig{},
 	}
 	bothEmpty := configapi.AdmissionPluginConfig{}
 

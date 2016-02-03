@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"

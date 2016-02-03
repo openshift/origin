@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	kapp "k8s.io/kubernetes/cmd/kubelet/app"
+	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
@@ -111,5 +111,5 @@ func ValidateDockerConfig(config api.DockerConfig, fldPath *field.Path) field.Er
 }
 
 func ValidateKubeletExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) field.ErrorList {
-	return ValidateExtendedArguments(config, kapp.NewKubeletServer().AddFlags, fldPath)
+	return ValidateExtendedArguments(config, kubeletoptions.NewKubeletServer().AddFlags, fldPath)
 }

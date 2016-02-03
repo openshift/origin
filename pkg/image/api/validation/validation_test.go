@@ -184,7 +184,7 @@ func TestValidateImageStream(t *testing.T) {
 	name191Char := strings.Repeat("b", 191)
 	name192Char := "x" + name191Char
 
-	missingNameErr := field.Required(field.NewPath("metadata", "name"))
+	missingNameErr := field.Required(field.NewPath("metadata", "name"), "")
 	missingNameErr.Detail = "name or generateName is required"
 
 	tests := map[string]struct {
@@ -225,7 +225,7 @@ func TestValidateImageStream(t *testing.T) {
 			namespace: "",
 			name:      "foo",
 			expected: field.ErrorList{
-				field.Required(field.NewPath("metadata", "namespace")),
+				field.Required(field.NewPath("metadata", "namespace"), ""),
 			},
 		},
 		"invalid namespace": {
@@ -272,8 +272,8 @@ func TestValidateImageStream(t *testing.T) {
 				},
 			},
 			expected: field.ErrorList{
-				field.Required(field.NewPath("status", "tags").Key("tag").Child("items").Index(0).Child("dockerImageReference")),
-				field.Required(field.NewPath("status", "tags").Key("tag").Child("items").Index(2).Child("dockerImageReference")),
+				field.Required(field.NewPath("status", "tags").Key("tag").Child("items").Index(0).Child("dockerImageReference"), ""),
+				field.Required(field.NewPath("status", "tags").Key("tag").Child("items").Index(2).Child("dockerImageReference"), ""),
 			},
 		},
 		"ImageStreamTags can't be scheduled": {
@@ -453,7 +453,7 @@ func TestValidateImageStreamImport(t *testing.T) {
 	name191Char := strings.Repeat("b", 191)
 	name192Char := "x" + name191Char
 
-	missingNameErr := field.Required(field.NewPath("metadata", "name"))
+	missingNameErr := field.Required(field.NewPath("metadata", "name"), "")
 	missingNameErr.Detail = "name or generateName is required"
 
 	validMeta := kapi.ObjectMeta{Namespace: "foo", Name: "foo"}
@@ -497,7 +497,7 @@ func TestValidateImageStreamImport(t *testing.T) {
 		"missing namespace": {
 			isi: &api.ImageStreamImport{ObjectMeta: kapi.ObjectMeta{Name: "foo"}, Spec: validSpec},
 			expected: field.ErrorList{
-				field.Required(field.NewPath("metadata", "namespace")),
+				field.Required(field.NewPath("metadata", "namespace"), ""),
 			},
 		},
 		"invalid namespace": {

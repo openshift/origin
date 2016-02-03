@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/genericapiserver"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
@@ -12,27 +12,27 @@ import (
 func TestGetAPIGroupVersionOverrides(t *testing.T) {
 	testcases := map[string]struct {
 		DisabledVersions  map[string][]string
-		ExpectedOverrides map[string]master.APIGroupVersionOverride
+		ExpectedOverrides map[string]genericapiserver.APIGroupVersionOverride
 	}{
 		"empty": {
 			DisabledVersions:  nil,
-			ExpectedOverrides: map[string]master.APIGroupVersionOverride{},
+			ExpectedOverrides: map[string]genericapiserver.APIGroupVersionOverride{},
 		},
 		"* -> v1": {
 			DisabledVersions:  map[string][]string{"": {"*"}},
-			ExpectedOverrides: map[string]master.APIGroupVersionOverride{"api/v1": {Disable: true}},
+			ExpectedOverrides: map[string]genericapiserver.APIGroupVersionOverride{"api/v1": {Disable: true}},
 		},
 		"v1": {
 			DisabledVersions:  map[string][]string{"": {"v1"}},
-			ExpectedOverrides: map[string]master.APIGroupVersionOverride{"api/v1": {Disable: true}},
+			ExpectedOverrides: map[string]genericapiserver.APIGroupVersionOverride{"api/v1": {Disable: true}},
 		},
 		"* -> v1beta1": {
 			DisabledVersions:  map[string][]string{"extensions": {"*"}},
-			ExpectedOverrides: map[string]master.APIGroupVersionOverride{"extensions/v1beta1": {Disable: true}},
+			ExpectedOverrides: map[string]genericapiserver.APIGroupVersionOverride{"extensions/v1beta1": {Disable: true}},
 		},
 		"extensions/v1beta1": {
 			DisabledVersions:  map[string][]string{"extensions": {"v1beta1"}},
-			ExpectedOverrides: map[string]master.APIGroupVersionOverride{"extensions/v1beta1": {Disable: true}},
+			ExpectedOverrides: map[string]genericapiserver.APIGroupVersionOverride{"extensions/v1beta1": {Disable: true}},
 		},
 	}
 

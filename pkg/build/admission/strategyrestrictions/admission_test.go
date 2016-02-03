@@ -165,7 +165,7 @@ func TestBuildAdmission(t *testing.T) {
 
 type fakeObject struct{}
 
-func (*fakeObject) IsAnAPIObject() {}
+func (*fakeObject) GetObjectKind() unversioned.ObjectKind { return nil }
 
 func fakeUser() user.Info {
 	return &user.DefaultInfo{

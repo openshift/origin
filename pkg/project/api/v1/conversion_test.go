@@ -1,4 +1,4 @@
-package v1
+package v1_test
 
 import (
 	"testing"
@@ -7,6 +7,9 @@ import (
 	"k8s.io/kubernetes/pkg/registry/namespace"
 
 	testutil "github.com/openshift/origin/test/util/api"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestFieldSelectorConversions(t *testing.T) {

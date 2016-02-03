@@ -6,13 +6,14 @@ import (
 	"net/http"
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/image/api"
+	_ "github.com/openshift/origin/pkg/image/api/install"
 )
 
 type roundTripFunc func(req *http.Request) (*http.Response, error)
@@ -27,26 +28,26 @@ func TestImageStreamImportUnsupported(t *testing.T) {
 		errFn  func(err error) bool
 	}{
 		{
-			status: errors.NewNotFound("", "").(errors.APIStatus).Status(),
+			status: errors.NewNotFound(api.Resource(""), "").(errors.APIStatus).Status(),
 			errFn:  func(err error) bool { return err == ErrImageStreamImportUnsupported },
 		},
 		{
-			status: errors.NewNotFound("Other", "").(errors.APIStatus).Status(),
+			status: errors.NewNotFound(api.Resource("ImageStreamImport"), "").(errors.APIStatus).Status(),
 			errFn:  func(err error) bool { return err != ErrImageStreamImportUnsupported && errors.IsNotFound(err) },
 		},
 		{
-			status: errors.NewConflict("Other", "", nil).(errors.APIStatus).Status(),
+			status: errors.NewConflict(api.Resource("ImageStreamImport"), "", nil).(errors.APIStatus).Status(),
 			errFn:  func(err error) bool { return err != ErrImageStreamImportUnsupported && errors.IsConflict(err) },
 		},
 		{
-			status: errors.NewForbidden("Any", "", nil).(errors.APIStatus).Status(),
+			status: errors.NewForbidden(api.Resource("ImageStreamImport"), "", nil).(errors.APIStatus).Status(),
 			errFn:  func(err error) bool { return err == ErrImageStreamImportUnsupported },
 		},
 	}
 	for i, test := range testCases {
 		c, err := New(&kclient.Config{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				buf := bytes.NewBuffer([]byte(runtime.EncodeOrDie(registered.GroupOrDie(api.GroupName).Codec, &test.status)))
+				buf := bytes.NewBuffer([]byte(runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(api.SchemeGroupVersion), &test.status)))
 				return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(buf)}, nil
 			}),
 		})

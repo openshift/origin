@@ -22,7 +22,7 @@ func TestValidateProjectRequestLimitConfig(t *testing.T) {
 		// 1: single default
 		{
 			config: api.ProjectRequestLimitConfig{
-				Limits: []ProjectLimitBySelector{
+				Limits: []api.ProjectLimitBySelector{
 					{
 						Selector:    nil,
 						MaxProjects: intp(1),
@@ -33,7 +33,7 @@ func TestValidateProjectRequestLimitConfig(t *testing.T) {
 		// 2: multiple limits
 		{
 			config: api.ProjectRequestLimitConfig{
-				Limits: []ProjectLimitBySelector{
+				Limits: []api.ProjectLimitBySelector{
 					{
 						Selector:    map[string]string{"foo": "bar", "foo2": "baz"},
 						MaxProjects: intp(10),
@@ -48,7 +48,7 @@ func TestValidateProjectRequestLimitConfig(t *testing.T) {
 		// 3: negative limit (error)
 		{
 			config: api.ProjectRequestLimitConfig{
-				Limits: []ProjectLimitBySelector{
+				Limits: []api.ProjectLimitBySelector{
 					{
 						Selector:    map[string]string{"foo": "bar", "foo2": "baz"},
 						MaxProjects: intp(10),
@@ -66,7 +66,7 @@ func TestValidateProjectRequestLimitConfig(t *testing.T) {
 		// 4: invalid selector label (error)
 		{
 			config: api.ProjectRequestLimitConfig{
-				Limits: []ProjectLimitBySelector{
+				Limits: []api.ProjectLimitBySelector{
 					{
 						Selector:    map[string]string{"foo": "bar", "foo2": "baz"},
 						MaxProjects: intp(10),
@@ -108,4 +108,8 @@ func TestValidateProjectRequestLimitConfig(t *testing.T) {
 			t.Errorf("%d: did not get expected error field. Expected: %s. Got: %s", i, tc.errField, verr.Field)
 		}
 	}
+}
+
+func intp(n int) *int {
+	return &n
 }

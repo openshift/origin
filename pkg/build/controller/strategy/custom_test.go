@@ -8,15 +8,17 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/runtime"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	_ "github.com/openshift/origin/pkg/build/api/install"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 func TestCustomCreateBuildPod(t *testing.T) {
 	strategy := CustomBuildStrategy{
-		Codec: latest.Codec,
+		Codec: kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
 	}
 
 	expectedBad := mockCustomBuild(false)
@@ -67,7 +69,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if len(actual.Spec.Volumes) != 3 {
 		t.Fatalf("Expected 3 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
-	buildJSON, _ := latest.Codec.Encode(expected)
+	buildJSON, _ := runtime.Encode(kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion), expected)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
@@ -92,7 +94,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 
 func TestCustomCreateBuildPodExpectedForcePull(t *testing.T) {
 	strategy := CustomBuildStrategy{
-		Codec: latest.Codec,
+		Codec: kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
 	}
 
 	expected := mockCustomBuild(true)
@@ -108,10 +110,10 @@ func TestCustomCreateBuildPodExpectedForcePull(t *testing.T) {
 
 func TestCustomCreateBuildPodWithCustomCodec(t *testing.T) {
 	strategy := CustomBuildStrategy{
-		Codec: latest.Codec,
+		Codec: kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
 	}
 
-	for _, version := range latest.Versions {
+	for _, version := range registered.GroupOrDie(buildapi.GroupName).GroupVersions {
 		// Create new Build specification and modify Spec API version
 		build := mockCustomBuild(false)
 		build.Spec.Strategy.CustomStrategy.BuildAPIVersion = fmt.Sprintf("%s/%s", version.Group, version.Version)

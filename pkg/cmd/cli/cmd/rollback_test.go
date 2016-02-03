@@ -77,7 +77,7 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 		existingControllers := &kapi.ReplicationControllerList{}
 		for _, existing := range test.existing {
 			config := deploytest.OkDeploymentConfig(existing.version)
-			deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+			deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 			deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(existing.status)
 			existingControllers.Items = append(existingControllers.Items, *deployment)
 		}

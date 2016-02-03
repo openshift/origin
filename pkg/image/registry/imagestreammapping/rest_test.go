@@ -12,13 +12,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/watch"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
@@ -26,6 +26,8 @@ import (
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 var testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
@@ -42,6 +44,7 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 func setup(t *testing.T) (*etcd.Client, *etcdtesting.EtcdTestServer, *REST) {
 
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
+	etcdClient := etcd.NewClient(server.ClientURLs.StringSlice())
 
 	imageStorage := imageetcd.NewREST(etcdStorage)
 	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(etcdStorage, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
@@ -51,7 +54,7 @@ func setup(t *testing.T) (*etcd.Client, *etcdtesting.EtcdTestServer, *REST) {
 
 	storage := NewREST(imageRegistry, imageStreamRegistry)
 
-	return server.Client, server, storage
+	return etcdClient, server, storage
 }
 
 func validImageStream() *api.ImageStream {
@@ -126,7 +129,7 @@ func TestCreateImageStreamNotFoundWithName(t *testing.T) {
 	if e, a := http.StatusNotFound, e.ErrStatus.Code; int32(e) != a {
 		t.Errorf("error status code: expected %d, got %d", e, a)
 	}
-	if e, a := "imageStream", e.ErrStatus.Details.Kind; e != a {
+	if e, a := "imagestreams", e.ErrStatus.Details.Kind; e != a {
 		t.Errorf("error status details kind: expected %s, got %s", e, a)
 	}
 	if e, a := "somerepo", e.ErrStatus.Details.Name; e != a {
@@ -142,7 +145,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "somerepo"},
 	}
 
-	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/somerepo"), runtime.EncodeOrDie(latest.Codec, initialRepo), 0)
+	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/somerepo"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), initialRepo), 0)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -220,12 +223,12 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 	client, server, storage := setup(t)
 	defer server.Terminate(t)
 
-	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/somerepo"), runtime.EncodeOrDie(latest.Codec, existingRepo), 0)
+	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/somerepo"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), existingRepo), 0)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	_, err = client.Create(etcdtest.AddPrefix("/images/default/"+imageID), runtime.EncodeOrDie(latest.Codec, existingImage), 0)
+	_, err = client.Create(etcdtest.AddPrefix("/images/default/"+imageID), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), existingImage), 0)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -282,12 +285,12 @@ func TestAddExistingImageAndTag(t *testing.T) {
 	client, server, storage := setup(t)
 	defer server.Terminate(t)
 
-	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/somerepo"), runtime.EncodeOrDie(latest.Codec, existingRepo), 0)
+	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/somerepo"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), existingRepo), 0)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	_, err = client.Create(etcdtest.AddPrefix("/images/default/existingImage"), runtime.EncodeOrDie(latest.Codec, existingImage), 0)
+	_, err = client.Create(etcdtest.AddPrefix("/images/default/existingImage"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), existingImage), 0)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -357,7 +360,7 @@ func TestTrackingTags(t *testing.T) {
 		},
 	}
 
-	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/stream"), runtime.EncodeOrDie(latest.Codec, stream), 0)
+	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/stream"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), stream), 0)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -472,7 +475,7 @@ func TestCreateRetryConflictNoTagDiff(t *testing.T) {
 				// image stream whose tags haven't changed.
 				if firstUpdate {
 					firstUpdate = false
-					return nil, errors.NewConflict("ImageStream", repo.Name, fmt.Errorf("resource modified"))
+					return nil, errors.NewConflict(api.Resource("imagestreams"), repo.Name, fmt.Errorf("resource modified"))
 				}
 				return repo, nil
 			},
@@ -526,7 +529,7 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 				// get/compare is retried.
 				if firstUpdate {
 					firstUpdate = false
-					return nil, errors.NewConflict("ImageStream", repo.Name, fmt.Errorf("resource modified"))
+					return nil, errors.NewConflict(api.Resource("imagestreams"), repo.Name, fmt.Errorf("resource modified"))
 				}
 				return repo, nil
 			},

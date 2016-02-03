@@ -5,10 +5,13 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 
-	_ "github.com/openshift/origin/pkg/api/latest"
 	newer "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/image/api/v1beta3"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 var Convert = kapi.Scheme.Convert
@@ -26,12 +29,12 @@ func TestRoundTripVersionedObject(t *testing.T) {
 		DockerImageReference: "foo/bar/baz",
 	}
 
-	data, err := kapi.Scheme.EncodeToVersion(i, "v1beta3")
+	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(v1beta3.SchemeGroupVersion), i)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	obj, err := kapi.Scheme.Decode(data)
+	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

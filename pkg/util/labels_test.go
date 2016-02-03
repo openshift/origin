@@ -17,7 +17,7 @@ type FakeLabelsResource struct {
 	kapi.ObjectMeta      `json:"metadata,omitempty"`
 }
 
-func (*FakeLabelsResource) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *FakeLabelsResource) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
 
 func TestAddConfigLabels(t *testing.T) {
 	var nilLabels map[string]string
@@ -142,7 +142,7 @@ func TestAddConfigLabels(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		metaLabels := accessor.Labels()
+		metaLabels := accessor.GetLabels()
 		if e, a := test.expectedLabels, metaLabels; !reflect.DeepEqual(e, a) {
 			t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 		}

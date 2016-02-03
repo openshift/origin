@@ -11,12 +11,14 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client/testclient"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 func mkdeployment(version int) kapi.ReplicationController {
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	return *deployment
 }
 
@@ -30,7 +32,7 @@ func mkdeploymentlist(versions ...int) *kapi.ReplicationControllerList {
 
 func TestStop(t *testing.T) {
 	notfound := func() runtime.Object {
-		return &(kerrors.NewNotFound("DeploymentConfig", "config").(*kerrors.StatusError).ErrStatus)
+		return &(kerrors.NewNotFound(kapi.Resource("DeploymentConfig"), "config").(*kerrors.StatusError).ErrStatus)
 	}
 
 	tests := []struct {

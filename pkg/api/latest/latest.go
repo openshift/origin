@@ -21,7 +21,7 @@ var OldestVersion = unversioned.GroupVersion{Group: "", Version: "v1beta3"}
 // may be assumed to be most preferred to least preferred, and clients may
 // choose to prefer the earlier items in the list over the latter items when presented
 // with a set of versions to choose.
-var Versions = []unversioned.GroupVersion{unversioned.GroupVersion{Group: "", Version: "v1"}, unversioned.GroupVersion{Group: "", Version: "v1beta3"}}
+var Versions = []unversioned.GroupVersion{{Group: "", Version: "v1"}, {Group: "", Version: "v1beta3"}}
 
 // originTypes are the hardcoded types defined by the OpenShift API.
 var originTypes map[unversioned.GroupVersionKind]bool
