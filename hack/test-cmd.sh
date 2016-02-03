@@ -211,6 +211,8 @@ fi
 
 
 # login and logout tests
+# bad token should error
+os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' --token=badvalue" 'The token provided is invalid or expired'
 # bad --api-version should error
 os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} -u test-user -p test-password --api-version=foo/bar/baz" 'error.*foo/bar/baz'
 # --token and --username are mutually exclusive
