@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,8 +10,10 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/MakeNowJust/heredoc/dot"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -549,58 +552,131 @@ func handleRunError(c *cobra.Command, err error, fullName string) error {
 	if err == nil {
 		return nil
 	}
-	if errs, ok := err.(errors.Aggregate); ok {
-		if len(errs.Errors()) == 1 {
-			err = errs.Errors()[0]
-		}
+	errs := []error{err}
+	if agg, ok := err.(errors.Aggregate); ok {
+		errs = agg.Errors()
 	}
+	groups := errorGroups{}
+	for _, err := range errs {
+		transformError(err, c, fullName, groups)
+	}
+	buf := &bytes.Buffer{}
+	for _, group := range groups {
+		fmt.Fprint(buf, cmdutil.MultipleErrors("error: ", group.errs))
+		if len(group.suggestion) > 0 {
+			fmt.Fprintln(buf)
+		}
+		fmt.Fprint(buf, group.suggestion)
+	}
+	return fmt.Errorf(buf.String())
+}
+
+type errorGroup struct {
+	errs       []error
+	suggestion string
+}
+type errorGroups map[string]errorGroup
+
+func (g errorGroups) Add(group string, suggestion string, err error, errs ...error) {
+	all := g[group]
+	all.errs = append(all.errs, errs...)
+	all.errs = append(all.errs, err)
+	all.suggestion = suggestion
+	g[group] = all
+}
+
+func transformError(err error, c *cobra.Command, fullName string, groups errorGroups) {
 	switch t := err.(type) {
 	case newcmd.ErrRequiresExplicitAccess:
 		if t.Input.Token != nil && t.Input.Token.ServiceAccount {
-			return fmt.Errorf(`installing %q requires an 'installer' service account with project editor access
+			groups.Add(
+				"explicit-access-installer",
+				D(`
+					WARNING: This will allow the pod to create and manage resources within your namespace -
+					ensure you trust the image with those permissions before you continue.
 
-WARNING: This will allow the pod to create and manage resources within your namespace -
-ensure you trust the image with those permissions before you continue.
+					You can see more information about the image by adding the --dry-run flag.
+					If you trust the provided image, include the flag --grant-install-rights.`,
+				),
+				fmt.Errorf("installing %q requires an 'installer' service account with project editor access", t.Match.Value),
+			)
+		} else {
+			groups.Add(
+				"explicit-access-you",
+				D(`
+					WARNING: This will allow the pod to act as you across the entire cluster - ensure you
+					trust the image with those permissions before you continue.
 
-You can see more information about the image by adding the --dry-run flag.
-If you trust the provided image, include the flag --grant-install-rights.`, t.Match.Value)
+					You can see more information about the image by adding the --dry-run flag.
+					If you trust the provided image, include the flag --grant-install-rights.`,
+				),
+				fmt.Errorf("installing %q requires that you grant the image access to run with your credentials", t.Match.Value),
+			)
 		}
-		return fmt.Errorf(`installing %q requires that you grant the image access to run with your credentials
-
-WARNING: This will allow the pod to act as you across the entire cluster - ensure you
-trust the image with those permissions before you continue.
-
-You can see more information about the image by adding the --dry-run flag.
-If you trust the provided image, include the flag --grant-install-rights.`, t.Match.Value)
+		return
 	case newapp.ErrNoMatch:
-		return fmt.Errorf(`%[1]v
+		groups.Add(
+			"no-matches",
+			Df(`
+				The '%[1]s' command will match arguments to the following types:
 
-The '%[2]s' command will match arguments to the following types:
+				  1. Images tagged into image streams in the current project or the 'openshift' project
+				     - if you don't specify a tag, we'll add ':latest'
+				  2. Images in the Docker Hub, on remote registries, or on the local Docker engine
+				  3. Templates in the current project or the 'openshift' project
+				  4. Git repository URLs or local paths that point to Git repositories
 
-  1. Images tagged into image streams in the current project or the 'openshift' project
-     - if you don't specify a tag, we'll add ':latest'
-  2. Images in the Docker Hub, on remote registries, or on the local Docker engine
-  3. Templates in the current project or the 'openshift' project
-  4. Git repository URLs or local paths that point to Git repositories
+				--allow-missing-images can be used to point to an image that does not exist yet.
 
---allow-missing-images can be used to point to an image that does not exist yet.
-
-See '%[2]s -h' for examples.
-`, t, c.CommandPath())
+				See '%[1]s -h' for examples.`, c.CommandPath(),
+			),
+			t,
+			t.Errs...,
+		)
+		return
 	case newapp.ErrMultipleMatches:
-		return fmt.Errorf(err.(newapp.ErrMultipleMatches).UsageError(""))
+		buf := &bytes.Buffer{}
+		for _, match := range t.Matches {
+			fmt.Fprintf(buf, "* %s\n", match.Description)
+			fmt.Fprintf(buf, "  Use %[1]s to specify this image or template\n\n", match.Argument)
+		}
+		groups.Add(
+			"multiple-matches",
+			Df(`
+					The argument %[1]q could apply to the following Docker images or OpenShift image streams:
+
+					%[2]s`, t.Value, buf.String(),
+			),
+			t,
+			t.Errs...,
+		)
+		return
 	case newapp.ErrPartialMatch:
-		return fmt.Errorf(err.(newapp.ErrPartialMatch).UsageError(""))
+		buf := &bytes.Buffer{}
+		fmt.Fprintf(buf, "* %s\n", t.Match.Description)
+		fmt.Fprintf(buf, "  Use %[1]s to specify this image or template\n\n", t.Match.Argument)
+
+		groups.Add(
+			"partial-match",
+			Df(`
+					The argument %[1]q only partially matched the following Docker image or OpenShift image stream:
+
+					%[2]s`, t.Value, buf.String(),
+			),
+			t,
+			t.Errs...,
+		)
+		return
 	}
 	switch err {
 	case errNoTokenAvailable:
 		// TODO: improve by allowing token generation
-		return fmt.Errorf("to install components you must be logged in with an OAuth token (instead of only a certificate)")
+		groups.Add("", "", fmt.Errorf("to install components you must be logged in with an OAuth token (instead of only a certificate)"))
 	case newcmd.ErrNoInputs:
 		// TODO: suggest things to the user
-		return cmdutil.UsageError(c, newAppNoInput, fullName)
+		groups.Add("", "", cmdutil.UsageError(c, newAppNoInput, fullName))
 	default:
-		return err
+		groups.Add("", "", err)
 	}
 }
 

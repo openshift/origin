@@ -17,35 +17,44 @@ type ImageStreamSearcher struct {
 	Client            client.ImageStreamsNamespacer
 	ImageStreamImages client.ImageStreamImagesNamespacer
 	Namespaces        []string
-	StopOnMatch       bool
 }
 
-// Search will attempt to find imagestreams with names that matches the passed in value
-func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
+// Search will attempt to find imagestreams with names that match the passed in value
+func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	componentMatches := ComponentMatches{}
+	var errs []error
 	for _, term := range terms {
 		ref, err := imageapi.ParseDockerImageReference(term)
 		if err != nil || len(ref.Registry) != 0 {
-			return nil, fmt.Errorf("image streams must be of the form [<namespace>/]<name>[:<tag>|@<digest>]")
+			glog.V(2).Infof("image streams must be of the form [<namespace>/]<name>[:<tag>|@<digest>], term %q did not qualify", term)
+			continue
+		}
+		if term == "__imagestream_fail" {
+			errs = append(errs, fmt.Errorf("unable to find the specified image: %s", term))
+			continue
 		}
 		namespaces := r.Namespaces
 		if len(ref.Namespace) != 0 {
 			namespaces = []string{ref.Namespace}
 		}
+		followTag := false
 		searchTag := ref.Tag
 		if len(searchTag) == 0 {
 			searchTag = imageapi.DefaultImageTag
+			followTag = true
 		}
 		for _, namespace := range namespaces {
-			foundExactInNamespace := false
 			glog.V(4).Infof("checking ImageStreams %s/%s with ref %q", namespace, ref.Name, searchTag)
+			exact := false
 			streams, err := r.Client.ImageStreams(namespace).List(kapi.ListOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) || errors.IsForbidden(err) {
 					continue
 				}
-				return nil, err
+				errs = append(errs, err)
+				continue
 			}
+			original := ref
 			ref.Namespace = namespace
 			for i := range streams.Items {
 				stream := &streams.Items[i]
@@ -55,28 +64,41 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 					continue
 				}
 
-				// indicate the server knows how to directly tag images
+				// indicate the server knows how to directly import image stream tags
 				var meta map[string]string
 				if stream.Generation > 0 {
 					meta = map[string]string{"direct-tag": "1"}
 				}
 
-				imageref, _ := imageapi.ParseDockerImageReference(term)
+				imageref := original
 				imageref.Name = stream.Name
 				imageref.Registry = ""
 				matchName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 
-				latest := imageapi.LatestTaggedImage(stream, searchTag)
+				// When an image stream contains a tag that references another local tag, and the user has not
+				// provided a tag themselves (i.e. they asked for mysql and we defaulted to mysql:latest), walk
+				// the chain of references to the end. This ensures that applications can default to using a "stable"
+				// branch by giving the control over version to the image stream author.
+				finalTag := searchTag
+				if specTag, ok := stream.Spec.Tags[searchTag]; ok && followTag {
+					if specTag.From != nil && specTag.From.Kind == "ImageStreamTag" && !strings.Contains(specTag.From.Name, ":") {
+						if imageapi.LatestTaggedImage(stream, specTag.From.Name) != nil {
+							finalTag = specTag.From.Name
+						}
+					}
+				}
+
+				latest := imageapi.LatestTaggedImage(stream, finalTag)
 				if latest == nil || len(latest.Image) == 0 {
-					glog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, searchTag)
+					glog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, finalTag)
 					componentMatches = append(componentMatches, &ComponentMatch{
-						Value:       imageref.Exact(),
+						Value:       term,
 						Argument:    fmt.Sprintf("--image-stream=%q", matchName),
 						Name:        matchName,
 						Description: fmt.Sprintf("Image stream %s in project %s", stream.Name, stream.Namespace),
 						Score:       0.5 + score,
 						ImageStream: stream,
-						ImageTag:    searchTag,
+						ImageTag:    finalTag,
 						Meta:        meta,
 					})
 					continue
@@ -86,39 +108,39 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 				if err != nil {
 					if errors.IsNotFound(err) {
 						// continue searching
-						glog.V(2).Infof("tag %q is set, but image %q has been removed", searchTag, latest.Image)
+						glog.V(2).Infof("tag %q is set, but image %q has been removed", finalTag, latest.Image)
 						continue
 					}
-					return nil, err
+					errs = append(errs, err)
+					continue
 				}
 
-				imageData := imageStreamImage.Image
 				match := &ComponentMatch{
-					Value:       imageref.Exact(),
-					Argument:    fmt.Sprintf("--image-stream=%q", imageref.Exact()),
-					Name:        imageref.Name,
-					Description: fmt.Sprintf("Image stream %q (tag %q) in project %q", stream.Name, searchTag, stream.Namespace),
+					Value:       term,
+					Argument:    fmt.Sprintf("--image-stream=%q", matchName),
+					Name:        matchName,
+					Description: fmt.Sprintf("Image stream %q (tag %q) in project %q", stream.Name, finalTag, stream.Namespace),
 					Score:       score,
 					ImageStream: stream,
-					Image:       &imageData.DockerImageMetadata,
-					ImageTag:    searchTag,
+					Image:       &imageStreamImage.Image.DockerImageMetadata,
+					ImageTag:    finalTag,
 					Meta:        meta,
 				}
-				glog.V(2).Infof("Adding %s as component match for %q with score %v", match.Description, term, match.Score)
-				if match.Score == 0.0 {
-					foundExactInNamespace = true
+				glog.V(2).Infof("Adding %s as component match for %q with score %v", match.Description, term, score)
+				if score == 0.0 {
+					exact = true
 				}
 				componentMatches = append(componentMatches, match)
 			}
 
-			// If we found an exact match in this namespace, do not continue looking at
+			// If we found one or more exact matches in this namespace, do not continue looking at
 			// other namespaces
-			if foundExactInNamespace && r.StopOnMatch {
+			if exact && precise {
 				break
 			}
 		}
 	}
-	return componentMatches, nil
+	return componentMatches, errs
 }
 
 // InputImageFromMatch returns an image reference from a component match.
@@ -277,19 +299,32 @@ func (r *ImageStreamByAnnotationSearcher) annotationMatches(stream *imageapi.Ima
 }
 
 // Search finds image stream images using their 'supports' annotation
-func (r *ImageStreamByAnnotationSearcher) Search(terms ...string) (ComponentMatches, error) {
+func (r *ImageStreamByAnnotationSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	matches := ComponentMatches{}
+	var errs []error
 	for _, namespace := range r.Namespaces {
 		streams, err := r.getImageStreams(namespace)
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
 		for i := range streams {
 			for _, term := range terms {
+				if term == "__imagestreamannotation_fail" {
+					errs = append(errs, fmt.Errorf("unable to find the specified image: %s", term))
+					continue
+				}
 				glog.V(5).Infof("Checking imagestream %s/%s for supports annotation %q", namespace, streams[i].Name, term)
 				matches = append(matches, r.annotationMatches(&streams[i], term)...)
 			}
 		}
+		if precise {
+			for _, m := range matches {
+				if m.Score == 0.0 {
+					return matches, errs
+				}
+			}
+		}
 	}
-	return matches, nil
+	return matches, errs
 }

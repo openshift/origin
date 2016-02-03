@@ -211,7 +211,6 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespac
 		Client:            osclient,
 		ImageStreamImages: osclient,
 		Namespaces:        namespaces,
-		StopOnMatch:       !c.AsSearch,
 	}
 	c.imageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(osclient, osclient, namespaces)
 	c.templateSearcher = app.TemplateSearcher{

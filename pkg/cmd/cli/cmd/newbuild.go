@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 
+	. "github.com/MakeNowJust/heredoc/dot"
 	"github.com/spf13/cobra"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/errors"
@@ -204,33 +206,46 @@ func handleBuildError(c *cobra.Command, err error, fullName string) error {
 	if err == nil {
 		return nil
 	}
-	if errs, ok := err.(errors.Aggregate); ok {
-		if len(errs.Errors()) == 1 {
-			err = errs.Errors()[0]
-		}
+	errs := []error{err}
+	if agg, ok := err.(errors.Aggregate); ok {
+		errs = agg.Errors()
 	}
+	groups := errorGroups{}
+	for _, err := range errs {
+		transformBuildError(err, c, fullName, groups)
+	}
+	buf := &bytes.Buffer{}
+	for _, group := range groups {
+		fmt.Fprint(buf, cmdutil.MultipleErrors("error: ", group.errs))
+		if len(group.suggestion) > 0 {
+			fmt.Fprintln(buf)
+		}
+		fmt.Fprint(buf, group.suggestion)
+	}
+	return fmt.Errorf(buf.String())
+}
+
+func transformBuildError(err error, c *cobra.Command, fullName string, groups errorGroups) {
 	switch t := err.(type) {
 	case newapp.ErrNoMatch:
-		return fmt.Errorf(`%[1]v
+		groups.Add(
+			"no-matches",
+			Df(`
+				The '%[1]s' command will match arguments to the following types:
 
-The '%[2]s' command will match arguments to the following types:
+				  1. Images tagged into image streams in the current project or the 'openshift' project
+				     - if you don't specify a tag, we'll add ':latest'
+				  2. Images in the Docker Hub, on remote registries, or on the local Docker engine
+				  3. Git repository URLs or local paths that point to Git repositories
 
-  1. Images tagged into image streams in the current project or the 'openshift' project
-     - if you don't specify a tag, we'll add ':latest'
-  2. Images in the Docker Hub, on remote registries, or on the local Docker engine
-  3. Git repository URLs or local paths that point to Git repositories
+				--allow-missing-images can be used to point to an image that is only on your system
 
---allow-missing-images can be used to point to an image that does not exist yet
-or is only on the local system.
-
-See '%[2]s -h' for examples.
-`, t, c.CommandPath())
+				See '%[1]s -h' for examples.`, c.CommandPath(),
+			),
+			t,
+			t.Errs...,
+		)
+		return
 	}
-	switch err {
-	case newcmd.ErrNoInputs:
-		// TODO: suggest things to the user
-		return cmdutil.UsageError(c, newBuildNoInput, fullName)
-	default:
-		return err
-	}
+	transformError(err, c, fullName, groups)
 }

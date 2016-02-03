@@ -117,13 +117,13 @@ func (g *imageRefGenerator) FromStream(stream *imageapi.ImageStream, tag string)
 		if err != nil {
 			return nil, err
 		}
-		switch {
-		case len(tag) > 0:
-			ref.Tag = tag
-		case len(tag) == 0 && len(ref.Tag) == 0:
-			ref.Tag = imageapi.DefaultImageTag
-		}
 		imageRef.Reference = ref
+	}
+	switch {
+	case len(tag) > 0:
+		imageRef.Reference.Tag = tag
+	case len(tag) == 0 && len(imageRef.Reference.Tag) == 0:
+		imageRef.Reference.Tag = imageapi.DefaultImageTag
 	}
 
 	return imageRef, nil
@@ -215,13 +215,19 @@ func (r *ImageRef) RepoName() string {
 
 // SuggestName suggests a name for an image reference
 func (r *ImageRef) SuggestName() (string, bool) {
-	if r != nil && len(r.ObjectName) > 0 {
-		return r.ObjectName, true
-	}
-	if r == nil || len(r.Reference.Name) == 0 {
+	if r == nil {
 		return "", false
 	}
-	return r.Reference.Name, true
+	if len(r.ObjectName) > 0 {
+		return r.ObjectName, true
+	}
+	if r.Stream != nil {
+		return r.Stream.Name, true
+	}
+	if len(r.Reference.Name) > 0 {
+		return r.Reference.Name, true
+	}
+	return "", false
 }
 
 // BuildOutput returns the BuildOutput of an image reference

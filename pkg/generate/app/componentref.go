@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"k8s.io/kubernetes/pkg/util/errors"
 )
 
 // IsComponentReference returns true if the provided string appears to be a reference to a source repository
@@ -288,7 +290,7 @@ func (i *ComponentInput) NeedsSource() bool {
 // Resolve sets the unique match in input
 func (i *ComponentInput) Resolve() error {
 	if i.Resolver == nil {
-		return ErrNoMatch{value: i.Value, qualifier: "no resolver defined"}
+		return ErrNoMatch{Value: i.Value, Qualifier: "no resolver defined"}
 	}
 	match, err := i.Resolver.Resolve(i.Value)
 	if err != nil {
@@ -303,13 +305,13 @@ func (i *ComponentInput) Resolve() error {
 // Search sets the search matches in input
 func (i *ComponentInput) Search() error {
 	if i.Searcher == nil {
-		return ErrNoMatch{value: i.Value, qualifier: "no searcher defined"}
+		return ErrNoMatch{Value: i.Value, Qualifier: "no searcher defined"}
 	}
-	matches, err := i.Searcher.Search(i.Value)
+	matches, err := i.Searcher.Search(false, i.Value)
 	if matches != nil {
 		i.SearchMatches = matches
 	}
-	return err
+	return errors.NewAggregate(err)
 }
 
 func (i *ComponentInput) String() string {
