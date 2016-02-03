@@ -1,4 +1,4 @@
-package overrides
+package api
 
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"

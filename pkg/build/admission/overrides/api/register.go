@@ -1,16 +1,12 @@
-package requestlimit
+package api
 
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
-
-	_ "github.com/openshift/origin/pkg/project/admission/requestlimit/latest"
 )
 
-const GroupName = ""
-
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
+var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: runtime.APIVersionInternal}
 
 // Kind takes an unqualified kind and returns back a Group qualified GroupKind
 func Kind(kind string) unversioned.GroupKind {
@@ -29,8 +25,8 @@ func AddToScheme(scheme *runtime.Scheme) {
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&ProjectRequestLimitConfig{},
+		&BuildOverridesConfig{},
 	)
 }
 
-func (obj *ProjectRequestLimitConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *BuildOverridesConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }

@@ -1,25 +1,27 @@
-package requestlimit
+package validation
 
 import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/util/validation/field"
+
+	"github.com/openshift/origin/pkg/project/admission/requestlimit/api"
 )
 
 func TestValidateProjectRequestLimitConfig(t *testing.T) {
 	tests := []struct {
-		config      ProjectRequestLimitConfig
+		config      api.ProjectRequestLimitConfig
 		errExpected bool
 		errType     field.ErrorType
 		errField    string
 	}{
 		// 0: empty config
 		{
-			config: ProjectRequestLimitConfig{},
+			config: api.ProjectRequestLimitConfig{},
 		},
 		// 1: single default
 		{
-			config: ProjectRequestLimitConfig{
+			config: api.ProjectRequestLimitConfig{
 				Limits: []ProjectLimitBySelector{
 					{
 						Selector:    nil,
@@ -30,7 +32,7 @@ func TestValidateProjectRequestLimitConfig(t *testing.T) {
 		},
 		// 2: multiple limits
 		{
-			config: ProjectRequestLimitConfig{
+			config: api.ProjectRequestLimitConfig{
 				Limits: []ProjectLimitBySelector{
 					{
 						Selector:    map[string]string{"foo": "bar", "foo2": "baz"},
@@ -45,7 +47,7 @@ func TestValidateProjectRequestLimitConfig(t *testing.T) {
 		},
 		// 3: negative limit (error)
 		{
-			config: ProjectRequestLimitConfig{
+			config: api.ProjectRequestLimitConfig{
 				Limits: []ProjectLimitBySelector{
 					{
 						Selector:    map[string]string{"foo": "bar", "foo2": "baz"},
@@ -63,7 +65,7 @@ func TestValidateProjectRequestLimitConfig(t *testing.T) {
 		},
 		// 4: invalid selector label (error)
 		{
-			config: ProjectRequestLimitConfig{
+			config: api.ProjectRequestLimitConfig{
 				Limits: []ProjectLimitBySelector{
 					{
 						Selector:    map[string]string{"foo": "bar", "foo2": "baz"},

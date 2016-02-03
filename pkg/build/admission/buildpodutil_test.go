@@ -68,7 +68,7 @@ func TestSetBuild(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		err = SetBuild(pod.ToAttributes(), build.AsBuild(), &groupVersion)
+		err = SetBuild(pod.ToAttributes(), build.AsBuild(), groupVersion)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

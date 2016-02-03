@@ -1,4 +1,4 @@
-package defaults
+package api
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"

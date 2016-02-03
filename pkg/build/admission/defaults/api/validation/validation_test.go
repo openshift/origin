@@ -1,22 +1,24 @@
-package defaults
+package validation
 
 import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
+
+	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 )
 
 func TestValidateBuildDefaultsConfig(t *testing.T) {
 	tests := []struct {
-		config      *BuildDefaultsConfig
+		config      *defaultsapi.BuildDefaultsConfig
 		errExpected bool
 		errField    string
 		errType     field.ErrorType
 	}{
 		// 0: Valid config
 		{
-			config: &BuildDefaultsConfig{
+			config: &defaultsapi.BuildDefaultsConfig{
 				GitHTTPProxy:  "http://valid.url",
 				GitHTTPSProxy: "https://valid.url",
 				Env: []kapi.EnvVar{
@@ -34,7 +36,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 1:  invalid HTTP proxy
 		{
-			config: &BuildDefaultsConfig{
+			config: &defaultsapi.BuildDefaultsConfig{
 				GitHTTPProxy:  "some!@#$%^&*()url",
 				GitHTTPSProxy: "https://valid.url",
 			},
@@ -44,7 +46,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 2:  invalid HTTPS proxy
 		{
-			config: &BuildDefaultsConfig{
+			config: &defaultsapi.BuildDefaultsConfig{
 				GitHTTPProxy:  "https://valid.url",
 				GitHTTPSProxy: "some!@#$%^&*()url",
 			},
@@ -54,7 +56,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 3: missing Env variable name
 		{
-			config: &BuildDefaultsConfig{
+			config: &defaultsapi.BuildDefaultsConfig{
 				Env: []kapi.EnvVar{
 					{
 						Name:  "",
@@ -68,7 +70,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 4: invalid Env variable name
 		{
-			config: &BuildDefaultsConfig{
+			config: &defaultsapi.BuildDefaultsConfig{
 				Env: []kapi.EnvVar{
 					{
 						Name:  " invalid,name",
@@ -82,7 +84,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 5: valueFrom present in env var
 		{
-			config: &BuildDefaultsConfig{
+			config: &defaultsapi.BuildDefaultsConfig{
 				Env: []kapi.EnvVar{
 					{
 						Name:      "name",

@@ -12,7 +12,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/project/admission/requestlimit"
+	requestlimit "github.com/openshift/origin/pkg/project/admission/requestlimit/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	testutil "github.com/openshift/origin/test/util"

@@ -6,11 +6,14 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
+	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	u "github.com/openshift/origin/pkg/build/admission/testutil"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestProxyDefaults(t *testing.T) {
-	defaultsConfig := &BuildDefaultsConfig{
+	defaultsConfig := &defaultsapi.BuildDefaultsConfig{
 		GitHTTPProxy:  "http",
 		GitHTTPSProxy: "https",
 	}
@@ -35,7 +38,7 @@ func TestProxyDefaults(t *testing.T) {
 }
 
 func TestEnvDefaults(t *testing.T) {
-	defaultsConfig := &BuildDefaultsConfig{
+	defaultsConfig := &defaultsapi.BuildDefaultsConfig{
 		Env: []kapi.EnvVar{
 			{
 				Name:  "VAR1",

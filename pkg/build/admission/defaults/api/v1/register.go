@@ -15,8 +15,8 @@ func AddToScheme(scheme *runtime.Scheme) {
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&RunOnceDurationConfig{},
+		&BuildDefaultsConfig{},
 	)
 }
 
-func (obj *RunOnceDurationConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *BuildDefaultsConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }

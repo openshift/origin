@@ -6,8 +6,11 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 	u "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestBuildOverrideForcePull(t *testing.T) {
@@ -32,7 +35,7 @@ func TestBuildOverrideForcePull(t *testing.T) {
 	ops := []admission.Operation{admission.Create, admission.Update}
 	for _, test := range tests {
 		for _, op := range ops {
-			overrides := NewBuildOverrides(&BuildOverridesConfig{ForcePull: true})
+			overrides := NewBuildOverrides(&overridesapi.BuildOverridesConfig{ForcePull: true})
 			pod := u.Pod().WithBuild(t, test.build, "v1")
 			err := overrides.Admit(pod.ToAttributes())
 			if err != nil {

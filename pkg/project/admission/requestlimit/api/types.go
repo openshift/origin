@@ -1,4 +1,4 @@
-package requestlimit
+package api
 
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"

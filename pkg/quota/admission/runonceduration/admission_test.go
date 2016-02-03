@@ -12,6 +12,8 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/admission/runonceduration/api"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func testCache(projectAnnotations map[string]string) *projectcache.ProjectCache {
