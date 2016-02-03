@@ -1,6 +1,5 @@
 <project-header class="top-header"></project-header>
   <project-page>
-
     <!-- Middle section -->
     <div class="middle-section" ng-if="buildConfig">
       <div id="scrollable-content" class="middle-container has-scroll">
@@ -30,6 +29,9 @@
                       ng-class="{ 'disabled-link': !canBuild() }"
                       ng-click="startBuild()"
                     ><i class="fa fa-play fa-fw" aria-hidden="true"></i> Start Build</a>
+                  </li>
+                  <li>
+                    <a ng-href="{{buildConfig | editResourceURL}}" role="button"><i class="fa fa-pencil fa-fw" aria-hidden="true"></i> Edit</a>
                   </li>
                   <li>
                     <edit-link
@@ -89,7 +91,6 @@
                     <div ng-if="(unfilteredBuilds | hashSize) > 0 && (builds | hashSize) === 0">
                       No builds.
                     </div>
-
                     <!-- Show the latest build and a chart of the recent build duration and status. -->
                     <div ng-if="builds && (builds | hashSize) > 0" class="build-config-summary">
                       <!-- Show the latest build status first. -->
@@ -147,6 +148,18 @@
                                     <dt>Builder image stream:</dt>
                                     <dd>{{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
                                   </div>
+                                  <div ng-if="buildConfig.spec.source.dockerfile">
+                                    <dt>Dockerfile:</dt><dd></dd>
+                                    <div ui-ace="{
+                                      mode: 'dockerfile',
+                                      theme: 'eclipse',
+                                      onLoad: aceLoaded,
+                                      rendererOptions: {
+                                        fadeFoldWidgets: true,
+                                        showPrintMargin: false
+                                      }
+                                    }" readonly ng-model="buildConfig.spec.source.dockerfile" class="dockerfile-editor dockerfile-mode"></div>
+                                  </div>
                                 </div>
                                 <div ng-switch-when="Custom">
                                   <div ng-if="buildConfig.spec.strategy.customStrategy.from">
@@ -164,6 +177,21 @@
                                   <dd ng-if="buildConfig.spec.source.git.ref">{{buildConfig.spec.source.git.ref}}</dd>
                                   <dt ng-if="buildConfig.spec.source.contextDir">Source context dir:</dt>
                                   <dd ng-if="buildConfig.spec.source.contextDir">{{buildConfig.spec.source.contextDir}}</dd>
+                                </div>
+                                <div ng-if="buildConfig.spec.source.images" class="image-sources">
+                                  <dt>Image sources:</dt>
+                                  <dd></dd>
+                                  <div ng-repeat="imageSource in imageSources" class="image-source-item">
+                                    <h4>{{imageSource.from | imageObjectRef : buildConfig.metadata.namespace}}</h4>
+                                    <dl class="dl-horizontal left">
+                                      <div class="is-item-description">
+                                        <dt>Paths</dt>
+                                        <div ng-repeat="(source, destination) in imageSourcesPaths[$index]" class="image-source-paths">
+                                          <dd><span class="source-path">{{source}}</span><i class="fa fa-long-arrow-right"></i><span class="destination-dir">{{destination}}</span></dd>
+                                        </div>
+                                      </div>
+                                    </dl>
+                                  </div>
                                 </div>
                               </div>
                               <div ng-if="buildConfig.spec.output.to">

@@ -123,6 +123,10 @@ angular
         templateUrl: 'views/browse/build-config.html',
         controller: 'BuildConfigController'
       })
+      .when('/project/:project/edit/builds/:buildconfig', {
+        templateUrl: 'views/edit/build-config.html',
+        controller: 'EditBuildConfigController'
+      })
       .when('/project/:project/browse/builds/:buildconfig/:build', {
         templateUrl: function(params) {
           if (params.view === 'chromeless') {
@@ -270,6 +274,7 @@ angular
     screenLgMin:  1200,  // screen-lg
     screenXlgMin: 1600   // screen-xlg
   })
+  .constant('SOURCE_URL_PATTERN', /^((ftp|http|https|git):\/\/(\w+:{0,1}[^\s@]*@)|git@)?([^\s@]+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/ )
   .config(function($httpProvider, AuthServiceProvider, RedirectLoginServiceProvider, AUTH_CFG, API_CFG, kubernetesContainerSocketProvider) {
     $httpProvider.interceptors.push('AuthInterceptor');
 

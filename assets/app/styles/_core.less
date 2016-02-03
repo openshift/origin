@@ -15,7 +15,7 @@
   input[type="search"],
   input[type="url"],
   textarea,
-  .modal-resource-edit .editor {
+  .ace_editor {
     font-size: 16px;
   }
 
@@ -187,6 +187,13 @@
   // Indent icon width to align with text above.
   .latest-build-timestamp {
     margin-left: 25px;
+  }
+}
+
+.image-sources {
+  .source-path:after,
+  .destination-dir:before {
+    content: "\00a0 ";
   }
 }
 
@@ -761,6 +768,44 @@ a.disabled-link {
   }
 }
 
+.dockerfile-editor {
+  height: 200px;
+}
+
+.edit-form {
+  margin: 30px auto;
+  .form-groups {
+    padding-left: 5px;
+    border-left: 1px solid #eee;
+  }
+  .form-groups:hover {
+    padding-left: 5px;
+    border-left: 1px solid #0099d3;
+  }
+  .labels {
+    .form-group {
+      width: 44%;
+      .form-control {
+        width: 100%;
+      }
+    }
+  }
+  .checkbox {
+    margin: 10px;
+  }
+  .section {
+    padding-bottom: 15px;
+  }
+
+  @media (max-width: @screen-sm-min) {
+    .labels {
+      .form-group {
+        width: 100%;
+      }
+    }
+  }
+}
+
 .status {
   min-width: 130px;
   .status-icon {
@@ -853,6 +898,10 @@ h1 small.meta, .build-config-summary .meta {
     display: block;
     margin-top: 5px;
   }
+}
+
+.ace_editor {
+  border: 1px solid #999999;
 }
 
 .action-divider {

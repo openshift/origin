@@ -243,6 +243,24 @@ angular.module('openshiftConsole')
       return null;
     };
   })
+  .filter('envVarsPair', function() {
+    return function(configEnvVars) {
+      var pairs = {};
+      angular.forEach(configEnvVars, function(env) {
+        pairs[env.name] = env.value;
+      });
+      return pairs;
+    };
+  })
+  .filter('destinationSourcePair', function() {
+    return function(destination) {
+      var pairs = {};
+      angular.forEach(destination, function(env) {
+        pairs[env.sourcePath] = env.destinationDir;
+      });
+      return pairs;
+    };
+  })
   .filter('buildForImage', function() {
     return function(image, builds) {
       // TODO concerned that this gets called anytime any data is changed on the scope,
