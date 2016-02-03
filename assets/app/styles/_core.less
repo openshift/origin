@@ -327,6 +327,14 @@ label.checkbox {
   text-align: right;
 }
 
+.about {
+  .about-icon {
+    img {
+      width: 100%;
+    }
+  }
+}
+
 .create-from-template,
 .create-from-image {
   margin-bottom: 100px; // needed space for hover help text near bottom
@@ -542,12 +550,17 @@ code {
   white-space: normal;
 }
 
-pre {
+pre,
+div {
   &.code {
     background-color: #fff;
     border: none;
     border-left: 2px solid rgb(204, 204, 204);
   }
+}
+
+div.code {
+  &:extend(pre);
 }
 
 [data-toggle="tooltip"] {

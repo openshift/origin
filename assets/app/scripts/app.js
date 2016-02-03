@@ -236,6 +236,10 @@ angular
         templateUrl: 'views/create/nextSteps.html',
         controller: 'NextStepsController'
       })
+      .when('/about', {
+        templateUrl: 'views/about.html',
+        controller: 'AboutController'
+      })
       .when('/oauth', {
         templateUrl: 'views/util/oauth.html',
         controller: 'OAuthController'

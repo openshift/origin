@@ -19,7 +19,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/version"
+	oversion "github.com/openshift/origin/pkg/version"
 
 	"k8s.io/kubernetes/pkg/api"
 	klatest "k8s.io/kubernetes/pkg/api/latest"
@@ -27,6 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	kversion "k8s.io/kubernetes/pkg/version"
 )
 
 // InstallAPI adds handlers for serving static assets into the provided mux,
@@ -131,7 +132,7 @@ func (c *AssetConfig) buildAssetHandler() (http.Handler, error) {
 
 	// Cache control should happen after all Vary headers are added, but before
 	// any asset related routing (HTML5ModeHandler and FileServer)
-	handler = assets.CacheControlHandler(version.Get().GitCommit, handler)
+	handler = assets.CacheControlHandler(oversion.Get().GitCommit, handler)
 
 	// Gzip first so that inner handlers can react to the addition of the Vary header
 	handler = assets.GzipHandler(handler)
@@ -194,7 +195,7 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 		return fmt.Errorf("Resources for kubernetes and origin types intersect: %v", commonResources.List())
 	}
 
-	// Generated web console config
+	// Generated web console config and server version
 	config := assets.WebConsoleConfig{
 		APIGroupAddr:        masterURL.Host,
 		APIGroupPrefix:      KubernetesAPIGroupPrefix,
@@ -211,8 +212,14 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 		LoggingURL:          c.Options.LoggingPublicURL,
 		MetricsURL:          c.Options.MetricsPublicURL,
 	}
+	kVersionInfo := kversion.Get()
+	oVersionInfo := oversion.Get()
+	versionInfo := assets.WebConsoleVersion{
+		KubernetesVersion: kVersionInfo.GitVersion,
+		OpenShiftVersion:  oVersionInfo.GitVersion,
+	}
 	configPath := path.Join(publicURL.Path, "config.js")
-	configHandler, err := assets.GeneratedConfigHandler(config)
+	configHandler, err := assets.GeneratedConfigHandler(config, versionInfo)
 	if err != nil {
 		return err
 	}

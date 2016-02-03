@@ -109,3 +109,8 @@ window.OPENSHIFT_CONFIG = {
   loggingURL: "",
   metricsURL: ""
 };
+
+window.OPENSHIFT_VERSION = {
+  openshift: "dev-mode",
+  kubernetes: "dev-mode"
+};

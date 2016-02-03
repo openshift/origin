@@ -136,30 +136,9 @@ angular.module('openshiftConsole')
       return toString(amountAndUnitFilter(value, type));
     };
   })
-  .filter('helpLink', function() {
+  .filter('helpLink', function(Constants) {
     return function(type) {
-      switch(type) {
-        case "cli":
-          return "https://docs.openshift.org/latest/cli_reference/overview.html";
-        case "get_started_cli":
-          return "https://docs.openshift.org/latest/cli_reference/get_started_cli.html";
-        case "basic_cli_operations":
-          return "https://docs.openshift.org/latest/cli_reference/basic_cli_operations.html";
-        case "webhooks":
-          return "https://docs.openshift.org/latest/dev_guide/builds.html#webhook-triggers";
-        case "new_app":
-          return "https://docs.openshift.org/latest/dev_guide/new_app.html";
-        case "start-build":
-          return "https://docs.openshift.org/latest/dev_guide/builds.html#starting-a-build";
-        case "deployment-operations":
-          return "https://docs.openshift.org/latest/cli_reference/basic_cli_operations.html#build-and-deployment-cli-operations";
-        case "route-types":
-          return "https://docs.openshift.org/latest/architecture/core_concepts/routes.html#route-types";
-        case "persistent_volumes":
-          return "https://docs.openshift.org/latest/dev_guide/persistent_volumes.html";
-        default:
-          return "https://docs.openshift.org/latest/welcome/index.html";
-      }
+      return Constants.HELP[type] || Constants.HELP["default"];
     };
   })
   .filter('taskTitle', function() {
