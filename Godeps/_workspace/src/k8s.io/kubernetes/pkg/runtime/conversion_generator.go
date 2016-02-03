@@ -153,7 +153,9 @@ func (g *conversionGenerator) generateConversionsBetween(inType, outType reflect
 			return g.generateConversionsBetween(inType.Elem(), inType.Elem())
 		case reflect.Struct:
 			// pointers to structs invoke new(inType)
-			g.addImportByPath(inType.PkgPath())
+			if inType.PkgPath() != "k8s.io/kubernetes/pkg/util/intstr" {
+				g.addImportByPath(inType.PkgPath())
+			}
 		}
 		g.rememberConversionFunction(inType, inType, false)
 		// Don't generate conversion methods for the same type.
