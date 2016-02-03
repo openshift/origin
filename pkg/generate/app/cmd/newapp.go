@@ -73,7 +73,9 @@ type AppConfig struct {
 	ExpectToBuild      bool
 	BinaryBuild        bool
 	AllowMissingImages bool
-	Deploy             bool
+
+	Deploy           bool
+	AsTestDeployment bool
 
 	SourceImage     string
 	SourceImagePath string
@@ -681,7 +683,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				}
 			}
 			if c.Deploy {
-				if err := pipeline.NeedsDeployment(environment, c.Labels); err != nil {
+				if err := pipeline.NeedsDeployment(environment, c.Labels, c.AsTestDeployment); err != nil {
 					return nil, fmt.Errorf("can't set up a deployment for %q: %v", refInput, err)
 				}
 			}

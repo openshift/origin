@@ -142,6 +142,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 		},
 	}
 
+	cmd.Flags().BoolVar(&config.AsTestDeployment, "as-test", config.AsTestDeployment, "If true create this application as a test deployment, which validates that the deployment succeeds and then scales down.")
 	cmd.Flags().StringSliceVar(&config.SourceRepositories, "code", config.SourceRepositories, "Source code to use to build this application.")
 	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
 	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image", "", config.ImageStreams, "Name of an image stream to use in the app. (deprecated)")

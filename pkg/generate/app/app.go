@@ -271,6 +271,7 @@ type DeploymentConfigRef struct {
 	Images []*ImageRef
 	Env    Environment
 	Labels map[string]string
+	AsTest bool
 }
 
 // DeploymentConfig creates a deploymentConfig resource from the deployment configuration reference
@@ -337,6 +338,7 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 		},
 		Spec: deployapi.DeploymentConfigSpec{
 			Replicas: 1,
+			Test:     r.AsTest,
 			Selector: selector,
 			Template: &kapi.PodTemplateSpec{
 				ObjectMeta: kapi.ObjectMeta{

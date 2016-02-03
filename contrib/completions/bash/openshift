@@ -5646,6 +5646,7 @@ _openshift_cli_new-app()
     flags_completion=()
 
     flags+=("--allow-missing-images")
+    flags+=("--as-test")
     flags+=("--code=")
     flags+=("--context-dir=")
     flags+=("--docker-image=")
