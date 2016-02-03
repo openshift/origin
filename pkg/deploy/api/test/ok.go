@@ -150,3 +150,8 @@ func OkDeploymentConfig(version int) *deployapi.DeploymentConfig {
 		Status: OkDeploymentConfigStatus(version),
 	}
 }
+
+func TestDeploymentConfig(config *deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
+	config.Spec.Test = true
+	return config
+}

@@ -205,10 +205,18 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 		activeReplicas = latestDesiredReplicas
 		source = fmt.Sprintf("the desired replicas of latest deployment %q with no active deployment", deployutil.LabelForDeployment(latestDeployment))
 	}
+
 	// Bring the config in sync with the deployment. Once we know the config
 	// accurately represents the desired replica count of the active deployment,
 	// we can safely reconcile deployments.
-	if config.Spec.Replicas != activeReplicas {
+	//
+	// If the deployment config is test, never update the deployment config based
+	// on deployments, since test behavior overrides user scaling.
+	switch {
+	case config.Spec.Replicas == activeReplicas:
+	case config.Spec.Test:
+		glog.V(4).Infof("Detected changed replicas for test deploymentConfig %q, ignoring that change", deployutil.LabelForDeploymentConfig(config))
+	default:
 		oldReplicas := config.Spec.Replicas
 		config.Spec.Replicas = activeReplicas
 		_, err := c.osClient.DeploymentConfigs(config.Namespace).Update(config)
@@ -217,6 +225,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 		}
 		glog.V(4).Infof("Synced deploymentConfig %q replicas from %d to %d based on %s", deployutil.LabelForDeploymentConfig(config), oldReplicas, activeReplicas, source)
 	}
+
 	// Reconcile deployments. The active deployment follows the config, and all
 	// other deployments should be scaled to zero.
 	for _, deployment := range existingDeployments.Items {
@@ -226,6 +235,10 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 		newReplicaCount := 0
 		if isActiveDeployment {
 			newReplicaCount = activeReplicas
+		}
+		if config.Spec.Test {
+			glog.V(4).Infof("Deployment config %q is test and deployment %q will be scaled down", deployutil.LabelForDeploymentConfig(config), deployutil.LabelForDeployment(&deployment))
+			newReplicaCount = 0
 		}
 		lastReplicas, hasLastReplicas := deployutil.DeploymentReplicas(&deployment)
 		// Only update if necessary.

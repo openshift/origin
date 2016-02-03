@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	controller "github.com/openshift/origin/pkg/controller"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -19,6 +20,8 @@ import (
 type DeployerPodControllerFactory struct {
 	// KubeClient is a Kubernetes client.
 	KubeClient kclient.Interface
+	// Codec is used for encoding/decoding.
+	Codec runtime.Codec
 }
 
 // Create creates a DeployerPodController.
@@ -76,6 +79,9 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 		deployerPodsFor: func(namespace, name string) (*kapi.PodList, error) {
 			opts := kapi.ListOptions{LabelSelector: deployutil.DeployerPodSelector(name)}
 			return factory.KubeClient.Pods(namespace).List(opts)
+		},
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
 		},
 		deletePod: func(namespace, name string) error {
 			return factory.KubeClient.Pods(namespace).Delete(name, kapi.NewDeleteOptions(0))

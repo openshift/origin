@@ -1491,6 +1491,7 @@ func deepCopy_api_DeploymentConfigSpec(in deployapi.DeploymentConfigSpec, out *d
 		out.Triggers = nil
 	}
 	out.Replicas = in.Replicas
+	out.Test = in.Test
 	if in.Selector != nil {
 		out.Selector = make(map[string]string)
 		for key, val := range in.Selector {

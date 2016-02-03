@@ -2856,6 +2856,7 @@ func autoconvert_api_DeploymentConfigSpec_To_v1beta3_DeploymentConfigSpec(in *de
 		out.Triggers = nil
 	}
 	out.Replicas = in.Replicas
+	out.Test = in.Test
 	if in.Selector != nil {
 		out.Selector = make(map[string]string)
 		for key, val := range in.Selector {
@@ -3383,6 +3384,7 @@ func autoconvert_v1beta3_DeploymentConfigSpec_To_api_DeploymentConfigSpec(in *de
 		out.Triggers = nil
 	}
 	out.Replicas = in.Replicas
+	out.Test = in.Test
 	if in.Selector != nil {
 		out.Selector = make(map[string]string)
 		for key, val := range in.Selector {

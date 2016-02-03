@@ -50,6 +50,7 @@ func (e fatalError) Error() string { return "fatal error handling deployment: " 
 func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) error {
 	currentStatus := deployutil.DeploymentStatusFor(deployment)
 	nextStatus := currentStatus
+	deploymentScaled := false
 
 	switch currentStatus {
 	case deployapi.DeploymentStatusNew:
@@ -155,8 +156,18 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 			c.recorder.Eventf(deployment, kapi.EventTypeNormal, "Cancelled", "Cancelled deployment")
 		}
 	case deployapi.DeploymentStatusFailed:
-		// Nothing to do in this terminal state.
+		// Check for test deployment and ensure the deployment scale matches
+		if config, err := c.decodeConfig(deployment); err == nil && config.Spec.Test {
+			deploymentScaled = deployment.Spec.Replicas != 0
+			deployment.Spec.Replicas = 0
+		}
 	case deployapi.DeploymentStatusComplete:
+		// Check for test deployment and ensure the deployment scale matches
+		if config, err := c.decodeConfig(deployment); err == nil && config.Spec.Test {
+			deploymentScaled = deployment.Spec.Replicas != 0
+			deployment.Spec.Replicas = 0
+		}
+
 		// now list any pods in the namespace that have the specified label
 		deployerPods, err := c.podClient.getDeployerPodsFor(deployment.Namespace, deployment.Name)
 		if err != nil {
@@ -185,13 +196,13 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		}
 	}
 
-	if currentStatus != nextStatus {
+	if currentStatus != nextStatus || deploymentScaled {
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
 		if _, err := c.deploymentClient.updateDeployment(deployment.Namespace, deployment); err != nil {
 			c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedUpdate", "Error updating deployment %s status to %s", deployutil.LabelForDeployment(deployment), nextStatus)
 			return fmt.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
 		}
-		glog.V(4).Infof("Updated deployment %s status from %s to %s", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus)
+		glog.V(4).Infof("Updated deployment %s status from %s to %s (scale: %d)", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus, deployment.Spec.Replicas)
 	}
 	return nil
 }
