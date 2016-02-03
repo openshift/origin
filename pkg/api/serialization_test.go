@@ -462,12 +462,6 @@ func TestSpecificKind(t *testing.T) {
 	}
 	seed := int64(2703387474910584091) //rand.Int63()
 	for i := 0; i < fuzzIters; i++ {
-		t.Logf(`About to test %v with ""`, kind)
-		fuzzInternalObject(t, "", item, seed)
-		roundTrip(t, osapi.Codec, item)
-		t.Logf(`About to test %v with "v1beta3"`, kind)
-		fuzzInternalObject(t, "v1beta3", item, seed)
-		roundTrip(t, v1beta3.Codec, item)
 		t.Logf(`About to test %v with "v1"`, kind)
 		fuzzInternalObject(t, "v1", item, seed)
 		roundTrip(t, v1.Codec, item)
@@ -506,12 +500,6 @@ func TestTypes(t *testing.T) {
 				}
 				continue
 			}
-			t.Logf(`About to test %v with ""`, kind)
-			fuzzInternalObject(t, "", item, seed)
-			roundTrip(t, osapi.Codec, item)
-			t.Logf(`About to test %v with "v1beta3"`, kind)
-			fuzzInternalObject(t, "v1beta3", item, seed)
-			roundTrip(t, v1beta3.Codec, item)
 			t.Logf(`About to test %v with "v1"`, kind)
 			fuzzInternalObject(t, "v1", item, seed)
 			roundTrip(t, v1.Codec, item)
