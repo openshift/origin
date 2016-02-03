@@ -9,6 +9,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/images"
 	_ "github.com/openshift/origin/test/extended/jenkins"
 	_ "github.com/openshift/origin/test/extended/jobs"
+	_ "github.com/openshift/origin/test/extended/localquota"
 	_ "github.com/openshift/origin/test/extended/router"
 	_ "github.com/openshift/origin/test/extended/security"
 

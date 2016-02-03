@@ -3,6 +3,7 @@ package validation
 import (
 	"testing"
 
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -59,5 +60,32 @@ func TestFailingKubeletArgs(t *testing.T) {
 	}
 	if e, a := `is not a valid flag`, missingErr.Detail; e != a {
 		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
+func TestInvalidProjectEmptyDirQuota(t *testing.T) {
+	negQuota := resource.MustParse("-1000Mi")
+	nodeCfg := configapi.NodeConfig{
+		VolumeConfig: configapi.VolumeConfig{
+			LocalQuota: configapi.LocalQuota{
+				PerFSGroup: &negQuota,
+			},
+		},
+	}
+	errs := ValidateNodeConfig(&nodeCfg, nil)
+	// This will result in several errors, one of them should be related to the
+	// project empty dir quota:
+	var emptyDirQuotaError *field.Error
+	for _, err := range errs.Errors {
+		t.Logf("Found error: %s", err.Field)
+		if err.Field == "volumeConfig.localQuota.perFSGroup" {
+			emptyDirQuotaError = err
+		}
+	}
+	if emptyDirQuotaError == nil {
+		t.Fatalf("expected volumeConfig.localQuota.perFSGroup error but got none")
+	}
+	if emptyDirQuotaError.Type != field.ErrorTypeInvalid {
+		t.Errorf("unexpected error for negative volumeConfig.localQuota.perFSGroup: %s", emptyDirQuotaError.Detail)
 	}
 }

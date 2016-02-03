@@ -1,6 +1,7 @@
 package api
 
 import (
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -116,6 +117,23 @@ type NodeConfig struct {
 
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
+
+	// VolumeConfig contains options for configuring volumes on the node.
+	VolumeConfig VolumeConfig
+}
+
+// VolumeConfig contains options for configuring volumes on the node.
+type VolumeConfig struct {
+	// LocalQuota contains options for controlling local volume quota on the node.
+	LocalQuota LocalQuota
+}
+
+// LocalQuota contains options for controlling local volume quota on the node.
+type LocalQuota struct {
+	// PerFSGroup can be specified to enable a quota on local storage use per unique FSGroup ID.
+	// At present this is only implemented for emptyDir volumes, and if the underlying
+	// volumeDirectory is on an XFS filesystem.
+	PerFSGroup *resource.Quantity
 }
 
 // NodeNetworkConfig provides network options for the node
