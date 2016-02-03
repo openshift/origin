@@ -9,7 +9,6 @@ import (
 
 	"github.com/spf13/pflag"
 
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/registry/service/ipallocator"
@@ -628,11 +627,11 @@ func getPort(theURL url.URL) int {
 
 // applyDefaults roundtrips the config to v1 and back to ensure proper defaults are set.
 func applyDefaults(config runtime.Object, version unversioned.GroupVersion) (runtime.Object, error) {
-	ext, err := kapi.Scheme.ConvertToVersion(config, version.String())
+	ext, err := configapi.Scheme.ConvertToVersion(config, version.String())
 	if err != nil {
 		return nil, err
 	}
-	return kapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion.String())
+	return configapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion.String())
 }
 
 func servingInfoForAddr(addr *flagtypes.Addr) configapi.ServingInfo {

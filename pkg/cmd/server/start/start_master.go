@@ -239,6 +239,7 @@ func (o MasterOptions) RunMaster() error {
 
 		content, err := configapilatest.WriteYAML(masterConfig)
 		if err != nil {
+
 			return err
 		}
 

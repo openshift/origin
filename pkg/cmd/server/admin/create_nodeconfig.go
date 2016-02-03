@@ -407,14 +407,12 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		return err
 	}
 
-	groupMeta := registered.GroupOrDie(configapi.GroupName)
-
 	// Roundtrip the config to v1 and back to ensure proper defaults are set.
-	ext, err := kapi.Scheme.ConvertToVersion(config, groupMeta.GroupVersions[0].String())
+	ext, err := configapi.Scheme.ConvertToVersion(config, latestconfigapi.Version.String())
 	if err != nil {
 		return err
 	}
-	internal, err := kapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion.String())
+	internal, err := configapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion.String())
 	if err != nil {
 		return err
 	}
@@ -434,7 +432,7 @@ func (o CreateNodeConfigOptions) MakeNodeJSON(nodeJSONFile string) error {
 	node := &kapi.Node{}
 	node.Name = o.NodeName
 
-	groupMeta := registered.GroupOrDie(configapi.GroupName)
+	groupMeta := registered.GroupOrDie(kapi.GroupName)
 
 	json, err := runtime.Encode(kapi.Codecs.LegacyCodec(groupMeta.GroupVersions[0]), node)
 	if err != nil {

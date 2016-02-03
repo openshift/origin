@@ -5,6 +5,8 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
+var Scheme = runtime.NewScheme()
+
 const GroupName = ""
 
 // SchemeGroupVersion is group version used to register these objects
