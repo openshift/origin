@@ -1,7 +1,6 @@
 package importer
 
 import (
-	"fmt"
 	"net/url"
 	"sync"
 
@@ -11,7 +10,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/credentialprovider"
-	"k8s.io/kubernetes/pkg/util"
 )
 
 var (
@@ -69,31 +67,50 @@ func (s *keyringCredentialStore) Basic(url *url.URL) (string, string) {
 	return basicCredentialsFromKeyring(s.DockerKeyring, url)
 }
 
-func NewCredentialsForSecrets(secrets []kapi.Secret) auth.CredentialStore {
-	return &secretCredentialStore{secrets: secrets}
+func NewCredentialsForSecrets(secrets []kapi.Secret) *SecretCredentialStore {
+	return &SecretCredentialStore{secrets: secrets}
 }
 
-type secretCredentialStore struct {
-	secrets []kapi.Secret
-
-	lock    sync.Mutex
-	keyring credentialprovider.DockerKeyring
+func NewLazyCredentialsForSecrets(secretsFn func() ([]kapi.Secret, error)) *SecretCredentialStore {
+	return &SecretCredentialStore{secretsFn: secretsFn}
 }
 
-func (s *secretCredentialStore) Basic(url *url.URL) (string, string) {
+type SecretCredentialStore struct {
+	lock      sync.Mutex
+	secrets   []kapi.Secret
+	secretsFn func() ([]kapi.Secret, error)
+	err       error
+	keyring   credentialprovider.DockerKeyring
+}
+
+func (s *SecretCredentialStore) Basic(url *url.URL) (string, string) {
 	return basicCredentialsFromKeyring(s.init(), url)
 }
 
-func (s *secretCredentialStore) init() credentialprovider.DockerKeyring {
+func (s *SecretCredentialStore) Err() error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	return s.err
+}
+
+func (s *SecretCredentialStore) init() credentialprovider.DockerKeyring {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if s.keyring != nil {
 		return s.keyring
 	}
+
+	// lazily load the secrets
+	if s.secrets == nil {
+		if s.secretsFn != nil {
+			s.secrets, s.err = s.secretsFn()
+		}
+	}
+
 	// TODO: need a version of this that is best effort secret - otherwise one error blocks all secrets
 	keyring, err := credentialprovider.MakeDockerKeyring(s.secrets, emptyKeyring)
 	if err != nil {
-		util.HandleError(fmt.Errorf("unable to create Docker registry pull credentials for secrets: %v", err))
+		s.err = err
 		keyring = emptyKeyring
 	}
 	s.keyring = keyring

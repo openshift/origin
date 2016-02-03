@@ -340,6 +340,16 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		glog.Fatalf("Unable to configure Kubelet client: %v", err)
 	}
 
+	// TODO: allow the system CAs and the local CAs to be joined together.
+	importTransport, err := kclient.TransportFor(&kclient.Config{})
+	if err != nil {
+		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
+	}
+	insecureImportTransport, err := kclient.TransportFor(&kclient.Config{Insecure: true})
+	if err != nil {
+		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
+	}
+
 	buildStorage, buildDetailsStorage := buildetcd.NewREST(c.EtcdHelper)
 	buildRegistry := buildregistry.NewRegistry(buildStorage)
 
@@ -398,7 +408,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	importerDockerClientFn := func() dockerregistry.Client {
 		return dockerregistry.NewClient(20*time.Second, false)
 	}
-	imageStreamImportStorage := imagestreamimport.NewREST(importerFn, imageStreamRegistry, internalImageStreamStorage, imageStorage, c.ImageStreamImportSecretClient(), importerDockerClientFn)
+	imageStreamImportStorage := imagestreamimport.NewREST(importerFn, imageStreamRegistry, internalImageStreamStorage, imageStorage, c.ImageStreamImportSecretClient(), importTransport, insecureImportTransport, importerDockerClientFn)
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
 

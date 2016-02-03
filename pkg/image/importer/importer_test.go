@@ -72,7 +72,7 @@ func (r *mockRepository) GetByTag(tag string, options ...distribution.ManifestSe
 }
 
 func TestImportNothing(t *testing.T) {
-	ctx := NewContext(http.DefaultTransport).WithCredentials(NoCredentials)
+	ctx := NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(NoCredentials)
 	isi := &api.ImageStreamImport{}
 	i := NewImageStreamImporter(ctx, 5, nil)
 	if err := i.Import(nil, isi); err != nil {

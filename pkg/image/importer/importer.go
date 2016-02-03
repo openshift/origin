@@ -305,6 +305,7 @@ func applyErrorToRepository(repository *importRepository, err error) {
 // importRepositoryFromDocker loads the tags and images requested in the passed importRepository, obeying the
 // optional rate limiter.  Errors are set onto the individual tags and digest objects.
 func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetriever, repository *importRepository, limiter util.RateLimiter) {
+	glog.V(5).Infof("importing remote Docker repository registry=%s repository=%s insecure=%t", repository.Registry, repository.Name, repository.Insecure)
 	// retrieve the repository
 	repo, err := retriever.Repository(ctx, repository.Registry, repository.Name, repository.Insecure)
 	if err != nil {
@@ -606,16 +607,18 @@ func invalidStatus(position string, errs ...*field.Error) unversioned.Status {
 }
 
 // NewContext is capable of creating RepositoryRetrievers.
-func NewContext(transport http.RoundTripper) Context {
+func NewContext(transport, insecureTransport http.RoundTripper) Context {
 	return Context{
-		Transport:  transport,
-		Challenges: auth.NewSimpleChallengeManager(),
+		Transport:         transport,
+		InsecureTransport: insecureTransport,
+		Challenges:        auth.NewSimpleChallengeManager(),
 	}
 }
 
 type Context struct {
-	Transport  http.RoundTripper
-	Challenges auth.ChallengeManager
+	Transport         http.RoundTripper
+	InsecureTransport http.RoundTripper
+	Challenges        auth.ChallengeManager
 }
 
 func (c Context) WithCredentials(credentials auth.CredentialStore) RepositoryRetriever {
@@ -637,6 +640,10 @@ type repositoryRetriever struct {
 }
 
 func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error) {
+	t := r.context.Transport
+	if insecure && r.context.InsecureTransport != nil {
+		t = r.context.InsecureTransport
+	}
 	src := *registry
 	// ping the registry to get challenge headers
 	if err, ok := r.pings[src]; ok {
@@ -647,7 +654,7 @@ func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.UR
 			src = *redirect
 		}
 	} else {
-		redirect, err := r.ping(src, insecure)
+		redirect, err := r.ping(src, insecure, t)
 		r.pings[src] = err
 		if err != nil {
 			return nil, err
@@ -659,20 +666,21 @@ func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.UR
 	}
 
 	rt := transport.NewTransport(
-		r.context.Transport,
+		t,
 		// TODO: slightly smarter authorizer that retries unauthenticated requests
+		// TODO: make multiple attempts if the first credential fails
 		auth.NewAuthorizer(
 			r.context.Challenges,
-			auth.NewTokenHandler(r.context.Transport, r.credentials, repoName, "pull"),
+			auth.NewTokenHandler(t, r.credentials, repoName, "pull"),
 			auth.NewBasicHandler(r.credentials),
 		),
 	)
 	return registryclient.NewRepository(context.Context(ctx), repoName, src.String(), rt)
 }
 
-func (r *repositoryRetriever) ping(registry url.URL, insecure bool) (*url.URL, error) {
+func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport http.RoundTripper) (*url.URL, error) {
 	pingClient := &http.Client{
-		Transport: r.context.Transport,
+		Transport: transport,
 		Timeout:   15 * time.Second,
 	}
 	target := registry
@@ -686,7 +694,7 @@ func (r *repositoryRetriever) ping(registry url.URL, insecure bool) (*url.URL, e
 		if insecure && registry.Scheme == "https" {
 			glog.V(5).Infof("Falling back to an HTTP check for an insecure registry %s: %v", registry, err)
 			registry.Scheme = "http"
-			_, nErr := r.ping(registry, true)
+			_, nErr := r.ping(registry, true, transport)
 			if nErr != nil {
 				return nil, err
 			}
