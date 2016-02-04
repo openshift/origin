@@ -314,31 +314,15 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		}
 		tagGen := tag.Generation
 		if is.Generation != expectedGen || tagGen == nil || *tagGen != expectedGen {
-			t.Fatalf("expected generation %d for stream and spec tag: %v %#v", expectedGen, tagGen, is)
+			t.Fatalf("expected generation %d for stream and spec tag: %d %#v", expectedGen, *tagGen, is)
 		}
-
+		if len(is.Status.Tags["latest"].Conditions) > 0 {
+			t.Fatalf("incorrect conditions: %#v", is.Status.Tags["latest"].Conditions)
+		}
 		if !api.HasTagCondition(is, "other", api.TagEventCondition{Type: api.ImportSuccess, Status: kapi.ConditionFalse, Reason: "Unauthorized"}) {
 			t.Fatalf("incorrect condition: %#v", is.Status.Tags["other"].Conditions)
 		}
 	}
-
-	/*
-		tagEvent = api.LatestTaggedImage(is, "other")
-		if tagEvent == nil {
-			t.Fatalf("no image tagged for latest: %#v", is)
-		}
-		if tagEvent == nil || tagEvent.Image != phpDigest || tagEvent.Generation != 1 || tagEvent.DockerImageReference != url1.Host+"/test/image2@"+etcdDigest {
-			t.Fatalf("expected the etcd image to be tagged: %#v", tagEvent)
-		}
-		tag, ok = is.Spec.Tags["other"]
-		if !ok {
-			t.Fatalf("object at generation %d did not have tag latest: %#v", is.Generation)
-		}
-		tagGen = tag.Generation
-		if is.Generation != 1 || tagGen == nil || *tagGen != 1 {
-			t.Fatalf("expected generation 1 for stream and spec tag: %v %#v", tagGen, is)
-		}
-	*/
 }
 
 // Verifies that the import scheduler fetches an image repeatedly (every 1s as per the default

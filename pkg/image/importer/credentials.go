@@ -110,6 +110,7 @@ func (s *SecretCredentialStore) init() credentialprovider.DockerKeyring {
 	// TODO: need a version of this that is best effort secret - otherwise one error blocks all secrets
 	keyring, err := credentialprovider.MakeDockerKeyring(s.secrets, emptyKeyring)
 	if err != nil {
+		glog.V(5).Infof("Loading keyring failed for credential store: %v", err)
 		s.err = err
 		keyring = emptyKeyring
 	}
@@ -117,13 +118,19 @@ func (s *SecretCredentialStore) init() credentialprovider.DockerKeyring {
 	return keyring
 }
 
-func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, url *url.URL) (string, string) {
+func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, target *url.URL) (string, string) {
 	// TODO: compare this logic to Docker authConfig in v2 configuration
-	value := url.Host + url.Path
+	value := target.Host + target.Path
 	configs, found := keyring.Lookup(value)
 	if !found || len(configs) == 0 {
-		glog.V(5).Infof("Unable to find a secret to match %s (%s)", url, value)
+		// do a special case check for docker.io to match historical lookups when we respond to a challenge
+		if value == "auth.docker.io/token" {
+			glog.V(5).Infof("Being asked for %s, trying %s for legacy behavior", target, "index.docker.io/v1")
+			return basicCredentialsFromKeyring(keyring, &url.URL{Host: "index.docker.io", Path: "/v1"})
+		}
+		glog.V(5).Infof("Unable to find a secret to match %s (%s)", target, value)
 		return "", ""
 	}
+	glog.V(5).Infof("Found secret to match %s (%s): %s", target, value, configs[0].ServerAddress)
 	return configs[0].Username, configs[0].Password
 }
