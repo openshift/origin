@@ -207,6 +207,10 @@
                       <em ng-if="!container.env.length">The container specification has no environment variables set.</em>
                     </div>
                   </uib-tab>
+                  <uib-tab active="selectedTab.events">
+                    <uib-tab-heading>Events</uib-tab-heading>
+                    <events resource-kind="DeploymentConfig" resource-name="{{deploymentConfig.metadata.name}}" project-context="projectContext" ng-if="selectedTab.events"></events>
+                  </uib-tab>
                 </uib-tabset>
               </div><!-- /col-* -->
             </div>

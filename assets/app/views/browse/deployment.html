@@ -79,12 +79,16 @@
                       follow-affix-bottom="90"
                       resource="deploymentconfigs/log"
                       name="deploymentConfigName"
-                      context="logContext"
+                      context="projectContext"
                       options="logOptions"
                       status="deployment | deploymentStatus"
                       start="deployment.metadata.creationTimestamp | date : 'short'"
                       run="logCanRun">
                     </log-viewer>
+                  </uib-tab>
+                  <uib-tab active="selectedTab.events">
+                    <uib-tab-heading>Events</uib-tab-heading>
+                    <events resource-kind="ReplicationController" resource-name="{{deployment.metadata.name}}" project-context="projectContext" ng-if="selectedTab.events"></events>
                   </uib-tab>
                 </uib-tabset>
               </div><!-- /col-* -->
