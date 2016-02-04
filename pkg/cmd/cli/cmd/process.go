@@ -42,6 +42,9 @@ output to the create command over STDIN (using the '-f -' option) or redirect it
   # Convert stored template into resource list
   $ %[1]s process foo
 
+  # Convert stored template into resource list by setting/overriding parameter values
+  $ %[1]s process foo PARM1=VALUE1 PARM2=VALUE2
+
   # Convert template stored in different namespace into a resource list
   $ %[1]s process openshift//foo
 
@@ -81,9 +84,17 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 
 // RunProject contains all the necessary functionality for the OpenShift cli process command
 func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	templateName := ""
-	if len(args) > 0 {
-		templateName = args[0]
+	templateName, valueArgs := "", []string{}
+	for _, s := range args {
+		isValue := strings.Contains(s, "=")
+		switch {
+		case isValue:
+			valueArgs = append(valueArgs, s)
+		case !isValue && len(templateName) == 0:
+			templateName = s
+		case !isValue && len(templateName) > 0:
+			return kcmdutil.UsageError(cmd, "template name must be specified only once: %s", s)
+		}
 	}
 
 	filename := kcmdutil.GetFlagString(cmd, "filename")
@@ -204,8 +215,10 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		// Override the values for the current template parameters
 		// when user specify the --value
 		if cmd.Flag("value").Changed {
-			injectUserVars(cmd, obj)
+			values := kcmdutil.GetFlagStringSlice(cmd, "value")
+			injectUserVars(values, out, obj)
 		}
+		injectUserVars(valueArgs, out, obj)
 
 		resultObj, err := client.TemplateConfigs(namespace).Create(obj)
 		if err != nil {
@@ -260,12 +273,11 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 }
 
 // injectUserVars injects user specified variables into the Template
-func injectUserVars(cmd *cobra.Command, t *api.Template) {
-	values := kcmdutil.GetFlagStringSlice(cmd, "value")
+func injectUserVars(values []string, out io.Writer, t *api.Template) {
 	for _, keypair := range values {
 		p := strings.SplitN(keypair, "=", 2)
 		if len(p) != 2 {
-			fmt.Fprintf(cmd.Out(), "invalid parameter assignment in %q: %q\n", t.Name, keypair)
+			fmt.Fprintf(out, "invalid parameter assignment in %q: %q\n", t.Name, keypair)
 			continue
 		}
 		if v := template.GetParameterByName(t, p[0]); v != nil {
@@ -273,7 +285,7 @@ func injectUserVars(cmd *cobra.Command, t *api.Template) {
 			v.Generate = ""
 			template.AddParameter(t, *v)
 		} else {
-			fmt.Fprintf(cmd.Out(), "unknown parameter name %q\n", p[0])
+			fmt.Fprintf(out, "unknown parameter name %q\n", p[0])
 		}
 	}
 }

@@ -33,6 +33,14 @@ os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestboo
 # Individually specified parameter values are honored
 os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json -v ADMIN_USERNAME=myuser -v ADMIN_PASSWORD=mypassword' '"myuser"'
 os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json -v ADMIN_USERNAME=myuser -v ADMIN_PASSWORD=mypassword' '"mypassword"'
+# Argument values are honored
+os::cmd::expect_success_and_text 'oc process ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword -f test/templates/fixtures/guestbook.json'       '"myuser"'
+os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword'       '"mypassword"'
+# Argument values with commas are honored
+os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json'
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample MYSQL_USER=myself MYSQL_PASSWORD=my,1%pass'  '"myself"'
+os::cmd::expect_success_and_text 'oc process MYSQL_USER=myself MYSQL_PASSWORD=my,1%pass ruby-helloworld-sample'  '"my,1%pass"'
+os::cmd::expect_success 'oc delete template ruby-helloworld-sample'
 echo "template+parameters: ok"
 
 # Run as cluster-admin to allow choosing any supplemental groups we want
