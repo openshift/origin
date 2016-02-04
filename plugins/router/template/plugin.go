@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"text/template"
+	"time"
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -33,6 +34,7 @@ type TemplatePluginConfig struct {
 	WorkingDir         string
 	TemplatePath       string
 	ReloadScriptPath   string
+	ReloadInterval     time.Duration
 	DefaultCertificate string
 	StatsPort          int
 	StatsUsername      string
@@ -53,7 +55,7 @@ type routerInterface interface {
 	// FindServiceUnit finds the service with the given id.
 	FindServiceUnit(id string) (v ServiceUnit, ok bool)
 
-	// AddEndpoints adds new Endpoints for the given id.Returns true if a change was made
+	// AddEndpoints adds new Endpoints for the given id. Returns true if a change was made
 	// and the state should be stored with Commit().
 	AddEndpoints(id string, endpoints []Endpoint) bool
 	// DeleteEndpoints deletes the endpoints for the frontend with the given id.
@@ -66,8 +68,9 @@ type routerInterface interface {
 	RemoveRoute(id string, route *routeapi.Route)
 	// Reduce the list of routes to only these namespaces
 	FilterNamespaces(namespaces sets.String)
-	// Commit refreshes the backend and persists the router state.
-	Commit() error
+	// Commit applies the changes in the background. It kicks off a rate-limited
+	// commit (persist router state + refresh the backend) that coalesces multiple changes.
+	Commit()
 }
 
 // NewTemplatePlugin creates a new TemplatePlugin.
@@ -99,6 +102,7 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 		dir:                cfg.WorkingDir,
 		templates:          templates,
 		reloadScriptPath:   cfg.ReloadScriptPath,
+		reloadInterval:     cfg.ReloadInterval,
 		defaultCertificate: cfg.DefaultCertificate,
 		statsUser:          cfg.StatsUsername,
 		statsPassword:      cfg.StatsPassword,
@@ -130,7 +134,7 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 		key := endpointsKey(endpoints)
 		commit := p.Router.AddEndpoints(key, routerEndpoints)
 		if commit {
-			return p.Router.Commit()
+			p.Router.Commit()
 		}
 	}
 
@@ -156,12 +160,12 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 		glog.V(4).Infof("Modifying routes for %s", key)
 		commit := p.Router.AddRoute(key, route, host)
 		if commit {
-			return p.Router.Commit()
+			p.Router.Commit()
 		}
 	case watch.Deleted:
 		glog.V(4).Infof("Deleting routes for %s", key)
 		p.Router.RemoveRoute(key, route)
-		return p.Router.Commit()
+		p.Router.Commit()
 	}
 	return nil
 }
@@ -170,7 +174,8 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 // the provided namespace list.
 func (p *TemplatePlugin) HandleNamespaces(namespaces sets.String) error {
 	p.Router.FilterNamespaces(namespaces)
-	return p.Router.Commit()
+	p.Router.Commit()
+	return nil
 }
 
 // routeKey returns the internal router key to use for the given Route.

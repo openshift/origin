@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -16,9 +17,12 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/runtime"
+	utilerrs "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -374,7 +378,7 @@ func TestResolve(t *testing.T) {
 					Value: "mysql:invalid",
 					Resolver: app.UniqueExactOrInexactMatchResolver{
 						Searcher: app.DockerRegistrySearcher{
-							Client: dockerregistry.NewClient(10 * time.Second),
+							Client: dockerregistry.NewClient(10*time.Second, true),
 						},
 					},
 				})},
@@ -432,7 +436,7 @@ func TestDetectSource(t *testing.T) {
 	defer os.RemoveAll(gitLocalDir)
 
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10 * time.Second),
+		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
 	mocks := MockSourceRepositories(t, gitLocalDir)
 	tests := []struct {
@@ -491,10 +495,12 @@ func mapContains(a, b map[string]string) bool {
 
 // ExactMatchDockerSearcher returns a match with the value that was passed in
 // and a march score of 0.0(exact)
-type ExactMatchDockerSearcher struct{}
+type ExactMatchDockerSearcher struct {
+	Errs []error
+}
 
 // Search always returns a match for every term passed in
-func (r *ExactMatchDockerSearcher) Search(terms ...string) (app.ComponentMatches, error) {
+func (r *ExactMatchDockerSearcher) Search(precise bool, terms ...string) (app.ComponentMatches, []error) {
 	matches := app.ComponentMatches{}
 	for _, value := range terms {
 		matches = append(matches, &app.ComponentMatch{
@@ -505,13 +511,13 @@ func (r *ExactMatchDockerSearcher) Search(terms ...string) (app.ComponentMatches
 			Score:       0.0,
 		})
 	}
-	return matches, nil
+	return matches, r.Errs
 }
 
 func TestRunAll(t *testing.T) {
 	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10 * time.Second),
+		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
 	tests := []struct {
 		name            string
@@ -519,6 +525,7 @@ func TestRunAll(t *testing.T) {
 		expected        map[string][]string
 		expectedName    string
 		expectedErr     error
+		errFn           func(error) bool
 		expectInsecure  sets.String
 		expectedVolumes map[string]string
 		checkPort       string
@@ -868,6 +875,51 @@ func TestRunAll(t *testing.T) {
 			expectedName: "custom",
 			expectedErr:  nil,
 		},
+		{
+			name: "partial matches",
+			config: &AppConfig{
+				DockerImages: []string{"mysql"},
+				dockerSearcher: app.DockerClientSearcher{
+					RegistrySearcher: &ExactMatchDockerSearcher{Errs: []error{errors.NewInternalError(fmt.Errorf("test error"))}},
+				},
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client: client.NewSimpleFake(&unversioned.Status{
+						Status: unversioned.StatusFailure,
+						Code:   http.StatusInternalServerError,
+						Reason: unversioned.StatusReasonInternalError,
+					}),
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+				Name:            "custom",
+			},
+			expected: map[string][]string{
+				"imageStream":      {"custom"},
+				"deploymentConfig": {"custom"},
+				"service":          {"custom"},
+			},
+			expectedName: "custom",
+			errFn: func(err error) bool {
+				err = err.(utilerrs.Aggregate).Errors()[0]
+				match, ok := err.(app.ErrNoMatch)
+				if !ok {
+					return false
+				}
+				if match.Value != "mysql" {
+					return false
+				}
+				t.Logf("%#v", match.Errs[0])
+				return len(match.Errs) == 1 && strings.Contains(match.Errs[0].Error(), "test error")
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -875,8 +927,16 @@ func TestRunAll(t *testing.T) {
 		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
 		test.config.Deploy = true
 		res, err := test.config.Run()
-		if err != test.expectedErr {
+		if test.errFn != nil {
+			if !test.errFn(err) {
+				t.Errorf("%s: Error mismatch! Unexpected error: %#v", test.name, err)
+				continue
+			}
+		} else if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
+			continue
+		}
+		if err != nil {
 			continue
 		}
 		if res.Name != test.expectedName {
@@ -1002,6 +1062,7 @@ func TestRunBuilds(t *testing.T) {
 		checkResult func(*AppResult) error
 		checkOutput func(stdout, stderr io.Reader) error
 	}{
+
 		{
 			name: "successful ruby app generation",
 			config: &AppConfig{
@@ -1210,6 +1271,116 @@ func TestRunBuilds(t *testing.T) {
 				return err.Error() == "--dockerfile cannot be used with multiple source repositories"
 			},
 		},
+
+		{
+			name: "successful input image source build with a repository",
+			config: &AppConfig{
+				SourceRepositories: []string{
+					"https://github.com/openshift/ruby-hello-world",
+				},
+				SourceImage:     "centos/mongodb-26-centos7",
+				SourceImagePath: "/src:dst",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"ruby-hello-world"},
+				"imageStream": {"mongodb-26-centos7", "ruby-22-centos7", "ruby-hello-world"},
+			},
+			checkResult: func(res *AppResult) error {
+				var bc *buildapi.BuildConfig
+				for _, item := range res.List.Items {
+					switch v := item.(type) {
+					case *buildapi.BuildConfig:
+						if bc != nil {
+							return fmt.Errorf("want one BuildConfig got multiple: %#v", res.List.Items)
+						}
+						bc = v
+					}
+				}
+				if bc == nil {
+					return fmt.Errorf("want one BuildConfig got none: %#v", res.List.Items)
+				}
+				var got string
+
+				want := "mongodb-26-centos7:latest"
+				got = bc.Spec.Source.Images[0].From.Name
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.From.Name = %q; want %q", got, want)
+				}
+
+				want = "ImageStreamTag"
+				got = bc.Spec.Source.Images[0].From.Kind
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.From.Kind = %q; want %q", got, want)
+				}
+
+				want = "/src"
+				got = bc.Spec.Source.Images[0].Paths[0].SourcePath
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.Paths[0].SourcePath = %q; want %q", got, want)
+				}
+
+				want = "dst"
+				got = bc.Spec.Source.Images[0].Paths[0].DestinationDir
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.Paths[0].DestinationDir = %q; want %q", got, want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "successful input image source build with no repository",
+			config: &AppConfig{
+				Components:      []string{"centos/mysql-56-centos7"},
+				To:              "outputimage",
+				SourceImage:     "centos/mongodb-26-centos7",
+				SourceImagePath: "/src:dst",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"outputimage"},
+				"imageStream": {"mongodb-26-centos7", "mysql-56-centos7", "outputimage"},
+			},
+			checkResult: func(res *AppResult) error {
+				var bc *buildapi.BuildConfig
+				for _, item := range res.List.Items {
+					switch v := item.(type) {
+					case *buildapi.BuildConfig:
+						if bc != nil {
+							return fmt.Errorf("want one BuildConfig got multiple: %#v", res.List.Items)
+						}
+						bc = v
+					}
+				}
+				if bc == nil {
+					return fmt.Errorf("want one BuildConfig got none: %#v", res.List.Items)
+				}
+				var got string
+
+				want := "mongodb-26-centos7:latest"
+				got = bc.Spec.Source.Images[0].From.Name
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.From.Name = %q; want %q", got, want)
+				}
+
+				want = "ImageStreamTag"
+				got = bc.Spec.Source.Images[0].From.Kind
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.From.Kind = %q; want %q", got, want)
+				}
+
+				want = "/src"
+				got = bc.Spec.Source.Images[0].Paths[0].SourcePath
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.Paths[0].SourcePath = %q; want %q", got, want)
+				}
+
+				want = "dst"
+				got = bc.Spec.Source.Images[0].Paths[0].DestinationDir
+				if got != want {
+					return fmt.Errorf("bc.Spec.Source.Image.Paths[0].DestinationDir = %q; want %q", got, want)
+				}
+				return nil
+			},
+		},
 	}
 	for _, test := range tests {
 		stdout, stderr := PrepareAppConfig(test.config)
@@ -1278,13 +1449,9 @@ func PrepareAppConfig(config *AppConfig) (stdout, stderr *bytes.Buffer) {
 		Tester:    dockerfile.NewTester(),
 	}
 	config.dockerSearcher = app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10 * time.Second),
+		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
-	config.imageStreamByAnnotationSearcher = &app.ImageStreamByAnnotationSearcher{
-		Client:            &client.Fake{},
-		ImageStreamImages: &client.Fake{},
-		Namespaces:        []string{"default"},
-	}
+	config.imageStreamByAnnotationSearcher = fakeImageStreamSearcher()
 	config.imageStreamSearcher = fakeImageStreamSearcher()
 	config.originNamespace = "default"
 	config.osclient = &client.Fake{}
@@ -1301,7 +1468,7 @@ func PrepareAppConfig(config *AppConfig) (stdout, stderr *bytes.Buffer) {
 func TestNewBuildEnvVars(t *testing.T) {
 	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10 * time.Second),
+		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
 
 	tests := []struct {
@@ -1360,17 +1527,18 @@ func TestNewBuildEnvVars(t *testing.T) {
 	}
 }
 
-func TestNewAppBuildConfigEnvVars(t *testing.T) {
+func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 	skipExternalGit(t)
 	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10 * time.Second),
+		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
 
 	tests := []struct {
-		name        string
-		config      *AppConfig
-		expected    []kapi.EnvVar
-		expectedErr error
+		name            string
+		config          *AppConfig
+		expected        []kapi.EnvVar
+		expectedSecrets map[string]string
+		expectedErr     error
 	}{
 		{
 			name: "explicit environment variables for buildConfig and deploymentConfig",
@@ -1379,6 +1547,7 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 				DockerImages:       []string{"centos/ruby-22-centos7", "centos/mongodb-26-centos7"},
 				OutputDocker:       true,
 				Environment:        []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
+				Secrets:            []string{"foo:/var", "bar"},
 				dockerSearcher:     dockerSearcher,
 				detector: app.SourceRepositoryEnumerator{
 					Detectors: source.DefaultDetectors,
@@ -1388,8 +1557,9 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 				osclient:        &client.Fake{},
 				originNamespace: "default",
 			},
-			expected:    []kapi.EnvVar{},
-			expectedErr: nil,
+			expected:        []kapi.EnvVar{},
+			expectedSecrets: map[string]string{"foo": "/var", "bar": "."},
+			expectedErr:     nil,
 		},
 	}
 
@@ -1403,11 +1573,27 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 			continue
 		}
 		got := []kapi.EnvVar{}
+		gotSecrets := []buildapi.SecretBuildSource{}
 		for _, obj := range res.List.Items {
 			switch tp := obj.(type) {
 			case *buildapi.BuildConfig:
 				got = tp.Spec.Strategy.SourceStrategy.Env
+				gotSecrets = tp.Spec.Source.Secrets
 				break
+			}
+		}
+
+		for secretName, destDir := range test.expectedSecrets {
+			found := false
+			for _, got := range gotSecrets {
+				if got.Secret.Name == secretName && got.DestinationDir == destDir {
+					found = true
+					continue
+				}
+			}
+			if !found {
+				t.Errorf("expected secret %q and destination %q, got %#v", secretName, destDir, gotSecrets)
+				continue
 			}
 		}
 

@@ -6,7 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/api/validation"
@@ -104,6 +104,6 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 }
 
 func newInvalidDeploymentError(rollback *deployapi.DeploymentConfigRollback, reason string) error {
-	err := fielderrors.NewFieldInvalid("spec.from.name", rollback.Spec.From.Name, reason)
-	return kerrors.NewInvalid("DeploymentConfigRollback", "", fielderrors.ValidationErrorList{err})
+	err := field.Invalid(field.NewPath("spec").Child("from").Child("name"), rollback.Spec.From.Name, reason)
+	return kerrors.NewInvalid("DeploymentConfigRollback", "", field.ErrorList{err})
 }

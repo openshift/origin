@@ -1,8 +1,7 @@
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -14,7 +13,7 @@ type RoleBindingsNamespacer interface {
 
 // RoleBindingInterface exposes methods on RoleBinding resources.
 type RoleBindingInterface interface {
-	List(label labels.Selector, field fields.Selector) (*authorizationapi.RoleBindingList, error)
+	List(opts kapi.ListOptions) (*authorizationapi.RoleBindingList, error)
 	Get(name string) (*authorizationapi.RoleBinding, error)
 	Create(roleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error)
 	Update(roleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error)
@@ -36,9 +35,9 @@ func newRoleBindings(c *Client, namespace string) *roleBindings {
 }
 
 // List returns a list of roleBindings that match the label and field selectors.
-func (c *roleBindings) List(label labels.Selector, field fields.Selector) (result *authorizationapi.RoleBindingList, err error) {
+func (c *roleBindings) List(opts kapi.ListOptions) (result *authorizationapi.RoleBindingList, err error) {
 	result = &authorizationapi.RoleBindingList{}
-	err = c.r.Get().Namespace(c.ns).Resource("roleBindings").LabelsSelectorParam(label).FieldsSelectorParam(field).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("roleBindings").VersionedParams(&opts, kapi.Scheme).Do().Into(result)
 	return
 }
 

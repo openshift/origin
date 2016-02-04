@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 
+	. "github.com/MakeNowJust/heredoc/dot"
 	"github.com/spf13/cobra"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/errors"
@@ -48,7 +50,13 @@ You can use '%[1]s status' to check the progress.`
   $ %[1]s new-build -D $'FROM centos:7\nRUN yum install -y httpd'
 
   # Create a build config from a remote repository and add custom environment variables
-  $ %[1]s new-build https://github.com/openshift/ruby-hello-world RACK_ENV=development`
+  $ %[1]s new-build https://github.com/openshift/ruby-hello-world RACK_ENV=development
+
+  # Create a build config from a remote repository and inject the npmrc into a build
+  $ %[1]s new-build https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
+  
+  # Create a build config that gets its input from a remote repository and another Docker image
+  $ %[1]s new-build https://github.com/openshift/ruby-hello-world --source-image=openshift/jenkins-1-centos7 --source-image-path=/var/lib/jenkins:tmp`
 
 	newBuildNoInput = `You must specify one or more images, image streams, or source code locations to create a build.
 
@@ -97,6 +105,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd.Flags().StringSliceVar(&config.SourceRepositories, "code", config.SourceRepositories, "Source code in the build configuration.")
 	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image", "i", config.ImageStreams, "Name of an image stream to to use as a builder.")
 	cmd.Flags().StringSliceVar(&config.DockerImages, "docker-image", config.DockerImages, "Name of a Docker image to use as a builder.")
+	cmd.Flags().StringSliceVar(&config.Secrets, "build-secret", config.Secrets, "Secret and destination to use as an input for the build.")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated build artifacts.")
 	cmd.Flags().StringVar(&config.To, "to", "", "Push built images to this image stream tag (or Docker image repository if --to-docker is set).")
 	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")
@@ -109,6 +118,8 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
 	cmd.Flags().BoolVar(&config.DryRun, "dry-run", false, "If true, do not actually create resources.")
 	cmd.Flags().BoolVar(&config.NoOutput, "no-output", false, "If true, the build output will not be pushed anywhere.")
+	cmd.Flags().StringVar(&config.SourceImage, "source-image", "", "Specify an image to use as source for the build.  You must also specify --source-image-path.")
+	cmd.Flags().StringVar(&config.SourceImagePath, "source-image-path", "", "Specify the file or directory to copy from the source image and its destination in the build directory. Format: [source]:[destination-dir].")
 	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd
@@ -195,33 +206,46 @@ func handleBuildError(c *cobra.Command, err error, fullName string) error {
 	if err == nil {
 		return nil
 	}
-	if errs, ok := err.(errors.Aggregate); ok {
-		if len(errs.Errors()) == 1 {
-			err = errs.Errors()[0]
-		}
+	errs := []error{err}
+	if agg, ok := err.(errors.Aggregate); ok {
+		errs = agg.Errors()
 	}
+	groups := errorGroups{}
+	for _, err := range errs {
+		transformBuildError(err, c, fullName, groups)
+	}
+	buf := &bytes.Buffer{}
+	for _, group := range groups {
+		fmt.Fprint(buf, cmdutil.MultipleErrors("error: ", group.errs))
+		if len(group.suggestion) > 0 {
+			fmt.Fprintln(buf)
+		}
+		fmt.Fprint(buf, group.suggestion)
+	}
+	return fmt.Errorf(buf.String())
+}
+
+func transformBuildError(err error, c *cobra.Command, fullName string, groups errorGroups) {
 	switch t := err.(type) {
 	case newapp.ErrNoMatch:
-		return fmt.Errorf(`%[1]v
+		groups.Add(
+			"no-matches",
+			Df(`
+				The '%[1]s' command will match arguments to the following types:
 
-The '%[2]s' command will match arguments to the following types:
+				  1. Images tagged into image streams in the current project or the 'openshift' project
+				     - if you don't specify a tag, we'll add ':latest'
+				  2. Images in the Docker Hub, on remote registries, or on the local Docker engine
+				  3. Git repository URLs or local paths that point to Git repositories
 
-  1. Images tagged into image streams in the current project or the 'openshift' project
-     - if you don't specify a tag, we'll add ':latest'
-  2. Images in the Docker Hub, on remote registries, or on the local Docker engine
-  3. Git repository URLs or local paths that point to Git repositories
+				--allow-missing-images can be used to point to an image that is only on your system
 
---allow-missing-images can be used to point to an image that does not exist yet
-or is only on the local system.
-
-See '%[2]s' for examples.
-`, t, c.Name())
+				See '%[1]s -h' for examples.`, c.CommandPath(),
+			),
+			t,
+			t.Errs...,
+		)
+		return
 	}
-	switch err {
-	case newcmd.ErrNoInputs:
-		// TODO: suggest things to the user
-		return cmdutil.UsageError(c, newBuildNoInput, fullName)
-	default:
-		return err
-	}
+	transformError(err, c, fullName, groups)
 }

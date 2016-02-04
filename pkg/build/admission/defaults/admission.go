@@ -1,0 +1,127 @@
+package defaults
+
+import (
+	"io"
+
+	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/admission"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+
+	buildadmission "github.com/openshift/origin/pkg/build/admission"
+	buildapi "github.com/openshift/origin/pkg/build/api"
+)
+
+func init() {
+	admission.RegisterPlugin("BuildDefaults", func(c kclient.Interface, config io.Reader) (admission.Interface, error) {
+
+		defaultsConfig, err := getConfig(config)
+		if err != nil {
+			return nil, err
+		}
+
+		glog.V(4).Infof("Initializing BuildDefaults plugin with config: %#v", defaultsConfig)
+		return NewBuildDefaults(defaultsConfig), nil
+	})
+}
+
+func getConfig(in io.Reader) (*BuildDefaultsConfig, error) {
+	defaultsConfig := &BuildDefaultsConfig{}
+	err := buildadmission.ReadPluginConfig(in, defaultsConfig)
+	if err != nil {
+		return nil, err
+	}
+	errs := ValidateBuildDefaultsConfig(defaultsConfig)
+	if len(errs) > 0 {
+		return nil, errs.ToAggregate()
+	}
+	return defaultsConfig, nil
+}
+
+type buildDefaults struct {
+	*admission.Handler
+	defaultsConfig *BuildDefaultsConfig
+}
+
+// NewBuildDefaults returns an admission control for builds that sets build defaults
+// based on the plugin configuration
+func NewBuildDefaults(defaultsConfig *BuildDefaultsConfig) admission.Interface {
+	return &buildDefaults{
+		Handler:        admission.NewHandler(admission.Create),
+		defaultsConfig: defaultsConfig,
+	}
+}
+
+// Admit applies configured build defaults to a pod that is identified
+// as a build pod.
+func (a *buildDefaults) Admit(attributes admission.Attributes) error {
+	if a.defaultsConfig == nil {
+		return nil
+	}
+	if !buildadmission.IsBuildPod(attributes) {
+		return nil
+	}
+	build, version, err := buildadmission.GetBuild(attributes)
+	if err != nil {
+		return nil
+	}
+
+	glog.V(4).Infof("Handling build %s/%s", build.Namespace, build.Name)
+
+	a.applyBuildDefaults(build)
+
+	return buildadmission.SetBuild(attributes, build, version)
+}
+
+func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
+	// Apply default env
+	buildEnv := getBuildEnv(build)
+	for _, envVar := range a.defaultsConfig.Env {
+		glog.V(5).Infof("Adding default environment variable %s=%s to build %s/%s", envVar.Name, envVar.Value, build.Namespace, build.Name)
+		addDefaultEnvVar(envVar, buildEnv)
+	}
+
+	// Apply git proxy defaults
+	if build.Spec.Source.Git == nil {
+		return
+	}
+	if len(a.defaultsConfig.GitHTTPProxy) != 0 {
+		if build.Spec.Source.Git.HTTPProxy == nil {
+			t := a.defaultsConfig.GitHTTPProxy
+			glog.V(5).Infof("Setting default Git HTTP proxy of build %s/%s to %s", build.Namespace, build.Name, t)
+			build.Spec.Source.Git.HTTPProxy = &t
+		}
+	}
+
+	if len(a.defaultsConfig.GitHTTPSProxy) != 0 {
+		if build.Spec.Source.Git.HTTPSProxy == nil {
+			t := a.defaultsConfig.GitHTTPSProxy
+			glog.V(5).Infof("Setting default Git HTTPS proxy of build %s/%s to %s", build.Namespace, build.Name, t)
+			build.Spec.Source.Git.HTTPSProxy = &t
+		}
+	}
+}
+
+func getBuildEnv(build *buildapi.Build) *[]kapi.EnvVar {
+	switch {
+	case build.Spec.Strategy.DockerStrategy != nil:
+		return &build.Spec.Strategy.DockerStrategy.Env
+	case build.Spec.Strategy.SourceStrategy != nil:
+		return &build.Spec.Strategy.SourceStrategy.Env
+	case build.Spec.Strategy.CustomStrategy != nil:
+		return &build.Spec.Strategy.CustomStrategy.Env
+	}
+	return nil
+}
+
+func addDefaultEnvVar(v kapi.EnvVar, envVars *[]kapi.EnvVar) {
+	found := false
+	for i := range *envVars {
+		if (*envVars)[i].Name == v.Name {
+			found = true
+		}
+	}
+	if !found {
+		*envVars = append(*envVars, v)
+	}
+}

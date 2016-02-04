@@ -78,10 +78,10 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	imageWithMetadata, err := api.ImageWithMetadata(*image)
-	if err != nil {
+	if err := api.ImageWithMetadata(image); err != nil {
 		return nil, err
 	}
+	image.DockerImageManifest = ""
 
 	if d, err := digest.ParseDigest(imageName); err == nil {
 		imageName = d.Hex()
@@ -95,7 +95,7 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 			Namespace: kapi.NamespaceValue(ctx),
 			Name:      fmt.Sprintf("%s@%s", name, imageName),
 		},
-		Image: *imageWithMetadata,
+		Image: *image,
 	}
 
 	return &isi, nil

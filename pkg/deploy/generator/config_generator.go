@@ -5,9 +5,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -31,7 +31,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 
 	// Update the containers with new images based on defined triggers
 	configChanged := false
-	errs := fielderrors.ValidationErrorList{}
+	errs := field.ErrorList{}
 	causes := []*deployapi.DeploymentCause{}
 	for i, trigger := range config.Spec.Triggers {
 		params := trigger.ImageChangeParams
@@ -43,24 +43,24 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 
 		name, tag, ok := imageapi.SplitImageStreamTag(params.From.Name)
 		if !ok {
-			f := fmt.Sprintf("triggers[%d].imageChange.from", i)
-			errs = append(errs, fielderrors.NewFieldInvalid(f, name, err.Error()))
+			f := field.NewPath("triggers").Index(i).Child("imageChange", "from")
+			errs = append(errs, field.Invalid(f, name, err.Error()))
 			continue
 		}
 
 		// Find the image repo referred to by the trigger params
 		imageStream, err := g.findImageStream(config, params)
 		if err != nil {
-			f := fmt.Sprintf("triggers[%d].imageChange.from", i)
-			errs = append(errs, fielderrors.NewFieldInvalid(f, name, err.Error()))
+			f := field.NewPath("triggers").Index(i).Child("imageChange", "from")
+			errs = append(errs, field.Invalid(f, name, err.Error()))
 			continue
 		}
 
 		// Find the latest tag event for the trigger tag
 		latestEvent := imageapi.LatestTaggedImage(imageStream, tag)
 		if latestEvent == nil {
-			f := fmt.Sprintf("triggers[%d].imageChange.tag", i)
-			errs = append(errs, fielderrors.NewFieldInvalid(f, tag, fmt.Sprintf("no image recorded for %s/%s:%s", imageStream.Namespace, imageStream.Name, tag)))
+			f := field.NewPath("triggers").Index(i).Child("imageChange", "tag")
+			errs = append(errs, field.Invalid(f, tag, fmt.Sprintf("no image recorded for %s/%s:%s", imageStream.Namespace, imageStream.Name, tag)))
 			continue
 		}
 
@@ -142,7 +142,7 @@ type Client struct {
 	DCFn   func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
 	ISFn   func(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
 	LISFn  func(ctx kapi.Context) (*imageapi.ImageStreamList, error)
-	LISFn2 func(ctx kapi.Context, label labels.Selector) (*imageapi.ImageStreamList, error)
+	LISFn2 func(ctx kapi.Context, options *unversioned.ListOptions) (*imageapi.ImageStreamList, error)
 }
 
 func (c Client) GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
@@ -153,7 +153,7 @@ func (c Client) GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageSt
 }
 func (c Client) ListImageStreams(ctx kapi.Context) (*imageapi.ImageStreamList, error) {
 	if c.LISFn2 != nil {
-		return c.LISFn2(ctx, labels.Everything())
+		return c.LISFn2(ctx, &unversioned.ListOptions{})
 	}
 	return c.LISFn(ctx)
 }

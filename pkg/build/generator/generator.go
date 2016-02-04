@@ -22,6 +22,24 @@ import (
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
+// GeneratorFatalError represents a fatal error while generating a build.
+// An operation that fails because of a fatal error should not be retried.
+type GeneratorFatalError struct {
+	// Reason the fatal error occurred
+	Reason string
+}
+
+// Error returns the error string for this fatal error
+func (e GeneratorFatalError) Error() string {
+	return fmt.Sprintf("fatal error generating Build from BuildConfig: %s", e.Reason)
+}
+
+// IsFatal returns true if err is a fatal error
+func IsFatal(err error) bool {
+	_, isFatal := err.(GeneratorFatalError)
+	return isFatal
+}
+
 // BuildGenerator is a central place responsible for generating new Build objects
 // from BuildConfigs and other Builds.
 type BuildGenerator struct {
@@ -199,6 +217,10 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 		return nil, err
 	}
 
+	if buildutil.IsPaused(bc) {
+		return nil, &GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", bc.Namespace, bc.Name)}
+	}
+
 	if err := g.checkLastVersion(bc, request.LastVersion); err != nil {
 		return nil, err
 	}
@@ -299,6 +321,10 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 		if err != nil && !errors.IsNotFound(err) {
 			return nil, err
 		}
+
+		if buildutil.IsPaused(buildConfig) {
+			return nil, &GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", buildConfig.Namespace, buildConfig.Name)}
+		}
 	}
 
 	newBuild := generateBuildFromBuild(build, buildConfig)
@@ -398,16 +424,18 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	strategyImageChangeTrigger := getStrategyImageChangeTrigger(bc)
 
 	// Resolve image source if present
-	if build.Spec.Source.Image != nil {
-		if build.Spec.Source.Image.PullSecret == nil {
-			build.Spec.Source.Image.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &build.Spec.Source.Image.From, bc.Namespace)
+	for i, sourceImage := range build.Spec.Source.Images {
+		if sourceImage.PullSecret == nil {
+			sourceImage.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &sourceImage.From, bc.Namespace)
 		}
-		sourceImage, err := g.resolveImageStreamReference(ctx, build.Spec.Source.Image.From, bc.Namespace)
+		sourceImageSpec, err := g.resolveImageStreamReference(ctx, sourceImage.From, bc.Namespace)
 		if err != nil {
 			return nil, err
 		}
-		build.Spec.Source.Image.From.Kind = "DockerImage"
-		build.Spec.Source.Image.From.Name = sourceImage
+		sourceImage.From.Kind = "DockerImage"
+		sourceImage.From.Name = sourceImageSpec
+		sourceImage.From.Namespace = ""
+		build.Spec.Source.Images[i] = sourceImage
 	}
 
 	// If the Build is using a From reference instead of a resolved image, we need to resolve that From

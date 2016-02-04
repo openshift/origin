@@ -39,10 +39,6 @@ type describeClient struct {
 	client.Interface
 }
 
-func init() {
-	api.ForTesting_ReferencesAllowBlankSelfLinks = true
-}
-
 func TestDescribePod(t *testing.T) {
 	fake := testclient.NewSimpleFake(&api.Pod{
 		ObjectMeta: api.ObjectMeta{
@@ -89,6 +85,7 @@ func TestPodDescribeResultsSorted(t *testing.T) {
 				FirstTimestamp: unversioned.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
 				LastTimestamp:  unversioned.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
 				Count:          1,
+				Type:           api.EventTypeNormal,
 			},
 			{
 				Source:         api.EventSource{Component: "scheduler"},
@@ -96,6 +93,7 @@ func TestPodDescribeResultsSorted(t *testing.T) {
 				FirstTimestamp: unversioned.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
 				LastTimestamp:  unversioned.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
 				Count:          1,
+				Type:           api.EventTypeNormal,
 			},
 			{
 				Source:         api.EventSource{Component: "kubelet"},
@@ -103,6 +101,7 @@ func TestPodDescribeResultsSorted(t *testing.T) {
 				FirstTimestamp: unversioned.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
 				LastTimestamp:  unversioned.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
 				Count:          1,
+				Type:           api.EventTypeNormal,
 			},
 		},
 	})
@@ -206,7 +205,7 @@ func TestDescribeContainers(t *testing.T) {
 			},
 			expectedElements: []string{"test", "State", "Waiting", "Ready", "True", "Restart Count", "7", "Image", "image"},
 		},
-		//env
+		// Env
 		{
 			container: api.Container{Name: "test", Image: "image", Env: []api.EnvVar{{Name: "envname", Value: "xyz"}}},
 			status: api.ContainerStatus{
@@ -215,6 +214,26 @@ func TestDescribeContainers(t *testing.T) {
 				RestartCount: 7,
 			},
 			expectedElements: []string{"test", "State", "Waiting", "Ready", "True", "Restart Count", "7", "Image", "image", "envname", "xyz"},
+		},
+		// Command
+		{
+			container: api.Container{Name: "test", Image: "image", Command: []string{"sleep", "1000"}},
+			status: api.ContainerStatus{
+				Name:         "test",
+				Ready:        true,
+				RestartCount: 7,
+			},
+			expectedElements: []string{"test", "State", "Waiting", "Ready", "True", "Restart Count", "7", "Image", "image", "sleep", "1000"},
+		},
+		// Args
+		{
+			container: api.Container{Name: "test", Image: "image", Args: []string{"time", "1000"}},
+			status: api.ContainerStatus{
+				Name:         "test",
+				Ready:        true,
+				RestartCount: 7,
+			},
+			expectedElements: []string{"test", "State", "Waiting", "Ready", "True", "Restart Count", "7", "Image", "image", "time", "1000"},
 		},
 		// Using limits.
 		{
@@ -340,53 +359,55 @@ func TestDefaultDescribers(t *testing.T) {
 
 func TestGetPodsTotalRequests(t *testing.T) {
 	testCases := []struct {
-		pods                         []*api.Pod
+		pods                         *api.PodList
 		expectedReqs, expectedLimits map[api.ResourceName]resource.Quantity
 	}{
 		{
-			pods: []*api.Pod{
-				{
-					Spec: api.PodSpec{
-						Containers: []api.Container{
-							{
-								Resources: api.ResourceRequirements{
-									Requests: api.ResourceList{
-										api.ResourceName(api.ResourceCPU):     resource.MustParse("1"),
-										api.ResourceName(api.ResourceMemory):  resource.MustParse("300Mi"),
-										api.ResourceName(api.ResourceStorage): resource.MustParse("1G"),
+			pods: &api.PodList{
+				Items: []api.Pod{
+					{
+						Spec: api.PodSpec{
+							Containers: []api.Container{
+								{
+									Resources: api.ResourceRequirements{
+										Requests: api.ResourceList{
+											api.ResourceName(api.ResourceCPU):     resource.MustParse("1"),
+											api.ResourceName(api.ResourceMemory):  resource.MustParse("300Mi"),
+											api.ResourceName(api.ResourceStorage): resource.MustParse("1G"),
+										},
 									},
 								},
-							},
-							{
-								Resources: api.ResourceRequirements{
-									Requests: api.ResourceList{
-										api.ResourceName(api.ResourceCPU):     resource.MustParse("90m"),
-										api.ResourceName(api.ResourceMemory):  resource.MustParse("120Mi"),
-										api.ResourceName(api.ResourceStorage): resource.MustParse("200M"),
+								{
+									Resources: api.ResourceRequirements{
+										Requests: api.ResourceList{
+											api.ResourceName(api.ResourceCPU):     resource.MustParse("90m"),
+											api.ResourceName(api.ResourceMemory):  resource.MustParse("120Mi"),
+											api.ResourceName(api.ResourceStorage): resource.MustParse("200M"),
+										},
 									},
 								},
 							},
 						},
 					},
-				},
-				{
-					Spec: api.PodSpec{
-						Containers: []api.Container{
-							{
-								Resources: api.ResourceRequirements{
-									Requests: api.ResourceList{
-										api.ResourceName(api.ResourceCPU):     resource.MustParse("60m"),
-										api.ResourceName(api.ResourceMemory):  resource.MustParse("43Mi"),
-										api.ResourceName(api.ResourceStorage): resource.MustParse("500M"),
+					{
+						Spec: api.PodSpec{
+							Containers: []api.Container{
+								{
+									Resources: api.ResourceRequirements{
+										Requests: api.ResourceList{
+											api.ResourceName(api.ResourceCPU):     resource.MustParse("60m"),
+											api.ResourceName(api.ResourceMemory):  resource.MustParse("43Mi"),
+											api.ResourceName(api.ResourceStorage): resource.MustParse("500M"),
+										},
 									},
 								},
-							},
-							{
-								Resources: api.ResourceRequirements{
-									Requests: api.ResourceList{
-										api.ResourceName(api.ResourceCPU):     resource.MustParse("34m"),
-										api.ResourceName(api.ResourceMemory):  resource.MustParse("83Mi"),
-										api.ResourceName(api.ResourceStorage): resource.MustParse("700M"),
+								{
+									Resources: api.ResourceRequirements{
+										Requests: api.ResourceList{
+											api.ResourceName(api.ResourceCPU):     resource.MustParse("34m"),
+											api.ResourceName(api.ResourceMemory):  resource.MustParse("83Mi"),
+											api.ResourceName(api.ResourceStorage): resource.MustParse("700M"),
+										},
 									},
 								},
 							},
@@ -487,7 +508,7 @@ func TestDescribeDeployment(t *testing.T) {
 			Namespace: "foo",
 		},
 		Spec: extensions.DeploymentSpec{
-			Template: &api.PodTemplateSpec{},
+			Template: api.PodTemplateSpec{},
 		},
 	})
 	c := &describeClient{T: t, Namespace: "foo", Interface: fake}

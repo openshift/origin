@@ -1,6 +1,7 @@
 <!doctype html>
-<html class="no-js">
+<html class="no-js layout-pf-alt layout-pf-alt-fixed">
   <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
     <meta charset="utf-8">
     <base href="/">
     <title>OpenShift Web Console</title>
@@ -33,49 +34,8 @@
   </head>
 <body class="console-os">
     <!-- Add your site or application content here -->
-    <nav class="navbar navbar-default navbar-pf" role="navigation">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse-1">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand" id="openshift-logo" href="./">
-          <div id="header-logo"></div>
-        </a>
-      </div>
-      <div class="collapse navbar-collapse navbar-collapse-1">
-        <ul class="nav navbar-nav navbar-utility">
-          <li>
-            <a href="http://docs.openshift.com/enterprise/latest/welcome/index.html">
-            <span class="fa fa-files-o fa-fw"></span> Documentation</a>
-          </li>
-          <li uib-dropdown ng-cloak ng-if="user">
-            <a href="" uib-dropdown-toggle id="user-dropdown">
-              <span class="pficon pficon-user"></span>
-              <span class="username">{{user.fullName || user.metadata.name}}</span> <b class="caret"></b>
-            </a>
-            <ul class="uib-dropdown-menu" aria-labelledby="user-dropdown">
-              <!--
-              <li>
-                <a href="#">Account</a>
-              </li>
-              <li>
-                <a href="#">Settings</a>
-              </li>
-              <li class="divider"></li>
-              -->
-              <li>
-                <a href="logout">Log out</a>
-              </li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-    </nav>
 
-    <div ng-view id="content-wrap"></div>
+    <div ng-view></div>
 
     <noscript class="attention-message"><h1>To use OpenShift, please enable JavaScript.</h1></noscript>
 
@@ -144,6 +104,7 @@
     <script src="scripts/templates.js"></script>
 
         <!-- build:js({.tmp,app}) scripts/scripts.js -->
+        <script src="scripts/constants.js"></script>
         <script src="scripts/app.js"></script>
         <script src="scripts/services/logger.js"></script>
         <script src="scripts/services/ws.js"></script>
@@ -167,6 +128,7 @@
         <script src="scripts/services/imagestreams.js"></script>
         <script src="scripts/services/metrics.js"></script>
         <script src="scripts/services/storage.js"></script>
+        <script src="scripts/services/constants.js"></script>
         <script src="scripts/controllers/projects.js"></script>
         <script src="scripts/controllers/pods.js"></script>
         <script src="scripts/controllers/pod.js"></script>
@@ -202,6 +164,7 @@
         <script src="scripts/controllers/modals/confirmScale.js"></script>
         <script src="scripts/controllers/modals/deleteModal.js"></script>
         <script src="scripts/controllers/modals/editModal.js"></script>
+        <script src="scripts/controllers/about.js"></script>
         <script src="scripts/directives/date.js"></script>
         <script src="scripts/directives/deleteLink.js"></script>
         <script src="scripts/directives/editLink.js"></script>
@@ -229,6 +192,7 @@
         <script src="scripts/directives/statusIcon.js"></script>
         <script src="scripts/directives/ellipsisLoader.js"></script>
         <script src="scripts/directives/podStatusChart.js"></script>
+        <script src="scripts/directives/quotaUsageChart.js"></script>
         <script src="scripts/directives/buildTrendsChart.js"></script>
         <script src="scripts/filters/date.js"></script>
         <script src="scripts/filters/resources.js"></script>

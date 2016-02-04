@@ -23,7 +23,7 @@ VOLUME ["/run", "/tmp"]
 RUN yum -y update && yum -y install git golang hg tar make \
   hostname bind-utils iproute iputils which procps-ng openssh-server \
   # Node-specific packages
-  docker openvswitch bridge-utils ethtool \
+  docker openvswitch bridge-utils ethtool iptables-services \
   && yum clean all
 
 # sshd should be enabled as needed

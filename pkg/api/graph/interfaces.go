@@ -1,8 +1,6 @@
 package graph
 
 import (
-	"fmt"
-
 	"github.com/gonum/graph"
 )
 
@@ -40,7 +38,7 @@ const (
 type Markers []Marker
 
 // MarkerScanner is a function for analyzing a graph and finding interesting things in it
-type MarkerScanner func(g Graph) []Marker
+type MarkerScanner func(g Graph, f Namer) []Marker
 
 func (m Markers) BySeverity(severity Severity) []Marker {
 	ret := []Marker{}
@@ -107,5 +105,5 @@ func (m ByKey) Less(i, j int) bool {
 type Suggestion string
 
 func (s Suggestion) String() string {
-	return fmt.Sprintf("try: %s", string(s))
+	return string(s)
 }

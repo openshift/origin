@@ -1,9 +1,8 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -23,8 +22,8 @@ func (c *FakeProjects) Get(name string) (*projectapi.Project, error) {
 	return obj.(*projectapi.Project), err
 }
 
-func (c *FakeProjects) List(label labels.Selector, field fields.Selector) (*projectapi.ProjectList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("projects", label, field), &projectapi.ProjectList{})
+func (c *FakeProjects) List(opts kapi.ListOptions) (*projectapi.ProjectList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("projects", opts), &projectapi.ProjectList{})
 	if obj == nil {
 		return nil, err
 	}

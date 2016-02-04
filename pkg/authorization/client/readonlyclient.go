@@ -2,8 +2,7 @@ package client
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -21,7 +20,7 @@ type ReadOnlyPolicyClient interface {
 
 	// Methods that enable the ReadOnlyPolicyClient to conform to rulevalidation.PolicyGetter and rulevalidation.BindingLister interfaces
 	GetPolicy(ctx kapi.Context, name string) (*authorizationapi.Policy, error)
-	ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error)
+	ListPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.PolicyBindingList, error)
 	GetClusterPolicy(ctx kapi.Context, name string) (*authorizationapi.ClusterPolicy, error)
-	ListClusterPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error)
+	ListClusterPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
 }

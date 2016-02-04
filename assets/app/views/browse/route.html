@@ -1,99 +1,110 @@
-<div class="content">
+<project-header class="top-header"></project-header>
   <project-page>
-    <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
-    <alerts alerts="alerts"></alerts>
-    <div ng-if="!loaded">Loading...</div>
-    <div ng-if="route">
-      <div class="row">
-        <div class="col-md-12">
-          <div class="tile">
-            <h1>
-              {{route.metadata.name}}
-              <small class="meta">created <relative-timestamp timestamp="route.metadata.creationTimestamp"></relative-timestamp></small>
-              <div class="pull-right dropdown">
-                <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
-                <ul class="dropdown-menu actions action-button">
-                  <li>
-                    <edit-link
-                      resource="route"
-                      kind="routes"
-                      alerts="alerts">
-                    </edit-link>
-                  </li>
-                  <li>
-                    <delete-link
-                      resource-type="route"
-                      resource-name="{{route.metadata.name}}"
-                      project-name="{{route.metadata.namespace}}"
-                      alerts="alerts">
-                    </delete-link>
-                  </li>
-                </ul>
-              </div>
-            </h1>
-            <labels labels="route.metadata.labels" clickable="true" kind="routes" project-name="{{route.metadata.namespace}}" limit="3"></labels>
-            <div class="resource-details">
-              <dl class="dl-horizontal left">
-                <dt>Hostname:</dt>
-                <dd>
-                  <span ng-if="(route | isWebRoute)">
-                    <a href="{{route | routeWebURL}}" target="_blank">{{route | routeLabel}}</a>
-                  </span>
-                  <span ng-if="!(route | isWebRoute)">
-                    {{route | routeLabel}}
-                  </span>
-                </dd>
-                <dt>Path:</dt>
-                <dd>
-                  <span ng-if="route.spec.path">{{route.spec.path}}</span>
-                  <span ng-if="!route.spec.path"><em>none</em></span>
-                </dd>
-                <dt>Routes to:</dt>
-                <dd>
-                  {{route.spec.to.kind}}
-                  <a ng-href="{{route.spec.to.name | navigateResourceURL : route.spec.to.kind : route.metadata.namespace}}">{{route.spec.to.name}}</a>
-                </dd>
-                <dt>Target Port:</dt>
-                <dd>
-                  <span ng-if="route.spec.port">{{route.spec.port.targetPort}}</span>
-                  <span ng-if="!route.spec.port"><em>any</em></span>
-                </dd>
-              </dl>
-              <div style="margin-bottom: 10px;">
-                <h4>TLS Settings</h4>
-                <dl class="dl-horizontal left" ng-if="route.spec.tls">
-                  <dt>Termination type:</dt>
-                  <dd>{{route.spec.tls.termination}}</dd>
-                  <dt ng-if-start="route.spec.tls.termination === 'edge'">Insecure Traffic:</dt>
-                  <dd ng-if-end>{{route.spec.tls.insecureEdgeTerminationPolicy || 'None'}}</dd>
-                  <dt>Certificate:</dt>
-                  <dd>
-                    <span ng-if="route.spec.tls.certificate" click-to-reveal><pre class="clipped">{{route.spec.tls.certificate}}</pre></span>
-                    <span ng-if="!route.spec.tls.certificate"><em>none</em></span>
-                  </dd>
-                  <dt>Key:</dt>
-                  <dd>
-                    <span ng-if="route.spec.tls.key" click-to-reveal><pre class="clipped">{{route.spec.tls.key}}</pre></span>
-                    <span ng-if="!route.spec.tls.key"><em>none</em></span>
-                  </dd>
-                  <dt>CA Certificate:</dt>
-                  <dd>
-                    <span ng-if="route.spec.tls.caCertificate" click-to-reveal><pre class="clipped">{{route.spec.tls.caCertificate}}</pre></span>
-                    <span ng-if="!route.spec.tls.caCertificate"><em>none</em></span>
-                  </dd>
-                  <dt>Destination CA Cert:</dt>
-                  <dd>
-                    <span ng-if="route.spec.tls.destinationCACertificate" click-to-reveal><pre class="clipped">{{route.spec.tls.destinationCACertificate}}</pre></span>
-                    <span ng-if="!route.spec.tls.destinationCACertificate"><em>none</em></span>
-                  </dd>
-                </dl>
-                <div ng-if="!route.spec.tls"><em>TLS is not enabled for this route</em></div>
-              </div>
-              <annotations annotations="route.metadata.annotations"></annotations>
-            </div>
-          </div> <!-- /tile -->
-        </div> <!-- /col -->
-      </div> <!-- /row -->
-    </div>
+
+  <!-- Middle section -->
+  <div class="middle-section">
+    <div id="scrollable-content" class="middle-container has-scroll">
+      <div class="middle-header">
+        <div class="container-fluid">
+          <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
+          <alerts alerts="alerts"></alerts>
+          <div ng-if="!loaded">Loading...</div>
+        </div>
+      </div><!-- /middle-header-->
+      <div class="middle-content">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-md-12">
+              <div ng-if="route">
+                <h1>
+                  {{route.metadata.name}}
+                  <small class="meta">created <relative-timestamp timestamp="route.metadata.creationTimestamp"></relative-timestamp></small>
+                  <div class="pull-right dropdown">
+                    <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                    <ul class="dropdown-menu actions action-button">
+                      <li>
+                        <edit-link
+                          resource="route"
+                          kind="routes"
+                          alerts="alerts">
+                        </edit-link>
+                      </li>
+                      <li>
+                        <delete-link
+                          resource-type="route"
+                          resource-name="{{route.metadata.name}}"
+                          project-name="{{route.metadata.namespace}}"
+                          alerts="alerts">
+                        </delete-link>
+                      </li>
+                    </ul>
+                  </div>
+                </h1>
+                <labels labels="route.metadata.labels" clickable="true" kind="routes" project-name="{{route.metadata.namespace}}" limit="3"></labels>
+                <div class="resource-details">
+                  <dl class="dl-horizontal left">
+                    <dt>Hostname:</dt>
+                    <dd>
+                      <span ng-if="(route | isWebRoute)">
+                        <a href="{{route | routeWebURL}}" target="_blank">{{route | routeLabel}}</a>
+                      </span>
+                      <span ng-if="!(route | isWebRoute)">
+                        {{route | routeLabel}}
+                      </span>
+                    </dd>
+                    <dt>Path:</dt>
+                    <dd>
+                      <span ng-if="route.spec.path">{{route.spec.path}}</span>
+                      <span ng-if="!route.spec.path"><em>none</em></span>
+                    </dd>
+                    <dt>Routes to:</dt>
+                    <dd>
+                      {{route.spec.to.kind}}
+                      <a ng-href="{{route.spec.to.name | navigateResourceURL : route.spec.to.kind : route.metadata.namespace}}">{{route.spec.to.name}}</a>
+                    </dd>
+                    <dt>Target Port:</dt>
+                    <dd>
+                      <span ng-if="route.spec.port">{{route.spec.port.targetPort}}</span>
+                      <span ng-if="!route.spec.port"><em>any</em></span>
+                    </dd>
+                  </dl>
+                  <div style="margin-bottom: 10px;">
+                    <h4>TLS Settings</h4>
+                    <dl class="dl-horizontal left" ng-if="route.spec.tls">
+                      <dt>Termination type:</dt>
+                      <dd>{{route.spec.tls.termination}}</dd>
+                      <dt ng-if-start="route.spec.tls.termination === 'edge'">Insecure Traffic:</dt>
+                      <dd ng-if-end>{{route.spec.tls.insecureEdgeTerminationPolicy || 'None'}}</dd>
+                      <dt>Certificate:</dt>
+                      <dd>
+                        <span ng-if="route.spec.tls.certificate" click-to-reveal><pre class="clipped">{{route.spec.tls.certificate}}</pre></span>
+                        <span ng-if="!route.spec.tls.certificate"><em>none</em></span>
+                      </dd>
+                      <dt>Key:</dt>
+                      <dd>
+                        <span ng-if="route.spec.tls.key" click-to-reveal><pre class="clipped">{{route.spec.tls.key}}</pre></span>
+                        <span ng-if="!route.spec.tls.key"><em>none</em></span>
+                      </dd>
+                      <dt>CA Certificate:</dt>
+                      <dd>
+                        <span ng-if="route.spec.tls.caCertificate" click-to-reveal><pre class="clipped">{{route.spec.tls.caCertificate}}</pre></span>
+                        <span ng-if="!route.spec.tls.caCertificate"><em>none</em></span>
+                      </dd>
+                      <dt>Destination CA Cert:</dt>
+                      <dd>
+                        <span ng-if="route.spec.tls.destinationCACertificate" click-to-reveal><pre class="clipped">{{route.spec.tls.destinationCACertificate}}</pre></span>
+                        <span ng-if="!route.spec.tls.destinationCACertificate"><em>none</em></span>
+                      </dd>
+                    </dl>
+                    <div ng-if="!route.spec.tls"><em>TLS is not enabled for this route</em></div>
+                  </div>
+                  <annotations annotations="route.metadata.annotations"></annotations>
+                </div>
+              </div> <!-- /route -->
+            </div><!-- /col-* -->
+          </div>
+        </div>
+      </div><!-- /middle-content -->
+    </div><!-- /middle-container -->
+  </div><!-- /middle-section -->
   </project-page>
-</div>

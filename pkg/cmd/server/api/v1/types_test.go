@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ghodss/yaml"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 
@@ -55,7 +56,17 @@ volumeDirectory: ""
 	// Before modifying this constant, ensure any changes have corresponding issues filed for:
 	// - documentation: https://github.com/openshift/openshift-docs/
 	// - install: https://github.com/openshift/openshift-ansible/
-	expectedSerializedMasterConfig = `apiLevels: null
+	expectedSerializedMasterConfig = `admissionConfig:
+  pluginConfig:
+    plugin:
+      configuration:
+        apiVersion: v1
+        data: ""
+        kind: AdmissionPluginTestConfig
+      location: ""
+  pluginOrderOverride:
+  - plugin
+apiLevels: null
 apiVersion: v1
 assetConfig:
   extensionDevelopment: false
@@ -117,6 +128,11 @@ etcdStorageConfig:
 imageConfig:
   format: ""
   latest: false
+imagePolicyConfig:
+  disableScheduledImport: false
+  maxImagesBulkImportedPerRepository: 0
+  maxScheduledImageImportsPerMinute: 0
+  scheduledImageImportMinimumIntervalSeconds: 0
 kind: MasterConfig
 kubeletClientInfo:
   ca: ""
@@ -124,6 +140,16 @@ kubeletClientInfo:
   keyFile: ""
   port: 0
 kubernetesMasterConfig:
+  admissionConfig:
+    pluginConfig:
+      plugin:
+        configuration:
+          apiVersion: v1
+          data: ""
+          kind: AdmissionPluginTestConfig
+        location: ""
+    pluginOrderOverride:
+    - plugin
   apiLevels: null
   apiServerArguments: null
   controllerArguments: null
@@ -148,6 +174,7 @@ networkConfig:
   networkPluginName: ""
   serviceNetworkCIDR: ""
 oauthConfig:
+  alwaysShowProviderSelection: false
   assetPublicURL: ""
   grantConfig:
     method: ""
@@ -274,6 +301,7 @@ oauthConfig:
     sessionSecretsFile: ""
   templates:
     login: ""
+    providerSelection: ""
   tokenConfig:
     accessTokenMaxAgeSeconds: 0
     authorizeTokenMaxAgeSeconds: 0
@@ -323,15 +351,33 @@ func TestNodeConfig(t *testing.T) {
 	}
 }
 
+type AdmissionPluginTestConfig struct {
+	unversioned.TypeMeta
+	Data string `json:"data"`
+}
+
+func (*AdmissionPluginTestConfig) IsAnAPIObject() {}
+
 func TestMasterConfig(t *testing.T) {
+	internal.Scheme.AddKnownTypes(SchemeGroupVersion, &AdmissionPluginTestConfig{})
+	internal.Scheme.AddKnownTypes(internal.SchemeGroupVersion, &AdmissionPluginTestConfig{})
 	config := &internal.MasterConfig{
 		ServingInfo: internal.HTTPServingInfo{
 			ServingInfo: internal.ServingInfo{
 				NamedCertificates: []internal.NamedCertificate{{}},
 			},
 		},
-		KubernetesMasterConfig: &internal.KubernetesMasterConfig{},
-		EtcdConfig:             &internal.EtcdConfig{},
+		KubernetesMasterConfig: &internal.KubernetesMasterConfig{
+			AdmissionConfig: internal.AdmissionConfig{
+				PluginConfig: map[string]internal.AdmissionPluginConfig{ // test config as an embedded object
+					"plugin": {
+						Configuration: runtime.EmbeddedObject{Object: &AdmissionPluginTestConfig{}},
+					},
+				},
+				PluginOrderOverride: []string{"plugin"}, // explicitly set this field because it's omitempty
+			},
+		},
+		EtcdConfig: &internal.EtcdConfig{},
 		OAuthConfig: &internal.OAuthConfig{
 			IdentityProviders: []internal.IdentityProvider{
 				{Provider: runtime.EmbeddedObject{Object: &internal.BasicAuthPasswordIdentityProvider{}}},
@@ -352,6 +398,14 @@ func TestMasterConfig(t *testing.T) {
 			Extensions: []internal.AssetExtensionsConfig{{}},
 		},
 		DNSConfig: &internal.DNSConfig{},
+		AdmissionConfig: internal.AdmissionConfig{
+			PluginConfig: map[string]internal.AdmissionPluginConfig{ // test config as an embedded object
+				"plugin": {
+					Configuration: runtime.EmbeddedObject{Object: &AdmissionPluginTestConfig{}},
+				},
+			},
+			PluginOrderOverride: []string{"plugin"}, // explicitly set this field because the it's omitempty
+		},
 	}
 	serializedConfig, err := writeYAML(config)
 	if err != nil {

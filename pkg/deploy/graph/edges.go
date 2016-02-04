@@ -5,6 +5,7 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
@@ -23,10 +24,10 @@ func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *deploygraph.DeploymentC
 		return node
 	}
 
-	EachTemplateImage(
+	deployapi.EachTemplateImage(
 		&podTemplate.Spec,
-		DeploymentConfigHasTrigger(node.DeploymentConfig),
-		func(image TemplateImage, err error) {
+		deployapi.DeploymentConfigHasTrigger(node.DeploymentConfig),
+		func(image deployapi.TemplateImage, err error) {
 			if err != nil {
 				return
 			}
@@ -60,6 +61,9 @@ func AddAllTriggerEdges(g osgraph.MutableUniqueGraph) {
 func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *deploygraph.DeploymentConfigNode) *deploygraph.DeploymentConfigNode {
 	for _, n := range g.(graph.Graph).Nodes() {
 		if rcNode, ok := n.(*kubegraph.ReplicationControllerNode); ok {
+			if rcNode.Namespace != node.Namespace {
+				continue
+			}
 			if BelongsToDeploymentConfig(node.DeploymentConfig, rcNode.ReplicationController) {
 				g.AddEdge(node, rcNode, DeploymentEdgeKind)
 			}

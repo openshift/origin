@@ -5,6 +5,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
@@ -64,11 +65,8 @@ func TestClusterPolicyBindingList(t *testing.T) {
 	var clusterPolicyBindings *authorizationapi.ClusterPolicyBindingList
 	var err error
 
-	label := labels.Everything()
-	field := fields.Everything()
-
 	util.Until(func() {
-		clusterPolicyBindings, err = testCache.List(label, field)
+		clusterPolicyBindings, err = testCache.List(nil)
 
 		if (err == nil) &&
 			(clusterPolicyBindings != nil) &&
@@ -105,11 +103,10 @@ func TestClusterPolicyBindingListRespectingLabels(t *testing.T) {
 		t.Errorf("labels.Selector misconstructed: %v", err)
 	}
 
-	label := labels.LabelSelector{*requirement}
-	field := fields.Everything()
+	label := labels.NewSelector().Add(*requirement)
 
 	util.Until(func() {
-		clusterPolicyBindings, err = testCache.List(label, field)
+		clusterPolicyBindings, err = testCache.List(&unversioned.ListOptions{LabelSelector: unversioned.LabelSelector{Selector: label}})
 
 		if (err == nil) &&
 			(clusterPolicyBindings != nil) &&
@@ -141,11 +138,10 @@ func TestClusterPolicyBindingListRespectingFields(t *testing.T) {
 	var err error
 
 	name := "uniqueClusterPolicyBindingName"
-	label := labels.Everything()
 	field := fields.OneTermEqualSelector("metadata.name", name)
 
 	util.Until(func() {
-		clusterPolicyBindings, err = testCache.List(label, field)
+		clusterPolicyBindings, err = testCache.List(&unversioned.ListOptions{FieldSelector: unversioned.FieldSelector{Selector: field}})
 
 		if (err == nil) &&
 			(clusterPolicyBindings != nil) &&

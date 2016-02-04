@@ -19,7 +19,6 @@ package unversioned
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -38,6 +37,7 @@ type ExtensionsInterface interface {
 	DeploymentsNamespacer
 	JobsNamespacer
 	IngressNamespacer
+	ThirdPartyResourceNamespacer
 }
 
 // ExtensionsClient is used to interact with experimental Kubernetes features.
@@ -64,7 +64,7 @@ func (c *ExtensionsClient) ServerVersion() (*version.Info, error) {
 // ServerAPIVersions retrieves and parses the list of experimental API versions the
 // server supports.
 func (c *ExtensionsClient) ServerAPIVersions() (*unversioned.APIVersions, error) {
-	body, err := c.Get().UnversionedPath("").Do().Raw()
+	body, err := c.Get().AbsPath("/apis/extensions").Do().Raw()
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +98,10 @@ func (c *ExtensionsClient) Jobs(namespace string) JobInterface {
 
 func (c *ExtensionsClient) Ingress(namespace string) IngressInterface {
 	return newIngress(c, namespace)
+}
+
+func (c *ExtensionsClient) ThirdPartyResources(namespace string) ThirdPartyResourceInterface {
+	return newThirdPartyResources(c, namespace)
 }
 
 // NewExtensions creates a new ExtensionsClient for the given config. This client
@@ -140,13 +144,14 @@ func setExtensionsDefaults(config *Config) error {
 	}
 	// TODO: Unconditionally set the config.Version, until we fix the config.
 	//if config.Version == "" {
-	config.Version = g.GroupVersion
+	copyGroupVersion := g.GroupVersion
+	config.GroupVersion = &copyGroupVersion
 	//}
 
-	versionInterfaces, err := g.InterfacesFor(config.Version)
+	versionInterfaces, err := g.InterfacesFor(*config.GroupVersion)
 	if err != nil {
-		return fmt.Errorf("Extensions API version '%s' is not recognized (valid values: %s)",
-			config.Version, strings.Join(latest.GroupOrDie("extensions").Versions, ", "))
+		return fmt.Errorf("Extensions API group/version '%v' is not recognized (valid values: %v)",
+			config.GroupVersion, g.GroupVersions)
 	}
 	config.Codec = versionInterfaces.Codec
 	if config.QPS == 0 {

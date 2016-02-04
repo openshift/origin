@@ -233,7 +233,8 @@ func TestValidateLoginTemplate(t *testing.T) {
 	}
 }
 
-// Make sure the original template for login customizations always validates.
+// Make sure the original version of the default template always validates
+// this is to avoid breaking existing customized templates.
 const originalLoginTemplateExample = `<!DOCTYPE html>
 <!--
 

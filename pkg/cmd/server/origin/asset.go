@@ -19,13 +19,15 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/version"
+	oversion "github.com/openshift/origin/pkg/version"
 
 	"k8s.io/kubernetes/pkg/api"
 	klatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	kversion "k8s.io/kubernetes/pkg/version"
 )
 
 // InstallAPI adds handlers for serving static assets into the provided mux,
@@ -130,7 +132,7 @@ func (c *AssetConfig) buildAssetHandler() (http.Handler, error) {
 
 	// Cache control should happen after all Vary headers are added, but before
 	// any asset related routing (HTML5ModeHandler and FileServer)
-	handler = assets.CacheControlHandler(version.Get().GitCommit, handler)
+	handler = assets.CacheControlHandler(oversion.Get().GitCommit, handler)
 
 	// Gzip first so that inner handlers can react to the addition of the Vary header
 	handler = assets.GzipHandler(handler)
@@ -160,26 +162,23 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 	originResources := sets.NewString()
 	k8sResources := sets.NewString()
 
-	versions := sets.NewString()
-	versions.Insert(latest.Versions...)
-	versions.Insert(klatest.VersionsForLegacyGroup()...)
+	versions := []unversioned.GroupVersion{}
+	versions = append(versions, latest.Versions...)
+	versions = append(versions, klatest.ExternalVersions...)
 	deadOriginVersions := sets.NewString(configapi.DeadOpenShiftAPILevels...)
 	deadKubernetesVersions := sets.NewString(configapi.DeadKubernetesAPILevels...)
-	for _, version := range versions.List() {
-		for kind, t := range api.Scheme.KnownTypes(version) {
-			if strings.Contains(t.PkgPath(), "kubernetes/pkg/expapi") {
-				continue
-			}
+	for _, version := range versions {
+		for kind := range api.Scheme.KnownTypes(version) {
 			if strings.HasSuffix(kind, "List") {
 				continue
 			}
 			resource, _ := meta.KindToResource(kind, false)
-			if latest.OriginKind(kind, version) {
-				if !deadOriginVersions.Has(version) {
+			if latest.OriginKind(version.WithKind(kind)) {
+				if !deadOriginVersions.Has(version.String()) {
 					originResources.Insert(resource)
 				}
 			} else {
-				if !deadKubernetesVersions.Has(version) {
+				if !deadKubernetesVersions.Has(version.String()) {
 					k8sResources.Insert(resource)
 				}
 			}
@@ -196,8 +195,10 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 		return fmt.Errorf("Resources for kubernetes and origin types intersect: %v", commonResources.List())
 	}
 
-	// Generated web console config
+	// Generated web console config and server version
 	config := assets.WebConsoleConfig{
+		APIGroupAddr:        masterURL.Host,
+		APIGroupPrefix:      KubernetesAPIGroupPrefix,
 		MasterAddr:          masterURL.Host,
 		MasterPrefix:        OpenShiftAPIPrefix,
 		MasterResources:     originResources.List(),
@@ -211,8 +212,14 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 		LoggingURL:          c.Options.LoggingPublicURL,
 		MetricsURL:          c.Options.MetricsPublicURL,
 	}
+	kVersionInfo := kversion.Get()
+	oVersionInfo := oversion.Get()
+	versionInfo := assets.WebConsoleVersion{
+		KubernetesVersion: kVersionInfo.GitVersion,
+		OpenShiftVersion:  oVersionInfo.GitVersion,
+	}
 	configPath := path.Join(publicURL.Path, "config.js")
-	configHandler, err := assets.GeneratedConfigHandler(config)
+	configHandler, err := assets.GeneratedConfigHandler(config, versionInfo)
 	if err != nil {
 		return err
 	}

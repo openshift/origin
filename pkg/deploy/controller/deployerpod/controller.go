@@ -21,6 +21,8 @@ type DeployerPodController struct {
 	deploymentClient deploymentClient
 	// deployerPodsFor returns all deployer pods for the named deployment.
 	deployerPodsFor func(namespace, name string) (*kapi.PodList, error)
+	// decodeConfig knows how to decode the deploymentConfig from a deployment's annotations.
+	decodeConfig func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error)
 	// deletePod deletes a pod.
 	deletePod func(namespace, name string) error
 }
@@ -96,8 +98,18 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 		if nextStatus == deployapi.DeploymentStatusComplete {
 			delete(deployment.Annotations, deployapi.DesiredReplicasAnnotation)
 		}
+
+		// reset the size of any test container, since we are the ones updating the RC
+		if config, err := c.decodeConfig(deployment); err == nil && config.Spec.Test {
+			deployment.Spec.Replicas = 0
+		}
 	case kapi.PodFailed:
 		nextStatus = deployapi.DeploymentStatusFailed
+
+		// reset the size of any test container, since we are the ones updating the RC
+		if config, err := c.decodeConfig(deployment); err == nil && config.Spec.Test {
+			deployment.Spec.Replicas = 0
+		}
 	}
 
 	if currentStatus != nextStatus {
@@ -108,7 +120,7 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 			}
 			return fmt.Errorf("couldn't update Deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
 		}
-		glog.V(4).Infof("Updated Deployment %s status from %s to %s", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus)
+		glog.V(4).Infof("Updated deployment %s status from %s to %s (scale: %d)", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus, deployment.Spec.Replicas)
 	}
 
 	return nil

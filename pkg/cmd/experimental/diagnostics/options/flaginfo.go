@@ -45,10 +45,12 @@ func (i FlagInfo) BindListFlag(flags *pflag.FlagSet, target *[]string) {
 
 // Constants for names of flags on the command (if not k8s flags).
 const (
-	FlagMasterConfigName   = "master-config"
-	FlagNodeConfigName     = "node-config"
-	FlagClusterContextName = "cluster-context"
-	FlagDiagnosticsName    = "diagnostics"
-	FlagLevelName          = "diaglevel"
-	FlagIsHostName         = "host"
+	FlagMasterConfigName        = "master-config"
+	FlagNodeConfigName          = "node-config"
+	FlagClusterContextName      = "cluster-context"
+	FlagLevelName               = "diaglevel"
+	FlagIsHostName              = "host"
+	FlagImageTemplateName       = "images"
+	FlagLatestImageName         = "latest-images"
+	FlagPreventModificationName = "prevent-modification"
 )

@@ -1,8 +1,7 @@
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -15,12 +14,12 @@ type BuildsNamespacer interface {
 
 // BuildInterface exposes methods on Build resources.
 type BuildInterface interface {
-	List(label labels.Selector, field fields.Selector) (*buildapi.BuildList, error)
+	List(opts kapi.ListOptions) (*buildapi.BuildList, error)
 	Get(name string) (*buildapi.Build, error)
 	Create(build *buildapi.Build) (*buildapi.Build, error)
 	Update(build *buildapi.Build) (*buildapi.Build, error)
 	Delete(name string) error
-	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(opts kapi.ListOptions) (watch.Interface, error)
 	Clone(request *buildapi.BuildRequest) (*buildapi.Build, error)
 	UpdateDetails(build *buildapi.Build) (*buildapi.Build, error)
 }
@@ -40,13 +39,12 @@ func newBuilds(c *Client, namespace string) *builds {
 }
 
 // List returns a list of builds that match the label and field selectors.
-func (c *builds) List(label labels.Selector, field fields.Selector) (result *buildapi.BuildList, err error) {
+func (c *builds) List(opts kapi.ListOptions) (result *buildapi.BuildList, err error) {
 	result = &buildapi.BuildList{}
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("builds").
-		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		VersionedParams(&opts, kapi.Scheme).
 		Do().
 		Into(result)
 	return
@@ -80,14 +78,12 @@ func (c *builds) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested builds
-func (c *builds) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *builds) Watch(opts kapi.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).
 		Resource("builds").
-		Param("resourceVersion", resourceVersion).
-		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		VersionedParams(&opts, kapi.Scheme).
 		Watch()
 }
 

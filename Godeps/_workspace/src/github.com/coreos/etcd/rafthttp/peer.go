@@ -26,7 +26,6 @@ import (
 )
 
 const (
-	DialTimeout = time.Second
 	// ConnRead/WriteTimeout is the i/o timeout set on each connection rafthttp pkg creates.
 	// A 5 seconds timeout is good enough for recycling bad connections. Or we have to wait for
 	// tcp keepalive failing to detect a bad connection, which is at minutes level.
@@ -67,6 +66,9 @@ type Peer interface {
 	// connection hands over to the peer. The peer will close the connection
 	// when it is no longer used.
 	attachOutgoingConn(conn *outgoingConn)
+	// activeSince returns the time that the connection with the
+	// peer becomes active.
+	activeSince() time.Time
 	// Stop performs any necessary finalization and terminates the peer
 	// elegantly.
 	Stop()
@@ -87,6 +89,8 @@ type peer struct {
 	// id of the remote raft peer node
 	id types.ID
 	r  Raft
+
+	status *peerStatus
 
 	msgAppWriter *streamWriter
 	writer       *streamWriter
@@ -113,6 +117,7 @@ func startPeer(tr http.RoundTripper, urls types.URLs, local, to, cid types.ID, r
 	p := &peer{
 		id:           to,
 		r:            r,
+		status:       status,
 		msgAppWriter: startStreamWriter(to, status, fs, r),
 		writer:       startStreamWriter(to, status, fs, r),
 		pipeline:     newPipeline(tr, picker, local, to, cid, status, fs, r, errorc),
@@ -223,6 +228,8 @@ func (p *peer) attachOutgoingConn(conn *outgoingConn) {
 		conn.Close()
 	}
 }
+
+func (p *peer) activeSince() time.Time { return p.status.activeSince }
 
 // Pause pauses the peer. The peer will simply drops all incoming
 // messages without retruning an error.

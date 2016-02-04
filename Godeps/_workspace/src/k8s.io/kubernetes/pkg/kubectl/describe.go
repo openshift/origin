@@ -27,7 +27,9 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fieldpath"
@@ -35,7 +37,8 @@ import (
 	qosutil "k8s.io/kubernetes/pkg/kubelet/qos/util"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/types"
-	deploymentUtil "k8s.io/kubernetes/pkg/util/deployment"
+	deploymentutil "k8s.io/kubernetes/pkg/util/deployment"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -66,31 +69,29 @@ func (e ErrNoDescriber) Error() string {
 	return fmt.Sprintf("no describer has been defined for %v", e.Types)
 }
 
-func describerMap(c *client.Client) map[string]Describer {
-	m := map[string]Describer{
-		"Pod": &PodDescriber{c},
-		"ReplicationController": &ReplicationControllerDescriber{c},
-		"Secret":                &SecretDescriber{c},
-		"Service":               &ServiceDescriber{c},
-		"ServiceAccount":        &ServiceAccountDescriber{c},
-		"Minion":                &NodeDescriber{c},
-		"Node":                  &NodeDescriber{c},
-		"LimitRange":            &LimitRangeDescriber{c},
-		"ResourceQuota":         &ResourceQuotaDescriber{c},
-		"PersistentVolume":      &PersistentVolumeDescriber{c},
-		"PersistentVolumeClaim": &PersistentVolumeClaimDescriber{c},
-		"Namespace":             &NamespaceDescriber{c},
-	}
-	return m
-}
+func describerMap(c *client.Client) map[unversioned.GroupKind]Describer {
+	m := map[unversioned.GroupKind]Describer{
+		api.Kind("Pod"):                   &PodDescriber{c},
+		api.Kind("ReplicationController"): &ReplicationControllerDescriber{c},
+		api.Kind("Secret"):                &SecretDescriber{c},
+		api.Kind("Service"):               &ServiceDescriber{c},
+		api.Kind("ServiceAccount"):        &ServiceAccountDescriber{c},
+		api.Kind("Node"):                  &NodeDescriber{c},
+		api.Kind("LimitRange"):            &LimitRangeDescriber{c},
+		api.Kind("ResourceQuota"):         &ResourceQuotaDescriber{c},
+		api.Kind("PersistentVolume"):      &PersistentVolumeDescriber{c},
+		api.Kind("PersistentVolumeClaim"): &PersistentVolumeClaimDescriber{c},
+		api.Kind("Namespace"):             &NamespaceDescriber{c},
+		api.Kind("Endpoints"):             &EndpointsDescriber{c},
 
-func expDescriberMap(c *client.Client) map[string]Describer {
-	return map[string]Describer{
-		"HorizontalPodAutoscaler": &HorizontalPodAutoscalerDescriber{c},
-		"DaemonSet":               &DaemonSetDescriber{c},
-		"Job":                     &JobDescriber{c},
-		"Deployment":              &DeploymentDescriber{c},
+		extensions.Kind("HorizontalPodAutoscaler"): &HorizontalPodAutoscalerDescriber{c},
+		extensions.Kind("DaemonSet"):               &DaemonSetDescriber{c},
+		extensions.Kind("Job"):                     &JobDescriber{c},
+		extensions.Kind("Deployment"):              &DeploymentDescriber{c},
+		extensions.Kind("Ingress"):                 &IngressDescriber{c},
 	}
+
+	return m
 }
 
 // List of all resource types we can describe
@@ -98,7 +99,7 @@ func DescribableResources() []string {
 	keys := make([]string, 0)
 
 	for k := range describerMap(nil) {
-		resource := strings.ToLower(k)
+		resource := strings.ToLower(k.Kind)
 		keys = append(keys, resource)
 	}
 	return keys
@@ -106,17 +107,8 @@ func DescribableResources() []string {
 
 // Describer returns the default describe functions for each of the standard
 // Kubernetes types.
-func DescriberFor(group string, kind string, c *client.Client) (Describer, bool) {
-	var f Describer
-	var ok bool
-
-	switch group {
-	case "":
-		f, ok = describerMap(c)[kind]
-	case "extensions":
-		f, ok = expDescriberMap(c)[kind]
-	}
-
+func DescriberFor(kind unversioned.GroupKind, c *client.Client) (Describer, bool) {
+	f, ok := describerMap(c)[kind]
 	return f, ok
 }
 
@@ -151,11 +143,11 @@ func (d *NamespaceDescriber) Describe(namespace, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	resourceQuotaList, err := d.ResourceQuotas(name).List(labels.Everything(), fields.Everything())
+	resourceQuotaList, err := d.ResourceQuotas(name).List(api.ListOptions{})
 	if err != nil {
 		return "", err
 	}
-	limitRangeList, err := d.LimitRanges(name).List(labels.Everything(), fields.Everything())
+	limitRangeList, err := d.LimitRanges(name).List(api.ListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -186,8 +178,8 @@ func DescribeLimitRanges(limitRanges *api.LimitRangeList, w io.Writer) {
 		fmt.Fprint(w, "No resource limits.\n")
 		return
 	}
-	fmt.Fprintf(w, "Resource Limits\n Type\tResource\tMin\tMax\tRequest\tLimit\tLimit/Request\n")
-	fmt.Fprintf(w, " ----\t--------\t---\t---\t-------\t-----\t-------------\n")
+	fmt.Fprintf(w, "Resource Limits\n Type\tResource\tMin\tMax\tDefault Request\tDefault Limit\tMax Limit/Request Ratio\n")
+	fmt.Fprintf(w, " ----\t--------\t---\t---\t---------------\t-------------\t-----------------------\n")
 	for _, limitRange := range limitRanges.Items {
 		for i := range limitRange.Spec.Limits {
 			item := limitRange.Spec.Limits[i]
@@ -311,8 +303,8 @@ func describeLimitRange(limitRange *api.LimitRange) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", limitRange.Name)
 		fmt.Fprintf(out, "Namespace:\t%s\n", limitRange.Namespace)
-		fmt.Fprintf(out, "Type\tResource\tMin\tMax\tRequest\tLimit\tLimit/Request\n")
-		fmt.Fprintf(out, "----\t--------\t---\t---\t-------\t-----\t-------------\n")
+		fmt.Fprintf(out, "Type\tResource\tMin\tMax\tDefault Request\tDefault Limit\tMax Limit/Request Ratio\n")
+		fmt.Fprintf(out, "----\t--------\t---\t---\t---------------\t-------------\t-----------------------\n")
 		for i := range limitRange.Spec.Limits {
 			item := limitRange.Spec.Limits[i]
 			maxResources := item.Max
@@ -432,9 +424,9 @@ func (d *PodDescriber) Describe(namespace, name string) (string, error) {
 	pod, err := pc.Get(name)
 	if err != nil {
 		eventsInterface := d.Events(namespace)
-		events, err2 := eventsInterface.List(
-			labels.Everything(),
-			eventsInterface.GetFieldSelector(&name, &namespace, nil, nil))
+		selector := eventsInterface.GetFieldSelector(&name, &namespace, nil, nil)
+		options := api.ListOptions{FieldSelector: selector}
+		events, err2 := eventsInterface.List(options)
 		if err2 == nil && len(events.Items) > 0 {
 			return tabbedString(func(out io.Writer) error {
 				fmt.Fprintf(out, "Pod '%v': error '%v', but found events.\n", name, err)
@@ -593,9 +585,10 @@ func printISCSIVolumeSource(iscsi *api.ISCSIVolumeSource, out io.Writer) {
 		"    TargetPortal:\t%v\n"+
 		"    IQN:\t%v\n"+
 		"    Lun:\t%v\n"+
+		"    ISCSIInterface\t%v\n"+
 		"    FSType:\t%v\n"+
 		"    ReadOnly:\t%v\n",
-		iscsi.TargetPortal, iscsi.IQN, iscsi.Lun, iscsi.FSType, iscsi.ReadOnly)
+		iscsi.TargetPortal, iscsi.IQN, iscsi.Lun, iscsi.ISCSIInterface, iscsi.FSType, iscsi.ReadOnly)
 }
 
 func printGlusterfsVolumeSource(glusterfs *api.GlusterfsVolumeSource, out io.Writer) {
@@ -725,6 +718,19 @@ func describeContainers(pod *api.Pod, out io.Writer) {
 		fmt.Fprintf(out, "    Image:\t%s\n", container.Image)
 		fmt.Fprintf(out, "    Image ID:\t%s\n", status.ImageID)
 
+		if len(container.Command) > 0 {
+			fmt.Fprintf(out, "    Command:\n")
+			for _, c := range container.Command {
+				fmt.Fprintf(out, "      %s\n", c)
+			}
+		}
+		if len(container.Args) > 0 {
+			fmt.Fprintf(out, "    Args:\n")
+			for _, arg := range container.Args {
+				fmt.Fprintf(out, "      %s\n", arg)
+			}
+		}
+
 		resourceToQoS := qosutil.GetQoS(&container)
 		if len(resourceToQoS) > 0 {
 			fmt.Fprintf(out, "    QoS Tier:\n")
@@ -831,7 +837,7 @@ func (d *ReplicationControllerDescriber) Describe(namespace, name string) (strin
 		return "", err
 	}
 
-	running, waiting, succeeded, failed, err := getPodStatusForController(pc, controller.Spec.Selector)
+	running, waiting, succeeded, failed, err := getPodStatusForController(pc, labels.SelectorFromSet(controller.Spec.Selector))
 	if err != nil {
 		return "", err
 	}
@@ -885,7 +891,7 @@ func describeJob(job *extensions.Job, events *api.EventList) (string, error) {
 		fmt.Fprintf(out, "Name:\t%s\n", job.Name)
 		fmt.Fprintf(out, "Namespace:\t%s\n", job.Namespace)
 		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&job.Spec.Template.Spec))
-		selector, _ := extensions.PodSelectorAsSelector(job.Spec.Selector)
+		selector, _ := extensions.LabelSelectorAsSelector(job.Spec.Selector)
 		fmt.Fprintf(out, "Selector:\t%s\n", selector)
 		fmt.Fprintf(out, "Parallelism:\t%d\n", *job.Spec.Parallelism)
 		fmt.Fprintf(out, "Completions:\t%d\n", *job.Spec.Completions)
@@ -913,7 +919,11 @@ func (d *DaemonSetDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 
-	running, waiting, succeeded, failed, err := getPodStatusForController(pc, daemon.Spec.Selector)
+	selector, err := extensions.LabelSelectorAsSelector(daemon.Spec.Selector)
+	if err != nil {
+		return "", err
+	}
+	running, waiting, succeeded, failed, err := getPodStatusForController(pc, selector)
 	if err != nil {
 		return "", err
 	}
@@ -931,7 +941,12 @@ func describeDaemonSet(daemon *extensions.DaemonSet, events *api.EventList, runn
 		} else {
 			fmt.Fprintf(out, "Image(s):\t%s\n", "<no template>")
 		}
-		fmt.Fprintf(out, "Selector:\t%s\n", labels.FormatLabels(daemon.Spec.Selector))
+		selector, err := extensions.LabelSelectorAsSelector(daemon.Spec.Selector)
+		if err != nil {
+			// this shouldn't happen if LabelSelector passed validation
+			return err
+		}
+		fmt.Fprintf(out, "Selector:\t%s\n", selector)
 		fmt.Fprintf(out, "Node-Selector:\t%s\n", labels.FormatLabels(daemon.Spec.Template.Spec.NodeSelector))
 		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(daemon.Labels))
 		fmt.Fprintf(out, "Desired Number of Nodes Scheduled: %d\n", daemon.Status.DesiredNumberScheduled)
@@ -983,6 +998,86 @@ func describeSecret(secret *api.Secret) (string, error) {
 
 		return nil
 	})
+}
+
+type IngressDescriber struct {
+	client.Interface
+}
+
+func (i *IngressDescriber) Describe(namespace, name string) (string, error) {
+	c := i.Extensions().Ingress(namespace)
+	ing, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+	events, _ := i.Events(namespace).Search(ing)
+	endpoints, _ := i.Endpoints(namespace).Get(ing.Spec.Backend.ServiceName)
+	service, _ := i.Services(namespace).Get(ing.Spec.Backend.ServiceName)
+	return describeIngress(ing, endpoints, service, events)
+}
+
+func describeIngressEndpoints(out io.Writer, ing *extensions.Ingress, endpoints *api.Endpoints, service *api.Service) {
+	spName := ""
+	for i := range service.Spec.Ports {
+		sp := &service.Spec.Ports[i]
+		switch ing.Spec.Backend.ServicePort.Type {
+		case intstr.String:
+			if ing.Spec.Backend.ServicePort.StrVal == sp.Name {
+				spName = sp.Name
+			}
+		case intstr.Int:
+			if int(ing.Spec.Backend.ServicePort.IntVal) == sp.Port {
+				spName = sp.Name
+			}
+		}
+	}
+
+	fmt.Fprintf(out, "Endpoints:\t%s\n", formatEndpoints(endpoints, sets.NewString(spName)))
+}
+
+func describeIngress(ing *extensions.Ingress, endpoints *api.Endpoints, service *api.Service, events *api.EventList) (string, error) {
+	return tabbedString(func(out io.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", ing.Name)
+		fmt.Fprintf(out, "Namespace:\t%s\n", ing.Namespace)
+		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(ing.Labels))
+
+		fmt.Fprintf(out, "Rules:\n")
+		for _, rules := range ing.Spec.Rules {
+			if rules.HTTP == nil {
+				continue
+			}
+
+			fmt.Fprintf(out, "  Host\tPath\tBackend\n")
+			fmt.Fprintf(out, "  ----\t----\t--------\n")
+			for _, path := range rules.HTTP.Paths {
+				fmt.Fprintf(out, "  %s\t%s\t%s\n", rules.Host, path.Path, backendStringer(&path.Backend))
+			}
+		}
+
+		fmt.Fprintf(out, "Backend:\t%v\t%v\n", backendStringer(ing.Spec.Backend),
+			loadBalancerStatusStringer(ing.Status.LoadBalancer))
+		describeIngressEndpoints(out, ing, endpoints, service)
+
+		describeIngressAnnotations(out, ing.Annotations)
+		if events != nil {
+			DescribeEvents(events, out)
+		}
+		return nil
+	})
+}
+
+// TODO: Move from annotations into Ingress status.
+func describeIngressAnnotations(out io.Writer, annotations map[string]string) {
+	fmt.Fprintf(out, "Annotations:\n")
+	for k, v := range annotations {
+		if !strings.HasPrefix(k, "ingress") {
+			continue
+		}
+		parts := strings.Split(k, "/")
+		name := parts[len(parts)-1]
+		fmt.Fprintf(out, "%v:\t%s\n", name, v)
+	}
+	return
 }
 
 // ServiceDescriber generates information about a service.
@@ -1056,6 +1151,76 @@ func describeService(service *api.Service, endpoints *api.Endpoints, events *api
 	})
 }
 
+// EndpointsDescriber generates information about an Endpoint.
+type EndpointsDescriber struct {
+	client.Interface
+}
+
+func (d *EndpointsDescriber) Describe(namespace, name string) (string, error) {
+	c := d.Endpoints(namespace)
+
+	ep, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	events, _ := d.Events(namespace).Search(ep)
+
+	return describeEndpoints(ep, events)
+}
+
+func describeEndpoints(ep *api.Endpoints, events *api.EventList) (string, error) {
+	return tabbedString(func(out io.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", ep.Name)
+		fmt.Fprintf(out, "Namespace:\t%s\n", ep.Namespace)
+		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(ep.Labels))
+
+		fmt.Fprintf(out, "Subsets:\n")
+		for i := range ep.Subsets {
+			subset := &ep.Subsets[i]
+
+			addresses := []string{}
+			for _, addr := range subset.Addresses {
+				addresses = append(addresses, addr.IP)
+			}
+			addressesString := strings.Join(addresses, ",")
+			if len(addressesString) == 0 {
+				addressesString = "<none>"
+			}
+			fmt.Fprintf(out, "  Addresses:\t%s\n", addressesString)
+
+			notReadyAddresses := []string{}
+			for _, addr := range subset.NotReadyAddresses {
+				notReadyAddresses = append(notReadyAddresses, addr.IP)
+			}
+			notReadyAddressesString := strings.Join(notReadyAddresses, ",")
+			if len(notReadyAddressesString) == 0 {
+				notReadyAddressesString = "<none>"
+			}
+			fmt.Fprintf(out, "  NotReadyAddresses:\t%s\n", notReadyAddressesString)
+
+			if len(subset.Ports) > 0 {
+				fmt.Fprintf(out, "  Ports:\n")
+				fmt.Fprintf(out, "    Name\tPort\tProtocol\n")
+				fmt.Fprintf(out, "    ----\t----\t--------\n")
+				for _, port := range subset.Ports {
+					name := port.Name
+					if len(name) == 0 {
+						name = "<unnamed>"
+					}
+					fmt.Fprintf(out, "    %s\t%d\t%s\n", name, port.Port, port.Protocol)
+				}
+			}
+			fmt.Fprintf(out, "\n")
+		}
+
+		if events != nil {
+			DescribeEvents(events, out)
+		}
+		return nil
+	})
+}
+
 // ServiceAccountDescriber generates information about a service.
 type ServiceAccountDescriber struct {
 	client.Interface
@@ -1072,7 +1237,8 @@ func (d *ServiceAccountDescriber) Describe(namespace, name string) (string, erro
 	tokens := []api.Secret{}
 
 	tokenSelector := fields.SelectorFromSet(map[string]string{client.SecretType: string(api.SecretTypeServiceAccountToken)})
-	secrets, err := d.Secrets(namespace).List(labels.Everything(), tokenSelector)
+	options := api.ListOptions{FieldSelector: tokenSelector}
+	secrets, err := d.Secrets(namespace).List(options)
 	if err == nil {
 		for _, s := range secrets.Items {
 			name, _ := s.Annotations[api.ServiceAccountNameKey]
@@ -1148,17 +1314,19 @@ func (d *NodeDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 
-	var pods []*api.Pod
-	allPods, err := d.Pods(namespace).List(labels.Everything(), fields.Everything())
+	fieldSelector, err := fields.ParseSelector("spec.nodeName=" + name + ",status.phase!=" + string(api.PodSucceeded) + ",status.phase!=" + string(api.PodFailed))
 	if err != nil {
 		return "", err
 	}
-	for i := range allPods.Items {
-		pod := &allPods.Items[i]
-		if pod.Spec.NodeName != name {
-			continue
+	// in a policy aware setting, users may have access to a node, but not all pods
+	// in that case, we note that the user does not have access to the pods
+	canViewPods := true
+	nodeNonTerminatedPodsList, err := d.Pods(namespace).List(api.ListOptions{FieldSelector: fieldSelector})
+	if err != nil {
+		if !errors.IsForbidden(err) {
+			return "", err
 		}
-		pods = append(pods, pod)
+		canViewPods = false
 	}
 
 	var events *api.EventList
@@ -1170,10 +1338,10 @@ func (d *NodeDescriber) Describe(namespace, name string) (string, error) {
 		events, _ = d.Events("").Search(ref)
 	}
 
-	return describeNode(node, pods, events)
+	return describeNode(node, nodeNonTerminatedPodsList, events, canViewPods)
 }
 
-func describeNode(node *api.Node, pods []*api.Pod, events *api.EventList) (string, error) {
+func describeNode(node *api.Node, nodeNonTerminatedPodsList *api.PodList, events *api.EventList, canViewPods bool) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", node.Name)
 		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(node.Labels))
@@ -1181,7 +1349,7 @@ func describeNode(node *api.Node, pods []*api.Pod, events *api.EventList) (strin
 		fmt.Fprintf(out, "Phase:\t%v\n", node.Status.Phase)
 		if len(node.Status.Conditions) > 0 {
 			fmt.Fprint(out, "Conditions:\n  Type\tStatus\tLastHeartbeatTime\tLastTransitionTime\tReason\tMessage\n")
-			fmt.Fprint(out, "  ────\t──────\t─────────────────\t──────────────────\t──────\t───────\n")
+			fmt.Fprint(out, "  ----\t------\t-----------------\t------------------\t------\t-------\n")
 			for _, c := range node.Status.Conditions {
 				fmt.Fprintf(out, "  %v \t%v \t%s \t%s \t%v \t%v\n",
 					c.Type,
@@ -1220,10 +1388,13 @@ func describeNode(node *api.Node, pods []*api.Pod, events *api.EventList) (strin
 		if len(node.Spec.ExternalID) > 0 {
 			fmt.Fprintf(out, "ExternalID:\t%s\n", node.Spec.ExternalID)
 		}
-		if err := describeNodeResource(pods, node, out); err != nil {
-			return err
+		if canViewPods && nodeNonTerminatedPodsList != nil {
+			if err := describeNodeResource(nodeNonTerminatedPodsList, node, out); err != nil {
+				return err
+			}
+		} else {
+			fmt.Fprintf(out, "Pods:\tnot authorized\n")
 		}
-
 		if events != nil {
 			DescribeEvents(events, out)
 		}
@@ -1259,7 +1430,6 @@ func (d *HorizontalPodAutoscalerDescriber) Describe(namespace, name string) (str
 				fmt.Fprintf(out, "<not available>\n")
 			}
 		}
-
 		minReplicas := "<unset>"
 		if hpa.Spec.MinReplicas != nil {
 			minReplicas = fmt.Sprintf("%d", *hpa.Spec.MinReplicas)
@@ -1281,13 +1451,12 @@ func (d *HorizontalPodAutoscalerDescriber) Describe(namespace, name string) (str
 	})
 }
 
-func describeNodeResource(pods []*api.Pod, node *api.Node, out io.Writer) error {
-	nonTerminatedPods := filterTerminatedPods(pods)
-	fmt.Fprintf(out, "Non-terminated Pods:\t(%d in total)\n", len(nonTerminatedPods))
+func describeNodeResource(nodeNonTerminatedPodsList *api.PodList, node *api.Node, out io.Writer) error {
+	fmt.Fprintf(out, "Non-terminated Pods:\t(%d in total)\n", len(nodeNonTerminatedPodsList.Items))
 	fmt.Fprint(out, "  Namespace\tName\t\tCPU Requests\tCPU Limits\tMemory Requests\tMemory Limits\n")
-	fmt.Fprint(out, "  ─────────\t────\t\t────────────\t──────────\t───────────────\t─────────────\n")
-	for _, pod := range nonTerminatedPods {
-		req, limit, err := getSinglePodTotalRequestsAndLimits(pod)
+	fmt.Fprint(out, "  ---------\t----\t\t------------\t----------\t---------------\t-------------\n")
+	for _, pod := range nodeNonTerminatedPodsList.Items {
+		req, limit, err := api.PodRequestsAndLimits(&pod)
 		if err != nil {
 			return err
 		}
@@ -1302,8 +1471,8 @@ func describeNodeResource(pods []*api.Pod, node *api.Node, out io.Writer) error 
 	}
 
 	fmt.Fprint(out, "Allocated resources:\n  (Total limits may be over 100%, i.e., overcommitted. More info: http://releases.k8s.io/HEAD/docs/user-guide/compute-resources.md)\n  CPU Requests\tCPU Limits\tMemory Requests\tMemory Limits\n")
-	fmt.Fprint(out, "  ────────────\t──────────\t───────────────\t─────────────\n")
-	reqs, limits, err := getPodsTotalRequestsAndLimits(nonTerminatedPods)
+	fmt.Fprint(out, "  ------------\t----------\t---------------\t-------------\n")
+	reqs, limits, err := getPodsTotalRequestsAndLimits(nodeNonTerminatedPodsList)
 	if err != nil {
 		return err
 	}
@@ -1332,10 +1501,10 @@ func filterTerminatedPods(pods []*api.Pod) []*api.Pod {
 	return result
 }
 
-func getPodsTotalRequestsAndLimits(pods []*api.Pod) (reqs map[api.ResourceName]resource.Quantity, limits map[api.ResourceName]resource.Quantity, err error) {
+func getPodsTotalRequestsAndLimits(podList *api.PodList) (reqs map[api.ResourceName]resource.Quantity, limits map[api.ResourceName]resource.Quantity, err error) {
 	reqs, limits = map[api.ResourceName]resource.Quantity{}, map[api.ResourceName]resource.Quantity{}
-	for _, pod := range pods {
-		podReqs, podLimits, err := getSinglePodTotalRequestsAndLimits(pod)
+	for _, pod := range podList.Items {
+		podReqs, podLimits, err := api.PodRequestsAndLimits(&pod)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1357,42 +1526,22 @@ func getPodsTotalRequestsAndLimits(pods []*api.Pod) (reqs map[api.ResourceName]r
 	return
 }
 
-func getSinglePodTotalRequestsAndLimits(pod *api.Pod) (reqs map[api.ResourceName]resource.Quantity, limits map[api.ResourceName]resource.Quantity, err error) {
-	reqs, limits = map[api.ResourceName]resource.Quantity{}, map[api.ResourceName]resource.Quantity{}
-	for _, container := range pod.Spec.Containers {
-		for name, quantity := range container.Resources.Requests {
-			if value, ok := reqs[name]; !ok {
-				reqs[name] = *quantity.Copy()
-			} else if err = value.Add(quantity); err != nil {
-				return nil, nil, err
-			}
-		}
-		for name, quantity := range container.Resources.Limits {
-			if value, ok := limits[name]; !ok {
-				limits[name] = *quantity.Copy()
-			} else if err = value.Add(quantity); err != nil {
-				return nil, nil, err
-			}
-		}
-	}
-	return
-}
-
 func DescribeEvents(el *api.EventList, w io.Writer) {
 	if len(el.Items) == 0 {
 		fmt.Fprint(w, "No events.")
 		return
 	}
 	sort.Sort(SortableEvents(el.Items))
-	fmt.Fprint(w, "Events:\n  FirstSeen\tLastSeen\tCount\tFrom\tSubobjectPath\tReason\tMessage\n")
-	fmt.Fprint(w, "  ─────────\t────────\t─────\t────\t─────────────\t──────\t───────\n")
+	fmt.Fprint(w, "Events:\n  FirstSeen\tLastSeen\tCount\tFrom\tSubobjectPath\tType\tReason\tMessage\n")
+	fmt.Fprint(w, "  ---------\t--------\t-----\t----\t-------------\t--------\t------\t-------\n")
 	for _, e := range el.Items {
-		fmt.Fprintf(w, "  %s\t%s\t%d\t%v\t%v\t%v\t%v\n",
+		fmt.Fprintf(w, "  %s\t%s\t%d\t%v\t%v\t%v\t%v\t%v\n",
 			translateTimestamp(e.FirstTimestamp),
 			translateTimestamp(e.LastTimestamp),
 			e.Count,
 			e.Source,
 			e.InvolvedObject.FieldPath,
+			e.Type,
 			e.Reason,
 			e.Message)
 	}
@@ -1420,11 +1569,11 @@ func (dd *DeploymentDescriber) Describe(namespace, name string) (string, error) 
 			ru := d.Spec.Strategy.RollingUpdate
 			fmt.Fprintf(out, "RollingUpdateStrategy:\t%s max unavailable, %s max surge, %d min ready seconds\n", ru.MaxUnavailable.String(), ru.MaxSurge.String(), ru.MinReadySeconds)
 		}
-		oldRCs, err := deploymentUtil.GetOldRCs(*d, dd)
+		oldRCs, err := deploymentutil.GetOldRCs(*d, dd)
 		if err == nil {
 			fmt.Fprintf(out, "OldReplicationControllers:\t%s\n", printReplicationControllersByLabels(oldRCs))
 		}
-		newRC, err := deploymentUtil.GetNewRC(*d, dd)
+		newRC, err := deploymentutil.GetNewRC(*d, dd)
 		if err == nil {
 			var newRCs []*api.ReplicationController
 			if newRC != nil {
@@ -1448,7 +1597,7 @@ func (dd *DeploymentDescriber) Describe(namespace, name string) (string, error) 
 func getDaemonSetsForLabels(c client.DaemonSetInterface, labelsToMatch labels.Labels) ([]extensions.DaemonSet, error) {
 	// Get all daemon sets
 	// TODO: this needs a namespace scope as argument
-	dss, err := c.List(labels.Everything(), fields.Everything())
+	dss, err := c.List(api.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error getting daemon set: %v", err)
 	}
@@ -1456,7 +1605,11 @@ func getDaemonSetsForLabels(c client.DaemonSetInterface, labelsToMatch labels.La
 	// Find the ones that match labelsToMatch.
 	var matchingDaemonSets []extensions.DaemonSet
 	for _, ds := range dss.Items {
-		selector := labels.SelectorFromSet(ds.Spec.Selector)
+		selector, err := extensions.LabelSelectorAsSelector(ds.Spec.Selector)
+		if err != nil {
+			// this should never happen if the DaemonSet passed validation
+			return nil, err
+		}
 		if selector.Matches(labelsToMatch) {
 			matchingDaemonSets = append(matchingDaemonSets, ds)
 		}
@@ -1471,7 +1624,7 @@ func getDaemonSetsForLabels(c client.DaemonSetInterface, labelsToMatch labels.La
 func getReplicationControllersForLabels(c client.ReplicationControllerInterface, labelsToMatch labels.Labels) ([]api.ReplicationController, error) {
 	// Get all replication controllers.
 	// TODO this needs a namespace scope as argument
-	rcs, err := c.List(labels.Everything(), fields.Everything())
+	rcs, err := c.List(api.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error getting replication controllers: %v", err)
 	}
@@ -1501,8 +1654,9 @@ func printReplicationControllersByLabels(matchingRCs []*api.ReplicationControlle
 	return list
 }
 
-func getPodStatusForController(c client.PodInterface, selector map[string]string) (running, waiting, succeeded, failed int, err error) {
-	rcPods, err := c.List(labels.SelectorFromSet(selector), fields.Everything())
+func getPodStatusForController(c client.PodInterface, selector labels.Selector) (running, waiting, succeeded, failed int, err error) {
+	options := api.ListOptions{LabelSelector: selector}
+	rcPods, err := c.List(options)
 	if err != nil {
 		return
 	}
@@ -1628,13 +1782,18 @@ type typeFunc struct {
 }
 
 // Matches returns true when the passed types exactly match the Extra list.
-// TODO: allow unordered types to be matched and reorderd.
 func (fn typeFunc) Matches(types []reflect.Type) bool {
 	if len(fn.Extra) != len(types) {
 		return false
 	}
+	// reorder the items in array types and fn.Extra
+	// convert the type into string and sort them, check if they are matched
+	varMap := make(map[reflect.Type]bool)
+	for i := range fn.Extra {
+		varMap[fn.Extra[i]] = true
+	}
 	for i := range types {
-		if fn.Extra[i] != types[i] {
+		if _, found := varMap[types[i]]; !found {
 			return false
 		}
 	}

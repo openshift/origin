@@ -78,9 +78,10 @@ fi
 KUBE_TIMEOUT=${KUBE_TIMEOUT:-'60s'}
 
 if [ "${1-}" != "" ]; then
-  if [[ "${1}" == *"/..." ]]; then
+  suffix=/...
+  if [[ "${1}" == *"${suffix}" ]]; then
     # if the package name ends with /... they are intending a recursive test
-    test_packages=$(find_test_dirs "${1:0:(-4)}")
+    test_packages=$(find_test_dirs "${1%$suffix}")
   else
     test_packages="$OS_GO_PACKAGE/$1"
   fi

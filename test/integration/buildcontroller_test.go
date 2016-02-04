@@ -11,7 +11,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	watchapi "k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -95,7 +94,7 @@ func TestConcurrentBuildControllers(t *testing.T) {
 	checkErr(t, err)
 
 	// Start watching builds for New -> Pending transition
-	buildWatch, err := osClient.Builds(ns).Watch(labels.Everything(), fields.OneTermEqualSelector("metadata.name", b.Name), b.ResourceVersion)
+	buildWatch, err := osClient.Builds(ns).Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", b.Name), ResourceVersion: b.ResourceVersion})
 	checkErr(t, err)
 	defer buildWatch.Stop()
 	buildModifiedCount := int32(0)
@@ -119,7 +118,7 @@ func TestConcurrentBuildControllers(t *testing.T) {
 	}()
 
 	// Watch build pods as they are created
-	podWatch, err := kClient.Pods(ns).Watch(labels.Everything(), fields.OneTermEqualSelector("metadata.name", buildutil.GetBuildPodName(b)), "")
+	podWatch, err := kClient.Pods(ns).Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildutil.GetBuildPodName(b))})
 	checkErr(t, err)
 	defer podWatch.Stop()
 	podAddedCount := int32(0)
@@ -211,7 +210,7 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 		checkErr(t, err)
 
 		// Watch build pod for transition to pending
-		podWatch, err := kClient.Pods(ns).Watch(labels.Everything(), fields.OneTermEqualSelector("metadata.name", buildutil.GetBuildPodName(b)), "")
+		podWatch, err := kClient.Pods(ns).Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildutil.GetBuildPodName(b))})
 		checkErr(t, err)
 		go func() {
 			for e := range podWatch.ResultChan() {
@@ -250,7 +249,7 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 			_, err = kClient.Pods(ns).UpdateStatus(pod)
 			checkErr(t, err)
 
-			buildWatch, err := osClient.Builds(ns).Watch(labels.Everything(), fields.OneTermEqualSelector("metadata.name", b.Name), b.ResourceVersion)
+			buildWatch, err := osClient.Builds(ns).Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", b.Name), ResourceVersion: b.ResourceVersion})
 			checkErr(t, err)
 			defer buildWatch.Stop()
 			go func() {
@@ -384,12 +383,12 @@ func runImageChangeTriggerTest(t *testing.T, clusterAdminClient *client.Client, 
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
 
-	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 
-	watch2, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	watch2, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}
@@ -433,7 +432,7 @@ func runImageChangeTriggerTest(t *testing.T, clusterAdminClient *client.Client, 
 		}
 	}
 	// Wait for an update on the specific build that was added
-	watch3, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.OneTermEqualSelector("metadata.name", newBuild.Name), newBuild.ResourceVersion)
+	watch3, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", newBuild.Name), ResourceVersion: newBuild.ResourceVersion})
 	defer watch3.Stop()
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
@@ -528,7 +527,7 @@ WaitLoop2:
 	}
 
 	// Listen to events on specific  build
-	watch4, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.OneTermEqualSelector("metadata.name", newBuild.Name), newBuild.ResourceVersion)
+	watch4, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", newBuild.Name), ResourceVersion: newBuild.ResourceVersion})
 	defer watch4.Stop()
 
 	event = waitForWatch(t, "update on second build", watch4)
@@ -562,7 +561,7 @@ WaitLoop3:
 
 func runBuildDeleteTest(t *testing.T, clusterAdminClient *client.Client, clusterAdminKubeClient *kclient.Client) {
 
-	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
@@ -573,7 +572,7 @@ func runBuildDeleteTest(t *testing.T, clusterAdminClient *client.Client, cluster
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClient.Pods(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	podWatch, err := clusterAdminKubeClient.Pods(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -627,7 +626,7 @@ func waitForWatchType(t *testing.T, name string, w watchapi.Interface, expect wa
 
 func runBuildRunningPodDeleteTest(t *testing.T, clusterAdminClient *client.Client, clusterAdminKubeClient *kclient.Client) {
 
-	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
@@ -638,7 +637,7 @@ func runBuildRunningPodDeleteTest(t *testing.T, clusterAdminClient *client.Clien
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClient.Pods(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	podWatch, err := clusterAdminKubeClient.Pods(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -679,7 +678,7 @@ func runBuildRunningPodDeleteTest(t *testing.T, clusterAdminClient *client.Clien
 
 func runBuildCompletePodDeleteTest(t *testing.T, clusterAdminClient *client.Client, clusterAdminKubeClient *kclient.Client) {
 
-	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
@@ -690,7 +689,7 @@ func runBuildCompletePodDeleteTest(t *testing.T, clusterAdminClient *client.Clie
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClient.Pods(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	podWatch, err := clusterAdminKubeClient.Pods(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -748,13 +747,13 @@ func runBuildConfigChangeControllerTest(t *testing.T, clusterAdminClient *client
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
 
-	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer watch.Stop()
 
-	watch2, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	watch2, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}

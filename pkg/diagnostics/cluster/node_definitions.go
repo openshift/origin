@@ -9,8 +9,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -82,7 +80,7 @@ func (d *NodeDefinitions) CanRun() (bool, error) {
 func (d *NodeDefinitions) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult("NodeDefinition")
 
-	nodes, err := d.KubeClient.Nodes().List(labels.LabelSelector{}, fields.Everything())
+	nodes, err := d.KubeClient.Nodes().List(kapi.ListOptions{})
 	if err != nil {
 		r.Error("DClu0001", err, fmt.Sprintf(clientErrorGettingNodes, err))
 		return r

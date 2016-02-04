@@ -61,14 +61,14 @@ func (plugin *secretPlugin) CanSupport(spec *volume.Spec) bool {
 
 func (plugin *secretPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions) (volume.Builder, error) {
 	return &secretVolumeBuilder{
-		secretVolume: &secretVolume{spec.Name(), pod.UID, plugin, plugin.host.GetMounter(), plugin.host.GetWriter()},
+		secretVolume: &secretVolume{spec.Name(), pod.UID, plugin, plugin.host.GetMounter(), plugin.host.GetWriter(), volume.MetricsNil{}},
 		secretName:   spec.Volume.Secret.SecretName,
 		pod:          *pod,
 		opts:         &opts}, nil
 }
 
 func (plugin *secretPlugin) NewCleaner(volName string, podUID types.UID) (volume.Cleaner, error) {
-	return &secretVolumeCleaner{&secretVolume{volName, podUID, plugin, plugin.host.GetMounter(), plugin.host.GetWriter()}}, nil
+	return &secretVolumeCleaner{&secretVolume{volName, podUID, plugin, plugin.host.GetMounter(), plugin.host.GetWriter(), volume.MetricsNil{}}}, nil
 }
 
 type secretVolume struct {
@@ -77,6 +77,7 @@ type secretVolume struct {
 	plugin  *secretPlugin
 	mounter mount.Interface
 	writer  ioutil.Writer
+	volume.MetricsNil
 }
 
 var _ volume.Volume = &secretVolume{}
@@ -97,10 +98,14 @@ type secretVolumeBuilder struct {
 
 var _ volume.Builder = &secretVolumeBuilder{}
 
-func (_ *secretVolumeBuilder) SupportsOwnershipManagement() bool {
-	return true
+func (sv *secretVolume) GetAttributes() volume.Attributes {
+	return volume.Attributes{
+		ReadOnly:                    true,
+		Managed:                     true,
+		SupportsOwnershipManagement: true,
+		SupportsSELinux:             true,
+	}
 }
-
 func (b *secretVolumeBuilder) SetUp() error {
 	return b.SetUpAt(b.GetPath())
 }
@@ -170,14 +175,6 @@ func (b *secretVolumeBuilder) SetUpAt(dir string) error {
 	volumeutil.SetReady(b.getMetaDir())
 
 	return nil
-}
-
-func (sv *secretVolume) IsReadOnly() bool {
-	return false
-}
-
-func (sv *secretVolume) SupportsSELinux() bool {
-	return true
 }
 
 func totalSecretBytes(secret *api.Secret) int {

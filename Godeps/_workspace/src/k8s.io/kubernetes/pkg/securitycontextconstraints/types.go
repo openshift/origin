@@ -18,7 +18,7 @@ package securitycontextconstraints
 
 import (
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // SecurityContextConstraintsProvider provides the implementation to generate a new security
@@ -29,9 +29,9 @@ type SecurityContextConstraintsProvider interface {
 	// Create a container SecurityContext based on the given constraints
 	CreateContainerSecurityContext(pod *api.Pod, container *api.Container) (*api.SecurityContext, error)
 	// Ensure a pod's SecurityContext is in compliance with the given constraints.
-	ValidatePodSecurityContext(pod *api.Pod) fielderrors.ValidationErrorList
+	ValidatePodSecurityContext(pod *api.Pod, fldPath *field.Path) field.ErrorList
 	// Ensure a container's SecurityContext is in compliance with the given constraints
-	ValidateContainerSecurityContext(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList
+	ValidateContainerSecurityContext(pod *api.Pod, container *api.Container, fldPath *field.Path) field.ErrorList
 	// Get the name of the SCC that this provider was initialized with.
 	GetSCCName() string
 }

@@ -11,6 +11,9 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 os::log::install_errexit
 
+source "${OS_ROOT}/hack/lib/util/environment.sh"
+os::util::environment::setup_time_vars
+
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 TEST_ASSETS="${TEST_ASSETS:-false}"
 
@@ -19,7 +22,7 @@ function wait_for_app() {
   echo "[INFO] Waiting for app in namespace $1"
   echo "[INFO] Waiting for database pod to start"
   wait_for_command "oc get -n $1 pods -l name=database | grep -i Running" $((60*TIME_SEC))
-  oc logs dc/database -n $1 --follow
+  oc logs dc/database -n $1
 
   echo "[INFO] Waiting for database service to start"
   wait_for_command "oc get -n $1 services | grep database" $((20*TIME_SEC))
@@ -27,7 +30,7 @@ function wait_for_app() {
 
   echo "[INFO] Waiting for frontend pod to start"
   wait_for_command "oc get -n $1 pods | grep frontend | grep -i Running" $((120*TIME_SEC))
-  oc logs dc/frontend -n $1 --follow
+  oc logs dc/frontend -n $1
 
   echo "[INFO] Waiting for frontend service to start"
   wait_for_command "oc get -n $1 services | grep frontend" $((20*TIME_SEC))
@@ -103,7 +106,7 @@ oc login -u e2e-user -p pass
 # make sure viewers can see oc status
 oc status -n default
 
-# check to make sure a project admin can push an image
+# check to make sure a project admin can push an image to an image stream that doesn't exist
 oc project cache
 e2e_user_token=$(oc config view --flatten --minify -o template --template='{{with index .users 0}}{{.user.token}}{{end}}')
 [[ -n ${e2e_user_token} ]]
@@ -116,6 +119,10 @@ echo "[INFO] Tagging and pushing ruby-22-centos7 to ${DOCKER_REGISTRY}/cache/rub
 docker tag -f centos/ruby-22-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest
 docker push ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest
 echo "[INFO] Pushed ruby-22-centos7"
+
+# verify remote images can be pulled directly from the local registry
+oc import-image --confirm --from=mysql:latest mysql:pullthrough
+docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough
 
 # check to make sure an image-pusher can push an image
 oc policy add-role-to-user system:image-pusher pusher
@@ -169,14 +176,19 @@ cat ${LOG_DIR}/kubectl-with-token.log
 [ "$(cat ${LOG_DIR}/kubectl-with-token.log | grep 'Using in-cluster configuration')" ]
 [ "$(cat ${LOG_DIR}/kubectl-with-token.log | grep 'kubectl-with-token')" ]
 
-echo "[INFO] Streaming the logs from a deployment twice..."
+echo "[INFO] Streaming the logs from a deployment a bunch of times..."
 oc create -f test/fixtures/failing-dc.yaml
 tryuntil oc get rc/failing-dc-1
 oc logs -f dc/failing-dc
 wait_for_command "oc get rc/failing-dc-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((60*TIME_SEC))
 oc logs dc/failing-dc | grep 'test pre hook executed'
 oc deploy failing-dc --latest
-oc logs --version=1 dc/failing-dc
+oc logs --version=1 dc/failing-dc | grep 'test pre hook executed'
+oc logs --previous dc/failing-dc | grep 'test pre hook executed'
+
+echo "[INFO] Run pod diagnostics"
+# Requires a node to run the pod; uses origin-deployer pod, expects registry deployed
+openshift ex diagnostics DiagnosticPod --images="${USE_IMAGES}"
 
 echo "[INFO] Applying STI application config"
 oc create -f "${STI_CONFIG_FILE}"
@@ -225,6 +237,8 @@ frontend_pod=$(oc get pod -l deploymentconfig=frontend --template='{{(index .ite
 [ "$(oc exec -p ${frontend_pod} id | grep 1000)" ]
 [ "$(oc rsh ${frontend_pod} id -u | grep 1000)" ]
 [ "$(oc rsh -T ${frontend_pod} id -u | grep 1000)" ]
+# Test retrieving application logs from dc
+oc logs dc/frontend | grep "Connecting to production database"
 
 # Port forwarding
 echo "[INFO] Validating port-forward"
@@ -279,7 +293,13 @@ echo "[INFO] Validating routed app response..."
 # used as a resolve IP to test routing
 CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
-
+# Validate that oc create route edge will create an edge terminated route.
+oc delete route/route-edge -n test
+oc create route edge --service=frontend --cert=${MASTER_CONFIG_DIR}/ca.crt \
+                        --key=${MASTER_CONFIG_DIR}/ca.key \
+                        --ca-cert=${MASTER_CONFIG_DIR}/ca.crt \
+                        --hostname=www.example.com -n test
+validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 
 # Pod node selection
 echo "[INFO] Validating pod.spec.nodeSelector rejections"
@@ -329,7 +349,6 @@ oc exec -p ${registry_pod} du /registry > ${LOG_DIR}/prune-images.after.txt
 
 # make sure there were changes to the registry's storage
 [ -n "$(diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-images.after.txt)" ]
-
 
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then

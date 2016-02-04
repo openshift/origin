@@ -19,7 +19,7 @@ package user
 import (
 	"fmt"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // mustRunAs implements the RunAsUserSecurityContextConstraintsStrategy interface
@@ -48,23 +48,24 @@ func (s *mustRunAs) Generate(pod *api.Pod, container *api.Container) (*int64, er
 }
 
 // Validate ensures that the specified values fall within the range of the strategy.
-func (s *mustRunAs) Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func (s *mustRunAs) Validate(pod *api.Pod, container *api.Container) field.ErrorList {
+	allErrs := field.ErrorList{}
 
+	securityContextPath := field.NewPath("securityContext")
 	if container.SecurityContext == nil {
 		detail := fmt.Sprintf("unable to validate nil security context for container %s", container.Name)
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext", container.SecurityContext, detail))
+		allErrs = append(allErrs, field.Invalid(securityContextPath, container.SecurityContext, detail))
 		return allErrs
 	}
 	if container.SecurityContext.RunAsUser == nil {
 		detail := fmt.Sprintf("unable to validate nil runAsUser for container %s", container.Name)
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext.runAsUser", container.SecurityContext.RunAsUser, detail))
+		allErrs = append(allErrs, field.Invalid(securityContextPath.Child("runAsUser"), container.SecurityContext.RunAsUser, detail))
 		return allErrs
 	}
 
 	if *s.opts.UID != *container.SecurityContext.RunAsUser {
 		detail := fmt.Sprintf("UID on container %s does not match required UID.  Found %d, wanted %d", container.Name, *container.SecurityContext.RunAsUser, *s.opts.UID)
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext.runAsUser", *container.SecurityContext.RunAsUser, detail))
+		allErrs = append(allErrs, field.Invalid(securityContextPath.Child("runAsUser"), *container.SecurityContext.RunAsUser, detail))
 	}
 
 	return allErrs

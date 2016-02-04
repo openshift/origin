@@ -9,13 +9,16 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"text/template"
+	"time"
 
 	"github.com/golang/glog"
 
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/util/ratelimiter"
 )
 
 const (
@@ -42,6 +45,7 @@ type templateRouter struct {
 	dir              string
 	templates        map[string]*template.Template
 	reloadScriptPath string
+	reloadInterval   time.Duration
 	state            map[string]ServiceUnit
 	certManager      certificateManager
 	// defaultCertificate is a concatenated certificate(s), their keys, and their CAs that should be used by the underlying
@@ -64,6 +68,13 @@ type templateRouter struct {
 	statsPassword string
 	// if the router can expose statistics it should expose them with this port
 	statsPort int
+	// rateLimitedCommitFunction is a rate limited commit (persist state + refresh the backend)
+	// function that coalesces and controls how often the router is reloaded.
+	rateLimitedCommitFunction *ratelimiter.RateLimitedFunction
+	// rateLimitedCommitStopChannel is the stop/terminate channel.
+	rateLimitedCommitStopChannel chan struct{}
+	// lock is a mutex used to prevent concurrent router reloads.
+	lock sync.Mutex
 }
 
 // templateRouterCfg holds all configuration items required to initialize the template router
@@ -71,6 +82,7 @@ type templateRouterCfg struct {
 	dir                string
 	templates          map[string]*template.Template
 	reloadScriptPath   string
+	reloadInterval     time.Duration
 	defaultCertificate string
 	statsUser          string
 	statsPassword      string
@@ -121,6 +133,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		dir:                    dir,
 		templates:              cfg.templates,
 		reloadScriptPath:       cfg.reloadScriptPath,
+		reloadInterval:         cfg.reloadInterval,
 		state:                  make(map[string]ServiceUnit),
 		certManager:            certManager,
 		defaultCertificate:     cfg.defaultCertificate,
@@ -130,7 +143,20 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		statsPort:              cfg.statsPort,
 		peerEndpointsKey:       cfg.peerEndpointsKey,
 		peerEndpoints:          []Endpoint{},
+
+		rateLimitedCommitFunction:    nil,
+		rateLimitedCommitStopChannel: make(chan struct{}),
 	}
+
+	keyFunc := func(_ interface{}) (string, error) {
+		return "templaterouter", nil
+	}
+
+	numSeconds := int(cfg.reloadInterval.Seconds())
+	router.rateLimitedCommitFunction = ratelimiter.NewRateLimitedFunction(keyFunc, numSeconds, router.commitAndReload)
+	router.rateLimitedCommitFunction.RunUntil(router.rateLimitedCommitStopChannel)
+	glog.V(2).Infof("Template router will coalesce reloads within %v seconds of each other", numSeconds)
+
 	if err := router.writeDefaultCert(); err != nil {
 		return nil, err
 	}
@@ -139,9 +165,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		return nil, err
 	}
 	glog.V(4).Infof("Committing state")
-	if err := router.Commit(); err != nil {
-		return nil, err
-	}
+	router.Commit()
 	return router, nil
 }
 
@@ -185,16 +209,29 @@ func (r *templateRouter) readState() error {
 	return json.Unmarshal(data, &r.state)
 }
 
-// Commit refreshes the backend and persists the router state.
-func (r *templateRouter) Commit() error {
+// Commit applies the changes made to the router configuration - persists
+// the state and refresh the backend. This is all done in the background
+// so that we can rate limit + coalesce multiple changes.
+func (r *templateRouter) Commit() {
+	r.rateLimitedCommitFunction.Invoke(r.rateLimitedCommitFunction)
+}
+
+// commitAndReload refreshes the backend and persists the router state.
+func (r *templateRouter) commitAndReload() error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	glog.V(4).Infof("Writing the router state")
 	if err := r.writeState(); err != nil {
 		return err
 	}
 
+	glog.V(4).Infof("Writing the router config")
 	if err := r.writeConfig(); err != nil {
 		return err
 	}
 
+	glog.V(4).Infof("Reloading the router")
 	if err := r.reloadRouter(); err != nil {
 		return err
 	}

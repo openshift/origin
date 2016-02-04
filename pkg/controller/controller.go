@@ -12,6 +12,13 @@ type RunnableController interface {
 	Run()
 }
 
+// StoppableController is a controller which implements a Run loop.
+type StoppableController interface {
+	// RunUntil starts the asynchronous controller loop, which runs until
+	// ch is closed.
+	RunUntil(ch <-chan struct{})
+}
+
 // RetryController is a RunnableController which delegates resource
 // handling to a function and knows how to safely manage retries of a resource
 // which failed to be successfully handled.

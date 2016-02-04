@@ -9,7 +9,6 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
@@ -138,7 +137,7 @@ func TestTokenDeletion(t *testing.T) {
 			DeletedSecret: serviceAccountTokenSecret(),
 
 			ExpectedActions: []testclient.Action{
-				testclient.NewListAction("secrets", "default", labels.Everything(), dockercfgSecretFieldSelector),
+				testclient.NewListAction("secrets", "default", api.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
 				testclient.NewDeleteAction("secrets", "default", "default-dockercfg-fplln"),
 			},
 		},
@@ -147,7 +146,7 @@ func TestTokenDeletion(t *testing.T) {
 
 			DeletedSecret: serviceAccountTokenSecret(),
 			ExpectedActions: []testclient.Action{
-				testclient.NewListAction("secrets", "default", labels.Everything(), dockercfgSecretFieldSelector),
+				testclient.NewListAction("secrets", "default", api.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
 				testclient.NewDeleteAction("secrets", "default", "default-dockercfg-fplln"),
 			},
 		},
@@ -156,7 +155,7 @@ func TestTokenDeletion(t *testing.T) {
 
 			DeletedSecret: serviceAccountTokenSecret(),
 			ExpectedActions: []testclient.Action{
-				testclient.NewListAction("secrets", "default", labels.Everything(), dockercfgSecretFieldSelector),
+				testclient.NewListAction("secrets", "default", api.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
 				testclient.NewDeleteAction("secrets", "default", "default-dockercfg-fplln"),
 			},
 		},

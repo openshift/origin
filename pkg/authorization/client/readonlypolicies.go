@@ -1,8 +1,7 @@
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -14,6 +13,6 @@ type PoliciesReadOnlyNamespacer interface {
 
 // ReadOnlyPolicyInterface exposes methods on Policies resources
 type ReadOnlyPolicyInterface interface {
-	List(label labels.Selector, field fields.Selector) (*authorizationapi.PolicyList, error)
+	List(options *unversioned.ListOptions) (*authorizationapi.PolicyList, error)
 	Get(name string) (*authorizationapi.Policy, error)
 }

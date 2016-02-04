@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -49,58 +49,52 @@ func ValidateRedirectURI(redirect string) (bool, string) {
 	return true, ""
 }
 
-func ValidateAccessToken(accessToken *api.OAuthAccessToken) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-
-	allErrs = append(allErrs, validation.ValidateObjectMeta(&accessToken.ObjectMeta, false, ValidateTokenName).Prefix("metadata")...)
-	allErrs = append(allErrs, ValidateClientNameField(accessToken.ClientName, "clientName")...)
-	allErrs = append(allErrs, ValidateUserNameField(accessToken.UserName, "userName")...)
+func ValidateAccessToken(accessToken *api.OAuthAccessToken) field.ErrorList {
+	allErrs := validation.ValidateObjectMeta(&accessToken.ObjectMeta, false, ValidateTokenName, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateClientNameField(accessToken.ClientName, field.NewPath("clientName"))...)
+	allErrs = append(allErrs, ValidateUserNameField(accessToken.UserName, field.NewPath("userName"))...)
 
 	if len(accessToken.UserUID) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("userUID"))
+		allErrs = append(allErrs, field.Required(field.NewPath("userUID")))
 	}
 	if ok, msg := ValidateRedirectURI(accessToken.RedirectURI); !ok {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("redirectURI", accessToken.RedirectURI, msg))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("redirectURI"), accessToken.RedirectURI, msg))
 	}
 
 	return allErrs
 }
 
-func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-
-	allErrs = append(allErrs, validation.ValidateObjectMeta(&authorizeToken.ObjectMeta, false, ValidateTokenName).Prefix("metadata")...)
-	allErrs = append(allErrs, ValidateClientNameField(authorizeToken.ClientName, "clientName")...)
-	allErrs = append(allErrs, ValidateUserNameField(authorizeToken.UserName, "userName")...)
+func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) field.ErrorList {
+	allErrs := validation.ValidateObjectMeta(&authorizeToken.ObjectMeta, false, ValidateTokenName, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateClientNameField(authorizeToken.ClientName, field.NewPath("clientName"))...)
+	allErrs = append(allErrs, ValidateUserNameField(authorizeToken.UserName, field.NewPath("userName"))...)
 
 	if len(authorizeToken.UserUID) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("userUID"))
+		allErrs = append(allErrs, field.Required(field.NewPath("userUID")))
 	}
 	if ok, msg := ValidateRedirectURI(authorizeToken.RedirectURI); !ok {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("redirectURI", authorizeToken.RedirectURI, msg))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("redirectURI"), authorizeToken.RedirectURI, msg))
 	}
 
 	return allErrs
 }
 
-func ValidateClient(client *api.OAuthClient) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-
-	allErrs = append(allErrs, validation.ValidateObjectMeta(&client.ObjectMeta, false, validation.NameIsDNSSubdomain).Prefix("metadata")...)
+func ValidateClient(client *api.OAuthClient) field.ErrorList {
+	allErrs := validation.ValidateObjectMeta(&client.ObjectMeta, false, validation.NameIsDNSSubdomain, field.NewPath("metadata"))
 	for i, redirect := range client.RedirectURIs {
 		if ok, msg := ValidateRedirectURI(redirect); !ok {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("redirectURIs[%d]", i), redirect, msg))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("redirectURIs").Index(i), redirect, msg))
 		}
 	}
 
 	return allErrs
 }
 
-func ValidateClientUpdate(client *api.OAuthClient, oldClient *api.OAuthClient) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateClientUpdate(client *api.OAuthClient, oldClient *api.OAuthClient) field.ErrorList {
+	allErrs := field.ErrorList{}
 
 	allErrs = append(allErrs, ValidateClient(client)...)
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&client.ObjectMeta, &oldClient.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&client.ObjectMeta, &oldClient.ObjectMeta, field.NewPath("metadata"))...)
 
 	return allErrs
 }
@@ -124,60 +118,60 @@ func ValidateClientAuthorizationName(name string, prefix bool) (bool, string) {
 	return true, ""
 }
 
-func ValidateClientAuthorization(clientAuthorization *api.OAuthClientAuthorization) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateClientAuthorization(clientAuthorization *api.OAuthClientAuthorization) field.ErrorList {
+	allErrs := field.ErrorList{}
 
 	expectedName := fmt.Sprintf("%s:%s", clientAuthorization.UserName, clientAuthorization.ClientName)
 
-	metadataErrs := validation.ValidateObjectMeta(&clientAuthorization.ObjectMeta, false, ValidateClientAuthorizationName).Prefix("metadata")
+	metadataErrs := validation.ValidateObjectMeta(&clientAuthorization.ObjectMeta, false, ValidateClientAuthorizationName, field.NewPath("metadata"))
 	if len(metadataErrs) > 0 {
 		allErrs = append(allErrs, metadataErrs...)
 	} else if clientAuthorization.Name != expectedName {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("metadata.name", clientAuthorization.Name, "must be in the format <userName>:<clientName>"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata", "name"), clientAuthorization.Name, "must be in the format <userName>:<clientName>"))
 	}
 
-	allErrs = append(allErrs, ValidateClientNameField(clientAuthorization.ClientName, "clientName")...)
-	allErrs = append(allErrs, ValidateUserNameField(clientAuthorization.UserName, "userName")...)
+	allErrs = append(allErrs, ValidateClientNameField(clientAuthorization.ClientName, field.NewPath("clientName"))...)
+	allErrs = append(allErrs, ValidateUserNameField(clientAuthorization.UserName, field.NewPath("userName"))...)
 
 	if len(clientAuthorization.UserUID) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("useruid"))
+		allErrs = append(allErrs, field.Required(field.NewPath("useruid")))
 	}
 
 	return allErrs
 }
 
-func ValidateClientAuthorizationUpdate(newAuth *api.OAuthClientAuthorization, oldAuth *api.OAuthClientAuthorization) fielderrors.ValidationErrorList {
+func ValidateClientAuthorizationUpdate(newAuth *api.OAuthClientAuthorization, oldAuth *api.OAuthClientAuthorization) field.ErrorList {
 	allErrs := ValidateClientAuthorization(newAuth)
 
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&newAuth.ObjectMeta, &oldAuth.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&newAuth.ObjectMeta, &oldAuth.ObjectMeta, field.NewPath("metadata"))...)
 
 	if oldAuth.ClientName != newAuth.ClientName {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("clientName", newAuth.ClientName, "clientName is not a mutable field"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("clientName"), newAuth.ClientName, "clientName is not a mutable field"))
 	}
 	if oldAuth.UserName != newAuth.UserName {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("userName", newAuth.UserName, "userName is not a mutable field"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("userName"), newAuth.UserName, "userName is not a mutable field"))
 	}
 	if oldAuth.UserUID != newAuth.UserUID {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("userUID", newAuth.UserUID, "userUID is not a mutable field"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("userUID"), newAuth.UserUID, "userUID is not a mutable field"))
 	}
 
 	return allErrs
 }
 
-func ValidateClientNameField(value string, field string) fielderrors.ValidationErrorList {
+func ValidateClientNameField(value string, fldPath *field.Path) field.ErrorList {
 	if len(value) == 0 {
-		return fielderrors.ValidationErrorList{fielderrors.NewFieldRequired(field)}
+		return field.ErrorList{field.Required(fldPath)}
 	} else if ok, msg := validation.NameIsDNSSubdomain(value, false); !ok {
-		return fielderrors.ValidationErrorList{fielderrors.NewFieldInvalid(field, value, msg)}
+		return field.ErrorList{field.Invalid(fldPath, value, msg)}
 	}
-	return fielderrors.ValidationErrorList{}
+	return field.ErrorList{}
 }
 
-func ValidateUserNameField(value string, field string) fielderrors.ValidationErrorList {
+func ValidateUserNameField(value string, fldPath *field.Path) field.ErrorList {
 	if len(value) == 0 {
-		return fielderrors.ValidationErrorList{fielderrors.NewFieldRequired(field)}
+		return field.ErrorList{field.Required(fldPath)}
 	} else if ok, msg := uservalidation.ValidateUserName(value, false); !ok {
-		return fielderrors.ValidationErrorList{fielderrors.NewFieldInvalid(field, value, msg)}
+		return field.ErrorList{field.Invalid(fldPath, value, msg)}
 	}
-	return fielderrors.ValidationErrorList{}
+	return field.ErrorList{}
 }

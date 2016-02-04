@@ -27,18 +27,18 @@ import (
 )
 
 type authHandler struct {
-	sec     *auth.Store
+	sec     auth.Store
 	cluster etcdserver.Cluster
 }
 
-func hasWriteRootAccess(sec *auth.Store, r *http.Request) bool {
+func hasWriteRootAccess(sec auth.Store, r *http.Request) bool {
 	if r.Method == "GET" || r.Method == "HEAD" {
 		return true
 	}
 	return hasRootAccess(sec, r)
 }
 
-func hasRootAccess(sec *auth.Store, r *http.Request) bool {
+func hasRootAccess(sec auth.Store, r *http.Request) bool {
 	if sec == nil {
 		// No store means no auth available, eg, tests.
 		return true
@@ -68,7 +68,7 @@ func hasRootAccess(sec *auth.Store, r *http.Request) bool {
 	return false
 }
 
-func hasKeyPrefixAccess(sec *auth.Store, r *http.Request, key string, recursive bool) bool {
+func hasKeyPrefixAccess(sec auth.Store, r *http.Request, key string, recursive bool) bool {
 	if sec == nil {
 		// No store means no auth available, eg, tests.
 		return true
@@ -76,9 +76,14 @@ func hasKeyPrefixAccess(sec *auth.Store, r *http.Request, key string, recursive 
 	if !sec.AuthEnabled() {
 		return true
 	}
+	if r.Header.Get("Authorization") == "" {
+		plog.Warningf("auth: no authorization provided, checking guest access")
+		return hasGuestAccess(sec, r, key)
+	}
 	username, password, ok := netutil.BasicAuth(r)
 	if !ok {
-		return hasGuestAccess(sec, r, key)
+		plog.Warningf("auth: malformed basic auth encoding")
+		return false
 	}
 	user, err := sec.GetUser(username)
 	if err != nil {
@@ -97,15 +102,18 @@ func hasKeyPrefixAccess(sec *auth.Store, r *http.Request, key string, recursive 
 			continue
 		}
 		if recursive {
-			return role.HasRecursiveAccess(key, writeAccess)
+			if role.HasRecursiveAccess(key, writeAccess) {
+				return true
+			}
+		} else if role.HasKeyAccess(key, writeAccess) {
+			return true
 		}
-		return role.HasKeyAccess(key, writeAccess)
 	}
 	plog.Warningf("auth: invalid access for user %s on key %s.", username, key)
 	return false
 }
 
-func hasGuestAccess(sec *auth.Store, r *http.Request, key string) bool {
+func hasGuestAccess(sec auth.Store, r *http.Request, key string) bool {
 	writeAccess := r.Method != "GET" && r.Method != "HEAD"
 	role, err := sec.GetRole(auth.GuestRoleName)
 	if err != nil {

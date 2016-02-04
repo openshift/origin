@@ -9,8 +9,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -154,24 +152,25 @@ var (
 	invalidCertNameRx = regexp.MustCompile("x509: certificate is valid for (\\S+, )+not (\\S+)")
 )
 
+// Name is part of the Diagnostic interface and just returns name.
 func (d ConfigContext) Name() string {
 	return fmt.Sprintf("%s[%s]", ConfigContextsName, d.ContextName)
 }
 
+// Description is part of the Diagnostic interface and provides a user-focused description of what the diagnostic does.
 func (d ConfigContext) Description() string {
 	return "Validate client config context is complete and has connectivity"
 }
 
+// CanRun is part of the Diagnostic interface; it determines if the conditions are right to run this diagnostic.
 func (d ConfigContext) CanRun() (bool, error) {
 	if d.RawConfig == nil {
 		// TODO make prettier?
 		return false, errors.New("There is no client config file")
 	}
-
 	if len(d.ContextName) == 0 {
 		return false, errors.New("There is no current context")
 	}
-
 	return true, nil
 }
 
@@ -232,7 +231,7 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	osClient, _, err := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context})).Clients()
 	// client create now *fails* if cannot connect to server; so, address connectivity errors below
 	if err == nil {
-		if projects, projerr := osClient.Projects().List(labels.Everything(), fields.Everything()); projerr != nil {
+		if projects, projerr := osClient.Projects().List(kapi.ListOptions{}); projerr != nil {
 			err = projerr
 		} else { // success!
 			list := []string{}

@@ -33,7 +33,7 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
-	cadvisorApi "github.com/google/cadvisor/info/v1"
+	cadvisorapi "github.com/google/cadvisor/info/v1"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -143,10 +143,9 @@ type AuthInterface interface {
 // HostInterface contains all the kubelet methods required by the server.
 // For testablitiy.
 type HostInterface interface {
-	GetContainerInfo(podFullName string, uid types.UID, containerName string, req *cadvisorApi.ContainerInfoRequest) (*cadvisorApi.ContainerInfo, error)
-	GetContainerRuntimeVersion() (kubecontainer.Version, error)
-	GetRawContainerInfo(containerName string, req *cadvisorApi.ContainerInfoRequest, subcontainers bool) (map[string]*cadvisorApi.ContainerInfo, error)
-	GetCachedMachineInfo() (*cadvisorApi.MachineInfo, error)
+	GetContainerInfo(podFullName string, uid types.UID, containerName string, req *cadvisorapi.ContainerInfoRequest) (*cadvisorapi.ContainerInfo, error)
+	GetRawContainerInfo(containerName string, req *cadvisorapi.ContainerInfoRequest, subcontainers bool) (map[string]*cadvisorapi.ContainerInfo, error)
+	GetCachedMachineInfo() (*cadvisorapi.MachineInfo, error)
 	GetPods() []*api.Pod
 	GetRunningPods() ([]*api.Pod, error)
 	GetPodByName(namespace, name string) (*api.Pod, bool)
@@ -215,7 +214,6 @@ func (s *Server) InstallAuthFilter() {
 func (s *Server) InstallDefaultHandlers() {
 	healthz.InstallHandler(s.restfulCont,
 		healthz.PingHealthz,
-		healthz.NamedCheck("docker", s.dockerHealthCheck),
 		healthz.NamedCheck("syncloop", s.syncLoopHealthCheck),
 	)
 	var ws *restful.WebService
@@ -238,7 +236,7 @@ func (s *Server) InstallDefaultHandlers() {
 	ws.Route(ws.GET("").
 		To(s.getSpec).
 		Operation("getSpec").
-		Writes(cadvisorApi.MachineInfo{}))
+		Writes(cadvisorapi.MachineInfo{}))
 	s.restfulCont.Add(ws)
 }
 
@@ -310,6 +308,9 @@ func (s *Server) InstallDebuggingHandlers() {
 	ws.Route(ws.GET("").
 		To(s.getLogs).
 		Operation("getLogs"))
+	ws.Route(ws.GET("/{logpath:*}").
+		To(s.getLogs).
+		Operation("getLogs"))
 	s.restfulCont.Add(ws)
 
 	ws = new(restful.WebService)
@@ -365,22 +366,6 @@ func (s *Server) error(w http.ResponseWriter, err error) {
 	msg := fmt.Sprintf("Internal Error: %v", err)
 	glog.Infof("HTTP InternalServerError: %s", msg)
 	http.Error(w, msg, http.StatusInternalServerError)
-}
-
-func (s *Server) dockerHealthCheck(req *http.Request) error {
-	version, err := s.host.GetContainerRuntimeVersion()
-	if err != nil {
-		return errors.New("unknown Docker version")
-	}
-	// Verify the docker version.
-	result, err := version.Compare("1.15")
-	if err != nil {
-		return err
-	}
-	if result < 0 {
-		return fmt.Errorf("Docker version is too old: %q", version.String())
-	}
-	return nil
 }
 
 // Checks if kubelet's sync loop  that updates containers is working.
@@ -1123,7 +1108,7 @@ func (s *Server) serveStats(w http.ResponseWriter, req *http.Request) {
 		s.error(w, err)
 		return
 	}
-	cadvisorRequest := cadvisorApi.ContainerInfoRequest{
+	cadvisorRequest := cadvisorapi.ContainerInfoRequest{
 		NumStats: query.NumStats,
 		Start:    query.Start,
 		End:      query.End,
@@ -1132,7 +1117,7 @@ func (s *Server) serveStats(w http.ResponseWriter, req *http.Request) {
 	switch len(components) {
 	case 1:
 		// Root container stats.
-		var statsMap map[string]*cadvisorApi.ContainerInfo
+		var statsMap map[string]*cadvisorapi.ContainerInfo
 		statsMap, err = s.host.GetRawContainerInfo("/", &cadvisorRequest, false)
 		stats = statsMap["/"]
 	case 2:

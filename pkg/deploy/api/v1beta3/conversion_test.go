@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1beta3 "k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	newer "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -76,8 +77,8 @@ func Test_convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeployme
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
 				UpdatePercent:       newInt(-25),
-				MaxSurge:            util.NewIntOrStringFromInt(0),
-				MaxUnavailable:      util.NewIntOrStringFromString("25%"),
+				MaxSurge:            intstr.FromInt(0),
+				MaxUnavailable:      intstr.FromString("25%"),
 				Pre: &newer.LifecycleHook{
 					FailurePolicy: newer.LifecycleHookFailurePolicyIgnore,
 				},
@@ -98,8 +99,8 @@ func Test_convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeployme
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
 				UpdatePercent:       newInt(25),
-				MaxSurge:            util.NewIntOrStringFromString("25%"),
-				MaxUnavailable:      util.NewIntOrStringFromInt(0),
+				MaxSurge:            intstr.FromString("25%"),
+				MaxUnavailable:      intstr.FromInt(0),
 			},
 		},
 		{
@@ -107,15 +108,15 @@ func Test_convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeployme
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				MaxSurge:            newIntOrString(util.NewIntOrStringFromInt(10)),
-				MaxUnavailable:      newIntOrString(util.NewIntOrStringFromInt(20)),
+				MaxSurge:            newIntOrString(intstr.FromInt(10)),
+				MaxUnavailable:      newIntOrString(intstr.FromInt(20)),
 			},
 			out: &newer.RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				MaxSurge:            util.NewIntOrStringFromInt(10),
-				MaxUnavailable:      util.NewIntOrStringFromInt(20),
+				MaxSurge:            intstr.FromInt(10),
+				MaxUnavailable:      intstr.FromInt(20),
 			},
 		},
 	}
@@ -142,16 +143,16 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeployme
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
 				UpdatePercent:       newInt(-25),
-				MaxSurge:            util.NewIntOrStringFromInt(0),
-				MaxUnavailable:      util.NewIntOrStringFromString("25%"),
+				MaxSurge:            intstr.FromInt(0),
+				MaxUnavailable:      intstr.FromString("25%"),
 			},
 			out: &RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
 				UpdatePercent:       newInt(-25),
-				MaxSurge:            newIntOrString(util.NewIntOrStringFromInt(0)),
-				MaxUnavailable:      newIntOrString(util.NewIntOrStringFromString("25%")),
+				MaxSurge:            newIntOrString(intstr.FromInt(0)),
+				MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 			},
 		},
 		{
@@ -160,16 +161,16 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeployme
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
 				UpdatePercent:       newInt(25),
-				MaxSurge:            util.NewIntOrStringFromString("25%"),
-				MaxUnavailable:      util.NewIntOrStringFromInt(0),
+				MaxSurge:            intstr.FromString("25%"),
+				MaxUnavailable:      intstr.FromInt(0),
 			},
 			out: &RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
 				UpdatePercent:       newInt(25),
-				MaxSurge:            newIntOrString(util.NewIntOrStringFromString("25%")),
-				MaxUnavailable:      newIntOrString(util.NewIntOrStringFromInt(0)),
+				MaxSurge:            newIntOrString(intstr.FromString("25%")),
+				MaxUnavailable:      newIntOrString(intstr.FromInt(0)),
 			},
 		},
 		{
@@ -177,15 +178,15 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeployme
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				MaxSurge:            util.NewIntOrStringFromInt(10),
-				MaxUnavailable:      util.NewIntOrStringFromInt(20),
+				MaxSurge:            intstr.FromInt(10),
+				MaxUnavailable:      intstr.FromInt(20),
 			},
 			out: &RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				MaxSurge:            newIntOrString(util.NewIntOrStringFromInt(10)),
-				MaxUnavailable:      newIntOrString(util.NewIntOrStringFromInt(20)),
+				MaxSurge:            newIntOrString(intstr.FromInt(10)),
+				MaxUnavailable:      newIntOrString(intstr.FromInt(20)),
 			},
 		},
 	}
@@ -209,6 +210,6 @@ func newInt(val int) *int {
 	return &val
 }
 
-func newIntOrString(ios util.IntOrString) *util.IntOrString {
+func newIntOrString(ios intstr.IntOrString) *intstr.IntOrString {
 	return &ios
 }

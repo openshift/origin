@@ -37,6 +37,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	addSourceEnvVars(build.Spec.Source, &containerEnv)
+	addOriginVersionVar(&containerEnv)
 
 	if len(strategy.Env) > 0 {
 		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)
@@ -77,11 +78,9 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	setupDockerSocket(pod)
-	var sourceImageSecret *kapi.LocalObjectReference
-	if build.Spec.Source.Image != nil {
-		sourceImageSecret = build.Spec.Source.Image.PullSecret
-	}
-	setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret, sourceImageSecret)
+	setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
 	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
+	setupSecrets(pod, build.Spec.Source.Secrets)
+
 	return pod, nil
 }

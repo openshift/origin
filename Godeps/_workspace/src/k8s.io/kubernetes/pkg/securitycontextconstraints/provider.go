@@ -24,7 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/group"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/selinux"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/user"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // used to pass in the field being validated for reusable group strategies so they
@@ -171,8 +171,8 @@ func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container 
 	// run as root which will signal to the kubelet to do a final check either on the runAsUser
 	// or, if runAsUser is not set, the image
 	if s.scc.RunAsUser.Type == api.RunAsUserStrategyMustRunAsNonRoot {
-		b := true
-		sc.RunAsNonRoot = &b
+		nonRoot := true
+		sc.RunAsNonRoot = &nonRoot
 	}
 
 	caps, err := s.capabilitiesStrategy.Generate(pod, container)
@@ -185,11 +185,11 @@ func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container 
 }
 
 // Ensure a pod's SecurityContext is in compliance with the given constraints.
-func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 
 	if pod.Spec.SecurityContext == nil {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext", pod.Spec.SecurityContext, "No security context is set"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("securityContext"), pod.Spec.SecurityContext, "No security context is set"))
 		return allErrs
 	}
 
@@ -210,26 +210,26 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod) fielderrors.Va
 	allErrs = append(allErrs, s.seLinuxStrategy.Validate(pod, container)...)
 
 	if !s.scc.AllowHostNetwork && pod.Spec.SecurityContext.HostNetwork {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("hostNetwork", pod.Spec.SecurityContext.HostNetwork, "Host network is not allowed to be used"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostNetwork"), pod.Spec.SecurityContext.HostNetwork, "Host network is not allowed to be used"))
 	}
 
 	if !s.scc.AllowHostPID && pod.Spec.SecurityContext.HostPID {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("hostPID", pod.Spec.SecurityContext.HostPID, "Host PID is not allowed to be used"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostPID"), pod.Spec.SecurityContext.HostPID, "Host PID is not allowed to be used"))
 	}
 
 	if !s.scc.AllowHostIPC && pod.Spec.SecurityContext.HostIPC {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("hostIPC", pod.Spec.SecurityContext.HostIPC, "Host IPC is not allowed to be used"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostIPC"), pod.Spec.SecurityContext.HostIPC, "Host IPC is not allowed to be used"))
 	}
 
 	return allErrs
 }
 
 // Ensure a container's SecurityContext is in compliance with the given constraints
-func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, container *api.Container, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 
 	if container.SecurityContext == nil {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext", container.SecurityContext, "No security context is set"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("securityContext"), container.SecurityContext, "No security context is set"))
 		return allErrs
 	}
 
@@ -238,7 +238,7 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 	allErrs = append(allErrs, s.seLinuxStrategy.Validate(pod, container)...)
 
 	if !s.scc.AllowPrivilegedContainer && *sc.Privileged {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("privileged", *sc.Privileged, "Privileged containers are not allowed"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("privileged"), *sc.Privileged, "Privileged containers are not allowed"))
 	}
 
 	allErrs = append(allErrs, s.capabilitiesStrategy.Validate(pod, container)...)
@@ -246,26 +246,40 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 	if !s.scc.AllowHostDirVolumePlugin {
 		for _, v := range pod.Spec.Volumes {
 			if v.HostPath != nil {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("VolumeMounts", v.Name, "Host Volumes are not allowed to be used"))
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("volumeMounts"), v.Name, "Host Volumes are not allowed to be used"))
 			}
 		}
 	}
 
+	if !s.scc.AllowHostNetwork && pod.Spec.SecurityContext.HostNetwork {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostNetwork"), pod.Spec.SecurityContext.HostNetwork, "Host network is not allowed to be used"))
+	}
+
 	if !s.scc.AllowHostPorts {
+		containersPath := fldPath.Child("containers")
 		for idx, c := range pod.Spec.Containers {
-			allErrs = append(allErrs, s.hasHostPort(&c).Prefix(fmt.Sprintf("containers.%d", idx))...)
+			idxPath := containersPath.Index(idx)
+			allErrs = append(allErrs, s.hasHostPort(&c, idxPath)...)
 		}
+	}
+
+	if !s.scc.AllowHostPID && pod.Spec.SecurityContext.HostPID {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostPID"), pod.Spec.SecurityContext.HostPID, "Host PID is not allowed to be used"))
+	}
+
+	if !s.scc.AllowHostIPC && pod.Spec.SecurityContext.HostIPC {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostIPC"), pod.Spec.SecurityContext.HostIPC, "Host IPC is not allowed to be used"))
 	}
 
 	return allErrs
 }
 
 // hasHostPort checks the port definitions on the container for HostPort > 0.
-func (s *simpleProvider) hasHostPort(container *api.Container) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func (s *simpleProvider) hasHostPort(container *api.Container, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 	for _, cp := range container.Ports {
 		if cp.HostPort > 0 {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("hostPort", cp.HostPort, "Host ports are not allowed to be used"))
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("hostPort"), cp.HostPort, "Host ports are not allowed to be used"))
 		}
 	}
 	return allErrs

@@ -124,7 +124,9 @@ func CreateConfig(namespace string, clientCfg *client.Config) (*clientcmdapi.Con
 		cluster.CertificateAuthorityData = clientCfg.CAData
 	}
 	cluster.InsecureSkipTLSVerify = clientCfg.Insecure
-	cluster.APIVersion = clientCfg.Version
+	if clientCfg.GroupVersion != nil {
+		cluster.APIVersion = clientCfg.GroupVersion.String()
+	}
 	config.Clusters[clusterNick] = cluster
 
 	context := clientcmdapi.NewContext()

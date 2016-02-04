@@ -2,8 +2,7 @@ package file
 
 import (
 	"bufio"
-	"bytes"
-	"io"
+	"io/ioutil"
 	"os"
 )
 
@@ -23,35 +22,16 @@ func ReadLines(fileName string) ([]string, error) {
 	return lines, scanner.Err()
 }
 
-type crlfWriter struct {
-	io.Writer
-}
-
-func NewCRLFWriter(w io.Writer) io.Writer {
-	return crlfWriter{w}
-}
-
-func (w crlfWriter) Write(b []byte) (n int, err error) {
-	for i, written := 0, 0; ; {
-		next := bytes.Index(b[i:], []byte("\n"))
-		if next == -1 {
-			n, err := w.Writer.Write(b[i:])
-			return written + n, err
-		}
-		next = next + i
-		n, err := w.Writer.Write(b[i:next])
-		if err != nil {
-			return written + n, err
-		}
-		written += n
-		n, err = w.Writer.Write([]byte("\r\n"))
-		if err != nil {
-			if n > 1 {
-				n = 1
-			}
-			return written + n, err
-		}
-		written += 1
-		i = next + 1
+// LoadData reads the specified file and returns it as a bytes slice.
+func LoadData(file string) ([]byte, error) {
+	if len(file) == 0 {
+		return []byte{}, nil
 	}
+
+	bytes, err := ioutil.ReadFile(file)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return bytes, nil
 }

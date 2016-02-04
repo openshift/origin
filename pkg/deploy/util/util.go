@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/util/namer"
@@ -209,21 +208,6 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 	}
 
 	return deployment, nil
-}
-
-// ListWatcherImpl is a pluggable ListWatcher.
-// TODO: This has been incorporated upstream; replace during a future rebase.
-type ListWatcherImpl struct {
-	ListFunc  func() (runtime.Object, error)
-	WatchFunc func(resourceVersion string) (watch.Interface, error)
-}
-
-func (lw *ListWatcherImpl) List() (runtime.Object, error) {
-	return lw.ListFunc()
-}
-
-func (lw *ListWatcherImpl) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.WatchFunc(resourceVersion)
 }
 
 func DeploymentConfigNameFor(obj runtime.Object) string {

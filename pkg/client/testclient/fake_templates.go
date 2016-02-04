@@ -1,9 +1,8 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -25,8 +24,8 @@ func (c *FakeTemplates) Get(name string) (*templateapi.Template, error) {
 	return obj.(*templateapi.Template), err
 }
 
-func (c *FakeTemplates) List(label labels.Selector, field fields.Selector) (*templateapi.TemplateList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewListAction("templates", c.Namespace, label, field), &templateapi.TemplateList{})
+func (c *FakeTemplates) List(opts kapi.ListOptions) (*templateapi.TemplateList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("templates", c.Namespace, opts), &templateapi.TemplateList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -57,6 +56,6 @@ func (c *FakeTemplates) Delete(name string) error {
 	return err
 }
 
-func (c *FakeTemplates) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("templates", c.Namespace, label, field, resourceVersion))
+func (c *FakeTemplates) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("templates", c.Namespace, opts))
 }

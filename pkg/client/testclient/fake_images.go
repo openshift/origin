@@ -1,9 +1,8 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -27,8 +26,8 @@ func (c *FakeImages) Get(name string) (*imageapi.Image, error) {
 	return obj.(*imageapi.Image), err
 }
 
-func (c *FakeImages) List(label labels.Selector, field fields.Selector) (*imageapi.ImageList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("images", label, field), &imageapi.ImageList{})
+func (c *FakeImages) List(opts kapi.ListOptions) (*imageapi.ImageList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("images", opts), &imageapi.ImageList{})
 	if obj == nil {
 		return nil, err
 	}

@@ -9,7 +9,7 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
-# Cleanup cluster resources created by this test
+#Cleanup cluster resources created by this test
 (
   set +e
   oc delete project/example project/ui-test-project project/recreated-project
@@ -209,6 +209,10 @@ os::cmd::expect_success_and_text "oadm router -o yaml --credentials=${KUBECONFIG
 os::cmd::expect_success "oadm router --credentials=${KUBECONFIG} --images='${USE_IMAGES}' --service-account=router -n default"
 os::cmd::expect_success_and_text 'oadm router -n default' 'service exists'
 os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'readinessProbe'
+os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'host: localhost'
+
+# only when using hostnetwork should we force the probes to use localhost
+os::cmd::expect_success_and_not_text "oadm router -o yaml --credentials=${KUBECONFIG} --service-account=router -n default --host-network=false" 'host: localhost'
 echo "router: ok"
 
 # Test running a registry
@@ -217,14 +221,15 @@ os::cmd::expect_success_and_text "oadm registry -o yaml --credentials=${KUBECONF
 os::cmd::expect_success "oadm registry --credentials=${KUBECONFIG} --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oadm registry' 'service exists'
 os::cmd::expect_success_and_text 'oc describe svc/docker-registry' 'Session Affinity:\s*ClientIP'
+os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' 'readinessProbe'
 echo "registry: ok"
 
 # Test building a dependency tree
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l build=sti | oc create -f -'
 # Test both the type/name resource syntax and the fact that istag/origin-ruby-sample:latest is still
 # not created but due to a buildConfig pointing to it, we get back its graph of deps.
-os::cmd::expect_success_and_text 'oadm build-chain istag/origin-ruby-sample' 'imagestreamtag/origin-ruby-sample:latest'
-os::cmd::expect_success_and_text 'oadm build-chain ruby-22-centos7 -o dot' 'graph'
+os::cmd::expect_success_and_text 'oadm build-chain istag/origin-ruby-sample' 'istag/origin-ruby-sample:latest'
+os::cmd::expect_success_and_text 'oadm build-chain ruby-22-centos7 -o dot' 'digraph'
 os::cmd::expect_success 'oc delete all -l build=sti'
 echo "ex build-chain: ok"
 
@@ -299,3 +304,4 @@ os::cmd::expect_success_and_not_text "oc get clusterrolebindings/cluster-admins 
 os::cmd::expect_success_and_not_text "oc get rolebindings/cluster-admin         --output-version=v1 --template='{{.subjects}}' -n default" 'cascaded-group'
 os::cmd::expect_success_and_not_text "oc get scc/restricted                     --output-version=v1 --template='{{.groups}}'"              'cascaded-group'
 echo "user-group-cascade: ok"
+

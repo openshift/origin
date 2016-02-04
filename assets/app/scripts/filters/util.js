@@ -94,16 +94,16 @@ angular.module('openshiftConsole')
       return number * multiplier;
     };
   })
-  .filter('usageWithUnits', function() {
+  // Returns the amount and unit for compute resources, normalizing the unit.
+  .filter('amountAndUnit', function() {
     return function(value, type) {
       if (!value) {
-        return value;
+        return [value, null];
       }
-      // only special casing memory at the moment
       var split = /(-?[0-9\.]+)\s*(.*)/.exec(value);
       if (!split) {
         // We didn't get an amount? shouldn't happen but just in case
-        return value;
+        return [value, null];
       }
       var amount = split[1];
       var unit = split[2];
@@ -119,33 +119,26 @@ angular.module('openshiftConsole')
           unit += (amount === "1" ? "core" : "cores");
           break;
       }
-      return amount + (unit !== "" ? " " + unit : "");
+      return [amount, unit];
     };
   })
-  .filter('helpLink', function() {
+  // Formats a compute resource value for display.
+  .filter('usageWithUnits', function(amountAndUnitFilter) {
+    return function(value, type) {
+      var toString = _.spread(function(amount, unit) {
+        if (!unit) {
+          return amount;
+        }
+
+        return amount + " " + unit;
+      });
+
+      return toString(amountAndUnitFilter(value, type));
+    };
+  })
+  .filter('helpLink', function(Constants) {
     return function(type) {
-      switch(type) {
-        case "cli":
-          return "https://docs.openshift.com/enterprise/latest/cli_reference/overview.html";
-        case "get_started_cli":
-          return "https://docs.openshift.com/enterprise/latest/cli_reference/get_started_cli.html";
-        case "basic_cli_operations":
-          return "https://docs.openshift.com/enterprise/latest/cli_reference/basic_cli_operations.html";
-        case "webhooks":
-          return "http://docs.openshift.com/enterprise/latest/dev_guide/builds.html#webhook-triggers";
-        case "new_app":
-          return "http://docs.openshift.com/enterprise/latest/dev_guide/new_app.html";
-        case "start-build":
-          return "http://docs.openshift.com/enterprise/latest/dev_guide/builds.html#starting-a-build";
-        case "deployment-operations":
-          return "http://docs.openshift.com/enterprise/latest/cli_reference/basic_cli_operations.html#build-and-deployment-cli-operations";
-        case "route-types":
-          return "https://docs.openshift.com/enterprise/latest/architecture/core_concepts/routes.html#route-types";
-        case "persistent_volumes":
-          return "https://docs.openshift.com/enterprise/latest/dev_guide/persistent_volumes.html";
-        default:
-          return "https://docs.openshift.com/enterprise/latest/welcome/index.html";
-      }
+      return Constants.HELP[type] || Constants.HELP["default"];
     };
   })
   .filter('taskTitle', function() {
@@ -390,5 +383,35 @@ angular.module('openshiftConsole')
         accessModes.push(accessModeString);
       });
       return _.uniq(accessModes);
+    };
+  })
+  .filter('truncate', function() {
+    return function(str, charLimit, useWordBoundary, newlineLimit) {
+      if (!str) {
+        return str;
+      }
+
+      var truncated = str;
+
+      if (charLimit) {
+        truncated = truncated.substring(0, charLimit);
+      }
+
+      if (newlineLimit) {
+        var nthNewline = str.split("\n", newlineLimit).join("\n").length;
+        truncated = truncated.substring(0, nthNewline);
+      }
+
+      if (useWordBoundary !== false) {
+        // Find the last word break, but don't look more than 10 characters back.
+        // Make sure we show at least the first 5 characters.
+        var startIndex = Math.max(4, charLimit - 10);
+        var lastSpace = truncated.lastIndexOf(/\s/, startIndex);
+        if (lastSpace !== -1) {
+          truncated = truncated.substring(0, lastSpace);
+        }
+      }      
+
+      return truncated;
     };
   });

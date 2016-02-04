@@ -1,8 +1,7 @@
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -14,6 +13,6 @@ type ClusterPolicyBindingsReadOnlyInterface interface {
 
 // ReadOnlyClusterPolicyBindingInterface exposes methods on ClusterPolicyBindings resources
 type ReadOnlyClusterPolicyBindingInterface interface {
-	List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error)
+	List(options *unversioned.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
 	Get(name string) (*authorizationapi.ClusterPolicyBinding, error)
 }

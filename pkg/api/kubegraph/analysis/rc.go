@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	DuelingRepliationControllerWarning = "DuelingReplicationControllers"
+	DuelingReplicationControllerWarning = "DuelingReplicationControllers"
 )
 
-func FindDuelingReplicationControllers(g osgraph.Graph) []osgraph.Marker {
+func FindDuelingReplicationControllers(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
 	for _, uncastRCNode := range g.NodesByKind(kubegraph.ReplicationControllerNodeKind) {
@@ -35,7 +35,7 @@ func FindDuelingReplicationControllers(g osgraph.Graph) []osgraph.Marker {
 						continue
 					}
 					owningRC := uncastOwningRC.(*kubegraph.ReplicationControllerNode)
-					involvedRCNames = append(involvedRCNames, owningRC.ResourceString())
+					involvedRCNames = append(involvedRCNames, f.ResourceName(owningRC))
 
 					relatedNodes = append(relatedNodes, uncastOwningRC)
 				}
@@ -45,8 +45,8 @@ func FindDuelingReplicationControllers(g osgraph.Graph) []osgraph.Marker {
 					RelatedNodes: relatedNodes,
 
 					Severity: osgraph.WarningSeverity,
-					Key:      DuelingRepliationControllerWarning,
-					Message:  fmt.Sprintf("%s is competing for %s with %s", rcNode.ResourceString(), podNode.ResourceString(), strings.Join(involvedRCNames, ", ")),
+					Key:      DuelingReplicationControllerWarning,
+					Message:  fmt.Sprintf("%s is competing for %s with %s", f.ResourceName(rcNode), f.ResourceName(podNode), strings.Join(involvedRCNames, ", ")),
 				})
 			}
 		}

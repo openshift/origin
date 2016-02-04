@@ -4,8 +4,7 @@ import (
 	"sync"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -20,7 +19,7 @@ type BuildRegistry struct {
 	sync.Mutex
 }
 
-func (r *BuildRegistry) ListBuilds(ctx kapi.Context, labels labels.Selector, field fields.Selector) (*buildapi.BuildList, error) {
+func (r *BuildRegistry) ListBuilds(ctx kapi.Context, options *unversioned.ListOptions) (*buildapi.BuildList, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.Builds, r.Err
@@ -54,19 +53,28 @@ func (r *BuildRegistry) DeleteBuild(ctx kapi.Context, id string) error {
 	return r.Err
 }
 
-func (r *BuildRegistry) WatchBuilds(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *BuildRegistry) WatchBuilds(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
 	return nil, r.Err
 }
 
 type BuildStorage struct {
-	Err   error
-	Build *buildapi.Build
+	Err    error
+	Build  *buildapi.Build
+	Builds *buildapi.BuildList
 	sync.Mutex
 }
 
 func (r *BuildStorage) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	r.Lock()
 	defer r.Unlock()
+	// TODO: Use the list of builds in all of the rest registry calls
+	if r.Builds != nil {
+		for _, build := range r.Builds.Items {
+			if build.Name == id {
+				return &build, r.Err
+			}
+		}
+	}
 	return r.Build, r.Err
 }
 

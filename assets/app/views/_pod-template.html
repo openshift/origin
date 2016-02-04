@@ -10,10 +10,10 @@
       <div class="component-label">Container: {{container.name}}</div>
       <div row ng-if="container.image" class="pod-template-image icon-row">
         <div>
-          <span class="pficon pficon-image" aria-hidden="true"></span> 
+          <span class="pficon pficon-image" aria-hidden="true"></span>
         </div>
         <div flex>
-          Image: 
+          Image:
           <span ng-if="!imagesByDockerReference[container.image]">{{container.image | imageStreamName}}</span>
           <span ng-if="imagesByDockerReference[container.image]">
             <a ng-href="{{imagesByDockerReference[container.image].imageStreamName | navigateResourceURL : 'ImageStream' : imagesByDockerReference[container.image].imageStreamNamespace}}">{{container.image | imageStreamName}}</a>
@@ -25,7 +25,7 @@
         <div row class="icon-row" ng-if="build = (image | buildForImage : builds)">
           <div>
             <span class="fa fa-refresh" aria-hidden="true"></span>
-          </div> 
+          </div>
           <div flex>Build:
             <a ng-href="{{build | navigateResourceURL}}">
               <span ng-if="(build | annotation : 'buildNumber')">#{{build | annotation : 'buildNumber'}}</span>
@@ -56,7 +56,7 @@
                 </span>
               </span>
             </span>
-          </div>         
+          </div>
         </div>
       </div>
 
@@ -70,7 +70,7 @@
             <span class="nowrap">{{port.containerPort}}/{{port.protocol}}<span ng-if="port.name">&thinsp;({{port.name}})</span><span ng-if="port.hostPort">&thinsp;<span class="port-icon">&#8594;</span>&thinsp;{{port.hostPort}}</span></span><span ng-if="!$last">, </span>
           </span>
         </div>
-      </div> 
+      </div>
 
       <div row ng-if="detailed" ng-repeat="mount in container.volumeMounts" class="icon-row">
         <div>
@@ -80,6 +80,42 @@
           Mount:
           <span>
             {{mount.name}}&#8201;&#8594;&#8201;{{mount.mountPath}}
+          </span>
+        </div>
+      </div>
+
+      <div row ng-if="detailed && (container.resources.requests.cpu || container.resources.limits.cpu)" class="icon-row">
+        <div>
+          <i class="fa fa-area-chart" aria-hidden="true"></i>
+        </div>
+        <div flex>
+          CPU:
+          <span ng-if="container.resources.requests.cpu && container.resources.limits.cpu">
+            {{container.resources.requests.cpu | usageWithUnits: 'cpu'}} to {{container.resources.limits.cpu | usageWithUnits: 'cpu'}}
+          </span>
+          <span ng-if="!container.resources.requests.cpu">
+            {{container.resources.limits.cpu | usageWithUnits: 'cpu'}} limit
+          </span>
+          <span ng-if="!container.resources.limits.cpu">
+            {{container.resources.requests.cpu | usageWithUnits: 'cpu'}} requested
+          </span>
+        </div>
+      </div>
+
+      <div row ng-if="detailed && (container.resources.requests.memory || container.resources.limits.memory)" class="icon-row">
+        <div>
+          <i class="fa fa-area-chart" aria-hidden="true"></i>
+        </div>
+        <div flex>
+          Memory:
+          <span ng-if="container.resources.requests.memory && container.resources.limits.memory">
+            {{container.resources.requests.memory | usageWithUnits: 'memory'}} to {{container.resources.limits.memory | usageWithUnits: 'memory'}}
+          </span>
+          <span ng-if="!container.resources.requests.memory">
+            {{container.resources.limits.memory | usageWithUnits: 'memory'}} limit
+          </span>
+          <span ng-if="!container.resources.limits.memory">
+            {{container.resources.requests.memory | usageWithUnits: 'memory'}} requested
           </span>
         </div>
       </div>

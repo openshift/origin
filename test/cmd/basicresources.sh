@@ -44,9 +44,14 @@ os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.jso
 os::cmd::expect_success 'oc delete services frontend'
 echo "services: ok"
 
-os::cmd::expect_success 'oc create -f test/fixtures/mixed-api-versions.yaml'
-os::cmd::expect_success 'oc get    -f test/fixtures/mixed-api-versions.yaml -o yaml'
-os::cmd::expect_success 'oc delete -f test/fixtures/mixed-api-versions.yaml'
+os::cmd::expect_success 'oc create   -f test/fixtures/mixed-api-versions.yaml'
+os::cmd::expect_success 'oc get      -f test/fixtures/mixed-api-versions.yaml -o yaml'
+os::cmd::expect_success 'oc label    -f test/fixtures/mixed-api-versions.yaml mylabel=a'
+os::cmd::expect_success 'oc annotate -f test/fixtures/mixed-api-versions.yaml myannotation=b'
+# Make sure all six resources, with different API versions, got labeled and annotated
+os::cmd::expect_success_and_text 'oc get -f test/fixtures/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.labels.mylabel}"'           '^a a a a a a$'
+os::cmd::expect_success_and_text 'oc get -f test/fixtures/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.annotations.myannotation}"' '^b b b b b b$'
+os::cmd::expect_success 'oc delete   -f test/fixtures/mixed-api-versions.yaml'
 echo "list version conversion: ok"
 
 os::cmd::expect_success 'oc get nodes'
@@ -61,6 +66,15 @@ echo "nodes: ok"
 os::cmd::expect_success 'oc get routes'
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-route.json'
 os::cmd::expect_success 'oc delete routes testroute'
+os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.json'
+os::cmd::expect_success 'oc create route passthrough --service=svc/frontend'
+os::cmd::expect_success 'oc delete routes frontend'
+os::cmd::expect_success 'oc create route edge --path /test --service=services/non-existent --port=80'
+os::cmd::expect_success 'oc delete routes non-existent'
+os::cmd::expect_success 'oc create route edge test-route --service=frontend'
+os::cmd::expect_success 'oc delete routes test-route'
+os::cmd::expect_failure 'oc create route edge new-route'
+os::cmd::expect_success 'oc delete services frontend'
 echo "routes: ok"
 
 # Expose service as a route
@@ -94,7 +108,8 @@ os::cmd::try_until_success 'oc project ${project}'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift test'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --restart=Never test3'
-os::cmd::expect_success 'oc delete dc/test rc/test2 pod/test3'
+os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=job/v1beta1 --restart=Never test4'
+os::cmd::expect_success 'oc delete dc/test rc/test2 pod/test3 job/test4'
 
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | oc create -f -'
 os::cmd::expect_success 'oc delete all -l name=mytemplate'
@@ -110,3 +125,20 @@ os::cmd::expect_success 'oc delete all -l app=ruby-hello-world'
 os::cmd::expect_failure 'oc get dc/ruby-hello-world'
 echo "delete all: ok"
 
+# service accounts should not be allowed to request new projects
+SA_TOKEN=`oc get sa/builder --template='{{range .secrets}}{{ .name }} {{end}}' | xargs -n 1 oc get secret --template='{{ if .data.token }}{{ .data.token }}{{end}}' | os::util::base64decode -`
+os::cmd::expect_failure_and_text "oc new-project --token=${SA_TOKEN} will-fail" 'Error from server: You may not request a new project via this API'
+
+
+# Validate patching works correctly
+oc login -u system:admin
+# Clean up group if needed to be re-entrant
+oc delete group patch-group || true
+group_json='{"kind":"Group","apiVersion":"v1","metadata":{"name":"patch-group"}}'
+os::cmd::expect_success          "echo '${group_json}' | oc create -f -"
+os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'users: null'
+os::cmd::expect_success          "oc patch group patch-group -p 'users: [\"myuser\"]' --loglevel=8"
+os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'myuser'
+os::cmd::expect_success          "oc patch group patch-group -p 'users: []' --loglevel=8"
+os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'users: \[\]'
+echo "patch: ok"

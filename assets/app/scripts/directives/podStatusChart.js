@@ -65,6 +65,12 @@ angular.module('openshiftConsole')
           tooltip: {
             format: {
               value: function(value, ratio, id) {
+                // We add all phases to the data, even if count 0, to force a cut-line at the top of the donut.
+                // Don't show tooltips for phases with 0 count.
+                if (!value) {
+                  return undefined;
+                }
+
                 // Disable the tooltip for empty donuts.
                 if (id === "Empty") {
                   return undefined;

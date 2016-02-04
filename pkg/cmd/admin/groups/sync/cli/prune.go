@@ -10,6 +10,7 @@ import (
 
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kerrs "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
@@ -29,12 +30,12 @@ Prune OpenShift Groups referencing missing records on from an external provider.
 In order to prune OpenShift Group records using those from an external provider, determine which Groups you wish
 to prune. For instance, all or some groups may be selected from the current Groups stored in OpenShift that have
 been synced previously. Any combination of a literal whitelist, a whitelist file and a blacklist file is supported.
-The path to a sync configuration file that was used for syncing the groups in question is required in order to 
-describe how data is requested from the external record store. Default behavior is to indicate all OpenShift groups 
+The path to a sync configuration file that was used for syncing the groups in question is required in order to
+describe how data is requested from the external record store. Default behavior is to indicate all OpenShift groups
 for which the external record does not exist, to run the pruning process and commit the results, use the --confirm
 flag.
 `
-	pruneExamples = `  # Prune all orphaned groups 
+	pruneExamples = `  # Prune all orphaned groups
   $ %[1]s --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups except the ones from the blacklist file
@@ -157,11 +158,11 @@ func (o *PruneOptions) Complete(whitelistFile, blacklistFile, configFile string,
 func (o *PruneOptions) Validate() error {
 	results := validation.ValidateLDAPSyncConfig(o.Config)
 	if o.GroupInterface == nil {
-		results.Errors = append(results.Errors, fmt.Errorf("an OpenShift group client is required"))
+		results.Errors = append(results.Errors, field.Required(field.NewPath("groupInterface")))
 	}
 	// TODO(skuznets): pretty-print validation results
 	if len(results.Errors) > 0 {
-		return fmt.Errorf("validation of LDAP sync config failed: %v", kerrs.NewAggregate([]error(results.Errors)))
+		return fmt.Errorf("validation of LDAP sync config failed: %v", results.Errors.ToAggregate())
 	}
 	return nil
 }

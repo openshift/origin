@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 )
@@ -22,7 +22,7 @@ func (r *ClientAuthorizationRegistry) ClientAuthorizationName(userName, clientNa
 	return fmt.Sprintf("%s:%s", userName, clientName)
 }
 
-func (r *ClientAuthorizationRegistry) ListClientAuthorizations(ctx kapi.Context, label labels.Selector) (*api.OAuthClientAuthorizationList, error) {
+func (r *ClientAuthorizationRegistry) ListClientAuthorizations(ctx kapi.Context, options *unversioned.ListOptions) (*api.OAuthClientAuthorizationList, error) {
 	return r.ClientAuthorizations, r.Err
 }
 

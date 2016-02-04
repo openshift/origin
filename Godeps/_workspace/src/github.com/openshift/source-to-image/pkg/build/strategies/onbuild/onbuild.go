@@ -108,9 +108,10 @@ func (b *OnBuild) Build(config *api.Config) (*api.Result, error) {
 	defer tarStream.Close()
 
 	opts := docker.BuildImageOptions{
-		Name:   config.Tag,
-		Stdin:  tarStream,
-		Stdout: os.Stdout,
+		Name:         config.Tag,
+		Stdin:        tarStream,
+		Stdout:       os.Stdout,
+		CGroupLimits: config.CGroupLimits,
 	}
 
 	glog.V(2).Info("Building the application source")
@@ -167,11 +168,11 @@ func (b *OnBuild) copySTIScripts(config *api.Config) {
 	sourcePath := filepath.Join(config.WorkingDir, "upload", "src")
 	if _, err := b.fs.Stat(filepath.Join(scriptsPath, api.Run)); err == nil {
 		glog.V(3).Infof("Found S2I 'run' script, copying to application source dir")
-		b.fs.Copy(filepath.Join(scriptsPath, api.Run), sourcePath)
+		b.fs.Copy(filepath.Join(scriptsPath, api.Run), filepath.Join(sourcePath, api.Run))
 	}
 	if _, err := b.fs.Stat(filepath.Join(scriptsPath, api.Assemble)); err == nil {
 		glog.V(3).Infof("Found S2I 'assemble' script, copying to application source dir")
-		b.fs.Copy(filepath.Join(scriptsPath, api.Assemble), sourcePath)
+		b.fs.Copy(filepath.Join(scriptsPath, api.Assemble), filepath.Join(sourcePath, api.Assemble))
 	}
 }
 

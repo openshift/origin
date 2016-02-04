@@ -11,8 +11,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/probe"
 	httpprobe "k8s.io/kubernetes/pkg/probe/http"
 	"k8s.io/kubernetes/pkg/watch"
@@ -102,10 +100,10 @@ func healthzProxyTest(masterConfig *configapi.MasterConfig, t *testing.T) {
 
 func watchProxyTest(cluster1AdminKubeClient, cluster2AdminKubeClient *kclient.Client, t *testing.T) {
 	// list namespaces in order to determine correct resourceVersion
-	namespaces, err := cluster1AdminKubeClient.Namespaces().List(labels.Everything(), fields.Everything())
+	namespaces, err := cluster1AdminKubeClient.Namespaces().List(kapi.ListOptions{})
 
 	// open a watch on Cluster 2 for namespaces starting with latest resourceVersion
-	namespaceWatch, err := cluster2AdminKubeClient.Namespaces().Watch(labels.Everything(), fields.Everything(), namespaces.ResourceVersion)
+	namespaceWatch, err := cluster2AdminKubeClient.Namespaces().Watch(kapi.ListOptions{ResourceVersion: namespaces.ResourceVersion})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

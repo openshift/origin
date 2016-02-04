@@ -30,6 +30,7 @@ import (
 	"github.com/coreos/etcd/raft"
 	"github.com/coreos/etcd/raft/raftpb"
 	"github.com/coreos/etcd/store"
+	"github.com/coreos/etcd/version"
 	"github.com/coreos/go-semver/semver"
 )
 
@@ -197,7 +198,7 @@ func (c *cluster) String() string {
 	}
 	fmt.Fprintf(b, "Members:[%s] ", strings.Join(ms, " "))
 	var ids []string
-	for id, _ := range c.removed {
+	for id := range c.removed {
 		ids = append(ids, fmt.Sprintf("%s", id))
 	}
 	fmt.Fprintf(b, "RemovedMemberIDs:[%s]}", strings.Join(ids, " "))
@@ -219,8 +220,12 @@ func (c *cluster) SetID(id types.ID) { c.id = id }
 func (c *cluster) SetStore(st store.Store) { c.store = st }
 
 func (c *cluster) Recover() {
+	c.Lock()
+	defer c.Unlock()
+
 	c.members, c.removed = membersFromStore(c.store)
 	c.version = clusterVersionFromStore(c.store)
+	MustDetectDowngrade(c.version)
 }
 
 // ValidateConfigurationChange takes a proposed ConfChange and
@@ -358,11 +363,12 @@ func (c *cluster) SetVersion(ver *semver.Version) {
 	c.Lock()
 	defer c.Unlock()
 	if c.version != nil {
-		plog.Noticef("updated the cluster version from %v to %v", c.version.String(), ver.String())
+		plog.Noticef("updated the cluster version from %v to %v", version.Cluster(c.version.String()), version.Cluster(ver.String()))
 	} else {
-		plog.Noticef("set the initial cluster version to %v", ver.String())
+		plog.Noticef("set the initial cluster version to %v", version.Cluster(ver.String()))
 	}
 	c.version = ver
+	MustDetectDowngrade(c.version)
 }
 
 func membersFromStore(st store.Store) (map[types.ID]*Member, map[types.ID]bool) {
@@ -376,7 +382,8 @@ func membersFromStore(st store.Store) (map[types.ID]*Member, map[types.ID]bool) 
 		plog.Panicf("get storeMembers should never fail: %v", err)
 	}
 	for _, n := range e.Node.Nodes {
-		m, err := nodeToMember(n)
+		var m *Member
+		m, err = nodeToMember(n)
 		if err != nil {
 			plog.Panicf("nodeToMember should never fail: %v", err)
 		}

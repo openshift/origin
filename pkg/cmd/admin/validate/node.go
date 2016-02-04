@@ -26,6 +26,8 @@ This command validates that a configuration file intended to be used for a node 
 
 	valiateNodeConfigExample = ` // Validate node configuration file
   $ %s openshift.local.config/master/node-config.yaml`
+
+	validateNodeConfigDeprecationMessage = `This command is deprecated and will be removed. Use 'openshift ex diagnostics NodeConfigCheck --node-config=path/to/config.yaml' instead.`
 )
 
 type ValidateNodeConfigOptions struct {
@@ -43,10 +45,11 @@ func NewCommandValidateNodeConfig(name, fullName string, out io.Writer) *cobra.C
 	}
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s SOURCE", name),
-		Short:   "Validate the configuration file for a node",
-		Long:    validateNodeConfigLong,
-		Example: fmt.Sprintf(valiateNodeConfigExample, fullName),
+		Use:        fmt.Sprintf("%s SOURCE", name),
+		Short:      "Validate the configuration file for a node",
+		Long:       validateNodeConfigLong,
+		Example:    fmt.Sprintf(valiateNodeConfigExample, fullName),
+		Deprecated: validateNodeConfigDeprecationMessage,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(args); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
@@ -82,7 +85,7 @@ func (o *ValidateNodeConfigOptions) Run() (ok bool, err error) {
 		return true, err
 	}
 
-	results := validation.ValidateNodeConfig(nodeConfig)
+	results := validation.ValidateNodeConfig(nodeConfig, nil)
 	writer := tabwriter.NewWriter(o.Out, minColumnWidth, tabWidth, padding, padchar, flags)
 	err = prettyPrintValidationResults(results, writer)
 	if err != nil {

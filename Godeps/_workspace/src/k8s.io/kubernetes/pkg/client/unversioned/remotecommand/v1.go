@@ -69,6 +69,13 @@ func (e *streamProtocolV1) stream(conn httpstream.Connection) error {
 	}
 	defer errorStream.Reset()
 
+	// Create all the streams first, then start the copy goroutines. The server doesn't start its copy
+	// goroutines until it's received all of the streams. If the client creates the stdin stream and
+	// immediately begins copying stdin data to the server, it's possible to overwhelm and wedge the
+	// spdy frame handler in the server so that it is full of unprocessed frames. The frames aren't
+	// getting processed because the server hasn't started its copying, and it won't do that until it
+	// gets all the streams. By creating all the streams first, we ensure that the server is ready to
+	// process data before the client starts sending any. See https://issues.k8s.io/16373 for more info.
 	if e.stdin != nil {
 		headers.Set(api.StreamType, api.StreamTypeStdin)
 		remoteStdin, err = conn.CreateStream(headers)

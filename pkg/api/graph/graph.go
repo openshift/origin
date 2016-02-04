@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -29,10 +30,6 @@ func (n Node) DOTAttributes() []dot.Attribute {
 type ExistenceChecker interface {
 	// Found returns false if the node represents an object that we don't have the backing object for
 	Found() bool
-}
-
-type ResourceNode interface {
-	ResourceString() string
 }
 
 type UniqueName string
@@ -111,6 +108,23 @@ type Interface interface {
 	MutableUniqueGraph
 
 	Edges() []graph.Edge
+}
+
+type Namer interface {
+	ResourceName(obj interface{}) string
+}
+
+type namer struct{}
+
+var DefaultNamer Namer = namer{}
+
+func (namer) ResourceName(obj interface{}) string {
+	switch t := obj.(type) {
+	case uniqueNamer:
+		return t.UniqueName()
+	default:
+		return reflect.TypeOf(obj).String()
+	}
 }
 
 type Graph struct {

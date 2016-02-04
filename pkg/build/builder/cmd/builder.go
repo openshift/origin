@@ -11,6 +11,8 @@ import (
 	"github.com/golang/glog"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
+
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/build/api"
 	bld "github.com/openshift/origin/pkg/build/builder"
@@ -18,10 +20,11 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/version"
 )
 
 type builder interface {
-	Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient) error
+	Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error
 }
 
 type builderConfig struct {
@@ -42,6 +45,14 @@ func newBuilderConfigFromEnvironment() (*builderConfig, error) {
 	cfg.build = &api.Build{}
 	if err = latest.Codec.DecodeInto([]byte(buildStr), cfg.build); err != nil {
 		return nil, fmt.Errorf("unable to parse build: %v", err)
+	}
+
+	masterVersion := os.Getenv(api.OriginVersion)
+	thisVersion := version.Get().String()
+	if len(masterVersion) != 0 && masterVersion != thisVersion {
+		glog.Warningf("Master version %q does not match Builder image version %q", masterVersion, thisVersion)
+	} else {
+		glog.V(2).Infof("Master version %q, Builder versions %q", masterVersion, thisVersion)
 	}
 
 	// sourceSecretsDir (SOURCE_SECRET_PATH)
@@ -105,13 +116,13 @@ func (c *builderConfig) setupGitEnvironment() ([]string, error) {
 		}
 		gitEnv = append(gitEnv, secretsEnv...)
 	}
-	if len(gitSource.HTTPProxy) > 0 {
-		gitEnv = append(gitEnv, fmt.Sprintf("HTTP_PROXY=%s", gitSource.HTTPProxy))
-		gitEnv = append(gitEnv, fmt.Sprintf("http_proxy=%s", gitSource.HTTPProxy))
+	if gitSource.HTTPProxy != nil && len(*gitSource.HTTPProxy) > 0 {
+		gitEnv = append(gitEnv, fmt.Sprintf("HTTP_PROXY=%s", *gitSource.HTTPProxy))
+		gitEnv = append(gitEnv, fmt.Sprintf("http_proxy=%s", *gitSource.HTTPProxy))
 	}
-	if len(gitSource.HTTPSProxy) > 0 {
-		gitEnv = append(gitEnv, fmt.Sprintf("HTTPS_PROXY=%s", gitSource.HTTPSProxy))
-		gitEnv = append(gitEnv, fmt.Sprintf("https_proxy=%s", gitSource.HTTPSProxy))
+	if gitSource.HTTPSProxy != nil && len(*gitSource.HTTPSProxy) > 0 {
+		gitEnv = append(gitEnv, fmt.Sprintf("HTTPS_PROXY=%s", *gitSource.HTTPSProxy))
+		gitEnv = append(gitEnv, fmt.Sprintf("https_proxy=%s", *gitSource.HTTPSProxy))
 	}
 	return bld.MergeEnv(os.Environ(), gitEnv), nil
 }
@@ -125,7 +136,13 @@ func (c *builderConfig) execute(b builder) error {
 	}
 	gitClient := git.NewRepositoryWithEnv(gitEnv)
 
-	if err := b.Build(c.dockerClient, c.dockerEndpoint, c.buildsClient, c.build, gitClient); err != nil {
+	cgLimits, err := bld.GetCGroupLimits()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve cgroup limits: %v", err)
+	}
+	glog.V(2).Infof("Running build with cgroup limits: %#v", *cgLimits)
+
+	if err := b.Build(c.dockerClient, c.dockerEndpoint, c.buildsClient, c.build, gitClient, cgLimits); err != nil {
 		return fmt.Errorf("build error: %v", err)
 	}
 
@@ -164,15 +181,15 @@ func fixSecretPermissions(secretsDir string) (string, error) {
 type dockerBuilder struct{}
 
 // Build starts a Docker build.
-func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient) error {
-	return bld.NewDockerBuilder(dockerClient, buildsClient, build, gitClient).Build()
+func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error {
+	return bld.NewDockerBuilder(dockerClient, buildsClient, build, gitClient, cgLimits).Build()
 }
 
 type s2iBuilder struct{}
 
 // Build starts an S2I build.
-func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient) error {
-	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build, gitClient).Build()
+func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error {
+	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build, gitClient, cgLimits).Build()
 }
 
 func runBuild(builder builder) {

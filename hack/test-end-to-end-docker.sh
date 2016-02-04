@@ -10,14 +10,15 @@ set -o pipefail
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/lib/util/environment.sh"
 
 echo "[INFO] Starting containerized end-to-end test"
 
 unset KUBECONFIG
 
-TMPDIR="${TMPDIR:-"/tmp"}"
-BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-e2e-containerized}"
-setup_env_vars
+os::util::environment::setup_all_server_vars "test-end-to-end-docker/"
+os::util::environment::use_sudo
 reset_tmp_dir
 
 function cleanup()
@@ -64,8 +65,9 @@ function cleanup()
 	exit $out
 }
 
-trap "exit" INT TERM
-trap "cleanup" EXIT
+trap "cleanup" EXIT INT TERM
+
+os::log::start_system_logger
 
 out=$(
 	set +e

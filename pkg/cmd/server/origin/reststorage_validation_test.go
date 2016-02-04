@@ -6,13 +6,20 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api/rest"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	extapi "k8s.io/kubernetes/pkg/apis/extensions"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/validation"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
+
+// KnownUpdateValidationExceptions is the list of types that are known to not have an update validation function registered
+// If you add something to this list, explain why it doesn't need update validation.
+var KnownUpdateValidationExceptions = []reflect.Type{
+	reflect.TypeOf(&extapi.Scale{}), // scale operation uses the ValidateScale() function for both create and update
+}
 
 // TestValidationRegistration makes sure that any RESTStorage that allows create or update has the correct validation register.
 // It doesn't guarantee that it's actually called, but it does guarantee that it at least exists
@@ -34,12 +41,20 @@ func TestValidationRegistration(t *testing.T) {
 		}
 
 		if _, ok := storage.(rest.Updater); ok {
+			exempted := false
+			for _, t := range KnownUpdateValidationExceptions {
+				if t == kindType {
+					exempted = true
+					break
+				}
+			}
+
 			// if we're an updater, then we must have a validateUpdate method registered
-			if !validatorExists {
+			if !validatorExists && !exempted {
 				t.Errorf("No validator registered for %v (used by %v).  Register in pkg/api/validation/register.go.", kindType, key)
 			}
 
-			if !validationInfo.UpdateAllowed {
+			if !validationInfo.UpdateAllowed && !exempted {
 				t.Errorf("No validateUpdate method registered for %v (used by %v).  Register in pkg/api/validation/register.go.", kindType, key)
 			}
 		}
@@ -66,7 +81,7 @@ func TestAllOpenShiftResourceCoverage(t *testing.T) {
 // fakeMasterConfig creates a new fake master config with an empty kubelet config and dummy storage.
 func fakeMasterConfig() *MasterConfig {
 	return &MasterConfig{
-		KubeletClientConfig: &kclient.KubeletConfig{},
+		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
 		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, ""),
 	}
 }

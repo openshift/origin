@@ -12,8 +12,6 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -52,6 +50,9 @@ type ProjectStatusDescriber struct {
 	C       client.Interface
 	Server  string
 	Suggest bool
+
+	LogsCommandName             string
+	SecurityPolicyCommandFormat string
 }
 
 func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, sets.String, error) {
@@ -117,14 +118,22 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 
 // Describe returns the description of a project
 func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error) {
+	var f formatter = namespacedFormatter{}
+
 	g, forbiddenResources, err := d.MakeGraph(namespace)
 	if err != nil {
 		return "", err
 	}
 
-	project, err := d.C.Projects().Get(namespace)
-	if err != nil {
-		return "", err
+	allNamespaces := namespace == kapi.NamespaceAll
+	var project *projectapi.Project
+	if !allNamespaces {
+		p, err := d.C.Projects().Get(namespace)
+		if err != nil {
+			return "", err
+		}
+		project = p
+		f = namespacedFormatter{currentNamespace: namespace}
 	}
 
 	coveredNodes := graphview.IntSet{}
@@ -143,18 +152,23 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		indent := "  "
-		fmt.Fprintf(out, describeProjectAndServer(project, d.Server))
+		if allNamespaces {
+			fmt.Fprintf(out, describeAllProjectsOnServer(f, d.Server))
+		} else {
+			fmt.Fprintf(out, describeProjectAndServer(f, project, d.Server))
+		}
 
 		for _, service := range services {
 			if !service.Service.Found() {
 				continue
 			}
+			local := namespacedFormatter{currentNamespace: service.Service.Namespace}
 
 			fmt.Fprintln(out)
-			printLines(out, indent, 0, describeServiceInServiceGroup(service)...)
+			printLines(out, indent, 0, describeServiceInServiceGroup(f, service)...)
 
 			for _, dcPipeline := range service.DeploymentConfigPipelines {
-				printLines(out, indent, 1, describeDeploymentInServiceGroup(dcPipeline)...)
+				printLines(out, indent, 1, describeDeploymentInServiceGroup(local, dcPipeline)...)
 			}
 
 		rcNode:
@@ -164,7 +178,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 						continue rcNode
 					}
 				}
-				printLines(out, indent, 1, describeRCInServiceGroup(rcNode)...)
+				printLines(out, indent, 1, describeRCInServiceGroup(local, rcNode)...)
 			}
 
 		pod:
@@ -175,35 +189,35 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 						continue pod
 					}
 				}
-				printLines(out, indent, 1, describePodInServiceGroup(podNode)...)
+				printLines(out, indent, 1, describePodInServiceGroup(local, podNode)...)
 			}
 
 			for _, routeNode := range service.ExposingRoutes {
-				printLines(out, indent, 1, describeRouteInServiceGroup(routeNode)...)
+				printLines(out, indent, 1, describeRouteInServiceGroup(local, routeNode)...)
 			}
 		}
 
 		for _, standaloneDC := range standaloneDCs {
 			fmt.Fprintln(out)
-			printLines(out, indent, 0, describeDeploymentInServiceGroup(standaloneDC)...)
+			printLines(out, indent, 0, describeDeploymentInServiceGroup(f, standaloneDC)...)
 		}
 
 		for _, standaloneImage := range standaloneImages {
 			fmt.Fprintln(out)
-			lines := describeStandaloneBuildGroup(standaloneImage, namespace)
+			lines := describeStandaloneBuildGroup(f, standaloneImage, namespace)
 			lines = append(lines, describeAdditionalBuildDetail(standaloneImage.Build, standaloneImage.LastSuccessfulBuild, standaloneImage.LastUnsuccessfulBuild, standaloneImage.ActiveBuilds, standaloneImage.DestinationResolved, true)...)
 			printLines(out, indent, 0, lines...)
 		}
 
 		for _, standaloneRC := range standaloneRCs {
 			fmt.Fprintln(out)
-			printLines(out, indent, 0, describeRCInServiceGroup(standaloneRC.RC)...)
+			printLines(out, indent, 0, describeRCInServiceGroup(f, standaloneRC.RC)...)
 		}
 
 		allMarkers := osgraph.Markers{}
 		allMarkers = append(allMarkers, createForbiddenMarkers(forbiddenResources)...)
-		for _, scanner := range getMarkerScanners() {
-			allMarkers = append(allMarkers, scanner(g)...)
+		for _, scanner := range getMarkerScanners(d.LogsCommandName, d.SecurityPolicyCommandFormat) {
+			allMarkers = append(allMarkers, scanner(g, f)...)
 		}
 
 		fmt.Fprintln(out)
@@ -220,7 +234,15 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 				if len(marker.Suggestion) > 0 {
 					errorSuggestions++
 					if d.Suggest {
-						fmt.Fprintln(out, indent+"  "+marker.Suggestion.String())
+						switch s := marker.Suggestion.String(); {
+						case strings.Contains(s, "\n"):
+							fmt.Fprintln(out)
+							for _, line := range strings.Split(s, "\n") {
+								fmt.Fprintln(out, indent+"  "+line)
+							}
+						case len(s) > 0:
+							fmt.Fprintln(out, indent+"  try: "+s)
+						}
 					}
 				}
 			}
@@ -234,8 +256,14 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			for _, marker := range warningMarkers {
 				if d.Suggest {
 					fmt.Fprintln(out, indent+"* "+marker.Message)
-					if len(marker.Suggestion) > 0 {
-						fmt.Fprintln(out, indent+"  "+marker.Suggestion.String())
+					switch s := marker.Suggestion.String(); {
+					case strings.Contains(s, "\n"):
+						fmt.Fprintln(out)
+						for _, line := range strings.Split(s, "\n") {
+							fmt.Fprintln(out, indent+"  "+line)
+						}
+					case len(s) > 0:
+						fmt.Fprintln(out, indent+"  try: "+s)
 					}
 				}
 			}
@@ -293,11 +321,12 @@ func createForbiddenMarkers(forbiddenResources sets.String) []osgraph.Marker {
 	return markers
 }
 
-func getMarkerScanners() []osgraph.MarkerScanner {
+func getMarkerScanners(logsCommandName, securityPolicyCommandFormat string) []osgraph.MarkerScanner {
 	return []osgraph.MarkerScanner{
-		kubeanalysis.FindRestartingPods,
+		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
+			return kubeanalysis.FindRestartingPods(g, f, logsCommandName, securityPolicyCommandFormat)
+		},
 		kubeanalysis.FindDuelingReplicationControllers,
-		kubeanalysis.FindUnmountableSecrets,
 		kubeanalysis.FindMissingSecrets,
 		buildanalysis.FindUnpushableBuildConfigs,
 		buildanalysis.FindCircularBuilds,
@@ -305,6 +334,9 @@ func getMarkerScanners() []osgraph.MarkerScanner {
 		deployanalysis.FindDeploymentConfigTriggerErrors,
 		routeanalysis.FindMissingPortMapping,
 		routeanalysis.FindMissingTLSTerminationType,
+		routeanalysis.FindPathBasedPassthroughRoutes,
+		// We disable this feature by default and we don't have a capability detection for this sort of thing.  Disable this check for now.
+		// kubeanalysis.FindUnmountableSecrets,
 	}
 }
 
@@ -327,38 +359,111 @@ func indentLines(indent string, lines ...string) []string {
 	return ret
 }
 
-func describeProjectAndServer(project *projectapi.Project, server string) string {
-	if server != "" {
-		return fmt.Sprintf("In project %s on server %s\n", projectapi.DisplayNameAndNameForProject(project), server)
-	} else {
-		return fmt.Sprintf("In project %s\n", projectapi.DisplayNameAndNameForProject(project))
+type formatter interface {
+	ResourceName(obj interface{}) string
+}
+
+func namespaceNameWithType(resource, name, namespace, defaultNamespace string, noNamespace bool) string {
+	if noNamespace || namespace == defaultNamespace || len(namespace) == 0 {
+		return resource + "/" + name
+	}
+	return resource + "/" + name + "[" + namespace + "]"
+}
+
+var namespaced = namespacedFormatter{}
+
+type namespacedFormatter struct {
+	hideNamespace    bool
+	currentNamespace string
+}
+
+func (f namespacedFormatter) ResourceName(obj interface{}) string {
+	switch t := obj.(type) {
+
+	case *kubegraph.PodNode:
+		return namespaceNameWithType("pod", t.Name, t.Namespace, f.currentNamespace, f.hideNamespace)
+	case *kubegraph.ServiceNode:
+		return namespaceNameWithType("svc", t.Name, t.Namespace, f.currentNamespace, f.hideNamespace)
+	case *kubegraph.SecretNode:
+		return namespaceNameWithType("secret", t.Name, t.Namespace, f.currentNamespace, f.hideNamespace)
+	case *kubegraph.ServiceAccountNode:
+		return namespaceNameWithType("sa", t.Name, t.Namespace, f.currentNamespace, f.hideNamespace)
+	case *kubegraph.ReplicationControllerNode:
+		return namespaceNameWithType("rc", t.Name, t.Namespace, f.currentNamespace, f.hideNamespace)
+
+	case *imagegraph.ImageStreamNode:
+		return namespaceNameWithType("is", t.ImageStream.Name, t.ImageStream.Namespace, f.currentNamespace, f.hideNamespace)
+	case *imagegraph.ImageStreamTagNode:
+		return namespaceNameWithType("istag", t.ImageStreamTag.Name, t.ImageStreamTag.Namespace, f.currentNamespace, f.hideNamespace)
+	case *imagegraph.ImageStreamImageNode:
+		return namespaceNameWithType("isi", t.ImageStreamImage.Name, t.ImageStreamImage.Namespace, f.currentNamespace, f.hideNamespace)
+	case *imagegraph.ImageNode:
+		return namespaceNameWithType("image", t.Image.Name, t.Image.Namespace, f.currentNamespace, f.hideNamespace)
+	case *buildgraph.BuildConfigNode:
+		return namespaceNameWithType("bc", t.BuildConfig.Name, t.BuildConfig.Namespace, f.currentNamespace, f.hideNamespace)
+	case *buildgraph.BuildNode:
+		return namespaceNameWithType("build", t.Build.Name, t.Build.Namespace, f.currentNamespace, f.hideNamespace)
+
+	case *deploygraph.DeploymentConfigNode:
+		return namespaceNameWithType("dc", t.DeploymentConfig.Name, t.DeploymentConfig.Namespace, f.currentNamespace, f.hideNamespace)
+
+	case *routegraph.RouteNode:
+		return namespaceNameWithType("route", t.Route.Name, t.Route.Namespace, f.currentNamespace, f.hideNamespace)
+
+	default:
+		return fmt.Sprintf("<unrecognized object: %#v>", obj)
 	}
 }
 
-func describeDeploymentInServiceGroup(deploy graphview.DeploymentConfigPipeline) []string {
+func describeProjectAndServer(f formatter, project *projectapi.Project, server string) string {
+	if len(server) == 0 {
+		return fmt.Sprintf("In project %s on server %s\n", projectapi.DisplayNameAndNameForProject(project), server)
+	}
+	return fmt.Sprintf("In project %s on server %s\n", projectapi.DisplayNameAndNameForProject(project), server)
+
+}
+
+func describeAllProjectsOnServer(f formatter, server string) string {
+	if len(server) == 0 {
+		return "Showing all projects\n"
+	}
+	return fmt.Sprintf("Showing all projects on server %s\n", server)
+}
+
+func describeDeploymentInServiceGroup(f formatter, deploy graphview.DeploymentConfigPipeline) []string {
+	local := namespacedFormatter{currentNamespace: deploy.Deployment.Namespace}
+
 	includeLastPass := deploy.ActiveDeployment == nil
 	if len(deploy.Images) == 1 {
-		lines := []string{fmt.Sprintf("%s deploys %s %s", deploy.Deployment.ResourceString(), describeImageInPipeline(deploy.Images[0], deploy.Deployment.Namespace), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
+		format := "%s deploys %s %s"
+		if deploy.Deployment.Spec.Test {
+			format = "%s test deploys %s %s"
+		}
+		lines := []string{fmt.Sprintf(format, f.ResourceName(deploy.Deployment), describeImageInPipeline(local, deploy.Images[0], deploy.Deployment.Namespace), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 		if len(lines[0]) > 120 && strings.Contains(lines[0], " <- ") {
 			segments := strings.SplitN(lines[0], " <- ", 2)
 			lines[0] = segments[0] + " <-"
 			lines = append(lines, segments[1])
 		}
 		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(deploy.Images[0].Build, deploy.Images[0].LastSuccessfulBuild, deploy.Images[0].LastUnsuccessfulBuild, deploy.Images[0].ActiveBuilds, deploy.Images[0].DestinationResolved, includeLastPass)...)...)
-		lines = append(lines, describeDeployments(deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, 3)...)
+		lines = append(lines, describeDeployments(local, deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, 3)...)
 		return lines
 	}
 
-	lines := []string{fmt.Sprintf("%s deploys: %s", deploy.Deployment.ResourceString(), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
+	format := "%s deploys %s"
+	if deploy.Deployment.Spec.Test {
+		format = "%s test deploys %s"
+	}
+	lines := []string{fmt.Sprintf(format, f.ResourceName(deploy.Deployment), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 	for _, image := range deploy.Images {
-		lines = append(lines, describeImageInPipeline(image, deploy.Deployment.Namespace))
+		lines = append(lines, describeImageInPipeline(local, image, deploy.Deployment.Namespace))
 		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)...)
-		lines = append(lines, describeDeployments(deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, 3)...)
+		lines = append(lines, describeDeployments(local, deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, 3)...)
 	}
 	return lines
 }
 
-func describeRCInServiceGroup(rcNode *kubegraph.ReplicationControllerNode) []string {
+func describeRCInServiceGroup(f formatter, rcNode *kubegraph.ReplicationControllerNode) []string {
 	if rcNode.ReplicationController.Spec.Template == nil {
 		return []string{}
 	}
@@ -368,27 +473,27 @@ func describeRCInServiceGroup(rcNode *kubegraph.ReplicationControllerNode) []str
 		images = append(images, container.Image)
 	}
 
-	lines := []string{fmt.Sprintf("%s runs %s", rcNode.ResourceString(), strings.Join(images, ", "))}
+	lines := []string{fmt.Sprintf("%s runs %s", f.ResourceName(rcNode), strings.Join(images, ", "))}
 	lines = append(lines, describeRCStatus(rcNode.ReplicationController))
 
 	return lines
 }
 
-func describePodInServiceGroup(podNode *kubegraph.PodNode) []string {
+func describePodInServiceGroup(f formatter, podNode *kubegraph.PodNode) []string {
 	images := []string{}
 	for _, container := range podNode.Pod.Spec.Containers {
 		images = append(images, container.Image)
 	}
 
-	lines := []string{fmt.Sprintf("%s runs %s", podNode.ResourceString(), strings.Join(images, ", "))}
+	lines := []string{fmt.Sprintf("%s runs %s", f.ResourceName(podNode), strings.Join(images, ", "))}
 	return lines
 }
 
-func describeRouteInServiceGroup(routeNode *routegraph.RouteNode) []string {
+func describeRouteInServiceGroup(f formatter, routeNode *routegraph.RouteNode) []string {
 	if routeNode.Spec.Port != nil && len(routeNode.Spec.Port.TargetPort.String()) > 0 {
-		return []string{fmt.Sprintf("exposed by %s on pod port %s", routeNode.ResourceString(), routeNode.Spec.Port.TargetPort.String())}
+		return []string{fmt.Sprintf("exposed by %s on pod port %s", f.ResourceName(routeNode), routeNode.Spec.Port.TargetPort.String())}
 	}
-	return []string{fmt.Sprintf("exposed by %s", routeNode.ResourceString())}
+	return []string{fmt.Sprintf("exposed by %s", f.ResourceName(routeNode))}
 }
 
 func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
@@ -399,47 +504,47 @@ func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
 	return ""
 }
 
-func describeStandaloneBuildGroup(pipeline graphview.ImagePipeline, namespace string) []string {
+func describeStandaloneBuildGroup(f formatter, pipeline graphview.ImagePipeline, namespace string) []string {
 	switch {
 	case pipeline.Build != nil:
-		lines := []string{describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage)}
+		lines := []string{describeBuildInPipeline(f, pipeline.Build.BuildConfig, pipeline.BaseImage)}
 		if pipeline.Image != nil {
-			lines = append(lines, fmt.Sprintf("pushes to %s", describeImageTagInPipeline(pipeline.Image, namespace)))
+			lines = append(lines, fmt.Sprintf("pushes to %s", describeImageTagInPipeline(f, pipeline.Image, namespace)))
 		}
 		return lines
 	case pipeline.Image != nil:
-		return []string{describeImageTagInPipeline(pipeline.Image, namespace)}
+		return []string{describeImageTagInPipeline(f, pipeline.Image, namespace)}
 	default:
 		return []string{"<unknown>"}
 	}
 }
 
-func describeImageInPipeline(pipeline graphview.ImagePipeline, namespace string) string {
+func describeImageInPipeline(f formatter, pipeline graphview.ImagePipeline, namespace string) string {
 	switch {
 	case pipeline.Image != nil && pipeline.Build != nil:
-		return fmt.Sprintf("%s <- %s", describeImageTagInPipeline(pipeline.Image, namespace), describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage))
+		return fmt.Sprintf("%s <- %s", describeImageTagInPipeline(f, pipeline.Image, namespace), describeBuildInPipeline(f, pipeline.Build.BuildConfig, pipeline.BaseImage))
 	case pipeline.Image != nil:
-		return describeImageTagInPipeline(pipeline.Image, namespace)
+		return describeImageTagInPipeline(f, pipeline.Image, namespace)
 	case pipeline.Build != nil:
-		return describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage)
+		return describeBuildInPipeline(f, pipeline.Build.BuildConfig, pipeline.BaseImage)
 	default:
 		return "<unknown>"
 	}
 }
 
-func describeImageTagInPipeline(image graphview.ImageTagLocation, namespace string) string {
+func describeImageTagInPipeline(f formatter, image graphview.ImageTagLocation, namespace string) string {
 	switch t := image.(type) {
 	case *imagegraph.ImageStreamTagNode:
 		if t.ImageStreamTag.Namespace != namespace {
 			return image.ImageSpec()
 		}
-		return t.ResourceString()
+		return f.ResourceName(t)
 	default:
 		return image.ImageSpec()
 	}
 }
 
-func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphview.ImageTagLocation) string {
+func describeBuildInPipeline(f formatter, build *buildapi.BuildConfig, baseImage graphview.ImageTagLocation) string {
 	switch {
 	case build.Spec.Strategy.DockerStrategy != nil:
 		// TODO: handle case where no source repo
@@ -617,7 +722,7 @@ func describeSourceInPipeline(source *buildapi.BuildSource) (string, bool) {
 	return "", false
 }
 
-func describeDeployments(dcNode *deploygraph.DeploymentConfigNode, activeDeployment *kubegraph.ReplicationControllerNode, inactiveDeployments []*kubegraph.ReplicationControllerNode, count int) []string {
+func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, activeDeployment *kubegraph.ReplicationControllerNode, inactiveDeployments []*kubegraph.ReplicationControllerNode, count int) []string {
 	if dcNode == nil {
 		return nil
 	}
@@ -637,7 +742,7 @@ func describeDeployments(dcNode *deploygraph.DeploymentConfigNode, activeDeploym
 	}
 
 	for i, deployment := range deploymentsToPrint {
-		out = append(out, describeDeploymentStatus(deployment.ReplicationController, i == 0))
+		out = append(out, describeDeploymentStatus(deployment.ReplicationController, i == 0, dcNode.DeploymentConfig.Spec.Test))
 
 		switch {
 		case count == -1:
@@ -653,7 +758,7 @@ func describeDeployments(dcNode *deploygraph.DeploymentConfigNode, activeDeploym
 	return out
 }
 
-func describeDeploymentStatus(deploy *kapi.ReplicationController, first bool) string {
+func describeDeploymentStatus(deploy *kapi.ReplicationController, first, test bool) string {
 	timeAt := strings.ToLower(formatRelativeTime(deploy.CreationTimestamp.Time))
 	status := deployutil.DeploymentStatusFor(deploy)
 	version := deployutil.DeploymentVersionFor(deploy)
@@ -667,9 +772,16 @@ func describeDeploymentStatus(deploy *kapi.ReplicationController, first bool) st
 		return fmt.Sprintf("#%d deployment failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(deploy, false))
 	case deployapi.DeploymentStatusComplete:
 		// TODO: pod status output
+		if test {
+			return fmt.Sprintf("#%d test deployed %s ago", version, timeAt)
+		}
 		return fmt.Sprintf("#%d deployed %s ago%s", version, timeAt, describePodSummaryInline(deploy, first))
 	case deployapi.DeploymentStatusRunning:
-		return fmt.Sprintf("#%d deployment running for %s%s", version, timeAt, describePodSummaryInline(deploy, false))
+		format := "#%d deployment running for %s%s"
+		if test {
+			format = "#%d test deployment running for %s%s"
+		}
+		return fmt.Sprintf(format, version, timeAt, describePodSummaryInline(deploy, false))
 	default:
 		return fmt.Sprintf("#%d deployment %s %s ago%s", version, strings.ToLower(string(status)), timeAt, describePodSummaryInline(deploy, false))
 	}
@@ -736,17 +848,17 @@ func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (strin
 	}
 }
 
-func describeServiceInServiceGroup(svc graphview.ServiceGroup) []string {
+func describeServiceInServiceGroup(f formatter, svc graphview.ServiceGroup) []string {
 	spec := svc.Service.Spec
 	ip := spec.ClusterIP
 	port := describeServicePorts(spec)
 	switch {
 	case ip == "None":
-		return []string{fmt.Sprintf("%s (headless)%s", svc.Service.ResourceString(), port)}
+		return []string{fmt.Sprintf("%s (headless)%s", f.ResourceName(svc.Service), port)}
 	case len(ip) == 0:
-		return []string{fmt.Sprintf("%s <initializing>%s", svc.Service.ResourceString(), port)}
+		return []string{fmt.Sprintf("%s <initializing>%s", f.ResourceName(svc.Service), port)}
 	default:
-		return []string{fmt.Sprintf("%s - %s%s", svc.Service.ResourceString(), ip, port)}
+		return []string{fmt.Sprintf("%s - %s%s", f.ResourceName(svc.Service), ip, port)}
 	}
 }
 
@@ -756,7 +868,7 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 		return " no ports"
 
 	case 1:
-		if spec.Ports[0].TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone || spec.Ports[0].Port == spec.Ports[0].TargetPort.IntVal {
+		if spec.Ports[0].TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone || spec.Ports[0].Port == int(spec.Ports[0].TargetPort.IntVal) {
 			return fmt.Sprintf(":%d", spec.Ports[0].Port)
 		}
 		return fmt.Sprintf(":%d -> %s", spec.Ports[0].Port, spec.Ports[0].TargetPort.String())
@@ -768,7 +880,7 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 				pairs = append(pairs, fmt.Sprintf("%d", port.Port))
 				continue
 			}
-			if port.Port == port.TargetPort.IntVal {
+			if port.Port == int(port.TargetPort.IntVal) {
 				pairs = append(pairs, port.TargetPort.String())
 			} else {
 				pairs = append(pairs, fmt.Sprintf("%d->%s", port.Port, port.TargetPort.String()))
@@ -793,7 +905,7 @@ type rcLoader struct {
 }
 
 func (l *rcLoader) Load() error {
-	list, err := l.lister.ReplicationControllers(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.ReplicationControllers(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -817,7 +929,7 @@ type serviceLoader struct {
 }
 
 func (l *serviceLoader) Load() error {
-	list, err := l.lister.Services(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.Services(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -841,7 +953,7 @@ type podLoader struct {
 }
 
 func (l *podLoader) Load() error {
-	list, err := l.lister.Pods(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.Pods(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -865,7 +977,7 @@ type serviceAccountLoader struct {
 }
 
 func (l *serviceAccountLoader) Load() error {
-	list, err := l.lister.ServiceAccounts(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.ServiceAccounts(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -889,7 +1001,7 @@ type secretLoader struct {
 }
 
 func (l *secretLoader) Load() error {
-	list, err := l.lister.Secrets(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.Secrets(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -913,7 +1025,7 @@ type isLoader struct {
 }
 
 func (l *isLoader) Load() error {
-	list, err := l.lister.ImageStreams(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.ImageStreams(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -938,7 +1050,7 @@ type dcLoader struct {
 }
 
 func (l *dcLoader) Load() error {
-	list, err := l.lister.DeploymentConfigs(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.DeploymentConfigs(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -962,7 +1074,7 @@ type bcLoader struct {
 }
 
 func (l *bcLoader) Load() error {
-	list, err := l.lister.BuildConfigs(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.BuildConfigs(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return errors.TolerateNotFoundError(err)
 	}
@@ -986,7 +1098,7 @@ type buildLoader struct {
 }
 
 func (l *buildLoader) Load() error {
-	list, err := l.lister.Builds(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.Builds(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return errors.TolerateNotFoundError(err)
 	}
@@ -1010,7 +1122,7 @@ type routeLoader struct {
 }
 
 func (l *routeLoader) Load() error {
-	list, err := l.lister.Routes(l.namespace).List(labels.Everything(), fields.Everything())
+	list, err := l.lister.Routes(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}

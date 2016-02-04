@@ -23,7 +23,7 @@ const (
 // Precedence of failures:
 // 1. The image stream for the tag of interest does not exist.
 // 2. The image stream tag does not exist.
-func FindDeploymentConfigTriggerErrors(g osgraph.Graph) []osgraph.Marker {
+func FindDeploymentConfigTriggerErrors(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
 dc:
@@ -42,7 +42,7 @@ dc:
 						Severity: osgraph.ErrorSeverity,
 						Key:      MissingImageStreamErr,
 						Message: fmt.Sprintf("The image trigger for %s will have no effect because %s does not exist.",
-							dcNode.ResourceString(), isNode.(*imagegraph.ImageStreamNode).ResourceString()),
+							f.ResourceName(dcNode), f.ResourceName(isNode)),
 					})
 					continue dc
 				}
@@ -55,7 +55,7 @@ dc:
 					Severity: osgraph.WarningSeverity,
 					Key:      MissingImageStreamTagWarning,
 					Message: fmt.Sprintf("The image trigger for %s will have no effect until %s is imported or created by a build.",
-						dcNode.ResourceString(), istNode.ResourceString()),
+						f.ResourceName(dcNode), f.ResourceName(istNode)),
 				})
 				continue dc
 			}

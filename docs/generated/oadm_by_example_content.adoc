@@ -143,7 +143,7 @@ Prune OpenShift groups referencing missing records on an external provider.
 
 [options="nowrap"]
 ----
-  # Prune all orphaned groups 
+  # Prune all orphaned groups
   $ oadm groups prune --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups except the ones from the blacklist file
@@ -185,7 +185,7 @@ Sync OpenShift groups with records from an external provider.
   # Sync all groups except the ones from the blacklist file from an LDAP server
   $ oadm groups sync --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
-  # Sync specific groups specified in a whitelist file with an LDAP server 
+  # Sync specific groups specified in a whitelist file with an LDAP server
   $ oadm groups sync --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml --confirm
 
   # Sync all OpenShift Groups that have been synced previously with an LDAP server
@@ -346,25 +346,75 @@ Replace cluster SCCs to match the recommended bootstrap policy
 ====
 
 
-== oadm prune prune
+== oadm prune builds
+Remove old completed and failed builds
+
+====
+
+[options="nowrap"]
+----
+  # Dry run deleting older completed and failed builds and also including
+  # all builds whose associated BuildConfig no longer exists
+  $ oadm prune builds --orphans
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  $ oadm prune builds --orphans --confirm
+----
+====
+
+
+== oadm prune deployments
+Remove old completed and failed deployments
+
+====
+
+[options="nowrap"]
+----
+  # Dry run deleting all but the last complete deployment for every deployment config
+  $ oadm prune deployments --keep-complete=1
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  $ oadm prune deployments --keep-complete=1 --confirm
+----
+====
+
+
+== oadm prune groups
 Prune OpenShift groups referencing missing records on an external provider.
 
 ====
 
 [options="nowrap"]
 ----
-  # Prune all orphaned groups 
-  $ oadm prune prune --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  # Prune all orphaned groups
+  $ oadm prune groups --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups except the ones from the blacklist file
-  $ oadm prune prune --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  $ oadm prune groups --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups from a list of specific groups specified in a whitelist file
-  $ oadm prune prune --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  $ oadm prune groups --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups from a list of specific groups specified in a whitelist
-  $ oadm prune prune groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  $ oadm prune groups groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
+----
+====
+
+
+== oadm prune images
+Remove unreferenced images
+
+====
+
+[options="nowrap"]
+----
+  # See, what the prune command would delete if only images more than an hour old and obsoleted
+  # by 3 newer revisions under the same tag were considered.
+  $ oadm prune images --keep-tag-revisions=3 --keep-younger-than=60m
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  $ oadm prune images --keep-tag-revisions=3 --keep-younger-than=60m --confirm
 ----
 ====
 

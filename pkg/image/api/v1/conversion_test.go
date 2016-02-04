@@ -12,8 +12,6 @@ import (
 	testutil "github.com/openshift/origin/test/util/api"
 )
 
-var Convert = kapi.Scheme.Convert
-
 func TestRoundTripVersionedObject(t *testing.T) {
 	d := &newer.DockerImage{
 		Config: &newer.DockerConfig{
@@ -23,6 +21,7 @@ func TestRoundTripVersionedObject(t *testing.T) {
 	i := &newer.Image{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 
+		DockerImageLayers:    []newer.ImageLayer{{Name: "foo", Size: 10}},
 		DockerImageMetadata:  *d,
 		DockerImageReference: "foo/bar/baz",
 	}

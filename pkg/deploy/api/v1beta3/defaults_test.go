@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	v1 "github.com/openshift/origin/pkg/api/v1beta3"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -14,13 +15,13 @@ import (
 )
 
 func TestDefaults(t *testing.T) {
-	defaultIntOrString := util.NewIntOrStringFromString("25%")
-	differentIntOrString := util.NewIntOrStringFromInt(5)
-	tests := []struct {
+	defaultIntOrString := intstr.FromString("25%")
+	differentIntOrString := intstr.FromInt(5)
+	tests := map[string]struct {
 		original *deployv1.DeploymentConfig
 		expected *deployv1.DeploymentConfig
 	}{
-		{
+		"empty dc": {
 			original: &deployv1.DeploymentConfig{},
 			expected: &deployv1.DeploymentConfig{
 				Spec: deployv1.DeploymentConfigSpec{
@@ -34,10 +35,15 @@ func TestDefaults(t *testing.T) {
 							MaxUnavailable:      &defaultIntOrString,
 						},
 					},
+					Triggers: []deployv1.DeploymentTriggerPolicy{
+						{
+							Type: deployv1.DeploymentTriggerOnConfigChange,
+						},
+					},
 				},
 			},
 		},
-		{
+		"recreate": {
 			original: &deployv1.DeploymentConfig{
 				Spec: deployv1.DeploymentConfigSpec{
 					Strategy: deployv1.DeploymentStrategy{
@@ -77,7 +83,7 @@ func TestDefaults(t *testing.T) {
 				},
 			},
 		},
-		{
+		"rolling": {
 			original: &deployv1.DeploymentConfig{
 				Spec: deployv1.DeploymentConfigSpec{
 					Strategy: deployv1.DeploymentStrategy{
@@ -105,8 +111,8 @@ func TestDefaults(t *testing.T) {
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
 							UpdatePercent:       newInt(50),
-							MaxSurge:            newIntOrString(util.NewIntOrStringFromString("50%")),
-							MaxUnavailable:      newIntOrString(util.NewIntOrStringFromInt(0)),
+							MaxSurge:            newIntOrString(intstr.FromString("50%")),
+							MaxUnavailable:      newIntOrString(intstr.FromInt(0)),
 						},
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
@@ -117,7 +123,7 @@ func TestDefaults(t *testing.T) {
 				},
 			},
 		},
-		{
+		"rolling-2": {
 			original: &deployv1.DeploymentConfig{
 				Spec: deployv1.DeploymentConfigSpec{
 					Strategy: deployv1.DeploymentStrategy{
@@ -145,8 +151,8 @@ func TestDefaults(t *testing.T) {
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
 							UpdatePercent:       newInt(-50),
-							MaxSurge:            newIntOrString(util.NewIntOrStringFromInt(0)),
-							MaxUnavailable:      newIntOrString(util.NewIntOrStringFromString("50%")),
+							MaxSurge:            newIntOrString(intstr.FromInt(0)),
+							MaxUnavailable:      newIntOrString(intstr.FromString("50%")),
 						},
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
@@ -159,8 +165,8 @@ func TestDefaults(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		t.Logf("test %d", i)
+	for name, test := range tests {
+		t.Logf("%s", name)
 		original := test.original
 		expected := test.expected
 		obj2 := roundTrip(t, runtime.Object(original))
@@ -204,6 +210,6 @@ func newInt(val int) *int {
 	return &val
 }
 
-func newIntOrString(ios util.IntOrString) *util.IntOrString {
+func newIntOrString(ios intstr.IntOrString) *intstr.IntOrString {
 	return &ios
 }

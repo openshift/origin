@@ -39,3 +39,41 @@ items:
       kind: Service
       name: test
 
+- apiVersion: extensions/v1beta1
+  kind: Job
+  metadata:
+    annotations:
+      description: v1beta1 Job - used to test v1beta1 negotation of group k8s objects
+    name: v1beta1-job
+  spec:
+    selector:
+      matchLabels:
+        run: v1beta1-job
+    template:
+      metadata:
+        labels:
+          run: v1beta1-job
+      spec:
+        containers:
+        - image: openshift/hello-openshift
+          name: hello-container
+        restartPolicy: Never
+
+- apiVersion: v1
+  dockerImageMetadata:
+    Author: me
+    Config:
+      Cmd:
+      - /bin/sh
+      Entrypoint:
+      - container-entrypoint
+    ContainerConfig: {}
+    apiVersion: "1.0"
+    kind: DockerImage
+  dockerImageMetadataVersion: "1.0"
+  dockerImageReference: registry/namespace/name
+  kind: Image
+  metadata:
+    annotations:
+      description: v1 Image - used to test annotation/labeling of an object that does not support patch
+    name: v1-image

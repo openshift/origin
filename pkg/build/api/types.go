@@ -21,6 +21,9 @@ const (
 	BuildLabel = "openshift.io/build.name"
 	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
 	DefaultDockerLabelNamespace = "io.openshift."
+	// OriginVersion is an environment variable key that indicates the version of origin that
+	// created this build definition.
+	OriginVersion = "ORIGIN_VERSION"
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
@@ -188,10 +191,8 @@ type BuildSource struct {
 	// Git contains optional information about git build source
 	Git *GitBuildSource
 
-	// Image describes an image to be used to provide source for the build
-	// EXPERIMENTAL.  This will be changing to an array of images in the near future
-	// and no migration/compatibility will be provided.  Use at your own risk.
-	Image *ImageSource
+	// Images describes a set of images to be used to provide source for the build
+	Images []ImageSource
 
 	// ContextDir specifies the sub-directory where the source code for the application exists.
 	// This allows to have buildable sources in directory other than root of
@@ -206,6 +207,10 @@ type BuildSource struct {
 	// TODO: This needs to move under the GitBuildSource struct since it's only
 	// used for git authentication
 	SourceSecret *kapi.LocalObjectReference
+
+	// Secrets represents a list of secrets and their destinations that will
+	// be used only for the build.
+	Secrets []SecretBuildSource
 }
 
 // ImageSource describes an image that is used as source for the build
@@ -230,6 +235,25 @@ type ImageSourcePath struct {
 
 	// DestinationDir is the relative directory within the build directory
 	// where files copied from the image are placed.
+	DestinationDir string
+}
+
+// SecretBuildSource describes a secret and its destination directory that will be
+// used only at the build time. The content of the secret referenced here will
+// be copied into the destination directory instead of mounting.
+type SecretBuildSource struct {
+	// Secret is a reference to an existing secret that you want to use in your
+	// build.
+	Secret kapi.LocalObjectReference
+
+	// DestinationDir is the directory where the files from the secret should be
+	// available for the build time.
+	// For the Source build strategy, these will be injected into a container
+	// where the assemble script runs. Later, when the script finishes, all files
+	// injected will be truncated to zero length.
+	// For the Docker build strategy, these will be copied into the build
+	// directory, where the Dockerfile is located, so users can ADD or COPY them
+	// during docker build.
 	DestinationDir string
 }
 
@@ -274,10 +298,10 @@ type GitBuildSource struct {
 	Ref string
 
 	// HTTPProxy is a proxy used to reach the git repository over http
-	HTTPProxy string
+	HTTPProxy *string
 
 	// HTTPSProxy is a proxy used to reach the git repository over https
-	HTTPSProxy string
+	HTTPSProxy *string
 }
 
 // SourceControlUser defines the identity of a user of source control
@@ -335,6 +359,9 @@ type CustomBuildStrategy struct {
 
 	// Secrets is a list of additional secrets that will be included in the custom build pod
 	Secrets []SecretSpec
+
+	// BuildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder
+	BuildAPIVersion string
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
@@ -411,6 +438,9 @@ const (
 	// BuildConfigLabelDeprecated was used as BuildConfigLabel before adding namespaces.
 	// We keep it for backward compatibility.
 	BuildConfigLabelDeprecated = "buildconfig"
+	// BuildConfigPausedAnnotation is an annotation that marks a BuildConfig as paused.
+	// New Builds cannot be instantiated from a paused BuildConfig.
+	BuildConfigPausedAnnotation = "openshift.io/build-config.paused"
 )
 
 // BuildConfig is a template which can be used to create new builds.
@@ -617,7 +647,7 @@ type BuildLogOptions struct {
 	// Follow if true indicates that the build log should be streamed until
 	// the build terminates.
 	Follow bool
-	// If true, return previous terminated container logs
+	// If true, return previous build logs.
 	Previous bool
 	// A relative time in seconds before the current time from which to show logs. If this value
 	// precedes the time a pod was started, only logs since the pod start will be returned.

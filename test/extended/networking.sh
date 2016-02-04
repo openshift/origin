@@ -18,6 +18,8 @@ export SHELLOPTS
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
 
 # These strings filter the available tests.
@@ -221,10 +223,10 @@ else
     "${OPENSHIFT_INSTANCE_PREFIX}-node-2"
   )
 
-  export TMPDIR="${TMPDIR:-"/tmp"}"
-  export BASETMPDIR="${TMPDIR}/openshift-extended-tests/networking"
-  setup_env_vars
+  os::util::environment::setup_tmpdir_vars "test-extended/networking"
   reset_tmp_dir
+
+  os::log::start_system_logger
 
   os::log::info "Building docker-in-docker images"
   ${CLUSTER_CMD} build-images

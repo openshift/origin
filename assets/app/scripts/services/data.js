@@ -1232,11 +1232,11 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
       return "";
     }
     var resource = String(kind).toLowerCase();
-    if (resource.endsWith('status')) {
-      resource = resource + 'es';
+    if (resource.endsWith('endpoints') || resource.endsWith('securitycontextconstraints')) {
+      // no-op, plural is the singular
     }
     else if (resource.endsWith('s')) {
-      // no-op
+      resource = resource + 'es';
     }
     else if (resource.endsWith('y')) {
       resource = resource.substring(0, resource.length-1) + 'ies';

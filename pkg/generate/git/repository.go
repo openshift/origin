@@ -28,6 +28,7 @@ type Repository interface {
 	CloneMirror(dir string, url string) error
 	Fetch(dir string) error
 	Checkout(dir string, ref string) error
+	SubmoduleUpdate(dir string, init, recursive bool) error
 	Archive(dir, ref, format string, w io.Writer) error
 	Init(dir string, bare bool) error
 	AddRemote(dir string, name, url string) error
@@ -225,6 +226,20 @@ func (r *repository) Archive(location, ref, format string, w io.Writer) error {
 // Checkout switches to the given ref for the git repository
 func (r *repository) Checkout(location string, ref string) error {
 	_, _, err := r.git(nil, location, "checkout", ref)
+	return err
+}
+
+// SubmoduleUpdate updates submodules, optionally recursively
+func (r *repository) SubmoduleUpdate(location string, init, recursive bool) error {
+	updateArgs := []string{"submodule", "update"}
+	if init {
+		updateArgs = append(updateArgs, "--init")
+	}
+	if recursive {
+		updateArgs = append(updateArgs, "--recursive")
+	}
+
+	_, _, err := r.git(nil, location, updateArgs...)
 	return err
 }
 

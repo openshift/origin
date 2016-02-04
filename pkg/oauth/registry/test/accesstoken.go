@@ -2,7 +2,7 @@ package test
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 )
@@ -14,7 +14,7 @@ type AccessTokenRegistry struct {
 	DeletedAccessTokenName string
 }
 
-func (r *AccessTokenRegistry) ListAccessTokens(ctx kapi.Context, labels labels.Selector) (*api.OAuthAccessTokenList, error) {
+func (r *AccessTokenRegistry) ListAccessTokens(ctx kapi.Context, options *unversioned.ListOptions) (*api.OAuthAccessTokenList, error) {
 	return r.AccessTokens, r.Err
 }
 

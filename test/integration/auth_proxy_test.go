@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	ktransport "k8s.io/kubernetes/pkg/client/transport"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -75,7 +75,7 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	redirectedUrls := make([]url.URL, 10)
 	httpClient := http.Client{
 		CheckRedirect: getRedirectMethod(t, &redirectedUrls),
-		Transport:     kclient.NewBasicAuthRoundTripper("sanefarmer", "who?", insecureTransport()),
+		Transport:     ktransport.NewBasicAuthRoundTripper("sanefarmer", "who?", insecureTransport()),
 	}
 
 	// make our authorize request again, but this time our transport has properly set the auth info for the front proxy

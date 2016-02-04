@@ -5,15 +5,15 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	nsregistry "k8s.io/kubernetes/pkg/registry/namespace"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/project/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
@@ -91,8 +91,10 @@ func convertNamespaceList(namespaceList *kapi.NamespaceList) *api.ProjectList {
 	return projects
 }
 
+var _ = rest.Lister(&REST{})
+
 // List retrieves a list of Projects that match label.
-func (s *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
+func (s *REST) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
 	user, ok := kapi.UserFrom(ctx)
 	if !ok {
 		return nil, kerrors.NewForbidden("Project", "", fmt.Errorf("unable to list projects without a user on the context"))
@@ -101,13 +103,15 @@ func (s *REST) List(ctx kapi.Context, label labels.Selector, field fields.Select
 	if err != nil {
 		return nil, err
 	}
-	m := nsregistry.MatchNamespace(label, field)
+	m := nsregistry.MatchNamespace(oapi.ListOptionsToSelectors(options))
 	list, err := filterList(namespaceList, m, nil)
 	if err != nil {
 		return nil, err
 	}
 	return convertNamespaceList(list.(*kapi.NamespaceList)), nil
 }
+
+var _ = rest.Getter(&REST{})
 
 // Get retrieves a Project by name
 func (s *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
@@ -117,6 +121,8 @@ func (s *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 	}
 	return convertNamespace(namespace), nil
 }
+
+var _ = rest.Creater(&REST{})
 
 // Create registers the given Project.
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
@@ -135,6 +141,8 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 	return convertNamespace(namespace), nil
 }
+
+var _ = rest.Updater(&REST{})
 
 func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	project, ok := obj.(*api.Project)
@@ -159,6 +167,8 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 	return convertNamespace(namespace), false, nil
 }
 
+var _ = rest.Deleter(&REST{})
+
 // Delete deletes a Project specified by its name
 func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
 	return &unversioned.Status{Status: unversioned.StatusSuccess}, s.client.Delete(name)
@@ -173,7 +183,7 @@ type decoratorFunc func(obj runtime.Object) error
 func filterList(list runtime.Object, m generic.Matcher, d decoratorFunc) (filtered runtime.Object, err error) {
 	// TODO: push a matcher down into tools.etcdHelper to avoid all this
 	// nonsense. This is a lot of unnecessary copies.
-	items, err := runtime.ExtractList(list)
+	items, err := meta.ExtractList(list)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +202,7 @@ func filterList(list runtime.Object, m generic.Matcher, d decoratorFunc) (filter
 			filteredItems = append(filteredItems, obj)
 		}
 	}
-	err = runtime.SetList(list, filteredItems)
+	err = meta.SetList(list, filteredItems)
 	if err != nil {
 		return nil, err
 	}

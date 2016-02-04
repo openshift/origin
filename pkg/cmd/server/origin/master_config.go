@@ -13,10 +13,11 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapilatest "k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
-	"k8s.io/kubernetes/pkg/master"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	kutilrand "k8s.io/kubernetes/pkg/util/rand"
@@ -45,14 +46,17 @@ import (
 	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	osclient "github.com/openshift/origin/pkg/client"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
+	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
+	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
@@ -77,6 +81,7 @@ type MasterConfig struct {
 	PolicyCache               policycache.ReadOnlyCache
 	GroupCache                *usercache.GroupCache
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
+	ProjectCache              *projectcache.ProjectCache
 
 	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
@@ -96,7 +101,7 @@ type MasterConfig struct {
 	// to provide access to the client for things that need it.
 	EtcdClient *etcdclient.Client
 
-	KubeletClientConfig *kclient.KubeletConfig
+	KubeletClientConfig *kubeletclient.KubeletClientConfig
 
 	// ClientCAs will be used to request client certificates in connections to the API.
 	// This CertPool should contain all the CAs that will be used for client certificate verification.
@@ -127,7 +132,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	etcdHelper, err := NewEtcdStorage(client, options.EtcdStorageConfig.OpenShiftStorageVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
+	groupVersion := unversioned.GroupVersion{Group: "", Version: options.EtcdStorageConfig.OpenShiftStorageVersion}
+	etcdHelper, err := NewEtcdStorage(client, groupVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}
@@ -158,14 +164,37 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	requestContextMapper := kapi.NewRequestContextMapper()
 
 	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupstorage.NewREST(etcdHelper)))
+	projectCache := projectcache.NewProjectCache(privilegedLoopbackKubeClient.Namespaces(), options.ProjectConfig.DefaultNodeSelector)
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
 	admissionControlPluginNames := []string{"OriginNamespaceLifecycle", "BuildByStrategy"}
+	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
+		admissionControlPluginNames = options.AdmissionConfig.PluginOrderOverride
+	}
 
-	admissionClient := admissionControlClient(privilegedLoopbackKubeClient, privilegedLoopbackOpenShiftClient)
-	admissionController := admission.NewFromPlugins(admissionClient, admissionControlPluginNames, "")
+	pluginInitializer := oadmission.PluginInitializer{
+		OpenshiftClient: privilegedLoopbackOpenShiftClient,
+		ProjectCache:    projectCache,
+	}
+	plugins := []admission.Interface{}
+	for _, pluginName := range admissionControlPluginNames {
+		configFile, err := pluginconfig.GetPluginConfig(options.AdmissionConfig.PluginConfig[pluginName])
+		if err != nil {
+			return nil, err
+		}
+		plugin := admission.InitPlugin(pluginName, privilegedLoopbackKubeClient, configFile)
+		if plugin != nil {
+			plugins = append(plugins, plugin)
+		}
+	}
+	pluginInitializer.Initialize(plugins)
+	// ensure that plugins have been properly initialized
+	if err := oadmission.Validate(plugins); err != nil {
+		return nil, err
+	}
+	admissionController := admission.NewChainHandler(plugins...)
 
 	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, client)
 	if err != nil {
@@ -186,6 +215,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PolicyCache:               policyCache,
 		GroupCache:                groupCache,
 		ProjectAuthorizationCache: newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, policyClient),
+		ProjectCache:              projectCache,
 
 		RequestContextMapper: requestContextMapper,
 
@@ -245,10 +275,15 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client *etcdcl
 		tokenGetter = serviceaccount.NewGetterFromClient(kubeClient)
 	} else {
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
-		ketcdHelper, err := master.NewEtcdStorage(client, kapilatest.InterfacesForLegacyGroup, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+		legacyGroup, err := kapilatest.Group(kapi.SchemeGroupVersion.Group)
 		if err != nil {
 			return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
+		versionedInterface, err := legacyGroup.InterfacesFor(unversioned.GroupVersion{Group: kapi.SchemeGroupVersion.Group, Version: options.EtcdStorageConfig.KubernetesStorageVersion})
+		if err != nil {
+			return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
+		}
+		ketcdHelper := etcdstorage.NewEtcdStorage(client, versionedInterface.Codec, options.EtcdStorageConfig.KubernetesStoragePrefix)
 		tokenGetter = serviceaccount.NewGetterFromStorageInterface(ketcdHelper)
 	}
 	return tokenGetter, nil
@@ -274,9 +309,15 @@ func newAuthenticator(config configapi.MasterConfig, etcdHelper storage.Interfac
 	// OAuth token
 	if config.OAuthConfig != nil {
 		tokenAuthenticator := getEtcdTokenAuthenticator(etcdHelper, groupMapper)
-		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator, true))
-		// Allow token as access_token param for WebSockets
-		authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator, true))
+		tokenRequestAuthenticators := []authenticator.Request{
+			bearertoken.New(tokenAuthenticator, true),
+			// Allow token as access_token param for WebSockets
+			paramtoken.New("access_token", tokenAuthenticator, true),
+		}
+
+		authenticators = append(authenticators,
+			// if you have a bearer token, you're a human (usually)
+			group.NewGroupAdder(unionrequest.NewUnionAuthentication(tokenRequestAuthenticators...), []string{bootstrappolicy.HumanGroup}))
 	}
 
 	if configapi.UseTLS(config.ServingInfo.ServingInfo) {
@@ -321,7 +362,12 @@ func newReadOnlyCacheAndClient(etcdHelper storage.Interface) (cache policycache.
 }
 
 func newAuthorizer(policyClient policyclient.ReadOnlyPolicyClient, projectRequestDenyMessage string) authorizer.Authorizer {
-	authorizer := authorizer.NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyClient, policyClient, policyClient, policyClient), authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
+	authorizer := authorizer.NewAuthorizer(rulevalidation.NewDefaultRuleResolver(
+		rulevalidation.PolicyGetter(policyClient),
+		rulevalidation.BindingLister(policyClient),
+		rulevalidation.ClusterPolicyGetter(policyClient),
+		rulevalidation.ClusterBindingLister(policyClient),
+	), authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
 	return authorizer
 }
 
@@ -483,6 +529,16 @@ func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, *kclient.Clien
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
+// ImageStreamSecretClient returns the client capable of retrieving secrets for an image secret wrapper
+func (c *MasterConfig) ImageStreamSecretClient() *kclient.Client {
+	return c.PrivilegedLoopbackKubernetesClient
+}
+
+// ImageStreamImportSecretClient returns the client capable of retrieving image secrets for a namespace
+func (c *MasterConfig) ImageStreamImportSecretClient() *osclient.Client {
+	return c.PrivilegedLoopbackOpenShiftClient
+}
+
 // WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.
 func (c *MasterConfig) WebConsoleEnabled() bool {
 	return c.Options.AssetConfig != nil && !c.Options.DisabledFeatures.Has(configapi.FeatureWebConsole)
@@ -495,24 +551,8 @@ func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kc
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
-// admissionControlClient returns a client to be used for admission control.
-// TODO: Refactor admission control to allow more than one client to be passed in to plugins
-func admissionControlClient(kClient *kclient.Client, osClient *osclient.Client) kclient.Interface {
-	type kc struct{ *kclient.Client }
-	type osc struct{ *osclient.Client }
-	type compositeClient struct {
-		*kc
-		*osc
-	}
-	client := &compositeClient{
-		&kc{kClient},
-		&osc{osClient},
-	}
-	return client
-}
-
-// NewEtcdHelper returns an EtcdHelper for the provided storage version.
-func NewEtcdStorage(client *etcdclient.Client, version, prefix string) (oshelper storage.Interface, err error) {
+// NewEtcdStorage returns a storage interface for the provided storage version.
+func NewEtcdStorage(client *etcdclient.Client, version unversioned.GroupVersion, prefix string) (oshelper storage.Interface, err error) {
 	interfaces, err := latest.InterfacesFor(version)
 	if err != nil {
 		return nil, err

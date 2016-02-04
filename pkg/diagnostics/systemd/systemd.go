@@ -13,7 +13,7 @@ type logEntry struct {
 	TimeStamp string `json:"__REALTIME_TIMESTAMP"` // epoch + ns
 }
 
-// logMatcher provides a regex for scanning log messages and parameteres to interpret them when found.
+// logMatcher provides a regex for scanning log messages and parameters to interpret them when found.
 type logMatcher struct {
 	Regexp         *regexp.Regexp
 	Level          log.Level

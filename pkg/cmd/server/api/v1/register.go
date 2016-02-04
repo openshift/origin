@@ -1,14 +1,20 @@
 package v1
 
 import (
-	"github.com/openshift/origin/pkg/cmd/server/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
+
+	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-var Codec = runtime.CodecFor(api.Scheme, "v1")
+// SchemeGroupVersion is group version used to register these objects
+var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: "v1"}
+
+// Codec encodes internal objects to the v1 scheme
+var Codec = runtime.CodecFor(api.Scheme, SchemeGroupVersion.String())
 
 func init() {
-	api.Scheme.AddKnownTypes("v1",
+	api.Scheme.AddKnownTypes(SchemeGroupVersion,
 		&MasterConfig{},
 		&NodeConfig{},
 		&SessionSecrets{},
@@ -25,6 +31,7 @@ func init() {
 		&GoogleIdentityProvider{},
 		&OpenIDIdentityProvider{},
 		&GrantConfig{},
+		&AdmissionPluginConfig{},
 
 		&LDAPSyncConfig{},
 	)
@@ -44,6 +51,7 @@ func (*GitHubIdentityProvider) IsAnAPIObject()            {}
 func (*GoogleIdentityProvider) IsAnAPIObject()            {}
 func (*OpenIDIdentityProvider) IsAnAPIObject()            {}
 func (*GrantConfig) IsAnAPIObject()                       {}
+func (*AdmissionPluginConfig) IsAnAPIObject()             {}
 
 func (*MasterConfig) IsAnAPIObject()   {}
 func (*NodeConfig) IsAnAPIObject()     {}

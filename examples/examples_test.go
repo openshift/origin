@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/capabilities"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -180,7 +181,7 @@ func validateObject(path string, obj runtime.Object, t *testing.T) {
 		}
 
 	case *kapi.List, *imageapi.ImageStreamList:
-		if list, err := runtime.ExtractList(typedObj); err == nil {
+		if list, err := meta.ExtractList(typedObj); err == nil {
 			runtime.DecodeList(list, kapi.Scheme)
 			for i := range list {
 				validateObject(path, list[i], t)

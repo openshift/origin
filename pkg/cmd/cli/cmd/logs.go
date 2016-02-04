@@ -30,7 +30,10 @@ Print the logs for a resource.
 Supported resources are builds, build configs (bc), deployment configs (dc), and pods.
 When a pod is specified and has more than one container, the container name should be
 specified via -c. When a build config or deployment config is specified, you can view
-the logs for a particular version of it via --version.`
+the logs for a particular version of it via --version.
+
+If your pod is failing to start, you may need to use the --previous option to see the
+logs of the last attempt.`
 
 	logsExample = `  # Start streaming the logs of the most recent build of the openldap build config.
   $ %[1]s -f bc/openldap
@@ -64,7 +67,7 @@ func NewCmdLogs(name, parent string, f *clientcmd.Factory, out io.Writer) *cobra
 	o := OpenShiftLogsOptions{
 		KubeLogOptions: &kcmd.LogsOptions{},
 	}
-	cmd := kcmd.NewCmdLog(f.Factory, out)
+	cmd := kcmd.NewCmdLogs(f.Factory, out)
 	cmd.Short = "Print the logs for a resource."
 	cmd.Long = logsLong
 	cmd.Example = fmt.Sprintf(logsExample, parent+" "+name)
@@ -109,13 +112,14 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 	}
 
 	version := cmdutil.GetFlagInt64(cmd, "version")
-	_, resource := meta.KindToResource(infos[0].Mapping.Kind, false)
+	_, resource := meta.KindToResource(infos[0].Mapping.GroupVersionKind.Kind, false)
 
 	// TODO: podLogOptions should be included in our own logOptions objects.
 	switch resource {
 	case "build", "buildconfig":
 		bopts := &buildapi.BuildLogOptions{
 			Follow:       podLogOptions.Follow,
+			Previous:     podLogOptions.Previous,
 			SinceSeconds: podLogOptions.SinceSeconds,
 			SinceTime:    podLogOptions.SinceTime,
 			Timestamps:   podLogOptions.Timestamps,
@@ -129,6 +133,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 	case "deploymentconfig":
 		dopts := &deployapi.DeploymentLogOptions{
 			Follow:       podLogOptions.Follow,
+			Previous:     podLogOptions.Previous,
 			SinceSeconds: podLogOptions.SinceSeconds,
 			SinceTime:    podLogOptions.SinceTime,
 			Timestamps:   podLogOptions.Timestamps,
@@ -155,7 +160,18 @@ func (o OpenShiftLogsOptions) Validate() error {
 	if o.Options == nil {
 		return nil
 	}
-	// TODO: Validate our own options.
+	switch t := o.Options.(type) {
+	case *buildapi.BuildLogOptions:
+		if t.Previous && t.Version != nil {
+			return errors.New("cannot use both --previous and --version")
+		}
+	case *deployapi.DeploymentLogOptions:
+		if t.Previous && t.Version != nil {
+			return errors.New("cannot use both --previous and --version")
+		}
+	default:
+		return errors.New("invalid log options object provided")
+	}
 	return nil
 }
 
@@ -166,6 +182,6 @@ func (o OpenShiftLogsOptions) RunLog() error {
 		// Use our own options object.
 		o.KubeLogOptions.Options = o.Options
 	}
-	_, err := o.KubeLogOptions.RunLog()
+	_, err := o.KubeLogOptions.RunLogs()
 	return err
 }

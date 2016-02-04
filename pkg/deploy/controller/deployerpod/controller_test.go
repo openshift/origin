@@ -121,10 +121,14 @@ func TestHandle_runningPod(t *testing.T) {
 // pod results in a transition of the deployment's status to complete.
 func TestHandle_podTerminatedOk(t *testing.T) {
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	deployment.Spec.Replicas = 1
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 	var updatedDeployment *kapi.ReplicationController
 
 	controller := &DeployerPodController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codec)
+		},
 		deploymentClient: &deploymentClientImpl{
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return deployment, nil
@@ -149,6 +153,50 @@ func TestHandle_podTerminatedOk(t *testing.T) {
 	if e, a := deployapi.DeploymentStatusComplete, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected updated deployment status %s, got %s", e, a)
 	}
+	if e, a := 1, updatedDeployment.Spec.Replicas; e != a {
+		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
+	}
+}
+
+// TestHandle_podTerminatedOk ensures that a successfully completed deployer
+// pod results in a transition of the deployment's status to complete.
+func TestHandle_podTerminatedOkTest(t *testing.T) {
+	deployment, _ := deployutil.MakeDeployment(deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1)), kapi.Codec)
+	deployment.Spec.Replicas = 1
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
+	var updatedDeployment *kapi.ReplicationController
+
+	controller := &DeployerPodController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codec)
+		},
+		deploymentClient: &deploymentClientImpl{
+			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return deployment, nil
+			},
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedDeployment = deployment
+				return deployment, nil
+			},
+		},
+	}
+
+	err := controller.Handle(succeededPod(deployment))
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if updatedDeployment == nil {
+		t.Fatalf("expected deployment update")
+	}
+
+	if e, a := deployapi.DeploymentStatusComplete, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
+		t.Fatalf("expected updated deployment status %s, got %s", e, a)
+	}
+	if e, a := 0, updatedDeployment.Spec.Replicas; e != a {
+		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
+	}
 }
 
 // TestHandle_podTerminatedFailNoContainerStatus ensures that a failed
@@ -157,11 +205,15 @@ func TestHandle_podTerminatedOk(t *testing.T) {
 func TestHandle_podTerminatedFailNoContainerStatus(t *testing.T) {
 	var updatedDeployment *kapi.ReplicationController
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	deployment.Spec.Replicas = 1
 	// since we do not set the desired replicas annotation,
 	// this also tests that the error is just logged and not result in a failure
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 
 	controller := &DeployerPodController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codec)
+		},
 		deploymentClient: &deploymentClientImpl{
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return deployment, nil
@@ -188,6 +240,56 @@ func TestHandle_podTerminatedFailNoContainerStatus(t *testing.T) {
 
 	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected updated deployment status %s, got %s", e, a)
+	}
+	if e, a := 1, updatedDeployment.Spec.Replicas; e != a {
+		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
+	}
+}
+
+// TestHandle_podTerminatedFailNoContainerStatus ensures that a failed
+// deployer pod with no container status results in a transition of the
+// deployment's status to failed.
+func TestHandle_podTerminatedFailNoContainerStatusTest(t *testing.T) {
+	var updatedDeployment *kapi.ReplicationController
+	deployment, _ := deployutil.MakeDeployment(deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1)), kapi.Codec)
+	deployment.Spec.Replicas = 1
+	// since we do not set the desired replicas annotation,
+	// this also tests that the error is just logged and not result in a failure
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
+
+	controller := &DeployerPodController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codec)
+		},
+		deploymentClient: &deploymentClientImpl{
+			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return deployment, nil
+			},
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedDeployment = deployment
+				return deployment, nil
+			},
+			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{Items: []kapi.ReplicationController{*deployment}}, nil
+			},
+		},
+	}
+
+	err := controller.Handle(terminatedPod(deployment))
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if updatedDeployment == nil {
+		t.Fatalf("expected deployment update")
+	}
+
+	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
+		t.Fatalf("expected updated deployment status %s, got %s", e, a)
+	}
+	if e, a := 0, updatedDeployment.Spec.Replicas; e != a {
+		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
 	}
 }
 
@@ -218,6 +320,9 @@ func TestHandle_cleanupDesiredReplicasAnnotation(t *testing.T) {
 		deployment.Annotations[deployapi.DesiredReplicasAnnotation] = "1"
 
 		controller := &DeployerPodController{
+			decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+				return deployutil.DecodeDeploymentConfig(deployment, kapi.Codec)
+			},
 			deploymentClient: &deploymentClientImpl{
 				getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 					return deployment, nil

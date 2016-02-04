@@ -9,10 +9,9 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	expapi "k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
 
@@ -61,13 +60,13 @@ func TestExtensionsAPIDisabled(t *testing.T) {
 	}
 
 	// make sure extensions API objects cannot be listed or created
-	if _, err := projectAdminKubeClient.Extensions().HorizontalPodAutoscalers(projName).List(labels.Everything(), fields.Everything()); !errors.IsNotFound(err) {
+	if _, err := projectAdminKubeClient.Extensions().HorizontalPodAutoscalers(projName).List(kapi.ListOptions{}); !errors.IsNotFound(err) {
 		t.Fatalf("expected NotFound error listing HPA, got %v", err)
 	}
 	if _, err := projectAdminKubeClient.Extensions().HorizontalPodAutoscalers(projName).Create(&expapi.HorizontalPodAutoscaler{}); !errors.IsNotFound(err) {
 		t.Fatalf("expected NotFound error creating HPA, got %v", err)
 	}
-	if _, err := projectAdminKubeClient.Extensions().Jobs(projName).List(labels.Everything(), fields.Everything()); !errors.IsNotFound(err) {
+	if _, err := projectAdminKubeClient.Extensions().Jobs(projName).List(kapi.ListOptions{}); !errors.IsNotFound(err) {
 		t.Fatalf("expected NotFound error listing jobs, got %v", err)
 	}
 	if _, err := projectAdminKubeClient.Extensions().Jobs(projName).Create(&expapi.Job{}); !errors.IsNotFound(err) {

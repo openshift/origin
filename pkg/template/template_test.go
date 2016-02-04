@@ -226,7 +226,7 @@ func TestEvaluateLabels(t *testing.T) {
 				"kind":"Template", "apiVersion":"v1",
 				"objects": [
 					{
-						"kind": "Service", "apiVersion": "v1beta1",
+						"kind": "Service", "apiVersion": "v1beta3",
 						"labels": {
 							"key1": "v1",
 							"key2": "v2"
@@ -238,7 +238,7 @@ func TestEvaluateLabels(t *testing.T) {
 				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
 				"objects":[
 					{
-						"apiVersion":"v1beta1","kind":"Service",
+						"apiVersion":"v1beta3","kind":"Service",
 						"labels":{"key1":"v1","key2":"v2","key3":"v3"}
 					}
 				],
@@ -251,7 +251,7 @@ func TestEvaluateLabels(t *testing.T) {
 				"kind":"Template", "apiVersion":"v1",
 				"objects": [
 					{
-						"kind": "Service", "apiVersion": "v1beta1",
+						"kind": "Service", "apiVersion": "v1beta3",
 						"metadata": {},
 						"labels": {
 							"key1": "v1",
@@ -264,7 +264,7 @@ func TestEvaluateLabels(t *testing.T) {
 				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
 				"objects":[
 					{
-						"apiVersion":"v1beta1","kind":"Service",
+						"apiVersion":"v1beta3","kind":"Service",
 						"labels":{"key1":"v1","key2":"v2"},
 						"metadata":{"labels":{"key3":"v3"}}
 					}

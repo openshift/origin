@@ -1684,8 +1684,8 @@ func convert_api_Probe_To_v1beta3_Probe(in *api.Probe, out *Probe, s conversion.
 	if err := convert_api_Handler_To_v1beta3_Handler(&in.Handler, &out.Handler, s); err != nil {
 		return err
 	}
-	out.InitialDelaySeconds = in.InitialDelaySeconds
-	out.TimeoutSeconds = in.TimeoutSeconds
+	out.InitialDelaySeconds = int64(in.InitialDelaySeconds)
+	out.TimeoutSeconds = int64(in.TimeoutSeconds)
 	return nil
 }
 
@@ -4034,8 +4034,8 @@ func convert_v1beta3_Probe_To_api_Probe(in *Probe, out *api.Probe, s conversion.
 	if err := convert_v1beta3_Handler_To_api_Handler(&in.Handler, &out.Handler, s); err != nil {
 		return err
 	}
-	out.InitialDelaySeconds = in.InitialDelaySeconds
-	out.TimeoutSeconds = in.TimeoutSeconds
+	out.InitialDelaySeconds = int(in.InitialDelaySeconds)
+	out.TimeoutSeconds = int(in.TimeoutSeconds)
 	return nil
 }
 

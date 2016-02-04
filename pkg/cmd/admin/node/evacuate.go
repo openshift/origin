@@ -84,11 +84,11 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 	fieldSelector := fields.Set{GetPodHostFieldLabel(node.TypeMeta.APIVersion): node.ObjectMeta.Name}.AsSelector()
 
 	// Filter all pods that satisfies pod label selector and belongs to the given node
-	pods, err := e.Options.Kclient.Pods(kapi.NamespaceAll).List(labelSelector, fieldSelector)
+	pods, err := e.Options.Kclient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
 	if err != nil {
 		return err
 	}
-	rcs, err := e.Options.Kclient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	rcs, err := e.Options.Kclient.ReplicationControllers(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}

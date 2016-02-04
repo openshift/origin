@@ -24,6 +24,7 @@ import (
 	"github.com/coreos/etcd/pkg/testutil"
 	"github.com/coreos/etcd/pkg/types"
 	"github.com/coreos/etcd/raft/raftpb"
+	"github.com/xiang90/probing"
 )
 
 // TestTransportSend tests that transport can send messages using correct
@@ -73,6 +74,7 @@ func TestTransportAdd(t *testing.T) {
 		leaderStats:  ls,
 		term:         term,
 		peers:        make(map[types.ID]Peer),
+		prober:       probing.NewProber(nil),
 	}
 	tr.AddPeer(1, []string{"http://localhost:2380"})
 
@@ -104,6 +106,7 @@ func TestTransportRemove(t *testing.T) {
 		roundTripper: &roundTripperRecorder{},
 		leaderStats:  stats.NewLeaderStats(""),
 		peers:        make(map[types.ID]Peer),
+		prober:       probing.NewProber(nil),
 	}
 	tr.AddPeer(1, []string{"http://localhost:2380"})
 	tr.RemovePeer(types.ID(1))
@@ -117,7 +120,8 @@ func TestTransportRemove(t *testing.T) {
 func TestTransportUpdate(t *testing.T) {
 	peer := newFakePeer()
 	tr := &transport{
-		peers: map[types.ID]Peer{types.ID(1): peer},
+		peers:  map[types.ID]Peer{types.ID(1): peer},
+		prober: probing.NewProber(nil),
 	}
 	u := "http://localhost:2380"
 	tr.UpdatePeer(types.ID(1), []string{u})
@@ -133,6 +137,7 @@ func TestTransportErrorc(t *testing.T) {
 		roundTripper: newRespRoundTripper(http.StatusForbidden, nil),
 		leaderStats:  stats.NewLeaderStats(""),
 		peers:        make(map[types.ID]Peer),
+		prober:       probing.NewProber(nil),
 		errorc:       errorc,
 	}
 	tr.AddPeer(1, []string{"http://localhost:2380"})

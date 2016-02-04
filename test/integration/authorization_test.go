@@ -11,8 +11,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
@@ -50,12 +48,12 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = haroldClient.DeploymentConfigs("hammer-project").List(labels.Everything(), fields.Everything())
+	_, err = haroldClient.DeploymentConfigs("hammer-project").List(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = markClient.DeploymentConfigs("hammer-project").List(labels.Everything(), fields.Everything())
+	_, err = markClient.DeploymentConfigs("hammer-project").List(kapi.ListOptions{})
 	if (err == nil) || !kapierror.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -80,7 +78,7 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 // if not found, it will retry up to numRetries at the specified delayInterval
 func waitForProject(t *testing.T, client client.Interface, projectName string, delayInterval time.Duration, numRetries int) {
 	for i := 0; i <= numRetries; i++ {
-		projects, err := client.Projects().List(labels.Everything(), fields.Everything())
+		projects, err := client.Projects().List(kapi.ListOptions{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -164,11 +162,11 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildListerClient.Builds(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err != nil {
+	if _, err := buildListerClient.Builds(kapi.NamespaceDefault).List(kapi.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildListerClient.DeploymentConfigs(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); !kapierror.IsForbidden(err) {
+	if _, err := buildListerClient.DeploymentConfigs(kapi.NamespaceDefault).List(kapi.ListOptions{}); !kapierror.IsForbidden(err) {
 		t.Errorf("expected forbidden, got %v", err)
 	}
 

@@ -7,9 +7,7 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	kubeutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 type ValidateFunc func(string) error
@@ -42,7 +40,7 @@ func WaitForAddress(pod *kapi.Pod, service *kapi.Service, ns string) (string, er
 	if err != nil {
 		return "", err
 	}
-	watcher, err := client.Endpoints(ns).Watch(labels.Everything(), fields.Everything(), "0")
+	watcher, err := client.Endpoints(ns).Watch(kapi.ListOptions{})
 	if err != nil {
 		return "", fmt.Errorf("Unexpected error: %v", err)
 	}
@@ -120,7 +118,7 @@ func CreateServiceForPod(pod *kapi.Pod, ns string) *kapi.Service {
 			Selector: map[string]string{"name": ns},
 			Ports: []kapi.ServicePort{{
 				Port:       8080,
-				TargetPort: kubeutil.IntOrString{Kind: kubeutil.IntstrInt, IntVal: 8080},
+				TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: 8080},
 			}},
 		},
 	}

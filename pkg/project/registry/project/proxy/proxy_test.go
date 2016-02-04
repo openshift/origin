@@ -10,8 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/project/api"
 )
@@ -44,7 +42,7 @@ func TestListProjects(t *testing.T) {
 		Groups: []string{"test-groups"},
 	}
 	ctx := kapi.WithUser(kapi.NewContext(), user)
-	response, err := storage.List(ctx, labels.Everything(), fields.Everything())
+	response, err := storage.List(ctx, nil)
 	if err != nil {
 		t.Errorf("%#v should be nil.", err)
 	}

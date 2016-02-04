@@ -53,7 +53,7 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 	server := httptest.NewServer(osMux)
 	defer server.Close()
 
-	osClient := osclient.NewOrDie(&kclient.Config{Host: server.URL, Version: latest.Version})
+	osClient := osclient.NewOrDie(&kclient.Config{Host: server.URL, GroupVersion: &latest.Version})
 
 	storage := map[string]rest.Storage{
 		"processedTemplates": templateregistry.NewREST(),
@@ -66,8 +66,8 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	handlerContainer := master.NewHandlerContainer(osMux)
 	version := apiserver.APIGroupVersion{
-		Root:    "/oapi",
-		Version: latest.Version,
+		Root:         "/oapi",
+		GroupVersion: latest.Version,
 
 		Mapper: latest.RESTMapper,
 

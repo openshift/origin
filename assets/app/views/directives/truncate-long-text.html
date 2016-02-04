@@ -1,0 +1,17 @@
+<span ng-if="!truncated">{{content}}</span>
+<span ng-if="truncated">
+  <span ng-if="!toggles.expanded">
+    <span ng-attr-title="{{content}}">{{truncatedContent}}&hellip;</span>
+    <a ng-if="expandable" href="" ng-click="toggles.expanded = true" style="margin-left: 5px; white-space: nowrap;">See all</a>
+  </span>
+  <span ng-if="toggles.expanded">
+    <div ng-if="prettifyJson" class="well">
+      <span class="pull-right" style="margin-top: -10px;"><a href="" ng-click="toggles.expanded = false">Collapse</a></span>  
+      <span class="pretty-json">{{content | prettifyJSON}}</span>
+    </div>
+    <span ng-if="!prettifyJson">
+      <span class="pull-right"><a href="" ng-click="toggles.expanded = false">Collapse</a></span>  
+     {{content}}
+    </span>    
+  </span>
+</span>

@@ -11,9 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -21,9 +19,21 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-const deploymentsLongDesc = `%s %s - Remove older completed and failed deployments`
-
 const PruneDeploymentsRecommendedName = "deployments"
+
+const (
+	deploymentsLongDesc = `Prune old completed and failed deployments
+
+By default, the prune operation performs a dry run making no changes to the deployments.
+A --confirm flag is needed for changes to be effective.
+`
+
+	deploymentsExample = `  # Dry run deleting all but the last complete deployment for every deployment config
+  $ %[1]s %[2]s --keep-complete=1
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  $ %[1]s %[2]s --keep-complete=1 --confirm`
+)
 
 type pruneDeploymentConfig struct {
 	Confirm         bool
@@ -42,10 +52,11 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 	}
 
 	cmd := &cobra.Command{
-		Use:   name,
-		Short: "Remove completed and failed deployments",
-		Long:  fmt.Sprintf(deploymentsLongDesc, parentName, name),
-
+		Use:        name,
+		Short:      "Remove old completed and failed deployments",
+		Long:       deploymentsLongDesc,
+		Example:    fmt.Sprintf(deploymentsExample, parentName, name),
+		SuggestFor: []string{"deployment", "deployments"},
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) > 0 {
 				glog.Fatalf("No arguments are allowed to this command")
@@ -56,12 +67,12 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 				cmdutil.CheckErr(err)
 			}
 
-			deploymentConfigList, err := osClient.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+			deploymentConfigList, err := osClient.DeploymentConfigs(kapi.NamespaceAll).List(kapi.ListOptions{})
 			if err != nil {
 				cmdutil.CheckErr(err)
 			}
 
-			deploymentList, err := kclient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+			deploymentList, err := kclient.ReplicationControllers(kapi.NamespaceAll).List(kapi.ListOptions{})
 			if err != nil {
 				cmdutil.CheckErr(err)
 			}
@@ -93,7 +104,7 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 					// If the deployment is failed we need to remove its deployer pods, too.
 					if deployutil.DeploymentStatusFor(deployment) == deployapi.DeploymentStatusFailed {
 						dpSelector := deployutil.DeployerPodSelector(deployment.Name)
-						deployers, err := kclient.Pods(deployment.Namespace).List(dpSelector, fields.Everything())
+						deployers, err := kclient.Pods(deployment.Namespace).List(kapi.ListOptions{LabelSelector: dpSelector})
 						if err != nil {
 							fmt.Fprintf(os.Stderr, "Cannot list deployer pods for %q: %v\n", deployment.Name, err)
 						} else {

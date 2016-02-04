@@ -151,7 +151,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 				for _, p := range svc.Spec.Ports {
 					port := p.Port
 					if port == 0 {
-						port = p.TargetPort.IntVal
+						port = int(p.TargetPort.IntVal)
 					}
 					if port == 0 {
 						continue

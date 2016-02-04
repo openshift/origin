@@ -16,8 +16,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/wait"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
@@ -221,7 +219,7 @@ func waitForServiceAccountToken(client *kclient.Client, ns, name string, attempt
 }
 
 func getServiceAccountToken(client *kclient.Client, ns, name string) (string, error) {
-	secrets, err := client.Secrets(ns).List(labels.Everything(), fields.Everything())
+	secrets, err := client.Secrets(ns).List(api.ListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -291,7 +289,7 @@ func waitForServiceAccountPullSecret(client *kclient.Client, ns, name string, at
 }
 
 func getServiceAccountPullSecret(client *kclient.Client, ns, name string) (string, error) {
-	secrets, err := client.Secrets(ns).List(labels.Everything(), fields.Everything())
+	secrets, err := client.Secrets(ns).List(api.ListOptions{})
 	if err != nil {
 		return "", err
 	}

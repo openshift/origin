@@ -18,7 +18,7 @@ func TestMissingSecrets(t *testing.T) {
 	kubeedges.AddAllMountableSecretEdges(g)
 	kubeedges.AddAllMountedSecretEdges(g)
 
-	markers := FindMissingSecrets(g)
+	markers := FindMissingSecrets(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
@@ -46,7 +46,7 @@ func TestUnmountableSecrets(t *testing.T) {
 	kubeedges.AddAllMountableSecretEdges(g)
 	kubeedges.AddAllMountedSecretEdges(g)
 
-	markers := FindUnmountableSecrets(g)
+	markers := FindUnmountableSecrets(g, osgraph.DefaultNamer)
 	if e, a := 2, len(markers); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}

@@ -28,10 +28,6 @@ func (n RouteNode) String() string {
 	return string(RouteNodeName(n.Route))
 }
 
-func (n RouteNode) ResourceString() string {
-	return "route/" + n.Name
-}
-
 func (*RouteNode) Kind() string {
 	return RouteNodeKind
 }

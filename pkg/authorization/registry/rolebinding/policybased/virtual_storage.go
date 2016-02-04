@@ -8,10 +8,10 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
@@ -51,17 +51,19 @@ func (m *VirtualStorage) NewList() runtime.Object {
 	return &authorizationapi.RoleBindingList{}
 }
 
-func (m *VirtualStorage) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
+func (m *VirtualStorage) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, options)
 	if err != nil {
 		return nil, err
 	}
 
-	roleBindingList := &authorizationapi.RoleBindingList{}
+	labelSelector, fieldSelector := oapi.ListOptionsToSelectors(options)
 
+	roleBindingList := &authorizationapi.RoleBindingList{}
 	for _, policyBinding := range policyBindingList.Items {
 		for _, roleBinding := range policyBinding.RoleBindings {
-			if label.Matches(labels.Set(roleBinding.Labels)) && field.Matches(authorizationapi.RoleBindingToSelectableFields(roleBinding)) {
+			if labelSelector.Matches(labels.Set(roleBinding.Labels)) &&
+				fieldSelector.Matches(authorizationapi.RoleBindingToSelectableFields(roleBinding)) {
 				roleBindingList.Items = append(roleBindingList.Items, *roleBinding)
 			}
 		}
@@ -325,7 +327,7 @@ func (m *VirtualStorage) getPolicyBindingForPolicy(ctx kapi.Context, policyNames
 }
 
 func (m *VirtualStorage) getPolicyBindingOwningRoleBinding(ctx kapi.Context, bindingName string) (*authorizationapi.PolicyBinding, error) {
-	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
+	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, &unversioned.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

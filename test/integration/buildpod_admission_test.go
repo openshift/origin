@@ -1,0 +1,214 @@
+// +build integration,etcd
+
+package integration
+
+import (
+	"reflect"
+	"testing"
+	"time"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/runtime"
+	watchapi "k8s.io/kubernetes/pkg/watch"
+
+	"github.com/openshift/origin/pkg/build/admission/defaults"
+	"github.com/openshift/origin/pkg/build/admission/overrides"
+	buildtestutil "github.com/openshift/origin/pkg/build/admission/testutil"
+	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/client"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
+)
+
+var buildPodAdmissionTestTimeout time.Duration = 10 * time.Second
+
+func TestBuildDefaultGitHTTPProxy(t *testing.T) {
+	httpProxy := "http://my.test.proxy:12345"
+	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaults.BuildDefaultsConfig{
+		GitHTTPProxy: httpProxy,
+	})
+	build, _ := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
+	if actual := build.Spec.Source.Git.HTTPProxy; actual == nil || *actual != httpProxy {
+		t.Errorf("Resulting build did not get expected HTTP proxy: %v", actual)
+	}
+}
+
+func TestBuildDefaultGitHTTPSProxy(t *testing.T) {
+	httpsProxy := "https://my.test.proxy:12345"
+	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaults.BuildDefaultsConfig{
+		GitHTTPSProxy: httpsProxy,
+	})
+	build, _ := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
+	if actual := build.Spec.Source.Git.HTTPSProxy; actual == nil || *actual != httpsProxy {
+		t.Errorf("Resulting build did not get expected HTTPS proxy: %v", actual)
+	}
+}
+
+func TestBuildDefaultEnvironment(t *testing.T) {
+	env := []kapi.EnvVar{
+		{
+			Name:  "VAR1",
+			Value: "VALUE1",
+		},
+		{
+			Name:  "VAR2",
+			Value: "VALUE2",
+		},
+	}
+	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaults.BuildDefaultsConfig{
+		Env: env,
+	})
+	build, _ := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
+	if actual := build.Spec.Strategy.DockerStrategy.Env; !reflect.DeepEqual(env, actual) {
+		t.Errorf("Resulting build did not get expected environment: %v", actual)
+	}
+}
+
+func TestBuildOverrideForcePull(t *testing.T) {
+	oclient, kclient := setupBuildOverridesAdmissionTest(t, &overrides.BuildOverridesConfig{
+		ForcePull: true,
+	})
+	build, _ := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
+	if !build.Spec.Strategy.DockerStrategy.ForcePull {
+		t.Errorf("ForcePull was not set on resulting build")
+	}
+}
+
+func TestBuildOverrideForcePullCustomStrategy(t *testing.T) {
+	oclient, kclient := setupBuildOverridesAdmissionTest(t, &overrides.BuildOverridesConfig{
+		ForcePull: true,
+	})
+	build, pod := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestCustomBuild())
+	if pod.Spec.Containers[0].ImagePullPolicy != kapi.PullAlways {
+		t.Errorf("Pod ImagePullPolicy is not PullAlways")
+	}
+	if !build.Spec.Strategy.CustomStrategy.ForcePull {
+		t.Errorf("ForcePull was not set on resulting build")
+	}
+}
+
+func buildPodAdmissionTestCustomBuild() *buildapi.Build {
+	build := &buildapi.Build{}
+	build.Name = "test-custom-build"
+	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "http://test/src"}
+	build.Spec.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{}
+	build.Spec.Strategy.CustomStrategy.From.Kind = "DockerImage"
+	build.Spec.Strategy.CustomStrategy.From.Name = "test/image"
+	return build
+}
+
+func buildPodAdmissionTestDockerBuild() *buildapi.Build {
+	build := &buildapi.Build{}
+	build.Name = "test-build"
+	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "http://test/src"}
+	build.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
+	return build
+}
+
+func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclient *kclient.Client, build *buildapi.Build) (*buildapi.Build, *kapi.Pod) {
+
+	ns := testutil.Namespace()
+	_, err := client.Builds(ns).Create(build)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	watchOpt := kapi.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(
+			"metadata.name",
+			buildutil.GetBuildPodName(build),
+		),
+	}
+	podWatch, err := kclient.Pods(ns).Watch(watchOpt)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	type resultObjs struct {
+		build *buildapi.Build
+		pod   *kapi.Pod
+	}
+	result := make(chan resultObjs)
+	defer podWatch.Stop()
+	go func() {
+		for e := range podWatch.ResultChan() {
+			if e.Type == watchapi.Added {
+				pod, ok := e.Object.(*kapi.Pod)
+				if !ok {
+					t.Fatalf("unexpected object: %v", e.Object)
+				}
+				build := (*buildtestutil.TestPod)(pod).GetBuild(t)
+				result <- resultObjs{build: build, pod: pod}
+			}
+		}
+	}()
+
+	select {
+	case <-time.After(buildPodAdmissionTestTimeout):
+		t.Fatalf("timed out after %v", buildPodAdmissionTestTimeout)
+	case objs := <-result:
+		return objs.build, objs.pod
+	}
+	return nil, nil
+}
+
+func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaults.BuildDefaultsConfig) (*client.Client, *kclient.Client) {
+	return setupBuildPodAdmissionTest(t, map[string]configapi.AdmissionPluginConfig{
+		"BuildDefaults": {
+			Configuration: runtime.EmbeddedObject{Object: defaultsConfig},
+		},
+	})
+}
+
+func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overrides.BuildOverridesConfig) (*client.Client, *kclient.Client) {
+	return setupBuildPodAdmissionTest(t, map[string]configapi.AdmissionPluginConfig{
+		"BuildOverrides": {
+			Configuration: runtime.EmbeddedObject{Object: overridesConfig},
+		},
+	})
+}
+
+func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.AdmissionPluginConfig) (*client.Client, *kclient.Client) {
+	master, err := testserver.DefaultMasterOptions()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	master.KubernetesMasterConfig.AdmissionConfig.PluginConfig = pluginConfig
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(master)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	_, err = clusterAdminKubeClient.Namespaces().Create(&kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
+	})
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	err = testserver.WaitForServiceAccounts(
+		clusterAdminKubeClient,
+		testutil.Namespace(),
+		[]string{
+			bootstrappolicy.BuilderServiceAccountName,
+			bootstrappolicy.DefaultServiceAccountName,
+		})
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	return clusterAdminClient, clusterAdminKubeClient
+}

@@ -206,8 +206,74 @@ func TestMultiNodeProposeConfig(t *testing.T) {
 	}
 }
 
-// TestBlockProposal from node_test.go has no equivalent in multiNode
-// because we cannot block proposals based on individual group leader status.
+// TestProposeUnknownGroup ensures that we gracefully handle proposals
+// for groups we don't know about (which can happen on a former leader
+// that has been removed from the group).
+//
+// It is analogous to TestBlockProposal from node_test.go but in
+// MultiNode we cannot block proposals based on individual group
+// leader status.
+func TestProposeUnknownGroup(t *testing.T) {
+	mn := newMultiNode(1)
+	go mn.run()
+	defer mn.Stop()
+
+	// A nil error from Propose() doesn't mean much. In this case the
+	// proposal will be dropped on the floor because we don't know
+	// anything about group 42. This is a very crude test that mainly
+	// guarantees that we don't panic in this case.
+	if err := mn.Propose(context.TODO(), 42, []byte("somedata")); err != nil {
+		t.Errorf("err = %v, want nil", err)
+	}
+}
+
+// TestProposeAfterRemoveLeader ensures that we gracefully handle
+// proposals that are attempted after a leader has been removed from
+// the active configuration, but before that leader has called
+// MultiNode.RemoveGroup.
+func TestProposeAfterRemoveLeader(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	mn := newMultiNode(1)
+	go mn.run()
+	defer mn.Stop()
+
+	storage := NewMemoryStorage()
+	if err := mn.CreateGroup(1, newTestConfig(1, nil, 10, 1, storage),
+		[]Peer{{ID: 1}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := mn.Campaign(ctx, 1); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := mn.ProposeConfChange(ctx, 1, raftpb.ConfChange{
+		Type:   raftpb.ConfChangeRemoveNode,
+		NodeID: 1,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	gs := <-mn.Ready()
+	g := gs[1]
+	if err := storage.Append(g.Entries); err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range g.CommittedEntries {
+		if e.Type == raftpb.EntryConfChange {
+			var cc raftpb.ConfChange
+			if err := cc.Unmarshal(e.Data); err != nil {
+				t.Fatal(err)
+			}
+			mn.ApplyConfChange(1, cc)
+		}
+	}
+	mn.Advance(gs)
+
+	if err := mn.Propose(ctx, 1, []byte("somedata")); err != nil {
+		t.Errorf("err = %v, want nil", err)
+	}
+}
 
 // TestNodeTick from node_test.go has no equivalent in multiNode because
 // it reaches into the raft object which is not exposed.

@@ -850,7 +850,15 @@ func (b *Bucket) UploadSignedURL(name, method, content_type string, expires time
 	signature := base64.StdEncoding.EncodeToString([]byte(macsum))
 	signature = strings.TrimSpace(signature)
 
-	signedurl, err := url.Parse("https://" + b.Name + ".s3.amazonaws.com/")
+	var signedurl *url.URL
+	var err error
+	if b.Region.S3Endpoint != "" {
+		signedurl, err = url.Parse(b.Region.S3Endpoint)
+		name = b.Name + "/" + name
+	} else {
+		signedurl, err = url.Parse("https://" + b.Name + ".s3.amazonaws.com/")
+	}
+
 	if err != nil {
 		log.Println("ERROR sining url for S3 upload", err)
 		return ""
@@ -1066,11 +1074,14 @@ func (s3 *S3) prepare(req *request) error {
 			return err
 		}
 
-		signpathPatiallyEscaped := partiallyEscapedPath(req.path)
+		signpathPartiallyEscaped := partiallyEscapedPath(req.path)
+		if strings.IndexAny(s3.Region.S3BucketEndpoint, "${bucket}") >= 0 {
+			signpathPartiallyEscaped = "/" + req.bucket + signpathPartiallyEscaped
+		}
 		req.headers["Host"] = []string{u.Host}
 		req.headers["Date"] = []string{time.Now().In(time.UTC).Format(time.RFC1123)}
 
-		sign(s3.Auth, req.method, signpathPatiallyEscaped, req.params, req.headers)
+		sign(s3.Auth, req.method, signpathPartiallyEscaped, req.params, req.headers)
 	} else {
 		hreq, err := s3.setupHttpRequest(req)
 		if err != nil {
@@ -1103,7 +1114,9 @@ func (s3 *S3) setupHttpRequest(req *request) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	u.Opaque = fmt.Sprintf("//%s%s", u.Host, partiallyEscapedPath(u.Path))
+	if s3.Region.Name != "generic" {
+		u.Opaque = fmt.Sprintf("//%s%s", u.Host, partiallyEscapedPath(u.Path))
+	}
 
 	hreq := http.Request{
 		URL:        u,
@@ -1243,7 +1256,7 @@ func shouldRetry(err error) bool {
 		return true
 	case *net.OpError:
 		switch e.Op {
-		case "read", "write":
+		case "dial", "read", "write":
 			return true
 		}
 	case *url.Error:
@@ -1252,7 +1265,14 @@ func shouldRetry(err error) bool {
 		// are received or parsed correctly. In that later case, e.Op is set to
 		// the HTTP method name with the first letter uppercased. We don't want
 		// to retry on POST operations, since those are not idempotent, all the
-		// other ones should be safe to retry.
+		// other ones should be safe to retry. The only case where all
+		// operations are safe to retry are "dial" errors, since in that case
+		// the POST request didn't make it to the server.
+
+		if netErr, ok := e.Err.(*net.OpError); ok && netErr.Op == "dial" {
+			return true
+		}
+
 		switch e.Op {
 		case "Get", "Put", "Delete", "Head":
 			return shouldRetry(e.Err)
@@ -1262,6 +1282,10 @@ func shouldRetry(err error) bool {
 	case *Error:
 		switch e.Code {
 		case "InternalError", "NoSuchUpload", "NoSuchBucket":
+			return true
+		}
+		switch e.StatusCode {
+		case 500, 503, 504:
 			return true
 		}
 	}

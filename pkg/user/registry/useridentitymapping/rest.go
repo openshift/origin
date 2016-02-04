@@ -9,8 +9,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/registry/identity"
@@ -115,18 +115,14 @@ func (s *REST) createOrUpdate(ctx kapi.Context, obj runtime.Object, forceCreate 
 
 	// Validate identity
 	if kerrs.IsNotFound(identityErr) {
-		errs := fielderrors.ValidationErrorList([]error{
-			fielderrors.NewFieldInvalid("identity.name", mapping.Identity.Name, "referenced identity does not exist"),
-		})
+		errs := field.ErrorList{field.Invalid(field.NewPath("identity", "name"), mapping.Identity.Name, "referenced identity does not exist")}
 		return nil, false, kerrs.NewInvalid("UserIdentityMapping", mapping.Name, errs)
 	}
 
 	// Get new user
 	newUser, err := s.userRegistry.GetUser(ctx, mapping.User.Name)
 	if kerrs.IsNotFound(err) {
-		errs := fielderrors.ValidationErrorList([]error{
-			fielderrors.NewFieldInvalid("user.name", mapping.User.Name, "referenced user does not exist"),
-		})
+		errs := field.ErrorList{field.Invalid(field.NewPath("user", "name"), mapping.User.Name, "referenced user does not exist")}
 		return nil, false, kerrs.NewInvalid("UserIdentityMapping", mapping.Name, errs)
 	}
 	if err != nil {

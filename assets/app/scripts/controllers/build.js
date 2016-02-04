@@ -50,11 +50,14 @@ angular.module('openshiftConsole')
         // projectPromise rather than just a namespace, so we have to pass the
         // context into the log-viewer directive.
         $scope.logContext = context;
+        $scope.logOptions = {};
         DataService.get("builds", $routeParams.build, context).then(
           // success
           function(build) {
+
             $scope.loaded = true;
             $scope.build = build;
+            $scope.logOptions.container = $filter("annotation")(build, "buildPod");
             var buildNumber = $filter("annotation")(build, "buildNumber");
             if (buildNumber) {
               $scope.breadcrumbs[2].title = "#" + buildNumber;
@@ -69,6 +72,9 @@ angular.module('openshiftConsole')
                 };
               }
               $scope.build = build;
+              // TODO: if build.status.phase === 'Error' then we should not
+              // fetch the log, BUT ALSO indicate this somehow in UI
+              $scope.logCanRun = !(_.includes(['New', 'Pending', 'Error'], build.status.phase));
             }));
           },
           // failure

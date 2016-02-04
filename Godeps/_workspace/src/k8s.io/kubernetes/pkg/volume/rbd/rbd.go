@@ -154,7 +154,7 @@ func (plugin *rbdPlugin) newCleanerInternal(volName string, podUID types.UID, ma
 				podUID:  podUID,
 				volName: volName,
 				manager: manager,
-				mounter: mounter,
+				mounter: &mount.SafeFormatAndMount{mounter, exec.New()},
 				plugin:  plugin,
 			},
 			Mon: make([]string, 0),
@@ -169,9 +169,10 @@ type rbd struct {
 	Image    string
 	ReadOnly bool
 	plugin   *rbdPlugin
-	mounter  mount.Interface
+	mounter  *mount.SafeFormatAndMount
 	// Utility interface that provides API calls to the provider to attach/detach disks.
 	manager diskManager
+	volume.MetricsNil
 }
 
 func (rbd *rbd) GetPath() string {
@@ -192,8 +193,13 @@ type rbdBuilder struct {
 
 var _ volume.Builder = &rbdBuilder{}
 
-func (_ *rbdBuilder) SupportsOwnershipManagement() bool {
-	return true
+func (b *rbd) GetAttributes() volume.Attributes {
+	return volume.Attributes{
+		ReadOnly:                    b.ReadOnly,
+		Managed:                     !b.ReadOnly,
+		SupportsOwnershipManagement: true,
+		SupportsSELinux:             true,
+	}
 }
 
 func (b *rbdBuilder) SetUp() error {
@@ -214,14 +220,6 @@ type rbdCleaner struct {
 }
 
 var _ volume.Cleaner = &rbdCleaner{}
-
-func (b *rbd) IsReadOnly() bool {
-	return b.ReadOnly
-}
-
-func (b *rbd) SupportsSELinux() bool {
-	return true
-}
 
 // Unmounts the bind mount, and detaches the disk only if the disk
 // resource was the last reference to that disk on the kubelet.

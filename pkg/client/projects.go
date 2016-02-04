@@ -1,9 +1,9 @@
 package client
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	projectapi "github.com/openshift/origin/pkg/project/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 // ProjectsInterface has methods to work with Project resources in a namespace
@@ -16,7 +16,7 @@ type ProjectInterface interface {
 	Create(p *projectapi.Project) (*projectapi.Project, error)
 	Delete(name string) error
 	Get(name string) (*projectapi.Project, error)
-	List(label labels.Selector, field fields.Selector) (*projectapi.ProjectList, error)
+	List(opts kapi.ListOptions) (*projectapi.ProjectList, error)
 }
 
 type projects struct {
@@ -38,12 +38,11 @@ func (c *projects) Get(name string) (result *projectapi.Project, err error) {
 }
 
 // List returns all projects matching the label selector
-func (c *projects) List(label labels.Selector, field fields.Selector) (result *projectapi.ProjectList, err error) {
+func (c *projects) List(opts kapi.ListOptions) (result *projectapi.ProjectList, err error) {
 	result = &projectapi.ProjectList{}
 	err = c.r.Get().
 		Resource("projects").
-		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		VersionedParams(&opts, kapi.Scheme).
 		Do().
 		Into(result)
 	return

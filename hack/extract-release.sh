@@ -15,10 +15,11 @@ cd "${OS_ROOT}"
 
 # Copy the linux release archives release back to the local _output/local/bin/linux/amd64 directory.
 # TODO: support different OS's?
-os::build::detect_local_release_tars "linux-64bit"
+os::build::detect_local_release_tars $(os::build::host_platform_friendly)
 
 mkdir -p "${OS_OUTPUT_BINPATH}/linux/amd64"
 tar mxzf "${OS_PRIMARY_RELEASE_TAR}" --strip-components=1 -C "${OS_OUTPUT_BINPATH}/linux/amd64"
+tar mxzf "${OS_CLIENT_RELEASE_TAR}" --strip-components=1 -C "${OS_OUTPUT_BINPATH}/linux/amd64"
 tar mxzf "${OS_IMAGE_RELEASE_TAR}" --strip-components=1 -C "${OS_OUTPUT_BINPATH}/linux/amd64"
 
 os::build::make_openshift_binary_symlinks

@@ -1,8 +1,7 @@
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -14,7 +13,7 @@ type ClusterRoleBindingsInterface interface {
 
 // ClusterRoleBindingInterface exposes methods on ClusterRoleBindings resources
 type ClusterRoleBindingInterface interface {
-	List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterRoleBindingList, error)
+	List(opts kapi.ListOptions) (*authorizationapi.ClusterRoleBindingList, error)
 	Get(name string) (*authorizationapi.ClusterRoleBinding, error)
 	Update(roleBinding *authorizationapi.ClusterRoleBinding) (*authorizationapi.ClusterRoleBinding, error)
 	Create(roleBinding *authorizationapi.ClusterRoleBinding) (*authorizationapi.ClusterRoleBinding, error)
@@ -33,9 +32,9 @@ func newClusterRoleBindings(c *Client) *clusterRoleBindings {
 }
 
 // List returns a list of clusterRoleBindings that match the label and field selectors.
-func (c *clusterRoleBindings) List(label labels.Selector, field fields.Selector) (result *authorizationapi.ClusterRoleBindingList, err error) {
+func (c *clusterRoleBindings) List(opts kapi.ListOptions) (result *authorizationapi.ClusterRoleBindingList, err error) {
 	result = &authorizationapi.ClusterRoleBindingList{}
-	err = c.r.Get().Resource("clusterRoleBindings").LabelsSelectorParam(label).FieldsSelectorParam(field).Do().Into(result)
+	err = c.r.Get().Resource("clusterRoleBindings").VersionedParams(&opts, kapi.Scheme).Do().Into(result)
 	return
 }
 

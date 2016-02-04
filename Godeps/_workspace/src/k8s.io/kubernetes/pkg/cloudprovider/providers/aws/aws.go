@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package aws_cloud
+package aws
 
 import (
 	"errors"
@@ -34,6 +34,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
@@ -54,7 +55,7 @@ const TagNameKubernetesCluster = "KubernetesCluster"
 // We sometimes read to see if something exists; then try to create it if we didn't find it
 // This can fail once in a consistent system if done in parallel
 // In an eventually consistent system, it could fail unboundedly
-// MaxReadThenCreateRetries sets the maxiumum number of attempts we will make
+// MaxReadThenCreateRetries sets the maximum number of attempts we will make
 const MaxReadThenCreateRetries = 30
 
 // Default volume type for newly created Volumes
@@ -78,7 +79,7 @@ type EC2 interface {
 	DescribeInstances(request *ec2.DescribeInstancesInput) ([]*ec2.Instance, error)
 
 	// Attach a volume to an instance
-	AttachVolume(volumeID, instanceId, mountDevice string) (resp *ec2.VolumeAttachment, err error)
+	AttachVolume(*ec2.AttachVolumeInput) (*ec2.VolumeAttachment, error)
 	// Detach a volume from an instance it is attached to
 	DetachVolume(request *ec2.DetachVolumeInput) (resp *ec2.VolumeAttachment, err error)
 	// Lists volumes
@@ -86,7 +87,7 @@ type EC2 interface {
 	// Create an EBS volume
 	CreateVolume(request *ec2.CreateVolumeInput) (resp *ec2.Volume, err error)
 	// Delete an EBS volume
-	DeleteVolume(volumeID string) (resp *ec2.DeleteVolumeOutput, err error)
+	DeleteVolume(*ec2.DeleteVolumeInput) (*ec2.DeleteVolumeOutput, error)
 
 	DescribeSecurityGroups(request *ec2.DescribeSecurityGroupsInput) ([]*ec2.SecurityGroup, error)
 
@@ -211,12 +212,23 @@ type awsSDKProvider struct {
 	creds *credentials.Credentials
 }
 
+func addHandlers(h *request.Handlers) {
+	h.Sign.PushFrontNamed(request.NamedHandler{
+		Name: "k8s/logger",
+		Fn:   awsHandlerLogger,
+	})
+}
+
 func (p *awsSDKProvider) Compute(regionName string) (EC2, error) {
+	service := ec2.New(&aws.Config{
+		Region:      &regionName,
+		Credentials: p.creds,
+	})
+
+	addHandlers(&service.Handlers)
+
 	ec2 := &awsSdkEC2{
-		ec2: ec2.New(&aws.Config{
-			Region:      &regionName,
-			Credentials: p.creds,
-		}),
+		ec2: service,
 	}
 	return ec2, nil
 }
@@ -226,6 +238,9 @@ func (p *awsSDKProvider) LoadBalancing(regionName string) (ELB, error) {
 		Region:      &regionName,
 		Credentials: p.creds,
 	})
+
+	addHandlers(&elbClient.Handlers)
+
 	return elbClient, nil
 }
 
@@ -234,6 +249,9 @@ func (p *awsSDKProvider) Autoscaling(regionName string) (ASG, error) {
 		Region:      &regionName,
 		Credentials: p.creds,
 	})
+
+	addHandlers(&client.Handlers)
+
 	return client, nil
 }
 
@@ -335,13 +353,8 @@ func (s *awsSdkEC2) DescribeSecurityGroups(request *ec2.DescribeSecurityGroupsIn
 	return response.SecurityGroups, nil
 }
 
-func (s *awsSdkEC2) AttachVolume(volumeID, instanceId, device string) (resp *ec2.VolumeAttachment, err error) {
-	request := ec2.AttachVolumeInput{
-		Device:     &device,
-		InstanceId: &instanceId,
-		VolumeId:   &volumeID,
-	}
-	return s.ec2.AttachVolume(&request)
+func (s *awsSdkEC2) AttachVolume(request *ec2.AttachVolumeInput) (*ec2.VolumeAttachment, error) {
+	return s.ec2.AttachVolume(request)
 }
 
 func (s *awsSdkEC2) DetachVolume(request *ec2.DetachVolumeInput) (*ec2.VolumeAttachment, error) {
@@ -376,9 +389,8 @@ func (s *awsSdkEC2) CreateVolume(request *ec2.CreateVolumeInput) (resp *ec2.Volu
 	return s.ec2.CreateVolume(request)
 }
 
-func (s *awsSdkEC2) DeleteVolume(volumeID string) (resp *ec2.DeleteVolumeOutput, err error) {
-	request := ec2.DeleteVolumeInput{VolumeId: &volumeID}
-	return s.ec2.DeleteVolume(&request)
+func (s *awsSdkEC2) DeleteVolume(request *ec2.DeleteVolumeInput) (*ec2.DeleteVolumeOutput, error) {
+	return s.ec2.DeleteVolume(request)
 }
 
 func (s *awsSdkEC2) DescribeSubnets(request *ec2.DescribeSubnetsInput) ([]*ec2.Subnet, error) {
@@ -585,6 +597,11 @@ func (aws *AWSCloud) ProviderName() string {
 	return ProviderName
 }
 
+// ScrubDNS filters DNS settings for pods.
+func (aws *AWSCloud) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []string) {
+	return nameservers, searches
+}
+
 // TCPLoadBalancer returns an implementation of TCPLoadBalancer for Amazon Web Services.
 func (s *AWSCloud) TCPLoadBalancer() (cloudprovider.TCPLoadBalancer, bool) {
 	return s, true
@@ -607,6 +624,24 @@ func (aws *AWSCloud) Routes() (cloudprovider.Routes, bool) {
 
 // NodeAddresses is an implementation of Instances.NodeAddresses.
 func (aws *AWSCloud) NodeAddresses(name string) ([]api.NodeAddress, error) {
+	self, err := aws.getSelfAWSInstance()
+	if err != nil {
+		return nil, err
+	}
+	if self.nodeName == name || len(name) == 0 {
+		internalIP, err := aws.metadata.GetMetadata("local-ipv4")
+		if err != nil {
+			return nil, err
+		}
+		externalIP, err := aws.metadata.GetMetadata("public-ipv4")
+		if err != nil {
+			return nil, err
+		}
+		return []api.NodeAddress{
+			{Type: api.NodeInternalIP, Address: internalIP},
+			{Type: api.NodeExternalIP, Address: externalIP},
+		}, nil
+	}
 	instance, err := aws.getInstanceByNodeName(name)
 	if err != nil {
 		return nil, err
@@ -1015,8 +1050,9 @@ func (self *awsDisk) waitForAttachmentStatus(status string) error {
 }
 
 // Deletes the EBS disk
-func (self *awsDisk) delete() error {
-	_, err := self.ec2.DeleteVolume(self.awsID)
+func (self *awsDisk) deleteVolume() error {
+	request := &ec2.DeleteVolumeInput{VolumeId: aws.String(self.awsID)}
+	_, err := self.ec2.DeleteVolume(request)
 	if err != nil {
 		return fmt.Errorf("error delete EBS volumes: %v", err)
 	}
@@ -1071,13 +1107,13 @@ func (aws *AWSCloud) getAwsInstance(nodeName string) (*awsInstance, error) {
 }
 
 // Implements Volumes.AttachDisk
-func (aws *AWSCloud) AttachDisk(instanceName string, diskName string, readOnly bool) (string, error) {
-	disk, err := newAWSDisk(aws, diskName)
+func (c *AWSCloud) AttachDisk(instanceName string, diskName string, readOnly bool) (string, error) {
+	disk, err := newAWSDisk(c, diskName)
 	if err != nil {
 		return "", err
 	}
 
-	awsInstance, err := aws.getAwsInstance(instanceName)
+	awsInstance, err := c.getAwsInstance(instanceName)
 	if err != nil {
 		return "", err
 	}
@@ -1105,12 +1141,18 @@ func (aws *AWSCloud) AttachDisk(instanceName string, diskName string, readOnly b
 	attached := false
 	defer func() {
 		if !attached {
-			awsInstance.releaseMountDevice(disk.awsID, ec2Device)
+			awsInstance.releaseMountDevice(disk.awsID, mountpoint)
 		}
 	}()
 
 	if !alreadyAttached {
-		attachResponse, err := aws.ec2.AttachVolume(disk.awsID, awsInstance.awsID, ec2Device)
+		request := &ec2.AttachVolumeInput{
+			Device:     aws.String(ec2Device),
+			InstanceId: aws.String(awsInstance.awsID),
+			VolumeId:   aws.String(disk.awsID),
+		}
+
+		attachResponse, err := c.ec2.AttachVolume(request)
 		if err != nil {
 			// TODO: Check if the volume was concurrently attached?
 			return "", fmt.Errorf("Error attaching EBS volume: %v", err)
@@ -1153,6 +1195,24 @@ func (aws *AWSCloud) DetachDisk(instanceName string, diskName string) error {
 	if response == nil {
 		return errors.New("no response from DetachVolume")
 	}
+
+	// At this point we are waiting for the volume being detached. This
+	// releases the volume and invalidates the cache even when there is a timeout.
+	//
+	// TODO: A timeout leaves the cache in an inconsistent state. The volume is still
+	// detaching though the cache shows it as ready to be attached again. Subsequent
+	// attach operations will fail. The attach is being retried and eventually
+	// works though. An option would be to completely flush the cache upon timeouts.
+	//
+	defer func() {
+		for mountDevice, existingVolumeID := range awsInstance.deviceMappings {
+			if existingVolumeID == disk.awsID {
+				awsInstance.releaseMountDevice(disk.awsID, mountDevice)
+				return
+			}
+		}
+	}()
+
 	err = disk.waitForAttachmentStatus("detached")
 	if err != nil {
 		return err
@@ -1211,7 +1271,7 @@ func (aws *AWSCloud) DeleteVolume(volumeName string) error {
 	if err != nil {
 		return err
 	}
-	return awsDisk.delete()
+	return awsDisk.deleteVolume()
 }
 
 func (v *AWSCloud) Configure(name string, spec *api.NodeSpec) error {
@@ -1277,7 +1337,7 @@ func (s *AWSCloud) findSecurityGroup(securityGroupId string) (*ec2.SecurityGroup
 
 	groups, err := s.ec2.DescribeSecurityGroups(describeSecurityGroupsRequest)
 	if err != nil {
-		glog.Warning("error retrieving security group", err)
+		glog.Warning("Error retrieving security group", err)
 		return nil, err
 	}
 
@@ -1353,7 +1413,7 @@ func isEqualIPPermission(l, r *ec2.IpPermission, compareGroupUserIDs bool) bool 
 func (s *AWSCloud) ensureSecurityGroupIngress(securityGroupId string, addPermissions []*ec2.IpPermission) (bool, error) {
 	group, err := s.findSecurityGroup(securityGroupId)
 	if err != nil {
-		glog.Warning("error retrieving security group", err)
+		glog.Warning("Error retrieving security group", err)
 		return false, err
 	}
 
@@ -1394,7 +1454,7 @@ func (s *AWSCloud) ensureSecurityGroupIngress(securityGroupId string, addPermiss
 	request.IpPermissions = changes
 	_, err = s.ec2.AuthorizeSecurityGroupIngress(request)
 	if err != nil {
-		glog.Warning("error authorizing security group ingress", err)
+		glog.Warning("Error authorizing security group ingress", err)
 		return false, err
 	}
 
@@ -1407,12 +1467,12 @@ func (s *AWSCloud) ensureSecurityGroupIngress(securityGroupId string, addPermiss
 func (s *AWSCloud) removeSecurityGroupIngress(securityGroupId string, removePermissions []*ec2.IpPermission) (bool, error) {
 	group, err := s.findSecurityGroup(securityGroupId)
 	if err != nil {
-		glog.Warning("error retrieving security group", err)
+		glog.Warning("Error retrieving security group", err)
 		return false, err
 	}
 
 	if group == nil {
-		glog.Warning("security group not found: ", securityGroupId)
+		glog.Warning("Security group not found: ", securityGroupId)
 		return false, nil
 	}
 
@@ -1449,7 +1509,7 @@ func (s *AWSCloud) removeSecurityGroupIngress(securityGroupId string, removePerm
 	request.IpPermissions = changes
 	_, err = s.ec2.RevokeSecurityGroupIngress(request)
 	if err != nil {
-		glog.Warning("error revoking security group ingress", err)
+		glog.Warning("Error revoking security group ingress", err)
 		return false, err
 	}
 
@@ -1571,7 +1631,7 @@ func (s *AWSCloud) listSubnetIDsinVPC(vpcId string) ([]string, error) {
 
 	subnets, err := s.ec2.DescribeSubnets(request)
 	if err != nil {
-		glog.Error("error describing subnets: ", err)
+		glog.Error("Error describing subnets: ", err)
 		return nil, err
 	}
 
@@ -1591,7 +1651,7 @@ func (s *AWSCloud) listSubnetIDsinVPC(vpcId string) ([]string, error) {
 }
 
 // EnsureTCPLoadBalancer implements TCPLoadBalancer.EnsureTCPLoadBalancer
-// TODO(justinsb) It is weird that these take a region.  I suspect it won't work cross-region anwyay.
+// TODO(justinsb) It is weird that these take a region.  I suspect it won't work cross-region anyway.
 func (s *AWSCloud) EnsureTCPLoadBalancer(name, region string, publicIP net.IP, ports []*api.ServicePort, hosts []string, affinity api.ServiceAffinity) (*api.LoadBalancerStatus, error) {
 	glog.V(2).Infof("EnsureTCPLoadBalancer(%v, %v, %v, %v, %v)", name, region, publicIP, ports, hosts)
 
@@ -1615,13 +1675,14 @@ func (s *AWSCloud) EnsureTCPLoadBalancer(name, region string, publicIP net.IP, p
 
 	vpcId, err := s.findVPCID()
 	if err != nil {
+		glog.Error("Error finding VPC", err)
 		return nil, err
 	}
 
 	// Construct list of configured subnets
 	subnetIDs, err := s.listSubnetIDsinVPC(vpcId)
 	if err != nil {
-		glog.Error("error listing subnets in VPC", err)
+		glog.Error("Error listing subnets in VPC", err)
 		return nil, err
 	}
 
@@ -1856,7 +1917,7 @@ func (s *AWSCloud) updateInstanceSecurityGroupsForLoadBalancer(lb *elb.LoadBalan
 				return err
 			}
 			if !changed {
-				glog.Warning("allowing ingress was not needed; concurrent change? groupId=", instanceSecurityGroupId)
+				glog.Warning("Allowing ingress was not needed; concurrent change? groupId=", instanceSecurityGroupId)
 			}
 		} else {
 			changed, err := s.removeSecurityGroupIngress(instanceSecurityGroupId, permissions)
@@ -1864,7 +1925,7 @@ func (s *AWSCloud) updateInstanceSecurityGroupsForLoadBalancer(lb *elb.LoadBalan
 				return err
 			}
 			if !changed {
-				glog.Warning("revoking ingress was not needed; concurrent change? groupId=", instanceSecurityGroupId)
+				glog.Warning("Revoking ingress was not needed; concurrent change? groupId=", instanceSecurityGroupId)
 			}
 		}
 	}
@@ -1938,7 +1999,7 @@ func (s *AWSCloud) EnsureTCPLoadBalancerDeleted(name, region string) error {
 					ignore := false
 					if awsError, ok := err.(awserr.Error); ok {
 						if awsError.Code() == "DependencyViolation" {
-							glog.V(2).Infof("ignoring DependencyViolation while deleting load-balancer security group (%s), assuming because LB is in process of deleting", securityGroupID)
+							glog.V(2).Infof("Ignoring DependencyViolation while deleting load-balancer security group (%s), assuming because LB is in process of deleting", securityGroupID)
 							ignore = true
 						}
 					}
@@ -1949,7 +2010,7 @@ func (s *AWSCloud) EnsureTCPLoadBalancerDeleted(name, region string) error {
 			}
 
 			if len(securityGroupIDs) == 0 {
-				glog.V(2).Info("deleted all security groups for load balancer: ", name)
+				glog.V(2).Info("Deleted all security groups for load balancer: ", name)
 				break
 			}
 
@@ -1957,7 +2018,7 @@ func (s *AWSCloud) EnsureTCPLoadBalancerDeleted(name, region string) error {
 				return fmt.Errorf("timed out waiting for load-balancer deletion: %s", name)
 			}
 
-			glog.V(2).Info("waiting for load-balancer to delete so we can delete security groups: ", name)
+			glog.V(2).Info("Waiting for load-balancer to delete so we can delete security groups: ", name)
 
 			time.Sleep(5 * time.Second)
 		}

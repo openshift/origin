@@ -29,7 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/fieldpath"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
-	utilErrors "k8s.io/kubernetes/pkg/util/errors"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/volume"
 
 	"github.com/golang/glog"
@@ -90,6 +90,7 @@ type downwardAPIVolume struct {
 	pod                     *api.Pod
 	podUID                  types.UID // TODO: remove this redundancy as soon NewCleaner func will have *api.POD and not only types.UID
 	plugin                  *downwardAPIPlugin
+	volume.MetricsNil
 }
 
 // This is the spec for the volume that this plugin wraps.
@@ -107,8 +108,14 @@ type downwardAPIVolumeBuilder struct {
 // downwardAPIVolumeBuilder implements volume.Builder interface
 var _ volume.Builder = &downwardAPIVolumeBuilder{}
 
-func (_ *downwardAPIVolumeBuilder) SupportsOwnershipManagement() bool {
-	return false
+// downward API volumes are always ReadOnlyManaged
+func (d *downwardAPIVolume) GetAttributes() volume.Attributes {
+	return volume.Attributes{
+		ReadOnly:                    true,
+		Managed:                     true,
+		SupportsOwnershipManagement: true,
+		SupportsSELinux:             true,
+	}
 }
 
 // SetUp puts in place the volume plugin.
@@ -152,15 +159,6 @@ func (b *downwardAPIVolumeBuilder) SetUpAt(dir string) error {
 	return nil
 }
 
-// IsReadOnly func to fulfill volume.Builder interface
-func (d *downwardAPIVolume) IsReadOnly() bool {
-	return true
-}
-
-func (d *downwardAPIVolume) SupportsSELinux() bool {
-	return true
-}
-
 // collectData collects requested downwardAPI in data map.
 // Map's key is the requested name of file to dump
 // Map's value is the (sorted) content of the field to be dumped in the file.
@@ -175,7 +173,7 @@ func (d *downwardAPIVolume) collectData() (map[string]string, error) {
 			data[fileName] = sortLines(values)
 		}
 	}
-	return data, utilErrors.NewAggregate(errlist)
+	return data, utilerrors.NewAggregate(errlist)
 }
 
 // isDataChanged iterate over all the entries to check whether at least one
@@ -291,7 +289,7 @@ func (d *downwardAPIVolume) writeDataInTimestampDir(data map[string]string) (str
 			errlist = append(errlist, err)
 		}
 	}
-	return timestampDir, utilErrors.NewAggregate(errlist)
+	return timestampDir, utilerrors.NewAggregate(errlist)
 }
 
 // updateSymlinksToCurrentDir creates the relative symlinks for all the files configured in this volume.

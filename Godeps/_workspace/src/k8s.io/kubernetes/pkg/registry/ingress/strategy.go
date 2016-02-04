@@ -27,7 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // ingressStrategy implements verification logic for Replication Ingresss.
@@ -47,6 +47,7 @@ func (ingressStrategy) NamespaceScoped() bool {
 // PrepareForCreate clears the status of an Ingress before creation.
 func (ingressStrategy) PrepareForCreate(obj runtime.Object) {
 	ingress := obj.(*extensions.Ingress)
+	// create cannot set status
 	ingress.Status = extensions.IngressStatus{}
 
 	ingress.Generation = 1
@@ -56,7 +57,8 @@ func (ingressStrategy) PrepareForCreate(obj runtime.Object) {
 func (ingressStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	newIngress := obj.(*extensions.Ingress)
 	oldIngress := old.(*extensions.Ingress)
-	//TODO: Clear Ingress status once we have a sub-resource.
+	// Update is not allowed to set status
+	newIngress.Status = oldIngress.Status
 
 	// Any changes to the spec increment the generation number, any changes to the
 	// status should reflect the generation number of the corresponding object.
@@ -68,10 +70,14 @@ func (ingressStrategy) PrepareForUpdate(obj, old runtime.Object) {
 }
 
 // Validate validates a new Ingress.
-func (ingressStrategy) Validate(ctx api.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (ingressStrategy) Validate(ctx api.Context, obj runtime.Object) field.ErrorList {
 	ingress := obj.(*extensions.Ingress)
 	err := validation.ValidateIngress(ingress)
 	return err
+}
+
+// Canonicalize normalizes the object after validation.
+func (ingressStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // AllowCreateOnUpdate is false for Ingress; this means POST is needed to create one.
@@ -80,9 +86,9 @@ func (ingressStrategy) AllowCreateOnUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (ingressStrategy) ValidateUpdate(ctx api.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (ingressStrategy) ValidateUpdate(ctx api.Context, obj, old runtime.Object) field.ErrorList {
 	validationErrorList := validation.ValidateIngress(obj.(*extensions.Ingress))
-	updateErrorList := validation.ValidateIngressUpdate(old.(*extensions.Ingress), obj.(*extensions.Ingress))
+	updateErrorList := validation.ValidateIngressUpdate(obj.(*extensions.Ingress), old.(*extensions.Ingress))
 	return append(validationErrorList, updateErrorList...)
 }
 
@@ -91,11 +97,9 @@ func (ingressStrategy) AllowUnconditionalUpdate() bool {
 	return true
 }
 
-// IngressToSelectableFields returns a label set that represents the object.
+// IngressToSelectableFields returns a field set that represents the object.
 func IngressToSelectableFields(ingress *extensions.Ingress) fields.Set {
-	return fields.Set{
-		"metadata.name": ingress.Name,
-	}
+	return generic.ObjectMetaFieldsSet(ingress.ObjectMeta, true)
 }
 
 // MatchIngress is the filter used by the generic etcd backend to ingress
@@ -113,4 +117,23 @@ func MatchIngress(label labels.Selector, field fields.Selector) generic.Matcher 
 			return labels.Set(ingress.ObjectMeta.Labels), IngressToSelectableFields(ingress), nil
 		},
 	}
+}
+
+type ingressStatusStrategy struct {
+	ingressStrategy
+}
+
+var StatusStrategy = ingressStatusStrategy{Strategy}
+
+// PrepareForUpdate clears fields that are not allowed to be set by end users on update of status
+func (ingressStatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newIngress := obj.(*extensions.Ingress)
+	oldIngress := old.(*extensions.Ingress)
+	// status changes are not allowed to update spec
+	newIngress.Spec = oldIngress.Spec
+}
+
+// ValidateUpdate is the default update validation for an end user updating status
+func (ingressStatusStrategy) ValidateUpdate(ctx api.Context, obj, old runtime.Object) field.ErrorList {
+	return validation.ValidateIngressStatusUpdate(obj.(*extensions.Ingress), old.(*extensions.Ingress))
 }

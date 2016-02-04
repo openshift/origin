@@ -18,8 +18,6 @@ package unversioned
 
 import (
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -30,10 +28,10 @@ type SecurityContextConstraintsInterface interface {
 type SecurityContextConstraintInterface interface {
 	Get(name string) (result *api.SecurityContextConstraints, err error)
 	Create(scc *api.SecurityContextConstraints) (*api.SecurityContextConstraints, error)
-	List(label labels.Selector, field fields.Selector) (*api.SecurityContextConstraintsList, error)
+	List(opts api.ListOptions) (*api.SecurityContextConstraintsList, error)
 	Delete(name string) error
 	Update(*api.SecurityContextConstraints) (*api.SecurityContextConstraints, error)
-	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(opts api.ListOptions) (watch.Interface, error)
 }
 
 // securityContextConstraints implements SecurityContextConstraintInterface
@@ -58,13 +56,12 @@ func (s *securityContextConstraints) Create(scc *api.SecurityContextConstraints)
 }
 
 // List returns a list of SecurityContextConstraints matching the selectors.
-func (s *securityContextConstraints) List(label labels.Selector, field fields.Selector) (*api.SecurityContextConstraintsList, error) {
+func (s *securityContextConstraints) List(opts api.ListOptions) (*api.SecurityContextConstraintsList, error) {
 	result := &api.SecurityContextConstraintsList{}
 
 	err := s.client.Get().
 		Resource("securityContextConstraints").
-		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		VersionedParams(&opts, api.Scheme).
 		Do().
 		Into(result)
 
@@ -84,13 +81,11 @@ func (s *securityContextConstraints) Get(name string) (*api.SecurityContextConst
 }
 
 // Watch starts watching for SecurityContextConstraints matching the given selectors.
-func (s *securityContextConstraints) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (s *securityContextConstraints) Watch(opts api.ListOptions) (watch.Interface, error) {
 	return s.client.Get().
 		Prefix("watch").
 		Resource("securityContextConstraints").
-		Param("resourceVersion", resourceVersion).
-		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		VersionedParams(&opts, api.Scheme).
 		Watch()
 }
 

@@ -67,7 +67,7 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 	job := expapi.Job{
 		ObjectMeta: kapi.ObjectMeta{Name: "test-job"},
 		Spec: expapi.JobSpec{
-			Selector: &expapi.PodSelector{MatchLabels: map[string]string{"foo": "bar"}},
+			Selector: &expapi.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			Template: kapi.PodTemplateSpec{
 				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
 				Spec: kapi.PodSpec{

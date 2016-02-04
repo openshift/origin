@@ -8,14 +8,14 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/api/latest"
 )
 
 type RuntimeObjectValidator interface {
-	Validate(obj runtime.Object) fielderrors.ValidationErrorList
-	ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList
+	Validate(obj runtime.Object) field.ErrorList
+	ValidateUpdate(obj, old runtime.Object) field.ErrorList
 }
 
 var Validator = &RuntimeObjectsValidator{map[reflect.Type]RuntimeObjectValidatorInfo{}}
@@ -59,16 +59,16 @@ func (v *RuntimeObjectsValidator) Register(obj runtime.Object, validateFunction 
 	return nil
 }
 
-func (v *RuntimeObjectsValidator) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
+func (v *RuntimeObjectsValidator) Validate(obj runtime.Object) field.ErrorList {
 	if obj == nil {
-		return fielderrors.ValidationErrorList{}
+		return field.ErrorList{}
 	}
 
-	allErrs := fielderrors.ValidationErrorList{}
+	allErrs := field.ErrorList{}
 
 	specificValidationInfo, err := v.getSpecificValidationInfo(obj)
 	if err != nil {
-		allErrs = append(allErrs, err)
+		allErrs = append(allErrs, err.(*field.Error))
 		return allErrs
 	}
 
@@ -76,19 +76,23 @@ func (v *RuntimeObjectsValidator) Validate(obj runtime.Object) fielderrors.Valid
 	return allErrs
 }
 
-func (v *RuntimeObjectsValidator) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (v *RuntimeObjectsValidator) ValidateUpdate(obj, old runtime.Object) field.ErrorList {
 	if obj == nil && old == nil {
-		return fielderrors.ValidationErrorList{}
+		return field.ErrorList{}
 	}
 	if newType, oldType := reflect.TypeOf(obj), reflect.TypeOf(old); newType != oldType {
-		return fielderrors.ValidationErrorList{validation.NewInvalidTypeError(oldType.Kind(), newType.Kind(), "runtime.Object")}
+		return field.ErrorList{field.Invalid(field.NewPath("kind"), newType.Kind(), validation.NewInvalidTypeError(oldType.Kind(), newType.Kind(), "runtime.Object").Error())}
 	}
 
-	allErrs := fielderrors.ValidationErrorList{}
+	allErrs := field.ErrorList{}
 
 	specificValidationInfo, err := v.getSpecificValidationInfo(obj)
 	if err != nil {
-		allErrs = append(allErrs, err)
+		if fieldErr, ok := err.(*field.Error); ok {
+			allErrs = append(allErrs, fieldErr)
+		} else {
+			allErrs = append(allErrs, field.InternalError(nil, err))
+		}
 		return allErrs
 	}
 
@@ -114,12 +118,12 @@ func (v *RuntimeObjectsValidator) getSpecificValidationInfo(obj runtime.Object) 
 }
 
 func GetRequiresNamespace(obj runtime.Object) (bool, error) {
-	version, kind, err := kapi.Scheme.ObjectVersionAndKind(obj)
+	groupVersionKind, err := kapi.Scheme.ObjectKind(obj)
 	if err != nil {
 		return false, err
 	}
 
-	restMapping, err := latest.RESTMapper.RESTMapping(kind, version)
+	restMapping, err := latest.RESTMapper.RESTMapping(groupVersionKind.GroupKind())
 	if err != nil {
 		return false, err
 	}

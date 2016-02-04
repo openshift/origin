@@ -29,7 +29,7 @@ var (
 	inputSource   = flag.StringP("input", "i", "-", "Input source; '-' means stdin")
 	outputDest    = flag.StringP("output", "o", "-", "Output destination; '-' means stdout")
 	rewrite       = flag.StringP("rewrite", "r", "", "If nonempty, use this as both input and output.")
-	outputVersion = flag.StringP("out-version", "v", latest.Version, "Version to convert input to")
+	outputVersion = flag.StringP("out-version", "v", latest.Version.Version, "Version to convert input to")
 )
 
 // isYAML determines whether data is JSON or YAML formatted by seeing
@@ -47,12 +47,12 @@ func changeObjectsVersion(items []kruntime.Object) {
 		log.Fatalf("Unable to decode Template objects: %v", errs)
 	}
 	for i, obj := range items {
-		_, kind, err := api.Scheme.ObjectVersionAndKind(obj)
+		groupVersionKind, err := api.Scheme.ObjectKind(obj)
 		if err != nil {
 			glog.Infof("Template.Objects[%d]: Unable to determine version and kind: %v", i, err)
 			continue
 		}
-		mapping, err := latest.RESTMapper.RESTMapping(kind, *outputVersion)
+		mapping, err := latest.RESTMapper.RESTMapping(groupVersionKind.GroupKind(), *outputVersion)
 		if err != nil {
 			glog.Infof("Template.Objects[%d]: Unable to get REST mappings: %v", err)
 			continue

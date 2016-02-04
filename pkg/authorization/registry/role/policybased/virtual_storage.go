@@ -7,10 +7,10 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
@@ -37,17 +37,19 @@ func (m *VirtualStorage) NewList() runtime.Object {
 	return &authorizationapi.RoleList{}
 }
 
-func (m *VirtualStorage) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	policyList, err := m.PolicyStorage.ListPolicies(ctx, labels.Everything(), fields.Everything())
+func (m *VirtualStorage) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+	policyList, err := m.PolicyStorage.ListPolicies(ctx, options)
 	if err != nil {
 		return nil, err
 	}
 
-	roleList := &authorizationapi.RoleList{}
+	labelSelector, fieldSelector := oapi.ListOptionsToSelectors(options)
 
+	roleList := &authorizationapi.RoleList{}
 	for _, policy := range policyList.Items {
 		for _, role := range policy.Roles {
-			if label.Matches(labels.Set(role.Labels)) && field.Matches(authorizationapi.RoleToSelectableFields(role)) {
+			if labelSelector.Matches(labels.Set(role.Labels)) &&
+				fieldSelector.Matches(authorizationapi.RoleToSelectableFields(role)) {
 				roleList.Items = append(roleList.Items, *role)
 			}
 		}

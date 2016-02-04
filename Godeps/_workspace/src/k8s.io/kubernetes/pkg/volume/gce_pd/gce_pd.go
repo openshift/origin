@@ -186,6 +186,7 @@ type gcePersistentDisk struct {
 	// Mounter interface that provides system calls to mount the global path to the pod local path.
 	mounter mount.Interface
 	plugin  *gcePersistentDiskPlugin
+	volume.MetricsNil
 }
 
 func detachDiskLogError(pd *gcePersistentDisk) {
@@ -202,13 +203,18 @@ type gcePersistentDiskBuilder struct {
 	// Specifies whether the disk will be attached as read-only.
 	readOnly bool
 	// diskMounter provides the interface that is used to mount the actual block device.
-	diskMounter mount.Interface
+	diskMounter *mount.SafeFormatAndMount
 }
 
 var _ volume.Builder = &gcePersistentDiskBuilder{}
 
-func (_ *gcePersistentDiskBuilder) SupportsOwnershipManagement() bool {
-	return true
+func (b *gcePersistentDiskBuilder) GetAttributes() volume.Attributes {
+	return volume.Attributes{
+		ReadOnly:                    b.readOnly,
+		Managed:                     !b.readOnly,
+		SupportsOwnershipManagement: true,
+		SupportsSELinux:             true,
+	}
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.
@@ -274,14 +280,6 @@ func (b *gcePersistentDiskBuilder) SetUpAt(dir string) error {
 	}
 
 	return nil
-}
-
-func (b *gcePersistentDiskBuilder) IsReadOnly() bool {
-	return b.readOnly
-}
-
-func (b *gcePersistentDiskBuilder) SupportsSELinux() bool {
-	return true
 }
 
 func makeGlobalPDName(host volume.VolumeHost, devName string) string {

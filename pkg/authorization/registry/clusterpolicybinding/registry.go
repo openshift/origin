@@ -3,8 +3,7 @@ package clusterpolicybinding
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -14,7 +13,7 @@ import (
 // Registry is an interface for things that know how to store ClusterPolicyBindings.
 type Registry interface {
 	// ListClusterPolicyBindings obtains list of policyBindings that match a selector.
-	ListClusterPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error)
+	ListClusterPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
 	// GetClusterPolicyBinding retrieves a specific policyBinding.
 	GetClusterPolicyBinding(ctx kapi.Context, name string) (*authorizationapi.ClusterPolicyBinding, error)
 	// CreateClusterPolicyBinding creates a new policyBinding.
@@ -28,7 +27,7 @@ type Registry interface {
 type WatchingRegistry interface {
 	Registry
 	// WatchClusterPolicyBindings watches policyBindings.
-	WatchClusterPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	WatchClusterPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -47,8 +46,8 @@ func NewRegistry(s Storage) WatchingRegistry {
 	return &storage{s}
 }
 
-func (s *storage) ListClusterPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error) {
-	obj, err := s.List(ctx, label, field)
+func (s *storage) ListClusterPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +65,8 @@ func (s *storage) UpdateClusterPolicyBinding(ctx kapi.Context, policyBinding *au
 	return err
 }
 
-func (s *storage) WatchClusterPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return s.Watch(ctx, label, field, resourceVersion)
+func (s *storage) WatchClusterPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+	return s.Watch(ctx, options)
 }
 
 func (s *storage) GetClusterPolicyBinding(ctx kapi.Context, name string) (*authorizationapi.ClusterPolicyBinding, error) {
@@ -91,8 +90,8 @@ func NewSimulatedRegistry(clusterRegistry Registry) policybinding.Registry {
 	return &simulatedStorage{clusterRegistry}
 }
 
-func (s *simulatedStorage) ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
-	ret, err := s.clusterRegistry.ListClusterPolicyBindings(ctx, label, field)
+func (s *simulatedStorage) ListPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+	ret, err := s.clusterRegistry.ListClusterPolicyBindings(ctx, options)
 	return authorizationapi.ToPolicyBindingList(ret), err
 }
 

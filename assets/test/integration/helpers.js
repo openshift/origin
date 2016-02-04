@@ -1,3 +1,5 @@
+'use strict';
+
 var commonTeardown = function() {
   browser.executeScript('window.sessionStorage.clear();');
   browser.executeScript('window.localStorage.clear();');
@@ -29,7 +31,7 @@ exports.login = function(loginPageAlreadyLoaded) {
   driver.findElement(by.css("button[type='submit']")).click();
 
   driver.wait(function() {
-    return driver.isElementPresent(by.css(".navbar-utility .username"));
+    return driver.isElementPresent(by.css(".navbar-iconic .username"));
   }, 5000);
 };
 
@@ -77,4 +79,16 @@ exports.goToPage = function(uri) {
   browser.get(uri).then(function() {
     waitForUri(uri);
   });
+};
+
+exports.presenceOf = function(obj) {
+  return protractor.ExpectedConditions.presenceOf(obj);
+};
+
+// example:
+//  h.waitFor(h.presenceOf(page.header()))
+exports.waitFor = function(item, timeout, msg) {
+  timeout = timeout || 5000;
+  msg = msg || '';
+  return browser.wait(item, timeout, msg);
 };

@@ -13,8 +13,6 @@ import (
 	"github.com/openshift/origin/pkg/template/registry"
 )
 
-const prefix = "/templates"
-
 // REST implements a RESTStorage for templates against etcd
 type REST struct {
 	*etcdgeneric.Etcd
@@ -22,6 +20,8 @@ type REST struct {
 
 // NewREST returns a RESTStorage object that will work against templates.
 func NewREST(s storage.Interface) *REST {
+	prefix := "/templates"
+
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.Template{} },
 		NewListFunc: func() runtime.Object { return &api.TemplateList{} },
@@ -46,5 +46,6 @@ func NewREST(s storage.Interface) *REST {
 
 		Storage: s,
 	}
+
 	return &REST{store}
 }

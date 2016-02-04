@@ -95,13 +95,13 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w http.ResponseWriter, req *http.Request) {
 	kind := ""
 	name := ""
-	apiVersion := klatest.DefaultVersionForLegacyGroup()
+	apiVersion := klatest.ExternalVersions[0]
 	// the attributes can be empty for two basic reasons:
 	// 1. malformed API request
 	// 2. not an API request at all
 	// In these cases, just assume default that will work better than nothing
 	if attributes != nil {
-		apiVersion = attributes.GetAPIVersion()
+		apiVersion = unversioned.GroupVersion{Group: attributes.GetAPIGroup(), Version: attributes.GetAPIVersion()}
 		kind = attributes.GetResource()
 		if len(attributes.GetAPIGroup()) > 0 {
 			kind = attributes.GetAPIGroup() + "." + kind
@@ -118,9 +118,11 @@ func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w h
 
 	// Not all API versions in valid API requests will have a matching codec in kubernetes.  If we can't find one,
 	// just default to the latest kube codec.
-	codec := klatest.CodecForLegacyGroup()
-	if requestedCodec, err := klatest.InterfacesForLegacyGroup(apiVersion); err == nil {
-		codec = requestedCodec
+	codec := klatest.GroupOrDie(kapi.SchemeGroupVersion.Group).Codec
+	if requestedGroup, err := klatest.Group(apiVersion.Group); err == nil {
+		if requestedCodec, err := requestedGroup.InterfacesFor(apiVersion); err == nil {
+			codec = requestedCodec
+		}
 	}
 
 	formatted := &bytes.Buffer{}

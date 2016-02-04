@@ -43,13 +43,15 @@ func TestServiceGroup(t *testing.T) {
 	bareBCPipelines, coveredByBCs := AllImagePipelinesFromBuildConfig(g, coveredNodes)
 	coveredNodes.Insert(coveredByBCs.List()...)
 
-	if e, a := 1, len(serviceGroups); e != a {
+	t.Log(g)
+
+	if e, a := 2, len(serviceGroups); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 	if e, a := 0, len(bareDCPipelines); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
-	if e, a := 0, len(bareBCPipelines); e != a {
+	if e, a := 1, len(bareBCPipelines); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 
@@ -57,6 +59,12 @@ func TestServiceGroup(t *testing.T) {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 	if e, a := 1, len(serviceGroups[0].DeploymentConfigPipelines[0].Images); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := 1, len(serviceGroups[1].DeploymentConfigPipelines); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := 1, len(serviceGroups[1].DeploymentConfigPipelines[0].Images); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 }
@@ -362,7 +370,7 @@ func TestGraph(t *testing.T) {
 	bareDCPipelines, coveredByDCs := AllDeploymentConfigPipelines(g, coveredNodes)
 	coveredNodes.Insert(coveredByDCs.List()...)
 
-	if len(bareDCPipelines) != 1 {
+	if len(bareDCPipelines) != 2 {
 		t.Fatalf("unexpected pipelines: %#v", bareDCPipelines)
 	}
 	if len(coveredNodes) != 10 {

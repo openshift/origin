@@ -13,7 +13,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -102,10 +101,10 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Inter
 				return kclient.ReplicationControllers(namespace).Get(name)
 			},
 			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return kclient.ReplicationControllers(namespace).List(selector, fields.Everything())
+				return kclient.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: selector})
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
-				return kclient.Pods(namespace).List(selector, fields.Everything())
+				return kclient.Pods(namespace).List(kapi.ListOptions{LabelSelector: selector})
 			},
 			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
 				return kclient.Events(deploymentConfig.Namespace).Search(deploymentConfig)
@@ -247,9 +246,15 @@ func printTriggers(triggers []deployapi.DeploymentTriggerPolicy, w *tabwriter.Wr
 func printDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec, w io.Writer) error {
 	fmt.Fprint(w, "Template:\n")
 
-	fmt.Fprintf(w, "  Selector:\t%s\n  Replicas:\t%d\n",
-		formatLabels(spec.Selector),
-		spec.Replicas)
+	if spec.Test {
+		fmt.Fprintf(w, "  Selector:\t%s\n  Replicas:\t%d (test, will be scaled down between deployments)\n",
+			formatLabels(spec.Selector),
+			spec.Replicas)
+	} else {
+		fmt.Fprintf(w, "  Selector:\t%s\n  Replicas:\t%d\n",
+			formatLabels(spec.Selector),
+			spec.Replicas)
+	}
 
 	fmt.Fprintf(w, "  Containers:\n  NAME\tIMAGE\tENV\n")
 	for _, container := range spec.Template.Spec.Containers {
@@ -324,10 +329,10 @@ func NewLatestDeploymentsDescriber(client client.Interface, kclient kclient.Inte
 				return kclient.ReplicationControllers(namespace).Get(name)
 			},
 			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return kclient.ReplicationControllers(namespace).List(selector, fields.Everything())
+				return kclient.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: selector})
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
-				return kclient.Pods(namespace).List(selector, fields.Everything())
+				return kclient.Pods(namespace).List(kapi.ListOptions{LabelSelector: selector})
 			},
 			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
 				return kclient.Events(deploymentConfig.Namespace).Search(deploymentConfig)
@@ -338,6 +343,8 @@ func NewLatestDeploymentsDescriber(client client.Interface, kclient kclient.Inte
 
 // Describe returns the description of the latest deployments for a config
 func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, error) {
+	var f formatter
+
 	config, err := d.client.getDeploymentConfig(namespace, name)
 	if err != nil {
 		return "", err
@@ -371,7 +378,7 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 	activeDeployment, inactiveDeployments := deployedges.RelevantDeployments(g, dcNode)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
-		descriptions := describeDeployments(dcNode, activeDeployment, inactiveDeployments, d.count)
+		descriptions := describeDeployments(f, dcNode, activeDeployment, inactiveDeployments, d.count)
 		for i, description := range descriptions {
 			descriptions[i] = fmt.Sprintf("%v %v", name, description)
 		}

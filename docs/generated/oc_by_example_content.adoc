@@ -192,6 +192,57 @@ Create a resource by filename or stdin
 ====
 
 
+== oc create route edge
+Create a route that uses edge TLS termination
+
+====
+
+[options="nowrap"]
+----
+  # Create an edge route named "my-route" that exposes frontend service.
+  $ oc create route edge my-route --service=frontend
+
+  # Create an edge route that exposes the frontend service and specify a path.
+  # If the route name is omitted, the service name will be re-used.
+  $ oc create route edge --service=frontend --path /assets
+----
+====
+
+
+== oc create route passthrough
+Create a route that uses passthrough TLS termination
+
+====
+
+[options="nowrap"]
+----
+  # Create a passthrough route named "my-route" that exposes the frontend service.
+  $ oc create route passthrough my-route --service=frontend
+
+  # Create a passthrough route that exposes the frontend service and specify
+  # a hostname. If the route name is omitted, the service name will be re-used.
+  $ oc create route passthrough --service=frontend --hostname=www.example.com
+----
+====
+
+
+== oc create route reencrypt
+Create a route that uses reencrypt TLS termination
+
+====
+
+[options="nowrap"]
+----
+  # Create a route named "my-route" that exposes the frontend service.
+  $ oc create route reencrypt my-route --service=frontend --dest-ca-cert cert.cert
+
+  # Create a reencrypt route that exposes the frontend service and re-use
+  # the service name as the route name.
+  $ oc create route reencrypt --service=frontend --dest-ca-cert cert.cert
+----
+====
+
+
 == oc delete
 Delete resources by filenames, stdin, resources and names, or by resources and label selector.
 
@@ -385,6 +436,9 @@ Expose a replicated application as a service or route
 
   # Expose a deployment configuration as a service and use the specified port
   $ oc expose dc ruby-hello-world --port=8080
+
+  # Expose a service as a route in the specified path
+  $ oc expose service nginx --path=/nginx
 ----
 ====
 
@@ -587,6 +641,12 @@ Create a new build configuration
 
   # Create a build config from a remote repository and add custom environment variables
   $ oc new-build https://github.com/openshift/ruby-hello-world RACK_ENV=development
+
+  # Create a build config from a remote repository and inject the npmrc into a build
+  $ oc new-build https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
+  
+  # Create a build config that gets its input from a remote repository and another Docker image
+  $ oc new-build https://github.com/openshift/ruby-hello-world --source-image=openshift/jenkins-1-centos7 --source-image-path=/var/lib/jenkins:tmp
 ----
 ====
 
@@ -608,7 +668,7 @@ Request a new project
 
 
 == oc patch
-Update field(s) of a resource by stdin.
+Update field(s) of a resource using strategic merge patch.
 
 ====
 
@@ -894,13 +954,16 @@ Create a new dockercfg secret
 
 [options="nowrap"]
 ----
-  // If you don't already have a .dockercfg file, you can create a dockercfg secret directly by using:
+  # Create a new .dockercfg secret:
   $ oc secrets new-dockercfg SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
 
-  // If you do already have a .dockercfg file, you can create a dockercfg secret by using:
+  # Create a new .dockercfg secret from an existing file:
   $ oc secrets new SECRET path/to/.dockercfg
 
-  // To add new secret to 'imagePullSecrets' for the node, or 'secrets' for builds, use:
+  # Create a new .docker/config.json secret from an existing file:
+  $ oc secrets new SECRET .dockerconfigjson=path/to/.docker/config.json
+
+  # To add new secret to 'imagePullSecrets' for the node, or 'secrets' for builds, use:
   $ oc edit SERVICE_ACCOUNT
 ----
 ====
@@ -970,28 +1033,6 @@ Show an overview of the current project
 
   # See an overview of the current project including details for any identified issues.
   $ oc status -v
-----
-====
-
-
-== oc stop
-Deprecated: Gracefully shut down a resource by name or filename.
-
-====
-
-[options="nowrap"]
-----
-  # Shut down foo.
-  $ oc stop replicationcontroller foo
-
-  # Stop pods and services with label name=myLabel.
-  $ oc stop pods,services -l name=myLabel
-
-  # Shut down the service defined in service.json
-  $ oc stop -f service.json
-
-  # Shut down all resources in the path/to/resources directory
-  $ oc stop -f path/to/resources
 ----
 ====
 

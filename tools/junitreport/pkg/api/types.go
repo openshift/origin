@@ -46,7 +46,7 @@ type TestSuite struct {
 
 // TestSuiteProperty contains a mapping of a property name to a value
 type TestSuiteProperty struct {
-	XMLName xml.Name `xml:"propery"`
+	XMLName xml.Name `xml:"property"`
 
 	Name  string `xml:"name,attr"`
 	Value string `xml:"value,attr"`

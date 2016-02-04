@@ -152,7 +152,7 @@ func (tc *testCase) verifyResults(t *testing.T, val *ResourceConsumption, timest
 
 func (tc *testCase) runTest(t *testing.T) {
 	testClient := tc.prepareTestClient(t)
-	metricsClient := NewHeapsterMetricsClient(testClient, "kube-system", "", "heapster", "")
+	metricsClient := NewHeapsterMetricsClient(testClient, DefaultHeapsterNamespace, DefaultHeapsterScheme, DefaultHeapsterService, DefaultHeapsterPort)
 	val, _, timestamp, err := metricsClient.GetResourceConsumptionAndRequest(tc.targetResource, tc.namespace, tc.selector)
 	tc.verifyResults(t, val, timestamp, err)
 }

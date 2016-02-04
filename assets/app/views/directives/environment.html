@@ -1,0 +1,12 @@
+<div ng-if="envVars.length" class="table-responsive" style="margin-top: 5px;">
+  <table class="table table-bordered environment-variables">
+    <tbody>
+      <tr ng-repeat="env in envVars">
+        <td>{{env.name}}</td>
+        <td>
+          <truncate-long-text class="env-var-value" content="env.value" limit="200" newline-limit="3" expandable="true" prettify-json="true"></truncate-long-text>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

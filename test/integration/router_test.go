@@ -23,7 +23,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1beta3"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/watch"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
 
@@ -74,7 +74,7 @@ func TestRouter(t *testing.T) {
 		t.Fatalf("Unable to get docker client: %v", err)
 	}
 
-	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort)
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 0)
 
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
@@ -151,7 +151,7 @@ func TestRouter(t *testing.T) {
 			expectedResponse:  tr.HelloPod,
 			routeTLS:          nil,
 			routerUrl:         routeAddress,
-			preferredPort:     &routeapi.RoutePort{TargetPort: util.NewIntOrStringFromInt(8888)},
+			preferredPort:     &routeapi.RoutePort{TargetPort: intstr.FromInt(8888)},
 		},
 		{
 			name:              "edge termination",
@@ -417,7 +417,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 		t.Fatalf("Unable to get docker client: %v", err)
 	}
 
-	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort)
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 0)
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
@@ -670,7 +670,7 @@ func TestRouterDuplications(t *testing.T) {
 		t.Fatalf("Unable to get docker client: %v", err)
 	}
 
-	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort)
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 0)
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
@@ -680,6 +680,8 @@ func TestRouterDuplications(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't get http endpoint: %v", err)
 	}
+
+	time.Sleep(time.Second * 10)
 
 	//create routes
 	endpointEvent := &watch.Event{
@@ -812,11 +814,13 @@ func TestRouterStatsPort(t *testing.T) {
 		t.Fatalf("Unable to get docker client: %v", err)
 	}
 
-	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort)
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 0)
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
 	defer cleanUp(dockerCli, routerId)
+
+	time.Sleep(time.Second * 10)
 
 	statsHostPort := fmt.Sprintf("%s:%d", "127.0.0.1", statsPort)
 	creds := fmt.Sprintf("%s:%s", statsUser, statsPassword)
@@ -870,11 +874,13 @@ func TestRouterHealthzEndpoint(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, tc.port)
+		routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, tc.port, 0)
 		if err != nil {
 			t.Fatalf("Test with %q error starting container %s : %v", tc.name, getRouterImage(), err)
 		}
 		defer cleanUp(dockerCli, routerId)
+
+		time.Sleep(time.Second * 10)
 
 		host := "127.0.0.1"
 		port := tc.port
@@ -912,11 +918,13 @@ func TestRouterServiceUnavailable(t *testing.T) {
 		t.Fatalf("Unable to get docker client: %v", err)
 	}
 
-	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort)
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 0)
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
 	defer cleanUp(dockerCli, routerId)
+
+	time.Sleep(time.Second * 10)
 
 	schemes := []string{"http", "https"}
 	for _, scheme := range schemes {
@@ -1096,7 +1104,7 @@ func eventString(e *watch.Event) string {
 
 // createAndStartRouterContainer is responsible for deploying the router image in docker.  It assumes that all router images
 // will use a command line flag that can take --master which points to the master url
-func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int) (containerId string, err error) {
+func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int, reloadInterval int) (containerId string, err error) {
 	ports := []string{"80", "443"}
 	if routerStatsPort > 0 {
 		ports = append(ports, fmt.Sprintf("%d", routerStatsPort))
@@ -1132,6 +1140,9 @@ func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp stri
 		fmt.Sprintf("STATS_USERNAME=%s", statsUser),
 		fmt.Sprintf("STATS_PASSWORD=%s", statsPassword),
 	}
+
+	reloadIntVar := fmt.Sprintf("RELOAD_INTERVAL=%ds", reloadInterval)
+	env = append(env, reloadIntVar)
 
 	for _, name := range copyEnv {
 		val := os.Getenv(name)
@@ -1263,4 +1274,192 @@ func getRouteAddress() string {
 	}
 
 	return addr
+}
+
+// generateTestEvents generates endpoint and route added test events.
+func generateTestEvents(fakeMasterAndPod *tr.TestHttpService, flag bool, serviceName, routeName, routeAlias string, endpoints []kapi.EndpointSubset) {
+	endpointEvent := &watch.Event{
+		Type: watch.Added,
+
+		Object: &kapi.Endpoints{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      serviceName,
+				Namespace: "event-brite",
+			},
+			Subsets: endpoints,
+		},
+	}
+
+	routeEvent := &watch.Event{
+		Type: watch.Added,
+		Object: &routeapi.Route{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      routeName,
+				Namespace: "event-brite",
+			},
+			Spec: routeapi.RouteSpec{
+				Host: routeAlias,
+				Path: "",
+				To: kapi.ObjectReference{
+					Name: serviceName,
+				},
+				TLS: nil,
+			},
+		},
+	}
+
+	if flag {
+		//clean up
+		routeEvent.Type = watch.Deleted
+		endpointEvent.Type = watch.Modified
+		endpoints := endpointEvent.Object.(*kapi.Endpoints)
+		endpoints.Subsets = []kapi.EndpointSubset{}
+	}
+
+	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
+	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+}
+
+// TestRouterReloadCoalesce tests that router reloads are coalesced.
+func TestRouterReloadCoalesce(t *testing.T) {
+	//create a server which will act as a user deployed application that
+	//serves http and https as well as act as a master to simulate watches
+	fakeMasterAndPod := tr.NewTestHttpService()
+	defer fakeMasterAndPod.Stop()
+
+	err := fakeMasterAndPod.Start()
+	validateServer(fakeMasterAndPod, t)
+
+	if err != nil {
+		t.Fatalf("Unable to start http server: %v", err)
+	}
+
+	//deploy router docker container
+	dockerCli, err := testutil.NewDockerClient()
+
+	if err != nil {
+		t.Fatalf("Unable to get docker client: %v", err)
+	}
+
+	reloadInterval := 7
+
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval)
+
+	if err != nil {
+		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
+	}
+
+	defer cleanUp(dockerCli, routerId)
+
+	httpEndpoint, err := getEndpoint(fakeMasterAndPod.PodHttpAddr)
+	if err != nil {
+		t.Fatalf("Couldn't get http endpoint: %v", err)
+	}
+	_, err = getEndpoint(fakeMasterAndPod.PodHttpsAddr)
+	if err != nil {
+		t.Fatalf("Couldn't get https endpoint: %v", err)
+	}
+	_, err = getEndpoint(fakeMasterAndPod.AlternatePodHttpAddr)
+	if err != nil {
+		t.Fatalf("Couldn't get http endpoint: %v", err)
+	}
+
+	routeAddress := getRouteAddress()
+
+	//  Wait for the router to come up + reload interval to elapse.
+	time.Sleep(time.Second * 10)
+
+	routeAlias := "www.example.test"
+	serviceName := "example"
+	endpoints := []kapi.EndpointSubset{httpEndpoint}
+	numRoutes := 10
+
+	for i := 1; i <= numRoutes; i++ {
+		routeName := fmt.Sprintf("coalesce-route-%v", i)
+		routeAlias = fmt.Sprintf("www.example-coalesce-%v.test", i)
+
+		// Send the add events.
+		generateTestEvents(fakeMasterAndPod, false, serviceName, routeName, routeAlias, endpoints)
+		time.Sleep(time.Second * tcWaitSeconds)
+	}
+
+	// Wait for the last routeAlias to become available.
+	ttl := reloadInterval * 2
+	for i := 0; i < ttl; i++ {
+		// Wait for router to pick up configs.
+		time.Sleep(time.Second * tcWaitSeconds)
+
+		// Now verify the route with an HTTP client.
+		resp, err := getRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod)
+		if err == nil {
+			if resp == tr.HelloPod {
+				break
+			}
+		}
+
+		if i != ttl-1 {
+			continue
+		}
+		t.Errorf("Unable to verify response: %v", err)
+	}
+
+	// And ensure all the coalesce route aliases are available.
+	for i := 1; i <= numRoutes; i++ {
+		routeAlias := fmt.Sprintf("www.example-coalesce-%v.test", i)
+		resp, err := getRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod)
+		if err != nil {
+			t.Errorf("Unable to verify response for %q: %v", routeAlias, err)
+		}
+
+		if resp != tr.HelloPod {
+			t.Errorf("Route %s failed! Response body %q did not match expected %q", routeAlias, resp, tr.HelloPod)
+
+		}
+	}
+
+	for i := 1; i <= numRoutes; i++ {
+		routeName := fmt.Sprintf("coalesce-route-%v", i)
+		routeAlias = fmt.Sprintf("www.example-coalesce-%v.test", i)
+
+		// Send the cleanup events.
+		generateTestEvents(fakeMasterAndPod, true, serviceName, routeName, routeAlias, endpoints)
+		time.Sleep(time.Second * tcWaitSeconds)
+	}
+
+	// Wait for the first routeAlias to become unavailable.
+	routeAlias = "www.example-coalesce-1.test"
+	ttl = reloadInterval * 2
+	for i := 0; i < ttl; i++ {
+		// Wait for router to pick up configs.
+		time.Sleep(time.Second * tcWaitSeconds)
+
+		// Now verify the route with an HTTP client.
+		resp, err := getRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod)
+		if err != nil {
+			t.Errorf("Unable to verify response for %q: %v", routeAlias, err)
+		}
+
+		if resp == tr.HelloPod {
+			if i != ttl-1 {
+				continue
+			}
+		}
+	}
+
+	// And ensure all the route aliases are gone.
+	for i := 1; i <= numRoutes; i++ {
+		routeAlias := fmt.Sprintf("www.example-coalesce-%v.test", i)
+		resp, err := getRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod)
+		if err != nil {
+			t.Errorf("Unable to verify route deletion for %q: %+v", routeAlias, err)
+		}
+
+		if resp == tr.HelloPod {
+			t.Errorf("Unable to verify route deletion for %q: %+v", routeAlias, resp)
+		}
+
+		if !strings.Contains(resp, "503 Service Unavailable") {
+			t.Errorf("Unable to verify route deletion for %q: %+v", routeAlias, resp)
+		}
+	}
 }

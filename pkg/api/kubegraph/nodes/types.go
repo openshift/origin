@@ -39,10 +39,6 @@ func (n ServiceNode) String() string {
 	return string(ServiceNodeName(n.Service))
 }
 
-func (n ServiceNode) ResourceString() string {
-	return "svc/" + n.Name
-}
-
 func (*ServiceNode) Kind() string {
 	return ServiceNodeKind
 }
@@ -68,10 +64,6 @@ func (n PodNode) String() string {
 	return string(PodNodeName(n.Pod))
 }
 
-func (n PodNode) ResourceString() string {
-	return "pod/" + n.Name
-}
-
 func (n PodNode) UniqueName() osgraph.UniqueName {
 	return PodNodeName(n.Pod)
 }
@@ -87,6 +79,7 @@ func PodSpecNodeName(o *kapi.PodSpec, ownerName osgraph.UniqueName) osgraph.Uniq
 type PodSpecNode struct {
 	osgraph.Node
 	*kapi.PodSpec
+	Namespace string
 
 	OwnerName osgraph.UniqueName
 }
@@ -124,10 +117,6 @@ func (n ReplicationControllerNode) String() string {
 	return string(ReplicationControllerNodeName(n.ReplicationController))
 }
 
-func (n ReplicationControllerNode) ResourceString() string {
-	return "rc/" + n.Name
-}
-
 func (n ReplicationControllerNode) UniqueName() osgraph.UniqueName {
 	return ReplicationControllerNodeName(n.ReplicationController)
 }
@@ -143,6 +132,7 @@ func ReplicationControllerSpecNodeName(o *kapi.ReplicationControllerSpec, ownerN
 type ReplicationControllerSpecNode struct {
 	osgraph.Node
 	*kapi.ReplicationControllerSpec
+	Namespace string
 
 	OwnerName osgraph.UniqueName
 }
@@ -170,6 +160,7 @@ func PodTemplateSpecNodeName(o *kapi.PodTemplateSpec, ownerName osgraph.UniqueNa
 type PodTemplateSpecNode struct {
 	osgraph.Node
 	*kapi.PodTemplateSpec
+	Namespace string
 
 	OwnerName osgraph.UniqueName
 }
@@ -213,10 +204,6 @@ func (n ServiceAccountNode) String() string {
 	return string(ServiceAccountNodeName(n.ServiceAccount))
 }
 
-func (n ServiceAccountNode) ResourceString() string {
-	return "sa/" + n.Name
-}
-
 func (*ServiceAccountNode) Kind() string {
 	return ServiceAccountNodeKind
 }
@@ -242,10 +229,6 @@ func (n SecretNode) Object() interface{} {
 
 func (n SecretNode) String() string {
 	return string(SecretNodeName(n.Secret))
-}
-
-func (n SecretNode) ResourceString() string {
-	return "secret/" + n.Name
 }
 
 func (*SecretNode) Kind() string {

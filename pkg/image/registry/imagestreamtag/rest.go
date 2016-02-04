@@ -8,10 +8,9 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
@@ -56,13 +55,13 @@ func nameAndTag(id string) (name string, tag string, err error) {
 	return
 }
 
-func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	imageStreams, err := r.imageStreamRegistry.ListImageStreams(ctx, labels.Everything())
+func (r *REST) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+	imageStreams, err := r.imageStreamRegistry.ListImageStreams(ctx, options)
 	if err != nil {
 		return nil, err
 	}
 
-	matcher := MatchImageStreamTag(label, field)
+	matcher := MatchImageStreamTag(oapi.ListOptionsToSelectors(options))
 
 	list := &api.ImageStreamTagList{}
 	for _, currIS := range imageStreams.Items {
@@ -232,11 +231,11 @@ func newISTag(tag string, imageStream *api.ImageStream, image *api.Image) (*api.
 	}
 
 	if image != nil {
-		imageWithMetadata, err := api.ImageWithMetadata(*image)
-		if err != nil {
+		if err := api.ImageWithMetadata(image); err != nil {
 			return nil, err
 		}
-		ist.Image = *imageWithMetadata
+		image.DockerImageManifest = ""
+		ist.Image = *image
 	} else {
 		ist.Image = api.Image{}
 		ist.Image.Name = event.Image

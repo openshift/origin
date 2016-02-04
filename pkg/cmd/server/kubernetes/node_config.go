@@ -66,6 +66,11 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	if err != nil {
 		return nil, err
 	}
+	// Make a separate client for event reporting, to avoid event QPS blocking node calls
+	eventClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	if options.NodeName == "localhost" {
 		glog.Warningf(`Using "localhost" as node name will not resolve from all locations`)
@@ -171,6 +176,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	// provide any config overrides
 	cfg.NodeName = options.NodeName
 	cfg.KubeClient = kubeClient
+	cfg.EventClient = eventClient
 	cfg.DockerExecHandler = dockerExecHandler
 
 	// docker-in-docker (dind) deployments are used for testing

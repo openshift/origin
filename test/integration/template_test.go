@@ -5,6 +5,7 @@ package integration
 import (
 	"testing"
 
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -22,12 +23,12 @@ func TestTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, version := range []string{"v1"} {
+	for _, version := range []unversioned.GroupVersion{v1.SchemeGroupVersion} {
 		config, err := testutil.GetClusterAdminClientConfig(path)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		config.Version = version
+		config.GroupVersion = &version
 		config.Prefix = ""
 		c, err := client.New(config)
 		if err != nil {

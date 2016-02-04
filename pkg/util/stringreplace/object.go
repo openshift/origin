@@ -14,6 +14,15 @@ func VisitObjectStrings(obj interface{}, visitor func(string) string) {
 }
 
 func visitValue(v reflect.Value, visitor func(string) string) {
+	// you'll never be able to substitute on a nil.  Check the kind first or you'll accidentally
+	// end up panic-ing
+	switch v.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+		if v.IsNil() {
+			return
+		}
+	}
+
 	switch v.Kind() {
 
 	case reflect.Ptr:

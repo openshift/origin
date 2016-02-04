@@ -21,7 +21,7 @@ func TestUnpushableBuild(t *testing.T) {
 	buildedges.AddAllInputOutputEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 
-	markers := FindUnpushableBuildConfigs(g)
+	markers := FindUnpushableBuildConfigs(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
@@ -50,7 +50,7 @@ func TestUnpushableBuild(t *testing.T) {
 	buildedges.AddAllInputOutputEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 
-	markers = FindUnpushableBuildConfigs(g)
+	markers = FindUnpushableBuildConfigs(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
@@ -69,7 +69,7 @@ func TestPushableBuild(t *testing.T) {
 	buildedges.AddAllInputOutputEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 
-	if e, a := 0, len(FindUnpushableBuildConfigs(g)); e != a {
+	if e, a := 0, len(FindUnpushableBuildConfigs(g, osgraph.DefaultNamer)); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 }
@@ -91,7 +91,7 @@ func TestCircularDeps(t *testing.T) {
 	}
 	buildedges.AddAllInputOutputEdges(g)
 
-	if len(FindCircularBuilds(g)) != 1 {
+	if len(FindCircularBuilds(g, osgraph.DefaultNamer)) != 1 {
 		t.Fatalf("expected having circular dependencies")
 	}
 
@@ -101,7 +101,7 @@ func TestCircularDeps(t *testing.T) {
 	}
 	buildedges.AddAllInputOutputEdges(not)
 
-	if len(FindCircularBuilds(not)) != 0 {
+	if len(FindCircularBuilds(not, osgraph.DefaultNamer)) != 0 {
 		t.Fatalf("expected not having circular dependencies")
 	}
 }
@@ -121,7 +121,7 @@ func TestPendingImageStreamTag(t *testing.T) {
 	edgeFn := osgraph.EdgesOfKind(buildedges.BuildInputImageEdgeKind, buildedges.BuildOutputEdgeKind)
 	g = g.Subgraph(nodeFn, edgeFn)
 
-	markers := FindPendingTags(g)
+	markers := FindPendingTags(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
@@ -140,7 +140,7 @@ func TestLatestBuildFailed(t *testing.T) {
 	buildedges.AddAllBuildEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 
-	markers := FindPendingTags(g)
+	markers := FindPendingTags(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}

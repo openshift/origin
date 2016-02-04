@@ -1,8 +1,7 @@
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -15,11 +14,11 @@ type PolicyBindingsNamespacer interface {
 
 // PolicyBindingInterface exposes methods on PolicyBinding resources.
 type PolicyBindingInterface interface {
-	List(label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error)
+	List(opts kapi.ListOptions) (*authorizationapi.PolicyBindingList, error)
 	Get(name string) (*authorizationapi.PolicyBinding, error)
 	Create(policyBinding *authorizationapi.PolicyBinding) (*authorizationapi.PolicyBinding, error)
 	Delete(name string) error
-	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(opts kapi.ListOptions) (watch.Interface, error)
 }
 
 // policyBindings implements PolicyBindingsNamespacer interface
@@ -37,9 +36,9 @@ func newPolicyBindings(c *Client, namespace string) *policyBindings {
 }
 
 // List returns a list of policyBindings that match the label and field selectors.
-func (c *policyBindings) List(label labels.Selector, field fields.Selector) (result *authorizationapi.PolicyBindingList, err error) {
+func (c *policyBindings) List(opts kapi.ListOptions) (result *authorizationapi.PolicyBindingList, err error) {
 	result = &authorizationapi.PolicyBindingList{}
-	err = c.r.Get().Namespace(c.ns).Resource("policyBindings").LabelsSelectorParam(label).FieldsSelectorParam(field).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("policyBindings").VersionedParams(&opts, kapi.Scheme).Do().Into(result)
 	return
 }
 
@@ -64,6 +63,6 @@ func (c *policyBindings) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested policyBindings
-func (c *policyBindings) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.r.Get().Prefix("watch").Namespace(c.ns).Resource("policyBindings").Param("resourceVersion", resourceVersion).LabelsSelectorParam(label).FieldsSelectorParam(field).Watch()
+func (c *policyBindings) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.r.Get().Prefix("watch").Namespace(c.ns).Resource("policyBindings").VersionedParams(&opts, kapi.Scheme).Watch()
 }

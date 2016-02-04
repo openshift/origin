@@ -23,8 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/prober/results"
-	kubeletutil "k8s.io/kubernetes/pkg/kubelet/util"
-	"k8s.io/kubernetes/pkg/probe"
+	"k8s.io/kubernetes/pkg/kubelet/util/format"
 	"k8s.io/kubernetes/pkg/util"
 )
 
@@ -57,6 +56,10 @@ type worker struct {
 
 	// The last known container ID for this worker.
 	containerID kubecontainer.ContainerID
+	// The last probe result for this worker.
+	lastResult results.Result
+	// How many times in a row the probe has returned the same result.
+	resultRun int
 }
 
 // Creates and starts a new probe worker.
@@ -90,7 +93,7 @@ func newWorker(
 
 // run periodically probes the container.
 func (w *worker) run() {
-	probeTicker := time.NewTicker(w.probeManager.defaultProbePeriod)
+	probeTicker := time.NewTicker(time.Duration(w.spec.PeriodSeconds) * time.Second)
 
 	defer func() {
 		// Clean up.
@@ -122,14 +125,14 @@ func (w *worker) doProbe() (keepGoing bool) {
 	status, ok := w.probeManager.statusManager.GetPodStatus(w.pod.UID)
 	if !ok {
 		// Either the pod has not been created yet, or it was already deleted.
-		glog.V(3).Infof("No status for pod: %v", kubeletutil.FormatPodName(w.pod))
+		glog.V(3).Infof("No status for pod: %v", format.Pod(w.pod))
 		return true
 	}
 
 	// Worker should terminate if pod is terminated.
 	if status.Phase == api.PodFailed || status.Phase == api.PodSucceeded {
 		glog.V(3).Infof("Pod %v %v, exiting probe worker",
-			kubeletutil.FormatPodName(w.pod), status.Phase)
+			format.Pod(w.pod), status.Phase)
 		return false
 	}
 
@@ -137,7 +140,7 @@ func (w *worker) doProbe() (keepGoing bool) {
 	if !ok {
 		// Either the container has not been created yet, or it was deleted.
 		glog.V(3).Infof("Non-existant container probed: %v - %v",
-			kubeletutil.FormatPodName(w.pod), w.container.Name)
+			format.Pod(w.pod), w.container.Name)
 		return true // Wait for more information.
 	}
 
@@ -146,11 +149,12 @@ func (w *worker) doProbe() (keepGoing bool) {
 			w.resultsManager.Remove(w.containerID)
 		}
 		w.containerID = kubecontainer.ParseContainerID(c.ContainerID)
+		w.resultsManager.Set(w.containerID, w.initialValue, w.pod)
 	}
 
 	if c.State.Running == nil {
 		glog.V(3).Infof("Non-running container probed: %v - %v",
-			kubeletutil.FormatPodName(w.pod), w.container.Name)
+			format.Pod(w.pod), w.container.Name)
 		if !w.containerID.IsEmpty() {
 			w.resultsManager.Set(w.containerID, results.Failure, w.pod)
 		}
@@ -159,16 +163,30 @@ func (w *worker) doProbe() (keepGoing bool) {
 			w.pod.Spec.RestartPolicy != api.RestartPolicyNever
 	}
 
-	if int64(time.Since(c.State.Running.StartedAt.Time).Seconds()) < w.spec.InitialDelaySeconds {
-		w.resultsManager.Set(w.containerID, w.initialValue, w.pod)
+	if int(time.Since(c.State.Running.StartedAt.Time).Seconds()) < w.spec.InitialDelaySeconds {
 		return true
 	}
 
-	// TODO: Move error handling out of prober.
-	result, _ := w.probeManager.prober.probe(w.probeType, w.pod, status, w.container, w.containerID)
-	if result != probe.Unknown {
-		w.resultsManager.Set(w.containerID, result != probe.Failure, w.pod)
+	result, err := w.probeManager.prober.probe(w.probeType, w.pod, status, w.container, w.containerID)
+	if err != nil {
+		// Prober error, throw away the result.
+		return true
 	}
+
+	if w.lastResult == result {
+		w.resultRun++
+	} else {
+		w.lastResult = result
+		w.resultRun = 1
+	}
+
+	if (result == results.Failure && w.resultRun < w.spec.FailureThreshold) ||
+		(result == results.Success && w.resultRun < w.spec.SuccessThreshold) {
+		// Success or failure is below threshold - leave the probe state unchanged.
+		return true
+	}
+
+	w.resultsManager.Set(w.containerID, result, w.pod)
 
 	return true
 }

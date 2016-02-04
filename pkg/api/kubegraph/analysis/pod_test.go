@@ -1,8 +1,13 @@
 package analysis
 
 import (
+	"sort"
 	"testing"
+	"time"
 
+	"k8s.io/kubernetes/pkg/api/unversioned"
+
+	osgraph "github.com/openshift/origin/pkg/api/graph"
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
 )
 
@@ -11,12 +16,42 @@ func TestRestartingPodWarning(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer func() { nowFn = unversioned.Now }()
 
-	markers := FindRestartingPods(g)
-	if e, a := 1, len(markers); e != a {
+	recent, _ := time.Parse(time.RFC3339, "2015-07-13T19:36:06Z")
+	nowFn = func() unversioned.Time { return unversioned.NewTime(recent.UTC()) }
+	markers := FindRestartingPods(g, osgraph.DefaultNamer, "oc logs", "oadm policy")
+	sort.Sort(osgraph.BySeverity(markers))
+	if e, a := 4, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
-	if e, a := RestartingPodWarning, markers[0].Key; e != a {
+	if e, a := CrashLoopingPodError, markers[0].Key; e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+	if e, a := CrashLoopingPodError, markers[1].Key; e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+	if e, a := RestartingPodWarning, markers[2].Key; e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+	if e, a := RestartingPodWarning, markers[3].Key; e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+
+	future, _ := time.Parse(time.RFC3339, "2015-07-13T19:46:06Z")
+	nowFn = func() unversioned.Time { return unversioned.NewTime(future.UTC()) }
+	markers = FindRestartingPods(g, osgraph.DefaultNamer, "oc logs", "oadm policy")
+	sort.Sort(osgraph.BySeverity(markers))
+	if e, a := 3, len(markers); e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+	if e, a := CrashLoopingPodError, markers[0].Key; e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+	if e, a := CrashLoopingPodError, markers[1].Key; e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+	if e, a := RestartingPodWarning, markers[2].Key; e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 }

@@ -8,7 +8,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
@@ -36,14 +35,14 @@ type DeploymentControllerFactory struct {
 
 // Create creates a DeploymentController.
 func (factory *DeploymentControllerFactory) Create() controller.RunnableController {
-	deploymentLW := &deployutil.ListWatcherImpl{
+	deploymentLW := &cache.ListWatch{
 		// TODO: Investigate specifying annotation field selectors to fetch only 'deployments'
 		// Currently field selectors are not supported for replication controllers
-		ListFunc: func() (runtime.Object, error) {
-			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(options)
 		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).Watch(options)
 		},
 	}
 	deploymentQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
@@ -82,7 +81,8 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 				if err != nil {
 					return []kapi.Pod{}, err
 				}
-				pods, err := factory.KubeClient.Pods(namespace).List(labelSel, fields.Everything())
+				options := kapi.ListOptions{LabelSelector: labelSel}
+				pods, err := factory.KubeClient.Pods(namespace).List(options)
 				if err != nil {
 					return []kapi.Pod{}, err
 				}
