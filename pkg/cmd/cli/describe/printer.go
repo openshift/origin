@@ -35,8 +35,7 @@ var (
 	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS", "INSECURE POLICY", "TLS TERMINATION"}
-	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
-	deploymentConfigColumns = []string{"NAME", "TRIGGERS", "LATEST"}
+	deploymentConfigColumns = []string{"NAME", "IMAGE", "TRIGGERS", "VERSION", "SELECTOR"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
 	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
@@ -452,6 +451,13 @@ func printRouteList(routeList *routeapi.RouteList, w io.Writer, opts kctl.PrintO
 }
 
 func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, opts kctl.PrintOptions) error {
+	// TODO: Handle printing multiple containers
+	var image string
+	for _, c := range dc.Spec.Template.Spec.Containers {
+		image = c.Name
+		break
+	}
+
 	triggers := sets.String{}
 	for _, trigger := range dc.Spec.Triggers {
 		triggers.Insert(string(trigger.Type))
@@ -463,7 +469,7 @@ func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, opts kct
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", dc.Name, tStr, dc.Status.LatestVersion)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%s\n", dc.Name, image, tStr, dc.Status.LatestVersion, labels.FormatLabels(dc.Spec.Selector))
 	return err
 }
 
