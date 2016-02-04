@@ -132,6 +132,209 @@ func TestComputeDefinitions(t *testing.T) {
 	}
 }
 
+func TestComputeMetadata(t *testing.T) {
+	tests := map[string]struct {
+		union       bool
+		desired     kapi.ObjectMeta
+		actual      kapi.ObjectMeta
+		needsUpdate bool
+		computed    kapi.ObjectMeta
+	}{
+		"identical with union": {
+			union: true,
+			desired: kapi.ObjectMeta{
+				Name:        "foo",
+				Labels:      map[string]string{"labela": "a"},
+				Annotations: map[string]string{"annotationa": "a"},
+			},
+			actual: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a"},
+				Annotations:     map[string]string{"annotationa": "a"},
+				ResourceVersion: "2",
+			},
+			needsUpdate: false,
+			computed: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a"},
+				Annotations:     map[string]string{"annotationa": "a"},
+				ResourceVersion: "2",
+			},
+		},
+		"identical without union": {
+			union: false,
+			desired: kapi.ObjectMeta{
+				Name:        "foo",
+				Labels:      map[string]string{"labela": "a"},
+				Annotations: map[string]string{"annotationa": "a"},
+			},
+			actual: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a"},
+				Annotations:     map[string]string{"annotationa": "a"},
+				ResourceVersion: "2",
+			},
+			needsUpdate: false,
+			computed: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a"},
+				Annotations:     map[string]string{"annotationa": "a"},
+				ResourceVersion: "2",
+			},
+		},
+
+		"missing labels and annotations with union": {
+			union: true,
+			desired: kapi.ObjectMeta{
+				Name:        "foo",
+				Labels:      map[string]string{"labela": "a", "labelb": "b"},
+				Annotations: map[string]string{"annotationa": "a", "annotationb": "b"},
+			},
+			actual: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a"},
+				Annotations:     map[string]string{"annotationa": "a"},
+				ResourceVersion: "2",
+			},
+			needsUpdate: true,
+			computed: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a", "labelb": "b"},
+				Annotations:     map[string]string{"annotationa": "a", "annotationb": "b"},
+				ResourceVersion: "2",
+			},
+		},
+		"missing labels and annotations without union": {
+			union: false,
+			desired: kapi.ObjectMeta{
+				Name:        "foo",
+				Labels:      map[string]string{"labela": "a", "labelb": "b"},
+				Annotations: map[string]string{"annotationa": "a", "annotationb": "b"},
+			},
+			actual: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a"},
+				Annotations:     map[string]string{"annotationa": "a"},
+				ResourceVersion: "2",
+			},
+			needsUpdate: true,
+			computed: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a", "labelb": "b"},
+				Annotations:     map[string]string{"annotationa": "a", "annotationb": "b"},
+				ResourceVersion: "2",
+			},
+		},
+
+		"extra labels and annotations with union": {
+			union: true,
+			desired: kapi.ObjectMeta{
+				Name:        "foo",
+				Labels:      map[string]string{"labela": "a"},
+				Annotations: map[string]string{"annotationa": "a"},
+			},
+			actual: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a", "labelb": "b"},
+				Annotations:     map[string]string{"annotationa": "a", "annotationb": "b"},
+				ResourceVersion: "2",
+			},
+			needsUpdate: false,
+			computed: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a", "labelb": "b"},
+				Annotations:     map[string]string{"annotationa": "a", "annotationb": "b"},
+				ResourceVersion: "2",
+			},
+		},
+		"extra labels and annotations without union": {
+			union: false,
+			desired: kapi.ObjectMeta{
+				Name:        "foo",
+				Labels:      map[string]string{"labela": "a"},
+				Annotations: map[string]string{"annotationa": "a"},
+			},
+			actual: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a", "labelb": "b"},
+				Annotations:     map[string]string{"annotationa": "a", "annotationb": "b"},
+				ResourceVersion: "2",
+			},
+			needsUpdate: true,
+			computed: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a"},
+				Annotations:     map[string]string{"annotationa": "a"},
+				ResourceVersion: "2",
+			},
+		},
+
+		"disjoint labels and annotations with union": {
+			union: true,
+			desired: kapi.ObjectMeta{
+				Name:        "foo",
+				Labels:      map[string]string{"labela": "a"},
+				Annotations: map[string]string{"annotationa": "a"},
+			},
+			actual: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labelb": "b"},
+				Annotations:     map[string]string{"annotationb": "b"},
+				ResourceVersion: "2",
+			},
+			needsUpdate: true,
+			computed: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a", "labelb": "b"},
+				Annotations:     map[string]string{"annotationa": "a", "annotationb": "b"},
+				ResourceVersion: "2",
+			},
+		},
+		"disjoint labels and annotations without union": {
+			union: false,
+			desired: kapi.ObjectMeta{
+				Name:        "foo",
+				Labels:      map[string]string{"labela": "a"},
+				Annotations: map[string]string{"annotationa": "a"},
+			},
+			actual: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labelb": "b"},
+				Annotations:     map[string]string{"annotationb": "b"},
+				ResourceVersion: "2",
+			},
+			needsUpdate: true,
+			computed: kapi.ObjectMeta{
+				Name:            "foo",
+				Labels:          map[string]string{"labela": "a"},
+				Annotations:     map[string]string{"annotationa": "a"},
+				ResourceVersion: "2",
+			},
+		},
+	}
+
+	for k, v := range tests {
+		cmd := NewDefaultReconcileSCCOptions()
+		cmd.Union = v.union
+
+		desiredSCC := goodSCC()
+		desiredSCC.ObjectMeta = v.desired
+
+		actualSCC := goodSCC()
+		actualSCC.ObjectMeta = v.actual
+
+		computedSCC, needsUpdate := cmd.computeUpdatedSCC(desiredSCC, actualSCC)
+		if needsUpdate != v.needsUpdate {
+			t.Errorf("%s expected needsUpdate=%v, got %v", k, v.needsUpdate, needsUpdate)
+			continue
+		}
+		if !reflect.DeepEqual(v.computed, computedSCC.ObjectMeta) {
+			t.Errorf("%s: expected object meta\n%#v\ngot\n%#v", k, v.computed, computedSCC.ObjectMeta)
+			continue
+		}
+	}
+}
+
 func TestComputeUnioningUsersAndGroups(t *testing.T) {
 	missingGroup := goodSCC()
 	missingGroup.Groups = []string{"foo"}
