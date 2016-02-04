@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("builds: s2i incremental build with push and pull to authenticated registry", func() {
+var _ = g.Describe("[builds] incremental source-to-image build", func() {
 	defer g.GinkgoRecover()
 
 	const (

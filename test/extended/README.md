@@ -72,7 +72,7 @@ test cases at your root suite level.
 
 Example:
 ```go
-var _ = g.Describe("ldap: Authenticate using LDAP", func() {
+var _ = g.Describe("[ldap] Authenticate using LDAP", func() {
   # ...
 })
 ```
@@ -116,7 +116,7 @@ import (
     o "github.com/onsi/gomega"
 )
 
-var _ = g.Describe("<test bucket>: <Testing scenario>", func() {
+var _ = g.Describe("[<test bucket>] <Testing scenario>", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLI("test-name", exutil.KubeConfigPath())
@@ -128,7 +128,7 @@ var _ = g.Describe("<test bucket>: <Testing scenario>", func() {
 The test suite should be organized into lower-level Ginkgo describe(s) container, together with a message which elaborates on the goal of the test. Inside each lower-level describe container specify a single spec with the `It` container , which shares the context in which the spec runs. The `It` container also takes a message which explains how the test goal will be achieved.
 
 ```go
-var _ = g.Describe("default: STI build", func() {
+var _ = g.Describe("[default] STI build", func() {
 	defer GinkgoRecover()
 	var (
 		stiBuildFixture = filepath.Join("fixtures", "test-build.json")
