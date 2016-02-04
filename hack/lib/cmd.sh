@@ -1,9 +1,9 @@
 #!/bin/bash
-# This utility file contains functions that wrap commands to be tested. All wrapper functions run commands
+# This library contains functions that wrap commands to be tested. All wrapper functions run commands
 # in a sub-shell and redirect all output. Tests in test-cmd *must* use these functions for testing.
 
 # We assume ${OS_ROOT} is set
-source "${OS_ROOT}/hack/text.sh"
+source "${OS_ROOT}/hack/lib/util/text.sh"
 source "${OS_ROOT}/hack/util.sh"
 
 # expect_success runs the cmd and expects an exit code of 0
@@ -162,15 +162,15 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
 
-	local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
-	local cmd_succeeded=$( ${cmd_eval_func} "${cmd_result}"; echo $? )
+	local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}" )
+	local cmd_succeeded=$( ${cmd_eval_func} "${cmd_result}" )
 
 	local test_result=0
 	if [[ -n "${grep_args}" ]]; then
-		test_result=$( os::cmd::internal::run_collecting_output 'os::cmd::internal::get_results | grep -Eq "${grep_args}"'; echo $? )
+		test_result=$( os::cmd::internal::run_collecting_output 'os::cmd::internal::get_results | grep -Eq "${grep_args}"' )
 		
 	fi
-	local test_succeeded=$( ${test_eval_func} "${test_result}"; echo $? )
+	local test_succeeded=$( ${test_eval_func} "${test_result}" )
 
 	local end_time=$(os::cmd::internal::seconds_since_epoch)
 	local time_elapsed=$(echo "scale=3; ${end_time} - ${start_time}" | bc | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
@@ -178,11 +178,11 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	# some commands are multi-line, so we may need to clear more than just the previous line
 	local cmd_length=$(echo "${cmd}" | wc -l)
 	for (( i=0; i<${cmd_length}; i++ )); do
-		os::text::clear_last_line
+		os::util::text::clear_last_line
 	done
 
-	if (( cmd_succeeded && test_succeeded )); then
-		os::text::print_green "SUCCESS after ${time_elapsed}s: ${name}"
+	if [[ "${cmd_succeeded}" = "true" && "${test_succeeded}" = "true" ]]; then
+		os::util::text::print_green "SUCCESS after ${time_elapsed}s: ${name}"
 		if [[ -n ${VERBOSE-} ]]; then
 			os::cmd::internal::print_results
 		fi
@@ -190,8 +190,8 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	else
 		local cause=$(os::cmd::internal::assemble_causes "${cmd_succeeded}" "${test_succeeded}")
 		
-		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${name}: ${cause}"
-		os::text::print_red "$(os::cmd::internal::print_results)"
+		os::util::text::print_red_bold "FAILURE after ${time_elapsed}s: ${name}: ${cause}"
+		os::util::text::print_red "$(os::cmd::internal::print_results)"
 		return 1
 	fi
 }
@@ -237,7 +237,7 @@ function os::cmd::internal::determine_caller() {
 	local call_depth=
 	local len_sources="${#BASH_SOURCE[@]}"
 	for (( i=0; i<${len_sources}; i++ )); do
-		if [ ! $(echo "${BASH_SOURCE[i]}" | grep "hack/cmd_util\.sh$") ]; then
+		if [ ! $(echo "${BASH_SOURCE[i]}" | grep "hack/lib/cmd\.sh$") ]; then
 			call_depth=i
 			break
 		fi
@@ -283,40 +283,40 @@ function os::cmd::internal::run_collecting_output() {
 
 	local result=
 	$( eval "${cmd}" 1>>"${os_cmd_internal_tmpout}" 2>>"${os_cmd_internal_tmperr}" ) || result=$?
-	local result=${result:-0} # if we haven't set result yet, the command succeeded
+	result=${result:-0} # if we haven't set result yet, the command succeeded
 
-	return "${result}"
+	echo "${result}"
 } 
 
 # os::cmd::internal::success_func determines if the input exit code denotes success
-# this function returns 0 for false and 1 for true to be compatible with arithmetic tests
+# this function returns nothing for false and "true" for true
 function os::cmd::internal::success_func() {
 	local exit_code=$1
 
-	# use a negated test to get output correct for (( ))
-	[[ "${exit_code}" -ne "0" ]]
-	return $?
+	if [[ "${exit_code}" = "0" ]]; then
+		echo "true"
+	fi
 }
 
 # os::cmd::internal::failure_func determines if the input exit code denotes failure
-# this function returns 0 for false and 1 for true to be compatible with arithmetic tests
+# this function returns nothing for false and "true" for true
 function os::cmd::internal::failure_func() {
 	local exit_code=$1
 
-	# use a negated test to get output correct for (( ))
-	[[ "${exit_code}" -eq "0" ]]
-	return $?
+	if [[ ! "${exit_code}" = "0" ]]; then
+		echo "true"
+	fi
 }
 
 # os::cmd::internal::specific_code_func determines if the input exit code matches the given code
-# this function returns 0 for false and 1 for true to be compatible with arithmetic tests
+# this function returns nothing for false and "true" for true
 function os::cmd::internal::specific_code_func() {
 	local expected_code=$1
 	local exit_code=$2
 
-	# use a negated test to get output correct for (( ))
-	[[ "${exit_code}" -ne "${expected_code}" ]]
-	return $?
+	if [[ "${exit_code}" = "${expected_code}" ]]; then
+		echo "true"
+	fi
 }
 
 # os::cmd::internal::get_results prints the stderr and stdout files
@@ -380,10 +380,10 @@ function os::cmd::internal::assemble_causes() {
 	local test_succeeded=$2
 
 	local causes=()
-	if (( ! cmd_succeeded )); then
+	if [[ ! "${cmd_succeeded}" = "true" ]]; then
 		causes+=("the command returned the wrong error code")
 	fi
-	if (( ! test_succeeded )); then
+	if [[ ! "${test_succeeded}" = "true" ]]; then
 		causes+=("the output content test failed")
 	fi
 
@@ -414,9 +414,9 @@ function os::cmd::internal::run_until_exit_code() {
 
 	local deadline=$(( $(date +%s000) + $duration ))
 	while [ $(date +%s000) -lt $deadline ]; do	
-		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
-		local cmd_succeeded=$( ${cmd_eval_func} "${cmd_result}"; echo $? )
-		if (( cmd_succeeded )); then
+		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}" )
+		local cmd_succeeded=$( ${cmd_eval_func} "${cmd_result}" )
+		if [[ "${cmd_succeeded}" = "true" ]]; then
 			break
 		fi
 		sleep "${interval}"
@@ -429,19 +429,19 @@ function os::cmd::internal::run_until_exit_code() {
 	# some commands are multi-line, so we may need to clear more than just the previous line
 	local cmd_length=$(echo "${cmd}" | wc -l)
 	for (( i=0; i<${cmd_length}; i++ )); do
-		os::text::clear_last_line
+		os::util::text::clear_last_line
 	done
 
-	if (( cmd_succeeded )); then
+	if [[ "${cmd_succeeded}" = "true" ]]; then
 
-		os::text::print_green "SUCCESS after ${time_elapsed}s: ${description}"
+		os::util::text::print_green "SUCCESS after ${time_elapsed}s: ${description}"
 		if [[ -n ${VERBOSE-} ]]; then
 			os::cmd::internal::print_try_until_results
 		fi
 		return 0
 	else
-		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
-		os::text::print_red "$(os::cmd::internal::print_try_until_results)"
+		os::util::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
+		os::util::text::print_red "$(os::cmd::internal::print_try_until_results)"
 		return 1
 	fi
 }
@@ -468,11 +468,11 @@ function os::cmd::internal::run_until_text() {
 	
 	local deadline=$(( $(date +%s000) + $duration ))
 	while [ $(date +%s000) -lt $deadline ]; do	
-		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
-		local test_result=$( os::cmd::internal::run_collecting_output 'os::cmd::internal::get_results | grep -Eq "${text}"'; echo $? )
-		local test_succeeded=$( os::cmd::internal::success_func "${test_result}"; echo $? )
+		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}" )
+		local test_result=$( os::cmd::internal::run_collecting_output 'os::cmd::internal::get_results | grep -Eq "${text}"' )
+		local test_succeeded=$( os::cmd::internal::success_func "${test_result}" )
 
-		if (( test_succeeded )); then
+		if [[ "${test_succeeded}" = "true" ]]; then
 			break
 		fi
 		sleep "${interval}"
@@ -485,19 +485,19 @@ function os::cmd::internal::run_until_text() {
 	# some commands are multi-line, so we may need to clear more than just the previous line
 	local cmd_length=$(echo "${cmd}" | wc -l)
 	for (( i=0; i<${cmd_length}; i++ )); do
-		os::text::clear_last_line
+		os::util::text::clear_last_line
 	done
 
-	if (( test_succeeded )); then
+	if [[ "${test_succeeded}" = "true" ]]; then
 
-		os::text::print_green "SUCCESS after ${time_elapsed}s: ${description}"
+		os::util::text::print_green "SUCCESS after ${time_elapsed}s: ${description}"
 		if [[ -n ${VERBOSE-} ]]; then
 			os::cmd::internal::print_try_until_results
 		fi
 		return 0
 	else
-		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
-		os::text::print_red "$(os::cmd::internal::print_try_until_results)"
+		os::util::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
+		os::util::text::print_red "$(os::cmd::internal::print_try_until_results)"
 		return 1
 	fi
 }

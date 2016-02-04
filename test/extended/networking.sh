@@ -18,9 +18,13 @@ export SHELLOPTS
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/system.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
+
+os::util::trap::init
+os::log::stacktrace::install
 
 # These strings filter the available tests.
 NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services}"
@@ -226,7 +230,7 @@ else
   os::util::environment::setup_tmpdir_vars "test-extended/networking"
   reset_tmp_dir
 
-  os::log::start_system_logger
+  os::log::system::start
 
   os::log::info "Building docker-in-docker images"
   ${CLUSTER_CMD} build-images

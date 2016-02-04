@@ -4,18 +4,18 @@
 set -o errexit
 set -o nounset
 set -o pipefail
-# set -x
 
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/cmd.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
+
+os::util::trap::init_err
+os::log::stacktrace::install
 
 BASETMPDIR="${TMPDIR:-/tmp}/openshift/test-tools"
 JUNIT_OUTPUT_FILE="${BASETMPDIR}/junit_output.txt"
-
-# set verbosity so we can see that command output renders correctly
-VERBOSE=1
 
 # positive tests
 os::cmd::expect_success 'exit 0'

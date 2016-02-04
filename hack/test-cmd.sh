@@ -11,45 +11,18 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 cd "${OS_ROOT}"
 source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/lib/cleanup.sh"
+source "${OS_ROOT}/hack/lib/cmd.sh"
+source "${OS_ROOT}/hack/lib/os.sh"
+source "${OS_ROOT}/hack/lib/util/trap.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/log/system.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
 
-function cleanup()
-{
-    out=$?
-    pkill -P $$
-    set +e
-    kill_all_processes
-
-    if [ $out -ne 0 ]; then
-        echo "[FAIL] !!!!! Test Failed !!!!"
-        echo
-        tail -40 "${LOG_DIR}/openshift.log"
-        echo
-        echo -------------------------------------
-        echo
-    else
-        if path=$(go tool -n pprof 2>&1); then
-          echo
-          echo "pprof: top output"
-          echo
-          go tool pprof -text ./_output/local/bin/$(os::util::host_platform)/openshift cpu.pprof | head -120
-        fi
-
-        echo
-        echo "Complete"
-    fi
-
-    ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
-    exit $out
-}
-
-trap "exit" INT TERM
-trap "cleanup" EXIT
-
-set -e
+os::util::trap::init
+os::log::stacktrace::install
+os::internal::install_master_cleanup
+os::cleanup::install_dump_pprof_output
 
 function find_tests {
   find "${OS_ROOT}/test/cmd" -name '*.sh' | grep -E "${1}" | sort -u
@@ -61,24 +34,25 @@ tests=( $(find_tests ${1:-.*}) )
 # test-cmd specific defaults
 API_HOST=${API_HOST:-127.0.0.1}
 export API_PORT=${API_PORT:-28443}
+export API_BIND_HOST=${API_BIND_HOST:-${API_HOST}}
 
 export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 export ETCD_PORT=${ETCD_PORT:-24001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
+
+export KUBELET_BIND_HOST=${KUBELET_BIND_HOST:-0.0.0.0}
 
 os::util::environment::setup_all_server_vars "test-cmd/"
 reset_tmp_dir
 
 echo "Logging to ${LOG_DIR}..."
 
-os::log::start_system_logger
+os::log::system::start
 
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
 
-# test wrapper functions
-${OS_ROOT}/hack/test-cmd_util.sh > ${LOG_DIR}/wrappers_test.log 2>&1
-
+os::configure_server
 
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
@@ -100,42 +74,6 @@ echo openshift: $out
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
-# Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
-echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
-# find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
-SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},$(openshift start --print-ip),localhost"
-
-openshift admin ca create-master-certs \
-  --overwrite=false \
-  --cert-dir="${MASTER_CONFIG_DIR}" \
-  --hostnames="${SERVER_HOSTNAME_LIST}" \
-  --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
-
-openshift admin create-node-config \
-  --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
-  --node-dir="${NODE_CONFIG_DIR}" \
-  --node="${KUBELET_HOST}" \
-  --hostnames="${KUBELET_HOST}" \
-  --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
-  --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
-
-oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
-
-# create openshift config
-openshift start \
-  --write-config=${SERVER_CONFIG_DIR} \
-  --create-certs=false \
-  --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --hostname="${KUBELET_HOST}" \
-  --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" \
-  --images="${USE_IMAGES}"
 
 # validate config that was generated
 os::cmd::expect_success_and_text "openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml" 'SUCCESS'
@@ -150,25 +88,13 @@ os::util::sed '5,10d' ${BASETMPDIR}/node-config-broken.yaml
 os::cmd::expect_failure_and_text "openshift ex validate node-config ${BASETMPDIR}/node-config-broken.yaml" 'ERROR'
 echo "validation: ok"
 
-# Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
-os::util::sed "s/:4001$/:${ETCD_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
-os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
-
-# Start openshift
-OPENSHIFT_ON_PANIC=crash openshift start master \
-  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
-  --loglevel=5 \
-  &>"${LOG_DIR}/openshift.log" &
-OS_PID=$!
+os::start_master
 
 if [[ "${API_SCHEME}" == "https" ]]; then
     export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
     export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
     export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 fi
-
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
@@ -244,7 +170,7 @@ os::cmd::expect_success 'oc logout'
 os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list pods'
 
 # log in as an image-pruner and test that oadm prune images works against the atomic binary
-os::cmd::expect_success "oadm policy add-cluster-role-to-user system:image-pruner pruner --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
+os::cmd::expect_success "oadm policy add-cluster-role-to-user system:image-pruner pruner --config='${ADMIN_KUBECONFIG}'"
 os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u pruner -p anything"
 # this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
 os::cmd::expect_success 'oadm prune images'
@@ -255,19 +181,19 @@ VERBOSE=true os::cmd::expect_success 'oc get projects'
 VERBOSE=true os::cmd::expect_success 'oc project project-foo'
 os::cmd::expect_success_and_text 'oc config view' "current-context.+project-foo/${API_HOST}:${API_PORT}/test-user"
 os::cmd::expect_success_and_text 'oc whoami' 'test-user'
-os::cmd::expect_success_and_text "oc whoami --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'system:admin'
+os::cmd::expect_success_and_text "oc whoami --config='${ADMIN_KUBECONFIG}'" 'system:admin'
 os::cmd::expect_success_and_text 'oc whoami -t' '.'
 os::cmd::expect_success_and_text 'oc whoami -c' '.'
 
 # test config files from the --config flag
-os::cmd::expect_success "oc get services --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
+os::cmd::expect_success "oc get services --config='${ADMIN_KUBECONFIG}'"
 
 # test config files from env vars
-os::cmd::expect_success "KUBECONFIG='${MASTER_CONFIG_DIR}/admin.kubeconfig' oc get services"
+os::cmd::expect_success "KUBECONFIG='${ADMIN_KUBECONFIG}' oc get services"
 
 # test config files in the home directory
 mkdir -p ${HOME}/.kube
-cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/config
+cp ${ADMIN_KUBECONFIG} ${HOME}/.kube/config
 os::cmd::expect_success 'oc get services'
 mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
 echo "config files: ok"

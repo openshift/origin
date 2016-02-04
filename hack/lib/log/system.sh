@@ -1,21 +1,24 @@
 #!/bin/bash
 #
-# This library holds all of the logging functions for OpenShift bash scripts.
+# This library holds all of the system logging functions for OpenShift bash scripts.
+#
+# This library assumes $OS_ROOT is set
+source "${OS_ROOT}/hack/lib/cleanup.sh"
 
-# os::log::install_system_logger_cleanup installs os::log::clean_up_logger as a trap on interrupts, termination, and exit.
-# If any traps are currently set for these signals, os::log::clean_up_logger is prefixed.
+# os::log::system::install_cleanup installs os::log::system::clean_up_logger as a trap on EXIT.
 #
 # Globals:
 #  None
 # Arguments:
 #  None
 # Returns:
-#  None
-function os::log::install_system_logger_cleanup() {
-    trap "os::log::clean_up_logger; $(trap -p EXIT | awk -F"'" '{print $2}')" EXIT
+#  - export OS_CLEANUP_SYSTEM_LOGGER
+function os::log::system::install_cleanup() {
+    # OS_CLEANUP_SYSTEM_LOGGER is read by os::util::trap at runtime to request system logging cleanup
+    export OS_CLEANUP_SYSTEM_LOGGER=true
 }
 
-# os::log::clean_up_logger should be trapped so that it can stop the logging utility once the script that
+# os::log::system::cleanup should be trapped so that it can stop the logging utility once the script that
 # installed it is finished.
 # This function stops logging and generates plots of data for easy consumption.
 #
@@ -27,29 +30,11 @@ function os::log::install_system_logger_cleanup() {
 #  None
 # Returns:  
 #  None
-function os::log::clean_up_logger() {
-    local return_code=$?
+function os::log::system::cleanup() {
+    echo "[INFO] Cleaning up system logger process ${LOGGER_PID}"
+    os::cleanup::internal::kill_process_tree "${LOGGER_PID}"
 
-    # we don't want failures in this logger to 
-    set +o errexit
-
-    if jobs -pr | grep -q "${LOGGER_PID}"; then
-        kill -SIGTERM "${LOGGER_PID}"
-        # give logger ten seconds to gracefully exit before killing it
-        for (( i = 0; i < 10; i++ )); do
-            if ! jobs -pr | grep -q "${LOGGER_PID}"; then
-                # the logger has shutdown, we don't need to wait on it any longer
-                break
-            fi
-        done
-
-        if jobs -pr | grep -q "${LOGGER_PID}"; then
-            # the logger has not shutdown, so kill it
-            kill -SIGKILL "${LOGGER_PID}"
-        fi
-    fi
-
-    if ! which sadf  >/dev/null 2>&1; then
+    if ! which sadf >/dev/null 2>&1; then
         echo "[WARNING] System logger data could not be unpacked and graphed, 'sadf' binary not found in this environment."
         return 0
     fi
@@ -72,14 +57,12 @@ function os::log::clean_up_logger() {
             ignored_columns="${ignored_columns}CPU,"
         fi
 
-        os::log::internal::prune_datafile "${log_subset_file}" "${ignored_columns}"
-        os::log::internal::plot "${log_subset_file}"
+        os::log::system::internal::prune_datafile "${log_subset_file}" "${ignored_columns}"
+        os::log::system::internal::plot "${log_subset_file}"
     done
-
-    return "${return_code}"
 }
 
-# os::log::internal::prune_datafile removes the given columns from a datafile created by 'sadf -d'
+# os::log::system::internal::prune_datafile removes the given columns from a datafile created by 'sadf -d'
 #
 # Globals:
 #  None
@@ -88,7 +71,7 @@ function os::log::clean_up_logger() {
 #  - 2: comma-delimited columns to remove, with trailing comma 
 # Returns:
 #  None
-function os::log::internal::prune_datafile() {
+function os::log::system::internal::prune_datafile() {
     local datafile=$1
     local column_names=$2
 
@@ -116,7 +99,7 @@ function os::log::internal::prune_datafile() {
     mv "${datafile}.tmp" "${datafile}"
 }
 
-# os::log::internal::plot uses gnuplot to make a plot of some data across time points. This function is intended to be used 
+# os::log::system::internal::plot uses gnuplot to make a plot of some data across time points. This function is intended to be used 
 # on the output of a 'sar -f' read of a sar binary file. Plots will be made of all columns and stacked on each other with one x axis.
 # This function needs the non-data columns of the file to be prefixed with comments. 
 #
@@ -126,7 +109,7 @@ function os::log::internal::prune_datafile() {
 #  - 1: data file
 # Returns:
 #  None
-function os::log::internal::plot() {
+function os::log::system::internal::plot() {
     local datafile=$1
     local plotname
     plotname="$(basename "${datafile}" .txt)"
@@ -182,16 +165,15 @@ function os::log::internal::plot() {
 }
 
 
-# os::log::start_system_logger installs the system logger and begins logging
+# os::log::system::start installs the system logger and begins logging
 #
 # Globals:
 #  - LOG_DIR
 # Arguments:
 #  None
 # Returns:
-#  - export LOGGER_PID
 #  - export SAR_LOGFILE
-function os::log::start_system_logger() {
+function os::log::system::start() {
     if ! which sar >/dev/null 2>&1; then
         echo "[WARNING] System logger could not be started, 'sar' binary not found in this environment."
         return 0
@@ -200,16 +182,12 @@ function os::log::start_system_logger() {
     readonly SAR_LOGFILE="${LOG_DIR}/sar.log"
     export SAR_LOGFILE
 
-    ( os::log::internal::run_system_logger "${SAR_LOGFILE}" "${LOG_DIR}/sar_stderr.log" ) &
-    LOGGER_PID=$!
-    readonly LOGGER_PID
-    export LOGGER_PID
-
-    os::log::install_system_logger_cleanup
+    os::log::system::internal::run_logger "${SAR_LOGFILE}" "${LOG_DIR}/sar_stderr.log"
+    os::log::system::install_cleanup
 }
 
 
-# os::log::internal::run_system_logger runs the system logger. This function should be run in the background.
+# os::log::system::internal::run_system_logger runs the system logger. This function should be run in the background.
 # 'sar' is configured to run once a second for 24 hours, so the cleanup trap should be installed to ensure that
 # the process is killed once the parent script is finished.
 #
@@ -219,10 +197,12 @@ function os::log::start_system_logger() {
 #  - 1: file to log binary outut to
 #  - 2: file to log stderr of the logger to
 # Returns:
-#  None
-function os::log::internal::run_system_logger() {
+#  - export LOGGER_PID
+function os::log::system::internal::run_logger() {
     local binary_logfile=$1
     local stderr_logfile=$2
 
-    sar -A -o "${binary_logfile}" 1 86400 1>/dev/null 2>"${stderr_logfile}"
+    sar -A -o "${binary_logfile}" 1 86400 1>/dev/null 2>"${stderr_logfile}" &
+    readonly LOGGER_PID=$!
+    export LOGGER_PID
 }

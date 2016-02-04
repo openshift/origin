@@ -8,7 +8,11 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/util/trap.sh"
+source "${OS_ROOT}/hack/lib/log/stacktrace.sh"
+
+os::util::trap::init_err
+os::log::stacktrace::install
 
 etcd_version=$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json github.com/coreos/etcd/etcdserver)
 
