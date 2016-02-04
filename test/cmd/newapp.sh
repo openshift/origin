@@ -34,6 +34,9 @@ os::cmd::expect_success_and_not_text 'oc new-app mysql --dry-run' "runs as the '
 # trigger and output should say 5.6
 os::cmd::expect_success_and_text 'oc new-app mysql -o yaml' 'mysql:5.6'
 os::cmd::expect_success_and_text 'oc new-app mysql --dry-run' 'tag "5.6" for "mysql"'
+# test deployments are created with the boolean flag and printed in the UI
+os::cmd::expect_success_and_text 'oc new-app mysql --dry-run --as-test' 'This image will be test deployed'
+os::cmd::expect_success_and_text 'oc new-app mysql -o yaml --as-test' 'test: true'
 
 # docker strategy with repo that has no dockerfile
 os::cmd::expect_failure_and_text 'oc new-app https://github.com/openshift/nodejs-ex --strategy=docker' 'No Dockerfile was found'
