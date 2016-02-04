@@ -281,6 +281,8 @@ type DeploymentConfigStatus struct {
 	// Details are the reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
 	Details *DeploymentDetails `json:"details,omitempty"`
+	// ObservedGeneration is the most recent generation observed by the controller.
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.
