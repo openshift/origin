@@ -9,6 +9,7 @@ angular.module("openshiftConsole")
       ProjectsService,
       Navigate,
       ApplicationGenerator,
+      LimitRangesService,
       TaskList,
       failureObjectNameFilter,
       $filter,
@@ -60,6 +61,11 @@ angular.module("openshiftConsole")
           scope.scaling = {
             replicas: 1
           };
+          scope.container = {
+            resources: {}
+          };
+
+          scope.hideCPU = LimitRangesService.hideCPUComputeResources();
 
           scope.fillSampleRepo = function() {
             var annotations;
@@ -99,6 +105,20 @@ angular.module("openshiftConsole")
               Navigate.toErrorPage("Cannot create from source: the specified image could not be retrieved.");
             });
         }
+
+        var validatePodLimits = function() {
+          if (!$scope.hideCPU) {
+            $scope.cpuProblems = LimitRangesService.validatePodLimits($scope.limitRanges, 'cpu', [$scope.container]);
+          }
+          $scope.memoryProblems = LimitRangesService.validatePodLimits($scope.limitRanges, 'memory', [$scope.container]);
+        };
+
+        DataService.list("limitranges", context, function(limitRanges) {
+          $scope.limitRanges = limitRanges.by("metadata.name");
+          if ($filter('hashSize')(limitRanges) !== 0) {
+            $scope.$watch('container', validatePodLimits, true);
+          }
+        });
 
         initAndValidate($scope);
 

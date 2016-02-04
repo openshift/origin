@@ -1,5 +1,5 @@
 <project-header class="top-header"></project-header>
-  <project-page>
+<project-page>
 
   <!-- Middle section -->
   <div class="middle-section">
@@ -22,6 +22,11 @@
                   <div class="pull-right dropdown">
                     <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                     <ul class="dropdown-menu actions action-button">
+                      <li>
+                        <a href="project/{{projectName}}/set-limits?rcName={{deployment.metadata.name}}"
+                          role="button"
+                          ><i class="fa fa-area-chart fa-fw" aria-hidden="true"></i> Set Resource Limits</a>
+                      </li>
                       <li>
                         <edit-link
                           resource="deployment"
@@ -53,4 +58,4 @@
       </div><!-- /middle-content -->
     </div><!-- /middle-container -->
   </div><!-- /middle-section -->
-  </project-page>
+</project-page>
