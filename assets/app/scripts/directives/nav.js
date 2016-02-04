@@ -58,10 +58,11 @@ angular.module('openshiftConsole')
 
           sortedProjects = $filter('orderByDisplayName')(projects);
           options = _.map(sortedProjects, function(item) {
+            // truncates @ 35 as this prevents words from clobbering the caret
             return $('<option>')
                       .attr("value", item.metadata.name)
                       .attr("selected", item.metadata.name === name)
-                      .text($filter("uniqueDisplayName")(item, sortedProjects));
+                      .text($filter('truncate')($filter("uniqueDisplayName")(item, sortedProjects), 35));
           });
 
           select.empty();

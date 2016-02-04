@@ -9,7 +9,7 @@
           <tasks></tasks>
 
           <div ng-if="renderOptions.showToolbar" class="page-header page-header-bleed-right page-header-bleed-left">
-            <h1 title="{{project | displayName}}">{{project | displayName}}</h1>
+            <h1 title="{{project | displayName}}" class="truncate">{{project | displayName}}</h1>
           </div>
           <!-- TODO handle things that don't live under services -->
           <alerts alerts="alerts"></alerts>
