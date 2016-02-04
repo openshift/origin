@@ -198,6 +198,10 @@
                                 <dt>Output to:</dt>
                                 <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
                               </div>
+                              <div ng-if="buildConfig.spec.source.binary">
+                                <dt>As File:</dt>
+                                <dd>{{(buildConfig.spec.source.binary.asFile) ? buildConfig.spec.source.binary.asFile : ""}}</dd>
+                              </div>
                             </dl>
                           </div>
                           <div class="col-lg-6">
