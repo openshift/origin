@@ -20531,6 +20531,11 @@
      "details": {
       "$ref": "v1.DeploymentDetails",
       "description": "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger"
+     },
+     "observedGeneration": {
+      "type": "integer",
+      "format": "int64",
+      "description": "ObservedGeneration is the most recent generation observed by the controller."
      }
     }
    },

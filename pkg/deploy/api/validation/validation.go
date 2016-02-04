@@ -21,29 +21,34 @@ func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) field.ErrorLis
 	allErrs := validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))
 
 	// TODO: Refactor to validate spec and status separately
+	specPath := field.NewPath("spec")
 	for i := range config.Spec.Triggers {
-		allErrs = append(allErrs, validateTrigger(&config.Spec.Triggers[i], field.NewPath("spec", "triggers").Index(i))...)
+		allErrs = append(allErrs, validateTrigger(&config.Spec.Triggers[i], specPath.Child("triggers").Index(i))...)
 	}
 
 	var spec *kapi.PodSpec
 	if config.Spec.Template != nil {
 		spec = &config.Spec.Template.Spec
 	}
-	specPath := field.NewPath("spec")
-	allErrs = append(allErrs, validateDeploymentStrategy(&config.Spec.Strategy, spec, field.NewPath("spec", "strategy"))...)
+	allErrs = append(allErrs, validateDeploymentStrategy(&config.Spec.Strategy, spec, specPath.Child("strategy"))...)
 	if config.Spec.Template == nil {
 		allErrs = append(allErrs, field.Required(specPath.Child("template"), ""))
 	} else {
 		allErrs = append(allErrs, validation.ValidatePodTemplateSpec(config.Spec.Template, specPath.Child("template"))...)
-	}
-	if config.Status.LatestVersion < 0 {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "latestVersion"), config.Status.LatestVersion, "latestVersion cannot be negative"))
 	}
 	if config.Spec.Replicas < 0 {
 		allErrs = append(allErrs, field.Invalid(specPath.Child("replicas"), config.Spec.Replicas, "replicas cannot be negative"))
 	}
 	if len(config.Spec.Selector) == 0 {
 		allErrs = append(allErrs, field.Invalid(specPath.Child("selector"), config.Spec.Selector, "selector cannot be empty"))
+	}
+
+	statusPath := field.NewPath("status")
+	if config.Status.LatestVersion < 0 {
+		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), config.Status.LatestVersion, "latestVersion cannot be negative"))
+	}
+	if config.Status.ObservedGeneration < int64(0) {
+		allErrs = append(allErrs, field.Invalid(statusPath.Child("observedGeneration"), config.Status.ObservedGeneration, "observedGeneration cannot be negative"))
 	}
 	return allErrs
 }
@@ -56,6 +61,9 @@ func ValidateDeploymentConfigUpdate(newConfig *deployapi.DeploymentConfig, oldCo
 		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), newConfig.Status.LatestVersion, "latestVersion cannot be decremented"))
 	} else if newConfig.Status.LatestVersion > (oldConfig.Status.LatestVersion + 1) {
 		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), newConfig.Status.LatestVersion, "latestVersion can only be incremented by 1"))
+	}
+	if newConfig.Status.ObservedGeneration < oldConfig.Status.ObservedGeneration {
+		allErrs = append(allErrs, field.Invalid(statusPath.Child("observedGeneration"), newConfig.Status.ObservedGeneration, "observedGeneration cannot be decremented"))
 	}
 	return allErrs
 }

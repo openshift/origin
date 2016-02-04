@@ -1611,6 +1611,7 @@ func deepCopy_v1beta3_DeploymentConfigStatus(in deployapiv1beta3.DeploymentConfi
 	} else {
 		out.Details = nil
 	}
+	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
 

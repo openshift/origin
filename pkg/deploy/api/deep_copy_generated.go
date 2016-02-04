@@ -192,6 +192,7 @@ func DeepCopy_api_DeploymentConfigStatus(in DeploymentConfigStatus, out *Deploym
 	} else {
 		out.Details = nil
 	}
+	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
 

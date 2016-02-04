@@ -2,6 +2,7 @@ package deployconfig
 
 import (
 	"fmt"
+	"reflect"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
@@ -39,14 +40,31 @@ func (strategy) AllowUnconditionalUpdate() bool {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(obj runtime.Object) {
-	_ = obj.(*api.DeploymentConfig)
+	dc := obj.(*api.DeploymentConfig)
 	// TODO: need to ensure status.latestVersion is not set out of order
+	dc.Generation = 1
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (strategy) PrepareForUpdate(obj, old runtime.Object) {
-	_ = obj.(*api.DeploymentConfig)
+	oldDc := obj.(*api.DeploymentConfig)
+	newDc := old.(*api.DeploymentConfig)
 	// TODO: need to ensure status.latestVersion is not set out of order
+
+	// Any changes to the spec increment the generation number, any changes to the
+	// status should reflect the generation number of the corresponding object. We push
+	// the burden of managing the status onto the clients because we can't (in general)
+	// know here what version of spec the writer of the status has seen. It may seem like
+	// we can at first -- since obj contains spec -- but in the future we will probably make
+	// status its own object, and even if we don't, writes may be the result of a
+	// read-update-write loop, so the contents of spec may not actually be the spec that
+	// the controller has *seen*.
+	//
+	// TODO: Any changes to a part of the object that represents desired state (labels,
+	// annotations etc) should also increment the generation.
+	if !reflect.DeepEqual(oldDc.Spec, newDc.Spec) {
+		newDc.Generation = oldDc.Generation + 1
+	}
 }
 
 // Canonicalize normalizes the object after validation.

@@ -136,7 +136,10 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 	c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCreated", "Created new deployment %q for version %d", created.Name, config.Status.LatestVersion)
-	return nil
+	// Supposedly we have to update the dc status here; will get the separate status call with https://github.com/openshift/origin/pull/6479
+	config.Status.ObservedGeneration = int(config.Generation)
+	_, err = c.osClient.DeploymentConfigs(config.Namespace).Update(config)
+	return err
 }
 
 // reconcileDeployments reconciles existing deployment replica counts which
@@ -219,7 +222,8 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 	default:
 		oldReplicas := config.Spec.Replicas
 		config.Spec.Replicas = activeReplicas
-		_, err := c.osClient.DeploymentConfigs(config.Namespace).Update(config)
+		var err error
+		config, err = c.osClient.DeploymentConfigs(config.Namespace).Update(config)
 		if err != nil {
 			return err
 		}
@@ -260,5 +264,8 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 			}
 		}
 	}
-	return nil
+	// Supposedly we have to update the dc status here; will get the separate status call with https://github.com/openshift/origin/pull/6479
+	config.Status.ObservedGeneration = int(config.Generation)
+	_, err := c.osClient.DeploymentConfigs(config.Namespace).Update(config)
+	return err
 }
