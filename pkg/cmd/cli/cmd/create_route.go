@@ -306,7 +306,7 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 	route.Spec.Path = kcmdutil.GetFlagString(cmd, "path")
 
 	route.Spec.TLS = new(api.TLSConfig)
-	route.Spec.TLS.Termination = api.TLSTerminationEdge
+	route.Spec.TLS.Termination = api.TLSTerminationReencrypt
 
 	cert, err := fileutil.LoadData(kcmdutil.GetFlagString(cmd, "cert"))
 	if err != nil {
