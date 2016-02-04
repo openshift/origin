@@ -242,9 +242,18 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
+			j.RecreateParams, j.RollingParams, j.CustomParams = nil, nil, nil
 			strategyTypes := []deploy.DeploymentStrategyType{deploy.DeploymentStrategyTypeRecreate, deploy.DeploymentStrategyTypeRolling, deploy.DeploymentStrategyTypeCustom}
 			j.Type = strategyTypes[c.Rand.Intn(len(strategyTypes))]
 			switch j.Type {
+			case deploy.DeploymentStrategyTypeRecreate:
+				params := &deploy.RecreateDeploymentStrategyParams{}
+				c.Fuzz(params)
+				if params.TimeoutSeconds == nil {
+					s := int64(120)
+					params.TimeoutSeconds = &s
+				}
+				j.RecreateParams = params
 			case deploy.DeploymentStrategyTypeRolling:
 				params := &deploy.RollingDeploymentStrategyParams{}
 				randInt64 := func() *int64 {
@@ -284,8 +293,6 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 					params.MaxUnavailable = intstr.FromString(fmt.Sprintf("%d%%", c.RandUint64()))
 				}
 				j.RollingParams = params
-			default:
-				j.RollingParams = nil
 			}
 		},
 		func(j *deploy.DeploymentCauseImageTrigger, c fuzz.Continue) {

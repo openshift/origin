@@ -1729,6 +1729,12 @@ func deepCopy_api_LifecycleHook(in deployapi.LifecycleHook, out *deployapi.Lifec
 }
 
 func deepCopy_api_RecreateDeploymentStrategyParams(in deployapi.RecreateDeploymentStrategyParams, out *deployapi.RecreateDeploymentStrategyParams, c *conversion.Cloner) error {
+	if in.TimeoutSeconds != nil {
+		out.TimeoutSeconds = new(int64)
+		*out.TimeoutSeconds = *in.TimeoutSeconds
+	} else {
+		out.TimeoutSeconds = nil
+	}
 	if in.Pre != nil {
 		out.Pre = new(deployapi.LifecycleHook)
 		if err := deepCopy_api_LifecycleHook(*in.Pre, out.Pre, c); err != nil {
@@ -1736,6 +1742,14 @@ func deepCopy_api_RecreateDeploymentStrategyParams(in deployapi.RecreateDeployme
 		}
 	} else {
 		out.Pre = nil
+	}
+	if in.Mid != nil {
+		out.Mid = new(deployapi.LifecycleHook)
+		if err := deepCopy_api_LifecycleHook(*in.Mid, out.Mid, c); err != nil {
+			return err
+		}
+	} else {
+		out.Mid = nil
 	}
 	if in.Post != nil {
 		out.Post = new(deployapi.LifecycleHook)

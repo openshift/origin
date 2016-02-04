@@ -3141,6 +3141,12 @@ func autoconvert_api_RecreateDeploymentStrategyParams_To_v1beta3_RecreateDeploym
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*deployapi.RecreateDeploymentStrategyParams))(in)
 	}
+	if in.TimeoutSeconds != nil {
+		out.TimeoutSeconds = new(int64)
+		*out.TimeoutSeconds = *in.TimeoutSeconds
+	} else {
+		out.TimeoutSeconds = nil
+	}
 	if in.Pre != nil {
 		out.Pre = new(deployapiv1beta3.LifecycleHook)
 		if err := convert_api_LifecycleHook_To_v1beta3_LifecycleHook(in.Pre, out.Pre, s); err != nil {
@@ -3148,6 +3154,14 @@ func autoconvert_api_RecreateDeploymentStrategyParams_To_v1beta3_RecreateDeploym
 		}
 	} else {
 		out.Pre = nil
+	}
+	if in.Mid != nil {
+		out.Mid = new(deployapiv1beta3.LifecycleHook)
+		if err := convert_api_LifecycleHook_To_v1beta3_LifecycleHook(in.Mid, out.Mid, s); err != nil {
+			return err
+		}
+	} else {
+		out.Mid = nil
 	}
 	if in.Post != nil {
 		out.Post = new(deployapiv1beta3.LifecycleHook)
@@ -3669,6 +3683,12 @@ func autoconvert_v1beta3_RecreateDeploymentStrategyParams_To_api_RecreateDeploym
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*deployapiv1beta3.RecreateDeploymentStrategyParams))(in)
 	}
+	if in.TimeoutSeconds != nil {
+		out.TimeoutSeconds = new(int64)
+		*out.TimeoutSeconds = *in.TimeoutSeconds
+	} else {
+		out.TimeoutSeconds = nil
+	}
 	if in.Pre != nil {
 		out.Pre = new(deployapi.LifecycleHook)
 		if err := convert_v1beta3_LifecycleHook_To_api_LifecycleHook(in.Pre, out.Pre, s); err != nil {
@@ -3676,6 +3696,14 @@ func autoconvert_v1beta3_RecreateDeploymentStrategyParams_To_api_RecreateDeploym
 		}
 	} else {
 		out.Pre = nil
+	}
+	if in.Mid != nil {
+		out.Mid = new(deployapi.LifecycleHook)
+		if err := convert_v1beta3_LifecycleHook_To_api_LifecycleHook(in.Mid, out.Mid, s); err != nil {
+			return err
+		}
+	} else {
+		out.Mid = nil
 	}
 	if in.Post != nil {
 		out.Post = new(deployapi.LifecycleHook)

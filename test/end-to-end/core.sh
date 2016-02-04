@@ -176,7 +176,8 @@ cat ${LOG_DIR}/kubectl-with-token.log
 [ "$(cat ${LOG_DIR}/kubectl-with-token.log | grep 'Using in-cluster configuration')" ]
 [ "$(cat ${LOG_DIR}/kubectl-with-token.log | grep 'kubectl-with-token')" ]
 
-echo "[INFO] Streaming the logs from a deployment a bunch of times..."
+echo "[INFO] Testing deployment logs and failing pre and mid hooks ..."
+# test the pre hook on a rolling deployment
 oc create -f test/fixtures/failing-dc.yaml
 tryuntil oc get rc/failing-dc-1
 oc logs -f dc/failing-dc
@@ -185,6 +186,16 @@ oc logs dc/failing-dc | grep 'test pre hook executed'
 oc deploy failing-dc --latest
 oc logs --version=1 dc/failing-dc | grep 'test pre hook executed'
 oc logs --previous dc/failing-dc | grep 'test pre hook executed'
+oc delete dc/failing-dc
+# test the mid hook on a recreate deployment and the health check
+oc create -f test/fixtures/failing-dc-mid.yaml
+tryuntil oc get rc/failing-dc-mid-1
+oc logs -f dc/failing-dc-mid
+wait_for_command "oc get rc/failing-dc-mid-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((60*TIME_SEC))
+oc logs dc/failing-dc-mid | grep 'test mid hook executed'
+oc deploy failing-dc-mid --latest
+oc logs --version=1 dc/failing-dc-mid | grep 'test mid hook executed'
+oc logs --previous dc/failing-dc-mid | grep 'test mid hook executed'
 
 echo "[INFO] Run pod diagnostics"
 # Requires a node to run the pod; uses origin-deployer pod, expects registry deployed
@@ -215,7 +226,7 @@ oc logs buildconfig/ruby-sample-build --loglevel=6
 echo "logs: ok"
 
 echo "[INFO] Starting a deployment to test scaling..."
-oc create -f test/integration/fixtures/test-deployment-config.json
+oc create -f test/integration/fixtures/test-deployment-config.yaml
 # scaling which might conflict with the deployment should work
 oc scale dc/test-deployment-config --replicas=2
 tryuntil '[ "$(oc get rc/test-deployment-config-1 -o yaml | grep Complete)" ]'

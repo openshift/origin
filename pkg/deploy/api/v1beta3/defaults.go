@@ -35,6 +35,14 @@ func init() {
 					TimeoutSeconds:      mkintp(deployapi.DefaultRollingTimeoutSeconds),
 				}
 			}
+			if obj.Type == DeploymentStrategyTypeRecreate && obj.RecreateParams == nil {
+				obj.RecreateParams = &RecreateDeploymentStrategyParams{}
+			}
+		},
+		func(obj *RecreateDeploymentStrategyParams) {
+			if obj.TimeoutSeconds == nil {
+				obj.TimeoutSeconds = mkintp(deployapi.DefaultRollingTimeoutSeconds)
+			}
 		},
 		func(obj *RollingDeploymentStrategyParams) {
 			if obj.IntervalSeconds == nil {

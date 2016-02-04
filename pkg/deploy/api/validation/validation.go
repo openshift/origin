@@ -129,6 +129,9 @@ func validateRecreateParams(params *deployapi.RecreateDeploymentStrategyParams, 
 	if params.Pre != nil {
 		errs = append(errs, validateLifecycleHook(params.Pre, fldPath.Child("pre"))...)
 	}
+	if params.Mid != nil {
+		errs = append(errs, validateLifecycleHook(params.Mid, fldPath.Child("mid"))...)
+	}
 	if params.Post != nil {
 		errs = append(errs, validateLifecycleHook(params.Post, fldPath.Child("post"))...)
 	}
