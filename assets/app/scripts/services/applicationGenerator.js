@@ -3,8 +3,6 @@
 angular.module("openshiftConsole")
 
   .service("ApplicationGenerator", function(DataService, Logger, $parse){
-    var oApiVersion = DataService.oApiVersion;
-    var k8sApiVersion = DataService.k8sApiVersion;
 
     var scope = {};
 
@@ -111,7 +109,7 @@ angular.module("openshiftConsole")
 
       var route = {
         kind: "Route",
-        apiVersion: oApiVersion,
+        apiVersion: "v1",
         metadata: {
           name: name,
           labels: input.labels,
@@ -184,7 +182,7 @@ angular.module("openshiftConsole")
       };
 
       var deploymentConfig = {
-        apiVersion: oApiVersion,
+        apiVersion: "v1",
         kind: "DeploymentConfig",
         metadata: {
           name: input.name,
@@ -274,7 +272,7 @@ angular.module("openshiftConsole")
       var sourceUrl = uri.href();
 
       var bc = {
-        apiVersion: oApiVersion,
+        apiVersion: "v1",
         kind: "BuildConfig",
         metadata: {
           name: input.name,
@@ -320,7 +318,7 @@ angular.module("openshiftConsole")
 
     scope._generateImageStream = function(input){
       return {
-        apiVersion: oApiVersion,
+        apiVersion: "v1",
         kind: "ImageStream",
         metadata: {
           name: input.name,
@@ -337,7 +335,7 @@ angular.module("openshiftConsole")
 
       var service = {
         kind: "Service",
-        apiVersion: k8sApiVersion,
+        apiVersion: "v1",
         metadata: {
           name: serviceName,
           labels: input.labels,

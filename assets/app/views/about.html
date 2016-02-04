@@ -30,10 +30,6 @@
                         <dd>{{version.master.openshift || 'unknown'}}</dd>
                         <dt>Kubernetes Master:</dt>
                         <dd>{{version.master.kubernetes || 'unknown'}}</dd>
-                        <dt>OpenShift API:</dt>
-                        <dd>{{version.api.openshift}}</dd>
-                        <dt>Kubernetes API:</dt>
-                        <dd>{{version.api.kubernetes}}</dd>
                       </dl>
 
                       <h2 id="cli">Command Line Tools</h2>
@@ -58,7 +54,7 @@
                       <p>
                         After downloading and installing it, you can start by logging in using<span ng-if="sessionToken"> this current session token</span>:
                         <div class="code prettyprint ng-binding" ng-if="sessionToken">
-                          oc login {{loginBaseURL}} --token=<span ng-show="showSessionToken">{{sessionToken}}</span><a href="#" ng-click="showSessionToken = !showSessionToken" ng-show="!showSessionToken">show</a>
+                          oc login {{loginBaseURL}} --token=<span ng-show="showSessionToken">{{sessionToken}}</span><a href="#" ng-click="showSessionToken = !showSessionToken" ng-show="!showSessionToken">...click to show token...</a>
                         </div>
                         <pre class="code prettyprint ng-binding" ng-if="!sessionToken">
         oc login {{loginBaseURL}}

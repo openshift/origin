@@ -2,7 +2,7 @@
 /* jshint eqeqeq: false, unused: false, expr: true */
 
 angular.module('openshiftConsole')
-.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger, $timeout) {
+.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, APIService, Notification, Logger, $timeout) {
 
   function Data(array) {
     this._data = {};
@@ -75,22 +75,6 @@ angular.module('openshiftConsole')
     }
   };
 
-  var normalizeResource = function(resource) {
-     if (!resource) {
-      return resource;
-     }
-
-     // only lowercase the first segment, leaving subresources as-is (some are case-sensitive)
-     var segments = resource.split("/");
-     segments[0] = segments[0].toLowerCase();
-     var normalized = segments.join("/");
-     if (resource !== normalized) {
-       Logger.warn('Non-lower case resource "' + resource + '"');
-     }
-
-     return normalized;
-  };
-
   function DataService() {
     this._listCallbacksMap = {};
     this._watchCallbacksMap = {};
@@ -108,10 +92,6 @@ angular.module('openshiftConsole')
     $rootScope.$on( "$routeChangeStart", function(event, next, current) {
       self._websocketEventsMap = {};
     });
-
-    this.oApiVersion = "v1";
-    this.k8sApiVersion = "v1";
-
   }
 
 // resource:  API resource (e.g. "pods")
@@ -123,7 +103,7 @@ angular.module('openshiftConsole')
 //                    by attribute (e.g. data.by('metadata.name'))
 // opts:      options (currently none, placeholder)
   DataService.prototype.list = function(resource, context, callback, opts) {
-    resource = normalizeResource(resource);
+    resource = APIService.toResourceGroupVersion(resource);
     var callbacks = this._listCallbacks(resource, context);
     callbacks.add(callback);
 
@@ -147,7 +127,7 @@ angular.module('openshiftConsole')
 // opts:      http - options to pass to the inner $http call
 // Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
   DataService.prototype.delete = function(resource, name, context, opts) {
-    resource = normalizeResource(resource);
+    resource = APIService.toResourceGroupVersion(resource);
     opts = opts || {};
     var deferred = $q.defer();
     var self = this;
@@ -155,7 +135,7 @@ angular.module('openshiftConsole')
       $http(angular.extend({
         method: 'DELETE',
         auth: {},
-        url: self._urlForResource(resource, name, null, context, false, ns)
+        url: self._urlForResource(resource, name, context, false, ns)
       }, opts.http || {}))
       .success(function(data, status, headerFunc, config, statusText) {
         deferred.resolve(data);
@@ -172,6 +152,7 @@ angular.module('openshiftConsole')
     return deferred.promise;
   };
 
+
 // resource:  API resource (e.g. "pods")
 // name:      API name, the unique name for the object
 // object:    API object data(eg. { kind: "Build", parameters: { ... } } )
@@ -179,7 +160,7 @@ angular.module('openshiftConsole')
 // opts:      http - options to pass to the inner $http call
 // Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
   DataService.prototype.update = function(resource, name, object, context, opts) {
-    resource = normalizeResource(resource);
+    resource = APIService.deriveTargetResource(resource, object);
     opts = opts || {};
     var deferred = $q.defer();
     var self = this;
@@ -188,7 +169,7 @@ angular.module('openshiftConsole')
         method: 'PUT',
         auth: {},
         data: object,
-        url: self._urlForResource(resource, name, object.apiVersion, context, false, ns)
+        url: self._urlForResource(resource, name, context, false, ns)
       }, opts.http || {}))
       .success(function(data, status, headerFunc, config, statusText) {
         deferred.resolve(data);
@@ -213,7 +194,7 @@ angular.module('openshiftConsole')
 // opts:      http - options to pass to the inner $http call
 // Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
   DataService.prototype.create = function(resource, name, object, context, opts) {
-    resource = normalizeResource(resource);
+    resource = APIService.deriveTargetResource(resource, object);
     opts = opts || {};
     var deferred = $q.defer();
     var self = this;
@@ -222,7 +203,7 @@ angular.module('openshiftConsole')
         method: 'POST',
         auth: {},
         data: object,
-        url: self._urlForResource(resource, name, object.apiVersion, context, false, ns)
+        url: self._urlForResource(resource, name, context, false, ns)
       }, opts.http || {}))
       .success(function(data, status, headerFunc, config, statusText) {
         deferred.resolve(data);
@@ -259,21 +240,17 @@ angular.module('openshiftConsole')
     }
 
     objects.forEach(function(object) {
-      var resource = self.kindToResource(object.kind);
+      var resource = APIService.objectToResourceGroupVersion(object);
       if (!resource) {
-        failureResults.push({
-          data: {message: "Unrecognized kind " + object.kind}
-        });
+        // include the original object, so the error handler can display the kind/name
+        failureResults.push({object: object, data: {message: APIService.invalidObjectKindOrVersion(object)}});
         remaining--;
         _checkDone();
         return;
       }
-
-      var resourceInfo = self.resourceInfo(resource, object.apiVersion);
-      if (!resourceInfo) {
-        failureResults.push({
-          data: {message: "Unknown API version "+object.apiVersion+" for kind " + object.kind}
-        });
+      if (!APIService.apiInfo(resource)) {
+        // include the original object, so the error handler can display the kind/name
+        failureResults.push({object: object, data: {message: APIService.unsupportedObjectKindOrVersion(object)}});
         remaining--;
         _checkDone();
         return;
@@ -281,11 +258,15 @@ angular.module('openshiftConsole')
 
       self.create(resource, null, object, context, opts).then(
         function (data) {
+          // include the original object, so the error handler can display the kind/name
+          data.object = object;
           successResults.push(data);
           remaining--;
           _checkDone();
         },
         function (data) {
+          // include the original object, so the handler can display the kind/name
+          data.object = object;
           failureResults.push(data);
           remaining--;
           _checkDone();
@@ -302,7 +283,7 @@ angular.module('openshiftConsole')
 //            http - options to pass to the inner $http call
 //            errorNotification - will popup an error notification if the API request fails (default true)
   DataService.prototype.get = function(resource, name, context, opts) {
-    resource = normalizeResource(resource);
+    resource = APIService.toResourceGroupVersion(resource);
     opts = opts || {};
 
     var force = !!opts.force;
@@ -343,7 +324,7 @@ angular.module('openshiftConsole')
         $http(angular.extend({
           method: 'GET',
           auth: {},
-          url: self._urlForResource(resource, name, null, context, false, ns)
+          url: self._urlForResource(resource, name, context, false, ns)
         }, opts.http || {}))
         .success(function(data, status, headerFunc, config, statusText) {
           if (self._isResourceCached(resource)) {
@@ -386,11 +367,8 @@ function b64_to_utf8( str ) {
 
 // TODO (bpeterse): Create a new Streamer service & get this out of DataService.
 DataService.prototype.createStream = function(kind, name, context, opts, isRaw) {
-  var getNamespace = this._getNamespace.bind(this);
-  var urlForResource = this._urlForResource.bind(this);
-  kind = this.kindToResource(kind) ?
-              this.kindToResource(kind) :
-              normalizeResource(kind);
+  var self = this;
+  var resource = APIService.toResourceGroupVersion(APIService.kindToResource(kind));
 
   var protocols = isRaw ? 'binary.k8s.io' : 'base64.binary.k8s.io';
   var identifier = 'stream_';
@@ -401,11 +379,11 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
 
   var stream;
   var makeStream = function() {
-     return getNamespace(kind, context, {})
+     return self._getNamespace(resource, context, {})
                 .then(function(params) {
                   var cumulativeBytes = 0;
                   return  $ws({
-                            url: urlForResource(kind, name, null, context, true, _.extend(params, opts)),
+                            url: self._urlForResource(resource, name, context, true, _.extend(params, opts)),
                             auth: {},
                             onopen: function(evt) {
                               _.each(openQueue, function(fn) {
@@ -527,7 +505,7 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
 //        var handle = DataService.watch(resource,context,callback[,opts])
 //        DataService.unwatch(handle)
   DataService.prototype.watch = function(resource, context, callback, opts) {
-    resource = normalizeResource(resource);
+    resource = APIService.toResourceGroupVersion(resource);
     opts = opts || {};
 
     if (callback) {
@@ -604,7 +582,7 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
 //        var handle = DataService.watch(resource,context,callback[,opts])
 //        DataService.unwatch(handle)
   DataService.prototype.watchObject = function(resource, name, context, callback, opts) {
-    resource = normalizeResource(resource);
+    resource = APIService.toResourceGroupVersion(resource);
     opts = opts || {};
 
     var wrapperCallback;
@@ -846,20 +824,20 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
   DataService.prototype._uniqueKeyForResourceContext = function(resource, context) {
     // Note: when we start handling selecting multiple projects this
     // will change to include all relevant scope
-    if (resource === "projects" || resource === "projectrequests") { // when we are loading non-namespaced resources we don't need additional context
+    if (resource.equals("projects") || resource.equals("projectrequests")) { // when we are loading non-namespaced resources we don't need additional context
       return resource;
     }
     else if (context.namespace) {
-      return resource + "/" + context.namespace;
+      return resource.toString() + "/" + context.namespace;
     }
     else if (context.project && context.project.metadata) {
-      return resource + "/" + context.project.metadata.name;
+      return resource.toString() + "/" + context.project.metadata.name;
     }
     else if (context.projectName) {
-      return resource + "/" + context.projectName;
+      return resource.toString() + "/" + context.projectName;
     }
     else {
-      return resource;
+      return resource.toString();
     }
   };
 
@@ -868,12 +846,12 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
     this._listInFlight(resource, context, true);
 
     var self = this;
-    if (context.projectPromise && resource !== "projects") {
+    if (context.projectPromise && !resource.equals("projects")) {
       context.projectPromise.done(function(project) {
         $http({
           method: 'GET',
           auth: {},
-          url: self._urlForResource(resource, null, null, context, false, {namespace: project.metadata.name})
+          url: self._urlForResource(resource, null, context, false, {namespace: project.metadata.name})
         }).success(function(data, status, headerFunc, config, statusText) {
           self._listOpComplete(resource, context, data);
         }).error(function(data, status, headers, config) {
@@ -890,7 +868,7 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
       $http({
         method: 'GET',
         auth: {},
-        url: this._urlForResource(resource, null, null, context),
+        url: this._urlForResource(resource, null, context),
       }).success(function(data, status, headerFunc, config, statusText) {
         self._listOpComplete(resource, context, data);
       }).error(function(data, status, headers, config) {
@@ -955,12 +933,12 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
       if (resourceVersion) {
         params.resourceVersion = resourceVersion;
       }
-      if (context.projectPromise && resource !== "projects") {
+      if (context.projectPromise && !resource.equals("projects")) {
         context.projectPromise.done(function(project) {
           params.namespace = project.metadata.name;
           $ws({
             method: "WATCH",
-            url: self._urlForResource(resource, null, null, context, true, params),
+            url: self._urlForResource(resource, null, context, true, params),
             auth:      {},
             onclose:   $.proxy(self, "_watchOpOnClose",   resource, context),
             onmessage: $.proxy(self, "_watchOpOnMessage", resource, context),
@@ -974,7 +952,7 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
       else {
         $ws({
           method: "WATCH",
-          url: self._urlForResource(resource, null, null, context, true, params),
+          url: self._urlForResource(resource, null, context, true, params),
           auth:      {},
           onclose:   $.proxy(self, "_watchOpOnClose",   resource, context),
           onmessage: $.proxy(self, "_watchOpOnMessage", resource, context),
@@ -1111,33 +1089,15 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
     );
   };
 
-  var URL_ROOT_TEMPLATE         = "{protocol}://{+serverUrl}{+apiPrefix}/{apiVersion}/";
+  var URL_ROOT_TEMPLATE         = "{protocol}://{+hostPort}{+prefix}{/group}/{version}/";
   var URL_GET_LIST              = URL_ROOT_TEMPLATE + "{resource}{?q*}";
   var URL_OBJECT                = URL_ROOT_TEMPLATE + "{resource}/{name}{/subresource*}{?q*}";
   var URL_NAMESPACED_GET_LIST   = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{resource}{?q*}";
   var URL_NAMESPACED_OBJECT     = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{resource}/{name}{/subresource*}{?q*}";
 
-  // Set the default api versions the console will use if otherwise unspecified
-  API_CFG.openshift.defaultVersion = "v1";
-  API_CFG.k8s.defaultVersion = "v1";
-
-  DataService.prototype._urlForResource = function(resource, name, apiVersion, context, isWebsocket, params) {
-
-    var resourceWithSubresource;
-    var subresource;
-    // Parse the resource parameter for resource itself and subresource. Examples:
-    //    buildconfigs/instantiate
-    //    buildconfigs/webhooks/mysecret/github
-    if(resource.indexOf('/') !== -1){
-      resourceWithSubresource = resource.split("/");
-      // first segment is the resource
-      resource = resourceWithSubresource.shift();
-      // all remaining segments are the subresource
-      subresource = resourceWithSubresource;
-    }
-
-    var resourceInfo = this.resourceInfo(resource, apiVersion);
-    if (!resourceInfo) {
+  DataService.prototype._urlForResource = function(resource, name, context, isWebsocket, params) {
+    var apiInfo = APIService.apiInfo(resource);
+    if (!apiInfo) {
       Logger.error("_urlForResource called with unknown resource", resource, arguments);
       return null;
     }
@@ -1165,11 +1125,12 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
     var template;
     var templateOptions = {
       protocol: protocol,
-      serverUrl: resourceInfo.hostPort,
-      apiPrefix: resourceInfo.prefix,
-      apiVersion: resourceInfo.apiVersion,
-      resource: resource,
-      subresource: subresource,
+      hostPort: apiInfo.hostPort,
+      prefix: apiInfo.prefix,
+      group: apiInfo.group,
+      version: apiInfo.version,
+      resource: resource.primaryResource(),
+      subresource: resource.subresources(),
       name: name,
       namespace: namespace,
       q: params
@@ -1187,11 +1148,16 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
     if (options && options.resource) {
       var opts = angular.copy(options);
       delete opts.resource;
+      delete opts.group;
+      delete opts.version;
       delete opts.name;
-      delete opts.apiVersion;
       delete opts.isWebsocket;
-      var resource = normalizeResource(options.resource);
-      var u = this._urlForResource(resource, options.name, options.apiVersion, null, !!options.isWebsocket, opts);
+      var resource = APIService.toResourceGroupVersion({
+        resource: options.resource,
+        group:    options.group,
+        version:  options.version
+      });
+      var u = this._urlForResource(resource, options.name, null, !!options.isWebsocket, opts);
       if (u) {
         return u.toString();
       }
@@ -1205,60 +1171,12 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
     return new URI({protocol: protocol, hostname: hostPort}).toString();
   };
 
-  DataService.prototype.resourceInfo = function(resource, preferredAPIVersion) {
-    var api, apiVersion, prefix;
-    for (var apiName in API_CFG) {
-      api = API_CFG[apiName];
-      if (!api.resources[resource] && !api.resources['*']) {
-        continue;
-      }
-      apiVersion = preferredAPIVersion || api.defaultVersion;
-      prefix = api.prefixes[apiVersion] || api.prefixes['*'];
-      if (!prefix) {
-        continue;
-      }
-      return {
-      	hostPort:   api.hostPort,
-      	prefix:     prefix,
-      	apiVersion: apiVersion
-      };
-    }
-    return undefined;
-  };
-
-  // port of restmapper.go#kindToResource
-  DataService.prototype.kindToResource = function(kind) {
-    if (!kind) {
-      return "";
-    }
-    var resource = String(kind).toLowerCase();
-    if (resource.endsWith('endpoints') || resource.endsWith('securitycontextconstraints')) {
-      // no-op, plural is the singular
-    }
-    else if (resource.endsWith('s')) {
-      resource = resource + 'es';
-    }
-    else if (resource.endsWith('y')) {
-      resource = resource.substring(0, resource.length-1) + 'ies';
-    }
-    else {
-      resource = resource + 's';
-    }
-
-    // make sure it is a known resource
-    if (!this.resourceInfo(resource)) {
-      Logger.warn('Unknown resource "' + resource + '"');
-      return undefined;
-    }
-    return resource;
-  };
-
   var CACHED_RESOURCE = {
     imagestreamimages: true
   };
 
   DataService.prototype._isResourceCached = function(resource) {
-    return !!CACHED_RESOURCE[resource];
+    return !!CACHED_RESOURCE[resource.resource];
   };
 
   DataService.prototype._getNamespace = function(resource, context, opts) {
@@ -1266,7 +1184,7 @@ DataService.prototype.createStream = function(kind, name, context, opts, isRaw) 
     if (opts.namespace) {
       deferred.resolve({namespace: opts.namespace});
     }
-    else if (context.projectPromise && resource !== "projects") {
+    else if (context.projectPromise && !resource.equals("projects")) {
       context.projectPromise.done(function(project) {
         deferred.resolve({namespace: project.metadata.name});
       });

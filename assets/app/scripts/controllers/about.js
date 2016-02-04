@@ -11,10 +11,6 @@ angular.module('openshiftConsole')
     AuthService.withUser();
     
     $scope.version = {
-      api: {
-        openshift: DataService.oApiVersion,
-        kubernetes: DataService.k8sApiVersion,
-      },
       master: {
         openshift: Constants.VERSION.openshift,
         kubernetes: Constants.VERSION.kubernetes,

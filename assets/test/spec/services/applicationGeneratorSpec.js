@@ -5,12 +5,6 @@ describe("ApplicationGenerator", function(){
   var input;
 
   beforeEach(function(){
-    module('openshiftConsole', function($provide){
-      $provide.value("DataService",{
-        oApiVersion: "v1",
-        k8sApiVersion: "v1"
-      });
-    });
 
     inject(function(_ApplicationGenerator_){
       ApplicationGenerator = _ApplicationGenerator_;
