@@ -30,7 +30,7 @@ angular.module('openshiftConsole')
       },
       {
         "id": "ImageStreamImage",
-        "title": "Image Stream Image"  
+        "title": "Image Stream Image"
       },
       {
         "id": "DockerImage",
@@ -52,6 +52,10 @@ angular.module('openshiftConsole')
       }
     ];
     $scope.breadcrumbs = [
+      {
+        title: $routeParams.project,
+        link: "project/" + $routeParams.project
+      },
       {
         title: "Builds",
         link: "project/" + $routeParams.project + "/browse/builds"

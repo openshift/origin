@@ -1,10 +1,14 @@
-<project-header class="top-header"></project-header>
-  <project-page>
+<default-header class="top-header"></default-header>
+<div class="wrap no-sidebar">
+  <div class="sidebar-left collapse navbar-collapse navbar-collapse-2">
+    <navbar-utility-mobile></navbar-utility-mobile>
+  </div>
+  <div class="middle">
     <!-- Middle section -->
-    <div class="middle-section" ng-show="buildConfig">
+    <div class="middle-section surface-shaded" ng-show="buildConfig">
       <div id="scrollable-content" class="middle-container has-scroll">
-        <div class="middle-header">
-          <div class="container-fluid">
+        <div class="middle-content">
+          <div class="container surface-shaded">
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <alerts alerts="alerts"></alerts>
             <div ng-if="!loaded">Loading...</div>
@@ -19,7 +23,7 @@
                       <div class="section">
                         <h3>Source Configuration</h3>
                         <dl class="dl-horizontal left">
-                          <div class="form-groups" ng-if="sources.git">
+                          <div ng-if="sources.git">
                             <div class="form-group">
                               <label for="sourceUrl">Source Repository URL</label>
                               <div>
@@ -70,7 +74,7 @@
                             </div>
                           </div>
 
-                          <div class="form-groups" ng-if="sources.dockerfile">
+                          <div ng-if="sources.dockerfile">
                             <div class="form-group">
                             <label for="buildFrom">Dockerfile</label>
                               <div ui-ace="{
@@ -114,7 +118,7 @@
                             </div>
                           </div>
 
-                          <div class="form-groups" ng-if="sources.binary && updatedBuildConfig.spec.source">
+                          <div ng-if="sources.binary && updatedBuildConfig.spec.source">
                             <div class="form-group">
                               <label for="binaryAsBuild">
                                 Binary Input As File
@@ -151,13 +155,13 @@
                               </div>
 
                               <div class="row form-group" ng-if="imageSourceOptions.pickedType==='ImageStreamTag'" >
-                                <div class="col-lg-4">
-                                 <div class="label-with-selector">
-                                    <label class="multiselector-label">Namespace</label>
+                                <div class="col-sm-4">
+                                 <div class="form-group">
+                                    <label>Namespace</label>
                                     <span ng-if="!isNamespaceAvailable(imageSourceOptions.pickedNamespace)" data-toggle="tooltip" data-placement="right" title="Selected Namespace is not available." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                     <select
                                       name="imageSourceNamespace"
-                                      class="form-control multiselector select-imagesource-namespace"
+                                      class="form-control"
                                       ng-model="imageSourceOptions.pickedNamespace"
                                       ng-options="name for name in imageSourceBuildFrom.projects track by name"
                                       ng-change="updateImageSourceImageStreams(imageSourceOptions.pickedNamespace, true)"
@@ -166,14 +170,14 @@
                                   </div>
                                 </div>
 
-                                <div class="col-lg-4">
-                                  <div class="label-with-selector">
-                                    <label class="multiselector-label">Image Stream</label>
+                                <div class="col-sm-4">
+                                  <div class="form-group">
+                                    <label>Image Stream</label>
                                     <span  ng-if="inspectNamespace(imageSourceBuildFrom.imageStreams, imageSourceOptions.pickedImageStream) === 'empty'" data-toggle="tooltip" data-placement="right" title="Selected Namespace doesn't contain any Image Streams to build from." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                     <span  ng-if="inspectNamespace(imageSourceBuildFrom.imageStreams, imageSourceOptions.pickedImageStream) === 'noMatch'" data-toggle="tooltip" data-placement="right" title="Selected Namespace doesn't contain Image Stream choosen Tag" class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                     <select
                                       name="imageSourceImageStream"
-                                      class="form-control multiselector select-imagesource-name"
+                                      class="form-control"
                                       ng-model="imageSourceOptions.pickedImageStream"
                                       ng-options="name as name for name in imageSourceBuildFrom.imageStreams track by name"
                                       ng-change="clearSelectedTag(imageSourceOptions, imageSourceBuildFrom.tags)"
@@ -182,14 +186,14 @@
                                   </div>
                                 </div>
 
-                                <div class="col-lg-4">
-                                  <div class="label-with-selector">
-                                    <label class="multiselector-label">Tag</label>
+                                <div class="col-sm-4">
+                                  <div class="form-group">
+                                    <label>Tag</label>
                                     <span ng-if="inspectTags(imageSourceBuildFrom.tags, imageSourceOptions.pickedImageStream, imageSourceOptions.pickedTag) === 'empty'" data-toggle="tooltip" data-placement="right" title="Selected Image Stream doesn't contain any tagged image to build from." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                     <span ng-if="inspectTags(imageSourceBuildFrom.tags, imageSourceOptions.pickedImageStream, imageSourceOptions.pickedTag) === 'noMatch'" data-toggle="tooltip" data-placement="right" title="Selected Image Stream doesn't contain choosen Tag." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                     <select
                                       name="imageSourceTag"
-                                      class="form-control multiselector select-imagesource-tag"
+                                      class="form-control"
                                       ng-model="imageSourceOptions.pickedTag"
                                       ng-options="name as name for name in imageSourceBuildFrom.tags[imageSourceOptions.pickedImageStream] track by name"
                                       ng-disabled="imageSourceOptions.pickedImageStream === ''"
@@ -264,7 +268,7 @@
                         <h3>Image Configuration</h3>
                         <dl class="dl-horizontal left">
 
-                          <div class="form-groups">
+                          <div>
                             <div class="form-group">
                               <label for="buildFrom">Build From</label>
                               <select
@@ -276,12 +280,12 @@
                             </div>
 
                             <div class="row form-group" ng-if="builderOptions.pickedType==='ImageStreamTag'">
-                              <div class="col-lg-4">
-                                <div class="label-with-selector">
-                                  <label class="multiselector-label">Namespace</label>
+                              <div class="col-sm-4">
+                                <div class="form-group">
+                                  <label>Namespace</label>
                                   <span  ng-if="!isNamespaceAvailable(builderOptions.pickedNamespace)" data-toggle="tooltip" data-placement="right" title="Selected Namespace is not available." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                   <select
-                                    class="form-control multiselector select-builder-namespace"
+                                    class="form-control"
                                     ng-model="builderOptions.pickedNamespace"
                                     ng-options="name for name in buildFrom.projects track by name"
                                     ng-change="updateBuilderImageStreams(builderOptions.pickedNamespace, true)"
@@ -289,13 +293,13 @@
                                   </select>
                                 </div>
                               </div>
-                              <div class="col-lg-4">
-                                <div class="label-with-selector">
-                                  <label class="multiselector-label">Image Stream</label>
+                              <div class="col-sm-4">
+                                <div class="form-group">
+                                  <label>Image Stream</label>
                                   <span  ng-if="inspectNamespace(buildFrom.imageStreams, builderOptions.pickedImageStream) === 'empty'" data-toggle="tooltip" data-placement="right" title="Selected Namespace doesn't contain any Image Streams to build from." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                   <span  ng-if="inspectNamespace(buildFrom.imageStreams, builderOptions.pickedImageStream) === 'noMatch'" data-toggle="tooltip" data-placement="right" title="Selected Namespace doesn't contain Image Stream choosen Tag" class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                   <select
-                                    class="form-control multiselector select-builder-name"
+                                    class="form-control"
                                     ng-model="builderOptions.pickedImageStream"
                                     ng-options="name as name for name in buildFrom.imageStreams track by name"
                                     ng-change="clearSelectedTag(builderOptions, buildFrom.tags)"
@@ -304,13 +308,13 @@
                                 </div>
                               </div>
 
-                              <div class="col-lg-4">
-                                <div class="label-with-selector">
-                                  <label class="multiselector-label">Tag</label>
+                              <div class="col-sm-4">
+                                <div class="form-group">
+                                  <label>Tag</label>
                                   <span ng-if="inspectTags(buildFrom.tags, builderOptions.pickedImageStream, builderOptions.pickedTag) === 'empty'" data-toggle="tooltip" data-placement="right" title="Selected Image Stream doesn't contain any tagged image to build from." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                   <span ng-if="inspectTags(buildFrom.tags, builderOptions.pickedImageStream, builderOptions.pickedTag) === 'noMatch'" data-toggle="tooltip" data-placement="right" title="Selected Image Stream doesn't contain choosen Tag." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                   <select
-                                    class="form-control multiselector select-builder-tag"
+                                    class="form-control"
                                     ng-model="builderOptions.pickedTag"
                                     ng-options="name as name for name in buildFrom.tags[builderOptions.pickedImageStream] track by name"
                                     ng-disabled="builderOptions.pickedImageStream === ''"
@@ -359,7 +363,7 @@
                             </div>
                           </div>
 
-                          <div class="form-groups">
+                          <div>
                             <div class="form-group">
                               <label for="buildFrom">Push To</label>
                               <select
@@ -371,12 +375,12 @@
                             </div>
 
                             <div class="row form-group" ng-if="outputOptions.pickedType==='ImageStreamTag'">
-                              <div class="col-lg-4">
-                               <div class="label-with-selector">
-                                  <label class="multiselector-label">Namespace</label>
+                              <div class="col-sm-4">
+                               <div class="form-group">
+                                  <label>Namespace</label>
                                   <span  ng-if="!isNamespaceAvailable(outputOptions.pickedNamespace)" data-toggle="tooltip" data-placement="right" title="Selected Namespace is not available." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                   <select
-                                    class="form-control multiselector select-output-namespace"
+                                    class="form-control"
                                     id="outputNamespace"
                                     name="outputNamespace"
                                     ng-model="outputOptions.pickedNamespace"
@@ -386,13 +390,13 @@
                                   </select>
                                 </div>
                               </div>
-                              <div class="col-lg-4">
-                                <div class="label-with-selector">
-                                  <label class="multiselector-label">Image Stream</label>
+                              <div class="col-sm-4">
+                                <div class="form-group">
+                                  <label>Image Stream</label>
                                   <span  ng-if="inspectNamespace(pushTo.imageStreams, outputOptions.pickedImageStream) === 'empty'" data-toggle="tooltip" data-placement="right" title="Selected Namespace doesn't contain any Image Streams to build from." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                   <span  ng-if="inspectNamespace(pushTo.imageStreams, outputOptions.pickedImageStream) === 'noMatch'" data-toggle="tooltip" data-placement="right" title="Selected Namespace doesn't contain Image Stream choosen Tag" class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                   <select
-                                    class="form-control multiselector select-output-name"
+                                    class="form-control"
                                     id="outputImageStream"
                                     name="outputImageStream"
                                     ng-model="outputOptions.pickedImageStream"
@@ -403,12 +407,12 @@
                                 </div>
                               </div>
 
-                              <div class="col-lg-4">
-                                <div class="label-with-selector">
-                                  <label class="multiselector-label">Tag</label>
+                              <div class="col-sm-4">
+                                <div class="form-group">
+                                  <label>Tag</label>
                                   <span  ng-if="showOutputTagWarning(form)" data-toggle="tooltip" data-placement="right" title="Tag is already created and will be overridden on build." class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
                                   <div>
-                                  <input class="form-control multiselector select-output-tag"
+                                  <input class="form-control"
                                     id="outputTag"
                                     name="outputTag"
                                     type="text"
@@ -450,7 +454,7 @@
                           <i class="pficon pficon-help" data-toggle="tooltip" data-placement="left" aria-hidden="true" data-original-title="Environment variables are used to configure and pass information to running containers.  These environment variables will be available during your build and at runtime."></i>
                           </a>
                         </span></h3>
-                        <div class="form-groups">
+                        <div>
                           <osc-key-values
                             entries="envVars"
                             delimiter="="
@@ -463,7 +467,7 @@
                       <div class="section">
                         <h3>Triggers</h3>
                         <dl class="dl-horizontal left">
-                          <div class="form-groups">
+                          <div>
                             <div class="checkbox" ng-if="sources.git" >
                               <label>
                                 <input type="checkbox" ng-model="pickedTriggers['webhook']"/>
@@ -500,7 +504,7 @@
                       </div>
                     </div>
                   </div>
-                    <div class="buttons gutter-top-bottom gutter-top-bottom-2x">
+                    <div class="buttons gutter-top-bottom">
                       <button class="btn btn-primary btn-lg"
                           ng-click="save()"
                           ng-disabled="form.$invalid || form.$pristine || disableInputs">
@@ -514,8 +518,9 @@
                   </div>
               </form>
             </fieldset>
+          </div>
         </div>
-      </div><!-- /middle-content -->
-    </div><!-- /middle-container -->
-  </div><!-- /middle-section -->
-</project-page>
+      </div>
+    </div>
+  </div>
+</div>
