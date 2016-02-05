@@ -267,6 +267,17 @@ oauthConfig:
     name: ""
     provider:
       apiVersion: v1
+      ca: ""
+      clientID: ""
+      clientSecret: ""
+      kind: GitLabIdentityProvider
+      url: ""
+  - challenge: false
+    login: false
+    mappingMethod: ""
+    name: ""
+    provider:
+      apiVersion: v1
       clientID: ""
       clientSecret: ""
       hostedDomain: ""
@@ -388,6 +399,7 @@ func TestMasterConfig(t *testing.T) {
 				{Provider: runtime.EmbeddedObject{Object: &internal.RequestHeaderIdentityProvider{}}},
 				{Provider: runtime.EmbeddedObject{Object: &internal.KeystonePasswordIdentityProvider{}}},
 				{Provider: runtime.EmbeddedObject{Object: &internal.GitHubIdentityProvider{}}},
+				{Provider: runtime.EmbeddedObject{Object: &internal.GitLabIdentityProvider{}}},
 				{Provider: runtime.EmbeddedObject{Object: &internal.GoogleIdentityProvider{}}},
 				{Provider: runtime.EmbeddedObject{Object: &internal.OpenIDIdentityProvider{}}},
 			},

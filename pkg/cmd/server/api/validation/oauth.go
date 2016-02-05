@@ -173,6 +173,9 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider, fldPath *fi
 		case (*api.GitHubIdentityProvider):
 			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
 
+		case (*api.GitLabIdentityProvider):
+			validationResults.AddErrors(ValidateGitLabIdentityProvider(provider, identityProvider.UseAsChallenger)...)
+
 		case (*api.GoogleIdentityProvider):
 			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
 
@@ -281,6 +284,22 @@ func ValidateOAuthIdentityProvider(clientID, clientSecret string, challenge bool
 	}
 	if challenge {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("challenge"), challenge, "oauth providers cannot be used for challenges"))
+	}
+
+	return allErrs
+}
+
+func ValidateGitLabIdentityProvider(provider *api.GitLabIdentityProvider, challenge bool) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, challenge)...)
+
+	providerPath := field.NewPath("provider")
+	_, urlErrs := ValidateSecureURL(provider.URL, providerPath.Child("url"))
+	allErrs = append(allErrs, urlErrs...)
+
+	if len(provider.CA) != 0 {
+		allErrs = append(allErrs, ValidateFile(provider.CA, providerPath.Child("ca"))...)
 	}
 
 	return allErrs

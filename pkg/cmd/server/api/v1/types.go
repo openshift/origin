@@ -626,6 +626,20 @@ type GitHubIdentityProvider struct {
 	ClientSecret string `json:"clientSecret"`
 }
 
+type GitLabIdentityProvider struct {
+	unversioned.TypeMeta `json:",inline"`
+
+	// CA is the optional trusted certificate authority bundle to use when making requests to the server
+	// If empty, the default system roots are used
+	CA string `json:"ca"`
+	// URL is the oauth server base URL
+	URL string `json:"url"`
+	// ClientID is the oauth client ID
+	ClientID string `json:"clientID"`
+	// ClientSecret is the oauth client secret
+	ClientSecret string `json:"clientSecret"`
+}
+
 type GoogleIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 
