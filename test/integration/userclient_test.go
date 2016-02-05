@@ -131,7 +131,7 @@ func TestUserInitialization(t *testing.T) {
 			Identity: makeIdentityInfo("idp", "bob", nil),
 			Mapper:   lookup,
 
-			ExpectedErr: kerrs.NewNotFound(api.Resource("useridentitymapping"), "idp:bob"),
+			ExpectedErr: identitymapper.NewLookupError(makeIdentityInfo("idp", "bob", nil), kerrs.NewNotFound(api.Resource("useridentitymapping"), "idp:bob")),
 		},
 		"lookup existing identity": {
 			Identity: makeIdentityInfo("idp", "bob", nil),

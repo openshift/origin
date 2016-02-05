@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
+	"github.com/openshift/origin/pkg/auth/server/errorpage"
 	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/auth/server/selectprovider"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
@@ -119,6 +120,17 @@ func ValidateOAuthConfig(config *api.OAuthConfig, fldPath *field.Path) Validatio
 			} else {
 				for _, err = range selectprovider.ValidateSelectProviderTemplate(content) {
 					validationResults.AddErrors(field.Invalid(fldPath.Child("templates", "providerSelection"), config.Templates.ProviderSelection, err.Error()))
+				}
+			}
+		}
+
+		if len(config.Templates.Error) > 0 {
+			content, err := ioutil.ReadFile(config.Templates.Error)
+			if err != nil {
+				validationResults.AddErrors(field.Invalid(fldPath.Child("templates", "error"), config.Templates.Error, "could not read file"))
+			} else {
+				for _, err = range errorpage.ValidateErrorPageTemplate(content) {
+					validationResults.AddErrors(field.Invalid(fldPath.Child("templates", "error"), config.Templates.Error, err.Error()))
 				}
 			}
 		}

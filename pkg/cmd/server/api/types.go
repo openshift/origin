@@ -498,6 +498,10 @@ type OAuthTemplates struct {
 	// ProviderSelection is a path to a file containing a go template used to render the provider selection page.
 	// If unspecified, the default provider selection page is used.
 	ProviderSelection string
+
+	// Error is a path to a file containing a go template used to render error pages during the authentication or grant flow
+	// If unspecified, the default error page is used.
+	Error string
 }
 
 type ServiceAccountConfig struct {
