@@ -75,7 +75,7 @@ type TagReference struct {
 	// Name of the tag
 	Name string `json:"name" description:"name of tag"`
 	// Annotations associated with images using this tag
-	Annotations map[string]string `json:"annotations,omitempty" description:"annotations associated with images using this tag"`
+	Annotations map[string]string `json:"annotations" description:"annotations associated with images using this tag"`
 	// From is a reference to an image stream tag or image stream this tag should track
 	From *kapi.ObjectReference `json:"from,omitempty" description:"a reference to an image stream tag or image stream this tag should track"`
 	// Reference states if the tag will be imported. Default value is false, which means the tag will be imported.
@@ -164,6 +164,19 @@ type ImageStreamMapping struct {
 type ImageStreamTag struct {
 	unversioned.TypeMeta `json:",inline"`
 	kapi.ObjectMeta      `json:"metadata,omitempty"`
+
+	// Tag is the spec tag associated with this image stream tag, and it may be null
+	// if only pushes have occured to this image stream.
+	Tag *TagReference `json:"tag" description:"the spec tag (optional) that is associated with this ImageStream"`
+
+	// Generation is the current generation of the tagged image - if tag is provided
+	// and this value is not equal to the tag generation, a user has requested an
+	// import that has not completed, or Conditions will be filled out indicating any
+	// error.
+	Generation int64 `json:"generation" description:"the generation of the tagged image, if not equal to the tag generation or the latest condition generation, there is an image import pending"`
+
+	// Conditions is an array of conditions that apply to the image stream tag.
+	Conditions []TagEventCondition `json:"conditions,omitempty" description:"the set of conditions that apply to this tag"`
 
 	// Image associated with the ImageStream and tag.
 	Image Image `json:"image" description:"the image associated with the ImageStream and tag"`
