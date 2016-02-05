@@ -68,7 +68,10 @@ angular.module('openshiftConsole')
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
     $scope.renderOptions = $scope.renderOptions || {};
+    // Wait until data loads before showing the toolbar.
+    $scope.renderOptions.showToolbar = false;
     $scope.renderOptions.showSidebarRight = false;
+    $scope.renderOptions.showGetStarted = false;
     $scope.overviewMode = 'tiles';
 
     // Make sure only one deployment per deployment config is scalable on the overview page.
@@ -413,6 +416,7 @@ angular.module('openshiftConsole')
             hashSizeFilter($scope.deployments) === 0 &&
             hashSizeFilter($scope.deploymentConfigs) === 0;
 
+          $scope.renderOptions.showToolbar = !projectEmpty;
           $scope.renderOptions.showSidebarRight = !projectEmpty;
           $scope.renderOptions.showGetStarted = projectEmpty;
         }
