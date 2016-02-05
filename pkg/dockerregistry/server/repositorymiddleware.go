@@ -343,7 +343,7 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 		}
 
 		status := statusErr.ErrStatus
-		if status.Code != http.StatusNotFound || status.Details.Kind != "imageStream" || status.Details.Name != r.name {
+		if status.Code != http.StatusNotFound || (strings.ToLower(status.Details.Kind) != "imagestream" /*pre-1.2*/ && strings.ToLower(status.Details.Kind) != "imagestreams") || status.Details.Name != r.name {
 			context.GetLogger(r.ctx).Errorf("Error creating ImageStreamMapping: %s", err)
 			return err
 		}

@@ -87,3 +87,6 @@ references:
 1.  Field names in `yaml` and `json` files will now follow strict rules for case sensitivity.  
   Incorrectly cased field names will now be rejected.  Please ensure all `yaml` and `json` files
   conform to the naming conventions defined in [REST API](https://docs.openshift.org/latest/rest_api/index.html) 
+
+1.  The existing docker registry images will not be able to support auto-provisioning of image streams based on docker pushes against new API servers.
+  Upgrade your docker registry image to make auto-provisioning work again.
