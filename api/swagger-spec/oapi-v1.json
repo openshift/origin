@@ -18877,6 +18877,13 @@
      "execNewPod": {
       "$ref": "v1.ExecNewPodHook",
       "description": "options for an ExecNewPodHook"
+     },
+     "tagImages": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.TagImageHook"
+      },
+      "description": "a list of image stream tags that should be updated to the latest value on this deployment if the deployment succeeds"
      }
     }
    },
@@ -18911,6 +18918,23 @@
        "type": "string"
       },
       "description": "the names of volumes from the pod template which should be included in the hook pod; an empty list means no volumes will be copied, and names not found in the pod spec will be ignored"
+     }
+    }
+   },
+   "v1.TagImageHook": {
+    "id": "v1.TagImageHook",
+    "required": [
+     "containerName",
+     "to"
+    ],
+    "properties": {
+     "containerName": {
+      "type": "string",
+      "description": "the name of a container in this deployment config whose image will be used as the tag destination; if only one container is defined it will default to that value"
+     },
+     "to": {
+      "$ref": "v1.ObjectReference",
+      "description": "the name of an ImageStreamTag in the current namespace that will be updated with the image value"
      }
     }
    },

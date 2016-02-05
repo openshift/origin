@@ -12,9 +12,9 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/wait"
 
+	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	strat "github.com/openshift/origin/pkg/deploy/strategy"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
@@ -47,6 +47,8 @@ type RollingDeploymentStrategy struct {
 	initialStrategy acceptingDeploymentStrategy
 	// client is used to deal with ReplicationControllers.
 	client kclient.Interface
+	// client is used to perform tag actions
+	tags client.ImageStreamTagsNamespacer
 	// rollingUpdate knows how to perform a rolling update.
 	rollingUpdate func(config *kubectl.RollingUpdaterConfig) error
 	// decoder is used to access the encoded config on a deployment.
@@ -76,18 +78,19 @@ type acceptingDeploymentStrategy interface {
 const AcceptorInterval = 1 * time.Second
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy) *RollingDeploymentStrategy {
+func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, tags client.ImageStreamTagsNamespacer, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy) *RollingDeploymentStrategy {
 	return &RollingDeploymentStrategy{
 		decoder:         decoder,
 		initialStrategy: initialStrategy,
 		client:          client,
+		tags:            tags,
 		apiRetryPeriod:  DefaultApiRetryPeriod,
 		apiRetryTimeout: DefaultApiRetryTimeout,
 		rollingUpdate: func(config *kubectl.RollingUpdaterConfig) error {
 			updater := kubectl.NewRollingUpdater(namespace, client)
 			return updater.Update(config)
 		},
-		hookExecutor: stratsupport.NewHookExecutor(client, os.Stdout, decoder),
+		hookExecutor: stratsupport.NewHookExecutor(client, tags, os.Stdout, decoder),
 		getUpdateAcceptor: func(timeout time.Duration) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptNewlyObservedReadyPods(client, timeout, AcceptorInterval)
 		},
@@ -111,8 +114,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	if from == nil {
 		// Execute any pre-hook.
 		if params.Pre != nil {
-			err := s.hookExecutor.Execute(params.Pre, to, "prehook")
-			if err != nil {
+			if err := s.hookExecutor.Execute(params.Pre, to, deployapi.PreHookPodSuffix); err != nil {
 				return fmt.Errorf("Pre hook failed: %s", err)
 			}
 			glog.Infof("Pre hook finished")
@@ -126,12 +128,10 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 
 		// Execute any post-hook. Errors are logged and ignored.
 		if params.Post != nil {
-			err := s.hookExecutor.Execute(params.Post, to, "posthook")
-			if err != nil {
-				util.HandleError(fmt.Errorf("post hook failed: %s", err))
-			} else {
-				glog.Infof("Post hook finished")
+			if err := s.hookExecutor.Execute(params.Post, to, deployapi.PostHookPodSuffix); err != nil {
+				return fmt.Errorf("post hook failed: %s", err)
 			}
+			glog.Infof("Post hook finished")
 		}
 
 		// All done.
@@ -141,8 +141,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	// Prepare for a rolling update.
 	// Execute any pre-hook.
 	if params.Pre != nil {
-		err := s.hookExecutor.Execute(params.Pre, to, "prehook")
-		if err != nil {
+		if err := s.hookExecutor.Execute(params.Pre, to, deployapi.PreHookPodSuffix); err != nil {
 			return fmt.Errorf("pre hook failed: %s", err)
 		}
 		glog.Infof("Pre hook finished")
@@ -212,16 +211,13 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 		return err
 	}
 
-	// Execute any post-hook. Errors are logged and ignored.
+	// Execute any post-hook.
 	if params.Post != nil {
-		err := s.hookExecutor.Execute(params.Post, to, "posthook")
-		if err != nil {
-			util.HandleError(fmt.Errorf("Post hook failed: %s", err))
-		} else {
-			glog.Info("Post hook finished")
+		if err := s.hookExecutor.Execute(params.Post, to, deployapi.PostHookPodSuffix); err != nil {
+			return fmt.Errorf("post hook failed: %s", err)
 		}
+		glog.Info("Post hook finished")
 	}
-
 	return nil
 }
 

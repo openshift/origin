@@ -25,8 +25,12 @@ func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) field.ErrorLis
 		allErrs = append(allErrs, validateTrigger(&config.Spec.Triggers[i], field.NewPath("spec", "triggers").Index(i))...)
 	}
 
+	var spec *kapi.PodSpec
+	if config.Spec.Template != nil {
+		spec = &config.Spec.Template.Spec
+	}
 	specPath := field.NewPath("spec")
-	allErrs = append(allErrs, validateDeploymentStrategy(&config.Spec.Strategy, field.NewPath("spec", "strategy"))...)
+	allErrs = append(allErrs, validateDeploymentStrategy(&config.Spec.Strategy, spec, field.NewPath("spec", "strategy"))...)
 	if config.Spec.Template == nil {
 		allErrs = append(allErrs, field.Required(specPath.Child("template"), ""))
 	} else {
@@ -75,7 +79,7 @@ func ValidateDeploymentConfigRollback(rollback *deployapi.DeploymentConfigRollba
 	return result
 }
 
-func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, fldPath *field.Path) field.ErrorList {
+func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kapi.PodSpec, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
 	if len(strategy.Type) == 0 {
@@ -85,13 +89,13 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, fldPath 
 	switch strategy.Type {
 	case deployapi.DeploymentStrategyTypeRecreate:
 		if strategy.RecreateParams != nil {
-			errs = append(errs, validateRecreateParams(strategy.RecreateParams, fldPath.Child("recreateParams"))...)
+			errs = append(errs, validateRecreateParams(strategy.RecreateParams, pod, fldPath.Child("recreateParams"))...)
 		}
 	case deployapi.DeploymentStrategyTypeRolling:
 		if strategy.RollingParams == nil {
 			errs = append(errs, field.Required(fldPath.Child("rollingParams"), ""))
 		} else {
-			errs = append(errs, validateRollingParams(strategy.RollingParams, fldPath.Child("rollingParams"))...)
+			errs = append(errs, validateRollingParams(strategy.RollingParams, pod, fldPath.Child("rollingParams"))...)
 		}
 	case deployapi.DeploymentStrategyTypeCustom:
 		if strategy.CustomParams == nil {
@@ -123,33 +127,56 @@ func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams, fldP
 	return errs
 }
 
-func validateRecreateParams(params *deployapi.RecreateDeploymentStrategyParams, fldPath *field.Path) field.ErrorList {
+func validateRecreateParams(params *deployapi.RecreateDeploymentStrategyParams, pod *kapi.PodSpec, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
+	if params.TimeoutSeconds != nil && *params.TimeoutSeconds < 1 {
+		errs = append(errs, field.Invalid(fldPath.Child("timeoutSeconds"), *params.TimeoutSeconds, "must be >0"))
+	}
+
 	if params.Pre != nil {
-		errs = append(errs, validateLifecycleHook(params.Pre, fldPath.Child("pre"))...)
+		errs = append(errs, validateLifecycleHook(params.Pre, pod, fldPath.Child("pre"))...)
 	}
 	if params.Mid != nil {
-		errs = append(errs, validateLifecycleHook(params.Mid, fldPath.Child("mid"))...)
+		errs = append(errs, validateLifecycleHook(params.Mid, pod, fldPath.Child("mid"))...)
 	}
 	if params.Post != nil {
-		errs = append(errs, validateLifecycleHook(params.Post, fldPath.Child("post"))...)
+		errs = append(errs, validateLifecycleHook(params.Post, pod, fldPath.Child("post"))...)
 	}
 
 	return errs
 }
 
-func validateLifecycleHook(hook *deployapi.LifecycleHook, fldPath *field.Path) field.ErrorList {
+func validateLifecycleHook(hook *deployapi.LifecycleHook, pod *kapi.PodSpec, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
 	if len(hook.FailurePolicy) == 0 {
 		errs = append(errs, field.Required(fldPath.Child("failurePolicy"), ""))
 	}
 
-	if hook.ExecNewPod == nil {
-		errs = append(errs, field.Required(fldPath.Child("execNewPod"), ""))
-	} else {
+	switch {
+	case hook.ExecNewPod != nil && len(hook.TagImages) > 0:
+		errs = append(errs, field.Invalid(fldPath, "<hook>", "only one of 'execNewPod' of 'tagImages' may be specified"))
+	case hook.ExecNewPod != nil:
 		errs = append(errs, validateExecNewPod(hook.ExecNewPod, fldPath.Child("execNewPod"))...)
+	case len(hook.TagImages) > 0:
+		for i, image := range hook.TagImages {
+			if len(image.ContainerName) == 0 {
+				errs = append(errs, field.Required(fldPath.Child("tagImages").Index(i).Child("containerName"), "a containerName is required"))
+			} else {
+				if _, err := deployapi.TemplateImageForContainer(pod, deployapi.IgnoreTriggers, image.ContainerName); err != nil {
+					errs = append(errs, field.Invalid(fldPath.Child("tagImages").Index(i).Child("containerName"), image.ContainerName, err.Error()))
+				}
+			}
+			if image.To.Kind != "ImageStreamTag" {
+				errs = append(errs, field.Invalid(fldPath.Child("tagImages").Index(i).Child("to", "kind"), image.To.Kind, "Must be 'ImageStreamTag'"))
+			}
+			if len(image.To.Name) == 0 {
+				errs = append(errs, field.Required(fldPath.Child("tagImages").Index(i).Child("to", "name"), "a destination tag name is required"))
+			}
+		}
+	default:
+		errs = append(errs, field.Invalid(fldPath, "<empty>", "One of execNewPod or tagImages must be specified"))
 	}
 
 	return errs
@@ -204,7 +231,7 @@ func validateHookVolumes(volumes []string, fldPath *field.Path) field.ErrorList 
 	return errs
 }
 
-func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams, fldPath *field.Path) field.ErrorList {
+func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams, pod *kapi.PodSpec, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
 	if params.IntervalSeconds != nil && *params.IntervalSeconds < 1 {
@@ -238,10 +265,10 @@ func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams, fl
 	errs = append(errs, IsNotMoreThan100Percent(params.MaxUnavailable, fldPath.Child("maxUnavailable"))...)
 
 	if params.Pre != nil {
-		errs = append(errs, validateLifecycleHook(params.Pre, fldPath.Child("pre"))...)
+		errs = append(errs, validateLifecycleHook(params.Pre, pod, fldPath.Child("pre"))...)
 	}
 	if params.Post != nil {
-		errs = append(errs, validateLifecycleHook(params.Post, fldPath.Child("post"))...)
+		errs = append(errs, validateLifecycleHook(params.Post, pod, fldPath.Child("post"))...)
 	}
 
 	return errs

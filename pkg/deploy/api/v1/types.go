@@ -28,13 +28,15 @@ const (
 type DeploymentStrategy struct {
 	// Type is the name of a deployment strategy.
 	Type DeploymentStrategyType `json:"type,omitempty" description:"the name of a deployment strategy"`
+
 	// CustomParams are the input to the Custom deployment strategy.
 	CustomParams *CustomDeploymentStrategyParams `json:"customParams,omitempty" description:"input to the Custom deployment strategy"`
 	// RecreateParams are the input to the Recreate deployment strategy.
 	RecreateParams *RecreateDeploymentStrategyParams `json:"recreateParams,omitempty" description:"input to the Recreate deployment strategy"`
 	// RollingParams are the input to the Rolling deployment strategy.
 	RollingParams *RollingDeploymentStrategyParams `json:"rollingParams,omitempty" description:"input to the Rolling deployment strategy"`
-	// Resources contains resource requirements to execute the deployment
+
+	// Resources contains resource requirements to execute the deployment and any hooks
 	Resources kapi.ResourceRequirements `json:"resources,omitempty" description:"resource requirements to execute the deployment"`
 	// Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
 	Labels map[string]string `json:"labels,omitempty" description:"labels for deployer and hook pods"`
@@ -77,17 +79,20 @@ type RecreateDeploymentStrategyParams struct {
 	// pod is created. All LifecycleHookFailurePolicy values are supported.
 	Mid *LifecycleHook `json:"mid,omitempty" description:"a hook executed after the strategy scales down the deployment and before it scales up"`
 	// Post is a lifecycle hook which is executed after the strategy has
-	// finished all deployment logic. The LifecycleHookFailurePolicyAbort policy
-	// is NOT supported.
+	// finished all deployment logic. All LifecycleHookFailurePolicy values are supported.
 	Post *LifecycleHook `json:"post,omitempty" description:"a hook executed after the strategy finishes the deployment"`
 }
 
-// LifecycleHook defines a specific deployment lifecycle action.
+// LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.
 type LifecycleHook struct {
 	// FailurePolicy specifies what action to take if the hook fails.
 	FailurePolicy LifecycleHookFailurePolicy `json:"failurePolicy" description:"what action to take if the hook fails"`
+
 	// ExecNewPod specifies the options for a lifecycle hook backed by a pod.
 	ExecNewPod *ExecNewPodHook `json:"execNewPod,omitempty" description:"options for an ExecNewPodHook"`
+
+	// TagImages instructs the deployer to tag the current image referenced under a container onto an image stream tag.
+	TagImages []TagImageHook `json:"tagImages,omitempty" description:"a list of image stream tags that should be updated to the latest value on this deployment if the deployment succeeds"`
 }
 
 // LifecycleHookFailurePolicy describes possibles actions to take if a hook fails.
@@ -117,6 +122,15 @@ type ExecNewPodHook struct {
 	// copied to the hook pod. Volumes names not found in pod spec are ignored.
 	// An empty list means no volumes will be copied.
 	Volumes []string `json:"volumes,omitempty" description:"the names of volumes from the pod template which should be included in the hook pod; an empty list means no volumes will be copied, and names not found in the pod spec will be ignored"`
+}
+
+// TagImageHook is a request to tag the image in a particular container onto an ImageStreamTag.
+type TagImageHook struct {
+	// ContainerName is the name of a container in the deployment config whose image value will be used as the source of the tag. If there is only a single
+	// container this value will be defaulted to the name of that container.
+	ContainerName string `json:"containerName" description:"the name of a container in this deployment config whose image will be used as the tag destination; if only one container is defined it will default to that value"`
+	// To is the target ImageStreamTag to set the container's image onto.
+	To kapi.ObjectReference `json:"to" description:"the name of an ImageStreamTag in the current namespace that will be updated with the image value"`
 }
 
 // RollingDeploymentStrategyParams are the input to the Rolling deployment

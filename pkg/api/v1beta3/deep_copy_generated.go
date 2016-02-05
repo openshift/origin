@@ -1760,6 +1760,16 @@ func deepCopy_v1beta3_LifecycleHook(in deployapiv1beta3.LifecycleHook, out *depl
 	} else {
 		out.ExecNewPod = nil
 	}
+	if in.TagImages != nil {
+		out.TagImages = make([]deployapiv1beta3.TagImageHook, len(in.TagImages))
+		for i := range in.TagImages {
+			if err := deepCopy_v1beta3_TagImageHook(in.TagImages[i], &out.TagImages[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.TagImages = nil
+	}
 	return nil
 }
 
@@ -1855,6 +1865,16 @@ func deepCopy_v1beta3_RollingDeploymentStrategyParams(in deployapiv1beta3.Rollin
 		}
 	} else {
 		out.Post = nil
+	}
+	return nil
+}
+
+func deepCopy_v1beta3_TagImageHook(in deployapiv1beta3.TagImageHook, out *deployapiv1beta3.TagImageHook, c *conversion.Cloner) error {
+	out.ContainerName = in.ContainerName
+	if newVal, err := c.DeepCopy(in.To); err != nil {
+		return err
+	} else {
+		out.To = newVal.(pkgapiv1beta3.ObjectReference)
 	}
 	return nil
 }
@@ -3017,6 +3037,7 @@ func init() {
 		deepCopy_v1beta3_LifecycleHook,
 		deepCopy_v1beta3_RecreateDeploymentStrategyParams,
 		deepCopy_v1beta3_RollingDeploymentStrategyParams,
+		deepCopy_v1beta3_TagImageHook,
 		deepCopy_v1beta3_Image,
 		deepCopy_v1beta3_ImageLayer,
 		deepCopy_v1beta3_ImageList,

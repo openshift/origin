@@ -187,7 +187,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	}{
 		{rollingParams(deployapi.LifecycleHookFailurePolicyAbort, ""), true, true},
 		{rollingParams(deployapi.LifecycleHookFailurePolicyAbort, ""), false, false},
-		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), true, false},
+		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), true, true},
 		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), false, false},
 	}
 
@@ -205,10 +205,10 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 			t.Logf("got expected error: %v", err)
 		}
 		if err == nil && tc.deploymentShouldFail {
-			t.Errorf("expected an error for case: %v", tc)
+			t.Errorf("expected an error for case: %#v", tc)
 		}
 		if err != nil && !tc.deploymentShouldFail {
-			t.Errorf("unexpected error for case: %v: %v", tc, err)
+			t.Errorf("unexpected error for case: %#v: %v", tc, err)
 		}
 	}
 }
@@ -246,11 +246,11 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 	}{
 		{rollingParams(deployapi.LifecycleHookFailurePolicyAbort, ""), true, true},
 		{rollingParams(deployapi.LifecycleHookFailurePolicyAbort, ""), false, false},
-		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), true, false},
+		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), true, true},
 		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), false, false},
 	}
 
-	for _, tc := range cases {
+	for i, tc := range cases {
 		config := deploytest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
 		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
@@ -263,10 +263,10 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 			t.Logf("got expected error: %v", err)
 		}
 		if err == nil && tc.deploymentShouldFail {
-			t.Errorf("expected an error for case: %v", tc)
+			t.Errorf("%d: expected an error for case: %v", i, tc)
 		}
 		if err != nil && !tc.deploymentShouldFail {
-			t.Errorf("unexpected error for case: %v: %v", tc, err)
+			t.Errorf("%d: unexpected error for case: %v: %v", i, tc, err)
 		}
 	}
 }

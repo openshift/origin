@@ -294,6 +294,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     sets.NewString("get"),
 					Resources: sets.NewString("pods/log"),
 				},
+				{
+					// Deployer.After.TagImages
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("imagestreamtags"),
+				},
 			},
 		},
 		{

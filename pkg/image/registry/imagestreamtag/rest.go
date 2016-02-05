@@ -137,7 +137,7 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 		istag.ResourceVersion = imageStream.ResourceVersion
 	}
 	if imageStream.ResourceVersion != istag.ResourceVersion {
-		return nil, false, kapierrors.NewConflict("imageStreamTag", istag.Name, fmt.Errorf("another caller has updated the resource version to %s", imageStream.ResourceVersion))
+		return nil, false, kapierrors.NewConflict(api.Resource("imagestreamtags"), istag.Name, fmt.Errorf("another caller has updated the resource version to %s", imageStream.ResourceVersion))
 	}
 
 	// create the synthetic old istag
@@ -220,7 +220,7 @@ func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
 	}
 
 	if notFound {
-		return nil, kapierrors.NewNotFound(api.Resource("imagestreamtag"), tag)
+		return nil, kapierrors.NewNotFound(api.Resource("imagestreamtags"), tag)
 	}
 
 	if _, err = r.imageStreamRegistry.UpdateImageStream(ctx, stream); err != nil {
@@ -234,7 +234,7 @@ func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
 func (r *REST) imageFor(ctx kapi.Context, tag string, imageStream *api.ImageStream) (*api.Image, error) {
 	event := api.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
-		return nil, kapierrors.NewNotFound(api.Resource("imagestreamtag"), api.JoinImageStreamTag(imageStream.Name, tag))
+		return nil, kapierrors.NewNotFound(api.Resource("imagestreamtags"), api.JoinImageStreamTag(imageStream.Name, tag))
 	}
 
 	return r.imageRegistry.GetImage(ctx, event.Image)
@@ -248,7 +248,7 @@ func newISTag(tag string, imageStream *api.ImageStream, image *api.Image, allowE
 	event := api.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
 		if !allowEmptyEvent {
-			return nil, kapierrors.NewNotFound("imagestreamtag", istagName)
+			return nil, kapierrors.NewNotFound(api.Resource("imagestreamtags"), istagName)
 		}
 		event = &api.TagEvent{
 			Created: imageStream.CreationTimestamp,

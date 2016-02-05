@@ -236,8 +236,8 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 	}
 
 	err := strategy.Deploy(nil, deployment, 2)
-	if err != nil {
-		t.Fatalf("unexpected deploy error: %#v", err)
+	if err == nil {
+		t.Fatalf("unexpected non deploy error: %#v", err)
 	}
 	if !hookExecuted {
 		t.Fatalf("expected hook execution")
