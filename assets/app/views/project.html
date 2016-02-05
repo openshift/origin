@@ -8,12 +8,12 @@
         <div class="container-fluid">
           <tasks></tasks>
 
-          <div ng-if="!renderOptions.showGetStarted" class="page-header page-header-bleed-right page-header-bleed-left">
+          <div ng-if="renderOptions.showToolbar" class="page-header page-header-bleed-right page-header-bleed-left">
             <h1 title="{{project | displayName}}">{{project | displayName}}</h1>
           </div>
           <!-- TODO handle things that don't live under services -->
           <alerts alerts="alerts"></alerts>
-          <div ng-if="!renderOptions.showGetStarted" class="data-toolbar">
+          <div ng-if="renderOptions.showToolbar" class="data-toolbar">
             <div class="data-toolbar-filter">
               <project-filter></project-filter>
             </div>
