@@ -470,11 +470,19 @@ func areSecurityContextAndContainerEqual(c *versioned.Container) (bool, []string
 	return equal, issues
 }
 
+func newBool(b bool) *bool {
+	ptr := new(bool)
+	ptr = &b
+	return ptr
+}
+
 func TestDefaultSecurityContextConstraints(t *testing.T) {
 	tests := map[string]struct {
-		scc              *versioned.SecurityContextConstraints
-		expectedFSGroup  versioned.FSGroupStrategyType
-		expectedSupGroup versioned.SupplementalGroupsStrategyType
+		scc                       *versioned.SecurityContextConstraints
+		expectedFSGroup           versioned.FSGroupStrategyType
+		expectedSupGroup          versioned.SupplementalGroupsStrategyType
+		expectedAllowNodeName     bool
+		expectedAllowNodeSelector bool
 	}{
 		"shouldn't default": {
 			scc: &versioned.SecurityContextConstraints{
@@ -484,9 +492,13 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 				SupplementalGroups: versioned.SupplementalGroupsStrategyOptions{
 					Type: versioned.SupplementalGroupsStrategyMustRunAs,
 				},
+				AllowNodeSelector: newBool(false),
+				AllowNodeName:     newBool(false),
 			},
-			expectedFSGroup:  versioned.FSGroupStrategyMustRunAs,
-			expectedSupGroup: versioned.SupplementalGroupsStrategyMustRunAs,
+			expectedFSGroup:           versioned.FSGroupStrategyMustRunAs,
+			expectedSupGroup:          versioned.SupplementalGroupsStrategyMustRunAs,
+			expectedAllowNodeSelector: false,
+			expectedAllowNodeName:     false,
 		},
 		"default fsgroup runAsAny": {
 			scc: &versioned.SecurityContextConstraints{
@@ -497,8 +509,10 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 					Type: versioned.SupplementalGroupsStrategyMustRunAs,
 				},
 			},
-			expectedFSGroup:  versioned.FSGroupStrategyRunAsAny,
-			expectedSupGroup: versioned.SupplementalGroupsStrategyMustRunAs,
+			expectedFSGroup:           versioned.FSGroupStrategyRunAsAny,
+			expectedSupGroup:          versioned.SupplementalGroupsStrategyMustRunAs,
+			expectedAllowNodeSelector: true,
+			expectedAllowNodeName:     true,
 		},
 		"default sup group runAsAny": {
 			scc: &versioned.SecurityContextConstraints{
@@ -509,8 +523,10 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 					Type: versioned.FSGroupStrategyMustRunAs,
 				},
 			},
-			expectedFSGroup:  versioned.FSGroupStrategyMustRunAs,
-			expectedSupGroup: versioned.SupplementalGroupsStrategyRunAsAny,
+			expectedFSGroup:           versioned.FSGroupStrategyMustRunAs,
+			expectedSupGroup:          versioned.SupplementalGroupsStrategyRunAsAny,
+			expectedAllowNodeSelector: true,
+			expectedAllowNodeName:     true,
 		},
 		"default fsgroup runAsAny with mustRunAs UID strat": {
 			scc: &versioned.SecurityContextConstraints{
@@ -521,8 +537,10 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 					Type: versioned.SupplementalGroupsStrategyMustRunAs,
 				},
 			},
-			expectedFSGroup:  versioned.FSGroupStrategyRunAsAny,
-			expectedSupGroup: versioned.SupplementalGroupsStrategyMustRunAs,
+			expectedFSGroup:           versioned.FSGroupStrategyRunAsAny,
+			expectedSupGroup:          versioned.SupplementalGroupsStrategyMustRunAs,
+			expectedAllowNodeSelector: true,
+			expectedAllowNodeName:     true,
 		},
 		"default sup group runAsAny with mustRunAs UID strat": {
 			scc: &versioned.SecurityContextConstraints{
@@ -533,8 +551,28 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 					Type: versioned.FSGroupStrategyMustRunAs,
 				},
 			},
-			expectedFSGroup:  versioned.FSGroupStrategyMustRunAs,
-			expectedSupGroup: versioned.SupplementalGroupsStrategyRunAsAny,
+			expectedFSGroup:           versioned.FSGroupStrategyMustRunAs,
+			expectedSupGroup:          versioned.SupplementalGroupsStrategyRunAsAny,
+			expectedAllowNodeSelector: true,
+			expectedAllowNodeName:     true,
+		},
+		"default all except with AllowNodeSelector disabled": {
+			scc: &versioned.SecurityContextConstraints{
+				AllowNodeSelector: newBool(false),
+			},
+			expectedFSGroup:           versioned.FSGroupStrategyRunAsAny,
+			expectedSupGroup:          versioned.SupplementalGroupsStrategyRunAsAny,
+			expectedAllowNodeSelector: false,
+			expectedAllowNodeName:     true,
+		},
+		"default all except with AllowNodeName disabled": {
+			scc: &versioned.SecurityContextConstraints{
+				AllowNodeName: newBool(false),
+			},
+			expectedFSGroup:           versioned.FSGroupStrategyRunAsAny,
+			expectedSupGroup:          versioned.SupplementalGroupsStrategyRunAsAny,
+			expectedAllowNodeSelector: true,
+			expectedAllowNodeName:     false,
 		},
 	}
 	for k, v := range tests {
@@ -546,6 +584,12 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 		}
 		if scc.SupplementalGroups.Type != v.expectedSupGroup {
 			t.Errorf("%s has invalid supplemental group.  Expected: %v got: %v", k, v.expectedSupGroup, scc.SupplementalGroups.Type)
+		}
+		if *scc.AllowNodeSelector != v.expectedAllowNodeSelector {
+			t.Errorf("%s has invalid AllowNodeSelector. Expected: %t got: %t", k, v.expectedAllowNodeSelector, *scc.AllowNodeSelector)
+		}
+		if *scc.AllowNodeName != v.expectedAllowNodeName {
+			t.Errorf("%s has invalid AllowNodeName. Expected: %t got: %t", k, v.expectedAllowNodeName, *scc.AllowNodeName)
 		}
 	}
 }

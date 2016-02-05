@@ -316,6 +316,16 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 	failHostPortPod := defaultPod()
 	failHostPortPod.Spec.Containers[0].Ports = []api.ContainerPort{{HostPort: 1}}
 
+	failAllowNodeNameSCC := defaultSCC()
+	failAllowNodeNameSCC.AllowNodeName = false
+	failAllowNodeNamePod := defaultPod()
+	failAllowNodeNamePod.Spec.NodeName = "bad node name"
+
+	failAllowNodeSelectorSCC := defaultSCC()
+	failAllowNodeSelectorSCC.AllowNodeSelector = false
+	failAllowNodeSelectorPod := defaultPod()
+	failAllowNodeSelectorPod.Spec.NodeSelector = map[string]string{"badlabel": "badvalue"}
+
 	errorCases := map[string]struct {
 		pod           *api.Pod
 		scc           *api.SecurityContextConstraints
@@ -350,6 +360,16 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 			pod:           failHostPortPod,
 			scc:           defaultSCC(),
 			expectedError: "Host ports are not allowed to be used",
+		},
+		"failAllowNodeNameSCC": {
+			pod:           failAllowNodeNamePod,
+			scc:           failAllowNodeNameSCC,
+			expectedError: "Node Names are not allowed to be used",
+		},
+		"failAllowNodeSelectorSCC": {
+			pod:           failAllowNodeSelectorPod,
+			scc:           failAllowNodeSelectorSCC,
+			expectedError: "Node Selectors are not allowed to be used",
 		},
 	}
 

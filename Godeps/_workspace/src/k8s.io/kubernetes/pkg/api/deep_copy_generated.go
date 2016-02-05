@@ -2113,6 +2113,8 @@ func deepCopy_api_SecurityContextConstraints(in SecurityContextConstraints, out 
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID
 	out.AllowHostIPC = in.AllowHostIPC
+	out.AllowNodeName = in.AllowNodeName
+	out.AllowNodeSelector = in.AllowNodeSelector
 	if err := deepCopy_api_SELinuxContextStrategyOptions(in.SELinuxContext, &out.SELinuxContext, c); err != nil {
 		return err
 	}
