@@ -1,1 +1,2 @@
-<button data-clipboard-text="{{clipboardText}}" class="btn btn-default"><i class="fa fa-clipboard"/></button>
+<button data-clipboard-target="#{{id}}" data-toggle="tooltip" data-placement="top" title="Copy to clipboard" class="btn btn-default"><i class="fa fa-clipboard"/></button>
+<textarea id="{{id}}" class="sr-only">{{clipboardText}}</textarea>

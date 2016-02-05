@@ -431,13 +431,6 @@ module.exports = function (grunt) {
           src: 'fonts/*',
           dest: '<%= yeoman.dist %>/styles'
         },
-        {
-          expand: true,
-          cwd: 'bower_components/zeroclipboard/dist',
-          src: 'ZeroClipboard.swf',
-          dest: '<%= yeoman.dist %>/scripts'
-        },
-
         // Copy separate components
         {
           expand: true,

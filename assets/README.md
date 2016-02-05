@@ -127,7 +127,7 @@ For more details on the expected scope arguments, see the source under [app/scri
 * toggle (attribute) - intended for Bootstrap's data-toggle=tooltip and data-toggle=popover, will automatically initialize any tooltips and popovers
 * alerts (element) - renders a set of alerts according to the [patternfly style](https://www.patternfly.org/widgets/#alerts)
 * relative-timestamp (element) - renders a relative timestamp (ex: '5 minutes ago') based on the current time, auto-updating every 30 seconds
-* copy-to-clipboard (element) - creates a copy to clipboard button using ZeroClipboard
+* copy-to-clipboard (element) - creates a copy to clipboard button using clipboard.js
 * back (attribute) - when the element is clicked a simulated browser back button event occurs (calls history.back)
 * select-on-focus (attribute) - when the element is focused, all text within it will be selected
 * tile-click (attribute or class) - for use with the `.tile` class, when anything on the tile is clicked, a simulated click to the `a.tile-target` link will be fired.  Recommended use is by adding the `.tile-click` class to get the correct styles on hover.
