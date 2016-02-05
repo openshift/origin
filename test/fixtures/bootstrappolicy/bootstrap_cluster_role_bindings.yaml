@@ -70,7 +70,7 @@ items:
   userNames: null
 - apiVersion: v1
   groupNames:
-  - system:humans
+  - system:authenticated:oauth
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
@@ -79,7 +79,7 @@ items:
     name: self-provisioner
   subjects:
   - kind: SystemGroup
-    name: system:humans
+    name: system:authenticated:oauth
   userNames: null
 - apiVersion: v1
   groupNames:

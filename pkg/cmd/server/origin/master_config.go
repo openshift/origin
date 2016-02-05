@@ -317,7 +317,7 @@ func newAuthenticator(config configapi.MasterConfig, etcdHelper storage.Interfac
 
 		authenticators = append(authenticators,
 			// if you have a bearer token, you're a human (usually)
-			group.NewGroupAdder(unionrequest.NewUnionAuthentication(tokenRequestAuthenticators...), []string{bootstrappolicy.HumanGroup}))
+			group.NewGroupAdder(unionrequest.NewUnionAuthentication(tokenRequestAuthenticators...), []string{bootstrappolicy.AuthenticatedOAuthGroup}))
 	}
 
 	if configapi.UseTLS(config.ServingInfo.ServingInfo) {

@@ -35,17 +35,17 @@ const (
 const (
 	UnauthenticatedUsername = "system:anonymous"
 
-	AuthenticatedGroup   = "system:authenticated"
-	UnauthenticatedGroup = "system:unauthenticated"
-	HumanGroup           = "system:humans"
-	ClusterAdminGroup    = "system:cluster-admins"
-	ClusterReaderGroup   = "system:cluster-readers"
-	MastersGroup         = "system:masters"
-	NodesGroup           = "system:nodes"
-	NodeAdminsGroup      = "system:node-admins"
-	NodeReadersGroup     = "system:node-readers"
-	RouterGroup          = "system:routers"
-	RegistryGroup        = "system:registries"
+	AuthenticatedGroup      = "system:authenticated"
+	AuthenticatedOAuthGroup = "system:authenticated:oauth"
+	UnauthenticatedGroup    = "system:unauthenticated"
+	ClusterAdminGroup       = "system:cluster-admins"
+	ClusterReaderGroup      = "system:cluster-readers"
+	MastersGroup            = "system:masters"
+	NodesGroup              = "system:nodes"
+	NodeAdminsGroup         = "system:node-admins"
+	NodeReadersGroup        = "system:node-readers"
+	RouterGroup             = "system:routers"
+	RegistryGroup           = "system:registries"
 )
 
 // Roles
