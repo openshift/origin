@@ -56,7 +56,11 @@ os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'H=h'
 os::cmd::expect_success_and_not_text 'oc env dc/test-deployment-config --list' 'A=a'
 os::cmd::expect_success_and_not_text 'oc env dc/test-deployment-config --list' 'C=c'
 os::cmd::expect_success_and_not_text 'oc env dc/test-deployment-config --list' 'G=g'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config TEST=bar' 'not updated'
+os::cmd::expect_success_and_text 'oc env dc/test-deployment-config BAR-' 'not updated'
 echo "env: ok"
+
+
 os::cmd::expect_success 'oc deploy test-deployment-config'
 os::cmd::expect_success 'oc deploy dc/test-deployment-config'
 os::cmd::expect_success 'oc delete deploymentConfigs test-deployment-config'
