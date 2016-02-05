@@ -1,63 +1,65 @@
 <project-header class="top-header"></project-header>
   <project-page>
     <!-- Middle section -->
-    <div class="middle-section" ng-if="buildConfig">
+    <div class="middle-section">
       <div id="scrollable-content" class="middle-container has-scroll">
         <div class="middle-header">
           <div class="container-fluid">
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <alerts alerts="alerts"></alerts>
             <div ng-if="!loaded">Loading...</div>
-            <h1>
-              {{buildConfig.metadata.name}}
-              <div class="pull-right dropdown">
-                <!-- Primary Actions -->
-                <button
-                    class="btn btn-default hidden-xs"
-                    ng-click="startBuild()"
-                    ng-disabled="!canBuild()">
-                  Start Build
-                </button>
-
-                <!-- Secondary Actions -->
-                <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
-                <ul class="dropdown-menu actions action-button">
-                  <li class="visible-xs-inline" ng-class="{ disabled: !canBuild() }">
-                    <a href=""
-                      role="button"
-                      ng-attr-aria-disabled="{{canBuild() ? undefined : 'true'}}"
-                      ng-class="{ 'disabled-link': !canBuild() }"
+            <div ng-if="buildConfig">
+              <h1>
+                {{buildConfig.metadata.name}}
+                <div class="pull-right dropdown">
+                  <!-- Primary Actions -->
+                  <button
+                      class="btn btn-default hidden-xs"
                       ng-click="startBuild()"
-                    ><i class="fa fa-play fa-fw" aria-hidden="true"></i> Start Build</a>
-                  </li>
-                  <li>
-                    <a ng-href="{{buildConfig | editResourceURL}}" role="button"><i class="fa fa-pencil fa-fw" aria-hidden="true"></i> Edit</a>
-                  </li>
-                  <li>
-                    <edit-link
-                      resource="buildConfig"
-                      kind="buildconfigs"
-                      alerts="alerts">
-                    </edit-link>
-                  </li>
-                  <li>
-                    <delete-link
-                      resource-type="buildconfig"
-                      resource-name="{{buildConfig.metadata.name}}"
-                      project-name="{{buildConfig.metadata.namespace}}"
-                      alerts="alerts">
-                    </delete-link>
-                  </li>
-                </ul>
-              </div>
-              <small class="meta">created <relative-timestamp timestamp="buildConfig.metadata.creationTimestamp"></relative-timestamp></small>
-            </h1>
-            <labels labels="buildConfig.metadata.labels" clickable="true" kind="builds" title-kind="build configs" project-name="{{buildConfig.metadata.namespace}}" limit="3"></labels>
+                      ng-disabled="!canBuild()">
+                    Start Build
+                  </button>
+
+                  <!-- Secondary Actions -->
+                  <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                  <ul class="dropdown-menu actions action-button">
+                    <li class="visible-xs-inline" ng-class="{ disabled: !canBuild() }">
+                      <a href=""
+                        role="button"
+                        ng-attr-aria-disabled="{{canBuild() ? undefined : 'true'}}"
+                        ng-class="{ 'disabled-link': !canBuild() }"
+                        ng-click="startBuild()"
+                      ><i class="fa fa-play fa-fw" aria-hidden="true"></i> Start Build</a>
+                    </li>
+                    <li>
+                      <a ng-href="{{buildConfig | editResourceURL}}" role="button"><i class="fa fa-pencil fa-fw" aria-hidden="true"></i> Edit</a>
+                    </li>
+                    <li>
+                      <edit-link
+                        resource="buildConfig"
+                        kind="buildconfigs"
+                        alerts="alerts">
+                      </edit-link>
+                    </li>
+                    <li>
+                      <delete-link
+                        resource-type="buildconfig"
+                        resource-name="{{buildConfig.metadata.name}}"
+                        project-name="{{buildConfig.metadata.namespace}}"
+                        alerts="alerts">
+                      </delete-link>
+                    </li>
+                  </ul>
+                </div>
+                <small class="meta">created <relative-timestamp timestamp="buildConfig.metadata.creationTimestamp"></relative-timestamp></small>
+              </h1>
+              <labels labels="buildConfig.metadata.labels" clickable="true" kind="builds" title-kind="build configs" project-name="{{buildConfig.metadata.namespace}}" limit="3"></labels>
+            </div>
           </div>
         </div><!-- /middle-header-->
         <div class="middle-content">
           <div class="container-fluid">
-            <div class="row">
+            <div class="row" ng-if="buildConfig">
               <div class="col-md-12">
                 <uib-tabset>
                   <uib-tab>
@@ -124,6 +126,59 @@
 
                       <build-trends-chart builds="builds"></build-trends-chart>
                     </div>
+                    <div ng-if="loaded">
+                      <table class="table table-bordered table-hover table-mobile">
+                        <thead>
+                          <tr>
+                            <th>Build</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                          </tr>
+                        </thead>
+                        <tbody ng-if="(builds | hashSize) == 0">
+                          <tr><td colspan="4" data-title="Build"><em>{{emptyMessage}}</em></td></tr>
+                        </tbody>
+                        <tbody ng-repeat="build in orderedBuilds">
+                          <tr>
+                            <td data-title="Build">
+                              <!-- Build number and link -->
+                              <span ng-if="build | annotation : 'buildNumber'">
+                                <a ng-href="{{build | navigateResourceURL}}">#{{build | annotation : 'buildNumber'}}</a>
+                              </span>
+                              <span ng-if="!(build | annotation : 'buildNumber')">
+                                <a ng-href="{{build | navigateResourceURL}}">{{build.metadata.name}}</a>
+                              </span>
+                              <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
+                            </td>
+                            <td data-title="Status">
+                              <div row class="status">
+                                <status-icon status="build.status.phase" disable-animation></status-icon>
+                                <span flex>
+                                  <span>{{build.status.phase}}</span>
+                                  <!-- Build duration -->
+                                  <span ng-switch="build.status.phase" class="hide-ng-leave">
+                                    <span ng-switch-when="Complete"> in {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
+                                    <span ng-switch-when="Failed">after <span ng-if="!build.status.startTimestamp">waiting </span>{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
+                                    <span ng-switch-when="Cancelled"> after {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
+                                    <span ng-switch-when="Running"> for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
+                                    <span ng-switch-when="New">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
+                                    <span ng-switch-when="Pending">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
+                                    <span ng-switch-default>
+                                      <span ng-if="build.status.startTimestamp"> in {{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+                                      <span ng-if="!build.status.startTimestamp"> waited for {{build.metadata.creationTimestamp | duration : build.status.completionTimestamp}}</span>
+                                    </span>
+                                  </span>
+                                </span>
+                              </div>
+                            </td>
+                            <td data-title="Created">
+                              <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp>
+                              <span>- {{build.metadata.creationTimestamp | date : 'short'}}</span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>                    
                   </uib-tab>
                   <uib-tab>
                     <uib-tab-heading>Configuration</uib-tab-heading>
@@ -263,59 +318,6 @@
                     <em ng-if="!(buildConfig | buildStrategy).env">The build strategy had no environment variables defined.</em>
                   </uib-tab>
                 </uib-tabset>
-                <div ng-if="loaded">
-                  <table class="table table-bordered table-hover table-mobile">
-                    <thead>
-                      <tr>
-                        <th>Build</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                      </tr>
-                    </thead>
-                    <tbody ng-if="(builds | hashSize) == 0">
-                      <tr><td colspan="4" data-title="Build"><em>{{emptyMessage}}</em></td></tr>
-                    </tbody>
-                    <tbody ng-repeat="build in orderedBuilds">
-                      <tr>
-                        <td data-title="Build">
-                          <!-- Build number and link -->
-                          <span ng-if="build | annotation : 'buildNumber'">
-                            <a ng-href="{{build | navigateResourceURL}}">#{{build | annotation : 'buildNumber'}}</a>
-                          </span>
-                          <span ng-if="!(build | annotation : 'buildNumber')">
-                            <a ng-href="{{build | navigateResourceURL}}">{{build.metadata.name}}</a>
-                          </span>
-                          <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
-                        </td>
-                        <td data-title="Status">
-                          <div row class="status">
-                            <status-icon status="build.status.phase" disable-animation></status-icon>
-                            <span flex>
-                              <span>{{build.status.phase}}</span>
-                              <!-- Build duration -->
-                              <span ng-switch="build.status.phase" class="hide-ng-leave">
-                                <span ng-switch-when="Complete"> in {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
-                                <span ng-switch-when="Failed">after <span ng-if="!build.status.startTimestamp">waiting </span>{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
-                                <span ng-switch-when="Cancelled"> after {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
-                                <span ng-switch-when="Running"> for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
-                                <span ng-switch-when="New">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
-                                <span ng-switch-when="Pending">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
-                                <span ng-switch-default>
-                                  <span ng-if="build.status.startTimestamp"> in {{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
-                                  <span ng-if="!build.status.startTimestamp"> waited for {{build.metadata.creationTimestamp | duration : build.status.completionTimestamp}}</span>
-                                </span>
-                              </span>
-                            </span>
-                          </div>
-                        </td>
-                        <td data-title="Created">
-                          <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp>
-                          <span>- {{build.metadata.creationTimestamp | date : 'short'}}</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
               </div><!-- /col-* -->
             </div>
           </div>

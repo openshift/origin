@@ -2,43 +2,45 @@
   <project-page>
 
   <!-- Middle section -->
-  <div class="middle-section" ng-if="imageStream">
+  <div class="middle-section">
     <div id="scrollable-content" class="middle-container has-scroll">
       <div class="middle-header">
         <div class="container-fluid">
           <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
           <alerts alerts="alerts"></alerts>
           <div ng-if="!loaded">Loading...</div>
-          <h1>
-            {{imageStream.metadata.name}}
-            <div class="pull-right dropdown">
-              <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
-              <ul class="dropdown-menu actions action-button">
-                <li>
-                  <edit-link
-                    resource="imageStream"
-                    kind="imagestreams"
-                    alerts="alerts">
-                  </edit-link>
-                </li>
-                <li>
-                  <delete-link
-                    resource-type="imagestream"
-                    resource-name="{{imageStream.metadata.name}}"
-                    project-name="{{imageStream.metadata.namespace}}"
-                    alerts="alerts">
-                  </delete-link>
-                </li>
-              </ul>
-            </div>
-            <small class="meta">created <relative-timestamp timestamp="imageStream.metadata.creationTimestamp"></relative-timestamp></small>
-          </h1>
-          <labels labels="imageStream.metadata.labels" clickable="true" kind="images" project-name="{{imageStream.metadata.namespace}}" limit="3"></labels>
+          <div ng-if="imageStream">
+            <h1>
+              {{imageStream.metadata.name}}
+              <div class="pull-right dropdown">
+                <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                <ul class="dropdown-menu actions action-button">
+                  <li>
+                    <edit-link
+                      resource="imageStream"
+                      kind="imagestreams"
+                      alerts="alerts">
+                    </edit-link>
+                  </li>
+                  <li>
+                    <delete-link
+                      resource-type="imagestream"
+                      resource-name="{{imageStream.metadata.name}}"
+                      project-name="{{imageStream.metadata.namespace}}"
+                      alerts="alerts">
+                    </delete-link>
+                  </li>
+                </ul>
+              </div>
+              <small class="meta">created <relative-timestamp timestamp="imageStream.metadata.creationTimestamp"></relative-timestamp></small>
+            </h1>
+            <labels labels="imageStream.metadata.labels" clickable="true" kind="images" project-name="{{imageStream.metadata.namespace}}" limit="3"></labels>
+          </div>
         </div>
       </div><!-- /middle-header-->
       <div class="middle-content gutter-top">
         <div class="container-fluid">
-          <div class="row">
+          <div class="row" ng-if="imageStream">
             <div class="col-md-12">
               <div class="resource-details">
                 <dl class="dl-horizontal left">
@@ -60,6 +62,9 @@
                       <th>Pull Spec</th>
                     </tr>
                   </thead>
+                  <tbody ng-if="(tagsByName | hashSize) == 0">
+                    <tr><td colspan="5" data-title="Tag"><em>{{emptyMessage}}</em></td></tr>
+                  </tbody>                  
                   <tbody>
                     <tr ng-repeat-start="tag in tagsByName | orderBy : 'name'">
                       <td>{{tag.name}}</td>
