@@ -61,7 +61,7 @@ func TestControllerError(t *testing.T) {
 		actions int
 	}{
 		"not found": {
-			err:     func() error { return errors.NewNotFound("namespace", "test") },
+			err:     func() error { return errors.NewNotFound(kapi.Resource("Namespace"), "test") },
 			errFn:   func(err error) bool { return err == nil },
 			actions: 1,
 		},
@@ -76,7 +76,7 @@ func TestControllerError(t *testing.T) {
 				if a.Matches("get", "namespaces") {
 					return true, &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: "test"}}, nil
 				}
-				return true, (*kapi.Namespace)(nil), errors.NewConflict("namespace", "test", fmt.Errorf("test conflict"))
+				return true, (*kapi.Namespace)(nil), errors.NewConflict(kapi.Resource("namespace"), "test", fmt.Errorf("test conflict"))
 			},
 			errFn: func(err error) bool {
 				return err != nil && strings.Contains(err.Error(), "unable to allocate security info")

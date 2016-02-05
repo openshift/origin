@@ -11,6 +11,7 @@ import (
 
 	v1 "github.com/openshift/origin/pkg/api/v1"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 )
 
@@ -188,12 +189,12 @@ func TestDefaults(t *testing.T) {
 }
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
-	data, err := v1.Codec.Encode(obj)
+	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), obj)
 	if err != nil {
 		t.Errorf("%v\n %#v", err, obj)
 		return nil
 	}
-	obj2, err := kapi.Codec.Decode(data)
+	obj2, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), data)
 	if err != nil {
 		t.Errorf("%v\nData: %s\nSource: %#v", err, string(data), obj)
 		return nil

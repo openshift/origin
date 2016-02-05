@@ -175,7 +175,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	location, transport, err := pod.AttachLocation(h.r.PodGetter, h.r.ConnectionInfo, h.ctx, buildPodName, opts)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil, errors.NewNotFound("pod", buildPodName)
+			return nil, errors.NewNotFound(kapi.Resource("pod"), buildPodName)
 		}
 		return nil, errors.NewBadRequest(err.Error())
 	}

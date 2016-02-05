@@ -8,7 +8,7 @@ import (
 )
 
 func GetPluginConfig(cfg configapi.AdmissionPluginConfig) (string, error) {
-	obj := cfg.Configuration.Object
+	obj := cfg.Configuration
 	if obj == nil {
 		return cfg.Location, nil
 	}

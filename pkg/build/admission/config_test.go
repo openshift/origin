@@ -8,6 +8,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 type TestConfig struct {
@@ -17,22 +20,33 @@ type TestConfig struct {
 	Item2 []string `json:"item2"`
 }
 
-func (*TestConfig) IsAnAPIObject() {}
-
-type TestConfig2 struct {
+type TestConfigV1 struct {
 	unversioned.TypeMeta
-	Item1 string `json:"item1"`
+
+	Item1 string   `json:"item1"`
+	Item2 []string `json:"item2"`
 }
 
-func (*TestConfig2) IsAnAPIObject() {}
+type OtherTestConfig2 struct {
+	unversioned.TypeMeta
+	Thing string `json:"thing"`
+}
+
+type OtherTestConfig2V2 struct {
+	unversioned.TypeMeta
+	Thing string `json:"thing"`
+}
+
+func (obj *TestConfig) GetObjectKind() unversioned.ObjectKind         { return &obj.TypeMeta }
+func (obj *TestConfigV1) GetObjectKind() unversioned.ObjectKind       { return &obj.TypeMeta }
+func (obj *OtherTestConfig2) GetObjectKind() unversioned.ObjectKind   { return &obj.TypeMeta }
+func (obj *OtherTestConfig2V2) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
 
 func TestReadPluginConfig(t *testing.T) {
-	groupVersion := unversioned.GroupVersion{Group: "", Version: ""}
-	v1GroupVersion := unversioned.GroupVersion{Group: "", Version: "v1"}
-	configapi.Scheme.AddKnownTypes(groupVersion, &TestConfig{})
-	configapi.Scheme.AddKnownTypes(v1GroupVersion, &TestConfig{})
-	configapi.Scheme.AddKnownTypes(groupVersion, &TestConfig2{})
-	configapi.Scheme.AddKnownTypes(v1GroupVersion, &TestConfig2{})
+	configapi.Scheme.AddKnownTypes(configapi.SchemeGroupVersion, &TestConfig{})
+	configapi.Scheme.AddKnownTypeWithName(configapiv1.SchemeGroupVersion.WithKind("TestConfig"), &TestConfigV1{})
+	configapi.Scheme.AddKnownTypes(configapi.SchemeGroupVersion, &OtherTestConfig2{})
+	configapi.Scheme.AddKnownTypeWithName(configapiv1.SchemeGroupVersion.WithKind("OtherTestConfig2"), &OtherTestConfig2V2{})
 
 	configString := `apiVersion: v1
 kind: TestConfig
@@ -41,6 +55,7 @@ item2:
 - foo
 - bar
 `
+
 	config := &TestConfig{}
 
 	expected := &TestConfig{
@@ -64,7 +79,7 @@ item2:
 	}
 
 	// Passing the wrong type of destination object should result in an error
-	config2 := &TestConfig2{}
+	config2 := &OtherTestConfig2{}
 	err = ReadPluginConfig(bytes.NewBufferString(configString), config2)
 	if err == nil {
 		t.Fatalf("expected error")

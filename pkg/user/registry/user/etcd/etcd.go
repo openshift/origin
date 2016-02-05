@@ -45,7 +45,7 @@ func NewREST(s storage.Interface) *REST {
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return user.Matcher(label, field)
 		},
-		EndpointName: "users",
+		QualifiedResource: api.Resource("users"),
 
 		Storage: s,
 	}
@@ -62,7 +62,7 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 	if name == "~" {
 		user, ok := kapi.UserFrom(ctx)
 		if !ok || user.GetName() == "" {
-			return nil, kerrs.NewForbidden("user", "~", errors.New("requests to ~ must be authenticated"))
+			return nil, kerrs.NewForbidden(api.Resource("user"), "~", errors.New("requests to ~ must be authenticated"))
 		}
 		name = user.GetName()
 

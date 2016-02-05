@@ -31,7 +31,7 @@ for {{var "j"}} := 0; {{var "j"}} < {{var "l"}}; {{var "j"}}++ {
 	}{{ end }}{{if decElemKindPtr}}
 	{{var "ms"}} = true{{end}}
 	if {{var "mg"}} {
-		{{if decElemKindPtr}}{{var "mv"}}, {{var "mok"}} = {{var "v"}}[{{var "mk"}}]
+		{{if decElemKindPtr}}{{var "mv"}}, {{var "mok"}} = {{var "v"}}[{{var "mk"}}] 
 		if {{var "mok"}} {
 			{{var "ms"}} = false
 		} {{else}}{{var "mv"}} = {{var "v"}}[{{var "mk"}}] {{end}}
@@ -51,7 +51,7 @@ for {{var "j"}} := 0; !r.CheckBreak(); {{var "j"}}++ {
 	}{{ end }}{{if decElemKindPtr}}
 	{{var "ms"}} = true {{ end }}
 	if {{var "mg"}} {
-		{{if decElemKindPtr}}{{var "mv"}}, {{var "mok"}} = {{var "v"}}[{{var "mk"}}]
+		{{if decElemKindPtr}}{{var "mv"}}, {{var "mok"}} = {{var "v"}}[{{var "mk"}}] 
 		if {{var "mok"}} {
 			{{var "ms"}} = false
 		} {{else}}{{var "mv"}} = {{var "v"}}[{{var "mk"}}] {{end}}
@@ -116,7 +116,7 @@ if {{var "l"}} == 0 {
 	} {{if isSlice }} else if {{var "l"}} != len({{var "v"}}) {
 		{{var "v"}} = {{var "v"}}[:{{var "l"}}]
 		{{var "c"}} = true
-	} {{end}}	{{/* end isSlice:47 */}}
+	} {{end}}	{{/* end isSlice:47 */}} 
 	{{var "j"}} := 0
 	for ; {{var "j"}} < {{var "rr"}} ; {{var "j"}}++ {
 		{{var "h"}}.ElemContainerState({{var "j"}})
@@ -165,7 +165,7 @@ if {{var "l"}} == 0 {
 	}{{end}}
 }
 {{var "h"}}.End()
-{{if not isArray }}if {{var "c"}} {
+{{if not isArray }}if {{var "c"}} { 
 	*{{ .Varname }} = {{var "v"}}
 }{{end}}
 `

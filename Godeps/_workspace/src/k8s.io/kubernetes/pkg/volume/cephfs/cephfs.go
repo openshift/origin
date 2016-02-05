@@ -23,8 +23,8 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/mount"
+	"k8s.io/kubernetes/pkg/util/strings"
 	"k8s.io/kubernetes/pkg/volume"
 )
 
@@ -43,8 +43,9 @@ const (
 	cephfsPluginName = "kubernetes.io/cephfs"
 )
 
-func (plugin *cephfsPlugin) Init(host volume.VolumeHost) {
+func (plugin *cephfsPlugin) Init(host volume.VolumeHost) error {
 	plugin.host = host
+	return nil
 }
 
 func (plugin *cephfsPlugin) Name() string {
@@ -154,20 +155,19 @@ var _ volume.Builder = &cephfsBuilder{}
 
 func (cephfsVolume *cephfsBuilder) GetAttributes() volume.Attributes {
 	return volume.Attributes{
-		ReadOnly:                    cephfsVolume.readonly,
-		Managed:                     false,
-		SupportsOwnershipManagement: false,
-		SupportsSELinux:             false,
+		ReadOnly:        cephfsVolume.readonly,
+		Managed:         false,
+		SupportsSELinux: false,
 	}
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.
-func (cephfsVolume *cephfsBuilder) SetUp() error {
-	return cephfsVolume.SetUpAt(cephfsVolume.GetPath())
+func (cephfsVolume *cephfsBuilder) SetUp(fsGroup *int64) error {
+	return cephfsVolume.SetUpAt(cephfsVolume.GetPath(), fsGroup)
 }
 
 // SetUpAt attaches the disk and bind mounts to the volume path.
-func (cephfsVolume *cephfsBuilder) SetUpAt(dir string) error {
+func (cephfsVolume *cephfsBuilder) SetUpAt(dir string, fsGroup *int64) error {
 	notMnt, err := cephfsVolume.mounter.IsLikelyNotMountPoint(dir)
 	glog.V(4).Infof("CephFS mount set up: %s %v %v", dir, !notMnt, err)
 	if err != nil && !os.IsNotExist(err) {
@@ -208,7 +208,7 @@ func (cephfsVolume *cephfsCleaner) TearDownAt(dir string) error {
 // GatePath creates global mount path
 func (cephfsVolume *cephfs) GetPath() string {
 	name := cephfsPluginName
-	return cephfsVolume.plugin.host.GetPodVolumeDir(cephfsVolume.podUID, util.EscapeQualifiedNameForDisk(name), cephfsVolume.volName)
+	return cephfsVolume.plugin.host.GetPodVolumeDir(cephfsVolume.podUID, strings.EscapeQualifiedNameForDisk(name), cephfsVolume.volName)
 }
 
 func (cephfsVolume *cephfs) cleanup(dir string) error {

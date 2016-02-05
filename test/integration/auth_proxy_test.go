@@ -11,7 +11,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	ktransport "k8s.io/kubernetes/pkg/client/transport"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
@@ -32,7 +31,7 @@ var (
 func TestAuthProxyOnAuthorize(t *testing.T) {
 	idp := configapi.IdentityProvider{}
 	idp.Name = "front-proxy"
-	idp.Provider = runtime.EmbeddedObject{&configapi.RequestHeaderIdentityProvider{Headers: []string{"X-Remote-User"}}}
+	idp.Provider = &configapi.RequestHeaderIdentityProvider{Headers: []string{"X-Remote-User"}}
 	idp.MappingMethod = "claim"
 
 	masterConfig, err := testserver.DefaultMasterOptions()

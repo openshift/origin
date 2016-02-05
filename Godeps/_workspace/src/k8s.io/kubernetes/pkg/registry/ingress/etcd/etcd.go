@@ -39,7 +39,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 
 	newListFunc := func() runtime.Object { return &extensions.IngressList{} }
 	storageInterface := storageDecorator(
-		s, 100, &extensions.Ingress{}, prefix, false, newListFunc)
+		s, 100, &extensions.Ingress{}, prefix, ingress.Strategy, newListFunc)
 
 	store := &etcdgeneric.Etcd{
 		NewFunc: func() runtime.Object { return &extensions.Ingress{} },
@@ -64,7 +64,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return ingress.MatchIngress(label, field)
 		},
-		EndpointName: "ingresses",
+		QualifiedResource: extensions.Resource("ingresses"),
 
 		// Used to validate controller creation
 		CreateStrategy: ingress.Strategy,

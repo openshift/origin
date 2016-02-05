@@ -7,7 +7,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -74,9 +73,7 @@ func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurat
 	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = plugins
 	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 		"RunOnceDuration": {
-			Configuration: runtime.EmbeddedObject{
-				Object: pluginConfig,
-			},
+			Configuration: pluginConfig,
 		},
 	}
 	kubeConfigFile, err := testserver.StartConfiguredMaster(masterConfig)

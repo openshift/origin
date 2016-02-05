@@ -33,7 +33,7 @@ import (
 func TestDeepCopyApiObjects(t *testing.T) {
 	for i := 0; i < *fuzzIters; i++ {
 		for _, version := range []unversioned.GroupVersion{testapi.Default.InternalGroupVersion(), *testapi.Default.GroupVersion()} {
-			f := apitesting.FuzzerFor(t, version.String(), rand.NewSource(rand.Int63()))
+			f := apitesting.FuzzerFor(t, version, rand.NewSource(rand.Int63()))
 			for kind := range api.Scheme.KnownTypes(version) {
 				doDeepCopyTest(t, version.WithKind(kind), f)
 			}
@@ -54,14 +54,14 @@ func doDeepCopyTest(t *testing.T, kind unversioned.GroupVersionKind, f *fuzz.Fuz
 	}
 
 	if !reflect.DeepEqual(item, itemCopy) {
-		t.Errorf("\nexpected: %#v\n\ngot:      %#v\n\ndiff:      %v", item, itemCopy, util.ObjectDiff(item, itemCopy))
+		t.Errorf("\nexpected: %#v\n\ngot:      %#v\n\ndiff:      %v", item, itemCopy, util.ObjectGoPrintSideBySide(item, itemCopy))
 	}
 }
 
 func TestDeepCopySingleType(t *testing.T) {
 	for i := 0; i < *fuzzIters; i++ {
 		for _, version := range []unversioned.GroupVersion{testapi.Default.InternalGroupVersion(), *testapi.Default.GroupVersion()} {
-			f := apitesting.FuzzerFor(t, version.String(), rand.NewSource(rand.Int63()))
+			f := apitesting.FuzzerFor(t, version, rand.NewSource(rand.Int63()))
 			doDeepCopyTest(t, version.WithKind("Pod"), f)
 		}
 	}

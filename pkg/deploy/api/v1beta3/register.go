@@ -1,19 +1,24 @@
 package v1beta3
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
+const GroupName = ""
+
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: "v1beta3"}
+var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: "v1beta3"}
 
-// Codec encodes internal objects to the v1beta3 scheme
-var Codec = runtime.CodecFor(api.Scheme, SchemeGroupVersion.String())
+func AddToScheme(scheme *runtime.Scheme) {
+	addKnownTypes(scheme)
+	addDefaultingFuncs(scheme)
+	addConversionFuncs(scheme)
+}
 
-func init() {
-	api.Scheme.AddKnownTypes(SchemeGroupVersion,
+// Adds the list of known types to api.Scheme.
+func addKnownTypes(scheme *runtime.Scheme) {
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&DeploymentConfig{},
 		&DeploymentConfigList{},
 		&DeploymentConfigRollback{},
@@ -22,8 +27,8 @@ func init() {
 	)
 }
 
-func (*DeploymentConfig) IsAnAPIObject()         {}
-func (*DeploymentConfigList) IsAnAPIObject()     {}
-func (*DeploymentConfigRollback) IsAnAPIObject() {}
-func (*DeploymentLog) IsAnAPIObject()            {}
-func (*DeploymentLogOptions) IsAnAPIObject()     {}
+func (obj *DeploymentConfig) GetObjectKind() unversioned.ObjectKind         { return &obj.TypeMeta }
+func (obj *DeploymentConfigList) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
+func (obj *DeploymentConfigRollback) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *DeploymentLog) GetObjectKind() unversioned.ObjectKind            { return &obj.TypeMeta }
+func (obj *DeploymentLogOptions) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }

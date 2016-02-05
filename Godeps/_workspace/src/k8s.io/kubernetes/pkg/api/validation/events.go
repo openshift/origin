@@ -20,10 +20,10 @@ import (
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	apiutil "k8s.io/kubernetes/pkg/api/util"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 )
@@ -37,25 +37,17 @@ func ValidateEvent(event *api.Event) field.ErrorList {
 	// Todo: Events may reference 3rd party object, and we can't check whether the object is namespaced.
 	// Suppose them are namespaced. Do check if we can get the piece of information.
 	// This should apply to all groups served by this apiserver.
-	group := apiutil.GetGroup(event.InvolvedObject.APIVersion)
-	version := apiutil.GetVersion(event.InvolvedObject.APIVersion)
-	if (group == "" || group == "extensions") && (version != "extensions" && version != "") {
-		namespacedKindFlag, err := isNamespacedKind(event.InvolvedObject.Kind, event.InvolvedObject.APIVersion)
-		if err != nil {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("involvedObject", "kind"), event.InvolvedObject.Kind, fmt.Sprintf("couldn't check whether namespace is allowed: %s", err)))
-		} else {
-			if !namespacedKindFlag &&
-				event.Namespace != api.NamespaceDefault &&
-				event.Namespace != "" {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("involvedObject", "namespace"), event.InvolvedObject.Namespace, fmt.Sprintf("not allowed for %s", event.InvolvedObject.Kind)))
-			}
-			if namespacedKindFlag &&
-				event.Namespace != event.InvolvedObject.Namespace {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("involvedObject", "namespace"), event.InvolvedObject.Namespace, "does not match involvedObject"))
-			}
-		}
+	namespacedKindFlag, err := isNamespacedKind(event.InvolvedObject.Kind, event.InvolvedObject.APIVersion)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("involvedObject", "kind"), event.InvolvedObject.Kind, fmt.Sprintf("couldn't check whether namespace is allowed: %s", err)))
 	} else {
-		if event.Namespace != event.InvolvedObject.Namespace {
+		if !namespacedKindFlag &&
+			event.Namespace != api.NamespaceDefault &&
+			event.Namespace != "" {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("involvedObject", "namespace"), event.InvolvedObject.Namespace, fmt.Sprintf("not allowed for %s", event.InvolvedObject.Kind)))
+		}
+		if namespacedKindFlag &&
+			event.Namespace != event.InvolvedObject.Namespace {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("involvedObject", "namespace"), event.InvolvedObject.Namespace, "does not match involvedObject"))
 		}
 	}
@@ -69,7 +61,7 @@ func ValidateEvent(event *api.Event) field.ErrorList {
 // Check whether the kind in groupVersion is scoped at the root of the api hierarchy
 func isNamespacedKind(kind, groupVersion string) (bool, error) {
 	group := apiutil.GetGroup(groupVersion)
-	g, err := latest.Group(group)
+	g, err := registered.Group(group)
 	if err != nil {
 		return false, err
 	}

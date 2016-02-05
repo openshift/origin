@@ -63,7 +63,7 @@ func (p *ProjectOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args [
 	p.Out = out
 	p.Mapper = mapper
 	p.Typer = typer
-	p.RESTClientFactory = f.Factory.RESTClient
+	p.RESTClientFactory = f.Factory.ClientForMapping
 	p.ProjectNames = []string{}
 	if len(args) != 0 {
 		p.ProjectNames = append(p.ProjectNames, args...)
@@ -97,7 +97,7 @@ func (p *ProjectOptions) GetProjects() ([]*api.Project, error) {
 		nameArgs = append(nameArgs, p.ProjectNames...)
 	}
 
-	r := resource.NewBuilder(p.Mapper, p.Typer, resource.ClientMapperFunc(p.RESTClientFactory)).
+	r := resource.NewBuilder(p.Mapper, p.Typer, resource.ClientMapperFunc(p.RESTClientFactory), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(p.DefaultNamespace).
 		SelectorParam(p.Selector).

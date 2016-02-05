@@ -27,9 +27,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/openstack"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/mount"
+	"k8s.io/kubernetes/pkg/util/strings"
 	"k8s.io/kubernetes/pkg/volume"
 )
 
@@ -51,8 +51,9 @@ const (
 	cinderVolumePluginName = "kubernetes.io/cinder"
 )
 
-func (plugin *cinderPlugin) Init(host volume.VolumeHost) {
+func (plugin *cinderPlugin) Init(host volume.VolumeHost) error {
 	plugin.host = host
+	return nil
 }
 
 func (plugin *cinderPlugin) Name() string {
@@ -96,7 +97,7 @@ func (plugin *cinderPlugin) newBuilderInternal(spec *volume.Spec, podUID types.U
 		},
 		fsType:             fsType,
 		readOnly:           readOnly,
-		blockDeviceMounter: &cinderSafeFormatAndMount{mounter, exec.New()}}, nil
+		blockDeviceMounter: &mount.SafeFormatAndMount{mounter, exec.New()}}, nil
 }
 
 func (plugin *cinderPlugin) NewCleaner(volName string, podUID types.UID) (volume.Cleaner, error) {
@@ -180,7 +181,7 @@ type cinderVolumeBuilder struct {
 	*cinderVolume
 	fsType             string
 	readOnly           bool
-	blockDeviceMounter mount.Interface
+	blockDeviceMounter *mount.SafeFormatAndMount
 }
 
 // cinderPersistentDisk volumes are disk resources provided by C3
@@ -215,19 +216,18 @@ func detachDiskLogError(cd *cinderVolume) {
 
 func (b *cinderVolumeBuilder) GetAttributes() volume.Attributes {
 	return volume.Attributes{
-		ReadOnly:                    b.readOnly,
-		Managed:                     !b.readOnly,
-		SupportsOwnershipManagement: true,
-		SupportsSELinux:             true,
+		ReadOnly:        b.readOnly,
+		Managed:         !b.readOnly,
+		SupportsSELinux: true,
 	}
 }
 
-func (b *cinderVolumeBuilder) SetUp() error {
-	return b.SetUpAt(b.GetPath())
+func (b *cinderVolumeBuilder) SetUp(fsGroup *int64) error {
+	return b.SetUpAt(b.GetPath(), fsGroup)
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.
-func (b *cinderVolumeBuilder) SetUpAt(dir string) error {
+func (b *cinderVolumeBuilder) SetUpAt(dir string, fsGroup *int64) error {
 	// TODO: handle failed mounts here.
 	notmnt, err := b.mounter.IsLikelyNotMountPoint(dir)
 	glog.V(4).Infof("PersistentDisk set up: %s %v %v", dir, !notmnt, err)
@@ -283,6 +283,10 @@ func (b *cinderVolumeBuilder) SetUpAt(dir string) error {
 		return err
 	}
 
+	if !b.readOnly {
+		volume.SetVolumeOwnership(b, fsGroup)
+	}
+
 	return nil
 }
 
@@ -292,7 +296,7 @@ func makeGlobalPDName(host volume.VolumeHost, devName string) string {
 
 func (cd *cinderVolume) GetPath() string {
 	name := cinderVolumePluginName
-	return cd.plugin.host.GetPodVolumeDir(cd.podUID, util.EscapeQualifiedNameForDisk(name), cd.volName)
+	return cd.plugin.host.GetPodVolumeDir(cd.podUID, strings.EscapeQualifiedNameForDisk(name), cd.volName)
 }
 
 type cinderVolumeCleaner struct {
@@ -353,7 +357,7 @@ var _ volume.Deleter = &cinderVolumeDeleter{}
 
 func (r *cinderVolumeDeleter) GetPath() string {
 	name := cinderVolumePluginName
-	return r.plugin.host.GetPodVolumeDir(r.podUID, util.EscapeQualifiedNameForDisk(name), r.volName)
+	return r.plugin.host.GetPodVolumeDir(r.podUID, strings.EscapeQualifiedNameForDisk(name), r.volName)
 }
 
 func (r *cinderVolumeDeleter) Delete() error {

@@ -34,6 +34,11 @@ import (
 	_ "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/v1"
 	_ "github.com/openshift/origin/pkg/api/v1beta3"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 
 var (
@@ -61,7 +66,7 @@ func main() {
 
 	knownGroupVersion := unversioned.GroupVersion{Group: *group, Version: *version}
 	if knownGroupVersion.Version == "api" {
-		knownGroupVersion = api.Scheme.Raw().InternalVersions[knownGroupVersion.Group]
+		knownGroupVersion.Version = pkg_runtime.APIVersionInternal
 	}
 	generator := pkg_runtime.NewDeepCopyGenerator(api.Scheme.Raw(), "github.com/openshift/origin/pkg/api", sets.NewString("github.com/openshift/origin"))
 	apiShort := generator.AddImport("k8s.io/kubernetes/pkg/api")

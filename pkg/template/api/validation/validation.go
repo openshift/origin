@@ -16,7 +16,7 @@ var parameterNameExp = regexp.MustCompile(`^[a-zA-Z0-9\_]+$`)
 // ValidateParameter tests if required fields in the Parameter are set.
 func ValidateParameter(param *api.Parameter, fldPath *field.Path) (allErrs field.ErrorList) {
 	if len(param.Name) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("name")))
+		allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 		return
 	}
 	if !parameterNameExp.MatchString(param.Name) {

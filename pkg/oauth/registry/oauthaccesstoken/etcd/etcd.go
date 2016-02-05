@@ -5,7 +5,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -49,8 +48,7 @@ func NewREST(s storage.Interface, backends ...storage.Interface) *REST {
 			expires := uint64(token.ExpiresIn)
 			return expires, nil
 		},
-
-		EndpointName: "oauthaccesstokens",
+		QualifiedResource: api.Resource("oauthaccesstokens"),
 
 		Storage: s,
 	}
@@ -88,7 +86,7 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 	return r.store.Get(ctx, name)
 }
 
-func (r *REST) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
 	return r.store.List(ctx, options)
 }
 

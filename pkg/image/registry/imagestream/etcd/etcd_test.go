@@ -14,6 +14,9 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 const (

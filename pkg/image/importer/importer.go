@@ -314,7 +314,7 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 		case err == reference.ErrReferenceInvalidFormat:
 			err = field.Invalid(field.NewPath("from", "name"), repository.Name, "the provided repository name is not valid")
 		case isDockerError(err, v2.ErrorCodeNameUnknown):
-			err = kapierrors.NewNotFound("DockerImage", repository.Ref.Exact())
+			err = kapierrors.NewNotFound(api.Resource("dockerimage"), repository.Ref.Exact())
 		case isDockerError(err, errcode.ErrorCodeUnauthorized):
 			err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
 		case strings.Contains(err.Error(), "tls: oversized record received with length") && !repository.Insecure:
@@ -335,7 +335,7 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 		glog.V(5).Infof("unable to access manifests for repository %#v: %#v", repository, err)
 		switch {
 		case isDockerError(err, v2.ErrorCodeNameUnknown):
-			err = kapierrors.NewNotFound("DockerImage", repository.Ref.Exact())
+			err = kapierrors.NewNotFound(api.Resource("dockerimage"), repository.Ref.Exact())
 		case isDockerError(err, errcode.ErrorCodeUnauthorized):
 			err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
 		case strings.HasSuffix(err.Error(), "no basic auth credentials"):
@@ -352,7 +352,7 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 			glog.V(5).Infof("unable to access tags for repository %#v: %#v", repository, err)
 			switch {
 			case isDockerError(err, v2.ErrorCodeNameUnknown):
-				err = kapierrors.NewNotFound("DockerImage", repository.Ref.Exact())
+				err = kapierrors.NewNotFound(api.Resource("dockerimage"), repository.Ref.Exact())
 			case isDockerError(err, errcode.ErrorCodeUnauthorized):
 				err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
 			}
@@ -399,7 +399,7 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 			case isDockerError(err, v2.ErrorCodeManifestUnknown):
 				ref := repository.Ref
 				ref.Tag, ref.ID = "", importDigest.Name
-				err = kapierrors.NewNotFound("DockerImage", ref.Exact())
+				err = kapierrors.NewNotFound(api.Resource("dockerimage"), ref.Exact())
 			case isDockerError(err, errcode.ErrorCodeUnauthorized):
 				err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
 			case strings.HasSuffix(err.Error(), "no basic auth credentials"):
@@ -432,7 +432,7 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 			case isDockerError(err, v2.ErrorCodeManifestUnknown):
 				ref := repository.Ref
 				ref.Tag = importTag.Name
-				err = kapierrors.NewNotFound("DockerImage", ref.Exact())
+				err = kapierrors.NewNotFound(api.Resource("dockerimage"), ref.Exact())
 			case isDockerError(err, errcode.ErrorCodeUnauthorized):
 				err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
 			case strings.HasSuffix(err.Error(), "no basic auth credentials"):
@@ -456,14 +456,14 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepository, limiter util.RateLimiter) {
 	value := ctx.Value(ContextKeyV1RegistryClient)
 	if value == nil {
-		err := kapierrors.NewForbidden("", "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host)).(*kapierrors.StatusError)
+		err := kapierrors.NewForbidden(api.Resource(""), "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host)).(*kapierrors.StatusError)
 		err.ErrStatus.Reason = "NotV2Registry"
 		applyErrorToRepository(repository, err)
 		return
 	}
 	client, ok := value.(dockerregistry.Client)
 	if !ok {
-		err := kapierrors.NewForbidden("", "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host)).(*kapierrors.StatusError)
+		err := kapierrors.NewForbidden(api.Resource(""), "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host)).(*kapierrors.StatusError)
 		err.ErrStatus.Reason = "NotV2Registry"
 		return
 	}
@@ -592,7 +592,7 @@ func imageImportStatus(err error, kind, position string) unversioned.Status {
 	case kapierrors.APIStatus:
 		return t.Status()
 	case *field.Error:
-		return kapierrors.NewInvalid(kind, position, field.ErrorList{t}).(kapierrors.APIStatus).Status()
+		return kapierrors.NewInvalid(api.Kind(kind), position, field.ErrorList{t}).(kapierrors.APIStatus).Status()
 	default:
 		return kapierrors.NewInternalError(err).(kapierrors.APIStatus).Status()
 	}
@@ -603,7 +603,7 @@ func setImageImportStatus(images *api.ImageStreamImport, i int, err error) {
 }
 
 func invalidStatus(position string, errs ...*field.Error) unversioned.Status {
-	return kapierrors.NewInvalid("", position, errs).(kapierrors.APIStatus).Status()
+	return kapierrors.NewInvalid(api.Kind(""), position, errs).(kapierrors.APIStatus).Status()
 }
 
 // NewContext is capable of creating RepositoryRetrievers.

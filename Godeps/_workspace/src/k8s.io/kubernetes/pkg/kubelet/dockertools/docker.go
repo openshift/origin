@@ -38,10 +38,9 @@ import (
 )
 
 const (
-	PodInfraContainerName  = leaky.PodInfraContainerName
-	DockerPrefix           = "docker://"
-	PodInfraContainerImage = "gcr.io/google_containers/pause:2.0"
-	LogSuffix              = "log"
+	PodInfraContainerName = leaky.PodInfraContainerName
+	DockerPrefix          = "docker://"
+	LogSuffix             = "log"
 )
 
 const (
@@ -276,7 +275,7 @@ func getDockerClient(dockerEndpoint string) (*docker.Client, error) {
 func ConnectToDockerOrDie(dockerEndpoint string) DockerInterface {
 	if dockerEndpoint == "fake://" {
 		return &FakeDockerClient{
-			VersionInfo: docker.Env{"ApiVersion=1.18"},
+			VersionInfo: docker.Env{"ApiVersion=1.18", "Version=1.6.0"},
 		}
 	}
 	client, err := getDockerClient(dockerEndpoint)

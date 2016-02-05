@@ -81,7 +81,7 @@ func TestConflictingNamespace(t *testing.T) {
 	if err == nil {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
-	if e, a := "namespace: invalid value 'foo', Details: namespace must be: bar", err.Error(); e != a {
+	if e, a := `namespace: Invalid value: "foo": namespace must be: bar`, err.Error(); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 }

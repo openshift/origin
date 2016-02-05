@@ -11,6 +11,9 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client/testclient"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestGroupReaper(t *testing.T) {

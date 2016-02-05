@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/openshift/origin/pkg/api/latest"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
@@ -37,7 +39,7 @@ func isPersonalAccessReviewFromRequest(a AuthorizationAttributes, req *http.Requ
 	}
 	req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
-	obj, err := latest.Codec.Decode(body)
+	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), body)
 	if err != nil {
 		return false, err
 	}

@@ -3,8 +3,8 @@ package v1
 import (
 	"sort"
 
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -131,8 +131,11 @@ func convert_api_ResourceAccessReviewResponse_To_v1_ResourceAccessReviewResponse
 }
 
 func convert_v1_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
-	if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
+	if err := oapi.Convert_runtime_RawExtension_To_runtime_Object(&in.AttributeRestrictions, out.AttributeRestrictions, s); err != nil {
 		return err
+	}
+	if in.AttributeRestrictions.Object != nil {
+		out.AttributeRestrictions = in.AttributeRestrictions.Object
 	}
 
 	out.APIGroups = in.APIGroups
@@ -151,7 +154,7 @@ func convert_v1_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRu
 }
 
 func convert_api_PolicyRule_To_v1_PolicyRule(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
-	if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
+	if err := oapi.Convert_runtime_Object_To_runtime_RawExtension(in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
 		return err
 	}
 
@@ -269,8 +272,8 @@ func convert_api_ClusterPolicyBinding_To_v1_ClusterPolicyBinding(in *newer.Clust
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
-func init() {
-	err := api.Scheme.AddConversionFuncs(
+func addConversionFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddConversionFuncs(
 		func(in *[]NamedRole, out *map[string]*newer.Role, s conversion.Scope) error {
 			for _, curr := range *in {
 				newRole := &newer.Role{}
@@ -428,37 +431,37 @@ func init() {
 		panic(err)
 	}
 
-	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "ClusterPolicy",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "ClusterPolicy",
 		oapi.GetFieldLabelConversionFunc(newer.ClusterPolicyToSelectableFields(&newer.ClusterPolicy{}), nil),
 	); err != nil {
 		panic(err)
 	}
 
-	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "ClusterPolicyBinding",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "ClusterPolicyBinding",
 		oapi.GetFieldLabelConversionFunc(newer.ClusterPolicyBindingToSelectableFields(&newer.ClusterPolicyBinding{}), nil),
 	); err != nil {
 		panic(err)
 	}
 
-	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "Policy",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "Policy",
 		oapi.GetFieldLabelConversionFunc(newer.PolicyToSelectableFields(&newer.Policy{}), nil),
 	); err != nil {
 		panic(err)
 	}
 
-	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "PolicyBinding",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "PolicyBinding",
 		oapi.GetFieldLabelConversionFunc(newer.PolicyBindingToSelectableFields(&newer.PolicyBinding{}), nil),
 	); err != nil {
 		panic(err)
 	}
 
-	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "Role",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "Role",
 		oapi.GetFieldLabelConversionFunc(newer.RoleToSelectableFields(&newer.Role{}), nil),
 	); err != nil {
 		panic(err)
 	}
 
-	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "RoleBinding",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "RoleBinding",
 		oapi.GetFieldLabelConversionFunc(newer.RoleBindingToSelectableFields(&newer.RoleBinding{}), nil),
 	); err != nil {
 		panic(err)

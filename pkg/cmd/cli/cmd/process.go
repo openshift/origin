@@ -128,7 +128,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		mapping *meta.RESTMapping
 	)
 
-	gvk, err := mapper.KindFor("template")
+	gvk, err := mapper.KindFor(api.SchemeGroupVersion.WithResource("template"))
 	if mapping, err = mapper.RESTMapping(gvk.GroupKind(), gvk.Version); err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		templateObj.CreationTimestamp = unversioned.Now()
 		infos = append(infos, &resource.Info{Object: templateObj})
 	} else {
-		infos, err = resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+		infos, err = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 			NamespaceParam(namespace).RequireNamespace().
 			FilenameParam(explicit, filename).
 			Do().

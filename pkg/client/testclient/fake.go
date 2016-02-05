@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 )
 
@@ -27,7 +26,7 @@ type Fake struct {
 
 // NewSimpleFake returns a client that will respond with the provided objects
 func NewSimpleFake(objects ...runtime.Object) *Fake {
-	o := ktestclient.NewObjects(kapi.Scheme, kapi.Scheme)
+	o := ktestclient.NewObjects(kapi.Scheme, kapi.Codecs.UniversalDecoder())
 	for _, obj := range objects {
 		if err := o.Add(obj); err != nil {
 			panic(err)
@@ -35,7 +34,7 @@ func NewSimpleFake(objects ...runtime.Object) *Fake {
 	}
 
 	fakeClient := &Fake{}
-	fakeClient.AddReactor("*", "*", ktestclient.ObjectReaction(o, latest.RESTMapper))
+	fakeClient.AddReactor("*", "*", ktestclient.ObjectReaction(o, kapi.RESTMapper))
 
 	return fakeClient
 }

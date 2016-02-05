@@ -35,9 +35,9 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
@@ -52,8 +52,10 @@ import (
 	deploymentutil "k8s.io/kubernetes/pkg/util/deployment"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/version"
 	"k8s.io/kubernetes/pkg/watch"
 
+	"github.com/blang/semver"
 	"github.com/davecgh/go-spew/spew"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/websocket"
@@ -106,6 +108,14 @@ const (
 	endpointRegisterTimeout  = time.Minute
 )
 
+// SubResource proxy should have been functional in v1.0.0, but SubResource
+// proxy via tunneling is known to be broken in v1.0.  See
+// https://github.com/kubernetes/kubernetes/pull/15224#issuecomment-146769463
+//
+// TODO(ihmccreery): remove once we don't care about v1.0 anymore, (tentatively
+// in v1.3).
+var subResourceProxyVersion = version.MustParse("v1.1.0")
+
 type CloudConfig struct {
 	ProjectID         string
 	Zone              string
@@ -119,6 +129,9 @@ type CloudConfig struct {
 	Provider cloudprovider.Interface
 }
 
+// unique identifier of the e2e run
+var runId = util.NewUUID()
+
 type TestContextType struct {
 	KubeConfig            string
 	KubeContext           string
@@ -129,6 +142,7 @@ type TestContextType struct {
 	CloudConfig           CloudConfig
 	KubectlPath           string
 	OutputDir             string
+	ReportDir             string
 	prefix                string
 	MinStartupPods        int
 	UpgradeTarget         string
@@ -140,6 +154,9 @@ type TestContextType struct {
 	// It will read the data every 30 seconds from all Nodes and print summary during afterEach.
 	GatherKubeSystemResourceUsageData bool
 	GatherLogsSizes                   bool
+	GatherMetricsAfterTest            bool
+	// Currently supported values are 'hr' for human-readable and 'json'. It's a comma separated list.
+	OutputPrintType string
 }
 
 var testContext TestContextType
@@ -509,6 +526,10 @@ func waitForPodCondition(c *client.Client, ns, podName, desc string, timeout tim
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(poll) {
 		pod, err := c.Pods(ns).Get(podName)
 		if err != nil {
+			if apierrs.IsNotFound(err) {
+				Logf("Pod %q in namespace %q disappeared. Error: %v", podName, ns, err)
+				return err
+			}
 			// Aligning this text makes it much more readable
 			Logf("Get pod %[1]s in namespace '%[2]s' failed, ignoring for %[3]v. Error: %[4]v",
 				podName, ns, poll, err)
@@ -554,11 +575,17 @@ func waitForPersistentVolumePhase(phase api.PersistentVolumePhase, c *client.Cli
 
 // createTestingNS should be used by every test, note that we append a common prefix to the provided test name.
 // Please see NewFramework instead of using this directly.
-func createTestingNS(baseName string, c *client.Client) (*api.Namespace, error) {
+func createTestingNS(baseName string, c *client.Client, labels map[string]string) (*api.Namespace, error) {
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels["e2e-run"] = string(runId)
+
 	namespaceObj := &api.Namespace{
 		ObjectMeta: api.ObjectMeta{
 			GenerateName: fmt.Sprintf("e2e-tests-%v-", baseName),
 			Namespace:    "",
+			Labels:       labels,
 		},
 		Status: api.NamespaceStatus{},
 	}
@@ -699,6 +726,22 @@ func waitForPodNotPending(c *client.Client, ns, podName string) error {
 			Logf("Saw pod '%s' in namespace '%s' out of pending state (found '%q')", podName, ns, pod.Status.Phase)
 			return true, nil
 		}
+		return false, nil
+	})
+}
+
+// waitForPodTerminatedInNamespace returns an error if it took too long for the pod
+// to terminate or if the pod terminated with an unexpected reason.
+func waitForPodTerminatedInNamespace(c *client.Client, podName, reason, namespace string) error {
+	return waitForPodCondition(c, namespace, podName, "terminated due to deadline exceeded", podStartTimeout, func(pod *api.Pod) (bool, error) {
+		if pod.Status.Phase == api.PodFailed {
+			if pod.Status.Reason == reason {
+				return true, nil
+			} else {
+				return true, fmt.Errorf("Expected pod %n/%n to be terminated with reason %v, got reason: ", namespace, podName, reason, pod.Status.Reason)
+			}
+		}
+
 		return false, nil
 	})
 }
@@ -890,13 +933,28 @@ func (r podResponseChecker) checkAllResponses() (done bool, err error) {
 		if !isElementOf(pod.UID, currentPods) {
 			return false, fmt.Errorf("pod with UID %s is no longer a member of the replica set.  Must have been restarted for some reason.  Current replica set: %v", pod.UID, currentPods)
 		}
-		body, err := r.c.Get().
-			Namespace(r.ns).
-			Resource("pods").
-			SubResource("proxy").
-			Name(string(pod.Name)).
-			Do().
-			Raw()
+		subResourceProxyAvailable, err := serverVersionGTE(subResourceProxyVersion, r.c)
+		if err != nil {
+			return false, err
+		}
+		var body []byte
+		if subResourceProxyAvailable {
+			body, err = r.c.Get().
+				Namespace(r.ns).
+				Resource("pods").
+				SubResource("proxy").
+				Name(string(pod.Name)).
+				Do().
+				Raw()
+		} else {
+			body, err = r.c.Get().
+				Prefix("proxy").
+				Namespace(r.ns).
+				Resource("pods").
+				Name(string(pod.Name)).
+				Do().
+				Raw()
+		}
 		if err != nil {
 			Logf("Controller %s: Failed to GET from replica %d [%s]: %v:", r.controllerName, i+1, pod.Name, err)
 			continue
@@ -929,6 +987,22 @@ func (r podResponseChecker) checkAllResponses() (done bool, err error) {
 		return false, nil
 	}
 	return true, nil
+}
+
+// serverVersionGTE returns true if v is greater than or equal to the server
+// version.
+//
+// TODO(18726): This should be incorporated into client.VersionInterface.
+func serverVersionGTE(v semver.Version, c client.ServerVersionInterface) (bool, error) {
+	serverVersion, err := c.ServerVersion()
+	if err != nil {
+		return false, fmt.Errorf("Unable to get server version: %v", err)
+	}
+	sv, err := version.Parse(serverVersion.GitVersion)
+	if err != nil {
+		return false, fmt.Errorf("Unable to parse server version %q: %v", serverVersion.GitVersion, err)
+	}
+	return sv.GTE(v), nil
 }
 
 func podsResponding(c *client.Client, ns, name string, wantName bool, pods *api.PodList) error {
@@ -1019,7 +1093,7 @@ func cleanup(filePath string, ns string, selectors ...string) {
 	if ns != "" {
 		nsArg = fmt.Sprintf("--namespace=%s", ns)
 	}
-	runKubectlOrDie("stop", "--grace-period=0", "-f", filePath, nsArg)
+	runKubectlOrDie("delete", "--grace-period=0", "-f", filePath, nsArg)
 
 	for _, selector := range selectors {
 		resources := runKubectlOrDie("get", "rc,svc", "-l", selector, "--no-headers", nsArg)
@@ -1136,12 +1210,18 @@ func kubectlCmd(args ...string) *exec.Cmd {
 // kubectlBuilder is used to build, custimize and execute a kubectl Command.
 // Add more functions to customize the builder as needed.
 type kubectlBuilder struct {
-	cmd *exec.Cmd
+	cmd     *exec.Cmd
+	timeout <-chan time.Time
 }
 
 func newKubectlCommand(args ...string) *kubectlBuilder {
 	b := new(kubectlBuilder)
 	b.cmd = kubectlCmd(args...)
+	return b
+}
+
+func (b *kubectlBuilder) withTimeout(t <-chan time.Time) *kubectlBuilder {
+	b.timeout = t
 	return b
 }
 
@@ -1167,8 +1247,21 @@ func (b kubectlBuilder) exec() (string, error) {
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 
 	Logf("Running '%s %s'", cmd.Path, strings.Join(cmd.Args[1:], " ")) // skip arg[0] as it is printed separately
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("Error running %v:\nCommand stdout:\n%v\nstderr:\n%v\n", cmd, cmd.Stdout, cmd.Stderr)
+	if err := cmd.Start(); err != nil {
+		return "", fmt.Errorf("Error starting %v:\nCommand stdout:\n%v\nstderr:\n%v\nerror:\n%v\n", cmd, cmd.Stdout, cmd.Stderr, err)
+	}
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- cmd.Wait()
+	}()
+	select {
+	case err := <-errCh:
+		if err != nil {
+			return "", fmt.Errorf("Error running %v:\nCommand stdout:\n%v\nstderr:\n%v\nerror:\n%v\n", cmd, cmd.Stdout, cmd.Stderr, err)
+		}
+	case <-b.timeout:
+		b.cmd.Process.Kill()
+		return "", fmt.Errorf("Timed out waiting for command %v:\nCommand stdout:\n%v\nstderr:\n%v\n", cmd, cmd.Stdout, cmd.Stderr)
 	}
 	Logf("stdout: %q", stdout.String())
 	Logf("stderr: %q", stderr.String())
@@ -1262,23 +1355,13 @@ func testContainerOutputMatcher(scenarioName string,
 
 	By(fmt.Sprintf("Trying to get logs from node %s pod %s container %s: %v",
 		podStatus.Spec.NodeName, podStatus.Name, containerName, err))
-	var logs []byte
+	var logs string
 	start := time.Now()
 
 	// Sometimes the actual containers take a second to get started, try to get logs for 60s
 	for time.Now().Sub(start) < (60 * time.Second) {
 		err = nil
-		logs, err = c.Get().
-			Resource("pods").
-			Namespace(ns).
-			Name(pod.Name).
-			SubResource("log").
-			Param("container", containerName).
-			Do().
-			Raw()
-		if err == nil && strings.Contains(string(logs), "Internal Error") {
-			err = fmt.Errorf("Fetched log contains \"Internal Error\": %q.", string(logs))
-		}
+		logs, err = getPodLogs(c, ns, pod.Name, containerName)
 		if err != nil {
 			By(fmt.Sprintf("Warning: Failed to get logs from node %q pod %q container %q. %v",
 				podStatus.Spec.NodeName, podStatus.Name, containerName, err))
@@ -1286,12 +1369,12 @@ func testContainerOutputMatcher(scenarioName string,
 			continue
 
 		}
-		By(fmt.Sprintf("Successfully fetched pod logs:%v\n", string(logs)))
+		By(fmt.Sprintf("Successfully fetched pod logs:%v\n", logs))
 		break
 	}
 
 	for _, m := range expectedOutput {
-		Expect(string(logs)).To(matcher(m), "%q in container output", m)
+		Expect(logs).To(matcher(m), "%q in container output", m)
 	}
 }
 
@@ -1661,6 +1744,7 @@ func dumpAllPodInfo(c *client.Client) {
 }
 
 func dumpAllNodeInfo(c *client.Client) {
+	// It should be OK to list unschedulable Nodes here.
 	nodes, err := c.Nodes().List(api.ListOptions{})
 	if err != nil {
 		Logf("unable to fetch node list: %v", err)
@@ -1722,6 +1806,21 @@ func getNodeEvents(c *client.Client, nodeName string) []api.Event {
 		return []api.Event{}
 	}
 	return events.Items
+}
+
+// Convenient wrapper around listing nodes supporting retries.
+func ListSchedulableNodesOrDie(c *client.Client) *api.NodeList {
+	var nodes *api.NodeList
+	var err error
+	if wait.PollImmediate(poll, singleCallTimeout, func() (bool, error) {
+		nodes, err = c.Nodes().List(api.ListOptions{FieldSelector: fields.Set{
+			"spec.unschedulable": "false",
+		}.AsSelector()})
+		return err == nil, nil
+	}) != nil {
+		expectNoError(err, "Timed out while listing nodes for e2e cluster.")
+	}
+	return nodes
 }
 
 func ScaleRC(c *client.Client, ns, name string, size uint, wait bool) error {
@@ -1870,9 +1969,11 @@ func waitForDeploymentStatus(c *client.Client, ns, deploymentName string, desire
 			return false, err
 		}
 		if totalCreated > maxCreated {
+			logRCsOfDeployment(deploymentName, oldRCs, newRC)
 			return false, fmt.Errorf("total pods created: %d, more than the max allowed: %d", totalCreated, maxCreated)
 		}
 		if totalAvailable < minAvailable {
+			logRCsOfDeployment(deploymentName, oldRCs, newRC)
 			return false, fmt.Errorf("total pods available: %d, less than the min required: %d", totalAvailable, minAvailable)
 		}
 
@@ -1880,15 +1981,24 @@ func waitForDeploymentStatus(c *client.Client, ns, deploymentName string, desire
 			deployment.Status.UpdatedReplicas == desiredUpdatedReplicas {
 			// Verify RCs.
 			if deploymentutil.GetReplicaCountForRCs(oldRCs) != 0 {
+				logRCsOfDeployment(deploymentName, oldRCs, newRC)
 				return false, fmt.Errorf("old RCs are not fully scaled down")
 			}
 			if deploymentutil.GetReplicaCountForRCs([]*api.ReplicationController{newRC}) != desiredUpdatedReplicas {
-				return false, fmt.Errorf("new RCs is not fully scaled up")
+				logRCsOfDeployment(deploymentName, oldRCs, newRC)
+				return false, fmt.Errorf("new RC is not fully scaled up")
 			}
 			return true, nil
 		}
 		return false, nil
 	})
+}
+
+func logRCsOfDeployment(deploymentName string, oldRCs []*api.ReplicationController, newRC *api.ReplicationController) {
+	for i := range oldRCs {
+		Logf("Old RCs (%d/%d) of deployment %s: %+v", i+1, len(oldRCs), deploymentName, oldRCs[i])
+	}
+	Logf("New RC of deployment %s: %+v", deploymentName, newRC)
 }
 
 // Waits for the number of events on the given object to reach a desired count.
@@ -1910,21 +2020,19 @@ func waitForEvents(c *client.Client, ns string, objOrRef runtime.Object, desired
 	})
 }
 
-// Convenient wrapper around listing nodes supporting retries.
-func listNodes(c *client.Client, label labels.Selector, field fields.Selector) (*api.NodeList, error) {
-	var nodes *api.NodeList
-	var errLast error
-	if wait.PollImmediate(poll, singleCallTimeout, func() (bool, error) {
-		options := api.ListOptions{
-			LabelSelector: label,
-			FieldSelector: field,
+// Waits for the number of events on the given object to be at least a desired count.
+func waitForPartialEvents(c *client.Client, ns string, objOrRef runtime.Object, atLeastEventsCount int) error {
+	return wait.Poll(poll, 5*time.Minute, func() (bool, error) {
+		events, err := c.Events(ns).Search(objOrRef)
+		if err != nil {
+			return false, fmt.Errorf("error in listing events: %s", err)
 		}
-		nodes, errLast = c.Nodes().List(options)
-		return errLast == nil, nil
-	}) != nil {
-		return nil, fmt.Errorf("listNodes() failed with last error: %v", errLast)
-	}
-	return nodes, nil
+		eventsCount := len(events.Items)
+		if eventsCount >= atLeastEventsCount {
+			return true, nil
+		}
+		return false, nil
+	})
 }
 
 // FailedContainers inspects all containers in a pod and returns failure
@@ -2008,6 +2116,7 @@ func NodeAddresses(nodelist *api.NodeList, addrType api.NodeAddressType) []strin
 // if it can't find an external IP for every node, though it still returns all
 // hosts that it found in that case.
 func NodeSSHHosts(c *client.Client) ([]string, error) {
+	// It should be OK to list unschedulable Nodes here.
 	nodelist, err := c.Nodes().List(api.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error getting nodes: %v", err)
@@ -2099,7 +2208,7 @@ func NewHostExecPodSpec(ns, name string) *api.Pod {
 	pod := &api.Pod{
 		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Pod",
-			APIVersion: latest.GroupOrDie("").GroupVersion.Version,
+			APIVersion: registered.GroupOrDie(api.GroupName).GroupVersion.String(),
 		},
 		ObjectMeta: api.ObjectMeta{
 			Name:      name,
@@ -2215,16 +2324,19 @@ func waitForNodeToBeNotReady(c *client.Client, name string, timeout time.Duratio
 
 func isNodeConditionSetAsExpected(node *api.Node, conditionType api.NodeConditionType, wantTrue bool) bool {
 	// Check the node readiness condition (logging all).
-	for i, cond := range node.Status.Conditions {
-		Logf("Node %s condition %d/%d: type: %v, status: %v, reason: %q, message: %q, last transition time: %v",
-			node.Name, i+1, len(node.Status.Conditions), cond.Type, cond.Status,
-			cond.Reason, cond.Message, cond.LastTransitionTime)
+	for _, cond := range node.Status.Conditions {
 		// Ensure that the condition type and the status matches as desired.
-		if cond.Type == conditionType && (cond.Status == api.ConditionTrue) == wantTrue {
-			Logf("Successfully found condition %s of node %s to be %t", conditionType, node.Name, wantTrue)
-			return true
+		if cond.Type == conditionType {
+			if (cond.Status == api.ConditionTrue) == wantTrue {
+				return true
+			} else {
+				Logf("Condition %s of node %s is %v instead of %t. Reason: %v, message: %v",
+					conditionType, node.Name, cond.Status == api.ConditionTrue, wantTrue, cond.Reason, cond.Message)
+				return false
+			}
 		}
 	}
+	Logf("Couldn't find condition %v on node %v", conditionType, node.Name)
 	return false
 }
 
@@ -2256,6 +2368,7 @@ func allNodesReady(c *client.Client, timeout time.Duration) error {
 	var notReady []api.Node
 	err := wait.PollImmediate(poll, timeout, func() (bool, error) {
 		notReady = nil
+		// It should be OK to list unschedulable Nodes here.
 		nodes, err := c.Nodes().List(api.ListOptions{})
 		if err != nil {
 			return false, err
@@ -2373,9 +2486,12 @@ func waitForApiserverUp(c *client.Client) error {
 }
 
 // waitForClusterSize waits until the cluster has desired size and there is no not-ready nodes in it.
+// By cluster size we mean number of Nodes excluding Master Node.
 func waitForClusterSize(c *client.Client, size int, timeout time.Duration) error {
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(20 * time.Second) {
-		nodes, err := c.Nodes().List(api.ListOptions{})
+		nodes, err := c.Nodes().List(api.ListOptions{FieldSelector: fields.Set{
+			"spec.unschedulable": "false",
+		}.AsSelector()})
 		if err != nil {
 			Logf("Failed to list nodes: %v", err)
 			continue
@@ -2569,6 +2685,7 @@ func getNodePortURL(client *client.Client, ns, name string, svcPort int) (string
 	if err != nil {
 		return "", err
 	}
+	// It should be OK to list unschedulable Node here.
 	nodes, err := client.Nodes().List(api.ListOptions{})
 	if err != nil {
 		return "", err
@@ -2604,4 +2721,31 @@ func scaleRCByName(client *client.Client, ns, name string, replicas uint) error 
 		return waitForPodsWithLabelRunning(
 			client, ns, labels.SelectorFromSet(labels.Set(rc.Spec.Selector)))
 	}
+}
+
+func getPodLogs(c *client.Client, namespace, podName, containerName string) (string, error) {
+	return getPodLogsInternal(c, namespace, podName, containerName, false)
+}
+
+func getPreviousPodLogs(c *client.Client, namespace, podName, containerName string) (string, error) {
+	return getPodLogsInternal(c, namespace, podName, containerName, true)
+}
+
+// utility function for gomega Eventually
+func getPodLogsInternal(c *client.Client, namespace, podName, containerName string, previous bool) (string, error) {
+	logs, err := c.Get().
+		Resource("pods").
+		Namespace(namespace).
+		Name(podName).SubResource("log").
+		Param("container", containerName).
+		Param("previous", strconv.FormatBool(previous)).
+		Do().
+		Raw()
+	if err != nil {
+		return "", err
+	}
+	if err == nil && strings.Contains(string(logs), "Internal Error") {
+		return "", fmt.Errorf("Fetched log contains \"Internal Error\": %q.", string(logs))
+	}
+	return string(logs), err
 }

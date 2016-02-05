@@ -47,7 +47,7 @@ func NewREST(s storage.Interface) *REST {
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return image.MatchImage(label, field)
 		},
-		EndpointName: "images",
+		QualifiedResource: api.Resource("images"),
 
 		// Used to validate image creation
 		CreateStrategy: image.Strategy,

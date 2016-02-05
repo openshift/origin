@@ -69,7 +69,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	if errs := validation.ValidateDeploymentConfigRollback(rollback); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("DeploymentConfigRollback", "", errs)
+		return nil, kerrors.NewInvalid(deployapi.Kind("DeploymentConfigRollback"), "", errs)
 	}
 
 	// Roll back "from" the current deployment "to" a target deployment
@@ -105,5 +105,5 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 func newInvalidDeploymentError(rollback *deployapi.DeploymentConfigRollback, reason string) error {
 	err := field.Invalid(field.NewPath("spec").Child("from").Child("name"), rollback.Spec.From.Name, reason)
-	return kerrors.NewInvalid("DeploymentConfigRollback", "", field.ErrorList{err})
+	return kerrors.NewInvalid(deployapi.Kind("DeploymentConfigRollback"), "", field.ErrorList{err})
 }

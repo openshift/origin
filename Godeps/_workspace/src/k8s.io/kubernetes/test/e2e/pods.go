@@ -466,6 +466,86 @@ var _ = Describe("Pods", func() {
 		Logf("Pod update OK")
 	})
 
+	It("should allow activeDeadlineSeconds to be updated [Conformance]", func() {
+		podClient := framework.Client.Pods(framework.Namespace.Name)
+
+		By("creating the pod")
+		name := "pod-update-activedeadlineseconds-" + string(util.NewUUID())
+		value := strconv.Itoa(time.Now().Nanosecond())
+		pod := &api.Pod{
+			ObjectMeta: api.ObjectMeta{
+				Name: name,
+				Labels: map[string]string{
+					"name": "foo",
+					"time": value,
+				},
+			},
+			Spec: api.PodSpec{
+				Containers: []api.Container{
+					{
+						Name:  "nginx",
+						Image: "gcr.io/google_containers/nginx:1.7.9",
+						Ports: []api.ContainerPort{{ContainerPort: 80}},
+						LivenessProbe: &api.Probe{
+							Handler: api.Handler{
+								HTTPGet: &api.HTTPGetAction{
+									Path: "/index.html",
+									Port: intstr.FromInt(8080),
+								},
+							},
+							InitialDelaySeconds: 30,
+						},
+					},
+				},
+			},
+		}
+
+		By("submitting the pod to kubernetes")
+		defer func() {
+			By("deleting the pod")
+			podClient.Delete(pod.Name, api.NewDeleteOptions(0))
+		}()
+		pod, err := podClient.Create(pod)
+		if err != nil {
+			Failf("Failed to create pod: %v", err)
+		}
+
+		expectNoError(framework.WaitForPodRunning(pod.Name))
+
+		By("verifying the pod is in kubernetes")
+		selector := labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
+		options := api.ListOptions{LabelSelector: selector}
+		pods, err := podClient.List(options)
+		Expect(len(pods.Items)).To(Equal(1))
+
+		// Standard get, update retry loop
+		expectNoError(wait.Poll(time.Millisecond*500, time.Second*30, func() (bool, error) {
+			By("updating the pod")
+			value = strconv.Itoa(time.Now().Nanosecond())
+			if pod == nil { // on retries we need to re-get
+				pod, err = podClient.Get(name)
+				if err != nil {
+					return false, fmt.Errorf("failed to get pod: %v", err)
+				}
+			}
+			newDeadline := int64(5)
+			pod.Spec.ActiveDeadlineSeconds = &newDeadline
+			pod, err = podClient.Update(pod)
+			if err == nil {
+				Logf("Successfully updated pod")
+				return true, nil
+			}
+			if errors.IsConflict(err) {
+				Logf("Conflicting update to pod, re-get and re-update: %v", err)
+				pod = nil // re-get it when we retry
+				return false, nil
+			}
+			return false, fmt.Errorf("failed to update pod: %v", err)
+		}))
+
+		expectNoError(framework.WaitForPodTerminated(pod.Name, "DeadlineExceeded"))
+	})
+
 	It("should contain environment variables for services [Conformance]", func() {
 		// Make a pod that will be a service.
 		// This pod serves its hostname via HTTP.
@@ -635,7 +715,8 @@ var _ = Describe("Pods", func() {
 		}, 1, defaultObservationTimeout)
 	})
 
-	It("should have monotonically increasing restart count [Conformance]", func() {
+	// Slow by design (5 min)
+	It("should have monotonically increasing restart count [Conformance] [Slow]", func() {
 		runLivenessTest(framework.Client, framework.Namespace.Name, &api.Pod{
 			ObjectMeta: api.ObjectMeta{
 				Name:   "liveness-http",
@@ -896,7 +977,7 @@ var _ = Describe("Pods", func() {
 		}
 	})
 
-	It("should not back-off restarting a container on LivenessProbe failure", func() {
+	It("should not back-off restarting a container on LivenessProbe failure [Serial]", func() {
 		podClient := framework.Client.Pods(framework.Namespace.Name)
 		podName := "pod-back-off-liveness"
 		containerName := "back-off-liveness"
@@ -936,7 +1017,8 @@ var _ = Describe("Pods", func() {
 		}
 	})
 
-	It("should cap back-off at MaxContainerBackOff", func() {
+	// Slow issue #19027 (20 mins)
+	It("should cap back-off at MaxContainerBackOff [Slow]", func() {
 		podClient := framework.Client.Pods(framework.Namespace.Name)
 		podName := "back-off-cap"
 		containerName := "back-off-cap"

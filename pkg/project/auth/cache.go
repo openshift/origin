@@ -6,7 +6,6 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -210,7 +209,7 @@ func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.S
 
 // synchronizePolicyBindings synchronizes access over each policy binding
 func (ac *AuthorizationCache) synchronizePolicyBindings(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
-	policyBindingList, err := ac.policyClient.ReadOnlyPolicyBindings(kapi.NamespaceAll).List(&unversioned.ListOptions{})
+	policyBindingList, err := ac.policyClient.ReadOnlyPolicyBindings(kapi.NamespaceAll).List(&kapi.ListOptions{})
 	if err != nil {
 		util.HandleError(err)
 		return

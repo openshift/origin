@@ -37,7 +37,7 @@ func (m *VirtualStorage) NewList() runtime.Object {
 	return &authorizationapi.RoleList{}
 }
 
-func (m *VirtualStorage) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+func (m *VirtualStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
 	policyList, err := m.PolicyStorage.ListPolicies(ctx, options)
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (m *VirtualStorage) List(ctx kapi.Context, options *unversioned.ListOptions
 func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 	policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName)
 	if err != nil && kapierrors.IsNotFound(err) {
-		return nil, kapierrors.NewNotFound("Role", name)
+		return nil, kapierrors.NewNotFound(authorizationapi.Resource("role"), name)
 	}
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 
 	role, exists := policy.Roles[name]
 	if !exists {
-		return nil, kapierrors.NewNotFound("Role", name)
+		return nil, kapierrors.NewNotFound(authorizationapi.Resource("role"), name)
 	}
 
 	return role, nil
@@ -79,14 +79,14 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
 	policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName)
 	if err != nil && kapierrors.IsNotFound(err) {
-		return nil, kapierrors.NewNotFound("Role", name)
+		return nil, kapierrors.NewNotFound(authorizationapi.Resource("role"), name)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	if _, exists := policy.Roles[name]; !exists {
-		return nil, kapierrors.NewNotFound("Role", name)
+		return nil, kapierrors.NewNotFound(authorizationapi.Resource("role"), name)
 	}
 
 	delete(policy.Roles, name)
@@ -110,7 +110,7 @@ func (m *VirtualStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.O
 		return nil, err
 	}
 	if _, exists := policy.Roles[role.Name]; exists {
-		return nil, kapierrors.NewAlreadyExists("Role", role.Name)
+		return nil, kapierrors.NewAlreadyExists(authorizationapi.Resource("role"), role.Name)
 	}
 
 	role.ResourceVersion = policy.ResourceVersion
@@ -141,14 +141,14 @@ func (m *VirtualStorage) Update(ctx kapi.Context, obj runtime.Object) (runtime.O
 
 	policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName)
 	if err != nil && kapierrors.IsNotFound(err) {
-		return nil, false, kapierrors.NewNotFound("Role", role.Name)
+		return nil, false, kapierrors.NewNotFound(authorizationapi.Resource("role"), role.Name)
 	}
 	if err != nil {
 		return nil, false, err
 	}
 
 	if _, exists := policy.Roles[role.Name]; !exists {
-		return nil, false, kapierrors.NewNotFound("Role", role.Name)
+		return nil, false, kapierrors.NewNotFound(authorizationapi.Resource("role"), role.Name)
 	}
 
 	role.ResourceVersion = policy.ResourceVersion

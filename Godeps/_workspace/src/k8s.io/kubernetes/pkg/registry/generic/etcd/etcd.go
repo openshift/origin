@@ -18,6 +18,7 @@ package etcd
 
 import (
 	"fmt"
+	"reflect"
 
 	"k8s.io/kubernetes/pkg/api"
 	kubeerr "k8s.io/kubernetes/pkg/api/errors"
@@ -62,7 +63,7 @@ type Etcd struct {
 	NewListFunc func() runtime.Object
 
 	// Used for error reporting
-	EndpointName string
+	QualifiedResource unversioned.GroupResource
 
 	// Used for listing/watching; should not include trailing "/"
 	KeyRootFunc func(ctx api.Context) string
@@ -103,6 +104,8 @@ type Etcd struct {
 	// If true, return the object that was deleted. Otherwise, return a generic
 	// success status response.
 	ReturnDeletedObject bool
+	// Allows extended behavior during export, optional
+	ExportStrategy rest.RESTExportStrategy
 
 	// Used for all etcd access functions
 	Storage storage.Interface
@@ -159,35 +162,35 @@ func (e *Etcd) NewList() runtime.Object {
 }
 
 // List returns a list of items matching labels and field
-func (e *Etcd) List(ctx api.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+func (e *Etcd) List(ctx api.Context, options *api.ListOptions) (runtime.Object, error) {
 	label := labels.Everything()
-	if options != nil && options.LabelSelector.Selector != nil {
-		label = options.LabelSelector.Selector
+	if options != nil && options.LabelSelector != nil {
+		label = options.LabelSelector
 	}
 	field := fields.Everything()
-	if options != nil && options.FieldSelector.Selector != nil {
-		field = options.FieldSelector.Selector
+	if options != nil && options.FieldSelector != nil {
+		field = options.FieldSelector
 	}
 	return e.ListPredicate(ctx, e.PredicateFunc(label, field), options)
 }
 
 // ListPredicate returns a list of all the items matching m.
-func (e *Etcd) ListPredicate(ctx api.Context, m generic.Matcher, options *unversioned.ListOptions) (runtime.Object, error) {
+func (e *Etcd) ListPredicate(ctx api.Context, m generic.Matcher, options *api.ListOptions) (runtime.Object, error) {
 	list := e.NewListFunc()
 	filterFunc := e.filterAndDecorateFunction(m)
 	if name, ok := m.MatchesSingle(); ok {
 		if key, err := e.KeyFunc(ctx, name); err == nil {
 			err := e.Storage.GetToList(ctx, key, filterFunc, list)
-			return list, etcderr.InterpretListError(err, e.EndpointName)
+			return list, etcderr.InterpretListError(err, e.QualifiedResource)
 		}
 		// if we cannot extract a key based on the current context, the optimization is skipped
 	}
 
 	if options == nil {
-		options = &unversioned.ListOptions{ResourceVersion: "0"}
+		options = &api.ListOptions{ResourceVersion: "0"}
 	}
 	err := e.Storage.List(ctx, e.KeyRootFunc(ctx), options.ResourceVersion, filterFunc, list)
-	return list, etcderr.InterpretListError(err, e.EndpointName)
+	return list, etcderr.InterpretListError(err, e.QualifiedResource)
 }
 
 // Create inserts a new item according to the unique key from the object.
@@ -209,7 +212,7 @@ func (e *Etcd) Create(ctx api.Context, obj runtime.Object) (runtime.Object, erro
 	}
 	out := e.NewFunc()
 	if err := e.Storage.Create(ctx, key, obj, out, ttl); err != nil {
-		err = etcderr.InterpretCreateError(err, e.EndpointName, name)
+		err = etcderr.InterpretCreateError(err, e.QualifiedResource, name)
 		err = rest.CheckGeneratedNameError(e.CreateStrategy, err, obj)
 		return nil, err
 	}
@@ -256,7 +259,7 @@ func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool
 		}
 		if version == 0 {
 			if !e.UpdateStrategy.AllowCreateOnUpdate() {
-				return nil, nil, kubeerr.NewNotFound(e.EndpointName, name)
+				return nil, nil, kubeerr.NewNotFound(e.QualifiedResource, name)
 			}
 			creating = true
 			if err := rest.BeforeCreate(e.CreateStrategy, ctx, obj); err != nil {
@@ -283,7 +286,7 @@ func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool
 				return nil, nil, err
 			}
 			if newVersion != version {
-				return nil, nil, kubeerr.NewConflict(e.EndpointName, name, fmt.Errorf("the object has been modified; please apply your changes to the latest version and try again"))
+				return nil, nil, kubeerr.NewConflict(e.QualifiedResource, name, fmt.Errorf("the object has been modified; please apply your changes to the latest version and try again"))
 			}
 		}
 		if err := rest.BeforeUpdate(e.UpdateStrategy, ctx, obj, existing); err != nil {
@@ -301,10 +304,10 @@ func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool
 
 	if err != nil {
 		if creating {
-			err = etcderr.InterpretCreateError(err, e.EndpointName, name)
+			err = etcderr.InterpretCreateError(err, e.QualifiedResource, name)
 			err = rest.CheckGeneratedNameError(e.CreateStrategy, err, obj)
 		} else {
-			err = etcderr.InterpretUpdateError(err, e.EndpointName, name)
+			err = etcderr.InterpretUpdateError(err, e.QualifiedResource, name)
 		}
 		return nil, false, err
 	}
@@ -337,7 +340,7 @@ func (e *Etcd) Get(ctx api.Context, name string) (runtime.Object, error) {
 		return nil, err
 	}
 	if err := e.Storage.Get(ctx, key, obj, false); err != nil {
-		return nil, etcderr.InterpretGetError(err, e.EndpointName, name)
+		return nil, etcderr.InterpretGetError(err, e.QualifiedResource, name)
 	}
 	if e.Decorator != nil {
 		if err := e.Decorator(obj); err != nil {
@@ -361,7 +364,7 @@ func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 
 	obj := e.NewFunc()
 	if err := e.Storage.Get(ctx, key, obj, false); err != nil {
-		return nil, etcderr.InterpretDeleteError(err, e.EndpointName, name)
+		return nil, etcderr.InterpretDeleteError(err, e.QualifiedResource, name)
 	}
 
 	// support older consumers of delete by treating "nil" as delete immediately
@@ -407,14 +410,14 @@ func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 		case errAlreadyDeleting:
 			return e.finalizeDelete(obj, true)
 		default:
-			return nil, etcderr.InterpretUpdateError(err, e.EndpointName, name)
+			return nil, etcderr.InterpretUpdateError(err, e.QualifiedResource, name)
 		}
 	}
 
 	// delete immediately, or no graceful deletion supported
 	out := e.NewFunc()
 	if err := e.Storage.Delete(ctx, key, out); err != nil {
-		return nil, etcderr.InterpretDeleteError(err, e.EndpointName, name)
+		return nil, etcderr.InterpretDeleteError(err, e.QualifiedResource, name)
 	}
 	return e.finalizeDelete(out, true)
 }
@@ -429,7 +432,7 @@ func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 // are removing all objects of a given type) with the current API (it's technically
 // possibly with etcd API, but watch is not delivered correctly then).
 // It will be possible to fix it with v3 etcd API.
-func (e *Etcd) DeleteCollection(ctx api.Context, options *api.DeleteOptions, listOptions *unversioned.ListOptions) (runtime.Object, error) {
+func (e *Etcd) DeleteCollection(ctx api.Context, options *api.DeleteOptions, listOptions *api.ListOptions) (runtime.Object, error) {
 	listObj, err := e.List(ctx, listOptions)
 	if err != nil {
 		return nil, err
@@ -443,7 +446,7 @@ func (e *Etcd) DeleteCollection(ctx api.Context, options *api.DeleteOptions, lis
 		if err != nil {
 			return nil, err
 		}
-		if _, err := e.Delete(ctx, accessor.Name(), options); err != nil {
+		if _, err := e.Delete(ctx, accessor.GetName(), options); err != nil {
 			return nil, err
 		}
 	}
@@ -471,14 +474,14 @@ func (e *Etcd) finalizeDelete(obj runtime.Object, runHooks bool) (runtime.Object
 // WatchPredicate. If possible, you should customize PredicateFunc to produre a
 // matcher that matches by key. generic.SelectionPredicate does this for you
 // automatically.
-func (e *Etcd) Watch(ctx api.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+func (e *Etcd) Watch(ctx api.Context, options *api.ListOptions) (watch.Interface, error) {
 	label := labels.Everything()
-	if options != nil && options.LabelSelector.Selector != nil {
-		label = options.LabelSelector.Selector
+	if options != nil && options.LabelSelector != nil {
+		label = options.LabelSelector
 	}
 	field := fields.Everything()
-	if options != nil && options.FieldSelector.Selector != nil {
-		field = options.FieldSelector.Selector
+	if options != nil && options.FieldSelector != nil {
+		field = options.FieldSelector
 	}
 	resourceVersion := ""
 	if options != nil {
@@ -535,4 +538,40 @@ func (e *Etcd) calculateTTL(obj runtime.Object, defaultTTL int64, update bool) (
 		ttl, err = e.TTLFunc(obj, ttl, update)
 	}
 	return ttl, err
+}
+
+func exportObjectMeta(objMeta *api.ObjectMeta, exact bool) {
+	objMeta.UID = ""
+	if !exact {
+		objMeta.Namespace = ""
+	}
+	objMeta.CreationTimestamp = unversioned.Time{}
+	objMeta.DeletionTimestamp = nil
+	objMeta.ResourceVersion = ""
+	objMeta.SelfLink = ""
+	if len(objMeta.GenerateName) > 0 && !exact {
+		objMeta.Name = ""
+	}
+}
+
+// Implements the rest.Exporter interface
+func (e *Etcd) Export(ctx api.Context, name string, opts unversioned.ExportOptions) (runtime.Object, error) {
+	obj, err := e.Get(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	if meta, err := api.ObjectMetaFor(obj); err == nil {
+		exportObjectMeta(meta, opts.Exact)
+	} else {
+		glog.V(4).Infof("Object of type %v does not have ObjectMeta: %v", reflect.TypeOf(obj), err)
+	}
+
+	if e.ExportStrategy != nil {
+		if err = e.ExportStrategy.Export(obj, opts.Exact); err != nil {
+			return nil, err
+		}
+	} else {
+		e.CreateStrategy.PrepareForCreate(obj)
+	}
+	return obj, nil
 }

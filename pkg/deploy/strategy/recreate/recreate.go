@@ -34,7 +34,7 @@ type RecreateDeploymentStrategy struct {
 	// scaler is used to scale replication controllers.
 	scaler kubectl.Scaler
 	// codec is used to decode DeploymentConfigs contained in deployments.
-	codec runtime.Codec
+	decoder runtime.Decoder
 	// hookExecutor can execute a lifecycle hook.
 	hookExecutor hookExecutor
 	// retryTimeout is how long to wait for the replica count update to succeed
@@ -50,7 +50,7 @@ const AcceptorInterval = 1 * time.Second
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
-func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec) *RecreateDeploymentStrategy {
+func NewRecreateDeploymentStrategy(client kclient.Interface, decoder runtime.Decoder) *RecreateDeploymentStrategy {
 	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
 	return &RecreateDeploymentStrategy{
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -60,8 +60,8 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec
 			return stratsupport.NewAcceptNewlyObservedReadyPods(client, timeout, AcceptorInterval)
 		},
 		scaler:       scaler,
-		codec:        codec,
-		hookExecutor: stratsupport.NewHookExecutor(client, os.Stdout, codec),
+		decoder:      decoder,
+		hookExecutor: stratsupport.NewHookExecutor(client, os.Stdout, decoder),
 		retryTimeout: 120 * time.Second,
 		retryPeriod:  1 * time.Second,
 	}
@@ -80,7 +80,7 @@ func (s *RecreateDeploymentStrategy) Deploy(from *kapi.ReplicationController, to
 // This is currently only used in conjunction with the rolling update strategy
 // for initial deployments.
 func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
-	config, err := deployutil.DecodeDeploymentConfig(to, s.codec)
+	config, err := deployutil.DecodeDeploymentConfig(to, s.decoder)
 	if err != nil {
 		return fmt.Errorf("couldn't decode config from deployment %s: %v", to.Name, err)
 	}

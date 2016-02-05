@@ -21,7 +21,7 @@ func TestGenerate_fromMissingDeploymentConfig(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
 			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
-				return nil, kerrors.NewNotFound("deploymentConfig", id)
+				return nil, kerrors.NewNotFound(deployapi.Resource("DeploymentConfig"), id)
 			},
 		},
 	}
@@ -166,7 +166,7 @@ func TestGenerate_reportsInvalidErrorWhenMissingRepo(t *testing.T) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
 			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
-				return nil, kerrors.NewNotFound("ImageStream", name)
+				return nil, kerrors.NewNotFound(imageapi.Resource("ImageStream"), name)
 			},
 		},
 	}
@@ -183,10 +183,10 @@ func TestGenerate_reportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) 
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
 			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				return nil, kerrors.NewNotFound("DeploymentConfig", name)
+				return nil, kerrors.NewNotFound(deployapi.Resource("DeploymentConfig"), name)
 			},
 			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
-				return nil, kerrors.NewNotFound("ImageStream", name)
+				return nil, kerrors.NewNotFound(imageapi.Resource("ImageStream"), name)
 			},
 		},
 	}

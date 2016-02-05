@@ -128,7 +128,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
-			T: field.ErrorTypeInvalid,
+			T: field.ErrorTypeForbidden,
 			F: "metadata.namespace",
 		},
 	}
@@ -140,10 +140,10 @@ func TestValidateClientAuthorization(t *testing.T) {
 		}
 		for i := range errs {
 			if errs[i].Type != v.T {
-				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+				t.Errorf("%s: expected errors to have type %s  GOT: %v", k, v.T, errs[i])
 			}
 			if errs[i].Field != v.F {
-				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+				t.Errorf("%s: expected errors to have field %s  GOT: %v", k, v.F, errs[i])
 			}
 		}
 	}
@@ -169,7 +169,7 @@ func TestValidateClient(t *testing.T) {
 		},
 		"disallowed namespace": {
 			Client: oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"}},
-			T:      field.ErrorTypeInvalid,
+			T:      field.ErrorTypeForbidden,
 			F:      "metadata.namespace",
 		},
 	}
@@ -222,7 +222,7 @@ func TestValidateAccessTokens(t *testing.T) {
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
-			T: field.ErrorTypeInvalid,
+			T: field.ErrorTypeForbidden,
 			F: "metadata.namespace",
 		},
 	}
@@ -302,7 +302,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
-			T: field.ErrorTypeInvalid,
+			T: field.ErrorTypeForbidden,
 			F: "metadata.namespace",
 		},
 	}

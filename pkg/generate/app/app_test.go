@@ -7,11 +7,13 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/runtime"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func testImageInfo() *imageapi.DockerImage {
@@ -159,7 +161,7 @@ func TestGenerateSimpleDockerApp(t *testing.T) {
 		Items: items,
 	}
 
-	data, err := latest.Codec.Encode(out)
+	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), out)
 	if err != nil {
 		log.Fatalf("Unable to generate output: %v", err)
 	}

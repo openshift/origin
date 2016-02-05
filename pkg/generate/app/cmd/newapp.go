@@ -737,7 +737,7 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, environme
 		if err != nil {
 			return nil, fmt.Errorf("error processing template %s/%s: %v", c.originNamespace, tpl.Name, err)
 		}
-		errs := runtime.DecodeList(result.Objects, kapi.Scheme)
+		errs := runtime.DecodeList(result.Objects, kapi.Codecs.UniversalDecoder())
 		if len(errs) > 0 {
 			err = errors.NewAggregate(errs)
 			return nil, fmt.Errorf("error processing template %s/%s: %v", c.originNamespace, tpl.Name, errs)

@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -40,7 +41,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
@@ -87,10 +88,10 @@ type Request struct {
 	codec   runtime.Codec
 
 	// generic components accessible via method setters
-	path    string
-	subpath string
-	params  url.Values
-	headers http.Header
+	pathPrefix string
+	subpath    string
+	params     url.Values
+	headers    http.Header
 
 	// structural elements of the request that are part of the Kubernetes API conventions
 	namespace    string
@@ -115,17 +116,22 @@ type Request struct {
 }
 
 // NewRequest creates a new request helper object for accessing runtime.Objects on a server.
-func NewRequest(client HTTPClient, verb string, baseURL *url.URL, groupVersion unversioned.GroupVersion, codec runtime.Codec, backoff BackoffManager) *Request {
+func NewRequest(client HTTPClient, verb string, baseURL *url.URL, versionedAPIPath string, groupVersion unversioned.GroupVersion, codec runtime.Codec, backoff BackoffManager) *Request {
 	if backoff == nil {
 		glog.V(2).Infof("Not implementing request backoff strategy.")
 		backoff = &NoBackoff{}
 	}
 	metrics.Register()
+
+	pathPrefix := "/"
+	if baseURL != nil {
+		pathPrefix = path.Join(pathPrefix, baseURL.Path)
+	}
 	return &Request{
 		client:       client,
 		verb:         verb,
 		baseURL:      baseURL,
-		path:         baseURL.Path,
+		pathPrefix:   path.Join(pathPrefix, versionedAPIPath),
 		groupVersion: groupVersion,
 		codec:        codec,
 		backoffMgr:   backoff,
@@ -139,7 +145,7 @@ func (r *Request) Prefix(segments ...string) *Request {
 	if r.err != nil {
 		return r
 	}
-	r.path = path.Join(r.path, path.Join(segments...))
+	r.pathPrefix = path.Join(r.pathPrefix, path.Join(segments...))
 	return r
 }
 
@@ -244,11 +250,10 @@ func (r *Request) AbsPath(segments ...string) *Request {
 	if r.err != nil {
 		return r
 	}
-	if len(segments) == 1 {
+	r.pathPrefix = path.Join(r.baseURL.Path, path.Join(segments...))
+	if len(segments) == 1 && (len(r.baseURL.Path) > 1 || len(segments[0]) > 1) && strings.HasSuffix(segments[0], "/") {
 		// preserve any trailing slashes for legacy behavior
-		r.path = segments[0]
-	} else {
-		r.path = path.Join(segments...)
+		r.pathPrefix += "/"
 	}
 	return r
 }
@@ -264,7 +269,7 @@ func (r *Request) RequestURI(uri string) *Request {
 		r.err = err
 		return r
 	}
-	r.path = locator.Path
+	r.pathPrefix = locator.Path
 	if len(locator.Query()) > 0 {
 		if r.params == nil {
 			r.params = make(url.Values)
@@ -480,7 +485,7 @@ func (r *Request) VersionedParams(obj runtime.Object, convertor runtime.ObjectCo
 				continue
 			}
 			if k == unversioned.FieldSelectorQueryParam(r.groupVersion.String()) {
-				if value == "" {
+				if len(value) == 0 {
 					// Don't set an empty selector for backward compatibility.
 					// Since there is no way to get the difference between empty
 					// and unspecified string, we don't set it to avoid having
@@ -545,6 +550,7 @@ func (r *Request) Timeout(d time.Duration) *Request {
 // If obj is a []byte, send it directly.
 // If obj is an io.Reader, use it directly.
 // If obj is a runtime.Object, marshal it correctly, and set Content-Type header.
+// If obj is a runtime.Object and nil, do nothing.
 // Otherwise, set an error.
 func (r *Request) Body(obj interface{}) *Request {
 	if r.err != nil {
@@ -565,7 +571,11 @@ func (r *Request) Body(obj interface{}) *Request {
 	case io.Reader:
 		r.body = t
 	case runtime.Object:
-		data, err := r.codec.Encode(t)
+		// callers may pass typed interface pointers, therefore we must check nil with reflection
+		if reflect.ValueOf(t).IsNil() {
+			return r
+		}
+		data, err := runtime.Encode(r.codec, t)
 		if err != nil {
 			r.err = err
 			return r
@@ -581,14 +591,14 @@ func (r *Request) Body(obj interface{}) *Request {
 
 // URL returns the current working URL.
 func (r *Request) URL() *url.URL {
-	p := r.path
+	p := r.pathPrefix
 	if r.namespaceSet && len(r.namespace) > 0 {
 		p = path.Join(p, "namespaces", r.namespace)
 	}
 	if len(r.resource) != 0 {
 		p = path.Join(p, strings.ToLower(r.resource))
 	}
-	// Join trims trailing slashes, so preserve r.path's trailing slash for backwards compat if nothing was changed
+	// Join trims trailing slashes, so preserve r.pathPrefix's trailing slash for backwards compat if nothing was changed
 	if len(r.resourceName) != 0 || len(r.subpath) != 0 || len(r.subresource) != 0 {
 		p = path.Join(p, r.resourceName, r.subresource, r.subpath)
 	}
@@ -664,7 +674,7 @@ func (r *Request) Watch() (watch.Interface, error) {
 	if err != nil {
 		// The watch stream mechanism handles many common partial data errors, so closed
 		// connections can be retried in many cases.
-		if util.IsProbableEOF(err) {
+		if net.IsProbableEOF(err) {
 			return watch.NewEmptyWatch(), nil
 		}
 		return nil, err
@@ -740,7 +750,7 @@ func (r *Request) Stream() (io.ReadCloser, error) {
 			return nil, fmt.Errorf("%v while accessing %v", resp.Status, url)
 		}
 
-		if runtimeObject, err := r.codec.Decode(bodyBytes); err == nil {
+		if runtimeObject, err := runtime.Decode(r.codec, bodyBytes); err == nil {
 			statusError := errors.FromObject(runtimeObject)
 
 			if _, ok := statusError.(errors.APIStatus); ok {
@@ -869,8 +879,10 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) Resu
 
 	// Did the server give us a status response?
 	isStatusResponse := false
-	var status unversioned.Status
-	if err := r.codec.DecodeInto(body, &status); err == nil && status.Status != "" {
+	var status *unversioned.Status
+	result, err := runtime.Decode(r.codec, body)
+	if out, ok := result.(*unversioned.Status); err == nil && ok && len(out.Status) > 0 {
+		status = out
 		isStatusResponse = true
 	}
 
@@ -881,14 +893,14 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) Resu
 		if !isStatusResponse {
 			return Result{err: r.transformUnstructuredResponseError(resp, req, body)}
 		}
-		return Result{err: errors.FromObject(&status)}
+		return Result{err: errors.FromObject(status)}
 	}
 
 	// If the server gave us a status back, look at what it was.
 	success := resp.StatusCode >= http.StatusOK && resp.StatusCode <= http.StatusPartialContent
 	if isStatusResponse && (status.Status != unversioned.StatusSuccess && !success) {
 		// "Failed" requests are clearly just an error and it makes sense to return them as such.
-		return Result{err: errors.FromObject(&status)}
+		return Result{err: errors.FromObject(status)}
 	}
 
 	return Result{
@@ -929,7 +941,7 @@ func (r *Request) transformUnstructuredResponseError(resp *http.Response, req *h
 		message = strings.TrimSpace(string(body))
 	}
 	retryAfter, _ := retryAfterSeconds(resp)
-	return errors.NewGenericServerResponse(resp.StatusCode, req.Method, r.resource, r.resourceName, message, retryAfter, true)
+	return errors.NewGenericServerResponse(resp.StatusCode, req.Method, unversioned.GroupResource{Group: r.groupVersion.Group, Resource: r.resource}, r.resourceName, message, retryAfter, true)
 }
 
 // isTextResponse returns true if the response appears to be a textual media type.
@@ -988,7 +1000,8 @@ func (r Result) Get() (runtime.Object, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
-	return r.codec.Decode(r.body)
+	obj, err := runtime.Decode(r.codec, r.body)
+	return obj, err
 }
 
 // StatusCode returns the HTTP status code of the request. (Only valid if no
@@ -998,12 +1011,12 @@ func (r Result) StatusCode(statusCode *int) Result {
 	return r
 }
 
-// Into stores the result into obj, if possible.
+// Into stores the result into obj, if possible. If obj is nil it is ignored.
 func (r Result) Into(obj runtime.Object) error {
 	if r.err != nil {
 		return r.err
 	}
-	return r.codec.DecodeInto(r.body, obj)
+	return runtime.DecodeInto(r.codec, r.body, obj)
 }
 
 // WasCreated updates the provided bool pointer to whether the server returned

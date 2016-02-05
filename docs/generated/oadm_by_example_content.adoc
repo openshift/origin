@@ -39,6 +39,19 @@ Change configuration files for the client
 ====
 
 
+== oadm config current-context
+Displays the current-context
+
+====
+
+[options="nowrap"]
+----
+  # Display the current-context
+  $ oadm config current-context
+----
+====
+
+
 == oadm config set-cluster
 Sets a cluster entry in kubeconfig
 

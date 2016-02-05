@@ -29,6 +29,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
@@ -131,7 +132,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 			mapper, typer := f.Object()
 			config.SetMapper(mapper)
 			config.SetTyper(typer)
-			config.SetClientMapper(f.ClientMapperForCommand())
+			config.SetClientMapper(resource.ClientMapperFunc(f.ClientForMapping))
 
 			err := RunNewApplication(fullName, f, out, c, args, config)
 			if err == cmdutil.ErrExit {
@@ -190,6 +191,11 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 		}
 
 		if len(output) != 0 {
+			result.List.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(c, result.List.Items)
+			if err != nil {
+				return err
+			}
+
 			return f.Factory.PrintObject(c, result.List, out)
 		}
 
@@ -220,6 +226,11 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	case shortOutput:
 		indent = ""
 	case len(output) != 0:
+		result.List.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(c, result.List.Items)
+		if err != nil {
+			return err
+		}
+
 		return f.Factory.PrintObject(c, result.List, out)
 	case !result.GeneratedJobs:
 		if len(config.Labels) > 0 {
@@ -328,7 +339,7 @@ func followInstallation(f *clientcmd.Factory, input string, pod *kapi.Pod, kclie
 		},
 		Mapper:        mapper,
 		Typer:         typer,
-		ClientMapper:  f.ClientMapperForCommand(),
+		ClientMapper:  resource.ClientMapperFunc(f.ClientForMapping),
 		LogsForObject: f.LogsForObject,
 		Out:           out,
 	}
@@ -535,7 +546,7 @@ func createObjects(f *clientcmd.Factory, after configcmd.AfterFunc, result *newc
 	bulk := configcmd.Bulk{
 		Mapper:            mapper,
 		Typer:             typer,
-		RESTClientFactory: f.Factory.RESTClient,
+		RESTClientFactory: f.Factory.ClientForMapping,
 
 		After: after,
 		// Retry is used to support previous versions of the API server that will

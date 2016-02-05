@@ -37,7 +37,7 @@ func NewREST(s storage.Interface) *REST {
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return clusternetwork.Matcher(label, field)
 		},
-		EndpointName: "clusternetwork",
+		QualifiedResource: api.Resource("clusternetwork"),
 
 		Storage: s,
 	}

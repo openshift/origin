@@ -11,7 +11,6 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -90,10 +89,10 @@ func NewDeployer(client kclient.Interface) *Deployer {
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case deployapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, latest.Codec), nil
+				return recreate.NewRecreateDeploymentStrategy(client, kapi.Codecs.UniversalDecoder()), nil
 			case deployapi.DeploymentStrategyTypeRolling:
-				recreate := recreate.NewRecreateDeploymentStrategy(client, latest.Codec)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, latest.Codec, recreate), nil
+				recreate := recreate.NewRecreateDeploymentStrategy(client, kapi.Codecs.UniversalDecoder())
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, kapi.Codecs.UniversalDecoder(), recreate), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}
@@ -129,7 +128,7 @@ func (d *Deployer) Deploy(namespace, deploymentName string) error {
 	}
 
 	// Decode the config from the deployment.
-	config, err := deployutil.DecodeDeploymentConfig(to, latest.Codec)
+	config, err := deployutil.DecodeDeploymentConfig(to, kapi.Codecs.UniversalDecoder())
 	if err != nil {
 		return fmt.Errorf("couldn't decode deployment config from deployment %s/%s: %v", to.Namespace, to.Name, err)
 	}

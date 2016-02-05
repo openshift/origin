@@ -39,7 +39,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 
 	newListFunc := func() runtime.Object { return &extensions.JobList{} }
 	storageInterface := storageDecorator(
-		s, 100, &extensions.Job{}, prefix, false, newListFunc)
+		s, 100, &extensions.Job{}, prefix, job.Strategy, newListFunc)
 
 	store := &etcdgeneric.Etcd{
 		NewFunc: func() runtime.Object { return &extensions.Job{} },
@@ -64,7 +64,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return job.MatchJob(label, field)
 		},
-		EndpointName: "jobs",
+		QualifiedResource: extensions.Resource("jobs"),
 
 		// Used to validate job creation
 		CreateStrategy: job.Strategy,

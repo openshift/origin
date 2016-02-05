@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -103,7 +104,7 @@ type ServiceReaper struct {
 
 type objInterface interface {
 	Delete(name string) error
-	Get(name string) (meta.Interface, error)
+	Get(name string) (meta.Object, error)
 }
 
 // getOverlappingControllers finds rcs that this controller overlaps, as well as rcs overlapping this controller.
@@ -259,7 +260,10 @@ func (reaper *JobReaper) Stop(namespace, name string, timeout time.Duration, gra
 	errList := []error{}
 	for _, pod := range podList.Items {
 		if err := pods.Delete(pod.Name, gracePeriod); err != nil {
-			errList = append(errList, err)
+			// ignores the error when the pod isn't found
+			if !errors.IsNotFound(err) {
+				errList = append(errList, err)
+			}
 		}
 	}
 	if len(errList) > 0 {

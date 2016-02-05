@@ -2,17 +2,21 @@ package v1
 
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
-
-	"github.com/openshift/origin/pkg/cmd/server/api"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: "v1"}
 
-func init() {
-	api.Scheme.AddKnownTypes(SchemeGroupVersion,
+func AddToScheme(scheme *runtime.Scheme) {
+	addKnownTypes(scheme)
+}
+
+// Adds the list of known types to api.Scheme.
+func addKnownTypes(scheme *runtime.Scheme) {
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&RunOnceDurationConfig{},
 	)
 }
 
-func (*RunOnceDurationConfig) IsAnAPIObject() {}
+func (obj *RunOnceDurationConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }

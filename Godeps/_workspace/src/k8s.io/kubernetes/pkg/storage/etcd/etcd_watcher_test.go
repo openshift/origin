@@ -22,7 +22,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/coreos/go-etcd/etcd"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -31,6 +30,7 @@ import (
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/watch"
 
+	etcd "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 )
 
@@ -169,6 +169,7 @@ func TestWatchInterpretations(t *testing.T) {
 }
 
 func TestWatchInterpretation_ResponseNotSet(t *testing.T) {
+	_, codec := testScheme(t)
 	w := newEtcdWatcher(false, nil, storage.Everything, codec, versioner, nil, &fakeEtcdCache{})
 	w.emit = func(e watch.Event) {
 		t.Errorf("Unexpected emit: %v", e)
@@ -181,6 +182,7 @@ func TestWatchInterpretation_ResponseNotSet(t *testing.T) {
 }
 
 func TestWatchInterpretation_ResponseNoNode(t *testing.T) {
+	_, codec := testScheme(t)
 	actions := []string{"create", "set", "compareAndSwap", "delete"}
 	for _, action := range actions {
 		w := newEtcdWatcher(false, nil, storage.Everything, codec, versioner, nil, &fakeEtcdCache{})
@@ -195,6 +197,7 @@ func TestWatchInterpretation_ResponseNoNode(t *testing.T) {
 }
 
 func TestWatchInterpretation_ResponseBadData(t *testing.T) {
+	_, codec := testScheme(t)
 	actions := []string{"create", "set", "compareAndSwap", "delete"}
 	for _, action := range actions {
 		w := newEtcdWatcher(false, nil, storage.Everything, codec, versioner, nil, &fakeEtcdCache{})
@@ -217,27 +220,6 @@ func TestWatchInterpretation_ResponseBadData(t *testing.T) {
 	}
 }
 
-/* TODO: So believe it or not... but this test is flakey with the go-etcd client library
- * which I'm surprised by.  Apprently you can close the client that is performing the watch
- * and the watch *never returns.*  I would like to still keep this test here and re-enable
- * with the new 2.2+ client library.
-func TestWatchEtcdError(t *testing.T) {
-	codec := testapi.Default.Codec()
-	server := etcdtesting.NewEtcdTestClientServer(t)
-	h := newEtcdHelper(server.Client, codec, etcdtest.PathPrefix())
-	watching, err := h.Watch(context.TODO(), "/some/key", 4, storage.Everything)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	server.Terminate(t)
-
-	got := <-watching.ResultChan()
-	if got.Type != watch.Error {
-		t.Fatalf("Unexpected non-error")
-	}
-	watching.Stop()
-} */
-
 func TestWatch(t *testing.T) {
 	codec := testapi.Default.Codec()
 	server := etcdtesting.NewEtcdTestClientServer(t)
@@ -249,6 +231,7 @@ func TestWatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	// watching is explicitly closed below.
 
 	// Test normal case
 	pod := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}}
@@ -268,8 +251,15 @@ func TestWatch(t *testing.T) {
 
 	watching.Stop()
 
-	if _, open := <-watching.ResultChan(); open {
-		t.Errorf("An injected error did not cause a graceful shutdown")
+	// There is a race in etcdWatcher so that after calling Stop() one of
+	// two things can happen:
+	// - ResultChan() may be closed (triggered by closing userStop channel)
+	// - an Error "context cancelled" may be emitted (triggered by cancelling request
+	//   to etcd and putting that error to etcdError channel)
+	// We need to be prepared for both here.
+	event, open := <-watching.ResultChan()
+	if open && event.Type != watch.Error {
+		t.Errorf("Unexpected event from stopped watcher: %#v", event)
 	}
 }
 
@@ -295,6 +285,7 @@ func TestWatchEtcdState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	defer watching.Stop()
 
 	endpoint := &api.Endpoints{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
@@ -328,8 +319,6 @@ func TestWatchEtcdState(t *testing.T) {
 	if e, a := endpoint, event.Object; !api.Semantic.DeepDerivative(e, a) {
 		t.Errorf("%s: expected %v, got %v", e, a)
 	}
-
-	watching.Stop()
 }
 
 func TestWatchFromZeroIndex(t *testing.T) {
@@ -359,6 +348,7 @@ func TestWatchFromZeroIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	defer watching.Stop()
 
 	// marked as modified b/c of concatenation
 	event := <-watching.ResultChan()
@@ -379,8 +369,6 @@ func TestWatchFromZeroIndex(t *testing.T) {
 	if e, a := pod, event.Object; !api.Semantic.DeepDerivative(e, a) {
 		t.Errorf("%s: expected %v, got %v", e, a)
 	}
-
-	watching.Stop()
 }
 
 func TestWatchListFromZeroIndex(t *testing.T) {
@@ -394,6 +382,7 @@ func TestWatchListFromZeroIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	defer watching.Stop()
 
 	// creates key/foo which should trigger the WatchList for "key"
 	pod := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}}
@@ -410,8 +399,6 @@ func TestWatchListFromZeroIndex(t *testing.T) {
 	if e, a := pod, event.Object; !api.Semantic.DeepDerivative(e, a) {
 		t.Errorf("%s: expected %v, got %v", e, a)
 	}
-
-	watching.Stop()
 }
 
 func TestWatchListIgnoresRootKey(t *testing.T) {
@@ -426,6 +413,7 @@ func TestWatchListIgnoresRootKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	defer watching.Stop()
 
 	// creates key/foo which should trigger the WatchList for "key"
 	err = h.Create(context.TODO(), key, pod, pod, 0)
@@ -442,11 +430,10 @@ func TestWatchListIgnoresRootKey(t *testing.T) {
 	default:
 		// fall through, expected behavior
 	}
-
-	watching.Stop()
 }
 
 func TestWatchPurposefulShutdown(t *testing.T) {
+	_, codec := testScheme(t)
 	server := etcdtesting.NewEtcdTestClientServer(t)
 	defer server.Terminate(t)
 	key := "/some/key"
@@ -461,8 +448,15 @@ func TestWatchPurposefulShutdown(t *testing.T) {
 	watching.Stop()
 	rt.Gosched()
 
-	if _, open := <-watching.ResultChan(); open {
-		t.Errorf("Channel should be closed")
+	// There is a race in etcdWatcher so that after calling Stop() one of
+	// two things can happen:
+	// - ResultChan() may be closed (triggered by closing userStop channel)
+	// - an Error "context cancelled" may be emitted (triggered by cancelling request
+	//   to etcd and putting that error to etcdError channel)
+	// We need to be prepared for both here.
+	event, open := <-watching.ResultChan()
+	if open && event.Type != watch.Error {
+		t.Errorf("Unexpected event from stopped watcher: %#v", event)
 	}
 }
 

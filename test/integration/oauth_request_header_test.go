@@ -15,7 +15,6 @@ import (
 
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
@@ -168,13 +167,11 @@ func TestOAuthRequestHeader(t *testing.T) {
 		UseAsChallenger: true,
 		UseAsLogin:      true,
 		MappingMethod:   "claim",
-		Provider: runtime.EmbeddedObject{
-			Object: &configapi.RequestHeaderIdentityProvider{
-				ChallengeURL: proxyServer.URL + "/oauth/authorize?${query}",
-				LoginURL:     "http://www.example.com/login?then=${url}",
-				ClientCA:     caFile.Name(),
-				Headers:      []string{"My-Remote-User", "SSO-User"},
-			},
+		Provider: &configapi.RequestHeaderIdentityProvider{
+			ChallengeURL: proxyServer.URL + "/oauth/authorize?${query}",
+			LoginURL:     "http://www.example.com/login?then=${url}",
+			ClientCA:     caFile.Name(),
+			Headers:      []string{"My-Remote-User", "SSO-User"},
 		},
 	}
 

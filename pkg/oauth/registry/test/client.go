@@ -2,7 +2,6 @@ package test
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 )
@@ -14,7 +13,7 @@ type ClientRegistry struct {
 	DeletedClientName string
 }
 
-func (r *ClientRegistry) ListClients(ctx kapi.Context, options *unversioned.ListOptions) (*api.OAuthClientList, error) {
+func (r *ClientRegistry) ListClients(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientList, error) {
 	return r.Clients, r.Err
 }
 

@@ -133,7 +133,7 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 	}
 
 	mapper, typer := f.Object()
-	o.builder = resource.NewBuilder(mapper, typer, f.ClientMapperForCommand())
+	o.builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder())
 
 	o.out = out
 

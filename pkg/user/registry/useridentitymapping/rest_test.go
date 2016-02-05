@@ -13,6 +13,8 @@ import (
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/registry/test"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 var sequence = 0

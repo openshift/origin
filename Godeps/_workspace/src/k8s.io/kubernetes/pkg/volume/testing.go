@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/util/mount"
+	utilstrings "k8s.io/kubernetes/pkg/util/strings"
 )
 
 // fakeVolumeHost is useful for testing volume plugins.
@@ -80,16 +81,26 @@ func (f *fakeVolumeHost) GetWriter() io.Writer {
 	return f.writer
 }
 
-func (f *fakeVolumeHost) NewWrapperBuilder(spec *Spec, pod *api.Pod, opts VolumeOptions) (Builder, error) {
-	plug, err := f.pluginMgr.FindPluginBySpec(spec)
+func (f *fakeVolumeHost) NewWrapperBuilder(volName string, spec Spec, pod *api.Pod, opts VolumeOptions) (Builder, error) {
+	// The name of wrapper volume is set to "wrapped_{wrapped_volume_name}"
+	wrapperVolumeName := "wrapped_" + volName
+	if spec.Volume != nil {
+		spec.Volume.Name = wrapperVolumeName
+	}
+	plug, err := f.pluginMgr.FindPluginBySpec(&spec)
 	if err != nil {
 		return nil, err
 	}
-	return plug.NewBuilder(spec, pod, opts)
+	return plug.NewBuilder(&spec, pod, opts)
 }
 
-func (f *fakeVolumeHost) NewWrapperCleaner(spec *Spec, podUID types.UID) (Cleaner, error) {
-	plug, err := f.pluginMgr.FindPluginBySpec(spec)
+func (f *fakeVolumeHost) NewWrapperCleaner(volName string, spec Spec, podUID types.UID) (Cleaner, error) {
+	// The name of wrapper volume is set to "wrapped_{wrapped_volume_name}"
+	wrapperVolumeName := "wrapped_" + volName
+	if spec.Volume != nil {
+		spec.Volume.Name = wrapperVolumeName
+	}
+	plug, err := f.pluginMgr.FindPluginBySpec(&spec)
 	if err != nil {
 		return nil, err
 	}
@@ -119,9 +130,10 @@ func ProbeVolumePlugins(config VolumeConfig) []VolumePlugin {
 // Use as:
 //   volume.RegisterPlugin(&FakePlugin{"fake-name"})
 type FakeVolumePlugin struct {
-	PluginName string
-	Host       VolumeHost
-	Config     VolumeConfig
+	PluginName             string
+	Host                   VolumeHost
+	Config                 VolumeConfig
+	LastProvisionerOptions VolumeOptions
 }
 
 var _ VolumePlugin = &FakeVolumePlugin{}
@@ -129,8 +141,9 @@ var _ RecyclableVolumePlugin = &FakeVolumePlugin{}
 var _ DeletableVolumePlugin = &FakeVolumePlugin{}
 var _ ProvisionableVolumePlugin = &FakeVolumePlugin{}
 
-func (plugin *FakeVolumePlugin) Init(host VolumeHost) {
+func (plugin *FakeVolumePlugin) Init(host VolumeHost) error {
 	plugin.Host = host
+	return nil
 }
 
 func (plugin *FakeVolumePlugin) Name() string {
@@ -159,6 +172,7 @@ func (plugin *FakeVolumePlugin) NewDeleter(spec *Spec) (Deleter, error) {
 }
 
 func (plugin *FakeVolumePlugin) NewProvisioner(options VolumeOptions) (Provisioner, error) {
+	plugin.LastProvisionerOptions = options
 	return &FakeProvisioner{options, plugin.Host}, nil
 }
 
@@ -175,23 +189,22 @@ type FakeVolume struct {
 
 func (_ *FakeVolume) GetAttributes() Attributes {
 	return Attributes{
-		ReadOnly:                    false,
-		Managed:                     true,
-		SupportsOwnershipManagement: true,
-		SupportsSELinux:             true,
+		ReadOnly:        false,
+		Managed:         true,
+		SupportsSELinux: true,
 	}
 }
 
-func (fv *FakeVolume) SetUp() error {
-	return fv.SetUpAt(fv.GetPath())
+func (fv *FakeVolume) SetUp(fsGroup *int64) error {
+	return fv.SetUpAt(fv.GetPath(), fsGroup)
 }
 
-func (fv *FakeVolume) SetUpAt(dir string) error {
+func (fv *FakeVolume) SetUpAt(dir string, fsGroup *int64) error {
 	return os.MkdirAll(dir, 0750)
 }
 
 func (fv *FakeVolume) GetPath() string {
-	return path.Join(fv.Plugin.Host.GetPodVolumeDir(fv.PodUID, util.EscapeQualifiedNameForDisk(fv.Plugin.PluginName), fv.VolName))
+	return path.Join(fv.Plugin.Host.GetPodVolumeDir(fv.PodUID, utilstrings.EscapeQualifiedNameForDisk(fv.Plugin.PluginName), fv.VolName))
 }
 
 func (fv *FakeVolume) TearDown() error {

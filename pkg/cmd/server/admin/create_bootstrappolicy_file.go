@@ -82,22 +82,38 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 
 	clusterRoles := bootstrappolicy.GetBootstrapClusterRoles()
 	for i := range clusterRoles {
-		policyTemplate.Objects = append(policyTemplate.Objects, &clusterRoles[i])
+		versionedObject, err := kapi.Scheme.ConvertToVersion(&clusterRoles[i], latest.Version.String())
+		if err != nil {
+			return err
+		}
+		policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
 	}
 
 	clusterRoleBindings := bootstrappolicy.GetBootstrapClusterRoleBindings()
 	for i := range clusterRoleBindings {
-		policyTemplate.Objects = append(policyTemplate.Objects, &clusterRoleBindings[i])
+		versionedObject, err := kapi.Scheme.ConvertToVersion(&clusterRoleBindings[i], latest.Version.String())
+		if err != nil {
+			return err
+		}
+		policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
 	}
 
 	openshiftRoles := bootstrappolicy.GetBootstrapOpenshiftRoles(o.OpenShiftSharedResourcesNamespace)
 	for i := range openshiftRoles {
-		policyTemplate.Objects = append(policyTemplate.Objects, &openshiftRoles[i])
+		versionedObject, err := kapi.Scheme.ConvertToVersion(&openshiftRoles[i], latest.Version.String())
+		if err != nil {
+			return err
+		}
+		policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
 	}
 
 	openshiftRoleBindings := bootstrappolicy.GetBootstrapOpenshiftRoleBindings(o.OpenShiftSharedResourcesNamespace)
 	for i := range openshiftRoleBindings {
-		policyTemplate.Objects = append(policyTemplate.Objects, &openshiftRoleBindings[i])
+		versionedObject, err := kapi.Scheme.ConvertToVersion(&openshiftRoleBindings[i], latest.Version.String())
+		if err != nil {
+			return err
+		}
+		policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
 	}
 
 	versionedPolicyTemplate, err := kapi.Scheme.ConvertToVersion(policyTemplate, latest.Version.String())

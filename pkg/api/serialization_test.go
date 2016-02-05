@@ -12,6 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -28,12 +29,19 @@ import (
 	build "github.com/openshift/origin/pkg/build/api"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/image/api/docker10"
+	"github.com/openshift/origin/pkg/image/api/dockerpre012"
 	route "github.com/openshift/origin/pkg/route/api"
 	template "github.com/openshift/origin/pkg/template/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 
-func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, seed int64) runtime.Object {
+func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item runtime.Object, seed int64) runtime.Object {
 	f := apitesting.FuzzerFor(t, forVersion, rand.NewSource(seed))
 	f.Funcs(
 		// Roles and RoleBindings maps are never nil
@@ -312,7 +320,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *kapi.PodSecurityContext, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if forVersion == "v1beta3" {
+			if forVersion == v1beta3.SchemeGroupVersion {
 				// v1beta3 does not contain the PodSecurityContext type.  For this API version, only fuzz
 				// the host namespace fields.  The fields set to nil here are the other fields of the
 				// PodSecurityContext that will not roundtrip correctly from internal->v1beta3->internal.
@@ -325,7 +333,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *kapi.GitRepoVolumeSource, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if forVersion == "v1beta3" {
+			if forVersion == v1beta3.SchemeGroupVersion {
 				// these fields are set to their empty state when testing v1beta3
 				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
 				j.Directory = ""
@@ -333,7 +341,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *kapi.ISCSIVolumeSource, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if forVersion == "v1beta3" {
+			if forVersion == v1beta3.SchemeGroupVersion {
 				// these fields are set to their empty state when testing v1beta3
 				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
 				j.ISCSIInterface = ""
@@ -344,7 +352,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *kapi.Event, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if forVersion == "v1beta3" {
+			if forVersion == v1beta3.SchemeGroupVersion {
 				// these fields are set to their empty state when testing v1beta3
 				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
 				j.Type = ""
@@ -352,7 +360,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *kapi.Probe, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if forVersion == "v1beta3" {
+			if forVersion == v1beta3.SchemeGroupVersion {
 				// these fields are set to their empty state when testing v1beta3
 				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
 				j.PeriodSeconds = 0
@@ -360,7 +368,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.FailureThreshold = 0
 			}
 		},
-		func(j *runtime.EmbeddedObject, c fuzz.Continue) {
+		func(j *runtime.Object, c fuzz.Continue) {
 			// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.
 		},
 		func(t *time.Time, c fuzz.Continue) {
@@ -400,7 +408,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	item := deepCopy.(runtime.Object)
 
 	name := reflect.TypeOf(item).Elem().Name()
-	data, err := codec.Encode(item)
+	data, err := runtime.Encode(codec, item)
 	if err != nil {
 		if conversion.IsNotRegisteredError(err) {
 			t.Logf("%v is not registered", name)
@@ -410,7 +418,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 		return
 	}
 
-	obj2, err := codec.Decode(data)
+	obj2, err := runtime.Decode(codec, data)
 	if err != nil {
 		t.Errorf("0: %v: %v\nCodec: %v\nData: %s\nSource: %#v", name, err, codec, string(data), originalItem)
 		return
@@ -423,14 +431,14 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 		}
 		obj2 = obj2conv
 	}
+
 	if !kapi.Semantic.DeepEqual(originalItem, obj2) {
 		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, util.ObjectDiff(originalItem, obj2), codec, string(data), util.ObjectGoPrintSideBySide(originalItem, obj2))
 		return
 	}
 
 	obj3 := reflect.New(reflect.TypeOf(item).Elem()).Interface().(runtime.Object)
-	err = codec.DecodeInto(data, obj3)
-	if err != nil {
+	if err := runtime.DecodeInto(codec, data, obj3); err != nil {
 		t.Errorf("2: %v: %v", name, err)
 		return
 	}
@@ -441,10 +449,10 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 }
 
 // skipStandardVersions is a map of Kind to a list of API versions to test with.
-var skipStandardVersions = map[string][]string{
+var skipStandardVersions = map[string][]unversioned.GroupVersion{
 	// The API versions here are to test our object that serializes from/into
 	// docker's registry API.
-	"DockerImage": {"pre012", "1.0"},
+	"DockerImage": {dockerpre012.SchemeGroupVersion, docker10.SchemeGroupVersion},
 }
 
 const fuzzIters = 20
@@ -462,15 +470,9 @@ func TestSpecificKind(t *testing.T) {
 	}
 	seed := int64(2703387474910584091) //rand.Int63()
 	for i := 0; i < fuzzIters; i++ {
-		t.Logf(`About to test %v with ""`, kind)
-		fuzzInternalObject(t, "", item, seed)
-		roundTrip(t, osapi.Codec, item)
-		t.Logf(`About to test %v with "v1beta3"`, kind)
-		fuzzInternalObject(t, "v1beta3", item, seed)
-		roundTrip(t, v1beta3.Codec, item)
 		t.Logf(`About to test %v with "v1"`, kind)
-		fuzzInternalObject(t, "v1", item, seed)
-		roundTrip(t, v1.Codec, item)
+		fuzzInternalObject(t, v1.SchemeGroupVersion, item, seed)
+		roundTrip(t, kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), item)
 	}
 }
 
@@ -502,19 +504,13 @@ func TestTypes(t *testing.T) {
 				for _, v := range versions {
 					t.Logf("About to test %v with %q", kind, v)
 					fuzzInternalObject(t, v, item, seed)
-					roundTrip(t, runtime.CodecFor(kapi.Scheme, v), item)
+					roundTrip(t, kapi.Codecs.LegacyCodec(v), item)
 				}
 				continue
 			}
-			t.Logf(`About to test %v with ""`, kind)
-			fuzzInternalObject(t, "", item, seed)
-			roundTrip(t, osapi.Codec, item)
-			t.Logf(`About to test %v with "v1beta3"`, kind)
-			fuzzInternalObject(t, "v1beta3", item, seed)
-			roundTrip(t, v1beta3.Codec, item)
 			t.Logf(`About to test %v with "v1"`, kind)
-			fuzzInternalObject(t, "v1", item, seed)
-			roundTrip(t, v1.Codec, item)
+			fuzzInternalObject(t, v1.SchemeGroupVersion, item, seed)
+			roundTrip(t, kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), item)
 		}
 	}
 }

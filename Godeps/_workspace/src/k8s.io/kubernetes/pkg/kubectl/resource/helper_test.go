@@ -189,7 +189,6 @@ func TestHelperCreate(t *testing.T) {
 		}
 		modifier := &Helper{
 			RESTClient:      client,
-			Codec:           testapi.Default.Codec(),
 			Versioner:       testapi.Default.MetadataAccessor(),
 			NamespaceScoped: true,
 		}
@@ -270,7 +269,7 @@ func TestHelperGet(t *testing.T) {
 			RESTClient:      client,
 			NamespaceScoped: true,
 		}
-		obj, err := modifier.Get("bar", "foo")
+		obj, err := modifier.Get("bar", "foo", false)
 		if (err != nil) != test.Err {
 			t.Errorf("unexpected error: %t %v", test.Err, err)
 		}
@@ -341,7 +340,7 @@ func TestHelperList(t *testing.T) {
 			RESTClient:      client,
 			NamespaceScoped: true,
 		}
-		obj, err := modifier.List("bar", testapi.Default.GroupVersion().String(), labels.SelectorFromSet(labels.Set{"foo": "baz"}))
+		obj, err := modifier.List("bar", testapi.Default.GroupVersion().String(), labels.SelectorFromSet(labels.Set{"foo": "baz"}), false)
 		if (err != nil) != test.Err {
 			t.Errorf("unexpected error: %t %v", test.Err, err)
 		}
@@ -441,7 +440,6 @@ func TestHelperReplace(t *testing.T) {
 		}
 		modifier := &Helper{
 			RESTClient:      client,
-			Codec:           testapi.Default.Codec(),
 			Versioner:       testapi.Default.MetadataAccessor(),
 			NamespaceScoped: true,
 		}

@@ -138,7 +138,7 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
-		ClientMapper: resource.ClientMapperFunc(f.Factory.RESTClient),
+		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
 	}
 	info, err := resourceMapper.InfoForObject(route)
 	if err != nil {
@@ -223,7 +223,7 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
-		ClientMapper: resource.ClientMapperFunc(f.Factory.RESTClient),
+		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
 	}
 	info, err := resourceMapper.InfoForObject(route)
 	if err != nil {
@@ -337,7 +337,7 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
-		ClientMapper: resource.ClientMapperFunc(f.Factory.RESTClient),
+		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
 	}
 	info, err := resourceMapper.InfoForObject(route)
 	if err != nil {

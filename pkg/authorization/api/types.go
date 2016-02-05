@@ -121,7 +121,7 @@ type PolicyRule struct {
 	Verbs sets.String
 	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
 	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
-	AttributeRestrictions kruntime.EmbeddedObject
+	AttributeRestrictions kruntime.Object
 	// APIGroups is the name of the APIGroup that contains the resources.  If this field is empty, then both kubernetes and origin API groups are assumed.
 	// That means that if an action is requested against one of the enumerated resources in either the kubernetes or the origin API group, the request
 	// will be allowed
@@ -268,7 +268,7 @@ type AuthorizationAttributes struct {
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
 	ResourceName string
 	// Content is the actual content of the request for create and update
-	Content kruntime.EmbeddedObject
+	Content kruntime.Object
 }
 
 // PolicyList is a collection of Policies

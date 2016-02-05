@@ -86,6 +86,6 @@ func (r *RouteRegistry) DeleteRoute(ctx kapi.Context, id string) error {
 	return nil
 }
 
-func (r *RouteRegistry) WatchRoutes(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+func (r *RouteRegistry) WatchRoutes(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
 	return nil, nil
 }

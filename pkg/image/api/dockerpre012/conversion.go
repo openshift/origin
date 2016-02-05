@@ -3,15 +3,15 @@ package dockerpre012
 import (
 	"github.com/fsouza/go-dockerclient"
 
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	newer "github.com/openshift/origin/pkg/image/api"
 )
 
-func init() {
-	err := kapi.Scheme.AddConversionFuncs(
+func addConversionFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddConversionFuncs(
 		// Convert docker client object to internal object, but only when this package is included
 		func(in *docker.ImagePre012, out *newer.DockerImage, s conversion.Scope) error {
 			if err := s.Convert(in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {

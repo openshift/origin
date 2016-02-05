@@ -7,6 +7,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -17,11 +18,16 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-type UnknownObject struct{}
+type UnknownObject struct {
+	unversioned.TypeMeta
+}
 
-func (*UnknownObject) IsAnAPIObject() {}
+func (obj *UnknownObject) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
 
 // TestIgnoreThatWhichCannotBeKnown verifies that the plug-in does not reject objects that are unknown to RESTMapper
 func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {

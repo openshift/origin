@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -170,7 +169,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{Verbs: sets.NewString("list"), Resources: sets.NewString("projectrequests")},
 				{Verbs: sets.NewString("list", "get"), Resources: sets.NewString("clusterroles")},
 				{Verbs: sets.NewString("list"), Resources: sets.NewString("projects")},
-				{Verbs: sets.NewString("create"), Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: runtime.EmbeddedObject{Object: &authorizationapi.IsPersonalSubjectAccessReview{}}},
+				{Verbs: sets.NewString("create"), Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 			},
 		},
 		{

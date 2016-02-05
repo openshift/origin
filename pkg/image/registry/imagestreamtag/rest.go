@@ -55,7 +55,7 @@ func nameAndTag(id string) (name string, tag string, err error) {
 	return
 }
 
-func (r *REST) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
 	imageStreams, err := r.imageStreamRegistry.ListImageStreams(ctx, options)
 	if err != nil {
 		return nil, err
@@ -176,7 +176,7 @@ func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
 	}
 
 	if notFound {
-		return nil, kapierrors.NewNotFound("imageStreamTag", tag)
+		return nil, kapierrors.NewNotFound(api.Resource("imagestreamtag"), tag)
 	}
 
 	if _, err = r.imageStreamRegistry.UpdateImageStream(ctx, stream); err != nil {
@@ -190,7 +190,7 @@ func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
 func (r *REST) imageFor(ctx kapi.Context, tag string, imageStream *api.ImageStream) (*api.Image, error) {
 	event := api.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
-		return nil, kapierrors.NewNotFound("imageStreamTag", api.JoinImageStreamTag(imageStream.Name, tag))
+		return nil, kapierrors.NewNotFound(api.Resource("imagestreamtag"), api.JoinImageStreamTag(imageStream.Name, tag))
 	}
 
 	return r.imageRegistry.GetImage(ctx, event.Image)
@@ -201,7 +201,7 @@ func newISTag(tag string, imageStream *api.ImageStream, image *api.Image) (*api.
 
 	event := api.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
-		return nil, kapierrors.NewNotFound("imageStreamTag", istagName)
+		return nil, kapierrors.NewNotFound(api.Resource("imagestreamtag"), istagName)
 	}
 
 	ist := &api.ImageStreamTag{

@@ -24,25 +24,6 @@ func TestFrameSizes(t *testing.T) {
 	}
 }
 
-func TestFrameTypeString(t *testing.T) {
-	tests := []struct {
-		ft   FrameType
-		want string
-	}{
-		{FrameData, "DATA"},
-		{FramePing, "PING"},
-		{FrameGoAway, "GOAWAY"},
-		{0xf, "UNKNOWN_FRAME_TYPE_15"},
-	}
-
-	for i, tt := range tests {
-		got := tt.ft.String()
-		if got != tt.want {
-			t.Errorf("%d. String(FrameType %d) = %q; want %q", i, int(tt.ft), got, tt.want)
-		}
-	}
-}
-
 func TestWriteRST(t *testing.T) {
 	fr, buf := testFramer()
 	var streamID uint32 = 1<<24 + 2<<16 + 3<<8 + 4

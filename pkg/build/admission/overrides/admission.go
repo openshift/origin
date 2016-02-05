@@ -9,6 +9,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
+	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 )
 
 func init() {
@@ -23,8 +24,8 @@ func init() {
 	})
 }
 
-func getConfig(in io.Reader) (*BuildOverridesConfig, error) {
-	overridesConfig := &BuildOverridesConfig{}
+func getConfig(in io.Reader) (*overridesapi.BuildOverridesConfig, error) {
+	overridesConfig := &overridesapi.BuildOverridesConfig{}
 	err := buildadmission.ReadPluginConfig(in, overridesConfig)
 	if err != nil {
 		return nil, err
@@ -34,12 +35,12 @@ func getConfig(in io.Reader) (*BuildOverridesConfig, error) {
 
 type buildOverrides struct {
 	*admission.Handler
-	overridesConfig *BuildOverridesConfig
+	overridesConfig *overridesapi.BuildOverridesConfig
 }
 
 // NewBuildOverrides returns an admission control for builds that overrides
 // settings on builds
-func NewBuildOverrides(overridesConfig *BuildOverridesConfig) admission.Interface {
+func NewBuildOverrides(overridesConfig *overridesapi.BuildOverridesConfig) admission.Interface {
 	return &buildOverrides{
 		Handler:         admission.NewHandler(admission.Create, admission.Update),
 		overridesConfig: overridesConfig,

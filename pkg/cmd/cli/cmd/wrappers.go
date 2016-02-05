@@ -314,6 +314,7 @@ func NewCmdRun(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 	cmd.Flags().Set("generator", "")
 	cmd.Flag("generator").Usage = "The name of the API generator to use.  Default is 'run/v1' if --restart=Always, otherwise the default is 'run-pod/v1'."
 	cmd.Flag("generator").DefValue = ""
+	cmd.Flag("generator").Changed = false
 	return cmd
 }
 

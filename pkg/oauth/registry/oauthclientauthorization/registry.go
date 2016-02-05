@@ -3,7 +3,6 @@ package oauthclientauthorization
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 )
@@ -13,7 +12,7 @@ type Registry interface {
 	// ClientAuthorizationName returns the name of the OAuthClientAuthorization for the given user name and client name
 	ClientAuthorizationName(userName, clientName string) string
 	// ListClientAuthorizations obtains a list of client auths that match a selector.
-	ListClientAuthorizations(ctx kapi.Context, options *unversioned.ListOptions) (*api.OAuthClientAuthorizationList, error)
+	ListClientAuthorizations(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientAuthorizationList, error)
 	// GetClientAuthorization retrieves a specific client auth.
 	GetClientAuthorization(ctx kapi.Context, name string) (*api.OAuthClientAuthorization, error)
 	// CreateClientAuthorization creates a new client auth.
@@ -39,7 +38,7 @@ func (s *storage) ClientAuthorizationName(userName, clientName string) string {
 	return userName + ":" + clientName
 }
 
-func (s *storage) ListClientAuthorizations(ctx kapi.Context, options *unversioned.ListOptions) (*api.OAuthClientAuthorizationList, error) {
+func (s *storage) ListClientAuthorizations(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientAuthorizationList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err

@@ -76,11 +76,11 @@ func TestTransport(t *testing.T) {
 		t.Errorf("Response.Request = %p; want %p", res.Request, req)
 	}
 	if res.TLS == nil {
-		t.Error("Response.TLS = nil; want non-nil")
+		t.Errorf("Response.TLS = nil; want non-nil", res.TLS)
 	}
 	slurp, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		t.Errorf("Body read: %v", err)
+		t.Error("Body read: %v", err)
 	} else if string(slurp) != body {
 		t.Errorf("Body = %q; want %q", slurp, body)
 	}

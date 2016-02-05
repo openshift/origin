@@ -172,7 +172,7 @@ func (controller *PersistentVolumeProvisionerController) reconcileClaim(claim *a
 	}
 
 	glog.V(5).Infof("PersistentVolumeClaim[%s] provisioning", claim.Name)
-	provisioner, err := newProvisioner(controller.provisioner, claim)
+	provisioner, err := newProvisioner(controller.provisioner, claim, nil)
 	if err != nil {
 		return fmt.Errorf("Unexpected error getting new provisioner for claim %s: %v\n", claim.Name, err)
 	}
@@ -274,7 +274,7 @@ func provisionVolume(pv *api.PersistentVolume, controller *PersistentVolumeProvi
 	}
 	claim := obj.(*api.PersistentVolumeClaim)
 
-	provisioner, _ := newProvisioner(controller.provisioner, claim)
+	provisioner, _ := newProvisioner(controller.provisioner, claim, pv)
 	err := provisioner.Provision(pv)
 	if err != nil {
 		glog.Errorf("Could not provision %s", pv.Name)
@@ -330,15 +330,21 @@ func (controller *PersistentVolumeProvisionerController) Stop() {
 	}
 }
 
-func newProvisioner(plugin volume.ProvisionableVolumePlugin, claim *api.PersistentVolumeClaim) (volume.Provisioner, error) {
+func newProvisioner(plugin volume.ProvisionableVolumePlugin, claim *api.PersistentVolumeClaim, pv *api.PersistentVolume) (volume.Provisioner, error) {
+	tags := make(map[string]string)
+	tags[cloudVolumeCreatedForClaimNamespaceTag] = claim.Namespace
+	tags[cloudVolumeCreatedForClaimNameTag] = claim.Name
+
+	// pv can be nil when the provisioner has not created the PV yet
+	if pv != nil {
+		tags[cloudVolumeCreatedForVolumeNameTag] = pv.Name
+	}
+
 	volumeOptions := volume.VolumeOptions{
 		Capacity:                      claim.Spec.Resources.Requests[api.ResourceName(api.ResourceStorage)],
 		AccessModes:                   claim.Spec.AccessModes,
 		PersistentVolumeReclaimPolicy: api.PersistentVolumeReclaimDelete,
-		CloudTags: &map[string]string{
-			cloudVolumeCreatedForNamespaceTag: claim.Namespace,
-			cloudVolumeCreatedForNameTag:      claim.Name,
-		},
+		CloudTags:                     &tags,
 	}
 
 	provisioner, err := plugin.NewProvisioner(volumeOptions)
@@ -467,11 +473,11 @@ func (c *PersistentVolumeProvisionerController) GetKubeClient() client.Interface
 	return c.client.GetKubeClient()
 }
 
-func (c *PersistentVolumeProvisionerController) NewWrapperBuilder(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions) (volume.Builder, error) {
+func (c *PersistentVolumeProvisionerController) NewWrapperBuilder(volName string, spec volume.Spec, pod *api.Pod, opts volume.VolumeOptions) (volume.Builder, error) {
 	return nil, fmt.Errorf("NewWrapperBuilder not supported by PVClaimBinder's VolumeHost implementation")
 }
 
-func (c *PersistentVolumeProvisionerController) NewWrapperCleaner(spec *volume.Spec, podUID types.UID) (volume.Cleaner, error) {
+func (c *PersistentVolumeProvisionerController) NewWrapperCleaner(volName string, spec volume.Spec, podUID types.UID) (volume.Cleaner, error) {
 	return nil, fmt.Errorf("NewWrapperCleaner not supported by PVClaimBinder's VolumeHost implementation")
 }
 

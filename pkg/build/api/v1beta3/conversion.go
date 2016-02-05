@@ -3,8 +3,8 @@ package v1beta3
 import (
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	newer "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -183,8 +183,9 @@ func convert_api_BuildStrategy_To_v1beta3_BuildStrategy(in *newer.BuildStrategy,
 	}
 	return nil
 }
-func init() {
-	err := kapi.Scheme.AddDefaultingFuncs(
+
+func addConversionFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddDefaultingFuncs(
 		func(strategy *BuildStrategy) {
 			if (strategy != nil) && (strategy.Type == DockerBuildStrategyType) {
 				//  initialize DockerStrategy to a default state if it's not set.
@@ -218,7 +219,7 @@ func init() {
 		panic(err)
 	}
 
-	kapi.Scheme.AddConversionFuncs(
+	scheme.AddConversionFuncs(
 		convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy,
 		convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy,
 		convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy,
@@ -238,7 +239,7 @@ func init() {
 	)
 
 	// Add field conversion funcs.
-	err = kapi.Scheme.AddFieldLabelConversionFunc("v1beta3", "Build",
+	err = scheme.AddFieldLabelConversionFunc("v1beta3", "Build",
 		func(label, value string) (string, string, error) {
 			switch label {
 			case "name":
@@ -255,7 +256,7 @@ func init() {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-	err = kapi.Scheme.AddFieldLabelConversionFunc("v1beta3", "BuildConfig",
+	err = scheme.AddFieldLabelConversionFunc("v1beta3", "BuildConfig",
 		func(label, value string) (string, string, error) {
 			switch label {
 			case "name":

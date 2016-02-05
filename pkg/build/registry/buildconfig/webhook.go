@@ -39,7 +39,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request, ctx kap
 
 	plugin, ok := c.plugins[hookType]
 	if !ok {
-		return errors.NewNotFound("BuildConfigHook", hookType)
+		return errors.NewNotFound(buildapi.Resource("buildconfighook"), hookType)
 	}
 
 	config, err := c.registry.GetBuildConfig(ctx, name)

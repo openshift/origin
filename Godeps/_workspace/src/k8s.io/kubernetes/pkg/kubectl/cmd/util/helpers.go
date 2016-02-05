@@ -18,7 +18,6 @@ package util
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -29,7 +28,6 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -73,6 +71,12 @@ var fatalErrHandler = fatal
 // here if you prefer the panic() over os.Exit(1).
 func BehaviorOnFatal(f func(string)) {
 	fatalErrHandler = f
+}
+
+// DefaultBehaviorOnFatal allows you to undo any previous override.  Useful in
+// tests.
+func DefaultBehaviorOnFatal() {
+	fatalErrHandler = fatal
 }
 
 // fatal prints the message and then exits. If V(2) or greater, glog.Fatal
@@ -306,6 +310,15 @@ func AddApplyAnnotationFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool(ApplyAnnotationsFlag, false, "If true, the configuration of current object will be saved in its annotation. This is useful when you want to perform kubectl apply on this object in the future.")
 }
 
+// AddGeneratorFlags adds flags common to resource generation commands
+// TODO: need to take a pass at other generator commands to use this set of flags
+func AddGeneratorFlags(cmd *cobra.Command, defaultGenerator string) {
+	cmd.Flags().String("generator", defaultGenerator, "The name of the API generator to use.")
+	cmd.Flags().Bool("dry-run", false, "If true, only print the object that would be sent, without sending it.")
+	cmd.Flags().StringP("output", "o", "", "Output format. One of: json|yaml|wide|name|go-template=...|go-template-file=...|jsonpath=...|jsonpath-file=... See golang template [http://golang.org/pkg/text/template/#pkg-overview] and jsonpath template [http://releases.k8s.io/HEAD/docs/user-guide/jsonpath.md].")
+	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
+}
+
 func ReadConfigDataFromReader(reader io.Reader, source string) ([]byte, error) {
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
@@ -358,38 +371,11 @@ func ReadConfigDataFromLocation(location string) ([]byte, error) {
 	}
 }
 
-func Merge(dst runtime.Object, fragment, kind string) (runtime.Object, error) {
-	// Ok, this is a little hairy, we'd rather not force the user to specify a kind for their JSON
-	// So we pull it into a map, add the Kind field, and then reserialize.
-	// We also pull the apiVersion for proper parsing
-	var intermediate interface{}
-	if err := json.Unmarshal([]byte(fragment), &intermediate); err != nil {
-		return nil, err
-	}
-	dataMap, ok := intermediate.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("Expected a map, found something else: %s", fragment)
-	}
-	version, found := dataMap["apiVersion"]
-	if !found {
-		return nil, fmt.Errorf("Inline JSON requires an apiVersion field")
-	}
-	versionString, ok := version.(string)
-	if !ok {
-		return nil, fmt.Errorf("apiVersion must be a string")
-	}
-	groupVersion, err := unversioned.ParseGroupVersion(versionString)
-	if err != nil {
-		return nil, err
-	}
-
-	i, err := latest.GroupOrDie("").InterfacesFor(groupVersion)
-	if err != nil {
-		return nil, err
-	}
-
+// Merge requires JSON serialization
+// TODO: merge assumes JSON serialization, and does not properly abstract API retrieval
+func Merge(codec runtime.Codec, dst runtime.Object, fragment, kind string) (runtime.Object, error) {
 	// encode dst into versioned json and apply fragment directly too it
-	target, err := i.Codec.Encode(dst)
+	target, err := runtime.Encode(codec, dst)
 	if err != nil {
 		return nil, err
 	}
@@ -397,7 +383,7 @@ func Merge(dst runtime.Object, fragment, kind string) (runtime.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	out, err := i.Codec.Decode(patched)
+	out, err := runtime.Decode(codec, patched)
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +416,7 @@ func DumpReaderToFile(reader io.Reader, filename string) error {
 }
 
 // UpdateObject updates resource object with updateFn
-func UpdateObject(info *resource.Info, updateFn func(runtime.Object) error) (runtime.Object, error) {
+func UpdateObject(info *resource.Info, codec runtime.Codec, updateFn func(runtime.Object) error) (runtime.Object, error) {
 	helper := resource.NewHelper(info.Client, info.Mapping)
 
 	if err := updateFn(info.Object); err != nil {
@@ -438,7 +424,7 @@ func UpdateObject(info *resource.Info, updateFn func(runtime.Object) error) (run
 	}
 
 	// Update the annotation used by kubectl apply
-	if err := kubectl.UpdateApplyAnnotation(info); err != nil {
+	if err := kubectl.UpdateApplyAnnotation(info, codec); err != nil {
 		return nil, err
 	}
 

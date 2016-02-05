@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -62,7 +63,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	projectRequest := obj.(*projectapi.ProjectRequest)
 
 	if _, err := r.openshiftClient.Projects().Get(projectRequest.Name); err == nil {
-		return nil, kapierror.NewAlreadyExists("project", projectRequest.Name)
+		return nil, kapierror.NewAlreadyExists(projectapi.Resource("project"), projectRequest.Name)
 	}
 
 	projectName := projectRequest.Name
@@ -97,7 +98,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if err != nil {
 		return nil, err
 	}
-	if err := utilerrors.NewAggregate(runtime.DecodeList(list.Objects, kapi.Scheme)); err != nil {
+	if err := utilerrors.NewAggregate(runtime.DecodeList(list.Objects, kapi.Codecs.UniversalDecoder())); err != nil {
 		return nil, kapierror.NewInternalError(err)
 	}
 
@@ -125,8 +126,23 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, err
 	}
 
+	var restMapper meta.MultiRESTMapper
+	seenGroups := sets.String{}
+	for _, gv := range registered.EnabledVersions() {
+		if seenGroups.Has(gv.Group) {
+			continue
+		}
+		seenGroups.Insert(gv.Group)
+
+		groupMeta, err := registered.Group(gv.Group)
+		if err != nil {
+			continue
+		}
+		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
+	}
+
 	bulk := configcmd.Bulk{
-		Mapper: latest.RESTMapper,
+		Mapper: restMapper,
 		Typer:  kapi.Scheme,
 		RESTClientFactory: func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 			if latest.OriginKind(mapping.GroupVersionKind) {
@@ -152,7 +168,7 @@ func (r *REST) getTemplate() (*templateapi.Template, error) {
 
 var _ = rest.Lister(&REST{})
 
-func (r *REST) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
 	userInfo, exists := kapi.UserFrom(ctx)
 	if !exists {
 		return nil, errors.New("a user must be provided")
@@ -176,7 +192,7 @@ func (r *REST) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime
 		return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
 	}
 
-	forbiddenError, _ := kapierror.NewForbidden("ProjectRequest", "", errors.New("you may not request a new project via this API.")).(*kapierror.StatusError)
+	forbiddenError, _ := kapierror.NewForbidden(projectapi.Resource("projectrequest"), "", errors.New("you may not request a new project via this API.")).(*kapierror.StatusError)
 	if len(r.message) > 0 {
 		forbiddenError.ErrStatus.Message = r.message
 		forbiddenError.ErrStatus.Details = &unversioned.StatusDetails{

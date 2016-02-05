@@ -30,7 +30,7 @@ import (
 )
 
 // TODO: quinton: debug issue #6541 and then remove Pending flag here.
-var _ = Describe("Monitoring", func() {
+var _ = Describe("[Flaky] Monitoring", func() {
 	var c *client.Client
 
 	BeforeEach(func() {
@@ -123,6 +123,7 @@ func expectedServicesExist(c *client.Client) error {
 }
 
 func getAllNodesInCluster(c *client.Client) ([]string, error) {
+	// It should be OK to list unschedulable Nodes here.
 	nodeList, err := c.Nodes().List(api.ListOptions{})
 	if err != nil {
 		return nil, err

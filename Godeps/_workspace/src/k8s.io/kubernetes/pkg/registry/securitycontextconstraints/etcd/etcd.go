@@ -53,7 +53,7 @@ func NewStorage(s storage.Interface) *REST {
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return securitycontextconstraints.Matcher(label, field)
 		},
-		EndpointName: "securitycontextconstraints",
+		QualifiedResource: api.Resource("securitycontextconstraints"),
 
 		CreateStrategy:      securitycontextconstraints.Strategy,
 		UpdateStrategy:      securitycontextconstraints.Strategy,

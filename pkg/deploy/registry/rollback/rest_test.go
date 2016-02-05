@@ -9,8 +9,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 
-	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -48,14 +48,14 @@ func TestCreateOk(t *testing.T) {
 				return &deployapi.DeploymentConfig{}, nil
 			},
 			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 				return deployment, nil
 			},
 			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
 		},
-		codec: api.Codec,
+		codec: kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
 	}
 
 	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -87,14 +87,14 @@ func TestCreateGeneratorError(t *testing.T) {
 				return nil, kerrors.NewInternalError(fmt.Errorf("something terrible happened"))
 			},
 			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 				return deployment, nil
 			},
 			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
 		},
-		codec: api.Codec,
+		codec: kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
 	}
 
 	_, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -119,15 +119,15 @@ func TestCreateMissingDeployment(t *testing.T) {
 				return nil, errors.New("something terrible happened")
 			},
 			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound("replicationController", name)
+				return nil, kerrors.NewNotFound(kapi.Resource("replicationController"), name)
 			},
 			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
 				namespace, _ := kapi.NamespaceFrom(ctx)
 				t.Fatalf("unexpected call to GetDeploymentConfig(%s/%s)", namespace, name)
-				return nil, kerrors.NewNotFound("deploymentConfig", name)
+				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
 			},
 		},
-		codec: api.Codec,
+		codec: kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
 	}
 
 	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -157,17 +157,17 @@ func TestCreateInvalidDeployment(t *testing.T) {
 			},
 			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
 				// invalidate the encoded config
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 				deployment.Annotations[deployapi.DeploymentEncodedConfigAnnotation] = ""
 				return deployment, nil
 			},
 			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
 				namespace, _ := kapi.NamespaceFrom(ctx)
 				t.Fatalf("unexpected call to GetDeploymentConfig(%s/%s)", namespace, name)
-				return nil, kerrors.NewNotFound("deploymentConfig", name)
+				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
 			},
 		},
-		codec: api.Codec,
+		codec: kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
 	}
 
 	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -196,14 +196,14 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 				return nil, errors.New("something terrible happened")
 			},
 			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 				return deployment, nil
 			},
 			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				return nil, kerrors.NewNotFound("deploymentConfig", name)
+				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
 			},
 		},
-		codec: api.Codec,
+		codec: kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
 	}
 
 	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -226,6 +226,6 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	// :)
-	rest := NewREST(Client{}, api.Codec)
+	rest := NewREST(Client{}, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	rest.New()
 }

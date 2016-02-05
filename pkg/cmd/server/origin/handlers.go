@@ -14,9 +14,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	klatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -95,13 +95,11 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w http.ResponseWriter, req *http.Request) {
 	kind := ""
 	name := ""
-	apiVersion := klatest.ExternalVersions[0]
 	// the attributes can be empty for two basic reasons:
 	// 1. malformed API request
 	// 2. not an API request at all
 	// In these cases, just assume default that will work better than nothing
 	if attributes != nil {
-		apiVersion = unversioned.GroupVersion{Group: attributes.GetAPIGroup(), Version: attributes.GetAPIVersion()}
 		kind = attributes.GetResource()
 		if len(attributes.GetAPIGroup()) > 0 {
 			kind = attributes.GetAPIGroup() + "." + kind
@@ -113,20 +111,11 @@ func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w h
 	// We don't have direct access to kind or name (not that those apply either in the general case)
 	// We create a NewForbidden to stay close the API, but then we override the message to get a serialization
 	// that makes sense when a human reads it.
-	forbiddenError, _ := kapierrors.NewForbidden(kind, name, errors.New("") /*discarded*/).(*kapierrors.StatusError)
+	forbiddenError, _ := kapierrors.NewForbidden(unversioned.GroupResource{Group: attributes.GetAPIGroup(), Resource: attributes.GetResource()}, name, errors.New("") /*discarded*/).(*kapierrors.StatusError)
 	forbiddenError.ErrStatus.Message = reason
 
-	// Not all API versions in valid API requests will have a matching codec in kubernetes.  If we can't find one,
-	// just default to the latest kube codec.
-	codec := klatest.GroupOrDie(kapi.SchemeGroupVersion.Group).Codec
-	if requestedGroup, err := klatest.Group(apiVersion.Group); err == nil {
-		if requestedCodec, err := requestedGroup.InterfacesFor(apiVersion); err == nil {
-			codec = requestedCodec
-		}
-	}
-
 	formatted := &bytes.Buffer{}
-	output, err := codec.Encode(&forbiddenError.ErrStatus)
+	output, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.SchemeGroupVersion), &forbiddenError.ErrStatus)
 	if err != nil {
 		fmt.Fprintf(formatted, "%s", forbiddenError.Error())
 	} else {

@@ -44,7 +44,7 @@ const (
 	rebootPodReadyAgainTimeout = 5 * time.Minute
 )
 
-var _ = Describe("Reboot", func() {
+var _ = Describe("Reboot [Disruptive]", func() {
 	var f *Framework
 
 	BeforeEach(func() {
@@ -67,6 +67,17 @@ var _ = Describe("Reboot", func() {
 			for _, e := range events.Items {
 				Logf("event for %v: %v %v: %v", e.InvolvedObject.Name, e.Source, e.Reason, e.Message)
 			}
+		}
+		// In GKE, our current tunneling setup has the potential to hold on to a broken tunnel (from a
+		// rebooted/deleted node) for up to 5 minutes before all tunnels are dropped and recreated.  Most tests
+		// make use of some proxy feature to verify functionality. So, if a reboot test runs right before a test
+		// that tries to get logs, for example, we may get unlucky and try to use a closed tunnel to a node that
+		// was recently rebooted. There's no good way to poll for proxies being closed, so we sleep.
+		//
+		// TODO(cjcullen) reduce this sleep (#19314)
+		if providerIs("gke") {
+			By("waiting 5 minutes for all dead tunnels to be dropped")
+			time.Sleep(5 * time.Minute)
 		}
 	})
 
@@ -115,10 +126,7 @@ var _ = Describe("Reboot", func() {
 
 func testReboot(c *client.Client, rebootCmd string) {
 	// Get all nodes, and kick off the test on each.
-	nodelist, err := listNodes(c, labels.Everything(), fields.Everything())
-	if err != nil {
-		Failf("Error getting nodes: %v", err)
-	}
+	nodelist := ListSchedulableNodesOrDie(c)
 	result := make([]bool, len(nodelist.Items))
 	wg := sync.WaitGroup{}
 	wg.Add(len(nodelist.Items))
@@ -146,6 +154,41 @@ func testReboot(c *client.Client, rebootCmd string) {
 			}
 		}
 		Failf("Test failed; at least one node failed to reboot in the time given.")
+	}
+}
+
+func printStatusAndLogsForNotReadyPods(c *client.Client, oldPods, newPods []*api.Pod) {
+	printFn := func(id, log string, err error, previous bool) {
+		prefix := "Retrieving log for container"
+		if previous {
+			prefix = "Retrieving log for the last terminated container"
+		}
+		if err != nil {
+			Logf("%s %s, err: %v:\n%s\n", prefix, id, log)
+		} else {
+			Logf("%s %s:\n%s\n", prefix, id, log)
+		}
+	}
+	for _, oldPod := range oldPods {
+		for _, p := range newPods {
+			if p.Namespace != oldPod.Namespace || p.Name != oldPod.Name {
+				continue
+			}
+			if ok, _ := podRunningReady(p); !ok {
+				Logf("Status for not ready pod %s/%s: %+v", p.Namespace, p.Name, p.Status)
+				// Print the log of the containers if pod is not running and ready.
+				for _, container := range p.Status.ContainerStatuses {
+					cIdentifer := fmt.Sprintf("%s/%s/%s", p.Namespace, p.Name, container.Name)
+					log, err := getPodLogs(c, p.Namespace, p.Name, container.Name)
+					printFn(cIdentifer, log, err, false)
+					// Get log from the previous container.
+					if container.RestartCount > 0 {
+						printFn(cIdentifer, log, err, true)
+					}
+				}
+			}
+			break
+		}
 	}
 }
 
@@ -221,6 +264,8 @@ func rebootNode(c *client.Client, provider, name, rebootCmd string) bool {
 	// Ensure all of the pods that we found on this node before the reboot are
 	// running / healthy.
 	if !checkPodsRunningReady(c, ns, podNames, rebootPodReadyAgainTimeout) {
+		newPods := ps.List()
+		printStatusAndLogsForNotReadyPods(c, pods, newPods)
 		return false
 	}
 

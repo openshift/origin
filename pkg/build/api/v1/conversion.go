@@ -1,8 +1,8 @@
 package v1
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	newer "github.com/openshift/origin/pkg/build/api"
@@ -176,8 +176,8 @@ func convert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *newer
 	return nil
 }
 
-func init() {
-	err := kapi.Scheme.AddDefaultingFuncs(
+func addConversionFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddDefaultingFuncs(
 		func(strategy *BuildStrategy) {
 			if (strategy != nil) && (strategy.Type == DockerBuildStrategyType) {
 				//  initialize DockerStrategy to a default state if it's not set.
@@ -211,7 +211,7 @@ func init() {
 		panic(err)
 	}
 
-	kapi.Scheme.AddConversionFuncs(
+	scheme.AddConversionFuncs(
 		convert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy,
 		convert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy,
 		convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy,
@@ -230,13 +230,13 @@ func init() {
 		convert_api_BuildStrategy_To_v1_BuildStrategy,
 	)
 
-	if err := kapi.Scheme.AddFieldLabelConversionFunc("v1", "Build",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "Build",
 		oapi.GetFieldLabelConversionFunc(newer.BuildToSelectableFields(&newer.Build{}), map[string]string{"name": "metadata.name"}),
 	); err != nil {
 		panic(err)
 	}
 
-	if err := kapi.Scheme.AddFieldLabelConversionFunc("v1", "BuildConfig",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "BuildConfig",
 		oapi.GetFieldLabelConversionFunc(newer.BuildConfigToSelectableFields(&newer.BuildConfig{}), map[string]string{"name": "metadata.name"}),
 	); err != nil {
 		panic(err)

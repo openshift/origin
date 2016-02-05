@@ -4,19 +4,20 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 
-	etcdclient "github.com/coreos/go-etcd/etcd"
+	newetcdclient "github.com/coreos/etcd/client"
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
@@ -106,10 +107,15 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 	}
 
 	// Connect and setup etcd interfaces
-	etcdClient, err := etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
+	_, err = etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
 	if err != nil {
 		return err
 	}
+	etcdClient, err := etcd.MakeNewEtcdClient(masterConfig.EtcdClientInfo)
+	if err != nil {
+		return err
+	}
+
 	storage, err := newStorage(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return err
@@ -123,13 +129,13 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 		fmt.Fprintf(out, "Performing a dry run of policy overwrite:\n\n")
 	}
 
-	mapper := cmdclientcmd.ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: latest.RESTMapper}}
+	mapper := cmdclientcmd.ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: registered.GroupOrDie(authorizationapi.GroupName).RESTMapper}}
 	typer := kapi.Scheme
 	clientMapper := resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 		return nil, nil
 	})
 
-	r := resource.NewBuilder(mapper, typer, clientMapper).
+	r := resource.NewBuilder(mapper, typer, clientMapper, kapi.Codecs.UniversalDecoder()).
 		FilenameParam(false, policyFile).
 		Flatten().
 		Do()
@@ -158,7 +164,7 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 		if !ok {
 			return errors.New("policy must be contained in a template.  One can be created with '" + createBootstrapPolicyCommand + "'.")
 		}
-		runtime.DecodeList(template.Objects, kapi.Scheme)
+		runtime.DecodeList(template.Objects, kapi.Codecs.UniversalDecoder())
 
 		for _, item := range template.Objects {
 			switch t := item.(type) {
@@ -217,7 +223,7 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 				}
 
 			default:
-				return errors.New("only roles and rolebindings may be created in this mode")
+				return fmt.Errorf("only roles and rolebindings may be created in this mode, not: %v", reflect.TypeOf(t))
 			}
 		}
 		if !change {
@@ -228,11 +234,6 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 }
 
 // newStorage returns an EtcdHelper for the provided storage version.
-func newStorage(client *etcdclient.Client, version, prefix string) (oshelper storage.Interface, err error) {
-	// TODO: this will need more care after the rebase
-	interfaces, err := latest.InterfacesFor(unversioned.GroupVersion{Group: "", Version: version})
-	if err != nil {
-		return nil, err
-	}
-	return etcdstorage.NewEtcdStorage(client, interfaces.Codec, prefix), nil
+func newStorage(client newetcdclient.Client, version, prefix string) (oshelper storage.Interface, err error) {
+	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: version}), prefix), nil
 }

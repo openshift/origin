@@ -14,6 +14,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -143,6 +144,10 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 		list := &kapi.List{}
 		for _, item := range changedClusterRoleBindings {
 			list.Items = append(list.Items, item)
+		}
+		list.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
+		if err != nil {
+			return err
 		}
 
 		if err := f.Factory.PrintObject(cmd, list, o.Out); err != nil {

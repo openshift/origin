@@ -27,10 +27,10 @@
                   "supplementalGroups": [
                       0,
                       1000030003,
-                      2147483647,
-                      9223372036854775807
+                      2147483647
                   ]
-              }
+              },
+              "terminationGracePeriodSeconds": 9223372036854775807
             }
         }
     ]

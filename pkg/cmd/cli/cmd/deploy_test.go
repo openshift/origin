@@ -12,15 +12,21 @@ import (
 	ktc "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
-	api "github.com/openshift/origin/pkg/api/latest"
 	tc "github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/api/install"
 )
 
 func deploymentFor(config *deployapi.DeploymentConfig, status deployapi.DeploymentStatus) *kapi.ReplicationController {
-	d, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	d, err := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	if err != nil {
+		panic(err)
+	}
 	d.Annotations[deployapi.DeploymentStatusAnnotation] = string(status)
 	return d
 }
@@ -235,7 +241,7 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 		config := deploytest.OkDeploymentConfig(scenario.version)
 		existingDeployments := &kapi.ReplicationControllerList{}
 		for _, e := range scenario.existing {
-			d, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(e.version), api.Codec)
+			d, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(e.version), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 			d.Annotations[deployapi.DeploymentStatusAnnotation] = string(e.status)
 			existingDeployments.Items = append(existingDeployments.Items, *d)
 		}

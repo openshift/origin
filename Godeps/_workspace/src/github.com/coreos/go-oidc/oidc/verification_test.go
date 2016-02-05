@@ -33,6 +33,28 @@ func TestVerifyClientClaims(t *testing.T) {
 			},
 			ok: true,
 		},
+		// valid token, ('aud' claim is []string)
+		{
+			claims: jose.Claims{
+				"iss": validIss,
+				"sub": validClientID,
+				"aud": []string{"foo", validClientID},
+				"iat": float64(now.Unix()),
+				"exp": float64(tomorrow.Unix()),
+			},
+			ok: true,
+		},
+		// valid token, ('aud' claim is []interface{})
+		{
+			claims: jose.Claims{
+				"iss": validIss,
+				"sub": validClientID,
+				"aud": []interface{}{"foo", validClientID},
+				"iat": float64(now.Unix()),
+				"exp": float64(tomorrow.Unix()),
+			},
+			ok: true,
+		},
 		// missing 'iss' claim
 		{
 			claims: jose.Claims{
@@ -91,6 +113,28 @@ func TestVerifyClientClaims(t *testing.T) {
 				"iss": validIss,
 				"sub": validClientID,
 				"aud": "INVALID",
+				"iat": float64(now.Unix()),
+				"exp": float64(tomorrow.Unix()),
+			},
+			ok: false,
+		},
+		// invalid 'aud' claim
+		{
+			claims: jose.Claims{
+				"iss": validIss,
+				"sub": validClientID,
+				"aud": []string{"INVALID1", "INVALID2"},
+				"iat": float64(now.Unix()),
+				"exp": float64(tomorrow.Unix()),
+			},
+			ok: false,
+		},
+		// invalid 'aud' type
+		{
+			claims: jose.Claims{
+				"iss": validIss,
+				"sub": validClientID,
+				"aud": struct{}{},
 				"iat": float64(now.Unix()),
 				"exp": float64(tomorrow.Unix()),
 			},
@@ -158,12 +202,22 @@ func TestJWTVerifier(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	jwtPK1BadClaims2, err := jose.NewSignedJWT(NewClaims(iss, "XXX", []string{"YYY", "ZZZ"}, past12, future12), priv1.Signer())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	jwtExpired, err := jose.NewSignedJWT(NewClaims(iss, "XXX", "XXX", past36, past12), priv1.Signer())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	jwtPK2, err := jose.NewSignedJWT(NewClaims(iss, "XXX", "XXX", past12, future12), priv2.Signer())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	jwtPK3, err := jose.NewSignedJWT(NewClaims(iss, "XXX", []string{"ZZZ", "XXX"}, past12, future12), priv1.Signer())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -198,6 +252,20 @@ func TestJWTVerifier(t *testing.T) {
 				},
 			},
 			jwt:     *jwtPK1BadClaims,
+			wantErr: true,
+		},
+
+		// JWT signed with available key,
+		{
+			verifier: JWTVerifier{
+				issuer:   "example.com",
+				clientID: "XXX",
+				syncFunc: func() error { return nil },
+				keysFunc: func() []key.PublicKey {
+					return []key.PublicKey{pk1}
+				},
+			},
+			jwt:     *jwtPK1BadClaims2,
 			wantErr: true,
 		},
 
@@ -282,6 +350,20 @@ func TestJWTVerifier(t *testing.T) {
 				}(),
 			},
 			jwt:     *jwtPK2,
+			wantErr: false,
+		},
+
+		// JWT signed with available key, 'aud' is a string array.
+		{
+			verifier: JWTVerifier{
+				issuer:   "example.com",
+				clientID: "XXX",
+				syncFunc: func() error { return nil },
+				keysFunc: func() []key.PublicKey {
+					return []key.PublicKey{pk1}
+				},
+			},
+			jwt:     *jwtPK3,
 			wantErr: false,
 		},
 	}

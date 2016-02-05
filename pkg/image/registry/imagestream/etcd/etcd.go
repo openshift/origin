@@ -47,7 +47,7 @@ func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, s
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return imagestream.MatchImageStream(label, field)
 		},
-		EndpointName: "imageStream",
+		QualifiedResource: api.Resource("imagestreams"),
 
 		ReturnDeletedObject: false,
 		Storage:             s,

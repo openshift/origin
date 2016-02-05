@@ -3,7 +3,6 @@ package user
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -12,7 +11,7 @@ import (
 // Registry is an interface implemented by things that know how to store User objects.
 type Registry interface {
 	// ListUsers obtains a list of users having labels which match selector.
-	ListUsers(ctx kapi.Context, options *unversioned.ListOptions) (*api.UserList, error)
+	ListUsers(ctx kapi.Context, options *kapi.ListOptions) (*api.UserList, error)
 	// GetUser returns a specific user
 	GetUser(ctx kapi.Context, name string) (*api.User, error)
 	// CreateUser creates a user
@@ -42,7 +41,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListUsers(ctx kapi.Context, options *unversioned.ListOptions) (*api.UserList, error) {
+func (s *storage) ListUsers(ctx kapi.Context, options *kapi.ListOptions) (*api.UserList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err

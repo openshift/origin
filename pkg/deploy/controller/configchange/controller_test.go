@@ -5,8 +5,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -16,7 +16,7 @@ import (
 func TestHandle_newConfigNoTriggers(t *testing.T) {
 	controller := &DeploymentConfigChangeController{
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 		},
 		changeStrategy: &changeStrategyImpl{
 			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
@@ -47,7 +47,7 @@ func TestHandle_newConfigTriggers(t *testing.T) {
 
 	controller := &DeploymentConfigChangeController{
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 		},
 		changeStrategy: &changeStrategyImpl{
 			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
@@ -120,12 +120,12 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 
 		config := deployapitest.OkDeploymentConfig(1)
 		config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
-		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 		var updated *deployapi.DeploymentConfig
 
 		controller := &DeploymentConfigChangeController{
 			decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-				return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+				return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 			},
 			changeStrategy: &changeStrategyImpl{
 				generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {

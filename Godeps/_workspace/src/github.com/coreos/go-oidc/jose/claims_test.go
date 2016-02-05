@@ -1,6 +1,7 @@
 package jose
 
 import (
+	"reflect"
 	"testing"
 	"time"
 )
@@ -234,6 +235,93 @@ func TestTime(t *testing.T) {
 		}
 
 		if tt.val != val {
+			t.Errorf("case %d: want val=%v, got val=%v", i, tt.val, val)
+		}
+	}
+}
+
+func TestStringArray(t *testing.T) {
+	tests := []struct {
+		cl  Claims
+		key string
+		ok  bool
+		err bool
+		val []string
+	}{
+		// ok, no err, claim exists
+		{
+			cl: Claims{
+				"foo": []string{"bar", "faf"},
+			},
+			key: "foo",
+			val: []string{"bar", "faf"},
+			ok:  true,
+			err: false,
+		},
+		// ok, no err, []interface{}
+		{
+			cl: Claims{
+				"foo": []interface{}{"bar", "faf"},
+			},
+			key: "foo",
+			val: []string{"bar", "faf"},
+			ok:  true,
+			err: false,
+		},
+		// no claims
+		{
+			cl:  Claims{},
+			key: "foo",
+			val: nil,
+			ok:  false,
+			err: false,
+		},
+		// missing claim
+		{
+			cl: Claims{
+				"foo": "bar",
+			},
+			key: "xxx",
+			val: nil,
+			ok:  false,
+			err: false,
+		},
+		// unparsable: type
+		{
+			cl: Claims{
+				"foo": struct{}{},
+			},
+			key: "foo",
+			val: nil,
+			ok:  false,
+			err: true,
+		},
+		// unparsable: nil value
+		{
+			cl: Claims{
+				"foo": nil,
+			},
+			key: "foo",
+			val: nil,
+			ok:  false,
+			err: true,
+		},
+	}
+
+	for i, tt := range tests {
+		val, ok, err := tt.cl.StringsClaim(tt.key)
+
+		if tt.err && err == nil {
+			t.Errorf("case %d: want err=non-nil, got err=nil", i)
+		} else if !tt.err && err != nil {
+			t.Errorf("case %d: want err=nil, got err=%v", i, err)
+		}
+
+		if tt.ok != ok {
+			t.Errorf("case %d: want ok=%v, got ok=%v", i, tt.ok, ok)
+		}
+
+		if !reflect.DeepEqual(tt.val, val) {
 			t.Errorf("case %d: want val=%v, got val=%v", i, tt.val, val)
 		}
 	}

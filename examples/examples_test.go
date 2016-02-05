@@ -15,7 +15,6 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/yaml"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/validation"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -23,6 +22,11 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 
 type mockService struct{}
@@ -139,7 +143,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 				t.Logf("%q is skipped", path)
 				return
 			}
-			if err := latest.Codec.DecodeInto(data, expectedType); err != nil {
+			if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), data, expectedType); err != nil {
 				t.Errorf("%s did not decode correctly: %v\n%s", path, err, string(data))
 				return
 			}
@@ -189,7 +193,7 @@ func validateObject(path string, obj runtime.Object, t *testing.T) {
 
 	case *kapi.List, *imageapi.ImageStreamList:
 		if list, err := meta.ExtractList(typedObj); err == nil {
-			runtime.DecodeList(list, kapi.Scheme)
+			runtime.DecodeList(list, kapi.Codecs.UniversalDecoder())
 			for i := range list {
 				validateObject(path, list[i], t)
 			}

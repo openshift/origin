@@ -49,12 +49,12 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 			if a.resourceMatches(allowedResourceTypes) {
 				if a.nameMatches(rule.ResourceNames) {
 					// this rule matches the request, so we should check the additional restrictions to be sure that it's allowed
-					if rule.AttributeRestrictions.Object != nil {
-						switch rule.AttributeRestrictions.Object.(type) {
+					if rule.AttributeRestrictions != nil {
+						switch rule.AttributeRestrictions.(type) {
 						case (*authorizationapi.IsPersonalSubjectAccessReview):
 							return IsPersonalAccessReview(a)
 						default:
-							return false, fmt.Errorf("unable to interpret: %#v", rule.AttributeRestrictions.Object)
+							return false, fmt.Errorf("unable to interpret: %#v", rule.AttributeRestrictions)
 						}
 					}
 

@@ -1,10 +1,13 @@
-package v1
+package v1_test
 
 import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/sdn/api"
 	testutil "github.com/openshift/origin/test/util/api"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestFieldSelectorConversions(t *testing.T) {

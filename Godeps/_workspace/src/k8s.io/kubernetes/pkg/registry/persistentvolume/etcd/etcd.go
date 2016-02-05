@@ -37,7 +37,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 
 	newListFunc := func() runtime.Object { return &api.PersistentVolumeList{} }
 	storageInterface := storageDecorator(
-		s, 100, &api.PersistentVolume{}, prefix, true, newListFunc)
+		s, 100, &api.PersistentVolume{}, prefix, persistentvolume.Strategy, newListFunc)
 
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.PersistentVolume{} },
@@ -54,7 +54,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return persistentvolume.MatchPersistentVolumes(label, field)
 		},
-		EndpointName: "persistentvolume",
+		QualifiedResource: api.Resource("persistentvolumes"),
 
 		CreateStrategy:      persistentvolume.Strategy,
 		UpdateStrategy:      persistentvolume.Strategy,

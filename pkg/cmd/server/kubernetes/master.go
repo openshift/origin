@@ -31,6 +31,7 @@ import (
 	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
 	resourcequotacontroller "k8s.io/kubernetes/pkg/controller/resourcequota"
 	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/volume"
@@ -185,13 +186,13 @@ func attemptToLoadRecycler(path string, config *volume.VolumeConfig) error {
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunReplicationController(client *client.Client) {
-	controllerManager := replicationcontroller.NewReplicationManager(client, c.ControllerManager.ResyncPeriod, replicationcontroller.BurstReplicas)
+	controllerManager := replicationcontroller.NewReplicationManager(client, kctrlmgr.ResyncPeriod(c.ControllerManager), replicationcontroller.BurstReplicas)
 	go controllerManager.Run(c.ControllerManager.ConcurrentRCSyncs, util.NeverStop)
 }
 
 // RunJobController starts the Kubernetes job controller sync loop
 func (c *MasterConfig) RunJobController(client *client.Client) {
-	controller := jobcontroller.NewJobController(client, c.ControllerManager.ResyncPeriod)
+	controller := jobcontroller.NewJobController(client, kctrlmgr.ResyncPeriod(c.ControllerManager))
 	go controller.Run(c.ControllerManager.ConcurrentJobSyncs, util.NeverStop)
 }
 
@@ -203,13 +204,13 @@ func (c *MasterConfig) RunHPAController(oc *osclient.Client, kc *client.Client, 
 }
 
 func (c *MasterConfig) RunDaemonSetsController(client *client.Client) {
-	controller := daemon.NewDaemonSetsController(client, c.ControllerManager.ResyncPeriod)
+	controller := daemon.NewDaemonSetsController(client, kctrlmgr.ResyncPeriod(c.ControllerManager))
 	go controller.Run(c.ControllerManager.ConcurrentDSCSyncs, util.NeverStop)
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunEndpointController() {
-	endpoints := endpointcontroller.NewEndpointController(c.KubeClient, c.ControllerManager.ResyncPeriod)
+	endpoints := endpointcontroller.NewEndpointController(c.KubeClient, kctrlmgr.ResyncPeriod(c.ControllerManager))
 	go endpoints.Run(c.ControllerManager.ConcurrentEndpointSyncs, util.NeverStop)
 
 }
@@ -261,13 +262,13 @@ func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
 	var configData []byte
 
 	// TODO make the rate limiter configurable
-	configFactory := factory.NewConfigFactory(c.KubeClient, util.NewTokenBucketRateLimiter(15.0, 20))
+	configFactory := factory.NewConfigFactory(c.KubeClient, kapi.DefaultSchedulerName)
 	if _, err := os.Stat(c.Options.SchedulerConfigFile); err == nil {
 		configData, err = ioutil.ReadFile(c.Options.SchedulerConfigFile)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read scheduler config: %v", err)
 		}
-		err = latestschedulerapi.Codec.DecodeInto(configData, &policy)
+		err = runtime.DecodeInto(latestschedulerapi.Codec, configData, &policy)
 		if err != nil {
 			return nil, fmt.Errorf("invalid scheduler configuration: %v", err)
 		}

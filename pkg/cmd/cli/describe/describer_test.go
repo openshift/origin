@@ -24,6 +24,11 @@ import (
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 
 type describeClient struct {
@@ -136,7 +141,7 @@ func TestDescribers(t *testing.T) {
 
 func TestDeploymentConfigDescriber(t *testing.T) {
 	config := deployapitest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	podList := &kapi.PodList{}
 	eventList := &kapi.EventList{}
 	deploymentList := &kapi.ReplicationControllerList{}

@@ -13,7 +13,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/context"
 
-	"k8s.io/kubernetes/pkg/util"
+	knet "k8s.io/kubernetes/pkg/util/net"
 )
 
 type User struct {
@@ -153,7 +153,7 @@ func NewXRemoteUserProxyingHandler(rawURL string) http.Handler {
 }
 
 func insecureTransport() *http.Transport {
-	return util.SetTransportDefaults(&http.Transport{
+	return knet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: &tls.Config{
 			// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
 			MinVersion:         tls.VersionTLS10,

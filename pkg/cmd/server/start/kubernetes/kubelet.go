@@ -8,7 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/cmd/kubelet/app"
+	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
+	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/util"
 )
 
@@ -19,7 +20,7 @@ starting from a configuration file.`
 
 // NewKubeletCommand provides a CLI handler for the 'kubelet' command
 func NewKubeletCommand(name, fullName string, out io.Writer) *cobra.Command {
-	s := app.NewKubeletServer()
+	kubeletOptions := kubeletoptions.NewKubeletServer()
 
 	cmd := &cobra.Command{
 		Use:   name,
@@ -31,7 +32,7 @@ func NewKubeletCommand(name, fullName string, out io.Writer) *cobra.Command {
 			util.InitLogs()
 			defer util.FlushLogs()
 
-			if err := s.Run(nil); err != nil {
+			if err := kubeletapp.Run(kubeletOptions, nil); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
@@ -42,7 +43,7 @@ func NewKubeletCommand(name, fullName string, out io.Writer) *cobra.Command {
 	flags := cmd.Flags()
 	flags.SetNormalizeFunc(util.WordSepNormalizeFunc)
 	flags.AddGoFlagSet(flag.CommandLine)
-	s.AddFlags(flags)
+	kubeletOptions.AddFlags(flags)
 
 	return cmd
 }

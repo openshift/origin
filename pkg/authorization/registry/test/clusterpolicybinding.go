@@ -6,7 +6,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -29,7 +28,7 @@ func NewClusterPolicyBindingRegistry(bindings []authorizationapi.ClusterPolicyBi
 }
 
 // ListClusterPolicyBindings obtains list of clusterPolicyBindings that match a selector.
-func (r *ClusterPolicyBindingRegistry) ListClusterPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (r *ClusterPolicyBindingRegistry) ListClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -75,7 +74,7 @@ func (r *ClusterPolicyBindingRegistry) GetClusterPolicyBinding(ctx kapi.Context,
 		}
 	}
 
-	return nil, kapierrors.NewNotFound("ClusterPolicyBinding", id)
+	return nil, kapierrors.NewNotFound(authorizationapi.Resource("clusterpolicybinding"), id)
 }
 
 // CreateClusterPolicyBinding creates a new policyBinding.
@@ -89,7 +88,7 @@ func (r *ClusterPolicyBindingRegistry) CreateClusterPolicyBinding(ctx kapi.Conte
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
 	if existing, _ := r.GetClusterPolicyBinding(ctx, policyBinding.Name); existing != nil {
-		return kapierrors.NewAlreadyExists("ClusterPolicyBinding", policyBinding.Name)
+		return kapierrors.NewAlreadyExists(authorizationapi.Resource("clusterpolicybinding"), policyBinding.Name)
 	}
 
 	addClusterPolicyBinding(r.ClusterPolicyBindings, *policyBinding)
@@ -108,7 +107,7 @@ func (r *ClusterPolicyBindingRegistry) UpdateClusterPolicyBinding(ctx kapi.Conte
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
 	if existing, _ := r.GetClusterPolicyBinding(ctx, policyBinding.Name); existing == nil {
-		return kapierrors.NewNotFound("ClusterPolicyBinding", policyBinding.Name)
+		return kapierrors.NewNotFound(authorizationapi.Resource("clusterpolicybinding"), policyBinding.Name)
 	}
 
 	addClusterPolicyBinding(r.ClusterPolicyBindings, *policyBinding)
@@ -135,7 +134,7 @@ func (r *ClusterPolicyBindingRegistry) DeleteClusterPolicyBinding(ctx kapi.Conte
 	return nil
 }
 
-func (r *ClusterPolicyBindingRegistry) WatchClusterPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+func (r *ClusterPolicyBindingRegistry) WatchClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

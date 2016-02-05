@@ -234,8 +234,8 @@ func (r *Requirement) String() string {
 // Add adds requirements to the selector. It copies the current selector returning a new one
 func (lsel internalSelector) Add(reqs ...Requirement) Selector {
 	var sel internalSelector
-	for _, item := range lsel {
-		sel = append(sel, item)
+	for ix := range lsel {
+		sel = append(sel, lsel[ix])
 	}
 	for _, r := range reqs {
 		sel = append(sel, r)
@@ -248,8 +248,8 @@ func (lsel internalSelector) Add(reqs ...Requirement) Selector {
 // its Requirements match the input Labels. If any
 // Requirement does not match, false is returned.
 func (lsel internalSelector) Matches(l Labels) bool {
-	for _, req := range lsel {
-		if matches := req.Matches(l); !matches {
+	for ix := range lsel {
+		if matches := lsel[ix].Matches(l); !matches {
 			return false
 		}
 	}
@@ -260,8 +260,8 @@ func (lsel internalSelector) Matches(l Labels) bool {
 // the internalSelector Requirements' human-readable strings.
 func (lsel internalSelector) String() string {
 	var reqs []string
-	for _, req := range lsel {
-		reqs = append(reqs, req.String())
+	for ix := range lsel {
+		reqs = append(reqs, lsel[ix].String())
 	}
 	return strings.Join(reqs, ",")
 }
@@ -675,8 +675,8 @@ func (p *Parser) parseExactValue() (sets.String, error) {
 //           <value-set> ::= "(" <values> ")"
 //              <values> ::= VALUE | VALUE "," <values>
 // <exact-match-restriction> ::= ["="|"=="|"!="] VALUE
-// KEY is a sequence of one or more characters following [ DNS_SUBDOMAIN "/" ] DNS_LABEL
-// VALUE is a sequence of zero or more characters "([A-Za-z0-9_-\.])". Max length is 64 character.
+// KEY is a sequence of one or more characters following [ DNS_SUBDOMAIN "/" ] DNS_LABEL. Max length is 63 characters.
+// VALUE is a sequence of zero or more characters "([A-Za-z0-9_-\.])". Max length is 63 characters.
 // Delimiter is white space: (' ', '\t')
 // Example of valid syntax:
 //  "x in (foo,,baz),y,z notin ()"
@@ -701,7 +701,8 @@ func Parse(selector string) (Selector, error) {
 	return nil, error
 }
 
-const qualifiedNameErrorMsg string = "must match regex [" + validation.DNS1123SubdomainFmt + " / ] " + validation.DNS1123LabelFmt
+var qualifiedNameErrorMsg string = fmt.Sprintf(`must be a qualified name (at most %d characters, matching regex %s), with an optional DNS subdomain prefix (at most %d characters, matching regex %s) and slash (/): e.g. "MyName" or "example.com/MyName"`, validation.QualifiedNameMaxLength, validation.QualifiedNameFmt, validation.DNS1123SubdomainMaxLength, validation.DNS1123SubdomainFmt)
+var labelValueErrorMsg string = fmt.Sprintf(`must have at most %d characters, matching regex %s: e.g. "MyValue" or ""`, validation.LabelValueMaxLength, validation.LabelValueFmt)
 
 func validateLabelKey(k string) error {
 	if !validation.IsQualifiedName(k) {
@@ -712,8 +713,7 @@ func validateLabelKey(k string) error {
 
 func validateLabelValue(v string) error {
 	if !validation.IsValidLabelValue(v) {
-		//FIXME: this is not the right regex!
-		return fmt.Errorf("invalid label value: %s", qualifiedNameErrorMsg)
+		return fmt.Errorf("invalid label value: %s", labelValueErrorMsg)
 	}
 	return nil
 }
