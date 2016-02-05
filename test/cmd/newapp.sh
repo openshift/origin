@@ -146,6 +146,14 @@ os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' 'error: only a part
 os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' 'The argument "mysq" only partially matched'
 os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' "Image stream \"mysql\" \\(tag \"5.6\"\\) in project"
 
+# Allow setting --name when specifying grouping
+os::cmd::expect_success "oc new-app mysql+ruby~https://github.com/openshift/ruby-ex --name foo -o yaml"
+# but not with multiple components
+os::cmd::expect_failure_and_text "oc new-app mysql ruby~https://github.com/openshift/ruby-ex --name foo -o yaml" "error: only one component or source repository can be used when specifying a name"
+# do not allow specifying output image when specifying multiple input repos
+os::cmd::expect_failure_and_text 'oc new-build https://github.com/openshift/nodejs-ex https://github.com/openshift/ruby-ex --to foo' 'error: only one component with source can be used when specifying an output image reference'
+# but succeed with multiple intput repos and no output image specified
+os::cmd::expect_success 'oc new-build https://github.com/openshift/nodejs-ex https://github.com/openshift/ruby-ex -o yaml'
 
 os::cmd::expect_success 'oc delete imageStreams --all'
 
@@ -164,6 +172,7 @@ os::cmd::expect_success 'oc delete all -l app=ruby'
 # check for error when template JSON file has errors
 jsonfile="${OS_ROOT}/test/fixtures/invalid.json"
 os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to load template file \"${jsonfile}\": invalid character '}' after object key"
+
 
 # check new-build
 os::cmd::expect_failure_and_text 'oc new-build mysql -o yaml' 'you must specify at least one source repository URL'
