@@ -9,6 +9,14 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
 # This test validates basic resource retrieval and command interaction
 
 os::cmd::expect_success_and_text 'oc types' 'Deployment Configuration'
@@ -82,7 +90,7 @@ os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.jso
 os::cmd::expect_failure 'oc expose service frontend --create-external-load-balancer'
 os::cmd::expect_failure 'oc expose service frontend --port=40 --type=NodePort'
 os::cmd::expect_success 'oc expose service frontend --path=/test'
-os::cmd::expect_success_and_text "oc get route frontend --output-version=v1 --template='{{.spec.path}}'" "/test"  
+os::cmd::expect_success_and_text "oc get route frontend --output-version=v1 --template='{{.spec.path}}'" "/test"
 os::cmd::expect_success_and_text "oc get route frontend --output-version=v1 --template='{{.spec.to.name}}'" "frontend"           # routes to correct service
 os::cmd::expect_success_and_text "oc get route frontend --output-version=v1 --template='{{.spec.port.targetPort}}'" "<no value>" # no target port for services with unnamed ports
 os::cmd::expect_success 'oc delete svc,route -l name=frontend'

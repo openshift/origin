@@ -9,6 +9,14 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates,secrets --all
+  exit 0
+) &>/dev/null
+
+
 # This test validates secret interaction
 os::cmd::expect_failure_and_text 'oc secrets new foo --type=blah makefile=Makefile' 'error: unknown secret type "blah"'
 os::cmd::expect_success 'oc secrets new foo --type=blah makefile=Makefile --confirm'
