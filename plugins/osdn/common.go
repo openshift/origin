@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
+	kubeutil "k8s.io/kubernetes/pkg/util"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
@@ -52,6 +53,7 @@ type FlowController interface {
 
 // Called by plug factory functions to initialize the generic plugin instance
 func (oc *OvsController) BaseInit(registry *Registry, flowController FlowController, pluginHooks PluginHooks, hostname string, selfIP string) error {
+
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
 		if err != nil {
@@ -64,7 +66,12 @@ func (oc *OvsController) BaseInit(registry *Registry, flowController FlowControl
 		var err error
 		selfIP, err = netutils.GetNodeIP(hostname)
 		if err != nil {
-			return err
+			log.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", hostname, err)
+			defaultIP, err := kubeutil.ChooseHostInterface()
+			if err != nil {
+				return err
+			}
+			selfIP = defaultIP.String()
 		}
 	}
 	log.Infof("Self IP: %s.", selfIP)
