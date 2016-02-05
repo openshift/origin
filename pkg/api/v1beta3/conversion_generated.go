@@ -3075,6 +3075,9 @@ func autoConvert_api_ImageStreamTag_To_v1beta3_ImageStreamTag(in *imageapi.Image
 	if err := Convert_api_ObjectMeta_To_v1beta3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
+	// in.Tag has no peer in out
+	out.Generation = in.Generation
+	// in.Conditions has no peer in out
 	if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
 		return err
 	}

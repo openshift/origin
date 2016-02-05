@@ -14,6 +14,7 @@ type ImageStreamTagsNamespacer interface {
 // ImageStreamTagInterface exposes methods on ImageStreamTag resources.
 type ImageStreamTagInterface interface {
 	Get(name, tag string) (*api.ImageStreamTag, error)
+	Update(tag *api.ImageStreamTag) (*api.ImageStreamTag, error)
 	Delete(name, tag string) error
 }
 
@@ -35,6 +36,13 @@ func newImageStreamTags(c *Client, namespace string) *imageStreamTags {
 func (c *imageStreamTags) Get(name, tag string) (result *api.ImageStreamTag, err error) {
 	result = &api.ImageStreamTag{}
 	err = c.r.Get().Namespace(c.ns).Resource("imageStreamTags").Name(fmt.Sprintf("%s:%s", name, tag)).Do().Into(result)
+	return
+}
+
+// Update updates an image stream tag (creating it if it does not exist).
+func (c *imageStreamTags) Update(tag *api.ImageStreamTag) (result *api.ImageStreamTag, err error) {
+	result = &api.ImageStreamTag{}
+	err = c.r.Put().Namespace(c.ns).Resource("imageStreamTags").Name(tag.Name).Body(tag).Do().Into(result)
 	return
 }
 

@@ -2260,6 +2260,25 @@ func deepCopy_api_ImageStreamTag(in imageapi.ImageStreamTag, out *imageapi.Image
 	} else {
 		out.ObjectMeta = newVal.(pkgapi.ObjectMeta)
 	}
+	if in.Tag != nil {
+		out.Tag = new(imageapi.TagReference)
+		if err := deepCopy_api_TagReference(*in.Tag, out.Tag, c); err != nil {
+			return err
+		}
+	} else {
+		out.Tag = nil
+	}
+	out.Generation = in.Generation
+	if in.Conditions != nil {
+		out.Conditions = make([]imageapi.TagEventCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := deepCopy_api_TagEventCondition(in.Conditions[i], &out.Conditions[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	if err := deepCopy_api_Image(in.Image, &out.Image, c); err != nil {
 		return err
 	}

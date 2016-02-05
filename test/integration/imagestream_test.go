@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"os"
 	"reflect"
 	"testing"
 
@@ -10,6 +11,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/util"
 
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -221,6 +224,10 @@ func TestImageStreamMappingCreate(t *testing.T) {
 		t.Errorf("unexpected object: %#v", updated.Spec.Tags)
 	}
 
+	if _, err := clusterAdminClient.ImageStreamTags(testutil.Namespace()).Get(stream.Name, "doesnotexist"); err == nil || !errors.IsNotFound(err) {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
 	fromTag, err = clusterAdminClient.ImageStreamTags(testutil.Namespace()).Get(stream.Name, "newer")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -244,4 +251,162 @@ func TestImageStreamMappingCreate(t *testing.T) {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
+	// try an update with an incorrect resource version
+	if _, err := clusterAdminClient.ImageStreamTags(testutil.Namespace()).Update(&imageapi.ImageStreamTag{
+		ObjectMeta: kapi.ObjectMeta{Namespace: stream.Namespace, Name: stream.Name + ":brandnew", ResourceVersion: fromTag.ResourceVersion + "0"},
+		Tag: &imageapi.TagReference{
+			From: &kapi.ObjectReference{
+				Kind: "ImageStreamTag",
+				Name: "newest",
+			},
+		},
+	}); !errors.IsConflict(err) {
+		t.Fatalf("should have returned conflict error: %v", err)
+	}
+
+	// update and create a new tag
+	fromTag, err = clusterAdminClient.ImageStreamTags(testutil.Namespace()).Update(&imageapi.ImageStreamTag{
+		ObjectMeta: kapi.ObjectMeta{Namespace: stream.Namespace, Name: stream.Name + ":brandnew", ResourceVersion: fromTag.ResourceVersion},
+		Tag: &imageapi.TagReference{
+			From: &kapi.ObjectReference{
+				Kind: "ImageStreamTag",
+				Name: "newest",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("should have returned conflict error: %v", err)
+	}
+	if fromTag.Name != "test:brandnew" || fromTag.Image.UID == "" || fromTag.Tag.From.Name != "newest" {
+		t.Errorf("unexpected object: %#v", fromTag)
+	}
+}
+
+func TestImageStreamTagLifecycleHook(t *testing.T) {
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	stream := mockImageStream()
+	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(stream); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// can tag to a stream that exists
+	exec := stratsupport.NewHookExecutor(nil, clusterAdminClient, os.Stdout, kapi.Codecs.UniversalDecoder())
+	err = exec.Execute(
+		&deployapi.LifecycleHook{
+			TagImages: []deployapi.TagImageHook{
+				{
+					ContainerName: "test",
+					To:            kapi.ObjectReference{Kind: "ImageStreamTag", Name: stream.Name + ":test"},
+				},
+			},
+		},
+		&kapi.ReplicationController{
+			ObjectMeta: kapi.ObjectMeta{Name: "rc-1", Namespace: testutil.Namespace()},
+			Spec: kapi.ReplicationControllerSpec{
+				Template: &kapi.PodTemplateSpec{
+					Spec: kapi.PodSpec{
+						Containers: []kapi.Container{
+							{
+								Name:  "test",
+								Image: "someimage:other",
+							},
+						},
+					},
+				},
+			},
+		},
+		"test",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stream, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Get(stream.Name); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tag, ok := stream.Spec.Tags["test"]; !ok || tag.From == nil || tag.From.Name != "someimage:other" {
+		t.Fatalf("unexpected object: %#v", tag)
+	}
+
+	// can execute a second time the same tag and it should work
+	exec = stratsupport.NewHookExecutor(nil, clusterAdminClient, os.Stdout, kapi.Codecs.UniversalDecoder())
+	err = exec.Execute(
+		&deployapi.LifecycleHook{
+			TagImages: []deployapi.TagImageHook{
+				{
+					ContainerName: "test",
+					To:            kapi.ObjectReference{Kind: "ImageStreamTag", Name: stream.Name + ":test"},
+				},
+			},
+		},
+		&kapi.ReplicationController{
+			ObjectMeta: kapi.ObjectMeta{Name: "rc-1", Namespace: testutil.Namespace()},
+			Spec: kapi.ReplicationControllerSpec{
+				Template: &kapi.PodTemplateSpec{
+					Spec: kapi.PodSpec{
+						Containers: []kapi.Container{
+							{
+								Name:  "test",
+								Image: "someimage:other",
+							},
+						},
+					},
+				},
+			},
+		},
+		"test",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// can lifecycle tag a new image stream
+	exec = stratsupport.NewHookExecutor(nil, clusterAdminClient, os.Stdout, kapi.Codecs.UniversalDecoder())
+	err = exec.Execute(
+		&deployapi.LifecycleHook{
+			TagImages: []deployapi.TagImageHook{
+				{
+					ContainerName: "test",
+					To:            kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test2:test"},
+				},
+			},
+		},
+		&kapi.ReplicationController{
+			ObjectMeta: kapi.ObjectMeta{Name: "rc-1", Namespace: testutil.Namespace()},
+			Spec: kapi.ReplicationControllerSpec{
+				Template: &kapi.PodTemplateSpec{
+					Spec: kapi.PodSpec{
+						Containers: []kapi.Container{
+							{
+								Name:  "test",
+								Image: "someimage:other",
+							},
+						},
+					},
+				},
+			},
+		},
+		"test",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stream, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Get("test2"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tag, ok := stream.Spec.Tags["test"]; !ok || tag.From == nil || tag.From.Name != "someimage:other" {
+		t.Fatalf("unexpected object: %#v", tag)
+	}
 }

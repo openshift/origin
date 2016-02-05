@@ -20590,6 +20590,7 @@
     "id": "v1.TagReference",
     "required": [
      "name",
+     "annotations",
      "generation"
     ],
     "properties": {
@@ -20909,6 +20910,8 @@
    "v1.ImageStreamTag": {
     "id": "v1.ImageStreamTag",
     "required": [
+     "tag",
+     "generation",
      "image"
     ],
     "properties": {
@@ -20922,6 +20925,22 @@
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
+     },
+     "tag": {
+      "$ref": "v1.TagReference",
+      "description": "the spec tag (optional) that is associated with this ImageStream"
+     },
+     "generation": {
+      "type": "integer",
+      "format": "int64",
+      "description": "the generation of the tagged image, if not equal to the tag generation or the latest condition generation, there is an image import pending"
+     },
+     "conditions": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.TagEventCondition"
+      },
+      "description": "the set of conditions that apply to this tag"
      },
      "image": {
       "$ref": "v1.Image",
