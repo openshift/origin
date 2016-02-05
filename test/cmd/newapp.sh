@@ -163,7 +163,7 @@ os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-worl
 os::cmd::expect_success 'oc delete all -l app=ruby'
 # check for error when template JSON file has errors
 jsonfile="${OS_ROOT}/test/fixtures/invalid.json"
-os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to load template file \"${jsonfile}\": invalid character '}' after object key"
+os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to load template file \"${jsonfile}\": at offset 8: invalid character '}' after object key"
 
 # check new-build
 os::cmd::expect_failure_and_text 'oc new-build mysql -o yaml' 'you must specify at least one source repository URL'
