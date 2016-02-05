@@ -8,10 +8,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# must run before we mutate the GOPATH in setup_env
-go get -d k8s.io/kubernetes/pkg/util
-export KUBE_REPO_ROOT="${GOPATH}/src/k8s.io/kubernetes"
-
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
@@ -31,13 +27,7 @@ os::build::setup_env
 #fi
 
 export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
-
-# TODO: check out the version of Kube we need so that we have access to sample content - in the future,
-# we want to get this content as well from cherrypicks (e2e test that is cherry-picked depends on content).
-k8s_version=$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json k8s.io/kubernetes/pkg/util)
-pushd "${KUBE_REPO_ROOT}" &>/dev/null
-git checkout "${k8s_version}"
-popd &>/dev/null
+export KUBE_REPO_ROOT="${OS_ROOT}/Godeps/_workspace/src/k8s.io/kubernetes"
 
 function join { local IFS="$1"; shift; echo "$*"; }
 
