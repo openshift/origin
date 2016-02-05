@@ -63,8 +63,12 @@ describe("DataService", function(){
       [{resource:'pods', namespace:"foo", isWebsocket:true, watch: true, resourceVersion:"5"  }, "ws://localhost:8443/api/v1/namespaces/foo/pods?watch=true&resourceVersion=5"],
 
       // Follow log
+      // subresource is ignored without a resource name
       [{resource:'pods/log', namespace:"foo", isWebsocket:true, follow: true                       }, "ws://localhost:8443/api/v1/namespaces/foo/pods?follow=true"],
       [{resource:'builds/log', namespace:"foo", isWebsocket:true, follow: true                     }, "ws://localhost:8443/oapi/v1/namespaces/foo/builds?follow=true"],
+      // subresource is honored with a resource name
+      [{resource:'pods/log',   name:"p", namespace:"foo", isWebsocket:true, follow: true           }, "ws://localhost:8443/api/v1/namespaces/foo/pods/p/log?follow=true"],
+      [{resource:'builds/log', name:"b", namespace:"foo", isWebsocket:true, follow: true           }, "ws://localhost:8443/oapi/v1/namespaces/foo/builds/b/log?follow=true"],
 
 
 
