@@ -8,6 +8,24 @@ import (
 )
 
 func init() {
+	if err := kapi.Scheme.AddDefaultingFuncs(
+		func(obj *Group) {
+			if obj.Users == nil {
+				obj.Users = []string{}
+			}
+		},
+		func(obj *User) {
+			if obj.Groups == nil {
+				obj.Groups = []string{}
+			}
+			if obj.Identities == nil {
+				obj.Identities = []string{}
+			}
+		},
+	); err != nil {
+		panic(err)
+	}
+
 	if err := kapi.Scheme.AddFieldLabelConversionFunc("v1", "Group",
 		oapi.GetFieldLabelConversionFunc(api.GroupToSelectableFields(&api.Group{}), nil),
 	); err != nil {
