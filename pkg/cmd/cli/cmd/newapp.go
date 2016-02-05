@@ -19,7 +19,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -28,6 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
@@ -40,8 +41,6 @@ import (
 type usage interface {
 	UsageError(commandName string) string
 }
-
-var errExit = fmt.Errorf("exit directly")
 
 const (
 	newAppLong = `
@@ -135,10 +134,10 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 			config.SetClientMapper(f.ClientMapperForCommand())
 
 			err := RunNewApplication(fullName, f, out, c, args, config)
-			if err == errExit {
+			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 		},
 	}
 
@@ -166,7 +165,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 
 	// TODO AddPrinterFlags disabled so that it doesn't conflict with our own "template" flag.
 	// Need a better solution.
-	// cmdutil.AddPrinterFlags(cmd)
+	// kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().StringP("output", "o", "", "Output format. One of: json|yaml|template|templatefile.")
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
 	cmd.Flags().Bool("no-headers", false, "When using the default output, don't print headers.")
@@ -177,7 +176,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 
 // RunNewApplication contains all the necessary functionality for the OpenShift cli new-app command
 func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
-	output := cmdutil.GetFlagString(c, "output")
+	output := kcmdutil.GetFlagString(c, "output")
 	shortOutput := output == "name"
 
 	if err := setupAppConfig(f, out, c, args, config); err != nil {
@@ -398,7 +397,7 @@ func installationComplete(c kclient.PodInterface, name string, out io.Writer) wa
 }
 
 func setAppConfigLabels(c *cobra.Command, config *newcmd.AppConfig) error {
-	labelStr := cmdutil.GetFlagString(c, "labels")
+	labelStr := kcmdutil.GetFlagString(c, "labels")
 	if len(labelStr) != 0 {
 		var err error
 		config.Labels, err = ctl.ParseLabels(labelStr)
@@ -436,7 +435,7 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 
 	// Only output="" should print descriptions of intermediate steps. Everything
 	// else should print only some specific output (json, yaml, go-template, ...)
-	output := cmdutil.GetFlagString(c, "output")
+	output := kcmdutil.GetFlagString(c, "output")
 	if len(output) == 0 {
 		config.Out = out
 	} else {
@@ -454,18 +453,18 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 
 	unknown := config.AddArguments(args)
 	if len(unknown) != 0 {
-		return cmdutil.UsageError(c, "Did not recognize the following arguments: %v", unknown)
+		return kcmdutil.UsageError(c, "Did not recognize the following arguments: %v", unknown)
 	}
 
 	if config.AllowMissingImages && config.AsSearch {
-		return cmdutil.UsageError(c, "--allow-missing-images and --search are mutually exclusive.")
+		return kcmdutil.UsageError(c, "--allow-missing-images and --search are mutually exclusive.")
 	}
 
 	if len(config.SourceImage) != 0 && len(config.SourceImagePath) == 0 {
-		return cmdutil.UsageError(c, "--source-image-path must be specified when --source-image is specified.")
+		return kcmdutil.UsageError(c, "--source-image-path must be specified when --source-image is specified.")
 	}
 	if len(config.SourceImage) == 0 && len(config.SourceImagePath) != 0 {
-		return cmdutil.UsageError(c, "--source-image must be specified when --source-image-path is specified.")
+		return kcmdutil.UsageError(c, "--source-image must be specified when --source-image-path is specified.")
 	}
 	return nil
 }
@@ -544,7 +543,7 @@ func createObjects(f *clientcmd.Factory, after configcmd.AfterFunc, result *newc
 		Retry: retryBuildConfig,
 	}
 	if errs := bulk.Create(result.List, result.Namespace); len(errs) != 0 {
-		return errExit
+		return cmdutil.ErrExit
 	}
 	return nil
 }
@@ -563,7 +562,7 @@ func handleRunError(c *cobra.Command, err error, fullName string) error {
 	}
 	buf := &bytes.Buffer{}
 	for _, group := range groups {
-		fmt.Fprint(buf, cmdutil.MultipleErrors("error: ", group.errs))
+		fmt.Fprint(buf, kcmdutil.MultipleErrors("error: ", group.errs))
 		if len(group.suggestion) > 0 {
 			fmt.Fprintln(buf)
 		}
@@ -675,7 +674,7 @@ func transformError(err error, c *cobra.Command, fullName string, groups errorGr
 		groups.Add("", "", fmt.Errorf("to install components you must be logged in with an OAuth token (instead of only a certificate)"))
 	case newcmd.ErrNoInputs:
 		// TODO: suggest things to the user
-		groups.Add("", "", cmdutil.UsageError(c, newAppNoInput, fullName))
+		groups.Add("", "", kcmdutil.UsageError(c, newAppNoInput, fullName))
 	default:
 		groups.Add("", "", err)
 	}

@@ -9,10 +9,11 @@ import (
 
 	. "github.com/MakeNowJust/heredoc/dot"
 	"github.com/spf13/cobra"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newapp "github.com/openshift/origin/pkg/generate/app"
@@ -95,10 +96,10 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 
 			config.AddEnvironmentToBuild = true
 			err := RunNewBuild(fullName, f, out, in, c, args, config)
-			if err == errExit {
+			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 		},
 	}
 
@@ -120,14 +121,14 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd.Flags().BoolVar(&config.NoOutput, "no-output", false, "If true, the build output will not be pushed anywhere.")
 	cmd.Flags().StringVar(&config.SourceImage, "source-image", "", "Specify an image to use as source for the build.  You must also specify --source-image-path.")
 	cmd.Flags().StringVar(&config.SourceImagePath, "source-image-path", "", "Specify the file or directory to copy from the source image and its destination in the build directory. Format: [source]:[destination-dir].")
-	cmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 
 	return cmd
 }
 
 // RunNewBuild contains all the necessary functionality for the OpenShift cli new-build command
 func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Reader, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
-	output := cmdutil.GetFlagString(c, "output")
+	output := kcmdutil.GetFlagString(c, "output")
 	shortOutput := output == "name"
 
 	if config.Dockerfile == "-" {
@@ -216,7 +217,7 @@ func handleBuildError(c *cobra.Command, err error, fullName string) error {
 	}
 	buf := &bytes.Buffer{}
 	for _, group := range groups {
-		fmt.Fprint(buf, cmdutil.MultipleErrors("error: ", group.errs))
+		fmt.Fprint(buf, kcmdutil.MultipleErrors("error: ", group.errs))
 		if len(group.suggestion) > 0 {
 			fmt.Fprintln(buf)
 		}

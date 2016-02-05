@@ -15,6 +15,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rsync"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/set"
 	"github.com/openshift/origin/pkg/cmd/cli/policy"
 	"github.com/openshift/origin/pkg/cmd/cli/secrets"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -97,12 +98,10 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdGet(fullName, f, out),
 				cmd.NewCmdDescribe(fullName, f, out),
 				cmd.NewCmdEdit(fullName, f, out),
-				cmd.NewCmdEnv(fullName, f, in, out),
-				cmd.NewCmdVolume(fullName, f, out, errout),
+				set.NewCmdSet(fullName, f, in, out, errout),
 				cmd.NewCmdLabel(fullName, f, out),
 				cmd.NewCmdAnnotate(fullName, f, out),
 				cmd.NewCmdExpose(fullName, f, out),
-				cmd.NewCmdStop(fullName, f, out),
 				cmd.NewCmdDelete(fullName, f, out),
 			},
 		},
@@ -123,8 +122,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Commands: []*cobra.Command{
 				cmd.NewCmdCreate(fullName, f, out),
 				cmd.NewCmdReplace(fullName, f, out),
-				// TODO decide what to do about apply.  Its doing unusual things
-				// cmd.NewCmdApply(fullName, f, out),
+				cmd.NewCmdApply(fullName, f, out),
 				cmd.NewCmdPatch(fullName, f, out),
 				cmd.NewCmdProcess(fullName, f, out),
 				cmd.NewCmdExport(fullName, f, in, out),
@@ -145,8 +143,16 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		},
 	}
 	groups.Add(cmds)
+
+	filters := []string{
+		"options",
+		// These commands are deprecated and should not appear in help
+		moved(fullName, "set env", cmds, set.NewCmdEnv(fullName, f, in, out)),
+		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, out, errout)),
+	}
+
 	changeSharedFlagDefaults(cmds)
-	templates.ActsAsRootCommand(cmds, groups...).
+	templates.ActsAsRootCommand(cmds, filters, groups...).
 		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify", "token")
 
 	if name == fullName {
@@ -155,6 +161,13 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	cmds.AddCommand(cmd.NewCmdOptions(out))
 
 	return cmds
+}
+
+func moved(fullName, to string, parent, cmd *cobra.Command) string {
+	cmd.Long = fmt.Sprintf("DEPRECATED: This command has been moved to \"%s %s\"", fullName, to)
+	cmd.Short = fmt.Sprintf("DEPRECATED: %s", to)
+	parent.AddCommand(cmd)
+	return cmd.Name()
 }
 
 // changeSharedFlagDefaults changes values of shared flags that we disagree with.  This can't be done in godep code because
@@ -201,7 +214,7 @@ func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 		}
 	})
 	cmds.PersistentFlags().Var(flags.Lookup("config").Value, "kubeconfig", "Specify a kubeconfig file to define the configuration")
-	templates.ActsAsRootCommand(cmds)
+	templates.ActsAsRootCommand(cmds, []string{"options"})
 	cmds.AddCommand(cmd.NewCmdOptions(out))
 	return cmds
 }
@@ -227,7 +240,7 @@ func CommandFor(basename string) *cobra.Command {
 	}
 
 	if cmd.UsageFunc() == nil {
-		templates.ActsAsRootCommand(cmd)
+		templates.ActsAsRootCommand(cmd, []string{"options"})
 	}
 	flagtypes.GLog(cmd.PersistentFlags())
 

@@ -1,4 +1,4 @@
-package cmd
+package set
 
 import (
 	"encoding/json"
@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -139,7 +140,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	opts := &VolumeOptions{AddOpts: addOpts}
 	cmd := &cobra.Command{
 		Use:     "volumes RESOURCE/NAME --add|--remove|--list",
-		Short:   "Update volume on a resource with a pod template",
+		Short:   "Update volumes on a pod template",
 		Long:    volumeLong,
 		Example: fmt.Sprintf(volumeExample, fullName),
 		Aliases: []string{"volume"},
@@ -154,7 +155,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 			kcmdutil.CheckErr(err)
 
 			err = opts.RunVolume(args)
-			if err == errExit {
+			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
 			kcmdutil.CheckErr(err)
@@ -423,7 +424,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 
 	if v.List {
 		if updatePodSpecFailed {
-			return errExit
+			return cmdutil.ErrExit
 		}
 		return nil
 	}
@@ -458,7 +459,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		fmt.Fprintf(v.Out, "%s/%s\n", info.Mapping.Resource, info.Name)
 	}
 	if failed || updatePodSpecFailed {
-		return errExit
+		return cmdutil.ErrExit
 	}
 	return nil
 }

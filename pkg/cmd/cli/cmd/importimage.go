@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/fields"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
@@ -39,7 +39,7 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *co
 		SuggestFor: []string{"image"},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunImportImage(f, out, cmd, args)
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 		},
 	}
 	cmd.Flags().String("from", "", "A Docker image repository or tag to import images from")
@@ -53,7 +53,7 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *co
 // RunImportImage contains all the necessary functionality for the OpenShift cli import-image command.
 func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
 	if len(args) == 0 || len(args[0]) == 0 {
-		return cmdutil.UsageError(cmd, "you must specify the name of an image stream")
+		return kcmdutil.UsageError(cmd, "you must specify the name of an image stream")
 	}
 
 	target := args[0]
@@ -67,10 +67,10 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 		return err
 	}
 
-	insecure := cmdutil.GetFlagBool(cmd, "insecure")
-	from := cmdutil.GetFlagString(cmd, "from")
-	confirm := cmdutil.GetFlagBool(cmd, "confirm")
-	all := cmdutil.GetFlagBool(cmd, "all")
+	insecure := kcmdutil.GetFlagBool(cmd, "insecure")
+	from := kcmdutil.GetFlagString(cmd, "from")
+	confirm := kcmdutil.GetFlagBool(cmd, "confirm")
+	all := kcmdutil.GetFlagBool(cmd, "all")
 
 	targetRef, err := imageapi.ParseDockerImageReference(target)
 	switch {

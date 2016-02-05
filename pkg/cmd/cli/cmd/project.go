@@ -11,7 +11,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
@@ -71,11 +71,11 @@ func NewCmdProject(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 			options.PathOptions = cliconfig.NewPathOptions(cmd)
 
 			if err := options.Complete(f, args, out); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			if err := options.RunProject(); err != nil {
-				cmdutil.CheckErr(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}

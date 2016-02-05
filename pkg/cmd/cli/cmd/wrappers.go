@@ -127,8 +127,9 @@ will be lost along with the rest of the resource.`
 func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdDelete(f.Factory, out)
 	cmd.Long = deleteLong
+	cmd.Short = "Delete one or more resources"
 	cmd.Example = fmt.Sprintf(deleteExample, fullName)
-	cmd.SuggestFor = []string{"remove"}
+	cmd.SuggestFor = []string{"remove", "stop"}
 	return cmd
 }
 
@@ -268,33 +269,6 @@ func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 	cmd.Long = scaleLong
 	cmd.Example = fmt.Sprintf(scaleExample, fullName)
 	cmd.ValidArgs = []string{"deploymentconfig", "job", "replicationcontroller"}
-	return cmd
-}
-
-const (
-	stopLong = `Gracefully shut down a resource by id or filename
-
-The stop command is deprecated, all its functionalities are covered by the delete command.
-See '%[1]s delete --help' for more details.`
-
-	stopExample = `  # Shut down foo.
-  $ %[1]s stop replicationcontroller foo
-
-  # Stop pods and services with label name=myLabel.
-  $ %[1]s stop pods,services -l name=myLabel
-
-  # Shut down the service defined in service.json
-  $ %[1]s stop -f service.json
-
-  # Shut down all resources in the path/to/resources directory
-  $ %[1]s stop -f path/to/resources`
-)
-
-// NewCmdStop is a wrapper for the Kubernetes cli stop command
-func NewCmdStop(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdStop(f.Factory, out)
-	cmd.Long = fmt.Sprintf(stopLong, fullName)
-	cmd.Example = fmt.Sprintf(stopExample, fullName)
 	return cmd
 }
 
