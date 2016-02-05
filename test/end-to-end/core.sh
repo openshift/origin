@@ -63,12 +63,8 @@ os::cmd::expect_success_and_text "dig +notcp @${MASTER_SERVICE_IP} kubernetes.de
 os::cmd::expect_success 'openshift admin policy add-role-to-user view e2e-user --namespace=default'
 
 # pre-load some image streams and templates
-os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json --namespace=openshift'
 os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json --namespace=openshift'
 os::cmd::expect_success 'oc create -f examples/jenkins/application-template.json --namespace=openshift'
-os::cmd::expect_success 'oc create -f examples/db-templates/mongodb-ephemeral-template.json --namespace=openshift'
-os::cmd::expect_success 'oc create -f examples/db-templates/mysql-ephemeral-template.json --namespace=openshift'
-os::cmd::expect_success 'oc create -f examples/db-templates/postgresql-ephemeral-template.json --namespace=openshift'
 
 # create test project so that this shows up in the console
 os::cmd::expect_success "openshift admin new-project test --description='This is an example project to demonstrate OpenShift v3' --admin='e2e-user'"
@@ -78,9 +74,6 @@ os::cmd::expect_success "openshift admin new-project cache --description='This i
 
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
-
-DROP_SYN_DURING_RESTART=1 install_router
-install_registry
 
 echo "[INFO] Pre-pulling and pushing ruby-22-centos7"
 os::cmd::expect_success 'docker pull centos/ruby-22-centos7:latest'

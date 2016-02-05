@@ -655,6 +655,45 @@ Cancel running, pending, or new builds
 ====
 
 
+== oc cluster down
+Stop OpenShift on Docker
+
+====
+
+[options="nowrap"]
+----
+
+  # Stop local Docker cluster
+  oc cluster down
+
+  # Stop cluster running on Docker machine 'mymachine'
+  oc cluster down --docker-machine=mymachine
+
+----
+====
+
+
+== oc cluster up
+Start OpenShift on Docker with reasonable defaults
+
+====
+
+[options="nowrap"]
+----
+
+  # Start OpenShift on a new docker machine named 'openshift'
+  oc cluster up --create-machine
+
+  # Start OpenShift using a specific public host name
+  oc cluster up --public-hostname=my.address.example.com
+  
+  # Start OpenShift and preserve data and config between restarts
+  oc cluster up --host-data-dir=/mydata --use-existing-config
+
+----
+====
+
+
 == oc config
 Change configuration files for the client
 

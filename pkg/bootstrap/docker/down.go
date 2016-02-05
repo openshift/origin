@@ -1,0 +1,100 @@
+package docker
+
+import (
+	"fmt"
+	"io"
+	"strings"
+
+	docker "github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
+	"github.com/spf13/cobra"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+
+	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
+	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
+	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
+)
+
+const (
+	cmdDownLong = `
+Stops the container running OpenShift on Docker and associated containers.
+
+If you started your OpenShift with a specific docker-machine, you need to specify the 
+same machine using the --docker-machine argument.
+`
+
+	cmdDownExample = `
+  # Stop local Docker cluster
+  %[1]s
+
+  # Stop cluster running on Docker machine 'mymachine'
+  %[1]s --docker-machine=mymachine
+`
+
+	CmdDownRecommendedName = "down"
+)
+
+type ClientStopConfig struct {
+	DockerMachine string
+}
+
+// NewCmdDown creates a command that stops OpenShift
+func NewCmdDown(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cobra.Command {
+	config := &ClientStopConfig{}
+	cmd := &cobra.Command{
+		Use:     name,
+		Short:   "Stop OpenShift on Docker",
+		Long:    cmdDownLong,
+		Example: fmt.Sprintf(cmdDownExample, fullName),
+		Run: func(c *cobra.Command, args []string) {
+			kcmdutil.CheckErr(config.Stop(out))
+		},
+	}
+	cmd.Flags().StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
+	return cmd
+}
+
+func (c *ClientStopConfig) Stop(out io.Writer) error {
+	client, err := c.getDockerClient(out)
+	if err != nil {
+		return err
+	}
+	helper := dockerhelper.NewHelper(client)
+	glog.V(4).Infof("Stopping and removing origin container")
+	if err := helper.StopAndRemoveContainer("origin"); err != nil {
+		glog.V(1).Infof("Error stopping origin container: %v", err)
+	}
+	names, err := helper.ListContainerNames()
+	if err != nil {
+		return err
+	}
+	for _, name := range names {
+		if _, _, err = dockertools.ParseDockerName(name); err != nil {
+			continue
+		}
+		name = strings.TrimLeft(name, "/")
+		glog.V(4).Infof("Stopping container %s", name)
+		if err = client.StopContainer(name, 0); err != nil {
+			glog.V(1).Infof("Error stopping container %s: %v", name, err)
+		}
+		glog.V(4).Infof("Removing container %s", name)
+		if err = helper.RemoveContainer(name); err != nil {
+			glog.V(1).Infof("Error removing container %s: %v", name, err)
+		}
+	}
+	return nil
+}
+
+func (c *ClientStopConfig) getDockerClient(out io.Writer) (*docker.Client, error) {
+	// Get Docker client
+	if len(c.DockerMachine) > 0 {
+		return getDockerMachineClient(c.DockerMachine, out)
+	}
+	client, _, err := dockerutil.NewHelper().GetClient()
+	if err != nil {
+		return nil, errors.ErrNoDockerClient(err)
+	}
+	return client, nil
+}
