@@ -214,6 +214,8 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		// record a failure condition
 		status := isi.Status.Images[i]
 		if checkImportFailure(status, stream, tag, nextGeneration, now) {
+			// ensure that we have a spec tag set
+			ensureSpecTag(stream, tag, spec.From.Name, spec.ImportPolicy, false)
 			continue
 		}
 
@@ -286,6 +288,28 @@ func checkImportFailure(status api.ImageImportStatus, stream *api.ImageStream, t
 	return true
 }
 
+// ensureSpecTag guarantees that the spec tag is set with the provided from and importPolicy. If reset is passed,
+// the tag will be overwritten.
+func ensureSpecTag(stream *api.ImageStream, tag, from string, importPolicy api.TagImportPolicy, reset bool) api.TagReference {
+	if stream.Spec.Tags == nil {
+		stream.Spec.Tags = make(map[string]api.TagReference)
+	}
+	specTag, ok := stream.Spec.Tags[tag]
+	if ok && !reset {
+		return specTag
+	}
+	specTag.From = &kapi.ObjectReference{
+		Kind: "DockerImage",
+		Name: from,
+	}
+
+	zero := int64(0)
+	specTag.Generation = &zero
+	specTag.ImportPolicy = importPolicy
+	stream.Spec.Tags[tag] = specTag
+	return specTag
+}
+
 // importSuccessful records a successful import into an image stream, setting the spec tag, status tag or conditions, and ensuring
 // the image is created in etcd. Images are cached so they are not created multiple times in a row (when multiple tags point to the
 // same image), and a failure to persist the image will be summarized before we update the stream. If an image was imported by this
@@ -312,22 +336,19 @@ func (r *REST) importSuccessful(
 	changed := api.DifferentTagEvent(stream, tag, tagEvent)
 	specTag, ok := stream.Spec.Tags[tag]
 	if changed || !ok {
-		specTag.From = &kapi.ObjectReference{
-			Kind: "DockerImage",
-			Name: from,
-		}
-		zero := int64(0)
-		specTag.Generation = &zero
+		specTag = ensureSpecTag(stream, tag, from, importPolicy, true)
 		api.AddTagEventToImageStream(stream, tag, tagEvent)
 	}
 	// always reset the import policy
 	specTag.ImportPolicy = importPolicy
 	stream.Spec.Tags[tag] = specTag
 
-	// import or reuse the image
+	// import or reuse the image, and ensure tag conditions are set
 	importErr, alreadyImported := importedImages[image.Name]
 	if importErr != nil {
 		api.SetTagConditions(stream, tag, newImportFailedCondition(importErr, nextGeneration, now))
+	} else {
+		api.SetTagConditions(stream, tag)
 	}
 
 	// create the image if it does not exist, otherwise cache the updated status from the store for use by other tags

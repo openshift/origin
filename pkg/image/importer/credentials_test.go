@@ -3,7 +3,10 @@ package importer
 import (
 	"io/ioutil"
 	"net/url"
+	"reflect"
 	"testing"
+
+	docker "github.com/fsouza/go-dockerclient"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	_ "k8s.io/kubernetes/pkg/api/v1"
@@ -22,6 +25,23 @@ func TestCredentialsForSecrets(t *testing.T) {
 	user, pass := store.Basic(&url.URL{Scheme: "https", Host: "172.30.213.112:5000"})
 	if user != "serviceaccount" || len(pass) == 0 {
 		t.Errorf("unexpected username and password: %s %s", user, pass)
+	}
+}
+
+type mockKeyring struct {
+	calls []string
+}
+
+func (k *mockKeyring) Lookup(image string) ([]docker.AuthConfiguration, bool) {
+	k.calls = append(k.calls, image)
+	return nil, false
+}
+
+func TestHubFallback(t *testing.T) {
+	k := &mockKeyring{}
+	basicCredentialsFromKeyring(k, &url.URL{Host: "auth.docker.io", Path: "/token"})
+	if !reflect.DeepEqual([]string{"auth.docker.io/token", "index.docker.io/v1"}, k.calls) {
+		t.Errorf("unexpected calls: %v", k.calls)
 	}
 }
 
