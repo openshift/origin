@@ -101,8 +101,8 @@ To run tests without the go race detector, which is on by default, use:
 
     $ KUBE_RACE="" hack/test-go.sh
 
-A line coverage report is run by default when testing a single package.
-To create a coverage report for all packages:
+To create a line coverage report, set `OUTPUT_COVERAGE` to a path where the
+report should be stored. For example:
 
     $ OUTPUT_COVERAGE=/path/to/dir hack/test-go.sh pkg/build
 
