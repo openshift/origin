@@ -73,6 +73,8 @@
                     <uib-tab-heading>Logs</uib-tab-heading>
                     <log-viewer
                       ng-if="selectedTab.logs"
+                      follow-affix-top="390"
+                      follow-affix-bottom="90"
                       kind="deploymentconfigs/log"
                       name="deploymentConfigName"
                       context="logContext"
