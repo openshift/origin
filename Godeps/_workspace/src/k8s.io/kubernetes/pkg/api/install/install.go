@@ -20,7 +20,6 @@ package install
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/golang/glog"
 
@@ -30,7 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/registered"
-	apiutil "k8s.io/kubernetes/pkg/api/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -49,23 +48,16 @@ func init() {
 		glog.V(4).Infof("%v", err)
 		return
 	}
+
 	// Use the first API version in the list of registered versions as the latest.
 	registeredGroupVersions := registered.GroupVersionsForGroup("")
 	groupVersion := registeredGroupVersions[0]
 	*groupMeta = latest.GroupMeta{
 		GroupVersion: groupVersion,
-		Group:        apiutil.GetGroup(groupVersion),
-		Version:      apiutil.GetVersion(groupVersion),
-		Codec:        runtime.CodecFor(api.Scheme, groupVersion),
+		Codec:        runtime.CodecFor(api.Scheme, groupVersion.String()),
 	}
-	var versions []string
-	var groupVersions []string
-	for i := len(registeredGroupVersions) - 1; i >= 0; i-- {
-		versions = append(versions, apiutil.GetVersion(registeredGroupVersions[i]))
-		groupVersions = append(groupVersions, registeredGroupVersions[i])
-	}
-	groupMeta.Versions = versions
-	groupMeta.GroupVersions = groupVersions
+
+	groupMeta.GroupVersions = registeredGroupVersions
 
 	groupMeta.SelfLinker = runtime.SelfLinker(accessor)
 
@@ -73,9 +65,9 @@ func init() {
 	// if a kind is not enumerated here, it is assumed to have a namespace scope
 	rootScoped := sets.NewString(
 		"Node",
-		"Minion",
 		"Namespace",
 		"PersistentVolume",
+		"ComponentStatus",
 		"SecurityContextConstraints",
 	)
 
@@ -92,7 +84,7 @@ func init() {
 		"ThirdPartyResourceData",
 		"ThirdPartyResourceList")
 
-	mapper := api.NewDefaultRESTMapper("", versions, interfacesFor, importPrefix, ignoredKinds, rootScoped)
+	mapper := api.NewDefaultRESTMapper(registeredGroupVersions, interfacesFor, importPrefix, ignoredKinds, rootScoped)
 	// setup aliases for groups of resources
 	mapper.AddResourceAlias("all", userResources...)
 	groupMeta.RESTMapper = mapper
@@ -102,15 +94,15 @@ func init() {
 
 // InterfacesFor returns the default Codec and ResourceVersioner for a given version
 // string, or an error if the version is not known.
-func interfacesFor(version string) (*meta.VersionInterfaces, error) {
+func interfacesFor(version unversioned.GroupVersion) (*meta.VersionInterfaces, error) {
 	switch version {
-	case "v1beta3":
+	case v1beta3.SchemeGroupVersion:
 		return &meta.VersionInterfaces{
 			Codec:            v1beta3.Codec,
 			ObjectConvertor:  api.Scheme,
 			MetadataAccessor: accessor,
 		}, nil
-	case "v1":
+	case v1.SchemeGroupVersion:
 		return &meta.VersionInterfaces{
 			Codec:            v1.Codec,
 			ObjectConvertor:  api.Scheme,
@@ -119,7 +111,7 @@ func interfacesFor(version string) (*meta.VersionInterfaces, error) {
 	default:
 		{
 			g, _ := latest.Group("")
-			return nil, fmt.Errorf("unsupported storage version: %s (valid: %s)", version, strings.Join(g.Versions, ", "))
+			return nil, fmt.Errorf("unsupported storage version: %s (valid: %v)", version, g.GroupVersions)
 		}
 	}
 }

@@ -8,58 +8,60 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imageval "github.com/openshift/origin/pkg/image/api/validation"
 )
 
-func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain).Prefix("metadata")...)
+func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) field.ErrorList {
+	allErrs := validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))
 
 	// TODO: Refactor to validate spec and status separately
 	for i := range config.Spec.Triggers {
-		allErrs = append(allErrs, validateTrigger(&config.Spec.Triggers[i]).PrefixIndex(i).Prefix("spec.triggers")...)
+		allErrs = append(allErrs, validateTrigger(&config.Spec.Triggers[i], field.NewPath("spec", "triggers").Index(i))...)
 	}
-	allErrs = append(allErrs, validateDeploymentStrategy(&config.Spec.Strategy).Prefix("spec.strategy")...)
+
+	specPath := field.NewPath("spec")
+	allErrs = append(allErrs, validateDeploymentStrategy(&config.Spec.Strategy, field.NewPath("spec", "strategy"))...)
 	if config.Spec.Template == nil {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("spec.template"))
+		allErrs = append(allErrs, field.Required(specPath.Child("template")))
 	} else {
-		allErrs = append(allErrs, validation.ValidatePodTemplateSpec(config.Spec.Template).Prefix("spec.template")...)
+		allErrs = append(allErrs, validation.ValidatePodTemplateSpec(config.Spec.Template, specPath.Child("template"))...)
 	}
 	if config.Status.LatestVersion < 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("status.latestVersion", config.Status.LatestVersion, "latestVersion cannot be negative"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "latestVersion"), config.Status.LatestVersion, "latestVersion cannot be negative"))
 	}
 	if config.Spec.Replicas < 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec.replicas", config.Spec.Replicas, "replicas cannot be negative"))
+		allErrs = append(allErrs, field.Invalid(specPath.Child("replicas"), config.Spec.Replicas, "replicas cannot be negative"))
 	}
-	if config.Spec.Selector == nil || len(config.Spec.Selector) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec.selector", config.Spec.Selector, "selector cannot be empty"))
+	if len(config.Spec.Selector) == 0 {
+		allErrs = append(allErrs, field.Invalid(specPath.Child("selector"), config.Spec.Selector, "selector cannot be empty"))
 	}
 	return allErrs
 }
 
-func ValidateDeploymentConfigUpdate(newConfig *deployapi.DeploymentConfig, oldConfig *deployapi.DeploymentConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&newConfig.ObjectMeta, &oldConfig.ObjectMeta).Prefix("metadata")...)
+func ValidateDeploymentConfigUpdate(newConfig *deployapi.DeploymentConfig, oldConfig *deployapi.DeploymentConfig) field.ErrorList {
+	allErrs := validation.ValidateObjectMetaUpdate(&newConfig.ObjectMeta, &oldConfig.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateDeploymentConfig(newConfig)...)
+	statusPath := field.NewPath("status")
 	if newConfig.Status.LatestVersion < oldConfig.Status.LatestVersion {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("status.latestVersion", newConfig.Status.LatestVersion, "latestVersion cannot be decremented"))
+		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), newConfig.Status.LatestVersion, "latestVersion cannot be decremented"))
 	} else if newConfig.Status.LatestVersion > (oldConfig.Status.LatestVersion + 1) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("status.latestVersion", newConfig.Status.LatestVersion, "latestVersion can only be incremented by 1"))
+		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), newConfig.Status.LatestVersion, "latestVersion can only be incremented by 1"))
 	}
 	return allErrs
 }
 
-func ValidateDeploymentConfigRollback(rollback *deployapi.DeploymentConfigRollback) fielderrors.ValidationErrorList {
-	result := fielderrors.ValidationErrorList{}
+func ValidateDeploymentConfigRollback(rollback *deployapi.DeploymentConfigRollback) field.ErrorList {
+	result := field.ErrorList{}
 
+	fromPath := field.NewPath("spec", "from")
 	if len(rollback.Spec.From.Name) == 0 {
-		result = append(result, fielderrors.NewFieldRequired("spec.from.name"))
+		result = append(result, field.Required(fromPath.Child("name")))
 	}
 
 	if len(rollback.Spec.From.Kind) == 0 {
@@ -67,43 +69,43 @@ func ValidateDeploymentConfigRollback(rollback *deployapi.DeploymentConfigRollba
 	}
 
 	if rollback.Spec.From.Kind != "ReplicationController" {
-		result = append(result, fielderrors.NewFieldInvalid("spec.from.kind", rollback.Spec.From.Kind, "the kind of the rollback target must be 'ReplicationController'"))
+		result = append(result, field.Invalid(fromPath.Child("kind"), rollback.Spec.From.Kind, "the kind of the rollback target must be 'ReplicationController'"))
 	}
 
 	return result
 }
 
-func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) fielderrors.ValidationErrorList {
-	errs := fielderrors.ValidationErrorList{}
+func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, fldPath *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
 
 	if len(strategy.Type) == 0 {
-		errs = append(errs, fielderrors.NewFieldRequired("type"))
+		errs = append(errs, field.Required(fldPath.Child("type")))
 	}
 
 	switch strategy.Type {
 	case deployapi.DeploymentStrategyTypeRecreate:
 		if strategy.RecreateParams != nil {
-			errs = append(errs, validateRecreateParams(strategy.RecreateParams).Prefix("recreateParams")...)
+			errs = append(errs, validateRecreateParams(strategy.RecreateParams, fldPath.Child("recreateParams"))...)
 		}
 	case deployapi.DeploymentStrategyTypeRolling:
 		if strategy.RollingParams == nil {
-			errs = append(errs, fielderrors.NewFieldRequired("rollingParams"))
+			errs = append(errs, field.Required(fldPath.Child("rollingParams")))
 		} else {
-			errs = append(errs, validateRollingParams(strategy.RollingParams).Prefix("rollingParams")...)
+			errs = append(errs, validateRollingParams(strategy.RollingParams, fldPath.Child("rollingParams"))...)
 		}
 	case deployapi.DeploymentStrategyTypeCustom:
 		if strategy.CustomParams == nil {
-			errs = append(errs, fielderrors.NewFieldRequired("customParams"))
+			errs = append(errs, field.Required(fldPath.Child("customParams")))
 		} else {
-			errs = append(errs, validateCustomParams(strategy.CustomParams).Prefix("customParams")...)
+			errs = append(errs, validateCustomParams(strategy.CustomParams, fldPath.Child("customParams"))...)
 		}
 	}
 
 	if strategy.Labels != nil {
-		errs = append(errs, validation.ValidateLabels(strategy.Labels, "labels")...)
+		errs = append(errs, validation.ValidateLabels(strategy.Labels, fldPath.Child("labels"))...)
 	}
 	if strategy.Annotations != nil {
-		errs = append(errs, validation.ValidateAnnotations(strategy.Annotations, "annotations")...)
+		errs = append(errs, validation.ValidateAnnotations(strategy.Annotations, fldPath.Child("annotations"))...)
 	}
 
 	// TODO: validate resource requirements (prereq: https://github.com/kubernetes/kubernetes/pull/7059)
@@ -111,173 +113,175 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) fielderr
 	return errs
 }
 
-func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams) fielderrors.ValidationErrorList {
-	errs := fielderrors.ValidationErrorList{}
+func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams, fldPath *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
 
 	if len(params.Image) == 0 {
-		errs = append(errs, fielderrors.NewFieldRequired("image"))
+		errs = append(errs, field.Required(fldPath.Child("image")))
 	}
 
 	return errs
 }
 
-func validateRecreateParams(params *deployapi.RecreateDeploymentStrategyParams) fielderrors.ValidationErrorList {
-	errs := fielderrors.ValidationErrorList{}
+func validateRecreateParams(params *deployapi.RecreateDeploymentStrategyParams, fldPath *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
 
 	if params.Pre != nil {
-		errs = append(errs, validateLifecycleHook(params.Pre).Prefix("pre")...)
+		errs = append(errs, validateLifecycleHook(params.Pre, fldPath.Child("pre"))...)
 	}
 	if params.Post != nil {
-		errs = append(errs, validateLifecycleHook(params.Post).Prefix("post")...)
+		errs = append(errs, validateLifecycleHook(params.Post, fldPath.Child("post"))...)
 	}
 
 	return errs
 }
 
-func validateLifecycleHook(hook *deployapi.LifecycleHook) fielderrors.ValidationErrorList {
-	errs := fielderrors.ValidationErrorList{}
+func validateLifecycleHook(hook *deployapi.LifecycleHook, fldPath *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
 
 	if len(hook.FailurePolicy) == 0 {
-		errs = append(errs, fielderrors.NewFieldRequired("failurePolicy"))
+		errs = append(errs, field.Required(fldPath.Child("failurePolicy")))
 	}
 
 	if hook.ExecNewPod == nil {
-		errs = append(errs, fielderrors.NewFieldRequired("execNewPod"))
+		errs = append(errs, field.Required(fldPath.Child("execNewPod")))
 	} else {
-		errs = append(errs, validateExecNewPod(hook.ExecNewPod).Prefix("execNewPod")...)
+		errs = append(errs, validateExecNewPod(hook.ExecNewPod, fldPath.Child("execNewPod"))...)
 	}
 
 	return errs
 }
 
-func validateExecNewPod(hook *deployapi.ExecNewPodHook) fielderrors.ValidationErrorList {
-	errs := fielderrors.ValidationErrorList{}
+func validateExecNewPod(hook *deployapi.ExecNewPodHook, fldPath *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
 
 	if len(hook.Command) == 0 {
-		errs = append(errs, fielderrors.NewFieldRequired("command"))
+		errs = append(errs, field.Required(fldPath.Child("command")))
 	}
 
 	if len(hook.ContainerName) == 0 {
-		errs = append(errs, fielderrors.NewFieldRequired("containerName"))
+		errs = append(errs, field.Required(fldPath.Child("containerName")))
 	}
 
 	if len(hook.Env) > 0 {
-		errs = append(errs, validateEnv(hook.Env).Prefix("env")...)
+		errs = append(errs, validateEnv(hook.Env, fldPath.Child("env"))...)
 	}
 
-	errs = append(errs, validateHookVolumes(hook.Volumes).Prefix("volumes")...)
+	errs = append(errs, validateHookVolumes(hook.Volumes, fldPath.Child("volumes"))...)
 
 	return errs
 }
 
-func validateEnv(vars []kapi.EnvVar) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func validateEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 
 	for i, ev := range vars {
-		vErrs := fielderrors.ValidationErrorList{}
+		vErrs := field.ErrorList{}
+		idxPath := fldPath.Child("name").Index(i)
 		if len(ev.Name) == 0 {
-			vErrs = append(vErrs, fielderrors.NewFieldRequired("name"))
+			vErrs = append(vErrs, field.Required(idxPath))
 		}
 		if !kvalidation.IsCIdentifier(ev.Name) {
-			vErrs = append(vErrs, fielderrors.NewFieldInvalid("name", ev.Name, "must match regex "+kvalidation.CIdentifierFmt))
+			vErrs = append(vErrs, field.Invalid(idxPath, ev.Name, "must match regex "+kvalidation.CIdentifierFmt))
 		}
-		allErrs = append(allErrs, vErrs.PrefixIndex(i)...)
+		allErrs = append(allErrs, vErrs...)
 	}
 	return allErrs
 }
 
-func validateHookVolumes(volumes []string) fielderrors.ValidationErrorList {
-	errs := fielderrors.ValidationErrorList{}
+func validateHookVolumes(volumes []string, fldPath *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
 	for i, vol := range volumes {
-		vErrs := fielderrors.ValidationErrorList{}
+		vErrs := field.ErrorList{}
 		if len(vol) == 0 {
-			vErrs = append(vErrs, fielderrors.NewFieldInvalid("", "", "must not be empty"))
+			vErrs = append(vErrs, field.Invalid(fldPath.Index(i), "", "must not be empty"))
 		}
-		errs = append(errs, vErrs.PrefixIndex(i)...)
+		errs = append(errs, vErrs...)
 	}
 	return errs
 }
 
-func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams) fielderrors.ValidationErrorList {
-	errs := fielderrors.ValidationErrorList{}
+func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams, fldPath *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
 
 	if params.IntervalSeconds != nil && *params.IntervalSeconds < 1 {
-		errs = append(errs, fielderrors.NewFieldInvalid("intervalSeconds", *params.IntervalSeconds, "must be >0"))
+		errs = append(errs, field.Invalid(fldPath.Child("intervalSeconds"), *params.IntervalSeconds, "must be >0"))
 	}
 
 	if params.UpdatePeriodSeconds != nil && *params.UpdatePeriodSeconds < 1 {
-		errs = append(errs, fielderrors.NewFieldInvalid("updatePeriodSeconds", *params.UpdatePeriodSeconds, "must be >0"))
+		errs = append(errs, field.Invalid(fldPath.Child("updatePeriodSeconds"), *params.UpdatePeriodSeconds, "must be >0"))
 	}
 
 	if params.TimeoutSeconds != nil && *params.TimeoutSeconds < 1 {
-		errs = append(errs, fielderrors.NewFieldInvalid("timeoutSeconds", *params.TimeoutSeconds, "must be >0"))
+		errs = append(errs, field.Invalid(fldPath.Child("timeoutSeconds"), *params.TimeoutSeconds, "must be >0"))
 	}
 
 	if params.UpdatePercent != nil {
 		p := *params.UpdatePercent
 		if p == 0 || p < -100 || p > 100 {
-			errs = append(errs, fielderrors.NewFieldInvalid("updatePercent", *params.UpdatePercent, "must be between 1 and 100 or between -1 and -100 (inclusive)"))
+			errs = append(errs, field.Invalid(fldPath.Child("updatePercent"), *params.UpdatePercent, "must be between 1 and 100 or between -1 and -100 (inclusive)"))
 		}
 	}
 	// Most of this is lifted from the upstream experimental deployments API. We
 	// can't reuse it directly yet, but no use reinventing the logic, so copy-
 	// pasted and adapted here.
-	errs = append(errs, ValidatePositiveIntOrPercent(params.MaxUnavailable, "maxUnavailable")...)
-	errs = append(errs, ValidatePositiveIntOrPercent(params.MaxSurge, "maxSurge")...)
+	errs = append(errs, ValidatePositiveIntOrPercent(params.MaxUnavailable, fldPath.Child("maxUnavailable"))...)
+	errs = append(errs, ValidatePositiveIntOrPercent(params.MaxSurge, fldPath.Child("maxSurge"))...)
 	if getIntOrPercentValue(params.MaxUnavailable) == 0 && getIntOrPercentValue(params.MaxSurge) == 0 {
 		// Both MaxSurge and MaxUnavailable cannot be zero.
-		errs = append(errs, fielderrors.NewFieldInvalid("maxUnavailable", params.MaxUnavailable, "cannot be 0 when maxSurge is 0 as well"))
+		errs = append(errs, field.Invalid(fldPath.Child("maxUnavailable"), params.MaxUnavailable, "cannot be 0 when maxSurge is 0 as well"))
 	}
 	// Validate that MaxUnavailable is not more than 100%.
-	errs = append(errs, IsNotMoreThan100Percent(params.MaxUnavailable, "maxUnavailable")...)
+	errs = append(errs, IsNotMoreThan100Percent(params.MaxUnavailable, fldPath.Child("maxUnavailable"))...)
 
 	if params.Pre != nil {
-		errs = append(errs, validateLifecycleHook(params.Pre).Prefix("pre")...)
+		errs = append(errs, validateLifecycleHook(params.Pre, fldPath.Child("pre"))...)
 	}
 	if params.Post != nil {
-		errs = append(errs, validateLifecycleHook(params.Post).Prefix("post")...)
+		errs = append(errs, validateLifecycleHook(params.Post, fldPath.Child("post"))...)
 	}
 
 	return errs
 }
 
-func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy) fielderrors.ValidationErrorList {
-	errs := fielderrors.ValidationErrorList{}
+func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy, fldPath *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
 
 	if len(trigger.Type) == 0 {
-		errs = append(errs, fielderrors.NewFieldRequired("type"))
+		errs = append(errs, field.Required(fldPath.Child("type")))
 	}
 
 	if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
 		if trigger.ImageChangeParams == nil {
-			errs = append(errs, fielderrors.NewFieldRequired("imageChangeParams"))
+			errs = append(errs, field.Required(fldPath.Child("imageChangeParams")))
 		} else {
-			errs = append(errs, validateImageChangeParams(trigger.ImageChangeParams).Prefix("imageChangeParams")...)
+			errs = append(errs, validateImageChangeParams(trigger.ImageChangeParams, fldPath.Child("imageChangeParams"))...)
 		}
 	}
 
 	return errs
 }
 
-func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangeParams) fielderrors.ValidationErrorList {
-	errs := fielderrors.ValidationErrorList{}
+func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangeParams, fldPath *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
 
+	fromPath := fldPath.Child("from")
 	if len(params.From.Name) == 0 {
-		errs = append(errs, fielderrors.NewFieldRequired("from"))
+		errs = append(errs, field.Required(fromPath))
 	} else {
 		if params.From.Kind != "ImageStreamTag" {
-			errs = append(errs, fielderrors.NewFieldInvalid("from.kind", params.From.Kind, "kind must be an ImageStreamTag"))
+			errs = append(errs, field.Invalid(fromPath.Child("kind"), params.From.Kind, "kind must be an ImageStreamTag"))
 		}
 		if err := validateImageStreamTagName(params.From.Name); err != nil {
-			errs = append(errs, fielderrors.NewFieldInvalid("from.name", params.From.Name, err.Error()))
+			errs = append(errs, field.Invalid(fromPath.Child("name"), params.From.Name, err.Error()))
 		}
 		if len(params.From.Namespace) != 0 && !kvalidation.IsDNS1123Subdomain(params.From.Namespace) {
-			errs = append(errs, fielderrors.NewFieldInvalid("from.namespace", params.From.Namespace, "namespace must be a valid subdomain"))
+			errs = append(errs, field.Invalid(fromPath.Child("namespace"), params.From.Namespace, "namespace must be a valid subdomain"))
 		}
 	}
 
 	if len(params.ContainerNames) == 0 {
-		errs = append(errs, fielderrors.NewFieldRequired("containerNames"))
+		errs = append(errs, field.Required(fldPath.Child("containerNames")))
 	}
 
 	return errs
@@ -295,49 +299,49 @@ func validateImageStreamTagName(istag string) error {
 	return nil
 }
 
-func ValidatePositiveIntOrPercent(intOrPercent util.IntOrString, fieldName string) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	if intOrPercent.Kind == util.IntstrString {
+func ValidatePositiveIntOrPercent(intOrPercent intstr.IntOrString, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if intOrPercent.Type == intstr.String {
 		if !IsValidPercent(intOrPercent.StrVal) {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fieldName, intOrPercent, "value should be int(5) or percentage(5%)"))
+			allErrs = append(allErrs, field.Invalid(fldPath, intOrPercent, "value should be int(5) or percentage(5%)"))
 		}
 
-	} else if intOrPercent.Kind == util.IntstrInt {
-		allErrs = append(allErrs, ValidatePositiveField(int64(intOrPercent.IntVal), fieldName)...)
+	} else if intOrPercent.Type == intstr.Int {
+		allErrs = append(allErrs, ValidatePositiveField(int64(intOrPercent.IntVal), fldPath)...)
 	}
 	return allErrs
 }
 
-func getPercentValue(intOrStringValue util.IntOrString) (int, bool) {
-	if intOrStringValue.Kind != util.IntstrString || !IsValidPercent(intOrStringValue.StrVal) {
+func getPercentValue(intOrStringValue intstr.IntOrString) (int, bool) {
+	if intOrStringValue.Type != intstr.String || !IsValidPercent(intOrStringValue.StrVal) {
 		return 0, false
 	}
 	value, _ := strconv.Atoi(intOrStringValue.StrVal[:len(intOrStringValue.StrVal)-1])
 	return value, true
 }
 
-func getIntOrPercentValue(intOrStringValue util.IntOrString) int {
+func getIntOrPercentValue(intOrStringValue intstr.IntOrString) int {
 	value, isPercent := getPercentValue(intOrStringValue)
 	if isPercent {
 		return value
 	}
-	return intOrStringValue.IntVal
+	return int(intOrStringValue.IntVal)
 }
 
-func IsNotMoreThan100Percent(intOrStringValue util.IntOrString, fieldName string) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func IsNotMoreThan100Percent(intOrStringValue intstr.IntOrString, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 	value, isPercent := getPercentValue(intOrStringValue)
 	if !isPercent || value <= 100 {
 		return nil
 	}
-	allErrs = append(allErrs, fielderrors.NewFieldInvalid(fieldName, intOrStringValue, "should not be more than 100%"))
+	allErrs = append(allErrs, field.Invalid(fldPath, intOrStringValue, "should not be more than 100%"))
 	return allErrs
 }
 
-func ValidatePositiveField(value int64, fieldName string) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidatePositiveField(value int64, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 	if value < 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid(fieldName, value, isNegativeErrorMsg))
+		allErrs = append(allErrs, field.Invalid(fldPath, value, isNegativeErrorMsg))
 	}
 	return allErrs
 }
@@ -352,8 +356,8 @@ func IsValidPercent(percent string) bool {
 
 const isNegativeErrorMsg string = `must be non-negative`
 
-func ValidateDeploymentLogOptions(opts *deployapi.DeploymentLogOptions) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateDeploymentLogOptions(opts *deployapi.DeploymentLogOptions) field.ErrorList {
+	allErrs := field.ErrorList{}
 
 	// TODO: Replace by validating PodLogOptions via DeploymentLogOptions once it's bundled in
 	popts := deployapi.DeploymentToPodLogOptions(opts)
@@ -362,7 +366,10 @@ func ValidateDeploymentLogOptions(opts *deployapi.DeploymentLogOptions) fielderr
 	}
 
 	if opts.Version != nil && *opts.Version <= 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("version", *opts.Version, "deployment version must be greater than 0"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("version"), *opts.Version, "deployment version must be greater than 0"))
+	}
+	if opts.Version != nil && opts.Previous {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("previous"), opts.Previous, "cannot use previous when a version is specified"))
 	}
 
 	return allErrs

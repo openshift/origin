@@ -13,7 +13,7 @@ import (
 )
 
 func TestHandler(t *testing.T) {
-	_ = handlers.NewUnionAuthenticationHandler(nil, map[string]handlers.AuthenticationRedirector{"handler": &Handler{}}, nil)
+	_ = handlers.NewUnionAuthenticationHandler(nil, map[string]handlers.AuthenticationRedirector{"handler": &Handler{}}, nil, nil)
 }
 
 func TestRedirectingStateValidCSRF(t *testing.T) {

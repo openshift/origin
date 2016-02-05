@@ -5,7 +5,7 @@ set -o pipefail
 
 GO_VERSION=($(go version))
 
-if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.4') ]]; then
+if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.[4-5]') ]]; then
   echo "Unknown go version '${GO_VERSION}', skipping go vet."
   exit 0
 fi
@@ -27,6 +27,63 @@ do
   if [ "$?" -ne 0 ]
   then
     FAILURE=true
+  fi
+done
+
+# For the sake of slowly white-listing `shadow` checks, we need to keep track of which
+# directories we're searching through. The following are all of the directories we care about:
+# all top-level directories except for 'pkg', and all second-level subdirectories of 'pkg'.
+ALL_DIRS=$(find_files | grep -Eo "\./([^/]+|pkg/[^/]+)" | sort -u)
+
+DIR_BLACKLIST='./assets
+./cmd
+./doc.go
+./examples
+./hack
+./images
+./pkg/api
+./pkg/assets
+./pkg/auth
+./pkg/authorization
+./pkg/build
+./pkg/client
+./pkg/cmd
+./pkg/config
+./pkg/controller
+./pkg/deploy
+./pkg/diagnostics
+./pkg/dns
+./pkg/doc.go
+./pkg/dockerregistry
+./pkg/generate
+./pkg/gitserver
+./pkg/image
+./pkg/ipfailover
+./pkg/oauth
+./pkg/project
+./pkg/route
+./pkg/router
+./pkg/sdn
+./pkg/security
+./pkg/service
+./pkg/serviceaccounts
+./pkg/template
+./pkg/user
+./pkg/util
+./pkg/version
+./plugins
+./test
+./tools'
+
+for test_dir in $ALL_DIRS
+do
+  # use `grep` failure to determine that a directory is not in the blacklist 
+  if ! echo "${DIR_BLACKLIST}" | grep -q "${test_dir}"; then
+    go tool vet -shadow -shadowstrict $test_dir
+    if [ "$?" -ne "0" ]
+    then
+      FAILURE=true
+    fi
   fi
 done
 

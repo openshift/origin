@@ -1,4 +1,4 @@
-package admission
+package lifecycle
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -28,7 +28,7 @@ func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
 	handler := &lifecycle{}
 	unknown := &UnknownObject{}
 
-	err := handler.Admit(admission.NewAttributesRecord(unknown, "kind", "namespace", "name", "resource", "subresource", "CREATE", nil))
+	err := handler.Admit(admission.NewAttributesRecord(unknown, kapi.Kind("kind"), "namespace", "name", kapi.Resource("resource"), "subresource", "CREATE", nil))
 	if err != nil {
 		t.Errorf("Admission control should not error if it finds an object it knows nothing about %v", err)
 	}
@@ -41,8 +41,9 @@ func TestAdmissionExists(t *testing.T) {
 		return true, &kapi.Namespace{}, fmt.Errorf("DOES NOT EXIST")
 	})
 
-	projectcache.FakeProjectCache(mockClient, cache.NewStore(cache.MetaNamespaceKeyFunc), "")
+	cache := projectcache.NewFake(mockClient.Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
 	handler := &lifecycle{client: mockClient}
+	handler.SetProjectCache(cache)
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
 		Spec: buildapi.BuildSpec{
@@ -66,7 +67,7 @@ func TestAdmissionExists(t *testing.T) {
 			Phase: buildapi.BuildPhaseNew,
 		},
 	}
-	err := handler.Admit(admission.NewAttributesRecord(build, "Build", "namespace", "name", "builds", "", "CREATE", nil))
+	err := handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build"), "namespace", "name", kapi.Resource("builds"), "", "CREATE", nil))
 	if err == nil {
 		t.Errorf("Expected an error because namespace does not exist")
 	}
@@ -83,11 +84,12 @@ func TestAdmissionLifecycle(t *testing.T) {
 			Phase: kapi.NamespaceActive,
 		},
 	}
-	store := cache.NewStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
+	store := projectcache.NewCacheStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	store.Add(namespaceObj)
 	mockClient := &testclient.Fake{}
-	projectcache.FakeProjectCache(mockClient, store, "")
+	cache := projectcache.NewFake(mockClient.Namespaces(), store, "")
 	handler := &lifecycle{client: mockClient}
+	handler.SetProjectCache(cache)
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "other"},
 		Spec: buildapi.BuildSpec{
@@ -111,7 +113,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 			Phase: buildapi.BuildPhaseNew,
 		},
 	}
-	err := handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "name", "builds", "", "CREATE", nil))
+	err := handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build"), build.Namespace, "name", kapi.Resource("builds"), "", "CREATE", nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
@@ -121,19 +123,19 @@ func TestAdmissionLifecycle(t *testing.T) {
 	store.Add(namespaceObj)
 
 	// verify create operations in the namespace cause an error
-	err = handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "name", "builds", "", "CREATE", nil))
+	err = handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build"), build.Namespace, "name", kapi.Resource("builds"), "", "CREATE", nil))
 	if err == nil {
 		t.Errorf("Expected error rejecting creates in a namespace when it is terminating")
 	}
 
 	// verify update operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "name", "builds", "", "UPDATE", nil))
+	err = handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build"), build.Namespace, "name", kapi.Resource("builds"), "", "UPDATE", nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
 
 	// verify delete operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(nil, "Build", build.Namespace, "name", "builds", "", "DELETE", nil))
+	err = handler.Admit(admission.NewAttributesRecord(nil, kapi.Kind("Build"), build.Namespace, "name", kapi.Resource("builds"), "", "DELETE", nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
@@ -143,7 +145,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 // TestCreatesAllowedDuringNamespaceDeletion checks to make sure that the resources in the whitelist are allowed
 func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 	config := &origin.MasterConfig{
-		KubeletClientConfig: &kclient.KubeletConfig{},
+		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
 		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, ""),
 	}
 	storageMap := config.GetRestStorage()
@@ -161,13 +163,14 @@ func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 }
 
 func TestSAR(t *testing.T) {
-	store := cache.NewStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
+	store := projectcache.NewCacheStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	mockClient := &testclient.Fake{}
 	mockClient.AddReactor("get", "namespaces", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, fmt.Errorf("shouldn't get here")
 	})
-	projectcache.FakeProjectCache(mockClient, store, "")
+	cache := projectcache.NewFake(mockClient.Namespaces(), store, "")
 	handler := &lifecycle{client: mockClient}
+	handler.SetProjectCache(cache)
 
 	tests := map[string]struct {
 		kind     string
@@ -184,7 +187,7 @@ func TestSAR(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		err := handler.Admit(admission.NewAttributesRecord(nil, v.kind, "foo", "name", v.resource, "", "CREATE", nil))
+		err := handler.Admit(admission.NewAttributesRecord(nil, kapi.Kind(v.kind), "foo", "name", kapi.Resource(v.resource), "", "CREATE", nil))
 		if err != nil {
 			t.Errorf("Unexpected error for %s returned from admission handler: %v", k, err)
 		}

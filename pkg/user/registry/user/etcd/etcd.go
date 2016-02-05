@@ -11,8 +11,8 @@ import (
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/user/api"
@@ -89,7 +89,7 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 	}
 
 	if ok, details := validation.ValidateUserName(name, false); !ok {
-		return nil, fielderrors.NewFieldInvalid("metadata.name", name, details)
+		return nil, field.Invalid(field.NewPath("metadata", "name"), name, details)
 	}
 
 	return r.Etcd.Get(ctx, name)

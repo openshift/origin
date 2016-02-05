@@ -89,7 +89,7 @@ func TestExecAdmit(t *testing.T) {
 		// create the admission plugin
 		p := NewSCCExecRestrictions(tc)
 
-		attrs := kadmission.NewAttributesRecord(v.pod, "Pod", "namespace", "pod-name", v.resource, v.subresource, v.operation, &user.DefaultInfo{})
+		attrs := kadmission.NewAttributesRecord(v.pod, kapi.Kind("Pod"), "namespace", "pod-name", kapi.Resource(v.resource), v.subresource, v.operation, &user.DefaultInfo{})
 		err := p.Admit(attrs)
 
 		if v.shouldAdmit && err != nil {

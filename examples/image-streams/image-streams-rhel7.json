@@ -15,8 +15,8 @@
           {
             "name": "latest",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "2.2"
+              "kind": "ImageStreamTag",
+              "name": "2.2"
             }
           },
           {
@@ -30,8 +30,8 @@
               "sampleRepo": "https://github.com/openshift/ruby-ex.git"
             },
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/openshift3/ruby-20-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/openshift3/ruby-20-rhel7:latest"
             }
           },
           {
@@ -45,8 +45,8 @@
               "sampleRepo": "https://github.com/openshift/ruby-ex.git"
             },
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/rhscl/ruby-22-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/ruby-22-rhel7:latest"
             }
           }
         ]
@@ -64,8 +64,8 @@
           {
             "name": "latest",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "0.10"
+              "kind": "ImageStreamTag",
+              "name": "0.10"
             }
           },
           {
@@ -79,8 +79,8 @@
               "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
             },
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/openshift3/nodejs-010-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/openshift3/nodejs-010-rhel7:latest"
             }
           }
         ]
@@ -98,8 +98,8 @@
           {
             "name": "latest",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "5.20"
+              "kind": "ImageStreamTag",
+              "name": "5.20"
             }
           },
           {
@@ -113,8 +113,8 @@
               "sampleRepo": "https://github.com/openshift/dancer-ex.git"
             },
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/openshift3/perl-516-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/openshift3/perl-516-rhel7:latest"
             }
           },
           {
@@ -128,8 +128,8 @@
               "sampleRepo": "https://github.com/openshift/dancer-ex.git"
             },
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/rhscl/perl-520-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/perl-520-rhel7:latest"
             }
 
           }
@@ -148,8 +148,8 @@
           {
             "name": "latest",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "5.6"
+              "kind": "ImageStreamTag",
+              "name": "5.6"
             }
           },
           {
@@ -163,8 +163,8 @@
               "sampleRepo": "https://github.com/openshift/cakephp-ex.git"              
             },
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/openshift3/php-55-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/openshift3/php-55-rhel7:latest"
             }
           },
           {
@@ -178,8 +178,8 @@
               "sampleRepo": "https://github.com/openshift/cakephp-ex.git"
             },
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/rhscl/php-56-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/php-56-rhel7:latest"
             }
           }
         ]
@@ -197,8 +197,8 @@
           {
             "name": "latest",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "3.4"
+              "kind": "ImageStreamTag",
+              "name": "3.4"
             }
           },
           {
@@ -212,8 +212,8 @@
               "sampleRepo": "https://github.com/openshift/django-ex.git"
             },
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/openshift3/python-33-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/openshift3/python-33-rhel7:latest"
             }
           },
           {
@@ -227,8 +227,8 @@
               "sampleRepo": "https://github.com/openshift/django-ex.git"
             },
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/rhscl/python-27-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/python-27-rhel7:latest"
             }
           },
           {
@@ -242,8 +242,8 @@
               "sampleRepo": "https://github.com/openshift/django-ex.git"
             },
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/rhscl/python-34-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/python-34-rhel7:latest"
             }
           }
         ]
@@ -261,22 +261,22 @@
           {
             "name": "latest",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "5.6"
+              "kind": "ImageStreamTag",
+              "name": "5.6"
             }
           },
           {
             "name": "5.5",
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/openshift3/mysql-55-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/openshift3/mysql-55-rhel7:latest"
             }
           },
           {
             "name": "5.6",
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/rhscl/mysql-56-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/mysql-56-rhel7:latest"
             }
           }
         ]
@@ -294,22 +294,22 @@
           {
             "name": "latest",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "9.4"
+              "kind": "ImageStreamTag",
+              "name": "9.4"
             }
           },
           {
             "name": "9.2",
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/openshift3/postgresql-92-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/openshift3/postgresql-92-rhel7:latest"
             }
           },
           {
             "name": "9.4",
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/rhscl/postgresql-94-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/postgresql-94-rhel7:latest"
             }
           }
         ]
@@ -327,22 +327,22 @@
           {
             "name": "latest",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "2.6"
+              "kind": "ImageStreamTag",
+              "name": "2.6"
             }
           },
           {
             "name": "2.4",
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/openshift3/mongodb-24-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/openshift3/mongodb-24-rhel7:latest"
             }
           },
           {
             "name": "2.6",
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/rhscl/mongodb-26-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/mongodb-26-rhel7:latest"
             }
           }
         ]
@@ -360,15 +360,15 @@
           {
             "name": "latest",
             "from": {
-              "Kind": "ImageStreamTag",
-              "Name": "1"
+              "kind": "ImageStreamTag",
+              "name": "1"
             }
           },
           {
             "name": "1",
             "from": {
-              "Kind": "DockerImage",
-              "Name": "registry.access.redhat.com/openshift3/jenkins-1-rhel7:latest"
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/openshift3/jenkins-1-rhel7:latest"
             }
           }
         ]

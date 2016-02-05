@@ -27,8 +27,11 @@ import (
 
 	"k8s.io/kubernetes/pkg/registry/controller"
 	"k8s.io/kubernetes/pkg/registry/controller/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic"
 
 	"k8s.io/kubernetes/pkg/apis/extensions"
+
+	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 )
 
 // Container includes dummy storage for RC pods and experimental storage for Scale.
@@ -37,9 +40,9 @@ type ContainerStorage struct {
 	Scale                 *ScaleREST
 }
 
-func NewStorage(s storage.Interface) ContainerStorage {
+func NewStorage(s storage.Interface, storageDecorator generic.StorageDecorator) ContainerStorage {
 	// scale does not set status, only updates spec so we ignore the status
-	controllerREST, _ := etcd.NewREST(s)
+	controllerREST, _ := etcd.NewREST(s, storageDecorator)
 	rcRegistry := controller.NewRegistry(controllerREST)
 
 	return ContainerStorage{
@@ -89,6 +92,11 @@ func (r *ScaleREST) Update(ctx api.Context, obj runtime.Object) (runtime.Object,
 	if !ok {
 		return nil, false, errors.NewBadRequest(fmt.Sprintf("wrong object passed to Scale update: %v", obj))
 	}
+
+	if errs := extvalidation.ValidateScale(scale); len(errs) > 0 {
+		return nil, false, errors.NewInvalid("scale", scale.Name, errs)
+	}
+
 	rc, err := (*r.registry).GetController(ctx, scale.Name)
 	if err != nil {
 		return nil, false, errors.NewNotFound("scale", scale.Name)

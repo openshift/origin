@@ -2,65 +2,34 @@
 
 # Provides simple utility functions
 
-TIME_SEC=1000
-TIME_MIN=$((60 * $TIME_SEC))
-
-# setup_env_vars exports all the necessary environment variables for configuring and
-# starting OS server.
-function setup_env_vars {
-	# set path so OpenShift is available
-	GO_OUT="${OS_ROOT}/_output/local/bin/$(os::util::host_platform)"
-	export PATH="${GO_OUT}:${PATH}"
-
-	export ETCD_PORT="${ETCD_PORT:-4001}"
-	export ETCD_PEER_PORT="${ETCD_PEER_PORT:-7001}"
-	export API_BIND_HOST="${API_BIND_HOST:-$(openshift start --print-ip)}"
-	export API_HOST="${API_HOST:-${API_BIND_HOST}}"
-	export API_PORT="${API_PORT:-8443}"
-	export LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
-	export ETCD_DATA_DIR="${BASETMPDIR}/etcd"
-	export VOLUME_DIR="${BASETMPDIR}/volumes"
-	export FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
-	export API_SCHEME="${API_SCHEME:-https}"
-	export MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
-	export PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
-	export KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
-	export KUBELET_BIND_HOST="${KUBELET_BIND_HOST:-$(openshift start --print-ip)}"
-	export KUBELET_HOST="${KUBELET_HOST:-${KUBELET_BIND_HOST}}"
-	export KUBELET_PORT="${KUBELET_PORT:-10250}"
-	export SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
-	export MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
-	export NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
-	export ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
-	if [ -z ${SUDO+x} ]; then
-		export SUDO="${SUDO:-1}"
-	fi
-
-	# Use either the latest release built images, or latest.
-	if [[ -z "${USE_IMAGES-}" ]]; then
-		IMAGES='openshift/origin-${component}:latest'
-		export TAG=latest
-		export USE_IMAGES=${IMAGES}
-		if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
-			COMMIT="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
-			IMAGES="openshift/origin-\${component}:${COMMIT}"
-			export TAG=${COMMIT}
-			export USE_IMAGES=${IMAGES}
-		fi
-	fi
-
-	if [[ "${API_SCHEME}" == "https" ]]; then
-		export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
-		export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
-		export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
-	fi
-
-	# change the location of $HOME so no one does anything naughty
-	export HOME="${FAKE_HOME_DIR}"
-}
-
-# configure_and_start_os will create and write OS master certificates, node config,
-# OS config.
+# configure_os_server will create and write OS master certificates, node configurations, and OpenShift configurations.
+# It is recommended to run the following environment setup functions before configuring the OpenShift server:
+#  - os::util::environment::setup_all_server_vars
+#  - os::util::environment::use_sudo -- if your script should be using root privileges
+#
+# Globals:
+#  - ALL_IP_ADDRESSES
+#  - PUBLIC_MASTER_HOST
+#  - MASTER_CONFIG_DIR
+#  - MASTER_ADDR
+#  - API_SCHEME
+#  - PUBLIC_MASTER_HOST
+#  - API_PORT
+#  - KUBELET_SCHEME
+#  - KUBELET_BIND_HOST
+#  - KUBELET_PORT
+#  - NODE_CONFIG_DIR
+#  - KUBELET_HOST
+#  - API_BIND_HOST
+#  - VOLUME_DIR
+#  - ETCD_DATA_DIR
+#  - USE_IMAGES
+#  - USE_SUDO
+# Arguments:
+#  None
+# Returns:
+#  - export ADMIN_KUBECONFIG
+#  - export CLUSTER_ADMIN_CONTEXT
 function configure_os_server {
 	# find the same IP that openshift start will bind to.	This allows access from pods that have to talk back to master
 	if [[ -z "${ALL_IP_ADDRESSES-}" ]]; then
@@ -122,16 +91,37 @@ function configure_os_server {
 	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
 	export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 	export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template --template='{{index . "current-context"}}')
-	local sudo="${SUDO:+sudo}"
+	local sudo="${USE_SUDO:+sudo}"
 	${sudo} chmod -R a+rwX "${ADMIN_KUBECONFIG}"
 	echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
 }
 
 
-# start_os_server starts the OS server, exports the PID of the OS server
-# and waits until OS server endpoints are available
+# start_os_server starts the OpenShift server, exports the PID of the OpenShift server and waits until openshift server endpoints are available
+# It is advised to use this function after a successful run of 'configure_os_server'
+#
+# Globals:
+#  - USE_SUDO
+#  - LOG_DIR
+#  - ARTIFACT_DIR
+#  - VOLUME_DIR
+#  - SERVER_CONFIG_DIR
+#  - USE_IMAGES
+#  - MASTER_ADDR
+#  - MASTER_CONFIG_DIR
+#  - NODE_CONFIG_DIR
+#  - API_SCHEME
+#  - API_HOST
+#  - API_PORT
+#  - KUBELET_SCHEME
+#  - KUBELET_HOST
+#  - KUBELET_PORT
+# Arguments:
+#  None
+# Returns:
+#  - export OS_PID
 function start_os_server {
-	local sudo="${SUDO:+sudo}"
+	local sudo="${USE_SUDO:+sudo}"
 
 	echo "[INFO] `openshift version`"
 	echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
@@ -165,10 +155,26 @@ function start_os_server {
 	date
 }
 
-# start_os_master starts the OS server, exports the PID of the OS server
-# and waits until OS server endpoints are available
+# start_os_master starts the OpenShift master, exports the PID of the OpenShift master and waits until OpenShift master endpoints are available
+# It is advised to use this function after a successful run of 'configure_os_server'
+#
+# Globals:
+#  - USE_SUDO
+#  - LOG_DIR
+#  - ARTIFACT_DIR
+#  - SERVER_CONFIG_DIR
+#  - USE_IMAGES
+#  - MASTER_ADDR
+#  - MASTER_CONFIG_DIR
+#  - API_SCHEME
+#  - API_HOST
+#  - API_PORT
+# Arguments:
+#  None
+# Returns:
+#  - export OS_PID
 function start_os_master {
-	local sudo="${SUDO:+sudo}"
+	local sudo="${USE_SUDO:+sudo}"
 
 	echo "[INFO] `openshift version`"
 	echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
@@ -434,7 +440,7 @@ function validate_response {
 # 
 # $1 expression for which the mounts should be checked 
 reset_tmp_dir() {
-	local sudo="${SUDO:+sudo}"
+	local sudo="${USE_SUDO:+sudo}"
 
 	set +e
 	${sudo} rm -rf ${BASETMPDIR} &>/dev/null
@@ -452,7 +458,7 @@ reset_tmp_dir() {
 # all processes created by the test script.
 function kill_all_processes()
 {
-	local sudo="${SUDO:+sudo}"
+	local sudo="${USE_SUDO:+sudo}"
 
 	pids=($(jobs -pr))
 	for i in ${pids[@]-}; do
@@ -493,12 +499,12 @@ function delete_empty_logs() {
 
 # truncate_large_logs truncates large logs so we only download the last 20MB
 function truncate_large_logs() {
-	# Clean up large log files so they don't end up on jenkins
+	# Clean up large log files so they don't end up on jenkins		
 	local large_files=$(find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -size +20M \))
-	for file in "${large_files}"; do
+	for file in ${large_files}; do
 		cp "${file}" "${file}.tmp"
 		echo "LOGFILE TOO LONG, PREVIOUS BYTES TRUNCATED. LAST 20M BYTES OF LOGFILE:" > "${file}"
-		tail -c 20M "${file}.tmp" > "${file}"
+		tail -c 20M "${file}.tmp" >> "${file}"
 		rm "${file}.tmp"
 	done
 }
@@ -524,9 +530,11 @@ function cleanup_openshift {
 	set +e
 	dump_container_logs
 	
-	echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
-	oc login -u system:admin -n default --config=${ADMIN_KUBECONFIG}
-	oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
+	if [[ -e "${ADMIN_KUBECONFIG:-}" ]]; then
+		echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
+		oc login -u system:admin -n default --config=${ADMIN_KUBECONFIG}
+		oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
+	fi
 
 	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
 	set_curl_args 0 1
@@ -555,8 +563,8 @@ function cleanup_openshift {
 function create_gitconfig {
 	USERNAME=sample-user
 	PASSWORD=password
-	TMPDIR="${TMPDIR:-"/tmp"}"
-	GITCONFIG_DIR=$(mktemp -d ${TMPDIR}/test-gitconfig.XXXX)
+	BASETMPDIR="${BASETMPDIR:-"/tmp"}"
+	GITCONFIG_DIR=$(mktemp -d ${BASETMPDIR}/test-gitconfig.XXXX)
 	touch ${GITCONFIG_DIR}/.gitconfig
 	git config --file ${GITCONFIG_DIR}/.gitconfig user.name ${USERNAME}
 	git config --file ${GITCONFIG_DIR}/.gitconfig user.token ${PASSWORD}
@@ -564,8 +572,8 @@ function create_gitconfig {
 }
 
 function create_valid_file {
-	TMPDIR="${TMPDIR:-"/tmp"}"
-	FILE_DIR=$(mktemp -d ${TMPDIR}/test-file.XXXX)
+	BASETMPDIR="${BASETMPDIR:-"/tmp"}"
+	FILE_DIR=$(mktemp -d ${BASETMPDIR}/test-file.XXXX)
 	touch ${FILE_DIR}/${1}
 	echo ${FILE_DIR}/${1}
 }
@@ -765,6 +773,14 @@ os::util::sed() {
   	sed -i '' $@
   else
   	sed -i'' $@
+  fi
+}
+
+os::util::base64decode() {
+  if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
+  	base64 -D $@
+  else
+  	base64 -d $@
   fi
 }
 

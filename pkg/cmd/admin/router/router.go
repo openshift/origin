@@ -3,7 +3,6 @@ package router
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"strconv"
@@ -17,11 +16,9 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
-	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -29,6 +26,7 @@ import (
 	dapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/security/admission"
+	fileutil "github.com/openshift/origin/pkg/util/file"
 )
 
 const (
@@ -243,32 +241,6 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	return cmd
 }
 
-// Read the specified file and return it as a bytes array.
-func loadData(file string) ([]byte, error) {
-	if len(file) == 0 {
-		return []byte{}, nil
-	}
-
-	bytes, err := ioutil.ReadFile(file)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	return bytes, nil
-}
-
-// Read the specified certificate file and return it as a string.
-func loadCert(file string) (string, error) {
-	bytes, err := loadData(file)
-
-	return string(bytes), err
-}
-
-// Read the specified key file and return it as a bytes array.
-func loadKey(file string) ([]byte, error) {
-	return loadData(file)
-}
-
 // generateSecretsConfig generates any Secret and Volume objects, such
 // as SSH private keys, that are necessary for the router container.
 func generateSecretsConfig(cfg *RouterConfig, kClient *kclient.Client,
@@ -279,7 +251,7 @@ func generateSecretsConfig(cfg *RouterConfig, kClient *kclient.Client,
 	mounts := []kapi.VolumeMount{}
 
 	if len(cfg.ExternalHostPrivateKey) != 0 {
-		privkeyData, err := loadKey(cfg.ExternalHostPrivateKey)
+		privkeyData, err := fileutil.LoadData(cfg.ExternalHostPrivateKey)
 		if err != nil {
 			return secrets, volumes, mounts, fmt.Errorf("error reading private key"+
 				" for external host: %v", err)
@@ -341,9 +313,17 @@ func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort)
 
 		probe.Handler.HTTPGet = &kapi.HTTPGetAction{
 			Path: "/healthz",
-			Port: kutil.IntOrString{
-				IntVal: healthzPort,
+			Port: intstr.IntOrString{
+				Type:   intstr.Int,
+				IntVal: int32(healthzPort),
 			},
+		}
+
+		// Workaround for misconfigured environments where the Node's InternalIP is
+		// physically present on the Node.  In those environments the probes will
+		// fail unless a host firewall port is opened
+		if cfg.HostNetwork {
+			probe.Handler.HTTPGet.Host = "localhost"
 		}
 	}
 
@@ -521,7 +501,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			insecure = "true"
 		}
 
-		defaultCert, err := loadCert(cfg.DefaultCertificate)
+		defaultCert, err := fileutil.LoadData(cfg.DefaultCertificate)
 		if err != nil {
 			return fmt.Errorf("router could not be created; error reading default certificate file: %v", err)
 		}
@@ -537,7 +517,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			"OPENSHIFT_KEY_DATA":                  string(config.KeyData),
 			"OPENSHIFT_CERT_DATA":                 string(config.CertData),
 			"OPENSHIFT_INSECURE":                  insecure,
-			"DEFAULT_CERTIFICATE":                 defaultCert,
+			"DEFAULT_CERTIFICATE":                 string(defaultCert),
 			"ROUTER_SERVICE_NAME":                 name,
 			"ROUTER_SERVICE_NAMESPACE":            namespace,
 			"ROUTER_EXTERNAL_HOST_HOSTNAME":       cfg.ExternalHost,
@@ -680,7 +660,7 @@ func generateStatsPassword() string {
 
 func validateServiceAccount(kClient *kclient.Client, ns string, sa string) error {
 	// get cluster sccs
-	sccList, err := kClient.SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+	sccList, err := kClient.SecurityContextConstraints().List(kapi.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("unable to validate service account %v", err)
 	}

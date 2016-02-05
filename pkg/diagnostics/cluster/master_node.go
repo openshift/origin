@@ -12,7 +12,6 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -94,7 +93,7 @@ func (d *MasterNode) CanRun() (bool, error) {
 func (d *MasterNode) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MasterNodeName)
 
-	nodes, err := d.KubeClient.Nodes().List(labels.LabelSelector{}, fields.Everything())
+	nodes, err := d.KubeClient.Nodes().List(api.ListOptions{LabelSelector: labels.Nothing()})
 	if err != nil {
 		r.Error("DClu3002", err, fmt.Sprintf(clientErrorGettingNodes, err))
 		return r

@@ -18,16 +18,19 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/strategicpatch"
 )
 
 // AnnotateOptions have the data required to perform the annotate operation
@@ -37,10 +40,15 @@ type AnnotateOptions struct {
 	removeAnnotations []string
 	builder           *resource.Builder
 	filenames         []string
+	selector          string
 
 	overwrite       bool
 	all             bool
 	resourceVersion string
+
+	f   *cmdutil.Factory
+	out io.Writer
+	cmd *cobra.Command
 }
 
 const (
@@ -54,7 +62,7 @@ If --resource-version is specified, then updates will use this resource version,
 Possible resources include (case insensitive): pods (po), services (svc),
 replicationcontrollers (rc), nodes (no), events (ev), componentstatuses (cs),
 limitranges (limits), persistentvolumes (pv), persistentvolumeclaims (pvc),
-resourcequotas (quota) or secrets.`
+horizontalpodautoscalers (hpa), resourcequotas (quota) or secrets.`
 	annotate_example = `# Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
 # If the same annotation is set multiple times, only the last value will be applied
 $ kubectl annotate pods foo description='my frontend'
@@ -85,7 +93,7 @@ func NewCmdAnnotate(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 		Long:    annotate_long,
 		Example: annotate_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, args); err != nil {
+			if err := options.Complete(f, out, cmd, args); err != nil {
 				cmdutil.CheckErr(err)
 			}
 			if err := options.Validate(args); err != nil {
@@ -96,6 +104,8 @@ func NewCmdAnnotate(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 			}
 		},
 	}
+	cmdutil.AddPrinterFlags(cmd)
+	cmd.Flags().StringVarP(&options.selector, "selector", "l", "", "Selector (label query) to filter on")
 	cmd.Flags().BoolVar(&options.overwrite, "overwrite", false, "If true, allow annotations to be overwritten, otherwise reject annotation updates that overwrite existing annotations.")
 	cmd.Flags().BoolVar(&options.all, "all", false, "select all resources in the namespace of the specified resource types")
 	cmd.Flags().StringVar(&options.resourceVersion, "resource-version", "", "If non-empty, the annotation update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource.")
@@ -105,7 +115,8 @@ func NewCmdAnnotate(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 }
 
 // Complete adapts from the command line args and factory to the data required.
-func (o *AnnotateOptions) Complete(f *cmdutil.Factory, args []string) (err error) {
+func (o *AnnotateOptions) Complete(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string) (err error) {
+
 	namespace, enforceNamespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -145,9 +156,14 @@ func (o *AnnotateOptions) Complete(f *cmdutil.Factory, args []string) (err error
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, o.filenames...).
+		SelectorParam(o.selector).
 		ResourceTypeOrNameArgs(o.all, o.resources...).
 		Flatten().
 		Latest()
+
+	o.f = f
+	o.out = out
+	o.cmd = cmd
 
 	return nil
 }
@@ -172,20 +188,67 @@ func (o AnnotateOptions) RunAnnotate() error {
 	if err := r.Err(); err != nil {
 		return err
 	}
+
+	clientConfig, err := o.f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	// TODO: get the negotiated version per group
+	negotiatedVersion := ""
+	if clientConfig.GroupVersion != nil {
+		negotiatedVersion = clientConfig.GroupVersion.String()
+	}
+
 	return r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
 			return err
 		}
-		_, uErr := cmdutil.UpdateObject(info, func(obj runtime.Object) error {
-			err := o.updateAnnotations(obj)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
-		if uErr != nil {
-			return uErr
+
+		// if the resource can't be converted to the negotiated version, AsVersionedObject falls back to the info.Mapping.GroupVersion
+		obj, err := resource.AsVersionedObject([]*resource.Info{info}, false, negotiatedVersion)
+		if err != nil {
+			return err
 		}
+		name, namespace := info.Name, info.Namespace
+		oldData, err := json.Marshal(obj)
+		if err != nil {
+			return err
+		}
+		if err := o.updateAnnotations(obj); err != nil {
+			return err
+		}
+		newData, err := json.Marshal(obj)
+		if err != nil {
+			return err
+		}
+		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, obj)
+		createdPatch := err == nil
+		if err != nil {
+			glog.V(2).Infof("couldn't compute patch: %v", err)
+		}
+
+		mapping := info.ResourceMapping()
+		client, err := o.f.RESTClient(mapping)
+		if err != nil {
+			return err
+		}
+		helper := resource.NewHelper(client, mapping)
+
+		var outputObj runtime.Object
+		if createdPatch {
+			outputObj, err = helper.Patch(namespace, name, api.StrategicMergePatchType, patchBytes)
+		} else {
+			outputObj, err = helper.Replace(namespace, name, false, obj)
+		}
+		if err != nil {
+			return err
+		}
+		outputFormat := cmdutil.GetFlagString(o.cmd, "output")
+		if outputFormat != "" {
+			return o.f.PrintObject(o.cmd, outputObj, o.out)
+		}
+		mapper, _ := o.f.Object()
+		cmdutil.PrintSuccess(mapper, false, o.out, info.Mapping.Resource, info.Name, "annotated")
 		return nil
 	})
 }

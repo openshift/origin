@@ -20,7 +20,7 @@ func (c *FakeBuildLogs) Get(name string, opt buildapi.BuildLogOptions) *kclient.
 	action.Verb = "get"
 	action.Namespace = c.Namespace
 	action.Resource = "builds"
-	action.Subresource = "logs"
+	action.Subresource = "log"
 	action.Value = opt
 
 	_, _ = c.Fake.Invokes(action, &buildapi.BuildConfig{})

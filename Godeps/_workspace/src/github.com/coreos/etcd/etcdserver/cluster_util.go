@@ -30,7 +30,7 @@ import (
 // isMemberBootstrapped tries to check if the given member has been bootstrapped
 // in the given cluster.
 func isMemberBootstrapped(cl *cluster, member string, tr *http.Transport) bool {
-	rcl, err := getClusterFromRemotePeers(getRemotePeerURLs(cl, member), false, tr)
+	rcl, err := getClusterFromRemotePeers(getRemotePeerURLs(cl, member), time.Second, false, tr)
 	if err != nil {
 		return false
 	}
@@ -50,15 +50,17 @@ func isMemberBootstrapped(cl *cluster, member string, tr *http.Transport) bool {
 // these URLs. The first URL to provide a response is used. If no URLs provide
 // a response, or a Cluster cannot be successfully created from a received
 // response, an error is returned.
+// Each request has a 10-second timeout. Because the upper limit of TTL is 5s,
+// 10 second is enough for building connection and finishing request.
 func GetClusterFromRemotePeers(urls []string, tr *http.Transport) (*cluster, error) {
-	return getClusterFromRemotePeers(urls, true, tr)
+	return getClusterFromRemotePeers(urls, 10*time.Second, true, tr)
 }
 
 // If logerr is true, it prints out more error messages.
-func getClusterFromRemotePeers(urls []string, logerr bool, tr *http.Transport) (*cluster, error) {
+func getClusterFromRemotePeers(urls []string, timeout time.Duration, logerr bool, tr *http.Transport) (*cluster, error) {
 	cc := &http.Client{
 		Transport: tr,
-		Timeout:   time.Second,
+		Timeout:   timeout,
 	}
 	for _, u := range urls {
 		resp, err := cc.Get(u + "/members")
@@ -152,8 +154,8 @@ func decideClusterVersion(vers map[string]*version.Versions) *semver.Version {
 			return nil
 		}
 		if lv.LessThan(*v) {
-			plog.Warningf("the etcd version %s is not up-to-date", lv.String())
-			plog.Warningf("member %s has a higher version %s", mid, ver)
+			plog.Warningf("the local etcd version %s is not up-to-date", lv.String())
+			plog.Warningf("member %s has a higher version %s", mid, ver.Server)
 		}
 		if cv == nil {
 			cv = v
@@ -215,7 +217,6 @@ func isCompatibleWithVers(vers map[string]*version.Versions, local types.ID, min
 func getVersion(m *Member, tr *http.Transport) (*version.Versions, error) {
 	cc := &http.Client{
 		Transport: tr,
-		Timeout:   time.Second,
 	}
 	var (
 		err  error
@@ -237,7 +238,8 @@ func getVersion(m *Member, tr *http.Transport) (*version.Versions, error) {
 			}, nil
 		}
 
-		b, err := ioutil.ReadAll(resp.Body)
+		var b []byte
+		b, err = ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
 			plog.Warningf("failed to read out the response body from the peerURL(%s) of member %s (%v)", u, m.ID, err)
@@ -251,4 +253,13 @@ func getVersion(m *Member, tr *http.Transport) (*version.Versions, error) {
 		return &vers, nil
 	}
 	return nil, err
+}
+
+func MustDetectDowngrade(cv *semver.Version) {
+	lv := semver.Must(semver.NewVersion(version.Version))
+	// only keep major.minor version for comparison against cluster version
+	lv = &semver.Version{Major: lv.Major, Minor: lv.Minor}
+	if cv != nil && lv.LessThan(*cv) {
+		plog.Fatalf("cluster cannot be downgraded (current version: %s is lower than determined cluster version: %s).", version.Version, version.Cluster(cv.String()))
+	}
 }

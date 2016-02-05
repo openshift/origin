@@ -80,6 +80,20 @@ func TestV2KeysURLHelper(t *testing.T) {
 			key:      "/baz",
 			want:     url.URL{Scheme: "https", Host: "example.com", Path: "/foo/bar/baz"},
 		},
+		// Prefix is joined to path
+		{
+			endpoint: url.URL{Scheme: "https", Host: "example.com", Path: "/foo"},
+			prefix:   "/bar",
+			key:      "",
+			want:     url.URL{Scheme: "https", Host: "example.com", Path: "/foo/bar"},
+		},
+		// Keep trailing slash
+		{
+			endpoint: url.URL{Scheme: "https", Host: "example.com", Path: "/foo"},
+			prefix:   "/bar",
+			key:      "/baz/",
+			want:     url.URL{Scheme: "https", Host: "example.com", Path: "/foo/bar/baz/"},
+		},
 	}
 
 	for i, tt := range tests {
@@ -91,7 +105,7 @@ func TestV2KeysURLHelper(t *testing.T) {
 }
 
 func TestGetAction(t *testing.T) {
-	ep := url.URL{Scheme: "http", Host: "example.com/v2/keys"}
+	ep := url.URL{Scheme: "http", Host: "example.com", Path: "/v2/keys"}
 	baseWantURL := &url.URL{
 		Scheme: "http",
 		Host:   "example.com",
@@ -102,27 +116,38 @@ func TestGetAction(t *testing.T) {
 	tests := []struct {
 		recursive bool
 		sorted    bool
+		quorum    bool
 		wantQuery string
 	}{
 		{
 			recursive: false,
 			sorted:    false,
-			wantQuery: "recursive=false&sorted=false",
+			quorum:    false,
+			wantQuery: "quorum=false&recursive=false&sorted=false",
 		},
 		{
 			recursive: true,
 			sorted:    false,
-			wantQuery: "recursive=true&sorted=false",
+			quorum:    false,
+			wantQuery: "quorum=false&recursive=true&sorted=false",
 		},
 		{
 			recursive: false,
 			sorted:    true,
-			wantQuery: "recursive=false&sorted=true",
+			quorum:    false,
+			wantQuery: "quorum=false&recursive=false&sorted=true",
 		},
 		{
 			recursive: true,
 			sorted:    true,
-			wantQuery: "recursive=true&sorted=true",
+			quorum:    false,
+			wantQuery: "quorum=false&recursive=true&sorted=true",
+		},
+		{
+			recursive: false,
+			sorted:    false,
+			quorum:    true,
+			wantQuery: "quorum=true&recursive=false&sorted=false",
 		},
 	}
 
@@ -131,6 +156,7 @@ func TestGetAction(t *testing.T) {
 			Key:       "/foo/bar",
 			Recursive: tt.recursive,
 			Sorted:    tt.sorted,
+			Quorum:    tt.quorum,
 		}
 		got := *f.HTTPRequest(ep)
 
@@ -145,7 +171,7 @@ func TestGetAction(t *testing.T) {
 }
 
 func TestWaitAction(t *testing.T) {
-	ep := url.URL{Scheme: "http", Host: "example.com/v2/keys"}
+	ep := url.URL{Scheme: "http", Host: "example.com", Path: "/v2/keys"}
 	baseWantURL := &url.URL{
 		Scheme: "http",
 		Host:   "example.com",
@@ -195,7 +221,7 @@ func TestWaitAction(t *testing.T) {
 
 func TestSetAction(t *testing.T) {
 	wantHeader := http.Header(map[string][]string{
-		"Content-Type": []string{"application/x-www-form-urlencoded"},
+		"Content-Type": {"application/x-www-form-urlencoded"},
 	})
 
 	tests := []struct {
@@ -257,7 +283,7 @@ func TestSetAction(t *testing.T) {
 			act: setAction{
 				Key: "/foo/",
 			},
-			wantURL:  "http://example.com/foo",
+			wantURL:  "http://example.com/foo/",
 			wantBody: "value=",
 		},
 
@@ -386,7 +412,7 @@ func TestSetAction(t *testing.T) {
 
 func TestCreateInOrderAction(t *testing.T) {
 	wantHeader := http.Header(map[string][]string{
-		"Content-Type": []string{"application/x-www-form-urlencoded"},
+		"Content-Type": {"application/x-www-form-urlencoded"},
 	})
 
 	tests := []struct {
@@ -448,7 +474,7 @@ func TestCreateInOrderAction(t *testing.T) {
 			act: createInOrderAction{
 				Dir: "/foo/",
 			},
-			wantURL:  "http://example.com/foo",
+			wantURL:  "http://example.com/foo/",
 			wantBody: "value=",
 		},
 
@@ -487,7 +513,7 @@ func TestCreateInOrderAction(t *testing.T) {
 
 func TestDeleteAction(t *testing.T) {
 	wantHeader := http.Header(map[string][]string{
-		"Content-Type": []string{"application/x-www-form-urlencoded"},
+		"Content-Type": {"application/x-www-form-urlencoded"},
 	})
 
 	tests := []struct {
@@ -543,7 +569,7 @@ func TestDeleteAction(t *testing.T) {
 			act: deleteAction{
 				Key: "/foo/",
 			},
-			wantURL: "http://example.com/foo",
+			wantURL: "http://example.com/foo/",
 		},
 
 		// Recursive set to true
@@ -1120,11 +1146,13 @@ func TestHTTPKeysAPIGetAction(t *testing.T) {
 			opts: &GetOptions{
 				Sort:      true,
 				Recursive: true,
+				Quorum:    true,
 			},
 			wantAction: &getAction{
 				Key:       "/foo",
 				Sorted:    true,
 				Recursive: true,
+				Quorum:    true,
 			},
 		},
 	}
@@ -1185,7 +1213,7 @@ func TestHTTPKeysAPIGetResponse(t *testing.T) {
 		Node: &Node{
 			Key: "/pants/foo/bar",
 			Nodes: []*Node{
-				&Node{Key: "/pants/foo/bar/baz", Value: "snarf", CreatedIndex: 21, ModifiedIndex: 25},
+				{Key: "/pants/foo/bar/baz", Value: "snarf", CreatedIndex: 21, ModifiedIndex: 25},
 			},
 			CreatedIndex:  uint64(19),
 			ModifiedIndex: uint64(25),

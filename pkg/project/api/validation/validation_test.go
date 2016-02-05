@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/project/api"
 )
@@ -203,7 +203,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 
 	errorCases := map[string]struct {
 		A api.Project
-		T fielderrors.ValidationErrorType
+		T field.ErrorType
 		F string
 	}{
 		"change name": {
@@ -215,7 +215,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 					Labels:          project.Labels,
 				},
 			},
-			T: fielderrors.ValidationErrorTypeInvalid,
+			T: field.ErrorTypeInvalid,
 			F: "metadata.name",
 		},
 		"invalid displayname": {
@@ -231,7 +231,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 					Labels: project.Labels,
 				},
 			},
-			T: fielderrors.ValidationErrorTypeInvalid,
+			T: field.ErrorTypeInvalid,
 			F: "metadata.annotations[" + api.ProjectDisplayName + "]",
 		},
 		"updating disallowed annotation": {
@@ -247,7 +247,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 					Labels: project.Labels,
 				},
 			},
-			T: fielderrors.ValidationErrorTypeInvalid,
+			T: field.ErrorTypeInvalid,
 			F: "metadata.annotations[openshift.io/node-selector]",
 		},
 		"delete annotation": {
@@ -262,7 +262,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 					Labels: project.Labels,
 				},
 			},
-			T: fielderrors.ValidationErrorTypeInvalid,
+			T: field.ErrorTypeInvalid,
 			F: "metadata.annotations[openshift.io/node-selector]",
 		},
 		"updating label": {
@@ -274,7 +274,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 					Labels:          map[string]string{"label-name": "diff"},
 				},
 			},
-			T: fielderrors.ValidationErrorTypeInvalid,
+			T: field.ErrorTypeInvalid,
 			F: "metadata.labels[label-name]",
 		},
 		"deleting label": {
@@ -285,7 +285,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 					Annotations:     project.Annotations,
 				},
 			},
-			T: fielderrors.ValidationErrorTypeInvalid,
+			T: field.ErrorTypeInvalid,
 			F: "metadata.labels[label-name]",
 		},
 	}
@@ -296,10 +296,10 @@ func TestValidateProjectUpdate(t *testing.T) {
 			continue
 		}
 		for i := range errs {
-			if errs[i].(*fielderrors.ValidationError).Type != v.T {
+			if errs[i].Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(*fielderrors.ValidationError).Field != v.F {
+			if errs[i].Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}

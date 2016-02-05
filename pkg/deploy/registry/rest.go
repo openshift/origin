@@ -7,7 +7,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -23,7 +22,8 @@ var (
 // other error state occurred. The last observed deployment state is returned.
 func WaitForRunningDeployment(rn kclient.ReplicationControllersNamespacer, observed *kapi.ReplicationController, timeout time.Duration) (*kapi.ReplicationController, bool, error) {
 	fieldSelector := fields.Set{"metadata.name": observed.Name}.AsSelector()
-	w, err := rn.ReplicationControllers(observed.Namespace).Watch(labels.Everything(), fieldSelector, observed.ResourceVersion)
+	options := kapi.ListOptions{FieldSelector: fieldSelector, ResourceVersion: observed.ResourceVersion}
+	w, err := rn.ReplicationControllers(observed.Namespace).Watch(options)
 	if err != nil {
 		return observed, false, err
 	}

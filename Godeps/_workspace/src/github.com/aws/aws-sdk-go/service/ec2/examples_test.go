@@ -4132,6 +4132,27 @@ func ExampleEC2_ModifySnapshotAttribute() {
 	fmt.Println(resp)
 }
 
+func ExampleEC2_ModifySpotFleetRequest() {
+	svc := ec2.New(nil)
+
+	params := &ec2.ModifySpotFleetRequestInput{
+		SpotFleetRequestId:              aws.String("String"), // Required
+		ExcessCapacityTerminationPolicy: aws.String("ExcessCapacityTerminationPolicy"),
+		TargetCapacity:                  aws.Int64(1),
+	}
+	resp, err := svc.ModifySpotFleetRequest(params)
+
+	if err != nil {
+		// Print the error, cast err to awserr.Error to get the Code and
+		// Message from an error.
+		fmt.Println(err.Error())
+		return
+	}
+
+	// Pretty-print the response data.
+	fmt.Println(resp)
+}
+
 func ExampleEC2_ModifySubnetAttribute() {
 	svc := ec2.New(nil)
 
@@ -4623,6 +4644,7 @@ func ExampleEC2_RequestSpotFleet() {
 			TargetCapacity:                   aws.Int64(1),         // Required
 			AllocationStrategy:               aws.String("AllocationStrategy"),
 			ClientToken:                      aws.String("String"),
+			ExcessCapacityTerminationPolicy:  aws.String("ExcessCapacityTerminationPolicy"),
 			TerminateInstancesWithExpiration: aws.Bool(true),
 			ValidFrom:                        aws.Time(time.Now()),
 			ValidUntil:                       aws.Time(time.Now()),
@@ -4648,6 +4670,7 @@ func ExampleEC2_RequestSpotInstances() {
 	params := &ec2.RequestSpotInstancesInput{
 		SpotPrice:             aws.String("String"), // Required
 		AvailabilityZoneGroup: aws.String("String"),
+		BlockDurationMinutes:  aws.Int64(1),
 		ClientToken:           aws.String("String"),
 		DryRun:                aws.Bool(true),
 		InstanceCount:         aws.Int64(1),

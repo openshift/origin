@@ -6,7 +6,7 @@ import (
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
-	storage "k8s.io/kubernetes/pkg/storage/etcd"
+	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
@@ -101,7 +101,7 @@ func (e *Etcd) tryAcquire() (ok bool, ttl uint64, nextIndex uint64, err error) {
 		return true, ttl, index + 1, nil
 	}
 
-	if !storage.IsEtcdNodeExist(err) {
+	if !etcdutil.IsEtcdNodeExist(err) {
 		return false, 0, 0, fmt.Errorf("unable to check lease %s: %v", e.key, err)
 	}
 
@@ -139,7 +139,7 @@ func (e *Etcd) Release() {
 		}
 		// If the value has changed, we don't hold the lease. If the key is missing we don't
 		// hold the lease.
-		if storage.IsEtcdTestFailed(err) || storage.IsEtcdNotFound(err) {
+		if etcdutil.IsEtcdTestFailed(err) || etcdutil.IsEtcdNotFound(err) {
 			break
 		}
 		util.HandleError(fmt.Errorf("unable to release %s: %v", e.key, err))
@@ -187,9 +187,9 @@ func (e *Etcd) tryHold(ttl, index uint64) error {
 				case err == nil:
 					index = eventIndexFor(resp)
 					return true, nil
-				case storage.IsEtcdTestFailed(err):
+				case etcdutil.IsEtcdTestFailed(err):
 					return false, fmt.Errorf("another client has taken the lease %s: %v", e.key, err)
-				case storage.IsEtcdNotFound(err):
+				case etcdutil.IsEtcdNotFound(err):
 					return false, fmt.Errorf("another client has revoked the lease %s", e.key)
 				default:
 					util.HandleError(fmt.Errorf("unexpected error renewing lease %s: %v", e.key, err))

@@ -32,7 +32,7 @@ import (
 
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	clientcmdlatest "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api/latest"
-	"k8s.io/kubernetes/pkg/util/errors"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 const (
@@ -159,7 +159,7 @@ func (rules *ClientConfigLoadingRules) Load() (*clientcmdapi.Config, error) {
 		}
 	}
 
-	return config, errors.NewAggregate(errlist)
+	return config, utilerrors.NewAggregate(errlist)
 }
 
 // Migrate uses the MigrationRules map.  If a destination file is not present, then the source file is checked.
@@ -252,6 +252,16 @@ func LoadFromFile(filename string) (*clientcmdapi.Config, error) {
 	for key, obj := range config.Contexts {
 		obj.LocationOfOrigin = filename
 		config.Contexts[key] = obj
+	}
+
+	if config.AuthInfos == nil {
+		config.AuthInfos = map[string]*clientcmdapi.AuthInfo{}
+	}
+	if config.Clusters == nil {
+		config.Clusters = map[string]*clientcmdapi.Cluster{}
+	}
+	if config.Contexts == nil {
+		config.Contexts = map[string]*clientcmdapi.Context{}
 	}
 
 	return config, nil
@@ -465,7 +475,7 @@ func MakeRelative(path, base string) (string, error) {
 	return path, nil
 }
 
-// HomeDir returns the home directory for the current user
+// HomeDir return the home directory for the current user
 func HomeDir() string {
 	if runtime.GOOS == "windows" {
 		if homeDrive, homePath := os.Getenv("HOMEDRIVE"), os.Getenv("HOMEPATH"); len(homeDrive) > 0 && len(homePath) > 0 {

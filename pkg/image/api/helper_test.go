@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -56,6 +55,12 @@ func TestParseDockerImageReference(t *testing.T) {
 			Name:      "baz",
 		},
 		{
+			From:      "bar/library/baz",
+			Registry:  "bar",
+			Namespace: "library",
+			Name:      "baz",
+		},
+		{
 			From:      "bar/foo/baz:tag",
 			Registry:  "bar",
 			Namespace: "foo",
@@ -76,10 +81,15 @@ func TestParseDockerImageReference(t *testing.T) {
 			Name:      "baz",
 		},
 		{
-			From:      "bar:5000/baz",
+			From:      "bar:5000/library/baz",
 			Registry:  "bar:5000",
-			Namespace: DockerDefaultNamespace,
+			Namespace: "library",
 			Name:      "baz",
+		},
+		{
+			From:     "bar:5000/baz",
+			Registry: "bar:5000",
+			Name:     "baz",
 		},
 		{
 			From:      "bar:5000/foo/baz:tag",
@@ -96,14 +106,36 @@ func TestParseDockerImageReference(t *testing.T) {
 			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
-			From:      "myregistry.io/foo",
-			Registry:  "myregistry.io",
-			Namespace: DockerDefaultNamespace,
-			Name:      "foo",
+			From:     "myregistry.io/foo",
+			Registry: "myregistry.io",
+			Name:     "foo",
 		},
 		{
-			From:      "localhost/bar",
-			Registry:  "localhost",
+			From:     "localhost/bar",
+			Registry: "localhost",
+			Name:     "bar",
+		},
+		{
+			From:      "docker.io/library/myapp",
+			Registry:  "docker.io",
+			Namespace: "library",
+			Name:      "myapp",
+		},
+		{
+			From:      "docker.io/myapp",
+			Registry:  "docker.io",
+			Namespace: DockerDefaultNamespace,
+			Name:      "myapp",
+		},
+		{
+			From:      "docker.io/user/myapp",
+			Registry:  "docker.io",
+			Namespace: "user",
+			Name:      "myapp",
+		},
+		{
+			From:      "index.docker.io/bar",
+			Registry:  "index.docker.io",
 			Namespace: DockerDefaultNamespace,
 			Name:      "bar",
 		},
@@ -231,6 +263,79 @@ func TestDockerImageReferenceAsRepository(t *testing.T) {
 
 }
 
+func TestDockerImageReferenceDaemonMinimal(t *testing.T) {
+	testCases := []struct {
+		Registry, Namespace, Name, Tag, ID string
+		Expected                           string
+	}{
+		{
+			Namespace: "library",
+			Name:      "foo",
+			Tag:       "tag",
+			Expected:  "library/foo:tag",
+		},
+		{
+			Namespace: "bar",
+			Name:      "foo",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected:  "bar/foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
+			Registry:  "bar",
+			Namespace: "foo",
+			Name:      "baz",
+			Expected:  "bar/foo/baz",
+		},
+		{
+			Registry:  "localhost:5000",
+			Namespace: "library",
+			Name:      "bar",
+			Tag:       "latest",
+			Expected:  "localhost:5000/library/bar",
+		},
+		{
+			Registry:  "index.docker.io",
+			Namespace: "foo",
+			Name:      "bar",
+			Tag:       "latest",
+			Expected:  "docker.io/foo/bar",
+		},
+		{
+			Registry:  "registry-1.docker.io",
+			Namespace: "library",
+			Name:      "foo",
+			Tag:       "bar",
+			Expected:  "docker.io/foo:bar",
+		},
+		{
+			Registry:  "docker.io",
+			Namespace: "foo",
+			Name:      "library",
+			Expected:  "docker.io/foo/library",
+		},
+		{
+			Registry: "registry-1.docker.io",
+			Name:     "library",
+			Tag:      "foo",
+			Expected: "docker.io/library:foo",
+		},
+	}
+
+	for i, testCase := range testCases {
+		ref := DockerImageReference{
+			Registry:  testCase.Registry,
+			Namespace: testCase.Namespace,
+			Name:      testCase.Name,
+			Tag:       testCase.Tag,
+			ID:        testCase.ID,
+		}
+		actual := ref.DaemonMinimal().Exact()
+		if e, a := testCase.Expected, actual; e != a {
+			t.Errorf("%d: expected %q, got %q", i, e, a)
+		}
+	}
+}
+
 func TestDockerImageReferenceString(t *testing.T) {
 	testCases := []struct {
 		Registry, Namespace, Name, Tag, ID string
@@ -238,22 +343,22 @@ func TestDockerImageReferenceString(t *testing.T) {
 	}{
 		{
 			Name:     "foo",
-			Expected: "library/foo",
+			Expected: "foo",
 		},
 		{
 			Name:     "foo",
 			Tag:      "tag",
-			Expected: "library/foo:tag",
+			Expected: "foo:tag",
 		},
 		{
 			Name:     "foo",
 			ID:       "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-			Expected: "library/foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected: "foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
 			Name:     "foo",
 			ID:       "3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-			Expected: "library/foo:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected: "foo:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
 			Namespace: "bar",
@@ -307,10 +412,35 @@ func TestDockerImageReferenceString(t *testing.T) {
 		},
 		{
 			Registry:  "bar:5000",
+			Namespace: "library",
+			Name:      "baz",
+			Tag:       "tag",
+			Expected:  "bar:5000/library/baz:tag",
+		},
+		{
+			Registry:  "bar:5000",
 			Namespace: "foo",
 			Name:      "baz",
 			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 			Expected:  "bar:5000/foo/baz@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
+			Registry:  "docker.io",
+			Namespace: "user",
+			Name:      "app",
+			Expected:  "docker.io/user/app",
+		},
+		{
+			Registry: "index.docker.io",
+			Name:     "foo",
+			Expected: "index.docker.io/library/foo",
+		},
+		{
+			Registry:  "index.docker.io",
+			Namespace: "library",
+			Name:      "bar",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected:  "index.docker.io/library/bar@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 	}
 
@@ -414,11 +544,13 @@ func TestImageWithMetadata(t *testing.T) {
 			image: Image{
 				DockerImageManifest: `{"name": "library/ubuntu", "tag": "latest"}`,
 			},
-			expectedImage: Image{},
+			expectedImage: Image{
+				DockerImageManifest: `{"name": "library/ubuntu", "tag": "latest"}`,
+			},
 		},
 		"error unmarshalling v1 compat": {
 			image: Image{
-				DockerImageManifest: `{"name": "library/ubuntu", "tag": "latest", "history": ["v1Compatibility": "{ not valid {{ json" }`,
+				DockerImageManifest: "{\"name\": \"library/ubuntu\", \"tag\": \"latest\", \"history\": [\"v1Compatibility\": \"{ not valid {{ json\" }",
 			},
 			expectError: true,
 		},
@@ -428,7 +560,14 @@ func TestImageWithMetadata(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "id",
 				},
-				DockerImageManifest: "",
+				DockerImageManifest: validImageWithManifestData().DockerImageManifest,
+				DockerImageLayers: []ImageLayer{
+					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", Size: 0},
+					{Name: "tarsum.dev+sha256:2aaacc362ac6be2b9e9ae8c6029f6f616bb50aec63746521858e47841b90fabd", Size: 188097705},
+					{Name: "tarsum.dev+sha256:c937c4bb1c1a21cc6d94340812262c6472092028972ae69b551b1a70d4276171", Size: 194533},
+					{Name: "tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0", Size: 1895},
+					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", Size: 0},
+				},
 				DockerImageMetadata: DockerImage{
 					ID:        "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7",
 					Parent:    "117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c",
@@ -489,14 +628,15 @@ func TestImageWithMetadata(t *testing.T) {
 						OnBuild:         []string{},
 					},
 					Architecture: "amd64",
-					Size:         0,
+					Size:         188294133,
 				},
 			},
 		},
 	}
 
 	for name, test := range tests {
-		imageWithMetadata, err := ImageWithMetadata(test.image)
+		imageWithMetadata := test.image
+		err := ImageWithMetadata(&imageWithMetadata)
 		gotError := err != nil
 		if e, a := test.expectError, gotError; e != a {
 			t.Fatalf("%s: expectError=%t, gotError=%t: %s", name, e, a, err)
@@ -504,10 +644,8 @@ func TestImageWithMetadata(t *testing.T) {
 		if test.expectError {
 			continue
 		}
-		if e, a := test.expectedImage, *imageWithMetadata; !kapi.Semantic.DeepEqual(e, a) {
-			stringE := fmt.Sprintf("%#v", e)
-			stringA := fmt.Sprintf("%#v", a)
-			t.Errorf("%s: image: %s", name, util.StringDiff(stringE, stringA))
+		if e, a := test.expectedImage, imageWithMetadata; !kapi.Semantic.DeepEqual(e, a) {
+			t.Errorf("%s: image: %s", name, util.ObjectDiff(e, a))
 		}
 	}
 }
@@ -743,7 +881,7 @@ func TestAddTagEventToImageStream(t *testing.T) {
 			t.Errorf("%s: expected updated=%t, got %t", name, e, a)
 		}
 		if e, a := test.expectedTags, stream.Status.Tags; !reflect.DeepEqual(e, a) {
-			t.Errorf("%s: expected tags=%v, got %v", name, e, a)
+			t.Errorf("%s: expected\ntags=%#v\ngot=%#v", name, e, a)
 		}
 	}
 }
@@ -991,6 +1129,72 @@ func TestResolveImageID(t *testing.T) {
 			expErr:   "multiple images match the prefix",
 			expEvent: TagEvent{},
 		},
+		"find match out of multiple tags in first position": {
+			tags: map[string]TagEventList{
+				"tag1": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "repo@sha256:0000000000000000000000000000000000000000000000000000000000000001",
+							Image:                "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+						},
+						{
+							DockerImageReference: "repo@sha256:0000000000000000000000000000000000000000000000000000000000000002",
+							Image:                "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+						},
+					},
+				},
+				"tag2": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "repo@sha256:0000000000000000000000000000000000000000000000000000000000000003",
+							Image:                "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+						},
+						{
+							DockerImageReference: "repo@sha256:0000000000000000000000000000000000000000000000000000000000000004",
+							Image:                "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+						},
+					},
+				},
+			},
+			imageID: "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+			expEvent: TagEvent{
+				DockerImageReference: "repo@sha256:0000000000000000000000000000000000000000000000000000000000000001",
+				Image:                "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+			},
+		},
+		"find match out of multiple tags in last position": {
+			tags: map[string]TagEventList{
+				"tag1": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "repo@sha256:0000000000000000000000000000000000000000000000000000000000000001",
+							Image:                "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+						},
+						{
+							DockerImageReference: "repo@sha256:0000000000000000000000000000000000000000000000000000000000000002",
+							Image:                "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+						},
+					},
+				},
+				"tag2": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "repo@sha256:0000000000000000000000000000000000000000000000000000000000000003",
+							Image:                "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+						},
+						{
+							DockerImageReference: "repo@sha256:0000000000000000000000000000000000000000000000000000000000000004",
+							Image:                "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+						},
+					},
+				},
+			},
+			imageID: "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+			expEvent: TagEvent{
+				DockerImageReference: "repo@sha256:0000000000000000000000000000000000000000000000000000000000000004",
+				Image:                "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -1088,5 +1292,13 @@ func TestDockerImageReferenceEquality(t *testing.T) {
 			t.Errorf("test %[1]d: %[2]q.Equal(%[3]q) = %[4]t != %[3]q.Equal(%[2]q) = %[5]t",
 				i, test.a, test.b, x, y)
 		}
+	}
+}
+
+func TestPrioritizeTags(t *testing.T) {
+	tags := []string{"5", "other", "latest", "v5.5", "v6", "5.2.3", "v5.3.6-bother", "5.3.6-abba", "5.6"}
+	PrioritizeTags(tags)
+	if !reflect.DeepEqual(tags, []string{"latest", "v6", "5", "5.6", "v5.5", "v5.3.6-bother", "5.3.6-abba", "5.2.3", "other"}) {
+		t.Errorf("unexpected order: %v", tags)
 	}
 }

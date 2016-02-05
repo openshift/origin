@@ -17,7 +17,7 @@ func TestNewRESTInvalidType(t *testing.T) {
 		t.Errorf("Expected type error.")
 	}
 
-	if _, _, err := latest.RESTMapper.VersionAndKindForResource("processedtemplates"); err != nil {
+	if _, err := latest.RESTMapper.KindFor("processedtemplates"); err != nil {
 		t.Errorf("no processed templates: %v", err)
 	}
 }

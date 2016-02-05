@@ -94,8 +94,6 @@ func TestProjectStatus(t *testing.T) {
 				"In project example on server https://example.com:8443\n",
 				"rc/my-rc runs centos/mysql-56-centos7",
 				"0/1 pods growing to 1",
-				"rc/my-rc is attempting to mount a secret secret/existing-secret disallowed by sa/default",
-				"rc/my-rc is attempting to mount a secret secret/dne disallowed by sa/default",
 				"rc/my-rc is attempting to mount a missing secret secret/dne",
 			},
 		},
@@ -168,7 +166,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"bc/ruby-hello-world is pushing to imagestreamtag/ruby-hello-world:latest that is using is/ruby-hello-world, but the administrator has not configured the integrated Docker registry.",
+				"bc/ruby-hello-world is pushing to istag/ruby-hello-world:latest that is using is/ruby-hello-world, but the administrator has not configured the integrated Docker registry.",
 			},
 		},
 		"bare-bc-can-push": {
@@ -270,6 +268,9 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				`container "ruby-helloworld" in pod/frontend-app-1-bjwh8 has restarted 8 times`,
+				`container "gitlab-ce" in pod/gitlab-ce-1-lc411 is crash-looping`,
+				`oc logs -p gitlab-ce-1-lc411 -c gitlab-ce`, // verifies we print the log command
+				`policycommand example default`,             // verifies that we print the help command
 			},
 		},
 	}
@@ -292,7 +293,7 @@ func TestProjectStatus(t *testing.T) {
 			o.Add(obj)
 		}
 		oc, kc := testclient.NewFixtureClients(o)
-		d := ProjectStatusDescriber{C: oc, K: kc, Server: "https://example.com:8443", Suggest: true}
+		d := ProjectStatusDescriber{C: oc, K: kc, Server: "https://example.com:8443", Suggest: true, LogsCommandName: "oc logs -p", SecurityPolicyCommandFormat: "policycommand %s %s"}
 		out, err := d.Describe("example", "")
 		if !test.ErrFn(err) {
 			t.Errorf("%s: unexpected error: %v", k, err)

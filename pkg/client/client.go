@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -23,6 +24,7 @@ type Interface interface {
 	ImageStreamMappingsNamespacer
 	ImageStreamTagsNamespacer
 	ImageStreamImagesNamespacer
+	ImageStreamSecretsNamespacer
 	DeploymentConfigsNamespacer
 	DeploymentLogsNamespacer
 	RoutesNamespacer
@@ -72,6 +74,11 @@ func (c *Client) BuildLogs(namespace string) BuildLogsInterface {
 // Images provides a REST client for Images
 func (c *Client) Images() ImageInterface {
 	return newImages(c)
+}
+
+// ImageStreamImages provides a REST client for retrieving image secrets in a namespace
+func (c *Client) ImageStreamSecrets(namespace string) ImageStreamSecretInterface {
+	return newImageStreamSecrets(c, namespace)
 }
 
 // ImageStreams provides a REST client for ImageStream
@@ -262,17 +269,18 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 	if len(config.UserAgent) == 0 {
 		config.UserAgent = DefaultOpenShiftUserAgent()
 	}
-	if config.Version == "" {
+	if config.GroupVersion == nil {
 		// Clients default to the preferred code API version
-		config.Version = latest.Version
+		groupVersionCopy := latest.Version
+		config.GroupVersion = &groupVersionCopy
 	}
 	if config.Prefix == "" {
 		config.Prefix = "/oapi"
 	}
-	version := config.Version
-	versionInterfaces, err := latest.InterfacesFor(version)
+	version := config.GroupVersion
+	versionInterfaces, err := latest.InterfacesFor(*version)
 	if err != nil {
-		return fmt.Errorf("API version '%s' is not recognized (valid values: %s)", version, strings.Join(latest.Versions, ", "))
+		return fmt.Errorf("API version %q is not recognized (valid values: %v)", version, latest.Versions)
 	}
 	if config.Codec == nil {
 		config.Codec = versionInterfaces.Codec
@@ -302,4 +310,14 @@ func DefaultOpenShiftUserAgent() string {
 	seg := strings.SplitN(version, "-", 2)
 	version = seg[0]
 	return fmt.Sprintf("%s/%s (%s/%s) openshift/%s", path.Base(os.Args[0]), version, runtime.GOOS, runtime.GOARCH, commit)
+}
+
+// IsStatusErrorKind returns true if this error describes the provided kind.
+func IsStatusErrorKind(err error, kind string) bool {
+	if s, ok := err.(errors.APIStatus); ok {
+		if details := s.Status().Details; details != nil {
+			return kind == details.Kind
+		}
+	}
+	return false
 }

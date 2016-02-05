@@ -1,0 +1,51 @@
+{
+  "kind":"BuildConfig",
+  "apiVersion":"v1",
+  "metadata":{
+    "name":"test",
+    "labels":{
+      "name":"test"
+    }
+  },
+  "spec":{
+    "triggers":[],
+    "source":{
+      "type":"Git",
+      "git":{
+        "uri":"https://github.com/mfojtik/origin",
+        "ref": "secrets"
+      },
+      "contextDir":"test/extended/fixtures/build-secrets",
+      "secrets": [
+        {
+          "secret": { "name": "testsecret" },
+          "destinationDir": "secret-dir"
+        },
+        {
+          "secret": { "name": "testsecret2" }
+        }
+      ]
+    },
+    "strategy":{
+      "type":"Docker",
+      "env": [
+        {
+          "name": "BUILD_LOGLEVEL",
+          "value": "5"
+        }
+      ],
+      "dockerStrategy":{
+        "from":{
+          "kind":"DockerImage",
+          "name":"centos/ruby-22-centos7"
+        }
+      }
+    },
+    "output":{
+      "to":{
+        "kind":"ImageStreamTag",
+        "name":"test:latest"
+      }
+    }
+  }
+}

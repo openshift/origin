@@ -3,13 +3,18 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"regexp"
+	"sort"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/blang/semver"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/manifest/schema1"
 	"github.com/golang/glog"
 )
 
@@ -18,6 +23,10 @@ const (
 	DockerDefaultNamespace = "library"
 	// DockerDefaultRegistry is the value for the registry when none was provided.
 	DockerDefaultRegistry = "docker.io"
+	// DockerDefaultV1Registry is the host name of the default v1 registry
+	DockerDefaultV1Registry = "index." + DockerDefaultRegistry
+	// DockerDefaultV2Registry is the host name of the default v2 registry
+	DockerDefaultV2Registry = "registry-1." + DockerDefaultRegistry
 )
 
 // TODO remove (base, tag, id)
@@ -47,6 +56,17 @@ func isRegistryName(str string) bool {
 	return false
 }
 
+// IsRegistryDockerHub returns true if the given registry name belongs to
+// Docker hub.
+func IsRegistryDockerHub(registry string) bool {
+	switch registry {
+	case DockerDefaultRegistry, DockerDefaultV1Registry, DockerDefaultV2Registry:
+		return true
+	default:
+		return false
+	}
+}
+
 // ParseDockerImageReference parses a Docker pull spec string into a
 // DockerImageReference.
 func ParseDockerImageReference(spec string) (DockerImageReference, error) {
@@ -60,8 +80,9 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		if isRegistryName(repoParts[0]) {
 			// registry/name
 			ref.Registry = repoParts[0]
-			// TODO: default this in all cases where Namespace ends up as ""?
-			ref.Namespace = DockerDefaultNamespace
+			if IsRegistryDockerHub(ref.Registry) {
+				ref.Namespace = DockerDefaultNamespace
+			}
 			if len(repoParts[1]) == 0 {
 				return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 			}
@@ -117,11 +138,11 @@ func (r DockerImageReference) Equal(other DockerImageReference) bool {
 
 // DockerClientDefaults sets the default values used by the Docker client.
 func (r DockerImageReference) DockerClientDefaults() DockerImageReference {
-	if len(r.Namespace) == 0 {
-		r.Namespace = DockerDefaultNamespace
-	}
 	if len(r.Registry) == 0 {
 		r.Registry = DockerDefaultRegistry
+	}
+	if len(r.Namespace) == 0 && IsRegistryDockerHub(r.Registry) {
+		r.Namespace = DockerDefaultNamespace
 	}
 	if len(r.Tag) == 0 {
 		r.Tag = DefaultImageTag
@@ -144,16 +165,58 @@ func (r DockerImageReference) AsRepository() DockerImageReference {
 	return r
 }
 
+// RepositoryName returns the registry relative name
+func (r DockerImageReference) RepositoryName() string {
+	r.Tag = ""
+	r.ID = ""
+	r.Registry = ""
+	return r.Exact()
+}
+
+// RepositoryName returns the registry relative name
+func (r DockerImageReference) RegistryURL() *url.URL {
+	return &url.URL{
+		Scheme: "https",
+		Host:   r.AsV2().Registry,
+	}
+}
+
 // DaemonMinimal clears defaults that Docker assumes.
 func (r DockerImageReference) DaemonMinimal() DockerImageReference {
-	if r.Namespace == "library" {
+	switch r.Registry {
+	case DockerDefaultV1Registry, DockerDefaultV2Registry:
+		r.Registry = DockerDefaultRegistry
+	}
+	if IsRegistryDockerHub(r.Registry) && r.Namespace == DockerDefaultNamespace {
 		r.Namespace = ""
 	}
-	switch r.Registry {
-	case "index.docker.io", "docker.io":
-		r.Registry = "docker.io"
-	}
 	return r.Minimal()
+}
+
+func (r DockerImageReference) AsV2() DockerImageReference {
+	switch r.Registry {
+	case DockerDefaultV1Registry, DockerDefaultRegistry:
+		r.Registry = DockerDefaultV2Registry
+	}
+	return r
+}
+
+// MostSpecific returns the most specific image reference that can be constructed from the
+// current ref, preferring an ID over a Tag. Allows client code dealing with both tags and IDs
+// to get the most specific reference easily.
+func (r DockerImageReference) MostSpecific() DockerImageReference {
+	if len(r.ID) == 0 {
+		return r
+	}
+	if _, err := digest.ParseDigest(r.ID); err == nil {
+		r.Tag = ""
+		return r
+	}
+	if len(r.Tag) == 0 {
+		r.Tag, r.ID = r.ID, ""
+		return r
+	}
+	return r
 }
 
 // NameString returns the name of the reference with its tag or ID.
@@ -198,7 +261,7 @@ func (r DockerImageReference) Exact() string {
 // String converts a DockerImageReference to a Docker pull spec (which implies a default namespace
 // according to V1 Docker registry rules). Use Exact() if you want no defaulting.
 func (r DockerImageReference) String() string {
-	if len(r.Namespace) == 0 {
+	if len(r.Namespace) == 0 && IsRegistryDockerHub(r.Registry) {
 		r.Namespace = DockerDefaultNamespace
 	}
 	return r.Exact()
@@ -236,45 +299,104 @@ func NormalizeImageStreamTag(name string) string {
 	return name
 }
 
+// ManifestMatchesImage returns true if the provided manifest matches the name of the image.
+func ManifestMatchesImage(image *Image, newManifest []byte) (bool, error) {
+	dgst, err := digest.ParseDigest(image.Name)
+	if err != nil {
+		return false, err
+	}
+	v, err := digest.NewDigestVerifier(dgst)
+	if err != nil {
+		return false, err
+	}
+	sm := schema1.SignedManifest{Raw: newManifest}
+	raw, err := sm.Payload()
+	if err != nil {
+		return false, err
+	}
+	if _, err := v.Write(raw); err != nil {
+		return false, err
+	}
+	return v.Verified(), nil
+}
+
 // ImageWithMetadata returns a copy of image with the DockerImageMetadata filled in
 // from the raw DockerImageManifest data stored in the image.
-func ImageWithMetadata(image Image) (*Image, error) {
+func ImageWithMetadata(image *Image) error {
 	if len(image.DockerImageManifest) == 0 {
-		return &image, nil
+		return nil
 	}
 
 	manifestData := image.DockerImageManifest
 
-	image.DockerImageManifest = ""
-
 	manifest := DockerImageManifest{}
 	if err := json.Unmarshal([]byte(manifestData), &manifest); err != nil {
-		return nil, err
+		return err
 	}
 
-	if len(manifest.History) == 0 {
-		// should never have an empty history, but just in case...
-		return &image, nil
+	switch manifest.SchemaVersion {
+	case 0:
+		// legacy config object
+	case 1:
+		if len(manifest.History) == 0 {
+			// should never have an empty history, but just in case...
+			return nil
+		}
+
+		v1Metadata := DockerV1CompatibilityImage{}
+		if err := json.Unmarshal([]byte(manifest.History[0].DockerV1Compatibility), &v1Metadata); err != nil {
+			return err
+		}
+
+		image.DockerImageLayers = make([]ImageLayer, len(manifest.FSLayers))
+		for i, layer := range manifest.FSLayers {
+			image.DockerImageLayers[i].Name = layer.DockerBlobSum
+		}
+		if len(manifest.History) == len(image.DockerImageLayers) {
+			image.DockerImageLayers[0].Size = v1Metadata.Size
+			var size = DockerV1CompatibilityImageSize{}
+			for i, obj := range manifest.History[1:] {
+				size.Size = 0
+				if err := json.Unmarshal([]byte(obj.DockerV1Compatibility), &size); err != nil {
+					continue
+				}
+				image.DockerImageLayers[i+1].Size = size.Size
+			}
+		} else {
+			glog.V(4).Infof("Imported image has mismatched layer count and history count, not updating image metadata: %s", image.Name)
+		}
+		// reverse order of the layers for v1 (lowest = 0, highest = i)
+		for i, j := 0, len(image.DockerImageLayers)-1; i < j; i, j = i+1, j-1 {
+			image.DockerImageLayers[i], image.DockerImageLayers[j] = image.DockerImageLayers[j], image.DockerImageLayers[i]
+		}
+
+		image.DockerImageMetadata.ID = v1Metadata.ID
+		image.DockerImageMetadata.Parent = v1Metadata.Parent
+		image.DockerImageMetadata.Comment = v1Metadata.Comment
+		image.DockerImageMetadata.Created = v1Metadata.Created
+		image.DockerImageMetadata.Container = v1Metadata.Container
+		image.DockerImageMetadata.ContainerConfig = v1Metadata.ContainerConfig
+		image.DockerImageMetadata.DockerVersion = v1Metadata.DockerVersion
+		image.DockerImageMetadata.Author = v1Metadata.Author
+		image.DockerImageMetadata.Config = v1Metadata.Config
+		image.DockerImageMetadata.Architecture = v1Metadata.Architecture
+		if len(image.DockerImageLayers) > 0 {
+			size := int64(0)
+			for _, layer := range image.DockerImageLayers {
+				size += layer.Size
+			}
+			image.DockerImageMetadata.Size = size
+		} else {
+			image.DockerImageMetadata.Size = v1Metadata.Size
+		}
+	case 2:
+		// TODO: need to prepare for this
+		return fmt.Errorf("unrecognized Docker image manifest schema %d for %q (%s)", manifest.SchemaVersion, image.Name, image.DockerImageReference)
+	default:
+		return fmt.Errorf("unrecognized Docker image manifest schema %d for %q (%s)", manifest.SchemaVersion, image.Name, image.DockerImageReference)
 	}
 
-	v1Metadata := DockerV1CompatibilityImage{}
-	if err := json.Unmarshal([]byte(manifest.History[0].DockerV1Compatibility), &v1Metadata); err != nil {
-		return nil, err
-	}
-
-	image.DockerImageMetadata.ID = v1Metadata.ID
-	image.DockerImageMetadata.Parent = v1Metadata.Parent
-	image.DockerImageMetadata.Comment = v1Metadata.Comment
-	image.DockerImageMetadata.Created = v1Metadata.Created
-	image.DockerImageMetadata.Container = v1Metadata.Container
-	image.DockerImageMetadata.ContainerConfig = v1Metadata.ContainerConfig
-	image.DockerImageMetadata.DockerVersion = v1Metadata.DockerVersion
-	image.DockerImageMetadata.Author = v1Metadata.Author
-	image.DockerImageMetadata.Config = v1Metadata.Config
-	image.DockerImageMetadata.Architecture = v1Metadata.Architecture
-	image.DockerImageMetadata.Size = v1Metadata.Size
-
-	return &image, nil
+	return nil
 }
 
 // DockerImageReferenceForStream returns a DockerImageReference that represents
@@ -288,6 +410,34 @@ func DockerImageReferenceForStream(stream *ImageStream) (DockerImageReference, e
 		return DockerImageReference{}, fmt.Errorf("no possible pull spec for %s/%s", stream.Namespace, stream.Name)
 	}
 	return ParseDockerImageReference(spec)
+}
+
+// FollowTagReference walks through the defined tags on a stream, following any referential tags in the stream.
+// Will return ok if the tag is valid, multiple if the tag had at least reference, and ref and finalTag will be the last
+// tag seen. If a circular loop is found ok will be false.
+func FollowTagReference(stream *ImageStream, tag string) (finalTag string, ref *TagReference, ok bool, multiple bool) {
+	seen := sets.NewString()
+	for {
+		if seen.Has(tag) {
+			// circular reference
+			return tag, nil, false, multiple
+		}
+		seen.Insert(tag)
+
+		tagRef, ok := stream.Spec.Tags[tag]
+		if !ok {
+			// no tag at the end of the rainbow
+			return tag, nil, false, multiple
+		}
+		if tagRef.From == nil || tagRef.From.Kind != "ImageStreamTag" || strings.Contains(tagRef.From.Name, ":") {
+			// terminating tag
+			return tag, &tagRef, true, multiple
+		}
+
+		// follow the referenec
+		tag = tagRef.From.Name
+		multiple = true
+	}
 }
 
 // LatestTaggedImage returns the most recent TagEvent for the specified image
@@ -310,9 +460,22 @@ func LatestTaggedImage(stream *ImageStream, tag string) *TagEvent {
 	return nil
 }
 
+// DifferentTagEvent returns true if the supplied tag event matches the current stream tag event.
+// Generation is not compared.
+func DifferentTagEvent(stream *ImageStream, tag string, next TagEvent) bool {
+	tags, ok := stream.Status.Tags[tag]
+	if !ok || len(tags.Items) == 0 {
+		return true
+	}
+	previous := &tags.Items[0]
+	sameRef := previous.DockerImageReference == next.DockerImageReference
+	sameImage := previous.Image == next.Image
+	return !(sameRef && sameImage)
+}
+
 // AddTagEventToImageStream attempts to update the given image stream with a tag event. It will
 // collapse duplicate entries - returning true if a change was made or false if no change
-// occurred.
+// occurred. Any successful tag resets the status field.
 func AddTagEventToImageStream(stream *ImageStream, tag string, next TagEvent) bool {
 	if stream.Status.Tags == nil {
 		stream.Status.Tags = make(map[string]TagEventList)
@@ -326,24 +489,30 @@ func AddTagEventToImageStream(stream *ImageStream, tag string, next TagEvent) bo
 
 	previous := &tags.Items[0]
 
-	// image reference has not changed
-	if previous.DockerImageReference == next.DockerImageReference {
-		if next.Image == previous.Image {
-			return false
-		}
+	sameRef := previous.DockerImageReference == next.DockerImageReference
+	sameImage := previous.Image == next.Image
+	sameGen := previous.Generation == next.Generation
+
+	switch {
+	// shouldn't change the tag
+	case sameRef && sameImage && sameGen:
+		return false
+
+	case sameImage && sameRef:
+		// collapse the tag
+	case sameRef:
 		previous.Image = next.Image
-		stream.Status.Tags[tag] = tags
-		return true
-	}
-
-	// image has not changed, but image reference has
-	if next.Image == previous.Image {
+	case sameImage:
 		previous.DockerImageReference = next.DockerImageReference
+	default:
+		// shouldn't collapse the tag
+		tags.Conditions = nil
+		tags.Items = append([]TagEvent{next}, tags.Items...)
 		stream.Status.Tags[tag] = tags
 		return true
 	}
-
-	tags.Items = append([]TagEvent{next}, tags.Items...)
+	previous.Generation = next.Generation
+	tags.Conditions = nil
 	stream.Status.Tags[tag] = tags
 	return true
 }
@@ -354,13 +523,17 @@ func AddTagEventToImageStream(stream *ImageStream, tag string, next TagEvent) bo
 func UpdateChangedTrackingTags(new, old *ImageStream) int {
 	changes := 0
 	for newTag, newImages := range new.Status.Tags {
-		if oldImages, ok := old.Status.Tags[newTag]; ok {
-			changed, deleted := tagsChanged(oldImages.Items, newImages.Items)
+		if len(newImages.Items) == 0 {
+			continue
+		}
+		if old != nil {
+			oldImages := old.Status.Tags[newTag]
+			changed, deleted := tagsChanged(newImages.Items, oldImages.Items)
 			if !changed || deleted {
 				continue
 			}
-			changes += UpdateTrackingTags(new, newTag, newImages.Items[0])
 		}
+		changes += UpdateTrackingTags(new, newTag, newImages.Items[0])
 	}
 	return changes
 }
@@ -419,6 +592,7 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 			continue
 		}
 
+		// TODO: this is probably wrong - we should require ":<tag>", but we can't break old clients
 		tagRefName := tagRef.From.Name
 		parts := strings.Split(tagRefName, ":")
 		tag := ""
@@ -461,16 +635,17 @@ func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
 	var event *TagEvent
 	set := sets.NewString()
 	for _, history := range stream.Status.Tags {
-		for _, tagging := range history.Items {
+		for i := range history.Items {
+			tagging := &history.Items[i]
 			if d, err := digest.ParseDigest(tagging.Image); err == nil {
 				if strings.HasPrefix(d.Hex(), imageID) || strings.HasPrefix(tagging.Image, imageID) {
-					event = &tagging
+					event = tagging
 					set.Insert(tagging.Image)
 				}
 				continue
 			}
 			if strings.HasPrefix(tagging.Image, imageID) {
-				event = &tagging
+				event = tagging
 				set.Insert(tagging.Image)
 			}
 		}
@@ -489,6 +664,22 @@ func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
 	}
 }
 
+// MostAccuratePullSpec returns a docker image reference that uses the current ID if possible, the current tag otherwise, and
+// returns false if the reference if the spec could not be parsed. The returned spec has all client defaults applied.
+func MostAccuratePullSpec(pullSpec string, id, tag string) (string, bool) {
+	ref, err := ParseDockerImageReference(pullSpec)
+	if err != nil {
+		return pullSpec, false
+	}
+	if len(id) > 0 {
+		ref.ID = id
+	}
+	if len(tag) > 0 {
+		ref.Tag = tag
+	}
+	return ref.MostSpecific().Exact(), true
+}
+
 // ShortDockerImageID returns a short form of the provided DockerImage ID for display
 func ShortDockerImageID(image *DockerImage, length int) string {
 	id := image.ID
@@ -499,4 +690,124 @@ func ShortDockerImageID(image *DockerImage, length int) string {
 		id = id[:length]
 	}
 	return id
+}
+
+// HasTagCondition returns true if the specified image stream tag has a condition with the same type, status, and
+// reason (does not check generation, date, or message).
+func HasTagCondition(stream *ImageStream, tag string, condition TagEventCondition) bool {
+	for _, existing := range stream.Status.Tags[tag].Conditions {
+		if condition.Type == existing.Type && condition.Status == existing.Status && condition.Reason == existing.Reason {
+			return true
+		}
+	}
+	return false
+}
+
+// SetTagConditions applies the specified conditions to the status of the given tag.
+func SetTagConditions(stream *ImageStream, tag string, conditions ...TagEventCondition) {
+	tagEvents := stream.Status.Tags[tag]
+	tagEvents.Conditions = conditions
+	if stream.Status.Tags == nil {
+		stream.Status.Tags = make(map[string]TagEventList)
+	}
+	stream.Status.Tags[tag] = tagEvents
+}
+
+// LatestObservedTagGeneration returns the generation value for the given tag that has been observed by the controller
+// monitoring the image stream. If the tag has not been observed, the generation is zero.
+func LatestObservedTagGeneration(stream *ImageStream, tag string) int64 {
+	tagEvents, ok := stream.Status.Tags[tag]
+	if !ok {
+		return 0
+	}
+
+	// find the most recent generation
+	lastGen := int64(0)
+	if items := tagEvents.Items; len(items) > 0 {
+		tagEvent := items[0]
+		if tagEvent.Generation > lastGen {
+			lastGen = tagEvent.Generation
+		}
+	}
+	for _, condition := range tagEvents.Conditions {
+		if condition.Type != ImportSuccess {
+			continue
+		}
+		if condition.Generation > lastGen {
+			lastGen = condition.Generation
+		}
+		break
+	}
+	return lastGen
+}
+
+var (
+	reMajorSemantic = regexp.MustCompile(`^[\d]+$`)
+	reMinorSemantic = regexp.MustCompile(`^[\d]+\.[\d]+$`)
+)
+
+// PrioritizeTags orders a set of image tags with a few conventions:
+//
+// 1. the "latest" tag, if present, should be first
+// 2. any tags that represent a semantic major version ("5", "v5") should be next, in descending order
+// 3. any tags that represent a semantic minor version ("5.1", "v5.1") should be next, in descending order
+// 4. any tags that represent a full semantic version ("5.1.3-other", "v5.1.3-other") should be next, in descending order
+// 5. any remaining tags should be sorted in lexicographic order
+//
+// The method updates the tags in place.
+func PrioritizeTags(tags []string) {
+	remaining := tags
+	finalTags := make([]string, 0, len(tags))
+	for i, tag := range tags {
+		if tag == DefaultImageTag {
+			tags[0], tags[i] = tags[i], tags[0]
+			finalTags = append(finalTags, tags[0])
+			remaining = tags[1:]
+			break
+		}
+	}
+
+	exact := make(map[string]string)
+	var major, minor, micro semver.Versions
+	other := make([]string, 0, len(remaining))
+	for _, tag := range remaining {
+		short := strings.TrimLeft(tag, "v")
+		v, err := semver.Parse(short)
+		switch {
+		case err == nil:
+			exact[v.String()] = tag
+			micro = append(micro, v)
+			continue
+		case reMajorSemantic.MatchString(short):
+			if v, err = semver.Parse(short + ".0.0"); err == nil {
+				exact[v.String()] = tag
+				major = append(major, v)
+				continue
+			}
+		case reMinorSemantic.MatchString(short):
+			if v, err = semver.Parse(short + ".0"); err == nil {
+				exact[v.String()] = tag
+				minor = append(minor, v)
+				continue
+			}
+		}
+		other = append(other, tag)
+	}
+	sort.Sort(sort.Reverse(major))
+	sort.Sort(sort.Reverse(minor))
+	sort.Sort(sort.Reverse(micro))
+	sort.Sort(sort.StringSlice(other))
+	for _, v := range major {
+		finalTags = append(finalTags, exact[v.String()])
+	}
+	for _, v := range minor {
+		finalTags = append(finalTags, exact[v.String()])
+	}
+	for _, v := range micro {
+		finalTags = append(finalTags, exact[v.String()])
+	}
+	for _, v := range other {
+		finalTags = append(finalTags, v)
+	}
+	copy(tags, finalTags)
 }

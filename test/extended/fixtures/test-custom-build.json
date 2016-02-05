@@ -15,9 +15,9 @@
       "customStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "172.30.17.104:5000/foo/bar"
+          "name": ""
         },
-        "exposeDockerSocket": true
+        "exposeDockerSocket": false
       }
     },
     "output": {

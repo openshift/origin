@@ -2,7 +2,6 @@ package osinserver
 
 import (
 	"encoding/base64"
-	"io"
 	"strings"
 
 	"crypto/rand"
@@ -12,9 +11,9 @@ import (
 
 func randomBytes(len int) []byte {
 	b := make([]byte, len)
-	if _, err := io.ReadFull(rand.Reader, b); err != nil {
-		// rand.Reader should never fail
-		panic(err.Error())
+	if _, err := rand.Read(b); err != nil {
+		// rand.Read should never fail
+		panic(err)
 	}
 	return b
 }

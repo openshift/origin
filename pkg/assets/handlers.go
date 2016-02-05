@@ -141,8 +141,24 @@ func HTML5ModeHandler(contextRoot string, subcontextMap map[string]string, h htt
 	}), nil
 }
 
+var versionTemplate = template.Must(template.New("webConsoleVersion").Parse(`
+window.OPENSHIFT_VERSION = {
+  openshift: "{{ .OpenShiftVersion | js}}",
+  kubernetes: "{{ .KubernetesVersion | js}}"
+};
+`))
+
+type WebConsoleVersion struct {
+	KubernetesVersion string
+	OpenShiftVersion  string
+}
+
 var configTemplate = template.Must(template.New("webConsoleConfig").Parse(`
 window.OPENSHIFT_CONFIG = {
+  apis: {
+    hostPort: "{{ .APIGroupAddr | js}}",
+    prefix: "{{ .APIGroupPrefix | js}}"
+  },
   api: {
     openshift: {
       hostPort: "{{ .MasterAddr | js}}",
@@ -177,6 +193,10 @@ window.OPENSHIFT_CONFIG = {
 `))
 
 type WebConsoleConfig struct {
+	// APIGroupAddr is the host:port the UI should call the API groups on. Scheme is derived from the scheme the UI is served on, so they must be the same.
+	APIGroupAddr string
+	// APIGroupPrefix is the API group context root
+	APIGroupPrefix string
 	// MasterAddr is the host:port the UI should call the master API on. Scheme is derived from the scheme the UI is served on, so they must be the same.
 	MasterAddr string
 	// MasterPrefix is the OpenShift API context root
@@ -204,9 +224,12 @@ type WebConsoleConfig struct {
 	MetricsURL string
 }
 
-func GeneratedConfigHandler(config WebConsoleConfig) (http.Handler, error) {
+func GeneratedConfigHandler(config WebConsoleConfig, version WebConsoleVersion) (http.Handler, error) {
 	var buffer bytes.Buffer
 	if err := configTemplate.Execute(&buffer, config); err != nil {
+		return nil, err
+	}
+	if err := versionTemplate.Execute(&buffer, version); err != nil {
 		return nil, err
 	}
 	content := buffer.Bytes()
@@ -214,9 +237,8 @@ func GeneratedConfigHandler(config WebConsoleConfig) (http.Handler, error) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Cache-Control", "no-cache, no-store")
 		w.Header().Add("Content-Type", "application/javascript")
-		_, err := w.Write(content)
-		if err != nil {
-			util.HandleError(fmt.Errorf("Error serving Web Console configuration: %v", err))
+		if _, err := w.Write(content); err != nil {
+			util.HandleError(fmt.Errorf("Error serving Web Console config and version: %v", err))
 		}
 	}), nil
 }

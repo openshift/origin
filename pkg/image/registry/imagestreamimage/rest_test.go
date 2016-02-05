@@ -3,7 +3,14 @@ package imagestreamimage
 import (
 	"testing"
 
-	"github.com/coreos/go-etcd/etcd"
+	goetcd "github.com/coreos/go-etcd/etcd"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/registry/registrytest"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
+	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
+
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
@@ -12,12 +19,6 @@ import (
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
-	kstorage "k8s.io/kubernetes/pkg/storage"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	"k8s.io/kubernetes/pkg/tools"
-	"k8s.io/kubernetes/pkg/tools/etcdtest"
 )
 
 var testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
@@ -31,16 +32,19 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 	return nil, nil
 }
 
-func setup(t *testing.T) (*tools.FakeEtcdClient, kstorage.Interface, *REST) {
-	fakeEtcdClient := tools.NewFakeEtcdClient(t)
-	fakeEtcdClient.TestIndex = true
-	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
-	imageStorage := imageetcd.NewREST(helper)
+func setup(t *testing.T) (*goetcd.Client, *etcdtesting.EtcdTestServer, *REST) {
+
+	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
+
+	imageStorage := imageetcd.NewREST(etcdStorage)
+	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(etcdStorage, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
+
 	storage := NewREST(imageRegistry, imageStreamRegistry)
-	return fakeEtcdClient, helper, storage
+
+	return server.Client, server, storage
 }
 
 func TestNameAndID(t *testing.T) {
@@ -82,16 +86,19 @@ func TestNameAndID(t *testing.T) {
 		repo, id, err := ParseNameAndID(test.input)
 		didError := err != nil
 		if e, a := test.expectError, didError; e != a {
-			t.Fatalf("%s: expected error=%t, got=%t: %s", name, e, a, err)
+			t.Errorf("%s: expected error=%t, got=%t: %s", name, e, a, err)
+			continue
 		}
 		if test.expectError {
 			continue
 		}
 		if e, a := test.expectedRepo, repo; e != a {
-			t.Fatalf("%s: repo: expected %q, got %q", name, e, a)
+			t.Errorf("%s: repo: expected %q, got %q", name, e, a)
+			continue
 		}
 		if e, a := test.expectedId, id; e != a {
-			t.Fatalf("%s: id: expected %q, got %q", name, e, a)
+			t.Errorf("%s: id: expected %q, got %q", name, e, a)
+			continue
 		}
 	}
 }
@@ -232,46 +239,31 @@ func TestGet(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		fakeEtcdClient, _, storage := setup(t)
+		client, server, storage := setup(t)
+		defer server.Terminate(t)
 
+		ctx := kapi.NewDefaultContext()
 		if test.repo != nil {
-			fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/repo")] = tools.EtcdResponseWithError{
-				R: &etcd.Response{
-					Node: &etcd.Node{
-						Value: runtime.EncodeOrDie(latest.Codec, test.repo),
-					},
-				},
-			}
-		} else {
-			fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/repo")] = tools.EtcdResponseWithError{
-				R: &etcd.Response{
-					Node: nil,
-				},
-				E: tools.EtcdErrorNotFound,
+			ctx = kapi.WithNamespace(kapi.NewContext(), test.repo.Namespace)
+			_, err := client.Create(etcdtest.AddPrefix("/imagestreams/"+test.repo.Namespace+"/"+test.repo.Name), runtime.EncodeOrDie(latest.Codec, test.repo), 0)
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				continue
 			}
 		}
-
 		if test.image != nil {
-			fakeEtcdClient.Data[etcdtest.AddPrefix("/images/id")] = tools.EtcdResponseWithError{
-				R: &etcd.Response{
-					Node: &etcd.Node{
-						Value: runtime.EncodeOrDie(latest.Codec, test.image),
-					},
-				},
-			}
-		} else {
-			fakeEtcdClient.Data[etcdtest.AddPrefix("/images/id")] = tools.EtcdResponseWithError{
-				R: &etcd.Response{
-					Node: nil,
-				},
-				E: tools.EtcdErrorNotFound,
+			_, err := client.Create(etcdtest.AddPrefix("/images/"+test.image.Name), runtime.EncodeOrDie(latest.Codec, test.image), 0)
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				continue
 			}
 		}
 
-		obj, err := storage.Get(kapi.NewDefaultContext(), test.input)
+		obj, err := storage.Get(ctx, test.input)
 		gotError := err != nil
 		if e, a := test.expectError, gotError; e != a {
-			t.Fatalf("%s: expected error=%t, got=%t: %s", name, e, a, err)
+			t.Errorf("%s: expected error=%t, got=%t: %s", name, e, a, err)
+			continue
 		}
 		if test.expectError {
 			continue

@@ -22,12 +22,12 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
+	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 )
@@ -79,11 +79,13 @@ func NewServiceAccountsController(cl client.Interface, options ServiceAccountsCo
 	}
 	e.serviceAccounts, e.serviceAccountController = framework.NewIndexerInformer(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return e.client.ServiceAccounts(api.NamespaceAll).List(labels.Everything(), accountSelector)
+			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+				options.FieldSelector = accountSelector
+				return e.client.ServiceAccounts(api.NamespaceAll).List(options)
 			},
-			WatchFunc: func(rv string) (watch.Interface, error) {
-				return e.client.ServiceAccounts(api.NamespaceAll).Watch(labels.Everything(), accountSelector, rv)
+			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				options.FieldSelector = accountSelector
+				return e.client.ServiceAccounts(api.NamespaceAll).Watch(options)
 			},
 		},
 		&api.ServiceAccount{},
@@ -96,11 +98,11 @@ func NewServiceAccountsController(cl client.Interface, options ServiceAccountsCo
 
 	e.namespaces, e.namespaceController = framework.NewIndexerInformer(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return e.client.Namespaces().List(labels.Everything(), fields.Everything())
+			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+				return e.client.Namespaces().List(options)
 			},
-			WatchFunc: func(rv string) (watch.Interface, error) {
-				return e.client.Namespaces().Watch(labels.Everything(), fields.Everything(), rv)
+			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				return e.client.Namespaces().Watch(options)
 			},
 		},
 		&api.Namespace{},
@@ -214,7 +216,7 @@ func (e *ServiceAccountsController) createServiceAccountIfNeeded(sa api.ServiceA
 // createDefaultServiceAccount creates a default ServiceAccount in the specified namespace
 func (e *ServiceAccountsController) createServiceAccount(sa api.ServiceAccount, namespace string) {
 	sa.Namespace = namespace
-	if _, err := e.client.ServiceAccounts(namespace).Create(&sa); err != nil {
+	if _, err := e.client.ServiceAccounts(namespace).Create(&sa); err != nil && !apierrs.IsAlreadyExists(err) {
 		glog.Error(err)
 	}
 }

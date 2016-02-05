@@ -10,8 +10,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	"github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -24,6 +26,7 @@ import (
 // reason.
 var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&imageapi.DockerImage{}),           // not a top level resource
+	reflect.TypeOf(&imageapi.ImageStreamImport{}),     // normal users don't ever look at these
 	reflect.TypeOf(&buildapi.BuildLog{}),              // just a marker type
 	reflect.TypeOf(&buildapi.BuildLogOptions{}),       // just a marker type
 	reflect.TypeOf(&deployapi.DeploymentLog{}),        // just a marker type
@@ -52,10 +55,11 @@ var MissingPrinterCoverageExceptions = []reflect.Type{
 }
 
 func TestPrinterCoverage(t *testing.T) {
-	printer := NewHumanReadablePrinter(false, false, false, false, []string{})
+	// noHeaders, withNamespace, wide bool, showAll bool, absoluteTimestamps bool, columnLabels []string
+	printer := NewHumanReadablePrinter(false, false, false, false, false, []string{})
 
 main:
-	for _, apiType := range kapi.Scheme.KnownTypes("") {
+	for _, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
 		if !strings.Contains(apiType.PkgPath(), "openshift/origin") {
 			continue
 		}
@@ -86,11 +90,10 @@ func TestPrintImageStream(t *testing.T) {
 	streams := mockStreams()
 
 	tests := []struct {
-		name          string
-		stream        *imageapi.ImageStream
-		withNamespace bool
-		expectedOut   string
-		expectedErr   error
+		name        string
+		stream      *imageapi.ImageStream
+		expectedOut string
+		expectedErr error
 	}{
 		{
 			name:        "less than three tags",
@@ -110,7 +113,7 @@ func TestPrintImageStream(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if err := printImageStream(test.stream, buf, test.withNamespace, false, false, nil); err != test.expectedErr {
+		if err := printImageStream(test.stream, buf, kctl.PrintOptions{}); err != test.expectedErr {
 			t.Errorf("error mismatch: expected %v, got %v", test.expectedErr, err)
 			continue
 		}

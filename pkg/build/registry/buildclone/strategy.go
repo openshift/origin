@@ -3,7 +3,7 @@ package buildclone
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildvalidation "github.com/openshift/origin/pkg/build/api/validation"
@@ -32,6 +32,10 @@ func (s strategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // Validate validates a new role.
-func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	return buildvalidation.ValidateBuildRequest(obj.(*buildapi.BuildRequest))
+}
+
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
 }

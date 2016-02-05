@@ -7,7 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -65,7 +65,7 @@ func expectedService(name string, ports ...portDesc) *kapi.Service {
 			Name:       fmt.Sprintf("%d-%s", p.port, p.protocol),
 			Port:       p.port,
 			Protocol:   kapi.Protocol(p.protocol),
-			TargetPort: kutil.NewIntOrStringFromInt(p.port),
+			TargetPort: intstr.FromInt(p.port),
 		})
 	}
 

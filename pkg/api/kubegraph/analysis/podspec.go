@@ -16,7 +16,7 @@ const (
 )
 
 // FindUnmountableSecrets inspects all PodSpecs for any Secret reference that isn't listed as mountable by the referenced ServiceAccount
-func FindUnmountableSecrets(g osgraph.Graph) []osgraph.Marker {
+func FindUnmountableSecrets(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
 	for _, uncastPodSpecNode := range g.NodesByKind(kubegraph.PodSpecNodeKind) {
@@ -24,15 +24,12 @@ func FindUnmountableSecrets(g osgraph.Graph) []osgraph.Marker {
 		unmountableSecrets := CheckForUnmountableSecrets(g, podSpecNode)
 
 		topLevelNode := osgraph.GetTopLevelContainerNode(g, podSpecNode)
-		topLevelString := g.Name(topLevelNode)
-		if resourceStringer, ok := topLevelNode.(osgraph.ResourceNode); ok {
-			topLevelString = resourceStringer.ResourceString()
-		}
+		topLevelString := f.ResourceName(topLevelNode)
 
 		saString := "MISSING_SA"
 		saNodes := g.SuccessorNodesByEdgeKind(podSpecNode, kubeedges.ReferencedServiceAccountEdgeKind)
 		if len(saNodes) > 0 {
-			saString = saNodes[0].(*kubegraph.ServiceAccountNode).ResourceString()
+			saString = f.ResourceName(saNodes[0])
 		}
 
 		for _, unmountableSecret := range unmountableSecrets {
@@ -43,7 +40,7 @@ func FindUnmountableSecrets(g osgraph.Graph) []osgraph.Marker {
 				Severity: osgraph.WarningSeverity,
 				Key:      UnmountableSecretWarning,
 				Message: fmt.Sprintf("%s is attempting to mount a secret %s disallowed by %s",
-					topLevelString, unmountableSecret.ResourceString(), saString),
+					topLevelString, f.ResourceName(unmountableSecret), saString),
 			})
 		}
 	}
@@ -52,7 +49,7 @@ func FindUnmountableSecrets(g osgraph.Graph) []osgraph.Marker {
 }
 
 // FindMissingSecrets inspects all PodSpecs for any Secret reference that is a synthetic node (not a pre-existing node in the graph)
-func FindMissingSecrets(g osgraph.Graph) []osgraph.Marker {
+func FindMissingSecrets(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
 	for _, uncastPodSpecNode := range g.NodesByKind(kubegraph.PodSpecNodeKind) {
@@ -60,10 +57,7 @@ func FindMissingSecrets(g osgraph.Graph) []osgraph.Marker {
 		missingSecrets := CheckMissingMountedSecrets(g, podSpecNode)
 
 		topLevelNode := osgraph.GetTopLevelContainerNode(g, podSpecNode)
-		topLevelString := g.Name(topLevelNode)
-		if resourceStringer, ok := topLevelNode.(osgraph.ResourceNode); ok {
-			topLevelString = resourceStringer.ResourceString()
-		}
+		topLevelString := f.ResourceName(topLevelNode)
 
 		for _, missingSecret := range missingSecrets {
 			markers = append(markers, osgraph.Marker{
@@ -73,7 +67,7 @@ func FindMissingSecrets(g osgraph.Graph) []osgraph.Marker {
 				Severity: osgraph.WarningSeverity,
 				Key:      UnmountableSecretWarning,
 				Message: fmt.Sprintf("%s is attempting to mount a missing secret %s",
-					topLevelString, missingSecret.ResourceString()),
+					topLevelString, f.ResourceName(missingSecret)),
 			})
 		}
 	}

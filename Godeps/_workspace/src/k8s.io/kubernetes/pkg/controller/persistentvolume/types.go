@@ -25,10 +25,10 @@ import (
 )
 
 const (
-// A PVClaim can request a quality of service tier by adding this annotation.  The value of the annotation
-// is arbitrary.  The values are pre-defined by a cluster admin and known to users when requesting a QoS.
-// For example tiers might be gold, silver, and tin and the admin configures what that means for each volume plugin that can provision a volume.
-// Values in the alpha version of this feature are not meaningful, but will be in the full version of this feature.
+	// A PVClaim can request a quality of service tier by adding this annotation.  The value of the annotation
+	// is arbitrary.  The values are pre-defined by a cluster admin and known to users when requesting a QoS.
+	// For example tiers might be gold, silver, and tin and the admin configures what that means for each volume plugin that can provision a volume.
+	// Values in the alpha version of this feature are not meaningful, but will be in the full version of this feature.
 	qosProvisioningKey = "volume.alpha.kubernetes.io/storage-class"
 	// Name of a tag attached to a real volume in cloud (e.g. AWS EBS or GCE PD)
 	// with namespace of a persistent volume claim used to create this volume.

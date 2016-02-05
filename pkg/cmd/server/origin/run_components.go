@@ -10,6 +10,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
@@ -29,7 +30,6 @@ import (
 	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	"github.com/openshift/origin/pkg/dns"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
-	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
 	securitycontroller "github.com/openshift/origin/pkg/security/controller"
 	"github.com/openshift/origin/pkg/security/mcs"
@@ -179,7 +179,7 @@ func (c *MasterConfig) RunDNSServer() {
 // RunProjectCache populates project cache, used by scheduler and project admission controller.
 func (c *MasterConfig) RunProjectCache() {
 	glog.Infof("Using default project node label selector: %s", c.Options.ProjectConfig.DefaultNodeSelector)
-	projectcache.RunProjectCache(c.PrivilegedLoopbackKubernetesClient, c.Options.ProjectConfig.DefaultNodeSelector)
+	c.ProjectCache.Run()
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
@@ -189,7 +189,8 @@ func (c *MasterConfig) RunBuildController() {
 	stiImage := c.ImageFor("sti-builder")
 
 	storageVersion := c.Options.EtcdStorageConfig.OpenShiftStorageVersion
-	interfaces, err := latest.InterfacesFor(storageVersion)
+	groupVersion := unversioned.GroupVersion{Group: "", Version: storageVersion}
+	interfaces, err := latest.InterfacesFor(groupVersion)
 	if err != nil {
 		glog.Fatalf("Unable to load storage version %s: %v", storageVersion, err)
 	}
@@ -288,6 +289,7 @@ func (c *MasterConfig) RunDeployerPodController() {
 	_, kclient := c.DeployerPodControllerClients()
 	factory := deployerpodcontroller.DeployerPodControllerFactory{
 		KubeClient: kclient,
+		Codec:      c.EtcdHelper.Codec(),
 	}
 
 	controller := factory.Create()
@@ -345,11 +347,22 @@ func (c *MasterConfig) RunSDNController() {
 // RunImageImportController starts the image import trigger controller process.
 func (c *MasterConfig) RunImageImportController() {
 	osclient := c.ImageImportControllerClient()
+	importRate := float32(c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute) / float32(time.Minute/time.Second)
+	importBurst := c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute * 2
 	factory := imagecontroller.ImportControllerFactory{
-		Client: osclient,
+		Client:               osclient,
+		ResyncInterval:       10 * time.Minute,
+		MinimumCheckInterval: time.Duration(c.Options.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds) * time.Second,
+		ImportRateLimiter:    util.NewTokenBucketRateLimiter(importRate, importBurst),
+		ScheduleEnabled:      !c.Options.ImagePolicyConfig.DisableScheduledImport,
 	}
-	controller := factory.Create()
+	controller, scheduledController := factory.Create()
 	controller.Run()
+	if c.Options.ImagePolicyConfig.DisableScheduledImport {
+		glog.V(2).Infof("Scheduled image import is disabled - the 'scheduled' flag on image streams will be ignored")
+	} else {
+		scheduledController.RunUntil(util.NeverStop)
+	}
 }
 
 // RunSecurityAllocationController starts the security allocation controller process.

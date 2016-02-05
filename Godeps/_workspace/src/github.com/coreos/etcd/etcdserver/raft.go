@@ -52,6 +52,8 @@ const (
 )
 
 var (
+	// protects raftStatus
+	raftStatusMu sync.Mutex
 	// indirection for expvar func interface
 	// expvar panics when publishing duplicate name
 	// expvar does not support remove a registered name
@@ -62,7 +64,11 @@ var (
 
 func init() {
 	raft.SetLogger(capnslog.NewPackageLogger("github.com/coreos/etcd", "raft"))
-	expvar.Publish("raft.status", expvar.Func(func() interface{} { return raftStatus() }))
+	expvar.Publish("raft.status", expvar.Func(func() interface{} {
+		raftStatusMu.Lock()
+		defer raftStatusMu.Unlock()
+		return raftStatus()
+	}))
 }
 
 type RaftTimer interface {
@@ -115,72 +121,82 @@ type raftNode struct {
 	done    chan struct{}
 }
 
-func (r *raftNode) run() {
-	var syncC <-chan time.Time
+// start prepares and starts raftNode in a new goroutine. It is no longer safe
+// to modify the fields after it has been started.
+// TODO: Ideally raftNode should get rid of the passed in server structure.
+func (r *raftNode) start(s *EtcdServer) {
+	r.s = s
+	r.applyc = make(chan apply)
+	r.stopped = make(chan struct{})
+	r.done = make(chan struct{})
 
-	defer r.stop()
-	for {
-		select {
-		case <-r.ticker:
-			r.Tick()
-		case rd := <-r.Ready():
-			if rd.SoftState != nil {
-				if lead := atomic.LoadUint64(&r.lead); rd.SoftState.Lead != raft.None && lead != rd.SoftState.Lead {
-					r.mu.Lock()
-					r.lt = time.Now()
-					r.mu.Unlock()
-				}
-				atomic.StoreUint64(&r.lead, rd.SoftState.Lead)
-				if rd.RaftState == raft.StateLeader {
-					syncC = r.s.SyncTicker
-					// TODO: remove the nil checking
-					// current test utility does not provide the stats
-					if r.s.stats != nil {
-						r.s.stats.BecomeLeader()
+	go func() {
+		var syncC <-chan time.Time
+
+		defer r.onStop()
+		for {
+			select {
+			case <-r.ticker:
+				r.Tick()
+			case rd := <-r.Ready():
+				if rd.SoftState != nil {
+					if lead := atomic.LoadUint64(&r.lead); rd.SoftState.Lead != raft.None && lead != rd.SoftState.Lead {
+						r.mu.Lock()
+						r.lt = time.Now()
+						r.mu.Unlock()
 					}
-				} else {
-					syncC = nil
+					atomic.StoreUint64(&r.lead, rd.SoftState.Lead)
+					if rd.RaftState == raft.StateLeader {
+						syncC = r.s.SyncTicker
+						// TODO: remove the nil checking
+						// current test utility does not provide the stats
+						if r.s.stats != nil {
+							r.s.stats.BecomeLeader()
+						}
+					} else {
+						syncC = nil
+					}
 				}
-			}
 
-			apply := apply{
-				entries:  rd.CommittedEntries,
-				snapshot: rd.Snapshot,
-				done:     make(chan struct{}),
-			}
+				apply := apply{
+					entries:  rd.CommittedEntries,
+					snapshot: rd.Snapshot,
+					done:     make(chan struct{}),
+				}
 
-			select {
-			case r.applyc <- apply:
+				select {
+				case r.applyc <- apply:
+				case <-r.stopped:
+					return
+				}
+
+				if !raft.IsEmptySnap(rd.Snapshot) {
+					if err := r.storage.SaveSnap(rd.Snapshot); err != nil {
+						plog.Fatalf("raft save snapshot error: %v", err)
+					}
+					r.raftStorage.ApplySnapshot(rd.Snapshot)
+					plog.Infof("raft applied incoming snapshot at index %d", rd.Snapshot.Metadata.Index)
+				}
+				if err := r.storage.Save(rd.HardState, rd.Entries); err != nil {
+					plog.Fatalf("raft save state and entries error: %v", err)
+				}
+				r.raftStorage.Append(rd.Entries)
+
+				r.s.send(rd.Messages)
+
+				select {
+				case <-apply.done:
+				case <-r.stopped:
+					return
+				}
+				r.Advance()
+			case <-syncC:
+				r.s.sync(r.s.cfg.ReqTimeout())
 			case <-r.stopped:
 				return
 			}
-
-			if !raft.IsEmptySnap(rd.Snapshot) {
-				if err := r.storage.SaveSnap(rd.Snapshot); err != nil {
-					plog.Fatalf("raft save snapshot error: %v", err)
-				}
-				r.raftStorage.ApplySnapshot(rd.Snapshot)
-				plog.Infof("raft applied incoming snapshot at index %d", rd.Snapshot.Metadata.Index)
-			}
-			if err := r.storage.Save(rd.HardState, rd.Entries); err != nil {
-				plog.Fatalf("raft save state and entries error: %v", err)
-			}
-			r.raftStorage.Append(rd.Entries)
-
-			r.s.send(rd.Messages)
-
-			select {
-			case <-apply.done:
-			case <-r.stopped:
-				return
-			}
-			r.Advance()
-		case <-syncC:
-			r.s.sync(defaultSyncTimeout)
-		case <-r.stopped:
-			return
 		}
-	}
+	}()
 }
 
 func (r *raftNode) apply() chan apply {
@@ -194,6 +210,11 @@ func (r *raftNode) leadElectedTime() time.Time {
 }
 
 func (r *raftNode) stop() {
+	r.stopped <- struct{}{}
+	<-r.done
+}
+
+func (r *raftNode) onStop() {
 	r.Stop()
 	r.transport.Stop()
 	if err := r.storage.Close(); err != nil {
@@ -211,6 +232,16 @@ func (r *raftNode) pauseSending() {
 func (r *raftNode) resumeSending() {
 	p := r.transport.(rafthttp.Pausable)
 	p.Resume()
+}
+
+// advanceTicksForElection advances ticks to the node for fast election.
+// This reduces the time to wait for first leader election if bootstrapping the whole
+// cluster, while leaving at least 1 heartbeat for possible existing leader
+// to contact it.
+func advanceTicksForElection(n raft.Node, electionTicks int) {
+	for i := 0; i < electionTicks-1; i++ {
+		n.Tick()
+	}
 }
 
 func startNode(cfg *ServerConfig, cl *cluster, ids []types.ID) (id types.ID, n raft.Node, s *raft.MemoryStorage, w *wal.WAL) {
@@ -248,7 +279,10 @@ func startNode(cfg *ServerConfig, cl *cluster, ids []types.ID) (id types.ID, n r
 		MaxInflightMsgs: maxInflightMsgs,
 	}
 	n = raft.StartNode(c, peers)
+	raftStatusMu.Lock()
 	raftStatus = n.Status
+	raftStatusMu.Unlock()
+	advanceTicksForElection(n, c.ElectionTick)
 	return
 }
 
@@ -277,7 +311,10 @@ func restartNode(cfg *ServerConfig, snapshot *raftpb.Snapshot) (types.ID, *clust
 		MaxInflightMsgs: maxInflightMsgs,
 	}
 	n := raft.RestartNode(c)
+	raftStatusMu.Lock()
 	raftStatus = n.Status
+	raftStatusMu.Unlock()
+	advanceTicksForElection(n, c.ElectionTick)
 	return id, cl, n, s, w
 }
 
@@ -355,6 +392,8 @@ func getIDs(snap *raftpb.Snapshot, ents []raftpb.Entry) []uint64 {
 			ids[cc.NodeID] = true
 		case raftpb.ConfChangeRemoveNode:
 			delete(ids, cc.NodeID)
+		case raftpb.ConfChangeUpdateNode:
+			// do nothing
 		default:
 			plog.Panicf("ConfChange Type should be either ConfChangeAddNode or ConfChangeRemoveNode!")
 		}

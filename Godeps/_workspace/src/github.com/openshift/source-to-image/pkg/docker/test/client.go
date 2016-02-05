@@ -107,6 +107,10 @@ func (d *FakeDockerClient) StartContainer(id string, hostConfig *docker.HostConf
 	return d.StartContainerErr
 }
 
+func (d *FakeDockerClient) UploadToContainer(id string, opts docker.UploadToContainerOptions) error {
+	return nil
+}
+
 // WaitContainer waits for a fake container to finish
 func (d *FakeDockerClient) WaitContainer(id string) (int, error) {
 	d.WaitContainerID = id

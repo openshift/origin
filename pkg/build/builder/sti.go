@@ -21,6 +21,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	"github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/client"
 )
 
@@ -62,18 +63,19 @@ type S2IBuilder struct {
 	dockerSocket string
 	build        *api.Build
 	client       client.BuildInterface
+	cgLimits     *s2iapi.CGroupLimits
 }
 
 // NewS2IBuilder creates a new STIBuilder instance
-func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *api.Build, gitClient GitClient) *S2IBuilder {
+func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *api.Build, gitClient GitClient, cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
 	// delegate to internal implementation passing default implementation of builderFactory and validator
-	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, gitClient, runtimeBuilderFactory{}, runtimeConfigValidator{})
+	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, gitClient, runtimeBuilderFactory{}, runtimeConfigValidator{}, cgLimits)
 
 }
 
 // newS2IBuilder is the internal factory function to create STIBuilder based on parameters. Used for testing.
 func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *api.Build,
-	gitClient GitClient, builder builderFactory, validator validator) *S2IBuilder {
+	gitClient GitClient, builder builderFactory, validator validator, cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
 	// just create instance
 	return &S2IBuilder{
 		builder:      builder,
@@ -83,6 +85,7 @@ func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient 
 		dockerSocket: dockerSocket,
 		build:        build,
 		client:       buildsClient,
+		cgLimits:     cgLimits,
 	}
 }
 
@@ -140,6 +143,16 @@ func (s *S2IBuilder) Build() error {
 		Fragment: ref,
 	}
 
+	injections := s2iapi.InjectionList{}
+	for _, s := range s.build.Spec.Source.Secrets {
+		glog.V(3).Infof("Injecting secret %q into a build into %q", s.Secret.Name, filepath.Clean(s.DestinationDir))
+		secretSourcePath := filepath.Join(strategy.SecretBuildSourceBaseMountPath, s.Secret.Name)
+		injections = append(injections, s2iapi.InjectPath{
+			SourcePath:     secretSourcePath,
+			DestinationDir: s.DestinationDir,
+		})
+	}
+
 	config := &s2iapi.Config{
 		WorkingDir:     buildDir,
 		DockerConfig:   &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
@@ -154,9 +167,11 @@ func (s *S2IBuilder) Build() error {
 		Environment:       buildEnvVars(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
 
-		Source:     sourceURI.String(),
-		Tag:        tag,
-		ContextDir: s.build.Spec.Source.ContextDir,
+		Source:       sourceURI.String(),
+		Tag:          tag,
+		ContextDir:   s.build.Spec.Source.ContextDir,
+		CGroupLimits: s.cgLimits,
+		Injections:   injections,
 	}
 
 	if s.build.Spec.Strategy.SourceStrategy.ForcePull {

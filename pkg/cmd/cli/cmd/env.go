@@ -235,12 +235,12 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	}
 	// Keep a copy of the original objects prior to updating their environment.
 	// Used in constructing the patch(es) that will be applied in the server.
-	oldObjects, err := resource.AsVersionedObjects(infos, clientConfig.Version)
+	oldObjects, err := resource.AsVersionedObjects(infos, clientConfig.GroupVersion.String())
 	if err != nil {
 		return err
 	}
 	if len(oldObjects) != len(infos) {
-		return fmt.Errorf("could not convert all objects to API version %q", clientConfig.Version)
+		return fmt.Errorf("could not convert all objects to API version %q", clientConfig.GroupVersion)
 	}
 	oldData := make([][]byte, len(infos))
 	for i := range oldObjects {
@@ -294,8 +294,11 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	}
 
 	if len(outputFormat) != 0 {
-		outputVersion := cmdutil.OutputVersion(cmd, clientConfig.Version)
-		objects, err := resource.AsVersionedObjects(infos, outputVersion)
+		outputVersion, err := cmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
+		if err != nil {
+			return err
+		}
+		objects, err := resource.AsVersionedObjects(infos, outputVersion.String())
 		if err != nil {
 			return err
 		}
@@ -314,12 +317,12 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		return nil
 	}
 
-	objects, err := resource.AsVersionedObjects(infos, clientConfig.Version)
+	objects, err := resource.AsVersionedObjects(infos, clientConfig.GroupVersion.String())
 	if err != nil {
 		return err
 	}
 	if len(objects) != len(infos) {
-		return fmt.Errorf("could not convert all objects to API version %q", clientConfig.Version)
+		return fmt.Errorf("could not convert all objects to API version %q", clientConfig.GroupVersion)
 	}
 
 	failed := false

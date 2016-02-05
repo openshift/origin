@@ -6,8 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -30,7 +29,7 @@ func NewPolicyBindingRegistry(bindings []authorizationapi.PolicyBinding, err err
 }
 
 // ListPolicyBindings obtains a list of policyBinding that match a selector.
-func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
+func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -136,7 +135,7 @@ func (r *PolicyBindingRegistry) DeletePolicyBinding(ctx kapi.Context, id string)
 	return nil
 }
 
-func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

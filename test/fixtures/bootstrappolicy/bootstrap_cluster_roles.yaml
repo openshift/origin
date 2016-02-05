@@ -57,6 +57,7 @@ items:
     - identities
     - images
     - imagestreamimages
+    - imagestreamimports
     - imagestreammappings
     - imagestreams
     - imagestreams/status
@@ -103,6 +104,7 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
+    - daemonsets
     - horizontalpodautoscalers
     - jobs
     - replicationcontrollers/scale
@@ -165,6 +167,7 @@ items:
     - endpoints
     - generatedeploymentconfigs
     - imagestreamimages
+    - imagestreamimports
     - imagestreammappings
     - imagestreams
     - imagestreamtags
@@ -202,6 +205,7 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
+    - daemonsets
     - horizontalpodautoscalers
     - jobs
     - replicationcontrollers/scale
@@ -280,6 +284,7 @@ items:
     - endpoints
     - generatedeploymentconfigs
     - imagestreamimages
+    - imagestreamimports
     - imagestreammappings
     - imagestreams
     - imagestreamtags
@@ -310,6 +315,7 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
+    - daemonsets
     - horizontalpodautoscalers
     - jobs
     - replicationcontrollers/scale
@@ -386,6 +392,7 @@ items:
     - events
     - generatedeploymentconfigs
     - imagestreamimages
+    - imagestreamimports
     - imagestreammappings
     - imagestreams
     - imagestreams/status
@@ -422,6 +429,7 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
+    - daemonsets
     - horizontalpodautoscalers
     - jobs
     verbs:
@@ -681,6 +689,7 @@ items:
     resources:
     - imagestreamimages
     - imagestreams
+    - imagestreams/secrets
     - imagestreamtags
     verbs:
     - get
@@ -991,6 +1000,56 @@ items:
     - delete
     - get
     - list
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:daemonset-controller
+  rules:
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - daemonsets
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - daemonsets/status
+    verbs:
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
   - apiGroups: null
     attributeRestrictions: null
     resources:

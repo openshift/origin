@@ -90,12 +90,12 @@ package is not included by `test/extended`.
 Bash helpers for creating new test group runner
 -----------------------------------------------
 
-Common functions for extended tests are located in `./hack/util.sh`.
+Common functions for extended tests are located in `./hack/util.sh`. Environment setup scripts are located in `hack/lib/util/evironment.sh`.
 
 * `ginkgo_check_extended()` verify if the Ginkgo binary is installed.
 * `compile_extended()` perform the compilation of the Go tests into a test binary.
 * `test_privileges()` verify if you have permissions to start OpenShift server.
-* `setup_env_vars()` setup all required environment variables related to OpenShift server.
+* `os::util::environment::setup_all_server_vars()` setup all required environment variables related to OpenShift server.
 * `configure_os_server()` generates all configuration files for OpenShift server.
 * `start_os_server()` starts the OpenShift master and node.
 * `install_router_extended()` installs the OpenShift router service.

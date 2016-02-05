@@ -23,6 +23,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 func TestCreatePodSecurityContextNonmutating(t *testing.T) {
@@ -257,7 +258,7 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 		if err != nil {
 			t.Fatal("unable to create provider %v", err)
 		}
-		errs := provider.ValidatePodSecurityContext(v.pod)
+		errs := provider.ValidatePodSecurityContext(v.pod, field.NewPath(""))
 		if len(errs) == 0 {
 			t.Errorf("%s expected validation failure but did not receive errors", k)
 			continue
@@ -357,7 +358,7 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 		if err != nil {
 			t.Fatal("unable to create provider %v", err)
 		}
-		errs := provider.ValidateContainerSecurityContext(v.pod, &v.pod.Spec.Containers[0])
+		errs := provider.ValidateContainerSecurityContext(v.pod, &v.pod.Spec.Containers[0], field.NewPath(""))
 		if len(errs) == 0 {
 			t.Errorf("%s expected validation failure but did not receive errors", k)
 			continue
@@ -456,7 +457,7 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 		if err != nil {
 			t.Fatal("unable to create provider %v", err)
 		}
-		errs := provider.ValidatePodSecurityContext(v.pod)
+		errs := provider.ValidatePodSecurityContext(v.pod, field.NewPath(""))
 		if len(errs) != 0 {
 			t.Errorf("%s expected validation pass but received errors %v", k, errs)
 			continue
@@ -583,7 +584,7 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 		if err != nil {
 			t.Fatal("unable to create provider %v", err)
 		}
-		errs := provider.ValidateContainerSecurityContext(v.pod, &v.pod.Spec.Containers[0])
+		errs := provider.ValidateContainerSecurityContext(v.pod, &v.pod.Spec.Containers[0], field.NewPath(""))
 		if len(errs) != 0 {
 			t.Errorf("%s expected validation pass but received errors %v", k, errs)
 			continue

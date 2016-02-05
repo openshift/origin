@@ -5,9 +5,8 @@ import (
 	"io"
 	"net/url"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -30,8 +29,8 @@ func (c *FakeBuildConfigs) Get(name string) (*buildapi.BuildConfig, error) {
 	return obj.(*buildapi.BuildConfig), err
 }
 
-func (c *FakeBuildConfigs) List(label labels.Selector, field fields.Selector) (*buildapi.BuildConfigList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewListAction("buildconfigs", c.Namespace, label, field), &buildapi.BuildConfigList{})
+func (c *FakeBuildConfigs) List(opts kapi.ListOptions) (*buildapi.BuildConfigList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("buildconfigs", c.Namespace, opts), &buildapi.BuildConfigList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -62,8 +61,8 @@ func (c *FakeBuildConfigs) Delete(name string) error {
 	return err
 }
 
-func (c *FakeBuildConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("buildconfigs", c.Namespace, label, field, resourceVersion))
+func (c *FakeBuildConfigs) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("buildconfigs", c.Namespace, opts))
 }
 
 func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error) {

@@ -13,8 +13,11 @@
         </dd>
         <dt>Started:</dt>
         <dd>
-          <relative-timestamp timestamp="build.status.startTimestamp"></relative-timestamp>
-          <span>- {{(build.status.startTimestamp || build.metadata.creationTimestamp) | date : 'short'}}</span>
+          <span ng-if="build.status.startTimestamp">
+            <relative-timestamp timestamp="build.status.startTimestamp"></relative-timestamp>
+            <span>- {{build.status.startTimestamp | date : 'short'}}</span>
+          </span>
+          <span ng-if="!build.status.startTimestamp"><em>not started</em></span>
         </dd>
         <dt>Duration:</dt>
         <dd>
@@ -50,13 +53,6 @@
         <dt ng-if-start="build.spec.output.pushSecret.name">Push secret:</dt>
         <dd ng-if-end>{{build.spec.output.pushSecret.name}}</dd>
       </dl>
-      <div ng-if="(build | buildStrategy).env">
-        <h3>Environment Variables</h3>
-        <dl class="dl-horizontal left">
-          <dt ng-repeat-start="envVar in (build | buildStrategy).env">{{envVar.name}}:</dt>
-          <dd ng-repeat-end>{{envVar.value}}</dd>
-        </dl>
-      </div>
     </div>
   </div>
   <annotations annotations="build.metadata.annotations"></annotations>

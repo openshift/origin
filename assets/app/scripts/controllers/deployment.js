@@ -72,7 +72,9 @@ angular.module('openshiftConsole')
               }
             });
             activeDeployment = DeploymentsService.getActiveDeployment(deploymentsForConfig);
+            $scope.logContext.container = $filter("annotation")(activeDeployment, "pod");
             $scope.isActive = activeDeployment && activeDeployment.metadata.uid === $scope.deployment.metadata.uid;
+            $scope.logCanRun = !(_.includes(['New', 'Pending'], $filter('deploymentStatus')(activeDeployment)));
           }));
         };
 

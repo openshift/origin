@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	pkg_runtime "k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -37,6 +38,7 @@ import (
 
 var (
 	functionDest = flag.StringP("func-dest", "f", "-", "Output for deep copy functions; '-' means stdout")
+	group        = flag.StringP("group", "g", "", "Group for deep copies.")
 	version      = flag.StringP("version", "v", "v1beta3", "Version for deep copies.")
 	overwrites   = flag.StringP("overwrites", "o", "", "Comma-separated overwrites for package names")
 )
@@ -57,9 +59,9 @@ func main() {
 		funcOut = file
 	}
 
-	knownVersion := *version
-	if knownVersion == "api" {
-		knownVersion = api.Scheme.Raw().InternalVersion
+	knownGroupVersion := unversioned.GroupVersion{Group: *group, Version: *version}
+	if knownGroupVersion.Version == "api" {
+		knownGroupVersion = api.Scheme.Raw().InternalVersions[knownGroupVersion.Group]
 	}
 	generator := pkg_runtime.NewDeepCopyGenerator(api.Scheme.Raw(), "github.com/openshift/origin/pkg/api", sets.NewString("github.com/openshift/origin"))
 	apiShort := generator.AddImport("k8s.io/kubernetes/pkg/api")
@@ -69,7 +71,7 @@ func main() {
 		vals := strings.Split(overwrite, "=")
 		generator.OverwritePackage(vals[0], vals[1])
 	}
-	for _, knownType := range api.Scheme.KnownTypes(knownVersion) {
+	for _, knownType := range api.Scheme.KnownTypes(knownGroupVersion) {
 		if !strings.Contains(knownType.PkgPath(), "openshift/origin") {
 			continue
 		}

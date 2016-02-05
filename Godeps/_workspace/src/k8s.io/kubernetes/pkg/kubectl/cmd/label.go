@@ -17,17 +17,21 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/errors"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/strategicpatch"
 	"k8s.io/kubernetes/pkg/util/validation"
 )
 
@@ -68,7 +72,7 @@ func NewCmdLabel(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 
 	// retrieve a list of handled resources from printer as valid args
 	validArgs := []string{}
-	p, err := f.Printer(nil, false, false, false, false, []string{})
+	p, err := f.Printer(nil, false, false, false, false, false, []string{})
 	cmdutil.CheckErr(err)
 	if p != nil {
 		validArgs = p.HandledResources()
@@ -104,7 +108,7 @@ func validateNoOverwrites(meta *api.ObjectMeta, labels map[string]string) error 
 			allErrs = append(allErrs, fmt.Errorf("'%s' already has a value (%s), and --overwrite is false", key, value))
 		}
 	}
-	return errors.NewAggregate(allErrs)
+	return utilerrors.NewAggregate(allErrs)
 }
 
 func parseLabels(spec []string) (map[string]string, []string, error) {
@@ -218,6 +222,16 @@ func RunLabel(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		return cmdutil.UsageError(cmd, "--resource-version may only be used with a single resource")
 	}
 
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	// TODO: get the negotiated version per group
+	negotiatedVersion := ""
+	if clientConfig.GroupVersion != nil {
+		negotiatedVersion = clientConfig.GroupVersion.String()
+	}
+
 	// TODO: support bulk generic output a la Get
 	return r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
@@ -225,6 +239,7 @@ func RunLabel(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		}
 
 		var outputObj runtime.Object
+		dataChangeMsg := "not labeled"
 		if cmdutil.GetFlagBool(cmd, "dry-run") {
 			err = labelFunc(info.Object, overwrite, resourceVersion, lbls, remove)
 			if err != nil {
@@ -232,13 +247,51 @@ func RunLabel(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []stri
 			}
 			outputObj = info.Object
 		} else {
-			outputObj, err = cmdutil.UpdateObject(info, func(obj runtime.Object) error {
-				err := labelFunc(obj, overwrite, resourceVersion, lbls, remove)
-				if err != nil {
-					return err
+			// if the resource can't be converted to the negotiated version, AsVersionedObject falls back to the info.Mapping.GroupVersion
+			obj, err := resource.AsVersionedObject([]*resource.Info{info}, false, negotiatedVersion)
+			if err != nil {
+				return err
+			}
+			name, namespace := info.Name, info.Namespace
+			oldData, err := json.Marshal(obj)
+			if err != nil {
+				return err
+			}
+			meta, err := api.ObjectMetaFor(obj)
+			for _, label := range remove {
+				if _, ok := meta.Labels[label]; !ok {
+					fmt.Fprintf(out, "label %q not found.\n", label)
 				}
-				return nil
-			})
+			}
+
+			if err := labelFunc(obj, overwrite, resourceVersion, lbls, remove); err != nil {
+				return err
+			}
+			newData, err := json.Marshal(obj)
+			if err != nil {
+				return err
+			}
+			if !reflect.DeepEqual(oldData, newData) {
+				dataChangeMsg = "labeled"
+			}
+			patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, obj)
+			createdPatch := err == nil
+			if err != nil {
+				glog.V(2).Infof("couldn't compute patch: %v", err)
+			}
+
+			mapping := info.ResourceMapping()
+			client, err := f.RESTClient(mapping)
+			if err != nil {
+				return err
+			}
+			helper := resource.NewHelper(client, mapping)
+
+			if createdPatch {
+				outputObj, err = helper.Patch(namespace, name, api.StrategicMergePatchType, patchBytes)
+			} else {
+				outputObj, err = helper.Replace(namespace, name, false, obj)
+			}
 			if err != nil {
 				return err
 			}
@@ -247,7 +300,7 @@ func RunLabel(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		if outputFormat != "" {
 			return f.PrintObject(cmd, outputObj, out)
 		}
-		cmdutil.PrintSuccess(mapper, false, out, info.Mapping.Resource, info.Name, "labeled")
+		cmdutil.PrintSuccess(mapper, false, out, info.Mapping.Resource, info.Name, dataChangeMsg)
 		return nil
 	})
 }

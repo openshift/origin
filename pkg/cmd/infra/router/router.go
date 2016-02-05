@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -169,7 +170,7 @@ type projectNames struct {
 }
 
 func (n projectNames) NamespaceNames() (sets.String, error) {
-	all, err := n.client.List(n.selector, fields.Everything())
+	all, err := n.client.List(kapi.ListOptions{LabelSelector: n.selector})
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +188,7 @@ type namespaceNames struct {
 }
 
 func (n namespaceNames) NamespaceNames() (sets.String, error) {
-	all, err := n.client.List(n.selector, fields.Everything())
+	all, err := n.client.List(kapi.ListOptions{LabelSelector: n.selector})
 	if err != nil {
 		return nil, err
 	}

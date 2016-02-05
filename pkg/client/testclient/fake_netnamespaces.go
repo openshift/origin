@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -22,8 +23,8 @@ func (c *FakeNetNamespace) Get(name string) (*sdnapi.NetNamespace, error) {
 	return obj.(*sdnapi.NetNamespace), err
 }
 
-func (c *FakeNetNamespace) List() (*sdnapi.NetNamespaceList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("netnamespaces", nil, nil), &sdnapi.NetNamespaceList{})
+func (c *FakeNetNamespace) List(opts kapi.ListOptions) (*sdnapi.NetNamespaceList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("netnamespaces", opts), &sdnapi.NetNamespaceList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -54,6 +55,6 @@ func (c *FakeNetNamespace) Delete(name string) error {
 	return err
 }
 
-func (c *FakeNetNamespace) Watch(resourceVersion string) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("netnamespaces", nil, nil, resourceVersion))
+func (c *FakeNetNamespace) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("netnamespaces", opts))
 }

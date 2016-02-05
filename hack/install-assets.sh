@@ -2,7 +2,7 @@
 
 set -e
 
-OPENSHIFT_JVM_VERSION=v1.0.39
+OPENSHIFT_JVM_VERSION=v1.0.42
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
@@ -27,33 +27,14 @@ function cmd() {
   exit $rc
 }
 
-# If we are running inside of Travis then do not run the rest of this
-# script unless we want to TEST_ASSETS
-if [[ "${TRAVIS-}" == "true" && "${TEST_ASSETS-}" == "false" ]]; then
-  exit
-fi
-
-# Lock version of npm to work around https://github.com/npm/npm/issues/6309
-if [[ "${TRAVIS-}" == "true" ]]; then
-  cmd "npm install -g npm@2.1.14"
-fi
-
 # Install bower if needed
 if ! which bower > /dev/null 2>&1 ; then
-  if [[ "${TRAVIS-}" == "true" ]]; then
-    cmd "npm install -g bower"
-  else
-    cmd "sudo npm install -g bower"
-  fi
+  cmd "sudo npm install -g bower"
 fi
 
 # Install grunt if needed
 if ! which grunt > /dev/null 2>&1 ; then
-  if [[ "${TRAVIS-}" == "true" ]]; then
-    cmd "npm install -g grunt-cli"
-  else
-    cmd "sudo npm install -g grunt-cli"
-  fi
+  cmd "sudo npm install -g grunt-cli"
 fi
 
 pushd ${OS_ROOT}/assets > /dev/null

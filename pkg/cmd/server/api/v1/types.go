@@ -143,6 +143,9 @@ type MasterConfig struct {
 	// omitted) and controller election can be disabled with -1.
 	ControllerLeaseTTL int `json:"controllerLeaseTTL"`
 
+	// AdmissionConfig contains admission control plugin configuration.
+	AdmissionConfig AdmissionConfig `json:"admissionConfig"`
+
 	// DisabledFeatures is a list of features that should not be started.  We
 	// omitempty here because its very unlikely that anyone will want to
 	// manually disable features and we don't want to encourage it.
@@ -178,6 +181,9 @@ type MasterConfig struct {
 	// ImageConfig holds options that describe how to build image names for system components
 	ImageConfig ImageConfig `json:"imageConfig"`
 
+	// ImagePolicyConfig controls limits and behavior for importing images
+	ImagePolicyConfig ImagePolicyConfig `json:"imagePolicyConfig"`
+
 	// PolicyConfig holds information about where to locate critical pieces of bootstrapping policy
 	PolicyConfig PolicyConfig `json:"policyConfig"`
 
@@ -189,6 +195,21 @@ type MasterConfig struct {
 
 	// NetworkConfig to be passed to the compiled in network plugin
 	NetworkConfig MasterNetworkConfig `json:"networkConfig"`
+}
+
+type ImagePolicyConfig struct {
+	// MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user
+	// does a bulk import of a Docker repository. This number defaults to 5 to prevent users from
+	// importing large numbers of images accidentally. Set -1 for no limit.
+	MaxImagesBulkImportedPerRepository int `json:"maxImagesBulkImportedPerRepository"`
+	// DisableScheduledImport allows scheduled background import of images to be disabled.
+	DisableScheduledImport bool `json:"disableScheduledImport"`
+	// ScheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams
+	// scheduled for background import are checked against the upstream repository. The default value is 15 minutes.
+	ScheduledImageImportMinimumIntervalSeconds int `json:"scheduledImageImportMinimumIntervalSeconds"`
+	// MaxScheduledImageImportsPerMinute is the maximum number of scheduled image streams that will be imported in the
+	// background per minute. The default value is 60. Set to -1 for unlimited.
+	MaxScheduledImageImportsPerMinute int `json:"maxScheduledImageImportsPerMinute"`
 }
 
 type ProjectConfig struct {
@@ -404,6 +425,9 @@ type OAuthConfig struct {
 	// AssetPublicURL is used for building valid client redirect URLs for external access
 	AssetPublicURL string `json:"assetPublicURL"`
 
+	// AlwaysShowProviderSelection will force the provider selection page to render even when there is only a single provider.
+	AlwaysShowProviderSelection bool `json:"alwaysShowProviderSelection"`
+
 	//IdentityProviders is an ordered list of ways for a user to identify themselves
 	IdentityProviders []IdentityProvider `json:"identityProviders"`
 
@@ -423,6 +447,10 @@ type OAuthTemplates struct {
 	// Login is a path to a file containing a go template used to render the login page.
 	// If unspecified, the default login page is used.
 	Login string `json:"login"`
+
+	// ProviderSelection is a path to a file containing a go template used to render the provider selection page.
+	// If unspecified, the default provider selection page is used.
+	ProviderSelection string `json:"providerSelection"`
 }
 
 type ServiceAccountConfig struct {
@@ -714,6 +742,10 @@ type KubernetesMasterConfig struct {
 	PodEvictionTimeout string `json:"podEvictionTimeout"`
 	// ProxyClientInfo specifies the client cert/key to use when proxying to pods
 	ProxyClientInfo CertInfo `json:"proxyClientInfo"`
+
+	// AdmissionConfig contains admission control plugin configuration.
+	AdmissionConfig AdmissionConfig `json:"admissionConfig"`
+
 	// APIServerArguments are key value pairs that will be passed directly to the Kube apiserver that match the apiservers's
 	// command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not
 	// start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.
@@ -880,4 +912,23 @@ type LDAPQuery struct {
 
 	// Filter is a valid LDAP search filter that retrieves all relevant entries from the LDAP server with the base DN
 	Filter string `json:"filter"`
+}
+
+type AdmissionPluginConfig struct {
+	// Location is the path to a configuration file that contains the plugin's
+	// configuration
+	Location string `json:"location"`
+
+	// Configuration is an embedded configuration object to be used as the plugin's
+	// configuration. If present, it will be used instead of the path to the configuration file.
+	Configuration runtime.RawExtension `json:"configuration"`
+}
+
+type AdmissionConfig struct {
+	// PluginConfig allows specifying a configuration file per admission control plugin
+	PluginConfig map[string]AdmissionPluginConfig `json:"pluginConfig"`
+
+	// PluginOrderOverride is a list of admission control plugin names that will be installed
+	// on the master. Order is significant. If empty, a default list of plugins is used.
+	PluginOrderOverride []string `json:"pluginOrderOverride,omitempty"`
 }

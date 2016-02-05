@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "$(date +'%s'): reload script error test" >&2
+exit 74   # EX_IOERR

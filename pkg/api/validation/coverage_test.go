@@ -7,6 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	"github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -35,7 +36,7 @@ var MissingValidationExceptions = []reflect.Type{
 }
 
 func TestCoverage(t *testing.T) {
-	for kind, apiType := range kapi.Scheme.KnownTypes("") {
+	for kind, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
 		if !strings.Contains(apiType.PkgPath(), "openshift/origin") {
 			continue
 		}

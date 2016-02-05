@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"reflect"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-
 	kmeta "k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 // MergeInto flags
@@ -18,13 +17,6 @@ const (
 	ErrorOnExistingDstKey
 	ErrorOnDifferentDstKeyValue
 )
-
-// ReportError reports the single item validation error and properly set the
-// prefix and index to match the Config item JSON index
-func ReportError(allErrs *fielderrors.ValidationErrorList, index int, err fielderrors.ValidationError) {
-	i := fielderrors.ValidationErrorList{}
-	*allErrs = append(*allErrs, append(i, &err).PrefixIndex(index).Prefix("item")...)
-}
 
 // AddObjectLabels adds new label(s) to a single runtime.Object
 func AddObjectLabels(obj runtime.Object, labels labels.Set) error {

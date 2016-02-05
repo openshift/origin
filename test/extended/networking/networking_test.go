@@ -3,8 +3,6 @@ package networking
 import (
 	"testing"
 
-	_ "github.com/openshift/origin/test/extended/networking"
-
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

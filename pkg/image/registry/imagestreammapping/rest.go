@@ -5,9 +5,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -60,8 +59,12 @@ func (s imageStreamMappingStrategy) NamespaceScoped() bool {
 func (s imageStreamMappingStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
+// Canonicalize normalizes the object after validation.
+func (s imageStreamMappingStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // Validate validates a new ImageStreamMapping.
-func (s imageStreamMappingStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+func (s imageStreamMappingStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	mapping := obj.(*api.ImageStreamMapping)
 	return validation.ValidateImageStreamMapping(mapping)
 }
@@ -101,6 +104,9 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	err = wait.ExponentialBackoff(wait.Backoff{Steps: maxRetriesOnConflict}, func() (bool, error) {
 		lastEvent := api.LatestTaggedImage(stream, tag)
+
+		next.Generation = stream.Generation
+
 		if !api.AddTagEventToImageStream(stream, tag, next) {
 			// nothing actually changed
 			return true, nil
@@ -119,12 +125,25 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		if findLatestErr != nil {
 			return false, findLatestErr
 		}
-		newerEvent := api.LatestTaggedImage(latestStream, tag)
-		if lastEvent == nil || kapi.Semantic.DeepEqual(lastEvent, newerEvent) {
+
+		// no previous tag
+		if lastEvent == nil {
 			// The tag hasn't changed, so try again with the updated stream.
 			stream = latestStream
 			return false, nil
 		}
+
+		// check for tag change
+		newerEvent := api.LatestTaggedImage(latestStream, tag)
+		// generation and creation time differences are ignored
+		lastEvent.Generation = newerEvent.Generation
+		lastEvent.Created = newerEvent.Created
+		if kapi.Semantic.DeepEqual(lastEvent, newerEvent) {
+			// The tag hasn't changed, so try again with the updated stream.
+			stream = latestStream
+			return false, nil
+		}
+
 		// The tag changed, so return the conflict error back to the client.
 		return false, err
 	})
@@ -140,7 +159,7 @@ func (s *REST) findStreamForMapping(ctx kapi.Context, mapping *api.ImageStreamMa
 		return s.imageStreamRegistry.GetImageStream(ctx, mapping.Name)
 	}
 	if len(mapping.DockerImageRepository) != 0 {
-		list, err := s.imageStreamRegistry.ListImageStreams(ctx, labels.Everything())
+		list, err := s.imageStreamRegistry.ListImageStreams(ctx, &unversioned.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -149,8 +168,8 @@ func (s *REST) findStreamForMapping(ctx kapi.Context, mapping *api.ImageStreamMa
 				return &list.Items[i], nil
 			}
 		}
-		return nil, errors.NewInvalid("imageStreamMapping", "", fielderrors.ValidationErrorList{
-			fielderrors.NewFieldNotFound("dockerImageStream", mapping.DockerImageRepository),
+		return nil, errors.NewInvalid("imageStreamMapping", "", field.ErrorList{
+			field.NotFound(field.NewPath("dockerImageStream"), mapping.DockerImageRepository),
 		})
 	}
 	return nil, errors.NewNotFound("ImageStream", "")

@@ -27,8 +27,6 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -56,11 +54,11 @@ func NewPersistentVolumeClaimBinder(kubeClient client.Interface, syncPeriod time
 
 	_, volumeController := framework.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return kubeClient.PersistentVolumes().List(labels.Everything(), fields.Everything())
+			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+				return kubeClient.PersistentVolumes().List(options)
 			},
-			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return kubeClient.PersistentVolumes().Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				return kubeClient.PersistentVolumes().Watch(options)
 			},
 		},
 		&api.PersistentVolume{},
@@ -74,11 +72,11 @@ func NewPersistentVolumeClaimBinder(kubeClient client.Interface, syncPeriod time
 	)
 	_, claimController := framework.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return kubeClient.PersistentVolumeClaims(api.NamespaceAll).List(labels.Everything(), fields.Everything())
+			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+				return kubeClient.PersistentVolumeClaims(api.NamespaceAll).List(options)
 			},
-			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return kubeClient.PersistentVolumeClaims(api.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				return kubeClient.PersistentVolumeClaims(api.NamespaceAll).Watch(options)
 			},
 		},
 		&api.PersistentVolumeClaim{},
@@ -96,7 +94,6 @@ func NewPersistentVolumeClaimBinder(kubeClient client.Interface, syncPeriod time
 
 	return binder
 }
-
 func (binder *PersistentVolumeClaimBinder) addVolume(obj interface{}) {
 	binder.lock.Lock()
 	defer binder.lock.Unlock()
@@ -159,6 +156,7 @@ func (binder *PersistentVolumeClaimBinder) updateClaim(oldObj, newObj interface{
 	newClaim, ok := newObj.(*api.PersistentVolumeClaim)
 	if !ok {
 		glog.Errorf("Expected PersistentVolumeClaim but handler received %+v", newObj)
+		return
 	}
 	if err := syncClaim(binder.volumeIndex, binder.client, newClaim); err != nil {
 		glog.Errorf("PVClaimBinder could not update claim %s: %+v", newClaim.Name, err)
@@ -389,8 +387,8 @@ func syncClaim(volumeIndex *persistentVolumeOrderedIndex, binderClient binderCli
 		}
 
 	case api.ClaimBound:
-	// no-op.  Claim is bound, values from PV are set.  PVCs are technically mutable in the API server
-	// and we don't want to handle those changes at this time.
+		// no-op.  Claim is bound, values from PV are set.  PVCs are technically mutable in the API server
+		// and we don't want to handle those changes at this time.
 
 	default:
 		return fmt.Errorf("Unknown state for PVC: %#v", claim)

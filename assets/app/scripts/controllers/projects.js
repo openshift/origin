@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ProjectsController', function ($scope, $route, $filter, $location, DataService, AuthService, AlertMessageService, Logger, hashSizeFilter) {
+  .controller('ProjectsController', function ($scope, $route, $timeout, $filter, $location, DataService, AuthService, AlertMessageService, Logger, hashSizeFilter) {
     $scope.projects = {};
     $scope.alerts = $scope.alerts || {};
     $scope.showGetStarted = false;
@@ -19,9 +19,11 @@ angular.module('openshiftConsole')
     });
     AlertMessageService.clearAlerts();
 
-    $('#openshift-logo').on('click.projectsPage', function() {
-      // Force a reload. Angular doesn't reload the view when the URL doesn't change.
-      $route.reload();
+    $timeout(function() {
+      $('#openshift-logo').on('click.projectsPage', function() {
+        // Force a reload. Angular doesn't reload the view when the URL doesn't change.
+        $route.reload();
+      });
     });
 
     $scope.$on('deleteProject', function() {

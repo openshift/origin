@@ -97,6 +97,7 @@ v1.identity
 v1.identitylist
 v1.image
 v1.imagechangetrigger
+v1.imagelayer
 v1.imagelist
 v1.imagestream
 v1.imagestreamimage
@@ -235,3 +236,12 @@ unversioned.patch
 unversioned.listmeta
 v1beta1.scalestatus
 v1beta1.scalespec
+v1.repositoryimportstatus
+v1.imageimportstatus
+v1.tageventcondition
+v1.imagestreamimportspec
+v1.tagimportpolicy
+v1.imagestreamimportstatus
+v1.imageimportspec
+v1.repositoryimportspec
+

@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -263,7 +264,7 @@ func (o MasterOptions) RunMaster() error {
 	// regardless of configuration. They aren't written to config file to
 	// prevent upgrade path issues.
 	masterConfig.DisabledFeatures.Add(o.DisabledFeatures...)
-	validationResults := validation.ValidateMasterConfig(masterConfig)
+	validationResults := validation.ValidateMasterConfig(masterConfig, nil)
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
 			glog.Warningf("%v", warning)
@@ -327,11 +328,11 @@ func (o MasterOptions) CreateCerts() error {
 	return nil
 }
 
-func buildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kubernetes.MasterConfig, error) {
+func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kubernetes.MasterConfig, error) {
 	if openshiftConfig.Options.KubernetesMasterConfig == nil {
 		return nil, nil
 	}
-	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient())
+	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient(), openshiftConfig.ProjectCache)
 	return kubeConfig, err
 }
 
@@ -370,7 +371,7 @@ func (m *Master) Start() error {
 		return err
 	}
 
-	kubeMasterConfig, err := buildKubernetesMasterConfig(openshiftConfig)
+	kubeMasterConfig, err := BuildKubernetesMasterConfig(openshiftConfig)
 	if err != nil {
 		return err
 	}
@@ -384,7 +385,7 @@ func (m *Master) Start() error {
 		}
 		glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
 
-		if err := startAPI(openshiftConfig, kubeMasterConfig); err != nil {
+		if err := StartAPI(openshiftConfig, kubeMasterConfig); err != nil {
 			return err
 		}
 
@@ -417,14 +418,14 @@ func startHealth(openshiftConfig *origin.MasterConfig) error {
 	return nil
 }
 
-// startAPI starts the components of the master that are considered part of the API - the Kubernetes
+// StartAPI starts the components of the master that are considered part of the API - the Kubernetes
 // API and core controllers, the Origin API, the group, policy, project, and authorization caches,
 // etcd, the asset server (for the UI), the OAuth server endpoints, and the DNS server.
 // TODO: allow to be more granularly targeted
-func startAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
+func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	// start etcd
 	if oc.Options.EtcdConfig != nil {
-		etcd.RunEtcd(oc.Options.EtcdConfig)
+		etcdserver.RunEtcd(oc.Options.EtcdConfig)
 	}
 
 	// verify we can connect to etcd with the provided config
@@ -542,6 +543,11 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for persistent volume provisioner controller: %v", err)
 		}
 
+		_, daemonSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDaemonSetControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for daemonset controller: %v", err)
+		}
+
 		// called by admission control
 		kc.RunResourceQuotaManager()
 
@@ -549,9 +555,10 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunNodeController()
 		kc.RunScheduler()
 		kc.RunReplicationController(rcClient)
-		if kc.Master.EnableExp {
+		if len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, configapi.APIGroupExtensions)) > 0 {
 			kc.RunJobController(jobClient)
 			kc.RunHPAController(hpaOClient, hpaKClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
+			kc.RunDaemonSetsController(daemonSetClient)
 		}
 		kc.RunEndpointController()
 		kc.RunNamespaceController()

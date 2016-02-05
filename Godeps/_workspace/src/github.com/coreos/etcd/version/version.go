@@ -15,8 +15,10 @@
 package version
 
 import (
+	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/coreos/etcd/pkg/fileutil"
 	"github.com/coreos/etcd/pkg/types"
@@ -24,8 +26,8 @@ import (
 
 var (
 	// MinClusterVersion is the min cluster version this etcd binary is compatible with.
-	MinClusterVersion = "2.0.0"
-	Version           = "2.1.2"
+	MinClusterVersion = "2.1.0"
+	Version           = "2.2.2"
 
 	// Git SHA Value will be set during build
 	GitSHA = "Not provided (use ./build instead of go build)"
@@ -36,7 +38,6 @@ type DataDirVersion string
 
 const (
 	DataDirUnknown  DataDirVersion = "Unknown WAL"
-	DataDir0_4      DataDirVersion = "0.4.x"
 	DataDir2_0      DataDirVersion = "2.0.0"
 	DataDir2_0Proxy DataDirVersion = "2.0 proxy"
 	DataDir2_0_1    DataDirVersion = "2.0.1"
@@ -62,9 +63,6 @@ func DetectDataDir(dirpath string) (DataDirVersion, error) {
 		ver, err := DetectDataDir(path.Join(dirpath, "member"))
 		if ver == DataDir2_0 {
 			return DataDir2_0_1, nil
-		} else if ver == DataDir0_4 {
-			// How in the blazes did it get there?
-			return DataDirUnknown, nil
 		}
 		return ver, err
 	}
@@ -78,12 +76,14 @@ func DetectDataDir(dirpath string) (DataDirVersion, error) {
 	if nameSet.ContainsAll([]string{"proxy"}) {
 		return DataDir2_0Proxy, nil
 	}
-	if nameSet.ContainsAll([]string{"snapshot", "conf", "log"}) {
-		return DataDir0_4, nil
-	}
-	if nameSet.ContainsAll([]string{"standby_info"}) {
-		return DataDir0_4, nil
-	}
-
 	return DataDirUnknown, nil
+}
+
+// Cluster only keeps the major.minor.
+func Cluster(v string) string {
+	vs := strings.Split(v, ".")
+	if len(vs) <= 2 {
+		return v
+	}
+	return fmt.Sprintf("%s.%s", vs[0], vs[1])
 }

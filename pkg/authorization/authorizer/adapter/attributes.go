@@ -42,12 +42,13 @@ func OriginAuthorizerAttributes(kattrs kauthorizer.Attributes) (kapi.Context, oa
 		Resource: kattrs.GetResource(),
 		APIGroup: kattrs.GetAPIGroup(),
 
+		NonResourceURL: kattrs.IsResourceRequest() == false,
+		URL:            kattrs.GetPath(),
+
 		// TODO: add to kube authorizer attributes
 		// APIVersion        string
 		// ResourceName      string
 		// RequestAttributes interface{}
-		// NonResourceURL    bool
-		// URL               string
 	}
 	return ctx, oattrs
 }
@@ -85,4 +86,14 @@ func (a AdapterAttributes) GetGroups() []string {
 func (a AdapterAttributes) IsReadOnly() bool {
 	v := a.GetVerb()
 	return v == "get" || v == "list" || v == "watch"
+}
+
+// IsResourceRequest satisfies the kubernetes authorizer.Attributes interface
+func (a AdapterAttributes) IsResourceRequest() bool {
+	return !a.IsNonResourceURL()
+}
+
+// GetPath satisfies the kubernetes authorizer.Attributes interface
+func (a AdapterAttributes) GetPath() string {
+	return a.GetURL()
 }

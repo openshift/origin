@@ -5,8 +5,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
@@ -14,7 +12,6 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -27,23 +24,23 @@ type ImageChangeControllerFactory struct {
 
 // Create creates an ImageChangeController.
 func (factory *ImageChangeControllerFactory) Create() controller.RunnableController {
-	imageStreamLW := &deployutil.ListWatcherImpl{
-		ListFunc: func() (runtime.Object, error) {
-			return factory.Client.ImageStreams(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	imageStreamLW := &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return factory.Client.ImageStreams(kapi.NamespaceAll).List(options)
 		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return factory.Client.ImageStreams(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return factory.Client.ImageStreams(kapi.NamespaceAll).Watch(options)
 		},
 	}
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(imageStreamLW, &imageapi.ImageStream{}, queue, 2*time.Minute).Run()
 
-	deploymentConfigLW := &deployutil.ListWatcherImpl{
-		ListFunc: func() (runtime.Object, error) {
-			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	deploymentConfigLW := &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(options)
 		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).Watch(options)
 		},
 	}
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)

@@ -10,6 +10,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -228,7 +229,8 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 
 // newStorage returns an EtcdHelper for the provided storage version.
 func newStorage(client *etcdclient.Client, version, prefix string) (oshelper storage.Interface, err error) {
-	interfaces, err := latest.InterfacesFor(version)
+	// TODO: this will need more care after the rebase
+	interfaces, err := latest.InterfacesFor(unversioned.GroupVersion{Group: "", Version: version})
 	if err != nil {
 		return nil, err
 	}

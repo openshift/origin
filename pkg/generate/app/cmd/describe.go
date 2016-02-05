@@ -19,7 +19,7 @@ func localOrRemoteName(meta kapi.ObjectMeta, namespace string) string {
 	if len(meta.Namespace) == 0 || namespace == meta.Namespace {
 		return meta.Name
 	}
-	return fmt.Sprintf("%s in project %s", meta.Name, meta.Namespace)
+	return fmt.Sprintf("%q in project %q", meta.Name, meta.Namespace)
 }
 
 func extractFirstImageStreamTag(newOnly bool, images ...*app.ImageRef) string {
@@ -51,9 +51,9 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 			if !image.Created.IsZero() {
 				shortID = fmt.Sprintf("%s (%s old)", shortID, describe.FormatRelativeTime(image.Created.Time))
 			}
-			return fmt.Sprintf("Found image %s in image stream %q under tag :%s for %q", shortID, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), match.ImageTag, refInput)
+			return fmt.Sprintf("Found image %s in image stream %s under tag %q for %q", shortID, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), match.ImageTag, refInput)
 		}
-		return fmt.Sprintf("Found tag :%s in image stream %q for %q", match.ImageTag, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), refInput)
+		return fmt.Sprintf("Found tag :%s in image stream %s for %q", match.ImageTag, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), refInput)
 	case match.Image != nil:
 		image := match.Image
 		shortID := imageapi.ShortDockerImageID(image, 7)
@@ -66,12 +66,51 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 	}
 }
 
+func inputAnnotations(match *app.ComponentMatch) map[string]string {
+	if match == nil {
+		return nil
+	}
+	base := make(map[string]string)
+	if image := match.Image; image != nil {
+		if image.Config != nil {
+			for k, v := range image.Config.Labels {
+				base[k] = v
+			}
+		}
+	}
+	if stream := match.ImageStream; stream != nil {
+		if len(match.ImageTag) > 0 {
+			if ref, ok := stream.Spec.Tags[match.ImageTag]; ok {
+				for k, v := range ref.Annotations {
+					base[k] = v
+				}
+			}
+		}
+	}
+	return base
+}
+
 func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, pipeline *app.Pipeline, baseNamespace string) {
 	refInput := ref.Input()
 	match := refInput.ResolvedMatch
 
 	if locatedImage := describeLocatedImage(refInput, baseNamespace); len(locatedImage) > 0 {
 		fmt.Fprintf(out, "--> %s\n", locatedImage)
+		annotations := inputAnnotations(refInput.ResolvedMatch)
+		if desc := annotations["io.k8s.display-name"]; len(desc) > 0 {
+			fmt.Fprintln(out)
+			fmt.Fprintf(out, "    %s \n", desc)
+			fmt.Fprintf(out, "    %s \n", strings.Repeat("-", len(desc)))
+		} else {
+			fmt.Fprintln(out)
+		}
+		if desc := annotations["io.k8s.description"]; len(desc) > 0 {
+			fmt.Fprintf(out, "    %s\n\n", desc)
+		}
+		if desc := annotations["io.openshift.tags"]; len(desc) > 0 {
+			desc = strings.Join(strings.Split(desc, ","), ", ")
+			fmt.Fprintf(out, "    Tags: %s\n\n", desc)
+		}
 	}
 
 	if pipeline.Build == nil {
@@ -138,14 +177,6 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 		} else {
 			fmt.Fprintf(out, "    * This image will be deployed in deployment config %q\n", pipeline.Deployment.Name)
 		}
-
-		if pipeline.Image != nil && pipeline.Image.HasEmptyDir {
-			fmt.Fprintf(out, "    * This image declares volumes and will default to use non-persistent, host-local storage.\n")
-			fmt.Fprintf(out, "      You can add persistent volumes later by running 'volume dc/%s --add ...'\n", pipeline.Deployment.Name)
-		}
-		if pipeline.Image.Info != nil && (len(pipeline.Image.Info.Config.User) == 0 || pipeline.Image.Info.Config.User == "root" || pipeline.Image.Info.Config.User == "0") {
-			fmt.Fprintf(out, "    * [WARNING] Image %q runs as the 'root' user which may not be permitted by your cluster administrator\n", pipeline.Image.Reference.Name)
-		}
 	}
 	if match != nil && match.Image != nil {
 		if pipeline.Deployment != nil {
@@ -167,9 +198,32 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				} else {
 					fmt.Fprintf(out, "    * Ports %s will be load balanced by service %q\n", strings.Join(orderedPorts, ", "), pipeline.Deployment.Name)
 				}
+				fmt.Fprintf(out, "      * Other containers can access this service through the hostname %q\n", pipeline.Deployment.Name)
+			}
+			if hasEmptyDir(match.Image) {
+				fmt.Fprintf(out, "    * This image declares volumes and will default to use non-persistent, host-local storage.\n")
+				fmt.Fprintf(out, "      You can add persistent volumes later by running 'volume dc/%s --add ...'\n", pipeline.Deployment.Name)
+			}
+			if hasRootUser(match.Image) {
+				fmt.Fprintf(out, "    * WARNING: Image %q runs as the 'root' user which may not be permitted by your cluster administrator\n", pipeline.Image.Reference.Name)
 			}
 		}
 	}
+	fmt.Fprintln(out)
+}
+
+func hasRootUser(image *imageapi.DockerImage) bool {
+	if image.Config == nil {
+		return false
+	}
+	return len(image.Config.User) == 0 || image.Config.User == "root" || image.Config.User == "0"
+}
+
+func hasEmptyDir(image *imageapi.DockerImage) bool {
+	if image.Config == nil {
+		return false
+	}
+	return len(image.Config.Volumes) > 0
 }
 
 func describeGeneratedTemplate(out io.Writer, ref app.ComponentReference, result *templateapi.Template, baseNamespace string) {
@@ -200,10 +254,10 @@ func describeGeneratedJob(out io.Writer, ref app.ComponentReference, pod *kapi.P
 		fmt.Fprintf(out, "    * %s\n", locatedImage)
 	}
 
-	fmt.Fprintf(out, "    * Install will run in pod %q\n", localOrRemoteName(pod.ObjectMeta, baseNamespace))
+	fmt.Fprintf(out, "    * Install will run in pod %s\n", localOrRemoteName(pod.ObjectMeta, baseNamespace))
 	switch {
 	case secret != nil:
-		fmt.Fprintf(out, "    * The pod has access to your current session token through the secret %q.\n", localOrRemoteName(secret.ObjectMeta, baseNamespace))
+		fmt.Fprintf(out, "    * The pod has access to your current session token through the secret %s.\n", localOrRemoteName(secret.ObjectMeta, baseNamespace))
 		fmt.Fprintf(out, "      If you cancel the install, you should delete the secret or log out of your session.\n")
 	case hasToken && generatorInput.Token.Env != nil:
 		fmt.Fprintf(out, "    * The pod has access to your current session token via environment variable %s.\n", *generatorInput.Token.Env)

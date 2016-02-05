@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -22,8 +23,8 @@ func (c *FakeHostSubnet) Get(name string) (*sdnapi.HostSubnet, error) {
 	return obj.(*sdnapi.HostSubnet), err
 }
 
-func (c *FakeHostSubnet) List() (*sdnapi.HostSubnetList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("hostsubnets", nil, nil), &sdnapi.HostSubnetList{})
+func (c *FakeHostSubnet) List(opts kapi.ListOptions) (*sdnapi.HostSubnetList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("hostsubnets", opts), &sdnapi.HostSubnetList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -45,6 +46,6 @@ func (c *FakeHostSubnet) Delete(name string) error {
 	return err
 }
 
-func (c *FakeHostSubnet) Watch(resourceVersion string) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("hostsubnets", nil, nil, resourceVersion))
+func (c *FakeHostSubnet) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("hostsubnets", opts))
 }

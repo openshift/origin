@@ -3,8 +3,7 @@ package policy
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -13,7 +12,7 @@ import (
 // Registry is an interface for things that know how to store Policies.
 type Registry interface {
 	// ListPolicies obtains list of policies that match a selector.
-	ListPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyList, error)
+	ListPolicies(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.PolicyList, error)
 	// GetPolicy retrieves a specific policy.
 	GetPolicy(ctx kapi.Context, id string) (*authorizationapi.Policy, error)
 	// CreatePolicy creates a new policy.
@@ -27,7 +26,7 @@ type Registry interface {
 type WatchingRegistry interface {
 	Registry
 	// WatchPolicies watches policies.
-	WatchPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	WatchPolicies(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -46,8 +45,8 @@ func NewRegistry(s Storage) WatchingRegistry {
 	return &storage{s}
 }
 
-func (s *storage) ListPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyList, error) {
-	obj, err := s.List(ctx, label, field)
+func (s *storage) ListPolicies(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.PolicyList, error) {
+	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +64,8 @@ func (s *storage) UpdatePolicy(ctx kapi.Context, node *authorizationapi.Policy) 
 	return err
 }
 
-func (s *storage) WatchPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return s.Watch(ctx, label, field, resourceVersion)
+func (s *storage) WatchPolicies(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+	return s.Watch(ctx, options)
 }
 
 func (s *storage) GetPolicy(ctx kapi.Context, name string) (*authorizationapi.Policy, error) {

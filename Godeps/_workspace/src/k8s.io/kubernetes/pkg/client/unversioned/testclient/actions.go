@@ -19,6 +19,7 @@ package testclient
 import (
 	"strings"
 
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -43,21 +44,37 @@ func NewGetAction(resource, namespace, name string) GetActionImpl {
 	return action
 }
 
-func NewRootListAction(resource string, label labels.Selector, field fields.Selector) ListActionImpl {
+func NewRootListAction(resource string, opts api.ListOptions) ListActionImpl {
 	action := ListActionImpl{}
 	action.Verb = "list"
 	action.Resource = resource
-	action.ListRestrictions = ListRestrictions{label, field}
+	labelSelector := opts.LabelSelector
+	if labelSelector == nil {
+		labelSelector = labels.Everything()
+	}
+	fieldSelector := opts.FieldSelector
+	if fieldSelector == nil {
+		fieldSelector = fields.Everything()
+	}
+	action.ListRestrictions = ListRestrictions{labelSelector, fieldSelector}
 
 	return action
 }
 
-func NewListAction(resource, namespace string, label labels.Selector, field fields.Selector) ListActionImpl {
+func NewListAction(resource, namespace string, opts api.ListOptions) ListActionImpl {
 	action := ListActionImpl{}
 	action.Verb = "list"
 	action.Resource = resource
 	action.Namespace = namespace
-	action.ListRestrictions = ListRestrictions{label, field}
+	labelSelector := opts.LabelSelector
+	if labelSelector == nil {
+		labelSelector = labels.Everything()
+	}
+	fieldSelector := opts.FieldSelector
+	if fieldSelector == nil {
+		fieldSelector = fields.Everything()
+	}
+	action.ListRestrictions = ListRestrictions{labelSelector, fieldSelector}
 
 	return action
 }
@@ -149,21 +166,72 @@ func NewDeleteAction(resource, namespace, name string) DeleteActionImpl {
 	return action
 }
 
-func NewRootWatchAction(resource string, label labels.Selector, field fields.Selector, resourceVersion string) WatchActionImpl {
-	action := WatchActionImpl{}
-	action.Verb = "watch"
+func NewRootDeleteCollectionAction(resource string, opts api.ListOptions) DeleteCollectionActionImpl {
+	action := DeleteCollectionActionImpl{}
+	action.Verb = "delete-collection"
 	action.Resource = resource
-	action.WatchRestrictions = WatchRestrictions{label, field, resourceVersion}
+	labelSelector := opts.LabelSelector
+	if labelSelector == nil {
+		labelSelector = labels.Everything()
+	}
+	fieldSelector := opts.FieldSelector
+	if fieldSelector == nil {
+		fieldSelector = fields.Everything()
+	}
+	action.ListRestrictions = ListRestrictions{labelSelector, fieldSelector}
 
 	return action
 }
 
-func NewWatchAction(resource, namespace string, label labels.Selector, field fields.Selector, resourceVersion string) WatchActionImpl {
+func NewDeleteCollectionAction(resource, namespace string, opts api.ListOptions) DeleteCollectionActionImpl {
+	action := DeleteCollectionActionImpl{}
+	action.Verb = "delete-collection"
+	action.Resource = resource
+	action.Namespace = namespace
+	labelSelector := opts.LabelSelector
+	if labelSelector == nil {
+		labelSelector = labels.Everything()
+	}
+	fieldSelector := opts.FieldSelector
+	if fieldSelector == nil {
+		fieldSelector = fields.Everything()
+	}
+	action.ListRestrictions = ListRestrictions{labelSelector, fieldSelector}
+
+	return action
+}
+
+func NewRootWatchAction(resource string, opts api.ListOptions) WatchActionImpl {
+	action := WatchActionImpl{}
+	action.Verb = "watch"
+	action.Resource = resource
+	labelSelector := opts.LabelSelector
+	if labelSelector == nil {
+		labelSelector = labels.Everything()
+	}
+	fieldSelector := opts.FieldSelector
+	if fieldSelector == nil {
+		fieldSelector = fields.Everything()
+	}
+	action.WatchRestrictions = WatchRestrictions{labelSelector, fieldSelector, opts.ResourceVersion}
+
+	return action
+}
+
+func NewWatchAction(resource, namespace string, opts api.ListOptions) WatchActionImpl {
 	action := WatchActionImpl{}
 	action.Verb = "watch"
 	action.Resource = resource
 	action.Namespace = namespace
-	action.WatchRestrictions = WatchRestrictions{label, field, resourceVersion}
+	labelSelector := opts.LabelSelector
+	if labelSelector == nil {
+		labelSelector = labels.Everything()
+	}
+	fieldSelector := opts.FieldSelector
+	if fieldSelector == nil {
+		fieldSelector = fields.Everything()
+	}
+	action.WatchRestrictions = WatchRestrictions{labelSelector, fieldSelector, opts.ResourceVersion}
 
 	return action
 }
@@ -328,6 +396,15 @@ type DeleteActionImpl struct {
 
 func (a DeleteActionImpl) GetName() string {
 	return a.Name
+}
+
+type DeleteCollectionActionImpl struct {
+	ActionImpl
+	ListRestrictions ListRestrictions
+}
+
+func (a DeleteCollectionActionImpl) GetListRestrictions() ListRestrictions {
+	return a.ListRestrictions
 }
 
 type WatchActionImpl struct {

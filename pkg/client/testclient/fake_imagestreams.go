@@ -1,9 +1,8 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
@@ -29,8 +28,8 @@ func (c *FakeImageStreams) Get(name string) (*imageapi.ImageStream, error) {
 	return obj.(*imageapi.ImageStream), err
 }
 
-func (c *FakeImageStreams) List(label labels.Selector, field fields.Selector) (*imageapi.ImageStreamList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewListAction("imagestreams", c.Namespace, label, field), &imageapi.ImageStreamList{})
+func (c *FakeImageStreams) List(opts kapi.ListOptions) (*imageapi.ImageStreamList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("imagestreams", c.Namespace, opts), &imageapi.ImageStreamList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -61,8 +60,8 @@ func (c *FakeImageStreams) Delete(name string) error {
 	return err
 }
 
-func (c *FakeImageStreams) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("imagestreams", c.Namespace, label, field, resourceVersion))
+func (c *FakeImageStreams) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("imagestreams", c.Namespace, opts))
 }
 
 func (c *FakeImageStreams) UpdateStatus(inObj *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
@@ -78,4 +77,16 @@ func (c *FakeImageStreams) UpdateStatus(inObj *imageapi.ImageStream) (result *im
 	}
 
 	return obj.(*imageapi.ImageStream), err
+}
+
+func (c *FakeImageStreams) Import(inObj *imageapi.ImageStreamImport) (*imageapi.ImageStreamImport, error) {
+	action := ktestclient.CreateActionImpl{}
+	action.Verb = "create"
+	action.Resource = "imagestreamimports"
+	action.Object = inObj
+	obj, err := c.Fake.Invokes(action, inObj)
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*imageapi.ImageStreamImport), nil
 }

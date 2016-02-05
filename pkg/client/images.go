@@ -1,8 +1,7 @@
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -14,7 +13,7 @@ type ImagesInterfacer interface {
 
 // ImageInterface exposes methods on Image resources.
 type ImageInterface interface {
-	List(label labels.Selector, field fields.Selector) (*imageapi.ImageList, error)
+	List(opts kapi.ListOptions) (*imageapi.ImageList, error)
 	Get(name string) (*imageapi.Image, error)
 	Create(image *imageapi.Image) (*imageapi.Image, error)
 	Delete(name string) error
@@ -33,12 +32,11 @@ func newImages(c *Client) ImageInterface {
 }
 
 // List returns a list of images that match the label and field selectors.
-func (c *images) List(label labels.Selector, field fields.Selector) (result *imageapi.ImageList, err error) {
+func (c *images) List(opts kapi.ListOptions) (result *imageapi.ImageList, err error) {
 	result = &imageapi.ImageList{}
 	err = c.r.Get().
 		Resource("images").
-		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		VersionedParams(&opts, kapi.Scheme).
 		Do().
 		Into(result)
 	return

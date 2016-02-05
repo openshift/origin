@@ -124,6 +124,25 @@ os::build::host_platform() {
   echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
 
+# Create a user friendly version of host_platform for end users
+os::build::host_platform_friendly() {
+  local platform=${1:-}
+  if [[ -z "${platform}" ]]; then
+    platform=$(os::build::host_platform)
+  fi
+  if [[ $platform == "windows/amd64" ]]; then
+    echo "windows"
+  elif [[ $platform == "darwin/amd64" ]]; then
+    echo "mac"
+  elif [[ $platform == "linux/386" ]]; then
+    echo "linux-32bit"
+  elif [[ $platform == "linux/amd64" ]]; then
+    echo "linux-64bit"
+  else
+    echo "$(go env GOHOSTOS)-$(go env GOHOSTARCH)"
+  fi
+}
+
 # Build binaries targets specified
 #
 # Input:
@@ -444,26 +463,33 @@ os::build::detect_local_release_tars() {
 
   if [[ ! -d "${OS_LOCAL_RELEASEPATH}" ]]; then
     echo "There are no release artifacts in ${OS_LOCAL_RELEASEPATH}"
-    exit 2
+    return 2
   fi
   if [[ ! -f "${OS_LOCAL_RELEASEPATH}/.commit" ]]; then
     echo "There is no release .commit identifier ${OS_LOCAL_RELEASEPATH}"
-    exit 2
+    return 2
   fi
   local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-server-*-${platform}*)
   if [[ $(echo "${primary}" | wc -l) -ne 1 || -z "${primary}" ]]; then
     echo "There should be exactly one ${platform} server tar in $OS_LOCAL_RELEASEPATH"
-    exit 2
+    return 2
+  fi
+
+  local client=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-client-tools-*-${platform}*)
+  if [[ $(echo "${client}" | wc -l) -ne 1 || -z "${primary}" ]]; then
+    echo "There should be exactly one ${platform} client tar in $OS_LOCAL_RELEASEPATH"
+    return 2
   fi
 
   local image=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}*)
   if [[ $(echo "${image}" | wc -l) -ne 1 || -z "${image}" ]]; then
     echo "There should be exactly one ${platform} image tar in $OS_LOCAL_RELEASEPATH"
-    exit 3
+    return 2
   fi
 
   export OS_PRIMARY_RELEASE_TAR="${primary}"
   export OS_IMAGE_RELEASE_TAR="${image}"
+  export OS_CLIENT_RELEASE_TAR="${client}"
   export OS_RELEASE_COMMIT="$(cat ${OS_LOCAL_RELEASEPATH}/.commit)"
 }
 

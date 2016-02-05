@@ -3,34 +3,28 @@
 angular.module('openshiftConsole')
   // Truncates text to a length, adding a tooltip and an ellipsis if truncated.
   // Different than `text-overflow: ellipsis` because it allows for multiline text.
-  .directive('truncateLongText', function() {
+  .directive('truncateLongText', function(truncateFilter) {
     return {
       restrict: 'E',
       scope: {
         content: '=',
         limit: '=',
-        useWordBoundary: '='
+        newlineLimit: '=',
+        useWordBoundary: '=',
+        expandable: '=',
+        prettifyJson: '=' // prettifies JSON blobs when expanded, only used if expandable is true
       },
-      template: '<span ng-attr-title="{{content}}">{{visibleContent}}<span ng-if="truncated">&hellip;</span></span>',
+      templateUrl: 'views/directives/truncate-long-text.html',
       link: function(scope) {
-        scope.visibleContent = scope.content;
+        scope.toggles = {expanded: false};
         scope.$watch('content', function(content) {
-          if (!scope.limit || !content || content.length <= scope.limit) {
-            scope.truncated = false;
-            scope.visibleContent = content;
-            return;
+          if (content) {
+            scope.truncatedContent = truncateFilter(content, scope.limit, scope.useWordBoundary, scope.newlineLimit);
+            scope.truncated = scope.truncatedContent.length !== content.length;
           }
-
-          scope.truncated = true;
-          scope.visibleContent = content.substring(0, scope.limit);
-          if (scope.useWordBoundary !== false) {
-            // Find the last word break, but don't look more than 10 characters back.
-            // Make sure we show at least the first 5 characters.
-            var startIndex = Math.max(4, scope.limit - 10);
-            var lastSpace = scope.visibleContent.lastIndexOf(' ', startIndex);
-            if (lastSpace !== -1) {
-              scope.visibleContent = scope.visibleContent.substring(0, lastSpace);
-            }
+          else {
+            scope.truncatedContent = null;
+            scope.truncated = false;
           }
         });
       }

@@ -48,6 +48,12 @@ func TestRoundTrip(t *testing.T) {
 	if kattrs.GetResource() != "r" {
 		t.Errorf("Expected %v, got %v", "", kattrs.GetResource())
 	}
+	if kattrs.IsResourceRequest() != false {
+		t.Errorf("Expected %v, got %v", false, kattrs.IsResourceRequest())
+	}
+	if kattrs.GetPath() != "/123" {
+		t.Errorf("Expected %v, got %v", "/123", kattrs.GetPath())
+	}
 
 	// Convert back to context+origin attributes
 	ctx, oattrs2 := OriginAuthorizerAttributes(kattrs)
@@ -102,6 +108,8 @@ func TestAttributeIntersection(t *testing.T) {
 		"GetGroups", "GetUserName", "GetNamespace",
 		// Based on verb, derivative
 		"IsReadOnly",
+		// Non-matching, but used
+		"GetPath", "IsResourceRequest",
 	)
 
 	kattributesType := reflect.TypeOf((*kauthorizer.Attributes)(nil)).Elem()

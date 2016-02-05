@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -92,8 +91,8 @@ func (a cachedServiceNamespacer) Get(name string) (*api.Service, error) {
 	return item.(*api.Service), nil
 }
 
-func (a cachedServiceNamespacer) List(label labels.Selector, field fields.Selector) (*api.ServiceList, error) {
-	if !label.Empty() {
+func (a cachedServiceNamespacer) List(options api.ListOptions) (*api.ServiceList, error) {
+	if !options.LabelSelector.Empty() {
 		return nil, fmt.Errorf("label selection on the cache is not currently implemented")
 	}
 	items, err := a.accessor.store.Index("namespace", &api.Service{ObjectMeta: api.ObjectMeta{Namespace: a.namespace}})
@@ -119,7 +118,7 @@ func (a cachedServiceNamespacer) Update(srv *api.Service) (*api.Service, error) 
 func (a cachedServiceNamespacer) Delete(name string) error {
 	return fmt.Errorf("not implemented")
 }
-func (a cachedServiceNamespacer) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (a cachedServiceNamespacer) Watch(options api.ListOptions) (watch.Interface, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 func (a cachedServiceNamespacer) ProxyGet(scheme, name, port, path string, params map[string]string) client.ResponseWrapper {

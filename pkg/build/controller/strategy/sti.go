@@ -52,6 +52,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	addSourceEnvVars(build.Spec.Source, &containerEnv)
+	addOriginVersionVar(&containerEnv)
 
 	strategy := build.Spec.Strategy.SourceStrategy
 	if len(strategy.Env) > 0 {
@@ -99,12 +100,9 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	setupDockerSocket(pod)
-	var sourceImageSecret *kapi.LocalObjectReference
-	if build.Spec.Source.Image != nil {
-		sourceImageSecret = build.Spec.Source.Image.PullSecret
-	}
-	setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret, sourceImageSecret)
+	setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
 	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
+	setupSecrets(pod, build.Spec.Source.Secrets)
 	return pod, nil
 }
 
@@ -131,7 +129,7 @@ func (bs *SourceBuildStrategy) canRunAsRoot(build *buildapi.Build) bool {
 		},
 	}
 	userInfo := serviceaccount.UserInfo(build.Namespace, build.Spec.ServiceAccount, "")
-	attrs := admission.NewAttributesRecord(pod, "Pod", pod.Namespace, pod.Name, "pods", "", admission.Create, userInfo)
+	attrs := admission.NewAttributesRecord(pod, kapi.Kind("Pod"), pod.Namespace, pod.Name, kapi.Resource("pods"), "", admission.Create, userInfo)
 	err := bs.AdmissionControl.Admit(attrs)
 	if err != nil {
 		glog.V(2).Infof("Admit for root user returned error: %v", err)

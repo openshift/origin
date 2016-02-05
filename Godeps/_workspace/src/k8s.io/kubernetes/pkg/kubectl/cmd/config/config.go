@@ -225,6 +225,7 @@ func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config, rela
 
 			configToWrite := getConfigFromFileOrDie(destinationFile)
 			t := *cluster
+
 			configToWrite.Clusters[key] = &t
 			configToWrite.Clusters[key].LocationOfOrigin = destinationFile
 			if relativizePaths {

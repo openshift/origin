@@ -11,7 +11,8 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
-JUNIT_OUTPUT_FILE=/tmp/openshift-cmd/junit_output.txt
+BASETMPDIR="${TMPDIR:-/tmp}/openshift/test-tools"
+JUNIT_OUTPUT_FILE="${BASETMPDIR}/junit_output.txt"
 
 # set verbosity so we can see that command output renders correctly
 VERBOSE=1

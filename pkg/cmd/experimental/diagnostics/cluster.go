@@ -26,7 +26,7 @@ var (
 // buildClusterDiagnostics builds cluster Diagnostic objects if a cluster-admin client can be extracted from the rawConfig passed in.
 // Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.) {
 func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool, error) {
-	requestedDiagnostics := intersection(sets.NewString(o.RequestedDiagnostics...), availableClusterDiagnostics).List()
+	requestedDiagnostics := availableClusterDiagnostics.Intersection(sets.NewString(o.RequestedDiagnostics...)).List()
 	if len(requestedDiagnostics) == 0 { // no diagnostics to run here
 		return nil, true, nil // don't waste time on discovery
 	}
@@ -50,7 +50,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 		case clustdiags.MasterNodeName:
 			diagnostics = append(diagnostics, &clustdiags.MasterNode{KubeClient: kclusterClient, OsClient: clusterClient, ServerUrl: serverUrl, MasterConfigFile: o.MasterConfigLocation})
 		case clustdiags.ClusterRegistryName:
-			diagnostics = append(diagnostics, &clustdiags.ClusterRegistry{KubeClient: kclusterClient, OsClient: clusterClient})
+			diagnostics = append(diagnostics, &clustdiags.ClusterRegistry{KubeClient: kclusterClient, OsClient: clusterClient, PreventModification: o.PreventModification})
 		case clustdiags.ClusterRouterName:
 			diagnostics = append(diagnostics, &clustdiags.ClusterRouter{KubeClient: kclusterClient, OsClient: clusterClient})
 		case clustdiags.ClusterRolesName:

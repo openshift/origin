@@ -16,7 +16,7 @@ func TestDuelingRC(t *testing.T) {
 
 	kubeedges.AddAllManagedByRCPodEdges(g)
 
-	markers := FindDuelingReplicationControllers(g)
+	markers := FindDuelingReplicationControllers(g, osgraph.DefaultNamer)
 	if e, a := 2, len(markers); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}

@@ -14,10 +14,10 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -25,8 +25,10 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildreaper "github.com/openshift/origin/pkg/build/reaper"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -36,6 +38,7 @@ import (
 	deployscaler "github.com/openshift/origin/pkg/deploy/scaler"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	routegen "github.com/openshift/origin/pkg/route/generator"
+	userapi "github.com/openshift/origin/pkg/user/api"
 	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
 )
 
@@ -145,16 +148,21 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	w.Object = func() (meta.RESTMapper, runtime.ObjectTyper) {
 		// Output using whatever version was negotiated in the client cache. The
 		// version we decode with may not be the same as what the server requires.
-		if cfg, err := clients.ClientConfigForVersion(""); err == nil {
-			return kubectl.OutputVersionMapper{RESTMapper: mapper, OutputVersion: cfg.Version}, api.Scheme
+		if cfg, err := clients.ClientConfigForVersion(nil); err == nil {
+			cmdApiVersion := unversioned.GroupVersion{}
+			if cfg.GroupVersion != nil {
+				cmdApiVersion = *cfg.GroupVersion
+			}
+			return kubectl.OutputVersionMapper{RESTMapper: mapper, OutputVersions: []unversioned.GroupVersion{cmdApiVersion}}, api.Scheme
 		}
 		return mapper, api.Scheme
 	}
 
 	kRESTClient := w.Factory.RESTClient
 	w.RESTClient = func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-		if latest.OriginKind(mapping.Kind, mapping.APIVersion) {
-			client, err := clients.ClientForVersion(mapping.APIVersion)
+		if latest.OriginKind(mapping.GroupVersionKind) {
+			mappingVersion := mapping.GroupVersionKind.GroupVersion()
+			client, err := clients.ClientForVersion(&mappingVersion)
 			if err != nil {
 				return nil, err
 			}
@@ -166,20 +174,21 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	// Save original Describer function
 	kDescriberFunc := w.Factory.Describer
 	w.Describer = func(mapping *meta.RESTMapping) (kubectl.Describer, error) {
-		if latest.OriginKind(mapping.Kind, mapping.APIVersion) {
+		if latest.OriginKind(mapping.GroupVersionKind) {
 			oClient, kClient, err := w.Clients()
 			if err != nil {
-				return nil, fmt.Errorf("unable to create client %s: %v", mapping.Kind, err)
+				return nil, fmt.Errorf("unable to create client %s: %v", mapping.GroupVersionKind.Kind, err)
 			}
 
-			cfg, err := clients.ClientConfigForVersion(mapping.APIVersion)
+			mappingVersion := mapping.GroupVersionKind.GroupVersion()
+			cfg, err := clients.ClientConfigForVersion(&mappingVersion)
 			if err != nil {
-				return nil, fmt.Errorf("unable to load a client %s: %v", mapping.Kind, err)
+				return nil, fmt.Errorf("unable to load a client %s: %v", mapping.GroupVersionKind.Kind, err)
 			}
 
-			describer, ok := describe.DescriberFor(mapping.Kind, oClient, kClient, cfg.Host)
+			describer, ok := describe.DescriberFor(mapping.GroupVersionKind.GroupKind(), oClient, kClient, cfg.Host)
 			if !ok {
-				return nil, fmt.Errorf("no description has been implemented for %q", mapping.Kind)
+				return nil, fmt.Errorf("no description has been implemented for %q", mapping.GroupVersionKind.Kind)
 			}
 			return describer, nil
 		}
@@ -192,7 +201,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return nil, err
 		}
 
-		if mapping.Kind == "DeploymentConfig" {
+		if mapping.GroupVersionKind.GroupKind() == deployapi.Kind("DeploymentConfig") {
 			return deployscaler.NewDeploymentConfigScaler(oc, kc), nil
 		}
 		return kScalerFunc(mapping)
@@ -204,14 +213,14 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return nil, err
 		}
 
-		switch mapping.Kind {
-		case "DeploymentConfig":
+		switch mapping.GroupVersionKind.GroupKind() {
+		case deployapi.Kind("DeploymentConfig"):
 			return deployreaper.NewDeploymentConfigReaper(oc, kc), nil
-		case "Role":
+		case authorizationapi.Kind("Role"):
 			return authorizationreaper.NewRoleReaper(oc, oc), nil
-		case "ClusterRole":
+		case authorizationapi.Kind("ClusterRole"):
 			return authorizationreaper.NewClusterRoleReaper(oc, oc, oc), nil
-		case "User":
+		case userapi.Kind("User"):
 			return authenticationreaper.NewUserReaper(
 				client.UsersInterface(oc),
 				client.GroupsInterface(oc),
@@ -219,13 +228,15 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 				client.RoleBindingsNamespacer(oc),
 				kclient.SecurityContextConstraintsInterface(kc),
 			), nil
-		case "Group":
+		case userapi.Kind("Group"):
 			return authenticationreaper.NewGroupReaper(
 				client.GroupsInterface(oc),
 				client.ClusterRoleBindingsInterface(oc),
 				client.RoleBindingsNamespacer(oc),
 				kclient.SecurityContextConstraintsInterface(kc),
 			), nil
+		case buildapi.Kind("BuildConfig"):
+			return buildreaper.NewBuildConfigReaper(oc), nil
 		}
 		return kReaperFunc(mapping)
 	}
@@ -274,7 +285,6 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 				return nil, errors.New("provided options object is not a BuildLogOptions")
 			}
 			if bopts.Version != nil {
-				// should --version work with builds at all?
 				return nil, errors.New("cannot specify a version and a build")
 			}
 			return oc.BuildLogs(t.Namespace).Get(t.Name, *bopts), nil
@@ -283,13 +293,13 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if !ok {
 				return nil, errors.New("provided options object is not a BuildLogOptions")
 			}
-			builds, err := oc.Builds(t.Namespace).List(labels.Everything(), fields.Everything())
+			builds, err := oc.Builds(t.Namespace).List(api.ListOptions{})
 			if err != nil {
 				return nil, err
 			}
 			builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigLabelPredicate(t.Name))
 			if len(builds.Items) == 0 {
-				return nil, fmt.Errorf("no builds found for %s", t.Name)
+				return nil, fmt.Errorf("no builds found for %q", t.Name)
 			}
 			if bopts.Version != nil {
 				// If a version has been specified, try to get the logs from that build.
@@ -302,12 +312,12 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return kLogsForObjectFunc(object, options)
 		}
 	}
-	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, showAll bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
-		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, columnLabels), nil
+	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, showAll bool, absoluteTimestamps bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
+		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, absoluteTimestamps, columnLabels), nil
 	}
 	kCanBeExposed := w.Factory.CanBeExposed
-	w.CanBeExposed = func(kind string) error {
-		if kind == "DeploymentConfig" {
+	w.CanBeExposed = func(kind unversioned.GroupKind) error {
+		if kind == deployapi.Kind("DeploymentConfig") {
 			return nil
 		}
 		return kCanBeExposed(kind)
@@ -337,7 +347,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 					}
 					return nil, err
 				}
-				pods, err = kc.Pods(deployment.Namespace).List(labels.SelectorFromSet(deployment.Spec.Selector), fields.Everything())
+				pods, err = kc.Pods(deployment.Namespace).List(api.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector)})
 				if err != nil {
 					return nil, err
 				}
@@ -355,6 +365,9 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		default:
 			return kAttachablePodForObjectFunc(object)
 		}
+	}
+	w.EditorEnvs = func() []string {
+		return []string{"OC_EDITOR", "EDITOR"}
 	}
 
 	return w
@@ -401,7 +414,7 @@ func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	osClient, err := f.clients.ClientForVersion("")
+	osClient, err := f.clients.ClientForVersion(nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -413,11 +426,11 @@ type ShortcutExpander struct {
 	meta.RESTMapper
 }
 
-// VersionAndKindForResource implements meta.RESTMapper. It expands the resource first, then invokes the wrapped
+// KindFor implements meta.RESTMapper. It expands the resource first, then invokes the wrapped
 // mapper.
-func (e ShortcutExpander) VersionAndKindForResource(resource string) (defaultVersion, kind string, err error) {
+func (e ShortcutExpander) KindFor(resource string) (unversioned.GroupVersionKind, error) {
 	resource = expandResourceShortcut(resource)
-	return e.RESTMapper.VersionAndKindForResource(resource)
+	return e.RESTMapper.KindFor(resource)
 }
 
 // AliasesForResource returns whether a resource has an alias or not
@@ -471,7 +484,7 @@ type clientCache struct {
 }
 
 // ClientConfigForVersion returns the correct config for a server
-func (c *clientCache) ClientConfigForVersion(version string) (*kclient.Config, error) {
+func (c *clientCache) ClientConfigForVersion(version *unversioned.GroupVersion) (*kclient.Config, error) {
 	if c.defaultConfig == nil {
 		config, err := c.loader.ClientConfig()
 		if err != nil {
@@ -480,7 +493,11 @@ func (c *clientCache) ClientConfigForVersion(version string) (*kclient.Config, e
 		c.defaultConfig = config
 	}
 	// TODO: have a better config copy method
-	if config, ok := c.configs[version]; ok {
+	cacheKey := ""
+	if version != nil {
+		cacheKey = version.String()
+	}
+	if config, ok := c.configs[cacheKey]; ok {
 		return config, nil
 	}
 	if c.negotiatingClient == nil {
@@ -503,26 +520,30 @@ func (c *clientCache) ClientConfigForVersion(version string) (*kclient.Config, e
 		c.negotiatingClient = negotiatingClient
 	}
 	config := *c.defaultConfig
-	negotiatedVersion, err := kclient.NegotiateVersion(c.negotiatingClient, &config, version, latest.Versions)
+	negotiatedVersion, err := negotiateVersion(c.negotiatingClient, &config, version, latest.Versions)
 	if err != nil {
 		return nil, err
 	}
-	config.Version = negotiatedVersion
+	config.GroupVersion = negotiatedVersion
 	client.SetOpenShiftDefaults(&config)
-	c.configs[version] = &config
+	c.configs[cacheKey] = &config
 
 	// `version` does not necessarily equal `config.Version`.  However, we know that we call this method again with
 	// `config.Version`, we should get the the config we've just built.
 	configCopy := config
-	c.configs[config.Version] = &configCopy
+	c.configs[config.GroupVersion.String()] = &configCopy
 
 	return &config, nil
 }
 
 // ClientForVersion initializes or reuses a client for the specified version, or returns an
 // error if that is not possible
-func (c *clientCache) ClientForVersion(version string) (*client.Client, error) {
-	if client, ok := c.clients[version]; ok {
+func (c *clientCache) ClientForVersion(version *unversioned.GroupVersion) (*client.Client, error) {
+	cacheKey := ""
+	if version != nil {
+		cacheKey = version.String()
+	}
+	if client, ok := c.clients[cacheKey]; ok {
 		return client, nil
 	}
 	config, err := c.ClientConfigForVersion(version)
@@ -534,6 +555,6 @@ func (c *clientCache) ClientForVersion(version string) (*client.Client, error) {
 		return nil, err
 	}
 
-	c.clients[config.Version] = client
+	c.clients[config.GroupVersion.String()] = client
 	return client, nil
 }

@@ -5,7 +5,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/template/api"
 )
@@ -35,10 +34,10 @@ func TestValidateParameter(t *testing.T) {
 
 	for _, test := range tests {
 		param := makeParameter(test.ParameterName, "1")
-		if test.IsValidExpected && len(ValidateParameter(param)) != 0 {
+		if test.IsValidExpected && len(ValidateParameter(param, nil)) != 0 {
 			t.Errorf("Expected zero validation errors on valid parameter name.")
 		}
-		if !test.IsValidExpected && len(ValidateParameter(param)) == 0 {
+		if !test.IsValidExpected && len(ValidateParameter(param, nil)) == 0 {
 			t.Errorf("Expected some validation errors on invalid parameter name.")
 		}
 	}
@@ -92,10 +91,10 @@ func TestValidateProcessTemplate(t *testing.T) {
 	for i, test := range tests {
 		errs := ValidateProcessedTemplate(test.template)
 		if len(errs) != 0 && test.isValidExpected {
-			t.Errorf("%d: Unexpected non-empty error list: %v", i, errors.NewAggregate(errs))
+			t.Errorf("%d: Unexpected non-empty error list: %v", i, errs.ToAggregate())
 		}
 		if len(errs) == 0 && !test.isValidExpected {
-			t.Errorf("%d: Unexpected empty error list: %#v", i, errs)
+			t.Errorf("%d: Unexpected empty error list: %v", i, errs.ToAggregate())
 		}
 	}
 }
@@ -183,10 +182,10 @@ func TestValidateTemplate(t *testing.T) {
 	for i, test := range tests {
 		errs := ValidateTemplate(test.template)
 		if len(errs) != 0 && test.isValidExpected {
-			t.Errorf("%d: Unexpected non-empty error list: %v", i, errors.NewAggregate(errs))
+			t.Errorf("%d: Unexpected non-empty error list: %v", i, errs.ToAggregate())
 		}
 		if len(errs) == 0 && !test.isValidExpected {
-			t.Errorf("%d: Unexpected empty error list: %v", i, errs)
+			t.Errorf("%d: Unexpected empty error list: %v", i, errs.ToAggregate())
 		}
 	}
 }

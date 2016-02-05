@@ -15,16 +15,10 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/transport"
 	kutil "k8s.io/kubernetes/pkg/util"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
-)
-
-const (
-	publicV1DockerHubHost = "index.docker.io"
-	// TODO: is there a better URL?
-	publicV2DockerHubHost = "registry-1.docker.io"
 )
 
 type Image struct {
@@ -40,16 +34,17 @@ type Client interface {
 	Connect(registry string, allowInsecure bool) (Connection, error)
 }
 
-// Connection allows you to retrieve data from a Docker V1 registry.
+// Connection allows you to retrieve data from a Docker V1/V2 registry.
 type Connection interface {
-	// ImageTags will return a map of the tags for the image by namespace (if not
-	// specified, will be "library") and name.
+	// ImageTags will return a map of the tags for the image by namespace and name.
+	// If namespace is not specified, will default to "library" for Docker hub.
 	ImageTags(namespace, name string) (map[string]string, error)
-	// ImageByID will return the requested image by namespace (if not specified,
-	// will be "library"), name, and ID.
+	// ImageByID will return the requested image by namespace, name, and ID.
+	// If namespace is not specified, will default to "library" for Docker hub.
 	ImageByID(namespace, name, id string) (*Image, error)
-	// ImageByTag will return the requested image by namespace (if not specified,
-	// will be "library"), name, and tag (if not specified, "latest").
+	// ImageByTag will return the requested image by namespace, name, and tag
+	// (if not specified, "latest").
+	// If namespace is not specified, will default to "library" for Docker hub.
 	ImageByTag(namespace, name, tag string) (*Image, error)
 }
 
@@ -57,16 +52,18 @@ type Connection interface {
 type client struct {
 	dialTimeout time.Duration
 	connections map[string]*connection
+	allowV2     bool
 }
 
 // NewClient returns a client object which allows public access to
 // a Docker registry. enableV2 allows a client to prefer V1 registry
 // API connections.
 // TODO: accept a docker auth config
-func NewClient(dialTimeout time.Duration) Client {
+func NewClient(dialTimeout time.Duration, allowV2 bool) Client {
 	return &client{
 		dialTimeout: dialTimeout,
 		connections: make(map[string]*connection),
+		allowV2:     allowV2,
 	}
 }
 
@@ -82,7 +79,7 @@ func (c *client) Connect(name string, allowInsecure bool) (Connection, error) {
 	if conn, ok := c.connections[prefix]; ok && conn.allowInsecure == allowInsecure {
 		return conn, nil
 	}
-	conn := newConnection(*target, c.dialTimeout, allowInsecure, true)
+	conn := newConnection(*target, c.dialTimeout, allowInsecure, c.allowV2)
 	c.connections[prefix] = conn
 	return conn, nil
 }
@@ -91,11 +88,11 @@ func (c *client) Connect(name string, allowInsecure bool) (Connection, error) {
 // segment and docker API version.
 func normalizeDockerHubHost(host string, v2 bool) string {
 	switch host {
-	case "docker.io", "www.docker.io", publicV1DockerHubHost, publicV2DockerHubHost:
+	case imageapi.DockerDefaultRegistry, "www." + imageapi.DockerDefaultRegistry, imageapi.DockerDefaultV1Registry, imageapi.DockerDefaultV2Registry:
 		if v2 {
-			return publicV2DockerHubHost
+			return imageapi.DockerDefaultV2Registry
 		}
-		return publicV1DockerHubHost
+		return imageapi.DockerDefaultV1Registry
 	}
 	return host
 }
@@ -105,7 +102,7 @@ func normalizeDockerHubHost(host string, v2 bool) string {
 func normalizeRegistryName(name string) (*url.URL, error) {
 	prefix := name
 	if len(prefix) == 0 {
-		prefix = publicV1DockerHubHost
+		prefix = imageapi.DockerDefaultV1Registry
 	}
 	hadPrefix := false
 	switch {
@@ -166,9 +163,9 @@ func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enable
 		isV2 = &v2
 	}
 
-	var transport http.RoundTripper
+	var rt http.RoundTripper
 	if allowInsecure {
-		transport = kutil.SetTransportDefaults(&http.Transport{
+		rt = kutil.SetTransportDefaults(&http.Transport{
 			Dial: (&net.Dialer{
 				Timeout:   dialTimeout,
 				KeepAlive: 30 * time.Second,
@@ -176,7 +173,7 @@ func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enable
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		})
 	} else {
-		transport = kutil.SetTransportDefaults(&http.Transport{
+		rt = kutil.SetTransportDefaults(&http.Transport{
 			Dial: (&net.Dialer{
 				Timeout:   dialTimeout,
 				KeepAlive: 30 * time.Second,
@@ -184,19 +181,10 @@ func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enable
 		})
 	}
 
-	switch {
-	case bool(glog.V(9)):
-		transport = kclient.NewDebuggingRoundTripper(transport, kclient.CurlCommand, kclient.URLTiming, kclient.ResponseHeaders)
-	case bool(glog.V(8)):
-		transport = kclient.NewDebuggingRoundTripper(transport, kclient.JustURL, kclient.RequestHeaders, kclient.ResponseStatus, kclient.ResponseHeaders)
-	case bool(glog.V(7)):
-		transport = kclient.NewDebuggingRoundTripper(transport, kclient.JustURL, kclient.RequestHeaders, kclient.ResponseStatus)
-	case bool(glog.V(6)):
-		transport = kclient.NewDebuggingRoundTripper(transport, kclient.URLTiming)
-	}
+	rt = transport.DebugWrappers(rt)
 
 	jar, _ := cookiejar.New(nil)
-	client := &http.Client{Jar: jar, Transport: transport}
+	client := &http.Client{Jar: jar, Transport: rt}
 	return &connection{
 		url:    url,
 		client: client,
@@ -209,7 +197,7 @@ func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enable
 
 // ImageTags returns the tags for the named Docker image repository.
 func (c *connection) ImageTags(namespace, name string) (map[string]string, error) {
-	if len(namespace) == 0 {
+	if len(namespace) == 0 && imageapi.IsRegistryDockerHub(c.url.Host) {
 		namespace = imageapi.DockerDefaultNamespace
 	}
 	if len(name) == 0 {
@@ -226,7 +214,7 @@ func (c *connection) ImageTags(namespace, name string) (map[string]string, error
 
 // ImageByID returns the specified image within the named Docker image repository
 func (c *connection) ImageByID(namespace, name, imageID string) (*Image, error) {
-	if len(namespace) == 0 {
+	if len(namespace) == 0 && imageapi.IsRegistryDockerHub(c.url.Host) {
 		namespace = imageapi.DockerDefaultNamespace
 	}
 	if len(name) == 0 {
@@ -243,7 +231,7 @@ func (c *connection) ImageByID(namespace, name, imageID string) (*Image, error) 
 
 // ImageByTag returns the specified image within the named Docker image repository
 func (c *connection) ImageByTag(namespace, name, tag string) (*Image, error) {
-	if len(namespace) == 0 {
+	if len(namespace) == 0 && imageapi.IsRegistryDockerHub(c.url.Host) {
 		namespace = imageapi.DockerDefaultNamespace
 	}
 	if len(name) == 0 {

@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -125,16 +126,21 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 
 	o.CertFile = kcmdutil.GetFlagString(cmd, "client-certificate")
 	o.KeyFile = kcmdutil.GetFlagString(cmd, "client-key")
-	o.APIVersion = kcmdutil.GetFlagString(cmd, "api-version")
+	apiVersionString := kcmdutil.GetFlagString(cmd, "api-version")
+	o.APIVersion = unversioned.GroupVersion{}
 
 	// if the API version isn't explicitly passed, use the API version from the default context (same rules as the server above)
-	if len(o.APIVersion) == 0 {
+	if len(apiVersionString) == 0 {
 		if defaultContext, defaultContextExists := o.StartingKubeConfig.Contexts[o.StartingKubeConfig.CurrentContext]; defaultContextExists {
 			if cluster, exists := o.StartingKubeConfig.Clusters[defaultContext.Cluster]; exists {
-				o.APIVersion = cluster.APIVersion
+				apiVersionString = cluster.APIVersion
 			}
 		}
+	}
 
+	o.APIVersion, err = unversioned.ParseGroupVersion(apiVersionString)
+	if err != nil {
+		return err
 	}
 
 	o.CAFile = kcmdutil.GetFlagString(cmd, "certificate-authority")

@@ -1,3 +1,4 @@
+<default-header class="top-header"></default-header>
 <div column flex class="content">
   <div flex class="log-chromeless">
     <alerts alerts="alerts"></alerts>
@@ -9,6 +10,7 @@
         status="pod.status.phase"
         start="pod.status.startTime | date : 'short'"
         chromeless="true"
+        run="logCanRun"
         flex>
     </log-viewer>
   </div>

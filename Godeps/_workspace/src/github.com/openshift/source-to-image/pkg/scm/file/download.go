@@ -21,13 +21,25 @@ func (f *File) Download(config *api.Config) (*api.SourceInfo, error) {
 	config.WorkingSourceDir = targetSourceDir
 
 	if len(config.ContextDir) > 0 {
-		targetSourceDir = filepath.Join(targetSourceDir, config.ContextDir, ".")
+		targetSourceDir = filepath.Join(config.WorkingDir, api.ContextTmp)
 	}
 
 	glog.V(1).Infof("Copying sources from %q to %q", sourceDir, targetSourceDir)
 	err := f.CopyContents(sourceDir, targetSourceDir)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(config.ContextDir) > 0 {
+		originalTargetDir := filepath.Join(config.WorkingDir, api.Source)
+		f.RemoveDirectory(originalTargetDir)
+		// we want to copy entire dir contents, thus we need to use dir/. construct
+		path := filepath.Join(targetSourceDir, config.ContextDir) + string(filepath.Separator) + "."
+		err := f.Copy(path, originalTargetDir)
+		if err != nil {
+			return nil, err
+		}
+		f.RemoveDirectory(targetSourceDir)
 	}
 
 	return &api.SourceInfo{

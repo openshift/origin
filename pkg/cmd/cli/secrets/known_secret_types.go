@@ -16,7 +16,7 @@ func (ks KnownSecretType) Matches(secretContent map[string][]byte) bool {
 	if secretContent == nil {
 		return false
 	}
-	secretKeys := sets.KeySet(reflect.ValueOf(secretContent))
+	secretKeys := sets.StringKeySet(secretContent)
 	return reflect.DeepEqual(ks.RequiredContents.List(), secretKeys.List())
 }
 

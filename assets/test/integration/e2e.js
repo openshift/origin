@@ -1,3 +1,5 @@
+'use strict';
+
 require('jasmine-beforeall');
 var h = require('./helpers.js');
 
@@ -32,7 +34,7 @@ describe('', function() {
       h.login(true);
 
       expect(browser.getTitle()).toEqual("OpenShift Web Console");
-      expect(element(by.css(".navbar-utility .username")).getText()).toEqual("e2e-user");
+      expect(element(by.css(".navbar-iconic .username")).getText()).toEqual("e2e-user");
     });
 
   });

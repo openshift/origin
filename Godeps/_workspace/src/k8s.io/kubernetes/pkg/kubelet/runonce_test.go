@@ -17,13 +17,16 @@ limitations under the License.
 package kubelet
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
-	cadvisorApi "github.com/google/cadvisor/info/v1"
+	cadvisorapi "github.com/google/cadvisor/info/v1"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
+	"k8s.io/kubernetes/pkg/kubelet/cm"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	kubepod "k8s.io/kubernetes/pkg/kubelet/pod"
@@ -32,17 +35,22 @@ import (
 
 func TestRunOnce(t *testing.T) {
 	cadvisor := &cadvisor.Mock{}
-	cadvisor.On("MachineInfo").Return(&cadvisorApi.MachineInfo{}, nil)
+	cadvisor.On("MachineInfo").Return(&cadvisorapi.MachineInfo{}, nil)
 	podManager := kubepod.NewBasicPodManager(kubepod.NewFakeMirrorClient())
 	diskSpaceManager, _ := newDiskSpaceManager(cadvisor, DiskSpacePolicy{})
 	fakeRuntime := &kubecontainer.FakeRuntime{}
-
+	basePath, err := ioutil.TempDir(os.TempDir(), "kubelet")
+	if err != nil {
+		t.Fatalf("can't make a temp rootdir %v", err)
+	}
+	defer os.RemoveAll(basePath)
 	kb := &Kubelet{
-		rootDirectory:       "/tmp/kubelet",
+		rootDirectory:       basePath,
 		recorder:            &record.FakeRecorder{},
 		cadvisor:            cadvisor,
 		nodeLister:          testNodeLister{},
-		statusManager:       status.NewManager(nil),
+		nodeInfo:            testNodeInfo{},
+		statusManager:       status.NewManager(nil, podManager),
 		containerRefManager: kubecontainer.NewRefManager(),
 		podManager:          podManager,
 		os:                  kubecontainer.FakeOS{},
@@ -50,7 +58,7 @@ func TestRunOnce(t *testing.T) {
 		diskSpaceManager:    diskSpaceManager,
 		containerRuntime:    fakeRuntime,
 	}
-	kb.containerManager, _ = newContainerManager(fakeContainerMgrMountInt(), cadvisor, "", "", "")
+	kb.containerManager = cm.NewStubContainerManager()
 
 	kb.networkPlugin, _ = network.InitNetworkPlugin([]network.NetworkPlugin{}, "", network.NewFakeHost(nil))
 	if err := kb.setupDataDirs(); err != nil {

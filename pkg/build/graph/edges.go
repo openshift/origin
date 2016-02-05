@@ -40,6 +40,9 @@ const (
 func AddBuildEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigNode) {
 	for _, n := range g.(graph.Graph).Nodes() {
 		if buildNode, ok := n.(*buildgraph.BuildNode); ok {
+			if buildNode.Build.Namespace != node.BuildConfig.Namespace {
+				continue
+			}
 			if belongsToBuildConfig(node.BuildConfig, buildNode.Build) {
 				g.AddEdge(node, buildNode, BuildEdgeKind)
 			}

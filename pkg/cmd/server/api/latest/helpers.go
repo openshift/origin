@@ -63,6 +63,7 @@ func ReadAndResolveNodeConfig(filename string) (*configapi.NodeConfig, error) {
 	return nodeConfig, nil
 }
 
+// TODO: Remove this when a YAML serializer is available from upstream
 func WriteYAML(obj runtime.Object) ([]byte, error) {
 	json, err := Codec.Encode(obj)
 	if err != nil {
@@ -76,17 +77,26 @@ func WriteYAML(obj runtime.Object) ([]byte, error) {
 	return content, err
 }
 
+// TODO: Remove this when a YAML serializer is available from upstream
+func ReadYAML(data []byte, obj runtime.Object) error {
+	data, err := kyaml.ToJSON(data)
+	if err != nil {
+		return err
+	}
+	err = Codec.DecodeInto(data, obj)
+	return captureSurroundingJSONForError("error reading config: ", data, err)
+}
+
 func ReadYAMLFile(filename string, obj runtime.Object) error {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
 	}
-	data, err = kyaml.ToJSON(data)
+	err = ReadYAML(data, obj)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not load config file %q due to an error: %v", filename, err)
 	}
-	err = Codec.DecodeInto(data, obj)
-	return captureSurroundingJSONForError(fmt.Sprintf("could not load config file %q due to an error: ", filename), data, err)
+	return nil
 }
 
 // TODO: we ultimately want a better decoder for JSON that allows us exact line numbers and better

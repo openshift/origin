@@ -21,45 +21,25 @@ import (
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 )
 
-const DeploymentConfigPath string = "/deploymentconfigs"
-
-// DeploymentConfigStorage contains the REST storage information for both DeploymentConfigs
-// and their Scale subresources.
-type DeploymentConfigStorage struct {
-	DeploymentConfig *REST
-	Scale            *ScaleREST
-}
-
-// NewStorage returns a DeploymentConfigStorage containing the REST storage for
-// DeploymentConfig objects and their Scale subresources.
-func NewStorage(s storage.Interface, rcNamespacer kclient.ReplicationControllersNamespacer) DeploymentConfigStorage {
-	deploymentConfigREST := newREST(s)
-	deploymentConfigRegistry := deployconfig.NewRegistry(deploymentConfigREST)
-	return DeploymentConfigStorage{
-		DeploymentConfig: deploymentConfigREST,
-		Scale: &ScaleREST{
-			registry:     deploymentConfigRegistry,
-			rcNamespacer: rcNamespacer,
-		},
-	}
-}
-
 // REST contains the REST storage for DeploymentConfig objects.
 type REST struct {
 	*etcdgeneric.Etcd
 }
 
-// newREST returns a RESTStorage object that will work against DeploymentConfig objects.
-func newREST(s storage.Interface) *REST {
+// NewStorage returns a DeploymentConfigStorage containing the REST storage for
+// DeploymentConfig objects and their Scale subresources.
+func NewREST(s storage.Interface, rcNamespacer kclient.ReplicationControllersNamespacer) (*REST, *ScaleREST) {
+	prefix := "/deploymentconfigs"
+
 	store := &etcdgeneric.Etcd{
 		NewFunc:      func() runtime.Object { return &api.DeploymentConfig{} },
 		NewListFunc:  func() runtime.Object { return &api.DeploymentConfigList{} },
-		EndpointName: "deploymentConfig",
+		EndpointName: "deploymentconfigs",
 		KeyRootFunc: func(ctx kapi.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, DeploymentConfigPath)
+			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
 		},
 		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, DeploymentConfigPath, id)
+			return etcdgeneric.NamespaceKeyFunc(ctx, prefix, id)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.DeploymentConfig).Name, nil
@@ -74,7 +54,13 @@ func newREST(s storage.Interface) *REST {
 		Storage:             s,
 	}
 
-	return &REST{store}
+	deploymentConfigREST := &REST{store}
+	scaleREST := &ScaleREST{
+		registry:     deployconfig.NewRegistry(deploymentConfigREST),
+		rcNamespacer: rcNamespacer,
+	}
+
+	return deploymentConfigREST, scaleREST
 }
 
 // ScaleREST contains the REST storage for the Scale subresource of DeploymentConfigs.
@@ -131,19 +117,7 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 		return nil, false, errors.NewBadRequest(fmt.Sprintf("wrong object passed to Scale update: %v", obj))
 	}
 
-	// fake an existing object to validate
-	existing := &extensions.Scale{
-		ObjectMeta: kapi.ObjectMeta{
-			Name:              scale.Name,
-			CreationTimestamp: scale.CreationTimestamp,
-		},
-	}
-
-	if existing.Namespace, ok = kapi.NamespaceFrom(ctx); !ok {
-		existing.Namespace = scale.Namespace
-	}
-
-	if errs := extvalidation.ValidateScaleUpdate(scale, existing); len(errs) > 0 {
+	if errs := extvalidation.ValidateScale(scale); len(errs) > 0 {
 		return nil, false, errors.NewInvalid("scale", scale.Name, errs)
 	}
 
@@ -184,8 +158,8 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 }
 
 func (r *ScaleREST) replicasForDeploymentConfig(namespace, configName string) (int, error) {
-	selector := util.ConfigSelector(configName)
-	rcList, err := r.rcNamespacer.ReplicationControllers(namespace).List(selector, fields.Everything())
+	options := kapi.ListOptions{LabelSelector: util.ConfigSelector(configName)}
+	rcList, err := r.rcNamespacer.ReplicationControllers(namespace).List(options)
 	if err != nil {
 		return 0, err
 	}

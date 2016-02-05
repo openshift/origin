@@ -15,6 +15,7 @@ import (
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	kresource "k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -111,7 +112,7 @@ type VolumeOptions struct {
 	Containers    string
 	Confirm       bool
 	Output        string
-	OutputVersion string
+	OutputVersion unversioned.GroupVersion
 
 	// Add op params
 	AddOpts *AddVolumeOptions
@@ -299,7 +300,10 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	if err != nil {
 		return err
 	}
-	v.OutputVersion = kcmdutil.OutputVersion(cmd, clientConfig.Version)
+	v.OutputVersion, err = kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
+	if err != nil {
+		return err
+	}
 	_, kc, err := f.Clients()
 	if err != nil {
 		return err
@@ -370,7 +374,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	// if a claim should be created, generate the info we'll add to the flow
 	if v.Add && v.AddOpts.CreateClaim {
 		claim := v.AddOpts.createClaim()
-		m, err := v.Mapper.RESTMapping("PersistentVolumeClaim")
+		m, err := v.Mapper.RESTMapping(kapi.Kind("PersistentVolumeClaim"))
 		if err != nil {
 			return err
 		}
@@ -424,7 +428,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		return nil
 	}
 
-	objects, err := resource.AsVersionedObject(infos, false, v.OutputVersion)
+	objects, err := resource.AsVersionedObject(infos, false, v.OutputVersion.String())
 	if err != nil {
 		return err
 	}

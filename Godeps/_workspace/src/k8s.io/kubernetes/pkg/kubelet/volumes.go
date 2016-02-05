@@ -93,6 +93,11 @@ func (vh *volumeHost) GetWriter() io.Writer {
 	return vh.kubelet.writer
 }
 
+// Returns the hostname of the host kubelet is running on
+func (vh *volumeHost) GetHostName() string {
+	return vh.kubelet.hostname
+}
+
 func (kl *Kubelet) newVolumeBuilderFromPlugins(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions) (volume.Builder, error) {
 	plugin, err := kl.volumePluginMgr.FindPluginBySpec(spec)
 	if err != nil {
@@ -140,10 +145,15 @@ func (kl *Kubelet) mountExternalVolumes(pod *api.Pod) (kubecontainer.VolumeMap, 
 		if err != nil {
 			return nil, err
 		}
-		if hasFSGroup && builder.SupportsOwnershipManagement() && !builder.IsReadOnly() {
+		if hasFSGroup &&
+			builder.GetAttributes().Managed &&
+			builder.GetAttributes().SupportsOwnershipManagement {
 			err := kl.manageVolumeOwnership(pod, internal, builder, fsGroup)
 			if err != nil {
+				glog.Errorf("Error managing ownership of volume %v for pod %v/%v: %v", internal.Name(), pod.Namespace, pod.Name, err)
 				return nil, err
+			} else {
+				glog.V(3).Infof("Managed ownership of volume %v for pod %v/%v", internal.Name(), pod.Namespace, pod.Name)
 			}
 		}
 		podVolumes[volSpec.Name] = kubecontainer.VolumeInfo{Builder: builder}
@@ -176,8 +186,7 @@ func (kl *Kubelet) getPodVolumes(podUID types.UID) ([]*volumeTuple, error) {
 			if volumeNameDir != nil {
 				volumes = append(volumes, &volumeTuple{Kind: volumeKind, Name: volumeNameDir.Name()})
 			} else {
-				lerr := volumeNameDirsStat[i]
-				glog.Errorf("Could not read directory %s: %v", podVolDir, lerr)
+				glog.Errorf("Could not read directory %s: %v", podVolDir, volumeNameDirsStat[i])
 			}
 		}
 	}

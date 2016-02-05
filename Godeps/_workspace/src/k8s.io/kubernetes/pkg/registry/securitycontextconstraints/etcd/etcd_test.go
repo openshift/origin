@@ -22,12 +22,12 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/tools"
+	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 )
 
-func newStorage(t *testing.T) (*REST, *tools.FakeEtcdClient) {
-	etcdStorage, fakeClient := registrytest.NewEtcdStorage(t, "")
-	return NewStorage(etcdStorage), fakeClient
+func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
+	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
+	return NewStorage(etcdStorage), server
 }
 
 func validNewSecurityContextConstraints(name string) *api.SecurityContextConstraints {
@@ -51,8 +51,9 @@ func validNewSecurityContextConstraints(name string) *api.SecurityContextConstra
 }
 
 func TestCreate(t *testing.T) {
-	storage, fakeClient := newStorage(t)
-	test := registrytest.New(t, fakeClient, storage.Etcd).ClusterScope()
+	storage, server := newStorage(t)
+	defer server.Terminate(t)
+	test := registrytest.New(t, storage.Etcd).ClusterScope()
 	scc := validNewSecurityContextConstraints("foo")
 	scc.ObjectMeta = api.ObjectMeta{GenerateName: "foo-"}
 	test.TestCreate(
@@ -66,8 +67,9 @@ func TestCreate(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	storage, fakeEtcdClient := newStorage(t)
-	test := registrytest.New(t, fakeEtcdClient, storage.Etcd).ClusterScope()
+	storage, server := newStorage(t)
+	defer server.Terminate(t)
+	test := registrytest.New(t, storage.Etcd).ClusterScope()
 	test.TestUpdate(
 		validNewSecurityContextConstraints("foo"),
 		// updateFunc

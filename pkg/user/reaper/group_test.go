@@ -25,7 +25,7 @@ func TestGroupReaper(t *testing.T) {
 			group:   "mygroup",
 			objects: []runtime.Object{},
 			expected: []interface{}{
-				ktestclient.DeleteActionImpl{ktestclient.ActionImpl{Verb: "delete", Resource: "groups"}, "mygroup"},
+				ktestclient.DeleteActionImpl{ActionImpl: ktestclient.ActionImpl{Verb: "delete", Resource: "groups"}, Name: "mygroup"},
 			},
 		},
 		{
@@ -49,12 +49,12 @@ func TestGroupReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				ktestclient.UpdateActionImpl{ktestclient.ActionImpl{Verb: "update", Resource: "clusterrolebindings"}, &authorizationapi.ClusterRoleBinding{
+				ktestclient.UpdateActionImpl{ActionImpl: ktestclient.ActionImpl{Verb: "update", Resource: "clusterrolebindings"}, Object: &authorizationapi.ClusterRoleBinding{
 					ObjectMeta: kapi.ObjectMeta{Name: "binding-one-subject"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				}},
-				ktestclient.DeleteActionImpl{ktestclient.ActionImpl{Verb: "delete", Resource: "groups"}, "mygroup"},
+				ktestclient.DeleteActionImpl{ActionImpl: ktestclient.ActionImpl{Verb: "delete", Resource: "groups"}, Name: "mygroup"},
 			},
 		},
 		{
@@ -78,12 +78,12 @@ func TestGroupReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				ktestclient.UpdateActionImpl{ktestclient.ActionImpl{Verb: "update", Resource: "rolebindings", Namespace: "ns2"}, &authorizationapi.RoleBinding{
+				ktestclient.UpdateActionImpl{ActionImpl: ktestclient.ActionImpl{Verb: "update", Resource: "rolebindings", Namespace: "ns2"}, Object: &authorizationapi.RoleBinding{
 					ObjectMeta: kapi.ObjectMeta{Name: "binding-one-subject", Namespace: "ns2"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				}},
-				ktestclient.DeleteActionImpl{ktestclient.ActionImpl{Verb: "delete", Resource: "groups"}, "mygroup"},
+				ktestclient.DeleteActionImpl{ActionImpl: ktestclient.ActionImpl{Verb: "delete", Resource: "groups"}, Name: "mygroup"},
 			},
 		},
 		{
@@ -105,11 +105,11 @@ func TestGroupReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				ktestclient.UpdateActionImpl{ktestclient.ActionImpl{Verb: "update", Resource: "securitycontextconstraints"}, &kapi.SecurityContextConstraints{
+				ktestclient.UpdateActionImpl{ActionImpl: ktestclient.ActionImpl{Verb: "update", Resource: "securitycontextconstraints"}, Object: &kapi.SecurityContextConstraints{
 					ObjectMeta: kapi.ObjectMeta{Name: "scc-one-subject"},
 					Groups:     []string{},
 				}},
-				ktestclient.DeleteActionImpl{ktestclient.ActionImpl{Verb: "delete", Resource: "groups"}, "mygroup"},
+				ktestclient.DeleteActionImpl{ActionImpl: ktestclient.ActionImpl{Verb: "delete", Resource: "groups"}, Name: "mygroup"},
 			},
 		},
 	}
@@ -130,7 +130,7 @@ func TestGroupReaper(t *testing.T) {
 		ktc.PrependReactor("delete", "*", reactor)
 
 		reaper := NewGroupReaper(tc, tc, tc, ktc)
-		_, err := reaper.Stop("", test.group, 0, nil)
+		err := reaper.Stop("", test.group, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}

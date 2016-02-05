@@ -24,8 +24,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // HTTP Status codes not in the golang http package.
@@ -44,6 +43,12 @@ const (
 // reconstructed by clients from a REST response. Public to allow easy type switches.
 type StatusError struct {
 	ErrStatus unversioned.Status
+}
+
+// APIStatus is exposed by errors that can be converted to an api.Status object
+// for finer grained details.
+type APIStatus interface {
+	Status() unversioned.Status
 }
 
 var _ error = &StatusError{}
@@ -158,17 +163,26 @@ func NewConflict(kind, name string, err error) error {
 	}}
 }
 
+// NewGone returns an error indicating the item no longer available at the server and no forwarding address is known.
+func NewGone(message string) error {
+	return &StatusError{unversioned.Status{
+		Status:  unversioned.StatusFailure,
+		Code:    http.StatusGone,
+		Reason:  unversioned.StatusReasonGone,
+		Message: message,
+	}}
+}
+
 // NewInvalid returns an error indicating the item is invalid and cannot be processed.
-func NewInvalid(kind, name string, errs fielderrors.ValidationErrorList) error {
+func NewInvalid(kind, name string, errs field.ErrorList) error {
 	causes := make([]unversioned.StatusCause, 0, len(errs))
 	for i := range errs {
-		if err, ok := errs[i].(*fielderrors.ValidationError); ok {
-			causes = append(causes, unversioned.StatusCause{
-				Type:    unversioned.CauseType(err.Type),
-				Message: err.ErrorBody(),
-				Field:   err.Field,
-			})
-		}
+		err := errs[i]
+		causes = append(causes, unversioned.StatusCause{
+			Type:    unversioned.CauseType(err.Type),
+			Message: err.ErrorBody(),
+			Field:   err.Field,
+		})
 	}
 	return &StatusError{unversioned.Status{
 		Status: unversioned.StatusFailure,
@@ -179,7 +193,7 @@ func NewInvalid(kind, name string, errs fielderrors.ValidationErrorList) error {
 			Name:   name,
 			Causes: causes,
 		},
-		Message: fmt.Sprintf("%s %q is invalid: %v", kind, name, errors.NewAggregate(errs)),
+		Message: fmt.Sprintf("%s %q is invalid: %v", kind, name, errs.ToAggregate()),
 	}}
 }
 
@@ -226,7 +240,7 @@ func NewServerTimeout(kind, operation string, retryAfterSeconds int) error {
 		Details: &unversioned.StatusDetails{
 			Kind:              kind,
 			Name:              operation,
-			RetryAfterSeconds: retryAfterSeconds,
+			RetryAfterSeconds: int32(retryAfterSeconds),
 		},
 		Message: fmt.Sprintf("The %s operation against %s could not be completed at this time, please try again.", operation, kind),
 	}}
@@ -254,7 +268,7 @@ func NewTimeoutError(message string, retryAfterSeconds int) error {
 		Reason:  unversioned.StatusReasonTimeout,
 		Message: fmt.Sprintf("Timeout: %s", message),
 		Details: &unversioned.StatusDetails{
-			RetryAfterSeconds: retryAfterSeconds,
+			RetryAfterSeconds: int32(retryAfterSeconds),
 		},
 	}}
 }
@@ -320,14 +334,14 @@ func NewGenericServerResponse(code int, verb, kind, name, serverMessage string, 
 	}
 	return &StatusError{unversioned.Status{
 		Status: unversioned.StatusFailure,
-		Code:   code,
+		Code:   int32(code),
 		Reason: reason,
 		Details: &unversioned.StatusDetails{
 			Kind: kind,
 			Name: name,
 
 			Causes:            causes,
-			RetryAfterSeconds: retryAfterSeconds,
+			RetryAfterSeconds: int32(retryAfterSeconds),
 		},
 		Message: message,
 	}}
@@ -386,7 +400,7 @@ func IsServerTimeout(err error) bool {
 // and may be the result of another HTTP actor.
 func IsUnexpectedServerError(err error) bool {
 	switch t := err.(type) {
-	case *StatusError:
+	case APIStatus:
 		if d := t.Status().Details; d != nil {
 			for _, cause := range d.Causes {
 				if cause.Type == unversioned.CauseTypeUnexpectedServerResponse {
@@ -408,11 +422,11 @@ func IsUnexpectedObjectError(err error) bool {
 // suggested seconds to wait, or false if the error does not imply a wait.
 func SuggestsClientDelay(err error) (int, bool) {
 	switch t := err.(type) {
-	case *StatusError:
+	case APIStatus:
 		if t.Status().Details != nil {
 			switch t.Status().Reason {
 			case unversioned.StatusReasonServerTimeout, unversioned.StatusReasonTimeout:
-				return t.Status().Details.RetryAfterSeconds, true
+				return int(t.Status().Details.RetryAfterSeconds), true
 			}
 		}
 	}
@@ -421,8 +435,8 @@ func SuggestsClientDelay(err error) (int, bool) {
 
 func reasonForError(err error) unversioned.StatusReason {
 	switch t := err.(type) {
-	case *StatusError:
-		return t.ErrStatus.Reason
+	case APIStatus:
+		return t.Status().Reason
 	}
 	return unversioned.StatusReasonUnknown
 }

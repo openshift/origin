@@ -29,29 +29,31 @@ import (
 )
 
 const (
-	testImageRootUid    = "gcr.io/google_containers/mounttest:0.4"
-	testImageNonRootUid = "gcr.io/google_containers/mounttest-user:0.2"
+	testImageRootUid    = "gcr.io/google_containers/mounttest:0.5"
+	testImageNonRootUid = "gcr.io/google_containers/mounttest-user:0.3"
 )
 
 var _ = Describe("EmptyDir volumes", func() {
 
 	f := NewFramework("emptydir")
 
-	// TODO: Enable security context everywhere and remove skip for FSGroup
-	It("new files should be created with FSGroup ownership when container is root [Conformance] [Skipped]", func() {
-		doTestSetgidFSGroup(f, testImageRootUid, api.StorageMediumMemory)
-	})
+	// TODO: Remove [Skipped] when security context is enabled everywhere
+	Context("when FSGroup is specified [Skipped]", func() {
+		It("new files should be created with FSGroup ownership when container is root [Conformance]", func() {
+			doTestSetgidFSGroup(f, testImageRootUid, api.StorageMediumMemory)
+		})
 
-	It("new files should be created with FSGroup ownership when container is non-root [Conformance] [Skipped]", func() {
-		doTestSetgidFSGroup(f, testImageNonRootUid, api.StorageMediumMemory)
-	})
+		It("new files should be created with FSGroup ownership when container is non-root [Conformance]", func() {
+			doTestSetgidFSGroup(f, testImageNonRootUid, api.StorageMediumMemory)
+		})
 
-	It("volume on default medium should have the correct mode using FSGroup [Conformance] [Skipped]", func() {
-		doTestVolumeModeFSGroup(f, testImageRootUid, api.StorageMediumDefault)
-	})
+		It("volume on default medium should have the correct mode using FSGroup [Conformance]", func() {
+			doTestVolumeModeFSGroup(f, testImageRootUid, api.StorageMediumDefault)
+		})
 
-	It("volume on tmpfs should have the correct mode using FSGroup [Conformance] [Skipped]", func() {
-		doTestVolumeModeFSGroup(f, testImageRootUid, api.StorageMediumMemory)
+		It("volume on tmpfs should have the correct mode using FSGroup [Conformance]", func() {
+			doTestVolumeModeFSGroup(f, testImageRootUid, api.StorageMediumMemory)
+		})
 	})
 
 	It("volume on tmpfs should have the correct mode [Conformance]", func() {
@@ -311,7 +313,7 @@ func testPodWithVolume(image, path string, source *api.EmptyDirVolumeSource) *ap
 	return &api.Pod{
 		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Pod",
-			APIVersion: latest.GroupOrDie("").Version,
+			APIVersion: latest.GroupOrDie("").GroupVersion.Version,
 		},
 		ObjectMeta: api.ObjectMeta{
 			Name: podName,

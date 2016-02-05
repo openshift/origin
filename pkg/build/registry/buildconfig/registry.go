@@ -4,15 +4,14 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
 // Registry is an interface for things that know how to store BuildConfigs.
 type Registry interface {
 	// ListBuildConfigs obtains list of buildConfigs that match a selector.
-	ListBuildConfigs(ctx kapi.Context, labels labels.Selector, field fields.Selector) (*api.BuildConfigList, error)
+	ListBuildConfigs(ctx kapi.Context, options *unversioned.ListOptions) (*api.BuildConfigList, error)
 	// GetBuildConfig retrieves a specific buildConfig.
 	GetBuildConfig(ctx kapi.Context, id string) (*api.BuildConfig, error)
 	// CreateBuildConfig creates a new buildConfig.
@@ -22,7 +21,7 @@ type Registry interface {
 	// DeleteBuildConfig deletes a buildConfig.
 	DeleteBuildConfig(ctx kapi.Context, id string) error
 	// WatchBuildConfigs watches buildConfigs.
-	WatchBuildConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	WatchBuildConfigs(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error)
 }
 
 // storage puts strong typing around storage calls
@@ -36,16 +35,16 @@ func NewRegistry(s rest.StandardStorage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListBuildConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector) (*api.BuildConfigList, error) {
-	obj, err := s.List(ctx, label, field)
+func (s *storage) ListBuildConfigs(ctx kapi.Context, options *unversioned.ListOptions) (*api.BuildConfigList, error) {
+	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*api.BuildConfigList), nil
 }
 
-func (s *storage) WatchBuildConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return s.Watch(ctx, label, field, resourceVersion)
+func (s *storage) WatchBuildConfigs(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+	return s.Watch(ctx, options)
 }
 
 func (s *storage) GetBuildConfig(ctx kapi.Context, name string) (*api.BuildConfig, error) {

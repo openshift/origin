@@ -31,7 +31,7 @@ func NewPrintNameOrErrorAfterIndent(mapper meta.RESTMapper, short bool, operatio
 	return func(info *resource.Info, err error) bool {
 		if err == nil {
 			fmt.Fprintf(out, indent)
-			cmdutil.PrintSuccess(mapper, short, out, info.Mapping.Kind, info.Name, operation)
+			cmdutil.PrintSuccess(mapper, short, out, info.Mapping.Resource, info.Name, operation)
 		} else {
 			fmt.Fprintf(errs, "%serror: %v\n", indent, err)
 		}

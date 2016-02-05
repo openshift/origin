@@ -97,6 +97,8 @@ func (plugin *iscsiPlugin) newBuilderInternal(spec *volume.Spec, podUID types.UI
 	lun := strconv.Itoa(iscsi.Lun)
 	portal := portalBuilder(iscsi.TargetPortal)
 
+	iface := iscsi.ISCSIInterface
+
 	return &iscsiDiskBuilder{
 		iscsiDisk: &iscsiDisk{
 			podUID:  podUID,
@@ -104,11 +106,12 @@ func (plugin *iscsiPlugin) newBuilderInternal(spec *volume.Spec, podUID types.UI
 			portal:  portal,
 			iqn:     iscsi.IQN,
 			lun:     lun,
+			iface:   iface,
 			manager: manager,
-			mounter: &mount.SafeFormatAndMount{mounter, exec.New()},
 			plugin:  plugin},
 		fsType:   iscsi.FSType,
 		readOnly: readOnly,
+		mounter:  &mount.SafeFormatAndMount{mounter, exec.New()},
 	}, nil
 }
 
@@ -118,13 +121,15 @@ func (plugin *iscsiPlugin) NewCleaner(volName string, podUID types.UID) (volume.
 }
 
 func (plugin *iscsiPlugin) newCleanerInternal(volName string, podUID types.UID, manager diskManager, mounter mount.Interface) (volume.Cleaner, error) {
-	return &iscsiDiskCleaner{&iscsiDisk{
-		podUID:  podUID,
-		volName: volName,
-		manager: manager,
+	return &iscsiDiskCleaner{
+		iscsiDisk: &iscsiDisk{
+			podUID:  podUID,
+			volName: volName,
+			manager: manager,
+			plugin:  plugin,
+		},
 		mounter: mounter,
-		plugin:  plugin,
-	}}, nil
+	}, nil
 }
 
 func (plugin *iscsiPlugin) execCommand(command string, args []string) ([]byte, error) {
@@ -138,10 +143,11 @@ type iscsiDisk struct {
 	portal  string
 	iqn     string
 	lun     string
+	iface   string
 	plugin  *iscsiPlugin
-	mounter mount.Interface
 	// Utility interface that provides API calls to the provider to attach/detach disks.
 	manager diskManager
+	volume.MetricsNil
 }
 
 func (iscsi *iscsiDisk) GetPath() string {
@@ -154,12 +160,18 @@ type iscsiDiskBuilder struct {
 	*iscsiDisk
 	readOnly bool
 	fsType   string
+	mounter  *mount.SafeFormatAndMount
 }
 
 var _ volume.Builder = &iscsiDiskBuilder{}
 
-func (_ *iscsiDiskBuilder) SupportsOwnershipManagement() bool {
-	return true
+func (b *iscsiDiskBuilder) GetAttributes() volume.Attributes {
+	return volume.Attributes{
+		ReadOnly:                    b.readOnly,
+		Managed:                     !b.readOnly,
+		SupportsOwnershipManagement: true,
+		SupportsSELinux:             true,
+	}
 }
 
 func (b *iscsiDiskBuilder) SetUp() error {
@@ -177,17 +189,10 @@ func (b *iscsiDiskBuilder) SetUpAt(dir string) error {
 
 type iscsiDiskCleaner struct {
 	*iscsiDisk
+	mounter mount.Interface
 }
 
 var _ volume.Cleaner = &iscsiDiskCleaner{}
-
-func (b *iscsiDiskBuilder) IsReadOnly() bool {
-	return b.readOnly
-}
-
-func (b *iscsiDiskBuilder) SupportsSELinux() bool {
-	return true
-}
 
 // Unmounts the bind mount, and detaches the disk only if the disk
 // resource was the last reference to that disk on the kubelet.

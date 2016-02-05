@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -53,7 +54,7 @@ func TestMeasureContentLengthJsonNotPretty(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
 	resp := Response{httpWriter, "*/*", []string{"*/*"}, 0, 0, false, nil}
 	resp.WriteAsJson(food{"apple"})
-	if resp.ContentLength() != 16 {
+	if resp.ContentLength() != 17 { // 16+1 using the Encoder directly yields another /n
 		t.Errorf("Incorrect measured length:%d", resp.ContentLength())
 	}
 }
@@ -76,13 +77,13 @@ func TestStatusIsPassedToResponse(t *testing.T) {
 		{write: 204, read: 204},
 		{write: 304, read: 304},
 		{write: 200, read: 200},
-		{write: 400, read: 200},
+		{write: 400, read: 400},
 	} {
 		httpWriter := httptest.NewRecorder()
 		resp := Response{httpWriter, "*/*", []string{"*/*"}, 0, 0, true, nil}
 		resp.WriteHeader(each.write)
 		if got, want := httpWriter.Code, each.read; got != want {
-			t.Error("got %v want %v", got, want)
+			t.Errorf("got %v want %v", got, want)
 		}
 	}
 }
@@ -172,5 +173,32 @@ func TestStatusCreatedAndContentTypeJson_Issue163(t *testing.T) {
 	resp.WriteHeader(http.StatusNotModified)
 	if httpWriter.Code != http.StatusNotModified {
 		t.Errorf("Got %d want %d", httpWriter.Code, http.StatusNotModified)
+	}
+}
+
+func TestWriteHeaderAndEntity_Issue235(t *testing.T) {
+	httpWriter := httptest.NewRecorder()
+	resp := Response{httpWriter, "application/json", []string{"application/json"}, 0, 0, true, nil}
+	var pong = struct {
+		Foo string `json:"foo"`
+	}{Foo: "123"}
+	resp.WriteHeaderAndEntity(404, pong)
+	if httpWriter.Code != http.StatusNotFound {
+		t.Errorf("got %d want %d", httpWriter.Code, http.StatusNoContent)
+	}
+	if got, want := httpWriter.Header().Get("Content-Type"), "application/json"; got != want {
+		t.Errorf("got %v want %v", got, want)
+	}
+	if !strings.HasPrefix(httpWriter.Body.String(), "{") {
+		t.Errorf("expected pong struct in json:%s", httpWriter.Body.String())
+	}
+}
+
+func TestWriteEntityNotAcceptable(t *testing.T) {
+	httpWriter := httptest.NewRecorder()
+	resp := Response{httpWriter, "application/bogus", []string{"application/json"}, 0, 0, true, nil}
+	resp.WriteEntity("done")
+	if httpWriter.Code != http.StatusNotAcceptable {
+		t.Errorf("got %d want %d", httpWriter.Code, http.StatusNotAcceptable)
 	}
 }

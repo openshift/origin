@@ -1,9 +1,12 @@
 package registry
 
 import (
+	cryptorand "crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -13,7 +16,7 @@ import (
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -38,6 +41,9 @@ is configured to accept configuration as environment variables - refer to the co
 that image for more on setting up alternative storage. Once you've made those changes, you can
 pass --replicas=2 or higher to ensure you have failover protection. The default registry setup
 uses a local volume and the data will be lost if you delete the running pod.
+
+If multiple ports are specified using the option --ports, the first specified port will be
+chosen for use as the REGISTRY_HTTP_ADDR and will be passed to Docker registry.
 
 NOTE: This command is intended to simplify the tasks of setting up a Docker registry in a new
   installation. Some configuration beyond this command is still required to make
@@ -72,9 +78,23 @@ type RegistryConfig struct {
 	// TODO: accept environment values.
 }
 
+// randomSecretSize is the number of random bytes to generate.
+const randomSecretSize = 32
+
 var errExit = fmt.Errorf("exit")
 
-const defaultLabel = "docker-registry=default"
+const (
+	defaultLabel = "docker-registry=default"
+	defaultPort  = 5000
+	/* TODO: `/healthz` has been deprecated by `/`; keep it temporarily for backwards compatibility until
+	 * a next major release with a strict requirement on newer registry image
+	 * NOTE that `/` is supported since ose `v3.1.1.0`
+	 * To make the transition safe, we could change `HTTPGetAction` to an `ExecAction` which would first curl
+	 * `/` and then fallback to `/healthz` if unreachable. Reachable endpoint could be cached on tmpfs inside
+	 * a container and be used on subsequent checks. */
+	healthzRoute               = "/healthz"
+	healthzRouteTimeoutSeconds = 5
+)
 
 // NewCmdRegistry implements the OpenShift cli registry command
 func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
@@ -82,7 +102,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 		ImageTemplate: variable.NewDefaultImageTemplate(),
 
 		Labels:   defaultLabel,
-		Ports:    "5000",
+		Ports:    strconv.Itoa(defaultPort),
 		Volume:   "/registry",
 		Replicas: 1,
 	}
@@ -105,7 +125,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 	cmd.Flags().StringVar(&cfg.Type, "type", "docker-registry", "The registry image to use - if you specify --images this flag may be ignored.")
 	cmd.Flags().StringVar(&cfg.ImageTemplate.Format, "images", cfg.ImageTemplate.Format, "The image to base this registry on - ${component} will be replaced with --type")
 	cmd.Flags().BoolVar(&cfg.ImageTemplate.Latest, "latest-images", cfg.ImageTemplate.Latest, "If true, attempt to use the latest image for the registry instead of the latest release.")
-	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs to expose on the registry pod. The default is set for 5000.")
+	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, fmt.Sprintf("A comma delimited list of ports or port pairs to expose on the registry pod. The default is set for %d.", defaultPort))
 	cmd.Flags().IntVar(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the registry; commonly 2 when high availability is desired.")
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the registry and its components.")
 	cmd.Flags().StringVar(&cfg.Volume, "volume", cfg.Volume, "The volume path to use for registry storage; defaults to /registry which is the default for origin-docker-registry.")
@@ -230,6 +250,21 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 			"OPENSHIFT_INSECURE":  insecure,
 		}
 
+		healthzPort := defaultPort
+		if len(ports) > 0 {
+			healthzPort = ports[0].ContainerPort
+			env["REGISTRY_HTTP_ADDR"] = fmt.Sprintf(":%d", healthzPort)
+			env["REGISTRY_HTTP_NET"] = "tcp"
+		}
+		livenessProbe := generateLivenessProbeConfig(healthzPort)
+		readinessProbe := generateReadinessProbeConfig(healthzPort)
+
+		secretBytes := make([]byte, randomSecretSize)
+		if _, err := cryptorand.Read(secretBytes); err != nil {
+			return fmt.Errorf("registry does not exist; could not generate random bytes for HTTP secret: %v", err)
+		}
+		env["REGISTRY_HTTP_SECRET"] = base64.StdEncoding.EncodeToString(secretBytes)
+
 		mountHost := len(cfg.HostMount) > 0
 		podTemplate := &kapi.PodTemplateSpec{
 			ObjectMeta: kapi.ObjectMeta{Labels: label},
@@ -251,17 +286,8 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 						SecurityContext: &kapi.SecurityContext{
 							Privileged: &mountHost,
 						},
-						LivenessProbe: &kapi.Probe{
-							InitialDelaySeconds: 3,
-							TimeoutSeconds:      5,
-							Handler: kapi.Handler{
-								HTTPGet: &kapi.HTTPGetAction{
-									// TODO: `/healthz` route is deprecated by `/`; remove it in future version
-									Path: "/healthz",
-									Port: kutil.NewIntOrStringFromInt(ports[0].ContainerPort),
-								},
-							},
-						},
+						LivenessProbe:  livenessProbe,
+						ReadinessProbe: readinessProbe,
 					},
 				},
 				Volumes: []kapi.Volume{
@@ -332,4 +358,29 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 
 	fmt.Fprintf(out, "Docker registry %q service exists\n", name)
 	return nil
+}
+
+func generateLivenessProbeConfig(port int) *kapi.Probe {
+	return &kapi.Probe{
+		InitialDelaySeconds: 10,
+		TimeoutSeconds:      healthzRouteTimeoutSeconds,
+		Handler: kapi.Handler{
+			HTTPGet: &kapi.HTTPGetAction{
+				Path: healthzRoute,
+				Port: intstr.FromInt(port),
+			},
+		},
+	}
+}
+
+func generateReadinessProbeConfig(port int) *kapi.Probe {
+	return &kapi.Probe{
+		TimeoutSeconds: healthzRouteTimeoutSeconds,
+		Handler: kapi.Handler{
+			HTTPGet: &kapi.HTTPGetAction{
+				Path: healthzRoute,
+				Port: intstr.FromInt(port),
+			},
+		},
+	}
 }

@@ -12,8 +12,8 @@ import (
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 type fakeUser struct {
@@ -133,7 +133,7 @@ func TestTagVerifier(t *testing.T) {
 		sarError   error
 		sarAllowed bool
 		expectSar  bool
-		expected   fielderrors.ValidationErrorList
+		expected   field.ErrorList
 	}{
 		"old nil, no tags": {},
 		"old nil, all tags are new": {
@@ -202,8 +202,8 @@ func TestTagVerifier(t *testing.T) {
 					},
 				},
 			},
-			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldInvalid("spec.tags[latest].from.name", "a:b:c", "must be of the form <tag>, <repo>:<tag>, <id>, or <repo>@<id>"),
+			expected: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "tags").Key("latest").Child("from", "name"), "a:b:c", "must be of the form <tag>, <repo>:<tag>, <id>, or <repo>@<id>"),
 			},
 		},
 		"sar error": {
@@ -218,8 +218,8 @@ func TestTagVerifier(t *testing.T) {
 			},
 			expectSar: true,
 			sarError:  errors.New("foo"),
-			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldForbidden("spec.tags[latest].from", "otherns/otherstream"),
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "tags").Key("latest").Child("from"), "otherns/otherstream"),
 			},
 		},
 		"sar denied": {
@@ -234,8 +234,8 @@ func TestTagVerifier(t *testing.T) {
 			},
 			expectSar:  true,
 			sarAllowed: false,
-			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldForbidden("spec.tags[latest].from", "otherns/otherstream"),
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "tags").Key("latest").Child("from"), "otherns/otherstream"),
 			},
 		},
 		"ref changed": {

@@ -113,6 +113,17 @@ func init() {
 				obj.BindNetwork = "tcp4"
 			}
 		},
+		func(obj *ImagePolicyConfig) {
+			if obj.MaxImagesBulkImportedPerRepository == 0 {
+				obj.MaxImagesBulkImportedPerRepository = 5
+			}
+			if obj.MaxScheduledImageImportsPerMinute == 0 {
+				obj.MaxScheduledImageImportsPerMinute = 60
+			}
+			if obj.ScheduledImageImportMinimumIntervalSeconds == 0 {
+				obj.ScheduledImageImportMinimumIntervalSeconds = 15 * 60
+			}
+		},
 		func(obj *DNSConfig) {
 			if len(obj.BindNetwork) == 0 {
 				obj.BindNetwork = "tcp4"

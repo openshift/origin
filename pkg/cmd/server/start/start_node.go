@@ -37,10 +37,10 @@ Start a node
 
 This command helps you launch a node.  Running
 
-  $ %[1]s start node --master=<masterIP>
+  $ %[1]s start node --config=<node-config>
 
-will start a node that attempts to connect to the master on the provided IP. The
-node will run in the foreground until you terminate the process.`
+will start a node with given configuration file. The node will run in the
+foreground until you terminate the process.`
 
 // NewCommandStartNode provides a CLI handler for 'start node' command
 func NewCommandStartNode(basename string, out io.Writer) (*cobra.Command, *NodeOptions) {
@@ -163,7 +163,7 @@ func (o NodeOptions) RunNode() error {
 		return err
 	}
 
-	validationResults := validation.ValidateNodeConfig(nodeConfig)
+	validationResults := validation.ValidateNodeConfig(nodeConfig, nil)
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
 			glog.Warningf("%v", warning)

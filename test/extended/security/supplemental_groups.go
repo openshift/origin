@@ -34,10 +34,12 @@ var _ = g.Describe("security: supplemental groups", func() {
 			o.Expect(err).NotTo(o.HaveOccurred(), "error getting docker environment")
 			version := env.Get("Version")
 			supports, err, requiredVersion := supportsSupplementalGroups(version)
-			o.Expect(err).NotTo(o.HaveOccurred())
 
-			if !supports {
+			if !supports || err != nil {
 				msg := fmt.Sprintf("skipping supplemental groups test, docker version %s does not meet required version %s", version, requiredVersion)
+				if err != nil {
+					msg = fmt.Sprintf("%s - encountered error: %v", msg, err)
+				}
 				g.Skip(msg)
 			}
 

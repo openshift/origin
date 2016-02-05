@@ -1,10 +1,45 @@
 package swagger
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/swagger/test_package"
 )
+
+func TestInfoStruct_Issue231(t *testing.T) {
+	config := Config{
+		Info: Info{
+			Title:             "Title",
+			Description:       "Description",
+			TermsOfServiceUrl: "http://example.com",
+			Contact:           "example@example.com",
+			License:           "License",
+			LicenseUrl:        "http://example.com/license.txt",
+		},
+	}
+	sws := newSwaggerService(config)
+	str, err := json.MarshalIndent(sws.produceListing(), "", "    ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	compareJson(t, string(str), `
+	{
+		"apiVersion": "",
+		"swaggerVersion": "1.2",
+		"apis": null,
+		"info": {
+			"title": "Title",
+			"description": "Description",
+			"termsOfServiceUrl": "http://example.com",
+			"contact": "example@example.com",
+			"license": "License",
+			"licenseUrl": "http://example.com/license.txt"
+		}
+	}
+	`)
+}
 
 // go test -v -test.run TestThatMultiplePathsOnRootAreHandled ...swagger
 func TestThatMultiplePathsOnRootAreHandled(t *testing.T) {
@@ -22,6 +57,104 @@ func TestThatMultiplePathsOnRootAreHandled(t *testing.T) {
 	if got, want := len(decl.Apis), 2; got != want {
 		t.Errorf("got %v want %v", got, want)
 	}
+}
+
+func TestWriteSamples(t *testing.T) {
+	ws1 := new(restful.WebService)
+	ws1.Route(ws1.GET("/object").To(dummy).Writes(test_package.TestStruct{}))
+	ws1.Route(ws1.GET("/array").To(dummy).Writes([]test_package.TestStruct{}))
+	ws1.Route(ws1.GET("/object_and_array").To(dummy).Writes(struct{ Abc test_package.TestStruct }{}))
+
+	cfg := Config{
+		WebServicesUrl: "http://here.com",
+		ApiPath:        "/apipath",
+		WebServices:    []*restful.WebService{ws1},
+	}
+	sws := newSwaggerService(cfg)
+
+	decl := sws.composeDeclaration(ws1, "/")
+
+	str, err := json.MarshalIndent(decl.Apis, "", "    ")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	compareJson(t, string(str), `
+	[
+		{
+			"path": "/object",
+			"description": "",
+			"operations": [
+				{
+					"type": "test_package.TestStruct",
+					"method": "GET",
+					"nickname": "dummy",
+					"parameters": []
+				}
+			]
+		},
+		{
+			"path": "/array",
+			"description": "",
+			"operations": [
+				{
+					"type": "array",
+					"items": {
+						"$ref": "test_package.TestStruct"
+					},
+					"method": "GET",
+					"nickname": "dummy",
+					"parameters": []
+				}
+			]
+		},
+		{
+			"path": "/object_and_array",
+			"description": "",
+			"operations": [
+				{
+					"type": "struct { Abc test_package.TestStruct }",
+					"method": "GET",
+					"nickname": "dummy",
+					"parameters": []
+				}
+			]
+		}
+    ]`)
+
+	str, err = json.MarshalIndent(decl.Models, "", "    ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	compareJson(t, string(str), `
+	{
+		"test_package.TestStruct": {
+			"id": "test_package.TestStruct",
+			"required": [
+				"TestField"
+			],
+			"properties": {
+				"TestField": {
+					"type": "string"
+				}
+			}
+		},
+		"||test_package.TestStruct": {
+			"id": "||test_package.TestStruct",
+			"properties": {}
+		},
+		"struct { Abc test_package.TestStruct }": {
+			"id": "struct { Abc test_package.TestStruct }",
+			"required": [
+				"Abc"
+			],
+			"properties": {
+				"Abc": {
+					"$ref": "test_package.TestStruct"
+				}
+			}
+		}
+    }`)
 }
 
 // go test -v -test.run TestServiceToApi ...swagger
@@ -65,6 +198,7 @@ func TestServiceToApi(t *testing.T) {
 			pathOrder += other.Method
 		}
 	}
+
 	if pathOrder != "/tests/aGETDELETE/tests/bPUTPOST/tests/cPOSTPUT/tests/dDELETEGET" {
 		t.Errorf("got %v want %v", pathOrder, "see test source")
 	}

@@ -10,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -74,7 +73,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 
 	// Find all deployments owned by the deploymentConfig.
 	sel := deployutil.ConfigSelector(config.Name)
-	existingDeployments, err := c.kubeClient.ReplicationControllers(config.Namespace).List(sel, fields.Everything())
+	existingDeployments, err := c.kubeClient.ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: sel})
 	if err != nil {
 		return err
 	}
@@ -96,9 +95,9 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 				deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
 				_, err := c.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
 				if err != nil {
-					c.recorder.Eventf(config, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.Status.LatestVersion, err)
+					c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.Status.LatestVersion, err)
 				} else {
-					c.recorder.Eventf(config, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.Status.LatestVersion)
+					c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.Status.LatestVersion)
 				}
 			}
 		}
@@ -106,7 +105,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	// Wait for deployment cancellations before reconciling or creating a new
 	// deployment to avoid competing with existing deployment processes.
 	if awaitingCancellations {
-		c.recorder.Eventf(config, "DeploymentAwaitingCancellation", "Deployment of version %d awaiting cancellation of older running deployments", config.Status.LatestVersion)
+		c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentAwaitingCancellation", "Deployment of version %d awaiting cancellation of older running deployments", config.Status.LatestVersion)
 		// raise a transientError so that the deployment config can be re-queued
 		return transientError(fmt.Sprintf("found previous inflight deployment for %s - requeuing", deployutil.LabelForDeploymentConfig(config)))
 	}
@@ -133,10 +132,10 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		if errors.IsAlreadyExists(err) {
 			return nil
 		}
-		c.recorder.Eventf(config, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
+		c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
-	c.recorder.Eventf(config, "DeploymentCreated", "Created new deployment %q for version %d", created.Name, config.Status.LatestVersion)
+	c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCreated", "Created new deployment %q for version %d", created.Name, config.Status.LatestVersion)
 	return nil
 }
 
@@ -206,10 +205,18 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 		activeReplicas = latestDesiredReplicas
 		source = fmt.Sprintf("the desired replicas of latest deployment %q with no active deployment", deployutil.LabelForDeployment(latestDeployment))
 	}
+
 	// Bring the config in sync with the deployment. Once we know the config
 	// accurately represents the desired replica count of the active deployment,
 	// we can safely reconcile deployments.
-	if config.Spec.Replicas != activeReplicas {
+	//
+	// If the deployment config is test, never update the deployment config based
+	// on deployments, since test behavior overrides user scaling.
+	switch {
+	case config.Spec.Replicas == activeReplicas:
+	case config.Spec.Test:
+		glog.V(4).Infof("Detected changed replicas for test deploymentConfig %q, ignoring that change", deployutil.LabelForDeploymentConfig(config))
+	default:
 		oldReplicas := config.Spec.Replicas
 		config.Spec.Replicas = activeReplicas
 		_, err := c.osClient.DeploymentConfigs(config.Namespace).Update(config)
@@ -218,6 +225,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 		}
 		glog.V(4).Infof("Synced deploymentConfig %q replicas from %d to %d based on %s", deployutil.LabelForDeploymentConfig(config), oldReplicas, activeReplicas, source)
 	}
+
 	// Reconcile deployments. The active deployment follows the config, and all
 	// other deployments should be scaled to zero.
 	for _, deployment := range existingDeployments.Items {
@@ -228,6 +236,10 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 		if isActiveDeployment {
 			newReplicaCount = activeReplicas
 		}
+		if config.Spec.Test {
+			glog.V(4).Infof("Deployment config %q is test and deployment %q will be scaled down", deployutil.LabelForDeploymentConfig(config), deployutil.LabelForDeployment(&deployment))
+			newReplicaCount = 0
+		}
 		lastReplicas, hasLastReplicas := deployutil.DeploymentReplicas(&deployment)
 		// Only update if necessary.
 		if !hasLastReplicas || newReplicaCount != oldReplicaCount || lastReplicas != newReplicaCount {
@@ -235,13 +247,13 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 			deployment.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(newReplicaCount)
 			_, err := c.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
 			if err != nil {
-				c.recorder.Eventf(config, "DeploymentScaleFailed",
+				c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentScaleFailed",
 					"Failed to scale deployment %q from %d to %d: %s", deployment.Name, oldReplicaCount, newReplicaCount, err)
 				return err
 			}
 			// Only report scaling events if we changed the replica count.
 			if oldReplicaCount != newReplicaCount {
-				c.recorder.Eventf(config, "DeploymentScaled",
+				c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentScaled",
 					"Scaled deployment %q from %d to %d", deployment.Name, oldReplicaCount, newReplicaCount)
 			} else {
 				glog.V(4).Infof("Updated deployment %q replica annotation to match current replica count %d", deployutil.LabelForDeployment(&deployment), newReplicaCount)

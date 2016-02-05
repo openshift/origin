@@ -20,7 +20,7 @@ $EXAMPLES_ROOT/image-streams/image-streams-centos*"
 
 for f in $TEMPLATES
 do
-  openshift cli create -f $f --namespace=openshift  
+  oc create -f $f --namespace=openshift
 done
 
 echo "Done"

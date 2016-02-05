@@ -34,8 +34,8 @@ package proto_test
 import (
 	"testing"
 
-	pb "./testdata"
 	. "github.com/golang/protobuf/proto"
+	pb "github.com/golang/protobuf/proto/testdata"
 )
 
 // Four identical base messages.
@@ -178,6 +178,24 @@ var EqualTests = []struct {
 		"map different value only",
 		&pb.MessageWithMap{NameMapping: map[int32]string{1: "Ken"}},
 		&pb.MessageWithMap{NameMapping: map[int32]string{1: "Rob"}},
+		false,
+	},
+	{
+		"oneof same",
+		&pb.Communique{Union: &pb.Communique_Number{41}},
+		&pb.Communique{Union: &pb.Communique_Number{41}},
+		true,
+	},
+	{
+		"oneof one nil",
+		&pb.Communique{Union: &pb.Communique_Number{41}},
+		&pb.Communique{},
+		false,
+	},
+	{
+		"oneof different",
+		&pb.Communique{Union: &pb.Communique_Number{41}},
+		&pb.Communique{Union: &pb.Communique_Name{"Bobby Tables"}},
 		false,
 	},
 }

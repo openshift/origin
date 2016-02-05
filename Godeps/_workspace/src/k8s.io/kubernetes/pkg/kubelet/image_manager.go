@@ -76,6 +76,9 @@ type realImageManager struct {
 
 	// Reference to this node.
 	nodeRef *api.ObjectReference
+
+	// Track initialization
+	initialized bool
 }
 
 // Information about the images we track.
@@ -98,6 +101,9 @@ func newImageManager(runtime container.Runtime, cadvisorInterface cadvisor.Inter
 	if policy.LowThresholdPercent < 0 || policy.LowThresholdPercent > 100 {
 		return nil, fmt.Errorf("invalid LowThresholdPercent %d, must be in range [0-100]", policy.LowThresholdPercent)
 	}
+	if policy.LowThresholdPercent > policy.HighThresholdPercent {
+		return nil, fmt.Errorf("LowThresholdPercent %d can not be higher than HighThresholdPercent %d", policy.LowThresholdPercent, policy.HighThresholdPercent)
+	}
 	im := &realImageManager{
 		runtime:      runtime,
 		policy:       policy,
@@ -105,23 +111,24 @@ func newImageManager(runtime container.Runtime, cadvisorInterface cadvisor.Inter
 		cadvisor:     cadvisorInterface,
 		recorder:     recorder,
 		nodeRef:      nodeRef,
+		initialized:  false,
 	}
 
 	return im, nil
 }
 
 func (im *realImageManager) Start() error {
-	// Initial detection make detected time "unknown" in the past.
-	var zero time.Time
-	err := im.detectImages(zero)
-	if err != nil {
-		return err
-	}
-
 	go util.Until(func() {
-		err := im.detectImages(time.Now())
+		// Initial detection make detected time "unknown" in the past.
+		var ts time.Time
+		if im.initialized {
+			ts = time.Now()
+		}
+		err := im.detectImages(ts)
 		if err != nil {
 			glog.Warningf("[ImageManager] Failed to monitor images: %v", err)
+		} else {
+			im.initialized = true
 		}
 	}, 5*time.Minute, util.NeverStop)
 
@@ -191,7 +198,7 @@ func (im *realImageManager) GarbageCollect() error {
 	// Check valid capacity.
 	if capacity == 0 {
 		err := fmt.Errorf("invalid capacity %d on device %q at mount point %q", capacity, fsInfo.Device, fsInfo.Mountpoint)
-		im.recorder.Eventf(im.nodeRef, "InvalidDiskCapacity", err.Error())
+		im.recorder.Eventf(im.nodeRef, api.EventTypeWarning, container.InvalidDiskCapacity, err.Error())
 		return err
 	}
 
@@ -207,7 +214,7 @@ func (im *realImageManager) GarbageCollect() error {
 
 		if freed < amountToFree {
 			err := fmt.Errorf("failed to garbage collect required amount of images. Wanted to free %d, but freed %d", amountToFree, freed)
-			im.recorder.Eventf(im.nodeRef, "FreeDiskSpaceFailed", err.Error())
+			im.recorder.Eventf(im.nodeRef, api.EventTypeWarning, container.FreeDiskSpaceFailed, err.Error())
 			return err
 		}
 	}

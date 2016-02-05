@@ -3,7 +3,7 @@ package api
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 // DeploymentStatus describes the possible states a deployment can be in.
@@ -134,7 +134,7 @@ type RollingDeploymentStrategyParams struct {
 	// can be scaled down further, followed by scaling up the new RC, ensuring
 	// that at least 70% of original number of pods are available at all times
 	// during the update.
-	MaxUnavailable kutil.IntOrString
+	MaxUnavailable intstr.IntOrString
 	// The maximum number of pods that can be scheduled above the original number of
 	// pods.
 	// Value can be an absolute number (ex: 5) or a percentage of total pods at
@@ -145,7 +145,7 @@ type RollingDeploymentStrategyParams struct {
 	// immediately when the rolling update starts. Once old pods have been killed,
 	// new RC can be scaled up further, ensuring that total number of pods running
 	// at any time during the update is atmost 130% of original pods.
-	MaxSurge kutil.IntOrString
+	MaxSurge intstr.IntOrString
 	// UpdatePercent is the percentage of replicas to scale up or down each
 	// interval. If nil, one replica will be scaled up and down each interval.
 	// If negative, the scale order will be down/up instead of up/down.
@@ -266,12 +266,16 @@ type DeploymentConfigSpec struct {
 	// Replicas is the number of desired replicas.
 	Replicas int
 
+	// Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the
+	// deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding
+	// or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.
+	Test bool
+
 	// Selector is a label query over pods that should match the Replicas count.
 	Selector map[string]string
 
 	// Template is the object that describes the pod that will be created if
-	// insufficient replicas are detected. Internally, this takes precedence over a
-	// TemplateRef.
+	// insufficient replicas are detected.
 	Template *kapi.PodTemplateSpec
 }
 
@@ -388,7 +392,7 @@ type DeploymentLogOptions struct {
 	// Follow if true indicates that the deployment log should be streamed until
 	// the deployment terminates.
 	Follow bool
-	// If true, return previous terminated container logs
+	// If true, return previous deployment logs
 	Previous bool
 	// A relative time in seconds before the current time from which to show logs. If this value
 	// precedes the time a pod was started, only logs since the pod start will be returned.

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -15,6 +16,7 @@ import (
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/errors"
+	"github.com/openshift/source-to-image/pkg/tar"
 )
 
 const (
@@ -55,6 +57,7 @@ type Docker interface {
 	GetScriptsURL(name string) (string, error)
 	RunContainer(opts RunContainerOptions) error
 	GetImageID(name string) (string, error)
+	GetImageWorkdir(name string) (string, error)
 	CommitContainer(opts CommitContainerOptions) (string, error)
 	RemoveImage(name string) error
 	CheckImage(name string) (*docker.Image, error)
@@ -63,6 +66,7 @@ type Docker interface {
 	BuildImage(opts BuildImageOptions) error
 	GetImageUser(name string) (string, error)
 	GetLabels(name string) (map[string]string, error)
+	UploadToContainer(srcPath, destPath, name string) error
 	Ping() error
 }
 
@@ -76,6 +80,7 @@ type Client interface {
 	AttachToContainer(opts docker.AttachToContainerOptions) error
 	StartContainer(id string, hostConfig *docker.HostConfig) error
 	WaitContainer(id string) (int, error)
+	UploadToContainer(id string, opts docker.UploadToContainerOptions) error
 	RemoveContainer(opts docker.RemoveContainerOptions) error
 	CommitContainer(opts docker.CommitContainerOptions) (*docker.Image, error)
 	CopyFromContainer(opts docker.CopyFromContainerOptions) error
@@ -100,22 +105,24 @@ type PullResult struct {
 
 // RunContainerOptions are options passed in to the RunContainer method
 type RunContainerOptions struct {
-	Image           string
-	PullImage       bool
-	PullAuth        docker.AuthConfiguration
-	ExternalScripts bool
-	ScriptsURL      string
-	Destination     string
-	Command         string
-	Env             []string
-	Stdin           io.Reader
-	Stdout          io.Writer
-	Stderr          io.Writer
-	OnStart         func() error
-	PostExec        PostExecutor
-	TargetImage     bool
-	NetworkMode     string
-	User            string
+	Image            string
+	PullImage        bool
+	PullAuth         docker.AuthConfiguration
+	ExternalScripts  bool
+	ScriptsURL       string
+	Destination      string
+	Command          string
+	CommandOverrides func(originalCmd string) string
+	Env              []string
+	Stdin            io.Reader
+	Stdout           io.Writer
+	Stderr           io.Writer
+	OnStart          func(containerID string) error
+	PostExec         PostExecutor
+	TargetImage      bool
+	NetworkMode      string
+	User             string
+	CGroupLimits     *api.CGroupLimits
 }
 
 // CommitContainerOptions are options passed in to the CommitContainer method
@@ -130,9 +137,10 @@ type CommitContainerOptions struct {
 
 // BuildImageOptions are options passed in to the BuildImage method
 type BuildImageOptions struct {
-	Name   string
-	Stdin  io.Reader
-	Stdout io.Writer
+	Name         string
+	Stdin        io.Reader
+	Stdout       io.Writer
+	CGroupLimits *api.CGroupLimits
 }
 
 // New creates a new implementation of the STI Docker interface
@@ -155,6 +163,63 @@ func New(config *api.DockerConfig, auth docker.AuthConfiguration) (Docker, error
 		client:   client,
 		pullAuth: auth,
 	}, nil
+}
+
+// GetImageWorkdir returns the WORKDIR property for the given image name.
+// When the WORKDIR is not set or empty, return "/" instead.
+func (d *stiDocker) GetImageWorkdir(name string) (string, error) {
+	image, err := d.client.InspectImage(name)
+	if err != nil {
+		return "", err
+	}
+	workdir := image.Config.WorkingDir
+	if len(workdir) == 0 {
+		// This is a default destination used by UploadToContainer when the WORKDIR
+		// is not set or it is empty. To show user where the injections will end up,
+		// we set this to "/".
+		workdir = "/"
+	}
+	return workdir, nil
+}
+
+// UploadToContainer uploads artifacts to the container.
+// If the source is a directory, then all files and sub-folders are copied into
+// the destination (which has to be directory as well).
+// If the source is a single file, then the file copied into destination (which
+// has to be full path to a file inside the container).
+// If the destination path is empty or set to ".", then we will try to figure
+// out the WORKDIR of the image that the container was created from and use that
+// as a destination. If the WORKDIR is not set, then we copy files into "/"
+// folder (docker upload default).
+func (d *stiDocker) UploadToContainer(src, dest, name string) error {
+	path := filepath.Dir(dest)
+	f, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	info, _ := f.Stat()
+	defer f.Close()
+	t := tar.New()
+	r, w := io.Pipe()
+	if info.IsDir() {
+		path = dest
+		go func() {
+			defer w.Close()
+			if err := t.StreamDirAsTar(src, dest, w); err != nil {
+				glog.Errorf("Uploading directory to container failed: %v", err)
+			}
+		}()
+	} else {
+		go func() {
+			defer w.Close()
+			if err := t.StreamFileAsTar(src, filepath.Base(dest), w); err != nil {
+				glog.Errorf("Uploading files to container failed: %v", err)
+			}
+		}()
+	}
+	glog.V(3).Infof("Uploading %q to %q ...", src, path)
+	opts := docker.UploadToContainerOptions{Path: path, InputStream: r}
+	return d.client.UploadToContainer(name, opts)
 }
 
 // IsImageInLocalRegistry determines whether the supplied image is in the local registry.
@@ -218,10 +283,11 @@ func (d *stiDocker) CheckAndPullImage(name string) (*docker.Image, error) {
 		return nil, err
 	}
 	if image == nil {
+		glog.Infof("Image %q not available locally, pulling ...", name)
 		return d.PullImage(name)
 	}
 
-	glog.V(2).Infof("Image %s available locally", name)
+	glog.V(1).Infof("Using locally available image %q", name)
 	return image, nil
 }
 
@@ -405,9 +471,12 @@ func runContainerTar(opts RunContainerOptions, config docker.Config, imageMetada
 	// when calling assemble script with Stdin parameter set (the tar file)
 	// we need to first untar the whole archive and only then call the assemble script
 	if opts.Stdin != nil && (opts.Command == api.Assemble || opts.Command == api.Usage) {
-		cmd = []string{"/bin/sh", "-c", fmt.Sprintf("tar -C %s -xf - && %s",
-			tarDestination, path.Join(commandBaseDir, string(opts.Command)))}
+		cmd = []string{"/bin/sh", "-c", fmt.Sprintf("tar -C %s -xf - && %s", tarDestination, cmd[0])}
+		if opts.CommandOverrides != nil {
+			cmd = []string{"/bin/sh", "-c", opts.CommandOverrides(strings.Join(cmd[2:], " "))}
+		}
 	}
+	glog.V(5).Infof("Running %q command in container ...", strings.Join(cmd, " "))
 	config.Cmd = cmd
 	return config, tarDestination
 }
@@ -526,14 +595,23 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 		config.AttachStdout = true
 	}
 
-	glog.V(2).Infof("Creating container using config: %+v", config)
 	ccopts := docker.CreateContainerOptions{Name: "", Config: &config}
+	ccopts.HostConfig = &docker.HostConfig{}
 	if opts.TargetImage {
-		ccopts.HostConfig = &docker.HostConfig{PublishAllPorts: true, NetworkMode: opts.NetworkMode}
+		ccopts.HostConfig.PublishAllPorts = true
+		ccopts.HostConfig.NetworkMode = opts.NetworkMode
 	} else if opts.NetworkMode != "" {
-		ccopts.HostConfig = &docker.HostConfig{NetworkMode: opts.NetworkMode}
+		ccopts.HostConfig.NetworkMode = opts.NetworkMode
 	}
 
+	if opts.CGroupLimits != nil {
+		ccopts.HostConfig.Memory = opts.CGroupLimits.MemoryLimitBytes
+		ccopts.HostConfig.MemorySwap = opts.CGroupLimits.MemorySwap
+		ccopts.HostConfig.CPUShares = opts.CGroupLimits.CPUShares
+		ccopts.HostConfig.CPUQuota = opts.CGroupLimits.CPUQuota
+		ccopts.HostConfig.CPUPeriod = opts.CGroupLimits.CPUPeriod
+	}
+	glog.V(2).Infof("Creating container %s using config: %+v, hostconfig: %+v", ccopts.Name, ccopts.Config, ccopts.HostConfig)
 	container, err := d.client.CreateContainer(ccopts)
 	if err != nil {
 		return err
@@ -551,7 +629,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 		return err
 	}
 	if opts.OnStart != nil {
-		if err = opts.OnStart(); err != nil {
+		if err = opts.OnStart(container.ID); err != nil {
 			return err
 		}
 	}
@@ -603,7 +681,7 @@ func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error)
 			User:   opts.User,
 		}
 		dockerOpts.Run = &config
-		glog.V(2).Infof("Committing container with config: %+v", config)
+		glog.V(2).Infof("Committing container with dockerOpts: %+v, config: %+v", dockerOpts, config)
 	}
 
 	image, err := d.client.CommitContainer(dockerOpts)
@@ -629,5 +707,13 @@ func (d *stiDocker) BuildImage(opts BuildImageOptions) error {
 		InputStream:         opts.Stdin,
 		OutputStream:        opts.Stdout,
 	}
+	if opts.CGroupLimits != nil {
+		dockerOpts.Memory = opts.CGroupLimits.MemoryLimitBytes
+		dockerOpts.Memswap = opts.CGroupLimits.MemorySwap
+		dockerOpts.CPUShares = opts.CGroupLimits.CPUShares
+		dockerOpts.CPUPeriod = opts.CGroupLimits.CPUPeriod
+		dockerOpts.CPUQuota = opts.CGroupLimits.CPUQuota
+	}
+	glog.V(2).Info("Building container using config: %+v", dockerOpts)
 	return d.client.BuildImage(dockerOpts)
 }

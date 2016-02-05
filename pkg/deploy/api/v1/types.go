@@ -3,7 +3,7 @@ package v1
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 // DeploymentPhase describes the possible states a deployment can be in.
@@ -137,7 +137,7 @@ type RollingDeploymentStrategyParams struct {
 	// RC can be scaled down further, followed by scaling up the new RC,
 	// ensuring that at least 70% of original number of pods are available at
 	// all times during the update.
-	MaxUnavailable *kutil.IntOrString `json:"maxUnavailable,omitempty" description:"max number of pods that can be unavailable during the update; value can be an absolute number or a percentage of total pods at start of update"`
+	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty" description:"max number of pods that can be unavailable during the update; value can be an absolute number or a percentage of total pods at start of update"`
 	// MaxSurge is the maximum number of pods that can be scheduled above the
 	// original number of pods. Value can be an absolute number (ex: 5) or a
 	// percentage of total pods at the start of the update (ex: 10%). Absolute
@@ -150,7 +150,7 @@ type RollingDeploymentStrategyParams struct {
 	// killed, new RC can be scaled up further, ensuring that total number of
 	// pods running at any time during the update is atmost 130% of original
 	// pods.
-	MaxSurge *kutil.IntOrString `json:"maxSurge,omitempty" description:"max number of pods that can be scheduled above the original number of pods; value can be an absolute number or a percentage of total pods at start of update"`
+	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty" description:"max number of pods that can be scheduled above the original number of pods; value can be an absolute number or a percentage of total pods at start of update"`
 	// UpdatePercent is the percentage of replicas to scale up or down each
 	// interval. If nil, one replica will be scaled up and down each interval.
 	// If negative, the scale order will be down/up instead of up/down.
@@ -237,20 +237,17 @@ type DeploymentConfigSpec struct {
 	// Replicas is the number of desired replicas.
 	Replicas int `json:"replicas" description:"the desired number of replicas"`
 
-	// Selector is a label query over pods that should match the Replicas count.
-	Selector map[string]string `json:"selector" description:"a label query over pods that should match the replicas count"`
+	// Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the
+	// deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding
+	// or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.
+	Test bool `json:"test" description:"if true, this deployment config will always be scaled to 0 except while a deployment is running"`
 
-	// TODO removed from RCSpec, so this shouldn't exist
-	// TemplateRef is a reference to an object that describes the pod that will be created if
-	// insufficient replicas are detected. This reference is ignored if a Template is set.
-	// Must be set before converting to a v1 API object
-	// TemplateRef *kapi.ObjectReference `json:"templateRef,omitempty" description:"a reference to an object that describes the pod that will be created if insufficient replicas are detected; ignored if template is set"`
+	// Selector is a label query over pods that should match the Replicas count.
+	Selector map[string]string `json:"selector,omitempty" description:"a label query over pods that should match the replicas count; if omitted, it will default to the podTemplate labels"`
 
 	// Template is the object that describes the pod that will be created if
-	// insufficient replicas are detected. Internally, this takes precedence over a
-	// TemplateRef.
-	// Must be set before converting to a v1beta1 or v1beta2 API object.
-	Template *kapi.PodTemplateSpec `json:"template,omitempty" description:"describes the pod that will be created if insufficient replicas are detected; takes precedence over a template reference"`
+	// insufficient replicas are detected.
+	Template *kapi.PodTemplateSpec `json:"template,omitempty" description:"describes the pod that will be created if insufficient replicas are detected"`
 }
 
 // DeploymentConfigStatus represents the current deployment state.
@@ -365,8 +362,8 @@ type DeploymentLogOptions struct {
 	// Follow if true indicates that the build log should be streamed until
 	// the build terminates.
 	Follow bool `json:"follow,omitempty" description:"if true indicates that the log should be streamed; defaults to false"`
-	// Return previous terminated container logs. Defaults to false.
-	Previous bool `json:"previous,omitempty" description:"return previous terminated container logs; defaults to false."`
+	// Return previous deployment logs. Defaults to false.
+	Previous bool `json:"previous,omitempty" description:"return previous deployment logs; defaults to false."`
 	// A relative time in seconds before the current time from which to show logs. If this value
 	// precedes the time a pod was started, only logs since the pod start will be returned.
 	// If this value is in the future, no logs will be returned.

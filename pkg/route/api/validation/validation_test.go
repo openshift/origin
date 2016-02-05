@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	"github.com/openshift/origin/pkg/route/api"
 )
@@ -104,7 +104,7 @@ func TestValidateRoute(t *testing.T) {
 						Name: "serviceName",
 					},
 					Port: &api.RoutePort{
-						TargetPort: util.NewIntOrStringFromInt(0),
+						TargetPort: intstr.FromInt(0),
 					},
 				},
 			},
@@ -123,7 +123,7 @@ func TestValidateRoute(t *testing.T) {
 						Name: "serviceName",
 					},
 					Port: &api.RoutePort{
-						TargetPort: util.NewIntOrStringFromString(""),
+						TargetPort: intstr.FromString(""),
 					},
 				},
 			},
@@ -175,6 +175,26 @@ func TestValidateRoute(t *testing.T) {
 						Name: "serviceName",
 					},
 					Path: "test",
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Passthrough route with path",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "name",
+					Namespace: "foo",
+				},
+				Spec: api.RouteSpec{
+					Host: "www.example.com",
+					Path: "/test",
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
+					TLS: &api.TLSConfig{
+						Termination: api.TLSTerminationPassthrough,
+					},
 				},
 			},
 			expectedErrors: 1,
@@ -361,7 +381,7 @@ func TestValidateTLS(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		errs := validateTLS(tc.route)
+		errs := validateTLS(tc.route, nil)
 
 		if len(errs) != tc.expectedErrors {
 			t.Errorf("Test case %s expected %d error(s), got %d. %v", tc.name, tc.expectedErrors, len(errs), errs)
@@ -406,20 +426,20 @@ func TestValidateTLSInsecureEdgeTerminationPolicy(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		if errs := validateTLS(tc.route); len(errs) != 0 {
+		if errs := validateTLS(tc.route, nil); len(errs) != 0 {
 			t.Errorf("Test case %s got %d errors where none were expected. %v",
 				tc.name, len(errs), errs)
 		}
 
 		tc.route.Spec.TLS.InsecureEdgeTerminationPolicy = ""
-		if errs := validateTLS(tc.route); len(errs) != 0 {
+		if errs := validateTLS(tc.route, nil); len(errs) != 0 {
 			t.Errorf("Test case %s got %d errors where none were expected. %v",
 				tc.name, len(errs), errs)
 		}
 
 		for _, val := range insecureTypes {
 			tc.route.Spec.TLS.InsecureEdgeTerminationPolicy = val
-			if errs := validateTLS(tc.route); len(errs) != 1 {
+			if errs := validateTLS(tc.route, nil); len(errs) != 1 {
 				t.Errorf("Test case %s with insecure=%q got %d errors where one was expected. %v",
 					tc.name, val, len(errs), errs)
 			}
@@ -474,7 +494,7 @@ func TestValidateInsecureEdgeTerminationPolicy(t *testing.T) {
 				},
 			},
 		}
-		errs := validateTLS(route)
+		errs := validateTLS(route, nil)
 
 		if len(errs) != tc.expectedErrors {
 			t.Errorf("Test case %s expected %d error(s), got %d. %v", tc.name, tc.expectedErrors, len(errs), errs)
@@ -500,7 +520,7 @@ func TestValidateNoTLSInsecureEdgeTerminationPolicy(t *testing.T) {
 				},
 			},
 		}
-		errs := validateTLS(route)
+		errs := validateTLS(route, nil)
 		if !expected && len(errs) != 0 {
 			t.Errorf("Test case for edge termination with insecure=%s got %d errors where none were expected. %v",
 				key, len(errs), errs)

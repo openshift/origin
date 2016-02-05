@@ -10,9 +10,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	kuval "k8s.io/kubernetes/pkg/util/validation"
 
+	build "github.com/openshift/origin/pkg/build/api"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
 	route "github.com/openshift/origin/pkg/route/api"
@@ -148,6 +149,10 @@ func (pb *pipelineBuilder) NewImagePipeline(from string, resolvedMatch *Componen
 	if err != nil {
 		return nil, fmt.Errorf("can't include %q: %v", from, err)
 	}
+	if !input.AsImageStream {
+		msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the deployment to succeed."
+		glog.Warningf(msg, resolvedMatch.Value)
+	}
 
 	name, err := pb.nameGenerator.Generate(input)
 	if err != nil {
@@ -236,6 +241,15 @@ func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 		}
 		if objectAccept.Accept(build) {
 			objects = append(objects, build)
+		}
+		if p.Build.Source != nil && p.Build.Source.SourceImage != nil && p.Build.Source.SourceImage.AsImageStream && accept.Accept(p.Build.Source.SourceImage) {
+			srcImage, err := p.Build.Source.SourceImage.ImageStream()
+			if err != nil {
+				return nil, err
+			}
+			if objectAccept.Accept(srcImage) {
+				objects = append(objects, srcImage)
+			}
 		}
 	}
 	if p.Deployment != nil && accept.Accept(p.Deployment) {
@@ -349,7 +363,7 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 						Name:       name,
 						Port:       p.ContainerPort,
 						Protocol:   p.Protocol,
-						TargetPort: kutil.NewIntOrStringFromInt(p.ContainerPort),
+						TargetPort: intstr.FromInt(p.ContainerPort),
 					})
 					if firstPortOnly {
 						break
@@ -415,11 +429,11 @@ func (a *acceptUnique) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	_, kind, err := a.typer.ObjectVersionAndKind(obj)
+	gvk, err := a.typer.ObjectKind(obj)
 	if err != nil {
 		return false
 	}
-	key := fmt.Sprintf("%s/%s/%s", kind, meta.Namespace, meta.Name)
+	key := fmt.Sprintf("%s/%s/%s", gvk.Kind, meta.Namespace, meta.Name)
 	_, exists := a.objects[key]
 	if exists {
 		return false
@@ -459,11 +473,11 @@ func (a *acceptBuildConfigs) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	_, kind, err := a.typer.ObjectVersionAndKind(obj)
+	gvk, err := a.typer.ObjectKind(obj)
 	if err != nil {
 		return false
 	}
-	return kind == "BuildConfig" || kind == "ImageStream"
+	return gvk.GroupKind() == build.Kind("BuildConfig") || gvk.GroupKind() == image.Kind("ImageStream")
 }
 
 // NewAcceptBuildConfigs creates an acceptor accepting BuildConfig objects

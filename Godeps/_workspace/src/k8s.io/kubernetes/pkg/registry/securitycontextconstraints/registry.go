@@ -19,17 +19,16 @@ package securitycontextconstraints
 import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
 // Registry is an interface implemented by things that know how to store SecurityContextConstraints objects.
 type Registry interface {
 	// ListSecurityContextConstraints obtains a list of SecurityContextConstraints having labels which match selector.
-	ListSecurityContextConstraints(ctx api.Context, selector labels.Selector) (*api.SecurityContextConstraintsList, error)
+	ListSecurityContextConstraints(ctx api.Context, options *unversioned.ListOptions) (*api.SecurityContextConstraintsList, error)
 	// Watch for new/changed/deleted SecurityContextConstraints
-	WatchSecurityContextConstraints(ctx api.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	WatchSecurityContextConstraints(ctx api.Context, options *unversioned.ListOptions) (watch.Interface, error)
 	// Get a specific SecurityContextConstraints
 	GetSecurityContextConstraint(ctx api.Context, name string) (*api.SecurityContextConstraints, error)
 	// Create a SecurityContextConstraints based on a specification.
@@ -51,16 +50,16 @@ func NewRegistry(s rest.StandardStorage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListSecurityContextConstraints(ctx api.Context, label labels.Selector) (*api.SecurityContextConstraintsList, error) {
-	obj, err := s.List(ctx, label, fields.Everything())
+func (s *storage) ListSecurityContextConstraints(ctx api.Context, options *unversioned.ListOptions) (*api.SecurityContextConstraintsList, error) {
+	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*api.SecurityContextConstraintsList), nil
 }
 
-func (s *storage) WatchSecurityContextConstraints(ctx api.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return s.Watch(ctx, label, field, resourceVersion)
+func (s *storage) WatchSecurityContextConstraints(ctx api.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+	return s.Watch(ctx, options)
 }
 
 func (s *storage) GetSecurityContextConstraint(ctx api.Context, name string) (*api.SecurityContextConstraints, error) {

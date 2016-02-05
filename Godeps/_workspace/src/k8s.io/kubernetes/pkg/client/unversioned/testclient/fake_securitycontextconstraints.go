@@ -18,8 +18,6 @@ package testclient
 
 import (
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -31,8 +29,8 @@ type FakeSecurityContextConstraints struct {
 	Namespace string
 }
 
-func (c *FakeSecurityContextConstraints) List(label labels.Selector, field fields.Selector) (*api.SecurityContextConstraintsList, error) {
-	obj, err := c.Fake.Invokes(NewListAction("securitycontextconstraints", c.Namespace, label, field), &api.SecurityContextConstraintsList{})
+func (c *FakeSecurityContextConstraints) List(opts api.ListOptions) (*api.SecurityContextConstraintsList, error) {
+	obj, err := c.Fake.Invokes(NewListAction("securitycontextconstraints", c.Namespace, opts), &api.SecurityContextConstraintsList{})
 	return obj.(*api.SecurityContextConstraintsList), err
 }
 
@@ -56,6 +54,6 @@ func (c *FakeSecurityContextConstraints) Delete(name string) error {
 	return err
 }
 
-func (c *FakeSecurityContextConstraints) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(NewWatchAction("securitycontextconstraints", c.Namespace, label, field, resourceVersion))
+func (c *FakeSecurityContextConstraints) Watch(opts api.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(NewWatchAction("securitycontextconstraints", c.Namespace, opts))
 }

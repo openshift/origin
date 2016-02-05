@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/etcdserver/stats"
+	"github.com/coreos/etcd/pkg/httputil"
 	"github.com/coreos/etcd/pkg/pbutil"
 	"github.com/coreos/etcd/pkg/types"
 	"github.com/coreos/etcd/raft"
@@ -42,10 +43,6 @@ const (
 )
 
 var errStopped = errors.New("stopped")
-
-type canceler interface {
-	CancelRequest(*http.Request)
-}
 
 type pipeline struct {
 	from, to types.ID
@@ -86,32 +83,34 @@ func newPipeline(tr http.RoundTripper, picker *urlPicker, from, to, cid types.ID
 }
 
 func (p *pipeline) stop() {
-	close(p.msgc)
 	close(p.stopc)
 	p.wg.Wait()
 }
 
 func (p *pipeline) handle() {
 	defer p.wg.Done()
-	for m := range p.msgc {
-		start := time.Now()
-		err := p.post(pbutil.MustMarshal(&m))
-		if err == errStopped {
-			return
-		}
-		end := time.Now()
 
-		if err != nil {
-			reportSentFailure(pipelineMsg, m)
-			p.status.deactivate(failureType{source: pipelineMsg, action: "write"}, err.Error())
-			if m.Type == raftpb.MsgApp && p.fs != nil {
-				p.fs.Fail()
+	for {
+		select {
+		case m := <-p.msgc:
+			start := time.Now()
+			err := p.post(pbutil.MustMarshal(&m))
+			end := time.Now()
+
+			if err != nil {
+				p.status.deactivate(failureType{source: pipelineMsg, action: "write"}, err.Error())
+
+				reportSentFailure(pipelineMsg, m)
+				if m.Type == raftpb.MsgApp && p.fs != nil {
+					p.fs.Fail()
+				}
+				p.r.ReportUnreachable(m.To)
+				if isMsgSnap(m) {
+					p.r.ReportSnapshot(m.To, raft.SnapshotFailure)
+				}
+				continue
 			}
-			p.r.ReportUnreachable(m.To)
-			if isMsgSnap(m) {
-				p.r.ReportSnapshot(m.To, raft.SnapshotFailure)
-			}
-		} else {
+
 			p.status.activate()
 			if m.Type == raftpb.MsgApp && p.fs != nil {
 				p.fs.Succ(end.Sub(start))
@@ -120,6 +119,8 @@ func (p *pipeline) handle() {
 				p.r.ReportSnapshot(m.To, raft.SnapshotFinish)
 			}
 			reportSentDuration(pipelineMsg, m, time.Since(start))
+		case <-p.stopc:
+			return
 		}
 	}
 }
@@ -141,23 +142,14 @@ func (p *pipeline) post(data []byte) (err error) {
 	req.Header.Set("X-Min-Cluster-Version", version.MinClusterVersion)
 	req.Header.Set("X-Etcd-Cluster-ID", p.cid.String())
 
-	var stopped bool
-	defer func() {
-		if stopped {
-			// rewrite to errStopped so the caller goroutine can stop itself
-			err = errStopped
-		}
-	}()
 	done := make(chan struct{}, 1)
+	cancel := httputil.RequestCanceler(p.tr, req)
 	go func() {
 		select {
 		case <-done:
 		case <-p.stopc:
 			waitSchedule()
-			stopped = true
-			if cancel, ok := p.tr.(canceler); ok {
-				cancel.CancelRequest(req)
-			}
+			cancel()
 		}
 	}()
 

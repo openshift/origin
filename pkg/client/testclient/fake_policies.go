@@ -1,9 +1,8 @@
 package testclient
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -25,8 +24,8 @@ func (c *FakePolicies) Get(name string) (*authorizationapi.Policy, error) {
 	return obj.(*authorizationapi.Policy), err
 }
 
-func (c *FakePolicies) List(label labels.Selector, field fields.Selector) (*authorizationapi.PolicyList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewListAction("policies", c.Namespace, label, field), &authorizationapi.PolicyList{})
+func (c *FakePolicies) List(opts kapi.ListOptions) (*authorizationapi.PolicyList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("policies", c.Namespace, opts), &authorizationapi.PolicyList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -39,6 +38,6 @@ func (c *FakePolicies) Delete(name string) error {
 	return err
 }
 
-func (c *FakePolicies) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("policies", c.Namespace, label, field, resourceVersion))
+func (c *FakePolicies) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("policies", c.Namespace, opts))
 }

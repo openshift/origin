@@ -1,8 +1,7 @@
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -14,7 +13,7 @@ type ClusterRolesInterface interface {
 
 // ClusterRoleInterface exposes methods on ClusterRoles resources
 type ClusterRoleInterface interface {
-	List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterRoleList, error)
+	List(opts kapi.ListOptions) (*authorizationapi.ClusterRoleList, error)
 	Get(name string) (*authorizationapi.ClusterRole, error)
 	Create(role *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error)
 	Update(role *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error)
@@ -33,9 +32,9 @@ func newClusterRoles(c *Client) *clusterRoles {
 }
 
 // List returns a list of clusterRoles that match the label and field selectors.
-func (c *clusterRoles) List(label labels.Selector, field fields.Selector) (result *authorizationapi.ClusterRoleList, err error) {
+func (c *clusterRoles) List(opts kapi.ListOptions) (result *authorizationapi.ClusterRoleList, err error) {
 	result = &authorizationapi.ClusterRoleList{}
-	err = c.r.Get().Resource("clusterRoles").LabelsSelectorParam(label).FieldsSelectorParam(field).Do().Into(result)
+	err = c.r.Get().Resource("clusterRoles").VersionedParams(&opts, kapi.Scheme).Do().Into(result)
 	return
 }
 

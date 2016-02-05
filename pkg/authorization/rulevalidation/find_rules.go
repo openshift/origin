@@ -5,9 +5,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -41,7 +40,7 @@ type PolicyGetter interface {
 }
 
 type BindingLister interface {
-	ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error)
+	ListPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.PolicyBindingList, error)
 }
 
 type ClusterPolicyGetter interface {
@@ -49,14 +48,14 @@ type ClusterPolicyGetter interface {
 }
 
 type ClusterBindingLister interface {
-	ListClusterPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error)
+	ListClusterPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
 }
 
 func (a *DefaultRuleResolver) GetRoleBindings(ctx kapi.Context) ([]authorizationinterfaces.RoleBinding, error) {
 	namespace := kapi.NamespaceValue(ctx)
 
 	if len(namespace) == 0 {
-		policyBindingList, err := a.clusterBindingLister.ListClusterPolicyBindings(ctx, labels.Everything(), fields.Everything())
+		policyBindingList, err := a.clusterBindingLister.ListClusterPolicyBindings(ctx, &unversioned.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +69,7 @@ func (a *DefaultRuleResolver) GetRoleBindings(ctx kapi.Context) ([]authorization
 		return ret, nil
 	}
 
-	policyBindingList, err := a.bindingLister.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
+	policyBindingList, err := a.bindingLister.ListPolicyBindings(ctx, &unversioned.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

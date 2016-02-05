@@ -37,6 +37,7 @@ const (
 
 	AuthenticatedGroup   = "system:authenticated"
 	UnauthenticatedGroup = "system:unauthenticated"
+	HumanGroup           = "system:humans"
 	ClusterAdminGroup    = "system:cluster-admins"
 	ClusterReaderGroup   = "system:cluster-readers"
 	MastersGroup         = "system:masters"

@@ -26,10 +26,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/record"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
-	deploymentUtil "k8s.io/kubernetes/pkg/util/deployment"
+	deploymentutil "k8s.io/kubernetes/pkg/util/deployment"
 )
 
 type DeploymentController struct {
@@ -60,7 +58,7 @@ func (d *DeploymentController) Run(syncPeriod time.Duration) {
 }
 
 func (d *DeploymentController) reconcileDeployments() []error {
-	list, err := d.expClient.Deployments(api.NamespaceAll).List(labels.Everything(), fields.Everything())
+	list, err := d.expClient.Deployments(api.NamespaceAll).List(api.ListOptions{})
 	if err != nil {
 		return []error{fmt.Errorf("error listing deployments: %v", err)}
 	}
@@ -125,33 +123,32 @@ func (d *DeploymentController) reconcileRollingUpdateDeployment(deployment exten
 }
 
 func (d *DeploymentController) getOldRCs(deployment extensions.Deployment) ([]*api.ReplicationController, error) {
-	return deploymentUtil.GetOldRCs(deployment, d.client)
+	return deploymentutil.GetOldRCs(deployment, d.client)
 }
 
 // Returns an RC that matches the intent of the given deployment.
 // It creates a new RC if required.
 func (d *DeploymentController) getNewRC(deployment extensions.Deployment) (*api.ReplicationController, error) {
-	existingNewRC, err := deploymentUtil.GetNewRC(deployment, d.client)
+	existingNewRC, err := deploymentutil.GetNewRC(deployment, d.client)
 	if err != nil || existingNewRC != nil {
 		return existingNewRC, err
 	}
 	// new RC does not exist, create one.
 	namespace := deployment.ObjectMeta.Namespace
-	podTemplateSpecHash := deploymentUtil.GetPodTemplateSpecHash(deployment.Spec.Template)
-	rcName := fmt.Sprintf("deploymentrc-%d", podTemplateSpecHash)
-	newRCTemplate := deploymentUtil.GetNewRCTemplate(deployment)
+	podTemplateSpecHash := deploymentutil.GetPodTemplateSpecHash(deployment.Spec.Template)
+	newRCTemplate := deploymentutil.GetNewRCTemplate(deployment)
 	// Add podTemplateHash label to selector.
-	newRCSelector := deploymentUtil.CloneAndAddLabel(deployment.Spec.Selector, deployment.Spec.UniqueLabelKey, podTemplateSpecHash)
+	newRCSelector := deploymentutil.CloneAndAddLabel(deployment.Spec.Selector, deployment.Spec.UniqueLabelKey, podTemplateSpecHash)
 
 	newRC := api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{
-			Name:      rcName,
-			Namespace: namespace,
+			GenerateName: deployment.Name + "-",
+			Namespace:    namespace,
 		},
 		Spec: api.ReplicationControllerSpec{
 			Replicas: 0,
 			Selector: newRCSelector,
-			Template: newRCTemplate,
+			Template: &newRCTemplate,
 		},
 	}
 	createdRC, err := d.client.ReplicationControllers(namespace).Create(&newRC)
@@ -180,7 +177,7 @@ func (d *DeploymentController) reconcileNewRC(allRCs []*api.ReplicationControlle
 		maxSurge = util.GetValueFromPercent(maxSurge, deployment.Spec.Replicas)
 	}
 	// Find the total number of pods
-	currentPodCount := deploymentUtil.GetReplicaCountForRCs(allRCs)
+	currentPodCount := deploymentutil.GetReplicaCountForRCs(allRCs)
 	maxTotalPods := deployment.Spec.Replicas + maxSurge
 	if currentPodCount >= maxTotalPods {
 		// Cannot scale up.
@@ -196,7 +193,7 @@ func (d *DeploymentController) reconcileNewRC(allRCs []*api.ReplicationControlle
 }
 
 func (d *DeploymentController) reconcileOldRCs(allRCs []*api.ReplicationController, oldRCs []*api.ReplicationController, newRC *api.ReplicationController, deployment extensions.Deployment) (bool, error) {
-	oldPodsCount := deploymentUtil.GetReplicaCountForRCs(oldRCs)
+	oldPodsCount := deploymentutil.GetReplicaCountForRCs(oldRCs)
 	if oldPodsCount == 0 {
 		// Cant scale down further
 		return false, nil
@@ -210,8 +207,9 @@ func (d *DeploymentController) reconcileOldRCs(allRCs []*api.ReplicationControll
 	}
 	// Check if we can scale down.
 	minAvailable := deployment.Spec.Replicas - maxUnavailable
+	minReadySeconds := deployment.Spec.Strategy.RollingUpdate.MinReadySeconds
 	// Find the number of ready pods.
-	readyPodCount, err := deploymentUtil.GetAvailablePodsForRCs(d.client, allRCs)
+	readyPodCount, err := deploymentutil.GetAvailablePodsForRCs(d.client, allRCs, minReadySeconds)
 	if err != nil {
 		return false, fmt.Errorf("could not find available pods: %v", err)
 	}
@@ -243,15 +241,15 @@ func (d *DeploymentController) reconcileOldRCs(allRCs []*api.ReplicationControll
 }
 
 func (d *DeploymentController) updateDeploymentStatus(allRCs []*api.ReplicationController, newRC *api.ReplicationController, deployment extensions.Deployment) error {
-	totalReplicas := deploymentUtil.GetReplicaCountForRCs(allRCs)
-	updatedReplicas := deploymentUtil.GetReplicaCountForRCs([]*api.ReplicationController{newRC})
+	totalReplicas := deploymentutil.GetReplicaCountForRCs(allRCs)
+	updatedReplicas := deploymentutil.GetReplicaCountForRCs([]*api.ReplicationController{newRC})
 	newDeployment := deployment
 	// TODO: Reconcile this with API definition. API definition talks about ready pods, while this just computes created pods.
 	newDeployment.Status = extensions.DeploymentStatus{
 		Replicas:        totalReplicas,
 		UpdatedReplicas: updatedReplicas,
 	}
-	_, err := d.updateDeployment(&newDeployment)
+	_, err := d.client.Extensions().Deployments(deployment.ObjectMeta.Namespace).UpdateStatus(&newDeployment)
 	return err
 }
 
@@ -262,7 +260,7 @@ func (d *DeploymentController) scaleRCAndRecordEvent(rc *api.ReplicationControll
 	}
 	newRC, err := d.scaleRC(rc, newScale)
 	if err == nil {
-		d.eventRecorder.Eventf(&deployment, "ScalingRC", "Scaled %s rc %s to %d", scalingOperation, rc.Name, newScale)
+		d.eventRecorder.Eventf(&deployment, api.EventTypeNormal, "ScalingRC", "Scaled %s rc %s to %d", scalingOperation, rc.Name, newScale)
 	}
 	return newRC, err
 }

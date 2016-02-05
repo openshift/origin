@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kutil "k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/intstr"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/api/test"
@@ -32,7 +32,7 @@ func rollingConfig(interval, updatePeriod, timeout int) api.DeploymentConfig {
 					IntervalSeconds:     mkint64p(interval),
 					UpdatePeriodSeconds: mkint64p(updatePeriod),
 					TimeoutSeconds:      mkint64p(timeout),
-					MaxSurge:            kutil.NewIntOrStringFromInt(1),
+					MaxSurge:            intstr.FromInt(1),
 				},
 			},
 			Template: test.OkPodTemplate(),
@@ -41,7 +41,7 @@ func rollingConfig(interval, updatePeriod, timeout int) api.DeploymentConfig {
 	}
 }
 
-func rollingConfigMax(maxSurge, maxUnavailable kutil.IntOrString) api.DeploymentConfig {
+func rollingConfigMax(maxSurge, maxUnavailable intstr.IntOrString) api.DeploymentConfig {
 	return api.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
 		Spec: api.DeploymentConfigSpec{
@@ -82,7 +82,7 @@ func TestValidateDeploymentConfigOK(t *testing.T) {
 func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 	errorCases := map[string]struct {
 		DeploymentConfig api.DeploymentConfig
-		ErrorType        fielderrors.ValidationErrorType
+		ErrorType        field.ErrorType
 		Field            string
 	}{
 		"missing name": {
@@ -90,7 +90,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "bar"},
 				Spec:       test.OkDeploymentConfigSpec(),
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"metadata.name",
 		},
 		"missing namespace": {
@@ -98,7 +98,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: ""},
 				Spec:       test.OkDeploymentConfigSpec(),
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"metadata.namespace",
 		},
 		"invalid name": {
@@ -106,7 +106,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{Name: "-foo", Namespace: "bar"},
 				Spec:       test.OkDeploymentConfigSpec(),
 			},
-			fielderrors.ValidationErrorTypeInvalid,
+			field.ErrorTypeInvalid,
 			"metadata.name",
 		},
 		"invalid namespace": {
@@ -114,7 +114,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "-bar"},
 				Spec:       test.OkDeploymentConfigSpec(),
 			},
-			fielderrors.ValidationErrorTypeInvalid,
+			field.ErrorTypeInvalid,
 			"metadata.namespace",
 		},
 
@@ -135,7 +135,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Template: test.OkPodTemplate(),
 				},
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"spec.triggers[0].type",
 		},
 		"missing Trigger imageChangeParams.from": {
@@ -156,7 +156,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Template: test.OkPodTemplate(),
 				},
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"spec.triggers[0].imageChangeParams.from",
 		},
 		"invalid Trigger imageChangeParams.from.kind": {
@@ -181,7 +181,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Template: test.OkPodTemplate(),
 				},
 			},
-			fielderrors.ValidationErrorTypeInvalid,
+			field.ErrorTypeInvalid,
 			"spec.triggers[0].imageChangeParams.from.kind",
 		},
 		"missing Trigger imageChangeParams.containerNames": {
@@ -205,7 +205,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Template: test.OkPodTemplate(),
 				},
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"spec.triggers[0].imageChangeParams.containerNames",
 		},
 		"missing strategy.type": {
@@ -221,7 +221,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Template: test.OkPodTemplate(),
 				},
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"spec.strategy.type",
 		},
 		"missing strategy.customParams": {
@@ -237,7 +237,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Template: test.OkPodTemplate(),
 				},
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"spec.strategy.customParams",
 		},
 		"missing spec.strategy.customParams.image": {
@@ -254,7 +254,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Template: test.OkPodTemplate(),
 				},
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"spec.strategy.customParams.image",
 		},
 		"missing spec.strategy.recreateParams.pre.failurePolicy": {
@@ -277,7 +277,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Selector: test.OkSelector(),
 				},
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"spec.strategy.recreateParams.pre.failurePolicy",
 		},
 		"missing spec.strategy.recreateParams.pre.execNewPod": {
@@ -297,7 +297,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Selector: test.OkSelector(),
 				},
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"spec.strategy.recreateParams.pre.execNewPod",
 		},
 		"missing spec.strategy.recreateParams.pre.execNewPod.command": {
@@ -320,7 +320,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Selector: test.OkSelector(),
 				},
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"spec.strategy.recreateParams.pre.execNewPod.command",
 		},
 		"missing spec.strategy.recreateParams.pre.execNewPod.containerName": {
@@ -343,7 +343,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Selector: test.OkSelector(),
 				},
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"spec.strategy.recreateParams.pre.execNewPod.containerName",
 		},
 		"invalid spec.strategy.recreateParams.pre.execNewPod.volumes": {
@@ -368,22 +368,22 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Selector: test.OkSelector(),
 				},
 			},
-			fielderrors.ValidationErrorTypeInvalid,
+			field.ErrorTypeInvalid,
 			"spec.strategy.recreateParams.pre.execNewPod.volumes[1]",
 		},
 		"invalid spec.strategy.rollingParams.intervalSeconds": {
 			rollingConfig(-20, 1, 1),
-			fielderrors.ValidationErrorTypeInvalid,
+			field.ErrorTypeInvalid,
 			"spec.strategy.rollingParams.intervalSeconds",
 		},
 		"invalid spec.strategy.rollingParams.updatePeriodSeconds": {
 			rollingConfig(1, -20, 1),
-			fielderrors.ValidationErrorTypeInvalid,
+			field.ErrorTypeInvalid,
 			"spec.strategy.rollingParams.updatePeriodSeconds",
 		},
 		"invalid spec.strategy.rollingParams.timeoutSeconds": {
 			rollingConfig(1, 1, -20),
-			fielderrors.ValidationErrorTypeInvalid,
+			field.ErrorTypeInvalid,
 			"spec.strategy.rollingParams.timeoutSeconds",
 		},
 		"missing spec.strategy.rollingParams.pre.failurePolicy": {
@@ -397,7 +397,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 							IntervalSeconds:     mkint64p(1),
 							UpdatePeriodSeconds: mkint64p(1),
 							TimeoutSeconds:      mkint64p(20),
-							MaxSurge:            kutil.NewIntOrStringFromInt(1),
+							MaxSurge:            intstr.FromInt(1),
 							Pre: &api.LifecycleHook{
 								ExecNewPod: &api.ExecNewPodHook{
 									Command:       []string{"cmd"},
@@ -410,47 +410,47 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Selector: test.OkSelector(),
 				},
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"spec.strategy.rollingParams.pre.failurePolicy",
 		},
 		"both maxSurge and maxUnavailable 0 spec.strategy.rollingParams.maxUnavailable": {
-			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromInt(0)),
-			fielderrors.ValidationErrorTypeInvalid,
+			rollingConfigMax(intstr.FromInt(0), intstr.FromInt(0)),
+			field.ErrorTypeInvalid,
 			"spec.strategy.rollingParams.maxUnavailable",
 		},
 		"invalid lower bound spec.strategy.rollingParams.maxUnavailable": {
-			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromInt(-100)),
-			fielderrors.ValidationErrorTypeInvalid,
+			rollingConfigMax(intstr.FromInt(0), intstr.FromInt(-100)),
+			field.ErrorTypeInvalid,
 			"spec.strategy.rollingParams.maxUnavailable",
 		},
 		"invalid lower bound spec.strategy.rollingParams.maxSurge": {
-			rollingConfigMax(kutil.NewIntOrStringFromInt(-1), kutil.NewIntOrStringFromInt(0)),
-			fielderrors.ValidationErrorTypeInvalid,
+			rollingConfigMax(intstr.FromInt(-1), intstr.FromInt(0)),
+			field.ErrorTypeInvalid,
 			"spec.strategy.rollingParams.maxSurge",
 		},
 		"both maxSurge and maxUnavailable 0 percent spec.strategy.rollingParams.maxUnavailable": {
-			rollingConfigMax(kutil.NewIntOrStringFromString("0%"), kutil.NewIntOrStringFromString("0%")),
-			fielderrors.ValidationErrorTypeInvalid,
+			rollingConfigMax(intstr.FromString("0%"), intstr.FromString("0%")),
+			field.ErrorTypeInvalid,
 			"spec.strategy.rollingParams.maxUnavailable",
 		},
 		"invalid lower bound percent spec.strategy.rollingParams.maxUnavailable": {
-			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromString("-1%")),
-			fielderrors.ValidationErrorTypeInvalid,
+			rollingConfigMax(intstr.FromInt(0), intstr.FromString("-1%")),
+			field.ErrorTypeInvalid,
 			"spec.strategy.rollingParams.maxUnavailable",
 		},
 		"invalid upper bound percent spec.strategy.rollingParams.maxUnavailable": {
-			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromString("101%")),
-			fielderrors.ValidationErrorTypeInvalid,
+			rollingConfigMax(intstr.FromInt(0), intstr.FromString("101%")),
+			field.ErrorTypeInvalid,
 			"spec.strategy.rollingParams.maxUnavailable",
 		},
 		"invalid percent spec.strategy.rollingParams.maxUnavailable": {
-			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromString("foo")),
-			fielderrors.ValidationErrorTypeInvalid,
+			rollingConfigMax(intstr.FromInt(0), intstr.FromString("foo")),
+			field.ErrorTypeInvalid,
 			"spec.strategy.rollingParams.maxUnavailable",
 		},
 		"invalid percent spec.strategy.rollingParams.maxSurge": {
-			rollingConfigMax(kutil.NewIntOrStringFromString("foo"), kutil.NewIntOrStringFromString("100%")),
-			fielderrors.ValidationErrorTypeInvalid,
+			rollingConfigMax(intstr.FromString("foo"), intstr.FromString("100%")),
+			field.ErrorTypeInvalid,
 			"spec.strategy.rollingParams.maxSurge",
 		},
 	}
@@ -469,10 +469,10 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			t.Errorf("%s: expected test failure, got success", testName)
 		}
 		for i := range errs {
-			if got, exp := errs[i].(*fielderrors.ValidationError).Type, v.ErrorType; got != exp {
+			if got, exp := errs[i].Type, v.ErrorType; got != exp {
 				t.Errorf("%s: expected error \"%v\" to have type %q, but got %q", testName, errs[i], exp, got)
 			}
-			if got, exp := errs[i].(*fielderrors.ValidationError).Field, v.Field; got != exp {
+			if got, exp := errs[i].Field, v.Field; got != exp {
 				t.Errorf("%s: expected error \"%v\" to have field %q, but got %q", testName, errs[i], exp, got)
 			}
 		}
@@ -524,10 +524,10 @@ func TestValidateDeploymentConfigUpdate(t *testing.T) {
 			t.Errorf("Expected update failure")
 		}
 		for i := range errs {
-			if errs[i].(*fielderrors.ValidationError).Type != fielderrors.ValidationErrorTypeInvalid {
-				t.Errorf("expected update error to have type %s: %v", fielderrors.ValidationErrorTypeInvalid, errs[i])
+			if errs[i].Type != field.ErrorTypeInvalid {
+				t.Errorf("expected update error to have type %s: %v", field.ErrorTypeInvalid, errs[i])
 			}
-			if errs[i].(*fielderrors.ValidationError).Field != "status.latestVersion" {
+			if errs[i].Field != "status.latestVersion" {
 				t.Errorf("expected update error to have field %s: %v", "latestVersion", errs[i])
 			}
 		}
@@ -564,7 +564,7 @@ func TestValidateDeploymentConfigRollbackOK(t *testing.T) {
 func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 	errorCases := map[string]struct {
 		D api.DeploymentConfigRollback
-		T fielderrors.ValidationErrorType
+		T field.ErrorType
 		F string
 	}{
 		"missing spec.from.name": {
@@ -573,7 +573,7 @@ func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 					From: kapi.ObjectReference{},
 				},
 			},
-			fielderrors.ValidationErrorTypeRequired,
+			field.ErrorTypeRequired,
 			"spec.from.name",
 		},
 		"wrong spec.from.kind": {
@@ -585,7 +585,7 @@ func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 					},
 				},
 			},
-			fielderrors.ValidationErrorTypeInvalid,
+			field.ErrorTypeInvalid,
 			"spec.from.kind",
 		},
 	}
@@ -596,10 +596,10 @@ func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 			t.Errorf("Expected failure for scenario %s", k)
 		}
 		for i := range errs {
-			if errs[i].(*fielderrors.ValidationError).Type != v.T {
+			if errs[i].Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(*fielderrors.ValidationError).Field != v.F {
+			if errs[i].Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}

@@ -37,13 +37,15 @@ import (
 var (
 	plog = capnslog.NewPackageLogger("github.com/coreos/etcd", "discovery")
 
-	ErrInvalidURL     = errors.New("discovery: invalid URL")
-	ErrBadSizeKey     = errors.New("discovery: size key is bad")
-	ErrSizeNotFound   = errors.New("discovery: size key not found")
-	ErrTokenNotFound  = errors.New("discovery: token not found")
-	ErrDuplicateID    = errors.New("discovery: found duplicate id")
-	ErrFullCluster    = errors.New("discovery: cluster is full")
-	ErrTooManyRetries = errors.New("discovery: too many retries")
+	ErrInvalidURL           = errors.New("discovery: invalid URL")
+	ErrBadSizeKey           = errors.New("discovery: size key is bad")
+	ErrSizeNotFound         = errors.New("discovery: size key not found")
+	ErrTokenNotFound        = errors.New("discovery: token not found")
+	ErrDuplicateID          = errors.New("discovery: found duplicate id")
+	ErrDuplicateName        = errors.New("discovery: found duplicate name")
+	ErrFullCluster          = errors.New("discovery: cluster is full")
+	ErrTooManyRetries       = errors.New("discovery: too many retries")
+	ErrBadDiscoveryEndpoint = errors.New("discovery: bad discovery endpoint")
 )
 
 var (
@@ -170,14 +172,14 @@ func (d *discovery) joinCluster(config string) (string, error) {
 		return "", err
 	}
 
-	return nodesToCluster(all), nil
+	return nodesToCluster(all, size)
 }
 
 func (d *discovery) getCluster() (string, error) {
 	nodes, size, index, err := d.checkCluster()
 	if err != nil {
 		if err == ErrFullCluster {
-			return nodesToCluster(nodes), nil
+			return nodesToCluster(nodes, size)
 		}
 		return "", err
 	}
@@ -186,7 +188,7 @@ func (d *discovery) getCluster() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return nodesToCluster(all), nil
+	return nodesToCluster(all, size)
 }
 
 func (d *discovery) createSelf(contents string) error {
@@ -215,6 +217,9 @@ func (d *discovery) checkCluster() ([]*client.Node, int, uint64, error) {
 	if err != nil {
 		if eerr, ok := err.(*client.Error); ok && eerr.Code == client.ErrorCodeKeyNotFound {
 			return nil, 0, 0, ErrSizeNotFound
+		}
+		if err == client.ErrInvalidJSON {
+			return nil, 0, 0, ErrBadDiscoveryEndpoint
 		}
 		if ce, ok := err.(*client.ClusterError); ok {
 			plog.Error(ce.Detail())
@@ -325,12 +330,20 @@ func (d *discovery) selfKey() string {
 	return path.Join("/", d.cluster, d.id.String())
 }
 
-func nodesToCluster(ns []*client.Node) string {
+func nodesToCluster(ns []*client.Node, size int) (string, error) {
 	s := make([]string, len(ns))
 	for i, n := range ns {
 		s[i] = n.Value
 	}
-	return strings.Join(s, ",")
+	us := strings.Join(s, ",")
+	m, err := types.NewURLsMap(us)
+	if err != nil {
+		return us, ErrInvalidURL
+	}
+	if m.Len() != size {
+		return us, ErrDuplicateName
+	}
+	return us, nil
 }
 
 type sortableNodes struct{ Nodes []*client.Node }

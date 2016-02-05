@@ -1,4 +1,4 @@
-package admission
+package nodeenv
 
 import (
 	"testing"
@@ -21,7 +21,7 @@ func TestPodAdmission(t *testing.T) {
 			Namespace: "",
 		},
 	}
-	projectStore := cache.NewStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
+	projectStore := projectcache.NewCacheStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	projectStore.Add(project)
 
 	handler := &podNodeEnvironment{client: mockClient}
@@ -104,13 +104,14 @@ func TestPodAdmission(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		projectcache.FakeProjectCache(mockClient, projectStore, test.defaultNodeSelector)
+		cache := projectcache.NewFake(mockClient.Namespaces(), projectStore, test.defaultNodeSelector)
+		handler.SetProjectCache(cache)
 		if !test.ignoreProjectNodeSelector {
 			project.ObjectMeta.Annotations = map[string]string{"openshift.io/node-selector": test.projectNodeSelector}
 		}
 		pod.Spec = kapi.PodSpec{NodeSelector: test.podNodeSelector}
 
-		err := handler.Admit(admission.NewAttributesRecord(pod, "Pod", "namespace", project.ObjectMeta.Name, "pods", "", admission.Create, nil))
+		err := handler.Admit(admission.NewAttributesRecord(pod, kapi.Kind("Pod"), "namespace", project.ObjectMeta.Name, kapi.Resource("pods"), "", admission.Create, nil))
 		if test.admit && err != nil {
 			t.Errorf("Test: %s, expected no error but got: %s", test.testName, err)
 		} else if !test.admit && err == nil {
@@ -130,13 +131,13 @@ func TestHandles(t *testing.T) {
 		admission.Connect: false,
 		admission.Delete:  false,
 	} {
-		n, err := NewPodNodeEnvironment(nil)
+		nodeEnvionment, err := NewPodNodeEnvironment(nil)
 		if err != nil {
-			t.Error(err)
+			t.Errorf("%v: error getting node environment: %v", op, err)
 			continue
 		}
 
-		if e, a := shouldHandle, n.Handles(op); e != a {
+		if e, a := shouldHandle, nodeEnvionment.Handles(op); e != a {
 			t.Errorf("%v: shouldHandle=%t, handles=%t", op, e, a)
 		}
 	}

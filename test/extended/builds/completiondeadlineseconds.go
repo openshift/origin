@@ -2,8 +2,6 @@ package builds
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -39,7 +37,7 @@ var _ = g.Describe("builds: build with CompletionDeadlineSeconds", func() {
 			o.Expect(err).To(o.HaveOccurred())
 
 			g.By("verifying the build status")
-			builds, err := oc.REST().Builds(oc.Namespace()).List(labels.Everything(), fields.Everything())
+			builds, err := oc.REST().Builds(oc.Namespace()).List(kapi.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(builds.Items).To(o.HaveLen(1))
 
@@ -66,7 +64,7 @@ var _ = g.Describe("builds: build with CompletionDeadlineSeconds", func() {
 			o.Expect(err).To(o.HaveOccurred())
 
 			g.By("verifying the build status")
-			builds, err := oc.REST().Builds(oc.Namespace()).List(labels.Everything(), fields.Everything())
+			builds, err := oc.REST().Builds(oc.Namespace()).List(kapi.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(builds.Items).To(o.HaveLen(1))
 
