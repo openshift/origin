@@ -1,10 +1,16 @@
 package util
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 func EnvInt(key string, defaultValue int32, minValue int32) int32 {
@@ -58,4 +64,69 @@ func ParseEnvironmentArguments(s []string) (Environment, []string, []error) {
 		}
 	}
 	return env, duplicates, errs
+}
+
+// ParseEnv parses the list of environment variables into kubernetes EnvVar
+func ParseEnv(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, []string, error) {
+	env := []kapi.EnvVar{}
+	exists := sets.NewString()
+	var remove []string
+	for _, envSpec := range spec {
+		switch {
+		case envSpec == "-":
+			if defaultReader == nil {
+				return nil, nil, fmt.Errorf("when '-' is used, STDIN must be open")
+			}
+			fileEnv, err := readEnv(defaultReader)
+			if err != nil {
+				return nil, nil, err
+			}
+			env = append(env, fileEnv...)
+		case strings.Index(envSpec, "=") != -1:
+			parts := strings.SplitN(envSpec, "=", 2)
+			if len(parts) != 2 {
+				return nil, nil, fmt.Errorf("invalid environment variable: %v", envSpec)
+			}
+			exists.Insert(parts[0])
+			env = append(env, kapi.EnvVar{
+				Name:  parts[0],
+				Value: parts[1],
+			})
+		case strings.HasSuffix(envSpec, "-"):
+			remove = append(remove, envSpec[:len(envSpec)-1])
+		default:
+			return nil, nil, fmt.Errorf("unknown environment variable: %v", envSpec)
+		}
+	}
+	for _, removeLabel := range remove {
+		if _, found := exists[removeLabel]; found {
+			return nil, nil, fmt.Errorf("can not both modify and remove an environment variable in the same command")
+		}
+	}
+	return env, remove, nil
+}
+
+func readEnv(r io.Reader) ([]kapi.EnvVar, error) {
+	env := []kapi.EnvVar{}
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		envSpec := scanner.Text()
+		if pos := strings.Index(envSpec, "#"); pos != -1 {
+			envSpec = envSpec[:pos]
+		}
+		if strings.Index(envSpec, "=") != -1 {
+			parts := strings.SplitN(envSpec, "=", 2)
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("invalid environment variable: %v", envSpec)
+			}
+			env = append(env, kapi.EnvVar{
+				Name:  parts[0],
+				Value: parts[1],
+			})
+		}
+	}
+	if err := scanner.Err(); err != nil && err != io.EOF {
+		return nil, err
+	}
+	return env, nil
 }

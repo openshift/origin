@@ -1,7 +1,6 @@
-package cmd
+package set
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,11 +10,11 @@ import (
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/strategicpatch"
 
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -64,15 +63,15 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Write
 	var env []string
 	cmd := &cobra.Command{
 		Use:     "env RESOURCE/NAME KEY_1=VAL_1 ... KEY_N=VAL_N",
-		Short:   "Update the environment on a resource with a pod template",
+		Short:   "Update environment variables on a pod template",
 		Long:    envLong,
 		Example: fmt.Sprintf(envExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunEnv(f, in, out, cmd, args, env, filenames)
-			if err == errExit {
+			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 		},
 	}
 	cmd.Flags().StringP("containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
@@ -100,71 +99,6 @@ func validateNoOverwrites(meta *kapi.ObjectMeta, labels map[string]string) error
 	return nil
 }
 
-// ParseEnv parses the list of environment variables into kubernetes EnvVar
-func ParseEnv(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, []string, error) {
-	env := []kapi.EnvVar{}
-	exists := sets.NewString()
-	var remove []string
-	for _, envSpec := range spec {
-		switch {
-		case envSpec == "-":
-			if defaultReader == nil {
-				return nil, nil, fmt.Errorf("when '-' is used, STDIN must be open")
-			}
-			fileEnv, err := readEnv(defaultReader)
-			if err != nil {
-				return nil, nil, err
-			}
-			env = append(env, fileEnv...)
-		case strings.Index(envSpec, "=") != -1:
-			parts := strings.SplitN(envSpec, "=", 2)
-			if len(parts) != 2 {
-				return nil, nil, fmt.Errorf("invalid environment variable: %v", envSpec)
-			}
-			exists.Insert(parts[0])
-			env = append(env, kapi.EnvVar{
-				Name:  parts[0],
-				Value: parts[1],
-			})
-		case strings.HasSuffix(envSpec, "-"):
-			remove = append(remove, envSpec[:len(envSpec)-1])
-		default:
-			return nil, nil, fmt.Errorf("unknown environment variable: %v", envSpec)
-		}
-	}
-	for _, removeLabel := range remove {
-		if _, found := exists[removeLabel]; found {
-			return nil, nil, fmt.Errorf("can not both modify and remove an environment variable in the same command")
-		}
-	}
-	return env, remove, nil
-}
-
-func readEnv(r io.Reader) ([]kapi.EnvVar, error) {
-	env := []kapi.EnvVar{}
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		envSpec := scanner.Text()
-		if pos := strings.Index(envSpec, "#"); pos != -1 {
-			envSpec = envSpec[:pos]
-		}
-		if strings.Index(envSpec, "=") != -1 {
-			parts := strings.SplitN(envSpec, "=", 2)
-			if len(parts) != 2 {
-				return nil, fmt.Errorf("invalid environment variable: %v", envSpec)
-			}
-			env = append(env, kapi.EnvVar{
-				Name:  parts[0],
-				Value: parts[1],
-			})
-		}
-	}
-	if err := scanner.Err(); err != nil && err != io.EOF {
-		return nil, err
-	}
-	return env, nil
-}
-
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
 func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, envParams, filenames []string) error {
 	resources, envArgs := []string{}, []string{}
@@ -180,23 +114,23 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		case first && !isEnv:
 			resources = append(resources, s)
 		case !first && !isEnv:
-			return cmdutil.UsageError(cmd, "all resources must be specified before environment changes: %s", s)
+			return kcmdutil.UsageError(cmd, "all resources must be specified before environment changes: %s", s)
 		}
 	}
 	if len(filenames) == 0 && len(resources) < 1 {
-		return cmdutil.UsageError(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")
+		return kcmdutil.UsageError(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")
 	}
 
-	containerMatch := cmdutil.GetFlagString(cmd, "containers")
-	list := cmdutil.GetFlagBool(cmd, "list")
-	selector := cmdutil.GetFlagString(cmd, "selector")
-	all := cmdutil.GetFlagBool(cmd, "all")
-	//overwrite := cmdutil.GetFlagBool(cmd, "overwrite")
-	resourceVersion := cmdutil.GetFlagString(cmd, "resource-version")
-	outputFormat := cmdutil.GetFlagString(cmd, "output")
+	containerMatch := kcmdutil.GetFlagString(cmd, "containers")
+	list := kcmdutil.GetFlagBool(cmd, "list")
+	selector := kcmdutil.GetFlagString(cmd, "selector")
+	all := kcmdutil.GetFlagBool(cmd, "all")
+	//overwrite := kcmdutil.GetFlagBool(cmd, "overwrite")
+	resourceVersion := kcmdutil.GetFlagString(cmd, "resource-version")
+	outputFormat := kcmdutil.GetFlagString(cmd, "output")
 
 	if list && len(outputFormat) > 0 {
-		return cmdutil.UsageError(cmd, "--list and --output may not be specified together")
+		return kcmdutil.UsageError(cmd, "--list and --output may not be specified together")
 	}
 
 	clientConfig, err := f.ClientConfig()
@@ -209,7 +143,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		return err
 	}
 
-	env, remove, err := ParseEnv(append(envParams, envArgs...), in)
+	env, remove, err := cmdutil.ParseEnv(append(envParams, envArgs...), in)
 	if err != nil {
 		return err
 	}
@@ -231,7 +165,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 
 	// only apply resource version locking on a single resource
 	if !one && len(resourceVersion) > 0 {
-		return cmdutil.UsageError(cmd, "--resource-version may only be used with a single resource")
+		return kcmdutil.UsageError(cmd, "--resource-version may only be used with a single resource")
 	}
 	// Keep a copy of the original objects prior to updating their environment.
 	// Used in constructing the patch(es) that will be applied in the server.
@@ -294,7 +228,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	}
 
 	if len(outputFormat) != 0 {
-		outputVersion, err := cmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
+		outputVersion, err := kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
 		if err != nil {
 			return err
 		}
@@ -343,45 +277,11 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		}
 		info.Refresh(obj, true)
 
-		shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
-		cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "updated")
+		shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
+		kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "updated")
 	}
 	if failed {
-		return errExit
+		return cmdutil.ErrExit
 	}
 	return nil
-}
-
-func updateEnv(existing []kapi.EnvVar, env []kapi.EnvVar, remove []string) []kapi.EnvVar {
-	out := []kapi.EnvVar{}
-	covered := sets.NewString(remove...)
-	for _, e := range existing {
-		if covered.Has(e.Name) {
-			continue
-		}
-		newer, ok := findEnv(env, e.Name)
-		if ok {
-			covered.Insert(e.Name)
-			out = append(out, newer)
-			continue
-		}
-		out = append(out, e)
-	}
-	for _, e := range env {
-		if covered.Has(e.Name) {
-			continue
-		}
-		covered.Insert(e.Name)
-		out = append(out, e)
-	}
-	return out
-}
-
-func findEnv(env []kapi.EnvVar, name string) (kapi.EnvVar, bool) {
-	for _, e := range env {
-		if e.Name == name {
-			return e, true
-		}
-	}
-	return kapi.EnvVar{}, false
 }

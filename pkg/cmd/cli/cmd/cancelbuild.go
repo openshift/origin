@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -42,7 +42,7 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *co
 		SuggestFor: []string{"builds", "stop-build"},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCancelBuild(f, out, cmd, args)
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 		},
 	}
 
@@ -55,7 +55,7 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *co
 // RunCancelBuild contains all the necessary functionality for the OpenShift cli cancel-build command
 func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
 	if len(args) == 0 || len(args[0]) == 0 {
-		return cmdutil.UsageError(cmd, "You must specify the name of a build to cancel.")
+		return kcmdutil.UsageError(cmd, "You must specify the name of a build to cancel.")
 	}
 
 	buildName := args[0]
@@ -88,7 +88,7 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 	}
 
 	// Print build logs before cancelling build.
-	if cmdutil.GetFlagBool(cmd, "dump-logs") {
+	if kcmdutil.GetFlagBool(cmd, "dump-logs") {
 		opts := buildapi.BuildLogOptions{
 			NoWait: true,
 		}
@@ -119,10 +119,10 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 
 	// mapper, typer := f.Object()
 	// resourceMapper := &resource.Mapper{ObjectTyper: typer, RESTMapper: mapper, ClientMapper: f.ClientMapperForCommand()}
-	// shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
+	// shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
 
 	// Create a new build with the same configuration.
-	if cmdutil.GetFlagBool(cmd, "restart") {
+	if kcmdutil.GetFlagBool(cmd, "restart") {
 		request := &buildapi.BuildRequest{
 			ObjectMeta: kapi.ObjectMeta{Name: build.Name},
 		}
@@ -137,14 +137,14 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 		// if err != nil {
 		// 	return err
 		// }
-		//cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "restarted")
+		//kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "restarted")
 	} else {
 		fmt.Fprintf(out, "%s\n", build.Name)
 		// info, err := resourceMapper.InfoForObject(build)
 		// if err != nil {
 		// 	return err
 		// }
-		// cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "cancelled")
+		// kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "cancelled")
 	}
 	return nil
 }

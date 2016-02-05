@@ -32,6 +32,22 @@ Update the annotations on a resource
 ====
 
 
+== oc apply
+Apply a configuration to a resource by filename or stdin
+
+====
+
+[options="nowrap"]
+----
+# Apply the configuration in pod.json to a pod.
+$ oc apply -f ./pod.json
+
+# Apply the JSON passed into stdin to a pod.
+$ cat pod.json | oc apply -f -
+----
+====
+
+
 == oc attach
 Attach to a running container.
 
@@ -244,7 +260,7 @@ Create a route that uses reencrypt TLS termination
 
 
 == oc delete
-Delete resources by filenames, stdin, resources and names, or by resources and label selector.
+Delete one or more resources
 
 ====
 
@@ -330,7 +346,7 @@ Edit a resource on the server
 
 
 == oc env
-Update the environment on a resource with a pod template
+DEPRECATED: set env
 
 ====
 
@@ -991,6 +1007,78 @@ Create a new secret for SSH authentication
 ====
 
 
+== oc set env
+Update environment variables on a pod template
+
+====
+
+[options="nowrap"]
+----
+  # Update deployment 'registry' with a new environment variable
+  $ oc set env dc/registry STORAGE_DIR=/local
+
+  # List the environment variables defined on a deployment config 'registry'
+  $ oc set env dc/registry --list
+
+  # List the environment variables defined on all pods
+  $ oc set env pods --all --list
+
+  # Output modified deployment config in YAML, and does not alter the object on the server
+  $ oc set env dc/registry STORAGE_DIR=/data -o yaml
+
+  # Update all containers in all replication controllers in the project to have ENV=prod
+  $ oc set env rc --all ENV=prod
+
+  # Remove the environment variable ENV from container 'c1' in all deployment configs
+  $ oc set env dc --all --containers="c1" ENV-
+
+  # Remove the environment variable ENV from a deployment config definition on disk and
+  # update the deployment config on the server
+  $ oc set env -f dc.json ENV-
+
+  # Set some of the local shell environment into a deployment config on the server
+  $ env | grep RAILS_ | oc set env -e - dc/registry
+----
+====
+
+
+== oc set volumes
+Update volumes on a pod template
+
+====
+
+[options="nowrap"]
+----
+  # List volumes defined on all deployment configs in the current project
+  $ oc set volume dc --all
+
+  # Add a new empty dir volume to deployment config (dc) 'registry' mounted under
+  # /var/lib/registry
+  $ oc set volume dc/registry --add --mount-path=/var/lib/registry
+
+  # Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
+  $ oc set volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
+
+  # Remove volume 'v1' from deployment config 'registry'
+  $ oc set volume dc/registry --remove --name=v1
+
+  # Create a new persistent volume claim that overwrites an existing volume 'v1'
+  $ oc set volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
+
+  # Change the mount point for volume 'v1' to /data
+  $ oc set volume dc/registry --add --name=v1 -m /data --overwrite
+
+  # Modify the deployment config by removing volume mount "v1" from container "c1"
+  # (and by removing the volume "v1" if no other containers have volume mounts that reference it)
+  $ oc set volume dc/registry --remove --name=v1 --containers=c1
+
+  # Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
+  # Ceph, Gluster, NFS, ISCSI, ...)
+  $ oc set volume dc/registry --add -m /repo --source=<json-string>
+----
+====
+
+
 == oc start-build
 Start a new build
 
@@ -1085,7 +1173,7 @@ An introduction to concepts and types
 
 
 == oc volumes
-Update volume on a resource with a pod template
+DEPRECATED: set volume
 
 ====
 

@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -56,7 +56,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	defRun := cmd.Run
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		err := validate(cmd, f, args)
-		cmdutil.CheckErr(err)
+		kcmdutil.CheckErr(err)
 		defRun(cmd, args)
 	}
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
@@ -81,7 +81,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	r := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, cmdutil.GetFlagStringSlice(cmd, "filename")...).
+		FilenameParam(enforceNamespace, kcmdutil.GetFlagStringSlice(cmd, "filename")...).
 		ResourceTypeOrNameArgs(false, args...).
 		Flatten().
 		Do()
@@ -95,13 +95,13 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	info := infos[0]
 	mapping := info.ResourceMapping()
 
-	generator := cmdutil.GetFlagString(cmd, "generator")
+	generator := kcmdutil.GetFlagString(cmd, "generator")
 	switch mapping.GroupVersionKind.GroupKind() {
 	case kapi.Kind("Service"):
 		switch generator {
 		case "service/v1", "service/v2":
 			// Set default protocol back for generating services
-			if len(cmdutil.GetFlagString(cmd, "protocol")) == 0 {
+			if len(kcmdutil.GetFlagString(cmd, "protocol")) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
 			}
 			return validateFlags(cmd, generator)
@@ -147,7 +147,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			fallthrough
 		case "service/v1", "service/v2":
 			// Set default protocol back for generating services
-			if len(cmdutil.GetFlagString(cmd, "protocol")) == 0 {
+			if len(kcmdutil.GetFlagString(cmd, "protocol")) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
 			}
 			return validateFlags(cmd, generator)
@@ -164,41 +164,41 @@ func validateFlags(cmd *cobra.Command, generator string) error {
 
 	switch generator {
 	case "service/v1", "service/v2":
-		if len(cmdutil.GetFlagString(cmd, "hostname")) != 0 {
+		if len(kcmdutil.GetFlagString(cmd, "hostname")) != 0 {
 			invalidFlags = append(invalidFlags, "--hostname")
 		}
-		if len(cmdutil.GetFlagString(cmd, "path")) != 0 {
+		if len(kcmdutil.GetFlagString(cmd, "path")) != 0 {
 			invalidFlags = append(invalidFlags, "--path")
 		}
 	case "route/v1":
-		if len(cmdutil.GetFlagString(cmd, "protocol")) != 0 {
+		if len(kcmdutil.GetFlagString(cmd, "protocol")) != 0 {
 			invalidFlags = append(invalidFlags, "--protocol")
 		}
-		if len(cmdutil.GetFlagString(cmd, "type")) != 0 {
+		if len(kcmdutil.GetFlagString(cmd, "type")) != 0 {
 			invalidFlags = append(invalidFlags, "--type")
 		}
-		if len(cmdutil.GetFlagString(cmd, "selector")) != 0 {
+		if len(kcmdutil.GetFlagString(cmd, "selector")) != 0 {
 			invalidFlags = append(invalidFlags, "--selector")
 		}
-		if len(cmdutil.GetFlagString(cmd, "container-port")) != 0 {
+		if len(kcmdutil.GetFlagString(cmd, "container-port")) != 0 {
 			invalidFlags = append(invalidFlags, "--container-port")
 		}
-		if len(cmdutil.GetFlagString(cmd, "target-port")) != 0 {
+		if len(kcmdutil.GetFlagString(cmd, "target-port")) != 0 {
 			invalidFlags = append(invalidFlags, "--target-port")
 		}
-		if len(cmdutil.GetFlagString(cmd, "external-ip")) != 0 {
+		if len(kcmdutil.GetFlagString(cmd, "external-ip")) != 0 {
 			invalidFlags = append(invalidFlags, "--external-ip")
 		}
-		if len(cmdutil.GetFlagString(cmd, "port")) != 0 {
+		if len(kcmdutil.GetFlagString(cmd, "port")) != 0 {
 			invalidFlags = append(invalidFlags, "--port")
 		}
-		if len(cmdutil.GetFlagString(cmd, "load-balancer-ip")) != 0 {
+		if len(kcmdutil.GetFlagString(cmd, "load-balancer-ip")) != 0 {
 			invalidFlags = append(invalidFlags, "--load-balancer-ip")
 		}
-		if len(cmdutil.GetFlagString(cmd, "session-affinity")) != 0 {
+		if len(kcmdutil.GetFlagString(cmd, "session-affinity")) != 0 {
 			invalidFlags = append(invalidFlags, "--session-affinity")
 		}
-		if cmdutil.GetFlagBool(cmd, "create-external-load-balancer") {
+		if kcmdutil.GetFlagBool(cmd, "create-external-load-balancer") {
 			invalidFlags = append(invalidFlags, "--create-external-load-balancer")
 		}
 	}

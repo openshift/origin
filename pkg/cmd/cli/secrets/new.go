@@ -12,7 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/spf13/cobra"
@@ -80,30 +80,30 @@ func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writ
 		Example: fmt.Sprintf(newExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(args, f); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
 
 			if err := options.Validate(); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
 
-			if len(cmdutil.GetFlagString(c, "output")) != 0 {
+			if len(kcmdutil.GetFlagString(c, "output")) != 0 {
 				secret, err := options.BundleSecret()
-				cmdutil.CheckErr(err)
+				kcmdutil.CheckErr(err)
 
-				cmdutil.CheckErr(f.Factory.PrintObject(c, secret, out))
+				kcmdutil.CheckErr(f.Factory.PrintObject(c, secret, out))
 				return
 			}
 
 			_, err := options.CreateSecret()
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 		},
 	}
 
 	cmd.Flags().BoolVarP(&options.Quiet, "quiet", "q", options.Quiet, "Suppress warnings")
 	cmd.Flags().BoolVar(&options.AllowUnknownTypes, "confirm", options.AllowUnknownTypes, "Allow unknown secret types.")
 	cmd.Flags().StringVar(&options.SecretTypeName, "type", "", "The type of secret")
-	cmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 
 	return cmd
 }

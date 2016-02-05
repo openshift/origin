@@ -22,12 +22,12 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
-	osutil "github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/util/errors"
@@ -85,7 +85,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 		SuggestFor: []string{"build", "builds"},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunStartBuild(f, in, out, cmd, env, args, webhooks)
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 		},
 	}
 	cmd.Flags().String("build-loglevel", "", "Specify the log level for the build log output")
@@ -112,27 +112,27 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 
 // RunStartBuild contains all the necessary functionality for the OpenShift cli start-build command
 func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, envParams []string, args []string, webhooks util.StringFlag) error {
-	webhook := cmdutil.GetFlagString(cmd, "from-webhook")
-	buildName := cmdutil.GetFlagString(cmd, "from-build")
-	follow := cmdutil.GetFlagBool(cmd, "follow")
-	commit := cmdutil.GetFlagString(cmd, "commit")
-	waitForComplete := cmdutil.GetFlagBool(cmd, "wait")
-	fromFile := cmdutil.GetFlagString(cmd, "from-file")
-	fromDir := cmdutil.GetFlagString(cmd, "from-dir")
-	fromRepo := cmdutil.GetFlagString(cmd, "from-repo")
-	buildLogLevel := cmdutil.GetFlagString(cmd, "build-loglevel")
+	webhook := kcmdutil.GetFlagString(cmd, "from-webhook")
+	buildName := kcmdutil.GetFlagString(cmd, "from-build")
+	follow := kcmdutil.GetFlagBool(cmd, "follow")
+	commit := kcmdutil.GetFlagString(cmd, "commit")
+	waitForComplete := kcmdutil.GetFlagBool(cmd, "wait")
+	fromFile := kcmdutil.GetFlagString(cmd, "from-file")
+	fromDir := kcmdutil.GetFlagString(cmd, "from-dir")
+	fromRepo := kcmdutil.GetFlagString(cmd, "from-repo")
+	buildLogLevel := kcmdutil.GetFlagString(cmd, "build-loglevel")
 
 	switch {
 	case len(webhook) > 0:
 		if len(args) > 0 || len(buildName) > 0 || len(fromFile) > 0 || len(fromDir) > 0 || len(fromRepo) > 0 {
-			return cmdutil.UsageError(cmd, "The '--from-webhook' flag is incompatible with arguments and all '--from-*' flags")
+			return kcmdutil.UsageError(cmd, "The '--from-webhook' flag is incompatible with arguments and all '--from-*' flags")
 		}
-		path := cmdutil.GetFlagString(cmd, "git-repository")
-		postReceivePath := cmdutil.GetFlagString(cmd, "git-post-receive")
+		path := kcmdutil.GetFlagString(cmd, "git-repository")
+		postReceivePath := kcmdutil.GetFlagString(cmd, "git-post-receive")
 		repo := git.NewRepository()
 		return RunStartBuildWebHook(f, out, webhook, path, postReceivePath, repo)
 	case len(args) != 1 && len(buildName) == 0:
-		return cmdutil.UsageError(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag")
+		return kcmdutil.UsageError(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag")
 	}
 
 	namespace, _, err := f.DefaultNamespace()
@@ -147,7 +147,7 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 
 	if len(name) == 0 && len(args) > 0 && len(args[0]) > 0 {
 		mapper, _ := f.Object()
-		resource, name, err = osutil.ResolveResource("buildconfigs", args[0], mapper)
+		resource, name, err = cmdutil.ResolveResource("buildconfigs", args[0], mapper)
 		if err != nil {
 			return err
 		}
@@ -173,7 +173,7 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 		return err
 	}
 
-	env, _, err := ParseEnv(envParams, in)
+	env, _, err := cmdutil.ParseEnv(envParams, in)
 	if err != nil {
 		return err
 	}
@@ -233,8 +233,8 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 	// if err != nil {
 	// 	return err
 	// }
-	// shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
-	// cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "started")
+	// shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
+	// kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "started")
 
 	var (
 		wg      sync.WaitGroup

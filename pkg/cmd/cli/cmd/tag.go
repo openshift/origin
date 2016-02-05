@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
@@ -75,9 +75,9 @@ func NewCmdTag(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 		Long:    tagLong,
 		Example: fmt.Sprintf(tagExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(opts.Complete(f, cmd, args, out))
-			cmdutil.CheckErr(opts.Validate())
-			cmdutil.CheckErr(opts.RunTag())
+			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
+			kcmdutil.CheckErr(opts.Validate())
+			kcmdutil.CheckErr(opts.RunTag())
 		},
 	}
 
@@ -132,7 +132,7 @@ func determineSourceKind(f *clientcmd.Factory, input string) string {
 // Complete completes all the required options for the tag command.
 func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) < 2 && (len(args) < 1 && !o.deleteTag) {
-		return cmdutil.UsageError(cmd, "you must specify a source and at least one destination or one or more tags to delete")
+		return kcmdutil.UsageError(cmd, "you must specify a source and at least one destination or one or more tags to delete")
 	}
 
 	// Setup writer.
@@ -165,7 +165,7 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 		if len(sourceKind) > 0 {
 			validSources := sets.NewString("imagestreamtag", "istag", "imagestreamimage", "isimage", "docker", "dockerimage")
 			if !validSources.Has(strings.ToLower(sourceKind)) {
-				cmdutil.CheckErr(cmdutil.UsageError(cmd, "invalid source %q; valid values are %v", o.sourceKind, strings.Join(validSources.List(), ", ")))
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, "invalid source %q; valid values are %v", o.sourceKind, strings.Join(validSources.List(), ", ")))
 			}
 		}
 

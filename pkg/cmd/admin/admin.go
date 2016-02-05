@@ -93,7 +93,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	}
 
 	groups.Add(cmds)
-	templates.ActsAsRootCommand(cmds, groups...)
+	templates.ActsAsRootCommand(cmds, []string{"options"}, groups...)
 
 	// Deprecated commands that are bundled with the binary but not displayed to end users directly
 	deprecatedCommands := []*cobra.Command{

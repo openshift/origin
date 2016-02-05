@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
 const (
@@ -66,7 +66,7 @@ func NewPathOptions(cmd *cobra.Command) *kubecmdconfig.PathOptions {
 		ExplicitFileFlag: OpenShiftConfigFlagName,
 
 		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
-			ExplicitPath: cmdutil.GetFlagString(cmd, OpenShiftConfigFlagName),
+			ExplicitPath: kcmdutil.GetFlagString(cmd, OpenShiftConfigFlagName),
 		},
 	}
 }
