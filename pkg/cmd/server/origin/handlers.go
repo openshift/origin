@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"sort"
 
-	"bitbucket.org/ww/goautoneg"
-
 	restful "github.com/emicklei/go-restful"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -20,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
+	"github.com/openshift/origin/pkg/util/httprequest"
 )
 
 // TODO We would like to use the IndexHandler from k8s but we do not yet have a
@@ -174,12 +173,8 @@ func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMa
 func assetServerRedirect(handler http.Handler, assetPublicURL string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path == "/" {
-			accepts := goautoneg.ParseAccept(req.Header.Get("Accept"))
-			for _, accept := range accepts {
-				if accept.Type == "text" && accept.SubType == "html" {
-					http.Redirect(w, req, assetPublicURL, http.StatusFound)
-					return
-				}
+			if httprequest.PrefersHTML(req) {
+				http.Redirect(w, req, assetPublicURL, http.StatusFound)
 			}
 		}
 		// Dispatch to the next handler

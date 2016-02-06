@@ -46,6 +46,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
+	"github.com/openshift/origin/pkg/auth/server/errorpage"
 	"github.com/openshift/origin/pkg/auth/server/grant"
 	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/auth/server/selectprovider"
@@ -92,7 +93,12 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	clientAuthStorage := clientauthetcd.NewREST(c.EtcdHelper)
 	clientAuthRegistry := clientauthregistry.NewRegistry(clientAuthStorage)
 
-	authRequestHandler, authHandler, authFinalizer, err := c.getAuthorizeAuthenticationHandlers(mux)
+	errorPageHandler, err := c.getErrorHandler()
+	if err != nil {
+		glog.Fatal(err)
+	}
+
+	authRequestHandler, authHandler, authFinalizer, err := c.getAuthorizeAuthenticationHandlers(mux, errorPageHandler)
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -116,12 +122,12 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 			handlers.NewAuthorizeAuthenticator(
 				authRequestHandler,
 				authHandler,
-				handlers.EmptyError{},
+				errorPageHandler,
 			),
 			handlers.NewGrantCheck(
 				grantChecker,
 				grantHandler,
-				handlers.EmptyError{},
+				errorPageHandler,
 			),
 			authFinalizer,
 		},
@@ -167,6 +173,18 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 		fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix),
 		fmt.Sprintf("Started Login endpoint at %%s%s", OpenShiftLoginPrefix),
 	}
+}
+
+func (c *AuthConfig) getErrorHandler() (*errorpage.ErrorPage, error) {
+	errorTemplate := ""
+	if c.Options.Templates != nil {
+		errorTemplate = c.Options.Templates.Error
+	}
+	errorPageRenderer, err := errorpage.NewErrorPageTemplateRenderer(errorTemplate)
+	if err != nil {
+		return nil, err
+	}
+	return errorpage.NewErrorPageHandler(errorPageRenderer), nil
 }
 
 // NewOpenShiftOAuthClientConfig provides config for OpenShift OAuth client
@@ -279,12 +297,12 @@ func (c *AuthConfig) getCSRF() csrf.CSRF {
 	return csrf.NewCookieCSRF("csrf", "/", "", secure, true)
 }
 
-func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
+func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
 	authRequestHandler, err := c.getAuthenticationRequestHandler()
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	authHandler, err := c.getAuthenticationHandler(mux, handlers.EmptyError{})
+	authHandler, err := c.getAuthenticationHandler(mux, errorHandler)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -369,7 +387,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 					return nil, err
 				}
 
-				login := login.NewLogin(c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, loginFormRenderer)
+				login := login.NewLogin(identityProvider.Name, c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, loginFormRenderer)
 				login.Install(mux, OpenShiftLoginPrefix)
 			}
 			if identityProvider.UseAsChallenger {

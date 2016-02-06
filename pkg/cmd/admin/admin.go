@@ -85,6 +85,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 				admin.NewCommandCreateBootstrapPolicyFile(admin.CreateBootstrapPolicyFileCommand, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out),
 				admin.NewCommandCreateLoginTemplate(f, admin.CreateLoginTemplateCommand, fullName+" "+admin.CreateLoginTemplateCommand, out),
 				admin.NewCommandCreateProviderSelectionTemplate(f, admin.CreateProviderSelectionTemplateCommand, fullName+" "+admin.CreateProviderSelectionTemplateCommand, out),
+				admin.NewCommandCreateErrorTemplate(f, admin.CreateErrorTemplateCommand, fullName+" "+admin.CreateErrorTemplateCommand, out),
 				admin.NewCommandOverwriteBootstrapPolicy(admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out),
 				admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, out),
 				cert.NewCmdCert(cert.CertRecommendedName, fullName+" "+cert.CertRecommendedName, out),

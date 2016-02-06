@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 
@@ -60,7 +59,8 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 	user, err := a.mapper.UserFor(identity)
 	if err != nil {
-		return nil, false, fmt.Errorf("Error creating or updating mapping for: %#v due to %v", identity, err)
+		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
+		return nil, false, err
 	}
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 

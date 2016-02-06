@@ -1,87 +1,66 @@
-package login
+package errorpage
 
 import (
 	"html/template"
 )
 
-// LoginTemplateExample is a basic template for customizing the login page.
-const LoginTemplateExample = `<!DOCTYPE html>
+// ErrorPageTemplateExample is a basic template for customizing the error page.
+const ErrorPageTemplateExample = `<!DOCTYPE html>
 <!--
 
-This template can be modified and used to customize the login page. To replace
-the login page, set master configuration option oauthConfig.templates.login to
-the path of the template file. Don't remove parameters in curly braces below.
+This template can be modified and used to customize the error page. To replace
+the error page, set master configuration option oauthConfig.templates.error to
+the path of the template file.
 
 oauthConfig:
   templates:
-    login: templates/login-template.html
+    error: templates/error-template.html
 
+The Error field contains an error message, which is human readable, and subject to change.
+Default error messages are intentionally generic to avoid leaking information about authentication errors.
+
+The ErrorCode field contains a programmatic error code, which may be (but is not limited to):
+- mapping_claim_error
+- mapping_lookup_error
+- authentication_error
+- grant_error
 -->
 <html>
   <head>
-    <title>Login</title>
+    <title>Error</title>
     <style type="text/css">
       body {
         font-family: "Open Sans", Helvetica, Arial, sans-serif;
         font-size: 14px;
         margin: 15px;
       }
-
-      input {
-        margin-bottom: 10px;
-        width: 300px;
-      }
-
-      .error {
-        color: red;
-        margin-bottom: 10px;
-      }
     </style>
   </head>
   <body>
 
-    {{ if .Error }}
-      <div class="error">{{ .Error }}</div>
-      <!-- Error code: {{ .ErrorCode }} -->
-    {{ end }}
-
-    <!-- Identity provider name: {{ .ProviderName }} -->
-    <form action="{{ .Action }}" method="POST">
-      <input type="hidden" name="{{ .Names.Then }}" value="{{ .Values.Then }}">
-      <input type="hidden" name="{{ .Names.CSRF }}" value="{{ .Values.CSRF }}">
-
-      <div>
-        <label for="inputUsername">Username</label>
-      </div>
-      <div>
-        <input type="text" id="inputUsername" autofocus="autofocus" type="text" name="{{ .Names.Username }}" value="{{ .Values.Username }}">
-      </div>
-
-      <div>
-        <label for="inputPassword">Password</label>
-      </div>
-      <div>
-        <input type="password" id="inputPassword" type="password" name="{{ .Names.Password }}" value="">
-      </div>
-
-      <button type="submit">Log In</button>
-
-    </form>
+    <div>
+		<!-- example of handling a particular error code in a special way -->
+		{{ if eq .ErrorCode "mapping_claim_error" }}
+			Could not create your user. Contact your administrator to resolve this issue.
+		{{ else }}
+			{{ .Error }}
+		{{ end }}
+		</div>
 
   </body>
 </html>
 `
 
-var defaultLoginTemplate = template.Must(template.New("defaultLoginForm").Parse(defaultLoginTemplateString))
+var defaultErrorPageTemplate = template.Must(template.New("defaultErrorPageTemplate").Parse(defaultErrorPageTemplateString))
 
-const defaultLoginTemplateString = `<!DOCTYPE html>
+const defaultErrorPageTemplateString = `<!DOCTYPE html>
 <!--[if IE 8]><html class="ie8 login-pf"><![endif]-->
 <!--[if IE 9]><html class="ie9 login-pf"><![endif]-->
 <!--[if gt IE 9]><!-->
 <html class="login-pf">
 <!--<![endif]-->
   <head>
-    <title>Login - OpenShift Origin</title>
+    <title>Error - OpenShift Origin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="data:image/ico;base64,AAABAAIAEBAAAAEAIAAoBQAAJgAAACAgAAABACAAKBQAAE4FAAAoAAAAEAAAACAAAAABACAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///xP///+E////2v////D////w////7v///8H///9RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///1H////5//////////////////////v7+/+wsLL/5ubn/////8L///8TAAAAAAAAAAAAAAAAAAAAAP///2X/////////////////////////////////////Tk5Q9j4+Qfv/////////4f7+/hkAAAAAAAAAAP///y/////////////////////////////////Gxsn/e3yA//////0aGh35HR8g+5ycnv92dnm3AAAAAP///wv///+p/////+bm6P6mp6n68fHy/v/////////9x8TB/H14bP3////9hIJ+9wAAAP4AAAD/AAAA/wAAAEw4ODtWQUFE+oqKjf9ISUz6SUtP+P////+zq576BgAA+iMgGvtHS1f5NTpL+jAzP/oBAAD+AgAA/wAAAP8EBQWrAAAAmgAAAP8AAAD/AAAA++Lc0PltaF37ChAm/BAPWf8fHZT/JB+z/yQfuP8mIMH/Jy6+/x4mSP8CAAD/AAAA5QEBAboHBwv/AgAA/wUAAP8rMEj6Hh6L/SUg3f8jI+3/JSLs/ygg2/8pIdj/KCHb/yUi5/8jI+3/ICdK/wEAAO8BAgK5AgAA/wIAAP8jLXb/JSHj/yMj7f8lIeX/Ji98/yAnRv8lJcX/KCHa/yciyP8mINv/IyPt/yItdP8BAADvAAAAlAIAAP8mL4z/IyPt/yUi6v8lLV//AgAA/wcAAP8iJz//JSLr/ygh2v8nKbn/Jy2j/ycup/8KDRL/AAAA4gAAAE0AAAD1Jy+V/yMj7f8mMHT/BQAA/yUvbv8nLa//JSHl/ycgzv8oIdL/JSHk/xcaJ/8FAAD/AgAA/wEBBqMAAAAEAAAAoQIAAP8UFyH/DxAV/yYtsP8oLMT/JyXM/ycgzv8nINL/JiHi/yUly/8CAAD/AgAA/wIFBv8AAABDAAAAAAAAACIAAADxBQAA/wUFAv8nMJ//ICQ8/yIrZP8lIdX/JyPO/yMj7f8lL2//AgAA/wICBf8AAACoAAAAAAAAAAAAAAAAAAAASgICBf8CAAD/Iixn/yMj7f8lI9L/JiDf/yYuif8iK23/Fxgj/wIAAP8AAAHSAAAACgAAAAAAAAAAAAAAAAAAAAAAAAA4AAAA6AAAAP8ZHS//CgoQ/woKD/8bIDX/CgoL/wIAAP8BAQapAAAABwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkAAABkAQAAvgAAAO4AAAD1AQAA4QAAAKEAAAA7AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoAAAAIAAAAEAAAAABACAAAAAAAAAUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///8v////nP///9H////j////7/////T////w////5v///9b///+s////RgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///9c/v7+z///////////////////////////////////////////////////////////////4f7+/nX///8CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///8P/v7+u////////////////////////////////////////////////////////////////////////////////////9f///8tAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/v7+Ov////////////////////////////////////////////////////////////////////+YmJz0pKSn9//////////////////////+/v5pAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///1T//////////////////////////////////////////////////////////////////////////7e3uPYAAAD0bm5y+/////7///////////////////+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD+/v46/////f///////////////////////////////////////////////////////////////////////////////05PUPgAAAD3fn6B+u7u7/v///////////////////9sAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////Bf///+H/////////////////////////////////////////////////////////////////////////////////////////+zo6O/gAAAL/Kywv+f////n////8//////////7q6uolAAAAAAAAAAAAAAAAAAAAAAAAAAD///+W/////////////////////////////////////////////////////////////////////6ysr/8eHiD/NTY3////////////t7e5+AAAAPoAAAD/CgoK+zY4OvhHR0nvREVH/x0dH9AAAAAAAAAAAAAAAAAAAAAA////N///////////////////////////////////////////////////////////////////////////gICD/0dHSf9wcHT/1dXX///////////3HBwc9QAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAF4AAAAAAAAAAAAAAAD///+M//////////////////////////6lpaf3pqap+P/////////////////////////+/////f////z////9//////////z//////////v////pNTU/5AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAAvQAAAAAAAAAAf39/BqOjpt+zsrX/7Ozt+/////7////+e3t++AAAAPVYWFrx/////////////////////YWFiPUoKiv6MzM091tYVvV5dWr1PTot9mVdT/ZRTT/2VVBC9VRQR/QAAAD9AAAA/wICAv8AAAD/AAAA/wAAAP8AAAD/AAAAOgAAAAAAAABYAAAA/wAAAPkJCQn7R0hM/Gtsb/oAAAD6Njk7+v////7///////////////tHRkb2AAAA/AIAAP8CAAD/AAAA/gAABPsAARf/AAUn/AADJv4AABP+BAYY/QIAAP8CAAD/AgAA/wAAAP8CAgL/AAAA/wAAAP8AAACTAAAAAAAAAJYAAAD/AAAA/wAAAP8AAAD/AAAA/xoaGvn////6/////9LT1fqNioT6TEY1+AAAAPsNEiX/IilV/yUufP8mKLH/JyDT/yYh4f8lIeP/JSHj/yYh4v8oIdb/Jiqo/yMra/8XGiv/AgAA/wIAAP8CBQb/AAAA/wAAAMYAAAAAAAAAxQAAAP8AAAD/AAAA/wAAAP8AAAD/NDQ2+f////r////7Qz4t9wAAAP0CBib/JCuV/yUh4/8lIuv/JSLo/yYh4f8oIdn/JyDR/ycgzv8nIM3/JyDP/ygh2f8lIeP/IyPt/yUi5/8iKV3/AgAA/wAAAP8CAgL/AAAA3AAAAAAAAADnAAAA/wAAAP8AAAD/AAAA/wICBf8AAAD/KiUV9TUxKfQPFkT+JSHC/yUi6P8lIuf/JyDV/ycgy/8lIMv/JSDL/yUgy/8lIMv/JSDL/yUgy/8lIMv/JSDL/yUgy/8nIMn/JiDZ/yMj7f8iK2T/AgAA/wAAAP8AAADtAAAAAAAAAPIAAAD/AAAA/wAAAP8CBQb/AgAA/wIAAP8ABif/HRyK/yUi6f8lIeP/JyHO/yUgyv8lIMr/JyDO/yYg3f8mIeH/JyDO/ycgyf8lIMv/JSDL/yUgy/8lIMv/JSDL/yUgy/8lIMn/JiHi/ycpxv8FBgr/AgAA/wAAAPIAAAAAAAAA8gAAAP8AAAD/AgIF/wIAAP8CAAD/Ji2I/yMj7f8lIuf/JyHN/yUgyP8nIc3/KCDd/yUi6P8lIuf/JyPI/yYrnP8nJr3/JyDS/yUgy/8lIMv/JSDL/yUgy/8lIMv/JSDL/yUgy/8nINL/JiHh/xgdMf8CAAD/AAAA8gAAAAAAAADhAAAA/wIFBv8CAAD/BQUG/yUnwf8jI+3/JyDS/yUgx/8nIc3/JSHj/yUi6P8nIdD/JC2I/x0kQ/8CAAD/CgoQ/yUhx/8oIN3/JSDL/yUgy/8lIMr/JSDO/yUf2v8nIMz/JSDJ/yYg3/8mId7/EBQe/wIAAP8AAADpAAAAAAAAAMACAgL/AgAA/wAAAP8nLLX/IyPt/ycgyv8lIMf/JR/U/yMj7f8nKbL/HSRD/wYKD/8CAAD/AgAA/wYAAP8mLnb/JSLs/yUgyv8lIMv/JSDL/ygg1/8mKq3/Ji+a/yUh5P8lIuj/IyPt/yIrZP8CAAD/AAAA/wAAANkAAAAAAAAAiwAAAP8CAAD/JS+C/yMj7f8nIMr/JSDK/yYg2P8mIeH/IShf/wIAAP8FAAD/BQAA/wIAAP8CAAD/GyI//yYg3/8oIdv/JSDL/yUgy/8lIMv/JyDU/ycgz/8bIDz/Ji6T/ycosf8bIDz/AgAA/wIAAP8CAgL/AAAAwAAAAAAAAABDAAAA/wIAAP8mLqb/IyPt/ychz/8nINH/JSHl/x8oW/8HAAD/BQAA/woNGf8ZHjX/ISlX/yYtlP8mIeH/JiDb/yUgyP8lIMv/JSDL/yUgy/8lIMr/IyPt/yIpWf8CAAD/AgAA/wIAAP8AAAD/AgIF/wAAAP8AAAB+AAAAAAAAAAAAAADWAgAA/xIVIf8nKbj/JSLo/yUi6/8jI+3/DQ0S/wIAAP8jLX7/KCHX/yYh4f8lIur/JSLn/ycg0v8lIMj/JSDL/yUgy/8lIMv/JSDL/ycgzv8lIeX/HiNE/wIAAP8AAAD/AgIC/wAAAP8AAAD/AAAA/wAAACcAAAAAAAAAAAAAAHoCBQb/AgAA/wAAAP8bIj//HiZK/x4kRf8HCgv/Jy+T/yMj7f8jI+3/JSHl/ygh1f8nIM//JSDL/yUgy/8lIMv/JSDL/yUgy/8lIMv/KCHa/ycf1/8SFSH/AgAA/wAAAP8AAAD/AAAA/wAAAP8AAACnAAAAAAAAAAAAAAAAAAAAIgAAAPsCAgX/AgAA/wIAAP8CAAD/BQAA/wcKDf8lH9f/JSLn/yMuc/8kLoP/JiDe/yYh4v8lINL/JSDI/yUgy/8lIMv/JSDL/yUgyv8lIub/Jy+f/wIAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAEkAAAAAAAAAAAAAAAAAAAAAAAAAcwAAAP8AAAD/AAAA/wAAAP8AAAD/AgAA/ycmv/8mLZj/BwAA/wIAAP8KDRX/FRoq/ycspv8mIeD/JyDO/ycg1P8nIM7/JyDL/yUi7P8eJkn/AgAA/wICAv8AAAD/AAAA/wAAAP8AAACuAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAxgAAAP8AAAD/AAAA/wAAAP8CAAD/Jy6c/yMtdP8eJEf/Jiuq/yMtdP8jLW7/Jyi3/ygg3f8nJb7/JyTK/yUi5/8lIuf/Jy6s/wIAAP8AAAD/AAAA/wAAAP8AAAD/AAAA6gAAAA8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVAAAA3gAAAP8AAAD/AAAA/wIAAP8iKV7/IyPt/yUh5P8lIeX/JSLq/yMj7f8mIeH/KCHZ/yUgy/8ZHjX/EhQe/yMj7f8iLGL/AgAA/wICAv8AAAD/AAAA/wAAAP8AAABDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAvAAAA+QAAAP8AAAD/AgAA/woLEv8nKLr/IyPt/yUi5v8nIdT/Jii2/ycjyP8nIcv/Jiqt/x4kRf8eJEX/Ji2I/wAAAP8CAAD/AAAA/wAAAP8AAAD/AAAAVAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOAAAA3AAAAP8CBQb/AgAA/wAAAP8eJkv/ICZL/xUZJ/8AAAD/CgoP/xsgOf8iKVj/JS12/yIsZv8CAAD/AgAA/wIFBv8AAAD/AAAA+wAAADMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAfwICAv8CAgX/AgAA/wIAAP8CAAD/AgAA/wIAAP8CAAD/AgAA/wIAAP8CAAD/AgAA/wAAAP8CAgX/AAAA/wAAAJ4AAAAJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKAAAAJ8AAADtAAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA+gAAALQAAABEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAABVAAAAowAAANMAAADtAAAA9gAAAPEAAADbAAAArwAAAGkAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=">
       <style>
@@ -525,11 +504,6 @@ fieldset[disabled] .btn-link:focus {
 .btn-block + .btn-block {
   margin-top: 5px;
 }
-input[type="submit"].btn-block,
-input[type="reset"].btn-block,
-input[type="button"].btn-block {
-  width: 100%;
-}
 .fade {
   opacity: 0;
   -webkit-transition: opacity 0.15s linear;
@@ -550,383 +524,6 @@ input[type="button"].btn-block {
   overflow: hidden;
   -webkit-transition: height 0.35s ease;
   transition: height 0.35s ease;
-}
-fieldset {
-  padding: 0;
-  margin: 0;
-  border: 0;
-  min-width: 0;
-}
-legend {
-  display: block;
-  width: 100%;
-  padding: 0;
-  margin-bottom: 20px;
-  font-size: 18px;
-  line-height: inherit;
-  color: #333333;
-  border: 0;
-  border-bottom: 1px solid #e5e5e5;
-}
-label {
-  display: inline-block;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-input[type="search"] {
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
-}
-input[type="radio"],
-input[type="checkbox"] {
-  margin: 4px 0 0;
-  margin-top: 1px \9;
-  /* IE8-9 */
-  line-height: normal;
-}
-input[type="file"] {
-  display: block;
-}
-input[type="range"] {
-  display: block;
-  width: 100%;
-}
-select[multiple],
-select[size] {
-  height: auto;
-}
-input[type="file"]:focus,
-input[type="radio"]:focus,
-input[type="checkbox"]:focus {
-  outline: thin dotted;
-  outline: 5px auto -webkit-focus-ring-color;
-  outline-offset: -2px;
-}
-output {
-  display: block;
-  padding-top: 3px;
-  font-size: 12px;
-  line-height: 1.66666667;
-  color: #333333;
-}
-.form-control {
-  display: block;
-  width: 100%;
-  height: 26px;
-  padding: 2px 6px;
-  font-size: 12px;
-  line-height: 1.66666667;
-  color: #333333;
-  background-color: #ffffff;
-  background-image: none;
-  border: 1px solid #bababa;
-  border-radius: 1px;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  -webkit-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
-  transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
-}
-.form-control:focus {
-  border-color: #66afe9;
-  outline: 0;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, 0.6);
-  box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, 0.6);
-}
-.form-control::-moz-placeholder {
-  color: #999999;
-  opacity: 1;
-}
-.form-control:-ms-input-placeholder {
-  color: #999999;
-}
-.form-control::-webkit-input-placeholder {
-  color: #999999;
-}
-.form-control:-moz-placeholder {
-  color: #999999;
-  font-style: italic;
-}
-.form-control::-moz-placeholder {
-  color: #999999;
-  font-style: italic;
-}
-.form-control:-ms-input-placeholder {
-  color: #999999;
-  font-style: italic;
-}
-.form-control::-webkit-input-placeholder {
-  color: #999999;
-  font-style: italic;
-}
-.form-control[disabled],
-.form-control[readonly],
-fieldset[disabled] .form-control {
-  cursor: not-allowed;
-  background-color: #f8f8f8;
-  opacity: 1;
-}
-textarea.form-control {
-  height: auto;
-}
-input[type="search"] {
-  -webkit-appearance: none;
-}
-input[type="date"] {
-  line-height: 26px;
-}
-.form-group {
-  margin-bottom: 15px;
-}
-.radio,
-.checkbox {
-  display: block;
-  min-height: 20px;
-  margin-top: 10px;
-  margin-bottom: 10px;
-  padding-left: 20px;
-}
-.radio label,
-.checkbox label {
-  display: inline;
-  font-weight: normal;
-  cursor: pointer;
-}
-.radio input[type="radio"],
-.radio-inline input[type="radio"],
-.checkbox input[type="checkbox"],
-.checkbox-inline input[type="checkbox"] {
-  float: left;
-  margin-left: -20px;
-}
-.radio + .radio,
-.checkbox + .checkbox {
-  margin-top: -5px;
-}
-.radio-inline,
-.checkbox-inline {
-  display: inline-block;
-  padding-left: 20px;
-  margin-bottom: 0;
-  vertical-align: middle;
-  font-weight: normal;
-  cursor: pointer;
-}
-.radio-inline + .radio-inline,
-.checkbox-inline + .checkbox-inline {
-  margin-top: 0;
-  margin-left: 10px;
-}
-input[type="radio"][disabled],
-input[type="checkbox"][disabled],
-.radio[disabled],
-.radio-inline[disabled],
-.checkbox[disabled],
-.checkbox-inline[disabled],
-fieldset[disabled] input[type="radio"],
-fieldset[disabled] input[type="checkbox"],
-fieldset[disabled] .radio,
-fieldset[disabled] .radio-inline,
-fieldset[disabled] .checkbox,
-fieldset[disabled] .checkbox-inline {
-  cursor: not-allowed;
-}
-.input-sm {
-  height: 22px;
-  padding: 2px 6px;
-  font-size: 11px;
-  line-height: 1.5;
-  border-radius: 1px;
-}
-select.input-sm {
-  height: 22px;
-  line-height: 22px;
-}
-textarea.input-sm,
-select[multiple].input-sm {
-  height: auto;
-}
-.input-lg {
-  height: 33px;
-  padding: 6px 10px;
-  font-size: 14px;
-  line-height: 1.33;
-  border-radius: 1px;
-}
-select.input-lg {
-  height: 33px;
-  line-height: 33px;
-}
-textarea.input-lg,
-select[multiple].input-lg {
-  height: auto;
-}
-.has-feedback {
-  position: relative;
-}
-.has-feedback .form-control {
-  padding-right: 32.5px;
-}
-.has-feedback .form-control-feedback {
-  position: absolute;
-  top: 25px;
-  right: 0;
-  display: block;
-  width: 26px;
-  height: 26px;
-  line-height: 26px;
-  text-align: center;
-}
-.has-success .help-block,
-.has-success .control-label,
-.has-success .radio,
-.has-success .checkbox,
-.has-success .radio-inline,
-.has-success .checkbox-inline {
-  color: #3c763d;
-}
-.has-success .form-control {
-  border-color: #3c763d;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-}
-.has-success .form-control:focus {
-  border-color: #2b542c;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #67b168;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #67b168;
-}
-.has-success .input-group-addon {
-  color: #3c763d;
-  border-color: #3c763d;
-  background-color: #dff0d8;
-}
-.has-success .form-control-feedback {
-  color: #3c763d;
-}
-.has-warning .help-block,
-.has-warning .control-label,
-.has-warning .radio,
-.has-warning .checkbox,
-.has-warning .radio-inline,
-.has-warning .checkbox-inline {
-  color: #8a6d3b;
-}
-.has-warning .form-control {
-  border-color: #8a6d3b;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-}
-.has-warning .form-control:focus {
-  border-color: #66512c;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #c0a16b;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #c0a16b;
-}
-.has-warning .input-group-addon {
-  color: #8a6d3b;
-  border-color: #8a6d3b;
-  background-color: #fcf8e3;
-}
-.has-warning .form-control-feedback {
-  color: #8a6d3b;
-}
-.has-error .help-block,
-.has-error .control-label,
-.has-error .radio,
-.has-error .checkbox,
-.has-error .radio-inline,
-.has-error .checkbox-inline {
-  color: #a94442;
-}
-.has-error .form-control {
-  border-color: #a94442;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-}
-.has-error .form-control:focus {
-  border-color: #843534;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #ce8483;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #ce8483;
-}
-.has-error .input-group-addon {
-  color: #a94442;
-  border-color: #a94442;
-  background-color: #f2dede;
-}
-.has-error .form-control-feedback {
-  color: #a94442;
-}
-.form-control-static {
-  margin-bottom: 0;
-}
-.help-block {
-  display: block;
-  margin-top: 5px;
-  margin-bottom: 10px;
-  color: #737373;
-}
-@media (min-width: 768px) {
-  .form-inline .form-group {
-    display: inline-block;
-    margin-bottom: 0;
-    vertical-align: middle;
-  }
-  .form-inline .form-control {
-    display: inline-block;
-    width: auto;
-    vertical-align: middle;
-  }
-  .form-inline .input-group > .form-control {
-    width: 100%;
-  }
-  .form-inline .control-label {
-    margin-bottom: 0;
-    vertical-align: middle;
-  }
-  .form-inline .radio,
-  .form-inline .checkbox {
-    display: inline-block;
-    margin-top: 0;
-    margin-bottom: 0;
-    padding-left: 0;
-    vertical-align: middle;
-  }
-  .form-inline .radio input[type="radio"],
-  .form-inline .checkbox input[type="checkbox"] {
-    float: none;
-    margin-left: 0;
-  }
-  .form-inline .has-feedback .form-control-feedback {
-    top: 0;
-  }
-}
-.form-horizontal .control-label,
-.form-horizontal .radio,
-.form-horizontal .checkbox,
-.form-horizontal .radio-inline,
-.form-horizontal .checkbox-inline {
-  margin-top: 0;
-  margin-bottom: 0;
-  padding-top: 3px;
-}
-.form-horizontal .radio,
-.form-horizontal .checkbox {
-  min-height: 23px;
-}
-.form-horizontal .form-group {
-  margin-left: -20px;
-  margin-right: -20px;
-}
-.form-horizontal .form-control-static {
-  padding-top: 3px;
-}
-@media (min-width: 768px) {
-  .form-horizontal .control-label {
-    text-align: right;
-  }
-}
-.form-horizontal .has-feedback .form-control-feedback {
-  top: 0;
-  right: 20px;
 }
 .container {
   margin-right: auto;
@@ -2341,9 +1938,6 @@ hr {
   top: -30px;
 }
 @media (min-width: 768px) {
-  .login-pf #brand {
-    top: -40px;
-  }
   .login-pf #brand + .alert {
     margin-top: -20px;
   }
@@ -2363,6 +1957,9 @@ hr {
   }
   .login-pf #brand {
     display: none;
+  }
+  .login {
+    text-align: center;
   }
 }
 @media (min-width: 768px) {
@@ -2385,7 +1982,6 @@ hr {
           <div id="brand">
             <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjwhLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAxNi4wLjQsIFNWRyBFeHBvcnQgUGx1Zy1JbiAuIFNWRyBWZXJzaW9uOiA2LjAwIEJ1aWxkIDApICAtLT4NCjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+DQo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB3aWR0aD0iMTQ0LjEyNXB4IiBoZWlnaHQ9IjEwcHgiIHZpZXdCb3g9IjAgMCAxNDQuMTI1IDEwIiBlbmFibGUtYmFja2dyb3VuZD0ibmV3IDAgMCAxNDQuMTI1IDEwIiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxnPg0KCTxwYXRoIGZpbGw9IiNGRkZGRkYiIGQ9Ik04Ljc0Nyw0Ljk5OGMwLDEuNDgxLTAuMzYzLDIuNjA2LTEuMDg5LDMuMzc3QzYuOTMxLDkuMTQ2LDUuODY4LDkuNTMsNC40NjgsOS41Mw0KCQljLTEuMzgsMC0yLjQzOC0wLjM4Ny0zLjE3NS0xLjE2MVMwLjE4OCw2LjQ2NywwLjE4OCw0Ljk4NmMwLTEuNDY0LDAuMzY2LTIuNTgzLDEuMDk4LTMuMzU1YzAuNzMyLTAuNzcyLDEuNzk3LTEuMTU4LDMuMTkzLTEuMTU4DQoJCWMxLjQsMCwyLjQ2MiwwLjM4MywzLjE4NCwxLjE0OUM4LjM4NiwyLjM4OCw4Ljc0NywzLjUxNCw4Ljc0Nyw0Ljk5OHogTTIuNjkyLDQuOTk4YzAsMS43MDIsMC41OTIsMi41NTMsMS43NzUsMi41NTMNCgkJYzAuNjAyLDAsMS4wNDgtMC4yMDcsMS4zMzktMC42MnMwLjQzNy0xLjA1OCwwLjQzNy0xLjkzM2MwLTAuODc5LTAuMTQ3LTEuNTI4LTAuNDQyLTEuOTQ3QzUuNTA2LDIuNjMyLDUuMDY1LDIuNDIyLDQuNDc5LDIuNDIyDQoJCUMzLjI4OCwyLjQyMiwyLjY5MiwzLjI4MSwyLjY5Miw0Ljk5OHoiLz4NCgk8cGF0aCBmaWxsPSIjRkZGRkZGIiBkPSJNMjAuMTExLDMuNDA5YzAsMC45ODMtMC4yOSwxLjc0Mi0wLjg3LDIuMjc4Yy0wLjU4LDAuNTM2LTEuNDAzLDAuODA0LTIuNDcsMC44MDRoLTAuNjY4VjkuNDFoLTIuMzc3di04LjgNCgkJaDMuMDQ1YzEuMTExLDAsMS45NDYsMC4yNDMsMi41MDMsMC43MjlTMjAuMTExLDIuNTE1LDIwLjExMSwzLjQwOXogTTE2LjEwMyw0LjU1M2gwLjQzNGMwLjM1NywwLDAuNjQxLTAuMSwwLjg1Mi0wLjMwMQ0KCQlzMC4zMTYtMC40NzgsMC4zMTYtMC44MzFjMC0wLjU5NC0wLjMyOS0wLjg5MS0wLjk4Ny0wLjg5MWgtMC42MTRWNC41NTN6Ii8+DQoJPHBhdGggZmlsbD0iI0ZGRkZGRiIgZD0iTTMwLjEyNyw5LjQxaC01LjIyNHYtOC44aDUuMjI0djEuOTA4SDI3LjI4djEuMzg0aDIuNjM2djEuOTA5SDI3LjI4djEuNjZoMi44NDdWOS40MXoiLz4NCgk8cGF0aCBmaWxsPSIjRkZGRkZGIiBkPSJNNDMuNDM2LDkuNDFoLTMuMTE3bC0zLjIxNC02LjJIMzcuMDVjMC4wNzYsMC45NzUsMC4xMTUsMS43MTksMC4xMTUsMi4yMzNWOS40MWgtMi4xMDZ2LTguOGgzLjEwNQ0KCQlsMy4yMDIsNi4xMTVoMC4wMzZjLTAuMDU2LTAuODg3LTAuMDg0LTEuNTk5LTAuMDg0LTIuMTM3VjAuNjFoMi4xMThWOS40MXoiLz4NCgk8cGF0aCBmaWxsPSIjRkZGRkZGIiBkPSJNNTQuNDgxLDYuNzM4YzAsMC41NDUtMC4xMzgsMS4wMy0wLjQxNSwxLjQ1M2MtMC4yNzcsMC40MjQtMC42NzYsMC43NTItMS4xOTgsMC45ODcNCgkJYy0wLjUyMSwwLjIzNC0xLjEzNCwwLjM1Mi0xLjgzNiwwLjM1MmMtMC41ODUsMC0xLjA3Ny0wLjA0MS0xLjQ3NC0wLjEyM2MtMC4zOTctMC4wODItMC44MTEtMC4yMjYtMS4yNC0wLjQzMVY2Ljg1OA0KCQljMC40NTQsMC4yMzIsMC45MjUsMC40MTQsMS40MTUsMC41NDVjMC40ODksMC4xMywwLjkzOSwwLjE5NSwxLjM0OCwwLjE5NWMwLjM1MywwLDAuNjEyLTAuMDYyLDAuNzc2LTAuMTg0czAuMjQ3LTAuMjgsMC4yNDctMC40NzMNCgkJYzAtMC4xMi0wLjAzMy0wLjIyNi0wLjA5OS0wLjMxNWMtMC4wNjYtMC4wOTEtMC4xNzItMC4xODItMC4zMTktMC4yNzRjLTAuMTQ2LTAuMDkyLTAuNTM3LTAuMjgxLTEuMTcxLTAuNTY1DQoJCWMtMC41NzQtMC4yNjEtMS4wMDQtMC41MTQtMS4yOTEtMC43NTljLTAuMjg3LTAuMjQ1LTAuNS0wLjUyNi0wLjYzOC0wLjg0M2MtMC4xMzktMC4zMTctMC4yMDgtMC42OTItMC4yMDgtMS4xMjUNCgkJYzAtMC44MTEsMC4yOTUtMS40NDIsMC44ODUtMS44OTZjMC41OS0wLjQ1MywxLjQtMC42OCwyLjQzMS0wLjY4YzAuOTExLDAsMS44NCwwLjIxMSwyLjc4NywwLjYzMmwtMC43MjgsMS44MzUNCgkJYy0wLjgyMy0wLjM3Ny0xLjUzMy0wLjU2Ni0yLjEzMS0wLjU2NmMtMC4zMDksMC0wLjUzNCwwLjA1NC0wLjY3NCwwLjE2M2MtMC4xNDEsMC4xMDgtMC4yMTEsMC4yNDMtMC4yMTEsMC40MDMNCgkJYzAsMC4xNzIsMC4wODksMC4zMjcsMC4yNjgsMC40NjNjMC4xNzksMC4xMzcsMC42NjMsMC4zODUsMS40NTQsMC43NDdjMC43NTgsMC4zNDEsMS4yODUsMC43MDcsMS41OCwxLjA5OA0KCQlDNTQuMzMzLDUuNjUxLDU0LjQ4MSw2LjE0NCw1NC40ODEsNi43Mzh6Ii8+DQoJPHBhdGggZmlsbD0iI0ZGRkZGRiIgZD0iTTY2Ljc3Miw5LjQxaC0yLjM4OVY1LjgyM0g2MS42MlY5LjQxaC0yLjM4OXYtOC44aDIuMzg5djMuMjYyaDIuNzYzVjAuNjFoMi4zODlWOS40MXoiLz4NCgk8cGF0aCBmaWxsPSIjRkZGRkZGIiBkPSJNNzIuMDY0LDkuNDF2LTguOGgyLjM4OXY4LjhINzIuMDY0eiIvPg0KCTxwYXRoIGZpbGw9IiNGRkZGRkYiIGQ9Ik04Mi4wODYsOS40MWgtMi4zNDF2LTguOGg1LjJ2MS45MDhoLTIuODU5djEuNjc5aDIuNjM2djEuOTA5aC0yLjYzNlY5LjQxeiIvPg0KCTxwYXRoIGZpbGw9IiNGRkZGRkYiIGQ9Ik05My42NjEsOS40MWgtMi4zNzdWMi41NTVoLTIuMTQ4VjAuNjFoNi42Njh2MS45NDRoLTIuMTQzVjkuNDF6Ii8+DQo8L2c+DQo8Zz4NCgk8cGF0aCBmaWxsPSIjRkZGRkZGIiBkPSJNMTEwLjE3Niw1LjE1NWMwLDEuMzcxLTAuMzQ3LDIuNDQ5LTEuMDQsMy4yMzRzLTEuNjU3LDEuMTc4LTIuODkyLDEuMTc4Yy0xLjI2MiwwLTIuMjM1LTAuMzg1LTIuOTIxLTEuMTU2DQoJCXMtMS4wMjgtMS44NjEtMS4wMjgtMy4yNjdjMC0xLjM5NSwwLjM0NC0yLjQ3NiwxLjAzMS0zLjI0M3MxLjY2NC0xLjE1MSwyLjkzLTEuMTUxYzEuMjMsMCwyLjE5MSwwLjM5MSwyLjg4MywxLjE3Mg0KCQlTMTEwLjE3NiwzLjc4LDExMC4xNzYsNS4xNTV6IE0xMDMuMzUsNS4xNTVjMCwxLjE2LDAuMjQ3LDIuMDQxLDAuNzQxLDIuNjRzMS4yMTIsMC44OTgsMi4xNTMsMC44OTgNCgkJYzAuOTQ5LDAsMS42NjYtMC4yOTksMi4xNS0wLjg5NnMwLjcyNy0xLjQ3OSwwLjcyNy0yLjY0MmMwLTEuMTUyLTAuMjQxLTIuMDI2LTAuNzI0LTIuNjIycy0xLjE5Ni0wLjg5NC0yLjE0Mi0wLjg5NA0KCQljLTAuOTQ5LDAtMS42NzEsMC4zLTIuMTY1LDAuODk5UzEwMy4zNSw0LjAxLDEwMy4zNSw1LjE1NXoiLz4NCgk8cGF0aCBmaWxsPSIjRkZGRkZGIiBkPSJNMTEzLjQ0Miw1Ljg4N3YzLjU2MmgtMC45OTZWMC44ODNoMi4zNWMxLjA1LDAsMS44MjgsMC4yMDEsMi4zMywwLjYwNHMwLjc1MiwxLjAwOCwwLjc1MiwxLjgxNg0KCQljMCwxLjEzMy0wLjU3NCwxLjg5OC0xLjcyMywyLjI5NmwyLjMyNiwzLjg1aC0xLjE3OGwtMi4wNzQtMy41NjJIMTEzLjQ0MnogTTExMy40NDIsNS4wMzJoMS4zNjVjMC43MDMsMCwxLjIxOC0wLjE0LDEuNTQ2LTAuNDE5DQoJCXMwLjQ5Mi0wLjY5OCwwLjQ5Mi0xLjI1N2MwLTAuNTY2LTAuMTY2LTAuOTc1LTAuNS0xLjIyNXMtMC44NzEtMC4zNzUtMS42MDktMC4zNzVoLTEuMjk1VjUuMDMyeiIvPg0KCTxwYXRoIGZpbGw9IiNGRkZGRkYiIGQ9Ik0xMjAuMjI0LDkuNDQ5VjAuODgzaDAuOTk2djguNTY2SDEyMC4yMjR6Ii8+DQoJPHBhdGggZmlsbD0iI0ZGRkZGRiIgZD0iTTEyNy42OTcsNC45NjFoMi45MTJ2NC4xNjZjLTAuNDUzLDAuMTQ1LTAuOTE0LDAuMjU0LTEuMzgzLDAuMzI4cy0xLjAxMiwwLjExMS0xLjYyOSwwLjExMQ0KCQljLTEuMjk3LDAtMi4zMDctMC4zODUtMy4wMjktMS4xNTZzLTEuMDg0LTEuODU0LTEuMDg0LTMuMjQ0YzAtMC44OTEsMC4xNzktMS42NzEsMC41MzYtMi4zNDFzMC44NzItMS4xODIsMS41NDQtMS41MzUNCgkJczEuNDU5LTAuNTMsMi4zNjEtMC41M2MwLjkxNCwwLDEuNzY2LDAuMTY4LDIuNTU1LDAuNTA0bC0wLjM4NywwLjg3OWMtMC43NzMtMC4zMjgtMS41MTgtMC40OTItMi4yMzItMC40OTINCgkJYy0xLjA0MywwLTEuODU3LDAuMzExLTIuNDQzLDAuOTMycy0wLjg3OSwxLjQ4Mi0wLjg3OSwyLjU4NGMwLDEuMTU2LDAuMjgyLDIuMDMzLDAuODQ3LDIuNjNzMS4zOTQsMC44OTYsMi40ODcsMC44OTYNCgkJYzAuNTk0LDAsMS4xNzQtMC4wNjgsMS43NC0wLjIwNVY1Ljg1MmgtMS45MTZWNC45NjF6Ii8+DQoJPHBhdGggZmlsbD0iI0ZGRkZGRiIgZD0iTTEzMy4wMjYsOS40NDlWMC44ODNoMC45OTZ2OC41NjZIMTMzLjAyNnoiLz4NCgk8cGF0aCBmaWxsPSIjRkZGRkZGIiBkPSJNMTQzLjQyMyw5LjQ0OWgtMS4xMzdsLTQuNjgyLTcuMTg5aC0wLjA0N2MwLjA2MiwwLjg0NCwwLjA5NCwxLjYxNywwLjA5NCwyLjMydjQuODY5aC0wLjkyVjAuODgzaDEuMTI1DQoJCWw0LjY3LDcuMTZoMC4wNDdjLTAuMDA4LTAuMTA1LTAuMDI1LTAuNDQzLTAuMDUzLTEuMDE2cy0wLjAzNy0wLjk4Mi0wLjAyOS0xLjIyOVYwLjg4M2gwLjkzMlY5LjQ0OXoiLz4NCjwvZz4NCjwvc3ZnPg0K" alt="OpenShift Origin">
           </div><!--/#brand-->
-          {{ if .Error }}
           <div class="alert alert-danger">
             <span class="pficon-layered">
               <span class="pficon pficon-error-octagon"></span>
@@ -2393,44 +1989,6 @@ hr {
             </span>
             {{ .Error }}
           </div>
-          {{ end }}
-        </div><!--/.col-*-->
-        <div class="col-sm-7 col-md-6 col-lg-5 login">
-          <form class="form-horizontal" role="form" action="{{ .Action }}" method="POST">
-            <input type="hidden" name="{{ .Names.Then }}" value="{{ .Values.Then }}">
-            <input type="hidden" name="{{ .Names.CSRF }}" value="{{ .Values.CSRF }}">
-            <div class="form-group">
-              <label for="inputUsername" class="col-sm-2 col-md-2 control-label">Username</label>
-              <div class="col-sm-10 col-md-10">
-                <input type="text" class="form-control" id="inputUsername" placeholder="" tabindex="1" autofocus="autofocus" type="text" name="{{ .Names.Username }}" value="{{ .Values.Username }}">
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="inputPassword" class="col-sm-2 col-md-2 control-label">Password</label>
-              <div class="col-sm-10 col-md-10">
-                <input type="password" class="form-control" id="inputPassword" placeholder="" tabindex="2" type="password" name="{{ .Names.Password }}" value="">
-              </div>
-            </div>
-            <div class="form-group">
-              <div class="col-xs-8 col-sm-offset-2 col-sm-6 col-md-offset-2 col-md-6">
-              <!--
-                <div class="checkbox">
-                  <label>
-                    <input type="checkbox" tabindex="3"> Remember Username
-                  </label>
-                </div>
-                <span class="help-block"> Forgot <a href="#" tabindex="5">Username</a> or <a href="#" tabindex="6">Password</a>?</span>
-              -->
-              </div>
-              <div class="col-xs-4 col-sm-4 col-md-4 submit">
-                <button type="submit" class="btn btn-primary btn-lg" tabindex="4">Log In</button>
-              </div>
-            </div>
-          </form>
-        </div><!--/.col-*-->
-        <div class="col-sm-5 col-md-6 col-lg-7 details">
-          <p><strong>Welcome to OpenShift Origin.</strong>
-          </p>
         </div><!--/.col-*-->
       </div><!--/.row-->
     </div><!--/.container-->

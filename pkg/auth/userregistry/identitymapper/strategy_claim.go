@@ -31,7 +31,7 @@ func IsClaimError(err error) bool {
 	return ok
 }
 func NewClaimError(user *userapi.User, identity *userapi.Identity) error {
-	return claimError{user, identity}
+	return claimError{User: user, Identity: identity}
 }
 
 func (c claimError) Error() string {

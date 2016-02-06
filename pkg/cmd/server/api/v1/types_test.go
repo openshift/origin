@@ -318,6 +318,7 @@ oauthConfig:
     sessionName: ""
     sessionSecretsFile: ""
   templates:
+    error: ""
     login: ""
     providerSelection: ""
   tokenConfig:

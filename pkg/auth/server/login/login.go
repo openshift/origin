@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
+	"github.com/openshift/origin/pkg/auth/server/errorpage"
 )
 
 const (
@@ -22,7 +23,22 @@ const (
 	csrfParam     = "csrf"
 	usernameParam = "username"
 	passwordParam = "password"
+
+	// these can be used by custom templates, and should not be changed
+	// these error codes are specific to the login flow.
+	// general authentication error codes are found in the errorpage package
+	errorCodeUserRequired = "user_required"
+	errorCodeTokenExpired = "token_expired"
+	errorCodeAccessDenied = "access_denied"
 )
+
+// Error messages that correlate to the error codes above.
+// General authentication error messages are found in the error page package
+var errorMessages = map[string]string{
+	errorCodeUserRequired: "Login is required. Please try again.",
+	errorCodeTokenExpired: "Could not check CSRF token. Please try again.",
+	errorCodeAccessDenied: "Invalid login or password. Please try again.",
+}
 
 type PasswordAuthenticator interface {
 	authenticator.Password
@@ -34,8 +50,13 @@ type LoginFormRenderer interface {
 }
 
 type LoginForm struct {
+	ProviderName string
+
 	Action string
-	Error  string
+
+	Error     string
+	ErrorCode string
+
 	Names  LoginFormFields
 	Values LoginFormFields
 }
@@ -48,16 +69,18 @@ type LoginFormFields struct {
 }
 
 type Login struct {
-	csrf   csrf.CSRF
-	auth   PasswordAuthenticator
-	render LoginFormRenderer
+	provider string
+	csrf     csrf.CSRF
+	auth     PasswordAuthenticator
+	render   LoginFormRenderer
 }
 
-func NewLogin(csrf csrf.CSRF, auth PasswordAuthenticator, render LoginFormRenderer) *Login {
+func NewLogin(provider string, csrf csrf.CSRF, auth PasswordAuthenticator, render LoginFormRenderer) *Login {
 	return &Login{
-		csrf:   csrf,
-		auth:   auth,
-		render: render,
+		provider: provider,
+		csrf:     csrf,
+		auth:     auth,
+		render:   render,
 	}
 }
 
@@ -90,7 +113,8 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 	}
 
 	form := LoginForm{
-		Action: uri.String(),
+		ProviderName: l.provider,
+		Action:       uri.String(),
 		Names: LoginFormFields{
 			Then:     thenParam,
 			CSRF:     csrfParam,
@@ -102,17 +126,14 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 		// TODO: sanitize 'then'
 		form.Values.Then = then
 	}
-	switch req.URL.Query().Get("reason") {
-	case "":
-		break
-	case "user required":
-		form.Error = "Login is required. Please try again."
-	case "token expired":
-		form.Error = "Could not check CSRF token. Please try again."
-	case "access denied":
-		form.Error = "Invalid login or password. Please try again."
-	default:
-		form.Error = "An unknown error has occurred. Please try again."
+
+	form.ErrorCode = req.URL.Query().Get("reason")
+	if len(form.ErrorCode) > 0 {
+		if msg, hasMsg := errorMessages[form.ErrorCode]; hasMsg {
+			form.Error = msg
+		} else {
+			form.Error = errorpage.AuthenticationErrorMessage(form.ErrorCode)
+		}
 	}
 
 	csrf, err := l.csrf.Generate(w, req)
@@ -127,23 +148,23 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
 	if ok, err := l.csrf.Check(req, req.FormValue("csrf")); !ok || err != nil {
 		glog.Errorf("Unable to check CSRF token: %v", err)
-		failed("token expired", w, req)
+		failed(errorCodeTokenExpired, w, req)
 		return
 	}
 	then := req.FormValue("then")
 	user, password := req.FormValue("username"), req.FormValue("password")
 	if user == "" {
-		failed("user required", w, req)
+		failed(errorCodeUserRequired, w, req)
 		return
 	}
 	context, ok, err := l.auth.AuthenticatePassword(user, password)
 	if err != nil {
 		glog.Errorf("Unable to authenticate password: %v", err)
-		failed("unknown error", w, req)
+		failed(errorpage.AuthenticationErrorCode(err), w, req)
 		return
 	}
 	if !ok {
-		failed("access denied", w, req)
+		failed(errorCodeAccessDenied, w, req)
 		return
 	}
 	l.auth.AuthenticationSucceeded(context, then, w, req)

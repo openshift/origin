@@ -199,6 +199,7 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		if config.OAuthConfig.Templates != nil {
 			refs = append(refs, &config.OAuthConfig.Templates.Login)
 			refs = append(refs, &config.OAuthConfig.Templates.ProviderSelection)
+			refs = append(refs, &config.OAuthConfig.Templates.Error)
 		}
 	}
 
