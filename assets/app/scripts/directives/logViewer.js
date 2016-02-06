@@ -36,7 +36,7 @@ angular.module('openshiftConsole')
         scope: {
           followAffixTop: '=?',
           followAffixBottom: '=?',
-          kind: '@',
+          resource: '@',
           name: '=',
           context: '=',
           options: '=?',
@@ -234,7 +234,7 @@ angular.module('openshiftConsole')
                 tailLines: 1000,
                 limitBytes: 10 * 1024 * 1024 // Limit log size to 10 MiB
               }, $scope.options);
-              streamer = DataService.createStream($scope.kind, $scope.name, $scope.context, options);
+              streamer = DataService.createStream($scope.resource, $scope.name, $scope.context, options);
 
               var lastLineNumber = 0;
               var addLine = function(text) {

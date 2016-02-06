@@ -366,9 +366,9 @@ function b64_to_utf8( str ) {
 }
 
 // TODO (bpeterse): Create a new Streamer service & get this out of DataService.
-DataService.prototype.createStream = function(kind, name, context, opts, isRaw) {
+DataService.prototype.createStream = function(resource, name, context, opts, isRaw) {
   var self = this;
-  var resource = APIService.toResourceGroupVersion(APIService.kindToResource(kind));
+  resource = APIService.toResourceGroupVersion(resource);
 
   var protocols = isRaw ? 'binary.k8s.io' : 'base64.binary.k8s.io';
   var identifier = 'stream_';
