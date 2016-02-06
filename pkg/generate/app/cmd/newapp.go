@@ -1046,12 +1046,11 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		}
 	}
 
-	imageRefs := components.ImageComponentRefs()
-	if len(imageRefs) > 1 && len(c.Name) > 0 {
+	if len(components.ImageComponentRefs().Group()) > 1 && len(c.Name) > 0 {
 		return nil, fmt.Errorf("only one component or source repository can be used when specifying a name")
 	}
-	if len(imageRefs) > 1 && len(c.To) > 0 {
-		return nil, fmt.Errorf("only one component or source repository can be used when specifying an output image reference")
+	if len(components.UseSource()) > 1 && len(c.To) > 0 {
+		return nil, fmt.Errorf("only one component with source can be used when specifying an output image reference")
 	}
 
 	env := app.Environment(environment)
@@ -1071,7 +1070,7 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		}, nil
 	}
 
-	pipelines, err := c.buildPipelines(imageRefs, env)
+	pipelines, err := c.buildPipelines(components.ImageComponentRefs(), env)
 	if err != nil {
 		if err == app.ErrNameRequired {
 			return nil, fmt.Errorf("can't suggest a valid name, please specify a name with --name")
