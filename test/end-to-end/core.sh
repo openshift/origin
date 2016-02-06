@@ -14,7 +14,6 @@ os::log::install_errexit
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::util::environment::setup_time_vars
 
-ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 TEST_ASSETS="${TEST_ASSETS:-false}"
 
 
