@@ -2,8 +2,16 @@ package api
 
 import "time"
 
-// AddProperty adds a property to the test suite
+// AddProperty adds a property to the test suite, deduplicating multiple additions of the same property
+// by overwriting the previous record to reflect the new values
 func (t *TestSuite) AddProperty(name, value string) {
+	for _, property := range t.Properties {
+		if property.Name == name {
+			property.Value = value
+			return
+		}
+	}
+
 	t.Properties = append(t.Properties, &TestSuiteProperty{Name: name, Value: value})
 }
 
