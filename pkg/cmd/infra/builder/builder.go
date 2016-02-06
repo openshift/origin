@@ -31,7 +31,7 @@ It expects to be run inside of a container.`
 func NewCommandSTIBuilder(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: "Run a Source-to-Images build",
+		Short: "Run a Source-to-Image build",
 		Long:  stiBuilderLong,
 		Run: func(c *cobra.Command, args []string) {
 			go func() {
