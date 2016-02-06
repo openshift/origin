@@ -446,6 +446,48 @@ os::build::archive_tar() {
   popd &>/dev/null
 }
 
+# Checks if the filesystem on a partition that the provided path points to is
+# supporting hard links.
+#
+# Input:
+#  $1 - the path where the hardlinks support test will be done.
+# Returns:
+#  0 - if hardlinks are supported
+#  non-zero - if hardlinks aren't supported
+os::build::is_hardlink_supported() {
+  local path="$1"
+  # Determine if FS supports hard links
+  local temp_file=$(mktemp --tmpdir="${path}")
+  ln "${temp_file}" "${temp_file}.link" &> /dev/null && unlink "${temp_file}.link" || local supported=$?
+  rm -f "${temp_file}"
+  return ${supported:-0}
+}
+
+# Extract a tar.gz compressed archive in a given directory. If the
+# archive contains hardlinks and the underlying filesystem is not
+# supporting hardlinks then the a hard dereference will be done.
+#
+# Input:
+#   $1 - path to archive file
+#   $2 - directory where the archive will be extracted
+os::build::extract_tar() {
+  local archive_file="$1"
+  local change_dir="$2"
+
+  # Unpack archive
+  echo "++ Extracting $(basename ${archive_file})"
+  if os::build::is_hardlink_supported "${change_dir}" ; then
+    tar mxzf "${archive_file}" --strip-components=1 -C "${change_dir}"
+  else
+    local temp_dir=$(mktemp -d --tmpdir=/dev/shm/)
+    tar mxzf "${archive_file}" --strip-components=1 -C "${temp_dir}"
+    pushd "${temp_dir}" &> /dev/null
+    tar cO --hard-dereference * | tar xf - -C "${change_dir}"
+    popd &>/dev/null
+    rm -rf "${temp_dir}"
+  fi
+}
+
 # os::build::make_openshift_binary_symlinks makes symlinks for the openshift
 # binary in _output/local/bin/${platform}
 os::build::make_openshift_binary_symlinks() {
