@@ -11,6 +11,7 @@ import (
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/validation"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -24,8 +25,6 @@ var KnownUpdateValidationExceptions = []reflect.Type{
 // TestValidationRegistration makes sure that any RESTStorage that allows create or update has the correct validation register.
 // It doesn't guarantee that it's actually called, but it does guarantee that it at least exists
 func TestValidationRegistration(t *testing.T) {
-	validation.RegisterAll()
-
 	config := fakeMasterConfig()
 
 	storageMap := config.GetRestStorage()
