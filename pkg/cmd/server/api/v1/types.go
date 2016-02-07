@@ -374,6 +374,10 @@ type DNSConfig struct {
 	// BindNetwork is the type of network to bind to - defaults to "tcp4", accepts "tcp",
 	// "tcp4", and "tcp6"
 	BindNetwork string `json:"bindNetwork"`
+	// AllowRecursiveQueries allows the DNS server on the master to answer queries recursively. Note that open
+	// resolvers can be used for DNS amplification attacks and the master DNS should not be made accessible
+	// to public networks.
+	AllowRecursiveQueries bool `json:"allowRecursiveQueries"`
 }
 
 type AssetConfig struct {

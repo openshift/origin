@@ -102,6 +102,7 @@ controllers: ""
 corsAllowedOrigins: null
 disabledFeatures: null
 dnsConfig:
+  allowRecursiveQueries: false
   bindAddress: ""
   bindNetwork: ""
 etcdClientInfo:
