@@ -19,14 +19,17 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/test/e2e"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-var reportDir string
-
-var reportFileName string
+var (
+	reportDir      string
+	reportFileName string
+	quiet          bool
+)
 
 // init initialize the extended testing suite.
 // You can set these environment variables to configure extended tests:
@@ -37,11 +40,24 @@ func InitTest() {
 	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
 	os.MkdirAll(extendedOutputDir, 0777)
 
+	TestContext.DeleteNamespace = os.Getenv("DELETE_NAMESPACE") != "false"
 	TestContext.VerifyServiceAccount = true
 	TestContext.RepoRoot = os.Getenv("KUBE_REPO_ROOT")
+	TestContext.KubeVolumeDir = os.Getenv("VOLUME_DIR")
+	if len(TestContext.KubeVolumeDir) == 0 {
+		TestContext.KubeVolumeDir = "/var/lib/origin/volumes"
+	}
 	TestContext.KubectlPath = "kubectl"
 	TestContext.KubeConfig = KubeConfigPath()
 	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
+
+	// load and set the host variable for kubectl
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: TestContext.KubeConfig}, &clientcmd.ConfigOverrides{})
+	cfg, err := clientConfig.ClientConfig()
+	if err != nil {
+		FatalErr(err)
+	}
+	TestContext.Host = cfg.Host
 
 	reportDir = os.Getenv("TEST_REPORT_DIR")
 
@@ -50,6 +66,7 @@ func InitTest() {
 		reportFileName = "junit"
 	}
 
+	quiet = os.Getenv("TEST_OUTPUT_QUIET") == "true"
 	//flag.StringVar(&TestContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, KubeConfigPath(), "Path to kubeconfig containing embedded authinfo.")
 	flag.StringVar(&TestContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
 	rflag.StringVar(&config.GinkgoConfig.FocusString, "focus", "", "DEPRECATED: use --ginkgo.focus")
@@ -81,9 +98,12 @@ func ExecuteTest(t *testing.T, suite string) {
 		r = append(r, reporters.NewJUnitReporter(path.Join(reportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, config.GinkgoConfig.ParallelNode))))
 	}
 
-	r = append(r, NewSimpleReporter())
-
-	ginkgo.RunSpecsWithCustomReporters(t, suite, r)
+	if quiet {
+		r = append(r, NewSimpleReporter())
+		ginkgo.RunSpecsWithCustomReporters(t, suite, r)
+	} else {
+		ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suite, r)
+	}
 }
 
 // ensureKubeE2EPrivilegedSA ensures that all namespaces prefixed with 'e2e-' have their
@@ -111,27 +131,33 @@ func ensureKubeE2EPrivilegedSA() {
 }
 
 func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces *kapi.NamespaceList, sccName string) {
-	scc, err := c.SecurityContextConstraints().Get(sccName)
-	if err != nil {
-		if apierrs.IsNotFound(err) {
-			return
+	err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+		scc, err := c.SecurityContextConstraints().Get(sccName)
+		if err != nil {
+			if apierrs.IsNotFound(err) {
+				return nil
+			}
+			return err
 		}
-		FatalErr(err)
-	}
 
-	groups := []string{}
-	for _, name := range scc.Groups {
-		if !strings.Contains(name, "e2e-") {
-			groups = append(groups, name)
+		groups := []string{}
+		for _, name := range scc.Groups {
+			if !strings.Contains(name, "e2e-") {
+				groups = append(groups, name)
+			}
 		}
-	}
-	for _, ns := range namespaces.Items {
-		if strings.HasPrefix(ns.Name, "e2e-") {
-			groups = append(groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
+		for _, ns := range namespaces.Items {
+			if strings.HasPrefix(ns.Name, "e2e-") {
+				groups = append(groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
+			}
 		}
-	}
-	scc.Groups = groups
-	if _, err := c.SecurityContextConstraints().Update(scc); err != nil {
+		scc.Groups = groups
+		if _, err := c.SecurityContextConstraints().Update(scc); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
 		FatalErr(err)
 	}
 }

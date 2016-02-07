@@ -23,8 +23,10 @@ os::util::environment::setup_time_vars
 
 cd "${OS_ROOT}"
 
+# build ginkgo
+hack/build-go.sh Godeps/_workspace/src/github.com/onsi/ginkgo/ginkgo
+ginkgo="$(os::build::find-binary ginkgo)"
 extendedtest="$(os::build::find-binary extended.test)"
-export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
 # TODO: check out the version of Kube we need so that we have access to sample content - in the future,
 # we want to get this content as well from cherrypicks (e2e test that is cherry-picked depends on content).
@@ -32,58 +34,6 @@ k8s_version=$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Go
 pushd "${KUBE_REPO_ROOT}" &>/dev/null
 git checkout "${k8s_version}"
 popd &>/dev/null
-
-function join { local IFS="$1"; shift; echo "$*"; }
-
-# The following skip rules excludes upstream e2e tests that fail.
-# TODO: add all users to privileged
-SKIP_TESTS=(
-  "\[Skipped\]"           # Explicitly skipped upstream
-
-  # Depends on external components, may not need yet
-  Monitoring              # Not installed, should be
-  "Cluster level logging" # Not installed yet
-  Kibana                  # Not installed
-  DNS                     # Can't depend on kube-dns
-  kube-ui                 # Not installed by default
-  DaemonRestart           # Experimental mode not enabled yet
-  #Job                     # Not enabled yet
-  "deployment should"     # Not enabled yet
-  Ingress                 # Not enabled yet
-
-  # Need fixing
-  "Cluster upgrade"       # panic because createNS not called, refactor framework?
-  PersistentVolume        # Not skipping on non GCE environments?
-  #EmptyDir                # TRIAGE
-  #Proxy                   # TRIAGE
-  #"Examples e2e"          # TRIAGE: Some are failing due to permissions
-  #Kubectl                 # TRIAGE: we don't support the kubeconfig flag, and images won't run
-  #Namespaces              # Namespace controller broken, issue #4731
-  "hostPath"              # Need to add ability for the test case to use to hostPath
-  "mount an API token into pods" # We add 6 secrets, not 1
-  #"create a functioning NodePort service" # Tries to bind to port 80, needs cap netsys upstream
-  "Networking should function for intra-pod" # Needs two nodes, add equiv test for 1 node, then use networking suite
-  #"environment variables for services" # Tries to proxy directly to the node, but the underlying cert is wrong?  Is proxy broken?
-  #"should provide labels and annotations files" # the image can't read the files
-  "Ask kubelet to report container resource usage" # container resource usage not exposed yet?
-  #"should provide Internet connection for containers" # DNS inside container failing!!!
-  "able to delete 10 pods per node" # Panic because stats port isn't exposed
-  "Kubelet regular resource usage tracking over" # takes too long
-  "Kubelet experimental resource usage tracking" # takes too long
-  "Resource usage of system containers" # panics in computing resources
-
-  "authentication: OpenLDAP" # needs separate setup and bucketing for openldap bootstrapping
-
-  # Needs triage to determine why it is failing
-  "Addon update"          # TRIAGE
-  SSH                     # TRIAGE
-  #Probing                 # TRIAGE
-  #"should call prestop" # Needs triage, auth maybe
-  #"be restarted with a /healthz" # used to be working
-  #"Port forwarding With a server that expects" # used to be working
-)
-DEFAULT_SKIP=$(join '|' "${SKIP_TESTS[@]}")
-SKIP="${SKIP:-$DEFAULT_SKIP}"
 
 if [[ -z ${TEST_ONLY+x} ]]; then
   ensure_iptables_or_die
@@ -125,14 +75,72 @@ if [[ -z ${TEST_ONLY+x} ]]; then
 
   echo "[INFO] Creating image streams"
   oc create -n openshift -f examples/image-streams/image-streams-centos7.json --config="${ADMIN_KUBECONFIG}"
+else
+  # be sure to set VOLUME_DIR if you are running with TEST_ONLY
+  echo "[INFO] Not starting server, VOLUME_DIR=${VOLUME_DIR:-}"
 fi
 
-echo "[INFO] Running extended tests"
+# ensure proper relative directories are set
+export TMPDIR=${BASETMPDIR:-/tmp}
+export EXTENDED_TEST_PATH="$(pwd)/test/extended"
 
-args=("$@")
-if [[ $# -eq 0 ]]; then
-  args=("-ginkgo.skip=${SKIP}")
+if [[ $# -ne 0 ]]; then
+  echo "[INFO] Running custom: $@"
+  ${extendedtest} "$@"
+  exit $?
 fi
 
-# Run the tests
-TMPDIR=${BASETMPDIR:-/tmp} ${extendedtest} -test.timeout 6h -test.v "${args[@]}"
+function join { local IFS="$1"; shift; echo "$*"; }
+
+# Not run by any suite
+COMMON_EXCLUSION=(
+  "\[Skipped\]"
+  "\[Disruptive\]"
+  "\[Slow\]"
+  "\[Flaky\]"
+
+  # Depends on external components, may not need yet
+  Monitoring              # Not installed, should be
+  "Cluster level logging" # Not installed yet
+  Kibana                  # Not installed
+  DNS                     # Can't depend on kube-dns
+  kube-ui                 # Not installed by default
+  "^Deployment "          # Not enabled yet
+  Ingress                 # Not enabled yet
+
+  # Need fixing
+  "should provide Internet connection for containers" # Needs recursive DNS
+  PersistentVolume           # https://github.com/openshift/origin/pull/6884 for recycler
+  "mount an API token into pods" # We add 6 secrets, not 1
+  "Networking should function for intra-pod" # Needs two nodes, add equiv test for 1 node, then use networking suite
+  "should test kube-proxy"   # needs 2 nodes
+  "authentication: OpenLDAP" # needs separate setup and bucketing for openldap bootstrapping
+  "ConfigMap"                # needs permissions https://github.com/openshift/origin/issues/7096
+  "should support exec through an HTTP proxy" # doesn't work because it requires a) static binary b) linux c) kubectl, https://github.com/openshift/origin/issues/7097
+  "should support port-forward" # needs to call setgid, https://github.com/openshift/origin/issues/7098
+
+  # Needs triage to determine why it is failing
+  #"hostPath"             # Looks like an SELinux violation?
+  "Addon update"          # TRIAGE
+  SSH                     # TRIAGE
+  "\[Feature:Upgrade\]"   # TRIAGE
+)
+common_exclude=$(join '|' "${COMMON_EXCLUSION[@]}")
+PARALLEL_EXCLUSION=(
+  "${COMMON_EXCLUSION[@]}"
+
+  "Service endpoints latency" # requires low latency
+)
+parallel_exclude=$(join '|' "${PARALLEL_EXCLUSION[@]}")
+
+echo "[INFO] The following tests will not be run:"
+TEST_OUTPUT_QUIET=true ${extendedtest} "--ginkgo.skip=${common_exclude}" --ginkgo.dryRun | grep skip | sort
+echo
+
+# run parallel tests
+nodes="${PARALLEL_NODES:-5}"
+echo "[INFO] Running parallel tests N=${nodes}"
+${ginkgo} -v "-skip=${parallel_exclude}|\[Serial\]" -p -nodes "${nodes}" ${extendedtest} -- -ginkgo.v -test.timeout 6h
+
+echo "[INFO] Running serial tests"
+${ginkgo} -v "-skip=${common_exclude}" -focus="\[Serial\]" ${extendedtest} -- -ginkgo.v -test.timeout 2h

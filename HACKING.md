@@ -8,17 +8,9 @@ will create a build environment image and then execute a cross platform Go build
 output will be copied to `_output/releases` as a set of tars containing each version. It will also build
 the `openshift/origin-base` image which is the common parent image for all OpenShift Docker images.
 
-    $ hack/build-release.sh
+    $ make release
 
 NOTE:  Only committed code is built.
-
-Once the release has been built the official Docker images can be generated with `hack/build-images.sh`.
-The resulting images can then be pushed to a Docker registry.
-
-    $ hack/build-images.sh
-
-NOTE:  You only need to run this script if your code changes are part of any images OpenShift runs internally
-such as origin-sti-builder, origin-docker-builder,  origin-deployer, etc.
 
 To build the base and release images, run:
 
@@ -163,7 +155,8 @@ specifying them using a regex filter, passed through `grep -E` like with integra
     $ hack/test-cmd.sh <regex>
 
 During development, you can run a file `test/cmd/*.sh` directly to test against
-a running server. This can speed up the feedback loop considerably.
+a running server. This can speed up the feedback loop considerably. All `test/cmd/*` tests are expected
+to be executable repeatedly - please file bugs if a test needs cleanup before running.
 
 For example, start the OpenShift server, create a "test" project, and then run
 `oc new-app` tests against the server:
@@ -172,18 +165,28 @@ For example, start the OpenShift server, create a "test" project, and then run
     $ test/cmd/newapp.sh
 
 
-### End-to-End (e2e) Tests
+### End-to-End (e2e) and Extended Tests
 
 The final test category is end to end tests (e2e) which should verify a long set of flows in the
 product as a user would see them.  Two e2e tests should not overlap more than 10% of function, and
 are not intended to test error conditions in detail. The project examples should be driven by e2e
 tests. e2e tests can also test external components working together.
 
-End to end tests should be Go tests with the build tag `e2e` in the `test/e2e` directory.
+The end-to-end suite is currently implemented primarily in Bash, but will be folded into the extended
+suite (located in test/extended) over time. The extended suite is closer to the upstream Kubernetes
+e2e suite and tests the full behavior of a running system.
 
 Run the end to end tests with:
 
     $ hack/test-end-to-end.sh
+
+Run the extended tests with:
+
+    $ test/extended/core.sh
+
+Extended tests should be Go tests in the `test/extended` directory that use the Ginkgo library. They
+must be able to be run remotely, and cannot depend on any local interaction with the filesystem or
+Docker.
 
 
 ## Installing Godep
@@ -283,6 +286,14 @@ on a separate $GOPATH just for the rebase:
 ```
 $ go get github.com/openshift/origin
 $ go get k8s.io/kubernetes
+```
+
+You must add the Origin GitHub fork as a remote in your k8s.io/kubernetes repo:
+
+```
+$ cd $GOPATH/src/k8s.io/kubernetes
+$ git remote add openshift git@github.com:openshift/kubernetes.git
+$ git fetch openshift
 ```
 
 Check out the version of Kubernetes you want to rebase as a branch or tag named `stable_proposed` in
