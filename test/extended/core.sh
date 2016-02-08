@@ -23,13 +23,7 @@ os::util::environment::setup_time_vars
 
 cd "${OS_ROOT}"
 
-# ensure_ginkgo_or_die
-
-os::build::setup_env
-#if [[ -z ${TEST_ONLY+x} ]]; then
-#  go test -c ./test/extended -o ${OS_OUTPUT_BINPATH}/extended.test
-#fi
-
+extendedtest="$(os::build::find-binary extended.test)"
 export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
 # TODO: check out the version of Kube we need so that we have access to sample content - in the future,
@@ -137,8 +131,8 @@ echo "[INFO] Running extended tests"
 
 args=("$@")
 if [[ $# -eq 0 ]]; then
-  args=("--ginkgo.skip=${SKIP}")
+  args=("-ginkgo.skip=${SKIP}")
 fi
 
 # Run the tests
-TMPDIR=${BASETMPDIR} go test -timeout 6h ./test/extended/ --test.v "${args[@]}"
+TMPDIR=${BASETMPDIR:-/tmp} ${extendedtest} -test.timeout 6h -test.v "${args[@]}"
