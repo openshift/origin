@@ -73,7 +73,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
-	standardEnv := []string{"SOURCE_REPOSITORY", "SOURCE_CONTEXT_DIR", "SOURCE_REF", "OUTPUT_IMAGE", "OUTPUT_REGISTRY"}
+	standardEnv := []string{"SOURCE_REPOSITORY", "SOURCE_URI", "SOURCE_CONTEXT_DIR", "SOURCE_REF", "OUTPUT_IMAGE", "OUTPUT_REGISTRY", buildapi.OriginVersion}
 	for index, exp := range errorCases {
 		if e := container.Env[index]; e.Name != exp[0] || e.Value != exp[1] {
 			t.Errorf("Expected %s:%s, got %s:%s!\n", exp[0], exp[1], e.Name, e.Value)

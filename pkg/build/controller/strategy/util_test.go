@@ -3,7 +3,6 @@ package strategy
 import (
 	"testing"
 
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
@@ -65,37 +64,6 @@ func isVolumeSourceEmpty(volumeSource kapi.VolumeSource) bool {
 	}
 
 	return false
-}
-
-func TestSetupBuildEnvEmpty(t *testing.T) {
-	build := mockCustomBuild(false)
-	containerEnv := []kapi.EnvVar{
-		{Name: "BUILD", Value: ""},
-		{Name: "SOURCE_REPOSITORY", Value: build.Spec.Source.Git.URI},
-	}
-	privileged := true
-	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: buildutil.GetBuildPodName(build),
-		},
-		Spec: kapi.PodSpec{
-			Containers: []kapi.Container{
-				{
-					Name:  "custom-build",
-					Image: build.Spec.Strategy.CustomStrategy.From.Name,
-					Env:   containerEnv,
-					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-					SecurityContext: &kapi.SecurityContext{
-						Privileged: &privileged,
-					},
-				},
-			},
-			RestartPolicy: kapi.RestartPolicyNever,
-		},
-	}
-	if err := setupBuildEnv(build, pod); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
 }
 
 func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {

@@ -2,6 +2,7 @@ package strategy
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -44,8 +45,12 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.Env) != 9 {
-		t.Fatalf("Expected 9 elements in Env table, got %d: %+v", len(container.Env), container.Env)
+	if len(container.Env) != 10 {
+		var keys []string
+		for _, env := range container.Env {
+			keys = append(keys, env.Name)
+		}
+		t.Fatalf("Expected 10 elements in Env table, got %d:\n%s", len(container.Env), strings.Join(keys, ", "))
 	}
 	if len(container.VolumeMounts) != 4 {
 		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))

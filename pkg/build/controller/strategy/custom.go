@@ -46,6 +46,13 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 	addOriginVersionVar(&containerEnv)
 
+	if build.Spec.Output.To != nil {
+		addOutputEnvVars(build.Spec.Output.To, &containerEnv)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse the output docker tag %q: %v", build.Spec.Output.To.Name, err)
+		}
+	}
+
 	if strategy == nil || len(strategy.From.Name) == 0 {
 		return nil, errors.New("CustomBuildStrategy cannot be executed without image")
 	}
@@ -84,10 +91,6 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 	if build.Spec.CompletionDeadlineSeconds != nil {
 		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds
-	}
-
-	if err := setupBuildEnv(build, pod); err != nil {
-		return nil, err
 	}
 
 	if !strategy.ForcePull {

@@ -64,36 +64,6 @@ func setupDockerSocket(podSpec *kapi.Pod) {
 			dockerSocketVolumeMount)
 }
 
-// setupBuildEnv injects human-friendly environment variables which provides
-// useful information about the current build.
-func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) error {
-	vars := []kapi.EnvVar{}
-
-	switch {
-	case build.Spec.Source.Git != nil:
-		vars = append(vars, kapi.EnvVar{Name: "SOURCE_URI", Value: build.Spec.Source.Git.URI})
-		vars = append(vars, kapi.EnvVar{Name: "SOURCE_REF", Value: build.Spec.Source.Git.Ref})
-	default:
-		// Do nothing for unknown source types
-	}
-
-	if build.Spec.Output.To != nil {
-		// output much always be a DockerImage type reference at this point.
-		ref, err := imageapi.ParseDockerImageReference(build.Spec.Output.To.Name)
-		if err != nil {
-			return err
-		}
-		vars = append(vars, kapi.EnvVar{Name: "OUTPUT_REGISTRY", Value: ref.Registry})
-		ref.Registry = ""
-		vars = append(vars, kapi.EnvVar{Name: "OUTPUT_IMAGE", Value: ref.String()})
-	}
-
-	if len(pod.Spec.Containers) > 0 {
-		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, vars...)
-	}
-	return nil
-}
-
 // mountSecretVolume is a helper method responsible for actual mounting secret
 // volumes into a pod.
 func mountSecretVolume(pod *kapi.Pod, secretName, mountPath, volumeSuffix string) {
@@ -178,6 +148,7 @@ func addSourceEnvVars(source buildapi.BuildSource, output *[]kapi.EnvVar) {
 	sourceVars := []kapi.EnvVar{}
 	if source.Git != nil {
 		sourceVars = append(sourceVars, kapi.EnvVar{Name: "SOURCE_REPOSITORY", Value: source.Git.URI})
+		sourceVars = append(sourceVars, kapi.EnvVar{Name: "SOURCE_URI", Value: source.Git.URI})
 	}
 	if len(source.ContextDir) > 0 {
 		sourceVars = append(sourceVars, kapi.EnvVar{Name: "SOURCE_CONTEXT_DIR", Value: source.ContextDir})
@@ -191,6 +162,34 @@ func addSourceEnvVars(source buildapi.BuildSource, output *[]kapi.EnvVar) {
 func addOriginVersionVar(output *[]kapi.EnvVar) {
 	version := kapi.EnvVar{Name: buildapi.OriginVersion, Value: version.Get().String()}
 	*output = append(*output, version)
+}
+
+// addOutputEnvVars adds env variables that provide information about the output
+// target for the build
+func addOutputEnvVars(buildOutput *kapi.ObjectReference, output *[]kapi.EnvVar) error {
+	if buildOutput == nil {
+		return nil
+	}
+
+	// output must always be a DockerImage type reference at this point.
+	if buildOutput.Kind != "DockerImage" {
+		return fmt.Errorf("invalid build output kind %s, must be DockerImage", buildOutput.Kind)
+	}
+	ref, err := imageapi.ParseDockerImageReference(buildOutput.Name)
+	if err != nil {
+		return err
+	}
+	registry := ref.Registry
+	ref.Registry = ""
+	image := ref.String()
+
+	outputVars := []kapi.EnvVar{
+		{Name: "OUTPUT_REGISTRY", Value: registry},
+		{Name: "OUTPUT_IMAGE", Value: image},
+	}
+
+	*output = append(*output, outputVars...)
+	return nil
 }
 
 // setupAdditionalSecrets creates secret volume mounts in the given pod for the given list of secrets
