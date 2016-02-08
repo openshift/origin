@@ -1,7 +1,7 @@
 "use strict";
 
 angular.module("openshiftConsole")
-  .service("Navigate", function($location, annotationFilter){
+  .service("Navigate", function($location, $timeout, annotationFilter, LabelFilter){
     return {
       /**
        * Navigate and display the error page.
@@ -46,6 +46,13 @@ angular.module("openshiftConsole")
        */
       toNextSteps: function(name, projectName){
         $location.path("project/" + encodeURIComponent(projectName) + "/create/next").search("name", name);
+      },
+
+      toPodsForDeployment: function(deployment) {
+        $location.url("/project/" + deployment.metadata.namespace + "/browse/pods");
+        $timeout(function() {
+          LabelFilter.setLabelSelector(new LabelSelector(deployment.spec.selector, true));
+        }, 1);
       },
 
       // Resource is either a resource object, or a name.  If resource is a name, kind and namespace must be specified

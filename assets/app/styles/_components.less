@@ -235,22 +235,24 @@
   }
 }
 
+.clickable {
+  cursor: pointer;
+}
+
+.pod-status-chart {
+  // Give an empty pod donut chart a light gray outline.
+  path.c3-arc-Empty {
+    stroke: #d1d1d1;
+    // Override the style set in JavaScript since you can't click or hover
+    // on the empty chart.
+    cursor: inherit !important;
+  }
+}
+
 .pod-block {
   .overview-pods {
     margin-right: 10px;
     min-width: 190px;
-    .clickable {
-      cursor: pointer;
-    }
-    .pod-status-chart {
-      // Give an empty pod donut chart a light gray outline.
-      path.c3-arc-Empty {
-        stroke: #d1d1d1;
-        // Override the style set in JavaScript since you can't click or hover
-        // on the empty chart.
-        cursor: inherit !important;
-      }
-    }
     .scaling-controls {
       font-size: 24px;
       a {
