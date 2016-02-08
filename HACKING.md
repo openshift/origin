@@ -202,8 +202,15 @@ If you are not updating packages you should not need godep installed.
 You can use `hack/cherry-pick.sh` to generate patches for Origin from upstream commits. To use
 this command, be sure to setup remote branches like https://gist.github.com/piscisaureus/3342247
 so that `git show origin/pr/<number>` displays information about your branch after a `git fetch`.
-You must also have the Kubernetes repository checked out in your GOPATH (visible as `../../../k8s.io/kubernetes`)
-and have no modified or uncommitted files in either repository.
+You must also have the Kubernetes repository checked out in your GOPATH (visible as `../../../k8s.io/kubernetes`),
+with openshift/kubernetes as a remote and fetched:
+
+    $ pushd $GOPATH/src/k8s.io/kubernetes
+    $ git remote add openshift https://github.com/openshift/kubernetes.git
+    $ git fetch openshift
+    $ popd
+
+There must be no modified or uncommitted files in either repository.
 
 To pull an upstream commit, run:
 
