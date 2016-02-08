@@ -50,9 +50,9 @@ func NewVersion(version string) (*Version, error) {
 	v.Metadata = splitOff(&version, "+")
 	v.PreRelease = PreRelease(splitOff(&version, "-"))
 
-	dotParts := strings.SplitN(version, ".", 3)
+	dotParts := strings.SplitN(version, ".", -1)
 
-	if len(dotParts) != 3 {
+	if len(dotParts) < 3 {
 		return nil, errors.New(fmt.Sprintf("%s is not in dotted-tri format", version))
 	}
 
