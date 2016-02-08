@@ -158,7 +158,7 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, cinder.ProbeVolumePlugins()...)
 
-	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(client, c.ControllerManager.PVClaimBinderSyncPeriod, allPlugins, c.CloudProvider)
+	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(client, c.ControllerManager.PVClaimBinderSyncPeriod, volumeConfig.PersistentVolumeRecyclerMaximumRetry, allPlugins, c.CloudProvider)
 	if err != nil {
 		glog.Fatalf("Could not start Persistent Volume Recycler: %+v", err)
 	}
