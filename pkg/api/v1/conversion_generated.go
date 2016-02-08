@@ -26,6 +26,7 @@ import (
 	resource "k8s.io/kubernetes/pkg/api/resource"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	apiv1 "k8s.io/kubernetes/pkg/api/v1"
+	v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
 	reflect "reflect"
@@ -6759,7 +6760,7 @@ func autoConvert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in *api.PodTemplateSp
 	if err := Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if err := apiv1.Convert_api_PodSpec_To_v1_PodSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := v1beta1.Convert_api_PodSpec_To_v1_PodSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
@@ -6965,7 +6966,7 @@ func autoConvert_api_Volume_To_v1_Volume(in *api.Volume, out *apiv1.Volume, s co
 		defaulting.(func(*api.Volume))(in)
 	}
 	out.Name = in.Name
-	if err := apiv1.Convert_api_VolumeSource_To_v1_VolumeSource(&in.VolumeSource, &out.VolumeSource, s); err != nil {
+	if err := v1beta1.Convert_api_VolumeSource_To_v1beta1_VolumeSource(&in.VolumeSource, &out.VolumeSource, s); err != nil {
 		return err
 	}
 	return nil
@@ -7927,7 +7928,7 @@ func autoConvert_v1_PodTemplateSpec_To_api_PodTemplateSpec(in *apiv1.PodTemplate
 	if err := Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if err := apiv1.Convert_v1_PodSpec_To_api_PodSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := v1beta1.Convert_v1_PodSpec_To_api_PodSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
@@ -8115,7 +8116,7 @@ func autoConvert_v1_Volume_To_api_Volume(in *apiv1.Volume, out *api.Volume, s co
 		defaulting.(func(*apiv1.Volume))(in)
 	}
 	out.Name = in.Name
-	if err := apiv1.Convert_v1_VolumeSource_To_api_VolumeSource(&in.VolumeSource, &out.VolumeSource, s); err != nil {
+	if err := v1beta1.Convert_v1beta1_VolumeSource_To_api_VolumeSource(&in.VolumeSource, &out.VolumeSource, s); err != nil {
 		return err
 	}
 	return nil
