@@ -9,6 +9,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -256,6 +257,7 @@ func (o AllInOneOptions) StartAllInOne() error {
 func startProfiler() {
 	if cmdutil.Env("OPENSHIFT_PROFILE", "") == "web" {
 		go func() {
+			runtime.SetBlockProfileRate(1)
 			glog.Infof("Starting profiling endpoint at http://127.0.0.1:6060/debug/pprof/")
 			glog.Fatal(http.ListenAndServe("127.0.0.1:6060", nil))
 		}()
