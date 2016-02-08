@@ -58,7 +58,8 @@ describe('', function() {
 
       it('should have access to the test project', function() {
         h.goToPage('/project/test');
-        h.waitForPresence('h1', 'test');
+        h.waitForPresence('.navbar-project-menu .filter-option', 'test');
+        h.waitForPresence('h1', 'Overview');
         h.waitForPresence('.component .service', 'database');
         h.waitForPresence('.component .service', 'frontend');
         h.waitForPresence('.component .route', 'www.example.com');
