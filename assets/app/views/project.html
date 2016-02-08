@@ -38,7 +38,7 @@
             <div class="col-md-12 gutter-top">
 
               <!-- Empty states -->
-              <div ng-if="(services | hashSize) == 0">
+              <div ng-if="(services | hashSize) === 0 && (monopodsByService[''] | hashSize) === 0 && (deploymentsByServiceByDeploymentConfig[''] | hashSize) === 0">
                 <!-- Getting started -->
                 <div ng-if="renderOptions.showGetStarted" class="empty-project text-center">
                   <h2>Get started with your project.</h2>
