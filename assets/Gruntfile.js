@@ -63,7 +63,7 @@ module.exports = function (grunt) {
             key: grunt.file.read('server.key'),
             cert: grunt.file.read('server.crt')
           }
-        }        
+        }
       },
       extensions: {
         files: ['extensions/extensions.js', 'extensions/extensions.css'],
@@ -161,7 +161,11 @@ module.exports = function (grunt) {
         options: {
           jshintrc: 'test/.jshintrc'
         },
-        src: ['test/spec/{,*/}*.js','test/integration/**/*.js']
+        src: [
+          'test/spec/{,*/}*.js',
+          'test/integration/**/*.js',
+          'test/e2e/**/*.js'
+        ]
       }
     },
 
@@ -518,7 +522,7 @@ module.exports = function (grunt) {
         // 'imagemin',
         'svgmin',
         // Also do everything we do in concurrent server so that you can leave grunt server running while doing a build
-        'concurrent:server'       
+        'concurrent:server'
       ]
     },
 
@@ -602,7 +606,7 @@ module.exports = function (grunt) {
     // 'coverage' - add back if we want to enforce coverage percentages
   ]);
 
-  grunt.registerTask('test-integration', [
+  grunt.registerTask('test-e2e', [
     'clean:server',
     'concurrent:server',
     'autoprefixer',
