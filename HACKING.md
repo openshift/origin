@@ -441,13 +441,14 @@ OpenShift integrates the go `pprof` tooling to make it easy to capture CPU and h
 * `OPENSHIFT_PROFILE` environment variable:
   * `cpu` - will start a CPU profile on startup and write `./cpu.pprof`.  Contains samples for the entire run at the native sampling resolution (100hz). Note: CPU profiling for Go does not currently work on Mac OS X - the stats are not correctly sampled
   * `mem` - generate a running heap dump that tracks allocations to `./mem.pprof`
+  * `block` -  will start a block wait time analysis and write `./block.pprof`
   * `web` - start the pprof webserver in process at http://127.0.0.1:6060/debug/pprof (you can open this in a browser)
 
 In order to start the server in CPU profiling mode, run:
 
     $ OPENSHIFT_PROFILE=cpu sudo ./_output/local/bin/linux/amd64/openshift start
 
-Or, if running OpenShift under systemd, append this to /etc/sysconfig/openshift-master
+Or, if running OpenShift under systemd, append this to `/etc/sysconfig/atomic-openshift-{master,node}`
 
     OPENSHIFT_PROFILE=cpu
 
@@ -455,7 +456,7 @@ To view profiles, you use [pprof](http://goog-perftools.sourceforge.net/doc/cpu_
 
     $ go tool pprof ./_output/local/bin/linux/amd64/openshift cpu.pprof
     or
-    $ go tool pprof /bin/openshift /var/lib/openshift/cpu.pprof
+    $ go tool pprof $(which openshift) /var/lib/origin/cpu.pprof
 
 This will open the `pprof` shell, and you can then run:
 
