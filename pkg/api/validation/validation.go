@@ -34,6 +34,12 @@ func (v *RuntimeObjectsValidator) GetInfo(obj runtime.Object) (RuntimeObjectVali
 	return ret, ok
 }
 
+func (v *RuntimeObjectsValidator) MustRegister(obj runtime.Object, validateFunction interface{}, validateUpdateFunction interface{}) {
+	if err := v.Register(obj, validateFunction, validateUpdateFunction); err != nil {
+		panic(err)
+	}
+}
+
 func (v *RuntimeObjectsValidator) Register(obj runtime.Object, validateFunction interface{}, validateUpdateFunction interface{}) error {
 	objType := reflect.TypeOf(obj)
 	if oldValidator, exists := v.typeToValidator[objType]; exists {
@@ -66,7 +72,7 @@ func (v *RuntimeObjectsValidator) Validate(obj runtime.Object) field.ErrorList {
 
 	specificValidationInfo, err := v.getSpecificValidationInfo(obj)
 	if err != nil {
-		allErrs = append(allErrs, err.(*field.Error))
+		allErrs = append(allErrs, field.InternalError(nil, err))
 		return allErrs
 	}
 
