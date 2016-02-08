@@ -4,10 +4,15 @@ import (
 	"fmt"
 	"io"
 
+	"encoding/json"
+
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/controller"
+	"k8s.io/kubernetes/pkg/labels"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/project/cache"
@@ -52,6 +57,16 @@ func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
 	if !p.cache.Running() {
 		return err
 	}
+
+	// if this is a pod being created by a daemonset we do not want to set the node selector automatically
+	isDaemonset, err := p.isDaemonsetPod(pod)
+	if err != nil {
+		return apierrors.NewForbidden(resource, name, fmt.Errorf("an unexpected error occured when checking for daemonsets: %v", err))
+	}
+	if isDaemonset {
+		return nil
+	}
+
 	namespace, err := p.cache.GetNamespace(a.GetNamespace())
 	if err != nil {
 		return apierrors.NewForbidden(resource, name, err)
@@ -80,6 +95,42 @@ func (p *podNodeEnvironment) Validate() error {
 		return fmt.Errorf("project node environment plugin needs a project cache")
 	}
 	return nil
+}
+
+// isDaemonsetPod determines if the pod is being created by a daemonset or not.
+func (p *podNodeEnvironment) isDaemonsetPod(pod *kapi.Pod) (bool, error) {
+	annotation, ok := pod.Annotations[controller.CreatedByAnnotation]
+	if !ok {
+		return false, nil
+	}
+
+	var r kapi.SerializedReference
+	err := json.Unmarshal([]byte(annotation), &r)
+	if err != nil {
+		return false, err
+	}
+
+	// if it says it's a daemonset double check, just in case
+	if r.Reference.Kind == "DaemonSet" {
+		ds, err := p.client.Extensions().DaemonSets(r.Reference.Namespace).Get(r.Reference.Name)
+		if err != nil {
+			return false, err
+		}
+
+		// we got a daemonset back, make sure this pod falls under its selector
+		selector, err := extensions.LabelSelectorAsSelector(ds.Spec.Selector)
+		if err != nil {
+			return false, fmt.Errorf("unable to create selector for %s/%s: %v", r.Reference.Namespace, r.Reference.Name, err)
+		}
+
+		podLabels := labels.Set(pod.Labels)
+		if selector.Matches(podLabels) {
+			return true, nil
+		} else {
+			return false, fmt.Errorf("found daemonset %s/%s but pod does not match the selector", r.Reference.Namespace, r.Reference.Name)
+		}
+	}
+	return false, nil
 }
 
 func NewPodNodeEnvironment(client client.Interface) (admission.Interface, error) {
