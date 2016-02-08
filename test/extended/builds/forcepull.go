@@ -73,7 +73,7 @@ we built.  The credentials also are recycled between those points.
 Dumping of the ImageStreams and Secrets JSON output at the various points proved this out.
 */
 
-var _ = g.Describe("[builds] forcePull should affect pulling builder images", func() {
+var _ = g.Describe("[LocalNode][builds] forcePull should affect pulling builder images", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("forcepull", exutil.KubeConfigPath())
 
