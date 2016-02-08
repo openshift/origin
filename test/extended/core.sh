@@ -8,32 +8,29 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# must run before we mutate the GOPATH in setup_env
-go get -d k8s.io/kubernetes/pkg/util
-export KUBE_REPO_ROOT="${GOPATH}/src/k8s.io/kubernetes"
-
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 os::log::install_errexit
 
-source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::util::environment::setup_time_vars
-
 cd "${OS_ROOT}"
 
-# build ginkgo
-hack/build-go.sh Godeps/_workspace/src/github.com/onsi/ginkgo/ginkgo
+# build binaries
+if [[ -z $(os::build::find-binary ginkgo) ]]; then
+  hack/build-go.sh Godeps/_workspace/src/github.com/onsi/ginkgo/ginkgo
+fi
+if [[ -z $(os::build::find-binary extended.test) ]]; then
+  hack/build-go.sh test/extended/extended.test
+fi
+if [[ -z $(os::build::find-binary openshift) ]]; then
+  hack/build-go.sh
+fi
 ginkgo="$(os::build::find-binary ginkgo)"
 extendedtest="$(os::build::find-binary extended.test)"
 
-# TODO: check out the version of Kube we need so that we have access to sample content - in the future,
-# we want to get this content as well from cherrypicks (e2e test that is cherry-picked depends on content).
-k8s_version=$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json k8s.io/kubernetes/pkg/util)
-pushd "${KUBE_REPO_ROOT}" &>/dev/null
-git checkout "${k8s_version}"
-popd &>/dev/null
+source "${OS_ROOT}/hack/lib/util/environment.sh"
+os::util::environment::setup_time_vars
 
 if [[ -z ${TEST_ONLY+x} ]]; then
   ensure_iptables_or_die
@@ -83,6 +80,7 @@ fi
 # ensure proper relative directories are set
 export TMPDIR=${BASETMPDIR:-/tmp}
 export EXTENDED_TEST_PATH="$(pwd)/test/extended"
+export KUBE_REPO_ROOT="$(pwd)/Godeps/_workspace/src/k8s.io/kubernetes"
 
 if [[ $# -ne 0 ]]; then
   echo "[INFO] Running custom: $@"
