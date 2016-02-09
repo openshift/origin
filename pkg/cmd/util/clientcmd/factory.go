@@ -1,6 +1,7 @@
 package clientcmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -8,9 +9,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
-
 	"github.com/spf13/pflag"
+
 	"k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -397,6 +399,20 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return kAttachablePodForObjectFunc(object)
 		}
 	}
+	kSwaggerSchemaFunc := w.Factory.SwaggerSchema
+	w.Factory.SwaggerSchema = func(gvk unversioned.GroupVersionKind) (*swagger.ApiDeclaration, error) {
+		if !latest.OriginKind(gvk) {
+			return kSwaggerSchemaFunc(gvk)
+		}
+		// TODO: we need to register the OpenShift API under the Kube group, and start returning the OpenShift
+		// group from the scheme.
+		oc, _, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+		return w.OriginSwaggerSchema(oc.RESTClient, gvk.GroupVersion())
+	}
+
 	w.EditorEnvs = func() []string {
 		return []string{"OC_EDITOR", "EDITOR"}
 	}
@@ -450,6 +466,23 @@ func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
 		return nil, nil, err
 	}
 	return osClient, kClient, nil
+}
+
+// OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.
+func (f *Factory) OriginSwaggerSchema(client *kclient.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
+	if version.IsEmpty() {
+		return nil, fmt.Errorf("groupVersion cannot be empty")
+	}
+	body, err := client.Get().AbsPath("/").Suffix("swaggerapi", "oapi", version.Version).Do().Raw()
+	if err != nil {
+		return nil, err
+	}
+	var schema swagger.ApiDeclaration
+	err = json.Unmarshal(body, &schema)
+	if err != nil {
+		return nil, fmt.Errorf("got '%s': %v", string(body), err)
+	}
+	return &schema, nil
 }
 
 // ShortcutExpander is a RESTMapper that can be used for OpenShift resources.
