@@ -28,7 +28,7 @@ type REST struct {
 
 // NewStorage returns a DeploymentConfigStorage containing the REST storage for
 // DeploymentConfig objects and their Scale subresources.
-func NewREST(s storage.Interface, rcNamespacer kclient.ReplicationControllersNamespacer) (*REST, *ScaleREST) {
+func NewREST(s storage.Interface, rcNamespacer kclient.ReplicationControllersNamespacer) (*REST, *StatusREST, *ScaleREST) {
 	prefix := "/deploymentconfigs"
 
 	store := &etcdgeneric.Etcd{
@@ -55,12 +55,15 @@ func NewREST(s storage.Interface, rcNamespacer kclient.ReplicationControllersNam
 	}
 
 	deploymentConfigREST := &REST{store}
+	statusStore := *store
+	statusStore.UpdateStrategy = deployconfig.StatusStrategy
+	statusREST := &StatusREST{store: &statusStore}
 	scaleREST := &ScaleREST{
 		registry:     deployconfig.NewRegistry(deploymentConfigREST),
 		rcNamespacer: rcNamespacer,
 	}
 
-	return deploymentConfigREST, scaleREST
+	return deploymentConfigREST, statusREST, scaleREST
 }
 
 // ScaleREST contains the REST storage for the Scale subresource of DeploymentConfigs.
@@ -170,4 +173,21 @@ func (r *ScaleREST) replicasForDeploymentConfig(namespace, configName string) (i
 	}
 
 	return replicas, nil
+}
+
+// StatusREST implements the REST endpoint for changing the status of a DeploymentConfig.
+type StatusREST struct {
+	store *etcdgeneric.Etcd
+}
+
+// StatusREST implements the Updater interface.
+var _ = rest.Updater(&StatusREST{})
+
+func (r *StatusREST) New() runtime.Object {
+	return &api.DeploymentConfig{}
+}
+
+// Update alters the status subset of an deploymentConfig.
+func (r *StatusREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, obj)
 }

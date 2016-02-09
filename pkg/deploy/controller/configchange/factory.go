@@ -53,7 +53,7 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() controller.Runn
 				return factory.Client.DeploymentConfigs(namespace).Generate(name)
 			},
 			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-				return factory.Client.DeploymentConfigs(namespace).Update(config)
+				return factory.Client.DeploymentConfigs(namespace).UpdateStatus(config)
 			},
 		},
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {

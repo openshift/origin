@@ -221,7 +221,7 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer)
 	}
 
 	config.Status.LatestVersion++
-	_, err = o.osClient.DeploymentConfigs(config.Namespace).Update(config)
+	_, err = o.osClient.DeploymentConfigs(config.Namespace).UpdateStatus(config)
 	if err == nil {
 		fmt.Fprintf(out, "Started deployment #%d\n", config.Status.LatestVersion)
 	}

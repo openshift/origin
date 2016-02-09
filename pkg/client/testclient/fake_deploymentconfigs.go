@@ -97,3 +97,12 @@ func (c *FakeDeploymentConfigs) UpdateScale(inObj *extensions.Scale) (*extension
 
 	return obj.(*extensions.Scale), err
 }
+
+func (c *FakeDeploymentConfigs) UpdateStatus(inObj *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("deploymentconfigs/status", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*deployapi.DeploymentConfig), err
+}
