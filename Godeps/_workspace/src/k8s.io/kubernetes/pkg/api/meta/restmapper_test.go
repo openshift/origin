@@ -155,7 +155,7 @@ func TestRESTMapperKindsFor(t *testing.T) {
 				{Group: "second-group", Version: "first-version", Kind: "my-kind"},
 				{Group: "first-group", Version: "first-version", Kind: "my-kind"},
 			},
-			ExpectedKindErr: "is ambiguous",
+			ExpectedKindErr: " matches multiple kinds ",
 		},
 
 		{
@@ -195,7 +195,7 @@ func TestRESTMapperKindsFor(t *testing.T) {
 				{Group: "first-group", Version: "first-version", Kind: "my-kind"},
 				{Group: "second-group", Version: "first-version", Kind: "my-kind"},
 			},
-			ExpectedKindErr: "is ambiguous",
+			ExpectedKindErr: " matches multiple kinds ",
 		},
 	}
 	for _, testCase := range testCases {
@@ -267,7 +267,7 @@ func TestRESTMapperResourcesFor(t *testing.T) {
 				{Group: "second-group", Version: "first-version", Resource: "my-kinds"},
 				{Group: "first-group", Version: "first-version", Resource: "my-kinds"},
 			},
-			ExpectedResourceErr: "is ambiguous",
+			ExpectedResourceErr: " matches multiple resources ",
 		},
 
 		{
@@ -307,7 +307,7 @@ func TestRESTMapperResourcesFor(t *testing.T) {
 				{Group: "first-group", Version: "first-version", Resource: "my-kinds"},
 				{Group: "second-group", Version: "first-version", Resource: "my-kinds"},
 			},
-			ExpectedResourceErr: "is ambiguous",
+			ExpectedResourceErr: " matches multiple resources ",
 		},
 	}
 	for _, testCase := range testCases {
