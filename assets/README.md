@@ -19,6 +19,7 @@ Contributing
     ```
     echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
     ```
+8. For livereload to work, you must visit https://localhost:35729/livereload.js?snipver=1 and accept the unsigned certs
 
 #### Enable / disable console log output
 

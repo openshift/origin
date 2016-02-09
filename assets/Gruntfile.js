@@ -42,7 +42,10 @@ module.exports = function (grunt) {
         files: ['<%= yeoman.app %>/scripts/{,*/}*.js'],
         tasks: ['newer:jshint:all'],
         options: {
-          livereload: '<%= connect.options.livereload %>'
+          livereload: {
+            key: grunt.file.read('livereload.key'),
+            cert: grunt.file.read('livereload.crt')
+          }
         }
       },
       jsTest: {
@@ -52,6 +55,15 @@ module.exports = function (grunt) {
       css: {
         files: '<%= yeoman.app %>/styles/*.less',
         tasks: ['less']
+      },
+      html: {
+        files: '<%= yeoman.app %>/views/{,*/}*.html',
+        options: {
+          livereload: {
+            key: grunt.file.read('livereload.key'),
+            cert: grunt.file.read('livereload.crt')
+          }
+        }        
       },
       extensions: {
         files: ['extensions/extensions.js', 'extensions/extensions.css'],
