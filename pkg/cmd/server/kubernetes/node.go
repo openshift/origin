@@ -16,8 +16,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	proxy "k8s.io/kubernetes/pkg/proxy"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
-	proxy "k8s.io/kubernetes/pkg/proxy/iptables"
+	ipproxy "k8s.io/kubernetes/pkg/proxy/iptables"
+	usproxy "k8s.io/kubernetes/pkg/proxy/userspace"
+	"k8s.io/kubernetes/pkg/util"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
@@ -224,7 +227,21 @@ func (c *NodeConfig) RunProxy() {
 	exec := kexec.New()
 	dbus := utildbus.New()
 	iptables := iptables.New(exec, dbus, protocol)
-	proxier, err := proxy.NewProxier(iptables, exec, syncPeriod, false)
+
+	var proxier proxy.ProxyProvider
+	var endpointsHandler pconfig.EndpointsConfigHandler
+	if /* FIXME */ true {
+		var ipproxier *ipproxy.Proxier
+		ipproxier, err = ipproxy.NewProxier(iptables, exec, syncPeriod, false)
+		proxier = ipproxier
+		endpointsHandler = ipproxier
+	} else {
+		var usproxier *usproxy.Proxier
+		loadBalancer := usproxy.NewLoadBalancerRR()
+		usproxier, err = usproxy.NewProxier(loadBalancer, ip, iptables, util.PortRange{}, syncPeriod, /* FIXME? */ 250 * time.Millisecond)
+		proxier = usproxier
+		endpointsHandler = loadBalancer
+	}
 	if err != nil {
 		// This should be fatal, but that would break the integration tests
 		glog.Warningf("WARNING: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
@@ -240,9 +257,9 @@ func (c *NodeConfig) RunProxy() {
 
 	serviceConfig.RegisterHandler(proxier)
 	if c.FilteringEndpointsHandler == nil {
-		endpointsConfig.RegisterHandler(proxier)
+		endpointsConfig.RegisterHandler(endpointsHandler)
 	} else {
-		c.FilteringEndpointsHandler.SetBaseEndpointsHandler(proxier)
+		c.FilteringEndpointsHandler.SetBaseEndpointsHandler(endpointsHandler)
 		endpointsConfig.RegisterHandler(c.FilteringEndpointsHandler)
 	}
 	recorder.Eventf(nodeRef, kapi.EventTypeNormal, "Starting", "Starting kube-proxy.")
