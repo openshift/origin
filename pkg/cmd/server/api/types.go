@@ -675,6 +675,8 @@ type GitHubIdentityProvider struct {
 	ClientID string
 	// ClientSecret is the oauth client secret
 	ClientSecret string
+	// Organizations optionally restricts which organizations are allowed to log in
+	Organizations []string
 }
 
 type GitLabIdentityProvider struct {

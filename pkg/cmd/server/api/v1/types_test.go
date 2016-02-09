@@ -268,6 +268,7 @@ oauthConfig:
       clientID: ""
       clientSecret: ""
       kind: GitHubIdentityProvider
+      organizations: null
   - challenge: false
     login: false
     mappingMethod: ""

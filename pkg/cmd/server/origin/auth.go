@@ -465,7 +465,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvider) (external.Provider, error) {
 	switch provider := identityProvider.Provider.(type) {
 	case (*configapi.GitHubIdentityProvider):
-		return github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret), nil
+		return github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret, provider.Organizations), nil
 
 	case (*configapi.GitLabIdentityProvider):
 		transport, err := cmdutil.TransportFor(provider.CA, "", "")
