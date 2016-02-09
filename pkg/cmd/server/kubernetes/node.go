@@ -16,11 +16,13 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	proxy "k8s.io/kubernetes/pkg/proxy"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
-	proxy "k8s.io/kubernetes/pkg/proxy/iptables"
+	"k8s.io/kubernetes/pkg/proxy/iptables"
+	"k8s.io/kubernetes/pkg/proxy/userspace"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
-	"k8s.io/kubernetes/pkg/util/iptables"
+	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
@@ -190,63 +192,77 @@ func (c *NodeConfig) RunSDN() {
 
 // RunProxy starts the proxy
 func (c *NodeConfig) RunProxy() {
-	// initialize kube proxy
-	serviceConfig := pconfig.NewServiceConfig()
-	endpointsConfig := pconfig.NewEndpointsConfig()
-
-	host, _, err := net.SplitHostPort(c.BindAddress)
-	if err != nil {
-		glog.Fatalf("The provided value to bind to must be an ip:port %q", c.BindAddress)
-	}
-	ip := net.ParseIP(host)
-	if ip == nil {
-		glog.Fatalf("The provided value to bind to must be an ip:port: %q", c.BindAddress)
-	}
-
-	protocol := iptables.ProtocolIpv4
-	if ip.To4() == nil {
-		protocol = iptables.ProtocolIpv6
-	}
-
-	syncPeriod, err := time.ParseDuration(c.IPTablesSyncPeriod)
-	if err != nil {
-		glog.Fatalf("Cannot parse the provided ip-tables sync period (%s) : %v", c.IPTablesSyncPeriod, err)
+	protocol := utiliptables.ProtocolIpv4
+	if c.ProxyConfig.BindAddress.To4() == nil {
+		protocol = utiliptables.ProtocolIpv6
 	}
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(c.Client.Events(""))
 	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "kube-proxy", Host: c.KubeletConfig.NodeName})
-	nodeRef := &kapi.ObjectReference{
-		Kind: "Node",
-		Name: c.KubeletConfig.NodeName,
-	}
 
 	exec := kexec.New()
 	dbus := utildbus.New()
-	iptables := iptables.New(exec, dbus, protocol)
-	proxier, err := proxy.NewProxier(iptables, exec, syncPeriod, false)
-	if err != nil {
-		// This should be fatal, but that would break the integration tests
-		glog.Warningf("WARNING: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
-		return
+	iptInterface := utiliptables.New(exec, dbus, protocol)
+
+	var proxier proxy.ProxyProvider
+	var endpointsHandler pconfig.EndpointsConfigHandler
+
+	switch c.ProxyConfig.ProxyMode {
+	case "iptables":
+		glog.V(0).Info("Using iptables Proxier.")
+		proxierIptables, err := iptables.NewProxier(iptInterface, exec, c.ProxyConfig.IptablesSyncPeriod, c.ProxyConfig.MasqueradeAll)
+		if err != nil {
+			// This should be fatal, but that would break the integration tests
+			glog.Warningf("WARNING: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
+			return
+		}
+		proxier = proxierIptables
+		endpointsHandler = proxierIptables
+		// No turning back. Remove artifacts that might still exist from the userspace Proxier.
+		glog.V(0).Info("Tearing down userspace rules. Errors here are acceptable.")
+		userspace.CleanupLeftovers(iptInterface)
+	case "userspace":
+		glog.V(0).Info("Using userspace Proxier.")
+		loadBalancer := userspace.NewLoadBalancerRR()
+		endpointsHandler = loadBalancer
+		proxierUserspace, err := userspace.NewProxier(loadBalancer, c.ProxyConfig.BindAddress, iptInterface, c.ProxyConfig.PortRange, c.ProxyConfig.IptablesSyncPeriod, c.ProxyConfig.UDPIdleTimeout)
+		if err != nil {
+			// This should be fatal, but that would break the integration tests
+			glog.Warningf("WARNING: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
+			return
+		}
+		proxier = proxierUserspace
+		// Remove artifacts from the pure-iptables Proxier.
+		glog.V(0).Info("Tearing down pure-iptables proxy rules. Errors here are acceptable.")
+		iptables.CleanupLeftovers(iptInterface)
+	default:
+		glog.Fatalf("Unknown proxy mode %q", c.ProxyConfig.ProxyMode)
 	}
-	iptables.AddReloadFunc(proxier.Sync)
+	iptInterface.AddReloadFunc(proxier.Sync)
+
+	// Create configs (i.e. Watches for Services and Endpoints)
+	// Note: RegisterHandler() calls need to happen before creation of Sources because sources
+	// only notify on changes, and the initial update (on process start) may be lost if no handlers
+	// are registered yet.
+	serviceConfig := pconfig.NewServiceConfig()
+	serviceConfig.RegisterHandler(proxier)
+	endpointsConfig := pconfig.NewEndpointsConfig()
+	if c.FilteringEndpointsHandler == nil {
+		endpointsConfig.RegisterHandler(endpointsHandler)
+	} else {
+		c.FilteringEndpointsHandler.SetBaseEndpointsHandler(endpointsHandler)
+		endpointsConfig.RegisterHandler(c.FilteringEndpointsHandler)
+	}
 
 	pconfig.NewSourceAPI(
 		c.Client,
-		10*time.Minute,
+		c.ProxyConfig.ConfigSyncPeriod,
 		serviceConfig.Channel("api"),
 		endpointsConfig.Channel("api"))
 
-	serviceConfig.RegisterHandler(proxier)
-	if c.FilteringEndpointsHandler == nil {
-		endpointsConfig.RegisterHandler(proxier)
-	} else {
-		c.FilteringEndpointsHandler.SetBaseEndpointsHandler(proxier)
-		endpointsConfig.RegisterHandler(c.FilteringEndpointsHandler)
-	}
-	recorder.Eventf(nodeRef, kapi.EventTypeNormal, "Starting", "Starting kube-proxy.")
-	glog.Infof("Started Kubernetes Proxy on %s", host)
+	recorder.Eventf(c.ProxyConfig.NodeRef, kapi.EventTypeNormal, "Starting", "Starting kube-proxy.")
+	glog.Infof("Started Kubernetes Proxy on %s", c.ProxyConfig.BindAddress.String())
 }
 
 // TODO: more generic location

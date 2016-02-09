@@ -9,8 +9,10 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	proxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app/options"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
@@ -48,6 +50,8 @@ type NodeConfig struct {
 	KubeletServer *kubeletoptions.KubeletServer
 	// KubeletConfig is the configuration for the kubelet, fully initialized
 	KubeletConfig *kubeletapp.KubeletConfig
+	// ProxyConfig is the configuration for the kube-proxy, fully initialized
+	ProxyConfig *proxyoptions.ProxyServerConfig
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
 
@@ -149,6 +153,11 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	// proper errors
 	if err := cmdflags.Resolve(options.KubeletArguments, server.AddFlags); len(err) > 0 {
 		return nil, errors.NewAggregate(err)
+	}
+
+	proxyconfig, err := buildKubeProxyConfig(options)
+	if err != nil {
+		return nil, err
 	}
 
 	cfg, err := kubeletapp.UnsecuredKubeletConfig(server)
@@ -265,12 +274,79 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		KubeletServer: server,
 		KubeletConfig: cfg,
 
-		IPTablesSyncPeriod: options.IPTablesSyncPeriod,
-		MTU:                options.NetworkConfig.MTU,
+		ProxyConfig: proxyconfig,
+
+		MTU: options.NetworkConfig.MTU,
 
 		SDNPlugin:                 sdnPlugin,
 		FilteringEndpointsHandler: endpointFilter,
 	}
 
 	return config, nil
+}
+
+func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServerConfig, error) {
+	// get default config
+	proxyconfig := proxyoptions.NewProxyConfig()
+
+	// BindAddress - Override default bind address from our config
+	addr := options.ServingInfo.BindAddress
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, fmt.Errorf("The provided value to bind to must be an ip:port %q", addr)
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return nil, fmt.Errorf("The provided value to bind to must be an ip:port: %q", addr)
+	}
+	proxyconfig.BindAddress = ip
+
+	// HealthzPort, HealthzBindAddress - disable
+	proxyconfig.HealthzPort = 0
+	proxyconfig.HealthzBindAddress = nil
+
+	// OOMScoreAdj, ResourceContainer - clear, we don't run in a container
+	proxyconfig.OOMScoreAdj = 0
+	proxyconfig.ResourceContainer = ""
+
+	// use the same client as the node
+	proxyconfig.Master = ""
+	proxyconfig.Kubeconfig = options.MasterKubeConfig
+
+	// PortRange, use default
+	// HostnameOverride, use default
+
+	// ProxyMode, set to iptables
+	proxyconfig.ProxyMode = "iptables"
+
+	// IptablesSyncPeriod, set to our config value
+	syncPeriod, err := time.ParseDuration(options.IPTablesSyncPeriod)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
+	}
+	proxyconfig.IptablesSyncPeriod = syncPeriod
+
+	// ConfigSyncPeriod, use default
+
+	// NodeRef, build from config
+	proxyconfig.NodeRef = &kapi.ObjectReference{
+		Kind: "Node",
+		Name: options.NodeName,
+	}
+
+	// MasqueradeAll, use default
+
+	// CleanupAndExit, use default
+
+	// KubeAPIQPS, use default, doesn't apply until we build a separate client
+	// KubeAPIBurst, use default, doesn't apply until we build a separate client
+
+	// UDPIdleTimeout, use default
+
+	// Resolve cmd flags to add any user overrides
+	if err := cmdflags.Resolve(options.ProxyArguments, proxyconfig.AddFlags); len(err) > 0 {
+		return nil, errors.NewAggregate(err)
+	}
+
+	return proxyconfig, nil
 }

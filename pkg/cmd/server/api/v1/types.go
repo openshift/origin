@@ -61,6 +61,11 @@ type NodeConfig struct {
 	// These values override other settings in NodeConfig which may cause invalid configurations.
 	KubeletArguments ExtendedArguments `json:"kubeletArguments,omitempty"`
 
+	// ProxyArguments are key value pairs that will be passed directly to the Proxy that match the Proxy's
+	// command line arguments.  These are not migrated or validated, so if you use them they may become invalid.
+	// These values override other settings in NodeConfig which may cause invalid configurations.
+	ProxyArguments ExtendedArguments `json:"proxyArguments,omitempty"`
+
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string `json:"iptablesSyncPeriod"`
 }
