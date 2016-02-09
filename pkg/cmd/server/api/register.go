@@ -29,7 +29,7 @@ func AddToScheme(scheme *runtime.Scheme) {
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) {
-	if err := Scheme.AddIgnoredConversionType(&unversioned.TypeMeta{}, &unversioned.TypeMeta{}); err != nil {
+	if err := scheme.AddIgnoredConversionType(&unversioned.TypeMeta{}, &unversioned.TypeMeta{}); err != nil {
 		panic(err)
 	}
 	scheme.AddKnownTypes(SchemeGroupVersion,
