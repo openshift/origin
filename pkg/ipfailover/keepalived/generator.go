@@ -47,6 +47,7 @@ func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOpti
 	watchPort := strconv.Itoa(options.WatchPort)
 	replicas := strconv.Itoa(options.Replicas)
 	insecureStr := strconv.FormatBool(kconfig.Insecure)
+	VRRPIDOffset := strconv.Itoa(options.VRRPIDOffset)
 
 	return app.Environment{
 		"OPENSHIFT_MASTER":    kconfig.Host,
@@ -59,6 +60,7 @@ func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOpti
 		"OPENSHIFT_HA_VIRTUAL_IPS":       options.VirtualIPs,
 		"OPENSHIFT_HA_NETWORK_INTERFACE": options.NetworkInterface,
 		"OPENSHIFT_HA_MONITOR_PORT":      watchPort,
+		"OPENSHIFT_HA_VRRP_ID_OFFSET":    VRRPIDOffset,
 		"OPENSHIFT_HA_REPLICA_COUNT":     replicas,
 		"OPENSHIFT_HA_USE_UNICAST":       "false",
 		// "OPENSHIFT_HA_UNICAST_PEERS":     "127.0.0.1",

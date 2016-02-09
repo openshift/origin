@@ -55,12 +55,18 @@ func TestNewIPFailoverConfiguratorPlugin(t *testing.T) {
 			ErrorExpectation: false,
 		},
 		{
+			Name:             "vrid-base",
+			Options:          &ipfailover.IPFailoverConfigCmdOptions{VRRPIDOffset: 30},
+			ErrorExpectation: false,
+		},
+		{
 			Name: "all-options",
 			Options: &ipfailover.IPFailoverConfigCmdOptions{
 				Selector:         "ipf=v1",
 				VirtualIPs:       "9.8.7.6,5.4.3.2-5",
 				NetworkInterface: "ipf0",
 				WatchPort:        12345,
+				VRRPIDOffset:     70,
 				Replicas:         1,
 			},
 			ErrorExpectation: false,
