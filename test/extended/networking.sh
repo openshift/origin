@@ -148,7 +148,7 @@ function run-extended-tests() {
       # Only the multitenant plugin can pass the isolation test
       if ! grep -q 'redhat/openshift-ovs-multitenant' \
            $(find "${conf_path}" -name 'node-config.yaml' | head -n 1); then
-        skip_regex="${skip_regex}|networking: isolation"
+        skip_regex="${skip_regex}|\[networking\] network isolation plugin"
       fi
   fi
 
