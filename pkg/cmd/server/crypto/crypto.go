@@ -250,7 +250,10 @@ func (ca *CA) MakeServerCert(certFile, keyFile string, hostnames sets.String) (*
 
 	serverPublicKey, serverPrivateKey, _ := NewKeyPair()
 	serverTemplate, _ := newServerCertificateTemplate(pkix.Name{CommonName: hostnames.List()[0]}, hostnames.List())
-	serverCrt, _ := ca.signCertificate(serverTemplate, serverPublicKey)
+	serverCrt, err := ca.signCertificate(serverTemplate, serverPublicKey)
+	if err != nil {
+		return nil, err
+	}
 	server := &TLSCertificateConfig{
 		Certs: append([]*x509.Certificate{serverCrt}, ca.Config.Certs...),
 		Key:   serverPrivateKey,
@@ -283,7 +286,10 @@ func (ca *CA) MakeClientCertificate(certFile, keyFile string, u user.Info) (*TLS
 
 	clientPublicKey, clientPrivateKey, _ := NewKeyPair()
 	clientTemplate, _ := newClientCertificateTemplate(x509request.UserToSubject(u))
-	clientCrt, _ := ca.signCertificate(clientTemplate, clientPublicKey)
+	clientCrt, err := ca.signCertificate(clientTemplate, clientPublicKey)
+	if err != nil {
+		return nil, err
+	}
 
 	certData, err := encodeCertificates(clientCrt)
 	if err != nil {
