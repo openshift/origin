@@ -18,86 +18,26 @@ if [ -z "$KUBE_ROOT" ]; then
   exit 255
 fi
 
-special_files="README.md
+# Copy special files.
+rsync -av \
+  --exclude='examples/blog-logging/diagrams/***' \
+  --include-from=- \
+  --exclude='*' \
+  $KUBE_ROOT/ $KUBE_GODEP_ROOT <<EOF
 api/swagger-spec/v1.json
-docs/user-guide/multi-pod.yaml
-examples/examples_test.go
-examples/pod
-examples/iscsi/README.md
-docs/user-guide/walkthrough/README.md
+cmd/integration/**.json
+cmd/integration/**.yaml
+docs/admin/**.json
+docs/admin/**.yaml
+docs/user-guide/**.json
+docs/user-guide/**.yaml
 docs/user-guide/simple-yaml.md
+docs/user-guide/walkthrough/README.md
+examples/***
 pkg/client/testdata/myCA.cer
 pkg/client/testdata/myCA.key
 pkg/client/testdata/mycertvalid.cer
 pkg/client/testdata/mycertvalid.key
 pkg/client/testdata/mycertvalid.req
-"
-
-descriptor_dirs="cmd/integration
-docs/admin/
-docs/admin/limitrange/
-docs/admin/namespaces/
-docs/admin/resourcequota/
-docs/user-guide/
-docs/user-guide/downward-api/
-docs/user-guide/downward-api/volume/
-docs/user-guide/liveness/
-docs/user-guide/logging-demo/
-docs/user-guide/node-selection/
-docs/user-guide/persistent-volumes/claims/
-docs/user-guide/persistent-volumes/simpletest/
-docs/user-guide/persistent-volumes/volumes/
-docs/user-guide/secrets/
-docs/user-guide/update-demo/
-docs/user-guide/walkthrough/
-examples/
-examples/cephfs/
-examples/elasticsearch/
-examples/experimental/
-examples/extensions/
-examples/fibre_channel/
-examples/guestbook
-examples/guestbook-go
-examples/iscsi
-examples/glusterfs
-examples/rbd/secret
-examples/rbd
-examples/cassandra
-examples/celery-rabbitmq
-examples/cluster-dns
-examples/elasticsearch
-examples/explorer
-examples/hazelcast
-examples/javaweb-tomcat-sidecar/
-examples/job/expansions/
-examples/job/work-queue-1
-examples/job/work-queue-2
-examples/meteor
-examples/mysql-wordpress-pd
-examples/nfs
-examples/openshift-origin/
-examples/phabricator
-examples/redis
-examples/rethinkdb
-examples/spark
-examples/spark/spark-gluster
-examples/storm"
-
-for file in $special_files
-do
-  dir=`dirname $file`
-  mkdir -p $KUBE_GODEP_ROOT/$dir
-
-  cp -v $KUBE_ROOT/$file $KUBE_GODEP_ROOT/$file
-done
-
-for dir in $descriptor_dirs
-do
-  mkdir -p $KUBE_GODEP_ROOT/$dir
-  files_to_copy=`find $KUBE_ROOT/$dir -maxdepth 1 -name '*.json' -o -name '*.yaml'`
-
-  for file in $files_to_copy
-  do
-    cp -vf $file $KUBE_GODEP_ROOT/$dir
-  done
-done
+README.md
+EOF
