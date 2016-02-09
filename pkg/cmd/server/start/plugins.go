@@ -12,6 +12,7 @@ import (
 	_ "github.com/openshift/origin/pkg/quota/admission/runonceduration"
 	_ "github.com/openshift/origin/pkg/security/admission"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/admit"
+	_ "k8s.io/kubernetes/plugin/pkg/admission/alwayspullimages"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/exec"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/exists"
