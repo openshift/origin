@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 969932fcea0da087a25394a89f9f4a6006d6110d
+%global commit e067dda7439e647962a380741fe57069bc07ff28
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.5-403-g969932f -X github.com/openshift/origin/pkg/version.commitFromGit 969932f -X k8s.io/kubernetes/pkg/version.gitCommit 4a65fa1 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.4-851-g4a65fa1
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.900-213-ge067dda -X github.com/openshift/origin/pkg/version.commitFromGit e067dda -X k8s.io/kubernetes/pkg/version.gitCommit 9da202e -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-origin
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.900
+Version:        3.1.1.901
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -468,6 +468,194 @@ fi
 
 
 %changelog
+* Tue Feb 09 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.901
+- Add organization restriction to github IDP (jliggitt@redhat.com)
+- UPSTREAM: 20827: Backwards compat for old Docker versions
+  (ccoleman@redhat.com)
+- Handle cert-writing error (jliggitt@redhat.com)
+- image scripts updated to work with dependents. (tdawson@redhat.com)
+- Add aos-3.2 (tdawson@redhat.com)
+- Web console: only show "no services" message if overview empty
+  (spadgett@redhat.com)
+- Remove custom SIGQUIT handler (rhcarvalho@gmail.com)
+- Use the vendored KUBE_REPO_ROOT (ccoleman@redhat.com)
+- Include Kube examples, needed for extended tests (rhcarvalho@gmail.com)
+- Update copy-kube-artifacts.sh (rhcarvalho@gmail.com)
+- Return the Origin schema for explain (ccoleman@redhat.com)
+- Regenerate conversions with stable order (ccoleman@redhat.com)
+- UPSTREAM: 20847: Force a dependency order between extensions and api
+  (ccoleman@redhat.com)
+- UPSTREAM: 20858: Ensure public conversion name packages are imported
+  (ccoleman@redhat.com)
+- UPSTREAM: 20775: Set kube-proxy arg default values (jliggitt@redhat.com)
+- Add kube-proxy config, match upstream proxy startup (jliggitt@redhat.com)
+- allow either iptables-based or userspace-based proxy (danw@redhat.com)
+- UPSTREAM: 20846: fix group mapping and encoding order: (deads@redhat.com)
+- UPSTREAM: 20481: kubectl: a couple of edit fixes (deads@redhat.com)
+- mark tests that access the host system as LocalNode (bparees@redhat.com)
+- Build secrets isn't using fixture path (ccoleman@redhat.com)
+- Test extended in parallel by default (ccoleman@redhat.com)
+- UPSTREAM: 20796: SecurityContext tests wrong volume dir (ccoleman@redhat.com)
+- UPSTREAM: 19947: Cluster DNS test is wrong (ccoleman@redhat.com)
+- Replacing zeroclipboard with clipboard.js #5115 (rhamilto@redhat.com)
+- import the AlwaysPull admission controller (pweil@redhat.com)
+- GitLab IDP tweaks (jliggitt@redhat.com)
+- BuildConfig editor fix (jhadvig@redhat.com)
+- Tiny update in HACKING.md (nakayamakenjiro@gmail.com)
+- Document requirements on kubernetes clone for cherry-picking.
+  (jsafrane@redhat.com)
+- Update recycler controller initialization. (jsafrane@redhat.com)
+- Removing copyright leftovers (maszulik@redhat.com)
+- UPSTREAM: 19365: Retry recycle or delete operation on failure
+  (jsafrane@redhat.com)
+- UPSTREAM: 19707: Fix race condition in cinder attach/detach
+  (jsafrane@redhat.com)
+- UPSTREAM: 19600: Fixed cleanup of persistent volumes. (jsafrane@redhat.com)
+- example_test can fail due to validations (ccoleman@redhat.com)
+- Add option and support for router id offset - this enables multiple
+  ipfailover router installations to run within the same cluster. Rebased and
+  changes as per @marun and @smarterclayton review comments.
+  (smitram@gmail.com)
+- Test extended did not compile (ccoleman@redhat.com)
+- Unique host check should not delete when route is same (ccoleman@redhat.com)
+- UPSTREAM: 20779: Take GVK in SwaggerSchema() (ccoleman@redhat.com)
+- sanitize/consistentize how env variables are added to build pods
+  (bparees@redhat.com)
+- Update tag for Origin Kube (ccoleman@redhat.com)
+- Fix typo (rhcarvalho@gmail.com)
+- Add custom auth error template (jliggitt@redhat.com)
+- fix multiple component error handling (bparees@redhat.com)
+- Template test is not reentrant (ccoleman@redhat.com)
+- Fix log viewer urls (jliggitt@redhat.com)
+- make unit tests work (deads@redhat.com)
+- make unit tests work (maszulik@redhat.com)
+- eliminate v1beta3 round trip in the fuzzer.  We don't have to go out from
+  there, only in (deads@redhat.com)
+- move configapi back into its own scheme until we split the group
+  (deads@redhat.com)
+- refactor admission plugin types to avoid cycles and keep api types consistent
+  (deads@redhat.com)
+- update code generators (deads@redhat.com)
+- make docker registry image auto-provisioning work with new status details
+  (deads@redhat.com)
+- add CLI helpers to convert lists before display since encoding no longer does
+  it (deads@redhat.com)
+- remove most of the latest package; it should go away completely
+  (deads@redhat.com)
+- template encoding/decoding no longer works like it used to (deads@redhat.com)
+- add runtime.Object conversion method that works for now, but doesn't span
+  groups or versions (deads@redhat.com)
+- api type installation (deads@redhat.com)
+- openshift launch sequence changed for rebase (deads@redhat.com)
+- replacement etcd client (deads@redhat.com)
+- oc behavior change by limiting generator scope (deads@redhat.com)
+- runtime.EmbeddedObject removed (deads@redhat.com)
+- scheme/codec changes (deads@redhat.com)
+- API registration changes (deads@redhat.com)
+- boring refactors for rebase (deads@redhat.com)
+- UPSTREAM: 20736: clear env var check for unit test (deads@redhat.com)
+- UPSTREAM: <drop>: make etcd error determination support old client until we
+  drop it (deads@redhat.com)
+- UPSTREAM: 20730: add restmapper String methods for debugging
+  (deads@redhat.com)
+- UPSTREAM: <drop>: disable kubelet image GC unit test (deads@redhat.com)
+- UPSTREAM: 20648: fix validation error path for namespace (deads@redhat.com)
+- UPSTREAM: <carry>: horrible hack for intstr types (deads@redhat.com)
+- UPSTREAM: 20706: register internal types with scheme for reference unit test
+  (deads@redhat.com)
+- UPSTREAM: 20226:
+  Godeps/_workspace/src/k8s.io/kubernetes/pkg/conversion/error.go
+  (deads@redhat.com)
+- UPSTREAM: 20511: let singularization handle non-conflicting ambiguity
+  (deads@redhat.com)
+- UPSTREAM: 20487: expose unstructured scheme as codec (deads@redhat.com)
+- UPSTREAM: 20431: tighten api server installation for bad groups
+  (deads@redhat.com)
+- UPSTREAM: <drop>: patch for 16146: Fix validate event for non-namespaced
+  kinds (deads@redhat.com)
+- UPSTREAM: <drop>: merge multiple registrations for the same group
+  (deads@redhat.com)
+- UPSTREAM: emicklei/go-restful: <carry>: Add "Info" to go-restful ApiDecl
+  (ccoleman@redhat.com)
+- UPSTREAM: openshift/openshift-sdn: <drop>: minor updates for kube rebase
+  (deads@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: remove parents on delete
+  (miminar@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: export app.Namespace
+  (miminar@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: custom routes/auth
+  (agoldste@redhat.com)
+- UPSTREAM: docker/distribution: 1050: Exported API functions needed for
+  pruning (miminar@redhat.com)
+- bump(k8s.io/kubernetes): 9da202e242d8ceedb549332fb31bf1a933a6c6b6
+  (deads@redhat.com)
+- bump(github.com/docker/docker): 0f5c9d301b9b1cca66b3ea0f9dec3b5317d3686d
+  (deads@redhat.com)
+- bump(github.com/coreos/go-systemd): b4a58d95188dd092ae20072bac14cece0e67c388
+  (deads@redhat.com)
+- bump(github.com/coreos/etcd): e0c7768f94cdc268b2fce31ada1dea823f11f505
+  (deads@redhat.com)
+- describe transitivity of bump commits (deads@redhat.com)
+- clean godeps.json (deads@redhat.com)
+- transitive bump checker (jliggitt@redhat.com)
+- Clarify how to enable coverage report (rhcarvalho@gmail.com)
+- Include offset of JSON syntax error (rhcarvalho@gmail.com)
+- Move env and volume to a new 'oc set' subcommand (ccoleman@redhat.com)
+- Make clean up before test runs more consistent (rhcarvalho@gmail.com)
+- Prevent header and toolbar flicker for empty project (spadgett@redhat.com)
+- Add GitLab OAuth identity provider (fabio@fh1.ch)
+- release notes: incorrect field names will be rejected (pweil@redhat.com)
+- Rename system:humans group to system:authenticated:oauth
+  (jliggitt@redhat.com)
+- Check index.docker.io/v1 when auth.docker.io/token has no auth
+  (ccoleman@redhat.com)
+- Update markup in chromeless templates to fix log scrolling issues
+  (admin@benjaminapetersen.me)
+- Adding missing bindata.go (rhamilto@redhat.com)
+- Missing loading message on browse pages, only show tables on details tabs
+  (jforrest@redhat.com)
+- Set up API service and resourceGroupVersion helpers (jliggitt@redhat.com)
+- Removing the transition on .sidebar-left for cleaner rendering on resize
+  (rhamilto@redhat.com)
+- Fix of project name alignment in IE, fixes bug 1304228 (sgoodwin@redhat.com)
+- Test insecure TLS without CA for import (ccoleman@redhat.com)
+- Admission control plugin to override run-once pod ActiveDeadlineSeconds
+  (cewong@redhat.com)
+- Fix problem with iOS zoom using the YAML editor (spadgett@redhat.com)
+- Web console: editing compute resources limits (spadgett@redhat.com)
+- Align edit build config styles with other edit pages (spadgett@redhat.com)
+- Move build "rebuild" button to primary actions (spadgett@redhat.com)
+- UPSTREAM: 16146: Fix validate event for non-namespaced kinds
+  (deads@redhat.com)
+- Bug 1304635: fix termination type for oc create route reencrypt
+  (mkargaki@redhat.com)
+- Bug 1304604: add missing route generator param for path (mkargaki@redhat.com)
+- Support readiness checking on recreate strategy (ccoleman@redhat.com)
+- Allow values as arguments in oc process (ffranz@redhat.com)
+- Implement a mid hook for recreate deployments (ccoleman@redhat.com)
+- Allow new-app to create test deployments (ccoleman@redhat.com)
+- Force mount path to word break so it works at mobile (jforrest@redhat.com)
+- Bug fix:  adding Go installation step, formatting fix (rhamilto@redhat.com)
+- Modify buildConfig from web console (jhadvig@redhat.com)
+- Bug fixes:  broken link, formatting fixes, addition of missing step
+  (rhamilto@redhat.com)
+- Preserve labels and annotations during reconcile scc (agladkov@redhat.com)
+- Use tags consistently in top-level extended tests descriptions
+  (mfojtik@redhat.com)
+- Improve namer.GetName (rhcarvalho@gmail.com)
+- Fix args check for role and scc modify (nakayamakenjiro@gmail.com)
+- UPSTREAM: 19490: Don't print hairpin_mode error when not using Linux bridges
+  (danw@gnome.org)
+- added property deduping for junitreport (skuznets@redhat.com)
+- Fixes #6797  - router flake due to some refactoring done. The probe needs an
+  initial delay to allow the router to start up + harden the tests a lil' more
+  by waiting for the router to come up and become available.
+  (smitram@gmail.com)
+- remove unused flag (pweil@redhat.com)
+- reverted typo in extended cmd (skuznets@redhat.com)
+- Fix kill_all_processes on OS X (cewong@redhat.com)
+- declared variables better for RHEL (skuznets@redhat.com)
+
 * Thu Feb 04 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.900
 - made login fail with bad token (skuznets@redhat.com)
 - Support test deployments (ccoleman@redhat.com)
