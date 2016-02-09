@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/credentialprovider"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/spf13/cobra"
 )
@@ -59,7 +59,7 @@ type CreateDockerConfigOptions struct {
 }
 
 // NewCmdCreateDockerConfigSecret creates a command object for making a dockercfg secret
-func NewCmdCreateDockerConfigSecret(name, fullName string, f *cmdutil.Factory, out io.Writer, newSecretFullName, ocEditFullName string) *cobra.Command {
+func NewCmdCreateDockerConfigSecret(name, fullName string, f *kcmdutil.Factory, out io.Writer, newSecretFullName, ocEditFullName string) *cobra.Command {
 	o := &CreateDockerConfigOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -69,23 +69,23 @@ func NewCmdCreateDockerConfigSecret(name, fullName string, f *cmdutil.Factory, o
 		Example: fmt.Sprintf(createDockercfgExample, fullName, newSecretFullName, ocEditFullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := o.Complete(f, args); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
 
 			if err := o.Validate(); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
 
-			if len(cmdutil.GetFlagString(c, "output")) != 0 {
+			if len(kcmdutil.GetFlagString(c, "output")) != 0 {
 				secret, err := o.NewDockerSecret()
-				cmdutil.CheckErr(err)
+				kcmdutil.CheckErr(err)
 
-				cmdutil.CheckErr(f.PrintObject(c, secret, out))
+				kcmdutil.CheckErr(f.PrintObject(c, secret, out))
 				return
 			}
 
 			if err := o.CreateDockerSecret(); err != nil {
-				cmdutil.CheckErr(err)
+				kcmdutil.CheckErr(err)
 			}
 
 		},
@@ -95,7 +95,7 @@ func NewCmdCreateDockerConfigSecret(name, fullName string, f *cmdutil.Factory, o
 	cmd.Flags().StringVar(&o.Password, "docker-password", "", "Password for Docker registry authentication")
 	cmd.Flags().StringVar(&o.EmailAddress, "docker-email", "", "Email for Docker registry")
 	cmd.Flags().StringVar(&o.RegistryLocation, "docker-server", "https://index.docker.io/v1/", "Server location for Docker registry")
-	cmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 
 	return cmd
 }
@@ -138,7 +138,7 @@ func (o CreateDockerConfigOptions) NewDockerSecret() (*api.Secret, error) {
 	return secret, nil
 }
 
-func (o *CreateDockerConfigOptions) Complete(f *cmdutil.Factory, args []string) error {
+func (o *CreateDockerConfigOptions) Complete(f *kcmdutil.Factory, args []string) error {
 	if len(args) != 1 {
 		return errors.New("must have exactly one argument: secret name")
 	}

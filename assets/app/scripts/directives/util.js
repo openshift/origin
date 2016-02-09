@@ -78,14 +78,33 @@ angular.module('openshiftConsole')
         clipboardText: "="
       },
       templateUrl: 'views/directives/_copy-to-clipboard.html',
+      controller: function($scope) {
+        $scope.id = _.uniqueId('clipboardJs');
+      },
       link: function($scope, element) {
-        if (ZeroClipboard.isFlashUnusable()) {
-          $(element).hide();
-        }
-        else {
-          new ZeroClipboard( $('button', element) );
-          $("#global-zeroclipboard-html-bridge").tooltip({title: "Copy to clipboard", placement: 'bottom'});
-        }
+        var node = $('button', element);
+        var clipboard = new Clipboard( node.get(0) );
+        clipboard.on('success', function (e) {
+          $(e.trigger)
+            .attr('title', 'Copied!')
+            .tooltip('fixTitle')
+            .tooltip('show')
+            .attr('title', 'Copy to clipboard')
+            .tooltip('fixTitle');
+          e.clearSelection();
+        });
+        clipboard.on('error', function (e) {
+          var fallbackMsg = /Mac/i.test(navigator.userAgent) ? 'Press \u2318C to copy' : 'Press Ctrl-C to copy';
+          $(e.trigger)
+            .attr('title', fallbackMsg)
+            .tooltip('fixTitle')
+            .tooltip('show')
+            .attr('title', 'Copy to clipboard')
+            .tooltip('fixTitle');
+        });
+        element.on('$destroy', function() {
+          clipboard.destroy();
+        });
       }
     };
   })

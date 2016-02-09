@@ -1599,7 +1599,7 @@ func TestValidateTrigger(t *testing.T) {
 	}{
 		"trigger without type": {
 			trigger:  buildapi.BuildTriggerPolicy{},
-			expected: []*field.Error{field.Required(field.NewPath("type"))},
+			expected: []*field.Error{field.Required(field.NewPath("type"), "")},
 		},
 		"trigger with unknown type": {
 			trigger: buildapi.BuildTriggerPolicy{
@@ -1609,14 +1609,14 @@ func TestValidateTrigger(t *testing.T) {
 		},
 		"GitHub type with no github webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GitHubWebHookBuildTriggerType},
-			expected: []*field.Error{field.Required(field.NewPath("github"))},
+			expected: []*field.Error{field.Required(field.NewPath("github"), "")},
 		},
 		"GitHub trigger with no secret": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type:          buildapi.GitHubWebHookBuildTriggerType,
 				GitHubWebHook: &buildapi.WebHookTrigger{},
 			},
-			expected: []*field.Error{field.Required(field.NewPath("github", "secret"))},
+			expected: []*field.Error{field.Required(field.NewPath("github", "secret"), "")},
 		},
 		"GitHub trigger with generic webhook": {
 			trigger: buildapi.BuildTriggerPolicy{
@@ -1625,18 +1625,18 @@ func TestValidateTrigger(t *testing.T) {
 					Secret: "secret101",
 				},
 			},
-			expected: []*field.Error{field.Required(field.NewPath("github"))},
+			expected: []*field.Error{field.Required(field.NewPath("github"), "")},
 		},
 		"Generic trigger with no generic webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GenericWebHookBuildTriggerType},
-			expected: []*field.Error{field.Required(field.NewPath("generic"))},
+			expected: []*field.Error{field.Required(field.NewPath("generic"), "")},
 		},
 		"Generic trigger with no secret": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type:           buildapi.GenericWebHookBuildTriggerType,
 				GenericWebHook: &buildapi.WebHookTrigger{},
 			},
-			expected: []*field.Error{field.Required(field.NewPath("generic", "secret"))},
+			expected: []*field.Error{field.Required(field.NewPath("generic", "secret"), "")},
 		},
 		"Generic trigger with github webhook": {
 			trigger: buildapi.BuildTriggerPolicy{
@@ -1645,13 +1645,13 @@ func TestValidateTrigger(t *testing.T) {
 					Secret: "secret101",
 				},
 			},
-			expected: []*field.Error{field.Required(field.NewPath("generic"))},
+			expected: []*field.Error{field.Required(field.NewPath("generic"), "")},
 		},
 		"ImageChange trigger without params": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type: buildapi.ImageChangeBuildTriggerType,
 			},
-			expected: []*field.Error{field.Required(field.NewPath("imageChange"))},
+			expected: []*field.Error{field.Required(field.NewPath("imageChange"), "")},
 		},
 		"valid GitHub trigger": {
 			trigger: buildapi.BuildTriggerPolicy{

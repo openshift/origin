@@ -30,12 +30,16 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/registry/secret"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
+// RemoveTokenBackoff is the recommended (empirical) retry interval for removing
+// a secret reference from a service account when the secret is deleted. It is
+// exported for use by custom secret controllers.
 var RemoveTokenBackoff = wait.Backoff{
 	Steps:    10,
 	Duration: 100 * time.Millisecond,
@@ -45,7 +49,7 @@ var RemoveTokenBackoff = wait.Backoff{
 // TokensControllerOptions contains options for the TokensController
 type TokensControllerOptions struct {
 	// TokenGenerator is the generator to use to create new tokens
-	TokenGenerator TokenGenerator
+	TokenGenerator serviceaccount.TokenGenerator
 	// ServiceAccountResync is the time.Duration at which to fully re-list service accounts.
 	// If zero, re-list will be delayed as long as possible
 	ServiceAccountResync time.Duration
@@ -116,7 +120,7 @@ type TokensController struct {
 	stopChan chan struct{}
 
 	client client.Interface
-	token  TokenGenerator
+	token  serviceaccount.TokenGenerator
 
 	rootCA []byte
 
@@ -450,7 +454,7 @@ func (e *TokensController) getServiceAccount(secret *api.Secret, fetchOnCacheMis
 	for _, obj := range namespaceAccounts {
 		serviceAccount := obj.(*api.ServiceAccount)
 
-		if IsServiceAccountToken(secret, serviceAccount) {
+		if serviceaccount.IsServiceAccountToken(secret, serviceAccount) {
 			return serviceAccount, nil
 		}
 	}
@@ -464,7 +468,7 @@ func (e *TokensController) getServiceAccount(secret *api.Secret, fetchOnCacheMis
 			return nil, err
 		}
 
-		if IsServiceAccountToken(secret, serviceAccount) {
+		if serviceaccount.IsServiceAccountToken(secret, serviceAccount) {
 			return serviceAccount, nil
 		}
 	}
@@ -485,7 +489,7 @@ func (e *TokensController) listTokenSecrets(serviceAccount *api.ServiceAccount) 
 	for _, obj := range namespaceSecrets {
 		secret := obj.(*api.Secret)
 
-		if IsServiceAccountToken(secret, serviceAccount) {
+		if serviceaccount.IsServiceAccountToken(secret, serviceAccount) {
 			items = append(items, secret)
 		}
 	}

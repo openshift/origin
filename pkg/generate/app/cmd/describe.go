@@ -172,10 +172,18 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 		}
 	}
 	if pipeline.Deployment != nil {
-		if len(pipeline.Deployment.Images) > 1 {
-			fmt.Fprintf(out, "    * This image will be deployed as part of deployment config %q\n", pipeline.Deployment.Name)
+		if pipeline.Deployment.AsTest {
+			if len(pipeline.Deployment.Images) > 1 {
+				fmt.Fprintf(out, "    * This image will be test deployed as part of deployment config %q\n", pipeline.Deployment.Name)
+			} else {
+				fmt.Fprintf(out, "    * This image will be test deployed in deployment config %q\n", pipeline.Deployment.Name)
+			}
 		} else {
-			fmt.Fprintf(out, "    * This image will be deployed in deployment config %q\n", pipeline.Deployment.Name)
+			if len(pipeline.Deployment.Images) > 1 {
+				fmt.Fprintf(out, "    * This image will be deployed as part of deployment config %q\n", pipeline.Deployment.Name)
+			} else {
+				fmt.Fprintf(out, "    * This image will be deployed in deployment config %q\n", pipeline.Deployment.Name)
+			}
 		}
 	}
 	if match != nil && match.Image != nil {

@@ -8,17 +8,9 @@ will create a build environment image and then execute a cross platform Go build
 output will be copied to `_output/releases` as a set of tars containing each version. It will also build
 the `openshift/origin-base` image which is the common parent image for all OpenShift Docker images.
 
-    $ hack/build-release.sh
+    $ make release
 
 NOTE:  Only committed code is built.
-
-Once the release has been built the official Docker images can be generated with `hack/build-images.sh`.
-The resulting images can then be pushed to a Docker registry.
-
-    $ hack/build-images.sh
-
-NOTE:  You only need to run this script if your code changes are part of any images OpenShift runs internally
-such as origin-sti-builder, origin-docker-builder,  origin-deployer, etc.
 
 To build the base and release images, run:
 
@@ -101,8 +93,8 @@ To run tests without the go race detector, which is on by default, use:
 
     $ KUBE_RACE="" hack/test-go.sh
 
-A line coverage report is run by default when testing a single package.
-To create a coverage report for all packages:
+To create a line coverage report, set `OUTPUT_COVERAGE` to a path where the
+report should be stored. For example:
 
     $ OUTPUT_COVERAGE=/path/to/dir hack/test-go.sh pkg/build
 
@@ -163,7 +155,8 @@ specifying them using a regex filter, passed through `grep -E` like with integra
     $ hack/test-cmd.sh <regex>
 
 During development, you can run a file `test/cmd/*.sh` directly to test against
-a running server. This can speed up the feedback loop considerably.
+a running server. This can speed up the feedback loop considerably. All `test/cmd/*` tests are expected
+to be executable repeatedly - please file bugs if a test needs cleanup before running.
 
 For example, start the OpenShift server, create a "test" project, and then run
 `oc new-app` tests against the server:
@@ -172,18 +165,28 @@ For example, start the OpenShift server, create a "test" project, and then run
     $ test/cmd/newapp.sh
 
 
-### End-to-End (e2e) Tests
+### End-to-End (e2e) and Extended Tests
 
 The final test category is end to end tests (e2e) which should verify a long set of flows in the
 product as a user would see them.  Two e2e tests should not overlap more than 10% of function, and
 are not intended to test error conditions in detail. The project examples should be driven by e2e
 tests. e2e tests can also test external components working together.
 
-End to end tests should be Go tests with the build tag `e2e` in the `test/e2e` directory.
+The end-to-end suite is currently implemented primarily in Bash, but will be folded into the extended
+suite (located in test/extended) over time. The extended suite is closer to the upstream Kubernetes
+e2e suite and tests the full behavior of a running system.
 
 Run the end to end tests with:
 
     $ hack/test-end-to-end.sh
+
+Run the extended tests with:
+
+    $ test/extended/core.sh
+
+Extended tests should be Go tests in the `test/extended` directory that use the Ginkgo library. They
+must be able to be run remotely, and cannot depend on any local interaction with the filesystem or
+Docker.
 
 
 ## Installing Godep
@@ -202,8 +205,15 @@ If you are not updating packages you should not need godep installed.
 You can use `hack/cherry-pick.sh` to generate patches for Origin from upstream commits. To use
 this command, be sure to setup remote branches like https://gist.github.com/piscisaureus/3342247
 so that `git show origin/pr/<number>` displays information about your branch after a `git fetch`.
-You must also have the Kubernetes repository checked out in your GOPATH (visible as `../../../k8s.io/kubernetes`)
-and have no modified or uncommitted files in either repository.
+You must also have the Kubernetes repository checked out in your GOPATH (visible as `../../../k8s.io/kubernetes`),
+with openshift/kubernetes as a remote and fetched:
+
+    $ pushd $GOPATH/src/k8s.io/kubernetes
+    $ git remote add openshift https://github.com/openshift/kubernetes.git
+    $ git fetch openshift
+    $ popd
+
+There must be no modified or uncommitted files in either repository.
 
 To pull an upstream commit, run:
 
@@ -283,6 +293,14 @@ on a separate $GOPATH just for the rebase:
 ```
 $ go get github.com/openshift/origin
 $ go get k8s.io/kubernetes
+```
+
+You must add the Origin GitHub fork as a remote in your k8s.io/kubernetes repo:
+
+```
+$ cd $GOPATH/src/k8s.io/kubernetes
+$ git remote add openshift git@github.com:openshift/kubernetes.git
+$ git fetch openshift
 ```
 
 Check out the version of Kubernetes you want to rebase as a branch or tag named `stable_proposed` in
@@ -441,13 +459,14 @@ OpenShift integrates the go `pprof` tooling to make it easy to capture CPU and h
 * `OPENSHIFT_PROFILE` environment variable:
   * `cpu` - will start a CPU profile on startup and write `./cpu.pprof`.  Contains samples for the entire run at the native sampling resolution (100hz). Note: CPU profiling for Go does not currently work on Mac OS X - the stats are not correctly sampled
   * `mem` - generate a running heap dump that tracks allocations to `./mem.pprof`
+  * `block` -  will start a block wait time analysis and write `./block.pprof`
   * `web` - start the pprof webserver in process at http://127.0.0.1:6060/debug/pprof (you can open this in a browser)
 
 In order to start the server in CPU profiling mode, run:
 
     $ OPENSHIFT_PROFILE=cpu sudo ./_output/local/bin/linux/amd64/openshift start
 
-Or, if running OpenShift under systemd, append this to /etc/sysconfig/openshift-master
+Or, if running OpenShift under systemd, append this to `/etc/sysconfig/atomic-openshift-{master,node}`
 
     OPENSHIFT_PROFILE=cpu
 
@@ -455,7 +474,7 @@ To view profiles, you use [pprof](http://goog-perftools.sourceforge.net/doc/cpu_
 
     $ go tool pprof ./_output/local/bin/linux/amd64/openshift cpu.pprof
     or
-    $ go tool pprof /bin/openshift /var/lib/openshift/cpu.pprof
+    $ go tool pprof $(which openshift) /var/lib/origin/cpu.pprof
 
 This will open the `pprof` shell, and you can then run:
 

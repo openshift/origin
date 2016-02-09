@@ -1,7 +1,7 @@
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -13,6 +13,6 @@ type PoliciesReadOnlyNamespacer interface {
 
 // ReadOnlyPolicyInterface exposes methods on Policies resources
 type ReadOnlyPolicyInterface interface {
-	List(options *unversioned.ListOptions) (*authorizationapi.PolicyList, error)
+	List(options *kapi.ListOptions) (*authorizationapi.PolicyList, error)
 	Get(name string) (*authorizationapi.Policy, error)
 }

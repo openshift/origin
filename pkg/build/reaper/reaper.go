@@ -114,7 +114,7 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 	bcDeleted = true
 
 	if noBcFound && noBuildFound {
-		return kerrors.NewNotFound("BuildConfig", name)
+		return kerrors.NewNotFound(buildapi.Resource("buildconfig"), name)
 	}
 
 	return nil

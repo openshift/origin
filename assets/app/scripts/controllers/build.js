@@ -88,6 +88,7 @@ angular.module('openshiftConsole')
           }
         );
 
+        var hashSize = $filter('hashSize');
         watches.push(DataService.watch("builds", context, function(builds, action, build) {
           $scope.builds = {};
           // TODO we should send the ?labelSelector=buildconfig=<name> on the API request
@@ -119,17 +120,19 @@ angular.module('openshiftConsole')
               delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
             }
           }
+
+          $scope.canBuild = !hashSize($scope.buildConfigBuildsInProgress[buildConfigName]);
         }));
-        $scope.startBuild = function(buildConfigName) {
-          BuildsService.startBuild(buildConfigName, context, $scope);
+
+        $scope.cancelBuild = function() {
+          BuildsService.cancelBuild($scope.build, $scope.buildConfigName, context, $scope);
         };
 
-        $scope.cancelBuild = function(build, buildConfigName) {
-          BuildsService.cancelBuild(build, buildConfigName, context, $scope);
-        };
-
-        $scope.cloneBuild = function(buildName) {
-          BuildsService.cloneBuild(buildName, context, $scope);
+        $scope.cloneBuild = function() {
+          var name = _.get($scope, 'build.metadata.name');
+          if (name && $scope.canBuild) {
+            BuildsService.cloneBuild(name, context, $scope);
+          }
         };
 
         $scope.$on('$destroy', function(){

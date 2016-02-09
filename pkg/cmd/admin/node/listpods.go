@@ -31,7 +31,7 @@ func (l *ListPodsOptions) Run() error {
 	if l.Options.CmdPrinterOutput {
 		printer = l.Options.CmdPrinter
 	} else {
-		printer, _, err = l.Options.GetPrintersByResource("pod")
+		printer, _, err = l.Options.GetPrintersByResource(kapi.SchemeGroupVersion.WithResource("pod"))
 		if err != nil {
 			return err
 		}

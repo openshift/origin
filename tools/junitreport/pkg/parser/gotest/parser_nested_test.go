@@ -2,12 +2,9 @@ package gotest
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"reflect"
 	"testing"
-
-	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/tools/junitreport/pkg/api"
 	"github.com/openshift/origin/tools/junitreport/pkg/builder/nested"
@@ -460,6 +457,42 @@ PASS`, // we include this line greedily even though it does not belong to the te
 				},
 			},
 		},
+		{
+			name:     "coverage statement in package result and inline",
+			testFile: "11.txt",
+			expectedSuites: &api.TestSuites{
+				Suites: []*api.TestSuite{
+					{
+						Name:     "package",
+						NumTests: 2,
+						Duration: 0.16,
+						Children: []*api.TestSuite{
+							{
+								Name:     "package/name",
+								NumTests: 2,
+								Duration: 0.16,
+								Properties: []*api.TestSuiteProperty{
+									{
+										Name:  "coverage.statements.pct",
+										Value: "10.0",
+									},
+								},
+								TestCases: []*api.TestCase{
+									{
+										Name:     "TestOne",
+										Duration: 0.06,
+									},
+									{
+										Name:     "TestTwo",
+										Duration: 0.1,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -479,7 +512,6 @@ PASS`, // we include this line greedily even though it does not belong to the te
 		}
 
 		if !reflect.DeepEqual(testSuites, testCase.expectedSuites) {
-			fmt.Println(util.ObjectGoPrintDiff(testSuites, testCase.expectedSuites))
 			t.Errorf("%s: did not produce the correct test suites from file:\n\texpected:\n\t%v,\n\tgot\n\t%v", testCase.name, testCase.expectedSuites, testSuites)
 		}
 	}

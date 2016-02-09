@@ -6,7 +6,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -29,7 +28,7 @@ func NewPolicyBindingRegistry(bindings []authorizationapi.PolicyBinding, err err
 }
 
 // ListPolicyBindings obtains a list of policyBinding that match a selector.
-func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -75,7 +74,7 @@ func (r *PolicyBindingRegistry) GetPolicyBinding(ctx kapi.Context, id string) (*
 		}
 	}
 
-	return nil, kapierrors.NewNotFound("PolicyBinding", id)
+	return nil, kapierrors.NewNotFound(authorizationapi.Resource("policybinding"), id)
 }
 
 // CreatePolicyBinding creates a new policyBinding.
@@ -108,7 +107,7 @@ func (r *PolicyBindingRegistry) UpdatePolicyBinding(ctx kapi.Context, policyBind
 		return errors.New("invalid request.  Namespace parameter required.")
 	}
 	if existing, _ := r.GetPolicyBinding(ctx, policyBinding.Name); existing == nil {
-		return kapierrors.NewNotFound("PolicyBinding", policyBinding.Name)
+		return kapierrors.NewNotFound(authorizationapi.Resource("policybinding"), policyBinding.Name)
 	}
 
 	addPolicyBinding(r.PolicyBindings, *policyBinding)
@@ -135,7 +134,7 @@ func (r *PolicyBindingRegistry) DeletePolicyBinding(ctx kapi.Context, id string)
 	return nil
 }
 
-func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

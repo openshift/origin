@@ -22,6 +22,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -47,13 +48,13 @@ func ParseWatchResourceVersion(resourceVersion string) (uint64, error) {
 	}
 	version, err := strconv.ParseUint(resourceVersion, 10, 64)
 	if err != nil {
-		return 0, errors.NewInvalid("", "", field.ErrorList{
+		return 0, errors.NewInvalid(unversioned.GroupKind{}, "", field.ErrorList{
 			// Validation errors are supposed to return version-specific field
 			// paths, but this is probably close enough.
 			field.Invalid(field.NewPath("resourceVersion"), resourceVersion, err.Error()),
 		})
 	}
-	return version + 1, nil
+	return version, nil
 }
 
 // ParseListResourceVersion takes a resource version argument and converts it to
@@ -71,11 +72,11 @@ func NamespaceKeyFunc(prefix string, obj runtime.Object) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	name := meta.Name()
+	name := meta.GetName()
 	if ok, msg := validation.IsValidPathSegmentName(name); !ok {
 		return "", fmt.Errorf("invalid name: %v", msg)
 	}
-	return prefix + "/" + meta.Namespace() + "/" + meta.Name(), nil
+	return prefix + "/" + meta.GetNamespace() + "/" + name, nil
 }
 
 func NoNamespaceKeyFunc(prefix string, obj runtime.Object) (string, error) {
@@ -83,9 +84,9 @@ func NoNamespaceKeyFunc(prefix string, obj runtime.Object) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	name := meta.Name()
+	name := meta.GetName()
 	if ok, msg := validation.IsValidPathSegmentName(name); !ok {
 		return "", fmt.Errorf("invalid name: %v", msg)
 	}
-	return prefix + "/" + meta.Name(), nil
+	return prefix + "/" + name, nil
 }

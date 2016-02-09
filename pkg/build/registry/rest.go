@@ -6,7 +6,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -19,8 +18,8 @@ var ErrUnknownBuildPhase = fmt.Errorf("unknown build phase")
 // the build ran within timeout, false if it did not, and an error if any other error state occurred.
 // The last observed Build state is returned.
 func WaitForRunningBuild(watcher rest.Watcher, ctx kapi.Context, build *api.Build, timeout time.Duration) (*api.Build, bool, error) {
-	fieldSelector := unversioned.FieldSelector{Selector: fields.Set{"metadata.name": build.Name}.AsSelector()}
-	options := &unversioned.ListOptions{FieldSelector: fieldSelector, ResourceVersion: build.ResourceVersion}
+	fieldSelector := fields.OneTermEqualSelector("metadata.name", build.Name)
+	options := &kapi.ListOptions{FieldSelector: fieldSelector, ResourceVersion: build.ResourceVersion}
 	w, err := watcher.Watch(ctx, options)
 	if err != nil {
 		return nil, false, err

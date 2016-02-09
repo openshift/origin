@@ -21,6 +21,8 @@ import (
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	namer "github.com/openshift/origin/pkg/util/namer"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
@@ -31,7 +33,7 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 		},
 	}
 
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 
 	executor := &HookExecutor{
 		podClient: &HookExecutorPodClientImpl{
@@ -42,7 +44,7 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 				return func() *kapi.Pod { return nil }
 			},
 		},
-		codec: kapi.Codec,
+		decoder: kapi.Codecs.UniversalDecoder(),
 	}
 
 	err := executor.executeExecNewPod(hook, deployment, "hook")
@@ -62,7 +64,7 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 
 	podLogs := &bytes.Buffer{}
@@ -82,7 +84,7 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 		podLogStream: func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error) {
 			return ioutil.NopCloser(strings.NewReader("test")), nil
 		},
-		codec: kapi.Codec,
+		decoder: kapi.Codecs.UniversalDecoder(),
 	}
 
 	err := executor.executeExecNewPod(hook, deployment, "hook")
@@ -116,7 +118,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 		},
 	}
 
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 
 	var createdPod *kapi.Pod
 	executor := &HookExecutor{
@@ -134,7 +136,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 		podLogStream: func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error) {
 			return nil, fmt.Errorf("can't access logs")
 		},
-		codec: kapi.Codec,
+		decoder: kapi.Codecs.UniversalDecoder(),
 	}
 
 	err := executor.executeExecNewPod(hook, deployment, "hook")
@@ -154,7 +156,7 @@ func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 
 	_, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook")
 
@@ -407,7 +409,7 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 
 	pod, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook")
 	if err != nil {
@@ -508,7 +510,7 @@ func TestAcceptNewlyObservedReadyPods_scenarios(t *testing.T) {
 			acceptedPods: acceptedPods,
 		}
 
-		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 		deployment.Spec.Replicas = 1
 
 		err := acceptor.Accept(deployment)
@@ -604,7 +606,7 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 			},
 		},
 	}
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	deployment.Namespace = namespace
 	return config, deployment
 }

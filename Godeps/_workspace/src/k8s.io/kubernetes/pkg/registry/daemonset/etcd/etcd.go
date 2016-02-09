@@ -39,7 +39,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 
 	newListFunc := func() runtime.Object { return &extensions.DaemonSetList{} }
 	storageInterface := storageDecorator(
-		s, 100, &extensions.DaemonSet{}, prefix, false, newListFunc)
+		s, 100, &extensions.DaemonSet{}, prefix, daemonset.Strategy, newListFunc)
 
 	store := &etcdgeneric.Etcd{
 		NewFunc: func() runtime.Object { return &extensions.DaemonSet{} },
@@ -64,7 +64,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return daemonset.MatchDaemonSet(label, field)
 		},
-		EndpointName: "daemonsets",
+		QualifiedResource: extensions.Resource("daemonsets"),
 
 		// Used to validate daemon set creation
 		CreateStrategy: daemonset.Strategy,

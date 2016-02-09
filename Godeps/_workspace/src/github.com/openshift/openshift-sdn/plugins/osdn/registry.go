@@ -582,12 +582,12 @@ func getEvent(eventQueue *oscache.EventQueue, startVersion uint64, checkConditio
 			if err != nil {
 				return watch.Error, nil, err
 			}
-			currentVersion, err := strconv.ParseUint(accessor.ResourceVersion(), 10, 64)
+			currentVersion, err := strconv.ParseUint(accessor.GetResourceVersion(), 10, 64)
 			if err != nil {
 				return watch.Error, nil, err
 			}
 			if currentVersion <= startVersion {
-				log.V(5).Infof("Ignoring %s with version %d, start version: %d", accessor.Name(), currentVersion, startVersion)
+				log.V(5).Infof("Ignoring %s with version %d, start version: %d", accessor.GetName(), currentVersion, startVersion)
 				continue
 			}
 			*checkCondition = false

@@ -226,6 +226,7 @@ items:
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
+    test: true
     triggers:
     - type: ConfigChange
   status:

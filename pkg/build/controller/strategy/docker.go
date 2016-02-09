@@ -23,7 +23,7 @@ type DockerBuildStrategy struct {
 // CreateBuildPod creates the pod to be used for the Docker build
 // TODO: Make the Pod definition configurable
 func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
-	data, err := bs.Codec.Encode(build)
+	data, err := runtime.Encode(bs.Codec, build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode the build: %v", err)
 	}

@@ -183,13 +183,13 @@ func TestRegistryAndServer(t *testing.T) {
 			Client: testCase.Client,
 		}
 		if testCase.Client == nil {
-			client.Err = apierrs.NewNotFound("client", "unknown")
+			client.Err = apierrs.NewNotFound(oapi.Resource("OAuthClient"), "unknown")
 		}
 		grant := &test.ClientAuthorizationRegistry{
 			ClientAuthorization: testCase.ClientAuth,
 		}
 		if testCase.ClientAuth == nil {
-			grant.Err = apierrs.NewNotFound("clientAuthorization", "test:test")
+			grant.Err = apierrs.NewNotFound(oapi.Resource("OAuthClientAuthorization"), "test:test")
 		}
 		storage := registrystorage.New(access, authorize, client, NewUserConversion())
 		config := osinserver.NewDefaultServerConfig()
@@ -247,7 +247,7 @@ func TestRegistryAndServer(t *testing.T) {
 }
 
 func TestAuthenticateTokenNotFound(t *testing.T) {
-	tokenRegistry := &test.AccessTokenRegistry{Err: apierrs.NewNotFound("AccessToken", "token")}
+	tokenRegistry := &test.AccessTokenRegistry{Err: apierrs.NewNotFound(oapi.Resource("OAuthAccessToken"), "token")}
 	userRegistry := usertest.NewUserRegistry()
 	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry, identitymapper.NoopGroupMapper{})
 

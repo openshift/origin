@@ -13,6 +13,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/assets"
 	"github.com/openshift/origin/pkg/assets/java"
@@ -21,10 +22,10 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oversion "github.com/openshift/origin/pkg/version"
 
-	"k8s.io/kubernetes/pkg/api"
-	klatest "k8s.io/kubernetes/pkg/api/latest"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 	kversion "k8s.io/kubernetes/pkg/version"
@@ -163,23 +164,23 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 	k8sResources := sets.NewString()
 
 	versions := []unversioned.GroupVersion{}
-	versions = append(versions, latest.Versions...)
-	versions = append(versions, klatest.ExternalVersions...)
+	versions = append(versions, registered.GroupOrDie(api.GroupName).GroupVersions...)
+	versions = append(versions, registered.GroupOrDie(kapi.GroupName).GroupVersions...)
 	deadOriginVersions := sets.NewString(configapi.DeadOpenShiftAPILevels...)
 	deadKubernetesVersions := sets.NewString(configapi.DeadKubernetesAPILevels...)
 	for _, version := range versions {
-		for kind := range api.Scheme.KnownTypes(version) {
+		for kind := range kapi.Scheme.KnownTypes(version) {
 			if strings.HasSuffix(kind, "List") {
 				continue
 			}
-			resource, _ := meta.KindToResource(kind, false)
+			resource, _ := meta.KindToResource(version.WithKind(kind), false)
 			if latest.OriginKind(version.WithKind(kind)) {
 				if !deadOriginVersions.Has(version.String()) {
-					originResources.Insert(resource)
+					originResources.Insert(resource.Resource)
 				}
 			} else {
 				if !deadKubernetesVersions.Has(version.String()) {
-					k8sResources.Insert(resource)
+					k8sResources.Insert(resource.Resource)
 				}
 			}
 		}

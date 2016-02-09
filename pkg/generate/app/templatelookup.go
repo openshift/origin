@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -105,7 +106,7 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 		}
 
 		var isSingular bool
-		obj, err := resource.NewBuilder(r.Mapper, r.Typer, r.ClientMapper).
+		obj, err := resource.NewBuilder(r.Mapper, r.Typer, r.ClientMapper, kapi.Codecs.UniversalDecoder()).
 			NamespaceParam(r.Namespace).RequireNamespace().
 			FilenameParam(false, term).
 			Do().
@@ -117,6 +118,9 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 			case strings.Contains(err.Error(), "does not exist") && strings.Contains(err.Error(), "the path"):
 				continue
 			default:
+				if syntaxErr, ok := err.(*json.SyntaxError); ok {
+					err = fmt.Errorf("at offset %d: %v", syntaxErr.Offset, err)
+				}
 				errs = append(errs, fmt.Errorf("unable to load template file %q: %v", term, err))
 				continue
 			}

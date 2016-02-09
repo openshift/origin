@@ -2,6 +2,7 @@ package policy
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -20,6 +21,14 @@ const (
 	AddSCCToUserRecommendedName       = "add-scc-to-user"
 	RemoveSCCFromGroupRecommendedName = "remove-scc-from-group"
 	RemoveSCCFromUserRecommendedName  = "remove-scc-from-user"
+)
+
+const (
+	addSCCToUserExample = `  # Add the 'restricted' security context contraint to user1 and user2
+  $ %[1]s restricted user1 user2
+
+  # Add the 'privileged' security context contraint to the service account serviceaccount1 in the current namespace
+  $ %[1]s privileged -z serviceaccount1`
 )
 
 type SCCModificationOptions struct {
@@ -56,9 +65,10 @@ func NewCmdAddSCCToUser(name, fullName string, f *clientcmd.Factory, out io.Writ
 	saNames := []string{}
 
 	cmd := &cobra.Command{
-		Use:   name + " SCC USER [USER ...]",
-		Short: "Add users to a security context constraint",
-		Long:  `Add users to a security context constraint`,
+		Use:     name + " SCC (USER | -z SERVICEACCOUNT) [USER ...]",
+		Short:   "Add users or serviceaccount to a security context constraint",
+		Long:    `Add users or serviceaccount to a security context constraint`,
+		Example: fmt.Sprintf(addSCCToUserExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.CompleteUsers(f, args, saNames); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -121,12 +131,16 @@ func NewCmdRemoveSCCFromUser(name, fullName string, f *clientcmd.Factory, out io
 }
 
 func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, args []string, saNames []string) error {
-	if (len(args) < 2) && (len(saNames) == 0) {
-		return errors.New("you must specify at least two arguments (<scc> <user> [user]...) or a service account (<scc> -z <service account name>) ")
+	if len(args) < 1 {
+		return errors.New("you must specify a scc")
 	}
 
 	o.SCCName = args[0]
 	o.Subjects = authorizationapi.BuildSubjects(args[1:], []string{}, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+
+	if (len(o.Subjects) == 0) && (len(saNames) == 0) {
+		return errors.New("you must specify at least one user or service account")
+	}
 
 	var err error
 	_, o.SCCInterface, err = f.Clients()

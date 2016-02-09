@@ -9,11 +9,10 @@ import (
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/project/admission/requestlimit"
+	requestlimit "github.com/openshift/origin/pkg/project/admission/requestlimit/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -28,9 +27,7 @@ func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.Proje
 	masterConfig.AdmissionConfig.PluginOrderOverride = []string{"OriginNamespaceLifecycle", "BuildByStrategy", "ProjectRequestLimit"}
 	masterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 		"ProjectRequestLimit": {
-			Configuration: runtime.EmbeddedObject{
-				Object: pluginConfig,
-			},
+			Configuration: pluginConfig,
 		},
 	}
 	kubeConfigFile, err := testserver.StartConfiguredMaster(masterConfig)

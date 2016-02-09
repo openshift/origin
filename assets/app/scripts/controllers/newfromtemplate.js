@@ -132,10 +132,9 @@ angular.module('openshiftConsole')
                       hasErrors = true;
                       result.failure.forEach(
                         function(failure) {
-                          var objectName = failureObjectNameFilter(failure) || "object";
                           alerts.push({
                             type: "error",
-                            message: "Cannot create " + humanize(objectName).toLowerCase() + ". ",
+                            message: "Cannot create " + humanize(failure.object.kind).toLowerCase() + " \"" + failure.object.metadata.name + "\". ",
                             details: failure.data.message
                           });
                         }

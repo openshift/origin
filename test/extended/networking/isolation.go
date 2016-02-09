@@ -8,7 +8,7 @@ import (
 )
 
 // This test requires a network plugin that supports namespace isolation.
-var _ = Describe("networking: isolation", func() {
+var _ = Describe("[networking] network isolation plugin", func() {
 	f1 := e2e.NewFramework("net-isolation1")
 	f2 := e2e.NewFramework("net-isolation2")
 

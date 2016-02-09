@@ -63,8 +63,12 @@ describe("DataService", function(){
       [{resource:'pods', namespace:"foo", isWebsocket:true, watch: true, resourceVersion:"5"  }, "ws://localhost:8443/api/v1/namespaces/foo/pods?watch=true&resourceVersion=5"],
 
       // Follow log
+      // subresource is ignored without a resource name
       [{resource:'pods/log', namespace:"foo", isWebsocket:true, follow: true                       }, "ws://localhost:8443/api/v1/namespaces/foo/pods?follow=true"],
       [{resource:'builds/log', namespace:"foo", isWebsocket:true, follow: true                     }, "ws://localhost:8443/oapi/v1/namespaces/foo/builds?follow=true"],
+      // subresource is honored with a resource name
+      [{resource:'pods/log',   name:"p", namespace:"foo", isWebsocket:true, follow: true           }, "ws://localhost:8443/api/v1/namespaces/foo/pods/p/log?follow=true"],
+      [{resource:'builds/log', name:"b", namespace:"foo", isWebsocket:true, follow: true           }, "ws://localhost:8443/oapi/v1/namespaces/foo/builds/b/log?follow=true"],
 
 
 
@@ -72,13 +76,16 @@ describe("DataService", function(){
       [{resource:'pods/proxy', name:"mypod", namespace:"myns", myparam1:"myvalue"}, "http://localhost:8443/api/v1/namespaces/myns/pods/mypod/proxy?myparam1=myvalue"],
 
       // Different API versions
-      [{resource:'builds',apiVersion:'v1beta3'}, null],
-      [{resource:'builds',apiVersion:'v1'     }, "http://localhost:8443/oapi/v1/builds"],
-      [{resource:'builds',apiVersion:'unknown'}, null],
+      [{resource:'builds',version:'v1beta3'}, null],
+      [{resource:'builds',version:'v1'     }, "http://localhost:8443/oapi/v1/builds"],
+      [{resource:'builds',version:'unknown'}, null],
 
-      [{resource:'pods',  apiVersion:'v1beta3'}, null],
-      [{resource:'pods',  apiVersion:'v1'     }, "http://localhost:8443/api/v1/pods"],
-      [{resource:'pods',  apiVersion:'unknown'}, null]
+      [{resource:'pods',  version:'v1beta3'}, null],
+      [{resource:'pods',  version:'v1'     }, "http://localhost:8443/api/v1/pods"],
+      [{resource:'pods',  version:'unknown'}, null],
+
+      // Different API groups
+      [{resource:'jobs',  group: 'extensions', version:'v1beta1'}, "http://localhost:8443/apis/extensions/v1beta1/jobs"]
     ];
 
     angular.forEach(tc, function(item) {

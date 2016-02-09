@@ -3,7 +3,6 @@ package clusterrolebinding
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -11,7 +10,7 @@ import (
 // Registry is an interface for things that know how to store RoleBindings.
 type Registry interface {
 	// ListRoleBindings obtains list of policyRoleBindings that match a selector.
-	ListRoleBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.RoleBindingList, error)
+	ListRoleBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.RoleBindingList, error)
 	// GetRoleBinding retrieves a specific policyRoleBinding.
 	GetRoleBinding(ctx kapi.Context, id string) (*authorizationapi.RoleBinding, error)
 	// CreateRoleBinding creates a new policyRoleBinding.
@@ -46,7 +45,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListRoleBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.RoleBindingList, error) {
+func (s *storage) ListRoleBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.RoleBindingList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err

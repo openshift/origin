@@ -1,9 +1,10 @@
-package v1
+package v1_test
 
 import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/authorization/api"
+	_ "github.com/openshift/origin/pkg/authorization/api/install"
 	testutil "github.com/openshift/origin/test/util/api"
 )
 

@@ -61,6 +61,11 @@ type NodeConfig struct {
 	// These values override other settings in NodeConfig which may cause invalid configurations.
 	KubeletArguments ExtendedArguments `json:"kubeletArguments,omitempty"`
 
+	// ProxyArguments are key value pairs that will be passed directly to the Proxy that match the Proxy's
+	// command line arguments.  These are not migrated or validated, so if you use them they may become invalid.
+	// These values override other settings in NodeConfig which may cause invalid configurations.
+	ProxyArguments ExtendedArguments `json:"proxyArguments,omitempty"`
+
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string `json:"iptablesSyncPeriod"`
 }
@@ -451,6 +456,10 @@ type OAuthTemplates struct {
 	// ProviderSelection is a path to a file containing a go template used to render the provider selection page.
 	// If unspecified, the default provider selection page is used.
 	ProviderSelection string `json:"providerSelection"`
+
+	// Error is a path to a file containing a go template used to render error pages during the authentication or grant flow
+	// If unspecified, the default error page is used.
+	Error string `json:"error"`
 }
 
 type ServiceAccountConfig struct {
@@ -620,6 +629,22 @@ type RequestHeaderIdentityProvider struct {
 type GitHubIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 
+	// ClientID is the oauth client ID
+	ClientID string `json:"clientID"`
+	// ClientSecret is the oauth client secret
+	ClientSecret string `json:"clientSecret"`
+	// Organizations optionally restricts which organizations are allowed to log in
+	Organizations []string `json:"organizations"`
+}
+
+type GitLabIdentityProvider struct {
+	unversioned.TypeMeta `json:",inline"`
+
+	// CA is the optional trusted certificate authority bundle to use when making requests to the server
+	// If empty, the default system roots are used
+	CA string `json:"ca"`
+	// URL is the oauth server base URL
+	URL string `json:"url"`
 	// ClientID is the oauth client ID
 	ClientID string `json:"clientID"`
 	// ClientSecret is the oauth client secret

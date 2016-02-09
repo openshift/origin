@@ -10,11 +10,12 @@ Contributing
 2. Install [grunt-cli](http://gruntjs.com/installing-grunt) and [bower](http://bower.io/) by running `npm install -g grunt-cli bower` (may need to be run with sudo)
 3. Install [ruby](https://www.ruby-lang.org/en/)
 4. Install bundler `gem install bundler`
-5. Install dev dependencies by running `hack/install-assets.sh`
-6. Launch the console and start watching for asset changes by running `hack/serve-local-assets.sh`
-
+5. Install [Go](https://golang.org/dl/) per [steps 1 - 3](https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc#develop-locally-on-your-host)
+6. Install dev dependencies by running `hack/install-assets.sh`
+7. Launch the console and start watching for asset changes by running `hack/serve-local-assets.sh`
++
     Note: If you see an ENOSPC error, you may need to increase the number of files your user can watch by running this command:
-    
++
     ```
     echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
     ```
@@ -67,7 +68,7 @@ rpm --import linux_signing_key.pub
 yum-config-manager --add-repo=http://dl.google.com/linux/chrome/rpm/stable/x86_64
 
 # Install chrome
-yum install -y google-chrome-stable 
+yum install -y google-chrome-stable
 
 # Install chromedriver
 wget https://chromedriver.storage.googleapis.com/2.16/chromedriver_linux64.zip
@@ -126,7 +127,7 @@ For more details on the expected scope arguments, see the source under [app/scri
 * toggle (attribute) - intended for Bootstrap's data-toggle=tooltip and data-toggle=popover, will automatically initialize any tooltips and popovers
 * alerts (element) - renders a set of alerts according to the [patternfly style](https://www.patternfly.org/widgets/#alerts)
 * relative-timestamp (element) - renders a relative timestamp (ex: '5 minutes ago') based on the current time, auto-updating every 30 seconds
-* copy-to-clipboard (element) - creates a copy to clipboard button using ZeroClipboard
+* copy-to-clipboard (element) - creates a copy to clipboard button using clipboard.js
 * back (attribute) - when the element is clicked a simulated browser back button event occurs (calls history.back)
 * select-on-focus (attribute) - when the element is focused, all text within it will be selected
 * tile-click (attribute or class) - for use with the `.tile` class, when anything on the tile is clicked, a simulated click to the `a.tile-target` link will be fired.  Recommended use is by adding the `.tile-click` class to get the correct styles on hover.

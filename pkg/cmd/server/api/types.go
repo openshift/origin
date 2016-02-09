@@ -109,6 +109,11 @@ type NodeConfig struct {
 	// These values override other settings in NodeConfig which may cause invalid configurations.
 	KubeletArguments ExtendedArguments
 
+	// ProxyArguments are key value pairs that will be passed directly to the Proxy that match the Proxy's
+	// command line arguments.  These are not migrated or validated, so if you use them they may become invalid.
+	// These values override other settings in NodeConfig which may cause invalid configurations.
+	ProxyArguments ExtendedArguments
+
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
 }
@@ -498,6 +503,10 @@ type OAuthTemplates struct {
 	// ProviderSelection is a path to a file containing a go template used to render the provider selection page.
 	// If unspecified, the default provider selection page is used.
 	ProviderSelection string
+
+	// Error is a path to a file containing a go template used to render error pages during the authentication or grant flow
+	// If unspecified, the default error page is used.
+	Error string
 }
 
 type ServiceAccountConfig struct {
@@ -570,7 +579,7 @@ type IdentityProvider struct {
 	// MappingMethod determines how identities from this provider are mapped to users
 	MappingMethod string
 	// Provider contains the information about how to set up a specific identity provider
-	Provider runtime.EmbeddedObject
+	Provider runtime.Object
 }
 
 type BasicAuthPasswordIdentityProvider struct {
@@ -667,6 +676,22 @@ type RequestHeaderIdentityProvider struct {
 type GitHubIdentityProvider struct {
 	unversioned.TypeMeta
 
+	// ClientID is the oauth client ID
+	ClientID string
+	// ClientSecret is the oauth client secret
+	ClientSecret string
+	// Organizations optionally restricts which organizations are allowed to log in
+	Organizations []string
+}
+
+type GitLabIdentityProvider struct {
+	unversioned.TypeMeta
+
+	// CA is the optional trusted certificate authority bundle to use when making requests to the server
+	// If empty, the default system roots are used
+	CA string
+	// URL is the oauth server base URL
+	URL string
 	// ClientID is the oauth client ID
 	ClientID string
 	// ClientSecret is the oauth client secret
@@ -969,7 +994,7 @@ type AdmissionPluginConfig struct {
 
 	// Configuration is an embedded configuration object to be used as the plugin's
 	// configuration. If present, it will be used instead of the path to the configuration file.
-	Configuration runtime.EmbeddedObject
+	Configuration runtime.Object
 }
 
 type AdmissionConfig struct {

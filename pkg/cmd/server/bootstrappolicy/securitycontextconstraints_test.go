@@ -1,7 +1,7 @@
 package bootstrappolicy
 
 import (
-	"k8s.io/kubernetes/pkg/controller/serviceaccount"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	"reflect"
 	"testing"
 )

@@ -22,6 +22,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
@@ -66,6 +67,28 @@ func TestExtractList(t *testing.T) {
 	}
 }
 
+func TestExtractListV1(t *testing.T) {
+	pl := &v1.PodList{
+		Items: []v1.Pod{
+			{ObjectMeta: v1.ObjectMeta{Name: "1"}},
+			{ObjectMeta: v1.ObjectMeta{Name: "2"}},
+			{ObjectMeta: v1.ObjectMeta{Name: "3"}},
+		},
+	}
+	list, err := meta.ExtractList(pl)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
+	if e, a := len(list), len(pl.Items); e != a {
+		t.Fatalf("Expected %v, got %v", e, a)
+	}
+	for i := range list {
+		if e, a := list[i].(*v1.Pod).Name, pl.Items[i].Name; e != a {
+			t.Fatalf("Expected %v, got %v", e, a)
+		}
+	}
+}
+
 func TestExtractListGeneric(t *testing.T) {
 	pl := &api.List{
 		Items: []runtime.Object{
@@ -93,6 +116,7 @@ func TestExtractListGenericV1(t *testing.T) {
 		Items: []runtime.RawExtension{
 			{RawJSON: []byte("foo")},
 			{RawJSON: []byte("bar")},
+			{Object: &v1.Pod{ObjectMeta: v1.ObjectMeta{Name: "other"}}},
 		},
 	}
 	list, err := meta.ExtractList(pl)
@@ -108,13 +132,18 @@ func TestExtractListGenericV1(t *testing.T) {
 	if obj, ok := list[1].(*runtime.Unknown); !ok {
 		t.Fatalf("Expected list[1] to be *runtime.Unknown, it is %#v", obj)
 	}
+	if obj, ok := list[2].(*v1.Pod); !ok {
+		t.Fatalf("Expected list[2] to be *runtime.Unknown, it is %#v", obj)
+	}
 }
 
 type fakePtrInterfaceList struct {
 	Items *[]runtime.Object
 }
 
-func (f fakePtrInterfaceList) IsAnAPIObject() {}
+func (obj fakePtrInterfaceList) GetObjectKind() unversioned.ObjectKind {
+	return unversioned.EmptyObjectKind
+}
 
 func TestExtractListOfInterfacePtrs(t *testing.T) {
 	pl := &fakePtrInterfaceList{
@@ -133,7 +162,9 @@ type fakePtrValueList struct {
 	Items []*api.Pod
 }
 
-func (f fakePtrValueList) IsAnAPIObject() {}
+func (obj fakePtrValueList) GetObjectKind() unversioned.ObjectKind {
+	return unversioned.EmptyObjectKind
+}
 
 func TestExtractListOfValuePtrs(t *testing.T) {
 	pl := &fakePtrValueList{

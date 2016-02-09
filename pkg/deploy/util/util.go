@@ -106,9 +106,9 @@ func HasChangeTrigger(config *deployapi.DeploymentConfig) bool {
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
 // if the controller doesn't contain an encoded config.
-func DecodeDeploymentConfig(controller *api.ReplicationController, codec runtime.Codec) (*deployapi.DeploymentConfig, error) {
+func DecodeDeploymentConfig(controller *api.ReplicationController, decoder runtime.Decoder) (*deployapi.DeploymentConfig, error) {
 	encodedConfig := []byte(EncodedDeploymentConfigFor(controller))
-	if decoded, err := codec.Decode(encodedConfig); err == nil {
+	if decoded, err := runtime.Decode(decoder, encodedConfig); err == nil {
 		if config, ok := decoded.(*deployapi.DeploymentConfig); ok {
 			return config, nil
 		} else {
@@ -121,7 +121,7 @@ func DecodeDeploymentConfig(controller *api.ReplicationController, codec runtime
 
 // EncodeDeploymentConfig encodes config as a string using codec.
 func EncodeDeploymentConfig(config *deployapi.DeploymentConfig, codec runtime.Codec) (string, error) {
-	if bytes, err := codec.Encode(config); err == nil {
+	if bytes, err := runtime.Encode(codec, config); err == nil {
 		return string(bytes[:]), nil
 	} else {
 		return "", err

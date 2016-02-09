@@ -9,11 +9,19 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
 # This test validates deployments and the env command
 
 os::cmd::expect_success 'oc get deploymentConfigs'
 os::cmd::expect_success 'oc get dc'
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.json'
+os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.yaml'
 os::cmd::expect_success 'oc describe deploymentConfigs test-deployment-config'
 os::cmd::expect_success_and_text 'oc get dc -o name' 'deploymentconfig/test-deployment-config'
 os::cmd::expect_success_and_text 'oc describe dc test-deployment-config' 'deploymentconfig=test-deployment-config'
@@ -38,7 +46,7 @@ os::cmd::expect_success_and_text 'oc env dc/test-deployment-config OTHER=foo -o 
 os::cmd::expect_success_and_text 'echo OTHER=foo | oc env dc/test-deployment-config -e - --list' 'OTHER=foo'
 os::cmd::expect_success_and_not_text 'echo #OTHER=foo | oc env dc/test-deployment-config -e - --list' 'OTHER=foo'
 os::cmd::expect_success 'oc env dc/test-deployment-config TEST=bar OTHER=baz BAR-'
-os::cmd::expect_success_and_not_text 'oc env -f test/integration/fixtures/test-deployment-config.json TEST=VERSION -o yaml' 'v1beta3'
+os::cmd::expect_success_and_not_text 'oc env -f test/integration/fixtures/test-deployment-config.yaml TEST=VERSION -o yaml' 'v1beta3'
 os::cmd::expect_success 'oc env dc/test-deployment-config A=a B=b C=c D=d E=e F=f G=g'
 os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'A=a'
 os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'B=b'
@@ -84,7 +92,8 @@ os::cmd::expect_success 'oc expose dc/database --name=fromdc'
 # should be a service
 os::cmd::expect_success 'oc get svc/fromdc'
 os::cmd::expect_success 'oc delete svc/fromdc'
-os::cmd::expect_success 'oc stop dc/database'
+os::cmd::expect_failure_and_text 'oc stop dc/database' 'delete'
+os::cmd::expect_success 'oc delete dc/database'
 os::cmd::expect_failure 'oc get dc/database'
 os::cmd::expect_failure 'oc get rc/database-1'
 echo "stop: ok"

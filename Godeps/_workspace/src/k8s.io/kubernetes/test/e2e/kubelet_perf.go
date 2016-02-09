@@ -138,12 +138,14 @@ func verifyCPULimits(expected containersCPUSummary, actual nodesCPUSummary) {
 	}
 }
 
-var _ = Describe("Kubelet", func() {
+// Slow by design (1 hour)
+var _ = Describe("Kubelet [Serial] [Slow]", func() {
 	var nodeNames sets.String
 	framework := NewFramework("kubelet-perf")
 	var rm *resourceMonitor
 
 	BeforeEach(func() {
+		// It should be OK to list unschedulable Nodes here.
 		nodes, err := framework.Client.Nodes().List(api.ListOptions{})
 		expectNoError(err)
 		nodeNames = sets.NewString()
@@ -165,7 +167,7 @@ var _ = Describe("Kubelet", func() {
 					"/docker-daemon": {0.50: 0.03, 0.95: 0.06},
 				},
 			},
-			{podsPerNode: 40,
+			{podsPerNode: 35,
 				limits: containersCPUSummary{
 					"/kubelet":       {0.50: 0.15, 0.95: 0.35},
 					"/docker-daemon": {0.50: 0.06, 0.95: 0.30},

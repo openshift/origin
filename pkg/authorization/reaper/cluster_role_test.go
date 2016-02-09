@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	_ "github.com/openshift/origin/pkg/authorization/api/install"
 	"github.com/openshift/origin/pkg/client/testclient"
 )
 

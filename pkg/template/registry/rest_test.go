@@ -4,10 +4,15 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/runtime"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	template "github.com/openshift/origin/pkg/template/api"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/api/install"
 )
 
 func TestNewRESTInvalidType(t *testing.T) {
@@ -17,7 +22,7 @@ func TestNewRESTInvalidType(t *testing.T) {
 		t.Errorf("Expected type error.")
 	}
 
-	if _, err := latest.RESTMapper.KindFor("processedtemplates"); err != nil {
+	if _, err := registered.GroupOrDie(template.GroupName).RESTMapper.KindFor(template.Resource("processedtemplates").WithVersion("")); err != nil {
 		t.Errorf("no processed templates: %v", err)
 	}
 }
@@ -63,38 +68,63 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 		"label2": "value2",
 	}
 	storage := NewREST()
-	obj, err := storage.Create(nil, &template.Template{
+
+	// because of encoding changes, we to round-trip ourselves
+	templateToCreate := &template.Template{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test",
 		},
-		Objects: []runtime.Object{
-			&kapi.Service{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "test-service",
-				},
-				Spec: kapi.ServiceSpec{
-					Ports: []kapi.ServicePort{
-						{
-							Port:     80,
-							Protocol: kapi.ProtocolTCP,
-						},
+		ObjectLabels: testLabels,
+	}
+	templateObjects := []runtime.Object{
+		&kapi.Service{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "test-service",
+			},
+			Spec: kapi.ServiceSpec{
+				Ports: []kapi.ServicePort{
+					{
+						Port:     80,
+						Protocol: kapi.ProtocolTCP,
 					},
-					SessionAffinity: kapi.ServiceAffinityNone,
 				},
+				SessionAffinity: kapi.ServiceAffinityNone,
 			},
 		},
-		ObjectLabels: testLabels,
-	})
+	}
+	template.AddObjectsToTemplate(templateToCreate, templateObjects, registered.GroupOrDie(kapi.GroupName).GroupVersions[0])
+	originalBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), templateToCreate)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	config, ok := obj.(*template.Template)
-	if !ok {
-		t.Fatalf("unexpected return object: %#v", obj)
+	objToCreate, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), originalBytes)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
+	templateToCreate = objToCreate.(*template.Template)
+
+	obj, err := storage.Create(nil, templateToCreate)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	bytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	obj, err = runtime.Decode(kapi.Codecs.UniversalDecoder(), bytes)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	config := obj.(*template.Template)
+	if err := utilerrors.NewAggregate(runtime.DecodeList(config.Objects, kapi.Codecs.UniversalDecoder())); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	svc, ok := config.Objects[0].(*kapi.Service)
 	if !ok {
-		t.Fatalf("Unexpected object in config: %#v", svc)
+		t.Fatalf("Unexpected object in config: %#v", config.Objects[0])
 	}
 	for k, v := range testLabels {
 		value, ok := svc.Labels[k]
@@ -113,38 +143,62 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 		"label2": "value2",
 	}
 	storage := NewREST()
-	obj, err := storage.Create(nil, &template.Template{
+	// because of encoding changes, we to round-trip ourselves
+	templateToCreate := &template.Template{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test",
 		},
-		Objects: []runtime.Object{
-			&kapi.Service{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "test-service",
-				},
-				Spec: kapi.ServiceSpec{
-					Ports: []kapi.ServicePort{
-						{
-							Port:     80,
-							Protocol: kapi.ProtocolTCP,
-						},
+		ObjectLabels: testLabels,
+	}
+	templateObjects := []runtime.Object{
+		&kapi.Service{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "test-service",
+			},
+			Spec: kapi.ServiceSpec{
+				Ports: []kapi.ServicePort{
+					{
+						Port:     80,
+						Protocol: kapi.ProtocolTCP,
 					},
-					SessionAffinity: kapi.ServiceAffinityNone,
 				},
+				SessionAffinity: kapi.ServiceAffinityNone,
 			},
 		},
-		ObjectLabels: testLabels,
-	})
+	}
+	template.AddObjectsToTemplate(templateToCreate, templateObjects, registered.GroupOrDie(kapi.GroupName).GroupVersions[0])
+	originalBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), templateToCreate)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	config, ok := obj.(*template.Template)
-	if !ok {
-		t.Fatalf("unexpected return object: %#v", obj)
+	objToCreate, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), originalBytes)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
+	templateToCreate = objToCreate.(*template.Template)
+
+	obj, err := storage.Create(nil, templateToCreate)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	bytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	obj, err = runtime.Decode(kapi.Codecs.UniversalDecoder(), bytes)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	config := obj.(*template.Template)
+	if err := utilerrors.NewAggregate(runtime.DecodeList(config.Objects, kapi.Codecs.UniversalDecoder())); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	svc, ok := config.Objects[0].(*kapi.Service)
 	if !ok {
-		t.Fatalf("Unexpected object in config: %#v", svc)
+		t.Fatalf("Unexpected object in config: %#v", config.Objects[0])
 	}
 	for k, v := range testLabels {
 		value, ok := svc.Labels[k]

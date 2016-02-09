@@ -22,9 +22,9 @@ func NewREST(s storage.Interface) (*REST, *DetailsREST) {
 	prefix := "/builds"
 
 	store := &etcdgeneric.Etcd{
-		NewFunc:      func() runtime.Object { return &api.Build{} },
-		NewListFunc:  func() runtime.Object { return &api.BuildList{} },
-		EndpointName: "builds",
+		NewFunc:           func() runtime.Object { return &api.Build{} },
+		NewListFunc:       func() runtime.Object { return &api.BuildList{} },
+		QualifiedResource: api.Resource("builds"),
 		KeyRootFunc: func(ctx kapi.Context) string {
 			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
 		},

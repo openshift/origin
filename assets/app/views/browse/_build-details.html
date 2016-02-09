@@ -7,9 +7,6 @@
         <dd>
           <status-icon status="build.status.phase"></status-icon>
           {{build.status.phase}}
-
-        <button class="btn btn-default build-status-button btn-xs" ng-click="cancelBuild(build, buildConfigName)" ng-if="!build.metadata.deletionTimestamp && (build | isIncompleteBuild)">Cancel</button>
-        <button class="btn btn-default build-status-button btn-xs" ng-click="cloneBuild(build.metadata.name)" ng-hide="build.metadata.deletionTimestamp || (build | isIncompleteBuild)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) !== 0">Rebuild</button>
         </dd>
         <dt>Started:</dt>
         <dd>

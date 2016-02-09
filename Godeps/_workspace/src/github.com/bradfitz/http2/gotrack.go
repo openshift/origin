@@ -14,20 +14,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"os"
 	"runtime"
 	"strconv"
 	"sync"
 )
 
-var DebugGoroutines = os.Getenv("DEBUG_HTTP2_GOROUTINES") == "1"
+var DebugGoroutines = false
 
 type goroutineLock uint64
 
 func newGoroutineLock() goroutineLock {
-	if !DebugGoroutines {
-		return 0
-	}
 	return goroutineLock(curGoroutineID())
 }
 

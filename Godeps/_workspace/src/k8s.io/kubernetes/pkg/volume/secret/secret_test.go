@@ -70,11 +70,11 @@ func TestPlugin(t *testing.T) {
 		testNamespace  = "test_secret_namespace"
 		testName       = "test_secret_name"
 
-		volumeSpec = volumeSpec(testVolumeName, testName)
-		secret     = secret(testNamespace, testName)
-		client     = testclient.NewSimpleFake(&secret)
-		pluginMgr  = volume.VolumePluginMgr{}
-		_, host    = newTestHost(t, client)
+		volumeSpec    = volumeSpec(testVolumeName, testName)
+		secret        = secret(testNamespace, testName)
+		client        = testclient.NewSimpleFake(&secret)
+		pluginMgr     = volume.VolumePluginMgr{}
+		rootDir, host = newTestHost(t, client)
 	)
 
 	pluginMgr.InitPlugins(ProbeVolumePlugins(), host)
@@ -98,7 +98,7 @@ func TestPlugin(t *testing.T) {
 		t.Errorf("Got unexpected path: %s", volumePath)
 	}
 
-	err = builder.SetUp()
+	err = builder.SetUp(nil)
 	if err != nil {
 		t.Errorf("Failed to setup volume: %v", err)
 	}
@@ -110,6 +110,16 @@ func TestPlugin(t *testing.T) {
 		}
 	}
 
+	// secret volume should create its own empty wrapper path
+	podWrapperMetadataDir := fmt.Sprintf("%v/pods/test_pod_uid/plugins/kubernetes.io~empty-dir/wrapped_test_volume_name", rootDir)
+
+	if _, err := os.Stat(podWrapperMetadataDir); err != nil {
+		if os.IsNotExist(err) {
+			t.Errorf("SetUp() failed, empty-dir wrapper path is not created: %s", podWrapperMetadataDir)
+		} else {
+			t.Errorf("SetUp() failed: %v", err)
+		}
+	}
 	doTestSecretDataInVolume(volumePath, secret, t)
 	doTestCleanAndTeardown(plugin, testPodUID, testVolumeName, volumePath, t)
 }
@@ -156,7 +166,7 @@ func TestPluginIdempotent(t *testing.T) {
 	}
 
 	volumePath := builder.GetPath()
-	err = builder.SetUp()
+	err = builder.SetUp(nil)
 	if err != nil {
 		t.Errorf("Failed to setup volume: %v", err)
 	}
@@ -214,7 +224,7 @@ func TestPluginReboot(t *testing.T) {
 		t.Errorf("Got unexpected path: %s", volumePath)
 	}
 
-	err = builder.SetUp()
+	err = builder.SetUp(nil)
 	if err != nil {
 		t.Errorf("Failed to setup volume: %v", err)
 	}

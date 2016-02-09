@@ -30,8 +30,6 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/wait"
 
@@ -146,7 +144,7 @@ func nodeUpgradeGKE(v string) error {
 	return err
 }
 
-var _ = Describe("Cluster Upgrade [Skipped]", func() {
+var _ = Describe("Upgrade [Feature:Upgrade]", func() {
 
 	svcName, replicas := "baz", 2
 	var rcName, ip, v string
@@ -164,10 +162,10 @@ var _ = Describe("Cluster Upgrade [Skipped]", func() {
 	})
 
 	f := NewFramework("cluster-upgrade")
-	var w *WebserverTest
+	var w *ServerTest
 	BeforeEach(func() {
 		By("Setting up the service, RC, and pods")
-		w = NewWebserverTest(f.Client, f.Namespace.Name, svcName)
+		w = NewServerTest(f.Client, f.Namespace.Name, svcName)
 		rc := w.CreateWebserverRC(replicas)
 		rcName = rc.ObjectMeta.Name
 		svc := w.BuildServiceSpec()
@@ -328,7 +326,7 @@ func testMasterUpgrade(ip, v string, mUp func(v string) error) {
 }
 
 func checkMasterVersion(c *client.Client, want string) error {
-	v, err := c.ServerVersion()
+	v, err := c.Discovery().ServerVersion()
 	if err != nil {
 		return fmt.Errorf("checkMasterVersion() couldn't get the master version: %v", err)
 	}
@@ -354,10 +352,7 @@ func testNodeUpgrade(f *Framework, nUp func(f *Framework, n int, v string) error
 }
 
 func checkNodesVersions(c *client.Client, want string) error {
-	l, err := listNodes(c, labels.Everything(), fields.Everything())
-	if err != nil {
-		return fmt.Errorf("checkNodesVersions() failed to list nodes: %v", err)
-	}
+	l := ListSchedulableNodesOrDie(c)
 	for _, n := range l.Items {
 		// We do prefix trimming and then matching because:
 		// want   looks like:  0.19.3-815-g50e67d4

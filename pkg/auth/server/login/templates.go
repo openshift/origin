@@ -42,8 +42,10 @@ oauthConfig:
 
     {{ if .Error }}
       <div class="error">{{ .Error }}</div>
+      <!-- Error code: {{ .ErrorCode }} -->
     {{ end }}
 
+    <!-- Identity provider name: {{ .ProviderName }} -->
     <form action="{{ .Action }}" method="POST">
       <input type="hidden" name="{{ .Names.Then }}" value="{{ .Values.Then }}">
       <input type="hidden" name="{{ .Names.CSRF }}" value="{{ .Values.CSRF }}">

@@ -1,8 +1,8 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	newer "github.com/openshift/origin/pkg/template/api"
@@ -15,7 +15,23 @@ func convert_api_Template_To_v1_Template(in *newer.Template, out *Template, s co
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
-	return s.Convert(&in.ObjectLabels, &out.Labels, 0)
+	if err := s.Convert(&in.ObjectLabels, &out.Labels, 0); err != nil {
+		return err
+	}
+
+	// if we have runtime.Unstructured objects from the Process call.  We need to encode those
+	// objects using the unstructured codec BEFORE the REST layers gets its shot at encoding to avoid a layered
+	// encode being done.
+	for i := range in.Objects {
+		if unstructured, ok := in.Objects[i].(*runtime.Unstructured); ok {
+			bytes, err := runtime.Encode(runtime.UnstructuredJSONScheme, unstructured)
+			if err != nil {
+				return err
+			}
+			out.Objects[i] = runtime.RawExtension{RawJSON: bytes}
+		}
+	}
+	return nil
 }
 
 func convert_v1_Template_To_api_Template(in *Template, out *newer.Template, s conversion.Scope) error {
@@ -25,8 +41,8 @@ func convert_v1_Template_To_api_Template(in *Template, out *newer.Template, s co
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
-func init() {
-	err := api.Scheme.AddConversionFuncs(
+func addConversionFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddConversionFuncs(
 		convert_api_Template_To_v1_Template,
 		convert_v1_Template_To_api_Template,
 	)
@@ -34,7 +50,7 @@ func init() {
 		panic(err)
 	}
 
-	if err := api.Scheme.AddFieldLabelConversionFunc("v1", "Template",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "Template",
 		oapi.GetFieldLabelConversionFunc(newer.TemplateToSelectableFields(&newer.Template{}), nil),
 	); err != nil {
 		panic(err)

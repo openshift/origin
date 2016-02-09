@@ -239,6 +239,7 @@ func (o MasterOptions) RunMaster() error {
 
 		content, err := configapilatest.WriteYAML(masterConfig)
 		if err != nil {
+
 			return err
 		}
 
@@ -271,7 +272,7 @@ func (o MasterOptions) RunMaster() error {
 		}
 	}
 	if len(validationResults.Errors) != 0 {
-		return kerrors.NewInvalid("MasterConfig", o.ConfigFile, validationResults.Errors)
+		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), o.ConfigFile, validationResults.Errors)
 	}
 
 	if !o.MasterArgs.StartControllers {

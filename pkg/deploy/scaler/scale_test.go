@@ -11,6 +11,8 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client/testclient"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -44,7 +46,7 @@ func TestScale(t *testing.T) {
 
 		config := deploytest.OkDeploymentConfig(1)
 		config.Spec.Replicas = 1
-		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 
 		var wait *kubectl.RetryParams
 		if test.wait {

@@ -32,7 +32,7 @@ const (
 	scaleDownTimeout = 30 * time.Minute
 )
 
-var _ = Describe("[Autoscaling] [Skipped]", func() {
+var _ = Describe("Autoscaling [Skipped]", func() {
 	f := NewFramework("autoscaling")
 	var nodeCount int
 	var coresPerNode int
@@ -41,8 +41,7 @@ var _ = Describe("[Autoscaling] [Skipped]", func() {
 	BeforeEach(func() {
 		SkipUnlessProviderIs("gce")
 
-		nodes, err := f.Client.Nodes().List(api.ListOptions{})
-		expectNoError(err)
+		nodes := ListSchedulableNodesOrDie(f.Client)
 		nodeCount = len(nodes.Items)
 		Expect(nodeCount).NotTo(BeZero())
 		cpu := nodes.Items[0].Status.Capacity[api.ResourceCPU]

@@ -174,13 +174,35 @@ os::build::build_binaries() {
 
     os::build::export_targets "$@"
 
+    local -a nonstatics=()
+    local -a tests=()
+    for binary in "${binaries[@]}"; do
+      if [[ "${binary}" =~ ".test"$ ]]; then
+        tests+=($binary)
+      else
+        nonstatics+=($binary)
+      fi
+    done
+
     local platform
     for platform in "${platforms[@]}"; do
       os::build::set_platform_envs "${platform}"
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
-      go install "${goflags[@]:+${goflags[@]}}" \
+      if [[ ${#nonstatics[@]} -gt 0 ]]; then
+        go install "${goflags[@]:+${goflags[@]}}" \
+            -ldflags "${version_ldflags}" \
+            "${nonstatics[@]}"
+      fi
+
+      for test in "${tests[@]:+${tests[@]}}"; do
+        mkdir -p "${OS_OUTPUT_BINPATH}/${platform}"
+        local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
+        go test -c -o "${outfile}" \
+          "${goflags[@]:+${goflags[@]}}" \
           -ldflags "${version_ldflags}" \
-          "${binaries[@]}"
+          "$(dirname ${test})"
+      done
+
       os::build::unset_platform_envs "${platform}"
     done
   )
@@ -356,7 +378,10 @@ os::build::place_bins() {
 
       # Move the specified release binaries to the shared OS_OUTPUT_BINPATH.
       for binary in "${binaries[@]}"; do
-        mv "${full_binpath_src}/${binary}" "${OS_OUTPUT_BINPATH}/${platform}/"
+        path="${full_binpath_src}/${binary}"
+        if [[ -f "${path}" ]]; then
+          mv "${path}" "${OS_OUTPUT_BINPATH}/${platform}/"
+        fi
       done
 
       # If no release archive was requested, we're done.

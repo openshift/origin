@@ -15,7 +15,7 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 )
 
-var _ = g.Describe("security: supplemental groups", func() {
+var _ = g.Describe("[security] supplemental groups", func() {
 	defer g.GinkgoRecover()
 
 	var (

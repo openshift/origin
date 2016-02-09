@@ -27,9 +27,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	awscloud "k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	gcecloud "k8s.io/kubernetes/pkg/cloudprovider/providers/gce"
@@ -53,9 +53,7 @@ var _ = Describe("Pod Disks", func() {
 		SkipUnlessNodeCountIsAtLeast(2)
 
 		podClient = framework.Client.Pods(framework.Namespace.Name)
-
-		nodes, err := framework.Client.Nodes().List(api.ListOptions{})
-		expectNoError(err, "Failed to list nodes for e2e cluster.")
+		nodes := ListSchedulableNodesOrDie(framework.Client)
 
 		Expect(len(nodes.Items)).To(BeNumerically(">=", 2), "Requires at least 2 nodes")
 
@@ -165,7 +163,7 @@ var _ = Describe("Pod Disks", func() {
 		expectNoError(podClient.Delete(host1ROPod.Name, api.NewDeleteOptions(0)), "Failed to delete host1ROPod")
 	})
 
-	It("should schedule a pod w/ a RW PD shared between multiple containers, write to PD, delete pod, verify contents, and repeat in rapid succession", func() {
+	It("should schedule a pod w/ a RW PD shared between multiple containers, write to PD, delete pod, verify contents, and repeat in rapid succession [Slow]", func() {
 		SkipUnlessProviderIs("gce", "gke", "aws")
 
 		By("creating PD")
@@ -213,7 +211,7 @@ var _ = Describe("Pod Disks", func() {
 		}
 	})
 
-	It("should schedule a pod w/two RW PDs both mounted to one container, write to PD, verify contents, delete pod, recreate pod, verify contents, and repeat in rapid succession", func() {
+	It("should schedule a pod w/two RW PDs both mounted to one container, write to PD, verify contents, delete pod, recreate pod, verify contents, and repeat in rapid succession [Slow]", func() {
 		SkipUnlessProviderIs("gce", "gke", "aws")
 
 		By("creating PD1")
@@ -316,7 +314,7 @@ func createPD() (string, error) {
 			return "", err
 		}
 
-		err = gceCloud.CreateDisk(pdName, 10 /* sizeGb */)
+		err = gceCloud.CreateDisk(pdName, testContext.CloudConfig.Zone, 10 /* sizeGb */)
 		if err != nil {
 			return "", err
 		}
@@ -415,7 +413,7 @@ func testPDPod(diskNames []string, targetHost string, readOnly bool, numContaine
 	pod := &api.Pod{
 		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Pod",
-			APIVersion: latest.GroupOrDie("").GroupVersion.Version,
+			APIVersion: registered.GroupOrDie(api.GroupName).GroupVersion.String(),
 		},
 		ObjectMeta: api.ObjectMeta{
 			Name: "pd-test-" + string(util.NewUUID()),

@@ -413,9 +413,10 @@ function os::cmd::internal::run_until_exit_code() {
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
 
 	local deadline=$(( $(date +%s000) + $duration ))
+	local cmd_succeeded=0
 	while [ $(date +%s000) -lt $deadline ]; do	
 		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
-		local cmd_succeeded=$( ${cmd_eval_func} "${cmd_result}"; echo $? )
+		cmd_succeeded=$( ${cmd_eval_func} "${cmd_result}"; echo $? )
 		if (( cmd_succeeded )); then
 			break
 		fi
@@ -467,10 +468,11 @@ function os::cmd::internal::run_until_text() {
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
 	
 	local deadline=$(( $(date +%s000) + $duration ))
+	local test_succeeded=0
 	while [ $(date +%s000) -lt $deadline ]; do	
 		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
 		local test_result=$( os::cmd::internal::run_collecting_output 'os::cmd::internal::get_results | grep -Eq "${text}"'; echo $? )
-		local test_succeeded=$( os::cmd::internal::success_func "${test_result}"; echo $? )
+		test_succeeded=$( os::cmd::internal::success_func "${test_result}"; echo $? )
 
 		if (( test_succeeded )); then
 			break

@@ -37,7 +37,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) *RE
 
 	newListFunc := func() runtime.Object { return &api.PodTemplateList{} }
 	storageInterface := storageDecorator(
-		s, 100, &api.PodTemplate{}, prefix, false, newListFunc)
+		s, 100, &api.PodTemplate{}, prefix, podtemplate.Strategy, newListFunc)
 
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.PodTemplate{} },
@@ -54,10 +54,12 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) *RE
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return podtemplate.MatchPodTemplate(label, field)
 		},
-		EndpointName: "podtemplates",
+		QualifiedResource: api.Resource("podtemplates"),
 
-		CreateStrategy:      podtemplate.Strategy,
-		UpdateStrategy:      podtemplate.Strategy,
+		CreateStrategy: podtemplate.Strategy,
+		UpdateStrategy: podtemplate.Strategy,
+		ExportStrategy: podtemplate.Strategy,
+
 		ReturnDeletedObject: true,
 
 		Storage: storageInterface,

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 )
 
@@ -15,12 +16,12 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleAutoScaling_AttachInstances() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.AttachInstancesInput{
 		AutoScalingGroupName: aws.String("ResourceName"), // Required
 		InstanceIds: []*string{
-			aws.String("XmlStringMaxLen16"), // Required
+			aws.String("XmlStringMaxLen19"), // Required
 			// More values...
 		},
 	}
@@ -38,7 +39,7 @@ func ExampleAutoScaling_AttachInstances() {
 }
 
 func ExampleAutoScaling_AttachLoadBalancers() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.AttachLoadBalancersInput{
 		AutoScalingGroupName: aws.String("ResourceName"),
@@ -61,7 +62,7 @@ func ExampleAutoScaling_AttachLoadBalancers() {
 }
 
 func ExampleAutoScaling_CompleteLifecycleAction() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.CompleteLifecycleActionInput{
 		AutoScalingGroupName:  aws.String("ResourceName"),          // Required
@@ -83,7 +84,7 @@ func ExampleAutoScaling_CompleteLifecycleAction() {
 }
 
 func ExampleAutoScaling_CreateAutoScalingGroup() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.CreateAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String("XmlStringMaxLen255"), // Required
@@ -97,13 +98,14 @@ func ExampleAutoScaling_CreateAutoScalingGroup() {
 		DesiredCapacity:         aws.Int64(1),
 		HealthCheckGracePeriod:  aws.Int64(1),
 		HealthCheckType:         aws.String("XmlStringMaxLen32"),
-		InstanceId:              aws.String("XmlStringMaxLen16"),
+		InstanceId:              aws.String("XmlStringMaxLen19"),
 		LaunchConfigurationName: aws.String("ResourceName"),
 		LoadBalancerNames: []*string{
 			aws.String("XmlStringMaxLen255"), // Required
 			// More values...
 		},
-		PlacementGroup: aws.String("XmlStringMaxLen255"),
+		NewInstancesProtectedFromScaleIn: aws.Bool(true),
+		PlacementGroup:                   aws.String("XmlStringMaxLen255"),
 		Tags: []*autoscaling.Tag{
 			{ // Required
 				Key:               aws.String("TagKey"), // Required
@@ -134,7 +136,7 @@ func ExampleAutoScaling_CreateAutoScalingGroup() {
 }
 
 func ExampleAutoScaling_CreateLaunchConfiguration() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.CreateLaunchConfigurationInput{
 		LaunchConfigurationName:  aws.String("XmlStringMaxLen255"), // Required
@@ -163,7 +165,7 @@ func ExampleAutoScaling_CreateLaunchConfiguration() {
 		EbsOptimized:       aws.Bool(true),
 		IamInstanceProfile: aws.String("XmlStringMaxLen1600"),
 		ImageId:            aws.String("XmlStringMaxLen255"),
-		InstanceId:         aws.String("XmlStringMaxLen16"),
+		InstanceId:         aws.String("XmlStringMaxLen19"),
 		InstanceMonitoring: &autoscaling.InstanceMonitoring{
 			Enabled: aws.Bool(true),
 		},
@@ -193,7 +195,7 @@ func ExampleAutoScaling_CreateLaunchConfiguration() {
 }
 
 func ExampleAutoScaling_CreateOrUpdateTags() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.CreateOrUpdateTagsInput{
 		Tags: []*autoscaling.Tag{ // Required
@@ -221,7 +223,7 @@ func ExampleAutoScaling_CreateOrUpdateTags() {
 }
 
 func ExampleAutoScaling_DeleteAutoScalingGroup() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DeleteAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String("ResourceName"), // Required
@@ -241,7 +243,7 @@ func ExampleAutoScaling_DeleteAutoScalingGroup() {
 }
 
 func ExampleAutoScaling_DeleteLaunchConfiguration() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DeleteLaunchConfigurationInput{
 		LaunchConfigurationName: aws.String("ResourceName"), // Required
@@ -260,7 +262,7 @@ func ExampleAutoScaling_DeleteLaunchConfiguration() {
 }
 
 func ExampleAutoScaling_DeleteLifecycleHook() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DeleteLifecycleHookInput{
 		AutoScalingGroupName: aws.String("ResourceName"),         // Required
@@ -280,7 +282,7 @@ func ExampleAutoScaling_DeleteLifecycleHook() {
 }
 
 func ExampleAutoScaling_DeleteNotificationConfiguration() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DeleteNotificationConfigurationInput{
 		AutoScalingGroupName: aws.String("ResourceName"), // Required
@@ -300,7 +302,7 @@ func ExampleAutoScaling_DeleteNotificationConfiguration() {
 }
 
 func ExampleAutoScaling_DeletePolicy() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DeletePolicyInput{
 		PolicyName:           aws.String("ResourceName"), // Required
@@ -320,7 +322,7 @@ func ExampleAutoScaling_DeletePolicy() {
 }
 
 func ExampleAutoScaling_DeleteScheduledAction() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DeleteScheduledActionInput{
 		ScheduledActionName:  aws.String("ResourceName"), // Required
@@ -340,7 +342,7 @@ func ExampleAutoScaling_DeleteScheduledAction() {
 }
 
 func ExampleAutoScaling_DeleteTags() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DeleteTagsInput{
 		Tags: []*autoscaling.Tag{ // Required
@@ -368,7 +370,7 @@ func ExampleAutoScaling_DeleteTags() {
 }
 
 func ExampleAutoScaling_DescribeAccountLimits() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	var params *autoscaling.DescribeAccountLimitsInput
 	resp, err := svc.DescribeAccountLimits(params)
@@ -385,7 +387,7 @@ func ExampleAutoScaling_DescribeAccountLimits() {
 }
 
 func ExampleAutoScaling_DescribeAdjustmentTypes() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	var params *autoscaling.DescribeAdjustmentTypesInput
 	resp, err := svc.DescribeAdjustmentTypes(params)
@@ -402,7 +404,7 @@ func ExampleAutoScaling_DescribeAdjustmentTypes() {
 }
 
 func ExampleAutoScaling_DescribeAutoScalingGroups() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DescribeAutoScalingGroupsInput{
 		AutoScalingGroupNames: []*string{
@@ -426,11 +428,11 @@ func ExampleAutoScaling_DescribeAutoScalingGroups() {
 }
 
 func ExampleAutoScaling_DescribeAutoScalingInstances() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DescribeAutoScalingInstancesInput{
 		InstanceIds: []*string{
-			aws.String("XmlStringMaxLen16"), // Required
+			aws.String("XmlStringMaxLen19"), // Required
 			// More values...
 		},
 		MaxRecords: aws.Int64(1),
@@ -450,7 +452,7 @@ func ExampleAutoScaling_DescribeAutoScalingInstances() {
 }
 
 func ExampleAutoScaling_DescribeAutoScalingNotificationTypes() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	var params *autoscaling.DescribeAutoScalingNotificationTypesInput
 	resp, err := svc.DescribeAutoScalingNotificationTypes(params)
@@ -467,7 +469,7 @@ func ExampleAutoScaling_DescribeAutoScalingNotificationTypes() {
 }
 
 func ExampleAutoScaling_DescribeLaunchConfigurations() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DescribeLaunchConfigurationsInput{
 		LaunchConfigurationNames: []*string{
@@ -491,7 +493,7 @@ func ExampleAutoScaling_DescribeLaunchConfigurations() {
 }
 
 func ExampleAutoScaling_DescribeLifecycleHookTypes() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	var params *autoscaling.DescribeLifecycleHookTypesInput
 	resp, err := svc.DescribeLifecycleHookTypes(params)
@@ -508,7 +510,7 @@ func ExampleAutoScaling_DescribeLifecycleHookTypes() {
 }
 
 func ExampleAutoScaling_DescribeLifecycleHooks() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DescribeLifecycleHooksInput{
 		AutoScalingGroupName: aws.String("ResourceName"), // Required
@@ -531,7 +533,7 @@ func ExampleAutoScaling_DescribeLifecycleHooks() {
 }
 
 func ExampleAutoScaling_DescribeLoadBalancers() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DescribeLoadBalancersInput{
 		AutoScalingGroupName: aws.String("ResourceName"), // Required
@@ -552,7 +554,7 @@ func ExampleAutoScaling_DescribeLoadBalancers() {
 }
 
 func ExampleAutoScaling_DescribeMetricCollectionTypes() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	var params *autoscaling.DescribeMetricCollectionTypesInput
 	resp, err := svc.DescribeMetricCollectionTypes(params)
@@ -569,7 +571,7 @@ func ExampleAutoScaling_DescribeMetricCollectionTypes() {
 }
 
 func ExampleAutoScaling_DescribeNotificationConfigurations() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DescribeNotificationConfigurationsInput{
 		AutoScalingGroupNames: []*string{
@@ -593,7 +595,7 @@ func ExampleAutoScaling_DescribeNotificationConfigurations() {
 }
 
 func ExampleAutoScaling_DescribePolicies() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DescribePoliciesInput{
 		AutoScalingGroupName: aws.String("ResourceName"),
@@ -622,7 +624,7 @@ func ExampleAutoScaling_DescribePolicies() {
 }
 
 func ExampleAutoScaling_DescribeScalingActivities() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DescribeScalingActivitiesInput{
 		ActivityIds: []*string{
@@ -647,7 +649,7 @@ func ExampleAutoScaling_DescribeScalingActivities() {
 }
 
 func ExampleAutoScaling_DescribeScalingProcessTypes() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	var params *autoscaling.DescribeScalingProcessTypesInput
 	resp, err := svc.DescribeScalingProcessTypes(params)
@@ -664,7 +666,7 @@ func ExampleAutoScaling_DescribeScalingProcessTypes() {
 }
 
 func ExampleAutoScaling_DescribeScheduledActions() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DescribeScheduledActionsInput{
 		AutoScalingGroupName: aws.String("ResourceName"),
@@ -691,7 +693,7 @@ func ExampleAutoScaling_DescribeScheduledActions() {
 }
 
 func ExampleAutoScaling_DescribeTags() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DescribeTagsInput{
 		Filters: []*autoscaling.Filter{
@@ -721,7 +723,7 @@ func ExampleAutoScaling_DescribeTags() {
 }
 
 func ExampleAutoScaling_DescribeTerminationPolicyTypes() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	var params *autoscaling.DescribeTerminationPolicyTypesInput
 	resp, err := svc.DescribeTerminationPolicyTypes(params)
@@ -738,13 +740,13 @@ func ExampleAutoScaling_DescribeTerminationPolicyTypes() {
 }
 
 func ExampleAutoScaling_DetachInstances() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DetachInstancesInput{
 		AutoScalingGroupName:           aws.String("ResourceName"), // Required
 		ShouldDecrementDesiredCapacity: aws.Bool(true),             // Required
 		InstanceIds: []*string{
-			aws.String("XmlStringMaxLen16"), // Required
+			aws.String("XmlStringMaxLen19"), // Required
 			// More values...
 		},
 	}
@@ -762,7 +764,7 @@ func ExampleAutoScaling_DetachInstances() {
 }
 
 func ExampleAutoScaling_DetachLoadBalancers() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DetachLoadBalancersInput{
 		AutoScalingGroupName: aws.String("ResourceName"),
@@ -785,7 +787,7 @@ func ExampleAutoScaling_DetachLoadBalancers() {
 }
 
 func ExampleAutoScaling_DisableMetricsCollection() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.DisableMetricsCollectionInput{
 		AutoScalingGroupName: aws.String("ResourceName"), // Required
@@ -808,7 +810,7 @@ func ExampleAutoScaling_DisableMetricsCollection() {
 }
 
 func ExampleAutoScaling_EnableMetricsCollection() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.EnableMetricsCollectionInput{
 		AutoScalingGroupName: aws.String("ResourceName"),       // Required
@@ -832,13 +834,13 @@ func ExampleAutoScaling_EnableMetricsCollection() {
 }
 
 func ExampleAutoScaling_EnterStandby() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.EnterStandbyInput{
 		AutoScalingGroupName:           aws.String("ResourceName"), // Required
 		ShouldDecrementDesiredCapacity: aws.Bool(true),             // Required
 		InstanceIds: []*string{
-			aws.String("XmlStringMaxLen16"), // Required
+			aws.String("XmlStringMaxLen19"), // Required
 			// More values...
 		},
 	}
@@ -856,7 +858,7 @@ func ExampleAutoScaling_EnterStandby() {
 }
 
 func ExampleAutoScaling_ExecutePolicy() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.ExecutePolicyInput{
 		PolicyName:           aws.String("ResourceName"), // Required
@@ -879,12 +881,12 @@ func ExampleAutoScaling_ExecutePolicy() {
 }
 
 func ExampleAutoScaling_ExitStandby() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.ExitStandbyInput{
 		AutoScalingGroupName: aws.String("ResourceName"), // Required
 		InstanceIds: []*string{
-			aws.String("XmlStringMaxLen16"), // Required
+			aws.String("XmlStringMaxLen19"), // Required
 			// More values...
 		},
 	}
@@ -902,7 +904,7 @@ func ExampleAutoScaling_ExitStandby() {
 }
 
 func ExampleAutoScaling_PutLifecycleHook() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.PutLifecycleHookInput{
 		AutoScalingGroupName:  aws.String("ResourceName"),         // Required
@@ -928,7 +930,7 @@ func ExampleAutoScaling_PutLifecycleHook() {
 }
 
 func ExampleAutoScaling_PutNotificationConfiguration() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.PutNotificationConfigurationInput{
 		AutoScalingGroupName: aws.String("ResourceName"), // Required
@@ -952,7 +954,7 @@ func ExampleAutoScaling_PutNotificationConfiguration() {
 }
 
 func ExampleAutoScaling_PutScalingPolicy() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.PutScalingPolicyInput{
 		AdjustmentType:          aws.String("XmlStringMaxLen255"), // Required
@@ -988,7 +990,7 @@ func ExampleAutoScaling_PutScalingPolicy() {
 }
 
 func ExampleAutoScaling_PutScheduledUpdateGroupAction() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.PutScheduledUpdateGroupActionInput{
 		AutoScalingGroupName: aws.String("ResourceName"),       // Required
@@ -1015,7 +1017,7 @@ func ExampleAutoScaling_PutScheduledUpdateGroupAction() {
 }
 
 func ExampleAutoScaling_RecordLifecycleActionHeartbeat() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.RecordLifecycleActionHeartbeatInput{
 		AutoScalingGroupName: aws.String("ResourceName"),         // Required
@@ -1036,7 +1038,7 @@ func ExampleAutoScaling_RecordLifecycleActionHeartbeat() {
 }
 
 func ExampleAutoScaling_ResumeProcesses() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.ScalingProcessQuery{
 		AutoScalingGroupName: aws.String("ResourceName"), // Required
@@ -1059,7 +1061,7 @@ func ExampleAutoScaling_ResumeProcesses() {
 }
 
 func ExampleAutoScaling_SetDesiredCapacity() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.SetDesiredCapacityInput{
 		AutoScalingGroupName: aws.String("ResourceName"), // Required
@@ -1080,11 +1082,11 @@ func ExampleAutoScaling_SetDesiredCapacity() {
 }
 
 func ExampleAutoScaling_SetInstanceHealth() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.SetInstanceHealthInput{
 		HealthStatus:             aws.String("XmlStringMaxLen32"), // Required
-		InstanceId:               aws.String("XmlStringMaxLen16"), // Required
+		InstanceId:               aws.String("XmlStringMaxLen19"), // Required
 		ShouldRespectGracePeriod: aws.Bool(true),
 	}
 	resp, err := svc.SetInstanceHealth(params)
@@ -1100,8 +1102,32 @@ func ExampleAutoScaling_SetInstanceHealth() {
 	fmt.Println(resp)
 }
 
+func ExampleAutoScaling_SetInstanceProtection() {
+	svc := autoscaling.New(session.New())
+
+	params := &autoscaling.SetInstanceProtectionInput{
+		AutoScalingGroupName: aws.String("ResourceName"), // Required
+		InstanceIds: []*string{ // Required
+			aws.String("XmlStringMaxLen19"), // Required
+			// More values...
+		},
+		ProtectedFromScaleIn: aws.Bool(true), // Required
+	}
+	resp, err := svc.SetInstanceProtection(params)
+
+	if err != nil {
+		// Print the error, cast err to awserr.Error to get the Code and
+		// Message from an error.
+		fmt.Println(err.Error())
+		return
+	}
+
+	// Pretty-print the response data.
+	fmt.Println(resp)
+}
+
 func ExampleAutoScaling_SuspendProcesses() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.ScalingProcessQuery{
 		AutoScalingGroupName: aws.String("ResourceName"), // Required
@@ -1124,10 +1150,10 @@ func ExampleAutoScaling_SuspendProcesses() {
 }
 
 func ExampleAutoScaling_TerminateInstanceInAutoScalingGroup() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.TerminateInstanceInAutoScalingGroupInput{
-		InstanceId:                     aws.String("XmlStringMaxLen16"), // Required
+		InstanceId:                     aws.String("XmlStringMaxLen19"), // Required
 		ShouldDecrementDesiredCapacity: aws.Bool(true),                  // Required
 	}
 	resp, err := svc.TerminateInstanceInAutoScalingGroup(params)
@@ -1144,7 +1170,7 @@ func ExampleAutoScaling_TerminateInstanceInAutoScalingGroup() {
 }
 
 func ExampleAutoScaling_UpdateAutoScalingGroup() {
-	svc := autoscaling.New(nil)
+	svc := autoscaling.New(session.New())
 
 	params := &autoscaling.UpdateAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String("ResourceName"), // Required
@@ -1159,7 +1185,8 @@ func ExampleAutoScaling_UpdateAutoScalingGroup() {
 		LaunchConfigurationName: aws.String("ResourceName"),
 		MaxSize:                 aws.Int64(1),
 		MinSize:                 aws.Int64(1),
-		PlacementGroup:          aws.String("XmlStringMaxLen255"),
+		NewInstancesProtectedFromScaleIn: aws.Bool(true),
+		PlacementGroup:                   aws.String("XmlStringMaxLen255"),
 		TerminationPolicies: []*string{
 			aws.String("XmlStringMaxLen1600"), // Required
 			// More values...

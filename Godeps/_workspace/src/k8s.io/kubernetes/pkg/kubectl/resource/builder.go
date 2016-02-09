@@ -25,6 +25,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -68,6 +69,8 @@ type Builder struct {
 	singleResourceType bool
 	continueOnError    bool
 
+	export bool
+
 	schema validation.Schema
 }
 
@@ -77,9 +80,9 @@ type resourceTuple struct {
 }
 
 // NewBuilder creates a builder that operates on generic objects.
-func NewBuilder(mapper meta.RESTMapper, typer runtime.ObjectTyper, clientMapper ClientMapper) *Builder {
+func NewBuilder(mapper meta.RESTMapper, typer runtime.ObjectTyper, clientMapper ClientMapper, decoder runtime.Decoder) *Builder {
 	return &Builder{
-		mapper:        &Mapper{typer, mapper, clientMapper},
+		mapper:        &Mapper{typer, mapper, clientMapper, decoder},
 		requireObject: true,
 	}
 }
@@ -231,6 +234,12 @@ func (b *Builder) SelectorParam(s string) *Builder {
 // Selector accepts a selector directly, and if non nil will trigger a list action.
 func (b *Builder) Selector(selector labels.Selector) *Builder {
 	b.selector = selector
+	return b
+}
+
+// ExportParam accepts the export boolean for these resources
+func (b *Builder) ExportParam(export bool) *Builder {
+	b.export = export
 	return b
 }
 
@@ -431,7 +440,7 @@ func (b *Builder) resourceMappings() ([]*meta.RESTMapping, error) {
 	}
 	mappings := []*meta.RESTMapping{}
 	for _, r := range b.resources {
-		gvk, err := b.mapper.KindFor(r)
+		gvk, err := b.mapper.KindFor(unversioned.GroupVersionResource{Resource: r})
 		if err != nil {
 			return nil, err
 		}
@@ -451,7 +460,7 @@ func (b *Builder) resourceTupleMappings() (map[string]*meta.RESTMapping, error) 
 		if _, ok := mappings[r.Resource]; ok {
 			continue
 		}
-		gvk, err := b.mapper.KindFor(r.Resource)
+		gvk, err := b.mapper.KindFor(unversioned.GroupVersionResource{Resource: r.Resource})
 		if err != nil {
 			return nil, err
 		}
@@ -512,7 +521,7 @@ func (b *Builder) visitorResult() *Result {
 			if mapping.Scope.Name() != meta.RESTScopeNameNamespace {
 				selectorNamespace = ""
 			}
-			visitors = append(visitors, NewSelector(client, mapping, selectorNamespace, b.selector))
+			visitors = append(visitors, NewSelector(client, mapping, selectorNamespace, b.selector, b.export))
 		}
 		if b.continueOnError {
 			return &Result{visitor: EagerVisitorList(visitors), sources: visitors}
@@ -538,7 +547,7 @@ func (b *Builder) visitorResult() *Result {
 		}
 		clients := make(map[string]RESTClient)
 		for _, mapping := range mappings {
-			s := fmt.Sprintf("%s/%s", mapping.APIVersion, mapping.Resource)
+			s := fmt.Sprintf("%s/%s", mapping.GroupVersionKind.GroupVersion().String(), mapping.Resource)
 			if _, ok := clients[s]; ok {
 				continue
 			}
@@ -555,7 +564,7 @@ func (b *Builder) visitorResult() *Result {
 			if !ok {
 				return &Result{singular: isSingular, err: fmt.Errorf("resource %q is not recognized: %v", tuple.Resource, mappings)}
 			}
-			s := fmt.Sprintf("%s/%s", mapping.APIVersion, mapping.Resource)
+			s := fmt.Sprintf("%s/%s", mapping.GroupVersionKind.GroupVersion().String(), mapping.Resource)
 			client, ok := clients[s]
 			if !ok {
 				return &Result{singular: isSingular, err: fmt.Errorf("could not find a client for resource %q", tuple.Resource)}
@@ -570,7 +579,7 @@ func (b *Builder) visitorResult() *Result {
 				}
 			}
 
-			info := NewInfo(client, mapping, selectorNamespace, tuple.Name)
+			info := NewInfo(client, mapping, selectorNamespace, tuple.Name, b.export)
 			items = append(items, info)
 		}
 
@@ -619,7 +628,7 @@ func (b *Builder) visitorResult() *Result {
 
 		visitors := []Visitor{}
 		for _, name := range b.names {
-			info := NewInfo(client, mapping, selectorNamespace, name)
+			info := NewInfo(client, mapping, selectorNamespace, name, b.export)
 			visitors = append(visitors, info)
 		}
 		return &Result{singular: isSingular, visitor: VisitorList(visitors), sources: visitors}

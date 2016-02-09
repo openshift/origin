@@ -76,15 +76,14 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 		return nil, errors.NewBadRequest("did not get an expected options.")
 	}
 	if errs := validation.ValidateDeploymentLogOptions(deployLogOpts); len(errs) > 0 {
-		return nil, errors.NewInvalid("deploymentLogOptions", "", errs)
+		return nil, errors.NewInvalid(deployapi.Kind("DeploymentLogOptions"), "", errs)
 	}
 
 	// Fetch deploymentConfig and check latest version; if 0, there are no deployments
 	// for this config
 	config, err := r.ConfigGetter.DeploymentConfigs(namespace).Get(name)
 	if err != nil {
-		// TODO: Better error handling
-		return nil, errors.NewNotFound("deploymentConfig", name)
+		return nil, errors.NewNotFound(deployapi.Resource("deploymentconfig"), name)
 	}
 	desiredVersion := config.Status.LatestVersion
 	if desiredVersion == 0 {
@@ -113,7 +112,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 	target, err := r.DeploymentGetter.ReplicationControllers(namespace).Get(targetName)
 	if err != nil {
 		// TODO: Better error handling
-		return nil, errors.NewNotFound("replicationController", name)
+		return nil, errors.NewNotFound(kapi.Resource("replicationcontroller"), name)
 	}
 	podName := deployutil.DeployerPodNameForDeployment(target.Name)
 
@@ -160,7 +159,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 		Transport:       transport,
 		ContentType:     "text/plain",
 		Flush:           deployLogOpts.Follow,
-		ResponseChecker: genericrest.NewGenericHttpResponseChecker("Pod", podName),
+		ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), podName),
 	}, nil
 }
 

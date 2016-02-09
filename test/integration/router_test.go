@@ -341,32 +341,21 @@ func TestRouter(t *testing.T) {
 		// Give the router some time to finish processing events before we connect.
 		time.Sleep(time.Second * 5)
 
-		for i := 0; i < tcRetries; i++ {
-			// Wait for router to pick up configs.
-			time.Sleep(time.Second * tcWaitSeconds)
+		// Now verify the route with an HTTP client.
+		resp, err := getRouteWithRetries(t, tc.routerUrl, tc.routeAlias, tc.protocol, nil, tc.expectedResponse)
 
-			// Now verify the route with an HTTP client.
-			resp, err := getRoute(tc.routerUrl, tc.routeAlias, tc.protocol, nil, tc.expectedResponse)
+		if err != nil {
+			t.Errorf("Unable to verify response: %v", err)
+		}
 
-			if err != nil {
-				if i != 2 {
-					continue
-				}
-				t.Errorf("Unable to verify response: %v", err)
-			}
+		if resp != tc.expectedResponse {
+			t.Errorf("TC %s failed! Response body %q did not match expected %q", tc.name, resp, tc.expectedResponse)
 
-			if resp != tc.expectedResponse {
-				t.Errorf("TC %s failed! Response body %q did not match expected %q", tc.name, resp, tc.expectedResponse)
-
-				// The following is related to the workaround above, q.v.
-				if getRouterImage() != defaultRouterImage {
-					t.Errorf("You may need to add an entry to /etc/hosts so that the"+
-						" hostname of the router (%s) resolves its the IP address, (%s).",
-						tc.routeAlias, routeAddress)
-				}
-			} else {
-				//good to go, stop trying
-				break
+			// The following is related to the workaround above, q.v.
+			if getRouterImage() != defaultRouterImage {
+				t.Errorf("You may need to add an entry to /etc/hosts so that the"+
+					" hostname of the router (%s) resolves its the IP address, (%s).",
+					tc.routeAlias, routeAddress)
 			}
 		}
 
@@ -432,6 +421,8 @@ func TestRouterPathSpecificity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't get http endpoint: %v", err)
 	}
+
+	waitForRouterToBecomeAvailable("127.0.0.1", statsPort)
 
 	now := unversioned.Now()
 
@@ -681,7 +672,7 @@ func TestRouterDuplications(t *testing.T) {
 		t.Fatalf("Couldn't get http endpoint: %v", err)
 	}
 
-	time.Sleep(time.Second * 10)
+	waitForRouterToBecomeAvailable("127.0.0.1", statsPort)
 
 	//create routes
 	endpointEvent := &watch.Event{
@@ -820,14 +811,14 @@ func TestRouterStatsPort(t *testing.T) {
 	}
 	defer cleanUp(dockerCli, routerId)
 
-	time.Sleep(time.Second * 10)
+	waitForRouterToBecomeAvailable("127.0.0.1", statsPort)
 
 	statsHostPort := fmt.Sprintf("%s:%d", "127.0.0.1", statsPort)
 	creds := fmt.Sprintf("%s:%s", statsUser, statsPassword)
 	auth := fmt.Sprintf("Basic: %s", base64.StdEncoding.EncodeToString([]byte(creds)))
 	headers := map[string]string{"Authorization": auth}
 
-	resp, err := getRoute(statsHostPort, statsHostPort, "http", headers, "")
+	resp, err := getRouteWithRetries(t, statsHostPort, statsHostPort, "http", headers, "")
 
 	if err != nil {
 		t.Errorf("Unable to verify response: %v", err)
@@ -880,16 +871,17 @@ func TestRouterHealthzEndpoint(t *testing.T) {
 		}
 		defer cleanUp(dockerCli, routerId)
 
-		time.Sleep(time.Second * 10)
-
 		host := "127.0.0.1"
 		port := tc.port
 		if tc.port == 0 {
 			port = statsPort
 		}
 
-		uri := fmt.Sprintf("%s:%d/healthz", host, port)
-		resp, err := getRoute(uri, host, "http", nil, "")
+		waitForRouterToBecomeAvailable(host, port)
+
+		hostAndPort := fmt.Sprintf("%s:%d", host, port)
+		uri := fmt.Sprintf("%s/healthz", hostAndPort)
+		resp, err := getRouteWithRetries(t, uri, hostAndPort, "http", nil, "")
 
 		if err != nil {
 			t.Errorf("Test with %q unable to verify response: %v", tc.name, err)
@@ -924,7 +916,7 @@ func TestRouterServiceUnavailable(t *testing.T) {
 	}
 	defer cleanUp(dockerCli, routerId)
 
-	time.Sleep(time.Second * 10)
+	waitForRouterToBecomeAvailable("127.0.0.1", statsPort)
 
 	schemes := []string{"http", "https"}
 	for _, scheme := range schemes {
@@ -987,7 +979,7 @@ func TestRouterServiceUnavailable(t *testing.T) {
 
 // isValidRoute ensures that the route can be retrieved and matches the expected output
 func isValidRoute(url, host, scheme, expected string) (valid bool, response string) {
-	resp, err := getRoute(url, host, scheme, nil, expected)
+	resp, err := getRouteWithRetries(nil, url, host, scheme, nil, expected)
 	if err != nil {
 		return false, err.Error()
 	}
@@ -1095,9 +1087,33 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 	return "", errors.New("Unrecognized protocol in getRoute")
 }
 
+// getRouteWithRetries is an utility wrapper around getRoutes to retry errors (allows the router some startup time).
+func getRouteWithRetries(t *testing.T, routerUrl string, hostName string, protocol string, headers map[string]string, expectedResponse string) (response string, err error) {
+	for i := 0; i < tcRetries; i++ {
+		// Wait for router to pick up configs.
+		time.Sleep(time.Second * tcWaitSeconds)
+
+		// Now verify the route with an HTTP client.
+		resp, err := getRoute(routerUrl, hostName, protocol, headers, expectedResponse)
+
+		if err != nil {
+			if i != (tcRetries - 1) {
+				if t != nil {
+					t.Logf("error: %v, attempt #%v, retrying ...", err, i+1)
+				}
+				continue
+			}
+		}
+
+		return resp, err
+	}
+
+	return getRoute(routerUrl, hostName, protocol, headers, expectedResponse)
+}
+
 // eventString marshals the event into a string
 func eventString(e *watch.Event) string {
-	obj, _ := watchjson.Object(v1beta3.Codec, e)
+	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(v1beta3.SchemeGroupVersion), e)
 	s, _ := json.Marshal(obj)
 	return string(s)
 }
@@ -1460,6 +1476,25 @@ func TestRouterReloadCoalesce(t *testing.T) {
 
 		if !strings.Contains(resp, "503 Service Unavailable") {
 			t.Errorf("Unable to verify route deletion for %q: %+v", routeAlias, resp)
+		}
+	}
+}
+
+// waitForRouterToBecomeAvailable checks for the router start up and waits
+// till it becomes available.
+func waitForRouterToBecomeAvailable(host string, port int) {
+	time.Sleep(time.Second * 5)
+
+	hostAndPort := fmt.Sprintf("%s:%d", host, port)
+	uri := fmt.Sprintf("%s/healthz", hostAndPort)
+
+	for i := 0; i < 10; i++ {
+		_, err := getRouteWithRetries(nil, uri, hostAndPort, "http", nil, "")
+
+		if err != nil {
+			time.Sleep(time.Second * tcWaitSeconds)
+		} else {
+			break
 		}
 	}
 }

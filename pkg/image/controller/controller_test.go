@@ -13,6 +13,8 @@ import (
 	client "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/api"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 type expectedImage struct {
@@ -394,7 +396,7 @@ func TestScheduledImport(t *testing.T) {
 	}
 
 	// encountering a not found error for image streams should drop the controller
-	status := apierrs.NewNotFound("imageStreams", "test").(*apierrs.StatusError).ErrStatus
+	status := apierrs.NewNotFound(api.Resource("imagestream"), "test").(*apierrs.StatusError).ErrStatus
 	fake = client.NewSimpleFake(&status)
 	b.controller.streams = fake
 	b.scheduler.RunOnce()

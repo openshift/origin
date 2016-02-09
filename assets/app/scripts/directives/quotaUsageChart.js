@@ -43,7 +43,7 @@ angular.module('openshiftConsole')
               .attr('dy', 20)
               .attr('x', 0);
           });
-          replaceText(amountAndUnit($scope.total, $scope.type));
+          replaceText(amountAndUnit($scope.total, $scope.type, true));
         }
 
         // Adjust size based on legend position.

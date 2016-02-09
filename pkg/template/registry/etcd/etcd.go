@@ -37,7 +37,7 @@ func NewREST(s storage.Interface) *REST {
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return registry.Matcher(label, field)
 		},
-		EndpointName: "templates",
+		QualifiedResource: api.Resource("templates"),
 
 		CreateStrategy: registry.Strategy,
 		UpdateStrategy: registry.Strategy,

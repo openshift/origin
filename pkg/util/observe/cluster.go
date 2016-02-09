@@ -10,7 +10,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/storage"
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
@@ -80,7 +79,7 @@ func watchForResourceVersion(versioner storage.Versioner, watcher rest.Watcher, 
 		return err
 	}
 
-	w, err := watcher.Watch(context.TODO(), &unversioned.ListOptions{ResourceVersion: previousVersion})
+	w, err := watcher.Watch(context.TODO(), &kapi.ListOptions{ResourceVersion: previousVersion})
 	if err != nil {
 		return fmt.Errorf("error verifying resourceVersion %s: %v", resourceVersion, err)
 	}
@@ -98,7 +97,7 @@ func watchForResourceVersion(versioner storage.Versioner, watcher rest.Watcher, 
 		if err != nil {
 			return err
 		}
-		actualResourceVersion := accessor.ResourceVersion()
+		actualResourceVersion := accessor.GetResourceVersion()
 		if actualResourceVersion != resourceVersion {
 			return fmt.Errorf("unexpected watch event verifying resourceVersion %s: resource version was %s)", resourceVersion, actualResourceVersion)
 		}

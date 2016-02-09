@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	kapp "k8s.io/kubernetes/cmd/kubelet/app"
+	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
@@ -15,7 +15,7 @@ func ValidateNodeConfig(config *api.NodeConfig, fldPath *field.Path) ValidationR
 	validationResults := ValidationResults{}
 
 	if len(config.NodeName) == 0 {
-		validationResults.AddErrors(field.Required(fldPath.Child("nodeName")))
+		validationResults.AddErrors(field.Required(fldPath.Child("nodeName"), ""))
 	}
 	if len(config.NodeIP) > 0 {
 		validationResults.AddErrors(ValidateSpecifiedIP(config.NodeIP, fldPath.Child("nodeIP"))...)
@@ -58,7 +58,7 @@ func ValidateNodeAuthConfig(config api.NodeAuthConfig, fldPath *field.Path) fiel
 
 	authenticationCacheTTLPath := fldPath.Child("authenticationCacheTTL")
 	if len(config.AuthenticationCacheTTL) == 0 {
-		allErrs = append(allErrs, field.Required(authenticationCacheTTLPath))
+		allErrs = append(allErrs, field.Required(authenticationCacheTTLPath, ""))
 	} else if ttl, err := time.ParseDuration(config.AuthenticationCacheTTL); err != nil {
 		allErrs = append(allErrs, field.Invalid(authenticationCacheTTLPath, config.AuthenticationCacheTTL, fmt.Sprintf("%v", err)))
 	} else if ttl < 0 {
@@ -71,7 +71,7 @@ func ValidateNodeAuthConfig(config api.NodeAuthConfig, fldPath *field.Path) fiel
 
 	authorizationCacheTTLPath := fldPath.Child("authorizationCacheTTL")
 	if len(config.AuthorizationCacheTTL) == 0 {
-		allErrs = append(allErrs, field.Required(authorizationCacheTTLPath))
+		allErrs = append(allErrs, field.Required(authorizationCacheTTLPath, ""))
 	} else if ttl, err := time.ParseDuration(config.AuthorizationCacheTTL); err != nil {
 		allErrs = append(allErrs, field.Invalid(authorizationCacheTTLPath, config.AuthorizationCacheTTL, fmt.Sprintf("%v", err)))
 	} else if ttl < 0 {
@@ -111,5 +111,5 @@ func ValidateDockerConfig(config api.DockerConfig, fldPath *field.Path) field.Er
 }
 
 func ValidateKubeletExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) field.ErrorList {
-	return ValidateExtendedArguments(config, kapp.NewKubeletServer().AddFlags, fldPath)
+	return ValidateExtendedArguments(config, kubeletoptions.NewKubeletServer().AddFlags, fldPath)
 }

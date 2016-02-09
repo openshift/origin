@@ -101,6 +101,7 @@ func NewCmdGet(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd.Flags().Bool("watch-only", false, "Watch for changes to the requested object(s), without listing/getting first.")
 	cmd.Flags().Bool("all-namespaces", false, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
 	cmd.Flags().StringSliceP("label-columns", "L", []string{}, "Accepts a comma separated list of labels that are going to be presented as columns. Names are case-sensitive. You can also use multiple flag statements like -L label1 -L label2...")
+	cmd.Flags().Bool("export", false, "If true, use 'export' for the resources.  Exported resources are stripped of cluster-specific information.")
 	usage := "Filename, directory, or URL to a file identifying the resource to get from a server."
 	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
 	return cmd
@@ -119,9 +120,7 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 	}
 
 	if len(args) == 0 && len(options.Filenames) == 0 {
-		fmt.Fprint(out, "You must specify the type of resource to get. ", valid_resources, `   * componentstatuses (aka 'cs')
-   * endpoints (aka 'ep')
-`)
+		fmt.Fprint(out, "You must specify the type of resource to get. ", valid_resources)
 		return cmdutil.UsageError(cmd, "Required resource not specified.")
 	}
 
@@ -133,14 +132,16 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 	if len(options.Filenames) > 0 || argsHasNames {
 		cmd.Flag("show-all").Value.Set("true")
 	}
+	export := cmdutil.GetFlagBool(cmd, "export")
 
 	// handle watch separately since we cannot watch multiple resource types
 	isWatch, isWatchOnly := cmdutil.GetFlagBool(cmd, "watch"), cmdutil.GetFlagBool(cmd, "watch-only")
 	if isWatch || isWatchOnly {
-		r := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+		r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 			NamespaceParam(cmdNamespace).DefaultNamespace().AllNamespaces(allNamespaces).
 			FilenameParam(enforceNamespace, options.Filenames...).
 			SelectorParam(selector).
+			ExportParam(export).
 			ResourceTypeOrNameArgs(true, args...).
 			SingleResourceType().
 			Latest().
@@ -191,10 +192,11 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 		return nil
 	}
 
-	b := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		NamespaceParam(cmdNamespace).DefaultNamespace().AllNamespaces(allNamespaces).
 		FilenameParam(enforceNamespace, options.Filenames...).
 		SelectorParam(selector).
+		ExportParam(export).
 		ResourceTypeOrNameArgs(true, args...).
 		ContinueOnError().
 		Latest()
@@ -222,7 +224,7 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 		if err != nil {
 			return err
 		}
-		obj, err := resource.AsVersionedObject(infos, !singular, version.String())
+		obj, err := resource.AsVersionedObject(infos, !singular, version.String(), f.JSONEncoder())
 		if err != nil {
 			return err
 		}
@@ -242,7 +244,8 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 	sorting, err := cmd.Flags().GetString("sort-by")
 	var sorter *kubectl.RuntimeSort
 	if err == nil && len(sorting) > 0 {
-		if sorter, err = kubectl.SortObjects(objs, sorting); err != nil {
+		// TODO: questionable
+		if sorter, err = kubectl.SortObjects(f.Decoder(true), objs, sorting); err != nil {
 			return err
 		}
 	}

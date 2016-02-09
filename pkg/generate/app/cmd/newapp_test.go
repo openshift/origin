@@ -34,6 +34,8 @@ import (
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func skipExternalGit(t *testing.T) {

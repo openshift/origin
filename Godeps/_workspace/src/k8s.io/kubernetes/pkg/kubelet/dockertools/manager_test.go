@@ -40,6 +40,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	proberesults "k8s.io/kubernetes/pkg/kubelet/prober/results"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	uexec "k8s.io/kubernetes/pkg/util/exec"
@@ -88,7 +89,7 @@ func newTestDockerManagerWithHTTPClient(fakeHTTPClient *fakeHTTP) (*DockerManage
 		proberesults.NewManager(),
 		containerRefManager,
 		&cadvisorapi.MachineInfo{},
-		PodInfraContainerImage,
+		kubetypes.PodInfraContainerImage,
 		0, 0, "",
 		kubecontainer.FakeOS{},
 		networkPlugin,
@@ -109,6 +110,35 @@ func matchString(t *testing.T, pattern, str string) bool {
 		t.Logf("unexpected error: %v", err)
 	}
 	return match
+}
+
+func TestNewDockerVersion(t *testing.T) {
+	cases := []struct {
+		value string
+		out   string
+		err   bool
+	}{
+		{value: "1", err: true},
+		{value: "1.8", err: true},
+		{value: "1.8.1", out: "1.8.1"},
+		{value: "1.8.1.fc21", out: "1.8.1-fc21"},
+		{value: "1.8.1.fc21.other", out: "1.8.1-fc21.other"},
+		{value: "1.8.1-fc21.other", out: "1.8.1-fc21.other"},
+		{value: "1.8.1-beta.12", out: "1.8.1-beta.12"},
+	}
+	for _, test := range cases {
+		v, err := newDockerVersion(test.value)
+		switch {
+		case err != nil && test.err:
+			continue
+		case (err != nil) != test.err:
+			t.Errorf("error for %q: expected %t, got %v", test.value, test.err, err)
+			continue
+		}
+		if v.String() != test.out {
+			t.Errorf("unexpected parsed version %q for %q", v, test.value)
+		}
+	}
 }
 
 func TestSetEntrypointAndCommand(t *testing.T) {
@@ -448,7 +478,7 @@ func TestKillContainerInPodWithPreStop(t *testing.T) {
 				},
 				{Name: "bar"}}},
 	}
-	podString, err := testapi.Default.Codec().Encode(pod)
+	podString, err := runtime.Encode(testapi.Default.Codec(), pod)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -458,8 +488,8 @@ func TestKillContainerInPodWithPreStop(t *testing.T) {
 			Name: "/k8s_foo_qux_new_1234_42",
 			Config: &docker.Config{
 				Labels: map[string]string{
-					kubernetesPodLabel:       string(podString),
-					kubernetesContainerLabel: "foo",
+					kubernetesPodLabel:           string(podString),
+					kubernetesContainerNameLabel: "foo",
 				},
 			},
 		},
@@ -532,7 +562,7 @@ func generatePodInfraContainerHash(pod *api.Pod) uint64 {
 
 	container := &api.Container{
 		Name:            PodInfraContainerName,
-		Image:           PodInfraContainerImage,
+		Image:           kubetypes.PodInfraContainerImage,
 		Ports:           ports,
 		ImagePullPolicy: podInfraContainerImagePullPolicy,
 	}
@@ -542,12 +572,6 @@ func generatePodInfraContainerHash(pod *api.Pod) uint64 {
 // runSyncPod is a helper function to retrieve the running pods from the fake
 // docker client and runs SyncPod for the given pod.
 func runSyncPod(t *testing.T, dm *DockerManager, fakeDocker *FakeDockerClient, pod *api.Pod, backOff *util.Backoff, expectErr bool) {
-	runningPods, err := dm.GetPods(false)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	runningPod := kubecontainer.Pods(runningPods).FindPodByID(pod.UID)
-
 	podStatus, apiPodStatus, err := dm.GetPodStatusAndAPIPodStatus(pod)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -556,7 +580,7 @@ func runSyncPod(t *testing.T, dm *DockerManager, fakeDocker *FakeDockerClient, p
 	if backOff == nil {
 		backOff = util.NewBackOff(time.Second, time.Minute)
 	}
-	err = dm.SyncPod(pod, runningPod, *apiPodStatus, podStatus, []api.Secret{}, backOff)
+	err = dm.SyncPod(pod, *apiPodStatus, podStatus, []api.Secret{}, backOff)
 	if err != nil && !expectErr {
 		t.Errorf("unexpected error: %v", err)
 	} else if err == nil && expectErr {
@@ -836,7 +860,7 @@ func TestSyncPodsUnhealthy(t *testing.T) {
 			ID:   infraContainerID,
 			Name: "/k8s_POD." + strconv.FormatUint(generatePodInfraContainerHash(pod), 16) + "_foo_new_12345678_42",
 		}})
-	dm.livenessManager.Set(kubetypes.DockerID(unhealthyContainerID).ContainerID(), proberesults.Failure, nil)
+	dm.livenessManager.Set(kubecontainer.DockerID(unhealthyContainerID).ContainerID(), proberesults.Failure, nil)
 
 	runSyncPod(t, dm, fakeDocker, pod, nil, false)
 
@@ -1440,11 +1464,7 @@ func TestGetTerminationMessagePath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected inspect error: %v", err)
 	}
-	var containerInfo *labelledContainerInfo
-	containerInfo, err = getContainerInfoFromLabel(inspectResult.Config.Labels)
-	if err != nil {
-		t.Fatalf("Unexpected error when getContainerInfoFromLabel: %v", err)
-	}
+	containerInfo := getContainerInfoFromLabel(inspectResult.Config.Labels)
 	terminationMessagePath := containerInfo.TerminationMessagePath
 	if terminationMessagePath != containers[0].TerminationMessagePath {
 		t.Errorf("expected termination message path %s, got %s", containers[0].TerminationMessagePath, terminationMessagePath)

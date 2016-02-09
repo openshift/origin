@@ -34,7 +34,9 @@ angular.module('openshiftConsole')
         transclude: true,
         templateUrl: 'views/directives/logs/_log-viewer.html',
         scope: {
-          kind: '@',
+          followAffixTop: '=?',
+          followAffixBottom: '=?',
+          resource: '@',
           name: '=',
           context: '=',
           options: '=?',
@@ -48,29 +50,42 @@ angular.module('openshiftConsole')
           '$scope',
           function($scope) {
             // cached node's are set by the directive's postLink fn after render (see link: func below)
+            // A jQuery wrapped verison is cached in var of same name w/$
             var cachedLogNode;
             var cachedScrollableNode;
+            var $cachedScrollableNode;
             var scrollableDOMNode;
+            var $affixableNode;
+            var html = document.documentElement;
 
 
-            angular.extend($scope, {
-              loading: true,
-              autoScroll: false
-            });
+
+            // are we going to scroll the window, or the DOM node?
+            var detectScrollableNode = function() {
+              if(window.innerWidth < BREAKPOINTS.screenSmMin) {
+                scrollableDOMNode = null;
+              } else {
+                scrollableDOMNode = cachedScrollableNode;
+              }
+            };
+
+
 
 
             var updateScrollLinks = function() {
               $scope.$apply(function() {
                 // Show scroll links if the top or bottom of the log is off screen.
-                var html = document.documentElement, r = cachedLogNode.getBoundingClientRect();
+                var r = cachedLogNode.getBoundingClientRect();
                 $scope.showScrollLinks = r && ((r.top < 0) || (r.bottom > html.clientHeight));
               });
             };
 
 
+
             // Set to true before auto-scrolling.
             var autoScrollingNow = false;
             var onScroll = function() {
+
               // Determine if the user scrolled or we auto-scrolled.
               if (autoScrollingNow) {
                 // Reset the value.
@@ -82,11 +97,66 @@ angular.module('openshiftConsole')
                 });
               }
             };
-            $win.scroll(onScroll);
 
 
-            var onResize = _.debounce(updateScrollLinks, 50);
+
+            var attachScrollEvents = function() {
+              if(window.innerWidth < BREAKPOINTS.screenSmMin) {
+                $win.on('scroll', onScroll);
+                $cachedScrollableNode.off('scroll', onScroll);
+              } else {
+                $win.off('scroll', onScroll);
+                $cachedScrollableNode.on('scroll', onScroll);
+              }
+            };
+
+
+            // the class .target-logger-node is needed to adjust some
+            // css when the target is not the window.
+            // TODO: resize event breaks the affix, even with this if/else.
+            // however, on first load of either mobile or non this works fine.
+            var affix = function() {
+              if(window.innerWidth < BREAKPOINTS.screenSmMin) {
+                $affixableNode
+                  .removeClass('target-logger-node')
+                  .affix({
+                    target:  window,
+                    offset: {
+                        top:  $scope.followAffixTop || 0, // 390,
+                        bottom: $scope.followAffixBottom || 0 // 90
+                    }
+                  });
+              } else {
+                $affixableNode
+                  .addClass('target-logger-node')
+                  .affix({
+                    target:  $cachedScrollableNode,
+                    offset: {
+                        top: $scope.followAffixTop || 0, // 390,
+                        bottom: $scope.followAffixBottom || 0 // 90
+                    }
+                  });
+              }
+            };
+
+
+            // roll up & debounce the various fns to call on resize
+            var onResize = _.debounce(function() {
+              // toggle off the follow behavior if the user resizes the window
+              onScroll();
+              // and udpate scroll handlers
+              detectScrollableNode();
+              attachScrollEvents();
+              updateScrollLinks();
+              affix();
+            }, 100);
+
+
             $win.on('resize', onResize);
+
+
+
+            // STREAMER & DOM NODE HANDLING ------------------------------------
 
 
             var autoScrollBottom = function() {
@@ -96,6 +166,7 @@ angular.module('openshiftConsole')
               logLinks.scrollBottom(scrollableDOMNode);
             };
 
+
             var toggleAutoScroll = function() {
               $scope.autoScroll = !$scope.autoScroll;
               if ($scope.autoScroll) {
@@ -103,7 +174,6 @@ angular.module('openshiftConsole')
                 autoScrollBottom();
               }
             };
-
 
             var buffer = document.createDocumentFragment();
 
@@ -164,8 +234,7 @@ angular.module('openshiftConsole')
                 tailLines: 1000,
                 limitBytes: 10 * 1024 * 1024 // Limit log size to 10 MiB
               }, $scope.options);
-              streamer =
-                DataService.createStream($scope.kind, $scope.name, $scope.context, options);
+              streamer = DataService.createStream($scope.resource, $scope.name, $scope.context, options);
 
               var lastLineNumber = 0;
               var addLine = function(text) {
@@ -220,20 +289,16 @@ angular.module('openshiftConsole')
               streamer.start();
             };
 
-            $scope.$watchGroup(['name', 'options.container', 'run'], streamLogs);
 
-            $scope.$on('$destroy', function() {
-              // Close streamer if open. (No-op if not streaming.)
-              stopStreaming();
 
-              // Stop listening for scroll and resize events.
-              $win.off('scroll', onScroll);
-              $win.off('resize', onResize);
-            });
 
+
+            // initial $scope setup --------------------------------------------
 
             angular.extend($scope, {
               ready: true,
+              loading: true,
+              autoScroll: false,
               onScrollBottom: function() {
                 logLinks.scrollBottom(scrollableDOMNode);
               },
@@ -246,7 +311,26 @@ angular.module('openshiftConsole')
               restartLogs: streamLogs
             });
 
+            $scope.$watchGroup(['name', 'options.container', 'run'], streamLogs);
 
+
+
+
+            // tear down -------------------------------------------------------
+
+            $scope.$on('$destroy', function() {
+              // close streamer or no-op
+              stopStreaming();
+              // clean up all the listeners
+              $win.off('resize', onResize);
+              $win.off('scroll', onScroll);
+              $cachedScrollableNode.off('scroll', onScroll);
+            });
+
+
+
+
+            // Kibana archives -------------------------------------------------
 
             APIDiscovery
               .getLoggingURL()
@@ -281,31 +365,29 @@ angular.module('openshiftConsole')
 
 
 
-              // scrollable node is window if mobile, else a particular DOM node.
-              var detectScrollableNode = function() {
-                if(window.innerWidth < BREAKPOINTS.screenSmMin) {
-                  scrollableDOMNode = null;
-                } else {
-                  scrollableDOMNode = cachedScrollableNode;
-                }
-              };
 
-              var debounceScrollable = _.debounce(detectScrollableNode, 200);
+              // PUBLIC API ----------------------------------------------------
 
-              // API to share w/link fn
+              // scrollable node is a parent div#scrollable-content, but may be window
+              // if we are currently mobile
               this.cacheScollableNode = function(node) {
                 cachedScrollableNode = node;
-                detectScrollableNode();
+                $cachedScrollableNode = $(cachedScrollableNode);
               };
 
               this.cacheLogNode = function(node) {
-                cachedLogNode = node;
+                cachedLogNode = node; // no jQuery, optimized
               };
-              // maintain the correct scrollable node
-              $win.on('resize', debounceScrollable);
-              $scope.$on('$destroy', function() {
-                $win.off('resize', debounceScrollable);
-              });
+
+              this.cacheAffixable = function(node) {
+                $affixableNode = $(node); // jQuery is fine
+              };
+
+              this.start = function() {
+                detectScrollableNode();
+                attachScrollEvents();
+                affix();
+              };
           }
         ],
         require: 'logViewer',
@@ -316,6 +398,8 @@ angular.module('openshiftConsole')
           // and we were sending it messages telling it when to scroll.
           ctrl.cacheScollableNode(document.getElementById('scrollable-content'));
           ctrl.cacheLogNode(document.getElementById('logContent'));
+          ctrl.cacheAffixable(document.getElementById('affixedFollow'));
+          ctrl.start();
         }
       };
     }

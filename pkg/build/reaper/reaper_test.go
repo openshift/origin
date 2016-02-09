@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	_ "github.com/openshift/origin/pkg/build/api/install"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client/testclient"
 )
@@ -105,7 +106,7 @@ func actionsAreEqual(a, b ktestclient.Action) bool {
 
 func TestStop(t *testing.T) {
 	notFound := func() runtime.Object {
-		return &(kerrors.NewNotFound("BuildConfig", "config").(*kerrors.StatusError).ErrStatus)
+		return &(kerrors.NewNotFound(buildapi.Resource("BuildConfig"), "config").(*kerrors.StatusError).ErrStatus)
 	}
 
 	tests := map[string]struct {

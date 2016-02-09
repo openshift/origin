@@ -3,10 +3,11 @@ package v1beta3
 import (
 	"sort"
 
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	newer "github.com/openshift/origin/pkg/authorization/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -130,8 +131,11 @@ func convert_api_ResourceAccessReviewResponse_To_v1beta3_ResourceAccessReviewRes
 }
 
 func convert_v1beta3_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
-	if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
+	if err := oapi.Convert_runtime_RawExtension_To_runtime_Object(&in.AttributeRestrictions, out.AttributeRestrictions, s); err != nil {
 		return err
+	}
+	if in.AttributeRestrictions.Object != nil {
+		out.AttributeRestrictions = in.AttributeRestrictions.Object
 	}
 
 	out.APIGroups = in.APIGroups
@@ -151,7 +155,7 @@ func convert_v1beta3_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.Pol
 }
 
 func convert_api_PolicyRule_To_v1beta3_PolicyRule(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
-	if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
+	if err := oapi.Convert_runtime_Object_To_runtime_RawExtension(in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
 		return err
 	}
 
@@ -269,8 +273,8 @@ func convert_api_ClusterPolicyBinding_To_v1beta3_ClusterPolicyBinding(in *newer.
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
-func init() {
-	err := api.Scheme.AddConversionFuncs(
+func addConversionFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddConversionFuncs(
 		convert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview,
 		convert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview,
 		convert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview,

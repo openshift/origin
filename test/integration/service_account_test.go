@@ -15,7 +15,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/pkg/controller/serviceaccount"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/wait"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
@@ -58,7 +58,6 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	}
 	cluster1SAClientConfig := kclient.Config{
 		Host:        cluster1AdminConfig.Host,
-		Prefix:      cluster1AdminConfig.Prefix,
 		BearerToken: saToken,
 		TLSClientConfig: kclient.TLSClientConfig{
 			CAFile: cluster1AdminConfig.CAFile,

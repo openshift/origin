@@ -15,11 +15,12 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	"github.com/pborman/uuid"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/unversioned"
-	kutil "k8s.io/kubernetes/pkg/util"
+	knet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
@@ -39,11 +40,13 @@ import (
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
+	"github.com/openshift/origin/pkg/auth/oauth/external/gitlab"
 	"github.com/openshift/origin/pkg/auth/oauth/external/google"
 	"github.com/openshift/origin/pkg/auth/oauth/external/openid"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
+	"github.com/openshift/origin/pkg/auth/server/errorpage"
 	"github.com/openshift/origin/pkg/auth/server/grant"
 	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/auth/server/selectprovider"
@@ -90,7 +93,12 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	clientAuthStorage := clientauthetcd.NewREST(c.EtcdHelper)
 	clientAuthRegistry := clientauthregistry.NewRegistry(clientAuthStorage)
 
-	authRequestHandler, authHandler, authFinalizer, err := c.getAuthorizeAuthenticationHandlers(mux)
+	errorPageHandler, err := c.getErrorHandler()
+	if err != nil {
+		glog.Fatal(err)
+	}
+
+	authRequestHandler, authHandler, authFinalizer, err := c.getAuthorizeAuthenticationHandlers(mux, errorPageHandler)
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -114,12 +122,12 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 			handlers.NewAuthorizeAuthenticator(
 				authRequestHandler,
 				authHandler,
-				handlers.EmptyError{},
+				errorPageHandler,
 			),
 			handlers.NewGrantCheck(
 				grantChecker,
 				grantHandler,
-				handlers.EmptyError{},
+				errorPageHandler,
 			),
 			authFinalizer,
 		},
@@ -147,7 +155,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 			glog.Fatal(err)
 		}
 
-		osOAuthClient.Transport = kutil.SetTransportDefaults(&http.Transport{
+		osOAuthClient.Transport = knet.SetTransportDefaults(&http.Transport{
 			TLSClientConfig: &tls.Config{RootCAs: rootCAs},
 		})
 	}
@@ -165,6 +173,18 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 		fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix),
 		fmt.Sprintf("Started Login endpoint at %%s%s", OpenShiftLoginPrefix),
 	}
+}
+
+func (c *AuthConfig) getErrorHandler() (*errorpage.ErrorPage, error) {
+	errorTemplate := ""
+	if c.Options.Templates != nil {
+		errorTemplate = c.Options.Templates.Error
+	}
+	errorPageRenderer, err := errorpage.NewErrorPageTemplateRenderer(errorTemplate)
+	if err != nil {
+		return nil, err
+	}
+	return errorpage.NewErrorPageHandler(errorPageRenderer), nil
 }
 
 // NewOpenShiftOAuthClientConfig provides config for OpenShift OAuth client
@@ -277,12 +297,12 @@ func (c *AuthConfig) getCSRF() csrf.CSRF {
 	return csrf.NewCookieCSRF("csrf", "/", "", secure, true)
 }
 
-func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
+func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
 	authRequestHandler, err := c.getAuthenticationRequestHandler()
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	authHandler, err := c.getAuthenticationHandler(mux, handlers.EmptyError{})
+	authHandler, err := c.getAuthenticationHandler(mux, errorHandler)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -367,7 +387,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 					return nil, err
 				}
 
-				login := login.NewLogin(c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, loginFormRenderer)
+				login := login.NewLogin(identityProvider.Name, c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, loginFormRenderer)
 				login.Install(mux, OpenShiftLoginPrefix)
 			}
 			if identityProvider.UseAsChallenger {
@@ -407,7 +427,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 			if identityProvider.UseAsChallenger {
 				return nil, errors.New("oauth identity providers cannot issue challenges")
 			}
-		} else if requestHeaderProvider, isRequestHeader := identityProvider.Provider.Object.(*configapi.RequestHeaderIdentityProvider); isRequestHeader {
+		} else if requestHeaderProvider, isRequestHeader := identityProvider.Provider.(*configapi.RequestHeaderIdentityProvider); isRequestHeader {
 			// We might be redirecting to an external site, we need to fully resolve the request URL to the public master
 			baseRequestURL, err := url.Parse(c.Options.MasterPublicURL + OpenShiftOAuthAPIPrefix + osinserver.AuthorizePath)
 			if err != nil {
@@ -443,9 +463,16 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 }
 
 func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvider) (external.Provider, error) {
-	switch provider := identityProvider.Provider.Object.(type) {
+	switch provider := identityProvider.Provider.(type) {
 	case (*configapi.GitHubIdentityProvider):
-		return github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret), nil
+		return github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret, provider.Organizations), nil
+
+	case (*configapi.GitLabIdentityProvider):
+		transport, err := cmdutil.TransportFor(provider.CA, "", "")
+		if err != nil {
+			return nil, err
+		}
+		return gitlab.NewProvider(identityProvider.Name, transport, provider.URL, provider.ClientID, provider.ClientSecret)
 
 	case (*configapi.GoogleIdentityProvider):
 		return google.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret, provider.HostedDomain)
@@ -493,7 +520,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 		return nil, err
 	}
 
-	switch provider := identityProvider.Provider.Object.(type) {
+	switch provider := identityProvider.Provider.(type) {
 	case (*configapi.AllowAllPasswordIdentityProvider):
 		return allowanypassword.New(identityProvider.Name, identityMapper), nil
 
@@ -583,7 +610,7 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 			authRequestHandlers = append(authRequestHandlers, basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator, true))
 
 		} else {
-			switch provider := identityProvider.Provider.Object.(type) {
+			switch provider := identityProvider.Provider.(type) {
 			case (*configapi.RequestHeaderIdentityProvider):
 				var authRequestHandler authenticator.Request
 

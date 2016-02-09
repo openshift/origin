@@ -16,7 +16,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("cli: parallel: oc rsync", func() {
+var _ = g.Describe("[cli] can use rsync to upload files to pods", func() {
 	defer g.GinkgoRecover()
 
 	var (

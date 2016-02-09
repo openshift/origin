@@ -248,3 +248,4 @@ bogomips	: 5333.60
 clflush size	: 64
 cache_alignment	: 64
 address sizes	: 40 bits physical, 48 bits virtual
+

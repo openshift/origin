@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/client"
@@ -121,7 +120,7 @@ func (c readOnlyAuthorizationCache) GetPolicy(ctx kapi.Context, name string) (*a
 }
 
 // ListPolicyBindings obtains list of policyBindings that match a selector.  It conforms to rulevalidation.BindingLister
-func (c readOnlyAuthorizationCache) ListPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (c readOnlyAuthorizationCache) ListPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	namespace, _ := kapi.NamespaceFrom(ctx)
 
 	if namespaceRefersToCluster(namespace) {
@@ -149,7 +148,7 @@ func (c readOnlyAuthorizationCache) GetClusterPolicy(ctx kapi.Context, name stri
 }
 
 // ListPolicyBindings obtains list of policyBindings that match a selector.  It conforms to rulevalidation.BindingLister
-func (c readOnlyAuthorizationCache) ListClusterPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (c readOnlyAuthorizationCache) ListClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	clusterPolicyBindingList, err := c.ReadOnlyClusterPolicyBindings().List(options)
 	if err != nil {
 		return &authorizationapi.ClusterPolicyBindingList{}, err

@@ -38,6 +38,7 @@ type IPFailoverConfigCmdOptions struct {
 	VirtualIPs       string
 	NetworkInterface string
 	WatchPort        int
+	VRRPIDOffset     int
 	Replicas         int
 
 	ShortOutput bool

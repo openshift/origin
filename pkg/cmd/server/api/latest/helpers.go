@@ -6,11 +6,12 @@ import (
 	"io/ioutil"
 	"path"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/ghodss/yaml"
+
 	"k8s.io/kubernetes/pkg/runtime"
 	kyaml "k8s.io/kubernetes/pkg/util/yaml"
 
-	"github.com/ghodss/yaml"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 func ReadSessionSecrets(filename string) (*configapi.SessionSecrets, error) {
@@ -65,7 +66,7 @@ func ReadAndResolveNodeConfig(filename string) (*configapi.NodeConfig, error) {
 
 // TODO: Remove this when a YAML serializer is available from upstream
 func WriteYAML(obj runtime.Object) ([]byte, error) {
-	json, err := Codec.Encode(obj)
+	json, err := runtime.Encode(Codec, obj)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +84,7 @@ func ReadYAML(data []byte, obj runtime.Object) error {
 	if err != nil {
 		return err
 	}
-	err = Codec.DecodeInto(data, obj)
+	err = runtime.DecodeInto(Codec, data, obj)
 	return captureSurroundingJSONForError("error reading config: ", data, err)
 }
 

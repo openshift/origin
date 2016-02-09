@@ -9,8 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
-
-	"github.com/openshift/origin/pkg/api/latest"
 )
 
 type RuntimeObjectValidator interface {
@@ -34,6 +32,12 @@ type RuntimeObjectValidatorInfo struct {
 func (v *RuntimeObjectsValidator) GetInfo(obj runtime.Object) (RuntimeObjectValidatorInfo, bool) {
 	ret, ok := v.typeToValidator[reflect.TypeOf(obj)]
 	return ret, ok
+}
+
+func (v *RuntimeObjectsValidator) MustRegister(obj runtime.Object, validateFunction interface{}, validateUpdateFunction interface{}) {
+	if err := v.Register(obj, validateFunction, validateUpdateFunction); err != nil {
+		panic(err)
+	}
 }
 
 func (v *RuntimeObjectsValidator) Register(obj runtime.Object, validateFunction interface{}, validateUpdateFunction interface{}) error {
@@ -68,7 +72,7 @@ func (v *RuntimeObjectsValidator) Validate(obj runtime.Object) field.ErrorList {
 
 	specificValidationInfo, err := v.getSpecificValidationInfo(obj)
 	if err != nil {
-		allErrs = append(allErrs, err.(*field.Error))
+		allErrs = append(allErrs, field.InternalError(nil, err))
 		return allErrs
 	}
 
@@ -123,7 +127,7 @@ func GetRequiresNamespace(obj runtime.Object) (bool, error) {
 		return false, err
 	}
 
-	restMapping, err := latest.RESTMapper.RESTMapping(groupVersionKind.GroupKind())
+	restMapping, err := kapi.RESTMapper.RESTMapping(groupVersionKind.GroupKind())
 	if err != nil {
 		return false, err
 	}

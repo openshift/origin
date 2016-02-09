@@ -183,7 +183,7 @@ func TestMerge(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		out, err := Merge(test.obj, test.fragment, test.kind)
+		out, err := Merge(testapi.Default.Codec(), test.obj, test.fragment, test.kind)
 		if !test.expectErr {
 			if err != nil {
 				t.Errorf("testcase[%d], unexpected error: %v", i, err)
@@ -212,6 +212,7 @@ func (f *fileHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 func TestReadConfigData(t *testing.T) {
 	httpData := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	// TODO: Close() this server when fix #19254
 	server := httptest.NewServer(&fileHandler{data: httpData})
 
 	fileData := []byte{11, 12, 13, 14, 15, 16, 17, 18, 19}
@@ -274,15 +275,15 @@ func TestCheckInvalidErr(t *testing.T) {
 		expected string
 	}{
 		{
-			errors.NewInvalid("Invalid1", "invalidation", field.ErrorList{field.Invalid(field.NewPath("field"), "single", "details")}),
-			`Error from server: Invalid1 "invalidation" is invalid: field: invalid value 'single', Details: details`,
+			errors.NewInvalid(api.Kind("Invalid1"), "invalidation", field.ErrorList{field.Invalid(field.NewPath("field"), "single", "details")}),
+			`Error from server: Invalid1 "invalidation" is invalid: field: Invalid value: "single": details`,
 		},
 		{
-			errors.NewInvalid("Invalid2", "invalidation", field.ErrorList{field.Invalid(field.NewPath("field1"), "multi1", "details"), field.Invalid(field.NewPath("field2"), "multi2", "details")}),
-			`Error from server: Invalid2 "invalidation" is invalid: [field1: invalid value 'multi1', Details: details, field2: invalid value 'multi2', Details: details]`,
+			errors.NewInvalid(api.Kind("Invalid2"), "invalidation", field.ErrorList{field.Invalid(field.NewPath("field1"), "multi1", "details"), field.Invalid(field.NewPath("field2"), "multi2", "details")}),
+			`Error from server: Invalid2 "invalidation" is invalid: [field1: Invalid value: "multi1": details, field2: Invalid value: "multi2": details]`,
 		},
 		{
-			errors.NewInvalid("Invalid3", "invalidation", field.ErrorList{}),
+			errors.NewInvalid(api.Kind("Invalid3"), "invalidation", field.ErrorList{}),
 			`Error from server: Invalid3 "invalidation" is invalid: <nil>`,
 		},
 	}

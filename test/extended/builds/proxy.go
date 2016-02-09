@@ -8,7 +8,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("builds: parallel: s2i build with proxy", func() {
+var _ = g.Describe("[builds] the source-to-image build should support proxies", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("..", "extended", "fixtures", "test-build-proxy.json")

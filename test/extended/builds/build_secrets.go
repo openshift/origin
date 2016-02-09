@@ -11,10 +11,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
-var _ = g.Describe("builds: use build secrets", func() {
+var _ = g.Describe("[builds] can use build secrets", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildSecretBaseDir   = filepath.Join("fixtures", "build-secrets")
+		buildSecretBaseDir   = exutil.FixturePath("fixtures", "build-secrets")
 		secretsFixture       = filepath.Join(buildSecretBaseDir, "test-secret.json")
 		secondSecretsFixture = filepath.Join(buildSecretBaseDir, "test-secret-2.json")
 		isFixture            = filepath.Join(buildSecretBaseDir, "test-is.json")

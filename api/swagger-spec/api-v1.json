@@ -51,7 +51,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -94,7 +95,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -169,7 +171,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -212,7 +215,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -295,7 +299,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -340,7 +345,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -417,7 +423,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -527,6 +534,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -551,7 +574,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -604,7 +628,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -657,7 +682,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -712,7 +738,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -878,7 +905,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -915,7 +943,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -1073,7 +1102,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -1118,7 +1148,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -1195,7 +1226,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -1305,6 +1337,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -1329,7 +1377,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -1382,7 +1431,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -1435,7 +1485,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -1490,7 +1541,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -1656,7 +1708,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -1693,7 +1746,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -1851,7 +1905,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -1896,7 +1951,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -1973,7 +2029,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -2083,6 +2140,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -2107,7 +2180,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -2160,7 +2234,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -2213,7 +2288,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -2268,7 +2344,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -2434,7 +2511,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -2471,7 +2549,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -2621,7 +2700,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -2658,7 +2738,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -2727,7 +2808,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -2829,6 +2911,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "name",
@@ -2845,7 +2943,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -2890,7 +2989,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -2935,7 +3035,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -2982,7 +3083,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -3116,7 +3218,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -3167,7 +3270,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -3242,7 +3346,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -3279,7 +3384,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -3348,7 +3454,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -3450,6 +3557,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "name",
@@ -3466,7 +3589,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -3511,7 +3635,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -3556,7 +3681,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -3603,7 +3729,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -4061,7 +4188,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -4144,7 +4272,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -4189,7 +4318,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -4266,7 +4396,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -4376,6 +4507,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -4400,7 +4547,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -4453,7 +4601,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -4506,7 +4655,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -4561,7 +4711,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -4727,7 +4878,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -4764,7 +4916,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -4898,7 +5051,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -4973,7 +5127,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -5010,7 +5165,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -5079,7 +5235,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -5181,6 +5338,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "name",
@@ -5197,7 +5370,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -5242,7 +5416,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -5287,7 +5462,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -5334,7 +5510,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -5468,7 +5645,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -5551,7 +5729,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -5596,7 +5775,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -5673,7 +5853,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -5783,6 +5964,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -5807,7 +6004,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -5860,7 +6058,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -5913,7 +6112,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -5968,7 +6168,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -6554,7 +6755,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -6591,7 +6793,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -6871,7 +7074,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -7148,7 +7352,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -7789,7 +7994,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -7872,7 +8078,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -7917,7 +8124,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -7994,7 +8202,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -8104,6 +8313,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -8128,7 +8353,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -8181,7 +8407,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -8234,7 +8461,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -8289,7 +8517,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -8455,7 +8684,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -8492,7 +8722,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -8650,7 +8881,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -8695,7 +8927,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -8772,7 +9005,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -8882,6 +9116,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -8906,7 +9156,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -8959,7 +9210,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -9012,7 +9264,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -9067,7 +9320,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -9233,7 +9487,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -9270,7 +9525,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -9404,7 +9660,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -9487,7 +9744,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -9532,7 +9790,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -9609,7 +9868,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -9719,6 +9979,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -9743,7 +10019,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -9796,7 +10073,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -9849,7 +10127,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -9904,7 +10183,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -10070,7 +10350,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -10107,7 +10388,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -10241,7 +10523,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -10324,7 +10607,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -10369,7 +10653,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -10446,7 +10731,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -10556,6 +10842,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -10580,7 +10882,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -10633,7 +10936,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -10686,7 +10990,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -10741,7 +11046,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -10907,7 +11213,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -10944,7 +11251,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -11094,7 +11402,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -11131,7 +11440,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -11200,7 +11510,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -11302,6 +11613,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "name",
@@ -11318,7 +11645,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -11363,7 +11691,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -11408,7 +11737,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -11455,7 +11785,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -11621,7 +11952,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -11666,7 +11998,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -11743,7 +12076,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -11853,6 +12187,22 @@
         "allowMultiple": false
        },
        {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -11877,7 +12227,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -11930,7 +12281,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -11983,7 +12335,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -12038,7 +12391,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -12204,7 +12558,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -12241,7 +12596,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -12399,7 +12755,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -12444,7 +12801,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -12578,7 +12936,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -12631,7 +12990,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -12684,7 +13044,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -12731,7 +13092,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -13317,7 +13679,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -13354,7 +13717,8 @@
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
        "*/*"
@@ -13448,10 +13812,12 @@
       "nickname": "getAPIResources",
       "parameters": [],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ],
       "consumes": [
-       "application/json"
+       "application/json",
+       "application/yaml"
       ]
      }
     ]
@@ -13834,6 +14200,10 @@
      "name": {
       "type": "string",
       "description": "The name attribute of the resource associated with the status StatusReason (when there is a single name which can be described)."
+     },
+     "group": {
+      "type": "string",
+      "description": "The group attribute of the resource associated with the status StatusReason."
      },
      "kind": {
       "type": "string",
@@ -14264,10 +14634,17 @@
    "v1.NodeStatus": {
     "id": "v1.NodeStatus",
     "description": "NodeStatus is information about the current status of a node.",
+    "required": [
+     "images"
+    ],
     "properties": {
      "capacity": {
       "type": "any",
-      "description": "Capacity represents the available resources of a node. More info: http://releases.k8s.io/HEAD/docs/user-guide/persistent-volumes.md#capacity for more details."
+      "description": "Capacity represents the total resources of a node. More info: http://releases.k8s.io/HEAD/docs/user-guide/persistent-volumes.md#capacity for more details."
+     },
+     "allocatable": {
+      "type": "any",
+      "description": "Allocatable represents the resources of a node that are available for scheduling. Defaults to Capacity."
      },
      "phase": {
       "type": "string",
@@ -14294,6 +14671,13 @@
      "nodeInfo": {
       "$ref": "v1.NodeSystemInfo",
       "description": "Set of ids/uuids to uniquely identify the node. More info: http://releases.k8s.io/HEAD/docs/admin/node.md#node-info"
+     },
+     "images": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ContainerImage"
+      },
+      "description": "List of container images on this node"
      }
     }
    },
@@ -14418,6 +14802,27 @@
      "kubeProxyVersion": {
       "type": "string",
       "description": "KubeProxy Version reported by the node."
+     }
+    }
+   },
+   "v1.ContainerImage": {
+    "id": "v1.ContainerImage",
+    "description": "Describe a container image",
+    "required": [
+     "repoTags"
+    ],
+    "properties": {
+     "repoTags": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Names by which this image is known. e.g. [\"gcr.io/google_containers/hyperkube:v1.0.7\", \"dockerhub.io/google_containers/hyperkube:v1.0.7\"]"
+     },
+     "size": {
+      "type": "integer",
+      "format": "int64",
+      "description": "The size of the image in bytes."
      }
     }
    },
@@ -14641,6 +15046,10 @@
       "$ref": "v1.FlockerVolumeSource",
       "description": "Flocker represents a Flocker volume attached to a kubelet's host machine and exposed to the pod for its usage. This depends on the Flocker control service being running"
      },
+     "flexVolume": {
+      "$ref": "v1.FlexVolumeSource",
+      "description": "FlexVolume represents a generic volume resource that is provisioned/attached using a exec based plugin. This is an alpha feature and may change in future."
+     },
      "accessModes": {
       "type": "array",
       "items": {
@@ -14660,7 +15069,7 @@
    },
    "v1.GCEPersistentDiskVolumeSource": {
     "id": "v1.GCEPersistentDiskVolumeSource",
-    "description": "GCEPersistentDiskVolumeSource represents a Persistent Disk resource in Google Compute Engine.\n\nA GCE PD must exist and be formatted before mounting to a container. The disk must also be in the same GCE project and zone as the kubelet. A GCE PD can only be mounted as read/write once.",
+    "description": "Represents a Persistent Disk resource in Google Compute Engine.\n\nA GCE PD must exist and be formatted before mounting to a container. The disk must also be in the same GCE project and zone as the kubelet. A GCE PD can only be mounted as read/write once. GCE PDs support ownership management and SELinux relabeling.",
     "required": [
      "pdName",
      "fsType"
@@ -14687,7 +15096,7 @@
    },
    "v1.AWSElasticBlockStoreVolumeSource": {
     "id": "v1.AWSElasticBlockStoreVolumeSource",
-    "description": "Represents a persistent disk resource in AWS.\n\nAn Amazon Elastic Block Store (EBS) must already be created, formatted, and reside in the same AWS zone as the kubelet before it can be mounted. Note: Amazon EBS volumes can be mounted to only one instance at a time.",
+    "description": "Represents a Persistent Disk resource in AWS.\n\nAn AWS EBS disk must exist and be formatted before mounting to a container. The disk must also be in the same AWS zone as the kubelet. An AWS EBS disk can only be mounted as read/write once. AWS EBS volumes support ownership management and SELinux relabeling.",
     "required": [
      "volumeID",
      "fsType"
@@ -14714,7 +15123,7 @@
    },
    "v1.HostPathVolumeSource": {
     "id": "v1.HostPathVolumeSource",
-    "description": "HostPathVolumeSource represents bare host directory volume.",
+    "description": "Represents a host path mapped into a pod. Host path volumes do not support ownership management or SELinux relabeling.",
     "required": [
      "path"
     ],
@@ -14727,7 +15136,7 @@
    },
    "v1.GlusterfsVolumeSource": {
     "id": "v1.GlusterfsVolumeSource",
-    "description": "GlusterfsVolumeSource represents a Glusterfs Mount that lasts the lifetime of a pod.",
+    "description": "Represents a Glusterfs mount that lasts the lifetime of a pod. Glusterfs volumes do not support ownership management or SELinux relabeling.",
     "required": [
      "endpoints",
      "path"
@@ -14749,7 +15158,7 @@
    },
    "v1.NFSVolumeSource": {
     "id": "v1.NFSVolumeSource",
-    "description": "NFSVolumeSource represents an NFS mount that lasts the lifetime of a pod",
+    "description": "Represents an NFS mount that lasts the lifetime of a pod. NFS volumes do not support ownership management or SELinux relabeling.",
     "required": [
      "server",
      "path"
@@ -14771,7 +15180,7 @@
    },
    "v1.RBDVolumeSource": {
     "id": "v1.RBDVolumeSource",
-    "description": "RBDVolumeSource represents a Rados Block Device Mount that lasts the lifetime of a pod",
+    "description": "Represents a Rados Block Device mount that lasts the lifetime of a pod. RBD volumes support ownership management and SELinux relabeling.",
     "required": [
      "monitors",
      "image",
@@ -14830,7 +15239,7 @@
    },
    "v1.ISCSIVolumeSource": {
     "id": "v1.ISCSIVolumeSource",
-    "description": "ISCSIVolumeSource describes an ISCSI Disk can only be mounted as read/write once.",
+    "description": "Represents an ISCSI disk. ISCSI volumes can only be mounted as read/write once. ISCSI volumes support ownership management and SELinux relabeling.",
     "required": [
      "targetPortal",
      "iqn",
@@ -14867,7 +15276,7 @@
    },
    "v1.CinderVolumeSource": {
     "id": "v1.CinderVolumeSource",
-    "description": "CinderVolumeSource represents a cinder volume resource in Openstack. A Cinder volume must exist before mounting to a container. The volume must also be in the same region as the kubelet.",
+    "description": "Represents a cinder volume resource in Openstack. A Cinder volume must exist before mounting to a container. The volume must also be in the same region as the kubelet. Cinder volumes support ownership management and SELinux relabeling.",
     "required": [
      "volumeID"
     ],
@@ -14888,7 +15297,7 @@
    },
    "v1.CephFSVolumeSource": {
     "id": "v1.CephFSVolumeSource",
-    "description": "CephFSVolumeSource represents a Ceph Filesystem Mount that lasts the lifetime of a pod",
+    "description": "Represents a Ceph Filesystem mount that lasts the lifetime of a pod Cephfs volumes do not support ownership management or SELinux relabeling.",
     "required": [
      "monitors"
     ],
@@ -14920,7 +15329,7 @@
    },
    "v1.FCVolumeSource": {
     "id": "v1.FCVolumeSource",
-    "description": "A Fibre Channel Disk can only be mounted as read/write once.",
+    "description": "Represents a Fibre Channel volume. Fibre Channel volumes can only be mounted as read/write once. Fibre Channel volumes support ownership management and SELinux relabeling.",
     "required": [
      "targetWWNs",
      "lun",
@@ -14951,7 +15360,7 @@
    },
    "v1.FlockerVolumeSource": {
     "id": "v1.FlockerVolumeSource",
-    "description": "FlockerVolumeSource represents a Flocker volume mounted by the Flocker agent.",
+    "description": "Represents a Flocker volume mounted by the Flocker agent. Flocker volumes do not support ownership management or SELinux relabeling.",
     "required": [
      "datasetName"
     ],
@@ -14959,6 +15368,35 @@
      "datasetName": {
       "type": "string",
       "description": "Required: the volume name. This is going to be store on metadata -\u003e name on the payload for Flocker"
+     }
+    }
+   },
+   "v1.FlexVolumeSource": {
+    "id": "v1.FlexVolumeSource",
+    "description": "FlexVolume represents a generic volume resource that is provisioned/attached using a exec based plugin. This is an alpha feature and may change in future.",
+    "required": [
+     "driver"
+    ],
+    "properties": {
+     "driver": {
+      "type": "string",
+      "description": "Driver is the name of the driver to use for this volume."
+     },
+     "fsType": {
+      "type": "string",
+      "description": "Required: Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. \"ext4\", \"xfs\", \"ntfs\""
+     },
+     "secretRef": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "Optional: SecretRef is reference to the authentication secret for User, default is empty."
+     },
+     "readOnly": {
+      "type": "boolean",
+      "description": "Optional: Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts."
+     },
+     "options": {
+      "type": "any",
+      "description": "Optional: Extra command options if any."
      }
     }
    },
@@ -15079,7 +15517,7 @@
      },
      "host": {
       "type": "string",
-      "description": "deprecated, use nodeName instead"
+      "description": "DeprecatedHost is a request to schedule this pod onto a specific node"
      },
      "serviceAccountName": {
       "type": "string",
@@ -15173,6 +15611,10 @@
       "$ref": "v1.RBDVolumeSource",
       "description": "RBD represents a Rados Block Device mount on the host that shares a pod's lifetime. More info: http://releases.k8s.io/HEAD/examples/rbd/README.md"
      },
+     "flexVolume": {
+      "$ref": "v1.FlexVolumeSource",
+      "description": "FlexVolume represents a generic volume resource that is provisioned/attached using a exec based plugin. This is an alpha feature and may change in future."
+     },
      "cinder": {
       "$ref": "v1.CinderVolumeSource",
       "description": "Cinder represents a cinder volume attached and mounted on kubelets host machine More info: http://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md"
@@ -15194,13 +15636,14 @@
       "description": "FC represents a Fibre Channel resource that is attached to a kubelet's host machine and then exposed to the pod."
      },
      "metadata": {
-      "$ref": "v1.MetadataVolumeSource"
+      "$ref": "v1.MetadataVolumeSource",
+      "description": "Metadata represents metadata about the pod that should populate this volume NOTE: Deprecated in favor of DownwardAPI"
      }
     }
    },
    "v1.EmptyDirVolumeSource": {
     "id": "v1.EmptyDirVolumeSource",
-    "description": "EmptyDirVolumeSource is temporary directory that shares a pod's lifetime.",
+    "description": "Represents an empty directory for a pod. Empty directory volumes support ownership management and SELinux relabeling.",
     "properties": {
      "medium": {
       "type": "string",
@@ -15210,7 +15653,7 @@
    },
    "v1.GitRepoVolumeSource": {
     "id": "v1.GitRepoVolumeSource",
-    "description": "GitRepoVolumeSource represents a volume that is pulled from git when the pod is created.",
+    "description": "Represents a volume that is populated with the contents of a git repository. Git repo volumes do not support ownership management. Git repo volumes support SELinux relabeling.",
     "required": [
      "repository"
     ],
@@ -15231,14 +15674,11 @@
    },
    "v1.SecretVolumeSource": {
     "id": "v1.SecretVolumeSource",
-    "description": "SecretVolumeSource adapts a Secret into a VolumeSource. More info: http://releases.k8s.io/HEAD/docs/design/secrets.md",
-    "required": [
-     "secretName"
-    ],
+    "description": "Adapts a Secret into a volume.\n\nThe contents of the target Secret's Data field will be presented in a volume as files using the keys in the Data field as the file names. Secret volumes support ownership management and SELinux relabeling.",
     "properties": {
      "secretName": {
       "type": "string",
-      "description": "SecretName is the name of a secret in the pod's namespace. More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#secrets"
+      "description": "Name of the secret in the pod's namespace to use. More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#secrets"
      }
     }
    },
@@ -15261,7 +15701,7 @@
    },
    "v1.DownwardAPIVolumeSource": {
     "id": "v1.DownwardAPIVolumeSource",
-    "description": "DownwardAPIVolumeSource represents a volume containing downward API info",
+    "description": "DownwardAPIVolumeSource represents a volume containing downward API info. Downward API volumes support ownership management and SELinux relabeling.",
     "properties": {
      "items": {
       "type": "array",
@@ -15309,18 +15749,20 @@
    },
    "v1.MetadataVolumeSource": {
     "id": "v1.MetadataVolumeSource",
+    "description": "MetadataVolumeSource represents a volume containing metadata about a pod. NOTE: Deprecated in favor of DownwardAPIVolumeSource",
     "properties": {
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.MetadataFile"
       },
-      "description": "list of metadata files"
+      "description": "Items is a list of metadata file name"
      }
     }
    },
    "v1.MetadataFile": {
     "id": "v1.MetadataFile",
+    "description": "MetadataFile expresses information about a file holding pod metadata. NOTE: Deprecated in favor of DownwardAPIVolumeFile",
     "required": [
      "name",
      "fieldRef"
@@ -15328,11 +15770,11 @@
     "properties": {
      "name": {
       "type": "string",
-      "description": "the name of the file to be created"
+      "description": "Required: Name is the name of the file"
      },
      "fieldRef": {
       "$ref": "v1.ObjectFieldSelector",
-      "description": "selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace"
+      "description": "Required: Selects a field of the pod: only annotations, labels, name and namespace are supported."
      }
     }
    },
@@ -15487,13 +15929,52 @@
    "v1.EnvVarSource": {
     "id": "v1.EnvVarSource",
     "description": "EnvVarSource represents a source for the value of an EnvVar.",
-    "required": [
-     "fieldRef"
-    ],
     "properties": {
      "fieldRef": {
       "$ref": "v1.ObjectFieldSelector",
-      "description": "Selects a field of the pod. Only name and namespace are supported."
+      "description": "Selects a field of the pod; only name and namespace are supported."
+     },
+     "configMapKeyRef": {
+      "$ref": "v1.ConfigMapKeySelector",
+      "description": "Selects a key of a ConfigMap."
+     },
+     "secretKeyRef": {
+      "$ref": "v1.SecretKeySelector",
+      "description": "Selects a key of a secret in the pod's namespace"
+     }
+    }
+   },
+   "v1.ConfigMapKeySelector": {
+    "id": "v1.ConfigMapKeySelector",
+    "description": "Selects a key from a ConfigMap.",
+    "required": [
+     "key"
+    ],
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "Name of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names"
+     },
+     "key": {
+      "type": "string",
+      "description": "The key to select."
+     }
+    }
+   },
+   "v1.SecretKeySelector": {
+    "id": "v1.SecretKeySelector",
+    "description": "SecretKeySelector selects a key of a Secret.",
+    "required": [
+     "key"
+    ],
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "Name of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names"
+     },
+     "key": {
+      "type": "string",
+      "description": "The key of the secret to select from.  Must be a valid secret key."
      }
     }
    },
@@ -16248,6 +16729,7 @@
    },
    "v1.SecurityContextConstraintsList": {
     "id": "v1.SecurityContextConstraintsList",
+    "description": "SecurityContextConstraintsList is a list of SecurityContextConstraints objects",
     "required": [
      "items"
     ],
@@ -16273,6 +16755,7 @@
    },
    "v1.SecurityContextConstraints": {
     "id": "v1.SecurityContextConstraints",
+    "description": "SecurityContextConstraints governs the ability to make requests that affect the SecurityContext that will be applied to a container.",
     "required": [
      "priority",
      "allowPrivilegedContainer",
@@ -16300,91 +16783,92 @@
      "priority": {
       "type": "integer",
       "format": "int32",
-      "description": "determines which SCC is used when multiple SCCs allow a particular pod; higher priority SCCs are preferred"
+      "description": "Priority influences the sort order of SCCs when evaluating which SCCs to try first for a given pod request based on access in the Users and Groups fields.  The higher the int, the higher priority.  If scores for multiple SCCs are equal they will be sorted by name."
      },
      "allowPrivilegedContainer": {
       "type": "boolean",
-      "description": "allow containers to run as privileged"
+      "description": "AllowPrivilegedContainer determines if a container can request to be run as privileged."
      },
      "defaultAddCapabilities": {
       "type": "array",
       "items": {
        "$ref": "v1.Capability"
       },
-      "description": "capabilities that are added by default but may be dropped"
+      "description": "DefaultAddCapabilities is the default set of capabilities that will be added to the container unless the pod spec specifically drops the capability.  You may not list a capabiility in both DefaultAddCapabilities and RequiredDropCapabilities."
      },
      "requiredDropCapabilities": {
       "type": "array",
       "items": {
        "$ref": "v1.Capability"
       },
-      "description": "capabilities that will be dropped by default and may not be added"
+      "description": "RequiredDropCapabilities are the capabilities that will be dropped from the container.  These are required to be dropped and cannot be added."
      },
      "allowedCapabilities": {
       "type": "array",
       "items": {
        "$ref": "v1.Capability"
       },
-      "description": "capabilities that are allowed to be added"
+      "description": "AllowedCapabilities is a list of capabilities that can be requested to add to the container. Capabilities in this field maybe added at the pod author's discretion. You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities."
      },
      "allowHostDirVolumePlugin": {
       "type": "boolean",
-      "description": "allow the use of the host dir volume plugin"
+      "description": "AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin"
      },
      "allowHostNetwork": {
       "type": "boolean",
-      "description": "allow the use of the hostNetwork in the pod spec"
+      "description": "AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec."
      },
      "allowHostPorts": {
       "type": "boolean",
-      "description": "allow the use of the host ports in the containers"
+      "description": "AllowHostPorts determines if the policy allows host ports in the containers."
      },
      "allowHostPID": {
       "type": "boolean",
-      "description": "allow the use of the host pid in the containers"
+      "description": "AllowHostPID determines if the policy allows host pid in the containers."
      },
      "allowHostIPC": {
       "type": "boolean",
-      "description": "allow the use of the host ipc in the containers"
+      "description": "AllowHostIPC determines if the policy allows host ipc in the containers."
      },
      "seLinuxContext": {
       "$ref": "v1.SELinuxContextStrategyOptions",
-      "description": "strategy used to generate SELinuxOptions"
+      "description": "SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext."
      },
      "runAsUser": {
       "$ref": "v1.RunAsUserStrategyOptions",
-      "description": "strategy used to generate RunAsUser"
+      "description": "RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext."
      },
      "supplementalGroups": {
       "$ref": "v1.SupplementalGroupsStrategyOptions",
-      "description": "strategy used to generate supplemental groups"
+      "description": "SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext."
      },
      "fsGroup": {
       "$ref": "v1.FSGroupStrategyOptions",
-      "description": "strategy used to generate fsGroup"
+      "description": "FSGroup is the strategy that will dictate what fs group is used by the SecurityContext."
      },
      "users": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "users allowed to use this SecurityContextConstraints"
+      "description": "The users who have permissions to use this security context constraints"
      },
      "groups": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "groups allowed to use this SecurityContextConstraints"
+      "description": "The groups that have permission to use this security context constraints"
      }
     }
    },
    "v1.SELinuxContextStrategyOptions": {
     "id": "v1.SELinuxContextStrategyOptions",
+    "description": "SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.",
     "properties": {
      "type": {
       "type": "string",
-      "description": "strategy used to generate the SELinux context"
+      "description": "Type is the strategy that will dictate what SELinux context is used in the SecurityContext."
      },
      "seLinuxOptions": {
       "$ref": "v1.SELinuxOptions",
@@ -16394,72 +16878,76 @@
    },
    "v1.RunAsUserStrategyOptions": {
     "id": "v1.RunAsUserStrategyOptions",
+    "description": "RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.",
     "properties": {
      "type": {
       "type": "string",
-      "description": "strategy used to generate RunAsUser"
+      "description": "Type is the strategy that will dictate what RunAsUser is used in the SecurityContext."
      },
      "uid": {
       "type": "integer",
       "format": "int64",
-      "description": "the uid to always run as; required for MustRunAs"
+      "description": "UID is the user id that containers must run as.  Required for the MustRunAs strategy if not using namespace/service account allocated uids."
      },
      "uidRangeMin": {
       "type": "integer",
       "format": "int64",
-      "description": "min value for range based allocators"
+      "description": "UIDRangeMin defines the min value for a strategy that allocates by range."
      },
      "uidRangeMax": {
       "type": "integer",
       "format": "int64",
-      "description": "max value for range based allocators"
+      "description": "UIDRangeMax defines the max value for a strategy that allocates by range."
      }
     }
    },
    "v1.SupplementalGroupsStrategyOptions": {
     "id": "v1.SupplementalGroupsStrategyOptions",
+    "description": "SupplementalGroupsStrategyOptions defines the strategy type and options used to create the strategy.",
     "properties": {
      "type": {
       "type": "string",
-      "description": "strategy used to generate supplemental groups"
+      "description": "Type is the strategy that will dictate what supplemental groups is used in the SecurityContext."
      },
      "ranges": {
       "type": "array",
       "items": {
        "$ref": "v1.IDRange"
       },
-      "description": "ranges of allowable IDs for supplemental groups"
+      "description": "Ranges are the allowed ranges of supplemental groups.  If you would like to force a single supplemental group then supply a single range with the same start and end."
      }
     }
    },
    "v1.IDRange": {
     "id": "v1.IDRange",
+    "description": "IDRange provides a min/max of an allowed range of IDs.",
     "properties": {
      "min": {
       "type": "integer",
       "format": "int64",
-      "description": "min value for the range"
+      "description": "Min is the start of the range, inclusive."
      },
      "max": {
       "type": "integer",
       "format": "int64",
-      "description": "min value for the range"
+      "description": "Max is the end of the range, inclusive."
      }
     }
    },
    "v1.FSGroupStrategyOptions": {
     "id": "v1.FSGroupStrategyOptions",
+    "description": "FSGroupStrategyOptions defines the strategy type and options used to create the strategy.",
     "properties": {
      "type": {
       "type": "string",
-      "description": "strategy used to generate fsGroup"
+      "description": "Type is the strategy that will dictate what FSGroup is used in the SecurityContext."
      },
      "ranges": {
       "type": "array",
       "items": {
        "$ref": "v1.IDRange"
       },
-      "description": "ranges of allowable IDs for fsGroup"
+      "description": "Ranges are the allowed ranges of fs groups.  If you would like to force a single fs group then supply a single range with the same start and end."
      }
     }
    },
@@ -16597,7 +17085,7 @@
      },
      "portalIP": {
       "type": "string",
-      "description": "deprecated, use clusterIP instead"
+      "description": "DeprecatedPortalIP"
      },
      "clusterIP": {
       "type": "string",

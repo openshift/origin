@@ -1,19 +1,3 @@
-/*
-Copyright 2014 Google Inc. All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package lifecycle
 
 import (
@@ -29,11 +13,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/latest"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/project/cache"
 	projectutil "github.com/openshift/origin/pkg/project/util"
@@ -70,7 +54,12 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	if isSubjectAccessReview(a) {
 		return nil
 	}
-	mapping, err := latest.RESTMapper.RESTMapping(a.GetKind())
+
+	groupMeta, err := registered.Group(a.GetKind().Group)
+	if err != nil {
+		return err
+	}
+	mapping, err := groupMeta.RESTMapper.RESTMapping(a.GetKind())
 	if err != nil {
 		glog.V(4).Infof("Ignoring life-cycle enforcement for resource %v; no associated default version and kind could be found.", a.GetResource())
 		return nil
@@ -104,7 +93,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	}
 
 	if namespace.Status.Phase == kapi.NamespaceTerminating && !e.creatableResources.Has(strings.ToLower(a.GetResource().Resource)) {
-		return apierrors.NewForbidden(a.GetKind().Kind, name, fmt.Errorf("Namespace %s is terminating", a.GetNamespace()))
+		return apierrors.NewForbidden(a.GetResource(), name, fmt.Errorf("Namespace %s is terminating", a.GetNamespace()))
 	}
 
 	// in case of concurrency issues, we will retry this logic

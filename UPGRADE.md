@@ -81,3 +81,12 @@ references:
 ## Origin 1.1.x / OSE 3.1.x
 
 1. The `buildconfig` label on Build objects, which contains the name of the BuildConfig for the Build, has been deprecated in favor of a new `openshift.io/build-config.name` label.
+
+## Origin 1.2.x / OSE 3.2.x
+
+1.  Field names in `yaml` and `json` files will now follow strict rules for case sensitivity.  
+  Incorrectly cased field names will now be rejected.  Please ensure all `yaml` and `json` files
+  conform to the naming conventions defined in [REST API](https://docs.openshift.org/latest/rest_api/index.html) 
+
+1.  The existing docker registry images will not be able to support auto-provisioning of image streams based on docker pushes against new API servers.
+  Upgrade your docker registry image to make auto-provisioning work again.

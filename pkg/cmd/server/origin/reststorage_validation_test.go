@@ -11,6 +11,7 @@ import (
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/validation"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )

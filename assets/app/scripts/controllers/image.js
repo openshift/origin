@@ -24,6 +24,7 @@ angular.module('openshiftConsole')
         title: $routeParams.image
       }
     ];
+    $scope.emptyMessage = "Loading...";
 
     var watches = [];
 
@@ -36,6 +37,7 @@ angular.module('openshiftConsole')
           function(imageStream) {
             $scope.loaded = true;
             $scope.imageStream = imageStream;
+            $scope.emptyMessage = "No tags to show";
 
             // If we found the item successfully, watch for changes on it
             watches.push(DataService.watchObject("imagestreams", $routeParams.image, context, function(imageStream, action) {

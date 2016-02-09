@@ -14,17 +14,21 @@ import (
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	requestlimitapi "github.com/openshift/origin/pkg/project/admission/requestlimit/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestReadConfig(t *testing.T) {
 
 	tests := []struct {
 		config      string
-		expected    ProjectRequestLimitConfig
+		expected    requestlimitapi.ProjectRequestLimitConfig
 		errExpected bool
 	}{
 		{
@@ -50,8 +54,8 @@ limits:
 - selector: {}
   maxProjects: 1
 `,
-			expected: ProjectRequestLimitConfig{
-				Limits: []ProjectLimitBySelector{
+			expected: requestlimitapi.ProjectRequestLimitConfig{
+				Limits: []requestlimitapi.ProjectLimitBySelector{
 					{
 						Selector:    map[string]string{"level": "platinum"},
 						MaxProjects: nil,
@@ -82,8 +86,8 @@ kind: ProjectRequestLimitConfig
 limits:
 - maxProjects: 1
 `,
-			expected: ProjectRequestLimitConfig{
-				Limits: []ProjectLimitBySelector{
+			expected: requestlimitapi.ProjectRequestLimitConfig{
+				Limits: []requestlimitapi.ProjectLimitBySelector{
 					{
 						Selector:    nil,
 						MaxProjects: intp(1),
@@ -96,7 +100,7 @@ limits:
 			config: `apiVersion: v1
 kind: ProjectRequestLimitConfig
 `,
-			expected: ProjectRequestLimitConfig{},
+			expected: requestlimitapi.ProjectRequestLimitConfig{},
 		},
 	}
 
@@ -173,7 +177,7 @@ func TestMaxProjectByRequester(t *testing.T) {
 
 func TestAdmit(t *testing.T) {
 	tests := []struct {
-		config          *ProjectRequestLimitConfig
+		config          *requestlimitapi.ProjectRequestLimitConfig
 		user            string
 		expectForbidden bool
 	}{
@@ -266,7 +270,7 @@ func selectorEquals(a, b map[string]string) bool {
 	return true
 }
 
-func configEquals(a, b *ProjectRequestLimitConfig) bool {
+func configEquals(a, b *requestlimitapi.ProjectRequestLimitConfig) bool {
 	if len(a.Limits) != len(b.Limits) {
 		return false
 	}
@@ -322,9 +326,9 @@ func userFn(usersAndLabels map[string]labels.Set) ktestclient.ReactionFunc {
 	}
 }
 
-func multiLevelConfig() *ProjectRequestLimitConfig {
-	return &ProjectRequestLimitConfig{
-		Limits: []ProjectLimitBySelector{
+func multiLevelConfig() *requestlimitapi.ProjectRequestLimitConfig {
+	return &requestlimitapi.ProjectRequestLimitConfig{
+		Limits: []requestlimitapi.ProjectLimitBySelector{
 			{
 				Selector:    map[string]string{"platinum": "yes"},
 				MaxProjects: nil,
@@ -349,13 +353,13 @@ func multiLevelConfig() *ProjectRequestLimitConfig {
 	}
 }
 
-func emptyConfig() *ProjectRequestLimitConfig {
-	return &ProjectRequestLimitConfig{}
+func emptyConfig() *requestlimitapi.ProjectRequestLimitConfig {
+	return &requestlimitapi.ProjectRequestLimitConfig{}
 }
 
-func singleDefaultConfig() *ProjectRequestLimitConfig {
-	return &ProjectRequestLimitConfig{
-		Limits: []ProjectLimitBySelector{
+func singleDefaultConfig() *requestlimitapi.ProjectRequestLimitConfig {
+	return &requestlimitapi.ProjectRequestLimitConfig{
+		Limits: []requestlimitapi.ProjectLimitBySelector{
 			{
 				Selector:    nil,
 				MaxProjects: intp(1),

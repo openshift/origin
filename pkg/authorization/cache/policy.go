@@ -5,7 +5,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/runtime"
 	kfield "k8s.io/kubernetes/pkg/util/validation/field"
@@ -33,20 +32,10 @@ func NewReadOnlyPolicyCache(registry policyregistry.WatchingRegistry) *readOnlyP
 	reflector := cache.NewReflector(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				opts := &unversioned.ListOptions{
-					LabelSelector:   unversioned.LabelSelector{Selector: options.LabelSelector},
-					FieldSelector:   unversioned.FieldSelector{Selector: options.FieldSelector},
-					ResourceVersion: options.ResourceVersion,
-				}
-				return registry.ListPolicies(ctx, opts)
+				return registry.ListPolicies(ctx, &options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				opts := &unversioned.ListOptions{
-					LabelSelector:   unversioned.LabelSelector{Selector: options.LabelSelector},
-					FieldSelector:   unversioned.FieldSelector{Selector: options.FieldSelector},
-					ResourceVersion: options.ResourceVersion,
-				}
-				return registry.WatchPolicies(ctx, opts)
+				return registry.WatchPolicies(ctx, &options)
 			},
 		},
 		&authorizationapi.Policy{},
@@ -79,7 +68,7 @@ func (c *readOnlyPolicyCache) LastSyncResourceVersion() string {
 	return c.reflector.LastSyncResourceVersion()
 }
 
-func (c *readOnlyPolicyCache) List(options *unversioned.ListOptions, namespace string) (*authorizationapi.PolicyList, error) {
+func (c *readOnlyPolicyCache) List(options *kapi.ListOptions, namespace string) (*authorizationapi.PolicyList, error) {
 	var returnedList []interface{}
 	if namespace == kapi.NamespaceAll {
 		returnedList = c.indexer.List()
@@ -87,7 +76,7 @@ func (c *readOnlyPolicyCache) List(options *unversioned.ListOptions, namespace s
 		items, err := c.indexer.Index("namespace", &authorizationapi.Policy{ObjectMeta: kapi.ObjectMeta{Namespace: namespace}})
 		returnedList = items
 		if err != nil {
-			return &authorizationapi.PolicyList{}, errors.NewInvalid("PolicyList", "policyList", kfield.ErrorList{kfield.Invalid(kfield.NewPath("policyList"), nil, err.Error())})
+			return &authorizationapi.PolicyList{}, errors.NewInvalid(authorizationapi.Kind("PolicyList"), "policyList", kfield.ErrorList{kfield.Invalid(kfield.NewPath("policyList"), nil, err.Error())})
 		}
 	}
 	policyList := &authorizationapi.PolicyList{}
@@ -95,7 +84,7 @@ func (c *readOnlyPolicyCache) List(options *unversioned.ListOptions, namespace s
 	for i := range returnedList {
 		policy, castOK := returnedList[i].(*authorizationapi.Policy)
 		if !castOK {
-			return policyList, errors.NewInvalid("PolicyList", "policyList", kfield.ErrorList{})
+			return policyList, errors.NewInvalid(authorizationapi.Kind("PolicyList"), "policyList", kfield.ErrorList{})
 		}
 		if matches, err := matcher.Matches(policy); err == nil && matches {
 			policyList.Items = append(policyList.Items, *policy)
@@ -113,12 +102,12 @@ func (c *readOnlyPolicyCache) Get(name, namespace string) (*authorizationapi.Pol
 		return &authorizationapi.Policy{}, getErr
 	}
 	if !exists {
-		existsErr := errors.NewNotFound("Policy", name)
+		existsErr := errors.NewNotFound(authorizationapi.Resource("policy"), name)
 		return &authorizationapi.Policy{}, existsErr
 	}
 	policy, castOK := item.(*authorizationapi.Policy)
 	if !castOK {
-		castErr := errors.NewInvalid("Policy", name, kfield.ErrorList{})
+		castErr := errors.NewInvalid(authorizationapi.Kind("Policy"), name, kfield.ErrorList{})
 		return &authorizationapi.Policy{}, castErr
 	}
 	return policy, nil
@@ -137,7 +126,7 @@ func newReadOnlyPolicies(cache readOnlyAuthorizationCache, namespace string) cli
 	}
 }
 
-func (p *readOnlyPolicies) List(options *unversioned.ListOptions) (*authorizationapi.PolicyList, error) {
+func (p *readOnlyPolicies) List(options *kapi.ListOptions) (*authorizationapi.PolicyList, error) {
 	return p.readOnlyPolicyCache.List(options, p.namespace)
 }
 

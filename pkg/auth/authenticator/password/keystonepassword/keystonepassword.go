@@ -78,7 +78,8 @@ func (a keystonePasswordAuthenticator) AuthenticatePassword(username, password s
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 	user, err := a.identityMapper.UserFor(identity)
 	if err != nil {
-		return nil, false, fmt.Errorf("Error creating or updating mapping for: %#v due to %v", identity, err)
+		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
+		return nil, false, err
 	}
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 

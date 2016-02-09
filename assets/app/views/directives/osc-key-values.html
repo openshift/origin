@@ -1,11 +1,11 @@
 <div ng-controller="KeyValuesController" class="labels">
     <div class="form-inline labels-edit" ng-show="editable">
-      <form class="edit-label" name="form" novalidate>
+      <ng-form class="edit-label" name="form" novalidate>
         <div class='form-group' ng-class="{'has-error': form.key.$error.oscKeyValid}">
           <input class="form-control"
                  type="text"
                  name="key"
-                 placeholder="{{keyTitle}}"
+                 ng-attr-placeholder="{{keyTitle}}"
                  ng-model="key"
                  autocorrect="off"
                  autocapitalize="off"
@@ -16,7 +16,7 @@
           <input class="form-control"
                  type="text"
                  name="value"
-                 placeholder="Value"
+                 ng-attr-placeholder="{{valueTitle}}"
                  ng-model="value"
                  autocorrect="off"
                  autocapitalize="off"
@@ -25,7 +25,7 @@
         </div>
         <button class="btn btn-default" ng-click="addEntry()" ng-disabled="form.key.$error.oscKeyValid || form.value.$error.oscValueValid">Add</button>
         <div class="has-error" ng-show="form.key.$error.oscKeyValid">
-          <span class="help-block">Please enter a valid key
+          <span class="help-block">Please enter a valid {{setErrorText(keyValidator)}}
             <span class="help action-inline" ng-if="keyValidationTooltip">
               <a  data-toggle="tooltip" data-placement="right"
                 data-original-title="{{keyValidationTooltip}}">
@@ -44,7 +44,7 @@
             </span>
           </span>
         </div>
-      </form>
+      </ng-form>
 
       <ul class="list-unstyled label-list">
         <li ng-repeat="(key,value) in entries | valuesIn:readonlyKeys">

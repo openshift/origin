@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -55,7 +55,7 @@ type AddSecretOptions struct {
 }
 
 // NewCmdAddSecret creates a command object for adding a secret reference to a service account
-func NewCmdAddSecret(name, fullName string, f *cmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddSecret(name, fullName string, f *kcmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &AddSecretOptions{Out: out}
 	var typeFlags []string
 
@@ -66,15 +66,15 @@ func NewCmdAddSecret(name, fullName string, f *cmdutil.Factory, out io.Writer) *
 		Example: fmt.Sprintf(addSecretExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := o.Complete(f, args, typeFlags); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
 
 			if err := o.Validate(); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
 
 			if err := o.AddSecrets(); err != nil {
-				cmdutil.CheckErr(err)
+				kcmdutil.CheckErr(err)
 			}
 
 		},
@@ -85,7 +85,7 @@ func NewCmdAddSecret(name, fullName string, f *cmdutil.Factory, out io.Writer) *
 	return cmd
 }
 
-func (o *AddSecretOptions) Complete(f *cmdutil.Factory, args []string, typeFlags []string) error {
+func (o *AddSecretOptions) Complete(f *kcmdutil.Factory, args []string, typeFlags []string) error {
 	if len(args) < 2 {
 		return errors.New("must have service account name and at least one secret name")
 	}
@@ -120,7 +120,7 @@ func (o *AddSecretOptions) Complete(f *cmdutil.Factory, args []string, typeFlags
 	}
 
 	o.Mapper, o.Typer = f.Object()
-	o.ClientMapper = f.ClientMapperForCommand()
+	o.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
 
 	return nil
 }
@@ -152,7 +152,7 @@ func (o AddSecretOptions) Validate() error {
 }
 
 func (o AddSecretOptions) AddSecrets() error {
-	r := resource.NewBuilder(o.Mapper, o.Typer, o.ClientMapper).
+	r := resource.NewBuilder(o.Mapper, o.Typer, o.ClientMapper, kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(o.Namespace).
 		ResourceNames("serviceaccounts", o.TargetName).
 		SingleResourceType().
@@ -213,7 +213,7 @@ func (o AddSecretOptions) addSecretsToServiceAccount(serviceaccount *kapi.Servic
 }
 
 func (o AddSecretOptions) getSecrets() ([]*kapi.Secret, error) {
-	r := resource.NewBuilder(o.Mapper, o.Typer, o.ClientMapper).
+	r := resource.NewBuilder(o.Mapper, o.Typer, o.ClientMapper, kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(o.Namespace).
 		ResourceNames("secrets", o.SecretNames...).
 		SingleResourceType().

@@ -344,6 +344,35 @@ PASS`,
 				},
 			},
 		},
+		{
+			name:     "coverage statement in package result and inline",
+			testFile: "11.txt",
+			expectedSuites: &api.TestSuites{
+				Suites: []*api.TestSuite{
+					{
+						Name:     "package/name",
+						NumTests: 2,
+						Duration: 0.16,
+						Properties: []*api.TestSuiteProperty{
+							{
+								Name:  "coverage.statements.pct",
+								Value: "10.0",
+							},
+						},
+						TestCases: []*api.TestCase{
+							{
+								Name:     "TestOne",
+								Duration: 0.06,
+							},
+							{
+								Name:     "TestTwo",
+								Duration: 0.1,
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, testCase := range testCases {

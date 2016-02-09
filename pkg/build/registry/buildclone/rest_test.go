@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	_ "github.com/openshift/origin/pkg/build/api/install"
 	"github.com/openshift/origin/pkg/build/generator"
 )
 

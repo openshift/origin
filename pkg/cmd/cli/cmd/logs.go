@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -73,11 +73,11 @@ func NewCmdLogs(name, parent string, f *clientcmd.Factory, out io.Writer) *cobra
 	cmd.Example = fmt.Sprintf(logsExample, parent+" "+name)
 	cmd.SuggestFor = []string{"builds", "deployments"}
 	cmd.Run = func(cmd *cobra.Command, args []string) {
-		cmdutil.CheckErr(o.Complete(f, out, cmd, args))
+		kcmdutil.CheckErr(o.Complete(f, out, cmd, args))
 		if err := o.Validate(); err != nil {
-			cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+			kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 		}
-		cmdutil.CheckErr(o.RunLog())
+		kcmdutil.CheckErr(o.RunLog())
 	}
 	cmd.Flags().Int64("version", 0, "View the logs of a particular build or deployment by version if greater than zero")
 
@@ -99,7 +99,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 	podLogOptions := o.KubeLogOptions.Options.(*kapi.PodLogOptions)
 
 	mapper, typer := f.Object()
-	infos, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+	infos, err := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(namespace).DefaultNamespace().
 		ResourceNames("pods", args...).
 		SingleResourceType().RequireObject(false).
@@ -111,12 +111,12 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 		return errors.New("expected a resource")
 	}
 
-	version := cmdutil.GetFlagInt64(cmd, "version")
-	_, resource := meta.KindToResource(infos[0].Mapping.GroupVersionKind.Kind, false)
+	version := kcmdutil.GetFlagInt64(cmd, "version")
+	_, resource := meta.KindToResource(infos[0].Mapping.GroupVersionKind, false)
 
 	// TODO: podLogOptions should be included in our own logOptions objects.
-	switch resource {
-	case "build", "buildconfig":
+	switch resource.GroupResource() {
+	case buildapi.Resource("build"), buildapi.Resource("buildconfig"):
 		bopts := &buildapi.BuildLogOptions{
 			Follow:       podLogOptions.Follow,
 			Previous:     podLogOptions.Previous,
@@ -130,7 +130,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 			bopts.Version = &version
 		}
 		o.Options = bopts
-	case "deploymentconfig":
+	case deployapi.Resource("deploymentconfig"):
 		dopts := &deployapi.DeploymentLogOptions{
 			Follow:       podLogOptions.Follow,
 			Previous:     podLogOptions.Previous,

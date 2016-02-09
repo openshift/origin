@@ -8,7 +8,6 @@ import (
 )
 
 func TestGetName(t *testing.T) {
-
 	for i := 0; i < 10; i++ {
 		shortName := randSeq(rand.Intn(kvalidation.DNS1123SubdomainMaxLength-1) + 1)
 		longName := randSeq(kvalidation.DNS1123SubdomainMaxLength + rand.Intn(100))
@@ -74,6 +73,19 @@ func TestGetNameIsDifferent(t *testing.T) {
 	builderName = GetName(longName, "build", kvalidation.DNS1123SubdomainMaxLength)
 	if deployerName == builderName {
 		t.Errorf("Expecting names to be different: %s\n", deployerName)
+	}
+}
+
+func TestGetNameReturnShortNames(t *testing.T) {
+	base := randSeq(32)
+	for maxLength := 0; maxLength < len(base)+2; maxLength++ {
+		for suffixLen := 0; suffixLen <= maxLength+1; suffixLen++ {
+			suffix := randSeq(suffixLen)
+			got := GetName(base, suffix, maxLength)
+			if len(got) > maxLength {
+				t.Fatalf("len(GetName(%[1]q, %[2]q, %[3]d)) = len(%[4]q) = %[5]d; want %[3]d", base, suffix, maxLength, got, len(got))
+			}
+		}
 	}
 }
 

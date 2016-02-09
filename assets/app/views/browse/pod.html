@@ -2,47 +2,49 @@
   <project-page>
 
     <!-- Middle section -->
-    <div class="middle-section" ng-if="pod">
+    <div class="middle-section">
       <div id="scrollable-content" class="middle-container has-scroll">
         <div class="middle-header">
           <div class="container-fluid">
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <alerts alerts="alerts"></alerts>
             <div ng-if="!loaded">Loading...</div>
-            <h1>
-              {{pod.metadata.name}}
+            <div ng-if="pod">
+              <h1>
+                {{pod.metadata.name}}
 
-              <div class="pull-right dropdown">
-                <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
-                <ul class="dropdown-menu actions action-button">
-                  <li>
-                    <edit-link
-                      resource="pod"
-                      kind="pods"
-                      alerts="alerts">
-                    </edit-link>
-                  </li>
-                  <li>
-                    <delete-link
-                      resource-type="pod"
-                      resource-name="{{pod.metadata.name}}"
-                      project-name="{{pod.metadata.namespace}}"
-                      alerts="alerts">
-                    </delete-link>
-                  </li>
-                </ul>
-              </div>
-              <span ng-if="pod | isTroubledPod">
-                <pod-warnings pod="pod" style="vertical-align: middle;"></pod-warnings>
-              </span>
-              <small class="meta">created <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp></small>
-            </h1>
-            <labels labels="pod.metadata.labels" clickable="true" kind="pods" project-name="{{pod.metadata.namespace}}" limit="3"></labels>
+                <div class="pull-right dropdown">
+                  <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                  <ul class="dropdown-menu actions action-button">
+                    <li>
+                      <edit-link
+                        resource="pod"
+                        kind="pods"
+                        alerts="alerts">
+                      </edit-link>
+                    </li>
+                    <li>
+                      <delete-link
+                        resource-type="pod"
+                        resource-name="{{pod.metadata.name}}"
+                        project-name="{{pod.metadata.namespace}}"
+                        alerts="alerts">
+                      </delete-link>
+                    </li>
+                  </ul>
+                </div>
+                <span ng-if="pod | isTroubledPod">
+                  <pod-warnings pod="pod" style="vertical-align: middle;"></pod-warnings>
+                </span>
+                <small class="meta">created <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp></small>
+              </h1>
+              <labels labels="pod.metadata.labels" clickable="true" kind="pods" project-name="{{pod.metadata.namespace}}" limit="3"></labels>
+            </div>
           </div>
         </div><!-- /middle-header-->
         <div class="middle-content">
           <div class="container-fluid">
-            <div class="row">
+            <div class="row" ng-if="pod">
               <div class="col-md-12">
                 <uib-tabset>
                   <uib-tab heading="Details" active="selectedTab.details">
@@ -86,7 +88,9 @@
 
                     <log-viewer
                         ng-if="selectedTab.logs"
-                        kind="pods/log"
+                        follow-affix-top="390"
+                        follow-affix-bottom="90"
+                        resource="pods/log"
                         name="pod.metadata.name"
                         context="logContext"
                         options="logOptions"

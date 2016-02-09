@@ -7,8 +7,8 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -41,7 +41,7 @@ var STITempDirectoryCreator = &tempDirectoryCreator{}
 // CreateBuildPod creates a pod that will execute the STI build
 // TODO: Make the Pod definition configurable
 func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
-	data, err := bs.Codec.Encode(build)
+	data, err := runtime.Encode(bs.Codec, build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode the Build %s/%s: %v", build.Namespace, build.Name, err)
 	}

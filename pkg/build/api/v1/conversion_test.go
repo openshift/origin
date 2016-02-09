@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/conversion/queryparams"
 
 	newer "github.com/openshift/origin/pkg/build/api"
+	_ "github.com/openshift/origin/pkg/build/api/install"
 	older "github.com/openshift/origin/pkg/build/api/v1"
 	testutil "github.com/openshift/origin/test/util/api"
 )

@@ -73,7 +73,9 @@ type AppConfig struct {
 	ExpectToBuild      bool
 	BinaryBuild        bool
 	AllowMissingImages bool
-	Deploy             bool
+
+	Deploy           bool
+	AsTestDeployment bool
 
 	SourceImage     string
 	SourceImagePath string
@@ -681,7 +683,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				}
 			}
 			if c.Deploy {
-				if err := pipeline.NeedsDeployment(environment, c.Labels); err != nil {
+				if err := pipeline.NeedsDeployment(environment, c.Labels, c.AsTestDeployment); err != nil {
 					return nil, fmt.Errorf("can't set up a deployment for %q: %v", refInput, err)
 				}
 			}
@@ -735,7 +737,7 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, environme
 		if err != nil {
 			return nil, fmt.Errorf("error processing template %s/%s: %v", c.originNamespace, tpl.Name, err)
 		}
-		errs := runtime.DecodeList(result.Objects, kapi.Scheme)
+		errs := runtime.DecodeList(result.Objects, kapi.Codecs.UniversalDecoder())
 		if len(errs) > 0 {
 			err = errors.NewAggregate(errs)
 			return nil, fmt.Errorf("error processing template %s/%s: %v", c.originNamespace, tpl.Name, errs)
@@ -1044,12 +1046,11 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		}
 	}
 
-	imageRefs := components.ImageComponentRefs()
-	if len(imageRefs) > 1 && len(c.Name) > 0 {
+	if len(components.ImageComponentRefs().Group()) > 1 && len(c.Name) > 0 {
 		return nil, fmt.Errorf("only one component or source repository can be used when specifying a name")
 	}
-	if len(imageRefs) > 1 && len(c.To) > 0 {
-		return nil, fmt.Errorf("only one component or source repository can be used when specifying an output image reference")
+	if len(components.UseSource()) > 1 && len(c.To) > 0 {
+		return nil, fmt.Errorf("only one component with source can be used when specifying an output image reference")
 	}
 
 	env := app.Environment(environment)
@@ -1069,7 +1070,7 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		}, nil
 	}
 
-	pipelines, err := c.buildPipelines(imageRefs, env)
+	pipelines, err := c.buildPipelines(components.ImageComponentRefs(), env)
 	if err != nil {
 		if err == app.ErrNameRequired {
 			return nil, fmt.Errorf("can't suggest a valid name, please specify a name with --name")

@@ -80,7 +80,6 @@
     <script src="bower_components/sifter/sifter.js"></script>
     <script src="bower_components/microplugin/src/microplugin.js"></script>
     <script src="bower_components/selectize/dist/js/selectize.js"></script>
-    <script src="bower_components/zeroclipboard/dist/ZeroClipboard.js"></script>
     <script src="bower_components/messenger/build/js/messenger.js"></script>
     <script src="bower_components/messenger/build/js/messenger-theme-flat.js"></script>
     <script src="bower_components/kubernetes-label-selector/labelSelector.js"></script>
@@ -94,9 +93,11 @@
     <script src="bower_components/bootstrap-hover-dropdown/bootstrap-hover-dropdown.min.js"></script>
     <script src="bower_components/ace-builds/src-min-noconflict/ace.js"></script>
     <script src="bower_components/ace-builds/src-min-noconflict/mode-yaml.js"></script>
+    <script src="bower_components/ace-builds/src-min-noconflict/mode-dockerfile.js"></script>
     <script src="bower_components/ace-builds/src-min-noconflict/theme-eclipse.js"></script>
     <script src="bower_components/angular-ui-ace/ui-ace.js"></script>
     <script src="bower_components/yamljs/bin/yaml.js"></script>
+    <script src="bower_components/clipboard/dist/clipboard.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
@@ -109,6 +110,7 @@
         <script src="scripts/services/logger.js"></script>
         <script src="scripts/services/ws.js"></script>
         <script src="scripts/services/userstore.js"></script>
+        <script src="scripts/services/api.js"></script>
         <script src="scripts/services/auth.js"></script>
         <script src="scripts/services/data.js"></script>
         <script src="scripts/services/discovery.js"></script>
@@ -129,6 +131,7 @@
         <script src="scripts/services/metrics.js"></script>
         <script src="scripts/services/storage.js"></script>
         <script src="scripts/services/constants.js"></script>
+        <script src="scripts/services/limits.js"></script>
         <script src="scripts/controllers/projects.js"></script>
         <script src="scripts/controllers/pods.js"></script>
         <script src="scripts/controllers/pod.js"></script>
@@ -148,6 +151,8 @@
         <script src="scripts/controllers/route.js"></script>
         <script src="scripts/controllers/storage.js"></script>
         <script src="scripts/controllers/persistentVolumeClaim.js"></script>
+        <script src="scripts/controllers/setLimits.js"></script>
+        <script src="scripts/controllers/edit/buildConfig.js"></script>
         <script src="scripts/controllers/create/createFromImage.js"></script>
         <script src="scripts/controllers/create/nextSteps.js"></script>
         <script src="scripts/controllers/newfromtemplate.js"></script>
@@ -194,6 +199,7 @@
         <script src="scripts/directives/podStatusChart.js"></script>
         <script src="scripts/directives/quotaUsageChart.js"></script>
         <script src="scripts/directives/buildTrendsChart.js"></script>
+        <script src="scripts/directives/editRequestLimit.js"></script>
         <script src="scripts/filters/date.js"></script>
         <script src="scripts/filters/resources.js"></script>
         <script src="scripts/filters/util.js"></script>

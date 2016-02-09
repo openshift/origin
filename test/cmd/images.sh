@@ -12,9 +12,10 @@ os::log::install_errexit
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete images test
+  oc delete all,templates --all
   exit 0
-) 2>/dev/null 1>&2
+) &>/dev/null
+
 
 defaultimage="openshift/origin-\${component}:latest"
 USE_IMAGES=${USE_IMAGES:-$defaultimage}

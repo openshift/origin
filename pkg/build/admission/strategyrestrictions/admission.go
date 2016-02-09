@@ -7,7 +7,6 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -100,7 +99,7 @@ func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr ad
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:         "create",
 			Resource:     resourceForStrategyType(strategy),
-			Content:      runtime.EmbeddedObject{Object: build},
+			Content:      build,
 			ResourceName: resourceName(build.ObjectMeta),
 		},
 		User:   attr.GetUserInfo().GetName(),
@@ -115,7 +114,7 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:         "create",
 			Resource:     resourceForStrategyType(strategy),
-			Content:      runtime.EmbeddedObject{Object: buildConfig},
+			Content:      buildConfig,
 			ResourceName: resourceName(buildConfig.ObjectMeta),
 		},
 		User:   attr.GetUserInfo().GetName(),

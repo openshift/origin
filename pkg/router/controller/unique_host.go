@@ -99,10 +99,14 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 						glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
 						return fmt.Errorf("route %s holds %s and is older than %s", routeNameKey(oldest), host, key)
 					}
+					added = true
+					if old[i].Namespace == route.Namespace && old[i].Name == route.Name {
+						old[i] = route
+						break
+					}
 					glog.V(4).Infof("Route %s will replace path %s from %s because it is older", routeName, route.Spec.Path, routeNameKey(old[i]))
 					p.plugin.HandleRoute(watch.Deleted, old[i])
 					old[i] = route
-					added = true
 				}
 			}
 			if !added {

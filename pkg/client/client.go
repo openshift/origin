@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
@@ -274,16 +275,18 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 		groupVersionCopy := latest.Version
 		config.GroupVersion = &groupVersionCopy
 	}
-	if config.Prefix == "" {
-		config.Prefix = "/oapi"
+	if config.APIPath == "" {
+		config.APIPath = "/oapi"
 	}
-	version := config.GroupVersion
-	versionInterfaces, err := latest.InterfacesFor(*version)
-	if err != nil {
-		return fmt.Errorf("API version %q is not recognized (valid values: %v)", version, latest.Versions)
-	}
+
+	// groupMeta, err := registered.Group(config.GroupVersion.Group)
+	// if err != nil {
+	// 	return fmt.Errorf("API group %q is not recognized (valid values: %v)", config.GroupVersion.Group, latest.Versions)
+	// }
+
 	if config.Codec == nil {
-		config.Codec = versionInterfaces.Codec
+		config.Codec = kapi.Codecs.LegacyCodec(*config.GroupVersion)
+		// config.Codec = kapi.Codecs.CodecForVersions(groupMeta.Codec, []unversioned.GroupVersion{*config.GroupVersion}, groupMeta.GroupVersions)
 	}
 	return nil
 }

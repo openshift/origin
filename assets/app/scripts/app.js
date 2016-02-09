@@ -123,6 +123,10 @@ angular
         templateUrl: 'views/browse/build-config.html',
         controller: 'BuildConfigController'
       })
+      .when('/project/:project/edit/builds/:buildconfig', {
+        templateUrl: 'views/edit/build-config.html',
+        controller: 'EditBuildConfigController'
+      })
       .when('/project/:project/browse/builds/:buildconfig/:build', {
         templateUrl: function(params) {
           if (params.view === 'chromeless') {
@@ -236,6 +240,10 @@ angular
         templateUrl: 'views/create/nextSteps.html',
         controller: 'NextStepsController'
       })
+      .when('/project/:project/set-limits', {
+        templateUrl: 'views/set-limits.html',
+        controller: 'SetLimitsController'
+      })
       .when('/about', {
         templateUrl: 'views/about.html',
         controller: 'AboutController'
@@ -258,9 +266,11 @@ angular
       });
   })
   .constant("API_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).api))
+  .constant("APIS_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).apis))
   .constant("AUTH_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).auth))
   .constant("LOGGING_URL", (window.OPENSHIFT_CONFIG || {}).loggingURL)
   .constant("METRICS_URL", (window.OPENSHIFT_CONFIG || {}).metricsURL)
+  .constant("LIMIT_REQUEST_OVERRIDES", _.get(window.OPENSHIFT_CONFIG, "limitRequestOverrides", {}))
   // Sometimes we need to know the css breakpoints, make sure to update this
   // if they ever change!
   .constant("BREAKPOINTS", {
@@ -270,6 +280,7 @@ angular
     screenLgMin:  1200,  // screen-lg
     screenXlgMin: 1600   // screen-xlg
   })
+  .constant('SOURCE_URL_PATTERN', /^((ftp|http|https|git):\/\/(\w+:{0,1}[^\s@]*@)|git@)?([^\s@]+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/ )
   .config(function($httpProvider, AuthServiceProvider, RedirectLoginServiceProvider, AUTH_CFG, API_CFG, kubernetesContainerSocketProvider) {
     $httpProvider.interceptors.push('AuthInterceptor');
 

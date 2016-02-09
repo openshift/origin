@@ -193,7 +193,7 @@ func (e *DockercfgController) createDockerPullSecretReference(staleServiceAccoun
 
 	// if we're trying to create a reference based on stale lists of dockercfg secrets, let the caller know
 	if !reflect.DeepEqual(staleDockercfgMountableSecrets.List(), mountableDockercfgSecrets.List()) || !reflect.DeepEqual(staleImageDockercfgPullSecrets.List(), imageDockercfgPullSecrets.List()) {
-		return kapierrors.NewConflict("ServiceAccount", staleServiceAccount.Name, fmt.Errorf("cannot add reference to %s based on stale data.  decision made for %v,%v, but live version is %v,%v", dockercfgSecretName, staleDockercfgMountableSecrets.List(), staleImageDockercfgPullSecrets.List(), mountableDockercfgSecrets.List(), imageDockercfgPullSecrets.List()))
+		return kapierrors.NewConflict(api.Resource("serviceaccount"), staleServiceAccount.Name, fmt.Errorf("cannot add reference to %s based on stale data.  decision made for %v,%v, but live version is %v,%v", dockercfgSecretName, staleDockercfgMountableSecrets.List(), staleImageDockercfgPullSecrets.List(), mountableDockercfgSecrets.List(), imageDockercfgPullSecrets.List()))
 	}
 
 	changed := false

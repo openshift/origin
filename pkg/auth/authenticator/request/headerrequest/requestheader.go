@@ -50,6 +50,7 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 	user, err := a.mapper.UserFor(identity)
 	if err != nil {
+		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
 		return nil, false, err
 	}
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)

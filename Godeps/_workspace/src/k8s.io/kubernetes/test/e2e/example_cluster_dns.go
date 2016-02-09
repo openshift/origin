@@ -75,7 +75,7 @@ var _ = Describe("[Example] ClusterDns", func() {
 		namespaces := []*api.Namespace{nil, nil}
 		for i := range namespaces {
 			var err error
-			namespaces[i], err = createTestingNS(fmt.Sprintf("dnsexample%d", i), c)
+			namespaces[i], err = createTestingNS(fmt.Sprintf("dnsexample%d", i), c, nil)
 			if testContext.DeleteNamespace {
 				if namespaces[i] != nil {
 					defer deleteNS(c, namespaces[i].Name, 5*time.Minute /* namespace deletion timeout */)
@@ -135,7 +135,7 @@ var _ = Describe("[Example] ClusterDns", func() {
 		_, err = lookForStringInPodExec(namespaces[0].Name, podName, []string{"python", "-c", queryDns}, "ok", dnsReadyTimeout)
 		Expect(err).NotTo(HaveOccurred(), "waiting for output from pod exec")
 
-		updatedPodYaml := prepareResourceWithReplacedString(frontendPodYaml, "dns-backend.development.cluster.local", fmt.Sprintf("dns-backend.%s.cluster.local", namespaces[0].Name))
+		updatedPodYaml := prepareResourceWithReplacedString(frontendPodYaml, "dns-backend.development.cluster.local", fmt.Sprintf("dns-backend.%s.svc.cluster.local", namespaces[0].Name))
 
 		// create a pod in each namespace
 		for _, ns := range namespaces {

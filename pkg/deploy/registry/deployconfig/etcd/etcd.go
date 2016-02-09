@@ -32,9 +32,9 @@ func NewREST(s storage.Interface, rcNamespacer kclient.ReplicationControllersNam
 	prefix := "/deploymentconfigs"
 
 	store := &etcdgeneric.Etcd{
-		NewFunc:      func() runtime.Object { return &api.DeploymentConfig{} },
-		NewListFunc:  func() runtime.Object { return &api.DeploymentConfigList{} },
-		EndpointName: "deploymentconfigs",
+		NewFunc:           func() runtime.Object { return &api.DeploymentConfig{} },
+		NewListFunc:       func() runtime.Object { return &api.DeploymentConfigList{} },
+		QualifiedResource: api.Resource("deploymentconfigs"),
 		KeyRootFunc: func(ctx kapi.Context) string {
 			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
 		},
@@ -118,12 +118,12 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 	}
 
 	if errs := extvalidation.ValidateScale(scale); len(errs) > 0 {
-		return nil, false, errors.NewInvalid("scale", scale.Name, errs)
+		return nil, false, errors.NewInvalid(extensions.Kind("Scale"), scale.Name, errs)
 	}
 
 	deploymentConfig, err := r.registry.GetDeploymentConfig(ctx, scale.Name)
 	if err != nil {
-		return nil, false, errors.NewNotFound("scale", scale.Name)
+		return nil, false, errors.NewNotFound(extensions.Resource("scale"), scale.Name)
 	}
 
 	scaleRet := &extensions.Scale{

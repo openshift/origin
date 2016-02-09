@@ -38,7 +38,7 @@ func NewREST(s storage.Interface) *REST {
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return group.Matcher(label, field)
 		},
-		EndpointName: "groups",
+		QualifiedResource: api.Resource("groups"),
 
 		CreateStrategy: group.Strategy,
 		UpdateStrategy: group.Strategy,

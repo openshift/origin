@@ -81,6 +81,13 @@ func (r ComponentReferences) NeedsSource() (refs ComponentReferences) {
 	})
 }
 
+// UseSource returns all the components that use source repositories
+func (r ComponentReferences) UseSource() (refs ComponentReferences) {
+	return r.filter(func(ref ComponentReference) bool {
+		return ref.Input().Uses != nil
+	})
+}
+
 // ImageComponentRefs returns the list of component references to images
 func (r ComponentReferences) ImageComponentRefs() (refs ComponentReferences) {
 	return r.filter(func(ref ComponentReference) bool {

@@ -24,7 +24,6 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
-	"strconv"
 	"testing"
 	"time"
 
@@ -39,9 +38,15 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/runtime/serializer"
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/intstr"
 )
+
+func initTestErrorHandler(t *testing.T) {
+	cmdutil.BehaviorOnFatal(func(str string) {
+		t.Errorf("Error running command: %s", str)
+	})
+}
 
 type internalType struct {
 	Kind       string
@@ -64,9 +69,27 @@ type ExternalType2 struct {
 	Name string `json:"name"`
 }
 
-func (*internalType) IsAnAPIObject()  {}
-func (*externalType) IsAnAPIObject()  {}
-func (*ExternalType2) IsAnAPIObject() {}
+func (obj *internalType) GetObjectKind() unversioned.ObjectKind { return obj }
+func (obj *internalType) SetGroupVersionKind(gvk *unversioned.GroupVersionKind) {
+	obj.APIVersion, obj.Kind = gvk.ToAPIVersionAndKind()
+}
+func (obj *internalType) GroupVersionKind() *unversioned.GroupVersionKind {
+	return unversioned.FromAPIVersionAndKind(obj.APIVersion, obj.Kind)
+}
+func (obj *externalType) GetObjectKind() unversioned.ObjectKind { return obj }
+func (obj *externalType) SetGroupVersionKind(gvk *unversioned.GroupVersionKind) {
+	obj.APIVersion, obj.Kind = gvk.ToAPIVersionAndKind()
+}
+func (obj *externalType) GroupVersionKind() *unversioned.GroupVersionKind {
+	return unversioned.FromAPIVersionAndKind(obj.APIVersion, obj.Kind)
+}
+func (obj *ExternalType2) GetObjectKind() unversioned.ObjectKind { return obj }
+func (obj *ExternalType2) SetGroupVersionKind(gvk *unversioned.GroupVersionKind) {
+	obj.APIVersion, obj.Kind = gvk.ToAPIVersionAndKind()
+}
+func (obj *ExternalType2) GroupVersionKind() *unversioned.GroupVersionKind {
+	return unversioned.FromAPIVersionAndKind(obj.APIVersion, obj.Kind)
+}
 
 var versionErr = errors.New("not a version")
 
@@ -78,22 +101,21 @@ func versionErrIfFalse(b bool) error {
 }
 
 var validVersion = testapi.Default.GroupVersion().Version
-var internalGV = unversioned.GroupVersion{Group: "apitest", Version: ""}
+var internalGV = unversioned.GroupVersion{Group: "apitest", Version: runtime.APIVersionInternal}
 var unlikelyGV = unversioned.GroupVersion{Group: "apitest", Version: "unlikelyversion"}
 var validVersionGV = unversioned.GroupVersion{Group: "apitest", Version: validVersion}
 
 func newExternalScheme() (*runtime.Scheme, meta.RESTMapper, runtime.Codec) {
 	scheme := runtime.NewScheme()
-	scheme.AddInternalGroupVersion(internalGV)
 	scheme.AddKnownTypeWithName(internalGV.WithKind("Type"), &internalType{})
 	scheme.AddKnownTypeWithName(unlikelyGV.WithKind("Type"), &externalType{})
 	//This tests that kubectl will not confuse the external scheme with the internal scheme, even when they accidentally have versions of the same name.
 	scheme.AddKnownTypeWithName(validVersionGV.WithKind("Type"), &ExternalType2{})
 
-	codec := runtime.CodecFor(scheme, unlikelyGV.String())
+	codecs := serializer.NewCodecFactory(scheme)
+	codec := codecs.LegacyCodec(unlikelyGV)
 	mapper := meta.NewDefaultRESTMapper([]unversioned.GroupVersion{unlikelyGV, validVersionGV}, func(version unversioned.GroupVersion) (*meta.VersionInterfaces, error) {
 		return &meta.VersionInterfaces{
-			Codec:            runtime.CodecFor(scheme, version.String()),
 			ObjectConvertor:  scheme,
 			MetadataAccessor: meta.NewAccessor(),
 		}, versionErrIfFalse(version == validVersionGV || version == unlikelyGV)
@@ -161,8 +183,14 @@ func NewTestFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 		Object: func() (meta.RESTMapper, runtime.ObjectTyper) {
 			return t.Mapper, t.Typer
 		},
-		RESTClient: func(*meta.RESTMapping) (resource.RESTClient, error) {
+		ClientForMapping: func(*meta.RESTMapping) (resource.RESTClient, error) {
 			return t.Client, t.Err
+		},
+		Decoder: func(bool) runtime.Decoder {
+			return codec
+		},
+		JSONEncoder: func() runtime.Encoder {
+			return codec
 		},
 		Describer: func(*meta.RESTMapping) (kubectl.Describer, error) {
 			return t.Describer, t.Err
@@ -187,7 +215,7 @@ func NewMixedFactory(apiClient resource.RESTClient) (*cmdutil.Factory, *testFact
 	f.Object = func() (meta.RESTMapper, runtime.ObjectTyper) {
 		return meta.MultiRESTMapper{t.Mapper, testapi.Default.RESTMapper()}, runtime.MultiObjectTyper{t.Typer, api.Scheme}
 	}
-	f.RESTClient = func(m *meta.RESTMapping) (resource.RESTClient, error) {
+	f.ClientForMapping = func(m *meta.RESTMapping) (resource.RESTClient, error) {
 		if m.ObjectConvertor == api.Scheme {
 			return apiClient, t.Err
 		}
@@ -200,13 +228,7 @@ func NewAPIFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 	t := &testFactory{
 		Validator: validation.NullSchema{},
 	}
-	generators := map[string]kubectl.Generator{
-		"run/v1":       kubectl.BasicReplicationController{},
-		"run-pod/v1":   kubectl.BasicPod{},
-		"service/v1":   kubectl.ServiceGeneratorV1{},
-		"service/v2":   kubectl.ServiceGeneratorV2{},
-		"service/test": testServiceGenerator{},
-	}
+
 	f := &cmdutil.Factory{
 		Object: func() (meta.RESTMapper, runtime.ObjectTyper) {
 			return testapi.Default.RESTMapper(), api.Scheme
@@ -216,10 +238,17 @@ func NewAPIFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 			fakeClient := t.Client.(*fake.RESTClient)
 			c := client.NewOrDie(t.ClientConfig)
 			c.Client = fakeClient.Client
+			c.ExtensionsClient.Client = fakeClient.Client
 			return c, t.Err
 		},
-		RESTClient: func(*meta.RESTMapping) (resource.RESTClient, error) {
+		ClientForMapping: func(*meta.RESTMapping) (resource.RESTClient, error) {
 			return t.Client, t.Err
+		},
+		Decoder: func(bool) runtime.Decoder {
+			return testapi.Default.Codec()
+		},
+		JSONEncoder: func() runtime.Encoder {
+			return testapi.Default.Codec()
 		},
 		Describer: func(*meta.RESTMapping) (kubectl.Describer, error) {
 			return t.Describer, t.Err
@@ -236,9 +265,8 @@ func NewAPIFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 		ClientConfig: func() (*client.Config, error) {
 			return t.ClientConfig, t.Err
 		},
-		Generator: func(name string) (kubectl.Generator, bool) {
-			generator, ok := generators[name]
-			return generator, ok
+		Generators: func(cmdName string) map[string]kubectl.Generator {
+			return cmdutil.DefaultGenerators(cmdName)
 		},
 		LogsForObject: func(object, options runtime.Object) (*client.Request, error) {
 			fakeClient := t.Client.(*fake.RESTClient)
@@ -287,7 +315,7 @@ func stringBody(body string) io.ReadCloser {
 //	mapping := &meta.RESTMapping{
 //		APIVersion: version,
 //	}
-//	c, err := f.RESTClient(mapping)
+//	c, err := f.ClientForMapping(mapping)
 //	if err != nil {
 //		t.Errorf("unexpected error: %v", err)
 //	}
@@ -598,112 +626,4 @@ func TestNormalizationFuncGlobalExistence(t *testing.T) {
 	if reflect.ValueOf(sub.Flags().GetNormalizeFunc()).Pointer() != reflect.ValueOf(root.Flags().GetNormalizeFunc()).Pointer() {
 		t.Fatal("child and root commands should have the same normalization functions")
 	}
-}
-
-type testServiceGenerator struct{}
-
-func (testServiceGenerator) ParamNames() []kubectl.GeneratorParam {
-	return []kubectl.GeneratorParam{
-		{"default-name", true},
-		{"name", false},
-		{"port", true},
-		{"labels", false},
-		{"public-ip", false},
-		{"create-external-load-balancer", false},
-		{"type", false},
-		{"protocol", false},
-		{"container-port", false}, // alias of target-port
-		{"target-port", false},
-		{"port-name", false},
-		{"session-affinity", false},
-	}
-}
-
-func (testServiceGenerator) Generate(genericParams map[string]interface{}) (runtime.Object, error) {
-	params := map[string]string{}
-	for key, value := range genericParams {
-		strVal, isString := value.(string)
-		if !isString {
-			return nil, fmt.Errorf("expected string, saw %v for '%s'", value, key)
-		}
-		params[key] = strVal
-	}
-	labelsString, found := params["labels"]
-	var labels map[string]string
-	var err error
-	if found && len(labelsString) > 0 {
-		labels, err = kubectl.ParseLabels(labelsString)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	name, found := params["name"]
-	if !found || len(name) == 0 {
-		name, found = params["default-name"]
-		if !found || len(name) == 0 {
-			return nil, fmt.Errorf("'name' is a required parameter.")
-		}
-	}
-	portString, found := params["port"]
-	if !found {
-		return nil, fmt.Errorf("'port' is a required parameter.")
-	}
-	port, err := strconv.Atoi(portString)
-	if err != nil {
-		return nil, err
-	}
-	servicePortName, found := params["port-name"]
-	if !found {
-		// Leave the port unnamed.
-		servicePortName = ""
-	}
-	service := api.Service{
-		ObjectMeta: api.ObjectMeta{
-			Name:   name,
-			Labels: labels,
-		},
-		Spec: api.ServiceSpec{
-			Ports: []api.ServicePort{
-				{
-					Name:     servicePortName,
-					Port:     port,
-					Protocol: api.Protocol(params["protocol"]),
-				},
-			},
-		},
-	}
-	targetPort, found := params["target-port"]
-	if !found {
-		targetPort, found = params["container-port"]
-	}
-	if found && len(targetPort) > 0 {
-		if portNum, err := strconv.Atoi(targetPort); err != nil {
-			service.Spec.Ports[0].TargetPort = intstr.FromString(targetPort)
-		} else {
-			service.Spec.Ports[0].TargetPort = intstr.FromInt(portNum)
-		}
-	} else {
-		service.Spec.Ports[0].TargetPort = intstr.FromInt(port)
-	}
-	if params["create-external-load-balancer"] == "true" {
-		service.Spec.Type = api.ServiceTypeLoadBalancer
-	}
-	if len(params["external-ip"]) > 0 {
-		service.Spec.ExternalIPs = []string{params["external-ip"]}
-	}
-	if len(params["type"]) != 0 {
-		service.Spec.Type = api.ServiceType(params["type"])
-	}
-	if len(params["session-affinity"]) != 0 {
-		switch api.ServiceAffinity(params["session-affinity"]) {
-		case api.ServiceAffinityNone:
-			service.Spec.SessionAffinity = api.ServiceAffinityNone
-		case api.ServiceAffinityClientIP:
-			service.Spec.SessionAffinity = api.ServiceAffinityClientIP
-		default:
-			return nil, fmt.Errorf("unknown session affinity: %s", params["session-affinity"])
-		}
-	}
-	return &service, nil
 }

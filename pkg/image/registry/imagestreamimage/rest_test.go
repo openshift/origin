@@ -6,12 +6,12 @@ import (
 	goetcd "github.com/coreos/go-etcd/etcd"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
@@ -19,6 +19,8 @@ import (
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 var testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
@@ -35,6 +37,7 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 func setup(t *testing.T) (*goetcd.Client, *etcdtesting.EtcdTestServer, *REST) {
 
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
+	etcdClient := goetcd.NewClient(server.ClientURLs.StringSlice())
 
 	imageStorage := imageetcd.NewREST(etcdStorage)
 	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(etcdStorage, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
@@ -44,7 +47,7 @@ func setup(t *testing.T) (*goetcd.Client, *etcdtesting.EtcdTestServer, *REST) {
 
 	storage := NewREST(imageRegistry, imageStreamRegistry)
 
-	return server.Client, server, storage
+	return etcdClient, server, storage
 }
 
 func TestNameAndID(t *testing.T) {
@@ -245,14 +248,14 @@ func TestGet(t *testing.T) {
 		ctx := kapi.NewDefaultContext()
 		if test.repo != nil {
 			ctx = kapi.WithNamespace(kapi.NewContext(), test.repo.Namespace)
-			_, err := client.Create(etcdtest.AddPrefix("/imagestreams/"+test.repo.Namespace+"/"+test.repo.Name), runtime.EncodeOrDie(latest.Codec, test.repo), 0)
+			_, err := client.Create(etcdtest.AddPrefix("/imagestreams/"+test.repo.Namespace+"/"+test.repo.Name), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), test.repo), 0)
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 				continue
 			}
 		}
 		if test.image != nil {
-			_, err := client.Create(etcdtest.AddPrefix("/images/"+test.image.Name), runtime.EncodeOrDie(latest.Codec, test.image), 0)
+			_, err := client.Create(etcdtest.AddPrefix("/images/"+test.image.Name), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), test.image), 0)
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 				continue

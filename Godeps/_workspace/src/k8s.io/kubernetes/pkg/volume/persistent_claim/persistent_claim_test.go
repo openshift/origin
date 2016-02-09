@@ -26,7 +26,7 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
+	utilstrings "k8s.io/kubernetes/pkg/util/strings"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/gce_pd"
 	"k8s.io/kubernetes/pkg/volume/host_path"
@@ -105,7 +105,7 @@ func TestNewBuilder(t *testing.T) {
 			},
 			plugin: gce_pd.ProbeVolumePlugins()[0],
 			testFunc: func(builder volume.Builder, plugin volume.VolumePlugin) error {
-				if !strings.Contains(builder.GetPath(), util.EscapeQualifiedNameForDisk(plugin.Name())) {
+				if !strings.Contains(builder.GetPath(), utilstrings.EscapeQualifiedNameForDisk(plugin.Name())) {
 					return fmt.Errorf("builder path expected to contain plugin name.  Got: %s", builder.GetPath())
 				}
 				return nil
@@ -234,11 +234,7 @@ func TestNewBuilder(t *testing.T) {
 	}
 
 	for _, item := range tests {
-		o := testclient.NewObjects(api.Scheme, api.Scheme)
-		o.Add(item.pv)
-		o.Add(item.claim)
-		client := &testclient.Fake{}
-		client.AddReactor("*", "*", testclient.ObjectReaction(o, api.RESTMapper))
+		client := testclient.NewSimpleFake(item.pv, item.claim)
 
 		plugMgr := volume.VolumePluginMgr{}
 		plugMgr.InitPlugins(testProbeVolumePlugins(), newTestHost(t, client))
@@ -289,11 +285,7 @@ func TestNewBuilderClaimNotBound(t *testing.T) {
 			ClaimName: "claimC",
 		},
 	}
-	o := testclient.NewObjects(api.Scheme, api.Scheme)
-	o.Add(pv)
-	o.Add(claim)
-	client := &testclient.Fake{}
-	client.AddReactor("*", "*", testclient.ObjectReaction(o, api.RESTMapper))
+	client := testclient.NewSimpleFake(pv, claim)
 
 	plugMgr := volume.VolumePluginMgr{}
 	plugMgr.InitPlugins(testProbeVolumePlugins(), newTestHost(t, client))

@@ -2,14 +2,16 @@ package v1
 
 import (
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/runtime/serializer"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	internal "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
-func init() {
-	err := internal.Scheme.AddDefaultingFuncs(
+func addDefaultingFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddDefaultingFuncs(
 		func(obj *MasterConfig) {
 			if len(obj.APILevels) == 0 {
 				obj.APILevels = internal.DefaultOpenShiftAPILevels
@@ -153,7 +155,10 @@ func init() {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-	err = internal.Scheme.AddConversionFuncs(
+}
+
+func addConversionFuncs(scheme *runtime.Scheme) {
+	err := scheme.AddConversionFuncs(
 		func(in *NodeConfig, out *internal.NodeConfig, s conversion.Scope) error {
 			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 		},
@@ -253,9 +258,107 @@ func init() {
 			out.KeyFile = in.ClientCert.KeyFile
 			return nil
 		},
+		func(in *internal.IdentityProvider, out *IdentityProvider, s conversion.Scope) error {
+			if err := convert_runtime_Object_To_runtime_RawExtension(in.Provider, &out.Provider, s); err != nil {
+				return err
+			}
+			out.Name = in.Name
+			out.UseAsChallenger = in.UseAsChallenger
+			out.UseAsLogin = in.UseAsLogin
+			out.MappingMethod = in.MappingMethod
+			return nil
+		},
+		func(in *IdentityProvider, out *internal.IdentityProvider, s conversion.Scope) error {
+			if err := convert_runtime_RawExtension_To_runtime_Object(&in.Provider, out.Provider, s); err != nil {
+				return err
+			}
+			if in.Provider.Object != nil {
+				var err error
+				out.Provider, err = internal.Scheme.ConvertToVersion(in.Provider.Object, internal.SchemeGroupVersion.String())
+				if err != nil {
+					return err
+				}
+			}
+			out.Name = in.Name
+			out.UseAsChallenger = in.UseAsChallenger
+			out.UseAsLogin = in.UseAsLogin
+			out.MappingMethod = in.MappingMethod
+			return nil
+		},
+		func(in *internal.AdmissionPluginConfig, out *AdmissionPluginConfig, s conversion.Scope) error {
+			if err := convert_runtime_Object_To_runtime_RawExtension(in.Configuration, &out.Configuration, s); err != nil {
+				return err
+			}
+			out.Location = in.Location
+			return nil
+		},
+		func(in *AdmissionPluginConfig, out *internal.AdmissionPluginConfig, s conversion.Scope) error {
+			if err := convert_runtime_RawExtension_To_runtime_Object(&in.Configuration, out.Configuration, s); err != nil {
+				return err
+			}
+			if in.Configuration.Object != nil {
+				var err error
+				out.Configuration, err = internal.Scheme.ConvertToVersion(in.Configuration.Object, internal.SchemeGroupVersion.String())
+				if err != nil {
+					return err
+				}
+			}
+			out.Location = in.Location
+			return nil
+		},
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
+}
+
+var codec = serializer.NewCodecFactory(internal.Scheme).LegacyCodec(SchemeGroupVersion)
+
+// Convert_runtime_Object_To_runtime_RawExtension is conversion function that assumes that the runtime.Object you've embedded is in
+// the same GroupVersion that your containing type is in.  This is signficantly better than simply breaking.
+// Given an ordered list of preferred external versions for a given encode or conversion call, the behavior of this function could be
+// made generic, predictable, and controllable.
+func convert_runtime_Object_To_runtime_RawExtension(in runtime.Object, out *runtime.RawExtension, s conversion.Scope) error {
+	if in == nil {
+		return nil
+	}
+
+	externalObject, err := internal.Scheme.ConvertToVersion(in, s.Meta().DestVersion)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := runtime.Encode(codec, externalObject)
+	if err != nil {
+		return err
+	}
+
+	out.RawJSON = bytes
+	out.Object = externalObject
+
+	return nil
+}
+
+// Convert_runtime_RawExtension_To_runtime_Object well, this is the reason why there was runtime.Embedded.  The `out` here is hopeless.
+// The caller doesn't know the type ahead of time and that means this method can't communicate the return value.  This sucks really badly.
+// I'm going to set the `in.Object` field can have callers to this function do magic to pull it back out.  I'm also going to bitch about it.
+func convert_runtime_RawExtension_To_runtime_Object(in *runtime.RawExtension, out runtime.Object, s conversion.Scope) error {
+	if in == nil || len(in.RawJSON) == 0 || in.Object != nil {
+		return nil
+	}
+
+	decodedObject, err := runtime.Decode(codec, in.RawJSON)
+	if err != nil {
+		return err
+	}
+
+	internalObject, err := internal.Scheme.ConvertToVersion(decodedObject, s.Meta().DestVersion)
+	if err != nil {
+		return err
+	}
+
+	in.Object = internalObject
+
+	return nil
 }

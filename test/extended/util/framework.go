@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -25,7 +26,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -40,7 +40,7 @@ const pvPrefix = "pv-"
 // WriteObjectToFile writes the JSON representation of runtime.Object into a temporary
 // file.
 func WriteObjectToFile(obj runtime.Object, filename string) error {
-	content, err := latest.Codec.Encode(obj)
+	content, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.EnabledVersions()...), obj)
 	if err != nil {
 		return err
 	}

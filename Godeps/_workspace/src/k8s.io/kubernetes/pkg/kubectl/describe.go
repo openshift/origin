@@ -18,6 +18,7 @@ package kubectl
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
@@ -89,6 +90,7 @@ func describerMap(c *client.Client) map[unversioned.GroupKind]Describer {
 		extensions.Kind("Job"):                     &JobDescriber{c},
 		extensions.Kind("Deployment"):              &DeploymentDescriber{c},
 		extensions.Kind("Ingress"):                 &IngressDescriber{c},
+		extensions.Kind("ConfigMap"):               &ConfigMapDescriber{c},
 	}
 
 	return m
@@ -476,7 +478,7 @@ func describePod(pod *api.Pod, rcs []api.ReplicationController, events *api.Even
 		for _, rc := range rcs {
 			matchingRCs = append(matchingRCs, &rc)
 		}
-		fmt.Fprintf(out, "Replication Controllers:\t%s\n", printReplicationControllersByLabels(matchingRCs))
+		fmt.Fprintf(out, "Controllers:\t%s\n", printControllers(pod.Annotations))
 		fmt.Fprintf(out, "Containers:\n")
 		describeContainers(pod, out)
 		if len(pod.Status.Conditions) > 0 {
@@ -493,6 +495,18 @@ func describePod(pod *api.Pod, rcs []api.ReplicationController, events *api.Even
 		}
 		return nil
 	})
+}
+
+func printControllers(annotation map[string]string) string {
+	value, ok := annotation["kubernetes.io/created-by"]
+	if ok {
+		var r api.SerializedReference
+		err := json.Unmarshal([]byte(value), &r)
+		if err == nil {
+			return fmt.Sprintf("%s/%s", r.Reference.Kind, r.Reference.Name)
+		}
+	}
+	return "<none>"
 }
 
 func describeVolumes(volumes []api.Volume, out io.Writer) {
@@ -894,7 +908,17 @@ func describeJob(job *extensions.Job, events *api.EventList) (string, error) {
 		selector, _ := extensions.LabelSelectorAsSelector(job.Spec.Selector)
 		fmt.Fprintf(out, "Selector:\t%s\n", selector)
 		fmt.Fprintf(out, "Parallelism:\t%d\n", *job.Spec.Parallelism)
-		fmt.Fprintf(out, "Completions:\t%d\n", *job.Spec.Completions)
+		if job.Spec.Completions != nil {
+			fmt.Fprintf(out, "Completions:\t%d\n", *job.Spec.Completions)
+		} else {
+			fmt.Fprintf(out, "Completions:\tNot Set\n")
+		}
+		if job.Status.StartTime != nil {
+			fmt.Fprintf(out, "Start Time:\t%s\n", job.Status.StartTime.Time.Format(time.RFC1123Z))
+		}
+		if job.Spec.ActiveDeadlineSeconds != nil {
+			fmt.Fprintf(out, "Active Deadline Seconds:\t%ds\n", *job.Spec.ActiveDeadlineSeconds)
+		}
 		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(job.Labels))
 		fmt.Fprintf(out, "Pods Statuses:\t%d Running / %d Succeeded / %d Failed\n", job.Status.Active, job.Status.Succeeded, job.Status.Failed)
 		describeVolumes(job.Spec.Template.Spec.Volumes, out)
@@ -1010,55 +1034,60 @@ func (i *IngressDescriber) Describe(namespace, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	events, _ := i.Events(namespace).Search(ing)
-	endpoints, _ := i.Endpoints(namespace).Get(ing.Spec.Backend.ServiceName)
-	service, _ := i.Services(namespace).Get(ing.Spec.Backend.ServiceName)
-	return describeIngress(ing, endpoints, service, events)
+	return i.describeIngress(ing)
 }
 
-func describeIngressEndpoints(out io.Writer, ing *extensions.Ingress, endpoints *api.Endpoints, service *api.Service) {
+func (i *IngressDescriber) describeBackend(ns string, backend *extensions.IngressBackend) string {
+	endpoints, _ := i.Endpoints(ns).Get(backend.ServiceName)
+	service, _ := i.Services(ns).Get(backend.ServiceName)
 	spName := ""
 	for i := range service.Spec.Ports {
 		sp := &service.Spec.Ports[i]
-		switch ing.Spec.Backend.ServicePort.Type {
+		switch backend.ServicePort.Type {
 		case intstr.String:
-			if ing.Spec.Backend.ServicePort.StrVal == sp.Name {
+			if backend.ServicePort.StrVal == sp.Name {
 				spName = sp.Name
 			}
 		case intstr.Int:
-			if int(ing.Spec.Backend.ServicePort.IntVal) == sp.Port {
+			if int(backend.ServicePort.IntVal) == sp.Port {
 				spName = sp.Name
 			}
 		}
 	}
-
-	fmt.Fprintf(out, "Endpoints:\t%s\n", formatEndpoints(endpoints, sets.NewString(spName)))
+	return formatEndpoints(endpoints, sets.NewString(spName))
 }
 
-func describeIngress(ing *extensions.Ingress, endpoints *api.Endpoints, service *api.Service, events *api.EventList) (string, error) {
+func (i *IngressDescriber) describeIngress(ing *extensions.Ingress) (string, error) {
 	return tabbedString(func(out io.Writer) error {
-		fmt.Fprintf(out, "Name:\t%s\n", ing.Name)
-		fmt.Fprintf(out, "Namespace:\t%s\n", ing.Namespace)
-		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(ing.Labels))
-
-		fmt.Fprintf(out, "Rules:\n")
+		fmt.Fprintf(out, "Name:\t%v\n", ing.Name)
+		fmt.Fprintf(out, "Namespace:\t%v\n", ing.Namespace)
+		fmt.Fprintf(out, "Address:\t%v\n", loadBalancerStatusStringer(ing.Status.LoadBalancer))
+		def := ing.Spec.Backend
+		ns := ing.Namespace
+		if def == nil {
+			// Ingresses that don't specify a default backend inherit the
+			// default backend in the kube-system namespace.
+			def = &extensions.IngressBackend{
+				ServiceName: "default-http-backend",
+				ServicePort: intstr.IntOrString{Type: intstr.Int, IntVal: 80},
+			}
+			ns = api.NamespaceSystem
+		}
+		fmt.Fprintf(out, "Default backend:\t%s (%s)\n", backendStringer(def), i.describeBackend(ns, def))
+		fmt.Fprint(out, "Rules:\n  Host\tPath\tBackends\n")
+		fmt.Fprint(out, "  ----\t----\t--------\n")
 		for _, rules := range ing.Spec.Rules {
 			if rules.HTTP == nil {
 				continue
 			}
-
-			fmt.Fprintf(out, "  Host\tPath\tBackend\n")
-			fmt.Fprintf(out, "  ----\t----\t--------\n")
+			fmt.Fprintf(out, "  %s\t\n", rules.Host)
 			for _, path := range rules.HTTP.Paths {
-				fmt.Fprintf(out, "  %s\t%s\t%s\n", rules.Host, path.Path, backendStringer(&path.Backend))
+				fmt.Fprintf(out, "    \t%s \t%s (%s)\n", path.Path, backendStringer(&path.Backend), i.describeBackend(ing.Namespace, &path.Backend))
 			}
 		}
-
-		fmt.Fprintf(out, "Backend:\t%v\t%v\n", backendStringer(ing.Spec.Backend),
-			loadBalancerStatusStringer(ing.Status.LoadBalancer))
-		describeIngressEndpoints(out, ing, endpoints, service)
-
 		describeIngressAnnotations(out, ing.Annotations)
+
+		events, _ := i.Events(ing.Namespace).Search(ing)
 		if events != nil {
 			DescribeEvents(events, out)
 		}
@@ -1075,7 +1104,7 @@ func describeIngressAnnotations(out io.Writer, annotations map[string]string) {
 		}
 		parts := strings.Split(k, "/")
 		name := parts[len(parts)-1]
-		fmt.Fprintf(out, "%v:\t%s\n", name, v)
+		fmt.Fprintf(out, "  %v:\t%s\n", name, v)
 	}
 	return
 }
@@ -1377,7 +1406,7 @@ func describeNode(node *api.Node, nodeNonTerminatedPodsList *api.PodList, events
 		fmt.Fprintf(out, " System UUID:\t%s\n", node.Status.NodeInfo.SystemUUID)
 		fmt.Fprintf(out, " Boot ID:\t%s\n", node.Status.NodeInfo.BootID)
 		fmt.Fprintf(out, " Kernel Version:\t%s\n", node.Status.NodeInfo.KernelVersion)
-		fmt.Fprintf(out, " OS Image:\t%s\n", node.Status.NodeInfo.OsImage)
+		fmt.Fprintf(out, " OS Image:\t%s\n", node.Status.NodeInfo.OSImage)
 		fmt.Fprintf(out, " Container Runtime Version:\t%s\n", node.Status.NodeInfo.ContainerRuntimeVersion)
 		fmt.Fprintf(out, " Kubelet Version:\t%s\n", node.Status.NodeInfo.KubeletVersion)
 		fmt.Fprintf(out, " Kube-Proxy Version:\t%s\n", node.Status.NodeInfo.KubeProxyVersion)
@@ -1563,7 +1592,7 @@ func (dd *DeploymentDescriber) Describe(namespace, name string) (string, error) 
 		fmt.Fprintf(out, "CreationTimestamp:\t%s\n", d.CreationTimestamp.Time.Format(time.RFC1123Z))
 		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(d.Labels))
 		fmt.Fprintf(out, "Selector:\t%s\n", labels.FormatLabels(d.Spec.Selector))
-		fmt.Fprintf(out, "Replicas:\t%d updated / %d total\n", d.Status.UpdatedReplicas, d.Spec.Replicas)
+		fmt.Fprintf(out, "Replicas:\t%d updated | %d total | %d available | %d unavailable\n", d.Status.UpdatedReplicas, d.Spec.Replicas, d.Status.AvailableReplicas, d.Status.UnavailableReplicas)
 		fmt.Fprintf(out, "StrategyType:\t%s\n", d.Spec.Strategy.Type)
 		if d.Spec.Strategy.RollingUpdate != nil {
 			ru := d.Spec.Strategy.RollingUpdate
@@ -1673,6 +1702,38 @@ func getPodStatusForController(c client.PodInterface, selector labels.Selector) 
 		}
 	}
 	return
+}
+
+// ConfigMapDescriber generates information about a ConfigMap
+type ConfigMapDescriber struct {
+	client.Interface
+}
+
+func (d *ConfigMapDescriber) Describe(namespace, name string) (string, error) {
+	c := d.Extensions().ConfigMaps(namespace)
+
+	configMap, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return describeConfigMap(configMap)
+}
+
+func describeConfigMap(configMap *extensions.ConfigMap) (string, error) {
+	return tabbedString(func(out io.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", configMap.Name)
+		fmt.Fprintf(out, "Namespace:\t%s\n", configMap.Namespace)
+		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(configMap.Labels))
+		fmt.Fprintf(out, "Annotations:\t%s\n", labels.FormatLabels(configMap.Annotations))
+
+		fmt.Fprintf(out, "\nData\n====\n")
+		for k, v := range configMap.Data {
+			fmt.Fprintf(out, "%s:\t%d bytes\n", k, len(v))
+		}
+
+		return nil
+	})
 }
 
 // newErrNoDescriber creates a new ErrNoDescriber with the names of the provided types.

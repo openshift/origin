@@ -46,7 +46,7 @@ Here's how to get set up:
 ** http://golang.org/doc/install[Installing Go]. You must install Go 1.4 and NOT use $HOME/go directory for Go installation.
 ** http://git-scm.com/book/en/v2/Getting-Started-Installing-Git[Installing Git]
 ** https://docs.docker.com/installation/[Installing Docker].
-
++
 NOTE: As of now, OpenShift requires Docker 1.8.2 or higher.
 The exact version requirement is documented https://docs.openshift.org/latest/install_config/install/prerequisites.html#installing-docker[here].
 
@@ -115,11 +115,17 @@ NOTE: Replace "linux/amd64" with the appropriate value for your platform/archite
 
 To facilitate rapid development we've put together a Vagrantfile you can use to stand up a development environment.
 
-1.  http://www.vagrantup.com/downloads[Install Vagrant]
+1.  http://www.vagrantup.com/downloads.html[Install Vagrant]
 
 2.  https://www.virtualbox.org/wiki/Downloads[Install VirtualBox] (Ex: `yum install VirtualBox` from the RPM Fusion repository)
 
-3.  Clone the project and change into the directory:
+3. In your `.bashrc` file or `.bash_profile` file, set a GOPATH: +
++
+----
+export GOPATH=$HOME/go
+----
+
+4.  Clone the project and change into the directory:
 
         $ mkdir -p $GOPATH/src/github.com/openshift
         $ cd $GOPATH/src/github.com/openshift
@@ -128,23 +134,23 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
         $ git remote add upstream git://github.com/openshift/origin
 
 
-4.  Bring up the VM  (If you are new to Vagrant, consider http://docs.vagrantup.com[Vagrant Docs] for help on items like provider selection.  Also consider the enablement of your hardware's virtualization extensions, such as https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Virtualization_Administration_Guide/sect-Virtualization-Troubleshooting-Enabling_Intel_VT_and_AMD_V_virtualization_hardware_extensions_in_BIOS.html[RHEL] for example.).  Also note, for the `make clean build` in step 6 to work, a sufficient amount of memory needs to be allocated for the VM, where that amount of memory is not necessarily needed if you are not doing a compile, but simply running openshift (and hence is not set as the default):
+5.  Bring up the VM  (If you are new to Vagrant, consider http://docs.vagrantup.com[Vagrant Docs] for help on items like provider selection.  Also consider the enablement of your hardware's virtualization extensions, such as https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Virtualization_Administration_Guide/sect-Virtualization-Troubleshooting-Enabling_Intel_VT_and_AMD_V_virtualization_hardware_extensions_in_BIOS.html[RHEL] for example.).  Also note, for the `make clean build` in step 6 to work, a sufficient amount of memory needs to be allocated for the VM, where that amount of memory is not necessarily needed if you are not doing a compile, but simply running openshift (and hence is not set as the default):
 
         $ export OPENSHIFT_MEMORY=4192
         $ vagrant up
-
++
 TIP: To ensure you get the latest image first run `vagrant box remove fedora_inst`.  And if later on you employ a dev cluster, additionally run  `vagrant box remove fedora_deps`.
 
-5.  SSH in:
+6.  SSH in:
 
         $ vagrant ssh
 
-6.  Run a build:
+7.  Run a build:
 
         $ cd /data/src/github.com/openshift/origin
         $ make clean build
 
-7.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.  At this point you may want to update your $PATH:
+8.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.  At this point you may want to update your $PATH:
 
         # back to /home/vagrant
         $ cd
@@ -153,7 +159,7 @@ TIP: To ensure you get the latest image first run `vagrant box remove fedora_ins
         $ export PATH=/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$PATH
 
 
-8.  Now start the OpenShift server:
+9.  Now start the OpenShift server:
 
         # redirect the logs to  /home/vagrant/openshift.log for easier debugging
         $ sudo `which openshift` start --public-master=localhost &> openshift.log &
@@ -165,14 +171,14 @@ NOTE: This will generate three directories in /home/vagrant (openshift.local.con
 NOTE: By default your origin directory (on your host machine) will be mounted as a vagrant synced folder into `/data/src/github.com/openshift/origin`.
 
 
-9.  Deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
+10.  Deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
         $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
         $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
 
 
-10.  At this point it may be helpful to load some image streams and templates.  These commands will make use of fixtures from the `openshift/origin/examples` dir:
+11.  At this point it may be helpful to load some image streams and templates.  These commands will make use of fixtures from the `openshift/origin/examples` dir:
 
         # load image stream
         $ oc create -f /data/src/github.com/openshift/origin/examples/image-streams/image-streams-centos7.json -n openshift --config=openshift.local.config/master/admin.kubeconfig
@@ -181,10 +187,10 @@ NOTE: By default your origin directory (on your host machine) will be mounted as
         $ oc create -f /data/src/github.com/openshift/origin/examples/db-templates --config=openshift.local.config/master/admin.kubeconfig
 
 
-11. At this point you can open a browser on your host system and navigate to https://localhost:8443/console to view the web console.
+12. At this point you can open a browser on your host system and navigate to https://localhost:8443/console to view the web console.
 
 
-12.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
+13.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
 
 	# shut down openshift
 	$ sudo pkill openshift

@@ -3,14 +3,16 @@ package strategy
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/runtime"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	_ "github.com/openshift/origin/pkg/build/api/install"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -47,7 +49,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	strategy := &SourceBuildStrategy{
 		Image:                "sti-test-image",
 		TempDirectoryCreator: &FakeTempDirCreator{},
-		Codec:                latest.Codec,
+		Codec:                kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
 		AdmissionControl:     &FakeAdmissionControl{admit: rootAllowed},
 	}
 
@@ -77,13 +79,17 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
 	// strategy ENV is whitelisted into the container environment, and not all
-	// the values are allowed, so only expect 9 not 10 values.
-	expectedEnvCount := 9
+	// the values are allowed, so only expect 10 not 11 values.
+	expectedEnvCount := 10
 	if !rootAllowed {
-		expectedEnvCount = 10
+		expectedEnvCount = 11
 	}
 	if len(container.Env) != expectedEnvCount {
-		t.Fatalf("Expected 10 elements in Env table, got %d: %+v", len(container.Env), container.Env)
+		var keys []string
+		for _, env := range container.Env {
+			keys = append(keys, env.Name)
+		}
+		t.Fatalf("Expected 11 elements in Env table, got %d:\n%s", len(container.Env), strings.Join(keys, ", "))
 	}
 	if len(container.VolumeMounts) != 4 {
 		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
@@ -128,7 +134,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if !foundAllowedUIDs && !rootAllowed {
 		t.Fatalf("Expected ALLLOWED_UIDS when root is not allowed")
 	}
-	buildJSON, _ := latest.Codec.Encode(expected)
+	buildJSON, _ := runtime.Encode(kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion), expected)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}

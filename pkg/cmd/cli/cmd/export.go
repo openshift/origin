@@ -9,11 +9,12 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
@@ -59,10 +60,10 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 		Example: fmt.Sprintf(exportExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunExport(f, exporter, in, out, cmd, args, filenames)
-			if err == errExit {
+			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 		},
 	}
 	cmd.Flags().String("as-template", "", "Output a Template object with specified name instead of a List or single object.")
@@ -74,25 +75,25 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 
 	cmd.Flags().Bool("all", true, "DEPRECATED: all is ignored, specifying a resource without a name selects all the instances of that resource")
 	cmd.Flags().MarkDeprecated("all", "all is ignored because specifying a resource without a name selects all the instances of that resource")
-	cmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
 func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, filenames []string) error {
-	selector := cmdutil.GetFlagString(cmd, "selector")
-	allNamespaces := cmdutil.GetFlagBool(cmd, "all-namespaces")
-	exact := cmdutil.GetFlagBool(cmd, "exact")
-	asTemplate := cmdutil.GetFlagString(cmd, "as-template")
-	raw := cmdutil.GetFlagBool(cmd, "raw")
+	selector := kcmdutil.GetFlagString(cmd, "selector")
+	allNamespaces := kcmdutil.GetFlagBool(cmd, "all-namespaces")
+	exact := kcmdutil.GetFlagBool(cmd, "exact")
+	asTemplate := kcmdutil.GetFlagString(cmd, "as-template")
+	raw := kcmdutil.GetFlagBool(cmd, "raw")
 	if exact && raw {
-		return cmdutil.UsageError(cmd, "--exact and --raw may not both be specified")
+		return kcmdutil.UsageError(cmd, "--exact and --raw may not both be specified")
 	}
 
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
 	}
-	outputVersion, err := cmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
+	outputVersion, err := kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
 	if err != nil {
 		return err
 	}
@@ -103,7 +104,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	}
 
 	mapper, typer := f.Object()
-	b := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().AllNamespaces(allNamespaces).
 		FilenameParam(explicit, filenames...).
 		SelectorParam(selector).
@@ -140,7 +141,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 
 	var result runtime.Object
 	if len(asTemplate) > 0 {
-		objects, err := resource.AsVersionedObjects(infos, outputVersion.String())
+		objects, err := resource.AsVersionedObjects(infos, outputVersion.String(), kapi.Codecs.LegacyCodec(outputVersion))
 		if err != nil {
 			return err
 		}
@@ -153,7 +154,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 			return err
 		}
 	} else {
-		object, err := resource.AsVersionedObject(infos, !one, outputVersion.String())
+		object, err := resource.AsVersionedObject(infos, !one, outputVersion.String(), kapi.Codecs.LegacyCodec(outputVersion))
 		if err != nil {
 			return err
 		}
@@ -161,8 +162,8 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	}
 
 	// use YAML as the default format
-	outputFormat := cmdutil.GetFlagString(cmd, "output")
-	templateFile := cmdutil.GetFlagString(cmd, "template")
+	outputFormat := kcmdutil.GetFlagString(cmd, "output")
+	templateFile := kcmdutil.GetFlagString(cmd, "template")
 	if len(outputFormat) == 0 && len(templateFile) != 0 {
 		outputFormat = "template"
 	}

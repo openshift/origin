@@ -1,18 +1,18 @@
 package v1beta3
 
 import (
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-func init() {
+func addDefaultingFuncs(scheme *runtime.Scheme) {
 	mkintp := func(i int64) *int64 {
 		return &i
 	}
 
-	err := api.Scheme.AddDefaultingFuncs(
+	err := scheme.AddDefaultingFuncs(
 		func(obj *DeploymentConfigSpec) {
 			if obj.Triggers == nil {
 				obj.Triggers = []DeploymentTriggerPolicy{
@@ -34,6 +34,14 @@ func init() {
 					UpdatePeriodSeconds: mkintp(deployapi.DefaultRollingUpdatePeriodSeconds),
 					TimeoutSeconds:      mkintp(deployapi.DefaultRollingTimeoutSeconds),
 				}
+			}
+			if obj.Type == DeploymentStrategyTypeRecreate && obj.RecreateParams == nil {
+				obj.RecreateParams = &RecreateDeploymentStrategyParams{}
+			}
+		},
+		func(obj *RecreateDeploymentStrategyParams) {
+			if obj.TimeoutSeconds == nil {
+				obj.TimeoutSeconds = mkintp(deployapi.DefaultRollingTimeoutSeconds)
 			}
 		},
 		func(obj *RollingDeploymentStrategyParams) {

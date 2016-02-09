@@ -4,13 +4,17 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	klatest "k8s.io/kubernetes/pkg/api/latest"
+	_ "k8s.io/kubernetes/pkg/api/install"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
+
+	userapi "github.com/openshift/origin/pkg/user/api"
+	_ "github.com/openshift/origin/pkg/user/api/install"
 )
 
 func TestRESTRootScope(t *testing.T) {
 	for _, v := range [][]string{{"v1beta3"}, {"v1"}} {
-		mapping, err := RESTMapper.RESTMapping(kapi.Kind("Node"), v...)
+		mapping, err := kapi.RESTMapper.RESTMapping(kapi.Kind("Node"), v...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -23,7 +27,7 @@ func TestRESTRootScope(t *testing.T) {
 func TestResourceToKind(t *testing.T) {
 	// Ensure we resolve to latest.Version
 	expectedGVK := Version.WithKind("User")
-	gvk, err := RESTMapper.KindFor("user")
+	gvk, err := kapi.RESTMapper.KindFor(userapi.SchemeGroupVersion.WithResource("User"))
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -34,8 +38,9 @@ func TestResourceToKind(t *testing.T) {
 
 func TestUpstreamResourceToKind(t *testing.T) {
 	// Ensure we resolve to klatest.ExternalVersions[0]
-	expectedGVK := klatest.ExternalVersions[0].WithKind("Pod")
-	gvk, err := klatest.GroupOrDie(kapi.SchemeGroupVersion.Group).RESTMapper.KindFor("pod")
+	meta, _ := registered.Group("")
+	expectedGVK := meta.GroupVersion.WithKind("Pod")
+	gvk, err := registered.GroupOrDie(kapi.SchemeGroupVersion.Group).RESTMapper.KindFor(kapi.SchemeGroupVersion.WithResource("Pod"))
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

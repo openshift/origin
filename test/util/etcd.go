@@ -7,7 +7,9 @@ import (
 	"math/rand"
 	"os"
 
+	newetcdclient "github.com/coreos/etcd/client"
 	"github.com/coreos/go-etcd/etcd"
+
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/capabilities"
 )
@@ -55,6 +57,15 @@ func NewEtcdClient() *etcd.Client {
 	etcdServers := []string{GetEtcdURL()}
 
 	return etcd.NewClient(etcdServers)
+}
+
+func MakeNewEtcdClient() (newetcdclient.Client, error) {
+	etcdServers := []string{GetEtcdURL()}
+
+	cfg := newetcdclient.Config{
+		Endpoints: etcdServers,
+	}
+	return newetcdclient.New(cfg)
 }
 
 func GetEtcdURL() string {

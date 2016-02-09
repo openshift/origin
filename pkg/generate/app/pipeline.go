@@ -180,7 +180,7 @@ type Pipeline struct {
 }
 
 // NeedsDeployment sets the pipeline for deployment.
-func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string) error {
+func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, asTest bool) error {
 	if p.Deployment != nil {
 		return nil
 	}
@@ -191,6 +191,7 @@ func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string) er
 		},
 		Env:    env,
 		Labels: labels,
+		AsTest: asTest,
 	}
 	return nil
 }

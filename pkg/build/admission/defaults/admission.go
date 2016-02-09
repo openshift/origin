@@ -9,6 +9,8 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
+	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
+	"github.com/openshift/origin/pkg/build/admission/defaults/api/validation"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
@@ -25,13 +27,13 @@ func init() {
 	})
 }
 
-func getConfig(in io.Reader) (*BuildDefaultsConfig, error) {
-	defaultsConfig := &BuildDefaultsConfig{}
+func getConfig(in io.Reader) (*defaultsapi.BuildDefaultsConfig, error) {
+	defaultsConfig := &defaultsapi.BuildDefaultsConfig{}
 	err := buildadmission.ReadPluginConfig(in, defaultsConfig)
 	if err != nil {
 		return nil, err
 	}
-	errs := ValidateBuildDefaultsConfig(defaultsConfig)
+	errs := validation.ValidateBuildDefaultsConfig(defaultsConfig)
 	if len(errs) > 0 {
 		return nil, errs.ToAggregate()
 	}
@@ -40,12 +42,12 @@ func getConfig(in io.Reader) (*BuildDefaultsConfig, error) {
 
 type buildDefaults struct {
 	*admission.Handler
-	defaultsConfig *BuildDefaultsConfig
+	defaultsConfig *defaultsapi.BuildDefaultsConfig
 }
 
 // NewBuildDefaults returns an admission control for builds that sets build defaults
 // based on the plugin configuration
-func NewBuildDefaults(defaultsConfig *BuildDefaultsConfig) admission.Interface {
+func NewBuildDefaults(defaultsConfig *defaultsapi.BuildDefaultsConfig) admission.Interface {
 	return &buildDefaults{
 		Handler:        admission.NewHandler(admission.Create),
 		defaultsConfig: defaultsConfig,
