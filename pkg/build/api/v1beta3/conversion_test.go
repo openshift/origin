@@ -44,7 +44,8 @@ func TestBuildConfigConversion(t *testing.T) {
 				},
 				Triggers: []older.BuildTriggerPolicy{
 					{
-						Type: older.ImageChangeBuildTriggerType,
+						Type:        older.ImageChangeBuildTriggerType,
+						ImageChange: &older.ImageChangeTrigger{},
 					},
 					{
 						Type: older.GitHubWebHookBuildTriggerType,
@@ -84,7 +85,8 @@ func TestBuildConfigConversion(t *testing.T) {
 				},
 				Triggers: []older.BuildTriggerPolicy{
 					{
-						Type: older.ImageChangeBuildTriggerType,
+						Type:        older.ImageChangeBuildTriggerType,
+						ImageChange: &older.ImageChangeTrigger{},
 					},
 					{
 						Type: older.GitHubWebHookBuildTriggerType,
@@ -124,7 +126,8 @@ func TestBuildConfigConversion(t *testing.T) {
 				},
 				Triggers: []older.BuildTriggerPolicy{
 					{
-						Type: older.ImageChangeBuildTriggerType,
+						Type:        older.ImageChangeBuildTriggerType,
+						ImageChange: &older.ImageChangeTrigger{},
 					},
 					{
 						Type: older.GitHubWebHookBuildTriggerType,
@@ -260,4 +263,49 @@ func TestBuildTriggerPolicyNewToOldConversion(t *testing.T) {
 			t.Errorf("%s: expected %v, actual %v", s, testCase.ExpectedBuildTriggerType, actual.Type)
 		}
 	}
+}
+
+func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
+	buildConfig := older.BuildConfig{
+		ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		Spec: older.BuildConfigSpec{
+			BuildSpec: older.BuildSpec{
+				Strategy: older.BuildStrategy{
+					Type: older.DockerBuildStrategyType,
+					DockerStrategy: &older.DockerBuildStrategy{
+						From: &kolder.ObjectReference{
+							Kind: "DockerImage",
+							Name: "fromimage",
+						},
+					},
+				},
+			},
+			Triggers: []older.BuildTriggerPolicy{
+				{
+					Type:        older.ImageChangeBuildTriggerType,
+					ImageChange: &older.ImageChangeTrigger{},
+				},
+				{
+					Type: older.ImageChangeBuildTriggerType,
+					ImageChange: &older.ImageChangeTrigger{
+						From: &kolder.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "imagestream",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	var internalBC newer.BuildConfig
+
+	Convert(&buildConfig, &internalBC)
+	if len(internalBC.Spec.Triggers) != 1 {
+		t.Errorf("Expected 1 trigger, got %d", len(internalBC.Spec.Triggers))
+	}
+	if internalBC.Spec.Triggers[0].ImageChange.From == nil {
+		t.Errorf("Expected remaining trigger to have a From value")
+	}
+
 }

@@ -1003,10 +1003,6 @@ func autoConvert_api_BuildConfig_To_v1_BuildConfig(in *buildapi.BuildConfig, out
 	return nil
 }
 
-func Convert_api_BuildConfig_To_v1_BuildConfig(in *buildapi.BuildConfig, out *v1.BuildConfig, s conversion.Scope) error {
-	return autoConvert_api_BuildConfig_To_v1_BuildConfig(in, out, s)
-}
-
 func autoConvert_api_BuildConfigList_To_v1_BuildConfigList(in *buildapi.BuildConfigList, out *v1.BuildConfigList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildConfigList))(in)
@@ -1017,7 +1013,7 @@ func autoConvert_api_BuildConfigList_To_v1_BuildConfigList(in *buildapi.BuildCon
 	if in.Items != nil {
 		out.Items = make([]v1.BuildConfig, len(in.Items))
 		for i := range in.Items {
-			if err := Convert_api_BuildConfig_To_v1_BuildConfig(&in.Items[i], &out.Items[i], s); err != nil {
+			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
 			}
 		}
@@ -1813,10 +1809,6 @@ func autoConvert_v1_BuildConfig_To_api_BuildConfig(in *v1.BuildConfig, out *buil
 	return nil
 }
 
-func Convert_v1_BuildConfig_To_api_BuildConfig(in *v1.BuildConfig, out *buildapi.BuildConfig, s conversion.Scope) error {
-	return autoConvert_v1_BuildConfig_To_api_BuildConfig(in, out, s)
-}
-
 func autoConvert_v1_BuildConfigList_To_api_BuildConfigList(in *v1.BuildConfigList, out *buildapi.BuildConfigList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1.BuildConfigList))(in)
@@ -1827,7 +1819,7 @@ func autoConvert_v1_BuildConfigList_To_api_BuildConfigList(in *v1.BuildConfigLis
 	if in.Items != nil {
 		out.Items = make([]buildapi.BuildConfig, len(in.Items))
 		for i := range in.Items {
-			if err := Convert_v1_BuildConfig_To_api_BuildConfig(&in.Items[i], &out.Items[i], s); err != nil {
+			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
 			}
 		}

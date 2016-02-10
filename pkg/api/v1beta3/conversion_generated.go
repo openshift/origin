@@ -1011,10 +1011,6 @@ func autoConvert_api_BuildConfig_To_v1beta3_BuildConfig(in *buildapi.BuildConfig
 	return nil
 }
 
-func Convert_api_BuildConfig_To_v1beta3_BuildConfig(in *buildapi.BuildConfig, out *v1beta3.BuildConfig, s conversion.Scope) error {
-	return autoConvert_api_BuildConfig_To_v1beta3_BuildConfig(in, out, s)
-}
-
 func autoConvert_api_BuildConfigList_To_v1beta3_BuildConfigList(in *buildapi.BuildConfigList, out *v1beta3.BuildConfigList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildConfigList))(in)
@@ -1025,7 +1021,7 @@ func autoConvert_api_BuildConfigList_To_v1beta3_BuildConfigList(in *buildapi.Bui
 	if in.Items != nil {
 		out.Items = make([]v1beta3.BuildConfig, len(in.Items))
 		for i := range in.Items {
-			if err := Convert_api_BuildConfig_To_v1beta3_BuildConfig(&in.Items[i], &out.Items[i], s); err != nil {
+			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
 			}
 		}
@@ -1756,10 +1752,6 @@ func autoConvert_v1beta3_BuildConfig_To_api_BuildConfig(in *v1beta3.BuildConfig,
 	return nil
 }
 
-func Convert_v1beta3_BuildConfig_To_api_BuildConfig(in *v1beta3.BuildConfig, out *buildapi.BuildConfig, s conversion.Scope) error {
-	return autoConvert_v1beta3_BuildConfig_To_api_BuildConfig(in, out, s)
-}
-
 func autoConvert_v1beta3_BuildConfigList_To_api_BuildConfigList(in *v1beta3.BuildConfigList, out *buildapi.BuildConfigList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1beta3.BuildConfigList))(in)
@@ -1770,7 +1762,7 @@ func autoConvert_v1beta3_BuildConfigList_To_api_BuildConfigList(in *v1beta3.Buil
 	if in.Items != nil {
 		out.Items = make([]buildapi.BuildConfig, len(in.Items))
 		for i := range in.Items {
-			if err := Convert_v1beta3_BuildConfig_To_api_BuildConfig(&in.Items[i], &out.Items[i], s); err != nil {
+			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
 			}
 		}
