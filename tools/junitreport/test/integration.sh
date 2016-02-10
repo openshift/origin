@@ -24,7 +24,7 @@ for suite in test/*/; do
 
 	# test every case with flat and nested suites
 	for test in ${suite}/testdata/*.txt; do
-		test_name=$( basename ${test} | grep -Po ".+(?=\.txt)" )
+		test_name=$( basename ${test} '.txt' )
 
 		cat "${test}" | ./junitreport -type "${suite_name}" -suites flat > "${WORKINGDIR}/${test_name}_flat.xml"
 		if ! diff "${suite}/reports/${test_name}_flat.xml" "${WORKINGDIR}/${test_name}_flat.xml"; then
