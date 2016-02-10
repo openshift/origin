@@ -68,6 +68,22 @@ Attach to a running container.
 ====
 
 
+== oc autoscale
+Autoscale a deployment config or replication controller
+
+====
+
+[options="nowrap"]
+----
+  # Auto scale a deployment config "foo", with the number of pods between 2 to 10, target CPU utilization at a default value that server applies:
+  $ oc autoscale dc/foo --min=2 --max=10
+
+  # Auto scale a replication controller "foo", with the number of pods between 1 to 5, target CPU utilization at 80%
+  $ oc autoscale rc/foo --max=5 --cpu-percent=80
+----
+====
+
+
 == oc cancel-build
 Cancel a pending or running build
 

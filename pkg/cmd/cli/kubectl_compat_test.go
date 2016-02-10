@@ -19,7 +19,6 @@ import (
 var MissingCommands = sets.NewString(
 	"namespace", "rolling-update",
 	"cluster-info", "api-versions",
-	"autoscale", // TODO
 	"stop",
 	"cordon",
 	"drain",
