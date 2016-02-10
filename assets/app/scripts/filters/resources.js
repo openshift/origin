@@ -265,7 +265,7 @@ angular.module('openshiftConsole')
     return function(image, builds) {
       // TODO concerned that this gets called anytime any data is changed on the scope,
       // whether its relevant changes or not
-      var envVars = image.dockerImageMetadata.Config.Env;
+      var envVars = _.get(image, 'dockerImageMetadata.Config.Env', []);
       for (var i = 0; i < envVars.length; i++) {
         var keyValue = envVars[i].split("=");
         if (keyValue[0] === "OPENSHIFT_BUILD_NAME") {
