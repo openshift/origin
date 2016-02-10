@@ -1,0 +1,130 @@
+{
+    "kind": "Template",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "registry-newproject-template-unshared",
+        "creationTimestamp": null
+    },
+    "objects": [
+        {
+            "kind": "Project",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${PROJECT_NAME}",
+                "creationTimestamp": null,
+                "annotations": {
+                    "openshift.io/description": "${PROJECT_DESCRIPTION}",
+                    "openshift.io/display-name": "${PROJECT_DISPLAYNAME}",
+                    "openshift.io/requester": "${PROJECT_REQUESTING_USER}"
+                }
+            },
+            "spec": {},
+            "status": {}
+        },
+        {
+            "kind": "RoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "registry-admin",
+                "namespace": "${PROJECT_NAME}",
+                "creationTimestamp": null
+            },
+            "userNames": [
+                "${PROJECT_ADMIN_USER}"
+            ],
+            "groupNames": null,
+            "subjects": [
+                {
+                    "kind": "User",
+                    "name": "${PROJECT_ADMIN_USER}"
+                }
+            ],
+            "roleRef": {
+                "name": "registry-admin"
+            }
+        },
+        {
+            "kind": "RoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:image-pullers",
+                "namespace": "${PROJECT_NAME}",
+                "creationTimestamp": null
+            },
+            "userNames": null,
+            "groupNames": [
+                "system:serviceaccounts:${PROJECT_NAME}"
+            ],
+            "subjects": [
+                {
+                    "kind": "SystemGroup",
+                    "name": "system:serviceaccounts:${PROJECT_NAME}"
+                }
+            ],
+            "roleRef": {
+                "name": "system:image-puller"
+            }
+        },
+        {
+            "kind": "RoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:image-builders",
+                "namespace": "${PROJECT_NAME}",
+                "creationTimestamp": null
+            },
+            "userNames": [
+                "system:serviceaccount:${PROJECT_NAME}:builder"
+            ],
+            "groupNames": null,
+            "subjects": [
+                {
+                    "kind": "ServiceAccount",
+                    "name": "builder"
+                }
+            ],
+            "roleRef": {
+                "name": "system:image-builder"
+            }
+        },
+        {
+            "kind": "RoleBinding",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "system:deployers",
+                "namespace": "${PROJECT_NAME}",
+                "creationTimestamp": null
+            },
+            "userNames": [
+                "system:serviceaccount:${PROJECT_NAME}:deployer"
+            ],
+            "groupNames": null,
+            "subjects": [
+                {
+                    "kind": "ServiceAccount",
+                    "name": "deployer"
+                }
+            ],
+            "roleRef": {
+                "name": "system:deployer"
+            }
+        }
+    ],
+    "parameters": [
+        {
+            "name": "PROJECT_NAME"
+        },
+        {
+            "name": "PROJECT_DISPLAYNAME"
+        },
+        {
+            "name": "PROJECT_DESCRIPTION"
+        },
+        {
+            "name": "PROJECT_ADMIN_USER"
+        },
+        {
+            "name": "PROJECT_REQUESTING_USER"
+        }
+    ]
+}
