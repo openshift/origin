@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -31,7 +32,7 @@ func (l *ListPodsOptions) Run() error {
 	if l.Options.CmdPrinterOutput {
 		printer = l.Options.CmdPrinter
 	} else {
-		printer, _, err = l.Options.GetPrintersByResource(kapi.SchemeGroupVersion.WithResource("pod"))
+		printer, _, err = l.Options.GetPrintersByResource(unversioned.GroupVersionResource{Resource: "pod"})
 		if err != nil {
 			return err
 		}
