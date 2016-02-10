@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -28,14 +29,14 @@ func IsBuildPod(a admission.Attributes) bool {
 
 // GetBuild returns a build object encoded in a pod's BUILD environment variable along with
 // its encoding version
-func GetBuild(a admission.Attributes) (*buildapi.Build, *unversioned.GroupVersion, error) {
+func GetBuild(a admission.Attributes) (*buildapi.Build, unversioned.GroupVersion, error) {
 	pod, err := GetPod(a)
 	if err != nil {
-		return nil, nil, err
+		return nil, unversioned.GroupVersion{}, err
 	}
 	build, version, err := getBuildFromPod(pod)
 	if err != nil {
-		return nil, nil, admission.NewForbidden(a, fmt.Errorf("unable to get build from pod: %v", err))
+		return nil, unversioned.GroupVersion{}, admission.NewForbidden(a, fmt.Errorf("unable to get build from pod: %v", err))
 	}
 	return build, version, nil
 }
@@ -50,7 +51,7 @@ func GetPod(a admission.Attributes) (*kapi.Pod, error) {
 }
 
 // SetBuild encodes a build object and sets it in a pod's BUILD environment variable
-func SetBuild(a admission.Attributes, build *buildapi.Build, groupVersion *unversioned.GroupVersion) error {
+func SetBuild(a admission.Attributes, build *buildapi.Build, groupVersion unversioned.GroupVersion) error {
 	pod, err := GetPod(a)
 	if err != nil {
 		return err
@@ -64,38 +65,30 @@ func SetBuild(a admission.Attributes, build *buildapi.Build, groupVersion *unver
 
 // getBuildFromPod detects the encoding of a Build in a pod and returns the Build
 // object along with its detected version.
-func getBuildFromPod(pod *kapi.Pod) (*buildapi.Build, *unversioned.GroupVersion, error) {
+func getBuildFromPod(pod *kapi.Pod) (*buildapi.Build, unversioned.GroupVersion, error) {
 	envVar, err := buildEnvVar(pod)
 	if err != nil {
-		return nil, nil, err
+		return nil, unversioned.GroupVersion{}, err
 	}
-	kind, err := kapi.Scheme.DataKind([]byte(envVar.Value))
+	obj, groupVersionKind, err := kapi.Codecs.UniversalDecoder().Decode([]byte(envVar.Value), nil, nil)
 	if err != nil {
-		return nil, nil, err
-	}
-	groupVersion, err := unversioned.ParseGroupVersion(kind.Version)
-	if err != nil {
-		return nil, nil, err
-	}
-	obj, err := kapi.Scheme.Decode([]byte(envVar.Value))
-	if err != nil {
-		return nil, nil, err
+		return nil, unversioned.GroupVersion{}, err
 	}
 	build, ok := obj.(*buildapi.Build)
 	if !ok {
-		return nil, nil, errors.New("decoded object is not of type Build")
+		return nil, unversioned.GroupVersion{}, errors.New("decoded object is not of type Build")
 	}
-	return build, &groupVersion, nil
+	return build, groupVersionKind.GroupVersion(), nil
 }
 
 // setBuildInPod encodes a build with the given version and sets it in the BUILD environment variable
 // of the pod.
-func setBuildInPod(build *buildapi.Build, pod *kapi.Pod, groupVersion *unversioned.GroupVersion) error {
+func setBuildInPod(build *buildapi.Build, pod *kapi.Pod, groupVersion unversioned.GroupVersion) error {
 	envVar, err := buildEnvVar(pod)
 	if err != nil {
 		return err
 	}
-	encodedBuild, err := kapi.Scheme.EncodeToVersion(build, groupVersion.Version)
+	encodedBuild, err := runtime.Encode(kapi.Codecs.LegacyCodec(groupVersion), build)
 	if err != nil {
 		return err
 	}

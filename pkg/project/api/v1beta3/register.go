@@ -1,25 +1,28 @@
 package v1beta3
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
+const GroupName = ""
+
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: "v1beta3"}
+var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: "v1beta3"}
 
-// Codec encodes internal objects to the v1beta3 scheme
-var Codec = runtime.CodecFor(api.Scheme, SchemeGroupVersion.String())
+func AddToScheme(scheme *runtime.Scheme) {
+	addKnownTypes(scheme)
+}
 
-func init() {
-	api.Scheme.AddKnownTypes(SchemeGroupVersion,
+// Adds the list of known types to api.Scheme.
+func addKnownTypes(scheme *runtime.Scheme) {
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Project{},
 		&ProjectList{},
 		&ProjectRequest{},
 	)
 }
 
-func (*ProjectRequest) IsAnAPIObject() {}
-func (*Project) IsAnAPIObject()        {}
-func (*ProjectList) IsAnAPIObject()    {}
+func (obj *ProjectRequest) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *Project) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
+func (obj *ProjectList) GetObjectKind() unversioned.ObjectKind    { return &obj.TypeMeta }

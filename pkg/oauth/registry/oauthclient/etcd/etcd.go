@@ -38,7 +38,7 @@ func NewREST(s storage.Interface) *REST {
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return oauthclient.Matcher(label, field)
 		},
-		EndpointName: "oauthclients",
+		QualifiedResource: api.Resource("oauthclients"),
 
 		Storage: s,
 	}

@@ -65,7 +65,7 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	}
 
 	if repo.Status.Tags == nil {
-		return nil, errors.NewNotFound("imageStreamImage", imageID)
+		return nil, errors.NewNotFound(api.Resource("imagestreamimage"), imageID)
 	}
 
 	event, err := api.ResolveImageID(repo, imageID)

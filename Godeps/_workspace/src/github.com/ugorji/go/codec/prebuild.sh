@@ -86,7 +86,7 @@ func GenInternalGoFile(r io.Reader, w io.Writer, safe bool) error {
 return genInternalGoFile(r, w, safe)
 }
 EOF
-
+    
     cat > gen-from-tmpl.generated.go <<EOF
 //+build ignore
 
@@ -118,7 +118,7 @@ run("gen-helper.go.tmpl", "gen-helper.generated.go", false)
 
 EOF
     go run -tags=notfastpath gen-from-tmpl.generated.go && \
-        rm -f gen-from-tmpl.*generated.go
+        rm -f gen-from-tmpl.*generated.go 
 }
 
 _codegenerators() {
@@ -133,17 +133,17 @@ _codegenerators() {
         # starting codecgen.
         # Without this, ffjson chokes on one of the temporary files from codecgen.
         if [[ $zexternal == "1" ]]
-        then
+        then 
             echo "ffjson ... " && \
                 ffjson -w values_ffjson${zsfx} $zfin &
             zzzIdFF=$!
             echo "msgp ... " && \
                 msgp -tests=false -o=values_msgp${zsfx} -file=$zfin &
             zzzIdMsgp=$!
-
+            
             sleep 1 # give ffjson and msgp some buffer time. see note above.
         fi
-
+        
         echo "codecgen - !unsafe ... " && \
             codecgen -rt codecgen -t 'x,codecgen,!unsafe' -o values_codecgen${zsfx} -d 19780 $zfin &
         zzzIdC=$!

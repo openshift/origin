@@ -14,6 +14,8 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	requestlimitapi "github.com/openshift/origin/pkg/project/admission/requestlimit/api"
+	requestlimitapivalidation "github.com/openshift/origin/pkg/project/admission/requestlimit/api/validation"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 )
@@ -28,21 +30,21 @@ func init() {
 	})
 }
 
-func readConfig(reader io.Reader) (*ProjectRequestLimitConfig, error) {
+func readConfig(reader io.Reader) (*requestlimitapi.ProjectRequestLimitConfig, error) {
 	if reader == nil || reflect.ValueOf(reader).IsNil() {
-		return &ProjectRequestLimitConfig{}, nil
+		return &requestlimitapi.ProjectRequestLimitConfig{}, nil
 	}
 
 	configBytes, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
-	config := &ProjectRequestLimitConfig{}
+	config := &requestlimitapi.ProjectRequestLimitConfig{}
 	err = configlatest.ReadYAML(configBytes, config)
 	if err != nil {
 		return nil, err
 	}
-	errs := ValidateProjectRequestLimitConfig(config)
+	errs := requestlimitapivalidation.ValidateProjectRequestLimitConfig(config)
 	if len(errs) > 0 {
 		return nil, errs.ToAggregate()
 	}
@@ -52,7 +54,7 @@ func readConfig(reader io.Reader) (*ProjectRequestLimitConfig, error) {
 type projectRequestLimit struct {
 	*admission.Handler
 	client client.Interface
-	config *ProjectRequestLimitConfig
+	config *requestlimitapi.ProjectRequestLimitConfig
 	cache  *projectcache.ProjectCache
 }
 
@@ -136,7 +138,7 @@ func (o *projectRequestLimit) Validate() error {
 	return nil
 }
 
-func NewProjectRequestLimit(config *ProjectRequestLimitConfig) (admission.Interface, error) {
+func NewProjectRequestLimit(config *requestlimitapi.ProjectRequestLimitConfig) (admission.Interface, error) {
 	return &projectRequestLimit{
 		config:  config,
 		Handler: admission.NewHandler(admission.Create),

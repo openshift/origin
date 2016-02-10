@@ -39,6 +39,19 @@ Change configuration files for the client
 ====
 
 
+== oadm config current-context
+Displays the current-context
+
+====
+
+[options="nowrap"]
+----
+  # Display the current-context
+  $ oadm config current-context
+----
+====
+
+
 == oadm config set-cluster
 Sets a cluster entry in kubeconfig
 
@@ -278,6 +291,38 @@ Make project network global
 
 	# Allow all projects with label name=share to access all pods in the cluster and vice versa
 	$ oadm pod-network make-projects-global --selector='name=share'
+----
+====
+
+
+== oadm policy add-role-to-user
+Add users or serviceaccounts to a role in the current project
+
+====
+
+[options="nowrap"]
+----
+  # Add the 'view' role to user1 in the current project
+  $ oadm policy add-role-to-user view user1
+
+  # Add the 'edit' role to serviceaccount1 in the current project
+  $ oadm policy add-role-to-user edit -z serviceaccount1
+----
+====
+
+
+== oadm policy add-scc-to-user
+Add users or serviceaccount to a security context constraint
+
+====
+
+[options="nowrap"]
+----
+  # Add the 'restricted' security context contraint to user1 and user2
+  $ oadm policy add-scc-to-user restricted user1 user2
+
+  # Add the 'privileged' security context contraint to the service account serviceaccount1 in the current namespace
+  $ oadm policy add-scc-to-user privileged -z serviceaccount1
 ----
 ====
 

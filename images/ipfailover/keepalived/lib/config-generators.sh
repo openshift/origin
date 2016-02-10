@@ -205,6 +205,7 @@ function generate_vrrpd_instance_config() {
   local vipname=$(scrub "$1")
   local initialstate=""
   local preempt=${PREEMPTION:-"$DEFAULT_PREEMPTION_STRATEGY"}
+  local vrrpidoffset=${HA_VRRP_ID_OFFSET:-0}
 
   [ "$instancetype" = "master" ] && initialstate="state MASTER"
 
@@ -216,7 +217,7 @@ function generate_vrrpd_instance_config() {
 vrrp_instance ${instance_name} {
    interface ${interface}
    ${initialstate}
-   virtual_router_id ${iid}
+   virtual_router_id $((vrrpidoffset + iid))
    priority ${priority}
    ${preempt}
    ${auth_section}

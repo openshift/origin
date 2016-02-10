@@ -14,6 +14,7 @@ window.OPENSHIFT_CONSTANTS = {
     "deployment-operations":   "https://docs.openshift.org/latest/cli_reference/basic_cli_operations.html#build-and-deployment-cli-operations",
     "route-types":             "https://docs.openshift.org/latest/architecture/core_concepts/routes.html#route-types",
     "persistent_volumes":      "https://docs.openshift.org/latest/dev_guide/persistent_volumes.html",
+    "compute_resources":       "https://docs.openshift.org/latest/dev_guide/compute_resources.html",
     "default":                 "https://docs.openshift.org/latest/welcome/index.html"
   },
   // Maps links names to URL's where the CLI tools can be downloaded, may point directly to files or to external pages in a CDN, for example.

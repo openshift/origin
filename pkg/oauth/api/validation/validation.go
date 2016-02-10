@@ -55,7 +55,7 @@ func ValidateAccessToken(accessToken *api.OAuthAccessToken) field.ErrorList {
 	allErrs = append(allErrs, ValidateUserNameField(accessToken.UserName, field.NewPath("userName"))...)
 
 	if len(accessToken.UserUID) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("userUID")))
+		allErrs = append(allErrs, field.Required(field.NewPath("userUID"), ""))
 	}
 	if ok, msg := ValidateRedirectURI(accessToken.RedirectURI); !ok {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("redirectURI"), accessToken.RedirectURI, msg))
@@ -70,7 +70,7 @@ func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) field.Error
 	allErrs = append(allErrs, ValidateUserNameField(authorizeToken.UserName, field.NewPath("userName"))...)
 
 	if len(authorizeToken.UserUID) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("userUID")))
+		allErrs = append(allErrs, field.Required(field.NewPath("userUID"), ""))
 	}
 	if ok, msg := ValidateRedirectURI(authorizeToken.RedirectURI); !ok {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("redirectURI"), authorizeToken.RedirectURI, msg))
@@ -134,7 +134,7 @@ func ValidateClientAuthorization(clientAuthorization *api.OAuthClientAuthorizati
 	allErrs = append(allErrs, ValidateUserNameField(clientAuthorization.UserName, field.NewPath("userName"))...)
 
 	if len(clientAuthorization.UserUID) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("useruid")))
+		allErrs = append(allErrs, field.Required(field.NewPath("useruid"), ""))
 	}
 
 	return allErrs
@@ -160,7 +160,7 @@ func ValidateClientAuthorizationUpdate(newAuth *api.OAuthClientAuthorization, ol
 
 func ValidateClientNameField(value string, fldPath *field.Path) field.ErrorList {
 	if len(value) == 0 {
-		return field.ErrorList{field.Required(fldPath)}
+		return field.ErrorList{field.Required(fldPath, "")}
 	} else if ok, msg := validation.NameIsDNSSubdomain(value, false); !ok {
 		return field.ErrorList{field.Invalid(fldPath, value, msg)}
 	}
@@ -169,7 +169,7 @@ func ValidateClientNameField(value string, fldPath *field.Path) field.ErrorList 
 
 func ValidateUserNameField(value string, fldPath *field.Path) field.ErrorList {
 	if len(value) == 0 {
-		return field.ErrorList{field.Required(fldPath)}
+		return field.ErrorList{field.Required(fldPath, "")}
 	} else if ok, msg := uservalidation.ValidateUserName(value, false); !ok {
 		return field.ErrorList{field.Invalid(fldPath, value, msg)}
 	}

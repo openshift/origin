@@ -107,7 +107,7 @@ func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx kapi.Context, 
 
 func (p *provisioningIdentityMapper) getMapping(ctx kapi.Context, identity *userapi.Identity) (kuser.Info, error) {
 	if len(identity.User.Name) == 0 {
-		return nil, kerrs.NewNotFound("UserIdentityMapping", identity.Name)
+		return nil, kerrs.NewNotFound(userapi.Resource("useridentitymapping"), identity.Name)
 	}
 	u, err := p.user.GetUser(ctx, identity.User.Name)
 	if err != nil {
@@ -115,11 +115,11 @@ func (p *provisioningIdentityMapper) getMapping(ctx kapi.Context, identity *user
 	}
 	if u.UID != identity.User.UID {
 		glog.Errorf("identity.user.uid (%s) and user.uid (%s) do not match for identity %s", identity.User.UID, u.UID, identity.Name)
-		return nil, kerrs.NewNotFound("UserIdentityMapping", identity.Name)
+		return nil, kerrs.NewNotFound(userapi.Resource("useridentitymapping"), identity.Name)
 	}
 	if !sets.NewString(u.Identities...).Has(identity.Name) {
 		glog.Errorf("user.identities (%#v) does not include identity (%s)", u, identity.Name)
-		return nil, kerrs.NewNotFound("UserIdentityMapping", identity.Name)
+		return nil, kerrs.NewNotFound(userapi.Resource("useridentitymapping"), identity.Name)
 	}
 	return &kuser.DefaultInfo{
 		Name:   u.Name,

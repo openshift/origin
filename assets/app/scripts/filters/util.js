@@ -94,9 +94,29 @@ angular.module('openshiftConsole')
       return number * multiplier;
     };
   })
+  .filter('humanizeUnit', function() {
+    return function(unit, type, singular) {
+      switch(type) {
+      case "memory":
+      case "storage":
+        if (!unit) {
+          return unit;
+        }
+        return unit + "B";
+      case "cpu":
+        if (unit === "m") {
+          unit = "milli";
+        }
+        var suffix = (singular) ? 'core' : 'cores';
+        return (unit || '') + suffix;
+      default:
+        return unit;
+      }
+    };
+  })
   // Returns the amount and unit for compute resources, normalizing the unit.
-  .filter('amountAndUnit', function() {
-    return function(value, type) {
+  .filter('amountAndUnit', function(humanizeUnitFilter) {
+    return function(value, type, humanizeUnits) {
       if (!value) {
         return [value, null];
       }
@@ -105,20 +125,13 @@ angular.module('openshiftConsole')
         // We didn't get an amount? shouldn't happen but just in case
         return [value, null];
       }
+
       var amount = split[1];
       var unit = split[2];
-      switch(type) {
-        case "memory":
-        case "storage":
-          unit += "B";
-          break;
-        case "cpu":
-          if (unit === "m") {
-            unit = "milli";
-          }
-          unit += (amount === "1" ? "core" : "cores");
-          break;
+      if (humanizeUnits) {
+        unit = humanizeUnitFilter(unit, type, amount === "1");
       }
+
       return [amount, unit];
     };
   })
@@ -133,7 +146,19 @@ angular.module('openshiftConsole')
         return amount + " " + unit;
       });
 
-      return toString(amountAndUnitFilter(value, type));
+      return toString(amountAndUnitFilter(value, type, true));
+    };
+  })
+  .filter('computeResourceLabel', function() {
+    return function(computeResourceType, capitalize) {
+      switch (computeResourceType) {
+      case 'cpu':
+        return 'CPU';
+      case 'memory':
+        return capitalize ? 'Memory' : 'memory';
+      default:
+        return computeResourceType;
+      }
     };
   })
   .filter('helpLink', function(Constants) {
@@ -336,6 +361,12 @@ angular.module('openshiftConsole')
   .filter('navigateResourceURL', function(Navigate) {
     return function(resource, kind, namespace) {
       return Navigate.resourceURL(resource, kind, namespace);
+    };
+  })
+  .filter('editResourceURL', function(Navigate) {
+    return function(resource, kind, namespace) {
+      var url = Navigate.resourceURL(resource, kind, namespace, "edit");
+      return url;
     };
   })
   .filter('join', function() {

@@ -140,7 +140,7 @@ func (p *KeepalivedPlugin) Create(out io.Writer) error {
 	bulk := configcmd.Bulk{
 		Mapper:            mapper,
 		Typer:             typer,
-		RESTClientFactory: p.Factory.Factory.RESTClient,
+		RESTClientFactory: p.Factory.Factory.ClientForMapping,
 
 		After: configcmd.NewPrintNameOrErrorAfter(mapper, p.Options.ShortOutput, "created", out, os.Stderr),
 	}

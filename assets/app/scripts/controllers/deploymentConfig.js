@@ -7,7 +7,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('DeploymentConfigController', function ($scope, $routeParams, DataService, ProjectsService, DeploymentsService, ImageStreamResolver, $filter, LabelFilter) {
+  .controller('DeploymentConfigController', function ($scope, $routeParams, AlertMessageService, DataService, ProjectsService, DeploymentsService, ImageStreamResolver, $filter, LabelFilter) {
     $scope.projectName = $routeParams.project;
     $scope.deploymentConfig = null;
     $scope.deployments = {};
@@ -40,6 +40,12 @@ angular.module('openshiftConsole')
       $scope.selectedTab = {};
       $scope.selectedTab[$routeParams.tab] = true;
     }
+
+    // get and clear any alerts
+    AlertMessageService.getAlerts().forEach(function(alert) {
+      $scope.alerts[alert.name] = alert.data;
+    });
+    AlertMessageService.clearAlerts();
 
     var watches = [];
 

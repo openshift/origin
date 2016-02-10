@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("networking: sanity", func() {
+var _ = Describe("[networking] basic openshift networking", func() {
 	svcname := "net-sanity"
 	timeout := 10
 

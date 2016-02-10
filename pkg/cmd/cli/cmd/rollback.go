@@ -11,7 +11,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kubectl "k8s.io/kubernetes/pkg/kubectl"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -67,15 +67,15 @@ func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 		Example: fmt.Sprintf(rollbackExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(f, args, out); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			if err := opts.Validate(); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			if err := opts.Run(); err != nil {
-				cmdutil.CheckErr(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
@@ -131,7 +131,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, args []string, out io.W
 	// Set up client based support.
 	mapper, typer := f.Object()
 	o.getBuilder = func() *resource.Builder {
-		return resource.NewBuilder(mapper, typer, f.ClientMapperForCommand())
+		return resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder())
 	}
 
 	oClient, kClient, err := f.Clients()

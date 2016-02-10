@@ -174,6 +174,28 @@ func NewCommitFromOnelineLog(log string) (Commit, error) {
 	return commit, nil
 }
 
+func IsAncestor(commit1, commit2, repoDir string) (bool, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return false, err
+	}
+	defer os.Chdir(cwd)
+
+	if err := os.Chdir(repoDir); err != nil {
+		return false, err
+	}
+
+	if stdout, stderr, err := run("git", "fetch", "origin"); err != nil {
+		return false, fmt.Errorf("out=%s, err=%s, %s", strings.TrimSpace(stdout), strings.TrimSpace(stderr), err)
+	}
+
+	if stdout, stderr, err := run("git", "merge-base", "--is-ancestor", commit1, commit2); err != nil {
+		return false, fmt.Errorf("out=%s, err=%s, %s", strings.TrimSpace(stdout), strings.TrimSpace(stderr), err)
+	}
+
+	return true, nil
+}
+
 func filesInCommit(sha string) ([]File, error) {
 	files := []File{}
 	stdout, _, err := run("git", "diff-tree", "--no-commit-id", "--name-only", "-r", sha)

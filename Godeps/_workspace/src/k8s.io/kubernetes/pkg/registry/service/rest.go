@@ -34,7 +34,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/service/ipallocator"
 	"k8s.io/kubernetes/pkg/registry/service/portallocator"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	utilnet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/watch"
 )
@@ -96,7 +96,7 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (runtime.Object, err
 		if err := rs.serviceIPs.Allocate(net.ParseIP(service.Spec.ClusterIP)); err != nil {
 			// TODO: when validation becomes versioned, this gets more complicated.
 			el := field.ErrorList{field.Invalid(field.NewPath("spec", "clusterIP"), service.Spec.ClusterIP, err.Error())}
-			return nil, errors.NewInvalid("Service", service.Name, el)
+			return nil, errors.NewInvalid(api.Kind("Service"), service.Name, el)
 		}
 		releaseServiceIP = true
 	}
@@ -109,7 +109,7 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (runtime.Object, err
 			if err != nil {
 				// TODO: when validation becomes versioned, this gets more complicated.
 				el := field.ErrorList{field.Invalid(field.NewPath("spec", "ports").Index(i).Child("nodePort"), servicePort.NodePort, err.Error())}
-				return nil, errors.NewInvalid("Service", service.Name, el)
+				return nil, errors.NewInvalid(api.Kind("Service"), service.Name, el)
 			}
 		} else if assignNodePorts {
 			nodePort, err := nodePortOp.AllocateNext()
@@ -178,13 +178,13 @@ func (rs *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
 	return rs.registry.GetService(ctx, id)
 }
 
-func (rs *REST) List(ctx api.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+func (rs *REST) List(ctx api.Context, options *api.ListOptions) (runtime.Object, error) {
 	return rs.registry.ListServices(ctx, options)
 }
 
 // Watch returns Services events via a watch.Interface.
 // It implements rest.Watcher.
-func (rs *REST) Watch(ctx api.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+func (rs *REST) Watch(ctx api.Context, options *api.ListOptions) (watch.Interface, error) {
 	return rs.registry.WatchServices(ctx, options)
 }
 
@@ -199,7 +199,7 @@ func (*REST) NewList() runtime.Object {
 func (rs *REST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	service := obj.(*api.Service)
 	if !api.ValidNamespace(ctx, &service.ObjectMeta) {
-		return nil, false, errors.NewConflict("service", service.Namespace, fmt.Errorf("Service.Namespace does not match the provided context"))
+		return nil, false, errors.NewConflict(api.Resource("services"), service.Namespace, fmt.Errorf("Service.Namespace does not match the provided context"))
 	}
 
 	oldService, err := rs.registry.GetService(ctx, service.Name)
@@ -210,7 +210,7 @@ func (rs *REST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, boo
 	// Copy over non-user fields
 	// TODO: make this a merge function
 	if errs := validation.ValidateServiceUpdate(service, oldService); len(errs) > 0 {
-		return nil, false, errors.NewInvalid("service", service.Name, errs)
+		return nil, false, errors.NewInvalid(api.Kind("Service"), service.Name, errs)
 	}
 
 	nodePortOp := portallocator.StartOperation(rs.serviceNodePorts)
@@ -230,7 +230,7 @@ func (rs *REST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, boo
 					err := nodePortOp.Allocate(nodePort)
 					if err != nil {
 						el := field.ErrorList{field.Invalid(field.NewPath("spec", "ports").Index(i).Child("nodePort"), nodePort, err.Error())}
-						return nil, false, errors.NewInvalid("Service", service.Name, el)
+						return nil, false, errors.NewInvalid(api.Kind("Service"), service.Name, el)
 					}
 				}
 			} else {
@@ -287,7 +287,7 @@ var _ = rest.Redirector(&REST{})
 // ResourceLocation returns a URL to which one can send traffic for the specified service.
 func (rs *REST) ResourceLocation(ctx api.Context, id string) (*url.URL, http.RoundTripper, error) {
 	// Allow ID as "svcname", "svcname:port", or "scheme:svcname:port".
-	svcScheme, svcName, portStr, valid := util.SplitSchemeNamePort(id)
+	svcScheme, svcName, portStr, valid := utilnet.SplitSchemeNamePort(id)
 	if !valid {
 		return nil, nil, errors.NewBadRequest(fmt.Sprintf("invalid service request %q", id))
 	}

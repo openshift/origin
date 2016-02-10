@@ -54,7 +54,8 @@ angular.module("openshiftConsole")
       // TODO - if we do ever need to create a build URL without the build object but with a known build (deployment)
       // name and buildConfig (deploymentConfig) name, then we will need either a specialized method for that, or an
       // additional opts param for extra opts.
-      resourceURL: function(resource, kind, namespace) {
+      resourceURL: function(resource, kind, namespace, action) {
+        action = action || "browse";
         if (!resource || (!resource.metadata && (!kind || !namespace))) {
           return null;
         }
@@ -75,7 +76,7 @@ angular.module("openshiftConsole")
 
         var encodedName = encodeURIComponent(name);
 
-        var url = "project/" + encodedNamespace + "/browse/";
+        var url = "project/" + encodedNamespace + "/" + action + "/";
         switch(kind) {
           case "Build":
             if (resource.metadata && resource.metadata.labels && resource.metadata.labels.buildconfig) {

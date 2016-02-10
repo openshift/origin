@@ -20,11 +20,20 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
+	_ "k8s.io/kubernetes/pkg/api/install"
 	"k8s.io/kubernetes/pkg/api/resource"
 	versioned "k8s.io/kubernetes/pkg/api/v1beta3"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
+var v1beta3Codec = api.Codecs.LegacyCodec(versioned.SchemeGroupVersion)
+
 func TestResourceQuotaStatusConversion(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	// should serialize as "0"
 	expected := resource.NewQuantity(int64(0), resource.DecimalSI)
 	if "0" != expected.String() {
@@ -43,9 +52,17 @@ func TestResourceQuotaStatusConversion(t *testing.T) {
 	quota.Status.Hard[api.ResourcePods] = *expected
 
 	// round-trip the object
-	data, _ := versioned.Codec.Encode(quota)
-	object, _ := versioned.Codec.Decode(data)
+	scheme := api.Scheme.Raw()
+	versionedObj, err := scheme.ConvertToVersion(quota, versioned.SchemeGroupVersion.String())
+	if err != nil {
+		t.Fatalf("Conversion error: %v", err)
+	}
+	object, err := scheme.ConvertToVersion(versionedObj, api.SchemeGroupVersion.String())
+	if err != nil {
+		t.Fatalf("Conversion error: %v", err)
+	}
 	after := object.(*api.ResourceQuota)
+
 	actualQuantity := after.Status.Hard[api.ResourcePods]
 	actual := &actualQuantity
 
@@ -56,7 +73,11 @@ func TestResourceQuotaStatusConversion(t *testing.T) {
 }
 
 func TestNodeConversion(t *testing.T) {
-	obj, err := versioned.Codec.Decode([]byte(`{"kind":"Minion","apiVersion":"v1beta3"}`))
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
+	obj, err := runtime.Decode(v1beta3Codec, []byte(`{"kind":"Minion","apiVersion":"v1beta3"}`))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -64,7 +85,7 @@ func TestNodeConversion(t *testing.T) {
 		t.Errorf("unexpected type: %#v", obj)
 	}
 
-	obj, err = versioned.Codec.Decode([]byte(`{"kind":"MinionList","apiVersion":"v1beta3"}`))
+	obj, err = runtime.Decode(v1beta3Codec, []byte(`{"kind":"MinionList","apiVersion":"v1beta3"}`))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -73,12 +94,16 @@ func TestNodeConversion(t *testing.T) {
 	}
 
 	obj = &api.Node{}
-	if err := versioned.Codec.DecodeInto([]byte(`{"kind":"Minion","apiVersion":"v1beta3"}`), obj); err != nil {
+	if err := runtime.DecodeInto(v1beta3Codec, []byte(`{"kind":"Minion","apiVersion":"v1beta3"}`), obj); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestBadSecurityContextConversion(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
 	priv := false
 	testCases := map[string]struct {
 		c   *versioned.Container

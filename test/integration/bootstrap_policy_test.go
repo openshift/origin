@@ -108,7 +108,7 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("timeout: %v", err)
 	}
 
-	etcdClient, err := etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
+	etcdClient, err := etcd.MakeNewEtcdClient(masterConfig.EtcdClientInfo)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

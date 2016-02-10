@@ -40,7 +40,7 @@ func (s *ClusterRoleBindingStorage) NewList() runtime.Object {
 	return &authorizationapi.ClusterRoleBindingList{}
 }
 
-func (s *ClusterRoleBindingStorage) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+func (s *ClusterRoleBindingStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
 	ret, err := s.roleBindingStorage.List(ctx, options)
 	if ret == nil {
 		return nil, err

@@ -12,6 +12,9 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {

@@ -143,6 +143,76 @@ func TestClaimRace(t *testing.T) {
 	}
 }
 
+func TestClaimSyncAfterVolumeProvisioning(t *testing.T) {
+	// Tests that binder.syncVolume will also syncClaim if the PV has completed
+	// provisioning but the claim is still Pending.  We want to advance to Bound
+	// without having to wait until the binder's next sync period.
+	claim := &api.PersistentVolumeClaim{
+		ObjectMeta: api.ObjectMeta{
+			Name:      "foo",
+			Namespace: "bar",
+			Annotations: map[string]string{
+				qosProvisioningKey: "foo",
+			},
+		},
+		Spec: api.PersistentVolumeClaimSpec{
+			AccessModes: []api.PersistentVolumeAccessMode{api.ReadWriteOnce},
+			Resources: api.ResourceRequirements{
+				Requests: api.ResourceList{
+					api.ResourceName(api.ResourceStorage): resource.MustParse("3Gi"),
+				},
+			},
+		},
+		Status: api.PersistentVolumeClaimStatus{
+			Phase: api.ClaimPending,
+		},
+	}
+	claim.ObjectMeta.SelfLink = testapi.Default.SelfLink("pvc", "")
+	claimRef, _ := api.GetReference(claim)
+
+	pv := &api.PersistentVolume{
+		ObjectMeta: api.ObjectMeta{
+			Name: "foo",
+			Annotations: map[string]string{
+				pvProvisioningRequiredAnnotationKey: pvProvisioningCompletedAnnotationValue,
+			},
+		},
+		Spec: api.PersistentVolumeSpec{
+			AccessModes: []api.PersistentVolumeAccessMode{api.ReadWriteOnce},
+			Capacity: api.ResourceList{
+				api.ResourceName(api.ResourceStorage): resource.MustParse("10Gi"),
+			},
+			PersistentVolumeSource: api.PersistentVolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: "/tmp/data01",
+				},
+			},
+			ClaimRef: claimRef,
+		},
+		Status: api.PersistentVolumeStatus{
+			Phase: api.VolumePending,
+		},
+	}
+
+	volumeIndex := NewPersistentVolumeOrderedIndex()
+	mockClient := &mockBinderClient{
+		claim: claim,
+	}
+
+	plugMgr := volume.VolumePluginMgr{}
+	plugMgr.InitPlugins(host_path.ProbeRecyclableVolumePlugins(newMockRecycler, volume.VolumeConfig{}), volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
+
+	// adds the volume to the index, making the volume available.
+	// pv also completed provisioning, so syncClaim should cause claim's phase to advance to Bound
+	syncVolume(volumeIndex, mockClient, pv)
+	if mockClient.volume.Status.Phase != api.VolumeAvailable {
+		t.Errorf("Expected phase %s but got %s", api.VolumeAvailable, mockClient.volume.Status.Phase)
+	}
+	if mockClient.claim.Status.Phase != api.ClaimBound {
+		t.Errorf("Expected phase %s but got %s", api.ClaimBound, claim.Status.Phase)
+	}
+}
+
 func TestExampleObjects(t *testing.T) {
 	scenarios := map[string]struct {
 		expected interface{}
@@ -205,8 +275,9 @@ func TestExampleObjects(t *testing.T) {
 	}
 
 	for name, scenario := range scenarios {
-		o := testclient.NewObjects(api.Scheme, api.Scheme)
-		if err := testclient.AddObjectsFromPath("../../../docs/user-guide/persistent-volumes/"+name, o, api.Scheme); err != nil {
+		codec := api.Codecs.UniversalDecoder()
+		o := testclient.NewObjects(api.Scheme, codec)
+		if err := testclient.AddObjectsFromPath("../../../docs/user-guide/persistent-volumes/"+name, o, codec); err != nil {
 			t.Fatal(err)
 		}
 
@@ -262,11 +333,12 @@ func TestExampleObjects(t *testing.T) {
 }
 
 func TestBindingWithExamples(t *testing.T) {
-	o := testclient.NewObjects(api.Scheme, api.Scheme)
-	if err := testclient.AddObjectsFromPath("../../../docs/user-guide/persistent-volumes/claims/claim-01.yaml", o, api.Scheme); err != nil {
+	codec := api.Codecs.UniversalDecoder()
+	o := testclient.NewObjects(api.Scheme, codec)
+	if err := testclient.AddObjectsFromPath("../../../docs/user-guide/persistent-volumes/claims/claim-01.yaml", o, codec); err != nil {
 		t.Fatal(err)
 	}
-	if err := testclient.AddObjectsFromPath("../../../docs/user-guide/persistent-volumes/volumes/local-01.yaml", o, api.Scheme); err != nil {
+	if err := testclient.AddObjectsFromPath("../../../docs/user-guide/persistent-volumes/volumes/local-01.yaml", o, codec); err != nil {
 		t.Fatal(err)
 	}
 
@@ -419,7 +491,7 @@ func (c *mockBinderClient) GetPersistentVolumeClaim(namespace, name string) (*ap
 	if c.claim != nil {
 		return c.claim, nil
 	} else {
-		return nil, errors.NewNotFound("persistentVolume", name)
+		return nil, errors.NewNotFound(api.Resource("persistentvolumes"), name)
 	}
 }
 

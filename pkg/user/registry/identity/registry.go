@@ -3,7 +3,6 @@ package identity
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -12,7 +11,7 @@ import (
 // Registry is an interface implemented by things that know how to store Identity objects.
 type Registry interface {
 	// ListIdentities obtains a list of Identities having labels which match selector.
-	ListIdentities(ctx kapi.Context, options *unversioned.ListOptions) (*api.IdentityList, error)
+	ListIdentities(ctx kapi.Context, options *kapi.ListOptions) (*api.IdentityList, error)
 	// GetIdentity returns a specific Identity
 	GetIdentity(ctx kapi.Context, name string) (*api.Identity, error)
 	// CreateIdentity creates a Identity
@@ -47,7 +46,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListIdentities(ctx kapi.Context, options *unversioned.ListOptions) (*api.IdentityList, error) {
+func (s *storage) ListIdentities(ctx kapi.Context, options *kapi.ListOptions) (*api.IdentityList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err

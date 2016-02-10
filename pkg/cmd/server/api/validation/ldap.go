@@ -49,7 +49,7 @@ func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure boo
 	validationResults := ValidationResults{}
 
 	if len(url) == 0 {
-		validationResults.AddErrors(field.Required(fldPath.Child("url")))
+		validationResults.AddErrors(field.Required(fldPath.Child("url"), ""))
 		return validationResults
 	}
 
@@ -98,21 +98,21 @@ func ValidateRFC2307Config(config *api.RFC2307Config) ValidationResults {
 
 	validationResults.Append(ValidateLDAPQuery(config.AllGroupsQuery, field.NewPath("groupsQuery")))
 	if len(config.GroupUIDAttribute) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("groupUIDAttribute")))
+		validationResults.AddErrors(field.Required(field.NewPath("groupUIDAttribute"), ""))
 	}
 	if len(config.GroupNameAttributes) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("groupNameAttributes")))
+		validationResults.AddErrors(field.Required(field.NewPath("groupNameAttributes"), ""))
 	}
 	if len(config.GroupMembershipAttributes) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("groupMembershipAttributes")))
+		validationResults.AddErrors(field.Required(field.NewPath("groupMembershipAttributes"), ""))
 	}
 
 	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery, field.NewPath("usersQuery")))
 	if len(config.UserUIDAttribute) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("userUIDAttribute")))
+		validationResults.AddErrors(field.Required(field.NewPath("userUIDAttribute"), ""))
 	}
 	if len(config.UserNameAttributes) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("userNameAttributes")))
+		validationResults.AddErrors(field.Required(field.NewPath("userNameAttributes"), ""))
 	}
 
 	return validationResults
@@ -123,10 +123,10 @@ func ValidateActiveDirectoryConfig(config *api.ActiveDirectoryConfig) Validation
 
 	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery, field.NewPath("usersQuery")))
 	if len(config.UserNameAttributes) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("userNameAttributes")))
+		validationResults.AddErrors(field.Required(field.NewPath("userNameAttributes"), ""))
 	}
 	if len(config.GroupMembershipAttributes) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("groupMembershipAttributes")))
+		validationResults.AddErrors(field.Required(field.NewPath("groupMembershipAttributes"), ""))
 	}
 
 	return validationResults
@@ -137,18 +137,18 @@ func ValidateAugmentedActiveDirectoryConfig(config *api.AugmentedActiveDirectory
 
 	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery, field.NewPath("usersQuery")))
 	if len(config.UserNameAttributes) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("userNameAttributes")))
+		validationResults.AddErrors(field.Required(field.NewPath("userNameAttributes"), ""))
 	}
 	if len(config.GroupMembershipAttributes) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("groupMembershipAttributes")))
+		validationResults.AddErrors(field.Required(field.NewPath("groupMembershipAttributes"), ""))
 	}
 
 	validationResults.Append(ValidateLDAPQuery(config.AllGroupsQuery, field.NewPath("groupsQuery")))
 	if len(config.GroupUIDAttribute) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("groupUIDAttribute")))
+		validationResults.AddErrors(field.Required(field.NewPath("groupUIDAttribute"), ""))
 	}
 	if len(config.GroupNameAttributes) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("groupNameAttributes")))
+		validationResults.AddErrors(field.Required(field.NewPath("groupNameAttributes"), ""))
 	}
 
 	return validationResults

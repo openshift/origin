@@ -31,7 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	utiltesting "k8s.io/kubernetes/pkg/util/testing"
 )
 
 const NameRequiredError = "resource name may not be empty"
@@ -58,7 +58,7 @@ type Client struct {
 	Error    bool
 	Created  bool
 	server   *httptest.Server
-	handler  *util.FakeHandler
+	handler  *utiltesting.FakeHandler
 	// For query args, an optional function to validate the contents
 	// useful when the contents can change but still be correct.
 	// Maps from query arg key to validator.
@@ -67,7 +67,7 @@ type Client struct {
 }
 
 func (c *Client) Setup(t *testing.T) *Client {
-	c.handler = &util.FakeHandler{
+	c.handler = &utiltesting.FakeHandler{
 		StatusCode: c.Response.StatusCode,
 	}
 	if responseBody := body(t, c.Response.Body, c.Response.RawBody); responseBody != nil {
@@ -91,11 +91,22 @@ func (c *Client) Setup(t *testing.T) *Client {
 	return c
 }
 
+func (c *Client) Close() {
+	if c.server != nil {
+		// TODO: Uncomment when fix #19254
+		// c.server.Close()
+	}
+}
+
+func (c *Client) ServerURL() string {
+	return c.server.URL
+}
+
 func (c *Client) Validate(t *testing.T, received runtime.Object, err error) {
 	c.ValidateCommon(t, err)
 
 	if c.Response.Body != nil && !api.Semantic.DeepDerivative(c.Response.Body, received) {
-		t.Errorf("bad response for request %#v: expected %#v, got %#v", c.Request, c.Response.Body, received)
+		t.Errorf("bad response for request %#v: \nexpected %#v\ngot %#v\n", c.Request, c.Response.Body, received)
 	}
 }
 
@@ -108,8 +119,6 @@ func (c *Client) ValidateRaw(t *testing.T, received []byte, err error) {
 }
 
 func (c *Client) ValidateCommon(t *testing.T, err error) {
-	defer c.server.Close()
-
 	if c.Error {
 		if err == nil {
 			t.Errorf("error expected for %#v, got none", c.Request)
@@ -199,23 +208,14 @@ func body(t *testing.T, obj runtime.Object, raw *string) *string {
 		if err != nil {
 			t.Errorf("unexpected encoding error: %v", err)
 		}
-		// TODO: caesarxuchao: we should detect which group an object belongs to
-		// by using the version returned by Schem.ObjectVersionAndKind() once we
-		// split the schemes for internal objects.
-		// TODO: caesarxuchao: we should add a map from kind to group in Scheme.
 		var bs []byte
-		if api.Scheme.Recognizes(testapi.Default.GroupVersion().WithKind(fqKind.Kind)) {
-			bs, err = testapi.Default.Codec().Encode(obj)
-			if err != nil {
-				t.Errorf("unexpected encoding error: %v", err)
-			}
-		} else if api.Scheme.Recognizes(testapi.Extensions.GroupVersion().WithKind(fqKind.Kind)) {
-			bs, err = testapi.Extensions.Codec().Encode(obj)
-			if err != nil {
-				t.Errorf("unexpected encoding error: %v", err)
-			}
-		} else {
-			t.Errorf("unexpected kind: %v", fqKind.Kind)
+		g, found := testapi.Groups[fqKind.GroupVersion().Group]
+		if !found {
+			t.Errorf("Group %s is not registered in testapi", fqKind.GroupVersion().Group)
+		}
+		bs, err = runtime.Encode(g.Codec(), obj)
+		if err != nil {
+			t.Errorf("unexpected encoding error: %v", err)
 		}
 		body := string(bs)
 		return &body

@@ -42,19 +42,27 @@
     border-right: 0;
     border-top: 0;
   }
-  .log-scroll-top.affix {
-    position: fixed;
-    right: 40px;
-    top: 0;
-  }
+  // starting position
   .log-scroll-top.affix-top {
     position: absolute;
     right: 0;
     top: 0;
   }
-  .log-scroll-top.affix-bottom {
-
+  // once affixed, has this position
+  .log-scroll-top.affix {
+    position: fixed;
+    right: 20px;
+    top: 0;
   }
+  // TODO: hacky, need to encapsulate this better
+  // '.target-logger-node' is a class indicating the target is not 'window'
+  // this is toggled in JS
+  .log-scroll-top.affix.target-logger-node {
+    position: fixed;
+    right: 42px;
+    top: 60px !important;
+  }
+
   .log-scroll-bottom {
     position: absolute;
     border-bottom: 0;
@@ -74,6 +82,14 @@
       width: 100%;
     }
   }
+}
+
+// TODO: need to encapsulate this better
+.chromeless .log-scroll-top.affix {
+  right: 0px; // override
+}
+.chromeless .log-scroll-top.affix.target-logger-node {
+  right: 10px;  // override
 }
 
 .log-link-external {
@@ -107,17 +123,6 @@
   white-space: pre-wrap;
   width: 100%;
   .word-break();
-}
-.log-chromeless {
-  margin-top: -1px;
-  .log-size-warning {
-    margin: 10px;
-  }
-  .log-view {
-    .log-scroll-top.affix {
-      right: 0;
-    }
-  }
 }
 
 .table-log-pods {

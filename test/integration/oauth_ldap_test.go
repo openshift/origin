@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -87,19 +86,17 @@ func TestOAuthLDAP(t *testing.T) {
 		UseAsChallenger: true,
 		UseAsLogin:      true,
 		MappingMethod:   "claim",
-		Provider: runtime.EmbeddedObject{
-			Object: &configapi.LDAPPasswordIdentityProvider{
-				URL:          fmt.Sprintf("ldap://%s/%s?%s?%s?%s", ldapAddress, searchDN, searchAttr, searchScope, searchFilter),
-				BindDN:       bindDN,
-				BindPassword: bindPassword,
-				Insecure:     true,
-				CA:           "",
-				Attributes: configapi.LDAPAttributeMapping{
-					ID:                []string{idAttr1, idAttr2},
-					PreferredUsername: []string{loginAttr1, loginAttr2},
-					Name:              []string{nameAttr1, nameAttr2},
-					Email:             []string{emailAttr1, emailAttr2},
-				},
+		Provider: &configapi.LDAPPasswordIdentityProvider{
+			URL:          fmt.Sprintf("ldap://%s/%s?%s?%s?%s", ldapAddress, searchDN, searchAttr, searchScope, searchFilter),
+			BindDN:       bindDN,
+			BindPassword: bindPassword,
+			Insecure:     true,
+			CA:           "",
+			Attributes: configapi.LDAPAttributeMapping{
+				ID:                []string{idAttr1, idAttr2},
+				PreferredUsername: []string{loginAttr1, loginAttr2},
+				Name:              []string{nameAttr1, nameAttr2},
+				Email:             []string{emailAttr1, emailAttr2},
 			},
 		},
 	}

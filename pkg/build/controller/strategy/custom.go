@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
@@ -32,14 +31,10 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		if err != nil {
 			return nil, FatalError(fmt.Sprintf("failed to parse buildAPIVersion specified in custom build strategy (%q): %v", strategy.BuildAPIVersion, err))
 		}
-		interfaces, err := latest.InterfacesFor(gv)
-		if err != nil {
-			return nil, FatalError(fmt.Sprintf("invalid buildAPIVersion specified in custom build strategy (%q): %v", strategy.BuildAPIVersion, err))
-		}
-		codec = interfaces.Codec
+		codec = kapi.Codecs.LegacyCodec(gv)
 	}
 
-	data, err := codec.Encode(build)
+	data, err := runtime.Encode(codec, build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode the build: %v", err)
 	}
@@ -50,6 +45,13 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		addSourceEnvVars(build.Spec.Source, &containerEnv)
 	}
 	addOriginVersionVar(&containerEnv)
+
+	if build.Spec.Output.To != nil {
+		addOutputEnvVars(build.Spec.Output.To, &containerEnv)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse the output docker tag %q: %v", build.Spec.Output.To.Name, err)
+		}
+	}
 
 	if strategy == nil || len(strategy.From.Name) == 0 {
 		return nil, errors.New("CustomBuildStrategy cannot be executed without image")
@@ -89,10 +91,6 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 	if build.Spec.CompletionDeadlineSeconds != nil {
 		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds
-	}
-
-	if err := setupBuildEnv(build, pod); err != nil {
-		return nil, err
 	}
 
 	if !strategy.ForcePull {

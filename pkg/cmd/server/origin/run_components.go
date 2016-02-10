@@ -11,13 +11,13 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/controller/serviceaccount"
+	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -66,7 +66,7 @@ func (c *MasterConfig) RunServiceAccountsController() {
 		glog.Infof("Skipped starting Service Account Manager, no managed names specified")
 		return
 	}
-	options := serviceaccount.DefaultServiceAccountsControllerOptions()
+	options := sacontroller.DefaultServiceAccountsControllerOptions()
 	options.ServiceAccounts = []kapi.ServiceAccount{}
 
 	for _, saName := range c.Options.ServiceAccountConfig.ManagedNames {
@@ -76,7 +76,7 @@ func (c *MasterConfig) RunServiceAccountsController() {
 		options.ServiceAccounts = append(options.ServiceAccounts, sa)
 	}
 
-	serviceaccount.NewServiceAccountsController(c.KubeClient(), options).Run()
+	sacontroller.NewServiceAccountsController(c.KubeClient(), options).Run()
 }
 
 // RunServiceAccountTokensController starts the service account token controller
@@ -101,12 +101,12 @@ func (c *MasterConfig) RunServiceAccountTokensController() {
 		}
 	}
 
-	options := serviceaccount.TokensControllerOptions{
+	options := sacontroller.TokensControllerOptions{
 		TokenGenerator: serviceaccount.JWTTokenGenerator(privateKey),
 		RootCA:         rootCA,
 	}
 
-	serviceaccount.NewTokensController(c.KubeClient(), options).Run()
+	sacontroller.NewTokensController(c.KubeClient(), options).Run()
 }
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
@@ -190,10 +190,7 @@ func (c *MasterConfig) RunBuildController() {
 
 	storageVersion := c.Options.EtcdStorageConfig.OpenShiftStorageVersion
 	groupVersion := unversioned.GroupVersion{Group: "", Version: storageVersion}
-	interfaces, err := latest.InterfacesFor(groupVersion)
-	if err != nil {
-		glog.Fatalf("Unable to load storage version %s: %v", storageVersion, err)
-	}
+	codec := kapi.Codecs.LegacyCodec(groupVersion)
 
 	admissionControl := admission.NewFromPlugins(c.PrivilegedLoopbackKubernetesClient, []string{"SecurityContextConstraint"}, "")
 
@@ -205,18 +202,18 @@ func (c *MasterConfig) RunBuildController() {
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: dockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: interfaces.Codec,
+			Codec: codec,
 		},
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
 			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec:            interfaces.Codec,
+			Codec:            codec,
 			AdmissionControl: admissionControl,
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: interfaces.Codec,
+			Codec: codec,
 		},
 	}
 
@@ -382,7 +379,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 	var etcdAlloc *etcdallocator.Etcd
 	uidAllocator := uidallocator.New(uidRange, func(max int, rangeSpec string) allocator.Interface {
 		mem := allocator.NewContiguousAllocationMap(max, rangeSpec)
-		etcdAlloc = etcdallocator.NewEtcd(mem, "/ranges/uids", "uidallocation", c.EtcdHelper)
+		etcdAlloc = etcdallocator.NewEtcd(mem, "/ranges/uids", kapi.Resource("uidallocation"), c.EtcdHelper)
 		return etcdAlloc
 	})
 	mcsRange, err := mcs.ParseRange(alloc.MCSAllocatorRange)

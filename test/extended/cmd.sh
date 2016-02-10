@@ -1,4 +1,4 @@
-	#!/bin/bash
+#!/bin/bash
 #
 # This scripts starts the OpenShift server with a default configuration.
 # No registry or router is setup.

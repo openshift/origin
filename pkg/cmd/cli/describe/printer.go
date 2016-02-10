@@ -36,7 +36,7 @@ var (
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS", "INSECURE POLICY", "TLS TERMINATION"}
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
-	deploymentConfigColumns = []string{"NAME", "TRIGGERS", "LATEST"}
+	deploymentConfigColumns = []string{"NAME", "REVISION", "REPLICAS", "TRIGGERED BY"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
 	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
@@ -452,18 +452,54 @@ func printRouteList(routeList *routeapi.RouteList, w io.Writer, opts kctl.PrintO
 }
 
 func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, opts kctl.PrintOptions) error {
+	var scale string
+	if dc.Spec.Test {
+		scale = fmt.Sprintf("%d (during test)", dc.Spec.Replicas)
+	} else {
+		scale = fmt.Sprintf("%d", dc.Spec.Replicas)
+	}
+
+	containers := sets.NewString()
+	if dc.Spec.Template != nil {
+		for _, c := range dc.Spec.Template.Spec.Containers {
+			containers.Insert(c.Name)
+		}
+	}
+	//names := containers.List()
+	referencedContainers := sets.NewString()
+
 	triggers := sets.String{}
 	for _, trigger := range dc.Spec.Triggers {
-		triggers.Insert(string(trigger.Type))
+		switch t := trigger.Type; t {
+		case deployapi.DeploymentTriggerOnConfigChange:
+			triggers.Insert("config")
+		case deployapi.DeploymentTriggerOnImageChange:
+			if p := trigger.ImageChangeParams; p != nil && p.Automatic {
+				var prefix string
+				if len(containers) != 1 && !containers.HasAll(p.ContainerNames...) {
+					sort.Sort(sort.StringSlice(p.ContainerNames))
+					prefix = strings.Join(p.ContainerNames, ",") + ":"
+				}
+				referencedContainers.Insert(p.ContainerNames...)
+				switch p.From.Kind {
+				case "ImageStreamTag":
+					triggers.Insert(fmt.Sprintf("image(%s%s)", prefix, p.From.Name))
+				default:
+					triggers.Insert(fmt.Sprintf("%s(%s%s)", p.From.Kind, prefix, p.From.Name))
+				}
+			}
+		default:
+			triggers.Insert(string(t))
+		}
 	}
-	tStr := strings.Join(triggers.List(), ", ")
+	trigger := strings.Join(triggers.List(), ",")
 
 	if opts.WithNamespace {
 		if _, err := fmt.Fprintf(w, "%s\t", dc.Namespace); err != nil {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", dc.Name, tStr, dc.Status.LatestVersion)
+	_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%s\n", dc.Name, dc.Status.LatestVersion, scale, trigger)
 	return err
 }
 

@@ -3,7 +3,6 @@ package clusterrole
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -11,7 +10,7 @@ import (
 // Registry is an interface for things that know how to store ClusterRoles.
 type Registry interface {
 	// ListClusterRoles obtains list of policyClusterRoles that match a selector.
-	ListClusterRoles(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.ClusterRoleList, error)
+	ListClusterRoles(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterRoleList, error)
 	// GetClusterRole retrieves a specific policyClusterRole.
 	GetClusterRole(ctx kapi.Context, id string) (*authorizationapi.ClusterRole, error)
 	// CreateClusterRole creates a new policyClusterRole.
@@ -41,7 +40,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListClusterRoles(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.ClusterRoleList, error) {
+func (s *storage) ListClusterRoles(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterRoleList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err

@@ -45,7 +45,7 @@ func TestValidateServingInfo(t *testing.T) {
 					CertFile: certFileName,
 				},
 			},
-			ExpectedErrors: []string{"keyFile: required"},
+			ExpectedErrors: []string{"keyFile: Required value"},
 		},
 
 		"namedCertificates valid": {
@@ -68,7 +68,7 @@ func TestValidateServingInfo(t *testing.T) {
 					{Names: []string{"example.com"}, CertInfo: api.CertInfo{CertFile: certFileName, KeyFile: keyFileName}},
 				},
 			},
-			ExpectedErrors: []string{"namedCertificates: invalid"},
+			ExpectedErrors: []string{"namedCertificates: Invalid value"},
 		},
 
 		"namedCertificates with missing names": {
@@ -80,7 +80,7 @@ func TestValidateServingInfo(t *testing.T) {
 					{Names: []string{ /*"example.com"*/ }, CertInfo: api.CertInfo{CertFile: certFileName, KeyFile: keyFileName}},
 				},
 			},
-			ExpectedErrors: []string{"namedCertificates[0].names: required"},
+			ExpectedErrors: []string{"namedCertificates[0].names: Required value"},
 		},
 		"namedCertificates with missing key": {
 			ServingInfo: api.ServingInfo{
@@ -91,7 +91,7 @@ func TestValidateServingInfo(t *testing.T) {
 					{Names: []string{"example.com"}, CertInfo: api.CertInfo{CertFile: certFileName /*, KeyFile: keyFileName*/}},
 				},
 			},
-			ExpectedErrors: []string{"namedCertificates[0].keyFile: required"},
+			ExpectedErrors: []string{"namedCertificates[0].keyFile: Required value"},
 		},
 		"namedCertificates with duplicate names": {
 			ServingInfo: api.ServingInfo{
@@ -103,7 +103,7 @@ func TestValidateServingInfo(t *testing.T) {
 					{Names: []string{"example.com"}, CertInfo: api.CertInfo{CertFile: certFileName, KeyFile: keyFileName}},
 				},
 			},
-			ExpectedErrors: []string{"namedCertificates[1].names[0]: invalid"},
+			ExpectedErrors: []string{"namedCertificates[1].names[0]: Invalid value"},
 		},
 		"namedCertificates with empty name": {
 			ServingInfo: api.ServingInfo{
@@ -114,7 +114,7 @@ func TestValidateServingInfo(t *testing.T) {
 					{Names: []string{""}, CertInfo: api.CertInfo{CertFile: certFileName, KeyFile: keyFileName}},
 				},
 			},
-			ExpectedErrors: []string{"namedCertificates[0].names[0]: required"},
+			ExpectedErrors: []string{"namedCertificates[0].names[0]: Required value"},
 		},
 
 		"namedCertificates with unmatched DNS name": {
@@ -126,7 +126,7 @@ func TestValidateServingInfo(t *testing.T) {
 					{Names: []string{"badexample.com"}, CertInfo: api.CertInfo{CertFile: certFileName, KeyFile: keyFileName}},
 				},
 			},
-			ExpectedWarnings: []string{"namedCertificates[0].names[0]: invalid"},
+			ExpectedWarnings: []string{"namedCertificates[0].names[0]: Invalid value"},
 		},
 		"namedCertificates with non-DNS names": {
 			ServingInfo: api.ServingInfo{
@@ -138,7 +138,7 @@ func TestValidateServingInfo(t *testing.T) {
 				},
 			},
 			ExpectedErrors: []string{
-				"namedCertificates[0].names[0]: invalid value 'foo bar.com', Details: must be a valid DNS name",
+				`namedCertificates[0].names[0]: Invalid value: "foo bar.com": must be a valid DNS name`,
 			},
 		},
 	}

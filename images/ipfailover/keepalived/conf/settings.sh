@@ -36,6 +36,14 @@ HA_MONITOR_PORT=${OPENSHIFT_HA_MONITOR_PORT:-"80"}
 HA_REPLICA_COUNT=${OPENSHIFT_HA_REPLICA_COUNT:-"1"}
 
 
+#  Offset value to use to set the virtual router ids. Using different offset
+#  values allows multiple ipfailover configurations to exist within the
+#  same cluster.
+#     HA_VRRP_ID_OFFSET=30
+#
+HA_VRRP_ID_OFFSET=${OPENSHIFT_HA_VRRP_ID_OFFSET:-"0"}
+
+
 
 #  ========================================================================
 #  Default settings - not currently exposed or overriden on OpenShift.

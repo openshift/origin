@@ -25,6 +25,7 @@ func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
 		{"target-port", false},
 		{"name", false},
 		{"hostname", false},
+		{"path", false},
 	}
 }
 

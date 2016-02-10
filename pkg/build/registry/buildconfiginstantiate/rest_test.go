@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	_ "github.com/openshift/origin/pkg/build/api/install"
 	"github.com/openshift/origin/pkg/build/generator"
 	mocks "github.com/openshift/origin/pkg/build/generator/test"
 	imageapi "github.com/openshift/origin/pkg/image/api"

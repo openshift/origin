@@ -3,7 +3,6 @@ package test
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"github.com/openshift/origin/pkg/user/api"
 )
@@ -45,7 +44,7 @@ func (r *IdentityRegistry) GetIdentity(ctx kapi.Context, name string) (*api.Iden
 	if err, ok := r.GetErr[name]; ok {
 		return nil, err
 	}
-	return nil, kerrs.NewNotFound("Identity", name)
+	return nil, kerrs.NewNotFound(api.Resource("identity"), name)
 }
 
 func (r *IdentityRegistry) CreateIdentity(ctx kapi.Context, u *api.Identity) (*api.Identity, error) {
@@ -64,7 +63,7 @@ func (r *IdentityRegistry) UpdateIdentity(ctx kapi.Context, u *api.Identity) (*a
 	return r.Update, r.UpdateErr
 }
 
-func (r *IdentityRegistry) ListIdentities(ctx kapi.Context, options *unversioned.ListOptions) (*api.IdentityList, error) {
+func (r *IdentityRegistry) ListIdentities(ctx kapi.Context, options *kapi.ListOptions) (*api.IdentityList, error) {
 	*r.Actions = append(*r.Actions, Action{"ListIdentities", options})
 	if r.List == nil && r.ListErr == nil {
 		return &api.IdentityList{}, nil

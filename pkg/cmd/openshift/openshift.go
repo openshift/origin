@@ -86,7 +86,7 @@ func CommandFor(basename string) *cobra.Command {
 	}
 
 	if cmd.UsageFunc() == nil {
-		templates.ActsAsRootCommand(cmd)
+		templates.ActsAsRootCommand(cmd, []string{"options"})
 	}
 	flagtypes.GLog(cmd.PersistentFlags())
 
@@ -131,7 +131,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root.AddCommand(cmd.NewCmdOptions(out))
 
 	// TODO: add groups
-	templates.ActsAsRootCommand(root)
+	templates.ActsAsRootCommand(root, []string{"options"})
 
 	return root
 }

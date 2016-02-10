@@ -658,9 +658,9 @@ func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
 			Image:                event.Image,
 		}, nil
 	case 0:
-		return nil, errors.NewNotFound("imageStreamImage", imageID)
+		return nil, errors.NewNotFound(Resource("imagestreamimage"), imageID)
 	default:
-		return nil, errors.NewConflict("imageStreamImage", imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
+		return nil, errors.NewConflict(Resource("imagestreamimage"), imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
 	}
 }
 

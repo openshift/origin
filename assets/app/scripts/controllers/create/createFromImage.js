@@ -5,20 +5,23 @@ angular.module("openshiftConsole")
       Logger,
       $q,
       $routeParams,
+      APIService,
       DataService,
       ProjectsService,
       Navigate,
       ApplicationGenerator,
+      LimitRangesService,
       TaskList,
       failureObjectNameFilter,
       $filter,
-      $parse
+      $parse,
+      SOURCE_URL_PATTERN
     ){
     var displayNameFilter = $filter('displayName');
     var humanize = $filter('humanize');
 
     $scope.projectName = $routeParams.project;
-    $scope.sourceURLPattern = /^((ftp|http|https|git):\/\/(\w+:{0,1}[^\s@]*@)|git@)?([^\s@]+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/;
+    $scope.sourceURLPattern = SOURCE_URL_PATTERN;
 
     ProjectsService
       .get($routeParams.project)
@@ -59,6 +62,11 @@ angular.module("openshiftConsole")
           scope.scaling = {
             replicas: 1
           };
+          scope.container = {
+            resources: {}
+          };
+
+          scope.hideCPU = LimitRangesService.hideCPUComputeResources();
 
           scope.fillSampleRepo = function() {
             var annotations;
@@ -99,13 +107,27 @@ angular.module("openshiftConsole")
             });
         }
 
+        var validatePodLimits = function() {
+          if (!$scope.hideCPU) {
+            $scope.cpuProblems = LimitRangesService.validatePodLimits($scope.limitRanges, 'cpu', [$scope.container]);
+          }
+          $scope.memoryProblems = LimitRangesService.validatePodLimits($scope.limitRanges, 'memory', [$scope.container]);
+        };
+
+        DataService.list("limitranges", context, function(limitRanges) {
+          $scope.limitRanges = limitRanges.by("metadata.name");
+          if ($filter('hashSize')(limitRanges) !== 0) {
+            $scope.$watch('container', validatePodLimits, true);
+          }
+        });
+
         initAndValidate($scope);
 
-        var ifResourcesDontExist = function(resources, namespace, scope){
+        var ifResourcesDontExist = function(apiObjects, namespace, scope){
           var result = $q.defer();
           var successResults = [];
           var failureResults = [];
-          var remaining = resources.length;
+          var remaining = apiObjects.length;
 
           function _checkDone() {
             if (remaining === 0) {
@@ -115,19 +137,25 @@ angular.module("openshiftConsole")
               }
               else
                 //means no resources exist with the given nanme
-                result.resolve(resources);
+                result.resolve(apiObjects);
             }
           }
 
-          resources.forEach(function(resource) {
-            var resourceName = DataService.kindToResource(resource.kind);
-            if (!resourceName) {
-              failureResults.push({data: {message: "Unrecognized kind: " + resource.kind + "."}});
+          apiObjects.forEach(function(apiObject) {
+            var resource = APIService.objectToResourceGroupVersion(apiObject);
+            if (!resource) {
+              failureResults.push({data: {message: APIService.invalidObjectKindOrVersion(apiObject)}});
               remaining--;
               _checkDone();
               return;
             }
-            DataService.get(resourceName, resource.metadata.name, {namespace: (namespace || $routeParams.project)}, {errorNotification: false}).then(
+            if (!APIService.apiInfo(resource)) {
+              failureResults.push({data: {message: APIService.unsupportedObjectKindOrVersion(apiObject)}});
+              remaining--;
+              _checkDone();
+              return;
+            }
+            DataService.get(resource, apiObject.metadata.name, {namespace: (namespace || $routeParams.project)}, {errorNotification: false}).then(
               function (data) {
                 successResults.push(data);
                 remaining--;
@@ -163,10 +191,9 @@ angular.module("openshiftConsole")
                       hasErrors = true;
                       result.failure.forEach(
                         function(failure) {
-                          var objectName = failureObjectNameFilter(failure) || "object";
                           alerts.push({
                             type: "error",
-                            message: "Cannot create " + humanize(objectName).toLowerCase() + ". ",
+                            message: "Cannot create " + humanize(failure.object.kind).toLowerCase() + " \"" + failure.object.metadata.name + "\". ",
                             details: failure.data.message
                           });
                         }

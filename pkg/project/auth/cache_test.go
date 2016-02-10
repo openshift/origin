@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -27,7 +26,7 @@ func (this *MockReadOnlyPolicyClient) ReadOnlyPolicies(namespace string) client.
 
 type MockReadOnlyPolicyGetter struct{}
 
-func (this MockReadOnlyPolicyGetter) List(options *unversioned.ListOptions) (*authorizationapi.PolicyList, error) {
+func (this MockReadOnlyPolicyGetter) List(options *kapi.ListOptions) (*authorizationapi.PolicyList, error) {
 	return &authorizationapi.PolicyList{}, nil
 }
 
@@ -42,7 +41,7 @@ func (this *MockReadOnlyPolicyClient) ReadOnlyClusterPolicies() client.ReadOnlyC
 
 type MockReadOnlyClusterPolicyGetter struct{}
 
-func (this MockReadOnlyClusterPolicyGetter) List(options *unversioned.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+func (this MockReadOnlyClusterPolicyGetter) List(options *kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	return &authorizationapi.ClusterPolicyList{}, nil
 }
 
@@ -57,7 +56,7 @@ func (this *MockReadOnlyPolicyClient) ReadOnlyPolicyBindings(namespace string) c
 
 type MockReadOnlyPolicyBindingGetter struct{}
 
-func (this MockReadOnlyPolicyBindingGetter) List(options *unversioned.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (this MockReadOnlyPolicyBindingGetter) List(options *kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	return &authorizationapi.PolicyBindingList{}, nil
 }
 
@@ -72,7 +71,7 @@ func (this *MockReadOnlyPolicyClient) ReadOnlyClusterPolicyBindings() client.Rea
 
 type MockReadOnlyClusterPolicyBindingGetter struct{}
 
-func (this MockReadOnlyClusterPolicyBindingGetter) List(options *unversioned.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (this MockReadOnlyClusterPolicyBindingGetter) List(options *kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	return &authorizationapi.ClusterPolicyBindingList{}, nil
 }
 
@@ -89,7 +88,7 @@ func (this *MockReadOnlyPolicyClient) GetPolicy(ctx kapi.Context, name string) (
 	return &authorizationapi.Policy{}, nil
 }
 
-func (this *MockReadOnlyPolicyClient) ListPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (this *MockReadOnlyPolicyClient) ListPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	return &authorizationapi.PolicyBindingList{}, nil
 }
 
@@ -97,7 +96,7 @@ func (this *MockReadOnlyPolicyClient) GetClusterPolicy(ctx kapi.Context, name st
 	return &authorizationapi.ClusterPolicy{}, nil
 }
 
-func (this *MockReadOnlyPolicyClient) ListClusterPolicyBindings(ctx kapi.Context, options *unversioned.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (this *MockReadOnlyPolicyClient) ListClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	return &authorizationapi.ClusterPolicyBindingList{}, nil
 }
 

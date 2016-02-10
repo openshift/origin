@@ -48,10 +48,8 @@
   <div flex height-max class="log-view">
     <div
       ng-show="showScrollLinks"
-      class="log-scroll log-scroll-top"
-      affix
-      offset-top="445"
-      offset-bottom="90">
+      id="affixedFollow"
+      class="log-scroll log-scroll-top">
       <a ng-if="loading" href="" ng-click="toggleAutoScroll()">
         <span ng-if="!autoScroll">Follow</span>
         <span ng-if="autoScroll">Stop following</span>

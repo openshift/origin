@@ -11,16 +11,19 @@ import (
 	"strings"
 
 	g "github.com/onsi/ginkgo"
+	"github.com/spf13/cobra"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	"k8s.io/kubernetes/test/e2e"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	testutil "github.com/openshift/origin/test/util"
-	"github.com/spf13/cobra"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	"k8s.io/kubernetes/test/e2e"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
@@ -124,7 +127,7 @@ func (c *CLI) SetOutputDir(dir string) *CLI {
 // SetupProject creates a new project and assign a random user to the project.
 // All resources will be then created within this project and Kubernetes E2E
 // suite will destroy the project after test case finish.
-func (c *CLI) SetupProject(name string, kubeClient *kclient.Client) (*kapi.Namespace, error) {
+func (c *CLI) SetupProject(name string, kubeClient *kclient.Client, _ map[string]string) (*kapi.Namespace, error) {
 	newNamespace := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("extended-test-%s-", name))
 	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", c.Namespace()))
 	e2e.Logf("The user is now %q", c.Username())

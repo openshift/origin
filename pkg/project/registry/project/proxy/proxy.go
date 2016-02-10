@@ -94,10 +94,10 @@ func convertNamespaceList(namespaceList *kapi.NamespaceList) *api.ProjectList {
 var _ = rest.Lister(&REST{})
 
 // List retrieves a list of Projects that match label.
-func (s *REST) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+func (s *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
 	user, ok := kapi.UserFrom(ctx)
 	if !ok {
-		return nil, kerrors.NewForbidden("Project", "", fmt.Errorf("unable to list projects without a user on the context"))
+		return nil, kerrors.NewForbidden(projectapi.Resource("project"), "", fmt.Errorf("unable to list projects without a user on the context"))
 	}
 	namespaceList, err := s.lister.List(user)
 	if err != nil {
@@ -133,7 +133,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	kapi.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
 	s.createStrategy.PrepareForCreate(obj)
 	if errs := s.createStrategy.Validate(ctx, obj); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("project", project.Name, errs)
+		return nil, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
 	}
 	namespace, err := s.client.Create(convertProject(project))
 	if err != nil {
@@ -156,7 +156,7 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 	}
 	s.updateStrategy.PrepareForUpdate(obj, oldObj)
 	if errs := s.updateStrategy.ValidateUpdate(ctx, obj, oldObj); len(errs) > 0 {
-		return nil, false, kerrors.NewInvalid("project", project.Name, errs)
+		return nil, false, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
 	}
 
 	namespace, err := s.client.Update(convertProject(project))

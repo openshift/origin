@@ -835,7 +835,7 @@ func (d *TemplateDescriber) Describe(namespace, name string) (string, error) {
 
 func (d *TemplateDescriber) DescribeTemplate(template *templateapi.Template) (string, error) {
 	// TODO: write error?
-	_ = runtime.DecodeList(template.Objects, kapi.Scheme, runtime.UnstructuredJSONScheme)
+	_ = runtime.DecodeList(template.Objects, kapi.Codecs.UniversalDecoder(), runtime.UnstructuredJSONScheme)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, template.ObjectMeta)
@@ -1042,12 +1042,12 @@ const policyRuleHeadings = "Verbs\tNon-Resource URLs\tExtension\tResource Names\
 
 func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
 	extensionString := ""
-	if rule.AttributeRestrictions != (runtime.EmbeddedObject{}) {
-		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions.Object)
+	if rule.AttributeRestrictions != nil {
+		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions)
 
 		buffer := new(bytes.Buffer)
 		printer := NewHumanReadablePrinter(true, false, false, false, false, []string{})
-		if err := printer.PrintObj(rule.AttributeRestrictions.Object, buffer); err == nil {
+		if err := printer.PrintObj(rule.AttributeRestrictions, buffer); err == nil {
 			extensionString = strings.TrimSpace(buffer.String())
 		}
 	}

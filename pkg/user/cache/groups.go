@@ -5,7 +5,6 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
@@ -39,20 +38,10 @@ func NewGroupCache(groupRegistry groupregistry.Registry) *GroupCache {
 	reflector := cache.NewReflector(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				opts := &unversioned.ListOptions{
-					LabelSelector:   unversioned.LabelSelector{Selector: options.LabelSelector},
-					FieldSelector:   unversioned.FieldSelector{Selector: options.FieldSelector},
-					ResourceVersion: options.ResourceVersion,
-				}
-				return groupRegistry.ListGroups(allNamespaceContext, opts)
+				return groupRegistry.ListGroups(allNamespaceContext, &options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				opts := &unversioned.ListOptions{
-					LabelSelector:   unversioned.LabelSelector{Selector: options.LabelSelector},
-					FieldSelector:   unversioned.FieldSelector{Selector: options.FieldSelector},
-					ResourceVersion: options.ResourceVersion,
-				}
-				return groupRegistry.WatchGroups(allNamespaceContext, opts)
+				return groupRegistry.WatchGroups(allNamespaceContext, &options)
 			},
 		},
 		&userapi.Group{},

@@ -23,6 +23,11 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	templateapi "github.com/openshift/origin/pkg/template/api"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 
 var (

@@ -26,6 +26,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -58,9 +59,6 @@ type CacherConfig struct {
 	// NewList is a function that creates new empty object storing a list of
 	// objects of type Type.
 	NewListFunc func() runtime.Object
-
-	// Cacher will be stopped when the StopChannel will be closed.
-	StopChannel <-chan struct{}
 }
 
 // Cacher is responsible for serving WATCH and LIST requests for a given
@@ -101,6 +99,12 @@ type Cacher struct {
 
 	// keyFunc is used to get a key in the underyling storage for a given object.
 	keyFunc func(runtime.Object) (string, error)
+
+	// Handling graceful termination.
+	stopLock sync.RWMutex
+	stopped  bool
+	stopCh   chan struct{}
+	stopWg   sync.WaitGroup
 }
 
 // Create a new Cacher responsible from service WATCH and LIST requests from its
@@ -112,7 +116,7 @@ func NewCacher(
 	versioner Versioner,
 	objectType runtime.Object,
 	resourcePrefix string,
-	namespaceScoped bool,
+	scopeStrategy rest.NamespaceScopedStrategy,
 	newListFunc func() runtime.Object) Interface {
 	config := CacherConfig{
 		CacheCapacity:  capacity,
@@ -122,7 +126,7 @@ func NewCacher(
 		ResourcePrefix: resourcePrefix,
 		NewListFunc:    newListFunc,
 	}
-	if namespaceScoped {
+	if scopeStrategy.NamespaceScoped() {
 		config.KeyFunc = func(obj runtime.Object) (string, error) {
 			return NamespaceKeyFunc(resourcePrefix, obj)
 		}
@@ -150,14 +154,31 @@ func NewCacherFromConfig(config CacherConfig) *Cacher {
 		watchers:   make(map[int]*cacheWatcher),
 		versioner:  config.Versioner,
 		keyFunc:    config.KeyFunc,
+		stopped:    false,
+		// We need to (potentially) stop both:
+		// - util.Until go-routine
+		// - reflector.ListAndWatch
+		// and there are no guarantees on the order that they will stop.
+		// So we will be simply closing the channel, and synchronizing on the WaitGroup.
+		stopCh: make(chan struct{}),
+		stopWg: sync.WaitGroup{},
 	}
 	cacher.usable.Lock()
 	// See startCaching method for why explanation on it.
 	watchCache.SetOnReplace(func() { cacher.usable.Unlock() })
 	watchCache.SetOnEvent(cacher.processEvent)
 
-	stopCh := config.StopChannel
-	go util.Until(func() { cacher.startCaching(stopCh) }, 0, stopCh)
+	stopCh := cacher.stopCh
+	cacher.stopWg.Add(1)
+	go func() {
+		util.Until(
+			func() {
+				if !cacher.isStopped() {
+					cacher.startCaching(stopCh)
+				}
+			}, 0, stopCh)
+		cacher.stopWg.Done()
+	}()
 	return cacher
 }
 
@@ -273,7 +294,7 @@ func (c *Cacher) List(ctx context.Context, key string, resourceVersion string, f
 		return err
 	}
 
-	// To avoid situation when List is proceesed before the underlying
+	// To avoid situation when List is processed before the underlying
 	// watchCache is propagated for the first time, we acquire and immediately
 	// release the 'usable' lock.
 	// We don't need to hold it all the time, because watchCache is thread-safe
@@ -337,6 +358,20 @@ func (c *Cacher) terminateAllWatchers() {
 	}
 }
 
+func (c *Cacher) isStopped() bool {
+	c.stopLock.RLock()
+	defer c.stopLock.RUnlock()
+	return c.stopped
+}
+
+func (c *Cacher) Stop() {
+	c.stopLock.Lock()
+	c.stopped = true
+	c.stopLock.Unlock()
+	close(c.stopCh)
+	c.stopWg.Wait()
+}
+
 func forgetWatcher(c *Cacher, index int) func(bool) {
 	return func(lock bool) {
 		if lock {
@@ -365,6 +400,11 @@ func filterFunction(key string, keyFunc func(runtime.Object) (string, error), fi
 
 // Returns resource version to which the underlying cache is synced.
 func (c *Cacher) LastSyncResourceVersion() (uint64, error) {
+	// To avoid situation when LastSyncResourceVersion is processed before the
+	// underlying watchCache is propagated, we acquire 'usable' lock.
+	c.usable.RLock()
+	defer c.usable.RUnlock()
+
 	c.RLock()
 	defer c.RUnlock()
 

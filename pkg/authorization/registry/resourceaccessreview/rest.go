@@ -35,7 +35,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a resourceAccessReview: %#v", obj))
 	}
 	if errs := authorizationvalidation.ValidateResourceAccessReview(resourceAccessReview); len(errs) > 0 {
-		return nil, kapierrors.NewInvalid(resourceAccessReview.Kind, "", errs)
+		return nil, kapierrors.NewInvalid(authorizationapi.Kind(resourceAccessReview.Kind), "", errs)
 	}
 	// if a namespace is present on the request, then the namespace on the on the RAR is overwritten.
 	// This is to support backwards compatibility.  To have gotten here in this state, it means that
@@ -71,10 +71,10 @@ func (r *REST) isAllowed(ctx kapi.Context, rar *authorizationapi.ResourceAccessR
 	allowed, reason, err := r.authorizer.Authorize(kapi.WithNamespace(ctx, rar.Action.Namespace), localRARAttributes)
 
 	if err != nil {
-		return kapierrors.NewForbidden(localRARAttributes.GetResource(), localRARAttributes.GetResourceName(), err)
+		return kapierrors.NewForbidden(authorizationapi.Resource(localRARAttributes.GetResource()), localRARAttributes.GetResourceName(), err)
 	}
 	if !allowed {
-		forbiddenError, _ := kapierrors.NewForbidden(localRARAttributes.GetResource(), localRARAttributes.GetResourceName(), errors.New("") /*discarded*/).(*kapierrors.StatusError)
+		forbiddenError, _ := kapierrors.NewForbidden(authorizationapi.Resource(localRARAttributes.GetResource()), localRARAttributes.GetResourceName(), errors.New("") /*discarded*/).(*kapierrors.StatusError)
 		forbiddenError.ErrStatus.Message = reason
 		return forbiddenError
 	}

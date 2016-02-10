@@ -11,6 +11,10 @@ os::log::install_errexit
 
 # This test validates user level policy
 
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user' 'you must specify a role'
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user -z NamespaceWithoutRole' 'you must specify a role'
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user view' 'you must specify at least one user or service account'
+
 os::cmd::expect_success 'oc policy add-role-to-group cluster-admin system:unauthenticated'
 os::cmd::expect_success 'oc policy add-role-to-user cluster-admin system:no-user'
 os::cmd::expect_success 'oc get rolebinding/cluster-admin --no-headers'

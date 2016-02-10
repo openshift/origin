@@ -20,12 +20,15 @@ import (
 	"github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 var testSelector = map[string]string{"test": "rest"}
 
 func makeDeployment(version int) kapi.ReplicationController {
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(api.SchemeGroupVersion))
 	deployment.Namespace = kapi.NamespaceDefault
 	deployment.Spec.Selector = testSelector
 	return *deployment
@@ -178,7 +181,7 @@ func TestRESTGet(t *testing.T) {
 				Transport:       nil,
 				ContentType:     "text/plain",
 				Flush:           true,
-				ResponseChecker: genericrest.NewGenericHttpResponseChecker("Pod", "config-1-deploy"),
+				ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), "config-1-deploy"),
 			},
 			expectedErr: nil,
 		},
@@ -197,7 +200,7 @@ func TestRESTGet(t *testing.T) {
 				Transport:       nil,
 				ContentType:     "text/plain",
 				Flush:           true,
-				ResponseChecker: genericrest.NewGenericHttpResponseChecker("Pod", "config-5-application-pod-1"),
+				ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), "config-5-application-pod-1"),
 			},
 			expectedErr: nil,
 		},
@@ -215,7 +218,7 @@ func TestRESTGet(t *testing.T) {
 				Transport:       nil,
 				ContentType:     "text/plain",
 				Flush:           false,
-				ResponseChecker: genericrest.NewGenericHttpResponseChecker("Pod", "config-2-deploy"),
+				ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), "config-2-deploy"),
 			},
 			expectedErr: nil,
 		},
@@ -233,7 +236,7 @@ func TestRESTGet(t *testing.T) {
 				Transport:       nil,
 				ContentType:     "text/plain",
 				Flush:           false,
-				ResponseChecker: genericrest.NewGenericHttpResponseChecker("Pod", "config-2-deploy"),
+				ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), "config-2-deploy"),
 			},
 			expectedErr: nil,
 		},

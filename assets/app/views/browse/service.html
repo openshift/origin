@@ -2,43 +2,45 @@
   <project-page>
 
   <!-- Middle section -->
-  <div class="middle-section" ng-if="service">
+  <div class="middle-section">
     <div id="scrollable-content" class="middle-container has-scroll">
       <div class="middle-header">
         <div class="container-fluid">
           <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
           <alerts alerts="alerts"></alerts>
           <div ng-if="!loaded">Loading...</div>
-          <h1>
-            {{service.metadata.name}}
-            <div class="pull-right dropdown">
-              <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
-              <ul class="dropdown-menu actions action-link">
-                <li>
-                  <edit-link
-                    resource="service"
-                    kind="services"
-                    alerts="alerts">
-                  </edit-link>
-                </li>
-                <li>
-                  <delete-link
-                    resource-type="service"
-                    resource-name="{{service.metadata.name}}"
-                    project-name="{{service.metadata.namespace}}"
-                    alerts="alerts">
-                  </delete-link>
-                </li>
-              </ul>
-            </div>
-            <small class="meta">created <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></small>
-          </h1>
-          <labels labels="service.metadata.labels" clickable="true" kind="services" project-name="{{service.metadata.namespace}}" limit="3"></labels>
+          <div ng-if="service">
+            <h1>
+              {{service.metadata.name}}
+              <div class="pull-right dropdown">
+                <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                <ul class="dropdown-menu actions action-link">
+                  <li>
+                    <edit-link
+                      resource="service"
+                      kind="services"
+                      alerts="alerts">
+                    </edit-link>
+                  </li>
+                  <li>
+                    <delete-link
+                      resource-type="service"
+                      resource-name="{{service.metadata.name}}"
+                      project-name="{{service.metadata.namespace}}"
+                      alerts="alerts">
+                    </delete-link>
+                  </li>
+                </ul>
+              </div>
+              <small class="meta">created <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></small>
+            </h1>
+            <labels labels="service.metadata.labels" clickable="true" kind="services" project-name="{{service.metadata.namespace}}" limit="3"></labels>
+          </div>
         </div>
       </div><!-- /middle-header-->
       <div class="middle-content gutter-top">
         <div class="container-fluid">
-          <div class="row">
+          <div class="row" ng-if="service">
             <div class="col-md-12">
                 <div class="resource-details">
                   <dl class="dl-horizontal left">

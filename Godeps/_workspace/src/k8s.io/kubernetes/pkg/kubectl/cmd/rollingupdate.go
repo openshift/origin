@@ -29,7 +29,6 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -199,7 +198,7 @@ func RunRollingUpdate(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, arg
 			return err
 		}
 
-		request := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+		request := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 			Schema(schema).
 			NamespaceParam(cmdNamespace).DefaultNamespace().
 			FilenameParam(enforceNamespace, filename).
@@ -333,7 +332,7 @@ func RunRollingUpdate(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, arg
 		Interval:       interval,
 		Timeout:        timeout,
 		CleanupPolicy:  updateCleanupPolicy,
-		MaxUnavailable: intstr.FromInt(0),
+		MaxUnavailable: intstr.FromInt(1),
 		MaxSurge:       intstr.FromInt(1),
 	}
 	if rollback {
@@ -361,12 +360,12 @@ func RunRollingUpdate(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, arg
 	if outputFormat != "" {
 		return f.PrintObject(cmd, newRc, out)
 	}
-	gvk, err := api.Scheme.ObjectKind(newRc)
+	kind, err := api.Scheme.ObjectKind(newRc)
 	if err != nil {
 		return err
 	}
-	_, res := meta.KindToResource(gvk.Kind, false)
-	cmdutil.PrintSuccess(mapper, false, out, res, oldName, message)
+	_, res := meta.KindToResource(kind, false)
+	cmdutil.PrintSuccess(mapper, false, out, res.Resource, oldName, message)
 	return nil
 }
 
@@ -386,16 +385,11 @@ func isReplicasDefaulted(info *resource.Info) bool {
 		// was unable to recover versioned info
 		return false
 	}
-
-	switch info.Mapping.GroupVersionKind.GroupVersion() {
-	case unversioned.GroupVersion{Version: "v1beta3"}:
-		if rc, ok := info.VersionedObject.(*v1beta3.ReplicationController); ok {
-			return rc.Spec.Replicas == nil
-		}
-	case unversioned.GroupVersion{Version: "v1"}:
-		if rc, ok := info.VersionedObject.(*v1.ReplicationController); ok {
-			return rc.Spec.Replicas == nil
-		}
+	switch t := info.VersionedObject.(type) {
+	case *v1.ReplicationController:
+		return t.Spec.Replicas == nil
+	case *v1beta3.ReplicationController:
+		return t.Spec.Replicas == nil
 	}
 	return false
 }

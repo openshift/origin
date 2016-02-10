@@ -25,9 +25,9 @@ import (
 	flockerclient "github.com/ClusterHQ/flocker-go"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/mount"
+	"k8s.io/kubernetes/pkg/util/strings"
 	"k8s.io/kubernetes/pkg/volume"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 )
@@ -61,8 +61,9 @@ type flocker struct {
 	plugin      *flockerPlugin
 }
 
-func (p *flockerPlugin) Init(host volume.VolumeHost) {
+func (p *flockerPlugin) Init(host volume.VolumeHost) error {
 	p.host = host
+	return nil
 }
 
 func (p flockerPlugin) Name() string {
@@ -116,18 +117,17 @@ type flockerBuilder struct {
 
 func (b flockerBuilder) GetAttributes() volume.Attributes {
 	return volume.Attributes{
-		ReadOnly:                    b.readOnly,
-		Managed:                     false,
-		SupportsOwnershipManagement: false,
-		SupportsSELinux:             false,
+		ReadOnly:        b.readOnly,
+		Managed:         false,
+		SupportsSELinux: false,
 	}
 }
 func (b flockerBuilder) GetPath() string {
 	return b.flocker.path
 }
 
-func (b flockerBuilder) SetUp() error {
-	return b.SetUpAt(b.flocker.datasetName)
+func (b flockerBuilder) SetUp(fsGroup *int64) error {
+	return b.SetUpAt(b.flocker.datasetName, fsGroup)
 }
 
 // newFlockerClient uses environment variables and pod attributes to return a
@@ -150,7 +150,7 @@ func (b flockerBuilder) newFlockerClient() (*flockerclient.Client, error) {
 func (b *flockerBuilder) getMetaDir() string {
 	return path.Join(
 		b.plugin.host.GetPodPluginDir(
-			b.flocker.pod.UID, util.EscapeQualifiedNameForDisk(flockerPluginName),
+			b.flocker.pod.UID, strings.EscapeQualifiedNameForDisk(flockerPluginName),
 		),
 		b.datasetName,
 	)
@@ -167,7 +167,7 @@ control service:
    need to update the Primary UUID for this volume.
 5. Wait until the Primary UUID was updated or timeout.
 */
-func (b flockerBuilder) SetUpAt(dir string) error {
+func (b flockerBuilder) SetUpAt(dir string, fsGroup *int64) error {
 	if volumeutil.IsReady(b.getMetaDir()) {
 		return nil
 	}

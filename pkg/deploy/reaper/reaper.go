@@ -58,7 +58,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	// If there is neither a config nor any deployments, we can return NotFound.
 	deployments := rcList.Items
 	if configNotFound && len(deployments) == 0 {
-		return kerrors.NewNotFound("DeploymentConfig", name)
+		return kerrors.NewNotFound(kapi.Resource("deploymentconfig"), name)
 	}
 	for _, rc := range deployments {
 		if err = rcReaper.Stop(rc.Namespace, rc.Name, timeout, gracePeriod); err != nil {

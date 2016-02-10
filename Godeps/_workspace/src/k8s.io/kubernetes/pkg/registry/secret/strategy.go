@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/fields"
@@ -72,6 +73,26 @@ func (strategy) AllowUnconditionalUpdate() bool {
 	return true
 }
 
+func (s strategy) Export(obj runtime.Object, exact bool) error {
+	t, ok := obj.(*api.Secret)
+	if !ok {
+		// unexpected programmer error
+		return fmt.Errorf("unexpected object: %v", obj)
+	}
+	s.PrepareForCreate(obj)
+	if exact {
+		return nil
+	}
+	// secrets that are tied to the UID of a service account cannot be exported anyway
+	if t.Type == api.SecretTypeServiceAccountToken || len(t.Annotations[api.ServiceAccountUIDKey]) > 0 {
+		errs := []*field.Error{
+			field.Invalid(field.NewPath("type"), t, "can not export service account secrets"),
+		}
+		return errors.NewInvalid(api.Kind("Secret"), t.Name, errs)
+	}
+	return nil
+}
+
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
@@ -86,7 +107,9 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 
 // SelectableFields returns a label set that can be used for filter selection
 func SelectableFields(obj *api.Secret) labels.Set {
-	return labels.Set{
+	objectMetaFieldsSet := generic.ObjectMetaFieldsSet(obj.ObjectMeta, true)
+	secretSpecificFieldsSet := fields.Set{
 		"type": string(obj.Type),
 	}
+	return labels.Set(generic.MergeFieldsSets(objectMetaFieldsSet, secretSpecificFieldsSet))
 }

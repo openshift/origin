@@ -9,7 +9,7 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
-#Cleanup cluster resources created by this test
+# Cleanup cluster resources created by this test
 (
   set +e
   oc delete project/example project/ui-test-project project/recreated-project
@@ -24,7 +24,8 @@ os::log::install_errexit
   oc delete identities/anypassword:cascaded-user
   oadm policy reconcile-cluster-roles --confirm
   oadm policy reconcile-cluster-role-bindings --confirm
-) 2>/dev/null 1>&2
+) &>/dev/null
+
 
 defaultimage="openshift/origin-\${component}:latest"
 USE_IMAGES=${USE_IMAGES:-$defaultimage}
@@ -258,6 +259,20 @@ os::cmd::expect_success 'oadm policy remove-scc-from-group restricted system:aut
 os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'system:authenticated'
 os::cmd::expect_success 'oadm policy reconcile-sccs --confirm'
 os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'system:authenticated'
+
+os::cmd::expect_success 'oc label scc/restricted foo=bar'
+os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'foo: bar'
+os::cmd::expect_success 'oadm policy reconcile-sccs --confirm --additive-only=true'
+os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'foo: bar'
+os::cmd::expect_success 'oadm policy reconcile-sccs --confirm --additive-only=false'
+os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'foo: bar'
+
+os::cmd::expect_success 'oc annotate scc/restricted topic="my-foo-bar"'
+os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
+os::cmd::expect_success 'oadm policy reconcile-sccs --confirm --additive-only=true'
+os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
+os::cmd::expect_success 'oadm policy reconcile-sccs --confirm --additive-only=false'
+os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
 echo "reconcile-scc: ok"
 
 
@@ -304,4 +319,3 @@ os::cmd::expect_success_and_not_text "oc get clusterrolebindings/cluster-admins 
 os::cmd::expect_success_and_not_text "oc get rolebindings/cluster-admin         --output-version=v1 --template='{{.subjects}}' -n default" 'cascaded-group'
 os::cmd::expect_success_and_not_text "oc get scc/restricted                     --output-version=v1 --template='{{.groups}}'"              'cascaded-group'
 echo "user-group-cascade: ok"
-

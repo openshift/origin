@@ -10,9 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/runtime"
 	kerrs "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
+	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -250,7 +251,7 @@ func decodeSyncConfigFromFile(configFile string) (*api.LDAPSyncConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not parse file %s: %v", configFile, err)
 	}
-	if err := configapilatest.Codec.DecodeInto(jsonConfig, &config); err != nil {
+	if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), jsonConfig, &config); err != nil {
 		return nil, fmt.Errorf("couldg not decode file into config: %v", err)
 	}
 	return &config, nil
@@ -308,7 +309,7 @@ func (o *SyncOptions) Validate() error {
 
 	results := validation.ValidateLDAPSyncConfig(o.Config)
 	if o.GroupInterface == nil {
-		results.Errors = append(results.Errors, field.Required(field.NewPath("groupInterface")))
+		results.Errors = append(results.Errors, field.Required(field.NewPath("groupInterface"), ""))
 	}
 	// TODO(skuznets): pretty-print validation results
 	if len(results.Errors) > 0 {
@@ -385,6 +386,11 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 	for _, item := range openshiftGroups {
 		list.Items = append(list.Items, item)
 	}
+	list.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
+	if err != nil {
+		return err
+	}
+
 	if err := f.Factory.PrintObject(cmd, list, o.Out); err != nil {
 		return err
 	}

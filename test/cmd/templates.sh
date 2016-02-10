@@ -9,6 +9,17 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  oc delete template/ruby-helloworld-sample -n openshift
+  oc delete project test-template-project
+  os::cmd::try_until_failure 'oc get project test-template-project'
+  exit 0
+) &>/dev/null
+
+
 # This test validates template commands
 
 os::cmd::expect_success 'oc get templates'
@@ -33,6 +44,14 @@ os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestboo
 # Individually specified parameter values are honored
 os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json -v ADMIN_USERNAME=myuser -v ADMIN_PASSWORD=mypassword' '"myuser"'
 os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json -v ADMIN_USERNAME=myuser -v ADMIN_PASSWORD=mypassword' '"mypassword"'
+# Argument values are honored
+os::cmd::expect_success_and_text 'oc process ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword -f test/templates/fixtures/guestbook.json'       '"myuser"'
+os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword'       '"mypassword"'
+# Argument values with commas are honored
+os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json'
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample MYSQL_USER=myself MYSQL_PASSWORD=my,1%pass'  '"myself"'
+os::cmd::expect_success_and_text 'oc process MYSQL_USER=myself MYSQL_PASSWORD=my,1%pass ruby-helloworld-sample'  '"my,1%pass"'
+os::cmd::expect_success 'oc delete template ruby-helloworld-sample'
 echo "template+parameters: ok"
 
 # Run as cluster-admin to allow choosing any supplemental groups we want
@@ -60,6 +79,9 @@ echo "template data precision: ok"
 
 os::cmd::expect_success 'oc create -f examples/sample-app/application-template-dockerbuild.json -n openshift'
 os::cmd::expect_success 'oc policy add-role-to-user admin test-user'
+new="$(mktemp -d)/tempconfig"
+os::cmd::expect_success "oc config view --raw > $new"
+export KUBECONFIG=$new
 os::cmd::expect_success 'oc login -u test-user -p password'
 os::cmd::expect_success 'oc new-project test-template-project'
 # make sure the permissions on the new project are set up

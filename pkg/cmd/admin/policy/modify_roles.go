@@ -27,6 +27,14 @@ const (
 	RemoveClusterRoleFromUserRecommendedName  = "remove-cluster-role-from-user"
 )
 
+const (
+	addRoleToUserExample = `  # Add the 'view' role to user1 in the current project
+  $ %[1]s view user1
+
+  # Add the 'edit' role to serviceaccount1 in the current project
+  $ %[1]s edit -z serviceaccount1`
+)
+
 type RoleModificationOptions struct {
 	RoleNamespace       string
 	RoleName            string
@@ -67,9 +75,10 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 	saNames := []string{}
 
 	cmd := &cobra.Command{
-		Use:   name + " ROLE USER [USER ...]",
-		Short: "Add users to a role in the current project",
-		Long:  `Add users to a role in the current project`,
+		Use:     name + " ROLE (USER | -z SERVICEACCOUNT) [USER ...]",
+		Short:   "Add users or serviceaccounts to a role in the current project",
+		Long:    `Add users or serviceaccounts to a role in the current project`,
+		Example: fmt.Sprintf(addRoleToUserExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.CompleteUserWithSA(f, args, saNames); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -226,13 +235,17 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 }
 
 func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args []string, saNames []string) error {
-	if (len(args) < 2) && (len(saNames) == 0) {
-		return errors.New("you must specify at least two arguments: <role> <user> [user]...")
+	if len(args) < 1 {
+		return errors.New("you must specify a role")
 	}
 
 	o.RoleName = args[0]
 	if len(args) > 1 {
 		o.Users = append(o.Users, args[1:]...)
+	}
+
+	if (len(o.Users) == 0) && (len(saNames) == 0) {
+		return errors.New("you must specify at least one user or service account")
 	}
 
 	osClient, _, err := f.Clients()

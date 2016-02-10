@@ -168,7 +168,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 	}
 }
 
-var _ = g.Describe("images: mysql: replication", func() {
+var _ = g.Describe("[images][mysql] openshift mysql replication", func() {
 	defer g.GinkgoRecover()
 
 	ocs := make([]*exutil.CLI, len(testCases))

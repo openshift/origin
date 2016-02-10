@@ -7,6 +7,7 @@ import (
 	kolder "k8s.io/kubernetes/pkg/api/v1beta3"
 
 	newer "github.com/openshift/origin/pkg/build/api"
+	_ "github.com/openshift/origin/pkg/build/api/install"
 	older "github.com/openshift/origin/pkg/build/api/v1beta3"
 )
 

@@ -12,7 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("builds: labels: Check S2I and Docker build image for proper Docker labels", func() {
+var _ = g.Describe("[builds] result image should have proper labels set", func() {
 	defer g.GinkgoRecover()
 	var (
 		imageStreamFixture = exutil.FixturePath("..", "integration", "fixtures", "test-image-stream.json")

@@ -6,12 +6,13 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	"time"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/db"
-	"time"
 )
 
-var _ = g.Describe("images: mongodb: ephemeral template", func() {
+var _ = g.Describe("[images][mongodb] openshift mongodb image", func() {
 	defer g.GinkgoRecover()
 
 	templatePath := exutil.FixturePath("..", "..", "examples", "db-templates", "mongodb-ephemeral-template.json")

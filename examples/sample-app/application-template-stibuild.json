@@ -331,6 +331,21 @@
                 "containerName": "ruby-helloworld-database"
               }
             },
+            "mid": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database"
+              }
+            },
             "post": {
               "failurePolicy": "Ignore",
               "execNewPod": {

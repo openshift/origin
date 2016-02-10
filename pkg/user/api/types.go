@@ -69,11 +69,3 @@ type GroupList struct {
 	unversioned.ListMeta
 	Items []Group
 }
-
-func (*GroupList) IsAnAPIObject()           {}
-func (*Group) IsAnAPIObject()               {}
-func (*User) IsAnAPIObject()                {}
-func (*UserList) IsAnAPIObject()            {}
-func (*Identity) IsAnAPIObject()            {}
-func (*IdentityList) IsAnAPIObject()        {}
-func (*UserIdentityMapping) IsAnAPIObject() {}

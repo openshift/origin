@@ -17,8 +17,8 @@ limitations under the License.
 package util
 
 import (
-	"k8s.io/kubernetes/pkg/api/registered"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 )
@@ -72,7 +72,7 @@ func (c *ClientCache) ClientConfigForVersion(version *unversioned.GroupVersion) 
 		preferredGV = &versionCopy
 	}
 
-	negotiatedVersion, err := client.NegotiateVersion(c.defaultClient, &config, preferredGV, registered.RegisteredGroupVersions)
+	negotiatedVersion, err := client.NegotiateVersion(c.defaultClient, &config, preferredGV, registered.EnabledVersions())
 	if err != nil {
 		return nil, err
 	}

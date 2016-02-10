@@ -6,7 +6,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -542,7 +541,7 @@ func newInvalidExtensionPolicies() []authorizationapi.Policy {
 						{
 							Verbs:                 sets.NewString("watch", "list", "get"),
 							Resources:             sets.NewString("buildConfigs"),
-							AttributeRestrictions: runtime.EmbeddedObject{Object: &authorizationapi.Role{}},
+							AttributeRestrictions: &authorizationapi.Role{},
 						},
 						{
 							Verbs:     sets.NewString("update"),

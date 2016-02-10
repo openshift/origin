@@ -9,6 +9,14 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
 url=":${API_PORT:-8443}"
 project="$(oc project -q)"
 
@@ -57,7 +65,7 @@ os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1
 os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}'" '^ImageStreamTag origin-name-test:latest$'
 
 os::cmd::try_until_text 'oc get is ruby-22-centos7' 'latest'
-os::cmd::expect_failure_and_text 'oc new-build ruby-22-centos7~https://github.com/openshift/ruby-ex ruby-22-centos7~https://github.com/openshift/ruby-ex --to invalid/argument' 'error: only one component or source repository can be used when specifying an output image reference'
+os::cmd::expect_failure_and_text 'oc new-build ruby-22-centos7~https://github.com/openshift/ruby-ex ruby-22-centos7~https://github.com/openshift/ruby-ex --to invalid/argument' 'error: only one component with source can be used when specifying an output image reference'
 
 os::cmd::expect_success 'oc delete all --all'
 

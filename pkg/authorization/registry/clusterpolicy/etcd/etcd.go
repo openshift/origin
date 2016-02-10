@@ -23,9 +23,9 @@ type REST struct {
 // NewStorage returns a RESTStorage object that will work against nodes.
 func NewStorage(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
-		NewFunc:      func() runtime.Object { return &authorizationapi.ClusterPolicy{} },
-		NewListFunc:  func() runtime.Object { return &authorizationapi.ClusterPolicyList{} },
-		EndpointName: "clusterpolicy",
+		NewFunc:           func() runtime.Object { return &authorizationapi.ClusterPolicy{} },
+		NewListFunc:       func() runtime.Object { return &authorizationapi.ClusterPolicyList{} },
+		QualifiedResource: authorizationapi.Resource("clusterpolicy"),
 		KeyRootFunc: func(ctx kapi.Context) string {
 			return ClusterPolicyPath
 		},

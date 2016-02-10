@@ -34,11 +34,16 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/pkg/watch"
+	"sync"
 )
 
 const (
 	// Daemon sets will periodically check that their daemon pods are running as expected.
 	FullDaemonSetResyncPeriod = 30 * time.Second // TODO: Figure out if this time seems reasonable.
+
+	// Realistic value of the burstReplica field for the replication manager based off
+	// performance requirements for kubernetes 1.0.
+	BurstReplicas = 500
 
 	// We must avoid counting pods until the pod store has synced. If it hasn't synced, to
 	// avoid a hot loop, we'll wait this long between checks.
@@ -53,6 +58,10 @@ const (
 type DaemonSetsController struct {
 	kubeClient client.Interface
 	podControl controller.PodControlInterface
+
+	// An dsc is temporarily suspended after creating/deleting these many replicas.
+	// It resumes normal action after observing the watch events for them.
+	burstReplicas int
 
 	// To allow injection of syncDaemonSet for testing.
 	syncHandler func(dsKey string) error
@@ -89,8 +98,9 @@ func NewDaemonSetsController(kubeClient client.Interface, resyncPeriod controlle
 			KubeClient: kubeClient,
 			Recorder:   eventBroadcaster.NewRecorder(api.EventSource{Component: "daemon-set"}),
 		},
-		expectations: controller.NewControllerExpectations(),
-		queue:        workqueue.New(),
+		burstReplicas: BurstReplicas,
+		expectations:  controller.NewControllerExpectations(),
+		queue:         workqueue.New(),
 	}
 	// Manage addition/update of daemon sets.
 	dsc.dsStore.Store, dsc.dsController = framework.NewInformer(
@@ -167,6 +177,8 @@ func NewDaemonSetsController(kubeClient client.Interface, resyncPeriod controlle
 // Run begins watching and syncing daemon sets.
 func (dsc *DaemonSetsController) Run(workers int, stopCh <-chan struct{}) {
 	defer util.HandleCrash()
+	glog.Infof("Starting Daemon Sets controller manager")
+	controller.SyncAllPodsWithStore(dsc.kubeClient, dsc.podStore.Store)
 	go dsc.dsController.Run(stopCh)
 	go dsc.podController.Run(stopCh)
 	go dsc.nodeController.Run(stopCh)
@@ -403,32 +415,54 @@ func (dsc *DaemonSetsController) manage(ds *extensions.DaemonSet) {
 		glog.Errorf("Couldn't get key for object %+v: %v", ds, err)
 		return
 	}
-	dsc.expectations.SetExpectations(dsKey, len(nodesNeedingDaemonPods), len(podsToDelete))
 
-	glog.V(4).Infof("Nodes needing daemon pods for daemon set %s: %+v", ds.Name, nodesNeedingDaemonPods)
-	for i := range nodesNeedingDaemonPods {
-		if err := dsc.podControl.CreatePodsOnNode(nodesNeedingDaemonPods[i], ds.Namespace, ds.Spec.Template, ds); err != nil {
-			glog.V(2).Infof("Failed creation, decrementing expectations for set %q/%q", ds.Namespace, ds.Name)
-			dsc.expectations.CreationObserved(dsKey)
-			util.HandleError(err)
-		}
+	createDiff := len(nodesNeedingDaemonPods)
+	deleteDiff := len(podsToDelete)
+
+	if createDiff > dsc.burstReplicas {
+		createDiff = dsc.burstReplicas
+	}
+	if deleteDiff > dsc.burstReplicas {
+		deleteDiff = dsc.burstReplicas
 	}
 
-	glog.V(4).Infof("Pods to delete for daemon set %s: %+v", ds.Name, podsToDelete)
-	for i := range podsToDelete {
-		if err := dsc.podControl.DeletePod(ds.Namespace, podsToDelete[i]); err != nil {
-			glog.V(2).Infof("Failed deletion, decrementing expectations for set %q/%q", ds.Namespace, ds.Name)
-			dsc.expectations.DeletionObserved(dsKey)
-			util.HandleError(err)
-		}
+	dsc.expectations.SetExpectations(dsKey, createDiff, deleteDiff)
+
+	glog.V(4).Infof("Nodes needing daemon pods for daemon set %s: %+v, creating %d", ds.Name, nodesNeedingDaemonPods, createDiff)
+	createWait := sync.WaitGroup{}
+	createWait.Add(createDiff)
+	for i := 0; i < createDiff; i++ {
+		go func(ix int) {
+			defer createWait.Done()
+			if err := dsc.podControl.CreatePodsOnNode(nodesNeedingDaemonPods[ix], ds.Namespace, ds.Spec.Template, ds); err != nil {
+				glog.V(2).Infof("Failed creation, decrementing expectations for set %q/%q", ds.Namespace, ds.Name)
+				dsc.expectations.CreationObserved(dsKey)
+				util.HandleError(err)
+			}
+		}(i)
 	}
+	createWait.Wait()
+
+	glog.V(4).Infof("Pods to delete for daemon set %s: %+v, deleting %d", ds.Name, podsToDelete, deleteDiff)
+	deleteWait := sync.WaitGroup{}
+	deleteWait.Add(deleteDiff)
+	for i := 0; i < deleteDiff; i++ {
+		go func(ix int) {
+			defer deleteWait.Done()
+			if err := dsc.podControl.DeletePod(ds.Namespace, podsToDelete[ix], ds); err != nil {
+				glog.V(2).Infof("Failed deletion, decrementing expectations for set %q/%q", ds.Namespace, ds.Name)
+				dsc.expectations.DeletionObserved(dsKey)
+				util.HandleError(err)
+			}
+		}(i)
+	}
+	deleteWait.Wait()
 }
 
 func storeDaemonSetStatus(dsClient client.DaemonSetInterface, ds *extensions.DaemonSet, desiredNumberScheduled, currentNumberScheduled, numberMisscheduled int) error {
 	if ds.Status.DesiredNumberScheduled == desiredNumberScheduled && ds.Status.CurrentNumberScheduled == currentNumberScheduled && ds.Status.NumberMisscheduled == numberMisscheduled {
 		return nil
 	}
-
 	var updateErr, getErr error
 	for i := 0; i <= StatusUpdateRetries; i++ {
 		ds.Status.DesiredNumberScheduled = desiredNumberScheduled

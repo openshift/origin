@@ -16,7 +16,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/client"
@@ -96,15 +96,15 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 		SuggestFor: []string{"deployment"},
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, out); err != nil {
-				cmdutil.CheckErr(err)
+				kcmdutil.CheckErr(err)
 			}
 
 			if err := options.Validate(); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			if err := options.RunDeploy(); err != nil {
-				cmdutil.CheckErr(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
@@ -133,7 +133,7 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 	}
 
 	mapper, typer := f.Object()
-	o.builder = resource.NewBuilder(mapper, typer, f.ClientMapperForCommand())
+	o.builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder())
 
 	o.out = out
 

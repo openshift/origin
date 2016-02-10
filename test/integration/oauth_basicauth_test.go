@@ -13,7 +13,6 @@ import (
 	"time"
 
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -237,15 +236,13 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 		UseAsChallenger: true,
 		UseAsLogin:      true,
 		MappingMethod:   "claim",
-		Provider: runtime.EmbeddedObject{
-			Object: &configapi.BasicAuthPasswordIdentityProvider{
-				RemoteConnectionInfo: configapi.RemoteConnectionInfo{
-					URL: fmt.Sprintf("https://%s", remoteAddr),
-					CA:  certNames[basicAuthRemoteCACert],
-					ClientCert: configapi.CertInfo{
-						CertFile: certNames[basicAuthClientCert],
-						KeyFile:  certNames[basicAuthClientKey],
-					},
+		Provider: &configapi.BasicAuthPasswordIdentityProvider{
+			RemoteConnectionInfo: configapi.RemoteConnectionInfo{
+				URL: fmt.Sprintf("https://%s", remoteAddr),
+				CA:  certNames[basicAuthRemoteCACert],
+				ClientCert: configapi.CertInfo{
+					CertFile: certNames[basicAuthClientCert],
+					KeyFile:  certNames[basicAuthClientKey],
 				},
 			},
 		},

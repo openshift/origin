@@ -1,21 +1,25 @@
 package dockerpre012
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
+const GroupName = ""
+
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: "pre012"}
+var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: "pre012"}
 
-// Codec encodes internal objects to the v1 scheme
-var Codec = runtime.CodecFor(api.Scheme, SchemeGroupVersion.String())
+func AddToScheme(scheme *runtime.Scheme) {
+	addKnownTypes(scheme)
+	addConversionFuncs(scheme)
+}
 
-func init() {
-	api.Scheme.AddKnownTypes(SchemeGroupVersion,
+// Adds the list of known types to api.Scheme.
+func addKnownTypes(scheme *runtime.Scheme) {
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&DockerImage{},
 	)
 }
 
-func (*DockerImage) IsAnAPIObject() {}
+func (obj *DockerImage) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }

@@ -31,7 +31,7 @@ func (s *ClusterRoleStorage) NewList() runtime.Object {
 	return &authorizationapi.ClusterRoleList{}
 }
 
-func (s *ClusterRoleStorage) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+func (s *ClusterRoleStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
 	ret, err := s.roleStorage.List(ctx, options)
 	if ret == nil {
 		return nil, err

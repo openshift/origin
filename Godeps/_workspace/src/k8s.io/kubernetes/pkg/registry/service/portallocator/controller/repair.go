@@ -21,23 +21,25 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/api/errors"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/registry/service"
 	"k8s.io/kubernetes/pkg/registry/service/portallocator"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/net"
 )
 
 // See ipallocator/controller/repair.go; this is a copy for ports.
 type Repair struct {
 	interval  time.Duration
 	registry  service.Registry
-	portRange util.PortRange
+	portRange net.PortRange
 	alloc     service.RangeRegistry
 }
 
 // NewRepair creates a controller that periodically ensures that all ports are uniquely allocated across the cluster
 // and generates informational warnings for a cluster that is not in sync.
-func NewRepair(interval time.Duration, registry service.Registry, portRange util.PortRange, alloc service.RangeRegistry) *Repair {
+func NewRepair(interval time.Duration, registry service.Registry, portRange net.PortRange, alloc service.RangeRegistry) *Repair {
 	return &Repair{
 		interval:  interval,
 		registry:  registry,
@@ -57,6 +59,11 @@ func (c *Repair) RunUntil(ch chan struct{}) {
 
 // RunOnce verifies the state of the port allocations and returns an error if an unrecoverable problem occurs.
 func (c *Repair) RunOnce() error {
+	return client.RetryOnConflict(client.DefaultBackoff, c.runOnce)
+}
+
+// runOnce verifies the state of the port allocations and returns an error if an unrecoverable problem occurs.
+func (c *Repair) runOnce() error {
 	// TODO: (per smarterclayton) if Get() or ListServices() is a weak consistency read,
 	// or if they are executed against different leaders,
 	// the ordering guarantee required to ensure no port is allocated twice is violated.
@@ -80,7 +87,7 @@ func (c *Repair) RunOnce() error {
 	}
 
 	ctx := api.WithNamespace(api.NewDefaultContext(), api.NamespaceAll)
-	options := &unversioned.ListOptions{ResourceVersion: latest.ObjectMeta.ResourceVersion}
+	options := &api.ListOptions{ResourceVersion: latest.ObjectMeta.ResourceVersion}
 	list, err := c.registry.ListServices(ctx, options)
 	if err != nil {
 		return fmt.Errorf("unable to refresh the port block: %v", err)
@@ -116,10 +123,13 @@ func (c *Repair) RunOnce() error {
 
 	err = r.Snapshot(latest)
 	if err != nil {
-		return fmt.Errorf("unable to persist the updated port allocations: %v", err)
+		return fmt.Errorf("unable to snapshot the updated port allocations: %v", err)
 	}
 
 	if err := c.alloc.CreateOrUpdate(latest); err != nil {
+		if errors.IsConflict(err) {
+			return err
+		}
 		return fmt.Errorf("unable to persist the updated port allocations: %v", err)
 	}
 	return nil

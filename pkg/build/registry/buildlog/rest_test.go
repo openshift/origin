@@ -11,7 +11,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -187,7 +186,7 @@ func (r *buildWatcher) Get(ctx kapi.Context, name string) (runtime.Object, error
 	return r.Build, nil
 }
 
-func (r *buildWatcher) Watch(ctx kapi.Context, options *unversioned.ListOptions) (watch.Interface, error) {
+func (r *buildWatcher) Watch(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
 	return r.Watcher, r.Err
 }
 

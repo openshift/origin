@@ -54,7 +54,7 @@ func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
 	}
 	namespace, err := p.cache.GetNamespace(a.GetNamespace())
 	if err != nil {
-		return apierrors.NewForbidden(resource.Resource, name, err)
+		return apierrors.NewForbidden(resource, name, err)
 	}
 	projectNodeSelector, err := p.cache.GetNodeSelectorMap(namespace)
 	if err != nil {
@@ -62,7 +62,7 @@ func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
 	}
 
 	if labelselector.Conflicts(projectNodeSelector, pod.Spec.NodeSelector) {
-		return apierrors.NewForbidden(resource.Resource, name, fmt.Errorf("pod node label selector conflicts with its project node label selector"))
+		return apierrors.NewForbidden(resource, name, fmt.Errorf("pod node label selector conflicts with its project node label selector"))
 	}
 
 	// modify pod node selector = project node selector + current pod node selector

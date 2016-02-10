@@ -5,6 +5,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -32,7 +34,12 @@ func (p *TestPod) WithEnvVar(name, value string) *TestPod {
 }
 
 func (p *TestPod) WithBuild(t *testing.T, build *buildapi.Build, version string) *TestPod {
-	encodedBuild, err := kapi.Scheme.EncodeToVersion(build, version)
+	gv, err := unversioned.ParseGroupVersion(version)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	encodedBuild, err := runtime.Encode(kapi.Codecs.LegacyCodec(gv), build)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -52,7 +59,7 @@ func (p *TestPod) EnvValue(name string) string {
 }
 
 func (p *TestPod) GetBuild(t *testing.T) *buildapi.Build {
-	obj, err := kapi.Scheme.Decode([]byte(p.EnvValue("BUILD")))
+	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), []byte(p.EnvValue("BUILD")))
 	if err != nil {
 		t.Fatalf("Could not decode build: %v", err)
 	}

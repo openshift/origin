@@ -18,12 +18,15 @@
 #   git
 
 BASE_GIT_REPO="git@github.com:openshift/ose.git"
-DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
+DIST_GIT_BRANCH="rhaos-3.2-rhel-7"
+#DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
+#DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
 SCRATCH_OPTION=""
 BUILD_REPO="http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-enabled.repo"
-COMMIT_MESSAGE="3.1.1 Signed Image Release"
+COMMIT_MESSAGE="Updating"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7-candidate"
 
+packagelist=""
 declare -A packagekey
 # format:
 # dist-git_name	image_dependency git_repo git_path
@@ -62,47 +65,6 @@ packagekey['openshift-sti-php-docker']="openshift-sti-php-docker openshift-sti-b
 packagekey['openshift-sti-python-docker']="openshift-sti-python-docker openshift-sti-base-docker https://github.com/openshift/sti-python sti-python/3.3"
 packagekey['openshift-sti-ruby-docker']="openshift-sti-ruby-docker openshift-sti-base-docker https://github.com/openshift/sti-ruby sti-ruby/2.0"
 
-base_images_list="
-openshift-enterprise-base-docker
-openshift-enterprise-openvswitch-docker
-openshift-enterprise-pod-docker
-openshift-enterprise-docker
-openshift-enterprise-haproxy-router-base-docker
-openshift-enterprise-dockerregistry-docker
-openshift-enterprise-keepalived-ipfailover-docker
-openshift-enterprise-recycler-docker
-aos-f5-router-docker
-openshift-enterprise-deployer-docker
-openshift-enterprise-node-docker
-openshift-enterprise-sti-builder-docker
-openshift-enterprise-docker-builder-docker
-openshift-enterprise-haproxy-router-docker"
-
-s2i_images_list="
-openshift-sti-base-docker
-image-inspector-docker
-openshift-jenkins-docker
-openshift-mongodb-docker
-openshift-mysql-docker
-openshift-postgresql-docker
-openshift-sti-nodejs-docker
-openshift-sti-perl-docker
-openshift-sti-php-docker
-openshift-sti-python-docker
-openshift-sti-ruby-docker"
-
-logging_images_list="
-logging-auth-proxy-docker
-logging-deployment-docker
-logging-elasticsearch-docker
-logging-fluentd-docker
-logging-kibana-docker"
-
-metrics_images_list="metrics-cassandra-docker
-metrics-deployer-docker
-metrics-hawkular-metrics-docker
-metrics-heapster-docker"
-
 usage() {
   echo "Usage `basename $0` [action] <options>" >&2
   echo >&2
@@ -110,6 +72,8 @@ usage() {
   echo "  docker_update   :: Clone dist-git, bump version, release, or rhel" >&2
   echo "  git_compare     :: Clone dist-git and git, compare files and Dockerfile" >&2
   echo "  build_container :: Clone dist-git, build containers" >&2
+  echo "  make_yaml       :: Print out yaml from Dockerfile for release" >&2
+  echo "  list            :: Display full list of packages / images" >&2
   echo "  test            :: Display what packages would be worked on" >&2
   echo >&2
   echo "Options:" >&2
@@ -117,8 +81,9 @@ usage() {
   echo "  -v, --verbose       :: Be verbose" >&2
   echo "  -f, --force         :: Force: always do dist-git commits " >&2
   echo "  -i, --ignore        :: Ignore: do not do dist-git commits " >&2
-  echo "  --scrach            :: Do a scratch build" >&2
-  echo "  --group [group]     :: Which group list to use (base s2i metrics logging)" >&2
+  echo "  -d, --deps          :: Dependents: Also do the dependents" >&2
+  echo "  --scratch           :: Do a scratch build" >&2
+  echo "  --group [group]     :: Which group list to use (base sti metrics logging misc all)" >&2
   echo "  --package [package] :: Which package to use e.g. openshift-enterprise-pod-docker" >&2
   echo "  --version [version] :: Change Dockerfile version e.g. 3.1.1.2" >&2
   echo "  --release [version] :: Change Dockerfile release e.g. 3" >&2
@@ -132,11 +97,15 @@ usage() {
 }
 
 add_to_list() {
-  NEWLINE=$'\n'
-  export list+="${packagekey[${1}]}${NEWLINE}"
-  if [ "${VERBOSE}" == "TRUE" ] ; then
-    echo "----------"
-    echo ${list}
+  if ! [[ ${packagelist} =~ "::${1}::" ]] ; then
+    NEWLINE=$'\n'
+    export list+="${packagekey[${1}]}${NEWLINE}"
+    export packagelist+=" ::${1}::"
+    if [ "${VERBOSE}" == "TRUE" ] ; then
+      echo "----------"
+      echo ${packagelist}
+      echo ${list}
+    fi
   fi
 }
 
@@ -158,18 +127,20 @@ add_group_to_list() {
       add_to_list openshift-enterprise-docker-builder-docker
       add_to_list openshift-enterprise-haproxy-router-docker
       ;;
-    s2i)
+    sti)
       add_to_list openshift-sti-base-docker
-      add_to_list image-inspector-docker
-      add_to_list openshift-jenkins-docker
-      add_to_list openshift-mongodb-docker
-      add_to_list openshift-mysql-docker
-      add_to_list openshift-postgresql-docker
       add_to_list openshift-sti-nodejs-docker
       add_to_list openshift-sti-perl-docker
       add_to_list openshift-sti-php-docker
       add_to_list openshift-sti-python-docker
       add_to_list openshift-sti-ruby-docker
+      ;;
+    misc)
+      add_to_list openshift-jenkins-docker
+      add_to_list openshift-mongodb-docker
+      add_to_list openshift-mysql-docker
+      add_to_list openshift-postgresql-docker
+      add_to_list image-inspector-docker
       ;;
     logging)
       add_to_list logging-auth-proxy-docker
@@ -191,7 +162,6 @@ setup_dist_git() {
   if ! klist &>/dev/null ; then
     echo "Error: Kerberos token not found." ; popd &>/dev/null ; exit 1
   fi
-  echo "=== ${container} ==="
   rhpkg clone "${container}" &>/dev/null
   pushd ${container} >/dev/null
   rhpkg switch-branch "$branch" &>/dev/null
@@ -257,10 +227,6 @@ check_build_dependencies() {
 }
 
 build_image() {
-  pushd "${workingdir}/${container}" >/dev/null
-  check_build_dependencies
-  failedcheck=`grep ::${dependency}:: ${workingdir}/logs/buildfailed`
-  if [ "${failedcheck}" == "" ] ; then
     rhpkg container-build ${SCRATCH_OPTION} --repo ${BUILD_REPO} >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-errata.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     #rhpkg container-build --repo http://file.rdu.redhat.com/sdodson/aos-unsigned.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
@@ -274,10 +240,10 @@ build_image() {
       echo -n "."
       sleep 5
       taskid=`grep createContainer ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
-      if grep -q -e "buildContainer (noarch) failed" -e "server startup error" ${workingdir}/logs/${container}.buildlog ; then
+      if grep -q -e "Unknown build target:" -e "buildContainer (noarch) failed" -e "server startup error" ${workingdir}/logs/${container}.buildlog ; then
         echo " error"
         echo "=== ${container} IMAGE BUILD FAILED ==="
-        mv ${workingdir}/logs/${container}.buildlog done/
+        mv ${workingdir}/logs/${container}.buildlog ${workingdir}/logs/done/
         echo "::${container}::" >> ${workingdir}/logs/finished
         echo "::${container}::" >> ${workingdir}/logs/buildfailed
         taskid="FAILED"
@@ -287,11 +253,23 @@ build_image() {
     if ! [ "${taskid}" == "FAILED" ] ; then
       brew watch-logs ${taskid} >> ${workingdir}/logs/${container}.watchlog 2>&1 &
     fi
+}
+
+start_build_image() {
+  pushd "${workingdir}/${container}" >/dev/null
+  if [ "${FORCE}" == "TRUE" ] || [[ ${parent} =~ "::${container}::" ]] ; then
+    build_image
   else
-    echo "  dependency error: ${dependency} failed to build"
-    echo "=== ${container} IMAGE BUILD FAILED ==="
-    echo "::${container}::" >> ${workingdir}/logs/finished
-    echo "::${container}::" >> ${workingdir}/logs/buildfailed
+    check_build_dependencies
+    failedcheck=`grep ::${dependency}:: ${workingdir}/logs/buildfailed`
+    if [ "${failedcheck}" == "" ] ; then
+      build_image
+    else
+      echo "  dependency error: ${dependency} failed to build"
+      echo "=== ${container} IMAGE BUILD FAILED ==="
+      echo "::${container}::" >> ${workingdir}/logs/finished
+      echo "::${container}::" >> ${workingdir}/logs/buildfailed
+    fi
   fi
   popd >/dev/null
 }
@@ -301,8 +279,8 @@ update_dockerfile() {
   find . -name ".osbs*" -prune -o -name "Dockerfile*" -type f -print | while read line
   do
     if [ "${update_version}" == "TRUE" ] ; then
-      sed -i -e "s/Version=\"v[0-9]*.[0-9]*.[0-9]*.[0-9]*\"/Version=\"v${version_version}\"/" ${line}
-      sed -i -e "s/FROM \(.*\):v.*/FROM \1:v${version_version}/" ${line}
+      sed -i -e "s/Version=\".*\"/Version=\"${version_version}\"/" ${line}
+      sed -i -e "s/FROM \(.*\):v.*/FROM \1:${version_version}/" ${line}
     fi
     if [ "${update_release}" == "TRUE" ] ; then
       sed -i -e "s/Release=\"[0-9]*\"/Release=\"${release_version}\"/" ${line}
@@ -359,7 +337,7 @@ show_dockerfile_diffs() {
     touch .osbs-logs/Dockerfile.last
   fi
   echo "  ---- Checking Dockerfile changes ----"
-  newdiff=`diff -u Dockerfile .osbs-logs/Dockerfile.last`
+  newdiff=`diff -u .osbs-logs/Dockerfile.last Dockerfile`
   if [ "${newdiff}" == "" ] ; then
     echo "    None "
   else
@@ -396,10 +374,60 @@ show_dockerfile_diffs() {
 
 }
 
+show_yaml() {
+  pushd "${workingdir}/${container}" >/dev/null
+  package_name=`grep Name= Dockerfile | cut -d'"' -f2`
+  package_version=`grep Version= Dockerfile | cut -d'"' -f2`
+  package_release=`grep Release= Dockerfile | cut -d'"' -f2`
+  echo "---"
+  echo "repository: ${package_name}"
+  echo "tags: ${package_version},${package_version}-${package_release},latest"
+  echo "build: ${container}-${package_version}-${package_release}"
+  popd >/dev/null
+
+}
+
+
+check_dependents() {
+  if ! [ "${dependent_list_new}" == "" ] ; then
+    dependent_list_working="${dependent_list_new}"
+    dependent_list_new=""
+    for line in "${dependent_list_working}"
+    do
+      if [ "${VERBOSE}" == "TRUE" ] ; then
+        echo "Checking dependents for: ${line}"
+      fi
+
+      for index in ${!packagekey[@]}; do
+        if [[ ${dependent_list} =~ ${index} ]] ; then
+          if [ "${VERBOSE}" == "TRUE" ] ; then
+            echo "  Already have on list: ${index}"
+          fi
+        else
+          checkdep=$(echo "${packagekey[${index}]}" | awk '{print $2}')
+          if [ "${VERBOSE}" == "TRUE" ] ; then
+            echo "  Not on list - checking: ${index}"
+            echo "    Dependency is: ${checkdep}"
+          fi
+          if [[ ${dependent_list} =~ ${checkdep} ]] ; then
+            export dependent_list+="${index} "
+            export dependent_list_new+="${index} "
+            add_to_list ${index}
+            if [ "${VERBOSE}" == "TRUE" ] ; then
+              echo "      Added to build list: ${checkdep}"
+            fi
+          fi
+        fi
+      done
+    done
+    check_dependents
+  fi
+}
+
 build_container() {
   pushd "${workingdir}" >/dev/null
   setup_dist_git
-  build_image
+  start_build_image
   popd >/dev/null
 }
 
@@ -419,6 +447,13 @@ docker_update() {
   popd >/dev/null
 }
 
+build_yaml() {
+  pushd "${workingdir}" >/dev/null
+  setup_dist_git
+  show_yaml
+  popd >/dev/null
+}
+
 test_function() {
   echo "container: ${container} dependency: ${dependency} branch: ${branch}"
 }
@@ -432,14 +467,32 @@ while [[ "$#" -ge 1 ]]
 do
 key="$1"
 case $key in
-    git_compare | docker_update | build_container | test)
+    git_compare | docker_update | build_container | make_yaml | test)
       export action="${key}"
       ;;
+    list)
+      export action="${key}"
+      add_group_to_list base
+      add_group_to_list sti
+      add_group_to_list misc
+      add_group_to_list logging
+      add_group_to_list metrics
+      ;;
     --group)
-      add_group_to_list "$2"
+      group_input="$2"
+      if [ "${group_input}" == "all" ] ; then
+        add_group_to_list base
+        add_group_to_list sti
+        add_group_to_list misc
+        add_group_to_list logging
+        add_group_to_list metrics
+      else
+        add_group_to_list "${group_input}"
+      fi
       shift
       ;;
     --package)
+      export parent+=" ::$2::"
       add_to_list "$2"
       shift
       ;;
@@ -470,6 +523,9 @@ case $key in
       COMMIT_MESSAGE="$2"
       shift
       ;;
+    -d|--dep|--deps|--dependents)
+      export DEPENDENTS="TRUE"
+      ;;
     -v|--verbose)
       export VERBOSE="TRUE"
       ;;
@@ -494,13 +550,37 @@ esac
 shift # past argument or value
 done
 
+# Setup directory
+if ! [ "${action}" == "test" ] && ! [ "${action}" == "list" ] ; then
+  workingdir=$(mktemp -d /var/tmp/rebuild-images-XXXXXX)
+  pushd "${workingdir}" &>/dev/null
+  mkdir -p logs/done
+  echo "::None::" >> logs/finished
+  touch logs/buildfailed
+  echo "Using working directory: ${workingdir}"
+fi
 
-workingdir=$(mktemp -d /var/tmp/rebuild-images-XXXXXX)
-pushd "${workingdir}" &>/dev/null
-mkdir -p logs/done
-echo "::None::" >> logs/finished
-touch logs/buildfailed
-echo "Using working directory: ${workingdir}"
+# Setup dependents
+if [ "${DEPENDENTS}" == "TRUE" ] ; then
+  if [ "${VERBOSE}" == "TRUE" ] ; then
+    echo "Dependents Parent: ${parent}"
+  fi
+  for item_name in ${packagelist}
+  do
+    container_name=$(echo "$item_name" | cut -d':' -f3)
+    if [ "${VERBOSE}" == "TRUE" ] ; then
+      echo "Item Name: ${item_name}"
+      echo "Container: ${container_name}"
+    fi
+    if ! [ "${container_name}" == "" ] ; then
+      export dependent_list+="${container_name} "
+      export dependent_list_new+="${container_name} "
+    fi
+  done
+  check_dependents
+else
+  export parent=""
+fi
 
 echo "${list}" | while read spec
 do
@@ -512,15 +592,21 @@ do
   export path=$(echo "$spec" | awk '{print $4}')
   case "$action" in
     build_container )
+      echo "=== ${container} ==="
       build_container
       ;;
     git_compare )
+      echo "=== ${container} ==="
       git_compare
       ;;
     docker_update )
+      echo "=== ${container} ==="
       docker_update
       ;;
-    test )
+    make_yaml )
+      build_yaml
+      ;;
+    test | list )
       test_function
       ;;
     * )

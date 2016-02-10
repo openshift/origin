@@ -74,15 +74,15 @@ func (*errPodManager) GetPod(namespace, name string) (*kapi.Pod, error) {
 type errExistsPodManager struct{}
 
 func (*errExistsPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-	return &kapi.Pod{}, kerrors.NewAlreadyExists("kind", "name")
+	return &kapi.Pod{}, kerrors.NewAlreadyExists(kapi.Resource("Pod"), "name")
 }
 
 func (*errExistsPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
-	return kerrors.NewNotFound("kind", "name")
+	return kerrors.NewNotFound(kapi.Resource("Pod"), "name")
 }
 
 func (*errExistsPodManager) GetPod(namespace, name string) (*kapi.Pod, error) {
-	return nil, kerrors.NewNotFound("kind", "name")
+	return nil, kerrors.NewNotFound(kapi.Resource("Pod"), "name")
 }
 
 type okImageStreamClient struct{}
@@ -105,7 +105,7 @@ func (*errImageStreamClient) GetImageStream(namespace, name string) (*imageapi.I
 type errNotFoundImageStreamClient struct{}
 
 func (*errNotFoundImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
-	return nil, kerrors.NewNotFound("ImageStream", name)
+	return nil, kerrors.NewNotFound(imageapi.Resource("ImageStream"), name)
 }
 
 func mockBuild(phase buildapi.BuildPhase, output buildapi.BuildOutput) *buildapi.Build {
@@ -759,7 +759,7 @@ func TestHandleHandleBuildDeletionGetPodNotFound(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, name string) (*kapi.Pod, error) {
-			return nil, kerrors.NewNotFound("Pod", name)
+			return nil, kerrors.NewNotFound(kapi.Resource("Pod"), name)
 		},
 		DeletePodFunc: func(namespace string, pod *kapi.Pod) error {
 			deleteWasCalled = true

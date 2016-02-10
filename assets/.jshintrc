@@ -26,10 +26,11 @@
     "HawtioCore": false,
     "Logger" : false,
     "LabelSelector": false,
+    "ResourceGroupVersion": false,
     "moment": false,
     "Messenger" : false,
     "URI": false,
-    "ZeroClipboard": false,
+    "Clipboard": false,
     "$": false,
     "_" : false,
     "URITemplate": false

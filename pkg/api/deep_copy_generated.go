@@ -27,8 +27,10 @@ func deepCopy_api_AuthorizationAttributes(in api.AuthorizationAttributes, out *a
 	out.ResourceName = in.ResourceName
 	if newVal, err := c.DeepCopy(in.Content); err != nil {
 		return err
+	} else if newVal == nil {
+		out.Content = nil
 	} else {
-		out.Content = newVal.(runtime.EmbeddedObject)
+		out.Content = newVal.(runtime.Object)
 	}
 	return nil
 }
@@ -427,8 +429,10 @@ func deepCopy_api_PolicyRule(in api.PolicyRule, out *api.PolicyRule, c *conversi
 	}
 	if newVal, err := c.DeepCopy(in.AttributeRestrictions); err != nil {
 		return err
+	} else if newVal == nil {
+		out.AttributeRestrictions = nil
 	} else {
-		out.AttributeRestrictions = newVal.(runtime.EmbeddedObject)
+		out.AttributeRestrictions = newVal.(runtime.Object)
 	}
 	if in.APIGroups != nil {
 		out.APIGroups = make([]string, len(in.APIGroups))
@@ -1729,6 +1733,12 @@ func deepCopy_api_LifecycleHook(in deployapi.LifecycleHook, out *deployapi.Lifec
 }
 
 func deepCopy_api_RecreateDeploymentStrategyParams(in deployapi.RecreateDeploymentStrategyParams, out *deployapi.RecreateDeploymentStrategyParams, c *conversion.Cloner) error {
+	if in.TimeoutSeconds != nil {
+		out.TimeoutSeconds = new(int64)
+		*out.TimeoutSeconds = *in.TimeoutSeconds
+	} else {
+		out.TimeoutSeconds = nil
+	}
 	if in.Pre != nil {
 		out.Pre = new(deployapi.LifecycleHook)
 		if err := deepCopy_api_LifecycleHook(*in.Pre, out.Pre, c); err != nil {
@@ -1736,6 +1746,14 @@ func deepCopy_api_RecreateDeploymentStrategyParams(in deployapi.RecreateDeployme
 		}
 	} else {
 		out.Pre = nil
+	}
+	if in.Mid != nil {
+		out.Mid = new(deployapi.LifecycleHook)
+		if err := deepCopy_api_LifecycleHook(*in.Mid, out.Mid, c); err != nil {
+			return err
+		}
+	} else {
+		out.Mid = nil
 	}
 	if in.Post != nil {
 		out.Post = new(deployapi.LifecycleHook)

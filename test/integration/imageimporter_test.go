@@ -4,6 +4,7 @@ package integration
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -136,11 +137,10 @@ func TestImageStreamImport(t *testing.T) {
 	}
 }
 
-func TestImageStreamImportAuthenticated(t *testing.T) {
-	count := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		count++
-		t.Logf("%d got %s %s", count, r.Method, r.URL.Path)
+func mockRegistryHandler(t *testing.T, count *int) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		(*count)++
+		t.Logf("%d got %s %s", *count, r.Method, r.URL.Path)
 
 		w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
 		if len(r.Header.Get("Authorization")) == 0 {
@@ -159,7 +159,13 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		default:
 			t.Fatalf("unexpected request %s: %#v", r.URL.Path, r)
 		}
-	}))
+	})
+}
+
+func TestImageStreamImportAuthenticated(t *testing.T) {
+	// start regular HTTP servers
+	count := 0
+	server := httptest.NewServer(mockRegistryHandler(t, &count))
 	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
 		if len(r.Header.Get("Authorization")) == 0 {
@@ -170,11 +176,19 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		w.WriteHeader(http.StatusForbidden)
 	}))
 
+	// start a TLS server
+	count2 := 0
+	server3 := httptest.NewTLSServer(mockRegistryHandler(t, &count2))
+
+	url1, _ := url.Parse(server.URL)
+	url2, _ := url.Parse(server2.URL)
+	url3, _ := url.Parse(server3.URL)
+
+	// start a master
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
 	kc, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -188,34 +202,34 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	url1, _ := url.Parse(server.URL)
-	url2, _ := url.Parse(server2.URL)
-
-	importSpec := &api.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{Name: "test"},
-		Spec: api.ImageStreamImportSpec{
-			Import: true,
-			Images: []api.ImageImportSpec{
-				{
-					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url1.Host + "/test/image@" + phpDigest},
-					To:           &kapi.LocalObjectReference{Name: "latest"},
-					ImportPolicy: api.TagImportPolicy{Insecure: true},
-				},
-				{
-					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url1.Host + "/test/image2@" + etcdDigest},
-					To:           &kapi.LocalObjectReference{Name: "other"},
-					ImportPolicy: api.TagImportPolicy{Insecure: true},
-				},
-				{
-					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url2.Host + "/test/image:other"},
-					To:           &kapi.LocalObjectReference{Name: "failed"},
-					ImportPolicy: api.TagImportPolicy{Insecure: true},
+	specFn := func(insecure bool, host1, host2 string) *api.ImageStreamImport {
+		return &api.ImageStreamImport{
+			ObjectMeta: kapi.ObjectMeta{Name: "test"},
+			Spec: api.ImageStreamImportSpec{
+				Import: true,
+				Images: []api.ImageImportSpec{
+					{
+						From:         kapi.ObjectReference{Kind: "DockerImage", Name: host1 + "/test/image@" + phpDigest},
+						To:           &kapi.LocalObjectReference{Name: "latest"},
+						ImportPolicy: api.TagImportPolicy{Insecure: insecure},
+					},
+					{
+						From:         kapi.ObjectReference{Kind: "DockerImage", Name: host1 + "/test/image2@" + etcdDigest},
+						To:           &kapi.LocalObjectReference{Name: "other"},
+						ImportPolicy: api.TagImportPolicy{Insecure: insecure},
+					},
+					{
+						From:         kapi.ObjectReference{Kind: "DockerImage", Name: host2 + "/test/image:other"},
+						To:           &kapi.LocalObjectReference{Name: "failed"},
+						ImportPolicy: api.TagImportPolicy{Insecure: insecure},
+					},
 				},
 			},
-		},
+		}
 	}
 
 	// import expecting auth errors
+	importSpec := specFn(true, url1.Host, url2.Host)
 	isi, err := c.ImageStreams(testutil.Namespace()).Import(importSpec)
 	if err != nil {
 		t.Fatal(err)
@@ -229,83 +243,86 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		}
 	}
 
-	_, err = kc.Secrets(testutil.Namespace()).Create(&kapi.Secret{
-		ObjectMeta: kapi.ObjectMeta{Name: "secret1"},
-		Type:       kapi.SecretTypeDockerConfigJson,
-		Data: map[string][]byte{
-			kapi.DockerConfigJsonKey: []byte(`{"auths":{"` + url1.Host + `/v2/test/image/":{"auth":"` + base64.StdEncoding.EncodeToString([]byte("user:password")) + `"}}}`),
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	servers := []string{url1.Host, url3.Host}
 
-	// import expecting regular image to pass
-	isi, err = c.ImageStreams(testutil.Namespace()).Import(importSpec)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i, image := range isi.Status.Images {
-		switch i {
-		case 1, 2:
-			if image.Status.Status != unversioned.StatusFailure || image.Status.Reason != unversioned.StatusReasonUnauthorized {
-				t.Fatalf("import of image %d did not report unauthorized: %#v", i, image.Status)
-			}
-		default:
-			if image.Status.Status != unversioned.StatusSuccess {
-				t.Fatalf("import of image %d did not succeed: %#v", i, image.Status)
+	// test import of both TLS and non-TLS with an insecure input
+	for i, host := range servers {
+		t.Logf("testing %s host", host)
+
+		// add secrets for subsequent checks
+		_, err = kc.Secrets(testutil.Namespace()).Create(&kapi.Secret{
+			ObjectMeta: kapi.ObjectMeta{Name: fmt.Sprintf("secret-%d", i+1)},
+			Type:       kapi.SecretTypeDockerConfigJson,
+			Data: map[string][]byte{
+				kapi.DockerConfigJsonKey: []byte(`{"auths":{"` + host + `/v2/test/image/":{"auth":"` + base64.StdEncoding.EncodeToString([]byte("user:password")) + `"}}}`),
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		importSpec := specFn(true, host, url2.Host)
+
+		// import expecting regular image to pass
+		isi, err = c.ImageStreams(testutil.Namespace()).Import(importSpec)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, image := range isi.Status.Images {
+			switch i {
+			case 1, 2:
+				if image.Status.Status != unversioned.StatusFailure || image.Status.Reason != unversioned.StatusReasonUnauthorized {
+					t.Fatalf("import of image %d did not report unauthorized: %#v", i, image.Status)
+				}
+			default:
+				if image.Status.Status != unversioned.StatusSuccess {
+					t.Fatalf("import of image %d did not succeed: %#v", i, image.Status)
+				}
 			}
 		}
-	}
 
-	if items := isi.Status.Import.Status.Tags["latest"].Items; len(items) != 1 || items[0].Image != phpDigest {
-		t.Fatalf("import of first image does not point to the correct image: %#v", items)
-	}
-	if isi.Status.Images[0].Image == nil || isi.Status.Images[0].Image.DockerImageMetadata.Size == 0 || len(isi.Status.Images[0].Image.DockerImageLayers) == 0 {
-		t.Fatalf("unexpected image output: %#v", isi.Status.Images[0].Image)
-	}
+		if items := isi.Status.Import.Status.Tags["latest"].Items; len(items) != 1 || items[0].Image != phpDigest {
+			t.Fatalf("import of first image does not point to the correct image: %#v", items)
+		}
+		if isi.Status.Images[0].Image == nil || isi.Status.Images[0].Image.DockerImageMetadata.Size == 0 || len(isi.Status.Images[0].Image.DockerImageLayers) == 0 {
+			t.Fatalf("unexpected image output: %#v", isi.Status.Images[0].Image)
+		}
 
-	is, err := c.ImageStreams(testutil.Namespace()).Get("test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	tagEvent := api.LatestTaggedImage(is, "latest")
-	if tagEvent == nil {
-		t.Fatalf("no image tagged for latest: %#v", is)
-	}
-	if tagEvent == nil || tagEvent.Image != phpDigest || tagEvent.Generation != 2 || tagEvent.DockerImageReference != url1.Host+"/test/image@"+phpDigest {
-		t.Fatalf("expected the php image to be tagged: %#v", tagEvent)
-	}
-	tag, ok := is.Spec.Tags["latest"]
-	if !ok {
-		t.Fatalf("object at generation %d did not have tag latest: %#v", is.Generation)
-	}
-	tagGen := tag.Generation
-	if is.Generation != 2 || tagGen == nil || *tagGen != 2 {
-		t.Fatalf("expected generation 2 for stream and spec tag: %v %#v", tagGen, is)
-	}
-
-	if !api.HasTagCondition(is, "other", api.TagEventCondition{Type: api.ImportSuccess, Status: kapi.ConditionFalse, Reason: "Unauthorized"}) {
-		t.Fatalf("incorrect condition: %#v", is.Status.Tags["other"].Conditions)
-	}
-
-	/*
-		tagEvent = api.LatestTaggedImage(is, "other")
+		is, err := c.ImageStreams(testutil.Namespace()).Get("test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		tagEvent := api.LatestTaggedImage(is, "latest")
 		if tagEvent == nil {
 			t.Fatalf("no image tagged for latest: %#v", is)
 		}
-		if tagEvent == nil || tagEvent.Image != phpDigest || tagEvent.Generation != 1 || tagEvent.DockerImageReference != url1.Host+"/test/image2@"+etcdDigest {
-			t.Fatalf("expected the etcd image to be tagged: %#v", tagEvent)
+
+		var expectedGen int64
+		switch i {
+		case 0:
+			expectedGen = 2
+		case 1:
+			expectedGen = 3
 		}
-		tag, ok = is.Spec.Tags["other"]
+
+		if tagEvent == nil || tagEvent.Image != phpDigest || tagEvent.Generation != expectedGen || tagEvent.DockerImageReference != host+"/test/image@"+phpDigest {
+			t.Fatalf("expected the php image to be tagged: %#v", tagEvent)
+		}
+		tag, ok := is.Spec.Tags["latest"]
 		if !ok {
 			t.Fatalf("object at generation %d did not have tag latest: %#v", is.Generation)
 		}
-		tagGen = tag.Generation
-		if is.Generation != 1 || tagGen == nil || *tagGen != 1 {
-			t.Fatalf("expected generation 1 for stream and spec tag: %v %#v", tagGen, is)
+		tagGen := tag.Generation
+		if is.Generation != expectedGen || tagGen == nil || *tagGen != expectedGen {
+			t.Fatalf("expected generation %d for stream and spec tag: %d %#v", expectedGen, *tagGen, is)
 		}
-	*/
+		if len(is.Status.Tags["latest"].Conditions) > 0 {
+			t.Fatalf("incorrect conditions: %#v", is.Status.Tags["latest"].Conditions)
+		}
+		if !api.HasTagCondition(is, "other", api.TagEventCondition{Type: api.ImportSuccess, Status: kapi.ConditionFalse, Reason: "Unauthorized"}) {
+			t.Fatalf("incorrect condition: %#v", is.Status.Tags["other"].Conditions)
+		}
+	}
 }
 
 // Verifies that the import scheduler fetches an image repeatedly (every 1s as per the default

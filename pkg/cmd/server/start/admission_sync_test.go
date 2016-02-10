@@ -16,6 +16,7 @@ import (
 var admissionPluginsNotUsedByKube = sets.NewString(
 	"AlwaysAdmit",            // from kube, no need for this by default
 	"AlwaysDeny",             // from kube, no need for this by default
+	"AlwaysPullImages",       // from kube, not enabled by default.  This is only applicable to some environments.  This will ensure that containers cannot use pre-pulled copies of images without authorization.
 	"NamespaceAutoProvision", // from kube, it creates a namespace if a resource is created in a non-existent namespace.  We don't want this behavior
 	"SecurityContextDeny",    // from kube, it denies pods that want to use SCC capabilities.  We have different rules to allow this in openshift.
 	"DenyExecOnPrivileged",   // from kube (deprecated, see below), it denies exec to pods that have certain privileges.  This is superceded in origin by SCCExecRestrictions that checks against SCC rules.
@@ -26,9 +27,12 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 	"BuildOverrides",           // from origin, only needed for managing builds, not kubernetes resources
 	"OriginNamespaceLifecycle", // from origin, only needed for rejecting openshift resources, so not needed by kube
 	"ProjectRequestLimit",      // from origin, used for limiting project requests by user (online use case)
+	"RunOnceDuration",          // from origin, used for overriding the ActiveDeadlineSeconds for run-once pods
 
 	"NamespaceExists",  // superceded by NamespaceLifecycle
 	"InitialResources", // do we want this? https://github.com/kubernetes/kubernetes/blob/master/docs/proposals/initial-resources.md
+
+	"PersistentVolumeLabel", // do we want this? disable by default
 )
 
 func TestKubeAdmissionControllerUsage(t *testing.T) {

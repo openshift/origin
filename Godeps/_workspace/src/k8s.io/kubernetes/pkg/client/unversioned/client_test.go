@@ -46,9 +46,11 @@ func TestGetServerVersion(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write(output)
 	}))
+	// TODO: Uncomment when fix #19254
+	// defer server.Close()
 	client := NewOrDie(&Config{Host: server.URL})
 
-	got, err := client.ServerVersion()
+	got, err := client.Discovery().ServerVersion()
 	if err != nil {
 		t.Fatalf("unexpected encoding error: %v", err)
 	}
@@ -73,18 +75,20 @@ func TestGetServerGroupsWithV1Server(t *testing.T) {
 		}
 		output, err := json.Marshal(obj)
 		if err != nil {
-			t.Errorf("unexpected encoding error: %v", err)
+			t.Fatalf("unexpected encoding error: %v", err)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(output)
 	}))
+	// TODO: Uncomment when fix #19254
+	// defer server.Close()
 	client := NewOrDie(&Config{Host: server.URL})
 	// ServerGroups should not return an error even if server returns error at /api and /apis
 	apiGroupList, err := client.Discovery().ServerGroups()
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 	groupVersions := ExtractGroupVersions(apiGroupList)
 	if !reflect.DeepEqual(groupVersions, []string{"v1"}) {
@@ -115,6 +119,8 @@ func TestGetServerResourcesWithV1Server(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write(output)
 	}))
+	// TODO: Uncomment when fix #19254
+	// defer server.Close()
 	client := NewOrDie(&Config{Host: server.URL})
 	// ServerResources should not return an error even if server returns error at /api/v1.
 	resourceMap, err := client.Discovery().ServerResources()
@@ -206,6 +212,8 @@ func TestGetServerResources(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write(output)
 	}))
+	// TODO: Uncomment when fix #19254
+	// defer server.Close()
 	client := NewOrDie(&Config{Host: server.URL})
 	for _, test := range tests {
 		got, err := client.Discovery().ServerResourcesForGroupVersion(test.request)
@@ -232,29 +240,6 @@ func TestGetServerResources(t *testing.T) {
 		if _, found := resourceMap[api]; !found {
 			t.Errorf("missing expected api: %s", api)
 		}
-	}
-}
-
-func TestGetServerAPIVersions(t *testing.T) {
-	versions := []string{"v1", "v2", "v3"}
-	expect := unversioned.APIVersions{Versions: versions}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		output, err := json.Marshal(expect)
-		if err != nil {
-			t.Errorf("unexpected encoding error: %v", err)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(output)
-	}))
-	client := NewOrDie(&Config{Host: server.URL})
-	got, err := client.ServerAPIVersions()
-	if err != nil {
-		t.Fatalf("unexpected encoding error: %v", err)
-	}
-	if e, a := expect, *got; !reflect.DeepEqual(e, a) {
-		t.Errorf("expected %v, got %v", e, a)
 	}
 }
 
@@ -289,9 +274,11 @@ func TestGetSwaggerSchema(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected encoding error: %v", err)
 	}
+	// TODO: Uncomment when fix #19254
+	// defer server.Close()
 
 	client := NewOrDie(&Config{Host: server.URL})
-	got, err := client.SwaggerSchema(v1.SchemeGroupVersion)
+	got, err := client.Discovery().SwaggerSchema(v1.SchemeGroupVersion)
 	if err != nil {
 		t.Fatalf("unexpected encoding error: %v", err)
 	}
@@ -307,9 +294,11 @@ func TestGetSwaggerSchemaFail(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected encoding error: %v", err)
 	}
+	// TODO: Uncomment when fix #19254
+	// defer server.Close()
 
 	client := NewOrDie(&Config{Host: server.URL})
-	got, err := client.SwaggerSchema(unversioned.GroupVersion{Group: "api.group", Version: "v4"})
+	got, err := client.Discovery().SwaggerSchema(unversioned.GroupVersion{Group: "api.group", Version: "v4"})
 	if got != nil {
 		t.Fatalf("unexpected response: %v", got)
 	}

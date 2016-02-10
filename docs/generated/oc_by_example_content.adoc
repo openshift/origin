@@ -32,6 +32,22 @@ Update the annotations on a resource
 ====
 
 
+== oc apply
+Apply a configuration to a resource by filename or stdin
+
+====
+
+[options="nowrap"]
+----
+# Apply the configuration in pod.json to a pod.
+$ oc apply -f ./pod.json
+
+# Apply the JSON passed into stdin to a pod.
+$ cat pod.json | oc apply -f -
+----
+====
+
+
 == oc attach
 Attach to a running container.
 
@@ -83,6 +99,19 @@ Change configuration files for the client
   
   # Set the value of a config preference
   oc config set preferences.some true
+----
+====
+
+
+== oc config current-context
+Displays the current-context
+
+====
+
+[options="nowrap"]
+----
+  # Display the current-context
+  $ oc config current-context
 ----
 ====
 
@@ -192,6 +221,19 @@ Create a resource by filename or stdin
 ====
 
 
+== oc create namespace
+Create a namespace with the specified name.
+
+====
+
+[options="nowrap"]
+----
+  # Create a new namespace named my-namespace
+  $ kubectl create namespace my-namespace
+----
+====
+
+
 == oc create route edge
 Create a route that uses edge TLS termination
 
@@ -243,8 +285,40 @@ Create a route that uses reencrypt TLS termination
 ====
 
 
+== oc create secret docker-registry
+Create a secret for use with a Docker registry.
+
+====
+
+[options="nowrap"]
+----
+  # If you don't already have a .dockercfg file, you can create a dockercfg secret directly by using:
+  $ kubectl create secret docker-registry my-secret --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
+----
+====
+
+
+== oc create secret generic
+Create a secret from a local file, directory or literal value.
+
+====
+
+[options="nowrap"]
+----
+  # Create a new secret named my-secret with keys for each file in folder bar
+  $ kubectl create secret generic my-secret --from-file=path/to/bar
+
+  # Create a new secret named my-secret with specified keys instead of names on disk
+  $ kubectl create secret generic my-secret --from-file=ssh-privatekey=~/.ssh/id_rsa --from-file=ssh-publickey=~/.ssh/id_rsa.pub
+
+  # Create a new secret named my-secret with key1=supersecret and key2=topsecret
+  $ kubectl create secret generic my-secret --from-literal=key1=supersecret --from-literal=key2=topsecret
+----
+====
+
+
 == oc delete
-Delete resources by filenames, stdin, resources and names, or by resources and label selector.
+Delete one or more resources
 
 ====
 
@@ -330,7 +404,7 @@ Edit a resource on the server
 
 
 == oc env
-Update the environment on a resource with a pod template
+DEPRECATED: set env
 
 ====
 
@@ -680,6 +754,22 @@ Update field(s) of a resource using strategic merge patch.
 ====
 
 
+== oc policy add-role-to-user
+Add users or serviceaccounts to a role in the current project
+
+====
+
+[options="nowrap"]
+----
+  # Add the 'view' role to user1 in the current project
+  $ oc policy add-role-to-user view user1
+
+  # Add the 'edit' role to serviceaccount1 in the current project
+  $ oc policy add-role-to-user edit -z serviceaccount1
+----
+====
+
+
 == oc port-forward
 Forward one or more local ports to a pod.
 
@@ -717,6 +807,9 @@ Process a template into list of resources
 
   # Convert stored template into resource list
   $ oc process foo
+
+  # Convert stored template into resource list by setting/overriding parameter values
+  $ oc process foo PARM1=VALUE1 PARM2=VALUE2
 
   # Convert template stored in different namespace into a resource list
   $ oc process openshift//foo
@@ -988,6 +1081,78 @@ Create a new secret for SSH authentication
 ====
 
 
+== oc set env
+Update environment variables on a pod template
+
+====
+
+[options="nowrap"]
+----
+  # Update deployment 'registry' with a new environment variable
+  $ oc set env dc/registry STORAGE_DIR=/local
+
+  # List the environment variables defined on a deployment config 'registry'
+  $ oc set env dc/registry --list
+
+  # List the environment variables defined on all pods
+  $ oc set env pods --all --list
+
+  # Output modified deployment config in YAML, and does not alter the object on the server
+  $ oc set env dc/registry STORAGE_DIR=/data -o yaml
+
+  # Update all containers in all replication controllers in the project to have ENV=prod
+  $ oc set env rc --all ENV=prod
+
+  # Remove the environment variable ENV from container 'c1' in all deployment configs
+  $ oc set env dc --all --containers="c1" ENV-
+
+  # Remove the environment variable ENV from a deployment config definition on disk and
+  # update the deployment config on the server
+  $ oc set env -f dc.json ENV-
+
+  # Set some of the local shell environment into a deployment config on the server
+  $ env | grep RAILS_ | oc set env -e - dc/registry
+----
+====
+
+
+== oc set volumes
+Update volumes on a pod template
+
+====
+
+[options="nowrap"]
+----
+  # List volumes defined on all deployment configs in the current project
+  $ oc set volume dc --all
+
+  # Add a new empty dir volume to deployment config (dc) 'registry' mounted under
+  # /var/lib/registry
+  $ oc set volume dc/registry --add --mount-path=/var/lib/registry
+
+  # Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
+  $ oc set volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
+
+  # Remove volume 'v1' from deployment config 'registry'
+  $ oc set volume dc/registry --remove --name=v1
+
+  # Create a new persistent volume claim that overwrites an existing volume 'v1'
+  $ oc set volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
+
+  # Change the mount point for volume 'v1' to /data
+  $ oc set volume dc/registry --add --name=v1 -m /data --overwrite
+
+  # Modify the deployment config by removing volume mount "v1" from container "c1"
+  # (and by removing the volume "v1" if no other containers have volume mounts that reference it)
+  $ oc set volume dc/registry --remove --name=v1 --containers=c1
+
+  # Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
+  # Ceph, Gluster, NFS, ISCSI, ...)
+  $ oc set volume dc/registry --add -m /repo --source=<json-string>
+----
+====
+
+
 == oc start-build
 Start a new build
 
@@ -1082,7 +1247,7 @@ An introduction to concepts and types
 
 
 == oc volumes
-Update volume on a resource with a pod template
+DEPRECATED: set volume
 
 ====
 

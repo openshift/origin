@@ -28,7 +28,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
@@ -45,7 +45,7 @@ type testPatchSubType struct {
 	StringField string `json:"theField"`
 }
 
-func (*testPatchType) IsAnAPIObject() {}
+func (obj *testPatchType) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
 
 func TestPatchAnonymousField(t *testing.T) {
 	originalJS := `{"kind":"testPatchType","theField":"my-value"}`
@@ -78,7 +78,7 @@ func (p *testPatcher) New() runtime.Object {
 func (p *testPatcher) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	inPod := obj.(*api.Pod)
 	if inPod.ResourceVersion != p.updatePod.ResourceVersion {
-		return nil, false, apierrors.NewConflict("Pod", inPod.Name, fmt.Errorf("existing %v, new %v", p.updatePod.ResourceVersion, inPod.ResourceVersion))
+		return nil, false, apierrors.NewConflict(api.Resource("pods"), inPod.Name, fmt.Errorf("existing %v, new %v", p.updatePod.ResourceVersion, inPod.ResourceVersion))
 	}
 
 	return inPod, false, nil
@@ -155,7 +155,7 @@ func (tc *patchTestCase) Run(t *testing.T) {
 	namespace := tc.startingPod.Namespace
 	name := tc.startingPod.Name
 
-	codec := latest.GroupOrDie("").Codec
+	codec := testapi.Default.Codec()
 	admit := tc.admit
 	if admit == nil {
 		admit = func(updatedObject runtime.Object) error {
@@ -315,7 +315,7 @@ func TestPatchResourceWithConflict(t *testing.T) {
 		changedPod:  &api.Pod{},
 		updatePod:   &api.Pod{},
 
-		expectedError: `Pod "foo" cannot be updated: existing 2, new 1`,
+		expectedError: `pods "foo" cannot be updated: existing 2, new 1`,
 	}
 
 	tc.startingPod.Name = name

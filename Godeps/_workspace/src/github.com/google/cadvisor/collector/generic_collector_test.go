@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/google/cadvisor/info/v1"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,11 +59,11 @@ func TestConfigWithErrors(t *testing.T) {
 		"endpoint" : "http://localhost:8000/nginx_status",
 		"metrics_config"  : [
 			{
-				 "name" : "activeConnections,
-				 "metric_type" : "gauge",
-				 "data_type" : "int",
-				 "polling_frequency" : 10,
-				 "regex" : "Active connections: ([0-9]+)"
+				 "name" : "activeConnections,  
+		  		 "metric_type" : "gauge",
+		 	 	 "data_type" : "int",
+		  		 "polling_frequency" : 10,
+		    		 "regex" : "Active connections: ([0-9]+)"			
 			}
 		]
 	}

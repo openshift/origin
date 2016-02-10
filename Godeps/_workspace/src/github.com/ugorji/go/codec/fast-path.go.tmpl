@@ -199,7 +199,7 @@ func (_ fastpathT) {{ .MethodNamePfx "Enc" false }}V(v map[{{ .MapKey }}]{{ .Ele
 	ee.EncodeMapStart(len(v))
 	{{if eq .MapKey "string"}}asSymbols := e.h.AsSymbols&AsSymbolMapStringKeysFlag != 0
 	{{end}}if e.h.Canonical {
-		{{if eq .MapKey "interface{}"}}{{/* out of band
+		{{if eq .MapKey "interface{}"}}{{/* out of band 
 		*/}}var mksv []byte = make([]byte, 0, len(v)*16) // temporary byte slice for the encoding
 		e2 := NewEncoderBytes(&mksv, e.hh)
 		v2 := make([]bytesI, len(v))
@@ -210,7 +210,7 @@ func (_ fastpathT) {{ .MethodNamePfx "Enc" false }}V(v map[{{ .MapKey }}]{{ .Ele
 			e2.MustEncode(k2)
 			vp = &v2[i]
 			vp.v = mksv[l:]
-			vp.i = k2
+			vp.i = k2 
 			i++
 		}
 		sort.Sort(bytesISlice(v2))
@@ -220,7 +220,7 @@ func (_ fastpathT) {{ .MethodNamePfx "Enc" false }}V(v map[{{ .MapKey }}]{{ .Ele
 			if cr != nil { cr.sendContainerState(containerMapValue) }
 			e.encode(v[v2[j].i])
 		} {{else}}{{ $x := sorttype .MapKey true}}v2 := make([]{{ $x }}, len(v))
-		var i int
+		var i int 
 		for k, _ := range v {
 			v2[i] = {{ $x }}(k)
 			i++
@@ -333,7 +333,7 @@ func (_ fastpathT) {{ .MethodNamePfx "Dec" false }}V(v []{{ .Elem }}, checkNil b
 	
 	if containerLenS > 0 {
 		x2read := containerLenS
-		var xtrunc bool
+		var xtrunc bool 
 		if containerLenS > cap(v) {
 			if canChange { {{/*
 				// fast-path is for "basic" immutable types, so no need to copy them over
@@ -397,7 +397,7 @@ func (_ fastpathT) {{ .MethodNamePfx "Dec" false }}V(v []{{ .Elem }}, checkNil b
 			v = make([]{{ .Elem }}, 1, 4)
 			changed = true
 		}
-		j := 0
+		j := 0	
 		for ; !breakFound; j++ {
 			if j >= len(v) { 
 				if canChange {
@@ -421,7 +421,7 @@ func (_ fastpathT) {{ .MethodNamePfx "Dec" false }}V(v []{{ .Elem }}, checkNil b
 			changed = true
 		}
 	}
-	slh.End()
+	slh.End() 
 	return v, changed 
 }
 
@@ -476,7 +476,7 @@ func (_ fastpathT) {{ .MethodNamePfx "Dec" false }}V(v map[{{ .MapKey }}]{{ .Ele
 	if containerLen > 0 {
 		for j := 0; j < containerLen; j++ {
 			if cr != nil { cr.sendContainerState(containerMapKey) }
-			{{ if eq .MapKey "interface{}" }}mk = nil
+			{{ if eq .MapKey "interface{}" }}mk = nil 
 			d.decode(&mk)
 			if bv, bok := mk.([]byte); bok {
 				mk = d.string(bv) {{/* // maps cannot have []byte as key. switch to string. */}}
@@ -491,7 +491,7 @@ func (_ fastpathT) {{ .MethodNamePfx "Dec" false }}V(v map[{{ .MapKey }}]{{ .Ele
 	} else if containerLen < 0 {
 		for j := 0; !dd.CheckBreak(); j++ {
 			if cr != nil { cr.sendContainerState(containerMapKey) }
-			{{ if eq .MapKey "interface{}" }}mk = nil
+			{{ if eq .MapKey "interface{}" }}mk = nil 
 			d.decode(&mk)
 			if bv, bok := mk.([]byte); bok {
 				mk = d.string(bv) {{/* // maps cannot have []byte as key. switch to string. */}}

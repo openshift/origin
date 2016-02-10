@@ -10,11 +10,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/runtime"
 	watchapi "k8s.io/kubernetes/pkg/watch"
 
-	"github.com/openshift/origin/pkg/build/admission/defaults"
-	"github.com/openshift/origin/pkg/build/admission/overrides"
+	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
+	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 	buildtestutil "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -29,7 +28,7 @@ var buildPodAdmissionTestTimeout time.Duration = 10 * time.Second
 
 func TestBuildDefaultGitHTTPProxy(t *testing.T) {
 	httpProxy := "http://my.test.proxy:12345"
-	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaults.BuildDefaultsConfig{
+	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
 		GitHTTPProxy: httpProxy,
 	})
 	build, _ := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
@@ -40,7 +39,7 @@ func TestBuildDefaultGitHTTPProxy(t *testing.T) {
 
 func TestBuildDefaultGitHTTPSProxy(t *testing.T) {
 	httpsProxy := "https://my.test.proxy:12345"
-	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaults.BuildDefaultsConfig{
+	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
 		GitHTTPSProxy: httpsProxy,
 	})
 	build, _ := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
@@ -60,7 +59,7 @@ func TestBuildDefaultEnvironment(t *testing.T) {
 			Value: "VALUE2",
 		},
 	}
-	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaults.BuildDefaultsConfig{
+	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
 		Env: env,
 	})
 	build, _ := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
@@ -70,7 +69,7 @@ func TestBuildDefaultEnvironment(t *testing.T) {
 }
 
 func TestBuildOverrideForcePull(t *testing.T) {
-	oclient, kclient := setupBuildOverridesAdmissionTest(t, &overrides.BuildOverridesConfig{
+	oclient, kclient := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
 		ForcePull: true,
 	})
 	build, _ := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
@@ -80,7 +79,7 @@ func TestBuildOverrideForcePull(t *testing.T) {
 }
 
 func TestBuildOverrideForcePullCustomStrategy(t *testing.T) {
-	oclient, kclient := setupBuildOverridesAdmissionTest(t, &overrides.BuildOverridesConfig{
+	oclient, kclient := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
 		ForcePull: true,
 	})
 	build, pod := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestCustomBuild())
@@ -156,18 +155,18 @@ func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclient *kcli
 	return nil, nil
 }
 
-func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaults.BuildDefaultsConfig) (*client.Client, *kclient.Client) {
+func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaultsapi.BuildDefaultsConfig) (*client.Client, *kclient.Client) {
 	return setupBuildPodAdmissionTest(t, map[string]configapi.AdmissionPluginConfig{
 		"BuildDefaults": {
-			Configuration: runtime.EmbeddedObject{Object: defaultsConfig},
+			Configuration: defaultsConfig,
 		},
 	})
 }
 
-func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overrides.BuildOverridesConfig) (*client.Client, *kclient.Client) {
+func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overridesapi.BuildOverridesConfig) (*client.Client, *kclient.Client) {
 	return setupBuildPodAdmissionTest(t, map[string]configapi.AdmissionPluginConfig{
 		"BuildOverrides": {
-			Configuration: runtime.EmbeddedObject{Object: overridesConfig},
+			Configuration: overridesConfig,
 		},
 	})
 }

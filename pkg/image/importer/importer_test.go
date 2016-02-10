@@ -142,7 +142,7 @@ func TestImport(t *testing.T) {
 				if !expectStatusError(isi.Status.Images[1].Status, "Internal error occurred: no such digest") {
 					t.Errorf("unexpected status: %#v", isi.Status.Images[1].Status)
 				}
-				if !expectStatusError(isi.Status.Images[2].Status, " \"\" is invalid: from.name: invalid value 'test/un/parse/able/image', Details: invalid name: the docker pull spec \"test/un/parse/able/image\" must be two or three segments separated by slashes") {
+				if !expectStatusError(isi.Status.Images[2].Status, " \"\" is invalid: from.name: Invalid value: \"test/un/parse/able/image\": invalid name: the docker pull spec \"test/un/parse/able/image\" must be two or three segments separated by slashes") {
 					t.Errorf("unexpected status: %#v", isi.Status.Images[2].Status)
 				}
 				// non DockerImage refs are no-ops

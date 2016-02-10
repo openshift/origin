@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/exec"
@@ -105,7 +104,7 @@ func doTestPlugin(t *testing.T, spec *volume.Spec) {
 	if path != "/tmp/fake/pods/poduid/volumes/kubernetes.io~glusterfs/vol1" {
 		t.Errorf("Got unexpected path: %s", path)
 	}
-	if err := builder.SetUp(); err != nil {
+	if err := builder.SetUp(nil); err != nil {
 		t.Errorf("Expected success, got: %v", err)
 	}
 	if _, err := os.Stat(volumePath); err != nil {
@@ -193,12 +192,7 @@ func TestPersistentClaimReadOnlyFlag(t *testing.T) {
 		}},
 	}
 
-	o := testclient.NewObjects(api.Scheme, api.Scheme)
-	o.Add(pv)
-	o.Add(claim)
-	o.Add(ep)
-	client := &testclient.Fake{}
-	client.AddReactor("*", "*", testclient.ObjectReaction(o, testapi.Default.RESTMapper()))
+	client := testclient.NewSimpleFake(pv, claim, ep)
 
 	plugMgr := volume.VolumePluginMgr{}
 	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost("/tmp/fake", client, nil))

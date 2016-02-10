@@ -257,7 +257,7 @@ func TestBuildConfigUpdateError(t *testing.T) {
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := bcInstantiator.buildConfigUpdater
-	bcUpdater.err = kerrors.NewConflict("BuildConfig", buildcfg.Name, errors.New("foo"))
+	bcUpdater.err = kerrors.NewConflict(buildapi.Resource("BuildConfig"), buildcfg.Name, errors.New("foo"))
 
 	err := controller.HandleImageRepo(imageStream)
 	if len(bcInstantiator.name) == 0 {

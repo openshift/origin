@@ -36,7 +36,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a subjectAccessReview: %#v", obj))
 	}
 	if errs := authorizationvalidation.ValidateSubjectAccessReview(subjectAccessReview); len(errs) > 0 {
-		return nil, kapierrors.NewInvalid(subjectAccessReview.Kind, "", errs)
+		return nil, kapierrors.NewInvalid(authorizationapi.Kind(subjectAccessReview.Kind), "", errs)
 	}
 	// if a namespace is present on the request, then the namespace on the on the SAR is overwritten.
 	// This is to support backwards compatibility.  To have gotten here in this state, it means that
@@ -93,10 +93,10 @@ func (r *REST) isAllowed(ctx kapi.Context, sar *authorizationapi.SubjectAccessRe
 	allowed, reason, err := r.authorizer.Authorize(kapi.WithNamespace(ctx, sar.Action.Namespace), localSARAttributes)
 
 	if err != nil {
-		return kapierrors.NewForbidden(localSARAttributes.GetResource(), localSARAttributes.GetResourceName(), err)
+		return kapierrors.NewForbidden(authorizationapi.Resource(localSARAttributes.GetResource()), localSARAttributes.GetResourceName(), err)
 	}
 	if !allowed {
-		forbiddenError, _ := kapierrors.NewForbidden(localSARAttributes.GetResource(), localSARAttributes.GetResourceName(), errors.New("") /*discarded*/).(*kapierrors.StatusError)
+		forbiddenError, _ := kapierrors.NewForbidden(authorizationapi.Resource(localSARAttributes.GetResource()), localSARAttributes.GetResourceName(), errors.New("") /*discarded*/).(*kapierrors.StatusError)
 		forbiddenError.ErrStatus.Message = reason
 		return forbiddenError
 	}

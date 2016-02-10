@@ -1,6 +1,7 @@
 package clientcmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -8,13 +9,15 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
-
 	"github.com/spf13/pflag"
+
 	"k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
@@ -23,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -37,6 +41,7 @@ import (
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
 	deployscaler "github.com/openshift/origin/pkg/deploy/scaler"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
@@ -123,20 +128,41 @@ type Factory struct {
 	clients               *clientCache
 }
 
+func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
+	generators := map[string]map[string]kubectl.Generator{}
+	generators["run"] = map[string]kubectl.Generator{
+		"run/v1":            deploygen.BasicDeploymentConfigController{},
+		"run-controller/v1": kubectl.BasicReplicationController{},
+	}
+	generators["expose"] = map[string]kubectl.Generator{
+		"route/v1": routegen.RouteGenerator{},
+	}
+
+	return generators[cmdName]
+}
+
 // NewFactory creates an object that holds common methods across all OpenShift commands
 func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
-	mapper := ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: latest.RESTMapper}}
+	var restMapper meta.MultiRESTMapper
+	seenGroups := sets.String{}
+	for _, gv := range registered.EnabledVersions() {
+		if seenGroups.Has(gv.Group) {
+			continue
+		}
+		seenGroups.Insert(gv.Group)
+
+		groupMeta, err := registered.Group(gv.Group)
+		if err != nil {
+			continue
+		}
+		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
+	}
+	mapper := ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: restMapper}}
 
 	clients := &clientCache{
 		clients: make(map[string]*client.Client),
 		configs: make(map[string]*kclient.Config),
 		loader:  clientConfig,
-	}
-
-	generators := map[string]kubectl.Generator{
-		"route/v1":          routegen.RouteGenerator{},
-		"run/v1":            deploygen.BasicDeploymentConfigController{},
-		"run-controller/v1": kubectl.BasicReplicationController{},
 	}
 
 	w := &Factory{
@@ -158,8 +184,8 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		return mapper, api.Scheme
 	}
 
-	kRESTClient := w.Factory.RESTClient
-	w.RESTClient = func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+	kClientForMapping := w.Factory.ClientForMapping
+	w.ClientForMapping = func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 		if latest.OriginKind(mapping.GroupVersionKind) {
 			mappingVersion := mapping.GroupVersionKind.GroupVersion()
 			client, err := clients.ClientForVersion(&mappingVersion)
@@ -168,7 +194,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			}
 			return client.RESTClient, nil
 		}
-		return kRESTClient(mapping)
+		return kClientForMapping(mapping)
 	}
 
 	// Save original Describer function
@@ -240,12 +266,19 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kReaperFunc(mapping)
 	}
-	kGeneratorFunc := w.Factory.Generator
-	w.Generator = func(name string) (kubectl.Generator, bool) {
-		if generator, ok := generators[name]; ok {
-			return generator, true
+	kGenerators := w.Factory.Generators
+	w.Generators = func(cmdName string) map[string]kubectl.Generator {
+		originGenerators := DefaultGenerators(cmdName)
+		kubeGenerators := kGenerators(cmdName)
+
+		ret := map[string]kubectl.Generator{}
+		for k, v := range kubeGenerators {
+			ret[k] = v
 		}
-		return kGeneratorFunc(name)
+		for k, v := range originGenerators {
+			ret[k] = v
+		}
+		return ret
 	}
 	kPodSelectorForObjectFunc := w.Factory.PodSelectorForObject
 	w.PodSelectorForObject = func(object runtime.Object) (string, error) {
@@ -366,6 +399,20 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return kAttachablePodForObjectFunc(object)
 		}
 	}
+	kSwaggerSchemaFunc := w.Factory.SwaggerSchema
+	w.Factory.SwaggerSchema = func(gvk unversioned.GroupVersionKind) (*swagger.ApiDeclaration, error) {
+		if !latest.OriginKind(gvk) {
+			return kSwaggerSchemaFunc(gvk)
+		}
+		// TODO: we need to register the OpenShift API under the Kube group, and start returning the OpenShift
+		// group from the scheme.
+		oc, _, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+		return w.OriginSwaggerSchema(oc.RESTClient, gvk.GroupVersion())
+	}
+
 	w.EditorEnvs = func() []string {
 		return []string{"OC_EDITOR", "EDITOR"}
 	}
@@ -421,6 +468,23 @@ func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
 	return osClient, kClient, nil
 }
 
+// OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.
+func (f *Factory) OriginSwaggerSchema(client *kclient.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
+	if version.IsEmpty() {
+		return nil, fmt.Errorf("groupVersion cannot be empty")
+	}
+	body, err := client.Get().AbsPath("/").Suffix("swaggerapi", "oapi", version.Version).Do().Raw()
+	if err != nil {
+		return nil, err
+	}
+	var schema swagger.ApiDeclaration
+	err = json.Unmarshal(body, &schema)
+	if err != nil {
+		return nil, fmt.Errorf("got '%s': %v", string(body), err)
+	}
+	return &schema, nil
+}
+
 // ShortcutExpander is a RESTMapper that can be used for OpenShift resources.
 type ShortcutExpander struct {
 	meta.RESTMapper
@@ -428,7 +492,7 @@ type ShortcutExpander struct {
 
 // KindFor implements meta.RESTMapper. It expands the resource first, then invokes the wrapped
 // mapper.
-func (e ShortcutExpander) KindFor(resource string) (unversioned.GroupVersionKind, error) {
+func (e ShortcutExpander) KindFor(resource unversioned.GroupVersionResource) (unversioned.GroupVersionKind, error) {
 	resource = expandResourceShortcut(resource)
 	return e.RESTMapper.KindFor(resource)
 }
@@ -447,25 +511,29 @@ func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {
 
 // ResourceIsValid takes a string (kind) and checks if it's a valid resource.
 // It expands the resource first, then invokes the wrapped mapper.
-func (e ShortcutExpander) ResourceIsValid(resource string) bool {
+func (e ShortcutExpander) ResourceIsValid(resource unversioned.GroupVersionResource) bool {
 	return e.RESTMapper.ResourceIsValid(expandResourceShortcut(resource))
+}
+
+func (e ShortcutExpander) ResourceSingularizer(resource string) (string, error) {
+	return e.RESTMapper.ResourceSingularizer(expandResourceShortcut(unversioned.GroupVersionResource{Resource: resource}).Resource)
 }
 
 // expandResourceShortcut will return the expanded version of resource
 // (something that a pkg/api/meta.RESTMapper can understand), if it is
 // indeed a shortcut. Otherwise, will return resource unmodified.
-func expandResourceShortcut(resource string) string {
-	shortForms := map[string]string{
-		"dc":      "deploymentConfigs",
-		"bc":      "buildConfigs",
-		"is":      "imageStreams",
-		"istag":   "imageStreamTags",
-		"isimage": "imageStreamImages",
-		"sa":      "serviceAccounts",
-		"pv":      "persistentVolumes",
-		"pvc":     "persistentVolumeClaims",
+func expandResourceShortcut(resource unversioned.GroupVersionResource) unversioned.GroupVersionResource {
+	shortForms := map[string]unversioned.GroupVersionResource{
+		"dc":      deployapi.SchemeGroupVersion.WithResource("deploymentconfigs"),
+		"bc":      buildapi.SchemeGroupVersion.WithResource("buildconfigs"),
+		"is":      imageapi.SchemeGroupVersion.WithResource("imagestreams"),
+		"istag":   imageapi.SchemeGroupVersion.WithResource("imagestreamtags"),
+		"isimage": imageapi.SchemeGroupVersion.WithResource("imagestreamimages"),
+		"sa":      api.SchemeGroupVersion.WithResource("serviceaccounts"),
+		"pv":      api.SchemeGroupVersion.WithResource("persistentvolumes"),
+		"pvc":     api.SchemeGroupVersion.WithResource("persistentvolumeclaims"),
 	}
-	if expanded, ok := shortForms[resource]; ok {
+	if expanded, ok := shortForms[resource.Resource]; ok {
 		return expanded
 	}
 	return resource

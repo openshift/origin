@@ -46,38 +46,34 @@ func TestAppValid(t *testing.T) {
 			Group:            "0",
 			WorkingDirectory: "/tmp",
 		},
+		App{
+			Exec:             nil,
+			User:             "0",
+			Group:            "0",
+			WorkingDirectory: "/tmp",
+		},
+		App{
+			Exec:             []string{},
+			User:             "0",
+			Group:            "0",
+			WorkingDirectory: "/tmp",
+		},
+		App{
+			Exec:             []string{"app"},
+			User:             "0",
+			Group:            "0",
+			WorkingDirectory: "/tmp",
+		},
+		App{
+			Exec:             []string{"bin/app", "arg1"},
+			User:             "0",
+			Group:            "0",
+			WorkingDirectory: "/tmp",
+		},
 	}
 	for i, tt := range tests {
 		if err := tt.assertValid(); err != nil {
 			t.Errorf("#%d: err == %v, want nil", i, err)
-		}
-	}
-}
-
-func TestAppExecInvalid(t *testing.T) {
-	tests := []App{
-		App{
-			Exec: nil,
-		},
-		App{
-			Exec:  []string{},
-			User:  "0",
-			Group: "0",
-		},
-		App{
-			Exec:  []string{"app"},
-			User:  "0",
-			Group: "0",
-		},
-		App{
-			Exec:  []string{"bin/app", "arg1"},
-			User:  "0",
-			Group: "0",
-		},
-	}
-	for i, tt := range tests {
-		if err := tt.assertValid(); err == nil {
-			t.Errorf("#%d: err == nil, want non-nil", i)
 		}
 	}
 }

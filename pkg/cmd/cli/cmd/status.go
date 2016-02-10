@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -64,14 +64,14 @@ func NewCmdStatus(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 		Example: fmt.Sprintf(statusExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(f, cmd, args, out)
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 
 			if err := opts.Validate(); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			err = opts.RunStatus()
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 		},
 	}
 
@@ -85,7 +85,7 @@ func NewCmdStatus(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 // Complete completes the options for the Openshift cli status command.
 func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) > 0 {
-		return cmdutil.UsageError(cmd, "no arguments should be provided")
+		return kcmdutil.UsageError(cmd, "no arguments should be provided")
 	}
 
 	o.logsCommandName = fmt.Sprintf("%s logs -p", cmd.Parent().CommandPath())

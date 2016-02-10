@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("builds: parallel: build revision", func() {
+var _ = g.Describe("[builds] build have source revision metadata", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("..", "extended", "fixtures", "test-build-revision.json")

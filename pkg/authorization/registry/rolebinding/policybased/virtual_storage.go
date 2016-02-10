@@ -51,7 +51,7 @@ func (m *VirtualStorage) NewList() runtime.Object {
 	return &authorizationapi.RoleBindingList{}
 }
 
-func (m *VirtualStorage) List(ctx kapi.Context, options *unversioned.ListOptions) (runtime.Object, error) {
+func (m *VirtualStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
 	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, options)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (m *VirtualStorage) List(ctx kapi.Context, options *unversioned.ListOptions
 func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 	policyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
 	if err != nil && kapierrors.IsNotFound(err) {
-		return nil, kapierrors.NewNotFound("RoleBinding", name)
+		return nil, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
 	}
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 
 	binding, exists := policyBinding.RoleBindings[name]
 	if !exists {
-		return nil, kapierrors.NewNotFound("RoleBinding", name)
+		return nil, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
 	}
 	return binding, nil
 }
@@ -91,14 +91,14 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
 	owningPolicyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
 	if err != nil && kapierrors.IsNotFound(err) {
-		return nil, kapierrors.NewNotFound("RoleBinding", name)
+		return nil, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	if _, exists := owningPolicyBinding.RoleBindings[name]; !exists {
-		return nil, kapierrors.NewNotFound("RoleBinding", name)
+		return nil, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
 	}
 
 	delete(owningPolicyBinding.RoleBindings, name)
@@ -142,7 +142,7 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 
 	_, exists := policyBinding.RoleBindings[roleBinding.Name]
 	if exists {
-		return nil, kapierrors.NewAlreadyExists("RoleBinding", roleBinding.Name)
+		return nil, kapierrors.NewAlreadyExists(authorizationapi.Resource("rolebinding"), roleBinding.Name)
 	}
 
 	roleBinding.ResourceVersion = policyBinding.ResourceVersion
@@ -194,7 +194,7 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, obj runtime.Object,
 
 	previousRoleBinding, exists := policyBinding.RoleBindings[roleBinding.Name]
 	if !exists {
-		return nil, false, kapierrors.NewNotFound("RoleBinding", roleBinding.Name)
+		return nil, false, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), roleBinding.Name)
 	}
 	if previousRoleBinding.RoleRef != roleBinding.RoleRef {
 		return nil, false, errors.New("roleBinding.RoleRef may not be modified")
@@ -238,7 +238,7 @@ func (m *VirtualStorage) getReferencedRole(roleRef kapi.ObjectReference) (*autho
 
 	role, exists := policy.Roles[roleRef.Name]
 	if !exists {
-		return nil, kapierrors.NewNotFound("Role", roleRef.Name)
+		return nil, kapierrors.NewNotFound(authorizationapi.Resource("role"), roleRef.Name)
 	}
 
 	return role, nil
@@ -327,7 +327,7 @@ func (m *VirtualStorage) getPolicyBindingForPolicy(ctx kapi.Context, policyNames
 }
 
 func (m *VirtualStorage) getPolicyBindingOwningRoleBinding(ctx kapi.Context, bindingName string) (*authorizationapi.PolicyBinding, error) {
-	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, &unversioned.ListOptions{})
+	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, &kapi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -339,5 +339,5 @@ func (m *VirtualStorage) getPolicyBindingOwningRoleBinding(ctx kapi.Context, bin
 		}
 	}
 
-	return nil, kapierrors.NewNotFound("RoleBinding", bindingName)
+	return nil, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), bindingName)
 }

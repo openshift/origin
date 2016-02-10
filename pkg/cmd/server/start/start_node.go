@@ -170,7 +170,7 @@ func (o NodeOptions) RunNode() error {
 		}
 	}
 	if len(validationResults.Errors) != 0 {
-		return kerrors.NewInvalid("NodeConfig", o.ConfigFile, validationResults.Errors)
+		return kerrors.NewInvalid(configapi.Kind("NodeConfig"), o.ConfigFile, validationResults.Errors)
 	}
 
 	_, kubeClientConfig, err := configapi.GetKubeClient(nodeConfig.MasterKubeConfig)

@@ -16,7 +16,7 @@ func ValidateEtcdConnectionInfo(config api.EtcdConnectionInfo, server *api.EtcdC
 	allErrs := field.ErrorList{}
 
 	if len(config.URLs) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("urls")))
+		allErrs = append(allErrs, field.Required(fldPath.Child("urls"), ""))
 	}
 	for i, u := range config.URLs {
 		_, urlErrs := ValidateURL(u, fldPath.Child("urls").Index(i))
@@ -42,7 +42,7 @@ func ValidateEtcdConnectionInfo(config api.EtcdConnectionInfo, server *api.EtcdC
 		// Require a client cert to connect to an etcd that requires client certs
 		if len(server.ServingInfo.ClientCA) > 0 {
 			if len(config.ClientCert.CertFile) == 0 {
-				allErrs = append(allErrs, field.Required(fldPath.Child("certFile")))
+				allErrs = append(allErrs, field.Required(fldPath.Child("certFile"), ""))
 			}
 		}
 
@@ -81,7 +81,7 @@ func ValidateEtcdConfig(config *api.EtcdConfig, fldPath *field.Path) ValidationR
 	validationResults.AddErrors(ValidateHostPort(config.PeerAddress, fldPath.Child("peerAddress"))...)
 
 	if len(config.StorageDir) == 0 {
-		validationResults.AddErrors(field.Required(fldPath.Child("storageDirectory")))
+		validationResults.AddErrors(field.Required(fldPath.Child("storageDirectory"), ""))
 	}
 
 	return validationResults

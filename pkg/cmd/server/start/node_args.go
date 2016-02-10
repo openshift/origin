@@ -18,6 +18,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -141,7 +142,7 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		config.ServingInfo.ClientCA = admin.DefaultKubeletClientCAFile(args.MasterCertDir)
 	}
 
-	internal, err := applyDefaults(config, "v1")
+	internal, err := applyDefaults(config, configapiv1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}

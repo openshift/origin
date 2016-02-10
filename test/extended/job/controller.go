@@ -12,7 +12,7 @@ import (
 	kapiextensions "k8s.io/kubernetes/pkg/apis/extensions"
 )
 
-var _ = g.Describe("Job", func() {
+var _ = g.Describe("[job] openshift can execute jobs", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exeutil.FixturePath("fixtures", "job-controller.yaml")

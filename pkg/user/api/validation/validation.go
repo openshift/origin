@@ -132,13 +132,13 @@ func ValidateIdentity(identity *api.Identity) field.ErrorList {
 	allErrs := kvalidation.ValidateObjectMeta(&identity.ObjectMeta, false, ValidateIdentityName, field.NewPath("metadata"))
 
 	if len(identity.ProviderName) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("providerName")))
+		allErrs = append(allErrs, field.Required(field.NewPath("providerName"), ""))
 	} else if ok, msg := ValidateIdentityProviderName(identity.ProviderName); !ok {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("providerName"), identity.ProviderName, msg))
 	}
 
 	if len(identity.ProviderUserName) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("providerUserName")))
+		allErrs = append(allErrs, field.Required(field.NewPath("providerUserName"), ""))
 	} else if ok, msg := ValidateIdentityProviderName(identity.ProviderUserName); !ok {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("providerUserName"), identity.ProviderUserName, msg))
 	}
@@ -158,7 +158,7 @@ func ValidateIdentity(identity *api.Identity) field.ErrorList {
 		allErrs = append(allErrs, field.Invalid(userPath.Child("uid"), identity.User.UID, "may not be set if user.name is empty"))
 	}
 	if len(identity.User.Name) != 0 && len(identity.User.UID) == 0 {
-		allErrs = append(allErrs, field.Required(userPath.Child("uid")))
+		allErrs = append(allErrs, field.Required(userPath.Child("uid"), ""))
 	}
 	return allErrs
 }
@@ -182,13 +182,13 @@ func ValidateUserIdentityMapping(mapping *api.UserIdentityMapping) field.ErrorLi
 
 	identityPath := field.NewPath("identity")
 	if len(mapping.Identity.Name) == 0 {
-		allErrs = append(allErrs, field.Required(identityPath.Child("name")))
+		allErrs = append(allErrs, field.Required(identityPath.Child("name"), ""))
 	}
 	if mapping.Identity.Name != mapping.Name {
 		allErrs = append(allErrs, field.Invalid(identityPath.Child("name"), mapping.Identity.Name, "must match metadata.name"))
 	}
 	if len(mapping.User.Name) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("user", "name")))
+		allErrs = append(allErrs, field.Required(field.NewPath("user", "name"), ""))
 	}
 	return allErrs
 }

@@ -45,8 +45,8 @@ func TestDecodeUnstructured(t *testing.T) {
 	if pod, ok := pl.Items[1].(*runtime.Unstructured); !ok || pod.Object["kind"] != "Pod" || pod.Object["metadata"].(map[string]interface{})["name"] != "test" {
 		t.Errorf("object not converted: %#v", pl.Items[1])
 	}
-	if _, ok := pl.Items[2].(*runtime.Unknown); !ok {
-		t.Errorf("object should not have been converted: %#v", pl.Items[2])
+	if pod, ok := pl.Items[2].(*runtime.Unstructured); !ok || pod.Object["kind"] != "Pod" || pod.Object["metadata"].(map[string]interface{})["name"] != "test" {
+		t.Errorf("object not converted: %#v", pl.Items[2])
 	}
 }
 
@@ -70,7 +70,7 @@ func TestDecodeNumbers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	err = codec.DecodeInto(originalJSON, pod)
+	err = runtime.DecodeInto(codec, originalJSON, pod)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestDecodeNumbers(t *testing.T) {
 	}
 
 	// Round-trip with unstructured codec
-	unstructuredObj, err := runtime.UnstructuredJSONScheme.Decode(originalJSON)
+	unstructuredObj, err := runtime.Decode(runtime.UnstructuredJSONScheme, originalJSON)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestDecodeNumbers(t *testing.T) {
 
 	// Decode with structured codec again
 	pod2 := &api.Pod{}
-	err = codec.DecodeInto(roundtripJSON, pod2)
+	err = runtime.DecodeInto(codec, roundtripJSON, pod2)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

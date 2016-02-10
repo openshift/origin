@@ -14,7 +14,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("Router", func() {
+var _ = g.Describe("[networking][router] openshift routers", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("fixtures", "scoped-router.yaml")

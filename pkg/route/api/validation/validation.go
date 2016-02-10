@@ -36,14 +36,14 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 	}
 
 	if len(route.Spec.To.Name) == 0 {
-		result = append(result, field.Required(field.NewPath("serviceName")))
+		result = append(result, field.Required(field.NewPath("serviceName"), ""))
 	}
 
 	if route.Spec.Port != nil {
 		switch target := route.Spec.Port.TargetPort; {
 		case target.Type == intstr.Int && target.IntVal == 0,
 			target.Type == intstr.String && len(target.StrVal) == 0:
-			result = append(result, field.Required(field.NewPath("targetPort")))
+			result = append(result, field.Required(field.NewPath("targetPort"), ""))
 		}
 	}
 
@@ -87,7 +87,7 @@ func validateTLS(route *routeapi.Route, fldPath *field.Path) field.ErrorList {
 	// cert, key, cacert may not be specified because the route may be a wildcard
 	case routeapi.TLSTerminationReencrypt:
 		if len(tls.DestinationCACertificate) == 0 {
-			result = append(result, field.Required(fldPath.Child("destinationCACertificate")))
+			result = append(result, field.Required(fldPath.Child("destinationCACertificate"), ""))
 		}
 	//passthrough term should not specify any cert
 	case routeapi.TLSTerminationPassthrough:

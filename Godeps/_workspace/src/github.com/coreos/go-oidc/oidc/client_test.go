@@ -64,47 +64,42 @@ func TestHealthy(t *testing.T) {
 	now := time.Now().UTC()
 
 	tests := []struct {
-		c *Client
+		p ProviderConfig
 		h bool
 	}{
 		// all ok
 		{
-			c: &Client{
-				providerConfig: ProviderConfig{
-					Issuer:    "http://example.com",
-					ExpiresAt: now.Add(time.Hour),
-				},
+			p: ProviderConfig{
+				Issuer:    "http://example.com",
+				ExpiresAt: now.Add(time.Hour),
 			},
 			h: true,
 		},
 		// zero-value ProviderConfig.ExpiresAt
 		{
-			c: &Client{
-				providerConfig: ProviderConfig{
-					Issuer: "http://example.com",
-				},
+			p: ProviderConfig{
+				Issuer: "http://example.com",
 			},
 			h: true,
 		},
 		// expired ProviderConfig
 		{
-			c: &Client{
-				providerConfig: ProviderConfig{
-					Issuer:    "http://example.com",
-					ExpiresAt: now.Add(time.Hour * -1),
-				},
+			p: ProviderConfig{
+				Issuer:    "http://example.com",
+				ExpiresAt: now.Add(time.Hour * -1),
 			},
 			h: false,
 		},
 		// empty ProviderConfig
 		{
-			c: &Client{},
+			p: ProviderConfig{},
 			h: false,
 		},
 	}
 
 	for i, tt := range tests {
-		err := tt.c.Healthy()
+		c := &Client{providerConfig: newProviderConfigRepo(tt.p)}
+		err := c.Healthy()
 		want := tt.h
 		got := (err == nil)
 
@@ -347,12 +342,10 @@ func TestChooseAuthMethod(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		client := Client{
-			providerConfig: ProviderConfig{
-				TokenEndpointAuthMethodsSupported: tt.supported,
-			},
+		cfg := ProviderConfig{
+			TokenEndpointAuthMethodsSupported: tt.supported,
 		}
-		got, err := client.chooseAuthMethod()
+		got, err := chooseAuthMethod(cfg)
 		if tt.err {
 			if err == nil {
 				t.Errorf("case %d: expected non-nil err", i)

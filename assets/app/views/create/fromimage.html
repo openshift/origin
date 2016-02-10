@@ -275,13 +275,41 @@
 
                             <!-- /scaling -->
 
+                            <osc-form-section
+                              header="Resource Limits"
+                              about-title="Resource Limits"
+                              about="Resource limits control compute resource usage by a container on a node."
+                              expand="true"
+                              can-toggle="false"
+                              >
+                              <edit-request-limit
+                                  resources="container.resources"
+                                  type="cpu"
+                                  limit-ranges="limitRanges"
+                                  ng-if="!hideCPU">
+                              </edit-request-limit>
+                              <edit-request-limit
+                                  resources="container.resources"
+                                  type="memory"
+                                  limit-ranges="limitRanges">
+                              </edit-request-limit>
+                              <div ng-repeat="problem in cpuProblems" class="has-error">
+                                <span class="help-block">{{problem}}</span>
+                              </div>
+                              <div ng-repeat="problem in memoryProblems" class="has-error">
+                                <span class="help-block">{{problem}}</span>
+                              </div>
+                            </osc-form-section>
+
+                            <!-- /limits -->
+
                             <label-editor labels="labels" expand="true" can-toggle="false"></label-editor>
                           </div>
                           <div class="buttons gutter-top-bottom gutter-top-bottom-2x">
                             <!-- unable to use form.valid.  need to fix validators in labels and key values directive -->
                             <button class="btn btn-primary btn-lg"
                                 ng-click="createApp()"
-                                ng-disabled="form.$invalid || nameTaken || disableInputs"
+                                ng-disabled="form.$invalid || nameTaken || cpuProblems.length || memoryProblems.length || disableInputs"
                                 >Create</button>
                             <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}">Cancel</a>
                           </div>
