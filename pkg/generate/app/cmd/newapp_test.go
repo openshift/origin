@@ -145,7 +145,7 @@ func TestBuildTemplates(t *testing.T) {
 		appCfg := AppConfig{}
 		appCfg.Out = &bytes.Buffer{}
 		appCfg.RefBuilder = &app.ReferenceBuilder{}
-		appCfg.SetOpenShiftClient(&client.Fake{}, c.namespace)
+		appCfg.SetOpenShiftClient(&client.Fake{}, c.namespace, nil)
 		appCfg.KubeClient = ktestclient.NewSimpleFake()
 		appCfg.TemplateSearcher = fakeTemplateSearcher()
 		appCfg.AddArguments([]string{c.templateName})

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	. "github.com/MakeNowJust/heredoc/dot"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -419,22 +420,26 @@ func setAppConfigLabels(c *cobra.Command, config *newcmd.AppConfig) error {
 	return nil
 }
 
+// getDockerClient returns a client capable of communicating with the local
+// docker daemon.  If an error occurs (such as no local daemon being available),
+// it will return nil.
+func getDockerClient() (*docker.Client, error) {
+	dockerClient, _, err := dockerutil.NewHelper().GetClient()
+	if err == nil {
+		if err = dockerClient.Ping(); err != nil {
+			glog.V(4).Infof("Docker client did not respond to a ping: %v", err)
+			return nil, err
+		}
+		return dockerClient, nil
+	}
+	glog.V(2).Infof("No local Docker daemon detected: %v", err)
+	return nil, err
+}
+
 func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
-	}
-
-	dockerClient, _, err := dockerutil.NewHelper().GetClient()
-	if err == nil {
-		if err = dockerClient.Ping(); err == nil {
-			config.SetDockerClient(dockerClient)
-		} else {
-			glog.V(4).Infof("Docker client did not respond to a ping: %v", err)
-		}
-	}
-	if err != nil {
-		glog.V(2).Infof("No local Docker daemon detected: %v", err)
 	}
 
 	osclient, kclient, err := f.Clients()
@@ -442,7 +447,8 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 		return err
 	}
 	config.KubeClient = kclient
-	config.SetOpenShiftClient(osclient, namespace)
+	dockerClient, _ := getDockerClient()
+	config.SetOpenShiftClient(osclient, namespace, dockerClient)
 
 	// Only output="" should print descriptions of intermediate steps. Everything
 	// else should print only some specific output (json, yaml, go-template, ...)

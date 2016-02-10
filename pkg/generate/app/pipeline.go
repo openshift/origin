@@ -64,7 +64,7 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, resolvedMatch *Componen
 			return nil, fmt.Errorf("can't build %q: %v", from, err)
 		}
 		input = inputImage
-		if !input.AsImageStream {
+		if !input.AsImageStream && resolvedMatch.Value != "scratch" {
 			msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed."
 			glog.Warningf(msg, resolvedMatch.Value)
 		}
