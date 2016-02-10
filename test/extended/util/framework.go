@@ -274,6 +274,11 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 	}
 }
 
+// WaitForADeploymentToComplete waits for a deployment to complete.
+func WaitForADeploymentToComplete(client kclient.ReplicationControllerInterface, name string) error {
+	return WaitForADeployment(client, name, CheckDeploymentCompletedFn, CheckDeploymentFailedFn)
+}
+
 func isUsageSynced(received, expected kapi.ResourceList, expectedIsUpperLimit bool) bool {
 	resourceNames := quota.ResourceNames(expected)
 	masked := quota.Mask(received, resourceNames)

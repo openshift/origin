@@ -115,12 +115,12 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Make sure data is present on master
-			err = exutil.WaitForQueryOutput(oc, master, 10*time.Second, false, fmt.Sprintf("SELECT * FROM %s\\G;", table), "col1: val1\ncol2: val2")
+			err = exutil.WaitForQueryOutputContains(oc, master, 10*time.Second, false, fmt.Sprintf("SELECT * FROM %s\\G;", table), "col1: val1\ncol2: val2")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Make sure data was replicated to all slaves
 			for _, slave := range slaves {
-				err = exutil.WaitForQueryOutput(oc, slave, 90*time.Second, false, fmt.Sprintf("SELECT * FROM %s\\G;", table), "col1: val1\ncol2: val2")
+				err = exutil.WaitForQueryOutputContains(oc, slave, 90*time.Second, false, fmt.Sprintf("SELECT * FROM %s\\G;", table), "col1: val1\ncol2: val2")
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
