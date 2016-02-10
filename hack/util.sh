@@ -462,7 +462,7 @@ function kill_all_processes()
 
 	pids=($(jobs -pr))
 	for i in ${pids[@]-}; do
-		pgrep -P ${i} | xargs $sudo kill &> /dev/null
+		pgrep -P "${i}" | xargs $sudo kill &> /dev/null
 		$sudo kill ${i} &> /dev/null
 	done
 }
@@ -476,6 +476,10 @@ function time_now()
 # dump_container_logs writes container logs to $LOG_DIR
 function dump_container_logs()
 {
+	if ! docker version >/dev/null 2>&1; then
+		return
+	fi
+
 	mkdir -p ${LOG_DIR}
 
 	echo "[INFO] Dumping container logs to ${LOG_DIR}"
@@ -545,10 +549,13 @@ function cleanup_openshift {
 		echo "[INFO] Tearing down test"
 		kill_all_processes
 
-		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop -t 1 >/dev/null
-		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm >/dev/null
+		if docker version >/dev/null 2>&1; then
+			echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop -t 1 >/dev/null
+			if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
+				echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm >/dev/null
+			fi
 		fi
+		
 		set -u
 	fi
 
