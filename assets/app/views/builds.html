@@ -33,7 +33,7 @@
                   </tr>
                 </thead>
                 <tbody ng-if="((buildsByBuildConfig | hashSize) == 0)">
-                  <tr><td colspan="6" data-title="Name"><em>{{emptyMessage}}</em></td></tr>
+                  <tr><td colspan="6"><em>{{emptyMessage}}</em></td></tr>
                 </tbody>
                 <tbody ng-repeat="(buildConfigName, buildConfigBuilds) in buildsByBuildConfig">
                   <!-- Build config with no builds-->

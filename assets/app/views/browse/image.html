@@ -52,7 +52,7 @@
                 <annotations annotations="imageStream.metadata.annotations"></annotations>
               </div>
               <div class="table-responsive">
-                <table class="table table-bordered">
+                <table class="table table-bordered table-hover table-mobile">
                   <thead>
                     <tr>
                       <th>Tag</th>
@@ -63,8 +63,8 @@
                     </tr>
                   </thead>
                   <tbody ng-if="(tagsByName | hashSize) == 0">
-                    <tr><td colspan="5" data-title="Tag"><em>{{emptyMessage}}</em></td></tr>
-                  </tbody>                  
+                    <tr><td colspan="5"><em>{{emptyMessage}}</em></td></tr>
+                  </tbody>
                   <tbody>
                     <tr ng-repeat-start="tag in tagsByName | orderBy : 'name'">
                       <td>{{tag.name}}</td>
