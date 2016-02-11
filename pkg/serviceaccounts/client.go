@@ -37,8 +37,8 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 		// Get the secrets
 		// TODO: JTL: create one directly once we have that ability
 		for _, secretRef := range serviceAccount.Secrets {
-			secret, err := s.Client.Secrets(namespace).Get(secretRef.Name)
-			if err != nil {
+			secret, err2 := s.Client.Secrets(namespace).Get(secretRef.Name)
+			if err2 != nil {
 				// Tolerate fetch errors on a particular secret
 				continue
 			}
