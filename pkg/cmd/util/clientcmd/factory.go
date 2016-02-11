@@ -41,7 +41,6 @@ import (
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
 	deployscaler "github.com/openshift/origin/pkg/deploy/scaler"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
-	imageapi "github.com/openshift/origin/pkg/image/api"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
@@ -492,16 +491,39 @@ func (f *Factory) OriginSwaggerSchema(client *kclient.RESTClient, version unvers
 	return &schema, nil
 }
 
-// ShortcutExpander is a RESTMapper that can be used for OpenShift resources.
+// ShortcutExpander is a RESTMapper that can be used for OpenShift resources.   It expands the resource first, then invokes the wrapped
 type ShortcutExpander struct {
-	meta.RESTMapper
+	RESTMapper meta.RESTMapper
 }
 
-// KindFor implements meta.RESTMapper. It expands the resource first, then invokes the wrapped
-// mapper.
+var _ meta.RESTMapper = &ShortcutExpander{}
+
 func (e ShortcutExpander) KindFor(resource unversioned.GroupVersionResource) (unversioned.GroupVersionKind, error) {
-	resource = expandResourceShortcut(resource)
-	return e.RESTMapper.KindFor(resource)
+	return e.RESTMapper.KindFor(expandResourceShortcut(resource))
+}
+
+func (e ShortcutExpander) KindsFor(resource unversioned.GroupVersionResource) ([]unversioned.GroupVersionKind, error) {
+	return e.RESTMapper.KindsFor(expandResourceShortcut(resource))
+}
+
+func (e ShortcutExpander) ResourcesFor(resource unversioned.GroupVersionResource) ([]unversioned.GroupVersionResource, error) {
+	return e.RESTMapper.ResourcesFor(expandResourceShortcut(resource))
+}
+
+func (e ShortcutExpander) ResourceFor(resource unversioned.GroupVersionResource) (unversioned.GroupVersionResource, error) {
+	return e.RESTMapper.ResourceFor(expandResourceShortcut(resource))
+}
+
+func (e ShortcutExpander) ResourceIsValid(resource unversioned.GroupVersionResource) bool {
+	return e.RESTMapper.ResourceIsValid(expandResourceShortcut(resource))
+}
+
+func (e ShortcutExpander) ResourceSingularizer(resource string) (string, error) {
+	return e.RESTMapper.ResourceSingularizer(expandResourceShortcut(unversioned.GroupVersionResource{Resource: resource}).Resource)
+}
+
+func (e ShortcutExpander) RESTMapping(gk unversioned.GroupKind, versions ...string) (*meta.RESTMapping, error) {
+	return e.RESTMapper.RESTMapping(gk, versions...)
 }
 
 // AliasesForResource returns whether a resource has an alias or not
@@ -513,35 +535,28 @@ func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {
 	if res, ok := aliases[resource]; ok {
 		return res, true
 	}
-	return nil, false
+	return e.RESTMapper.AliasesForResource(expandResourceShortcut(unversioned.GroupVersionResource{Resource: resource}).Resource)
 }
 
-// ResourceIsValid takes a string (kind) and checks if it's a valid resource.
-// It expands the resource first, then invokes the wrapped mapper.
-func (e ShortcutExpander) ResourceIsValid(resource unversioned.GroupVersionResource) bool {
-	return e.RESTMapper.ResourceIsValid(expandResourceShortcut(resource))
-}
-
-func (e ShortcutExpander) ResourceSingularizer(resource string) (string, error) {
-	return e.RESTMapper.ResourceSingularizer(expandResourceShortcut(unversioned.GroupVersionResource{Resource: resource}).Resource)
+// shortForms is the list of short names to their expanded names
+var shortForms = map[string]string{
+	"dc":      "deploymentconfigs",
+	"bc":      "buildconfigs",
+	"is":      "imagestreams",
+	"istag":   "imagestreamtags",
+	"isimage": "imagestreamimages",
+	"sa":      "serviceaccounts",
+	"pv":      "persistentvolumes",
+	"pvc":     "persistentvolumeclaims",
 }
 
 // expandResourceShortcut will return the expanded version of resource
 // (something that a pkg/api/meta.RESTMapper can understand), if it is
 // indeed a shortcut. Otherwise, will return resource unmodified.
 func expandResourceShortcut(resource unversioned.GroupVersionResource) unversioned.GroupVersionResource {
-	shortForms := map[string]unversioned.GroupVersionResource{
-		"dc":      deployapi.SchemeGroupVersion.WithResource("deploymentconfigs"),
-		"bc":      buildapi.SchemeGroupVersion.WithResource("buildconfigs"),
-		"is":      imageapi.SchemeGroupVersion.WithResource("imagestreams"),
-		"istag":   imageapi.SchemeGroupVersion.WithResource("imagestreamtags"),
-		"isimage": imageapi.SchemeGroupVersion.WithResource("imagestreamimages"),
-		"sa":      api.SchemeGroupVersion.WithResource("serviceaccounts"),
-		"pv":      api.SchemeGroupVersion.WithResource("persistentvolumes"),
-		"pvc":     api.SchemeGroupVersion.WithResource("persistentvolumeclaims"),
-	}
 	if expanded, ok := shortForms[resource.Resource]; ok {
-		return expanded
+		resource.Resource = expanded
+		return resource
 	}
 	return resource
 }
