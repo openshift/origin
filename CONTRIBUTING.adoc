@@ -322,6 +322,12 @@ NETWORKING_E2E_FOCUS and NETWORKING_E2E_SKIP environment variables.
 These variables set the '-focus' and '-skip' arguments supplied to the
 https://github.com/onsi/ginkgo[ginkgo] test runner.
 
+To debug a test run with https://github.com/derekparker/delve[delve],
+make sure the dlv executable is installed in your path and run the
+tests with NETWORKING_DEBUG set to true:
+
+        $ NETWORKING_DEBUG=true test/extended/networking.sh
+
 ==== Running networking tests against any cluster
 
 It's possible to run networking tests against any cluster.  To target
