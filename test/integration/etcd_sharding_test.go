@@ -4,18 +4,21 @@ package integration
 
 import (
 	"fmt"
-	"strings"
 	"testing"
-	"time"
 
-	"github.com/coreos/go-etcd/etcd"
+	"github.com/coreos/etcd/client"
+
+	"golang.org/x/net/context"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/runtime"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
+	originetcd "github.com/openshift/origin/pkg/cmd/server/etcd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -24,7 +27,7 @@ func TestEtcdSharding(t *testing.T) {
 	// Start a separate etcd server
 	kubeEtcdServer := etcdtesting.NewEtcdTestClientServer(t)
 	defer kubeEtcdServer.Terminate(t)
-	kubeEtcdClient := etcd.NewClient(kubeEtcdServer.ClientURLs.StringSlice())
+	kubeEtcdClient := kubeEtcdServer.Client
 
 	// Generate openshift configuration
 	openShiftMasterConfig, err := testserver.DefaultMasterOptions()
@@ -55,9 +58,14 @@ func TestEtcdSharding(t *testing.T) {
 	}
 
 	// Create an etcd client to talk to the openshift etcd
-	osEtcdClient := etcd.NewClient(openShiftMasterConfig.EtcdClientInfo.URLs)
-	if osEtcdClient == nil {
+	osEtcdClient, err := originetcd.MakeNewEtcdClient(openShiftMasterConfig.EtcdClientInfo)
+	if err != nil {
 		t.Fatalf("failed to connect to openshift etcd: %v", err)
+	}
+
+	kubeClient, err := testutil.GetClusterAdminKubeClient(adminConfigFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// Create a project
@@ -70,63 +78,70 @@ func TestEtcdSharding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
-	// Login as a user
-	loginOptions := newLoginOptions(adminConfig.Host, "shard", "shard", true)
-	if err := loginOptions.GatherInfo(); err != nil {
-		t.Fatalf("error trying to determine server info: %v", err)
-	}
 	if projectResult.Status.Phase != kapi.NamespaceActive {
 		t.Fatalf("project status is: %s", projectResult.Status.Phase)
 	}
 
-	// Create a pod
-	pod := &kapi.Pod{}
-	pod.Name = "shard-pod"
-	pod.Namespace = kapi.NamespaceDefault
-
-	container := kapi.Container{}
-	container.Name = "shard-container"
-	container.Image = "openshift/hello-openshift"
-	pod.Spec.Containers = []kapi.Container{container}
-
-	kubeClient, err := testutil.GetClusterAdminKubeClient(adminConfigFile)
+	// Login as a user
+	_, _, _, err = testutil.GetClientForUser(*adminConfig, "shard")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	_, _, _, err = testutil.GetClientForServiceAccount(kubeClient, *adminConfig, "default", "sa")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	err = wait.Poll(100*time.Millisecond, 5*time.Second, func() (bool, error) {
-		if _, err := kubeClient.Pods(kapi.NamespaceDefault).Create(pod); err != nil {
-			if strings.Contains(err.Error(), "no API token found for service account") {
-				return true, nil
-			}
+	// Create a template
+	template := &templateapi.Template{
+		Parameters: []templateapi.Parameter{
+			{
+				Name:  "NAME",
+				Value: "shard-template",
+			},
+		},
+	}
 
-			t.Log(err)
-			return false, nil
-		}
+	templateObjects := []runtime.Object{
+		&v1.Service{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "shard-tester",
+				Namespace: "default",
+			},
+			Spec: v1.ServiceSpec{
+				ClusterIP:       "1.2.3.4",
+				SessionAffinity: "sharding",
+			},
+		},
+	}
+	templateapi.AddObjectsToTemplate(template, templateObjects, v1.SchemeGroupVersion)
 
-		return true, nil
-	})
+	obj, err := osClient.TemplateConfigs("default").Create(template)
 	if err != nil {
-		t.Fatalf("error submitting a pod: %v", err)
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(obj.Objects) != 1 {
+		t.Fatalf("unexpected object: %#v", obj)
 	}
 
 	// Verify data is placed in the correct etcd instances
 	kubeStoragePrefix := openShiftMasterConfig.EtcdStorageConfig.KubernetesStoragePrefix
 	osStoragePrefix := openShiftMasterConfig.EtcdStorageConfig.OpenShiftStoragePrefix
-	_, err = kubeEtcdClient.Get(fmt.Sprintf("/%s", kubeStoragePrefix), false, false)
+	kubeKeys := client.NewKeysAPI(kubeEtcdClient)
+	osKeys := client.NewKeysAPI(osEtcdClient)
+	_, err = kubeKeys.Get(context.TODO(), fmt.Sprintf("/%s", kubeStoragePrefix), nil)
 	if err != nil {
 		t.Fatalf("failed to find kuberenetes prefix '%s' in kubernetes etcd instance: %v", kubeStoragePrefix, err)
 	}
-	_, err = kubeEtcdClient.Get(fmt.Sprintf("/%s", osStoragePrefix), false, false)
+	_, err = kubeKeys.Get(context.TODO(), fmt.Sprintf("/%s", osStoragePrefix), nil)
 	if err == nil {
 		t.Fatalf("found openshift prefix '%s' in kubernetes etcd instance: %v", osStoragePrefix, err)
 	}
-	_, err = osEtcdClient.Get(fmt.Sprintf("/%s", osStoragePrefix), false, false)
+	_, err = osKeys.Get(context.TODO(), fmt.Sprintf("/%s", osStoragePrefix), nil)
 	if err != nil {
 		t.Fatalf("failed to find openshift prefix '%s' in openshift etcd instance: %v", osStoragePrefix, err)
 	}
-	_, err = osEtcdClient.Get(fmt.Sprintf("/%s", kubeStoragePrefix), false, false)
+	_, err = osKeys.Get(context.TODO(), fmt.Sprintf("/%s", kubeStoragePrefix), nil)
 	if err == nil {
 		t.Fatalf("found kuberenetes prefix '%s' in openshift etcd instance: %v", kubeStoragePrefix, err)
 	}

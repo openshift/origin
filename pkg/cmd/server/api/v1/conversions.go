@@ -51,7 +51,8 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				obj.OAuthConfig.MasterCA = &s
 			}
 			if obj.KubernetesMasterConfig != nil && obj.KubernetesMasterConfig.EtcdClientInfo == nil {
-				obj.KubernetesMasterConfig.EtcdClientInfo = &obj.EtcdClientInfo
+				etcdClientInfo := obj.EtcdClientInfo
+				obj.KubernetesMasterConfig.EtcdClientInfo = &etcdClientInfo
 			}
 		},
 		func(obj *KubernetesMasterConfig) {

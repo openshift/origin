@@ -158,15 +158,15 @@ kubernetesMasterConfig:
         location: ""
     pluginOrderOverride:
     - plugin
-    etcdClientInfo:
-      ca: ""
-      certFile: ""
-      keyFile: ""
-      urls: null
   apiLevels: null
   apiServerArguments: null
   controllerArguments: null
   disabledAPIGroupVersions: null
+  etcdClientInfo:
+    ca: ""
+    certFile: ""
+    keyFile: ""
+    urls: null
   masterCount: 0
   masterIP: ""
   podEvictionTimeout: ""
@@ -402,6 +402,7 @@ func TestMasterConfig(t *testing.T) {
 				},
 				PluginOrderOverride: []string{"plugin"}, // explicitly set this field because it's omitempty
 			},
+			EtcdClientInfo: &internal.EtcdConnectionInfo{},
 		},
 		EtcdConfig: &internal.EtcdConfig{},
 		OAuthConfig: &internal.OAuthConfig{
