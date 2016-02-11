@@ -27,7 +27,13 @@
                   </tr>
                 </thead>
                 <tbody ng-if="(events | hashSize) === 0">
-                  <tr><td colspan="5"><em>{{emptyMessage}}</em></td></tr>
+                  <tr>
+                    <td><em>{{emptyMessage}}</em></td>
+                    <td class="hidden-xs">&nbsp;</td>
+                    <td class="hidden-xs hidden-sm hidden-md">&nbsp;</td>
+                    <td class="hidden-xs hidden-sm hidden-md">&nbsp;</td>
+                    <td class="hidden-xs">&nbsp;</td>
+                  </tr>
                 </tbody>
                 <tbody ng-repeat="event in events | toArray | orderBy:'-lastTimestamp'">
                   <tr>
