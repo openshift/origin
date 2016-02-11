@@ -29,36 +29,34 @@ This command launches a deployment as described by a deployment configuration.`
 )
 
 type config struct {
-	Config         *clientcmd.Config
 	DeploymentName string
 	Namespace      string
 }
 
 // NewCommandDeployer provides a CLI handler for deploy.
 func NewCommandDeployer(name string) *cobra.Command {
-	cfg := &config{
-		Config: clientcmd.NewConfig(),
-	}
+	cfg := &config{}
 
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
 		Short: "Run the deployer",
 		Long:  deployerLong,
 		Run: func(c *cobra.Command, args []string) {
-			_, kClient, err := cfg.Config.Clients()
-			if err != nil {
-				glog.Fatal(err)
-			}
-
 			if len(cfg.DeploymentName) == 0 {
 				glog.Fatal("deployment is required")
 			}
-
 			if len(cfg.Namespace) == 0 {
 				glog.Fatal("namespace is required")
 			}
-
-			deployer := NewDeployer(kClient)
+			kcfg, err := kclient.InClusterConfig()
+			if err != nil {
+				glog.Fatal(err)
+			}
+			kc, err := kclient.New(kcfg)
+			if err != nil {
+				glog.Fatal(err)
+			}
+			deployer := NewDeployer(kc)
 			if err = deployer.Deploy(cfg.Namespace, cfg.DeploymentName); err != nil {
 				glog.Fatal(err)
 			}
@@ -68,7 +66,6 @@ func NewCommandDeployer(name string) *cobra.Command {
 	cmd.AddCommand(version.NewVersionCommand(name, false))
 
 	flag := cmd.Flags()
-	cfg.Config.Bind(flag)
 	flag.StringVar(&cfg.DeploymentName, "deployment", util.Env("OPENSHIFT_DEPLOYMENT_NAME", ""), "The deployment name to start")
 	flag.StringVar(&cfg.Namespace, "namespace", util.Env("OPENSHIFT_DEPLOYMENT_NAMESPACE", ""), "The deployment namespace")
 
