@@ -344,6 +344,11 @@ runcmd:
              "DeviceName" => "/dev/sda1",
              "Ebs.VolumeSize" => vagrant_openshift_config['volume_size'] || 25,
              "Ebs.VolumeType" => "gp2"
+          },
+          {
+             "DeviceName" => "/dev/sdb",
+             "Ebs.VolumeSize" => vagrant_openshift_config['docker_volume_size'] || 20,
+             "Ebs.VolumeType" => "gp2"
           }
         ]
       end
