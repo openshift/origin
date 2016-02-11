@@ -45,9 +45,9 @@ func (h *Helper) GetDockerAuth(imageName, authType string) (docker.AuthConfigura
 	glog.V(3).Infof("Locating docker auth for image %s and type %s", imageName, authType)
 	var dockercfgPath string
 	if pathForAuthType := os.Getenv(authType); len(pathForAuthType) > 0 {
-		dockercfgPath = getDockercfgFile(pathForAuthType)
+		dockercfgPath = GetDockercfgFile(pathForAuthType)
 	} else {
-		dockercfgPath = getDockercfgFile("")
+		dockercfgPath = GetDockercfgFile("")
 	}
 	if len(dockercfgPath) == 0 {
 		glog.V(3).Infof("Could not locate a docker config file")
@@ -84,8 +84,8 @@ func (h *Helper) GetDockerAuth(imageName, authType string) (docker.AuthConfigura
 	return authConfs[0], true
 }
 
-// getDockercfgFile returns the path to the dockercfg file
-func getDockercfgFile(path string) string {
+// GetDockercfgFile returns the path to the dockercfg file
+func GetDockercfgFile(path string) string {
 	var cfgPath string
 	if path != "" {
 		cfgPath = path
