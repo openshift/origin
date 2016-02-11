@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
 	"github.com/openshift/origin/pkg/cmd/server/api"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -251,7 +252,7 @@ func decodeSyncConfigFromFile(configFile string) (*api.LDAPSyncConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not parse file %s: %v", configFile, err)
 	}
-	if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), jsonConfig, &config); err != nil {
+	if err := runtime.DecodeInto(configapilatest.Codec, jsonConfig, &config); err != nil {
 		return nil, fmt.Errorf("couldg not decode file into config: %v", err)
 	}
 	return &config, nil
