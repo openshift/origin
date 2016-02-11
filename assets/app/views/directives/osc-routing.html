@@ -102,13 +102,13 @@
           id="routeTargetPort"
           ng-if="route.portOptions.length"
           ng-model="route.targetPort"
-          ng-options="(portSpec.containerPort + '/' + portSpec.protocol) for portSpec in route.portOptions"
+          ng-options="portOption.label for portOption in route.portOptions"
           class="form-control"
           aria-describedby="target-port-help">
       </select>
       <div>
         <span id="target-port-help" class="help-block">
-          Container port that the service should direct traffic to.
+          Target port for traffic.
         </span>
       </div>
     </div>
