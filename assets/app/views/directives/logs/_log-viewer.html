@@ -51,8 +51,8 @@
       id="affixedFollow"
       class="log-scroll log-scroll-top">
       <a ng-if="loading" href="" ng-click="toggleAutoScroll()">
-        <span ng-if="!autoScroll">Follow</span>
-        <span ng-if="autoScroll">Stop following</span>
+        <span ng-if="!autoScrollActive">Follow</span>
+        <span ng-if="autoScrollActive">Stop following</span>
       </a>
       <a ng-if="!loading" href="" ng-click="onScrollBottom()">
         Go to end
