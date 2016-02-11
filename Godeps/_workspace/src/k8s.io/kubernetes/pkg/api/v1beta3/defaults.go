@@ -231,4 +231,10 @@ func defaultSecurityContextConstraints(scc *SecurityContextConstraints) {
 	if len(scc.SupplementalGroups.Type) == 0 {
 		scc.SupplementalGroups.Type = SupplementalGroupsStrategyRunAsAny
 	}
+
+	// EmptyDir volumes were implicitly allowed originally, always default this to true.
+	if scc.AllowEmptyDirVolumePlugin == nil {
+		scc.AllowEmptyDirVolumePlugin = new(bool)
+		*scc.AllowEmptyDirVolumePlugin = true
+	}
 }
