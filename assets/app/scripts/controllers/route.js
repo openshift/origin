@@ -35,6 +35,7 @@ angular.module('openshiftConsole')
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
         $scope.project = project;
+
         DataService.get("routes", $routeParams.route, context).then(
           // success
           function(route) {
@@ -61,6 +62,11 @@ angular.module('openshiftConsole')
               details: "Reason: " + $filter('getErrorDetails')(e)
             };
           });
+
+        // Watch services to display route warnings.
+        watches.push(DataService.watch("services", context, function(services) {
+          $scope.services = services.by("metadata.name");
+        }));
 
         $scope.$on('$destroy', function(){
           DataService.unwatchAll(watches);

@@ -34,7 +34,7 @@
                   </ul>
                 </div>
                 <span ng-if="pod | isTroubledPod">
-                  <pod-warnings pod="pod" style="vertical-align: middle;"></pod-warnings>
+                  <pod-warnings pod="pod"></pod-warnings>
                 </span>
                 <small class="meta">created <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp></small>
               </h1>
