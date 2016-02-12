@@ -31,16 +31,17 @@ func newDefaultTemplatePlugin(router routerInterface, includeUDP bool) *Template
 }
 
 type TemplatePluginConfig struct {
-	WorkingDir         string
-	TemplatePath       string
-	ReloadScriptPath   string
-	ReloadInterval     time.Duration
-	DefaultCertificate string
-	StatsPort          int
-	StatsUsername      string
-	StatsPassword      string
-	IncludeUDP         bool
-	PeerService        *ktypes.NamespacedName
+	WorkingDir             string
+	TemplatePath           string
+	ReloadScriptPath       string
+	ReloadInterval         time.Duration
+	DefaultCertificate     string
+	DefaultCertificatePath string
+	StatsPort              int
+	StatsUsername          string
+	StatsPassword          string
+	IncludeUDP             bool
+	PeerService            *ktypes.NamespacedName
 }
 
 // routerInterface controls the interaction of the plugin with the underlying router implementation
