@@ -1661,6 +1661,14 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - services
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - routes
     verbs:
     - list
