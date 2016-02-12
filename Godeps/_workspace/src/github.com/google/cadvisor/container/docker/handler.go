@@ -17,6 +17,7 @@ package docker
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math"
 	"path"
 	"strings"
@@ -35,14 +36,10 @@ import (
 )
 
 const (
-	// Path to aufs dir where all the files exist.
-	// aufs/layers is ignored here since it does not hold a lot of data.
-	// aufs/mnt contains the mount points used to compose the rootfs. Hence it is also ignored.
-	pathToAufsDir = "aufs/diff"
+	// The read write layers exist here.
+	aufsRWLayer = "diff"
 	// Path to the directory where docker stores log files if the json logging driver is enabled.
 	pathToContainersDir = "containers"
-	// Path to the overlayfs storage driver directory.
-	pathToOverlayDir = "overlay"
 )
 
 type dockerContainerHandler struct {
@@ -59,15 +56,16 @@ type dockerContainerHandler struct {
 	// Manager of this container's cgroups.
 	cgroupManager cgroups.Manager
 
-	storageDriver storageDriver
-	fsInfo        fs.FsInfo
-	storageDirs   []string
+	storageDriver    storageDriver
+	fsInfo           fs.FsInfo
+	rootfsStorageDir string
 
 	// Time at which this container was created.
 	creationTime time.Time
 
-	// Metadata labels associated with the container.
+	// Metadata associated with the container.
 	labels map[string]string
+	envs   map[string]string
 
 	// The container PID used to switch namespaces as required
 	pid int
@@ -85,14 +83,34 @@ type dockerContainerHandler struct {
 	fsHandler fsHandler
 }
 
+func getRwLayerID(containerID, storageDir string, sd storageDriver, dockerVersion []int) (string, error) {
+	const (
+		// Docker version >=1.10.0 have a randomized ID for the root fs of a container.
+		randomizedRWLayerMinorVersion = 10
+		rwLayerIDFile                 = "mount-id"
+	)
+	if (dockerVersion[0] <= 1) && (dockerVersion[1] < randomizedRWLayerMinorVersion) {
+		return containerID, nil
+	}
+
+	bytes, err := ioutil.ReadFile(path.Join(storageDir, "image", string(sd), "layerdb", "mounts", containerID, rwLayerIDFile))
+	if err != nil {
+		return "", fmt.Errorf("failed to identify the read-write layer ID for container %q. - %v", containerID, err)
+	}
+	return string(bytes), err
+}
+
 func newDockerContainerHandler(
 	client *docker.Client,
 	name string,
 	machineInfoFactory info.MachineInfoFactory,
 	fsInfo fs.FsInfo,
 	storageDriver storageDriver,
+	storageDir string,
 	cgroupSubsystems *containerlibcontainer.CgroupSubsystems,
 	inHostNamespace bool,
+	metadataEnvs []string,
+	dockerVersion []int,
 ) (container.ContainerHandler, error) {
 	// Create the cgroup paths.
 	cgroupPaths := make(map[string]string, len(cgroupSubsystems.MountPoints))
@@ -116,14 +134,18 @@ func newDockerContainerHandler(
 	id := ContainerNameToDockerId(name)
 
 	// Add the Containers dir where the log files are stored.
-	storageDirs := []string{path.Join(*dockerRootDir, pathToContainersDir, id)}
+	otherStorageDir := path.Join(storageDir, pathToContainersDir, id)
 
+	rwLayerID, err := getRwLayerID(id, storageDir, storageDriver, dockerVersion)
+	if err != nil {
+		return nil, err
+	}
+	var rootfsStorageDir string
 	switch storageDriver {
 	case aufsStorageDriver:
-		// Add writable layer for aufs.
-		storageDirs = append(storageDirs, path.Join(*dockerRootDir, pathToAufsDir, id))
+		rootfsStorageDir = path.Join(storageDir, string(aufsStorageDriver), aufsRWLayer, rwLayerID)
 	case overlayStorageDriver:
-		storageDirs = append(storageDirs, path.Join(*dockerRootDir, pathToOverlayDir, id))
+		rootfsStorageDir = path.Join(storageDir, string(overlayStorageDriver), rwLayerID)
 	}
 
 	handler := &dockerContainerHandler{
@@ -136,12 +158,10 @@ func newDockerContainerHandler(
 		storageDriver:      storageDriver,
 		fsInfo:             fsInfo,
 		rootFs:             rootFs,
-		storageDirs:        storageDirs,
-		fsHandler:          newFsHandler(time.Minute, storageDirs, fsInfo),
+		rootfsStorageDir:   rootfsStorageDir,
+		fsHandler:          newFsHandler(time.Minute, rootfsStorageDir, otherStorageDir, fsInfo),
+		envs:               make(map[string]string),
 	}
-
-	// Start the filesystem handler.
-	handler.fsHandler.start()
 
 	// We assume that if Inspect fails then the container is not known to docker.
 	ctnr, err := client.InspectContainer(id)
@@ -157,7 +177,22 @@ func newDockerContainerHandler(
 	handler.image = ctnr.Config.Image
 	handler.networkMode = ctnr.HostConfig.NetworkMode
 
+	// split env vars to get metadata map.
+	for _, exposedEnv := range metadataEnvs {
+		for _, envVar := range ctnr.Config.Env {
+			splits := strings.SplitN(envVar, "=", 2)
+			if splits[0] == exposedEnv {
+				handler.envs[strings.ToLower(exposedEnv)] = splits[1]
+			}
+		}
+	}
+
 	return handler, nil
+}
+
+func (self *dockerContainerHandler) Start() {
+	// Start the filesystem handler.
+	self.fsHandler.start()
 }
 
 func (self *dockerContainerHandler) Cleanup() {
@@ -166,9 +201,11 @@ func (self *dockerContainerHandler) Cleanup() {
 
 func (self *dockerContainerHandler) ContainerReference() (info.ContainerReference, error) {
 	return info.ContainerReference{
+		Id:        self.id,
 		Name:      self.name,
 		Aliases:   self.aliases,
 		Namespace: DockerNamespace,
+		Labels:    self.labels,
 	}, nil
 }
 
@@ -193,36 +230,31 @@ func libcontainerConfigToContainerSpec(config *libcontainerconfigs.Config, mi *i
 	spec.HasMemory = true
 	spec.Memory.Limit = math.MaxUint64
 	spec.Memory.SwapLimit = math.MaxUint64
-	if config.Cgroups.Memory > 0 {
-		spec.Memory.Limit = uint64(config.Cgroups.Memory)
-	}
-	if config.Cgroups.MemorySwap > 0 {
-		spec.Memory.SwapLimit = uint64(config.Cgroups.MemorySwap)
-	}
 
-	// Get CPU info
-	spec.HasCpu = true
-	spec.Cpu.Limit = 1024
-	if config.Cgroups.CpuShares != 0 {
-		spec.Cpu.Limit = uint64(config.Cgroups.CpuShares)
+	if config.Cgroups.Resources != nil {
+		if config.Cgroups.Resources.Memory > 0 {
+			spec.Memory.Limit = uint64(config.Cgroups.Resources.Memory)
+		}
+		if config.Cgroups.Resources.MemorySwap > 0 {
+			spec.Memory.SwapLimit = uint64(config.Cgroups.Resources.MemorySwap)
+		}
+
+		// Get CPU info
+		spec.HasCpu = true
+		spec.Cpu.Limit = 1024
+		if config.Cgroups.Resources.CpuShares != 0 {
+			spec.Cpu.Limit = uint64(config.Cgroups.Resources.CpuShares)
+		}
+		spec.Cpu.Mask = utils.FixCpuMask(config.Cgroups.Resources.CpusetCpus, mi.NumCores)
 	}
-	spec.Cpu.Mask = utils.FixCpuMask(config.Cgroups.CpusetCpus, mi.NumCores)
 
 	spec.HasDiskIo = true
 
 	return spec
 }
 
-var (
-	hasNetworkModes = map[string]bool{
-		"host":    true,
-		"bridge":  true,
-		"default": true,
-	}
-)
-
 func hasNet(networkMode string) bool {
-	return hasNetworkModes[networkMode]
+	return !strings.HasPrefix(networkMode, "container:")
 }
 
 func (self *dockerContainerHandler) GetSpec() (info.ContainerSpec, error) {
@@ -239,13 +271,14 @@ func (self *dockerContainerHandler) GetSpec() (info.ContainerSpec, error) {
 	spec.CreationTime = self.creationTime
 
 	switch self.storageDriver {
-	case aufsStorageDriver, overlayStorageDriver:
+	case aufsStorageDriver, overlayStorageDriver, zfsStorageDriver:
 		spec.HasFilesystem = true
 	default:
 		spec.HasFilesystem = false
 	}
 
 	spec.Labels = self.labels
+	spec.Envs = self.envs
 	spec.Image = self.image
 	spec.HasNetwork = hasNet(self.networkMode)
 
@@ -254,14 +287,12 @@ func (self *dockerContainerHandler) GetSpec() (info.ContainerSpec, error) {
 
 func (self *dockerContainerHandler) getFsStats(stats *info.ContainerStats) error {
 	switch self.storageDriver {
-	case aufsStorageDriver, overlayStorageDriver:
+	case aufsStorageDriver, overlayStorageDriver, zfsStorageDriver:
 	default:
 		return nil
 	}
 
-	// As of now we assume that all the storage dirs are on the same device.
-	// The first storage dir will be that of the image layers.
-	deviceInfo, err := self.fsInfo.GetDirFsDevice(self.storageDirs[0])
+	deviceInfo, err := self.fsInfo.GetDirFsDevice(self.rootfsStorageDir)
 	if err != nil {
 		return err
 	}
@@ -281,7 +312,7 @@ func (self *dockerContainerHandler) getFsStats(stats *info.ContainerStats) error
 
 	fsStat := info.FsStats{Device: deviceInfo.Device, Limit: limit}
 
-	fsStat.Usage = self.fsHandler.usage()
+	fsStat.BaseUsage, fsStat.Usage = self.fsHandler.usage()
 	stats.Filesystem = append(stats.Filesystem, fsStat)
 
 	return nil

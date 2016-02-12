@@ -61,7 +61,7 @@ func (s *securityContextConstraints) List(opts api.ListOptions) (*api.SecurityCo
 
 	err := s.client.Get().
 		Resource("securityContextConstraints").
-		VersionedParams(&opts, api.Scheme).
+		VersionedParams(&opts, api.ParameterCodec).
 		Do().
 		Into(result)
 
@@ -85,7 +85,7 @@ func (s *securityContextConstraints) Watch(opts api.ListOptions) (watch.Interfac
 	return s.client.Get().
 		Prefix("watch").
 		Resource("securityContextConstraints").
-		VersionedParams(&opts, api.Scheme).
+		VersionedParams(&opts, api.ParameterCodec).
 		Watch()
 }
 

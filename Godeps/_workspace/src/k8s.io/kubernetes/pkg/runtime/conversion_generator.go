@@ -27,7 +27,6 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -42,12 +41,7 @@ type ConversionGenerator interface {
 	AssumePrivateConversions()
 }
 
-type functionName struct {
-	name        string
-	packageName string
-}
-
-func NewConversionGenerator(scheme *conversion.Scheme, targetPkg string) ConversionGenerator {
+func NewConversionGenerator(scheme *Scheme, targetPkg string) ConversionGenerator {
 	g := &conversionGenerator{
 		scheme: scheme,
 
@@ -70,8 +64,13 @@ func NewConversionGenerator(scheme *conversion.Scheme, targetPkg string) Convers
 
 var complexTypes []reflect.Kind = []reflect.Kind{reflect.Map, reflect.Ptr, reflect.Slice, reflect.Interface, reflect.Struct}
 
+type functionName struct {
+	name        string
+	packageName string
+}
+
 type conversionGenerator struct {
-	scheme *conversion.Scheme
+	scheme *Scheme
 
 	nameFormat          string
 	generatedNamePrefix string
@@ -110,7 +109,7 @@ func (g *conversionGenerator) GenerateConversionsForType(gv unversioned.GroupVer
 	internalVersion := gv
 	internalVersion.Version = APIVersionInternal
 
-	internalObj, err := g.scheme.NewObject(internalVersion.WithKind(kind))
+	internalObj, err := g.scheme.New(internalVersion.WithKind(kind))
 	if err != nil {
 		return fmt.Errorf("cannot create an object of type %v in internal version", kind)
 	}

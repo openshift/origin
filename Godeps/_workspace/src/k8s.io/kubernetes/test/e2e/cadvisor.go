@@ -27,22 +27,16 @@ import (
 )
 
 const (
-	timeout       = 1 * time.Minute
 	maxRetries    = 6
 	sleepDuration = 10 * time.Second
 )
 
 var _ = Describe("Cadvisor", func() {
-	var c *client.Client
 
-	BeforeEach(func() {
-		var err error
-		c, err = loadClient()
-		expectNoError(err)
-	})
+	f := NewFramework("cadvisor")
 
 	It("should be healthy on every node.", func() {
-		CheckCadvisorHealthOnAllNodes(c, 5*time.Minute)
+		CheckCadvisorHealthOnAllNodes(f.Client, 5*time.Minute)
 	})
 })
 
