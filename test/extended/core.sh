@@ -91,7 +91,7 @@ fi
 function join { local IFS="$1"; shift; echo "$*"; }
 
 # Not run by any suite
-COMMON_EXCLUSION=(
+excluded_tests=(
   "\[Skipped\]"
   "\[Disruptive\]"
   "\[Slow\]"
@@ -103,8 +103,12 @@ COMMON_EXCLUSION=(
   Kibana                  # Not installed
   DNS                     # Can't depend on kube-dns
   kube-ui                 # Not installed by default
-  "^Deployment "          # Not enabled yet
+  "^Deployment"           # Not enabled yet
+  "paused deployment should be ignored by the controller" # Not enabled yet
+  "deployment should create new pods" # Not enabled yet
   Ingress                 # Not enabled yet
+  "should proxy to cadvisor" # we don't expose cAdvisor port directly for security reasons
+  "Cinder"                # requires an OpenStack cluster
 
   # Need fixing
   "should provide Internet connection for containers" # Needs recursive DNS
@@ -115,22 +119,25 @@ COMMON_EXCLUSION=(
   "authentication: OpenLDAP" # needs separate setup and bucketing for openldap bootstrapping
   "ConfigMap"                # needs permissions https://github.com/openshift/origin/issues/7096
   "should support exec through an HTTP proxy" # doesn't work because it requires a) static binary b) linux c) kubectl, https://github.com/openshift/origin/issues/7097
-  "should support port-forward" # needs to call setgid, https://github.com/openshift/origin/issues/7098
+  "NFS"                      # no permissions https://github.com/openshift/origin/pull/6884
 
   # Needs triage to determine why it is failing
-  #"hostPath"             # Looks like an SELinux violation?
   "Addon update"          # TRIAGE
   SSH                     # TRIAGE
   "\[Feature:Upgrade\]"   # TRIAGE
+
+  # Inordinately slow tests
+  "should create and stop a working application"
 )
-common_exclude=$(join '|' "${COMMON_EXCLUSION[@]}")
-PARALLEL_EXCLUSION=(
-  "${COMMON_EXCLUSION[@]}"
+common_exclude=$(join '|' "${excluded_tests[@]}")
+parallel_test_exclusions=(
+  "${excluded_tests[@]}"
 
   "Service endpoints latency" # requires low latency
 )
-parallel_exclude=$(join '|' "${PARALLEL_EXCLUSION[@]}")
+parallel_exclude=$(join '|' "${parallel_test_exclusions[@]}")
 
+# print the tests we are skipping  
 echo "[INFO] The following tests will not be run:"
 TEST_OUTPUT_QUIET=true ${extendedtest} "--ginkgo.skip=${common_exclude}" --ginkgo.dryRun | grep skip | sort
 echo
@@ -140,5 +147,6 @@ nodes="${PARALLEL_NODES:-5}"
 echo "[INFO] Running parallel tests N=${nodes}"
 ${ginkgo} -v "-skip=${parallel_exclude}|\[Serial\]" -p -nodes "${nodes}" ${extendedtest} -- -ginkgo.v -test.timeout 6h
 
+# run tests in serial
 echo "[INFO] Running serial tests"
 ${ginkgo} -v "-skip=${common_exclude}" -focus="\[Serial\]" ${extendedtest} -- -ginkgo.v -test.timeout 2h
