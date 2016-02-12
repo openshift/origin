@@ -51,6 +51,17 @@ func (c *FakeRoutes) Update(inObj *routeapi.Route) (*routeapi.Route, error) {
 	return obj.(*routeapi.Route), err
 }
 
+func (c *FakeRoutes) UpdateStatus(inObj *routeapi.Route) (*routeapi.Route, error) {
+	action := ktestclient.NewUpdateAction("routes", c.Namespace, inObj)
+	action.Subresource = "status"
+	obj, err := c.Fake.Invokes(action, inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*routeapi.Route), err
+}
+
 func (c *FakeRoutes) Delete(name string) error {
 	_, err := c.Fake.Invokes(ktestclient.NewDeleteAction("routes", c.Namespace, name), &routeapi.Route{})
 	return err

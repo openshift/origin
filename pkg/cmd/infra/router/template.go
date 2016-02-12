@@ -45,6 +45,7 @@ type TemplateRouterOptions struct {
 }
 
 type TemplateRouter struct {
+	RouterName         string
 	WorkingDir         string
 	TemplateFile       string
 	ReloadScript       string
@@ -54,6 +55,7 @@ type TemplateRouter struct {
 }
 
 func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
+	flag.StringVar(&o.RouterName, "name", util.Env("ROUTER_SERVICE_NAME", "public"), "The name the router will identify itself with in the route status")
 	flag.StringVar(&o.WorkingDir, "working-dir", "/var/lib/containers/router", "The working directory for the router plugin")
 	flag.StringVar(&o.DefaultCertificate, "default-certificate", util.Env("DEFAULT_CERTIFICATE", ""), "A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format")
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
@@ -139,6 +141,9 @@ func (o *TemplateRouterOptions) Complete() error {
 }
 
 func (o *TemplateRouterOptions) Validate() error {
+	if len(o.RouterName) == 0 {
+		return errors.New("router must have a name to identify itself in route status")
+	}
 	if len(o.TemplateFile) == 0 {
 		return errors.New("template file must be specified")
 	}
@@ -169,12 +174,13 @@ func (o *TemplateRouterOptions) Run() error {
 		return err
 	}
 
-	plugin := controller.NewUniqueHost(templatePlugin, o.RouteSelectionFunc())
-
 	oc, kc, err := o.Config.Clients()
 	if err != nil {
 		return err
 	}
+
+	statusPlugin := controller.NewStatusAdmitter(templatePlugin, oc, o.RouterName)
+	plugin := controller.NewUniqueHost(statusPlugin, o.RouteSelectionFunc(), statusPlugin)
 
 	factory := o.RouterSelection.NewFactory(oc, kc)
 	controller := factory.Create(plugin)

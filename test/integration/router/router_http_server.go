@@ -126,6 +126,11 @@ func (s *TestHttpService) handleRouteList(w http.ResponseWriter, r *http.Request
 	fmt.Fprint(w, "{}")
 }
 
+// handleRouteCalls handles calls to /osapi/v1/routes/* and returns whatever the client sent
+func (s *TestHttpService) handleRouteCalls(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "{}")
+}
+
 // handleEndpointWatch handles calls to /api/v1beta1/watch/endpoints and uses the endpoint channel to simulate watch events
 func (s *TestHttpService) handleEndpointWatch(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, <-s.EndpointChannel)
@@ -182,6 +187,7 @@ func (s *TestHttpService) startMaster() error {
 		masterServer.HandleFunc(fmt.Sprintf("/api/%s/endpoints", version), s.handleEndpointList)
 		masterServer.HandleFunc(fmt.Sprintf("/api/%s/watch/endpoints", version), s.handleEndpointWatch)
 		masterServer.HandleFunc(fmt.Sprintf("/oapi/%s/routes", version), s.handleRouteList)
+		masterServer.HandleFunc(fmt.Sprintf("/oapi/%s/namespaces/", version), s.handleRouteCalls)
 		masterServer.HandleFunc(fmt.Sprintf("/oapi/%s/watch/routes", version), s.handleRouteWatch)
 	}
 

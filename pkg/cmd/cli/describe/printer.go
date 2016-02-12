@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/labels"
@@ -34,7 +35,7 @@ var (
 	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
-	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS", "INSECURE POLICY", "TLS TERMINATION"}
+	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "TERMINATION", "LABELS"}
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
 	deploymentConfigColumns = []string{"NAME", "REVISION", "REPLICAS", "TRIGGERED BY"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
@@ -425,6 +426,16 @@ func printProjectList(projects *projectapi.ProjectList, w io.Writer, opts kctl.P
 	return nil
 }
 
+func ingressConditionStatus(ingress *routeapi.RouteIngress, t routeapi.RouteIngressConditionType) (kapi.ConditionStatus, routeapi.RouteIngressCondition) {
+	for _, condition := range ingress.Conditions {
+		if t != condition.Type {
+			continue
+		}
+		return condition.Status, condition
+	}
+	return kapi.ConditionUnknown, routeapi.RouteIngressCondition{}
+}
+
 func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) error {
 	tlsTerm := ""
 	insecurePolicy := ""
@@ -437,8 +448,57 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) erro
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-		route.Name, route.Spec.Host, route.Spec.Path, route.Spec.To.Name, labels.Set(route.Labels), insecurePolicy, tlsTerm)
+	var (
+		matchedHost bool
+		reason      string
+		host        = route.Spec.Host
+
+		admitted, errors = 0, 0
+	)
+	for _, ingress := range route.Status.Ingress {
+		switch status, condition := ingressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+		case kapi.ConditionTrue:
+			admitted++
+			if !matchedHost {
+				matchedHost = ingress.Host == route.Spec.Host
+				host = ingress.Host
+			}
+		case kapi.ConditionFalse:
+			reason = condition.Reason
+			errors++
+		}
+	}
+	switch {
+	case route.Status.Ingress == nil:
+		// this is the legacy case, we should continue to show the host when talking to servers
+		// that have not set status ingress, since we can't distinguish this condition from there
+		// being no routers.
+	case admitted == 0 && errors > 0:
+		host = reason
+	case errors > 0:
+		host = fmt.Sprintf("%s ... %d rejected", host, errors)
+	case admitted == 0:
+		host = "Pending"
+	case admitted > 1:
+		host = fmt.Sprintf("%s ... %d more", host, admitted-1)
+	}
+	var policy string
+	switch {
+	case len(tlsTerm) != 0 && len(insecurePolicy) != 0:
+		policy = fmt.Sprintf("%s/%s", tlsTerm, insecurePolicy)
+	case len(tlsTerm) != 0:
+		policy = tlsTerm
+	case len(insecurePolicy) != 0:
+		policy = fmt.Sprintf("default/%s", insecurePolicy)
+	default:
+		policy = ""
+	}
+	svc := route.Spec.To.Name
+	if route.Spec.Port != nil {
+		svc = fmt.Sprintf("%s:%s", svc, route.Spec.Port.TargetPort.String())
+	}
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
+		route.Name, host, route.Spec.Path, svc, policy, labels.Set(route.Labels))
 	return err
 }
 
