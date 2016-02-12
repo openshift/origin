@@ -5,15 +5,18 @@ package integration
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/coreos/etcd/client"
 
 	"golang.org/x/net/context"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	originetcd "github.com/openshift/origin/pkg/cmd/server/etcd"
@@ -69,9 +72,10 @@ func TestEtcdSharding(t *testing.T) {
 	}
 
 	// Create a project
+	projName := "shard-project"
 	project := &projectapi.Project{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "shard-project",
+			Name: projName,
 		},
 	}
 	projectResult, err := osClient.Projects().Create(project)
@@ -144,5 +148,25 @@ func TestEtcdSharding(t *testing.T) {
 	_, err = osKeys.Get(context.TODO(), fmt.Sprintf("/%s", kubeStoragePrefix), nil)
 	if err == nil {
 		t.Fatalf("found kuberenetes prefix '%s' in openshift etcd instance: %v", kubeStoragePrefix, err)
+	}
+
+	// Delete the project
+	if err = osClient.Projects().Delete(projName); err != nil {
+		t.Fatalf("expected error deleting project: %v", err)
+	}
+	err = wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
+		_, err := kubeClient.Namespaces().Get(projName)
+		if errors.IsNotFound(err) {
+			return true, nil
+		}
+		return false, err
+	})
+	if err != nil {
+		t.Fatalf("unexpected error while waiting for project to delete: %v", err)
+	}
+
+	// Verify the project doesn't exist
+	if err = osClient.Projects().Delete(projName); err == nil {
+		t.Fatalf("project still exists after delete")
 	}
 }
