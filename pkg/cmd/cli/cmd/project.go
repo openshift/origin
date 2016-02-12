@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
@@ -31,6 +32,8 @@ type ProjectOptions struct {
 	ProjectName  string
 	ProjectOnly  bool
 	DisplayShort bool
+
+	ShellVariable bool
 
 	// SkipAccessValidation means that if a specific name is requested, don't bother checking for access to the project
 	SkipAccessValidation bool
@@ -80,6 +83,7 @@ func NewCmdProject(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 		},
 	}
 	cmd.Flags().BoolVarP(&options.DisplayShort, "short", "q", false, "If true, display only the project name")
+	cmd.Flags().BoolVarP(&options.ShellVariable, "shell", "s", false, "If true, display as shell variable")
 	return cmd
 }
 
@@ -131,6 +135,13 @@ func (o ProjectOptions) RunProject() error {
 		if len(currentProject) > 0 {
 			if o.DisplayShort {
 				fmt.Fprintln(out, currentProject)
+				return nil
+			}
+
+			if o.ShellVariable {
+				fmt.Fprintln(out, "OC_PROJECT="+currentProject)
+				fmt.Fprintln(out, "OC_CLUSTER="+currentContext.Cluster)
+				fmt.Fprintln(out, "OC_USER="+strings.Split(currentContext.AuthInfo, "/")[0])
 				return nil
 			}
 
