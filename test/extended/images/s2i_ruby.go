@@ -12,7 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[images][ruby] openshift ruby image", func() {
+var _ = g.Describe("[images][ruby][Slow] hot deploy for openshift ruby image", func() {
 	defer g.GinkgoRecover()
 	var (
 		railsTemplate = "https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json"

@@ -12,7 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[images][python] openshift python image", func() {
+var _ = g.Describe("[images][python][Slow] hot deploy for openshift python image", func() {
 	defer g.GinkgoRecover()
 
 	var (
