@@ -194,6 +194,19 @@ type ImageStreamTag struct {
 	unversioned.TypeMeta
 	kapi.ObjectMeta
 
+	// Tag is the spec tag associated with this image stream tag, and it may be null
+	// if only pushes have occured to this image stream.
+	Tag *TagReference
+
+	// Generation is the current generation of the tagged image - if tag is provided
+	// and this value is not equal to the tag generation, a user has requested an
+	// import that has not completed, or Conditions will be filled out indicating any
+	// error.
+	Generation int64
+
+	// Conditions is an array of conditions that apply to the image stream tag.
+	Conditions []TagEventCondition
+
 	// The Image associated with the ImageStream and tag.
 	Image Image
 }

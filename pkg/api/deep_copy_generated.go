@@ -1729,6 +1729,16 @@ func deepCopy_api_LifecycleHook(in deployapi.LifecycleHook, out *deployapi.Lifec
 	} else {
 		out.ExecNewPod = nil
 	}
+	if in.TagImages != nil {
+		out.TagImages = make([]deployapi.TagImageHook, len(in.TagImages))
+		for i := range in.TagImages {
+			if err := deepCopy_api_TagImageHook(in.TagImages[i], &out.TagImages[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.TagImages = nil
+	}
 	return nil
 }
 
@@ -1816,6 +1826,16 @@ func deepCopy_api_RollingDeploymentStrategyParams(in deployapi.RollingDeployment
 		}
 	} else {
 		out.Post = nil
+	}
+	return nil
+}
+
+func deepCopy_api_TagImageHook(in deployapi.TagImageHook, out *deployapi.TagImageHook, c *conversion.Cloner) error {
+	out.ContainerName = in.ContainerName
+	if newVal, err := c.DeepCopy(in.To); err != nil {
+		return err
+	} else {
+		out.To = newVal.(pkgapi.ObjectReference)
 	}
 	return nil
 }
@@ -2259,6 +2279,25 @@ func deepCopy_api_ImageStreamTag(in imageapi.ImageStreamTag, out *imageapi.Image
 		return err
 	} else {
 		out.ObjectMeta = newVal.(pkgapi.ObjectMeta)
+	}
+	if in.Tag != nil {
+		out.Tag = new(imageapi.TagReference)
+		if err := deepCopy_api_TagReference(*in.Tag, out.Tag, c); err != nil {
+			return err
+		}
+	} else {
+		out.Tag = nil
+	}
+	out.Generation = in.Generation
+	if in.Conditions != nil {
+		out.Conditions = make([]imageapi.TagEventCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := deepCopy_api_TagEventCondition(in.Conditions[i], &out.Conditions[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
 	}
 	if err := deepCopy_api_Image(in.Image, &out.Image, c); err != nil {
 		return err
@@ -3291,6 +3330,7 @@ func init() {
 		deepCopy_api_LifecycleHook,
 		deepCopy_api_RecreateDeploymentStrategyParams,
 		deepCopy_api_RollingDeploymentStrategyParams,
+		deepCopy_api_TagImageHook,
 		deepCopy_api_DockerConfig,
 		deepCopy_api_DockerImage,
 		deepCopy_api_Image,

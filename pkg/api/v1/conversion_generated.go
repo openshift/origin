@@ -2985,6 +2985,16 @@ func autoConvert_api_LifecycleHook_To_v1_LifecycleHook(in *deployapi.LifecycleHo
 	} else {
 		out.ExecNewPod = nil
 	}
+	if in.TagImages != nil {
+		out.TagImages = make([]deployapiv1.TagImageHook, len(in.TagImages))
+		for i := range in.TagImages {
+			if err := Convert_api_TagImageHook_To_v1_TagImageHook(&in.TagImages[i], &out.TagImages[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.TagImages = nil
+	}
 	return nil
 }
 
@@ -3089,6 +3099,21 @@ func autoConvert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStra
 		out.Post = nil
 	}
 	return nil
+}
+
+func autoConvert_api_TagImageHook_To_v1_TagImageHook(in *deployapi.TagImageHook, out *deployapiv1.TagImageHook, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*deployapi.TagImageHook))(in)
+	}
+	out.ContainerName = in.ContainerName
+	if err := Convert_api_ObjectReference_To_v1_ObjectReference(&in.To, &out.To, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_TagImageHook_To_v1_TagImageHook(in *deployapi.TagImageHook, out *deployapiv1.TagImageHook, s conversion.Scope) error {
+	return autoConvert_api_TagImageHook_To_v1_TagImageHook(in, out, s)
 }
 
 func autoConvert_v1_CustomDeploymentStrategyParams_To_api_CustomDeploymentStrategyParams(in *deployapiv1.CustomDeploymentStrategyParams, out *deployapi.CustomDeploymentStrategyParams, s conversion.Scope) error {
@@ -3527,6 +3552,16 @@ func autoConvert_v1_LifecycleHook_To_api_LifecycleHook(in *deployapiv1.Lifecycle
 	} else {
 		out.ExecNewPod = nil
 	}
+	if in.TagImages != nil {
+		out.TagImages = make([]deployapi.TagImageHook, len(in.TagImages))
+		for i := range in.TagImages {
+			if err := Convert_v1_TagImageHook_To_api_TagImageHook(&in.TagImages[i], &out.TagImages[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.TagImages = nil
+	}
 	return nil
 }
 
@@ -3627,6 +3662,21 @@ func autoConvert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStra
 		out.Post = nil
 	}
 	return nil
+}
+
+func autoConvert_v1_TagImageHook_To_api_TagImageHook(in *deployapiv1.TagImageHook, out *deployapi.TagImageHook, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*deployapiv1.TagImageHook))(in)
+	}
+	out.ContainerName = in.ContainerName
+	if err := Convert_v1_ObjectReference_To_api_ObjectReference(&in.To, &out.To, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_TagImageHook_To_api_TagImageHook(in *deployapiv1.TagImageHook, out *deployapi.TagImageHook, s conversion.Scope) error {
+	return autoConvert_v1_TagImageHook_To_api_TagImageHook(in, out, s)
 }
 
 func autoConvert_api_Image_To_v1_Image(in *imageapi.Image, out *imageapiv1.Image, s conversion.Scope) error {
@@ -3924,6 +3974,26 @@ func autoConvert_api_ImageStreamTag_To_v1_ImageStreamTag(in *imageapi.ImageStrea
 	if err := Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
+	// unable to generate simple pointer conversion for api.TagReference -> v1.TagReference
+	if in.Tag != nil {
+		out.Tag = new(imageapiv1.TagReference)
+		if err := Convert_api_TagReference_To_v1_TagReference(in.Tag, out.Tag, s); err != nil {
+			return err
+		}
+	} else {
+		out.Tag = nil
+	}
+	out.Generation = in.Generation
+	if in.Conditions != nil {
+		out.Conditions = make([]imageapiv1.TagEventCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := Convert_api_TagEventCondition_To_v1_TagEventCondition(&in.Conditions[i], &out.Conditions[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
 		return err
 	}
@@ -4008,6 +4078,25 @@ func Convert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in *imageap
 	return autoConvert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in, out, s)
 }
 
+func autoConvert_api_TagEventCondition_To_v1_TagEventCondition(in *imageapi.TagEventCondition, out *imageapiv1.TagEventCondition, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.TagEventCondition))(in)
+	}
+	out.Type = imageapiv1.TagEventConditionType(in.Type)
+	out.Status = apiv1.ConditionStatus(in.Status)
+	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
+		return err
+	}
+	out.Reason = in.Reason
+	out.Message = in.Message
+	out.Generation = in.Generation
+	return nil
+}
+
+func Convert_api_TagEventCondition_To_v1_TagEventCondition(in *imageapi.TagEventCondition, out *imageapiv1.TagEventCondition, s conversion.Scope) error {
+	return autoConvert_api_TagEventCondition_To_v1_TagEventCondition(in, out, s)
+}
+
 func autoConvert_api_TagImportPolicy_To_v1_TagImportPolicy(in *imageapi.TagImportPolicy, out *imageapiv1.TagImportPolicy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*imageapi.TagImportPolicy))(in)
@@ -4019,6 +4108,45 @@ func autoConvert_api_TagImportPolicy_To_v1_TagImportPolicy(in *imageapi.TagImpor
 
 func Convert_api_TagImportPolicy_To_v1_TagImportPolicy(in *imageapi.TagImportPolicy, out *imageapiv1.TagImportPolicy, s conversion.Scope) error {
 	return autoConvert_api_TagImportPolicy_To_v1_TagImportPolicy(in, out, s)
+}
+
+func autoConvert_api_TagReference_To_v1_TagReference(in *imageapi.TagReference, out *imageapiv1.TagReference, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.TagReference))(in)
+	}
+	out.Name = in.Name
+	if in.Annotations != nil {
+		out.Annotations = make(map[string]string)
+		for key, val := range in.Annotations {
+			out.Annotations[key] = val
+		}
+	} else {
+		out.Annotations = nil
+	}
+	// unable to generate simple pointer conversion for api.ObjectReference -> v1.ObjectReference
+	if in.From != nil {
+		out.From = new(apiv1.ObjectReference)
+		if err := Convert_api_ObjectReference_To_v1_ObjectReference(in.From, out.From, s); err != nil {
+			return err
+		}
+	} else {
+		out.From = nil
+	}
+	out.Reference = in.Reference
+	if in.Generation != nil {
+		out.Generation = new(int64)
+		*out.Generation = *in.Generation
+	} else {
+		out.Generation = nil
+	}
+	if err := Convert_api_TagImportPolicy_To_v1_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_TagReference_To_v1_TagReference(in *imageapi.TagReference, out *imageapiv1.TagReference, s conversion.Scope) error {
+	return autoConvert_api_TagReference_To_v1_TagReference(in, out, s)
 }
 
 func autoConvert_v1_Image_To_api_Image(in *imageapiv1.Image, out *imageapi.Image, s conversion.Scope) error {
@@ -4315,6 +4443,26 @@ func autoConvert_v1_ImageStreamTag_To_api_ImageStreamTag(in *imageapiv1.ImageStr
 	if err := Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
+	// unable to generate simple pointer conversion for v1.TagReference -> api.TagReference
+	if in.Tag != nil {
+		out.Tag = new(imageapi.TagReference)
+		if err := Convert_v1_TagReference_To_api_TagReference(in.Tag, out.Tag, s); err != nil {
+			return err
+		}
+	} else {
+		out.Tag = nil
+	}
+	out.Generation = in.Generation
+	if in.Conditions != nil {
+		out.Conditions = make([]imageapi.TagEventCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := Convert_v1_TagEventCondition_To_api_TagEventCondition(&in.Conditions[i], &out.Conditions[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
 		return err
 	}
@@ -4399,6 +4547,25 @@ func Convert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus(in *imageap
 	return autoConvert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus(in, out, s)
 }
 
+func autoConvert_v1_TagEventCondition_To_api_TagEventCondition(in *imageapiv1.TagEventCondition, out *imageapi.TagEventCondition, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.TagEventCondition))(in)
+	}
+	out.Type = imageapi.TagEventConditionType(in.Type)
+	out.Status = api.ConditionStatus(in.Status)
+	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
+		return err
+	}
+	out.Reason = in.Reason
+	out.Message = in.Message
+	out.Generation = in.Generation
+	return nil
+}
+
+func Convert_v1_TagEventCondition_To_api_TagEventCondition(in *imageapiv1.TagEventCondition, out *imageapi.TagEventCondition, s conversion.Scope) error {
+	return autoConvert_v1_TagEventCondition_To_api_TagEventCondition(in, out, s)
+}
+
 func autoConvert_v1_TagImportPolicy_To_api_TagImportPolicy(in *imageapiv1.TagImportPolicy, out *imageapi.TagImportPolicy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*imageapiv1.TagImportPolicy))(in)
@@ -4410,6 +4577,45 @@ func autoConvert_v1_TagImportPolicy_To_api_TagImportPolicy(in *imageapiv1.TagImp
 
 func Convert_v1_TagImportPolicy_To_api_TagImportPolicy(in *imageapiv1.TagImportPolicy, out *imageapi.TagImportPolicy, s conversion.Scope) error {
 	return autoConvert_v1_TagImportPolicy_To_api_TagImportPolicy(in, out, s)
+}
+
+func autoConvert_v1_TagReference_To_api_TagReference(in *imageapiv1.TagReference, out *imageapi.TagReference, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.TagReference))(in)
+	}
+	out.Name = in.Name
+	if in.Annotations != nil {
+		out.Annotations = make(map[string]string)
+		for key, val := range in.Annotations {
+			out.Annotations[key] = val
+		}
+	} else {
+		out.Annotations = nil
+	}
+	// unable to generate simple pointer conversion for v1.ObjectReference -> api.ObjectReference
+	if in.From != nil {
+		out.From = new(api.ObjectReference)
+		if err := Convert_v1_ObjectReference_To_api_ObjectReference(in.From, out.From, s); err != nil {
+			return err
+		}
+	} else {
+		out.From = nil
+	}
+	out.Reference = in.Reference
+	if in.Generation != nil {
+		out.Generation = new(int64)
+		*out.Generation = *in.Generation
+	} else {
+		out.Generation = nil
+	}
+	if err := Convert_v1_TagImportPolicy_To_api_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_TagReference_To_api_TagReference(in *imageapiv1.TagReference, out *imageapi.TagReference, s conversion.Scope) error {
+	return autoConvert_v1_TagReference_To_api_TagReference(in, out, s)
 }
 
 func autoConvert_api_OAuthAccessToken_To_v1_OAuthAccessToken(in *oauthapi.OAuthAccessToken, out *oauthapiv1.OAuthAccessToken, s conversion.Scope) error {
@@ -8570,7 +8776,10 @@ func init() {
 		autoConvert_api_SubjectAccessReview_To_v1_SubjectAccessReview,
 		autoConvert_api_TCPSocketAction_To_v1_TCPSocketAction,
 		autoConvert_api_TLSConfig_To_v1_TLSConfig,
+		autoConvert_api_TagEventCondition_To_v1_TagEventCondition,
+		autoConvert_api_TagImageHook_To_v1_TagImageHook,
 		autoConvert_api_TagImportPolicy_To_v1_TagImportPolicy,
+		autoConvert_api_TagReference_To_v1_TagReference,
 		autoConvert_api_TemplateList_To_v1_TemplateList,
 		autoConvert_api_Template_To_v1_Template,
 		autoConvert_api_UserIdentityMapping_To_v1_UserIdentityMapping,
@@ -8741,7 +8950,10 @@ func init() {
 		autoConvert_v1_SubjectAccessReview_To_api_SubjectAccessReview,
 		autoConvert_v1_TCPSocketAction_To_api_TCPSocketAction,
 		autoConvert_v1_TLSConfig_To_api_TLSConfig,
+		autoConvert_v1_TagEventCondition_To_api_TagEventCondition,
+		autoConvert_v1_TagImageHook_To_api_TagImageHook,
 		autoConvert_v1_TagImportPolicy_To_api_TagImportPolicy,
+		autoConvert_v1_TagReference_To_api_TagReference,
 		autoConvert_v1_TemplateList_To_api_TemplateList,
 		autoConvert_v1_Template_To_api_Template,
 		autoConvert_v1_UserIdentityMapping_To_api_UserIdentityMapping,

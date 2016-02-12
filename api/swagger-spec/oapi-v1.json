@@ -18877,6 +18877,13 @@
      "execNewPod": {
       "$ref": "v1.ExecNewPodHook",
       "description": "options for an ExecNewPodHook"
+     },
+     "tagImages": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.TagImageHook"
+      },
+      "description": "a list of image stream tags that should be updated to the latest value on this deployment if the deployment succeeds"
      }
     }
    },
@@ -18911,6 +18918,23 @@
        "type": "string"
       },
       "description": "the names of volumes from the pod template which should be included in the hook pod; an empty list means no volumes will be copied, and names not found in the pod spec will be ignored"
+     }
+    }
+   },
+   "v1.TagImageHook": {
+    "id": "v1.TagImageHook",
+    "required": [
+     "containerName",
+     "to"
+    ],
+    "properties": {
+     "containerName": {
+      "type": "string",
+      "description": "the name of a container in this deployment config whose image will be used as the tag destination; if only one container is defined it will default to that value"
+     },
+     "to": {
+      "$ref": "v1.ObjectReference",
+      "description": "the name of an ImageStreamTag in the current namespace that will be updated with the image value"
      }
     }
    },
@@ -20590,6 +20614,7 @@
     "id": "v1.TagReference",
     "required": [
      "name",
+     "annotations",
      "generation"
     ],
     "properties": {
@@ -20909,6 +20934,8 @@
    "v1.ImageStreamTag": {
     "id": "v1.ImageStreamTag",
     "required": [
+     "tag",
+     "generation",
      "image"
     ],
     "properties": {
@@ -20922,6 +20949,22 @@
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
+     },
+     "tag": {
+      "$ref": "v1.TagReference",
+      "description": "the spec tag (optional) that is associated with this ImageStream"
+     },
+     "generation": {
+      "type": "integer",
+      "format": "int64",
+      "description": "the generation of the tagged image, if not equal to the tag generation or the latest condition generation, there is an image import pending"
+     },
+     "conditions": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.TagEventCondition"
+      },
+      "description": "the set of conditions that apply to this tag"
      },
      "image": {
       "$ref": "v1.Image",

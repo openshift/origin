@@ -5,8 +5,11 @@ import (
 	"regexp"
 
 	"github.com/docker/distribution/reference"
+	"github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -89,20 +92,8 @@ func ValidateImageStream(stream *api.ImageStream) field.ErrorList {
 		}
 	}
 	for tag, tagRef := range stream.Spec.Tags {
-		if tagRef.From != nil {
-			switch tagRef.From.Kind {
-			case "DockerImage":
-				if ref, err := api.ParseDockerImageReference(tagRef.From.Name); err == nil && tagRef.ImportPolicy.Scheduled && len(ref.ID) > 0 {
-					result = append(result, field.Invalid(field.NewPath("spec", "tags").Key(tag).Child("from", "name"), tagRef.From.Name, "only tags can be scheduled for import"))
-				}
-			case "ImageStreamImage", "ImageStreamTag":
-				if tagRef.ImportPolicy.Scheduled {
-					result = append(result, field.Invalid(field.NewPath("spec", "tags").Key(tag).Child("importPolicy", "scheduled"), tagRef.ImportPolicy.Scheduled, "only tags pointing to Docker repositories may be scheduled for background import"))
-				}
-			default:
-				result = append(result, field.Invalid(field.NewPath("spec", "tags").Key(tag).Child("from", "kind"), tagRef.From.Kind, "valid values are 'DockerImage', 'ImageStreamImage', 'ImageStreamTag'"))
-			}
-		}
+		path := field.NewPath("spec", "tags").Key(tag)
+		result = append(result, ValidateImageStreamTagReference(tagRef, path)...)
 	}
 	for tag, history := range stream.Status.Tags {
 		for i, tagEvent := range history.Items {
@@ -113,6 +104,29 @@ func ValidateImageStream(stream *api.ImageStream) field.ErrorList {
 	}
 
 	return result
+}
+
+// ValidateImageStreamTagReference ensures that a given tag reference is valid.
+func ValidateImageStreamTagReference(tagRef api.TagReference, fldPath *field.Path) field.ErrorList {
+	var errs field.ErrorList
+	if tagRef.From != nil {
+		if len(tagRef.From.Name) == 0 {
+			errs = append(errs, field.Required(fldPath.Child("from", "name"), "name is required"))
+		}
+		switch tagRef.From.Kind {
+		case "DockerImage":
+			if ref, err := api.ParseDockerImageReference(tagRef.From.Name); err == nil && tagRef.ImportPolicy.Scheduled && len(ref.ID) > 0 {
+				errs = append(errs, field.Invalid(fldPath.Child("from", "name"), tagRef.From.Name, "only tags can be scheduled for import"))
+			}
+		case "ImageStreamImage", "ImageStreamTag":
+			if tagRef.ImportPolicy.Scheduled {
+				errs = append(errs, field.Invalid(fldPath.Child("importPolicy", "scheduled"), tagRef.ImportPolicy.Scheduled, "only tags pointing to Docker repositories may be scheduled for background import"))
+			}
+		default:
+			errs = append(errs, field.Required(fldPath.Child("from", "kind"), "valid values are 'DockerImage', 'ImageStreamImage', 'ImageStreamTag'"))
+		}
+	}
+	return errs
 }
 
 func ValidateImageStreamUpdate(newStream, oldStream *api.ImageStream) field.ErrorList {
@@ -157,21 +171,38 @@ func ValidateImageStreamMapping(mapping *api.ImageStreamMapping) field.ErrorList
 	return result
 }
 
-// ValidateImageStreamTag is essentially a no-op.  We don't allow direct creation of istags
+// ValidateImageStreamTag validates a mutation of an image stream tag, which can happen on PUT
 func ValidateImageStreamTag(ist *api.ImageStreamTag) field.ErrorList {
-	return validation.ValidateObjectMeta(&ist.ObjectMeta, true, oapi.MinimalNameRequirements, field.NewPath("metadata"))
+	result := validation.ValidateObjectMeta(&ist.ObjectMeta, true, oapi.MinimalNameRequirements, field.NewPath("metadata"))
+	if ist.Tag != nil {
+		result = append(result, ValidateImageStreamTagReference(*ist.Tag, field.NewPath("tag"))...)
+		if ist.Tag.Annotations != nil && !kapi.Semantic.DeepEqual(ist.Tag.Annotations, ist.ObjectMeta.Annotations) {
+			result = append(result, field.Invalid(field.NewPath("tag", "annotations"), "<map>", "tag annotations must not be provided or must be equal to the object meta annotations"))
+		}
+	}
+
+	return result
 }
 
 // ValidateImageStreamTagUpdate ensures that only the annotations of the IST have changed
 func ValidateImageStreamTagUpdate(newIST, oldIST *api.ImageStreamTag) field.ErrorList {
 	result := validation.ValidateObjectMetaUpdate(&newIST.ObjectMeta, &oldIST.ObjectMeta, field.NewPath("metadata"))
 
-	// ensure that only annotations have changed
+	if newIST.Tag != nil {
+		result = append(result, ValidateImageStreamTagReference(*newIST.Tag, field.NewPath("tag"))...)
+		if newIST.Tag.Annotations != nil && !kapi.Semantic.DeepEqual(newIST.Tag.Annotations, newIST.ObjectMeta.Annotations) {
+			result = append(result, field.Invalid(field.NewPath("tag", "annotations"), "<map>", "tag annotations must not be provided or must be equal to the object meta annotations"))
+		}
+	}
+
+	// ensure that only tag and annotations have changed
 	newISTCopy := *newIST
 	oldISTCopy := *oldIST
-	newISTCopy.Annotations = nil
-	oldISTCopy.Annotations = nil
+	newISTCopy.Annotations, oldISTCopy.Annotations = nil, nil
+	newISTCopy.Tag, oldISTCopy.Tag = nil, nil
+	newISTCopy.Generation = oldISTCopy.Generation
 	if !kapi.Semantic.Equalities.DeepEqual(&newISTCopy, &oldISTCopy) {
+		glog.Infof("objects differ: ", util.ObjectDiff(oldISTCopy, newISTCopy))
 		result = append(result, field.Invalid(field.NewPath("metadata"), "", "may not update fields other than metadata.annotations"))
 	}
 

@@ -637,6 +637,12 @@ items:
     - pods/log
     verbs:
     - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreamtags
+    verbs:
+    - update
 - apiVersion: v1
   kind: ClusterRole
   metadata:

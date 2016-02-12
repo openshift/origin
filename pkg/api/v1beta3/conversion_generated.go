@@ -2669,6 +2669,21 @@ func autoConvert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeploymen
 	return nil
 }
 
+func autoConvert_api_TagImageHook_To_v1beta3_TagImageHook(in *deployapi.TagImageHook, out *deployapiv1beta3.TagImageHook, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*deployapi.TagImageHook))(in)
+	}
+	out.ContainerName = in.ContainerName
+	if err := Convert_api_ObjectReference_To_v1beta3_ObjectReference(&in.To, &out.To, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_TagImageHook_To_v1beta3_TagImageHook(in *deployapi.TagImageHook, out *deployapiv1beta3.TagImageHook, s conversion.Scope) error {
+	return autoConvert_api_TagImageHook_To_v1beta3_TagImageHook(in, out, s)
+}
+
 func autoConvert_v1beta3_DeploymentCause_To_api_DeploymentCause(in *deployapiv1beta3.DeploymentCause, out *deployapi.DeploymentCause, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*deployapiv1beta3.DeploymentCause))(in)
@@ -2928,6 +2943,21 @@ func autoConvert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeploymen
 	return nil
 }
 
+func autoConvert_v1beta3_TagImageHook_To_api_TagImageHook(in *deployapiv1beta3.TagImageHook, out *deployapi.TagImageHook, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*deployapiv1beta3.TagImageHook))(in)
+	}
+	out.ContainerName = in.ContainerName
+	if err := Convert_v1beta3_ObjectReference_To_api_ObjectReference(&in.To, &out.To, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1beta3_TagImageHook_To_api_TagImageHook(in *deployapiv1beta3.TagImageHook, out *deployapi.TagImageHook, s conversion.Scope) error {
+	return autoConvert_v1beta3_TagImageHook_To_api_TagImageHook(in, out, s)
+}
+
 func autoConvert_api_Image_To_v1beta3_Image(in *imageapi.Image, out *imageapiv1beta3.Image, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*imageapi.Image))(in)
@@ -3075,6 +3105,9 @@ func autoConvert_api_ImageStreamTag_To_v1beta3_ImageStreamTag(in *imageapi.Image
 	if err := Convert_api_ObjectMeta_To_v1beta3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
+	// in.Tag has no peer in out
+	out.Generation = in.Generation
+	// in.Conditions has no peer in out
 	if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
 		return err
 	}
@@ -6870,6 +6903,7 @@ func init() {
 		autoConvert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview,
 		autoConvert_api_TCPSocketAction_To_v1beta3_TCPSocketAction,
 		autoConvert_api_TLSConfig_To_v1beta3_TLSConfig,
+		autoConvert_api_TagImageHook_To_v1beta3_TagImageHook,
 		autoConvert_api_TemplateList_To_v1beta3_TemplateList,
 		autoConvert_api_Template_To_v1beta3_Template,
 		autoConvert_api_UserIdentityMapping_To_v1beta3_UserIdentityMapping,
@@ -7013,6 +7047,7 @@ func init() {
 		autoConvert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview,
 		autoConvert_v1beta3_TCPSocketAction_To_api_TCPSocketAction,
 		autoConvert_v1beta3_TLSConfig_To_api_TLSConfig,
+		autoConvert_v1beta3_TagImageHook_To_api_TagImageHook,
 		autoConvert_v1beta3_TemplateList_To_api_TemplateList,
 		autoConvert_v1beta3_Template_To_api_Template,
 		autoConvert_v1beta3_UserIdentityMapping_To_api_UserIdentityMapping,

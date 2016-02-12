@@ -7,10 +7,12 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -48,6 +50,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 			if len(cfg.Namespace) == 0 {
 				glog.Fatal("namespace is required")
 			}
+
 			kcfg, err := kclient.InClusterConfig()
 			if err != nil {
 				glog.Fatal(err)
@@ -56,7 +59,12 @@ func NewCommandDeployer(name string) *cobra.Command {
 			if err != nil {
 				glog.Fatal(err)
 			}
-			deployer := NewDeployer(kc)
+			oc, err := client.New(kcfg)
+			if err != nil {
+				glog.Fatal(err)
+			}
+
+			deployer := NewDeployer(kc, oc)
 			if err = deployer.Deploy(cfg.Namespace, cfg.DeploymentName); err != nil {
 				glog.Fatal(err)
 			}
@@ -73,7 +81,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 }
 
 // NewDeployer makes a new Deployer from a kube client.
-func NewDeployer(client kclient.Interface) *Deployer {
+func NewDeployer(client kclient.Interface, oclient client.Interface) *Deployer {
 	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
 	return &Deployer{
 		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -86,10 +94,10 @@ func NewDeployer(client kclient.Interface) *Deployer {
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case deployapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, kapi.Codecs.UniversalDecoder()), nil
+				return recreate.NewRecreateDeploymentStrategy(client, oclient, kapi.Codecs.UniversalDecoder()), nil
 			case deployapi.DeploymentStrategyTypeRolling:
-				recreate := recreate.NewRecreateDeploymentStrategy(client, kapi.Codecs.UniversalDecoder())
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, kapi.Codecs.UniversalDecoder(), recreate), nil
+				recreate := recreate.NewRecreateDeploymentStrategy(client, oclient, kapi.Codecs.UniversalDecoder())
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, oclient, kapi.Codecs.UniversalDecoder(), recreate), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}
