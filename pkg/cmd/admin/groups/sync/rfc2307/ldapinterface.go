@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/groupdetector"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/syncerror"
 )
 
 // NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
@@ -19,7 +20,8 @@ func NewLDAPInterface(clientConfig ldapclient.Config,
 	groupNameAttributes []string,
 	groupMembershipAttributes []string,
 	userQuery ldaputil.LDAPQueryOnAttribute,
-	userNameAttributes []string) *LDAPInterface {
+	userNameAttributes []string,
+	errorHandler syncerror.Handler) *LDAPInterface {
 
 	return &LDAPInterface{
 		clientConfig:              clientConfig,
@@ -30,6 +32,7 @@ func NewLDAPInterface(clientConfig ldapclient.Config,
 		userNameAttributes:        userNameAttributes,
 		cachedUsers:               map[string]*ldap.Entry{},
 		cachedGroups:              map[string]*ldap.Entry{},
+		errorHandler:              errorHandler,
 	}
 }
 
@@ -57,6 +60,9 @@ type LDAPInterface struct {
 	// cachedUsers holds the result of user queries for later reference, indexed on user UID
 	// e.g. this will map an LDAP user UID to the LDAP entry returned from the query made using it
 	cachedUsers map[string]*ldap.Entry
+
+	// errorHandler handles errors that occur
+	errorHandler syncerror.Handler
 }
 
 // The LDAPInterface must conform to the following interfaces
@@ -82,15 +88,26 @@ func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, erro
 	// find members on LDAP server or in cache
 	for _, ldapMemberUID := range ldapMemberUIDs {
 		memberEntry, err := e.userEntryFor(ldapMemberUID)
-		if err != nil {
-			return nil, interfaces.NewMemberLookupError(ldapGroupUID, ldapMemberUID, err)
+		if err == nil {
+			members = append(members, memberEntry)
+			continue
 		}
-		members = append(members, memberEntry)
+
+		err = syncerror.NewMemberLookupError(ldapGroupUID, ldapMemberUID, err)
+		handled, fatalErr := e.errorHandler.HandleError(err)
+		if fatalErr != nil {
+			return nil, fatalErr
+		}
+
+		if !handled {
+			return nil, err
+		}
+
 	}
 	return members, nil
 }
 
-// GroupFor returns an LDAP group entry for the given group UID by searching the internal cache
+// GroupEntryFor returns an LDAP group entry for the given group UID by searching the internal cache
 // of the LDAPInterface first, then sending an LDAP query if the cache did not contain the entry.
 // This also satisfies the LDAPGroupGetter interface
 func (e *LDAPInterface) GroupEntryFor(ldapGroupUID string) (*ldap.Entry, error) {

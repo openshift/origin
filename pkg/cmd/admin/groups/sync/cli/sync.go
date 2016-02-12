@@ -23,6 +23,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/syncerror"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
@@ -74,8 +75,7 @@ const (
 var AllowedSourceTypes = []string{string(GroupSyncSourceLDAP), string(GroupSyncSourceOpenShift)}
 
 func ValidateSource(source GroupSyncSource) bool {
-	knownSources := sets.NewString(string(GroupSyncSourceLDAP), string(GroupSyncSourceOpenShift))
-	return knownSources.Has(string(source))
+	return sets.NewString(AllowedSourceTypes...).Has(string(source))
 }
 
 type SyncOptions struct {
@@ -102,6 +102,21 @@ type SyncOptions struct {
 
 	// Out is the writer to write output to
 	Out io.Writer
+}
+
+// CreateErrorHandler creates an error handler for the LDAP sync job
+func (o *SyncOptions) CreateErrorHandler() syncerror.Handler {
+	components := []syncerror.Handler{}
+	if o.Config.RFC2307Config != nil {
+		if o.Config.RFC2307Config.TolerateOutOfScopeMembers {
+			components = append(components, syncerror.NewMemberLookupOutOfBoundsSuppressor(o.Stderr))
+		}
+		if o.Config.RFC2307Config.TolerateMissingMembers {
+			components = append(components, syncerror.NewMemberLookupMemberNotFoundSuppressor(o.Stderr))
+		}
+	}
+
+	return syncerror.NewCompoundHandler(components...)
 }
 
 func NewSyncOptions() *SyncOptions {
@@ -327,7 +342,9 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 		return fmt.Errorf("could not determine LDAP client configuration: %v", err)
 	}
 
-	syncBuilder, err := buildSyncBuilder(clientConfig, o.Config)
+	errorHandler := o.CreateErrorHandler()
+
+	syncBuilder, err := buildSyncBuilder(clientConfig, o.Config, errorHandler)
 	if err != nil {
 		return err
 	}
@@ -399,10 +416,10 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 	return kerrs.NewAggregate(syncErrors)
 }
 
-func buildSyncBuilder(clientConfig ldapclient.Config, syncConfig *api.LDAPSyncConfig) (SyncBuilder, error) {
+func buildSyncBuilder(clientConfig ldapclient.Config, syncConfig *api.LDAPSyncConfig, errorHandler syncerror.Handler) (SyncBuilder, error) {
 	switch {
 	case syncConfig.RFC2307Config != nil:
-		return &RFC2307Builder{ClientConfig: clientConfig, Config: syncConfig.RFC2307Config}, nil
+		return &RFC2307Builder{ClientConfig: clientConfig, Config: syncConfig.RFC2307Config, ErrorHandler: errorHandler}, nil
 	case syncConfig.ActiveDirectoryConfig != nil:
 		return &ADBuilder{ClientConfig: clientConfig, Config: syncConfig.ActiveDirectoryConfig}, nil
 	case syncConfig.AugmentedActiveDirectoryConfig != nil:
