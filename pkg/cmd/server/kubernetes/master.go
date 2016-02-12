@@ -222,7 +222,7 @@ func (c *MasterConfig) RunScheduler() {
 		glog.Fatalf("Unable to start scheduler: %v", err)
 	}
 	eventcast := record.NewBroadcaster()
-	config.Recorder = eventcast.NewRecorder(kapi.EventSource{Component: "scheduler"})
+	config.Recorder = eventcast.NewRecorder(kapi.EventSource{Component: kapi.DefaultSchedulerName})
 	eventcast.StartRecordingToSink(c.KubeClient.Events(""))
 
 	s := scheduler.New(config)
