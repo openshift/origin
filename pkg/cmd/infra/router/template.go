@@ -16,9 +16,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/router/controller"
+	templateplugin "github.com/openshift/origin/pkg/router/template"
 	"github.com/openshift/origin/pkg/util/proc"
 	"github.com/openshift/origin/pkg/version"
-	templateplugin "github.com/openshift/origin/plugins/router/template"
 )
 
 const (
