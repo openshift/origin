@@ -72,7 +72,7 @@ func makeMapping(user, identity string) *api.UserIdentityMapping {
 
 func TestUserInitialization(t *testing.T) {
 
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
