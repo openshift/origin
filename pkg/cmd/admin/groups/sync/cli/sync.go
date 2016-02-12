@@ -108,10 +108,10 @@ type SyncOptions struct {
 func (o *SyncOptions) CreateErrorHandler() syncerror.Handler {
 	components := []syncerror.Handler{}
 	if o.Config.RFC2307Config != nil {
-		if o.Config.RFC2307Config.TolerateOutOfScopeMembers {
+		if o.Config.RFC2307Config.TolerateMemberOutOfScopeErrors {
 			components = append(components, syncerror.NewMemberLookupOutOfBoundsSuppressor(o.Stderr))
 		}
-		if o.Config.RFC2307Config.TolerateMissingMembers {
+		if o.Config.RFC2307Config.TolerateMemberNotFoundErrors {
 			components = append(components, syncerror.NewMemberLookupMemberNotFoundSuppressor(o.Stderr))
 		}
 	}

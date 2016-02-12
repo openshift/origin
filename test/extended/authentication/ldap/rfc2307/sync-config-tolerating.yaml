@@ -18,5 +18,5 @@ rfc2307:
         filter: (objectclass=inetOrgPerson)
     userUIDAttribute: dn
     userNameAttributes: [ mail ]
-    tolerateMissingMembers: true
-    tolerateOutOfScopeMembers: true
+    tolerateMemberNotFoundErrors: true
+    tolerateMemberOutOfScopeErrors: true
