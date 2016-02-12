@@ -215,6 +215,12 @@ os::provision::base-provision() {
       # network plugins need to be able to work with one enabled.
       systemctl enable iptables.service
       systemctl start iptables.service
+
+      # Ensure that the master can access the kubelet for capabilities
+      # like 'oc exec'.  Explicitly specifying the insertion location
+      # is brittle but the tests should catch conflicts with the
+      # package rules.
+      iptables -I INPUT 4 -p tcp -m state --state NEW --dport 10250 -j ACCEPT
     fi
   fi
 }
