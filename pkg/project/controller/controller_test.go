@@ -9,10 +9,11 @@ import (
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/project/api"
+	"k8s.io/kubernetes/pkg/client/testing/fake"
 )
 
 func TestSyncNamespaceThatIsTerminating(t *testing.T) {
-	mockKubeClient := &ktestclient.Fake{}
+	mockKubeClient := &fake.Clientset{}
 	mockOriginClient := &testclient.Fake{}
 	nm := NamespaceController{
 		KubeClient: mockKubeClient,
@@ -65,7 +66,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 }
 
 func TestSyncNamespaceThatIsActive(t *testing.T) {
-	mockKubeClient := &ktestclient.Fake{}
+	mockKubeClient := &fake.Clientset{}
 	mockOriginClient := &testclient.Fake{}
 	nm := NamespaceController{
 		KubeClient: mockKubeClient,

@@ -87,8 +87,11 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 	}
 	clns := make([]net.Listener, 0)
 	for _, u := range cfg.lcurls {
-		var l net.Listener
-		l, err = transport.NewKeepAliveListener(u.Host, u.Scheme, cfg.clientTLSInfo)
+		l, err := net.Listen("tcp", u.Host)
+		if err != nil {
+			return nil, err
+		}
+		l, err = transport.NewKeepAliveListener(l, u.Scheme, cfg.clientTLSInfo)
 		if err != nil {
 			return nil, err
 		}

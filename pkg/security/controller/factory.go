@@ -7,8 +7,8 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	kutil "k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/controller"
@@ -53,7 +53,7 @@ func (f *AllocationFactory) Create() controller.RunnableController {
 			f.Queue,
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
-				util.HandleError(err)
+				utilruntime.HandleError(err)
 				return retries.Count < 5
 			},
 			kutil.NewTokenBucketRateLimiter(1, 10),

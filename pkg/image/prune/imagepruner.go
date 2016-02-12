@@ -22,8 +22,8 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -294,7 +294,7 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 
 		manifest := imageapi.DockerImageManifest{}
 		if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
-			util.HandleError(fmt.Errorf("unable to extract manifest from image: %v. This image's layers won't be pruned if the image is pruned now.", err))
+			utilruntime.HandleError(fmt.Errorf("unable to extract manifest from image: %v. This image's layers won't be pruned if the image is pruned now.", err))
 			continue
 		}
 
@@ -416,7 +416,7 @@ func addPodSpecToGraph(g graph.Graph, spec *kapi.PodSpec, predecessor gonum.Node
 
 		ref, err := imageapi.ParseDockerImageReference(container.Image)
 		if err != nil {
-			util.HandleError(fmt.Errorf("unable to parse DockerImageReference %q: %v", container.Image, err))
+			utilruntime.HandleError(fmt.Errorf("unable to parse DockerImageReference %q: %v", container.Image, err))
 			continue
 		}
 

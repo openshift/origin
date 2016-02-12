@@ -39,7 +39,7 @@ func (c *netNamespace) List(opts kapi.ListOptions) (result *sdnapi.NetNamespaceL
 	result = &sdnapi.NetNamespaceList{}
 	err = c.r.Get().
 		Resource("netNamespaces").
-		VersionedParams(&opts, kapi.Scheme).
+		VersionedParams(&opts, kapi.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -76,6 +76,6 @@ func (c *netNamespace) Watch(opts kapi.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Resource("netNamespaces").
-		VersionedParams(&opts, kapi.Scheme).
+		VersionedParams(&opts, kapi.ParameterCodec).
 		Watch()
 }

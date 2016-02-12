@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
@@ -59,7 +60,7 @@ func (f *ImportControllerFactory) Create() (controller.RunnableController, contr
 			q,
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
-				util.HandleError(err)
+				utilruntime.HandleError(err)
 				return retries.Count < 5
 			},
 			util.NewTokenBucketRateLimiter(1, 10),
@@ -127,7 +128,7 @@ func (b *scheduled) HandleTimed(key, value interface{}) {
 			b.scheduler.Remove(key, value)
 			return
 		}
-		util.HandleError(err)
+		utilruntime.HandleError(err)
 		return
 	}
 }

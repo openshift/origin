@@ -23,6 +23,7 @@ var MissingCommands = sets.NewString(
 	"cordon",
 	"drain",
 	"uncordon",
+	"rollout",
 )
 
 // WhitelistedCommands is the list of commands we're never going to have in oc

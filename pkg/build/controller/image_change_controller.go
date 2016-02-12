@@ -9,7 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -134,9 +134,9 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 			}
 			if _, err := c.BuildConfigInstantiator.Instantiate(config.Namespace, request); err != nil {
 				if kerrors.IsConflict(err) {
-					util.HandleError(fmt.Errorf("unable to instantiate Build for BuildConfig %s/%s due to a conflicting update: %v", config.Namespace, config.Name, err))
+					utilruntime.HandleError(fmt.Errorf("unable to instantiate Build for BuildConfig %s/%s due to a conflicting update: %v", config.Namespace, config.Name, err))
 				} else {
-					util.HandleError(fmt.Errorf("error instantiating Build from BuildConfig %s/%s: %v", config.Namespace, config.Name, err))
+					utilruntime.HandleError(fmt.Errorf("error instantiating Build from BuildConfig %s/%s: %v", config.Namespace, config.Name, err))
 				}
 				hasError = true
 				continue

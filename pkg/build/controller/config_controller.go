@@ -6,7 +6,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -68,12 +68,12 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 		var instantiateErr error
 		if kerrors.IsConflict(err) {
 			instantiateErr = fmt.Errorf("unable to instantiate Build for BuildConfig %s/%s due to a conflicting update: %v", bc.Namespace, bc.Name, err)
-			util.HandleError(instantiateErr)
+			utilruntime.HandleError(instantiateErr)
 		} else if buildgenerator.IsFatal(err) {
 			return &ConfigControllerFatalError{err.Error()}
 		} else {
 			instantiateErr = fmt.Errorf("error instantiating Build from BuildConfig %s/%s: %v", bc.Namespace, bc.Name, err)
-			util.HandleError(instantiateErr)
+			utilruntime.HandleError(instantiateErr)
 		}
 		return instantiateErr
 	}

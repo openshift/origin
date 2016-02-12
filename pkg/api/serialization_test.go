@@ -426,7 +426,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	name := reflect.TypeOf(item).Elem().Name()
 	data, err := runtime.Encode(codec, item)
 	if err != nil {
-		if conversion.IsNotRegisteredError(err) {
+		if runtime.IsNotRegisteredError(err) {
 			t.Logf("%v is not registered", name)
 		}
 		t.Errorf("%v: %v (%#v)", name, err, item)

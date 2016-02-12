@@ -37,7 +37,7 @@ func newRoles(c *Client, namespace string) *roles {
 // List returns a list of roles that match the label and field selectors.
 func (c *roles) List(opts kapi.ListOptions) (result *authorizationapi.RoleList, err error) {
 	result = &authorizationapi.RoleList{}
-	err = c.r.Get().Namespace(c.ns).Resource("roles").VersionedParams(&opts, kapi.Scheme).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("roles").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

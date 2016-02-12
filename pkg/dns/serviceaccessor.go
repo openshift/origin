@@ -115,6 +115,9 @@ func (a cachedServiceNamespacer) Create(srv *api.Service) (*api.Service, error) 
 func (a cachedServiceNamespacer) Update(srv *api.Service) (*api.Service, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+func (a cachedServiceNamespacer) UpdateStatus(srv *api.Service) (*api.Service, error) {
+	return nil, fmt.Errorf("not implemented")
+}
 func (a cachedServiceNamespacer) Delete(name string) error {
 	return fmt.Errorf("not implemented")
 }

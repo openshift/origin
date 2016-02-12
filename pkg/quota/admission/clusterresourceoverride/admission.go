@@ -14,7 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
@@ -32,7 +32,7 @@ var (
 )
 
 func init() {
-	admission.RegisterPlugin(api.PluginName, func(client kclient.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin(api.PluginName, func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 		return newClusterResourceOverride(client, config)
 	})
 }
@@ -54,7 +54,7 @@ var _ = oadmission.Validator(&clusterResourceOverridePlugin{})
 
 // newClusterResourceOverride returns an admission controller for containers that
 // configurably overrides container resource request/limits
-func newClusterResourceOverride(client kclient.Interface, config io.Reader) (admission.Interface, error) {
+func newClusterResourceOverride(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 	parsed, err := ReadConfig(config)
 	if err != nil {
 		glog.V(5).Infof("%s admission controller loaded with error: (%T) %[2]v", api.PluginName, err)

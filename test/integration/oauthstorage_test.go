@@ -66,7 +66,7 @@ func TestOAuthStorage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	etcdHelper := etcdstorage.NewEtcdStorage(etcdClient, kapi.Codecs.LegacyCodec(groupMeta.GroupVersions...), etcdtest.PathPrefix())
+	etcdHelper := etcdstorage.NewEtcdStorage(etcdClient, kapi.Codecs.LegacyCodec(groupMeta.GroupVersions...), etcdtest.PathPrefix(), false)
 
 	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)

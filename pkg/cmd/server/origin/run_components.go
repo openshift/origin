@@ -16,6 +16,7 @@ import (
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -41,6 +42,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 // RunProjectAuthorizationCache starts the project authorization cache
@@ -77,7 +79,7 @@ func (c *MasterConfig) RunServiceAccountsController() {
 		options.ServiceAccounts = append(options.ServiceAccounts, sa)
 	}
 
-	sacontroller.NewServiceAccountsController(c.KubeClient(), options).Run()
+	sacontroller.NewServiceAccountsController(internalclientset.FromUnversionedClient(c.KubeClient()), options).Run()
 }
 
 // RunServiceAccountTokensController starts the service account token controller
@@ -107,7 +109,7 @@ func (c *MasterConfig) RunServiceAccountTokensController() {
 		RootCA:         rootCA,
 	}
 
-	sacontroller.NewTokensController(c.KubeClient(), options).Run()
+	sacontroller.NewTokensController(internalclientset.FromUnversionedClient(c.KubeClient()), options).Run()
 }
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
@@ -198,7 +200,7 @@ func (c *MasterConfig) RunBuildController() {
 	groupVersion := unversioned.GroupVersion{Group: "", Version: storageVersion}
 	codec := kapi.Codecs.LegacyCodec(groupVersion)
 
-	admissionControl := admission.NewFromPlugins(c.PrivilegedLoopbackKubernetesClient, []string{"SecurityContextConstraint"}, "")
+	admissionControl := admission.NewFromPlugins(internalclientset.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient), []string{"SecurityContextConstraint"}, "")
 
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
@@ -364,7 +366,7 @@ func (c *MasterConfig) RunImageImportController() {
 	if c.Options.ImagePolicyConfig.DisableScheduledImport {
 		glog.V(2).Infof("Scheduled image import is disabled - the 'scheduled' flag on image streams will be ignored")
 	} else {
-		scheduledController.RunUntil(util.NeverStop)
+		scheduledController.RunUntil(utilwait.NeverStop)
 	}
 }
 

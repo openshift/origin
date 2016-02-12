@@ -38,7 +38,7 @@ func newPolicyBindings(c *Client, namespace string) *policyBindings {
 // List returns a list of policyBindings that match the label and field selectors.
 func (c *policyBindings) List(opts kapi.ListOptions) (result *authorizationapi.PolicyBindingList, err error) {
 	result = &authorizationapi.PolicyBindingList{}
-	err = c.r.Get().Namespace(c.ns).Resource("policyBindings").VersionedParams(&opts, kapi.Scheme).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("policyBindings").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -64,5 +64,5 @@ func (c *policyBindings) Delete(name string) (err error) {
 
 // Watch returns a watch.Interface that watches the requested policyBindings
 func (c *policyBindings) Watch(opts kapi.ListOptions) (watch.Interface, error) {
-	return c.r.Get().Prefix("watch").Namespace(c.ns).Resource("policyBindings").VersionedParams(&opts, kapi.Scheme).Watch()
+	return c.r.Get().Prefix("watch").Namespace(c.ns).Resource("policyBindings").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }

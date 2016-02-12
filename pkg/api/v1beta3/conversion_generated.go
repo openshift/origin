@@ -5068,37 +5068,6 @@ func Convert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStor
 	return autoConvert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStoreVolumeSource(in, out, s)
 }
 
-func autoConvert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in *api.CephFSVolumeSource, out *apiv1beta3.CephFSVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.CephFSVolumeSource))(in)
-	}
-	if in.Monitors != nil {
-		out.Monitors = make([]string, len(in.Monitors))
-		for i := range in.Monitors {
-			out.Monitors[i] = in.Monitors[i]
-		}
-	} else {
-		out.Monitors = nil
-	}
-	out.User = in.User
-	out.SecretFile = in.SecretFile
-	// unable to generate simple pointer conversion for api.LocalObjectReference -> v1beta3.LocalObjectReference
-	if in.SecretRef != nil {
-		out.SecretRef = new(apiv1beta3.LocalObjectReference)
-		if err := Convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.SecretRef, out.SecretRef, s); err != nil {
-			return err
-		}
-	} else {
-		out.SecretRef = nil
-	}
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func Convert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in *api.CephFSVolumeSource, out *apiv1beta3.CephFSVolumeSource, s conversion.Scope) error {
-	return autoConvert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in, out, s)
-}
-
 func autoConvert_api_CinderVolumeSource_To_v1beta3_CinderVolumeSource(in *api.CinderVolumeSource, out *apiv1beta3.CinderVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.CinderVolumeSource))(in)
@@ -5187,8 +5156,7 @@ func autoConvert_api_Container_To_v1beta3_Container(in *api.Container, out *apiv
 	}
 	// unable to generate simple pointer conversion for api.Lifecycle -> v1beta3.Lifecycle
 	if in.Lifecycle != nil {
-		out.Lifecycle = new(apiv1beta3.Lifecycle)
-		if err := Convert_api_Lifecycle_To_v1beta3_Lifecycle(in.Lifecycle, out.Lifecycle, s); err != nil {
+		if err := s.Convert(&in.Lifecycle, &out.Lifecycle, 0); err != nil {
 			return err
 		}
 	} else {
@@ -5361,61 +5329,6 @@ func Convert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource(in *api.
 	return autoConvert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource(in, out, s)
 }
 
-func autoConvert_api_HTTPGetAction_To_v1beta3_HTTPGetAction(in *api.HTTPGetAction, out *apiv1beta3.HTTPGetAction, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.HTTPGetAction))(in)
-	}
-	out.Path = in.Path
-	if err := api.Convert_intstr_IntOrString_To_intstr_IntOrString(&in.Port, &out.Port, s); err != nil {
-		return err
-	}
-	out.Host = in.Host
-	out.Scheme = apiv1beta3.URIScheme(in.Scheme)
-	return nil
-}
-
-func Convert_api_HTTPGetAction_To_v1beta3_HTTPGetAction(in *api.HTTPGetAction, out *apiv1beta3.HTTPGetAction, s conversion.Scope) error {
-	return autoConvert_api_HTTPGetAction_To_v1beta3_HTTPGetAction(in, out, s)
-}
-
-func autoConvert_api_Handler_To_v1beta3_Handler(in *api.Handler, out *apiv1beta3.Handler, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.Handler))(in)
-	}
-	// unable to generate simple pointer conversion for api.ExecAction -> v1beta3.ExecAction
-	if in.Exec != nil {
-		out.Exec = new(apiv1beta3.ExecAction)
-		if err := Convert_api_ExecAction_To_v1beta3_ExecAction(in.Exec, out.Exec, s); err != nil {
-			return err
-		}
-	} else {
-		out.Exec = nil
-	}
-	// unable to generate simple pointer conversion for api.HTTPGetAction -> v1beta3.HTTPGetAction
-	if in.HTTPGet != nil {
-		out.HTTPGet = new(apiv1beta3.HTTPGetAction)
-		if err := Convert_api_HTTPGetAction_To_v1beta3_HTTPGetAction(in.HTTPGet, out.HTTPGet, s); err != nil {
-			return err
-		}
-	} else {
-		out.HTTPGet = nil
-	}
-	// unable to generate simple pointer conversion for api.TCPSocketAction -> v1beta3.TCPSocketAction
-	if in.TCPSocket != nil {
-		out.TCPSocket = new(apiv1beta3.TCPSocketAction)
-		if err := Convert_api_TCPSocketAction_To_v1beta3_TCPSocketAction(in.TCPSocket, out.TCPSocket, s); err != nil {
-			return err
-		}
-	} else {
-		out.TCPSocket = nil
-	}
-	return nil
-}
-
-func Convert_api_Handler_To_v1beta3_Handler(in *api.Handler, out *apiv1beta3.Handler, s conversion.Scope) error {
-	return autoConvert_api_Handler_To_v1beta3_Handler(in, out, s)
-}
-
 func autoConvert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in *api.HostPathVolumeSource, out *apiv1beta3.HostPathVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.HostPathVolumeSource))(in)
@@ -5426,35 +5339,6 @@ func autoConvert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in *ap
 
 func Convert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in *api.HostPathVolumeSource, out *apiv1beta3.HostPathVolumeSource, s conversion.Scope) error {
 	return autoConvert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in, out, s)
-}
-
-func autoConvert_api_Lifecycle_To_v1beta3_Lifecycle(in *api.Lifecycle, out *apiv1beta3.Lifecycle, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.Lifecycle))(in)
-	}
-	// unable to generate simple pointer conversion for api.Handler -> v1beta3.Handler
-	if in.PostStart != nil {
-		out.PostStart = new(apiv1beta3.Handler)
-		if err := Convert_api_Handler_To_v1beta3_Handler(in.PostStart, out.PostStart, s); err != nil {
-			return err
-		}
-	} else {
-		out.PostStart = nil
-	}
-	// unable to generate simple pointer conversion for api.Handler -> v1beta3.Handler
-	if in.PreStop != nil {
-		out.PreStop = new(apiv1beta3.Handler)
-		if err := Convert_api_Handler_To_v1beta3_Handler(in.PreStop, out.PreStop, s); err != nil {
-			return err
-		}
-	} else {
-		out.PreStop = nil
-	}
-	return nil
-}
-
-func Convert_api_Lifecycle_To_v1beta3_Lifecycle(in *api.Lifecycle, out *apiv1beta3.Lifecycle, s conversion.Scope) error {
-	return autoConvert_api_Lifecycle_To_v1beta3_Lifecycle(in, out, s)
 }
 
 func autoConvert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in *api.LocalObjectReference, out *apiv1beta3.LocalObjectReference, s conversion.Scope) error {
@@ -5902,8 +5786,7 @@ func autoConvert_api_VolumeSource_To_v1beta3_VolumeSource(in *api.VolumeSource, 
 	}
 	// unable to generate simple pointer conversion for api.CephFSVolumeSource -> v1beta3.CephFSVolumeSource
 	if in.CephFS != nil {
-		out.CephFS = new(apiv1beta3.CephFSVolumeSource)
-		if err := Convert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
+		if err := s.Convert(&in.CephFS, &out.CephFS, 0); err != nil {
 			return err
 		}
 	} else {
@@ -5936,6 +5819,7 @@ func autoConvert_api_VolumeSource_To_v1beta3_VolumeSource(in *api.VolumeSource, 
 	} else {
 		out.FC = nil
 	}
+	// in.AzureFile has no peer in out
 	return nil
 }
 
@@ -5952,37 +5836,6 @@ func autoConvert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlock
 
 func Convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in *apiv1beta3.AWSElasticBlockStoreVolumeSource, out *api.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
 	return autoConvert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in, out, s)
-}
-
-func autoConvert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in *apiv1beta3.CephFSVolumeSource, out *api.CephFSVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.CephFSVolumeSource))(in)
-	}
-	if in.Monitors != nil {
-		out.Monitors = make([]string, len(in.Monitors))
-		for i := range in.Monitors {
-			out.Monitors[i] = in.Monitors[i]
-		}
-	} else {
-		out.Monitors = nil
-	}
-	out.User = in.User
-	out.SecretFile = in.SecretFile
-	// unable to generate simple pointer conversion for v1beta3.LocalObjectReference -> api.LocalObjectReference
-	if in.SecretRef != nil {
-		out.SecretRef = new(api.LocalObjectReference)
-		if err := Convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in.SecretRef, out.SecretRef, s); err != nil {
-			return err
-		}
-	} else {
-		out.SecretRef = nil
-	}
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
-func Convert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in *apiv1beta3.CephFSVolumeSource, out *api.CephFSVolumeSource, s conversion.Scope) error {
-	return autoConvert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in, out, s)
 }
 
 func autoConvert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource(in *apiv1beta3.CinderVolumeSource, out *api.CinderVolumeSource, s conversion.Scope) error {
@@ -6073,8 +5926,7 @@ func autoConvert_v1beta3_Container_To_api_Container(in *apiv1beta3.Container, ou
 	}
 	// unable to generate simple pointer conversion for v1beta3.Lifecycle -> api.Lifecycle
 	if in.Lifecycle != nil {
-		out.Lifecycle = new(api.Lifecycle)
-		if err := Convert_v1beta3_Lifecycle_To_api_Lifecycle(in.Lifecycle, out.Lifecycle, s); err != nil {
+		if err := s.Convert(&in.Lifecycle, &out.Lifecycle, 0); err != nil {
 			return err
 		}
 	} else {
@@ -6249,61 +6101,6 @@ func Convert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in *apiv
 	return autoConvert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in, out, s)
 }
 
-func autoConvert_v1beta3_HTTPGetAction_To_api_HTTPGetAction(in *apiv1beta3.HTTPGetAction, out *api.HTTPGetAction, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.HTTPGetAction))(in)
-	}
-	out.Path = in.Path
-	if err := api.Convert_intstr_IntOrString_To_intstr_IntOrString(&in.Port, &out.Port, s); err != nil {
-		return err
-	}
-	out.Host = in.Host
-	out.Scheme = api.URIScheme(in.Scheme)
-	return nil
-}
-
-func Convert_v1beta3_HTTPGetAction_To_api_HTTPGetAction(in *apiv1beta3.HTTPGetAction, out *api.HTTPGetAction, s conversion.Scope) error {
-	return autoConvert_v1beta3_HTTPGetAction_To_api_HTTPGetAction(in, out, s)
-}
-
-func autoConvert_v1beta3_Handler_To_api_Handler(in *apiv1beta3.Handler, out *api.Handler, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.Handler))(in)
-	}
-	// unable to generate simple pointer conversion for v1beta3.ExecAction -> api.ExecAction
-	if in.Exec != nil {
-		out.Exec = new(api.ExecAction)
-		if err := Convert_v1beta3_ExecAction_To_api_ExecAction(in.Exec, out.Exec, s); err != nil {
-			return err
-		}
-	} else {
-		out.Exec = nil
-	}
-	// unable to generate simple pointer conversion for v1beta3.HTTPGetAction -> api.HTTPGetAction
-	if in.HTTPGet != nil {
-		out.HTTPGet = new(api.HTTPGetAction)
-		if err := Convert_v1beta3_HTTPGetAction_To_api_HTTPGetAction(in.HTTPGet, out.HTTPGet, s); err != nil {
-			return err
-		}
-	} else {
-		out.HTTPGet = nil
-	}
-	// unable to generate simple pointer conversion for v1beta3.TCPSocketAction -> api.TCPSocketAction
-	if in.TCPSocket != nil {
-		out.TCPSocket = new(api.TCPSocketAction)
-		if err := Convert_v1beta3_TCPSocketAction_To_api_TCPSocketAction(in.TCPSocket, out.TCPSocket, s); err != nil {
-			return err
-		}
-	} else {
-		out.TCPSocket = nil
-	}
-	return nil
-}
-
-func Convert_v1beta3_Handler_To_api_Handler(in *apiv1beta3.Handler, out *api.Handler, s conversion.Scope) error {
-	return autoConvert_v1beta3_Handler_To_api_Handler(in, out, s)
-}
-
 func autoConvert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in *apiv1beta3.HostPathVolumeSource, out *api.HostPathVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*apiv1beta3.HostPathVolumeSource))(in)
@@ -6314,35 +6111,6 @@ func autoConvert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in *ap
 
 func Convert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in *apiv1beta3.HostPathVolumeSource, out *api.HostPathVolumeSource, s conversion.Scope) error {
 	return autoConvert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in, out, s)
-}
-
-func autoConvert_v1beta3_Lifecycle_To_api_Lifecycle(in *apiv1beta3.Lifecycle, out *api.Lifecycle, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.Lifecycle))(in)
-	}
-	// unable to generate simple pointer conversion for v1beta3.Handler -> api.Handler
-	if in.PostStart != nil {
-		out.PostStart = new(api.Handler)
-		if err := Convert_v1beta3_Handler_To_api_Handler(in.PostStart, out.PostStart, s); err != nil {
-			return err
-		}
-	} else {
-		out.PostStart = nil
-	}
-	// unable to generate simple pointer conversion for v1beta3.Handler -> api.Handler
-	if in.PreStop != nil {
-		out.PreStop = new(api.Handler)
-		if err := Convert_v1beta3_Handler_To_api_Handler(in.PreStop, out.PreStop, s); err != nil {
-			return err
-		}
-	} else {
-		out.PreStop = nil
-	}
-	return nil
-}
-
-func Convert_v1beta3_Lifecycle_To_api_Lifecycle(in *apiv1beta3.Lifecycle, out *api.Lifecycle, s conversion.Scope) error {
-	return autoConvert_v1beta3_Lifecycle_To_api_Lifecycle(in, out, s)
 }
 
 func autoConvert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in *apiv1beta3.LocalObjectReference, out *api.LocalObjectReference, s conversion.Scope) error {
@@ -6792,8 +6560,7 @@ func autoConvert_v1beta3_VolumeSource_To_api_VolumeSource(in *apiv1beta3.VolumeS
 	}
 	// unable to generate simple pointer conversion for v1beta3.CephFSVolumeSource -> api.CephFSVolumeSource
 	if in.CephFS != nil {
-		out.CephFS = new(api.CephFSVolumeSource)
-		if err := Convert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
+		if err := s.Convert(&in.CephFS, &out.CephFS, 0); err != nil {
 			return err
 		}
 	} else {
@@ -6850,7 +6617,6 @@ func init() {
 		autoConvert_api_BuildStrategy_To_v1beta3_BuildStrategy,
 		autoConvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy,
 		autoConvert_api_Build_To_v1beta3_Build,
-		autoConvert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource,
 		autoConvert_api_CinderVolumeSource_To_v1beta3_CinderVolumeSource,
 		autoConvert_api_ClusterNetworkList_To_v1beta3_ClusterNetworkList,
 		autoConvert_api_ClusterNetwork_To_v1beta3_ClusterNetwork,
@@ -6887,8 +6653,6 @@ func init() {
 		autoConvert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource,
 		autoConvert_api_GroupList_To_v1beta3_GroupList,
 		autoConvert_api_Group_To_v1beta3_Group,
-		autoConvert_api_HTTPGetAction_To_v1beta3_HTTPGetAction,
-		autoConvert_api_Handler_To_v1beta3_Handler,
 		autoConvert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource,
 		autoConvert_api_HostSubnetList_To_v1beta3_HostSubnetList,
 		autoConvert_api_HostSubnet_To_v1beta3_HostSubnet,
@@ -6908,7 +6672,6 @@ func init() {
 		autoConvert_api_ImageStream_To_v1beta3_ImageStream,
 		autoConvert_api_Image_To_v1beta3_Image,
 		autoConvert_api_IsPersonalSubjectAccessReview_To_v1beta3_IsPersonalSubjectAccessReview,
-		autoConvert_api_Lifecycle_To_v1beta3_Lifecycle,
 		autoConvert_api_LocalObjectReference_To_v1beta3_LocalObjectReference,
 		autoConvert_api_LocalResourceAccessReview_To_v1beta3_LocalResourceAccessReview,
 		autoConvert_api_LocalSubjectAccessReview_To_v1beta3_LocalSubjectAccessReview,
@@ -6994,7 +6757,6 @@ func init() {
 		autoConvert_v1beta3_BuildStrategy_To_api_BuildStrategy,
 		autoConvert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy,
 		autoConvert_v1beta3_Build_To_api_Build,
-		autoConvert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource,
 		autoConvert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource,
 		autoConvert_v1beta3_ClusterNetworkList_To_api_ClusterNetworkList,
 		autoConvert_v1beta3_ClusterNetwork_To_api_ClusterNetwork,
@@ -7032,8 +6794,6 @@ func init() {
 		autoConvert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource,
 		autoConvert_v1beta3_GroupList_To_api_GroupList,
 		autoConvert_v1beta3_Group_To_api_Group,
-		autoConvert_v1beta3_HTTPGetAction_To_api_HTTPGetAction,
-		autoConvert_v1beta3_Handler_To_api_Handler,
 		autoConvert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource,
 		autoConvert_v1beta3_HostSubnetList_To_api_HostSubnetList,
 		autoConvert_v1beta3_HostSubnet_To_api_HostSubnet,
@@ -7053,7 +6813,6 @@ func init() {
 		autoConvert_v1beta3_ImageStream_To_api_ImageStream,
 		autoConvert_v1beta3_Image_To_api_Image,
 		autoConvert_v1beta3_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview,
-		autoConvert_v1beta3_Lifecycle_To_api_Lifecycle,
 		autoConvert_v1beta3_LocalObjectReference_To_api_LocalObjectReference,
 		autoConvert_v1beta3_LocalResourceAccessReview_To_api_LocalResourceAccessReview,
 		autoConvert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview,

@@ -12,7 +12,7 @@ import (
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
 // keystonePasswordAuthenticator uses OpenStack keystone to authenticate a user by password
@@ -39,7 +39,7 @@ func New(providerName string, url string, transport http.RoundTripper, domainNam
 func (a keystonePasswordAuthenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
 	defer func() {
 		if e := recover(); e != nil {
-			util.HandleError(fmt.Errorf("Recovered panic: %v, %s", e, debug.Stack()))
+			utilruntime.HandleError(fmt.Errorf("Recovered panic: %v, %s", e, debug.Stack()))
 		}
 	}()
 

@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/client"
@@ -179,12 +180,12 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 			image := status.Image
 			ref, err := api.ParseDockerImageReference(image.DockerImageReference)
 			if err != nil {
-				util.HandleError(fmt.Errorf("unable to parse image reference during import: %v", err))
+				utilruntime.HandleError(fmt.Errorf("unable to parse image reference during import: %v", err))
 				continue
 			}
 			from, err := api.ParseDockerImageReference(spec.From.Name)
 			if err != nil {
-				util.HandleError(fmt.Errorf("unable to parse from reference during import: %v", err))
+				utilruntime.HandleError(fmt.Errorf("unable to parse from reference during import: %v", err))
 				continue
 			}
 

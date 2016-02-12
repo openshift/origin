@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/record"
-	kutil "k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -182,7 +182,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 				if !kerrors.IsNotFound(err) {
 					// if the pod deletion failed, then log the error and continue
 					// we will try to delete any remaining deployer pods and return an error later
-					kutil.HandleError(fmt.Errorf("couldn't delete completed deployer pod %s/%s for deployment %s: %v", deployment.Namespace, deployerPod.Name, deployutil.LabelForDeployment(deployment), err))
+					utilruntime.HandleError(fmt.Errorf("couldn't delete completed deployer pod %s/%s for deployment %s: %v", deployment.Namespace, deployerPod.Name, deployutil.LabelForDeployment(deployment), err))
 					cleanedAll = false
 				}
 				// Already deleted

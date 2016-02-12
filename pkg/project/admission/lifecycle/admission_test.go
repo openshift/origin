@@ -152,7 +152,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 	config := &origin.MasterConfig{
 		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
-		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, ""),
+		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, "", false),
 	}
 	storageMap := config.GetRestStorage()
 	resources := sets.String{}

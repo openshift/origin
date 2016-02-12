@@ -14,7 +14,7 @@ import (
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api"
@@ -26,13 +26,13 @@ import (
 // TODO: modify the upstream plug-in so this can be collapsed
 // need ability to specify a RESTMapper on upstream version
 func init() {
-	admission.RegisterPlugin("OriginNamespaceLifecycle", func(client client.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("OriginNamespaceLifecycle", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 		return NewLifecycle(client, recommendedCreatableResources)
 	})
 }
 
 type lifecycle struct {
-	client client.Interface
+	client clientset.Interface
 	cache  *cache.ProjectCache
 
 	// creatableResources is a set of resources that can be created even if the namespace is terminating
@@ -116,7 +116,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 		time.Sleep(interval)
 
 		// it's possible the namespace actually was deleted, so just forbid if this occurs
-		namespace, err = e.client.Namespaces().Get(a.GetNamespace())
+		namespace, err = e.client.Core().Namespaces().Get(a.GetNamespace())
 		if err != nil {
 			return admission.NewForbidden(a, err)
 		}
@@ -139,7 +139,7 @@ func (e *lifecycle) Validate() error {
 	return nil
 }
 
-func NewLifecycle(client client.Interface, creatableResources sets.String) (admission.Interface, error) {
+func NewLifecycle(client clientset.Interface, creatableResources sets.String) (admission.Interface, error) {
 	return &lifecycle{
 		client:             client,
 		creatableResources: creatableResources,

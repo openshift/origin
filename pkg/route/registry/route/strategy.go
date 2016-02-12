@@ -9,7 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/route"
@@ -48,7 +48,7 @@ func (s routeStrategy) PrepareForCreate(obj runtime.Object) {
 		shard, err := s.RouteAllocator.AllocateRouterShard(route)
 		if err != nil {
 			// TODO: this will be changed when moved to a controller
-			util.HandleError(errors.NewInternalError(fmt.Errorf("allocation error: %v for route: %#v", err, obj)))
+			utilruntime.HandleError(errors.NewInternalError(fmt.Errorf("allocation error: %v for route: %#v", err, obj)))
 			return
 		}
 		route.Spec.Host = s.RouteAllocator.GenerateHostname(route, shard)

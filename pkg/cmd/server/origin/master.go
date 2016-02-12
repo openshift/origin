@@ -28,6 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
@@ -244,7 +245,7 @@ func (c *MasterConfig) serve(handler http.Handler, extra []string) {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	go util.Forever(func() {
+	go utilwait.Forever(func() {
 		for _, s := range extra {
 			glog.Infof(s, c.Options.ServingInfo.BindAddress)
 		}
@@ -601,7 +602,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 	}
 
 	statusMapper := meta.NewDefaultRESTMapper([]unversioned.GroupVersion{kubeapiv1.SchemeGroupVersion}, registered.GroupOrDie(kapi.GroupName).InterfacesFor)
-	statusMapper.Add(kubeapiv1.SchemeGroupVersion.WithKind("Status"), meta.RESTScopeRoot, false)
+	statusMapper.Add(kubeapiv1.SchemeGroupVersion.WithKind("Status"), meta.RESTScopeRoot)
 	restMapper = meta.MultiRESTMapper(append(restMapper, statusMapper))
 
 	return &apiserver.APIGroupVersion{

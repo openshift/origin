@@ -37,7 +37,7 @@ func (c *users) List(opts kapi.ListOptions) (result *userapi.UserList, err error
 	result = &userapi.UserList{}
 	err = c.r.Get().
 		Resource("users").
-		VersionedParams(&opts, kapi.Scheme).
+		VersionedParams(&opts, kapi.ParameterCodec).
 		Do().
 		Into(result)
 	return
