@@ -9,8 +9,8 @@ import (
 	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
-	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 )
 
@@ -144,4 +144,7 @@ func (plugin *ovsPlugin) UpdatePod(namespace string, name string, id kubeletType
 	out, err := utilexec.New().Command(plugin.getExecutable(), updateCmd, string(id), vnidstr).CombinedOutput()
 	glog.V(5).Infof("UpdatePod network plugin output: %s, %v", string(out), err)
 	return err
+}
+
+func (plugin *ovsPlugin) Event(name string, details map[string]interface{}) {
 }
