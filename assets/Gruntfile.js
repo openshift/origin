@@ -43,8 +43,8 @@ module.exports = function (grunt) {
         tasks: ['newer:jshint:all'],
         options: {
           livereload: {
-            key: grunt.file.read('livereload.key'),
-            cert: grunt.file.read('livereload.crt')
+            key: grunt.file.read('server.key'),
+            cert: grunt.file.read('server.crt')
           }
         }
       },
@@ -60,8 +60,8 @@ module.exports = function (grunt) {
         files: '<%= yeoman.app %>/views/{,*/}*.html',
         options: {
           livereload: {
-            key: grunt.file.read('livereload.key'),
-            cert: grunt.file.read('livereload.crt')
+            key: grunt.file.read('server.key'),
+            cert: grunt.file.read('server.crt')
           }
         }        
       },
@@ -97,6 +97,8 @@ module.exports = function (grunt) {
         port: grunt.option('port') || 9000,
         // Change this to '0.0.0.0' to access the server from outside.
         hostname: grunt.option('hostname') || 'localhost',
+        key: grunt.file.read('server.key'),
+        cert: grunt.file.read('server.crt'),
         livereload: 35729
       },
       livereload: {
