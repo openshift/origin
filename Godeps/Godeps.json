@@ -353,20 +353,20 @@
 			"Rev": "b4a58d95188dd092ae20072bac14cece0e67c388"
 		},
 		{
-			"ImportPath": "github.com/coreos/pkg/capnslog",
-			"Rev": "25bc220b299845ae5489fd19bf89c5278864b050"
+		  	"ImportPath": "github.com/coreos/pkg/capnslog",
+		  	"Rev": "fa94270d4bac0d8ae5dc6b71894e251aada93f74"
 		},
 		{
-			"ImportPath": "github.com/coreos/pkg/health",
-			"Rev": "25bc220b299845ae5489fd19bf89c5278864b050"
+		  	"ImportPath": "github.com/coreos/pkg/health",
+		  	"Rev": "fa94270d4bac0d8ae5dc6b71894e251aada93f74"
 		},
 		{
-			"ImportPath": "github.com/coreos/pkg/httputil",
-			"Rev": "25bc220b299845ae5489fd19bf89c5278864b050"
+		  	"ImportPath": "github.com/coreos/pkg/httputil",
+		  	"Rev": "fa94270d4bac0d8ae5dc6b71894e251aada93f74"
 		},
 		{
-			"ImportPath": "github.com/coreos/pkg/timeutil",
-			"Rev": "25bc220b299845ae5489fd19bf89c5278864b050"
+		  	"ImportPath": "github.com/coreos/pkg/timeutil",
+		  	"Rev": "fa94270d4bac0d8ae5dc6b71894e251aada93f74"
 		},
 		{
 			"ImportPath": "github.com/coreos/rkt/api/v1alpha",
