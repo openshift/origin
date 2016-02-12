@@ -25,7 +25,7 @@ os::log::install_errexit
 NETWORKING_DEBUG=${NETWORKING_DEBUG:-false}
 
 # These strings filter the available tests.
-NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services}"
+NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 
 DEFAULT_SKIP_LIST=(
@@ -150,7 +150,7 @@ function run-extended-tests() {
       # Only the multitenant plugin can pass the isolation test
       if ! grep -q 'redhat/openshift-ovs-multitenant' \
            $(find "${conf_path}" -name 'node-config.yaml' | head -n 1); then
-        skip_regex="${skip_regex}|networking: isolation"
+        skip_regex="${skip_regex}|\[networking\] network isolation plugin"
       fi
   fi
 
