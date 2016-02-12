@@ -25,7 +25,7 @@ os::log::install_errexit
 NETWORKING_DEBUG=${NETWORKING_DEBUG:-false}
 
 # These strings filter the available tests.
-NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services}"
+NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 
 DEFAULT_SKIP_LIST=(
