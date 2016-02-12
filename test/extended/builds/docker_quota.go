@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("builds: docker build with a quota", func() {
+var _ = g.Describe("[builds][quota] docker build with a quota", func() {
 	defer g.GinkgoRecover()
 	const (
 		buildTestPod     = "build-test-pod"
