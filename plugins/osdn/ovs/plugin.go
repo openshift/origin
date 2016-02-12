@@ -9,8 +9,8 @@ import (
 	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
+	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
-	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 )
 
