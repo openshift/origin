@@ -27,33 +27,37 @@
             <span class="fa fa-refresh" aria-hidden="true"></span>
           </div>
           <div flex>Build:
+            <span ng-if="build.metadata.labels.buildconfig">
+              <a ng-href="{{build.metadata.labels.buildconfig | navigateResourceURL : 'BuildConfig' : build.metadata.namespace}}">{{build.metadata.labels.buildconfig}}</a>,
+            </span>
             <a ng-href="{{build | navigateResourceURL}}">
               <span ng-if="(build | annotation : 'buildNumber')">#{{build | annotation : 'buildNumber'}}</span>
               <span ng-if="!(build | annotation : 'buildNumber')">{{build.metadata.name}}</span>
             </a>
-            <span ng-if="build.spec.source">
-              from
-              <span class="fa fa-code" aria-hidden="true"></span><span class="sr-only"> source </span>
-              <span>
-                <span ng-switch="build.spec.source.type">
-                  <span ng-switch-when="Git">
-                    <span ng-if="build.spec.revision.git.commit">
-                      {{build.spec.revision.git.message}}
-                      (<osc-git-link
-                        uri="build.spec.source.git.uri"
-                        commit="build.spec.revision.git.commit">{{build.spec.revision.git.commit | limitTo:7}}</osc-git-link>)
-                      <span ng-if="build.spec.revision.git.author">
-                        authored by {{build.spec.revision.git.author.name}}
-                      </span>
-                    </span>
-                    <span ng-if="!build.spec.revision.git.commit">
-                      <osc-git-link uri="build.spec.source.git.uri">{{build.spec.source.git.uri}}</osc-git-link>
-                    </span>
-                  </span>
-                  <span ng-switch-default>
-                    {{build.spec.source.type || 'Unknown'}}
+          </div>
+        </div>
+        <div row class="icon-row" ng-if="build.spec.source">
+          <div>
+            <span class="fa fa-code" aria-hidden="true"></span>
+          </div>
+          <div flex>Source:
+            <span ng-switch="build.spec.source.type">
+              <span ng-switch-when="Git">
+                <span ng-if="build.spec.revision.git.commit">
+                  {{build.spec.revision.git.message}}
+                  (<osc-git-link
+                    uri="build.spec.source.git.uri"
+                    commit="build.spec.revision.git.commit">{{build.spec.revision.git.commit | limitTo:7}}</osc-git-link>)
+                  <span ng-if="detailed && build.spec.revision.git.author">
+                    authored by {{build.spec.revision.git.author.name}}
                   </span>
                 </span>
+                <span ng-if="!build.spec.revision.git.commit">
+                  <osc-git-link uri="build.spec.source.git.uri">{{build.spec.source.git.uri}}</osc-git-link>
+                </span>
+              </span>
+              <span ng-switch-default>
+                {{build.spec.source.type || 'Unknown'}}
               </span>
             </span>
           </div>
