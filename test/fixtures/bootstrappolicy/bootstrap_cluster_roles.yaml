@@ -727,6 +727,12 @@ items:
     - imagestreammappings
     verbs:
     - create
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - resourcequotas
+    verbs:
+    - list
 - apiVersion: v1
   kind: ClusterRole
   metadata:

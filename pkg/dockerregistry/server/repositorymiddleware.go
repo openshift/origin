@@ -56,11 +56,12 @@ func init() {
 type repository struct {
 	distribution.Repository
 
-	ctx            context.Context
-	registryClient client.Interface
-	registryAddr   string
-	namespace      string
-	name           string
+	ctx                context.Context
+	registryKubeClient kclient.Interface
+	registryOSClient   client.Interface
+	registryAddr       string
+	namespace          string
+	name               string
 
 	// if true, the repository will check remote references in the image stream to support pulling "through"
 	// from a remote repository
@@ -87,7 +88,7 @@ func newRepository(ctx context.Context, repo distribution.Repository, options ma
 		}
 	}
 
-	registryClient, err := NewRegistryOpenShiftClient()
+	kClient, osClient, err := NewRegistryOpenShiftClients()
 	if err != nil {
 		return nil, err
 	}
@@ -100,13 +101,14 @@ func newRepository(ctx context.Context, repo distribution.Repository, options ma
 	return &repository{
 		Repository: repo,
 
-		ctx:            ctx,
-		registryClient: registryClient,
-		registryAddr:   registryAddr,
-		namespace:      nameParts[0],
-		name:           nameParts[1],
-		pullthrough:    pullthrough,
-		cachedLayers:   cachedLayers,
+		ctx:                ctx,
+		registryKubeClient: kClient,
+		registryOSClient:   osClient,
+		registryAddr:       registryAddr,
+		namespace:          nameParts[0],
+		name:               nameParts[1],
+		pullthrough:        pullthrough,
+		cachedLayers:       cachedLayers,
 	}, nil
 }
 
@@ -122,14 +124,19 @@ func (r *repository) Manifests(ctx context.Context, options ...distribution.Mani
 
 // Blobs returns a blob store which can delegate to remote repositories.
 func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
-	if !r.pullthrough {
-		return r.Repository.Blobs(ctx)
-	}
-
 	repo := repository(*r)
 	repo.ctx = ctx
-	return &pullthroughBlobStore{
+
+	bs := &quotaRestrictedBlobStore{
 		BlobStore: r.Repository.Blobs(ctx),
+		repo:      &repo,
+	}
+	if !r.pullthrough {
+		return bs
+	}
+
+	return &pullthroughBlobStore{
+		BlobStore: bs,
 
 		repo:          &repo,
 		digestToStore: make(map[string]distribution.BlobStore),
@@ -334,12 +341,17 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 		},
 	}
 
-	if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
+	if err := r.registryOSClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
 		// if the error was that the image stream wasn't found, try to auto provision it
 		statusErr, ok := err.(*kerrors.StatusError)
 		if !ok {
 			context.GetLogger(r.ctx).Errorf("Error creating ImageStreamMapping: %s", err)
 			return err
+		}
+
+		if kerrors.IsForbidden(statusErr) {
+			context.GetLogger(r.ctx).Errorf("Denied creating ImageStreamMapping: %v", statusErr)
+			return distribution.ErrAccessDenied
 		}
 
 		status := statusErr.ErrStatus
@@ -366,7 +378,7 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 		}
 
 		// try to create the ISM again
-		if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
+		if err := r.registryOSClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
 			context.GetLogger(r.ctx).Errorf("Error creating image stream mapping: %s", err)
 			return err
 		}
@@ -402,7 +414,7 @@ func (r *repository) Delete(dgst digest.Digest) error {
 // importContext loads secrets for this image stream and returns a context for getting distribution
 // clients to remote repositories.
 func (r *repository) importContext() importer.RepositoryRetriever {
-	secrets, err := r.registryClient.ImageStreamSecrets(r.namespace).Secrets(r.name, kapi.ListOptions{})
+	secrets, err := r.registryOSClient.ImageStreamSecrets(r.namespace).Secrets(r.name, kapi.ListOptions{})
 	if err != nil {
 		context.GetLogger(r.ctx).Errorf("Error getting secrets for repository %q: %v", r.Name(), err)
 		secrets = &kapi.SecretList{}
@@ -413,24 +425,24 @@ func (r *repository) importContext() importer.RepositoryRetriever {
 
 // getImageStream retrieves the ImageStream for r.
 func (r *repository) getImageStream() (*imageapi.ImageStream, error) {
-	return r.registryClient.ImageStreams(r.namespace).Get(r.name)
+	return r.registryOSClient.ImageStreams(r.namespace).Get(r.name)
 }
 
 // getImage retrieves the Image with digest `dgst`.
 func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
-	return r.registryClient.Images().Get(dgst.String())
+	return r.registryOSClient.Images().Get(dgst.String())
 }
 
 // getImageStreamTag retrieves the Image with tag `tag` for the ImageStream
 // associated with r.
 func (r *repository) getImageStreamTag(tag string) (*imageapi.ImageStreamTag, error) {
-	return r.registryClient.ImageStreamTags(r.namespace).Get(r.name, tag)
+	return r.registryOSClient.ImageStreamTags(r.namespace).Get(r.name, tag)
 }
 
 // getImageStreamImage retrieves the Image with digest `dgst` for the ImageStream
 // associated with r. This ensures the image belongs to the image stream.
 func (r *repository) getImageStreamImage(dgst digest.Digest) (*imageapi.ImageStreamImage, error) {
-	return r.registryClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
+	return r.registryOSClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
 }
 
 // rememberLayers caches the provided layers
