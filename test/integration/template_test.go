@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -19,10 +19,8 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func init() {
-	testutil.RequireEtcd()
-}
 func TestTemplate(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, path, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -120,6 +118,7 @@ func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error 
 }
 
 func TestTemplateTransformationFromConfig(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -27,6 +27,7 @@ type testRequest struct {
 }
 
 func TestNodeAuth(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	// Server config
 	masterConfig, nodeConfig, adminKubeConfigFile, err := testserver.StartTestAllInOne()
 	if err != nil {

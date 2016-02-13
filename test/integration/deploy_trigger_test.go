@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -24,6 +24,7 @@ const maxUpdateRetries = 5
 func TestTriggers_manual(t *testing.T) {
 	const namespace = "test-triggers-manual"
 
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	checkErr(t, err)
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
@@ -88,6 +89,7 @@ func TestTriggers_manual(t *testing.T) {
 }
 
 func TestTriggers_imageChange(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)
@@ -192,6 +194,7 @@ waitForNewConfig:
 func TestTriggers_configChange(t *testing.T) {
 	const namespace = "test-triggers-configchange"
 
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	checkErr(t, err)
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)

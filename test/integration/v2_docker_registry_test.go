@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -26,10 +26,6 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
-
-func init() {
-	testutil.RequireEtcd()
-}
 
 func signedManifest(name string) ([]byte, digest.Digest, error) {
 	key, err := libtrust.GenerateECP256PrivateKey()
@@ -78,6 +74,7 @@ func signedManifest(name string) ([]byte, digest.Digest, error) {
 }
 
 func TestV2RegistryGetTags(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)
