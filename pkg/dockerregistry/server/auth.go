@@ -117,14 +117,14 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		return nil, ac.wrapErr(err)
 	}
 
-	client, err := NewUserOpenShiftClient(bearerToken)
+	_, osClient, err := NewUserOpenShiftClients(bearerToken)
 	if err != nil {
 		return nil, ac.wrapErr(err)
 	}
 
 	// In case of docker login, hits endpoint /v2
 	if len(accessRecords) == 0 {
-		if err := verifyOpenShiftUser(ctx, client); err != nil {
+		if err := verifyOpenShiftUser(ctx, osClient); err != nil {
 			return nil, ac.wrapErr(err)
 		}
 	}
@@ -160,12 +160,12 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				if verifiedPrune {
 					continue
 				}
-				if err := verifyPruneAccess(ctx, client); err != nil {
+				if err := verifyPruneAccess(ctx, osClient); err != nil {
 					return nil, ac.wrapErr(err)
 				}
 				verifiedPrune = true
 			default:
-				if err := verifyImageStreamAccess(ctx, imageStreamNS, imageStreamName, verb, client); err != nil {
+				if err := verifyImageStreamAccess(ctx, imageStreamNS, imageStreamName, verb, osClient); err != nil {
 					return nil, ac.wrapErr(err)
 				}
 			}
@@ -176,7 +176,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				if verifiedPrune {
 					continue
 				}
-				if err := verifyPruneAccess(ctx, client); err != nil {
+				if err := verifyPruneAccess(ctx, osClient); err != nil {
 					return nil, ac.wrapErr(err)
 				}
 				verifiedPrune = true
@@ -188,7 +188,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		}
 	}
 
-	return WithUserClient(ctx, client), nil
+	return WithUserClient(ctx, osClient), nil
 }
 
 func getNamespaceName(resourceName string) (string, string, error) {
