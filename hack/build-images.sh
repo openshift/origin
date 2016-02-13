@@ -68,8 +68,6 @@ function ln_or_cp {
 
 # Link or copy primary binaries to the appropriate locations.
 ln_or_cp "${imagedir}/openshift" images/origin/bin
-ln_or_cp "${imagedir}/openshift" images/router/haproxy/bin
-ln_or_cp "${imagedir}/openshift" images/ipfailover/keepalived/bin
 
 # Link or copy image binaries to the appropriate locations.
 ln_or_cp "${imagedir}/pod"             images/pod/bin
