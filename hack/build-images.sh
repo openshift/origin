@@ -77,7 +77,6 @@ ln_or_cp "${imagedir}/hello-openshift" examples/hello-openshift/bin
 ln_or_cp "${imagedir}/deployment"      examples/deployment/bin
 ln_or_cp "${imagedir}/gitserver"       examples/gitserver/bin
 ln_or_cp "${imagedir}/dockerregistry"  images/dockerregistry/bin
-ln_or_cp "${imagedir}/recycle"         images/recycler/bin
 
 # Copy SDN scripts into images/node
 os::provision::install-sdn "${OS_ROOT}" "${OS_ROOT}/images/node"
