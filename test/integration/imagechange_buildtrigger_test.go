@@ -237,6 +237,7 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild := event.Object.(*buildapi.Build)
+	build1Name := newBuild.Name
 	strategy := newBuild.Spec.Strategy
 	switch {
 	case strategy.SourceStrategy != nil:
@@ -298,11 +299,19 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	event = <-watch.ResultChan()
+
+	// throw away events from build1, we only care about the new build
+	// we just triggered
+	for {
+		event = <-watch.ResultChan()
+		newBuild = event.Object.(*buildapi.Build)
+		if newBuild.Name != build1Name {
+			break
+		}
+	}
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newBuild = event.Object.(*buildapi.Build)
 	strategy = newBuild.Spec.Strategy
 	switch {
 	case strategy.SourceStrategy != nil:
@@ -325,11 +334,18 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 		}
 	}
 
-	event = <-watch.ResultChan()
+	// throw away events from build1, we only care about the new build
+	// we just triggered
+	for {
+		event = <-watch.ResultChan()
+		newBuild = event.Object.(*buildapi.Build)
+		if newBuild.Name != build1Name {
+			break
+		}
+	}
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newBuild = event.Object.(*buildapi.Build)
 	// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
 	if newBuild.Spec.Output.To.Name != "test-image-trigger-repo:outputtag" {
 		t.Fatalf("unexpected build output: %#v %#v", newBuild.Spec.Output.To, newBuild.Spec.Output)
