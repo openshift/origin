@@ -10,7 +10,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[images][php] openshift php image", func() {
+var _ = g.Describe("[images][php][Slow] hot deploy for openshift php image", func() {
 	defer g.GinkgoRecover()
 	var (
 		cakephpTemplate = "https://raw.githubusercontent.com/openshift/cakephp-ex/master/openshift/templates/cakephp-mysql.json"
