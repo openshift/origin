@@ -24,6 +24,6 @@ RUN mkdir -p /var/lib/etcd && chmod go+rwx /var/lib/etcd
 
 VOLUME ["/var/lib/etcd"]
 
-ADD etcd*.sh /usr/local/bin/
+COPY etcd*.sh /usr/local/bin/
 
 CMD ["/usr/local/bin/etcd.sh"]

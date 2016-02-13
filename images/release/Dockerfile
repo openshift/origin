@@ -23,10 +23,12 @@ RUN mkdir $TMPDIR && \
     go get golang.org/x/tools/cmd/cover github.com/tools/godep github.com/golang/lint/golint && \
     touch /os-build-image
 
-WORKDIR /go/src/github.com/openshift/origin
-
 # Allows building Origin sources mounted using volume
-ADD openshift-origin-build.sh /usr/bin/openshift-origin-build.sh
+COPY openshift-origin-build.sh /usr/bin/openshift-origin-build.sh
+
+WORKDIR /go/src/github.com/openshift/origin
+LABEL io.k8s.display-name="OpenShift Origin Release Environment" \
+      io.k8s.description="This is the standard release image for OpenShift Origin and contains the necessary build tools to build the platform."
 
 # Expect a tar with the source of OpenShift Origin (and /os-version-defs in the root)
-CMD tar mxzf - && hack/build-cross.sh
+CMD bsdtar mxzf - && hack/build-cross.sh

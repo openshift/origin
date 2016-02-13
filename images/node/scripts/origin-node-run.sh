@@ -2,21 +2,16 @@
 
 set -eu
 
+hostetc=${HOST_ETC:-/rootfs/etc}
 conf=${CONFIG_FILE:-/etc/origin/node/node-config.yaml}
 opts=${OPTIONS:---loglevel=2}
-
-function quit {
-    pkill -g 0 openshift
-    exit 0
-}
-
-trap quit SIGTERM
-
-if [ ! -f ${HOST_ETC}/systemd/system/docker.service.d/docker-sdn-ovs.conf ]; then
-    mkdir -p ${HOST_ETC}/systemd/system/docker.service.d
-    cp /usr/lib/systemd/system/docker.service.d/docker-sdn-ovs.conf ${HOST_ETC}/systemd/system/docker.service.d
+if [ "$#" -ne 0 ]; then
+  opts=""
 fi
 
-/usr/bin/openshift start node "--config=${conf}" "${opts}" &
+if [ ! -f ${hostetc}/systemd/system/docker.service.d/docker-sdn-ovs.conf ]; then
+    mkdir -p ${hostetc}/systemd/system/docker.service.d
+    cp /usr/lib/systemd/system/docker.service.d/docker-sdn-ovs.conf ${hostetc}/systemd/system/docker.service.d
+fi
 
-while true; do sleep 5; done
+exec /usr/bin/openshift start node "--config=${conf}" "${opts}" $@

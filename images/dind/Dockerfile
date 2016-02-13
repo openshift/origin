@@ -1,9 +1,9 @@
 #
-# This image is used for running a host of an openshift dev cluster.
+# This image is used for running a host of an openshift dev cluster. This image is
+# a development support image and should not be used in production environments.
 #
 # The standard name for this image is openshift/dind
 #
-
 FROM fedora:23
 
 ## Configure systemd to run in a container
