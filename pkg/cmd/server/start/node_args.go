@@ -16,17 +16,43 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/openshift/openshift-sdn/plugins/osdn/ovs"
+
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
+
+const (
+	ComponentGroupNetwork = "network"
+	ComponentProxy        = "proxy"
+	ComponentPlugins      = "plugins"
+	ComponentKubelet      = "kubelet"
+)
+
+// NewNodeComponentFlag returns a flag capable of handling enabled components for the node
+func NewNodeComponentFlag() *utilflags.ComponentFlag {
+	return utilflags.NewComponentFlag(
+		map[string][]string{ComponentGroupNetwork: {ComponentProxy, ComponentPlugins}},
+		ComponentKubelet, ComponentProxy, ComponentPlugins,
+	)
+}
+
+// NewNodeComponentFlag returns a flag capable of handling enabled components for the network
+func NewNetworkComponentFlag() *utilflags.ComponentFlag {
+	return utilflags.NewComponentFlag(nil, ComponentProxy, ComponentPlugins)
+}
 
 // NodeArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting a node.
 // This object should hold the common set values, but not attempt to handle all cases.  The expected path is to use this object to create
 // a fully specified config later on.  If you need something not set here, then create a fully specified config file and pass that as argument
 // to starting the master.
 type NodeArgs struct {
+	// Components is the set of enabled components.
+	Components *utilflags.ComponentFlag
+
 	// NodeName is the hostname to identify this node with the master.
 	NodeName string
 
@@ -50,14 +76,26 @@ type NodeArgs struct {
 }
 
 // BindNodeArgs binds the options to the flags with prefix + default flag names
-func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
+func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string, components bool) {
+	if components {
+		args.Components.Bind(flags, prefix+"%s", "The set of node components to")
+	}
+
+	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
+
 	flags.StringVar(&args.VolumeDir, prefix+"volume-dir", "openshift.local.volumes", "The volume storage directory.")
 	// TODO rename this node-name and recommend uname -n
 	flags.StringVar(&args.NodeName, prefix+"hostname", args.NodeName, "The hostname to identify this node with the master.")
-	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
 
 	// autocompletion hints
 	cobra.MarkFlagFilename(flags, prefix+"volume-dir")
+}
+
+// BindNodeNetworkArgs binds the options to the flags with prefix + default flag names
+func BindNodeNetworkArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
+	args.Components.Bind(flags, "%s", "The set of network components to")
+
+	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
 }
 
 // NewDefaultNodeArgs creates NodeArgs with sub-objects created and default values set.
@@ -73,6 +111,8 @@ func NewDefaultNodeArgs() *NodeArgs {
 	}
 
 	config := &NodeArgs{
+		Components: NewNodeComponentFlag(),
+
 		NodeName: hostname,
 
 		MasterCertDir: "openshift.local.config/master",
@@ -98,7 +138,31 @@ func (args NodeArgs) Validate() error {
 	if _, err := args.KubeConnectionArgs.GetKubernetesAddress(args.DefaultKubernetesURL); err != nil {
 		return errors.New("--kubeconfig must be set to provide API server connection information")
 	}
+	return nil
+}
 
+func ValidateRuntime(config *configapi.NodeConfig, components *utilflags.ComponentFlag) error {
+	actual, err := components.Validate()
+	if err != nil {
+		return err
+	}
+	if actual.Len() == 0 {
+		return fmt.Errorf("at least one node component must be enabled (%s)", strings.Join(components.Allowed().List(), ", "))
+	}
+
+	switch strings.ToLower(config.NetworkConfig.NetworkPluginName) {
+	case ovs.MultiTenantPluginName():
+		if actual.Has(ComponentKubelet) && !actual.Has(ComponentPlugins) {
+			return fmt.Errorf("the multi-tenant SDN plugin must be run in the same process as the kubelet")
+		}
+		if actual.Has(ComponentProxy) && !actual.Has(ComponentPlugins) {
+			return fmt.Errorf("the multi-tenant SDN plugin requires the proxy and plugins components be enabled in the same process")
+		}
+	case ovs.SingleTenantPluginName():
+		if actual.Has(ComponentKubelet) && !actual.Has(ComponentPlugins) {
+			return fmt.Errorf("the SDN plugin must be run in the same process as the kubelet")
+		}
+	}
 	return nil
 }
 

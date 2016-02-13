@@ -79,15 +79,8 @@ func NewCommandStartMaster(basename string, out io.Writer) (*cobra.Command, *Mas
 		Short: "Launch a master",
 		Long:  fmt.Sprintf(masterLong, basename),
 		Run: func(c *cobra.Command, args []string) {
-			if err := options.Complete(); err != nil {
-				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
-				return
-			}
-
-			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
-				return
-			}
+			kcmdutil.CheckErr(options.Complete())
+			kcmdutil.CheckErr(options.Validate(args))
 
 			startProfiler()
 

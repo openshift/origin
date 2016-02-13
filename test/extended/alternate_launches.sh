@@ -9,20 +9,22 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/common.sh"
-os::log::install_errexit
 cd "${OS_ROOT}"
+source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/lib/util/environment.sh"
+source "${OS_ROOT}/hack/cmd_util.sh"
+os::log::install_errexit
 
-os::build::setup_env
+os::util::environment::setup_all_server_vars "test-extended-alternate-launches/"
+reset_tmp_dir
 
-export TMPDIR="${TMPDIR:-"/tmp"}"
-export BASETMPDIR="${TMPDIR}/openshift-extended-tests/alternate_launches"
 export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
 function cleanup()
 {
 	out=$?
+  pgrep -f "openshift" | xargs -r sudo kill
 	cleanup_openshift
 	echo "[INFO] Exiting"
 	exit $out
@@ -34,8 +36,6 @@ trap "cleanup" EXIT
 
 echo "[INFO] Starting server as distinct processes"
 ensure_iptables_or_die
-setup_env_vars
-reset_tmp_dir
 configure_os_server
 
 echo "[INFO] `openshift version`"
@@ -50,6 +50,7 @@ mkdir -p ${LOG_DIR}
 
 echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
 ps -ef | grep openshift
+
 echo "[INFO] Starting etcdserver"
 sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start etcd \
  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
@@ -66,6 +67,61 @@ wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.2
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
 echo "[INFO] OpenShift API server up at: "
 date
+
+# test alternate node level launches
+echo "[INFO] Testing alternate node configurations"
+
+# proxy only
+sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start network --enable=proxy \
+ --config=${NODE_CONFIG_DIR}/node-config.yaml \
+ --loglevel=4 \
+&>"${LOG_DIR}/os-network-1.log" &
+os::cmd::try_until_text 'cat ${LOG_DIR}/os-network-1.log' 'syncProxyRules took'
+pgrep -f "TEST_CALL=1" | xargs -r sudo kill
+os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-network-1.log' 'Starting node networking'
+os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-network-1.log' 'Started Kubernetes Proxy on'
+
+# proxy only
+sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start node --enable=proxy \
+ --config=${NODE_CONFIG_DIR}/node-config.yaml \
+ --loglevel=4 \
+&>"${LOG_DIR}/os-node-1.log" &
+os::cmd::try_until_text 'cat ${LOG_DIR}/os-node-1.log' 'syncProxyRules took'
+pgrep -f "TEST_CALL=1" | xargs -r sudo kill
+os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-node-1.log' 'Starting node networking'
+os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-node-1.log' 'Started Kubernetes Proxy on'
+
+# plugins only
+sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start network --enable=plugins \
+ --config=${NODE_CONFIG_DIR}/node-config.yaml \
+ --loglevel=4 \
+&>"${LOG_DIR}/os-network-2.log" &
+os::cmd::try_until_text 'cat ${LOG_DIR}/os-network-2.log' 'Connecting to API server'
+pgrep -f "TEST_CALL=1" | xargs -r sudo kill
+os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-network-2.log' 'Starting node networking'
+os::cmd::expect_success_and_not_text 'cat ${LOG_DIR}/os-network-2.log' 'Started Kubernetes Proxy on'
+
+# plugins only
+sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start node --enable=plugins \
+ --config=${NODE_CONFIG_DIR}/node-config.yaml \
+ --loglevel=4 \
+&>"${LOG_DIR}/os-node-2.log" &
+os::cmd::try_until_text 'cat ${LOG_DIR}/os-node-2.log' 'Connecting to API server'
+pgrep -f "TEST_CALL=1" | xargs -r sudo kill
+os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-node-2.log' 'Starting node networking'
+os::cmd::expect_success_and_not_text 'cat ${LOG_DIR}/os-node-2.log' 'Started Kubernetes Proxy on'
+
+# kubelet only
+sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start node --enable=kubelet \
+ --config=${NODE_CONFIG_DIR}/node-config.yaml \
+ --loglevel=4 \
+&>"${LOG_DIR}/os-node-3.log" &
+os::cmd::try_until_text 'cat ${LOG_DIR}/os-node-3.log' 'Started kubelet'
+pgrep -f "TEST_CALL=1" | xargs -r sudo kill
+os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-node-3.log' 'Starting node'
+os::cmd::expect_success_and_not_text 'cat ${LOG_DIR}/os-node-3.log' 'Starting node networking'
+os::cmd::expect_success_and_not_text 'cat ${LOG_DIR}/os-node-3.log' 'Started Kubernetes Proxy on'
+
 
 echo "[INFO] Starting controllers"
 sudo env "PATH=${PATH}"  OPENSHIFT_ON_PANIC=crash openshift start master controllers \

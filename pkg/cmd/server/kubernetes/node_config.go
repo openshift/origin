@@ -43,6 +43,9 @@ type NodeConfig struct {
 	VolumeDir string
 	// AllowDisabledDocker if true, will make the Kubelet ignore errors from Docker
 	AllowDisabledDocker bool
+	// Containerized is true if we are expected to be running inside of a container
+	Containerized bool
+
 	// Client to connect to the master.
 	Client *client.Client
 	// DockerClient is a client to connect to Docker
@@ -145,9 +148,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.TLSCertFile = options.ServingInfo.ServerCert.CertFile
 	server.TLSPrivateKeyFile = options.ServingInfo.ServerCert.KeyFile
 
-	if value := cmdutil.Env("OPENSHIFT_CONTAINERIZED", ""); len(value) > 0 {
-		server.Containerized = value == "true"
-	}
+	containerized := cmdutil.Env("OPENSHIFT_CONTAINERIZED", "") == "true"
+	server.Containerized = containerized
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
@@ -259,7 +261,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	sdnPlugin, endpointFilter, err := factory.NewPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP)
 	if err != nil {
 		return nil, fmt.Errorf("SDN initialization failed: %v", err)
-	} else if sdnPlugin != nil {
+	}
+	if sdnPlugin != nil {
 		cfg.NetworkPlugins = append(cfg.NetworkPlugins, sdnPlugin)
 	}
 
@@ -267,6 +270,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		BindAddress: options.ServingInfo.BindAddress,
 
 		AllowDisabledDocker: options.AllowDisabledDocker,
+		Containerized:       containerized,
 
 		Client: kubeClient,
 
