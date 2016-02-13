@@ -236,20 +236,32 @@ angular.module("openshiftConsole")
     // Gets the latest in progress or complete deployment among deployments.
     // Deployments are assumed to be from the same deployment config.
     DeploymentsService.prototype.getActiveDeployment = function(deployments) {
-      var orderByDate = $filter('orderObjectsByDate');
       var isInProgress = $filter('deploymentIsInProgress');
       var annotation = $filter('annotation');
 
-      // Sort to look at most recent deployments first.
-      var i, deployment, orderedDeployments = orderByDate(deployments, true);
-      for (i = 0; i < orderedDeployments.length; i++) {
-        deployment = orderedDeployments[i];
-        if (isInProgress(deployment) || annotation(deployment, 'deploymentStatus') === 'Complete') {
-          return deployment;
-        }
-      }
+      /*
+       * Note: This is a hotspot in our code. We call this function frequently
+       *       on the overview page.
+       */
 
-      return null;
+      // Iterate over the list to find the most recent active deployment.
+      var activeDeployment = null;
+      angular.forEach(deployments, function(deployment) {
+        // An "active" deployment must be in progress or complete.
+        if (!isInProgress(deployment) && annotation(deployment, 'deploymentStatus') !== 'Complete') {
+          return;
+        }
+
+        // The deployment must be more recent than the last we've found.
+        // The date format can be compared using straight string comparison.
+        // Compare as strings for performance.
+        // Example Date: 2016-02-02T21:53:07Z
+        if (!activeDeployment || activeDeployment.metadata.creationTimestamp < deployment.metadata.creationTimestamp) {
+          activeDeployment = deployment;
+        }
+      });
+
+      return activeDeployment;
     };
 
     DeploymentsService.prototype.scaleDC = function(dc, replicas) {
