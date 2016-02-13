@@ -261,6 +261,9 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 					s := int64(120)
 					params.TimeoutSeconds = &s
 				}
+				defaultLifecycleHook(params.Pre)
+				defaultLifecycleHook(params.Mid)
+				defaultLifecycleHook(params.Post)
 				j.RecreateParams = params
 			case deploy.DeploymentStrategyTypeRolling:
 				params := &deploy.RollingDeploymentStrategyParams{}
@@ -293,6 +296,8 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 						},
 					}
 				}
+				defaultLifecycleHook(params.Pre)
+				defaultLifecycleHook(params.Post)
 				if c.RandBool() {
 					params.MaxUnavailable = intstr.FromInt(int(c.RandUint64()))
 					params.MaxSurge = intstr.FromInt(int(c.RandUint64()))
@@ -395,6 +400,17 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 	j.SetAPIVersion("")
 
 	return item
+}
+
+func defaultLifecycleHook(hook *deploy.LifecycleHook) {
+	if hook == nil {
+		return
+	}
+	for i := range hook.TagImages {
+		if len(hook.TagImages[i].ContainerName) == 0 {
+			hook.TagImages[i].ContainerName = "test"
+		}
+	}
 }
 
 func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
