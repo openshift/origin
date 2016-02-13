@@ -243,6 +243,26 @@ func (c *AppConfig) AddArguments(args []string) []string {
 	return unknown
 }
 
+// validateBuilders confirms that all images associated with components that are to be built,
+// are builders (or we're using a docker strategy).
+func (c *AppConfig) validateBuilders(components app.ComponentReferences) error {
+	if len(c.Strategy) != 0 {
+		return nil
+	}
+	errs := []error{}
+	for _, ref := range components {
+		input := ref.Input()
+		// if we're supposed to build this thing, and the image/imagestream we've matched it to did not come from an explicit CLI argument,
+		// and the image/imagestream we matched to is not explicitly an s2i builder, and we're not doing a docker-type build, warn the user
+		// that this probably won't work and force them to declare their intention explicitly.
+		if input.ExpectToBuild && input.ResolvedMatch != nil && !app.IsBuilderMatch(input.ResolvedMatch) && input.Uses != nil && !input.Uses.IsDockerBuild() {
+			errs = append(errs, fmt.Errorf("the image match %q for source repository %q does not appear to be a source-to-image builder.\n\n- to attempt to use this image as a source builder, pass \"--strategy=source\"\n- to use it as a base image for a Docker build, pass \"--strategy=docker\"", input.ResolvedMatch.Name, input.Uses))
+			continue
+		}
+	}
+	return errors.NewAggregate(errs)
+}
+
 func validateEnforcedName(name string) error {
 	if ok, _ := validation.ValidateServiceName(name, false); !ok {
 		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", name)
@@ -555,6 +575,10 @@ func (c *AppConfig) Run() (*AppResult, error) {
 
 	repositories := resolved.Repositories
 	components := resolved.Components
+
+	if err := c.validateBuilders(components); err != nil {
+		return nil, err
+	}
 
 	if len(repositories) == 0 && len(components) == 0 {
 		return nil, ErrNoInputs
