@@ -3,6 +3,7 @@ package rfc2307
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"testing"
 
@@ -10,7 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/ldaputil/testclient"
-	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
+	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/syncerror"
 )
 
 func newTestLDAPInterface(client ldap.Client) *LDAPInterface {
@@ -39,12 +40,18 @@ func newTestLDAPInterface(client ldap.Client) *LDAPInterface {
 	}
 	userNameAttributes := []string{"cn"}
 
+	errorHandler := syncerror.NewCompoundHandler(
+		syncerror.NewMemberLookupOutOfBoundsSuppressor(ioutil.Discard),
+		syncerror.NewMemberLookupMemberNotFoundSuppressor(ioutil.Discard),
+	)
+
 	return NewLDAPInterface(testclient.NewConfig(client),
 		groupQuery,
 		groupNameAttributes,
 		groupMembershipAttributes,
 		userQuery,
-		userNameAttributes)
+		userNameAttributes,
+		errorHandler)
 }
 
 // newTestUser returns a new LDAP entry with the CN
@@ -95,8 +102,53 @@ func TestExtractMembers(t *testing.T) {
 				"cn=testUser,ou=users,dc=example,dc=com",
 				errors.New("generic search error"),
 			),
-			expectedError:   interfaces.NewMemberLookupError("cn=testGroup,ou=groups,dc=example,dc=com", "cn=testUser,ou=users,dc=example,dc=com", errors.New("generic search error")),
+			expectedError:   syncerror.NewMemberLookupError("cn=testGroup,ou=groups,dc=example,dc=com", "cn=testUser,ou=users,dc=example,dc=com", errors.New("generic search error")),
 			expectedMembers: nil,
+		},
+		{
+			name: "out of scope member lookup suppressed",
+			client: testclient.NewMatchingSearchErrorClient(
+				testclient.NewDNMappingClient(
+					testclient.New(),
+					map[string][]*ldap.Entry{
+						"cn=testGroup,ou=groups,dc=example,dc=com": {newTestGroup("testGroup", "cn=testUser,ou=users,dc=other-example,dc=com")},
+					},
+				),
+				"cn=testUser,ou=users,dc=other-example,dc=com",
+				ldaputil.NewQueryOutOfBoundsError("cn=testUser,ou=users,dc=other-example,dc=com", "cn=testGroup,ou=groups,dc=example,dc=com"),
+			),
+			expectedError:   nil,
+			expectedMembers: []*ldap.Entry{},
+		},
+		{
+			name: "no such object member lookup error suppressed",
+			client: testclient.NewMatchingSearchErrorClient(
+				testclient.NewDNMappingClient(
+					testclient.New(),
+					map[string][]*ldap.Entry{
+						"cn=testGroup,ou=groups,dc=example,dc=com": {newTestGroup("testGroup", "cn=testUser,ou=users,dc=other-example,dc=com")},
+					},
+				),
+				"cn=testUser,ou=users,dc=other-example,dc=com",
+				ldaputil.NewNoSuchObjectError("cn=testUser,ou=users,dc=other-example,dc=com"),
+			),
+			expectedError:   nil,
+			expectedMembers: []*ldap.Entry{},
+		},
+		{
+			name: "member not found member lookup error suppressed",
+			client: testclient.NewMatchingSearchErrorClient(
+				testclient.NewDNMappingClient(
+					testclient.New(),
+					map[string][]*ldap.Entry{
+						"cn=testGroup,ou=groups,dc=example,dc=com": {newTestGroup("testGroup", "cn=testUser,ou=users,dc=other-example,dc=com")},
+					},
+				),
+				"cn=testUser,ou=users,dc=other-example,dc=com",
+				ldaputil.NewEntryNotFoundError("cn=testUser,ou=users,dc=other-example,dc=com", "objectClass=groupOfNames"),
+			),
+			expectedError:   nil,
+			expectedMembers: []*ldap.Entry{},
 		},
 		{
 			name: "no errors",
