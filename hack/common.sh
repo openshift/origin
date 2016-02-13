@@ -8,21 +8,24 @@ set -o nounset
 set -o pipefail
 
 # The root of the build/dist directory
-OS_ROOT=$(
+readonly OS_ROOT=$(
   unset CDPATH
   os_root=$(dirname "${BASH_SOURCE}")/..
   cd "${os_root}"
   pwd
 )
 
-OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
-OS_OUTPUT="${OS_ROOT}/${OS_OUTPUT_SUBPATH}"
-OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
-OS_LOCAL_BINPATH="${OS_OUTPUT}/go/bin"
-OS_LOCAL_RELEASEPATH="${OS_OUTPUT}/releases"
+readonly OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
+readonly OS_OUTPUT="${OS_ROOT}/${OS_OUTPUT_SUBPATH}"
+readonly OS_LOCAL_RELEASEPATH="${OS_OUTPUT}/releases"
+readonly OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
 
 readonly OS_GO_PACKAGE=github.com/openshift/origin
-readonly OS_GOPATH="${OS_OUTPUT}/go"
+readonly OS_GOPATH=$(
+  unset CDPATH
+  cd ${OS_ROOT}/../../../..
+  pwd
+)
 
 readonly OS_IMAGE_COMPILE_PLATFORMS=(
   linux/amd64
@@ -143,6 +146,17 @@ os::build::host_platform_friendly() {
   fi
 }
 
+# Build static binary targets.
+#
+# Input:
+#   $@ - targets and go flags.  If no targets are set then all binaries targets
+#     are built.
+#   OS_BUILD_PLATFORMS - Incoming variable of targets to build for.  If unset
+#     then just the host architecture is built.
+os::build::build_static_binaries() {
+  CGO_ENABLED=0 os::build::build_binaries -a -installsuffix=cgo $@
+}
+
 # Build binaries targets specified
 #
 # Input:
@@ -195,8 +209,8 @@ os::build::build_binaries() {
       fi
 
       for test in "${tests[@]:+${tests[@]}}"; do
-        mkdir -p "${OS_OUTPUT_BINPATH}/${platform}"
-        local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
+        mkdir -p "${GOBIN}/${platform}"
+        local outfile="${GOBIN}/${platform}/$(basename ${test})"
         go test -c -o "${outfile}" \
           "${goflags[@]:+${goflags[@]}}" \
           -ldflags "${version_ldflags}" \
@@ -251,25 +265,9 @@ os::build::unset_platform_envs() {
   unset GOARCH
 }
 
-# Create the GOPATH tree under $OS_ROOT
-os::build::create_gopath_tree() {
-  local go_pkg_dir="${OS_GOPATH}/src/${OS_GO_PACKAGE}"
-  local go_pkg_basedir=$(dirname "${go_pkg_dir}")
-
-  mkdir -p "${go_pkg_basedir}"
-  rm -f "${go_pkg_dir}"
-
-  # TODO: This symlink should be relative.
-  ln -s "${OS_ROOT}" "${go_pkg_dir}"
-}
-
 # os::build::setup_env will check that the `go` commands is available in
 # ${PATH}. If not running on Travis, it will also check that the Go version is
 # good enough for the Kubernetes build.
-#
-# Input Vars:
-#   OS_EXTRA_GOPATH - If set, this is included in created GOPATH
-#   OS_NO_GODEPS - If set, we don't add 'Godeps/_workspace' to GOPATH
 #
 # Output Vars:
 #   export GOPATH - A modified GOPATH to our created tree along with extra
@@ -277,8 +275,6 @@ os::build::create_gopath_tree() {
 #   export GOBIN - This is actively unset if already set as we want binaries
 #     placed in a predictable place.
 os::build::setup_env() {
-  os::build::create_gopath_tree
-
   if [[ -z "$(which go)" ]]; then
     cat <<EOF
 
@@ -307,22 +303,8 @@ EOF
     fi
   fi
 
-  GOPATH=${OS_GOPATH}
-
-  # Append OS_EXTRA_GOPATH to the GOPATH if it is defined.
-  if [[ -n ${OS_EXTRA_GOPATH:-} ]]; then
-    GOPATH="${GOPATH}:${OS_EXTRA_GOPATH}"
-  fi
-
-  # Append the tree maintained by `godep` to the GOPATH unless OS_NO_GODEPS
-  # is defined.
-  if [[ -z ${OS_NO_GODEPS:-} ]]; then
-    GOPATH="${GOPATH}:${OS_ROOT}/Godeps/_workspace"
-  fi
-  export GOPATH
-
-  # Unset GOBIN in case it already exists in the current session.
-  unset GOBIN
+  export GOBIN="${OS_OUTPUT_BINPATH}"
+  export GOPATH=${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
 }
 
 # This will take $@ from $GOPATH/bin and copy them to the appropriate
@@ -358,7 +340,7 @@ os::build::place_bins() {
       fi
 
       # Skip this directory if the platform has no binaries.
-      local full_binpath_src="${OS_GOPATH}/bin${platform_src}"
+      local full_binpath_src="${OS_OUTPUT_BINPATH}${platform_src}"
       if [[ ! -d "${full_binpath_src}" ]]; then
         continue
       fi
@@ -376,7 +358,7 @@ os::build::place_bins() {
         fi
       done
 
-      # Move the specified release binaries to the shared OS_OUTPUT_BINPATH.
+      # Move the specified release binaries to the shared binary output directory.
       for binary in "${binaries[@]}"; do
         path="${full_binpath_src}/${binary}"
         if [[ -f "${path}" ]]; then
@@ -542,6 +524,7 @@ os::build::os_version_vars() {
         OS_GIT_TREE_STATE="dirty"
       fi
     fi
+    OS_GIT_SHORT_VERSION="${OS_GIT_COMMIT}"
 
     # Use git describe to find the version based on annotated tags.
     if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
@@ -549,6 +532,7 @@ os::build::os_version_vars() {
         # git describe --dirty only considers changes to existing files, but
         # that is problematic since new untracked .go files affect the build,
         # so use our idea of "dirty" from git status instead.
+        OS_GIT_SHORT_VERSION+="-dirty"
         OS_GIT_VERSION+="-dirty"
       fi
 
