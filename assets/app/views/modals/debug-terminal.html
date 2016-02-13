@@ -1,0 +1,20 @@
+<div class="modal-debug-terminal">
+  <div class="modal-header">
+    <h2><i class="fa fa-terminal" aria-hidden="true"></i> Debugging Container {{containerName}}</h2>
+  </div>
+  <div class="modal-body">
+    <div ng-if="!debugPod.status.containerStatuses[0].state.running" class="h2 text-muted text-center gutter-top gutter-bottom">
+      <p>Waiting for container {{containerName}} to start...</p>
+    </div>
+    <kubernetes-container-terminal
+        pod="debugPod"
+        container="containerName"
+        ng-if="debugPod.status.containerStatuses[0].state.running"
+        class="text-center"
+        style="overflow: hidden;">
+    </kubernetes-container-terminal>
+  </div>
+  <div class="modal-footer">
+      <button class="btn btn-lg btn-primary" type="button" ng-click="close()">Close</button>
+  </div>
+</div>
