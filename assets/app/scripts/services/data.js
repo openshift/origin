@@ -124,17 +124,31 @@ angular.module('openshiftConsole')
 // resource:  API resource (e.g. "pods")
 // name:      API name, the unique name for the object
 // context:   API context (e.g. {project: "..."})
-// opts:      http - options to pass to the inner $http call
+// opts:
+//   http - options to pass to the inner $http call
+//   gracePeriodSeconds - duration in seconds to wait before deleting the resource
 // Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
   DataService.prototype.delete = function(resource, name, context, opts) {
     resource = APIService.toResourceGroupVersion(resource);
     opts = opts || {};
     var deferred = $q.defer();
     var self = this;
+    var data, headers = {};
+    // Differentiate between 0 and undefined
+    if (_.has(opts, 'gracePeriodSeconds')) {
+      data = {
+        kind: "DeleteOptions",
+        apiVersion: "v1",
+        gracePeriodSeconds: opts.gracePeriodSeconds
+      };
+      headers['Content-Type'] = 'application/json';
+    }
     this._getNamespace(resource, context, opts).then(function(ns){
       $http(angular.extend({
         method: 'DELETE',
         auth: {},
+        data: data,
+        headers: headers,
         url: self._urlForResource(resource, name, context, false, ns)
       }, opts.http || {}))
       .success(function(data, status, headerFunc, config, statusText) {
