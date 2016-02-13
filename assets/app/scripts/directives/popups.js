@@ -69,8 +69,14 @@ angular.module('openshiftConsole')
         pod: '='
       },
       link: function($scope) {
-        var warnings = podWarningsFilter($scope.pod);
-        $scope.content = warnings.join('<br>');
+        var i, content = '', warnings = podWarningsFilter($scope.pod);
+        for (i = 0; i < warnings.length; i++) {
+          if (content) {
+            content += '<br>';
+          }
+          content += warnings[i].message;
+        }
+        $scope.content = content;
       },
       templateUrl: 'views/directives/_warnings-popover.html'
     };
