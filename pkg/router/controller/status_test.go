@@ -159,8 +159,8 @@ func TestStatusBackoffOnConflict(t *testing.T) {
 		t.Fatalf("unexpected condition: %#v", condition)
 	}
 
-	if err == nil {
-		t.Fatalf("unexpected non-error: %#v", admitter.expected)
+	if err != nil {
+		t.Fatalf("unexpected error: %#v", err)
 	}
 	if v, ok := admitter.expected.Peek(types.UID("uid1")); !ok || !reflect.DeepEqual(v, time.Time{}) {
 		t.Fatalf("expected empty time: %#v", v)
