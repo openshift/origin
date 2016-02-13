@@ -1,0 +1,47 @@
+<div class="modal-debug-terminal">
+  <div class="modal-header">
+    <h2>Debug Container {{containerName}}</h2>
+    <small class="text-muted">
+      {{debugPod.metadata.name}} &mdash;
+      <status-icon status="debugPod | podStatus"></status-icon>
+      {{debugPod | podStatus | sentenceCase}}
+    </small>
+  </div>
+  <div class="modal-body">
+    <div ng-if="!containerState.running" class="empty-state-message text-center">
+      <!-- Waiting for debug container to start. -->
+      <h2 ng-if="debugPod.status.phase !== 'Failed'" class="text-muted">
+        Waiting for container {{containerName}} to start...
+      </h2>
+      <!-- Debug container failed. -->
+      <div ng-if="debugPod.status.phase === 'Failed'">
+        <h2>
+          <span class="pficon pficon-error-circle-o" aria-hidden="true"></span>
+          Could not start container {{containerName}}.
+        </h2>
+        <p>
+          An error occurred starting the debug pod.
+          <span ng-if="containerState.terminated.message">{{containerState.terminated.message}}</span>
+          <span ng-if="containerState.terminated.exitCode" class="text-muted">Exit code: {{containerState.terminated.exitCode}}</span>
+        </p>
+      </div>
+    </div>
+    <!-- Debug container running. -->
+    <div ng-if="containerState.running">
+      <div class="alert alert-info">
+        <span class="pficon pficon-info" aria-hidden="true"></span>
+        This temporary pod has a modified entrypoint command to debug a failing container. The pod
+        will be deleted when the terminal is closed or after one hour.
+      </div>
+      <div ng-if="image | entrypoint" class="original-cmd-msg">
+        <label>Original Command:</label>
+        <code>{{image | entrypoint}}</code>
+        <copy-to-clipboard-button clipboard-text="image | entrypoint"></copy-to-clipboard-button>
+      </div>
+      <kubernetes-container-terminal pod="debugPod" container="containerName"></kubernetes-container-terminal>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-lg btn-primary" type="button" ng-click="close()">Close</button>
+  </div>
+</div>

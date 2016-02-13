@@ -196,7 +196,7 @@
 }
 
 .empty-state-message {
-  margin: 60px auto @grid-gutter-width;
+  margin: 60px auto;
   max-width: 600px;
   padding: 0 (@grid-gutter-width / 2);
   .btn {
@@ -888,6 +888,35 @@ a.disabled-link {
   }
 }
 
+.debug-pod-action {
+  margin-top: 5px;
+}
+
+.modal-debug-terminal {
+  .modal-header {
+    padding: 0 18px 5px;
+    h2 {
+      margin-bottom: 5px;
+    }
+  }
+  .modal-body {
+    border-top: 1px solid #bbbbbb;
+    border-bottom: 1px solid #bbbbbb;
+    padding: 5px 15px 0;
+    .original-cmd-msg {
+      margin-bottom: 10px;
+    }
+    kubernetes-container-terminal {
+      .text-center();
+      overflow: hidden;
+    }
+    padding-bottom: 15px;
+  }
+  .modal-footer {
+    padding-top: 0;
+  }
+}
+
 .dockerfile-editor {
   height: 200px;
 }
@@ -1047,7 +1076,8 @@ h1 small.meta, .build-config-summary .meta {
   white-space: pre-wrap;
 }
 
-.warnings-popover {
+.info-popover, .warnings-popover {
   cursor: help;
   vertical-align: middle;
+  margin-left: 2px;
 }

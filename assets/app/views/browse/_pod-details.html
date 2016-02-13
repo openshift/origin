@@ -1,7 +1,13 @@
 <div class="resource-details">
   <div class="row">
     <div class="col-lg-6">
-      <h3>Status</h3>
+      <h3>
+        Status
+        <small ng-if="pod | debugLabel">
+          debugging
+          <a ng-href="{{pod | debugLabel | navigateResourceURL : 'Pod' : pod.metadata.namespace}}">{{pod | debugLabel}}</a>
+        </small>
+      </h3>
       <dl class="dl-horizontal left">
         <dt>Status:</dt>
         <dd>
@@ -56,6 +62,10 @@
           <dd>{{containerStatus.ready}}</dd>
           <dt>Restart Count:</dt>
           <dd>{{containerStatus.restartCount}}</dd>
+          <div class="debug-pod-action">
+          <!-- <div ng-if="(!containerStatus.state.running || !containerStatus.ready) && !(pod | debugLabel)" class="debug-pod-action"> -->
+            <a href="" ng-click="debugTerminal(containerStatus.name)" role="button">Debug in terminal</a>
+          </div>
         </dl>
       </div>
     </div>

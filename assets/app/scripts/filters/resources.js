@@ -278,9 +278,9 @@ angular.module('openshiftConsole')
   .filter('webhookURL', function(DataService) {
     return function(buildConfig, type, secret, project) {
       return DataService.url({
-      	// arbitrarily many subresources can be included
-      	// url encoding of the segments is handled by the url() function
-      	// subresource segments cannot contain '/'
+        // arbitrarily many subresources can be included
+        // url encoding of the segments is handled by the url() function
+        // subresource segments cannot contain '/'
         resource: "buildconfigs/webhooks/" + secret + "/" + type.toLowerCase(),
         name: buildConfig,
         namespace: project
@@ -980,5 +980,19 @@ angular.module('openshiftConsole')
       return _.every(containers, function(container) {
         return container.readinessProbe || container.livenessProbe;
       });
+    };
+  })
+  .filter('debugLabel', function(PodsService) {
+    return function(pod) {
+      return PodsService.getDebugLabel(pod);
+    };
+  })
+  .filter('entrypoint', function() {
+    return function(image) {
+      if (!image) {
+        return null;
+      }
+
+      return _.get(image, 'dockerImageMetadata.Config.Cmd', []).join(' ');
     };
   });
