@@ -15,6 +15,7 @@ window.OPENSHIFT_CONSTANTS = {
     "route-types":             "https://docs.openshift.org/latest/architecture/core_concepts/routes.html#route-types",
     "persistent_volumes":      "https://docs.openshift.org/latest/dev_guide/persistent_volumes.html",
     "compute_resources":       "https://docs.openshift.org/latest/dev_guide/compute_resources.html",
+    "application_health":      "https://docs.openshift.org/latest/dev_guide/application_health.html",
     "default":                 "https://docs.openshift.org/latest/welcome/index.html"
   },
   // Maps links names to URL's where the CLI tools can be downloaded, may point directly to files or to external pages in a CDN, for example.
@@ -22,4 +23,3 @@ window.OPENSHIFT_CONSTANTS = {
     "Latest Release":          "https://github.com/openshift/origin/releases/latest"
   }
 };
-

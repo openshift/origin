@@ -147,4 +147,13 @@ angular.module('openshiftConsole')
         $scope.expanded = {};
       }
     };
+  })
+  .directive('probe', function() {
+    return {
+      restrict: 'E',
+      scope: {
+        probe: '='
+      },
+      templateUrl: 'views/directives/_probe.html'
+    };
   });

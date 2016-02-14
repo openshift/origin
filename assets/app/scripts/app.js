@@ -244,6 +244,10 @@ angular
         templateUrl: 'views/set-limits.html',
         controller: 'SetLimitsController'
       })
+      .when('/project/:project/edit-health-checks', {
+        templateUrl: 'views/edit-health-checks.html',
+        controller: 'EditHealthChecksController'
+      })
       .when('/about', {
         templateUrl: 'views/about.html',
         controller: 'AboutController'

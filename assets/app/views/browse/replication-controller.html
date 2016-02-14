@@ -22,6 +22,11 @@
                       ><i class="fa fa-area-chart fa-fw" aria-hidden="true"></i> Set Resource Limits</a>
                   </li>
                   <li>
+                    <a href="project/{{projectName}}/edit-health-checks?rcName={{deployment.metadata.name}}"
+                      role="button"
+                      ><i class="fa fa-medkit fa-fw" aria-hidden="true"></i> Edit Health Checks</a>
+                  </li>
+                  <li>
                     <edit-link
                       resource="deployment"
                       kind="replicationcontrollers"

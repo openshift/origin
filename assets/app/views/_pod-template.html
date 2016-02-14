@@ -124,6 +124,24 @@
         </div>
       </div>
 
+      <div row ng-if="detailed && container.livenessProbe" class="icon-row">
+        <div>
+          <i class="fa fa-medkit" aria-hidden="true"></i>
+        </div>
+        <div flex>
+          Liveness Probe: <probe probe="container.livenessProbe"></probe>
+        </div>
+      </div>
+
+      <div row ng-if="detailed && container.readinessProbe" class="icon-row">
+        <div>
+          <i class="fa fa-medkit" aria-hidden="true"></i>
+        </div>
+        <div flex>
+          Readiness Probe: <probe probe="container.readinessProbe"></probe>
+        </div>
+      </div>
+
       <div hawtio-extension name="container-links"></div>
 
     </div>
