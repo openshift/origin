@@ -21,35 +21,52 @@ os::log::install_errexit
 # Go to the top of the tree.
 cd "${OS_ROOT}"
 
+if [[ "${OS_RELEASE:-}" == "n" ]]; then
+  # Use local binaries
+  imagedir="${OS_OUTPUT_BINPATH}/linux/amd64"
+  # identical to build-cross.sh
+  os::build::os_version_vars
+  OS_RELEASE_COMMIT="${OS_GIT_SHORT_VERSION}"
+  OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]-}")
+
+  echo "Building images from source ${OS_RELEASE_COMMIT}:"
+	echo
+  os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
+	os::build::place_bins "${OS_IMAGE_COMPILE_BINARIES[@]}"
+  echo
+else
 # Get the latest Linux release
-if [[ ! -d _output/local/releases ]]; then
-  echo "No release has been built. Run hack/build-release.sh"
-  exit 1
+  if [[ ! -d _output/local/releases ]]; then
+    echo "No release has been built. Run hack/build-release.sh"
+    exit 1
+  fi
+
+  # Extract the release achives to a staging area.
+  os::build::detect_local_release_tars "linux-64bit"
+
+  echo "Building images from release tars for commit ${OS_RELEASE_COMMIT}:"
+  echo " primary: $(basename ${OS_PRIMARY_RELEASE_TAR})"
+  echo " image:   $(basename ${OS_IMAGE_RELEASE_TAR})"
+
+  imagedir="${OS_OUTPUT}/images"
+  rm -rf ${imagedir}
+  mkdir -p ${imagedir}
+  tar xzpf "${OS_PRIMARY_RELEASE_TAR}" --strip-components=1 -C "${imagedir}"
+  tar xzpf "${OS_IMAGE_RELEASE_TAR}" --strip-components=1 -C "${imagedir}"
 fi
 
-# Extract the release achives to a staging area.
-os::build::detect_local_release_tars "linux-64bit"
-
-echo "Building images from release tars for commit ${OS_RELEASE_COMMIT}:"
-echo " primary: $(basename ${OS_PRIMARY_RELEASE_TAR})"
-echo " image:   $(basename ${OS_IMAGE_RELEASE_TAR})"
-
-imagedir="$(mktemp -d 2>/dev/null || mktemp -d -t imagedir.XXXXXX)"
-tar xzpf "${OS_PRIMARY_RELEASE_TAR}" --strip-components=1 -C "${imagedir}"
-tar xzpf "${OS_IMAGE_RELEASE_TAR}" --strip-components=1 -C "${imagedir}"
-
 # Copy primary binaries to the appropriate locations.
-cp -pf "${imagedir}/openshift" images/origin/bin
-cp -pf "${imagedir}/openshift" images/router/haproxy/bin
-cp -pf "${imagedir}/openshift" images/ipfailover/keepalived/bin
+ln -f "${imagedir}/openshift" images/origin/bin
+ln -f "${imagedir}/openshift" images/router/haproxy/bin
+ln -f "${imagedir}/openshift" images/ipfailover/keepalived/bin
 
 # Copy image binaries to the appropriate locations.
-cp -pf "${imagedir}/pod" images/pod/bin
-cp -pf "${imagedir}/hello-openshift" examples/hello-openshift/bin
-cp -pf "${imagedir}/deployment"      examples/deployment/bin
-cp -pf "${imagedir}/gitserver"       examples/gitserver/bin
-cp -pf "${imagedir}/dockerregistry"  images/dockerregistry/bin
-cp -pf "${imagedir}/recycle"         images/recycler/bin
+ln -f "${imagedir}/pod"             images/pod/bin
+ln -f "${imagedir}/hello-openshift" examples/hello-openshift/bin
+ln -f "${imagedir}/deployment"      examples/deployment/bin
+ln -f "${imagedir}/gitserver"       examples/gitserver/bin
+ln -f "${imagedir}/dockerregistry"  images/dockerregistry/bin
+ln -f "${imagedir}/recycle"         images/recycler/bin
 
 # Copy SDN scripts into images/node
 os::provision::install-sdn "${OS_ROOT}" "${OS_ROOT}/images/node"
@@ -58,9 +75,14 @@ cp -pf "${OS_ROOT}/contrib/systemd/openshift-sdn-ovs.conf" images/node/conf/
 
 # builds an image and tags it two ways - with latest, and with the release tag
 function image {
+  STARTTIME=$(date +%s)
   echo "--- $1 ---"
   docker build -t $1:latest $2
   docker tag -f $1:latest $1:${OS_RELEASE_COMMIT}
+  git clean -fdx $2
+  ENDTIME=$(date +%s); echo "--- $1 took $(($ENDTIME - $STARTTIME)) seconds ---"
+  echo
+  echo
 }
 
 # images that depend on scratch / centos
@@ -87,7 +109,11 @@ image openshift/hello-openshift              examples/hello-openshift
 docker build --no-cache -t openshift/deployment-example:v1 examples/deployment
 docker build --no-cache -t openshift/deployment-example:v2 -f examples/deployment/Dockerfile.v2 examples/deployment
 
+echo
+echo
 echo "++ Active images"
-docker images | grep openshift/
+
+docker images | grep openshift/ | grep ${OS_RELEASE_COMMIT} | sort
+echo
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
