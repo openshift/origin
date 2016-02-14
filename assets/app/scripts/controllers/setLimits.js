@@ -11,6 +11,7 @@ angular.module('openshiftConsole')
   .controller('SetLimitsController', function ($filter, $location, $parse, $routeParams, $scope, AlertMessageService, DataService, LimitRangesService, Navigate, ProjectsService) {
     if ($routeParams.dcName && $routeParams.rcName) {
       Navigate.toErrorPage("Replication controller and deployment config can't both be provided.");
+      return;
     }
 
     var type, displayName;
@@ -27,6 +28,7 @@ angular.module('openshiftConsole')
       $scope.showPodWarning = true;
     } else {
       Navigate.toErrorPage("A replication controller or deployment config must be provided.");
+      return;
     }
 
     $scope.alerts = {};

@@ -41,6 +41,10 @@
                       role="button">Edit Autoscaler</a>
                   </li>
                   <li>
+                    <a ng-href="project/{{projectName}}/edit/health-checks?name={{deployment.metadata.name}}&kind=ReplicationController"
+                       role="button">Edit Health Checks</a>
+                  </li>
+                  <li>
                     <edit-link
                       resource="deployment"
                       kind="ReplicationController"

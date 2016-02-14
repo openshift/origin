@@ -23,7 +23,9 @@ angular.module('openshiftConsole')
         podTemplate: '=',
         imagesByDockerReference: '=',
         builds: '=',
-        detailed: '=?'
+        detailed: '=?',
+        // Optional URL for setting health checks on the resource when missing.
+        addHealthCheckUrl: '@?'
       },
       templateUrl: 'views/_pod-template.html'
     };
@@ -158,5 +160,14 @@ angular.module('openshiftConsole')
         alerts: '='
       },
       templateUrl: 'views/directives/hpa.html'
+    };
+  })
+  .directive('probe', function() {
+    return {
+      restrict: 'E',
+      scope: {
+        probe: '='
+      },
+      templateUrl: 'views/directives/_probe.html'
     };
   });

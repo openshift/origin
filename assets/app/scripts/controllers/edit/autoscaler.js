@@ -19,8 +19,8 @@ angular.module('openshiftConsole')
                         MetricsService,
                         Navigate,
                         ProjectsService) {
-    if (!$routeParams.kind && !$routeParams.name) {
-      Navigate.toErrorPage("Kind and name parameters missing.");
+    if (!$routeParams.kind || !$routeParams.name) {
+      Navigate.toErrorPage("Kind or name parameter missing.");
       return;
     }
 

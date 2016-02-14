@@ -972,4 +972,13 @@ angular.module('openshiftConsole')
 
       return HPAService.convertRequestPercentToLimit(targetCPU, project);
     };
+  })
+  .filter('hasHealthChecks', function() {
+    return function(podTemplate) {
+      // Returns true if every container has a readiness or liveness probe.
+      var containers = _.get(podTemplate, 'spec.containers', []);
+      return _.every(containers, function(container) {
+        return container.readinessProbe || container.livenessProbe;
+      });
+    };
   });

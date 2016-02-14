@@ -2,7 +2,7 @@
 // Can be customized using custom scripts in the master config file that override one or multiple of these objects.
 // Reference: https://docs.openshift.org/latest/install_config/web_console_customization.html#loading-custom-scripts-and-stylesheets
 
-// NOTE: Update extensions/examples/online if you add a new help link to this map.
+// NOTE: Update extensions/examples/online-extensions.js if you add a new help link to this map.
 
 window.OPENSHIFT_CONSTANTS = {
   // Maps links to specific topics in external documentation.
@@ -18,6 +18,7 @@ window.OPENSHIFT_CONSTANTS = {
     "persistent_volumes":      "https://docs.openshift.org/latest/dev_guide/persistent_volumes.html",
     "compute_resources":       "https://docs.openshift.org/latest/dev_guide/compute_resources.html",
     "pod_autoscaling":         "https://docs.openshift.org/latest/dev_guide/pod_autoscaling.html",
+    "application_health":      "https://docs.openshift.org/latest/dev_guide/application_health.html",
     "default":                 "https://docs.openshift.org/latest/welcome/index.html"
   },
   // Maps links names to URL's where the CLI tools can be downloaded, may point directly to files or to external pages in a CDN, for example.

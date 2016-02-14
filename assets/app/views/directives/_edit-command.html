@@ -1,0 +1,46 @@
+<ng-form name="form">
+  <p ng-hide="input.args.length"><em>No command set.</em></p>
+  <p ng-show="input.args.length" as-sortable ng-model="input.args" class="sortable-args">
+    <span ng-repeat="arg in input.args" as-sortable-item>
+      <span as-sortable-item-handle class="label label-default command-arg">
+        <span class="arg-value">{{arg.value}}</span>
+        <a href="" ng-click="removeArg($index)">
+          <span class="sr-only">Clear</span>
+          <i class="fa fa-times" aria-hidden=true"></i>
+        </a>
+      </span>
+    </span>
+    <a href="" ng-click="clear()" class="clear-action">Clear</a>
+  </p>
+  <div class="form-group">
+    <label class="sr-only" ng-attr-for="{{id}}-add-arg">Add Argument</label>
+    <span class="input-group">
+      <input type="text"
+             ng-model="nextArg"
+             name="nextArg"
+             ng-attr-id="{{id}}-add-arg"
+             on-enter="addArg()"
+             placeholder="Command Argument"
+             class="form-control"
+             autocorrect="off"
+             autocapitalize="off"
+             spellcheck="false">
+      <span class="input-group-btn">
+        <!-- Must be a link rather than a button so that enter submit the parent form when other
+             fields are focused. Add an enter key handler for the input when focused using the
+             on-enter directive. -->
+        <a class="btn btn-default"
+           href=""
+           ng-click="addArg()"
+           ng-disabled="!nextArg"
+           ng-attr-aria-disabled="!nextArg"
+           role="button">Add</a>
+      </span>
+    </span>
+  </div>
+  <!-- Add a hidden input to help with form validation. -->
+  <input type="hidden" name="command" ng-model="input.args" ng-required="isRequired">
+  <div ng-if="form.command.$dirty && form.command.$error.required" class="has-error">
+    <span class="help-block">A command is required.</span>
+  </div>
+</ng-form>

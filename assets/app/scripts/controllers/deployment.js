@@ -44,7 +44,15 @@ angular.module('openshiftConsole')
         title: $routeParams.deploymentconfig,
         link: "project/" + $routeParams.project + "/browse/deployments/" + $routeParams.deploymentconfig
       });
+      $scope.healthCheckURL = Navigate.healthCheckURL($routeParams.project,
+                                                      "DeploymentConfig",
+                                                      $routeParams.deploymentconfig);
+    } else {
+      $scope.healthCheckURL = Navigate.healthCheckURL($routeParams.project,
+                                                      "ReplicationController",
+                                                      $routeParams.replicationcontroller);
     }
+
     $scope.breadcrumbs.push({
       title: $routeParams.deployment || $routeParams.replicationcontroller
     });

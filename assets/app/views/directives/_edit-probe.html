@@ -1,0 +1,122 @@
+<ng-form name="form">
+  <div class="form-group">
+    <label ng-attr-for="{{id}}-type" class="required">Type</label>
+    <select
+        ng-model="type"
+        ng-attr-id="{{id}}-type"
+        required
+        class="form-control">
+      <option value="httpGet">HTTP</option>
+      <option value="exec">Container Command</option>
+      <option value="tcpSocket">TCP Socket</option>
+    </select>
+  </div>
+  <fieldset ng-if="type === 'httpGet'">
+    <div class="form-group">
+      <label ng-attr-for="{{id}}-path">Path</label>
+      <div>
+        <input
+            ng-attr-id="{{id}}-path"
+            ng-model="probe.httpGet.path"
+            type="text"
+            placeholder="/"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            class="form-control">
+      </div>
+    </div>
+    <div class="form-group">
+      <label ng-attr-for="{{id}}-http-port" class="required">Port</label>
+      <select
+          id="{{id}}-http-port"
+          ng-model="probe.httpGet.port"
+          ng-options="port.containerPort as port.containerPort for port in tcpPorts"
+          required
+          class="form-control">
+      </select>
+      <div ng-if="!tcpPorts.length" class="has-error">
+        <span class="help-block">Container has no TCP ports.</span>
+      </div>
+    </div>
+  </fieldset>
+  <fieldset ng-if="type === 'exec'">
+    <label class="required">Command</label>
+    <edit-command args="probe.exec.command" is-required="true"></edit-command>
+  </fieldset>
+  <fieldset ng-if="type === 'tcpSocket'">
+    <div class="form-group">
+      <label ng-attr-for="{{id}}-tcp-port" class="required">Port</label>
+      <select
+          id="{{id}}-tcp-port"
+          ng-model="probe.tcpSocket.port"
+          ng-options="port.containerPort as port.containerPort for port in tcpPorts"
+          required
+          class="form-control">
+      </select>
+    </div>
+  </fieldset>
+  <div class="form-group">
+    <label ng-attr-for="{{id}}-initial-delay">Initial Delay</label>
+    <span class="input-group"
+       ng-class="{ 'has-error': form.initialDelaySeconds.$invalid && form.initialDelaySeconds.$touched }">
+      <input
+          type="number"
+          name="initialDelaySeconds"
+          ng-model="probe.initialDelaySeconds"
+          ng-pattern="/^\d+$/"
+          min="0"
+          select-on-focus
+          ng-attr-id="{{id}}-initial-delay"
+          class="form-control"
+          ng-attr-aria-describedby="{{id}}-delay-description">
+      <span class="input-group-addon">seconds</span>
+    </span>
+    <div class="help-block" ng-attr-id="{{id}}-delay-description">
+      How long to wait after the container starts before checking its health.
+    </div>
+    <div ng-if="form.initialDelaySeconds.$invalid && form.initialDelaySeconds.$touched" class="has-error">
+      <div ng-if="form.initialDelaySeconds.$error.number" class="help-block">
+        Must be a number.
+      </div>
+      <div ng-if="form.initialDelaySeconds.$error.min" class="help-block">
+        Delay can't be negative.
+      </div>
+      <span ng-if="form.initialDelaySeconds.$error.pattern && !form.initialDelaySeconds.$error.min" class="help-block">
+        Must be a whole number.
+      </span>
+    </div>
+  </div>
+  <div class="form-group">
+    <label ng-attr-for="{{id}}-timeout">Timeout</label>
+    <span class="input-group"
+       ng-class="{ 'has-error': form.timeoutSeconds.$invalid && form.timeoutSeconds.$touched }">
+      <input
+          type="number"
+          name="timeoutSeconds"
+          ng-model="probe.timeoutSeconds"
+          ng-pattern="/^\d+$/"
+          min="1"
+          placeholder="1"
+          select-on-focus
+          ng-attr-id="{{id}}-timeout"
+          class="form-control"
+          ng-attr-aria-describedby="{{id}}-timeout-description">
+      <span class="input-group-addon">seconds</span>
+    </span>
+    <div class="help-block" ng-attr-id="{{id}}-timeout-description">
+      How long to wait for the probe to finish. If the time is exceeded, the probe is considered failed.
+    </div>
+    <div ng-if="form.timeoutSeconds.$invalid && form.timeoutSeconds.$touched" class="has-error">
+      <div ng-if="form.timeoutSeconds.$error.number" class="help-block">
+        Must be a number.
+      </div>
+      <div ng-if="form.timeoutSeconds.$error.min" class="help-block">
+        Timeout must be greater than or equal to one.
+      </div>
+      <span ng-if="form.timeoutSeconds.$error.pattern && !form.timeoutSeconds.$error.min" class="help-block">
+        Must be a whole number.
+      </span>
+    </div>
+  </div>
+</ng-form>

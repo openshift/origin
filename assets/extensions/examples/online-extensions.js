@@ -30,6 +30,7 @@ window.OPENSHIFT_CONSTANTS.HELP = {
   "persistent_volumes":      "https://docs.openshift.com/online/latest/dev_guide/persistent_volumes.html",
   "compute_resources":       "https://docs.openshift.com/online/latest/dev_guide/compute_resources.html",
   "pod_autoscaling":         "https://docs.openshift.org/online/latest/dev_guide/pod_autoscaling.html",
+  "application_health":      "https://docs.openshift.org/online/latest/dev_guide/application_health.html",
   "default":                 "https://docs.openshift.com/online/latest/welcome/index.html"
 };
 

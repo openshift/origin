@@ -3,7 +3,19 @@
   podTemplate
   imagesByDockerReference (optional)
   builds (optional)
+  detailed (optional)
+  addHealthCheckUrl (optional)
  -->
+
+ <!-- Prompt to add health checks if missing. -->
+<div ng-if="detailed && addHealthCheckUrl && !(podTemplate | hasHealthChecks)" class="alert alert-info">
+  <span class="pficon pficon-info" aria-hidden="true"></span>
+  <span ng-if="podTemplate.spec.containers.length === 1">This container has no health checks</span>
+  <span ng-if="podTemplate.spec.containers.length > 1">Not all containers have health checks</span>
+  to ensure your application is running correctly.
+  <a ng-href="{{addHealthCheckUrl}}" class="nowrap">Add health checks</a>
+</div>
+
 <div class="pod-template-container">
   <div class="pod-template-block" ng-repeat="container in podTemplate.spec.containers">
     <div class="pod-template">
@@ -130,11 +142,31 @@
         </div>
       </div>
 
+      <div row ng-if="detailed && container.readinessProbe" class="icon-row">
+        <div>
+          <i class="fa fa-medkit" aria-hidden="true"></i>
+        </div>
+        <div flex>
+          <span class="pod-template-key">Readiness Probe:</span>
+          <probe probe="container.readinessProbe"></probe>
+        </div>
+      </div>
+
+      <div row ng-if="detailed && container.livenessProbe" class="icon-row">
+        <div>
+          <i class="fa fa-medkit" aria-hidden="true"></i>
+        </div>
+        <div flex>
+          <span class="pod-template-key">Liveness Probe:</span>
+          <probe probe="container.livenessProbe"></probe>
+        </div>
+      </div>
+
       <div
         extension-point
         extension-name="container-links"
         extension-types="link dom"
-        extension-args="[container, podTemplate]"></div>   
+        extension-args="[container, podTemplate]"></div>
 
     </div>
   </div>

@@ -1,0 +1,15 @@
+<!-- Make sure there is no whitespace before comma -->
+<span ng-if="probe.httpGet">
+  GET {{probe.httpGET.path || '/'}} on port {{probe.httpGet.port || 'unknown'}}
+</span>
+<span ng-if="probe.exec.command">
+  <code ng-repeat="arg in probe.exec.command">{{arg}}</code>
+</span>
+<span ng-if="probe.tcpSocket">
+  Open socket on port {{probe.tcpSocket.port}}
+</span>
+
+<small class="text-muted">
+  <span ng-if="probe.initialDelaySeconds">{{probe.initialDelaySeconds}}s delay, </span>
+  {{probe.timeoutSeconds || 1}}s timeout
+</small>
