@@ -76,6 +76,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
 				Type: kapi.SupplementalGroupsStrategyRunAsAny,
 			},
+			// grant a number of relatively safe capabilities
+			DefaultAddCapabilities: []kapi.Capability{"NET_BIND_SERVICE", "NET_RAW"},
 		},
 		// SecurityContextConstraintNonRoot does not allow host access, allocates SELinux labels
 		// and allows the user to request a specific UID or provide the default in the dockerfile.
@@ -104,6 +106,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
 				Type: kapi.SupplementalGroupsStrategyRunAsAny,
 			},
+			// grant a number of relatively safe capabilities
+			DefaultAddCapabilities: []kapi.Capability{"NET_BIND_SERVICE"},
 		},
 		// SecurityContextConstraintHostMountAndAnyUID is the same as the restricted scc but allows host mounts and running as any UID.
 		// Used by the PV recycler.
@@ -134,6 +138,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
 				Type: kapi.SupplementalGroupsStrategyRunAsAny,
 			},
+			// grant a number of relatively safe capabilities
+			DefaultAddCapabilities: []kapi.Capability{"NET_BIND_SERVICE", "NET_RAW"},
 		},
 		// SecurityContextConstraintHostNS allows access to everything except privileged on the host
 		// but still allocates UIDs and SELinux.
@@ -168,6 +174,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
 				Type: kapi.SupplementalGroupsStrategyRunAsAny,
 			},
+			// grant a number of relatively safe capabilities
+			DefaultAddCapabilities: []kapi.Capability{"NET_BIND_SERVICE"},
 		},
 		// SecurityContextConstraintRestricted allows no host access and allocates UIDs and SELinux.
 		{
@@ -196,6 +204,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
 				Type: kapi.SupplementalGroupsStrategyRunAsAny,
 			},
+			// grant a number of relatively safe capabilities
+			DefaultAddCapabilities: []kapi.Capability{"NET_BIND_SERVICE"},
 			// drops unsafe caps
 			RequiredDropCapabilities: []kapi.Capability{"KILL", "MKNOD", "SYS_CHROOT", "SETUID", "SETGID"},
 		},
@@ -225,6 +235,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			},
 			// prefer the anyuid SCC over ones that force a uid
 			Priority: &securityContextConstraintsAnyUIDPriority,
+			// grant a number of relatively safe capabilities
+			DefaultAddCapabilities: []kapi.Capability{"NET_BIND_SERVICE", "NET_RAW"},
 			// drops unsafe caps
 			RequiredDropCapabilities: []kapi.Capability{"KILL", "MKNOD", "SYS_CHROOT"},
 		},
