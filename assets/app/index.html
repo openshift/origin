@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="bower_components/kubernetes-topology-graph/dist/topology-graph.css" />
     <link rel="stylesheet" href="bower_components/kubernetes-container-terminal/dist/container-terminal.css" />
     <link rel="stylesheet" href="bower_components/layout.attrs/dist/layout.attrs.css" />
+    <link rel="stylesheet" href="bower_components/ng-sortable/dist/ng-sortable.css" />
     <!-- endbower -->
     <!-- endbuild -->
     <!-- build:css(.tmp) styles/main.css -->
@@ -127,6 +128,7 @@
     <script src="bower_components/ansi_up/ansi_up.js"></script>
     <script src="bower_components/angular-extension-registry/dist/angular-extension-registry.min.js"></script>
     <script src="bower_components/angular-extension-registry/dist/compiled-templates.js"></script>
+    <script src="bower_components/ng-sortable/dist/ng-sortable.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
@@ -187,6 +189,7 @@
         <script src="scripts/controllers/setLimits.js"></script>
         <script src="scripts/controllers/edit/buildConfig.js"></script>
         <script src="scripts/controllers/edit/autoscaler.js"></script>
+        <script src="scripts/controllers/edit/healthChecks.js"></script>
         <script src="scripts/controllers/create/createFromImage.js"></script>
         <script src="scripts/controllers/create/nextSteps.js"></script>
         <script src="scripts/controllers/newfromtemplate.js"></script>
@@ -237,6 +240,8 @@
         <script src="scripts/directives/quotaUsageChart.js"></script>
         <script src="scripts/directives/buildTrendsChart.js"></script>
         <script src="scripts/directives/editRequestLimit.js"></script>
+        <script src="scripts/directives/editProbe.js"></script>
+        <script src="scripts/directives/editCommand.js"></script>
         <script src="scripts/filters/date.js"></script>
         <script src="scripts/filters/resources.js"></script>
         <script src="scripts/filters/util.js"></script>

@@ -16,6 +16,7 @@ angular.module('openshiftConsole')
                         DeploymentsService,
                         HPAService,
                         ImageStreamResolver,
+                        Navigate,
                         ProjectsService,
                         LabelFilter) {
     $scope.projectName = $routeParams.project;
@@ -45,6 +46,9 @@ angular.module('openshiftConsole')
       }
     ];
     $scope.emptyMessage = "Loading...";
+    $scope.healthCheckURL = Navigate.healthCheckURL($routeParams.project,
+                                                    "DeploymentConfig",
+                                                    $routeParams.deploymentconfig);
 
     // Check for a ?tab=<name> query param to allow linking directly to a tab.
     if ($routeParams.tab) {

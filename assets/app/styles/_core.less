@@ -493,6 +493,42 @@ label.checkbox {
   margin-right: 10px;
 }
 
+.sortable-args {
+  .as-sortable-item {
+    display: inline-block;
+  }
+  .as-sortable-placeholder {
+    // Needed for horizontal drag and drop.
+    // !important to override styles set by ng-sortable JavaScript.
+    display: inline-block !important;
+    height: 14px !important;
+  }
+  .command-arg {
+    padding-right: 2px;
+    margin-top: 0;
+    .arg-value {
+      font-family: @font-family-monospace;
+      font-weight: normal;
+    }
+    a {
+      color: #d1d1d1;
+      padding: 0 3px 0 4px;
+      &:hover {
+        color: white;
+      }
+      .fa {
+        font-size: 10px;
+        vertical-align: 1px;
+      }
+    }
+    & + .command-arg {
+      // Override .label + .label style that causes extra left margin when args
+      // wrap to next line.
+      margin-left: 0;
+    }
+  }
+}
+
 .catalog {
   .flex-display(@display: flex);
 

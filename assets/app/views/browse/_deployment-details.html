@@ -93,7 +93,9 @@
         pod-template="deployment.spec.template"
         images-by-docker-reference="imagesByDockerReference"
         builds="builds"
-        detailed="true"></pod-template>
+        detailed="true"
+        add-health-check-url="{{(!deploymentConfig || isActive) ? healthCheckURL : ''}}">
+      </pod-template>
       <h4>Volumes</h4>
       <p ng-if="!deployment.spec.template.spec.volumes.length">
         <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}">Attach storage</a>

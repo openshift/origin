@@ -36,6 +36,11 @@
                       <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}"
                          role="button">Attach Storage</a>
                     </li>
+                    <!-- Only allow editing health checks if there is no deployment config or this
+                         is the active deployment. -->
+                    <li ng-if="!deploymentConfigName || isActive">
+                      <a ng-href="{{healthCheckURL}}" role="button">Edit Health Checks</a>
+                    </li>
                     <li>
                       <edit-link
                         resource="deployment"

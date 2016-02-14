@@ -148,6 +148,13 @@ angular.module("openshiftConsole")
         });
 
         $location.url(redirect);
+      },
+      healthCheckURL: function(projectName, kind, name) {
+        return URI.expand("project/{projectName}/edit/health-checks?kind={kind}&name={name}", {
+          projectName: projectName,
+          kind: kind,
+          name: name
+        }).toString();
       }
     };
   });

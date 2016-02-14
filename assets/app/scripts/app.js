@@ -24,7 +24,8 @@ angular
     'patternfly.sort',
     'openshiftConsoleTemplates',
     'ui.ace',
-    'extension-registry'
+    'extension-registry',
+    'as.sortable'
   ])
   .constant("mainNavTabs", [])  // even though its not really a "constant", it has to be created as a constant and not a value
                          // or it can't be referenced during module config
@@ -249,6 +250,10 @@ angular
       .when('/project/:project/edit/autoscaler', {
         templateUrl: 'views/edit/autoscaler.html',
         controller: 'EditAutoscalerController'
+      })
+      .when('/project/:project/edit/health-checks', {
+        templateUrl: 'views/edit/health-checks.html',
+        controller: 'EditHealthChecksController'
       })
       .when('/about', {
         templateUrl: 'views/about.html',

@@ -1,0 +1,82 @@
+<default-header class="top-header"></default-header>
+<div class="wrap no-sidebar">
+  <div class="sidebar-left collapse navbar-collapse navbar-collapse-2">
+    <navbar-utility-mobile></navbar-utility-mobile>
+  </div>
+  <div class="middle">
+    <!-- Middle section -->
+    <div class="middle-section surface-shaded">
+      <div class="middle-container has-scroll">
+        <div class="middle-content">
+          <div class="container surface-shaded">
+            <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
+            <div class="row">
+              <div class="col-md-12">
+                <alerts alerts="alerts"></alerts>
+                <div ng-show="!containers.length">Loading...</div>
+                <form ng-show="containers.length" name="form">
+                  <h1>Health Checks: {{name}}</h1>
+                  <div class="help-block">
+                    Container health is periodically checked using readiness and liveness probes.
+                    <div class="learn-more-block">
+                      <a href="{{'application_health' | helpLink}}" target="_blank">Learn more <i class="fa fa-external-link" aria-hidden> </i></a>
+                    </div>
+                  </div>
+                  <fieldset ng-disabled="disableInputs">
+                    <div ng-repeat="container in containers">
+                      <h2 ng-if="containers.length > 1">Container {{container.name}}</h2>
+                      <h3>Readiness Probe</h3>
+                      <div class="help-block" ng-if="$first">
+                        A readiness probe checks if the container is ready to handle requests. A
+                        failed readiness probe means that a container should not receive any traffic
+                        from a proxy, even if it's running.
+                      </div>
+                      <div ng-if="!container.readinessProbe">
+                        <a href="" ng-click="addProbe(container, 'readinessProbe')">Add Readiness Probe</a>
+                      </div>
+                      <div ng-if="container.readinessProbe">
+                        <edit-probe
+                            probe="container.readinessProbe"
+                            exposed-ports="container.ports"
+                            ng-if="container.readinessProbe">
+                        </edit-probe>
+                        <p>
+                          <a href="" ng-click="removeProbe(container, 'readinessProbe')">Remove Readiness Probe</a>
+                        </p>
+                      </div>
+                      <h3>Liveness Probe</h3>
+                      <div class="help-block" ng-if="$first">
+                        A liveness probe checks if the container is still running. If the liveness
+                        probe fails, the container is killed.
+                      </div>
+                      <div ng-if="!container.livenessProbe">
+                        <a href="" ng-click="addProbe(container, 'livenessProbe')">Add Liveness Probe</a>
+                      </div>
+                      <div ng-if="container.livenessProbe">
+                        <edit-probe
+                            probe="container.livenessProbe"
+                            exposed-ports="container.ports">
+                        </edit-probe>
+                        <p>
+                          <a href="" ng-click="removeProbe(container, 'livenessProbe')">Remove Liveness Probe</a>
+                        </p>
+                      </div>
+                    </div>
+                    <div class="button-group gutter-top gutter-bottom">
+                      <button type="submit"
+                        class="btn btn-primary btn-lg"
+                        ng-click="save()"
+                        ng-disabled="form.$invalid || form.$pristine || disableInputs"
+                        value="">Save</button>
+                      <a class="btn btn-default btn-lg" ng-href="{{resourceURL}}">Cancel</a>
+                    </div>
+                  </fieldset>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div><!-- /middle-content -->
+      </div><!-- /middle-container -->
+    </div><!-- /middle-section -->
+  </div><!-- /middle -->
+</div><!-- /wrap -->
