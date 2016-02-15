@@ -8,8 +8,8 @@ import (
 
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/term"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -90,7 +90,7 @@ func (o *RshOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	case o.DisableTTY:
 		o.TTY = false
 	default:
-		o.TTY = cmdutil.IsTerminal(o.In)
+		o.TTY = term.IsTerminal(o.In)
 	}
 
 	if len(args) < 1 {

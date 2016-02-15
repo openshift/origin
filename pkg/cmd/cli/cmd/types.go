@@ -13,13 +13,13 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-type term struct {
+type concept struct {
 	Name         string
 	Abbreviation string
 	Description  string
 }
 
-var concepts = []term{
+var concepts = []concept{
 	{
 		"Containers",
 		"",
@@ -182,13 +182,13 @@ var concepts = []term{
 	},
 }
 
-func writeTerm(w io.Writer, t term) {
-	fmt.Fprintf(w, "* %s", t.Name)
-	if len(t.Abbreviation) > 0 {
-		fmt.Fprintf(w, " [%s]", t.Abbreviation)
+func writeConcept(w io.Writer, c concept) {
+	fmt.Fprintf(w, "* %s", c.Name)
+	if len(c.Abbreviation) > 0 {
+		fmt.Fprintf(w, " [%s]", c.Abbreviation)
 	}
 	fmt.Fprintln(w, ":")
-	for _, s := range strings.Split(t.Description, "\n") {
+	for _, s := range strings.Split(c.Description, "\n") {
 		fmt.Fprintf(w, "    %s\n", s)
 	}
 }
@@ -223,7 +223,7 @@ var (
 func NewCmdTypes(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	buf := &bytes.Buffer{}
 	for _, c := range concepts {
-		writeTerm(buf, c)
+		writeConcept(buf, c)
 	}
 	cmd := &cobra.Command{
 		Use:     "types",

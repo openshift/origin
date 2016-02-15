@@ -17,6 +17,7 @@ import (
 	kcmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/term"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
@@ -83,7 +84,7 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 
 	if len(o.Server) == 0 {
 		// we need to have a server to talk to
-		if cmdutil.IsTerminal(o.Reader) {
+		if term.IsTerminal(o.Reader) {
 			for !o.serverProvided() {
 				defaultServer := defaultClusterURL
 				promptMsg := fmt.Sprintf("Server [%s]: ", defaultServer)
@@ -146,7 +147,7 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 			if len(matchingClusters) > 0 {
 				clientConfig.Insecure = true
 
-			} else if cmdutil.IsTerminal(o.Reader) {
+			} else if term.IsTerminal(o.Reader) {
 				fmt.Fprintln(o.Out, "The server uses a certificate signed by an unknown authority.")
 				fmt.Fprintln(o.Out, "You can bypass the certificate check, but any data you send to the server could be intercepted by others.")
 
