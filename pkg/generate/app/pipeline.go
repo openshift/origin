@@ -196,24 +196,6 @@ func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, as
 	return nil
 }
 
-// Validate checks for logical errors in the pipeline.
-func (p *Pipeline) Validate() error {
-	if p == nil || p.Build == nil {
-		return nil
-	}
-	input, output := p.Build.Input, p.Build.Output
-	if input == nil || output == nil {
-		return nil
-	}
-	if input.AsImageStream && output.AsImageStream && input.Reference.Equal(output.Reference) {
-		// If the build input and output image stream tags are the same, given that
-		// build configs created by new-app/new-build have an image change trigger,
-		// this setup would cause an infinite build loop, most likely unintentionaly.
-		return CircularOutputReferenceError{Reference: output.Reference}
-	}
-	return nil
-}
-
 // Objects converts all the components in the pipeline into runtime objects.
 func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 	objects := Objects{}

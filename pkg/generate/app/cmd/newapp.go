@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/dockerregistry"
@@ -678,19 +680,6 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			if c.NoOutput {
 				pipeline.Build.Output = nil
 			}
-			if err := pipeline.Validate(); err != nil {
-				switch err.(type) {
-				case app.CircularOutputReferenceError:
-					if len(c.To) == 0 {
-						// Output reference was generated, return error.
-						return nil, err
-					}
-					// Output reference was explicitly provided, print warning.
-					fmt.Fprintf(c.ErrOut, "--> WARNING: %v\n", err)
-				default:
-					return nil, err
-				}
-			}
 			common = append(common, pipeline)
 			if err := common.Reduce(); err != nil {
 				return nil, fmt.Errorf("can't create a pipeline from %s: %v", common, err)
@@ -1063,9 +1052,6 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		if err == app.ErrNameRequired {
 			return nil, fmt.Errorf("can't suggest a valid name, please specify a name with --name")
 		}
-		if err, ok := err.(app.CircularOutputReferenceError); ok {
-			return nil, fmt.Errorf("%v, please specify a different output reference with --to", err)
-		}
 		return nil, err
 	}
 
@@ -1105,12 +1091,46 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		}
 	}
 
+	err = c.checkCircularReferences(objects)
+	if err != nil {
+		if err, ok := err.(app.CircularOutputReferenceError); ok {
+			if len(c.To) == 0 {
+				// Output reference was generated, return error.
+				return nil, fmt.Errorf("%v, set a different tag with --to", err)
+			}
+			// Output reference was explicitly provided, print warning.
+			fmt.Fprintf(c.ErrOut, "--> WARNING: %v\n", err)
+		} else {
+			return nil, err
+		}
+	}
+
 	return &AppResult{
 		List:      &kapi.List{Items: objects},
 		Name:      name,
 		HasSource: len(repositories) != 0,
 		Namespace: c.OriginNamespace,
 	}, nil
+}
+
+// checkCircularReferences ensures there are no builds that can trigger themselves
+// due to an imagechangetrigger that matches the output destination of the image.
+// objects is a list of api objects produced by new-app.
+func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
+	for _, obj := range objects {
+		if bc, ok := obj.(*buildapi.BuildConfig); ok {
+			input := buildutil.GetImageStreamForStrategy(bc.Spec.Strategy)
+			if bc.Spec.Output.To != nil && input != nil &&
+				reflect.DeepEqual(input, bc.Spec.Output.To) {
+				ns := input.Namespace
+				if len(ns) == 0 {
+					ns = c.OriginNamespace
+				}
+				return app.CircularOutputReferenceError{Reference: fmt.Sprintf("%s/%s", ns, input.Name)}
+			}
+		}
+	}
+	return nil
 }
 
 func (c *AppConfig) Querying() bool {
