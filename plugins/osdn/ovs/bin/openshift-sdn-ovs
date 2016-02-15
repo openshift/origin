@@ -44,6 +44,10 @@ add_ovs_port() {
     ovs-vsctl add-port br0 ${veth_host}
 }
 
+ensure_ovs_port() {
+    ovs-vsctl --may-exist add-port br0 ${veth_host}
+}
+
 del_ovs_port() {
     ovs-vsctl --if-exists del-port $veth_host
 }
@@ -75,8 +79,12 @@ del_ovs_flows() {
 }
 
 add_subnet_route() {
-    local subnet_route="ip route add ${OPENSHIFT_CLUSTER_SUBNET} dev eth0 proto kernel scope link src $ipaddr"
-    nsenter -n -t $pid -- $subnet_route
+    nsenter -n -t $pid -- ip route add $OPENSHIFT_CLUSTER_SUBNET dev eth0 proto kernel scope link src $ipaddr
+}
+
+ensure_subnet_route() {
+    nsenter -n -t $pid -- ip route del $OPENSHIFT_CLUSTER_SUBNET dev eth0 || true
+    add_subnet_route
 }
 
 run() {
@@ -91,8 +99,10 @@ run() {
 	    ;;
 
 	update)
+	    ensure_ovs_port
 	    del_ovs_flows
 	    add_ovs_flows
+	    ensure_subnet_route
 	    ;;
 
 	teardown)
