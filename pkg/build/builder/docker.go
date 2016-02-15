@@ -58,6 +58,7 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterf
 // Build executes a Docker build
 func (d *DockerBuilder) Build() error {
 	var push bool
+	pushTag := d.build.Status.OutputDockerImageReference
 
 	buildDir, err := ioutil.TempDir("", "docker-build")
 	if err != nil {
@@ -83,21 +84,35 @@ func (d *DockerBuilder) Build() error {
 		push = true
 	}
 
-	if err := d.dockerBuild(buildDir, d.build.Spec.Source.Secrets); err != nil {
+	buildTag := randomBuildTag(d.build.Namespace, d.build.Name)
+
+	if err := d.dockerBuild(buildDir, buildTag, d.build.Spec.Source.Secrets); err != nil {
 		return err
+	}
+
+	cname := containerName("docker", d.build.Name, d.build.Namespace, "post-commit")
+	if err := execPostCommitHook(d.dockerClient, d.build.Spec.PostCommit, buildTag, cname); err != nil {
+		return err
+	}
+
+	if err := tagImage(d.dockerClient, buildTag, pushTag); err != nil {
+		return err
+	}
+	if err := removeImage(d.dockerClient, buildTag); err != nil {
+		glog.Warningf("Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
 	if push {
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
-			d.build.Status.OutputDockerImageReference,
+			pushTag,
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
 			glog.V(4).Infof("Authenticating Docker push with user %q", pushAuthConfig.Username)
 		}
-		glog.Infof("Pushing image %s ...", d.build.Status.OutputDockerImageReference)
-		if err := pushImage(d.dockerClient, d.build.Status.OutputDockerImageReference, pushAuthConfig); err != nil {
+		glog.Infof("Pushing image %s ...", pushTag)
+		if err := pushImage(d.dockerClient, pushTag, pushAuthConfig); err != nil {
 			return fmt.Errorf("Failed to push image: %v", err)
 		}
 		glog.Infof("Push successful")
@@ -255,7 +270,7 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 }
 
 // dockerBuild performs a docker build on the source that has been retrieved
-func (d *DockerBuilder) dockerBuild(dir string, secrets []api.SecretBuildSource) error {
+func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.SecretBuildSource) error {
 	var noCache bool
 	var forcePull bool
 	dockerfilePath := defaultDockerfilePath
@@ -276,7 +291,7 @@ func (d *DockerBuilder) dockerBuild(dir string, secrets []api.SecretBuildSource)
 	if err := d.copySecrets(secrets, dir); err != nil {
 		return err
 	}
-	return buildImage(d.dockerClient, dir, dockerfilePath, noCache, d.build.Status.OutputDockerImageReference, d.tar, auth, forcePull, d.cgLimits)
+	return buildImage(d.dockerClient, dir, dockerfilePath, noCache, tag, d.tar, auth, forcePull, d.cgLimits)
 }
 
 // replaceLastFrom changes the last FROM instruction of node to point to the

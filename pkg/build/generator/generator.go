@@ -380,6 +380,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 			Output:                    bcCopy.Spec.Output,
 			Revision:                  revision,
 			Resources:                 bcCopy.Spec.Resources,
+			PostCommit:                bcCopy.Spec.PostCommit,
 			CompletionDeadlineSeconds: bcCopy.Spec.CompletionDeadlineSeconds,
 		},
 		ObjectMeta: kapi.ObjectMeta{

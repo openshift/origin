@@ -17373,6 +17373,10 @@
       "$ref": "v1.ResourceRequirements",
       "description": "the desired compute resources the build should have"
      },
+     "postCommit": {
+      "$ref": "v1.BuildPostCommitSpec",
+      "description": "an action executed after the build output image is committed"
+     },
      "completionDeadlineSeconds": {
       "type": "integer",
       "format": "int64",
@@ -17924,6 +17928,29 @@
      }
     }
    },
+   "v1.BuildPostCommitSpec": {
+    "id": "v1.BuildPostCommitSpec",
+    "properties": {
+     "command": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "command to be executed in a container running the build output image replacing the image's entrypoint"
+     },
+     "args": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "arguments to command, script or the default image entrypoint"
+     },
+     "script": {
+      "type": "string",
+      "description": "shell script to be executed in a container running the build output image"
+     }
+    }
+   },
    "v1.BuildConfigStatus": {
     "id": "v1.BuildConfigStatus",
     "required": [
@@ -18187,6 +18214,10 @@
      "resources": {
       "$ref": "v1.ResourceRequirements",
       "description": "the desired compute resources the build should have"
+     },
+     "postCommit": {
+      "$ref": "v1.BuildPostCommitSpec",
+      "description": "an action executed after the build output image is committed"
      },
      "completionDeadlineSeconds": {
       "type": "integer",
