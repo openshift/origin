@@ -128,14 +128,14 @@ var (
 // APIInstaller installs additional API components into this server
 type APIInstaller interface {
 	// InstallAPI returns an array of strings describing what was installed
-	InstallAPI(*restful.Container) []string
+	InstallAPI(*restful.Container) ([]string, error)
 }
 
 // APIInstallFunc is a function for installing APIs
-type APIInstallFunc func(*restful.Container) []string
+type APIInstallFunc func(*restful.Container) ([]string, error)
 
 // InstallAPI implements APIInstaller
-func (fn APIInstallFunc) InstallAPI(container *restful.Container) []string {
+func (fn APIInstallFunc) InstallAPI(container *restful.Container) ([]string, error) {
 	return fn(container)
 }
 
@@ -152,7 +152,11 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	// enforce authentication on protected endpoints
 	protected = append(protected, APIInstallFunc(c.InstallProtectedAPI))
 	for _, i := range protected {
-		extra = append(extra, i.InstallAPI(safe)...)
+		msgs, err := i.InstallAPI(safe)
+		if err != nil {
+			glog.Fatalf("error installing api %v", err)
+		}
+		extra = append(extra, msgs...)
 	}
 	handler := c.authorizationFilter(safe)
 	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
@@ -162,7 +166,11 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	// unprotected resources
 	unprotected = append(unprotected, APIInstallFunc(c.InstallUnprotectedAPI))
 	for _, i := range unprotected {
-		extra = append(extra, i.InstallAPI(open)...)
+		msgs, err := i.InstallAPI(open)
+		if err != nil {
+			glog.Fatalf("error installing api %v", err)
+		}
+		extra = append(extra, msgs...)
 	}
 
 	var kubeAPILevels []string
@@ -284,7 +292,7 @@ func (c *MasterConfig) InitializeObjects() {
 	c.ensureOpenShiftSharedResourcesNamespace()
 }
 
-func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []string {
+func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) ([]string, error) {
 	// initialize OpenShift API
 	storage := c.GetRestStorage()
 
@@ -328,7 +336,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	initHealthCheckRoute(root, "/healthz")
 	initReadinessCheckRoute(root, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
 
-	return messages
+	return messages, nil
 }
 
 func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
@@ -534,8 +542,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	return storage
 }
 
-func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []string {
-	return []string{}
+func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) ([]string, error) {
+	return []string{}, nil
 }
 
 // initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint

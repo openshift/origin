@@ -60,11 +60,11 @@ const (
 // into the provided mux, then returns an array of strings indicating what
 // endpoints were started (these are format strings that will expect to be sent
 // a single string value).
-func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
+func (c *MasterConfig) InstallAPI(container *restful.Container) ([]string, error) {
 	c.Master.RestfulContainer = container
 	_, err := master.New(c.Master)
 	if err != nil {
-		glog.Fatalf("Error creating master: %v", err)
+		return nil, err
 	}
 
 	messages := []string{}
@@ -76,7 +76,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		messages = append(messages, fmt.Sprintf("Started Kubernetes API Extensions at %%s%s", KubeAPIExtensionsPrefixV1beta1))
 	}
 
-	return messages
+	return messages, nil
 }
 
 // RunNamespaceController starts the Kubernetes Namespace Manager

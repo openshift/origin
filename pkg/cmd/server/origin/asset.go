@@ -34,18 +34,18 @@ import (
 // InstallAPI adds handlers for serving static assets into the provided mux,
 // then returns an array of strings indicating what endpoints were started
 // (these are format strings that will expect to be sent a single string value).
-func (c *AssetConfig) InstallAPI(container *restful.Container) []string {
+func (c *AssetConfig) InstallAPI(container *restful.Container) ([]string, error) {
 	publicURL, err := url.Parse(c.Options.PublicURL)
 	if err != nil {
-		glog.Fatal(err)
+		return nil, err
 	}
 
 	err = c.addHandlers(container.ServeMux)
 	if err != nil {
-		glog.Fatal(err)
+		return nil, err
 	}
 
-	return []string{fmt.Sprintf("Started Web Console %%s%s", publicURL.Path)}
+	return []string{fmt.Sprintf("Started Web Console %%s%s", publicURL.Path)}, nil
 }
 
 // Run starts an http server for the static assets listening on the configured
