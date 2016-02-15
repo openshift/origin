@@ -136,7 +136,7 @@
                           </tr>
                         </thead>
                         <tbody ng-if="(builds | hashSize) == 0">
-                          <tr><td colspan="4" data-title="Build"><em>{{emptyMessage}}</em></td></tr>
+                          <tr><td colspan="3"><em>{{emptyMessage}}</em></td></tr>
                         </tbody>
                         <tbody ng-repeat="build in orderedBuilds">
                           <tr>
@@ -178,7 +178,7 @@
                           </tr>
                         </tbody>
                       </table>
-                    </div>                    
+                    </div>
                   </uib-tab>
                   <uib-tab>
                     <uib-tab-heading>Configuration</uib-tab-heading>
@@ -213,7 +213,7 @@
                                         fadeFoldWidgets: true,
                                         showPrintMargin: false
                                       }
-                                    }" readonly ng-model="buildConfig.spec.source.dockerfile" class="dockerfile-editor dockerfile-mode"></div>
+                                    }" readonly ng-model="buildConfig.spec.source.dockerfile" class="ace_editor-bordered dockerfile-editor dockerfile-mode"></div>
                                   </div>
                                 </div>
                                 <div ng-switch-when="Custom">

@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit e067dda7439e647962a380741fe57069bc07ff28
+%global commit d5b7062274cd032108829c59fd36552de4d3328b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.900-213-ge067dda -X github.com/openshift/origin/pkg/version.commitFromGit e067dda -X k8s.io/kubernetes/pkg/version.gitCommit 9da202e -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-origin
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.901-138-gd5b7062 -X github.com/openshift/origin/pkg/version.commitFromGit d5b7062 -X k8s.io/kubernetes/pkg/version.gitCommit f0cd09a -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-origin
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.901
+Version:        3.1.1.902
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -468,6 +468,103 @@ fi
 
 
 %changelog
+* Mon Feb 15 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.902
+-  Backporting dist-git Dockerfile to Dockerfile.product (tdawson@redhat.com)
+- added infra namespace to PV recycler (mturansk@redhat.com)
+- Run user-provided command as part of build flow (rhcarvalho@gmail.com)
+- Fix deployment log var (admin@benjaminapetersen.me)
+- Add direnv .envrc to gitignore (pmorie@gmail.com)
+- Use normal GOPATH for build (ccoleman@redhat.com)
+- DeploymentConfig hooks did not have round trip defaulting
+  (ccoleman@redhat.com)
+- Fix pod warnings popup (spadgett@redhat.com)
+- Move slow newapp tests to integration (ccoleman@redhat.com)
+- filter events being tested (bparees@redhat.com)
+- Improve performance of overview page with many deployments
+  (spadgett@redhat.com)
+- mark slow extended build/image tests (bparees@redhat.com)
+- Tweak LDAP sync config error flags (jliggitt@redhat.com)
+- Add extension points to the nav menus and add sample extensions for online
+  (jforrest@redhat.com)
+- UPSTREAM: coreos/etcd: 4503: expose error details for normal stringify
+  (deads@redhat.com)
+- suppress query scope issue on member extraction (skuznets@redhat.com)
+- use correct fixture path (bparees@redhat.com)
+- Add a TagImages hook type to lifecycle hooks (ccoleman@redhat.com)
+- Support create on update of imagestreamtags (ccoleman@redhat.com)
+- Many anyuid programs fail due to SETGID/SETUID caps (ccoleman@redhat.com)
+- Exclude failing tests, add [Kubernetes] and [Origin] skip targets
+  (ccoleman@redhat.com)
+- Scheduler has an official default name (ccoleman@redhat.com)
+- Disable extended networking testing of services (marun@redhat.com)
+- Fix filename of network test entry point (marun@redhat.com)
+- Make sure extended networking isolation test doesn't run for subnet plugin
+  (dcbw@redhat.com)
+- Ensure more code uses the default transport settings (ccoleman@redhat.com)
+- read docker pull secret from correct path (bparees@redhat.com)
+- Ignore .vscode (ccoleman@redhat.com)
+- Have routers take ownership of routes (ccoleman@redhat.com)
+- Fix web console dev env certificate problems for OS X Chrome
+  (spadgett@redhat.com)
+- Update build info in web console pod template (spadgett@redhat.com)
+- Changing .ace_editor to .ace_editor-bordered so the border around .ace_editor
+  is optional (rhamilto@redhat.com)
+- Web console: Warn about problems with routes (spadgett@redhat.com)
+- fix variable shadowing complained about by govet for 1.4 (bparees@redhat.com)
+- added LDIF for suppression testing (skuznets@redhat.com)
+- launch integration tests using only the API server when possible
+  (deads@redhat.com)
+- bump(k8s.io/kubernetes): f0cd09aabeeeab1780911c8023203993fd421946
+  (pweil@redhat.com)
+- Create oscUnique directive to provide unique-in-list validation on DOM nodes
+  with ng-model attribute (admin@benjaminapetersen.me)
+- Support modifiable pprof web port (nakayamakenjiro@gmail.com)
+- Add additional docker volume (dmcphers@redhat.com)
+- Web console: Use service port name for route targetPort (spadgett@redhat.com)
+- Correcting reference to another step (rhamilto@redhat.com)
+- fix jobs package import naming (bparees@redhat.com)
+- fix ldap sync decode codec (deads@redhat.com)
+- Fix attachScrollEvents on window.resize causing affixed follow links in
+  logViewer to behave inconsistently (admin@benjaminapetersen.me)
+- Use SA config when creating clients (ironcladlou@gmail.com)
+- fix up client code to use the RESTMapper functions they mean
+  (deads@redhat.com)
+- fix ShortcutRESTMapper and prevent it from ever silently failing again
+  (deads@redhat.com)
+- UPSTREAM: 20968: make partial resource detection work for singular matches
+  (deads@redhat.com)
+- UPSTREAM: 20829: Union rest mapper (deads@redhat.com)
+- validate default imagechange triggers (bparees@redhat.com)
+- ignore .vscode settings (jliggitt@redhat.com)
+- handle additional cgroup file locations (bparees@redhat.com)
+- Fix web console type error when image has no env (spadgett@redhat.com)
+- Fixing livereload so that it works with https (rhamilto@redhat.com)
+- Display source downloading in build logs by default (mfojtik@redhat.com)
+- Clean up test scripts (jliggitt@redhat.com)
+- Forging consistency among empty tables at xs screen size #7163
+  (rhamilto@redhat.com)
+- UPSTREAM: 20814: type RESTMapper errors to better handle MultiRESTMapper
+  errors (deads@redhat.com)
+- Renamed extended tests files by removing directory name from certain files
+  (maszulik@redhat.com)
+- oc: enable autoscale for dcs (mkargaki@redhat.com)
+- add fuzzer tests for config scheme (deads@redhat.com)
+- Updates to use the SCC allowEmptyDirVolumePlugin setting.
+  (dgoodwin@redhat.com)
+- UPSTREAM: <carry>: scc (dgoodwin@redhat.com)
+- UPSTREAM: <carry>: v1beta3 scc (dgoodwin@redhat.com)
+- kebab case urls (and matching view templates), add legacy redirects
+  (admin@benjaminapetersen.me)
+- Add tests for explain (ccoleman@redhat.com)
+- Bug fix where table border on right side of thead was disappearing at sm and
+  md sizes (rhamilto@redhat.com)
+- Cherrypick should force delete branch (ccoleman@redhat.com)
+- Support block profile by pprof webserver (nakayamakenjiro@gmail.com)
+- Allow recursive DNS to be enabled (ccoleman@redhat.com)
+- Prevent dev cluster deploy from using stale config (marun@redhat.com)
+- remove grep -P usage (skuznets@redhat.com)
+- Support debugging networking tests with delve (marun@redhat.com)
+
 * Tue Feb 09 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.901
 - Add organization restriction to github IDP (jliggitt@redhat.com)
 - UPSTREAM: 20827: Backwards compat for old Docker versions

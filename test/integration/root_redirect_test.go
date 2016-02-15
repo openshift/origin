@@ -11,7 +11,7 @@ import (
 )
 
 func TestRootRedirect(t *testing.T) {
-	masterConfig, _, err := testserver.StartTestMaster()
+	masterConfig, _, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

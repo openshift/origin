@@ -406,6 +406,9 @@ func TestValidateImageStream(t *testing.T) {
 func TestValidateISTUpdate(t *testing.T) {
 	old := &api.ImageStreamTag{
 		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
+		Tag: &api.TagReference{
+			From: &kapi.ObjectReference{Kind: "DockerImage", Name: "some/other:system"},
+		},
 	}
 
 	errs := ValidateImageStreamTagUpdate(
@@ -429,6 +432,37 @@ func TestValidateISTUpdate(t *testing.T) {
 			},
 			T: field.ErrorTypeInvalid,
 			F: "metadata",
+		},
+		"mismatchedAnnotations": {
+			A: api.ImageStreamTag{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
+				Tag: &api.TagReference{
+					From:        &kapi.ObjectReference{Kind: "DockerImage", Name: "some/other:system"},
+					Annotations: map[string]string{"one": "three"},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "tag.annotations",
+		},
+		"tagToNameRequired": {
+			A: api.ImageStreamTag{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
+				Tag: &api.TagReference{
+					From: &kapi.ObjectReference{Kind: "DockerImage", Name: ""},
+				},
+			},
+			T: field.ErrorTypeRequired,
+			F: "tag.from.name",
+		},
+		"tagToKindRequired": {
+			A: api.ImageStreamTag{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
+				Tag: &api.TagReference{
+					From: &kapi.ObjectReference{Kind: "", Name: "foo/bar:biz"},
+				},
+			},
+			T: field.ErrorTypeRequired,
+			F: "tag.from.kind",
 		},
 	}
 	for k, v := range errorCases {

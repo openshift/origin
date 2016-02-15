@@ -95,7 +95,7 @@ function exectest() {
 
 		# dump etcd for failing test
 		echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/$1-etcd_dump.json"
-		curl -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/$1-etcd_dump.json"
+		curl -L -s "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/$1-etcd_dump.json"
 		echo
 
 		exit 1

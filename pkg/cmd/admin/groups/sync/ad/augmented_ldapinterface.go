@@ -27,8 +27,8 @@ func NewAugmentedADLDAPInterface(clientConfig ldapclient.Config,
 	}
 }
 
-// LDAPInterface extracts the member list of an LDAP user entry from an LDAP server
-// with first-class LDAP entries for users and group.  Group membership is on the user. The LDAPInterface is *NOT* thread-safe.
+// AugmentedADLDAPInterface extracts the member list of an LDAP user entry from an LDAP server
+// with first-class LDAP entries for users and group.  Group membership is on the user. The AugmentedADLDAPInterface is *NOT* thread-safe.
 type AugmentedADLDAPInterface struct {
 	*ADLDAPInterface
 
@@ -47,8 +47,8 @@ var _ interfaces.LDAPMemberExtractor = &AugmentedADLDAPInterface{}
 var _ interfaces.LDAPGroupGetter = &AugmentedADLDAPInterface{}
 var _ interfaces.LDAPGroupLister = &AugmentedADLDAPInterface{}
 
-// GroupFor returns an LDAP group entry for the given group UID by searching the internal cache
-// of the LDAPInterface first, then sending an LDAP query if the cache did not contain the entry.
+// GroupEntryFor returns an LDAP group entry for the given group UID by searching the internal cache
+// of the AugmentedADLDAPInterface first, then sending an LDAP query if the cache did not contain the entry.
 // This also satisfies the LDAPGroupGetter interface
 func (e *AugmentedADLDAPInterface) GroupEntryFor(ldapGroupUID string) (*ldap.Entry, error) {
 	group, exists := e.cachedGroups[ldapGroupUID]

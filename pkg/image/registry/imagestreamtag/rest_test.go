@@ -177,7 +177,7 @@ func TestGetImageStreamTag(t *testing.T) {
 					},
 				}},
 			expectError:     true,
-			errorTargetKind: "imagestreamtag",
+			errorTargetKind: "imagestreamtags",
 			errorTargetID:   "test:latest",
 		},
 		"missing image": {
@@ -205,7 +205,7 @@ func TestGetImageStreamTag(t *testing.T) {
 					},
 				}},
 			expectError:     true,
-			errorTargetKind: "imagestreamtag",
+			errorTargetKind: "imagestreamtags",
 			errorTargetID:   "test:latest",
 		},
 	}

@@ -565,7 +565,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunNamespaceController()
 		kc.RunPersistentVolumeClaimBinder(binderClient)
 		kc.RunPersistentVolumeProvisioner(provisionerClient)
-		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("recycler"), recyclerClient)
+		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("recycler"), recyclerClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
 
 		glog.Infof("Started Kubernetes Controllers")
 	}

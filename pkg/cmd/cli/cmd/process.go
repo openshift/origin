@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/template"
-	"github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 const (
@@ -125,11 +125,10 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	var (
 		objects []runtime.Object
 		infos   []*resource.Info
-		mapping *meta.RESTMapping
 	)
 
-	gvk, err := mapper.KindFor(api.SchemeGroupVersion.WithResource("template"))
-	if mapping, err = mapper.RESTMapping(gvk.GroupKind(), gvk.Version); err != nil {
+	mapping, err := mapper.RESTMapping(templateapi.Kind("Template"))
+	if err != nil {
 		return err
 	}
 
@@ -174,7 +173,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	outputFormat := kcmdutil.GetFlagString(cmd, "output")
 
 	for i := range infos {
-		obj, ok := infos[i].Object.(*api.Template)
+		obj, ok := infos[i].Object.(*templateapi.Template)
 		if !ok {
 			sourceName := filename
 			if len(templateName) > 0 {
@@ -273,7 +272,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 }
 
 // injectUserVars injects user specified variables into the Template
-func injectUserVars(values []string, out io.Writer, t *api.Template) {
+func injectUserVars(values []string, out io.Writer, t *templateapi.Template) {
 	for _, keypair := range values {
 		p := strings.SplitN(keypair, "=", 2)
 		if len(p) != 2 {

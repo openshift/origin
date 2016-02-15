@@ -13,6 +13,7 @@ import (
 
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
+	knet "k8s.io/kubernetes/pkg/util/net"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
@@ -44,7 +45,7 @@ func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client
 		return nil, err
 	}
 
-	transport := &http.Transport{
+	transport := knet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: tlsConfig,
 		Dial: (&net.Dialer{
 			// default from http.DefaultTransport
@@ -54,10 +55,7 @@ func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client
 		}).Dial,
 		// Because watches are very bursty, defends against long delays in watch reconnections.
 		MaxIdleConnsPerHost: 500,
-		// defaults from http.DefaultTransport
-		Proxy:               http.ProxyFromEnvironment,
-		TLSHandshakeTimeout: 10 * time.Second,
-	}
+	})
 
 	etcdClient := etcdclient.NewClient(etcdClientInfo.URLs)
 	etcdClient.SetTransport(transport)
@@ -78,7 +76,7 @@ func MakeNewEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (newetcdclie
 		return nil, err
 	}
 
-	transport := &http.Transport{
+	transport := knet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: tlsConfig,
 		Dial: (&net.Dialer{
 			// default from http.DefaultTransport
@@ -88,10 +86,7 @@ func MakeNewEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (newetcdclie
 		}).Dial,
 		// Because watches are very bursty, defends against long delays in watch reconnections.
 		MaxIdleConnsPerHost: 500,
-		// defaults from http.DefaultTransport
-		Proxy:               http.ProxyFromEnvironment,
-		TLSHandshakeTimeout: 10 * time.Second,
-	}
+	})
 
 	cfg := newetcdclient.Config{
 		Endpoints: etcdClientInfo.URLs,

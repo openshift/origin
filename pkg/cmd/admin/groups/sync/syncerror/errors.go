@@ -1,4 +1,4 @@
-package interfaces
+package syncerror
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ func (e *memberLookupError) Error() string {
 	return fmt.Sprintf("membership lookup for user %q in group %q failed because of %q", e.ldapUserUID, e.ldapGroupUID, e.causedBy.Error())
 }
 
-func IsmemberLookupError(e error) bool {
+func IsMemberLookupError(e error) bool {
 	if e == nil {
 		return false
 	}

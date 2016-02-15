@@ -12,13 +12,14 @@ Contributing
 4. Install bundler `gem install bundler`
 5. Install [Go](https://golang.org/dl/) per [steps 1 - 3](https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc#develop-locally-on-your-host)
 6. Install dev dependencies by running `hack/install-assets.sh`
-7. Launch the console and start watching for asset changes by running `hack/serve-local-assets.sh`
-+
+7. Launch the console and start watching for asset changes by running `hack/serve-local-assets.sh`. This should open <https://localhost:9000/> in your default browser.
+
     Note: If you see an ENOSPC error, you may need to increase the number of files your user can watch by running this command:
-+
+
     ```
     echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
     ```
+8. Accept the self-signed certificate for the web console. (For Chrome on OS X, import `assets/server.crt` into Keychain Access or accept the web console certificate in Safari.)
 
 #### Enable / disable console log output
 

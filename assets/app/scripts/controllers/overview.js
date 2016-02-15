@@ -297,12 +297,13 @@ angular.module('openshiftConsole')
           });
         }
 
+        var deploymentsByDepConfig = {};
         function deploymentRelationships() {
           var bySvc = $scope.deploymentsByService = {"": {}};
           var bySvcByDepCfg = $scope.deploymentsByServiceByDeploymentConfig = {"": {}};
 
           // Also keep a map of deployments by deployment config to determine which are scalable.
-          var byDepConfig = {};
+          deploymentsByDepConfig = {};
 
           angular.forEach($scope.deployments, function(deployment, depName){
             var foundMatch = false;
@@ -311,8 +312,8 @@ angular.module('openshiftConsole')
             var depConfigName = annotationFilter(deployment, 'deploymentConfig') || "";
 
             if (depConfigName) {
-              byDepConfig[depConfigName] = byDepConfig[depConfigName] || [];
-              byDepConfig[depConfigName].push(deployment);
+              deploymentsByDepConfig[depConfigName] = deploymentsByDepConfig[depConfigName] || [];
+              deploymentsByDepConfig[depConfigName].push(deployment);
             }
 
             angular.forEach($scope.unfilteredServices, function(service, name){
@@ -334,8 +335,6 @@ angular.module('openshiftConsole')
               bySvcByDepCfg[""][depConfigName] = bySvcByDepCfg[""][depConfigName] || {};
               bySvcByDepCfg[""][depConfigName][depName] = deployment;
             }
-
-            updateScalableDeployments(byDepConfig);
           });
         }
 
@@ -356,6 +355,7 @@ angular.module('openshiftConsole')
           // Order is important here since podRelationships expects deploymentsByServiceByDeploymentConfig to be up to date
           deploymentRelationships();
           podRelationships();
+          updateScalableDeployments(deploymentsByDepConfig);
 
           // Must be called after podRelationships()
           updateShowGetStarted();

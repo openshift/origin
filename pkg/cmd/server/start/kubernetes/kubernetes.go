@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"runtime"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -46,8 +47,10 @@ func NewCommand(name, fullName string, out io.Writer) *cobra.Command {
 func startProfiler() {
 	if cmdutil.Env("OPENSHIFT_PROFILE", "") == "web" {
 		go func() {
-			glog.Infof("Starting profiling endpoint at http://127.0.0.1:6060/debug/pprof/")
-			glog.Fatal(http.ListenAndServe("127.0.0.1:6060", nil))
+			runtime.SetBlockProfileRate(1)
+			profile_port := cmdutil.Env("OPENSHIFT_PROFILE_PORT", "6060")
+			glog.Infof(fmt.Sprintf("Starting profiling endpoint at http://127.0.0.1:%s/debug/pprof/", profile_port))
+			glog.Fatal(http.ListenAndServe(fmt.Sprintf("127.0.0.1:%s", profile_port), nil))
 		}()
 	}
 }

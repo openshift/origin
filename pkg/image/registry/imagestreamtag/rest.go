@@ -66,8 +66,11 @@ func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 	list := &api.ImageStreamTagList{}
 	for _, currIS := range imageStreams.Items {
 		for currTag := range currIS.Status.Tags {
-			istag, err := newISTag(currTag, &currIS, nil)
+			istag, err := newISTag(currTag, &currIS, nil, false)
 			if err != nil {
+				if kapierrors.IsNotFound(err) {
+					continue
+				}
 				return nil, err
 			}
 			matches, err := matcher.Matches(istag)
@@ -101,7 +104,7 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 		return nil, err
 	}
 
-	return newISTag(tag, imageStream, image)
+	return newISTag(tag, imageStream, image, false)
 }
 
 func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
@@ -110,41 +113,82 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 		return nil, false, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamTag: %#v", obj))
 	}
 
-	old, err := r.Get(ctx, istag.Name)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if err := rest.BeforeUpdate(Strategy, ctx, obj, old); err != nil {
-		return nil, false, err
-	}
-
-	// we only allow updates of annotations, so lets find the correct image stream and update it.
 	name, tag, err := nameAndTag(istag.Name)
 	if err != nil {
 		return nil, false, err
 	}
 
 	imageStream, err := r.imageStreamRegistry.GetImageStream(ctx, name)
+	if err != nil {
+		if !kapierrors.IsNotFound(err) || len(istag.ResourceVersion) != 0 {
+			return nil, false, err
+		}
+		namespace, ok := kapi.NamespaceFrom(ctx)
+		if !ok {
+			return nil, false, kapierrors.NewBadRequest("namespace is required on ImageStreamTags")
+		}
+		imageStream = &api.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name},
+		}
+	}
+
+	// check for conflict
+	if len(istag.ResourceVersion) == 0 {
+		istag.ResourceVersion = imageStream.ResourceVersion
+	}
+	if imageStream.ResourceVersion != istag.ResourceVersion {
+		return nil, false, kapierrors.NewConflict(api.Resource("imagestreamtags"), istag.Name, fmt.Errorf("another caller has updated the resource version to %s", imageStream.ResourceVersion))
+	}
+
+	// create the synthetic old istag
+	old, err := newISTag(tag, imageStream, nil, true)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if len(istag.ResourceVersion) == 0 {
+		if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
+			return nil, false, err
+		}
+	} else {
+		if err := rest.BeforeUpdate(Strategy, ctx, obj, old); err != nil {
+			return nil, false, err
+		}
+	}
+
+	// update the spec tag
 	if imageStream.Spec.Tags == nil {
 		imageStream.Spec.Tags = map[string]api.TagReference{}
 	}
-	tagRef := imageStream.Spec.Tags[tag]
+	tagRef, exists := imageStream.Spec.Tags[tag]
+	// if the caller set tag, override the spec tag
+	if istag.Tag != nil {
+		tagRef = *istag.Tag
+		tagRef.Name = tag
+	}
 	tagRef.Annotations = istag.Annotations
 	imageStream.Spec.Tags[tag] = tagRef
 
-	newImageStream, err := r.imageStreamRegistry.UpdateImageStream(ctx, imageStream)
+	// mutate the image stream
+	var newImageStream *api.ImageStream
+	if imageStream.CreationTimestamp.IsZero() {
+		newImageStream, err = r.imageStreamRegistry.CreateImageStream(ctx, imageStream)
+	} else {
+		newImageStream, err = r.imageStreamRegistry.UpdateImageStream(ctx, imageStream)
+	}
 	if err != nil {
 		return nil, false, err
 	}
 
 	image, err := r.imageFor(ctx, tag, newImageStream)
 	if err != nil {
-		return nil, false, err
+		if !kapierrors.IsNotFound(err) {
+			return nil, false, err
+		}
 	}
 
-	newISTag, err := newISTag(tag, newImageStream, image)
-	return newISTag, false, err
+	newISTag, err := newISTag(tag, newImageStream, image, true)
+	return newISTag, !exists, err
 }
 
 // Delete removes a tag from a stream. `id` is of the format <stream name>:<tag>.
@@ -176,7 +220,7 @@ func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
 	}
 
 	if notFound {
-		return nil, kapierrors.NewNotFound(api.Resource("imagestreamtag"), tag)
+		return nil, kapierrors.NewNotFound(api.Resource("imagestreamtags"), tag)
 	}
 
 	if _, err = r.imageStreamRegistry.UpdateImageStream(ctx, stream); err != nil {
@@ -190,18 +234,25 @@ func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
 func (r *REST) imageFor(ctx kapi.Context, tag string, imageStream *api.ImageStream) (*api.Image, error) {
 	event := api.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
-		return nil, kapierrors.NewNotFound(api.Resource("imagestreamtag"), api.JoinImageStreamTag(imageStream.Name, tag))
+		return nil, kapierrors.NewNotFound(api.Resource("imagestreamtags"), api.JoinImageStreamTag(imageStream.Name, tag))
 	}
 
 	return r.imageRegistry.GetImage(ctx, event.Image)
 }
 
-func newISTag(tag string, imageStream *api.ImageStream, image *api.Image) (*api.ImageStreamTag, error) {
+// newISTag initializes an image stream tag from an image stream and image. The allowEmptyEvent will create a tag even
+// in the event that the status tag does does not exist yet (no image has successfully been tagged) or the image is nil.
+func newISTag(tag string, imageStream *api.ImageStream, image *api.Image, allowEmptyEvent bool) (*api.ImageStreamTag, error) {
 	istagName := api.JoinImageStreamTag(imageStream.Name, tag)
 
 	event := api.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
-		return nil, kapierrors.NewNotFound(api.Resource("imagestreamtag"), istagName)
+		if !allowEmptyEvent {
+			return nil, kapierrors.NewNotFound(api.Resource("imagestreamtags"), istagName)
+		}
+		event = &api.TagEvent{
+			Created: imageStream.CreationTimestamp,
+		}
 	}
 
 	ist := &api.ImageStreamTag{
@@ -212,12 +263,25 @@ func newISTag(tag string, imageStream *api.ImageStream, image *api.Image) (*api.
 			Annotations:       map[string]string{},
 			ResourceVersion:   imageStream.ResourceVersion,
 		},
+		Generation: event.Generation,
+		Conditions: imageStream.Status.Tags[tag].Conditions,
 	}
 
-	// if the imageStream has Spec.Tags[tag].Annotations[k] = v, copy it to the image's annotations
-	// and add them to the istag's annotations
 	if imageStream.Spec.Tags != nil {
 		if tagRef, ok := imageStream.Spec.Tags[tag]; ok {
+			// copy the spec tag
+			ist.Tag = &tagRef
+			if from := ist.Tag.From; from != nil {
+				copied := *from
+				ist.Tag.From = &copied
+			}
+			if gen := ist.Tag.Generation; gen != nil {
+				copied := *gen
+				ist.Tag.Generation = &copied
+			}
+
+			// if the imageStream has Spec.Tags[tag].Annotations[k] = v, copy it to the image's annotations
+			// and add them to the istag's annotations
 			if image != nil && image.Annotations == nil {
 				image.Annotations = make(map[string]string)
 			}

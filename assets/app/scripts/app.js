@@ -93,8 +93,8 @@ angular
         templateUrl: 'views/projects.html',
         controller: 'ProjectsController'
       })
-      .when('/createProject', {
-        templateUrl: 'views/createProject.html',
+      .when('/create-project', {
+        templateUrl: 'views/create-project.html',
         controller: 'CreateProjectController'
       })
       .when('/project/:project', {
@@ -216,12 +216,12 @@ angular
         templateUrl: 'views/browse/route.html',
         controller: 'RouteController'
       })
-      .when('/project/:project/createRoute', {
-        templateUrl: 'views/createRoute.html',
+      .when('/project/:project/create-route', {
+        templateUrl: 'views/create-route.html',
         controller: 'CreateRouteController'
       })
-      .when('/project/:project/attachPVC', {
-        templateUrl: 'views/attachPVC.html',
+      .when('/project/:project/attach-pvc', {
+        templateUrl: 'views/attach-pvc.html',
         controller: 'AttachPVCController'
       })
       .when('/project/:project/create', {
@@ -237,7 +237,7 @@ angular
         controller: 'CreateFromImageController'
       })
       .when('/project/:project/create/next', {
-        templateUrl: 'views/create/nextSteps.html',
+        templateUrl: 'views/create/next-steps.html',
         controller: 'NextStepsController'
       })
       .when('/project/:project/set-limits', {
@@ -260,7 +260,16 @@ angular
         templateUrl: 'views/util/logout.html',
         controller: 'LogoutController'
       })
-
+      // legacy redirects
+      .when('/createProject', {
+        redirectTo: '/create-project'
+      })
+      .when('/project/:project/createRoute', {
+        redirectTo: '/project/:project/create-route'
+      })
+      .when('/project/:project/attachPVC', {
+        redirectTo: '/project/:project/attach-pvc'
+      })
       .otherwise({
         redirectTo: '/'
       });

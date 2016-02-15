@@ -2,7 +2,7 @@
 
 describe("ApplicationGenerator", function(){
   var ApplicationGenerator;
-  var input;
+  var inputTemplate;
 
   beforeEach(function(){
 
@@ -13,13 +13,12 @@ describe("ApplicationGenerator", function(){
       };
     });
 
-    input = {
+    inputTemplate = {
       name: "ruby-hello-world",
       routing: {
         include: true,
         targetPort: {
-          containerPort: 443,
-          protocol: "TCP",
+          port: 80
         },
         host: "www.example.com",
         path: "/test",
@@ -122,7 +121,7 @@ describe("ApplicationGenerator", function(){
   describe("#_generateService", function(){
 
     it("should not generate a service if no ports are exposed", function(){
-      var service = ApplicationGenerator._generateService(input, "theServiceName", []);
+      var service = ApplicationGenerator._generateService(angular.copy(inputTemplate), "theServiceName", []);
       expect(service).toEqual(null);
     });
 
@@ -154,15 +153,19 @@ describe("ApplicationGenerator", function(){
   describe("#_generateRoute", function(){
 
     it("should generate nothing if routing is not required", function(){
+      var input = angular.copy(inputTemplate);
       input.routing.include = false;
       expect(ApplicationGenerator._generateRoute(input, input.name, "theServiceName")).toBe(null);
     });
 
-    it("should generate an insecure Route when routing is required", function(){
-      // Add the same labels and annotations as application generator `generate()`
-      var routeInput = angular.copy(input);
-      routeInput.labels.app = input.name;
+    it("should generate a Route when routing is required", function(){
+      // Add the same labels, annotations, and targetPort as application generator `generate()`
+      var routeInput = angular.copy(inputTemplate);
+      routeInput.labels.app = routeInput.name;
       routeInput.annotations["openshift.io/generated-by"] = "OpenShiftWebConsole";
+      routeInput.routing.targetPort = {
+        port: 'tcp-80'
+      };
 
       var route = ApplicationGenerator._generateRoute(routeInput, routeInput.name, "theServiceName");
       expect(route).toEqual({
@@ -187,7 +190,7 @@ describe("ApplicationGenerator", function(){
           host: "www.example.com",
           path: "/test",
           port: {
-            targetPort: 443
+            targetPort: 'tcp-80'
           },
           tls: {
             termination: "edge",
@@ -204,7 +207,7 @@ describe("ApplicationGenerator", function(){
   describe("generating applications from image that includes source", function(){
     var resources;
     beforeEach(function(){
-      resources = ApplicationGenerator.generate(input);
+      resources = ApplicationGenerator.generate(angular.copy(inputTemplate));
     });
 
     it("should generate a BuildConfig for the source", function(){
@@ -252,7 +255,7 @@ describe("ApplicationGenerator", function(){
                         {
                           "name": "BUILD_ENV_2",
                           "value": "anotherValue"
-                        }                        
+                        }
                       ]
                     }
                 },
@@ -331,7 +334,7 @@ describe("ApplicationGenerator", function(){
                   "name": "443-tcp"
                 }],
                 "selector": {
-                    "deploymentconfig": "ruby-hello-world"
+                  "deploymentconfig": "ruby-hello-world"
                 }
             }
         }
@@ -339,7 +342,7 @@ describe("ApplicationGenerator", function(){
     });
 
     it("should generate a DeploymentConfig for the BuildConfig output image", function(){
-      var resources = ApplicationGenerator.generate(input);
+      var resources = ApplicationGenerator.generate(angular.copy(inputTemplate));
       expect(resources.deploymentConfig).toEqual(
         {
           "apiVersion": "v1",
@@ -435,11 +438,15 @@ describe("ApplicationGenerator", function(){
   describe("generating service where the ports are defined on the image config block", function(){
     var resources;
     beforeEach(function(){
+      var input = angular.copy(inputTemplate);
       input.image.dockerImageMetadata.Config = {
         "ExposedPorts": {
           "999/tcp": {},
           "777/tcp": {}
         }
+      };
+      input.routing.targetPort = {
+        port: 999
       };
       resources = ApplicationGenerator.generate(input);
     });
@@ -484,7 +491,7 @@ describe("ApplicationGenerator", function(){
   describe("generating pod template with requests and limits set", function(){
     var resources, computeResources;
     beforeEach(function(){
-      var testInput = _.clone(input);
+      var testInput = _.clone(inputTemplate);
       testInput.container.resources = computeResources = {
         limits: {
           cpu: "1",
@@ -505,6 +512,7 @@ describe("ApplicationGenerator", function(){
   describe("generating applications from image with no exposed ports", function(){
     var resources;
     beforeEach(function(){
+      var input = angular.copy(inputTemplate);
       input.image.dockerImageMetadata = {};
       resources = ApplicationGenerator.generate(input);
     });

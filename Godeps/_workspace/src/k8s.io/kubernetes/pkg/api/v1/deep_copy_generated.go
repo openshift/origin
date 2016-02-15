@@ -2263,6 +2263,12 @@ func deepCopy_v1_SecurityContextConstraints(in SecurityContextConstraints, out *
 		out.AllowedCapabilities = nil
 	}
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
+	if in.AllowEmptyDirVolumePlugin != nil {
+		out.AllowEmptyDirVolumePlugin = new(bool)
+		*out.AllowEmptyDirVolumePlugin = *in.AllowEmptyDirVolumePlugin
+	} else {
+		out.AllowEmptyDirVolumePlugin = nil
+	}
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID

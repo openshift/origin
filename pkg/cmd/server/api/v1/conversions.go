@@ -325,6 +325,20 @@ func convert_runtime_Object_To_runtime_RawExtension(in runtime.Object, out *runt
 	}
 
 	externalObject, err := internal.Scheme.ConvertToVersion(in, s.Meta().DestVersion)
+	if conversion.IsNotRegisteredError(err) {
+		switch cast := in.(type) {
+		case *runtime.Unknown:
+			out.RawJSON = cast.RawJSON
+			return nil
+		case *runtime.Unstructured:
+			bytes, err := runtime.Encode(runtime.UnstructuredJSONScheme, externalObject)
+			if err != nil {
+				return err
+			}
+			out.RawJSON = bytes
+			return nil
+		}
+	}
 	if err != nil {
 		return err
 	}
@@ -350,7 +364,8 @@ func convert_runtime_RawExtension_To_runtime_Object(in *runtime.RawExtension, ou
 
 	decodedObject, err := runtime.Decode(codec, in.RawJSON)
 	if err != nil {
-		return err
+		in.Object = &runtime.Unknown{RawJSON: in.RawJSON}
+		return nil
 	}
 
 	internalObject, err := internal.Scheme.ConvertToVersion(decodedObject, s.Meta().DestVersion)

@@ -2,6 +2,15 @@
 // navbar-alt (top bar with project menu and utility nav)
 // ------------------------------------------------------
 
+#header-logo {
+  background-image: url('@{image-path}/logo-origin-thin.svg');
+  background-repeat: no-repeat;
+  background-position: center left;
+  background-size: contain;
+  height: 20px;
+  width: 190px;
+}
+
 .navbar-pf-alt {
   background: @navbar-os-bg-color;
   border-bottom: 0;
@@ -20,12 +29,12 @@
     padding: 9px 14px;
     @media (max-width: @screen-xxs-max) {
       padding-left: 8px;
+      padding-right: 8px;
     }
   }
   .navbar-header {
-    .flex(@columns: 0 0 50px);
+    .flex(@columns: 1 1 0%);
     .flex-display(@display: flex);
-    width: 50px;
     text-decoration: none;
     .navbar-home {
       .align-items(@align: center);
@@ -45,21 +54,13 @@
       }
     }
   }
-  #header-logo {
-    background-image: url('@{image-path}/logo-origin-thin.svg');
-    background-repeat: no-repeat;
-    background-position: center left;
-    background-size: contain;
-    height: 20px;
-    width: 190px;
-  }
   .navbar-iconic {
-    margin-right: 0;
+    margin-right: 20px;
     .dropdown-menu {
       &:before,&:after {
         display: block;
         position: absolute;
-        right: 25px;
+        right: 15px;
         vertical-align: middle;
         content: "";
         width: 0;
@@ -108,21 +109,24 @@
     cursor: pointer;
     line-height: 1;
     max-height: (@navbar-pf-alt-height - @navbar-pf-alt-border-width); // to keep Firefox from oversizing icons
-    padding: @navbar-pf-alt-nav-item-iconic-padding;
     position: relative;
     color: @navbar-pf-alt-color;
     margin-right: 0;
     max-height: none;
-    padding: 21px;
-    .username {
+    padding: 21px 12px;
+    .username, .status-issue {
+      display: inline-block;
       font-weight: 300;
+      max-width: 100px;
+      padding: 0 2px;
       position: relative;
       top: -2px;
-      padding: 0 2px;
+      vertical-align: bottom;
     }
     &:hover, &:focus {
       background-color: transparent;
       color: @navbar-pf-alt-active-color;
+      text-decoration: none;
       .caret, .fa, .glyphicon, .pf-icon {
         color: @navbar-pf-alt-active-color;
       }
@@ -136,6 +140,10 @@
       font-size: @font-size-base;
       height: 12px;
     }
+    .status-icon {
+      font-size: 18px;
+      padding-right: 2px;
+    }
   }
   .open > .nav-item-iconic {
     &, &:hover, &:focus {
@@ -148,6 +156,42 @@
   }
 }
 
+// System status
+.navbar-pf-alt {
+  .system-status-mobile {
+    @media (min-width: @screen-sm-min) {
+      display: none;
+    }
+    &:before {
+      content: '';
+      display: block;
+      position: absolute;
+      top: 0;
+      left: -1px;
+      width: 1px;
+      background: @sidebar-os-border-color;
+      height: 100%;
+    }
+    .status-icon {
+      font-size: initial;
+    }
+    .status-issue {
+      display: none;
+    }
+  }
+  .system-status {
+    @media (max-width: @screen-xs-max) {
+      &.project-action-btn {
+        padding: 0;
+      }
+    }
+    @media (min-width: @screen-sm-min) and (max-width: @screen-md-max) {
+      .status-issue {
+        display: none;
+      }
+    }
+  }
+}
 
 .navbar-flex-btn {
   position: relative;
@@ -194,7 +238,7 @@
         background: @sidebar-os-border-color;
         display: block;
         height: 100%;
-        left: 1px;
+        left: -1px;
         position: absolute;
         top: 0;
         width: 1px;
@@ -225,7 +269,6 @@
     .flex(@columns: 0 0 40px);
   }
 }
-
 
 @media (min-width: @screen-sm-min) {
   .navbar-pf-alt {

@@ -244,9 +244,9 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *api.ServiceAccou
 	// now we have to wait for the service account token controller to make this valid
 	// TODO remove this once we have a create-token endpoint
 	for i := 0; i <= tokenSecretWaitTimes; i++ {
-		liveTokenSecret, err := e.client.Secrets(tokenSecret.Namespace).Get(tokenSecret.Name)
-		if err != nil {
-			return nil, err
+		liveTokenSecret, err2 := e.client.Secrets(tokenSecret.Namespace).Get(tokenSecret.Name)
+		if err2 != nil {
+			return nil, err2
 		}
 
 		if len(liveTokenSecret.Data[api.ServiceAccountTokenKey]) > 0 {
@@ -259,8 +259,8 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *api.ServiceAccou
 
 	// the token wasn't ever created, attempt deletion
 	glog.Warningf("Deleting unfilled token secret %s/%s", tokenSecret.Namespace, tokenSecret.Name)
-	if err := e.client.Secrets(tokenSecret.Namespace).Delete(tokenSecret.Name); (err != nil) && !kapierrors.IsNotFound(err) {
-		util.HandleError(err)
+	if deleteErr := e.client.Secrets(tokenSecret.Namespace).Delete(tokenSecret.Name); (deleteErr != nil) && !kapierrors.IsNotFound(deleteErr) {
+		util.HandleError(deleteErr)
 	}
 	return nil, fmt.Errorf("token never generated for %s", tokenSecret.Name)
 }

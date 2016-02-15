@@ -54,13 +54,23 @@ func ResolveResource(defaultResource, resourceString string, mapper meta.RESTMap
 	case 1:
 		name = parts[0]
 	case 2:
-		gvk, err := mapper.KindFor(unversioned.GroupVersionResource{Resource: parts[0]})
+		partialResource := unversioned.GroupVersionResource{Resource: parts[0]}
+		gvrs, err := mapper.ResourcesFor(partialResource)
 		if err != nil {
 			return "", "", err
 		}
-		name = parts[1]
-		resource, _ := meta.KindToResource(gvk, false)
-		return resource.Resource, name, nil
+		if len(gvrs) == 0 {
+			return gvrs[0].Resource, parts[1], nil
+		}
+
+		groupResource := gvrs[0].GroupResource()
+		for _, gvr := range gvrs[1:] {
+			if groupResource != gvr.GroupResource() {
+				return "", "", &meta.AmbiguousResourceError{PartialResource: partialResource, MatchingResources: gvrs}
+			}
+		}
+
+		return gvrs[0].Resource, parts[1], nil
 	default:
 		return "", "", fmt.Errorf("invalid resource format: %s", resourceString)
 	}

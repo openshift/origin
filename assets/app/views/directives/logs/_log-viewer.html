@@ -8,7 +8,7 @@
     <form
       action="{{kibanaAuthUrl}}"
       method="POST">
-      <input type="hidden" name="redirect" value="{{archiveLocation}}">
+      <input type="hidden" name="redirect" value="{{kibanaArchiveUrl}}">
       <input type="hidden" name="access_token" value="{{access_token}}">
       <button class="btn btn-sm btn-primary">View Archive</button>
     </form>
@@ -51,8 +51,8 @@
       id="affixedFollow"
       class="log-scroll log-scroll-top">
       <a ng-if="loading" href="" ng-click="toggleAutoScroll()">
-        <span ng-if="!autoScroll">Follow</span>
-        <span ng-if="autoScroll">Stop following</span>
+        <span ng-if="!autoScrollActive">Follow</span>
+        <span ng-if="autoScrollActive">Stop following</span>
       </a>
       <a ng-if="!loading" href="" ng-click="onScrollBottom()">
         Go to end

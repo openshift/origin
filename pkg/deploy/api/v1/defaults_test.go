@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/intstr"
@@ -14,6 +15,10 @@ import (
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 )
+
+func mkintp(i int64) *int64 {
+	return &i
+}
 
 func TestDefaults(t *testing.T) {
 	defaultIntOrString := intstr.FromString("25%")
@@ -51,8 +56,23 @@ func TestDefaults(t *testing.T) {
 						Type: deployv1.DeploymentStrategyTypeRecreate,
 						RecreateParams: &deployv1.RecreateDeploymentStrategyParams{
 							TimeoutSeconds: newInt64(deployapi.DefaultRollingTimeoutSeconds),
+							Pre: &deployv1.LifecycleHook{
+								TagImages: []deployv1.TagImageHook{{}, {}},
+							},
+							Mid: &deployv1.LifecycleHook{
+								TagImages: []deployv1.TagImageHook{{}, {}},
+							},
+							Post: &deployv1.LifecycleHook{
+								TagImages: []deployv1.TagImageHook{{}, {}},
+							},
 						},
 						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							Pre: &deployv1.LifecycleHook{
+								TagImages: []deployv1.TagImageHook{{}, {}},
+							},
+							Post: &deployv1.LifecycleHook{
+								TagImages: []deployv1.TagImageHook{{}, {}},
+							},
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
@@ -63,6 +83,15 @@ func TestDefaults(t *testing.T) {
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{
 							Type: deployv1.DeploymentTriggerOnImageChange,
+						},
+					},
+					Template: &kapiv1.PodTemplateSpec{
+						Spec: kapiv1.PodSpec{
+							Containers: []kapiv1.Container{
+								{
+									Name: "test",
+								},
+							},
 						},
 					},
 				},
@@ -73,8 +102,23 @@ func TestDefaults(t *testing.T) {
 						Type: deployv1.DeploymentStrategyTypeRecreate,
 						RecreateParams: &deployv1.RecreateDeploymentStrategyParams{
 							TimeoutSeconds: newInt64(deployapi.DefaultRollingTimeoutSeconds),
+							Pre: &deployv1.LifecycleHook{
+								TagImages: []deployv1.TagImageHook{{ContainerName: "test"}, {ContainerName: "test"}},
+							},
+							Mid: &deployv1.LifecycleHook{
+								TagImages: []deployv1.TagImageHook{{ContainerName: "test"}, {ContainerName: "test"}},
+							},
+							Post: &deployv1.LifecycleHook{
+								TagImages: []deployv1.TagImageHook{{ContainerName: "test"}, {ContainerName: "test"}},
+							},
 						},
 						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							Pre: &deployv1.LifecycleHook{
+								TagImages: []deployv1.TagImageHook{{ContainerName: "test"}, {ContainerName: "test"}},
+							},
+							Post: &deployv1.LifecycleHook{
+								TagImages: []deployv1.TagImageHook{{ContainerName: "test"}, {ContainerName: "test"}},
+							},
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
@@ -85,6 +129,21 @@ func TestDefaults(t *testing.T) {
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{
 							Type: deployv1.DeploymentTriggerOnImageChange,
+						},
+					},
+					Template: &kapiv1.PodTemplateSpec{
+						Spec: kapiv1.PodSpec{
+							SecurityContext:               &kapiv1.PodSecurityContext{},
+							RestartPolicy:                 kapiv1.RestartPolicyAlways,
+							TerminationGracePeriodSeconds: mkintp(30),
+							DNSPolicy:                     kapiv1.DNSClusterFirst,
+							Containers: []kapiv1.Container{
+								{
+									Name: "test",
+									TerminationMessagePath: "/dev/termination-log",
+									ImagePullPolicy:        kapiv1.PullAlways,
+								},
+							},
 						},
 					},
 				},

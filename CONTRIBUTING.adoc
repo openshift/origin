@@ -134,7 +134,7 @@ export GOPATH=$HOME/go
         $ git remote add upstream git://github.com/openshift/origin
 
 
-5.  Bring up the VM  (If you are new to Vagrant, consider http://docs.vagrantup.com[Vagrant Docs] for help on items like provider selection.  Also consider the enablement of your hardware's virtualization extensions, such as https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Virtualization_Administration_Guide/sect-Virtualization-Troubleshooting-Enabling_Intel_VT_and_AMD_V_virtualization_hardware_extensions_in_BIOS.html[RHEL] for example.).  Also note, for the `make clean build` in step 6 to work, a sufficient amount of memory needs to be allocated for the VM, where that amount of memory is not necessarily needed if you are not doing a compile, but simply running openshift (and hence is not set as the default):
+5.  Bring up the VM  (If you are new to Vagrant, consider http://docs.vagrantup.com[Vagrant Docs] for help on items like provider selection.  Also consider the enablement of your hardware's virtualization extensions, such as https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Virtualization_Administration_Guide/sect-Virtualization-Troubleshooting-Enabling_Intel_VT_and_AMD_V_virtualization_hardware_extensions_in_BIOS.html[RHEL] for example.).  Also note, for the `make clean build` in step 7 to work, a sufficient amount of memory needs to be allocated for the VM, where that amount of memory is not necessarily needed if you are not doing a compile, but simply running openshift (and hence is not set as the default):
 
         $ export OPENSHIFT_MEMORY=4192
         $ vagrant up
@@ -321,6 +321,12 @@ It's possible to override the default test regexes via the
 NETWORKING_E2E_FOCUS and NETWORKING_E2E_SKIP environment variables.
 These variables set the '-focus' and '-skip' arguments supplied to the
 https://github.com/onsi/ginkgo[ginkgo] test runner.
+
+To debug a test run with https://github.com/derekparker/delve[delve],
+make sure the dlv executable is installed in your path and run the
+tests with NETWORKING_DEBUG set to true:
+
+        $ NETWORKING_DEBUG=true test/extended/networking.sh
 
 ==== Running networking tests against any cluster
 

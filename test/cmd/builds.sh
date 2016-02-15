@@ -75,6 +75,20 @@ os::cmd::expect_success_and_text 'oc get bc/centos -o=jsonpath="{.spec.output.to
 # Ensure output is valid JSON
 os::cmd::expect_success 'oc new-build -D "FROM centos:7" -o json | python -m json.tool'
 
+# Ensure post commit hook is executed
+os::cmd::expect_success 'oc new-build -D "FROM busybox:1"'
+os::cmd::try_until_text 'oc get istag busybox:1' 'busybox@sha256:'
+os::cmd::expect_success 'oc patch bc/busybox -p '\''{"spec":{"postCommit":{"script":"echo hello $1","args":["world"],"command":null}}}'\'
+os::cmd::expect_success_and_text 'oc get bc/busybox -o=jsonpath="{.spec.postCommit['\''script'\'','\''args'\'','\''command'\'']}"' '^echo hello \$1 \[world\] \[\]$'
+# os::cmd::expect_success_and_text 'oc start-build --wait --follow busybox' 'hello world'
+os::cmd::expect_success 'oc patch bc/busybox -p '\''{"spec":{"postCommit":{"command":["sh","-c"],"args":["echo explicit command"],"script":""}}}'\'
+os::cmd::expect_success_and_text 'oc get bc/busybox -o=jsonpath="{.spec.postCommit['\''script'\'','\''args'\'','\''command'\'']}"' ' \[echo explicit command\] \[sh -c\]'
+# os::cmd::expect_success_and_text 'oc start-build --wait --follow busybox' 'explicit command'
+os::cmd::expect_success 'oc patch bc/busybox -p '\''{"spec":{"postCommit":{"args":["echo","default entrypoint"],"command":null,"script":""}}}'\'
+os::cmd::expect_success_and_text 'oc get bc/busybox -o=jsonpath="{.spec.postCommit['\''script'\'','\''args'\'','\''command'\'']}"' ' \[echo default entrypoint\] \[\]'
+# os::cmd::expect_success_and_text 'oc start-build --wait --follow busybox' 'default entrypoint'
+echo "postCommitHook: ok"
+
 os::cmd::expect_success 'oc delete all --all'
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -'
 os::cmd::expect_success 'oc get buildConfigs'

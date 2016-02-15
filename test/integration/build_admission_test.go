@@ -19,7 +19,7 @@ import (
 )
 
 func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
-	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t)
+	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t, false)
 
 	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
 	builds := map[string]*buildapi.Build{}
@@ -74,7 +74,7 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 }
 
 func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *testing.T) {
-	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t)
+	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t, true)
 
 	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
 	buildConfigs := map[string]*buildapi.BuildConfig{}
@@ -132,9 +132,16 @@ func buildStrategyTypes() []string {
 	return []string{"source", "docker", "custom"}
 }
 
-func setupBuildStrategyTest(t *testing.T) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
+func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
 	namespace := testutil.Namespace()
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	var clusterAdminKubeConfig string
+	var err error
+
+	if includeControllers {
+		_, clusterAdminKubeConfig, err = testserver.StartTestMaster()
+	} else {
+		_, clusterAdminKubeConfig, err = testserver.StartTestMasterAPI()
+	}
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

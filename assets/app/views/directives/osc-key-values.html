@@ -7,10 +7,12 @@
                  name="key"
                  ng-attr-placeholder="{{keyTitle}}"
                  ng-model="key"
+                 ng-model-options="{ debounce: 200 }"
                  autocorrect="off"
                  autocapitalize="off"
                  spellcheck="false"
-                 osc-input-validator="key">
+                 osc-input-validator="key"
+                 osc-unique="entries">
         </div>
         <div class="form-group" ng-class="{'has-error': form.value.$error.oscValueValid}">
           <input class="form-control"
@@ -23,7 +25,15 @@
                  spellcheck="false"
                  osc-input-validator="value">
         </div>
-        <button class="btn btn-default" ng-click="addEntry()" ng-disabled="form.key.$error.oscKeyValid || form.value.$error.oscValueValid">Add</button>
+        <button
+          class="btn btn-default"
+          ng-click="addEntry()"
+          ng-disabled="form.$invalid || !key || !value">
+          Add
+        </button>
+        <div class="has-error" ng-show="form.key.$error.oscUnique">
+          <span class="help-block">Duplicate {{(keyTitle || 'key') | lowercase}}: {{key}}</span>
+        </div>
         <div class="has-error" ng-show="form.key.$error.oscKeyValid">
           <span class="help-block">Please enter a valid {{setErrorText(keyValidator)}}
             <span class="help action-inline" ng-if="keyValidationTooltip">

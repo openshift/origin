@@ -28,12 +28,14 @@ const (
 type DeploymentStrategy struct {
 	// Type is the name of a deployment strategy.
 	Type DeploymentStrategyType
+
 	// CustomParams are the input to the Custom deployment strategy.
 	CustomParams *CustomDeploymentStrategyParams
 	// RecreateParams are the input to the Recreate deployment strategy.
 	RecreateParams *RecreateDeploymentStrategyParams
 	// RollingParams are the input to the Rolling deployment strategy.
 	RollingParams *RollingDeploymentStrategyParams
+
 	// Resources contains resource requirements to execute the deployment
 	Resources kapi.ResourceRequirements
 	// Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
@@ -77,17 +79,20 @@ type RecreateDeploymentStrategyParams struct {
 	// pod is created. All LifecycleHookFailurePolicy values are supported.
 	Mid *LifecycleHook
 	// Post is a lifecycle hook which is executed after the strategy has
-	// finished all deployment logic. The LifecycleHookFailurePolicyAbort policy
-	// is NOT supported.
+	// finished all deployment logic.
 	Post *LifecycleHook
 }
 
-// LifecycleHook defines a specific deployment lifecycle action.
+// LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.
 type LifecycleHook struct {
 	// FailurePolicy specifies what action to take if the hook fails.
 	FailurePolicy LifecycleHookFailurePolicy
+
 	// ExecNewPod specifies the options for a lifecycle hook backed by a pod.
 	ExecNewPod *ExecNewPodHook
+
+	// TagImages instructs the deployer to tag the current image referenced under a container onto an image stream tag if the deployment succeeds.
+	TagImages []TagImageHook
 }
 
 // LifecycleHookFailurePolicy describes possibles actions to take if a hook fails.
@@ -116,6 +121,14 @@ type ExecNewPodHook struct {
 	// Volumes is a list of named volumes from the pod template which should be
 	// copied to the hook pod.
 	Volumes []string
+}
+
+// TagImageHook is a request to tag the image in a particular container onto an ImageStreamTag.
+type TagImageHook struct {
+	// ContainerName is the name of a container in the deployment config whose image value will be used as the source of the tag
+	ContainerName string
+	// To is the target ImageStreamTag to set the image of
+	To kapi.ObjectReference
 }
 
 // RollingDeploymentStrategyParams are the input to the Rolling deployment
@@ -161,8 +174,7 @@ type RollingDeploymentStrategyParams struct {
 	// begins. All LifecycleHookFailurePolicy values are supported.
 	Pre *LifecycleHook
 	// Post is a lifecycle hook which is executed after the strategy has
-	// finished all deployment logic. The LifecycleHookFailurePolicyAbort policy
-	// is NOT supported.
+	// finished all deployment logic.
 	Post *LifecycleHook
 }
 
@@ -224,6 +236,12 @@ const (
 	// DeploymentReplicasAnnotation is for internal use only and is for
 	// detecting external modifications to deployment replica counts.
 	DeploymentReplicasAnnotation = "openshift.io/deployment.replicas"
+	// PostHookPodSuffix is the suffix added to all pre hook pods
+	PreHookPodSuffix = "hook-pre"
+	// PostHookPodSuffix is the suffix added to all mid hook pods
+	MidHookPodSuffix = "hook-mid"
+	// PostHookPodSuffix is the suffix added to all post hook pods
+	PostHookPodSuffix = "hook-post"
 )
 
 // These constants represent the various reasons for cancelling a deployment

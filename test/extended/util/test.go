@@ -72,7 +72,7 @@ func InitTest() {
 	rflag.StringVar(&config.GinkgoConfig.FocusString, "focus", "", "DEPRECATED: use --ginkgo.focus")
 
 	// Ensure that Kube tests run privileged (like they do upstream)
-	ginkgo.JustBeforeEach(ensureKubeE2EPrivilegedSA)
+	ginkgo.JustBeforeEach(verifyTestSuitePreconditions)
 
 	// Override the default Kubernetes E2E configuration
 	e2e.SetTestContext(TestContext)
@@ -106,11 +106,23 @@ func ExecuteTest(t *testing.T, suite string) {
 	}
 }
 
-// ensureKubeE2EPrivilegedSA ensures that all namespaces prefixed with 'e2e-' have their
-// service accounts in the privileged and anyuid SCCs
-func ensureKubeE2EPrivilegedSA() {
+// verifyTestSuitePreconditions ensures that all namespaces prefixed with 'e2e-' have their
+// service accounts in the privileged and anyuid SCCs, and that Origin/Kubernetes synthetic
+// skip labels are applied
+func verifyTestSuitePreconditions() {
 	desc := ginkgo.CurrentGinkgoTestDescription()
-	if strings.Contains(desc.FileName, "/kubernetes/test/e2e/") {
+
+	switch {
+	case strings.Contains(desc.FileName, "/origin/test/"):
+		if strings.Contains(config.GinkgoConfig.SkipString, "[Origin]") {
+			ginkgo.Skip("skipping [Origin] tests")
+		}
+
+	case strings.Contains(desc.FileName, "/kubernetes/test/e2e/"):
+		if strings.Contains(config.GinkgoConfig.SkipString, "[Kubernetes]") {
+			ginkgo.Skip("skipping [Kubernetes] tests")
+		}
+
 		e2e.Logf("About to run a Kube e2e test, ensuring namespace is privileged")
 		c, _, err := configapi.GetKubeClient(KubeConfigPath())
 		if err != nil {

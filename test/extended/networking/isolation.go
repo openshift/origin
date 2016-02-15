@@ -8,6 +8,7 @@ import (
 )
 
 // This test requires a network plugin that supports namespace isolation.
+// NOTE: if you change the test description, update networking.sh too!
 var _ = Describe("[networking] network isolation plugin", func() {
 	f1 := e2e.NewFramework("net-isolation1")
 	f2 := e2e.NewFramework("net-isolation2")

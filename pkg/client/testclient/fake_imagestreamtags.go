@@ -26,6 +26,15 @@ func (c *FakeImageStreamTags) Get(name, tag string) (*imageapi.ImageStreamTag, e
 	return obj.(*imageapi.ImageStreamTag), err
 }
 
+func (c *FakeImageStreamTags) Update(inObj *imageapi.ImageStreamTag) (*imageapi.ImageStreamTag, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("imagestreamtags", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*imageapi.ImageStreamTag), err
+}
+
 func (c *FakeImageStreamTags) Delete(name, tag string) error {
 	_, err := c.Fake.Invokes(ktestclient.NewDeleteAction("imagestreamtags", c.Namespace, imageapi.JoinImageStreamTag(name, tag)), &imageapi.ImageStreamTag{})
 	return err

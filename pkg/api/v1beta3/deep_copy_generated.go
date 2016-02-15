@@ -909,6 +909,27 @@ func deepCopy_v1beta3_BuildOutput(in apiv1beta3.BuildOutput, out *apiv1beta3.Bui
 	return nil
 }
 
+func deepCopy_v1beta3_BuildPostCommitSpec(in apiv1beta3.BuildPostCommitSpec, out *apiv1beta3.BuildPostCommitSpec, c *conversion.Cloner) error {
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.Script = in.Script
+	return nil
+}
+
 func deepCopy_v1beta3_BuildRequest(in apiv1beta3.BuildRequest, out *apiv1beta3.BuildRequest, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -1055,6 +1076,9 @@ func deepCopy_v1beta3_BuildSpec(in apiv1beta3.BuildSpec, out *apiv1beta3.BuildSp
 		return err
 	} else {
 		out.Resources = newVal.(pkgapiv1beta3.ResourceRequirements)
+	}
+	if err := deepCopy_v1beta3_BuildPostCommitSpec(in.PostCommit, &out.PostCommit, c); err != nil {
+		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
 		out.CompletionDeadlineSeconds = new(int64)
@@ -1760,6 +1784,16 @@ func deepCopy_v1beta3_LifecycleHook(in deployapiv1beta3.LifecycleHook, out *depl
 	} else {
 		out.ExecNewPod = nil
 	}
+	if in.TagImages != nil {
+		out.TagImages = make([]deployapiv1beta3.TagImageHook, len(in.TagImages))
+		for i := range in.TagImages {
+			if err := deepCopy_v1beta3_TagImageHook(in.TagImages[i], &out.TagImages[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.TagImages = nil
+	}
 	return nil
 }
 
@@ -1855,6 +1889,16 @@ func deepCopy_v1beta3_RollingDeploymentStrategyParams(in deployapiv1beta3.Rollin
 		}
 	} else {
 		out.Post = nil
+	}
+	return nil
+}
+
+func deepCopy_v1beta3_TagImageHook(in deployapiv1beta3.TagImageHook, out *deployapiv1beta3.TagImageHook, c *conversion.Cloner) error {
+	out.ContainerName = in.ContainerName
+	if newVal, err := c.DeepCopy(in.To); err != nil {
+		return err
+	} else {
+		out.To = newVal.(pkgapiv1beta3.ObjectReference)
 	}
 	return nil
 }
@@ -2441,6 +2485,39 @@ func deepCopy_v1beta3_Route(in routeapiv1beta3.Route, out *routeapiv1beta3.Route
 	return nil
 }
 
+func deepCopy_v1beta3_RouteIngress(in routeapiv1beta3.RouteIngress, out *routeapiv1beta3.RouteIngress, c *conversion.Cloner) error {
+	out.Host = in.Host
+	out.RouterName = in.RouterName
+	if in.Conditions != nil {
+		out.Conditions = make([]routeapiv1beta3.RouteIngressCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := deepCopy_v1beta3_RouteIngressCondition(in.Conditions[i], &out.Conditions[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	return nil
+}
+
+func deepCopy_v1beta3_RouteIngressCondition(in routeapiv1beta3.RouteIngressCondition, out *routeapiv1beta3.RouteIngressCondition, c *conversion.Cloner) error {
+	out.Type = in.Type
+	out.Status = in.Status
+	out.Reason = in.Reason
+	out.Message = in.Message
+	if in.LastTransitionTime != nil {
+		if newVal, err := c.DeepCopy(in.LastTransitionTime); err != nil {
+			return err
+		} else {
+			out.LastTransitionTime = newVal.(*unversioned.Time)
+		}
+	} else {
+		out.LastTransitionTime = nil
+	}
+	return nil
+}
+
 func deepCopy_v1beta3_RouteList(in routeapiv1beta3.RouteList, out *routeapiv1beta3.RouteList, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -2502,6 +2579,16 @@ func deepCopy_v1beta3_RouteSpec(in routeapiv1beta3.RouteSpec, out *routeapiv1bet
 }
 
 func deepCopy_v1beta3_RouteStatus(in routeapiv1beta3.RouteStatus, out *routeapiv1beta3.RouteStatus, c *conversion.Cloner) error {
+	if in.Ingress != nil {
+		out.Ingress = make([]routeapiv1beta3.RouteIngress, len(in.Ingress))
+		for i := range in.Ingress {
+			if err := deepCopy_v1beta3_RouteIngress(in.Ingress[i], &out.Ingress[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
+	}
 	return nil
 }
 
@@ -2936,6 +3023,7 @@ func init() {
 		deepCopy_v1beta3_BuildLog,
 		deepCopy_v1beta3_BuildLogOptions,
 		deepCopy_v1beta3_BuildOutput,
+		deepCopy_v1beta3_BuildPostCommitSpec,
 		deepCopy_v1beta3_BuildRequest,
 		deepCopy_v1beta3_BuildSource,
 		deepCopy_v1beta3_BuildSpec,
@@ -2974,6 +3062,7 @@ func init() {
 		deepCopy_v1beta3_LifecycleHook,
 		deepCopy_v1beta3_RecreateDeploymentStrategyParams,
 		deepCopy_v1beta3_RollingDeploymentStrategyParams,
+		deepCopy_v1beta3_TagImageHook,
 		deepCopy_v1beta3_Image,
 		deepCopy_v1beta3_ImageLayer,
 		deepCopy_v1beta3_ImageList,
@@ -3004,6 +3093,8 @@ func init() {
 		deepCopy_v1beta3_ProjectSpec,
 		deepCopy_v1beta3_ProjectStatus,
 		deepCopy_v1beta3_Route,
+		deepCopy_v1beta3_RouteIngress,
+		deepCopy_v1beta3_RouteIngressCondition,
 		deepCopy_v1beta3_RouteList,
 		deepCopy_v1beta3_RoutePort,
 		deepCopy_v1beta3_RouteSpec,

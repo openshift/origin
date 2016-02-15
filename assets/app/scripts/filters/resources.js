@@ -265,7 +265,7 @@ angular.module('openshiftConsole')
     return function(image, builds) {
       // TODO concerned that this gets called anytime any data is changed on the scope,
       // whether its relevant changes or not
-      var envVars = image.dockerImageMetadata.Config.Env;
+      var envVars = _.get(image, 'dockerImageMetadata.Config.Env', []);
       for (var i = 0; i < envVars.length; i++) {
         var keyValue = envVars[i].split("=");
         if (keyValue[0] === "OPENSHIFT_BUILD_NAME") {
@@ -800,5 +800,49 @@ angular.module('openshiftConsole')
         'services': 'Services'
       };
       return nameFormatMap[resourceType] || resourceType;
+    };
+  })
+  .filter('routeTargetPortMapping', function(RoutesService) {
+    var portDisplayValue = function(servicePort, containerPort, protocol) {
+      servicePort = servicePort || "<unknown>";
+      containerPort = containerPort || "<unknown>";
+
+      // \u2192 is a right arrow (see examples below)
+      var mapping = "Service Port " + servicePort  + " \u2192 Container Port " + containerPort;
+      if (protocol) {
+        mapping += " (" + protocol + ")";
+      }
+
+      return mapping;
+    };
+
+    // Returns a display value for a route target port that includes the
+    // service port, e.g.
+    //   Service Port 8080 -> Container Port 8081
+    // If no target port for the route or service is undefined, returns an
+    // empty string.
+    // If the corresponding port is not found, returns
+    //   Service Port <unknown> -> Container Port 8081
+    // or
+    //   Service Port web -> Container Port <unknown>
+    return function(route, service) {
+      if (!route.spec.port || !route.spec.port.targetPort || !service) {
+        return '';
+      }
+
+      var targetPort = route.spec.port.targetPort;
+      // Find the corresponding service port.
+      var servicePort = RoutesService.getServicePortForRoute(targetPort, service);
+      if (!servicePort) {
+        // Named ports refer to the service port name.
+        if (angular.isString(targetPort)) {
+          return portDisplayValue(targetPort, null);
+        }
+
+        // Numbers refer to the container port.
+        return portDisplayValue(null, targetPort);
+      }
+
+      return portDisplayValue(servicePort.port, servicePort.targetPort, servicePort.protocol);
     };
   });

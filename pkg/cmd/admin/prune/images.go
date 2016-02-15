@@ -16,6 +16,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	knet "k8s.io/kubernetes/pkg/util/net"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -430,11 +431,11 @@ func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, *kclient
 		tlsConfig.RootCAs.AppendCertsFromPEM(data)
 	}
 
-	transport := http.Transport{
+	transport := knet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: tlsConfig,
-	}
+	})
 
-	wrappedTransport, err := kclient.HTTPWrappersForConfig(&registryClientConfig, &transport)
+	wrappedTransport, err := kclient.HTTPWrappersForConfig(&registryClientConfig, transport)
 	if err != nil {
 		return nil, nil, nil, err
 	}

@@ -109,7 +109,7 @@
                                   detailed="true"></pod-template>
                           </dl>
                           <h4 style="margin-top: 20px;">Volumes</h4>
-                          <a ng-href="project/{{project.metadata.name}}/attachPVC?deploymentconfig={{deploymentConfig.metadata.name}}">Attach storage</a>
+                          <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{deploymentConfig.metadata.name}}">Attach storage</a>
                           <volumes volumes="deploymentConfig.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
                         </div>
                         <div class="col-lg-6">
@@ -153,7 +153,7 @@
                           </tr>
                         </thead>
                         <tbody ng-if="(deployments | hashSize) == 0">
-                          <tr><td colspan="4" data-title="Deployment"><em>{{emptyMessage}}</em></td></tr>
+                          <tr><td colspan="4"><em>{{emptyMessage}}</em></td></tr>
                         </tbody>
                         <tbody ng-repeat="deployment in deployments | orderObjectsByDate : true">
                           <tr>
@@ -197,7 +197,7 @@
                         </tr>
                       </tbody>
                       </table>
-                    </div>                    
+                    </div>
                   </uib-tab>
                   <uib-tab heading="Environment" active="selectedTab.environment">
                     <uib-tab-heading>Environment</uib-tab-heading>

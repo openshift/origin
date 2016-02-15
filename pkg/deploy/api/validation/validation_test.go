@@ -297,8 +297,8 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Selector: test.OkSelector(),
 				},
 			},
-			field.ErrorTypeRequired,
-			"spec.strategy.recreateParams.pre.execNewPod",
+			field.ErrorTypeInvalid,
+			"spec.strategy.recreateParams.pre",
 		},
 		"missing spec.strategy.recreateParams.pre.execNewPod.command": {
 			api.DeploymentConfig{
@@ -370,6 +370,146 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			},
 			field.ErrorTypeInvalid,
 			"spec.strategy.recreateParams.pre.execNewPod.volumes[1]",
+		},
+		"missing spec.strategy.recreateParams.mid.execNewPod": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRecreate,
+						RecreateParams: &api.RecreateDeploymentStrategyParams{
+							Mid: &api.LifecycleHook{
+								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+							},
+						},
+					},
+					Template: test.OkPodTemplate(),
+					Selector: test.OkSelector(),
+				},
+			},
+			field.ErrorTypeInvalid,
+			"spec.strategy.recreateParams.mid",
+		},
+		"missing spec.strategy.recreateParams.post.execNewPod": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRecreate,
+						RecreateParams: &api.RecreateDeploymentStrategyParams{
+							Post: &api.LifecycleHook{
+								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+							},
+						},
+					},
+					Template: test.OkPodTemplate(),
+					Selector: test.OkSelector(),
+				},
+			},
+			field.ErrorTypeInvalid,
+			"spec.strategy.recreateParams.post",
+		},
+		"missing spec.strategy.after.tagImages": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRecreate,
+						RecreateParams: &api.RecreateDeploymentStrategyParams{
+							Post: &api.LifecycleHook{
+								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+								TagImages: []api.TagImageHook{
+									{
+										ContainerName: "missing",
+										To:            kapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:tag"},
+									},
+								},
+							},
+						},
+					},
+					Template: test.OkPodTemplate(),
+					Selector: test.OkSelector(),
+				},
+			},
+			field.ErrorTypeInvalid,
+			"spec.strategy.recreateParams.post.tagImages[0].containerName",
+		},
+		"missing spec.strategy.after.tagImages.to.kind": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRecreate,
+						RecreateParams: &api.RecreateDeploymentStrategyParams{
+							Post: &api.LifecycleHook{
+								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+								TagImages: []api.TagImageHook{
+									{
+										ContainerName: "container1",
+										To:            kapi.ObjectReference{Name: "stream:tag"},
+									},
+								},
+							},
+						},
+					},
+					Template: test.OkPodTemplate(),
+					Selector: test.OkSelector(),
+				},
+			},
+			field.ErrorTypeInvalid,
+			"spec.strategy.recreateParams.post.tagImages[0].to.kind",
+		},
+		"missing spec.strategy.after.tagImages.to.name": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRecreate,
+						RecreateParams: &api.RecreateDeploymentStrategyParams{
+							Post: &api.LifecycleHook{
+								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+								TagImages: []api.TagImageHook{
+									{
+										ContainerName: "container1",
+										To:            kapi.ObjectReference{Kind: "ImageStreamTag"},
+									},
+								},
+							},
+						},
+					},
+					Template: test.OkPodTemplate(),
+					Selector: test.OkSelector(),
+				},
+			},
+			field.ErrorTypeRequired,
+			"spec.strategy.recreateParams.post.tagImages[0].to.name",
+		},
+		"can't have both tag and execNewPod": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRecreate,
+						RecreateParams: &api.RecreateDeploymentStrategyParams{
+							Post: &api.LifecycleHook{
+								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+								ExecNewPod:    &api.ExecNewPodHook{},
+								TagImages:     []api.TagImageHook{{}},
+							},
+						},
+					},
+					Template: test.OkPodTemplate(),
+					Selector: test.OkSelector(),
+				},
+			},
+			field.ErrorTypeInvalid,
+			"spec.strategy.recreateParams.post",
 		},
 		"invalid spec.strategy.rollingParams.intervalSeconds": {
 			rollingConfig(-20, 1, 1),

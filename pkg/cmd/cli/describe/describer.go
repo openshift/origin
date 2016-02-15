@@ -595,9 +595,56 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, route.ObjectMeta)
-		formatString(out, "Host", route.Spec.Host)
+		if len(route.Spec.Host) > 0 {
+			formatString(out, "Requested Host", route.Spec.Host)
+			for _, ingress := range route.Status.Ingress {
+				if route.Spec.Host != ingress.Host {
+					continue
+				}
+				switch status, condition := ingressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+				case kapi.ConditionTrue:
+					fmt.Fprintf(out, "\t  exposed on router %s %s ago\n", ingress.RouterName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+				case kapi.ConditionFalse:
+					fmt.Fprintf(out, "\t  rejected by router %s: %s (%s ago)\n", ingress.RouterName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+					if len(condition.Message) > 0 {
+						fmt.Fprintf(out, "\t    %s\n", condition.Message)
+					}
+				}
+			}
+		} else {
+			formatString(out, "Requested Host", "<auto>")
+		}
+		for _, ingress := range route.Status.Ingress {
+			if route.Spec.Host == ingress.Host {
+				continue
+			}
+			switch status, condition := ingressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+			case kapi.ConditionTrue:
+				fmt.Fprintf(out, "\t%s exposed on router %s %s ago\n", ingress.Host, ingress.RouterName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+			case kapi.ConditionFalse:
+				fmt.Fprintf(out, "\trejected by router %s: %s (%s ago)\n", ingress.RouterName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+				if len(condition.Message) > 0 {
+					fmt.Fprintf(out, "\t  %s\n", condition.Message)
+				}
+			}
+		}
 		formatString(out, "Path", route.Spec.Path)
+
+		tlsTerm := ""
+		insecurePolicy := ""
+		if route.Spec.TLS != nil {
+			tlsTerm = string(route.Spec.TLS.Termination)
+			insecurePolicy = string(route.Spec.TLS.InsecureEdgeTerminationPolicy)
+		}
+		formatString(out, "TLS Termination", tlsTerm)
+		formatString(out, "Insecure Policy", insecurePolicy)
+
 		formatString(out, "Service", route.Spec.To.Name)
+		if route.Spec.Port != nil {
+			formatString(out, "Endpoint Port", route.Spec.Port.TargetPort.String())
+		} else {
+			formatString(out, "Endpoint Port", "<all endpoint ports>")
+		}
 
 		ends := "<none>"
 		if endsErr != nil {
@@ -619,21 +666,12 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 					}
 				}
 			}
-			ends = strings.Join(list, ",")
+			ends = strings.Join(list, ", ")
 			if count > max {
 				ends += fmt.Sprintf(" + %d more...", count-max)
 			}
 		}
 		formatString(out, "Endpoints", ends)
-
-		tlsTerm := ""
-		insecurePolicy := ""
-		if route.Spec.TLS != nil {
-			tlsTerm = string(route.Spec.TLS.Termination)
-			insecurePolicy = string(route.Spec.TLS.InsecureEdgeTerminationPolicy)
-		}
-		formatString(out, "TLS Termination", tlsTerm)
-		formatString(out, "Insecure Policy", insecurePolicy)
 		return nil
 	})
 }

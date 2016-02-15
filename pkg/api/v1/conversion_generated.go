@@ -1003,10 +1003,6 @@ func autoConvert_api_BuildConfig_To_v1_BuildConfig(in *buildapi.BuildConfig, out
 	return nil
 }
 
-func Convert_api_BuildConfig_To_v1_BuildConfig(in *buildapi.BuildConfig, out *v1.BuildConfig, s conversion.Scope) error {
-	return autoConvert_api_BuildConfig_To_v1_BuildConfig(in, out, s)
-}
-
 func autoConvert_api_BuildConfigList_To_v1_BuildConfigList(in *buildapi.BuildConfigList, out *v1.BuildConfigList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildConfigList))(in)
@@ -1017,7 +1013,7 @@ func autoConvert_api_BuildConfigList_To_v1_BuildConfigList(in *buildapi.BuildCon
 	if in.Items != nil {
 		out.Items = make([]v1.BuildConfig, len(in.Items))
 		for i := range in.Items {
-			if err := Convert_api_BuildConfig_To_v1_BuildConfig(&in.Items[i], &out.Items[i], s); err != nil {
+			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
 			}
 		}
@@ -1176,6 +1172,34 @@ func autoConvert_api_BuildOutput_To_v1_BuildOutput(in *buildapi.BuildOutput, out
 	return nil
 }
 
+func autoConvert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(in *buildapi.BuildPostCommitSpec, out *v1.BuildPostCommitSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.BuildPostCommitSpec))(in)
+	}
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.Script = in.Script
+	return nil
+}
+
+func Convert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(in *buildapi.BuildPostCommitSpec, out *v1.BuildPostCommitSpec, s conversion.Scope) error {
+	return autoConvert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(in, out, s)
+}
+
 func autoConvert_api_BuildRequest_To_v1_BuildRequest(in *buildapi.BuildRequest, out *v1.BuildRequest, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildRequest))(in)
@@ -1325,6 +1349,9 @@ func autoConvert_api_BuildSpec_To_v1_BuildSpec(in *buildapi.BuildSpec, out *v1.B
 		return err
 	}
 	if err := Convert_api_ResourceRequirements_To_v1_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if err := Convert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
 		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
@@ -1813,10 +1840,6 @@ func autoConvert_v1_BuildConfig_To_api_BuildConfig(in *v1.BuildConfig, out *buil
 	return nil
 }
 
-func Convert_v1_BuildConfig_To_api_BuildConfig(in *v1.BuildConfig, out *buildapi.BuildConfig, s conversion.Scope) error {
-	return autoConvert_v1_BuildConfig_To_api_BuildConfig(in, out, s)
-}
-
 func autoConvert_v1_BuildConfigList_To_api_BuildConfigList(in *v1.BuildConfigList, out *buildapi.BuildConfigList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1.BuildConfigList))(in)
@@ -1827,7 +1850,7 @@ func autoConvert_v1_BuildConfigList_To_api_BuildConfigList(in *v1.BuildConfigLis
 	if in.Items != nil {
 		out.Items = make([]buildapi.BuildConfig, len(in.Items))
 		for i := range in.Items {
-			if err := Convert_v1_BuildConfig_To_api_BuildConfig(&in.Items[i], &out.Items[i], s); err != nil {
+			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
 			}
 		}
@@ -1986,6 +2009,34 @@ func autoConvert_v1_BuildOutput_To_api_BuildOutput(in *v1.BuildOutput, out *buil
 	return nil
 }
 
+func autoConvert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in *v1.BuildPostCommitSpec, out *buildapi.BuildPostCommitSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1.BuildPostCommitSpec))(in)
+	}
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.Script = in.Script
+	return nil
+}
+
+func Convert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in *v1.BuildPostCommitSpec, out *buildapi.BuildPostCommitSpec, s conversion.Scope) error {
+	return autoConvert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in, out, s)
+}
+
 func autoConvert_v1_BuildRequest_To_api_BuildRequest(in *v1.BuildRequest, out *buildapi.BuildRequest, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1.BuildRequest))(in)
@@ -2136,6 +2187,9 @@ func autoConvert_v1_BuildSpec_To_api_BuildSpec(in *v1.BuildSpec, out *buildapi.B
 		return err
 	}
 	if err := Convert_v1_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
 		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
@@ -2993,6 +3047,16 @@ func autoConvert_api_LifecycleHook_To_v1_LifecycleHook(in *deployapi.LifecycleHo
 	} else {
 		out.ExecNewPod = nil
 	}
+	if in.TagImages != nil {
+		out.TagImages = make([]deployapiv1.TagImageHook, len(in.TagImages))
+		for i := range in.TagImages {
+			if err := Convert_api_TagImageHook_To_v1_TagImageHook(&in.TagImages[i], &out.TagImages[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.TagImages = nil
+	}
 	return nil
 }
 
@@ -3097,6 +3161,21 @@ func autoConvert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStra
 		out.Post = nil
 	}
 	return nil
+}
+
+func autoConvert_api_TagImageHook_To_v1_TagImageHook(in *deployapi.TagImageHook, out *deployapiv1.TagImageHook, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*deployapi.TagImageHook))(in)
+	}
+	out.ContainerName = in.ContainerName
+	if err := Convert_api_ObjectReference_To_v1_ObjectReference(&in.To, &out.To, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_TagImageHook_To_v1_TagImageHook(in *deployapi.TagImageHook, out *deployapiv1.TagImageHook, s conversion.Scope) error {
+	return autoConvert_api_TagImageHook_To_v1_TagImageHook(in, out, s)
 }
 
 func autoConvert_v1_CustomDeploymentStrategyParams_To_api_CustomDeploymentStrategyParams(in *deployapiv1.CustomDeploymentStrategyParams, out *deployapi.CustomDeploymentStrategyParams, s conversion.Scope) error {
@@ -3535,6 +3614,16 @@ func autoConvert_v1_LifecycleHook_To_api_LifecycleHook(in *deployapiv1.Lifecycle
 	} else {
 		out.ExecNewPod = nil
 	}
+	if in.TagImages != nil {
+		out.TagImages = make([]deployapi.TagImageHook, len(in.TagImages))
+		for i := range in.TagImages {
+			if err := Convert_v1_TagImageHook_To_api_TagImageHook(&in.TagImages[i], &out.TagImages[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.TagImages = nil
+	}
 	return nil
 }
 
@@ -3635,6 +3724,21 @@ func autoConvert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStra
 		out.Post = nil
 	}
 	return nil
+}
+
+func autoConvert_v1_TagImageHook_To_api_TagImageHook(in *deployapiv1.TagImageHook, out *deployapi.TagImageHook, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*deployapiv1.TagImageHook))(in)
+	}
+	out.ContainerName = in.ContainerName
+	if err := Convert_v1_ObjectReference_To_api_ObjectReference(&in.To, &out.To, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_TagImageHook_To_api_TagImageHook(in *deployapiv1.TagImageHook, out *deployapi.TagImageHook, s conversion.Scope) error {
+	return autoConvert_v1_TagImageHook_To_api_TagImageHook(in, out, s)
 }
 
 func autoConvert_api_Image_To_v1_Image(in *imageapi.Image, out *imageapiv1.Image, s conversion.Scope) error {
@@ -3932,6 +4036,26 @@ func autoConvert_api_ImageStreamTag_To_v1_ImageStreamTag(in *imageapi.ImageStrea
 	if err := Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
+	// unable to generate simple pointer conversion for api.TagReference -> v1.TagReference
+	if in.Tag != nil {
+		out.Tag = new(imageapiv1.TagReference)
+		if err := Convert_api_TagReference_To_v1_TagReference(in.Tag, out.Tag, s); err != nil {
+			return err
+		}
+	} else {
+		out.Tag = nil
+	}
+	out.Generation = in.Generation
+	if in.Conditions != nil {
+		out.Conditions = make([]imageapiv1.TagEventCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := Convert_api_TagEventCondition_To_v1_TagEventCondition(&in.Conditions[i], &out.Conditions[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
 		return err
 	}
@@ -4016,6 +4140,25 @@ func Convert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in *imageap
 	return autoConvert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in, out, s)
 }
 
+func autoConvert_api_TagEventCondition_To_v1_TagEventCondition(in *imageapi.TagEventCondition, out *imageapiv1.TagEventCondition, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.TagEventCondition))(in)
+	}
+	out.Type = imageapiv1.TagEventConditionType(in.Type)
+	out.Status = apiv1.ConditionStatus(in.Status)
+	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
+		return err
+	}
+	out.Reason = in.Reason
+	out.Message = in.Message
+	out.Generation = in.Generation
+	return nil
+}
+
+func Convert_api_TagEventCondition_To_v1_TagEventCondition(in *imageapi.TagEventCondition, out *imageapiv1.TagEventCondition, s conversion.Scope) error {
+	return autoConvert_api_TagEventCondition_To_v1_TagEventCondition(in, out, s)
+}
+
 func autoConvert_api_TagImportPolicy_To_v1_TagImportPolicy(in *imageapi.TagImportPolicy, out *imageapiv1.TagImportPolicy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*imageapi.TagImportPolicy))(in)
@@ -4027,6 +4170,45 @@ func autoConvert_api_TagImportPolicy_To_v1_TagImportPolicy(in *imageapi.TagImpor
 
 func Convert_api_TagImportPolicy_To_v1_TagImportPolicy(in *imageapi.TagImportPolicy, out *imageapiv1.TagImportPolicy, s conversion.Scope) error {
 	return autoConvert_api_TagImportPolicy_To_v1_TagImportPolicy(in, out, s)
+}
+
+func autoConvert_api_TagReference_To_v1_TagReference(in *imageapi.TagReference, out *imageapiv1.TagReference, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.TagReference))(in)
+	}
+	out.Name = in.Name
+	if in.Annotations != nil {
+		out.Annotations = make(map[string]string)
+		for key, val := range in.Annotations {
+			out.Annotations[key] = val
+		}
+	} else {
+		out.Annotations = nil
+	}
+	// unable to generate simple pointer conversion for api.ObjectReference -> v1.ObjectReference
+	if in.From != nil {
+		out.From = new(apiv1.ObjectReference)
+		if err := Convert_api_ObjectReference_To_v1_ObjectReference(in.From, out.From, s); err != nil {
+			return err
+		}
+	} else {
+		out.From = nil
+	}
+	out.Reference = in.Reference
+	if in.Generation != nil {
+		out.Generation = new(int64)
+		*out.Generation = *in.Generation
+	} else {
+		out.Generation = nil
+	}
+	if err := Convert_api_TagImportPolicy_To_v1_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_TagReference_To_v1_TagReference(in *imageapi.TagReference, out *imageapiv1.TagReference, s conversion.Scope) error {
+	return autoConvert_api_TagReference_To_v1_TagReference(in, out, s)
 }
 
 func autoConvert_v1_Image_To_api_Image(in *imageapiv1.Image, out *imageapi.Image, s conversion.Scope) error {
@@ -4323,6 +4505,26 @@ func autoConvert_v1_ImageStreamTag_To_api_ImageStreamTag(in *imageapiv1.ImageStr
 	if err := Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
+	// unable to generate simple pointer conversion for v1.TagReference -> api.TagReference
+	if in.Tag != nil {
+		out.Tag = new(imageapi.TagReference)
+		if err := Convert_v1_TagReference_To_api_TagReference(in.Tag, out.Tag, s); err != nil {
+			return err
+		}
+	} else {
+		out.Tag = nil
+	}
+	out.Generation = in.Generation
+	if in.Conditions != nil {
+		out.Conditions = make([]imageapi.TagEventCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := Convert_v1_TagEventCondition_To_api_TagEventCondition(&in.Conditions[i], &out.Conditions[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
 		return err
 	}
@@ -4407,6 +4609,25 @@ func Convert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus(in *imageap
 	return autoConvert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus(in, out, s)
 }
 
+func autoConvert_v1_TagEventCondition_To_api_TagEventCondition(in *imageapiv1.TagEventCondition, out *imageapi.TagEventCondition, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.TagEventCondition))(in)
+	}
+	out.Type = imageapi.TagEventConditionType(in.Type)
+	out.Status = api.ConditionStatus(in.Status)
+	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
+		return err
+	}
+	out.Reason = in.Reason
+	out.Message = in.Message
+	out.Generation = in.Generation
+	return nil
+}
+
+func Convert_v1_TagEventCondition_To_api_TagEventCondition(in *imageapiv1.TagEventCondition, out *imageapi.TagEventCondition, s conversion.Scope) error {
+	return autoConvert_v1_TagEventCondition_To_api_TagEventCondition(in, out, s)
+}
+
 func autoConvert_v1_TagImportPolicy_To_api_TagImportPolicy(in *imageapiv1.TagImportPolicy, out *imageapi.TagImportPolicy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*imageapiv1.TagImportPolicy))(in)
@@ -4418,6 +4639,45 @@ func autoConvert_v1_TagImportPolicy_To_api_TagImportPolicy(in *imageapiv1.TagImp
 
 func Convert_v1_TagImportPolicy_To_api_TagImportPolicy(in *imageapiv1.TagImportPolicy, out *imageapi.TagImportPolicy, s conversion.Scope) error {
 	return autoConvert_v1_TagImportPolicy_To_api_TagImportPolicy(in, out, s)
+}
+
+func autoConvert_v1_TagReference_To_api_TagReference(in *imageapiv1.TagReference, out *imageapi.TagReference, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1.TagReference))(in)
+	}
+	out.Name = in.Name
+	if in.Annotations != nil {
+		out.Annotations = make(map[string]string)
+		for key, val := range in.Annotations {
+			out.Annotations[key] = val
+		}
+	} else {
+		out.Annotations = nil
+	}
+	// unable to generate simple pointer conversion for v1.ObjectReference -> api.ObjectReference
+	if in.From != nil {
+		out.From = new(api.ObjectReference)
+		if err := Convert_v1_ObjectReference_To_api_ObjectReference(in.From, out.From, s); err != nil {
+			return err
+		}
+	} else {
+		out.From = nil
+	}
+	out.Reference = in.Reference
+	if in.Generation != nil {
+		out.Generation = new(int64)
+		*out.Generation = *in.Generation
+	} else {
+		out.Generation = nil
+	}
+	if err := Convert_v1_TagImportPolicy_To_api_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_TagReference_To_api_TagReference(in *imageapiv1.TagReference, out *imageapi.TagReference, s conversion.Scope) error {
+	return autoConvert_v1_TagReference_To_api_TagReference(in, out, s)
 }
 
 func autoConvert_api_OAuthAccessToken_To_v1_OAuthAccessToken(in *oauthapi.OAuthAccessToken, out *oauthapiv1.OAuthAccessToken, s conversion.Scope) error {
@@ -5026,6 +5286,53 @@ func Convert_api_Route_To_v1_Route(in *routeapi.Route, out *routeapiv1.Route, s 
 	return autoConvert_api_Route_To_v1_Route(in, out, s)
 }
 
+func autoConvert_api_RouteIngress_To_v1_RouteIngress(in *routeapi.RouteIngress, out *routeapiv1.RouteIngress, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapi.RouteIngress))(in)
+	}
+	out.Host = in.Host
+	out.RouterName = in.RouterName
+	if in.Conditions != nil {
+		out.Conditions = make([]routeapiv1.RouteIngressCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := Convert_api_RouteIngressCondition_To_v1_RouteIngressCondition(&in.Conditions[i], &out.Conditions[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	return nil
+}
+
+func Convert_api_RouteIngress_To_v1_RouteIngress(in *routeapi.RouteIngress, out *routeapiv1.RouteIngress, s conversion.Scope) error {
+	return autoConvert_api_RouteIngress_To_v1_RouteIngress(in, out, s)
+}
+
+func autoConvert_api_RouteIngressCondition_To_v1_RouteIngressCondition(in *routeapi.RouteIngressCondition, out *routeapiv1.RouteIngressCondition, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapi.RouteIngressCondition))(in)
+	}
+	out.Type = routeapiv1.RouteIngressConditionType(in.Type)
+	out.Status = apiv1.ConditionStatus(in.Status)
+	out.Reason = in.Reason
+	out.Message = in.Message
+	// unable to generate simple pointer conversion for unversioned.Time -> unversioned.Time
+	if in.LastTransitionTime != nil {
+		out.LastTransitionTime = new(unversioned.Time)
+		if err := api.Convert_unversioned_Time_To_unversioned_Time(in.LastTransitionTime, out.LastTransitionTime, s); err != nil {
+			return err
+		}
+	} else {
+		out.LastTransitionTime = nil
+	}
+	return nil
+}
+
+func Convert_api_RouteIngressCondition_To_v1_RouteIngressCondition(in *routeapi.RouteIngressCondition, out *routeapiv1.RouteIngressCondition, s conversion.Scope) error {
+	return autoConvert_api_RouteIngressCondition_To_v1_RouteIngressCondition(in, out, s)
+}
+
 func autoConvert_api_RouteList_To_v1_RouteList(in *routeapi.RouteList, out *routeapiv1.RouteList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*routeapi.RouteList))(in)
@@ -5102,6 +5409,16 @@ func autoConvert_api_RouteStatus_To_v1_RouteStatus(in *routeapi.RouteStatus, out
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*routeapi.RouteStatus))(in)
 	}
+	if in.Ingress != nil {
+		out.Ingress = make([]routeapiv1.RouteIngress, len(in.Ingress))
+		for i := range in.Ingress {
+			if err := Convert_api_RouteIngress_To_v1_RouteIngress(&in.Ingress[i], &out.Ingress[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
+	}
 	return nil
 }
 
@@ -5144,6 +5461,53 @@ func autoConvert_v1_Route_To_api_Route(in *routeapiv1.Route, out *routeapi.Route
 
 func Convert_v1_Route_To_api_Route(in *routeapiv1.Route, out *routeapi.Route, s conversion.Scope) error {
 	return autoConvert_v1_Route_To_api_Route(in, out, s)
+}
+
+func autoConvert_v1_RouteIngress_To_api_RouteIngress(in *routeapiv1.RouteIngress, out *routeapi.RouteIngress, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapiv1.RouteIngress))(in)
+	}
+	out.Host = in.Host
+	out.RouterName = in.RouterName
+	if in.Conditions != nil {
+		out.Conditions = make([]routeapi.RouteIngressCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := Convert_v1_RouteIngressCondition_To_api_RouteIngressCondition(&in.Conditions[i], &out.Conditions[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	return nil
+}
+
+func Convert_v1_RouteIngress_To_api_RouteIngress(in *routeapiv1.RouteIngress, out *routeapi.RouteIngress, s conversion.Scope) error {
+	return autoConvert_v1_RouteIngress_To_api_RouteIngress(in, out, s)
+}
+
+func autoConvert_v1_RouteIngressCondition_To_api_RouteIngressCondition(in *routeapiv1.RouteIngressCondition, out *routeapi.RouteIngressCondition, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapiv1.RouteIngressCondition))(in)
+	}
+	out.Type = routeapi.RouteIngressConditionType(in.Type)
+	out.Status = api.ConditionStatus(in.Status)
+	out.Reason = in.Reason
+	out.Message = in.Message
+	// unable to generate simple pointer conversion for unversioned.Time -> unversioned.Time
+	if in.LastTransitionTime != nil {
+		out.LastTransitionTime = new(unversioned.Time)
+		if err := api.Convert_unversioned_Time_To_unversioned_Time(in.LastTransitionTime, out.LastTransitionTime, s); err != nil {
+			return err
+		}
+	} else {
+		out.LastTransitionTime = nil
+	}
+	return nil
+}
+
+func Convert_v1_RouteIngressCondition_To_api_RouteIngressCondition(in *routeapiv1.RouteIngressCondition, out *routeapi.RouteIngressCondition, s conversion.Scope) error {
+	return autoConvert_v1_RouteIngressCondition_To_api_RouteIngressCondition(in, out, s)
 }
 
 func autoConvert_v1_RouteList_To_api_RouteList(in *routeapiv1.RouteList, out *routeapi.RouteList, s conversion.Scope) error {
@@ -5221,6 +5585,16 @@ func Convert_v1_RouteSpec_To_api_RouteSpec(in *routeapiv1.RouteSpec, out *routea
 func autoConvert_v1_RouteStatus_To_api_RouteStatus(in *routeapiv1.RouteStatus, out *routeapi.RouteStatus, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*routeapiv1.RouteStatus))(in)
+	}
+	if in.Ingress != nil {
+		out.Ingress = make([]routeapi.RouteIngress, len(in.Ingress))
+		for i := range in.Ingress {
+			if err := Convert_v1_RouteIngress_To_api_RouteIngress(&in.Ingress[i], &out.Ingress[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
 	}
 	return nil
 }
@@ -8314,6 +8688,7 @@ func init() {
 		autoConvert_api_BuildLogOptions_To_v1_BuildLogOptions,
 		autoConvert_api_BuildLog_To_v1_BuildLog,
 		autoConvert_api_BuildOutput_To_v1_BuildOutput,
+		autoConvert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec,
 		autoConvert_api_BuildRequest_To_v1_BuildRequest,
 		autoConvert_api_BuildSource_To_v1_BuildSource,
 		autoConvert_api_BuildSpec_To_v1_BuildSpec,
@@ -8444,6 +8819,8 @@ func init() {
 		autoConvert_api_RoleList_To_v1_RoleList,
 		autoConvert_api_Role_To_v1_Role,
 		autoConvert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategyParams,
+		autoConvert_api_RouteIngressCondition_To_v1_RouteIngressCondition,
+		autoConvert_api_RouteIngress_To_v1_RouteIngress,
 		autoConvert_api_RouteList_To_v1_RouteList,
 		autoConvert_api_RoutePort_To_v1_RoutePort,
 		autoConvert_api_RouteSpec_To_v1_RouteSpec,
@@ -8462,7 +8839,10 @@ func init() {
 		autoConvert_api_SubjectAccessReview_To_v1_SubjectAccessReview,
 		autoConvert_api_TCPSocketAction_To_v1_TCPSocketAction,
 		autoConvert_api_TLSConfig_To_v1_TLSConfig,
+		autoConvert_api_TagEventCondition_To_v1_TagEventCondition,
+		autoConvert_api_TagImageHook_To_v1_TagImageHook,
 		autoConvert_api_TagImportPolicy_To_v1_TagImportPolicy,
+		autoConvert_api_TagReference_To_v1_TagReference,
 		autoConvert_api_TemplateList_To_v1_TemplateList,
 		autoConvert_api_Template_To_v1_Template,
 		autoConvert_api_UserIdentityMapping_To_v1_UserIdentityMapping,
@@ -8483,6 +8863,7 @@ func init() {
 		autoConvert_v1_BuildLogOptions_To_api_BuildLogOptions,
 		autoConvert_v1_BuildLog_To_api_BuildLog,
 		autoConvert_v1_BuildOutput_To_api_BuildOutput,
+		autoConvert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec,
 		autoConvert_v1_BuildRequest_To_api_BuildRequest,
 		autoConvert_v1_BuildSource_To_api_BuildSource,
 		autoConvert_v1_BuildSpec_To_api_BuildSpec,
@@ -8613,6 +8994,8 @@ func init() {
 		autoConvert_v1_RoleList_To_api_RoleList,
 		autoConvert_v1_Role_To_api_Role,
 		autoConvert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategyParams,
+		autoConvert_v1_RouteIngressCondition_To_api_RouteIngressCondition,
+		autoConvert_v1_RouteIngress_To_api_RouteIngress,
 		autoConvert_v1_RouteList_To_api_RouteList,
 		autoConvert_v1_RoutePort_To_api_RoutePort,
 		autoConvert_v1_RouteSpec_To_api_RouteSpec,
@@ -8631,7 +9014,10 @@ func init() {
 		autoConvert_v1_SubjectAccessReview_To_api_SubjectAccessReview,
 		autoConvert_v1_TCPSocketAction_To_api_TCPSocketAction,
 		autoConvert_v1_TLSConfig_To_api_TLSConfig,
+		autoConvert_v1_TagEventCondition_To_api_TagEventCondition,
+		autoConvert_v1_TagImageHook_To_api_TagImageHook,
 		autoConvert_v1_TagImportPolicy_To_api_TagImportPolicy,
+		autoConvert_v1_TagReference_To_api_TagReference,
 		autoConvert_v1_TemplateList_To_api_TemplateList,
 		autoConvert_v1_Template_To_api_Template,
 		autoConvert_v1_UserIdentityMapping_To_api_UserIdentityMapping,

@@ -1,6 +1,13 @@
 package builder
 
 import (
+	"crypto/sha1"
+	"fmt"
+	"math/rand"
+	"os"
+
+	"github.com/docker/distribution/reference"
+	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -81,4 +88,83 @@ func updateBuildRevision(c client.BuildInterface, build *api.Build, sourceInfo *
 	if err != nil {
 		glog.Warningf("An error occurred saving build revision: %v", err)
 	}
+}
+
+// randomBuildTag generates a random tag used for building images in such a way
+// that the built image can be referred to unambiguously even in the face of
+// concurrent builds with the same name in the same namespace.
+func randomBuildTag(namespace, name string) string {
+	repo := fmt.Sprintf("%s/%s", namespace, name)
+	randomTag := fmt.Sprintf("%08x", rand.Uint32())
+	maxRepoLen := reference.NameTotalLengthMax - len(randomTag) - 1
+	if len(repo) > maxRepoLen {
+		repo = fmt.Sprintf("%x", sha1.Sum([]byte(repo)))
+	}
+	return fmt.Sprintf("%s:%s", repo, randomTag)
+}
+
+// containerNamePrefix prefixes the name of containers launched by a build. We
+// cannot reuse the prefix "k8s" because we don't want the containers to be
+// managed by a kubelet.
+const containerNamePrefix = "openshift"
+
+// containerName creates names for Docker containers launched by a build. It is
+// meant to resemble Kubernetes' pkg/kubelet/dockertools.BuildDockerName.
+func containerName(strategyName, buildName, namespace, containerPurpose string) string {
+	return fmt.Sprintf("%s_%s-build_%s_%s_%s",
+		containerNamePrefix,
+		strategyName,
+		buildName,
+		namespace,
+		containerPurpose)
+}
+
+// execPostCommitHook uses the client to execute a command based on the
+// postCommitSpec in a new ephemeral Docker container running the given image.
+// It returns an error if the hook cannot be run or returns a non-zero exit
+// code.
+func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitSpec, image, containerName string) error {
+	command := postCommitSpec.Command
+	args := postCommitSpec.Args
+	script := postCommitSpec.Script
+	if script == "" && len(command) == 0 && len(args) == 0 {
+		// Post commit hook is not set, return early.
+		return nil
+	}
+	glog.Infof("Running post commit hook with image %s ...", image)
+	glog.V(4).Infof("Post commit hook spec: %+v", postCommitSpec)
+
+	if script != "" {
+		command = []string{"/bin/sh", "-c"}
+		args = append([]string{script, command[0]}, args...)
+	}
+
+	limits, err := GetCGroupLimits()
+	if err != nil {
+		return fmt.Errorf("read cgroup limits: %v", err)
+	}
+
+	return dockerRun(client, docker.CreateContainerOptions{
+		Name: containerName,
+		Config: &docker.Config{
+			Image:      image,
+			Entrypoint: command,
+			Cmd:        args,
+		},
+		HostConfig: &docker.HostConfig{
+			// Limit container's resource allocation.
+			CPUShares:  limits.CPUShares,
+			CPUPeriod:  limits.CPUPeriod,
+			CPUQuota:   limits.CPUQuota,
+			Memory:     limits.MemoryLimitBytes,
+			MemorySwap: limits.MemorySwap,
+		},
+	}, docker.LogsOptions{
+		// Stream logs to stdout and stderr.
+		OutputStream: os.Stdout,
+		ErrorStream:  os.Stderr,
+		Follow:       true,
+		Stdout:       true,
+		Stderr:       true,
+	})
 }

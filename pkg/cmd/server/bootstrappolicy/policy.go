@@ -117,6 +117,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
 					Resources: sets.NewString("imagestreams/layers"),
 				},
+				// an admin can run routers that write back conditions to the route
+				{
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("routes/status"),
+				},
 			},
 		},
 		{
@@ -289,6 +294,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     sets.NewString("get"),
 					Resources: sets.NewString("pods/log"),
 				},
+				{
+					// Deployer.After.TagImages
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("imagestreamtags"),
+				},
 			},
 		},
 		{
@@ -322,6 +332,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{
 					Verbs:     sets.NewString("list", "watch"),
 					Resources: sets.NewString("routes", "endpoints"),
+				},
+				// routers write back conditions to the route
+				{
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("routes/status"),
 				},
 			},
 		},

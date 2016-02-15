@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
-var _ = g.Describe("[builds] can use build secrets", func() {
+var _ = g.Describe("[builds][Slow] can use build secrets", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildSecretBaseDir   = exutil.FixturePath("fixtures", "build-secrets")
