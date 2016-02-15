@@ -1,10 +1,10 @@
 # APIMan Integration
 
 ## Abstract
-This proposes a design for integrating [APIMan](http://www.apiman.io/) with OpenShift inorder to provide  micro-services governance for API service providers.
+This proposes a design for integrating [APIMan](http://www.apiman.io/) with OpenShift in order to provide  micro-services governance for API service providers.
 
 ## Motivation
-Providers of services may have the need to control who and how their service is consumed.  This may be realized as policies defined by providers to control the service
+Providers of services may have the need to control who and how their services are consumed.  This may be realized as policies defined by providers to control a service
 in any number of ways (e.g security, throttling/quota, billing and metrics)<sup>[1](#r1)</sup>. 
 
 ## Constraints and Assumptions
@@ -42,8 +42,8 @@ dependencies.
 API services will be scoped to OpenShift projects. Projects will have one-to-one relationship to an APIMan namespace (formally organization). APIMan will utilize namespace
 to manage policy regarding the service.
  
-### Service Annotations (and labels?)
-Services intended to be managed by APIMan and exposed as API Endpoints will be annotated<sup>[5](#r5)</sup>
+### Service Annotations
+Services intended to be managed by APIMan and exposed as API Endpoints will be annotated<sup>[5](#r5)</sup>.  The annotations are repeated below for convenience:
 
 ```
   apiVersion: "v1"
@@ -57,11 +57,9 @@ Services intended to be managed by APIMan and exposed as API Endpoints will be a
       api.service.kubernetes.io/description-language: SwaggerJSON
 ```
 
-** do we need labels to generate backlink from apiman management to console service?
-
 ### Origin Web Console UI extension
 A custom extension<sup>[6](#r6)</sup> will be created and hooked into the web console to support API endpoints.  The extension
-will allow a user to navigate to the APIManagement interface to:
+will allow a user to navigate to the APIMan management interface to:
 * Manage an API endpoint
 * Expose a service as a new API endpoint
 
@@ -70,29 +68,42 @@ The extension will provide the following details to the APIMan gateway:
 * Service namespace
 * User's Oauth token
 
-Calls from the extension to the APIMan gatway will utilize a REST POST call where the oauth token is part of the payload.  It will
-utilize a similiar design<sup>[7](#r7)</sup> that is realized by the OpenShift aggregated logging integration and the auth proxy<sup>[8](#r8)</sup>.  It is necessary for
+Calls from the extension to the APIMan management interface will utilize a REST POST call where the oauth token is part of the payload.  It will
+utilize a similiar design<sup>[7](#r7)</sup> that is realized by the OpenShift origin aggregated logging integration and the auth proxy<sup>[8](#r8)</sup>.  It is necessary for
 security reasons to not add the token as a query parameter.  
 
-### Routing
-The APIMan gateway will be deployed as a custom router implementation along side OpenShift's other available routers to handle services exposed as API endpoints.  **QUESTION: true statement?**
-* Services endpoints are versioned? - necessary to mention this here? or apiman impl detail?
-* APIMan only handles HTTP traffic to API endpoints
-* All other traffic handled by other deployed router
+### API Services Gateway
+The APIMan gateway will be deployed as a cluster-wide infrastructure component to handle services exposed as API endpoints.  Internal and external clients can use the gateway to access APIs.  Admins should be able to configure the cluster to limit direct access to services and encourage consumers of API endpoints to utilize the gateway.
+
+<s>APIman will be deployed as an additional gateway router that internal and external clients can use to access APIs. It is not an exclusive router, but admins should be able to configure the cluster to limit access to services directly and instead encourage applications bouncing off the gateway. The gateway would act as a 'router', although it will effectively be looking at annotated services directly.</s>
+
+**Need: Document how a cluster admin might setup their cluster to control services as alluded to in this section **
+
+**Need: Understand how we would deploy multiple gateways to control subsets of the cluster **
 
 ### OpenShift CLI Modifications
-** EXPOSE service as api endpoint command ?? ** 
+The openshift client binary will be updated to allow a user to:
+* Expose an API endpoint.  
+Exposing the service will update the service annotation as described by the service annotation section.  Possible usage syntax:<p>
+``` oc set api-service SERVICENAME --path PATH```<p>
+The output of the command should return a route to the service.
+
+* Hide an API endpoint.  
+Hiding an API endpoint will remove the annotations from a service.  The change will additionally cause APIMan to remove this service endpoint.  Possible usage syntax:<p>
+```oc unset api-service SERVICENAME```
 
 ### Deployment / Deployer pod
 * APIMan will be deployed as a cluster level service for managing API service end points.
 * APIMan will be deployed to reuse the existing ElasticSearch cluster
-* APIMan will be deployed to reuse the existing Kibana instance **QUESTION What indexes does a user's profile need to display**
+* APIMan will be deployed to reuse the existing Kibana instance 
+
+**Need:**
+* What indexes does a user's profile need to display
+* How do we configure apiman to know about kibana?  deployer env image var
 
 ## Rationale
 The technical rationale fleshes out the specification by describing what motivated the design and why particular design decisions were made. It should describe alternate designs that were considered and related work, e.g. how the feature is supported in other products.
 The rationale should provide evidence of consensus within the community and discuss important objections or concerns raised during discussion.
-
-OpenShift existing arch allows for deploying additional routers 
 
 ## Limitations
 scalability - 
