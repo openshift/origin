@@ -41,10 +41,10 @@ angular.module('openshiftConsole')
           context: '=',
           options: '=?',
           status: '=?',
-          start: '=?',
-          end: '=?',
+          timeStart: '=?',
+          timeEnd: '=?',
           chromeless: '=?',
-          run: '=?'  // will wait for run to be truthy before requesting logs
+          run: '=?'         // boolean, logs will not run until this is truthy
         },
         controller: [
           '$scope',
@@ -57,7 +57,6 @@ angular.module('openshiftConsole')
             var scrollableDOMNode;
             var $affixableNode;
             var html = document.documentElement;
-
 
 
             // are we going to scroll the window, or the DOM node?
@@ -225,7 +224,6 @@ angular.module('openshiftConsole')
 
               angular.extend($scope, {
                 loading: true,
-                error: false,
                 autoScroll: false,
                 limitReached: false,
                 showScrollLinks: false
@@ -236,6 +234,7 @@ angular.module('openshiftConsole')
                 tailLines: 1000,
                 limitBytes: 10 * 1024 * 1024 // Limit log size to 10 MiB
               }, $scope.options);
+
               streamer = DataService.createStream($scope.resource, $scope.name, $scope.context, options);
 
               var lastLineNumber = 0;
@@ -247,6 +246,7 @@ angular.module('openshiftConsole')
               };
 
               streamer.onMessage(function(msg, raw, cumulativeBytes) {
+                $scope.state = 'logs';
                 if (options.limitBytes && cumulativeBytes >= options.limitBytes) {
                   $scope.$evalAsync(function() {
                     $scope.limitReached = true;
@@ -269,6 +269,15 @@ angular.module('openshiftConsole')
                 streamer = null;
                 $scope.$evalAsync(function() {
                   $scope.autoScrollActive = false;
+                  // - if no logs, they have already been archived.
+                  // - if emptyStateMessage has already been set, it means the onError
+                  //   callback has already fired.  onError message takes priority in severity.
+                  // - at present we are using the same error message in both onError and onClose
+                  //   because we dont have enough information to give the user something better.
+                  if((lastLineNumber === 0) && (!$scope.emptyStateMessage)) {
+                    $scope.state = 'empty';
+                    $scope.emptyStateMessage = 'The logs are no longer available or could not be loaded.';
+                  }
                 });
 
                 // Wrap in a timeout so that content displays before we remove the loading ellipses.
@@ -282,9 +291,17 @@ angular.module('openshiftConsole')
                 $scope.$evalAsync(function() {
                   angular.extend($scope, {
                     loading: false,
-                    error: true,
                     autoScroll: false
                   });
+                  // if logs err before we get anything, will show an empty state message
+                  if(lastLineNumber === 0) {
+                    $scope.state = 'empty';
+                    $scope.emptyStateMessage = 'The logs are no longer available or could not be loaded.';
+                  } else {
+                    // if logs were running but something went wrong, will
+                    // show what we have & give option to retry
+                    $scope.errorWhileRunning = true;
+                  }
                 });
               });
 
@@ -301,6 +318,7 @@ angular.module('openshiftConsole')
               ready: true,
               loading: true,
               autoScroll: false,
+              state: false, // show nothing initially to avoid flicker
               onScrollBottom: function() {
                 logLinks.scrollBottom(scrollableDOMNode);
               },
