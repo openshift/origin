@@ -3,12 +3,12 @@
 #
 # The standard name for this image is openshift/origin-f5-router
 #
-FROM openshift3/ose:v3.1.0.4
+FROM openshift3/ose:v3.1.1.901
 
 LABEL BZComponent="aos-f5-router-docker"
 LABEL Name="openshift3/ose-f5-router"
-LABEL Version="v3.1.0.4"
-LABEL Release="0"
+LABEL Version="v3.1.1.901"
+LABEL Release="1"
 LABEL Architecture="x86_64"
 
 

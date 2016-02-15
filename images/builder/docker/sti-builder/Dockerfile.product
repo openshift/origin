@@ -10,11 +10,11 @@
 #
 # The standard name for this image is openshift3/ose-sti-builder
 #
-FROM openshift3/ose
+FROM openshift3/ose:v3.1.1.901
 
 LABEL BZComponent="openshift-enterprise-sti-builder-docker"
 LABEL Name="openshift3/ose-sti-builder"
-LABEL Version="v3.1.0.4"
+LABEL Version="v3.1.1.901"
 LABEL Release="1"
 LABEL Architecture="x86_64"
 

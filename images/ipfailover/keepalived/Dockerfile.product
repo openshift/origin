@@ -3,11 +3,11 @@
 #
 # ImageName: openshift3/ose-keepalived-ipfailover
 #
-FROM openshift3/ose-base
+FROM openshift3/ose-base:v3.1.1.901
 
 LABEL BZComponent="openshift-enterprise-keepalived-ipfailover-docker"
 LABEL Name="openshift3/ose-keepalived-ipfailover"
-LABEL Version="v3.1.0.4"
+LABEL Version="v3.1.1.901"
 LABEL Release="1"
 LABEL Architecture="x86_64"
 

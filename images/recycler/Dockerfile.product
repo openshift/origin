@@ -1,0 +1,17 @@
+#
+# This is the default OpenShift Origin persistent volume recycler image.
+#
+# The standard name for this image is openshift3/ose-recycler
+#
+FROM openshift3/ose-base:v3.1.1.901
+
+LABEL BZComponent="openshift-enterprise-recycler-docker"
+LABEL Name="openshift3/ose-recycler"
+LABEL Version="v3.1.1.901"
+LABEL Release="1"
+LABEL Architecture="x86_64"
+
+RUN yum install -y --enablerepo=rhel-7-server-ose-3.2-rpms atomic-openshift-recycle && \
+    yum clean all
+
+ENTRYPOINT ["/usr/bin/recycle"]

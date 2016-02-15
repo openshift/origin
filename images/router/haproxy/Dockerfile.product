@@ -3,15 +3,15 @@
 #
 # The standard name for this image is openshift3/ose-haproxy-router
 #
-FROM openshift3/ose-haproxy-router-base
+FROM openshift3/ose-haproxy-router-base:v3.1.1.901
 
 LABEL BZComponent="openshift-enterprise-haproxy-router-docker"
 LABEL Name="openshift3/ose-haproxy-router"
-LABEL Version="v3.1.0.4"
+LABEL Version="v3.1.1.901"
 LABEL Release="1"
 LABEL Architecture="x86_64"
 
-RUN yum -y install --enablerepo=RH7-RHAOS-3.1 atomic-openshift && yum clean all
+RUN yum -y install --enablerepo=rhel-7-server-ose-3.2-rpms atomic-openshift && yum clean all
 
 ADD conf/ /var/lib/haproxy/conf/
 ADD reload-haproxy /var/lib/haproxy/reload-haproxy

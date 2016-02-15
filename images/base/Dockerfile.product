@@ -4,18 +4,19 @@
 #
 # The standard name for this image is openshift3/ose-base
 #
-FROM rhel7.2:latest
+FROM rhel7:latest
 
 LABEL Component="openshift-enterprise-base-docker"
 LABEL Name="openshift3/ose-base"
-LABEL Version="v3.1.0.4"
+LABEL Version="v3.1.1.901"
 LABEL Release="1"
 LABEL Architecture="x86_64"
 LABEL BZComponent="openshift-enterprise-base-docker"
 
 # components from EPEL must be installed in a separate yum install step
 RUN yum-config-manager --enable rhel-7-server-rpms --enable rhel-7-server-optional-rpms || :
-RUN yum install -y git tar wget hostname sysvinit-tools util-linux bsdtar epel-release \
+RUN yum clean all
+RUN yum install -y git tar wget hostname sysvinit-tools util-linux bsdtar \
     socat ethtool device-mapper iptables && \
     yum clean all
 

@@ -11,11 +11,11 @@ FROM rhel7:latest
 
 LABEL BZComponent="openshift-enterprise-pod-docker"
 LABEL Name="openshift3/ose-pod"
-LABEL Version="v3.1.0.4"
+LABEL Version="v3.1.1.901"
 LABEL Release="1"
 LABEL Architecture="x86_64"
 
-RUN yum install -y --enablerepo=RH7-RHAOS-3.1 atomic-openshift-pod && yum clean all
+RUN yum install -y --enablerepo=rhel-7-server-ose-3.2-rpms atomic-openshift-pod && yum clean all
 RUN ln -s /usr/bin/pod /pod
 
 ENTRYPOINT ["/pod"]

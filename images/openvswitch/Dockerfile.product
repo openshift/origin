@@ -1,0 +1,26 @@
+#
+# This is an openvswitch image meant to enable OpenShift OVS based SDN
+#
+# The standard name for this image is openshift/openvswitch
+#
+
+FROM rhel7:latest
+
+MAINTAINER Scott Dodson <sdodson@redhat.com>
+
+LABEL BZComponent="openshift-enterprise-openvswitch-docker"
+LABEL Name="openshift3/openvswitch"
+LABEL Version="v3.1.1.901"
+LABEL Release="1"
+LABEL Architecture="x86_64"
+
+
+RUN yum install -y openvswitch --enablerepo=rhel-7-server-ose-3.2-rpms \
+    && yum clean all
+
+ADD  scripts/* /usr/local/bin/
+RUN chmod +x /usr/local/bin/*
+VOLUME [ "/etc/openswitch" ]
+
+ENV HOME /root
+ENTRYPOINT [ "/usr/local/bin/ovs-run.sh" ]
