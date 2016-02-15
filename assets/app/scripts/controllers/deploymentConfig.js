@@ -9,6 +9,7 @@
 angular.module('openshiftConsole')
   .controller('DeploymentConfigController', function ($scope, $routeParams, AlertMessageService, DataService, ProjectsService, DeploymentsService, ImageStreamResolver, $filter, LabelFilter) {
     $scope.projectName = $routeParams.project;
+    $scope.deploymentConfigName = $routeParams.deploymentconfig;
     $scope.deploymentConfig = null;
     $scope.deployments = {};
     $scope.unfilteredDeployments = {};
@@ -77,8 +78,8 @@ angular.module('openshiftConsole')
             $scope.loaded = true;
             $scope.alerts["load"] = {
               type: "error",
-              message: "The deployment configuration details could not be loaded.",
-              details: "Reason: " + $filter('getErrorDetails')(e)
+              message: e.status === 404 ? "This deployment configuration can not be found, it may have been deleted." : "The deployment configuration details could not be loaded.",
+              details: e.status === 404 ? "Any remaining deployment history for this deployment will be shown." : "Reason: " + $filter('getErrorDetails')(e)
             };
           }
         );
