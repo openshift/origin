@@ -446,7 +446,7 @@ const (
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
 	unversioned.TypeMeta
-	kapi.ObjectMeta
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec holds all the input necessary to produce a new build, and the conditions when
 	// to trigger them.
