@@ -75,41 +75,35 @@ del_ovs_flows() {
 }
 
 add_subnet_route() {
-    source /run/openshift-sdn/config.env
     local subnet_route="ip route add ${OPENSHIFT_CLUSTER_SUBNET} dev eth0 proto kernel scope link src $ipaddr"
     nsenter -n -t $pid -- $subnet_route
 }
 
-Setup() {
+run() {
     get_ipaddr_pid_veth
-    add_ovs_port
-    add_ovs_flows
-    add_subnet_route
+    source /run/openshift-sdn/config.env
+
+    case "$action" in
+	setup)
+	    add_ovs_port
+	    add_ovs_flows
+	    add_subnet_route
+	    ;;
+
+	update)
+	    del_ovs_flows
+	    add_ovs_flows
+	    ;;
+
+	teardown)
+	    del_ovs_port
+	    del_ovs_flows
+	    ;;
+
+	*)
+            echo "Bad input: $@"
+            exit 1
+    esac
 }
 
-Update() {
-    get_ipaddr_pid_veth
-    del_ovs_flows
-    add_ovs_flows
-}
-
-Teardown() {
-    get_ipaddr_pid_veth
-    del_ovs_port
-    del_ovs_flows
-}
-
-case "$action" in
-    setup)
-	lockwrap Setup
-	;;
-    update)
-	lockwrap Update
-	;;
-    teardown)
-	lockwrap Teardown
-	;;
-    *)
-        echo "Bad input: $@"
-        exit 1
-esac
+lockwrap run
