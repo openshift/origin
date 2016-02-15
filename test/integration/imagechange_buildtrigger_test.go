@@ -209,17 +209,17 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
 
-	watch, err := projectAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
+	buildWatch, err := projectAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
-	defer watch.Stop()
+	defer buildWatch.Stop()
 
-	watch2, err := projectAdminClient.BuildConfigs(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
+	buildConfigWatch, err := projectAdminClient.BuildConfigs(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}
-	defer watch2.Stop()
+	defer buildConfigWatch.Stop()
 
 	imageStream, err = projectAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream)
 	if err != nil {
@@ -232,7 +232,7 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 	}
 
 	// wait for initial build event from the creation of the imagerepo with tag latest
-	event := <-watch.ResultChan()
+	event := <-buildWatch.ResultChan()
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
@@ -259,7 +259,7 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, strategy.CustomStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 		}
 	}
-	event = <-watch.ResultChan()
+	event = <-buildWatch.ResultChan()
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
@@ -273,7 +273,7 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 	}
 
 	// wait for build config to be updated
-	<-watch2.ResultChan()
+	<-buildConfigWatch.ResultChan()
 	updatedConfig, err := projectAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
 	if err != nil {
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
@@ -303,7 +303,7 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 	// throw away events from build1, we only care about the new build
 	// we just triggered
 	for {
-		event = <-watch.ResultChan()
+		event = <-buildWatch.ResultChan()
 		newBuild = event.Object.(*buildapi.Build)
 		if newBuild.Name != build1Name {
 			break
@@ -337,7 +337,7 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 	// throw away events from build1, we only care about the new build
 	// we just triggered
 	for {
-		event = <-watch.ResultChan()
+		event = <-buildWatch.ResultChan()
 		newBuild = event.Object.(*buildapi.Build)
 		if newBuild.Name != build1Name {
 			break
@@ -354,7 +354,7 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 		t.Fatalf("Expected build with label %s=%s from build config got %s=%s", "testlabel", "testvalue", "testlabel", newBuild.Labels["testlabel"])
 	}
 
-	<-watch2.ResultChan()
+	<-buildConfigWatch.ResultChan()
 	updatedConfig, err = projectAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
 	if err != nil {
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
@@ -453,17 +453,22 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
-	watch, err := projectAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
+	buildWatch, err := projectAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
-	defer watch.Stop()
+	defer buildWatch.Stop()
 
-	watch2, err := projectAdminClient.BuildConfigs(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
+	buildConfigWatch, err := projectAdminClient.BuildConfigs(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}
-	defer watch2.Stop()
+	defer buildConfigWatch.Stop()
+
+	// Builds can continue to produce new events that we don't care about for this test,
+	// so once we've seen the last event we care about for a build, we add it to this
+	// list so we can ignore additional events from that build.
+	ignoreBuilds := make(map[string]struct{})
 
 	for _, tc := range triggersToTest {
 		imageStream := mockImageStream(tc.name, tc.tag)
@@ -477,12 +482,15 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Couldn't create Image: %v", err)
 		}
+
+		var newBuild *buildapi.Build
+		var event watchapi.Event
 		// wait for initial build event from the creation of the imagerepo
-		event := <-watch.ResultChan()
+		newBuild, event = filterEvents(t, ignoreBuilds, buildWatch)
 		if e, a := watchapi.Added, event.Type; e != a {
 			t.Fatalf("expected watch event type %s, got %s", e, a)
 		}
-		newBuild := event.Object.(*buildapi.Build)
+
 		trigger := config.Spec.Triggers[tc.triggerIndex]
 		if trigger.ImageChange.From == nil {
 			strategy := newBuild.Spec.Strategy
@@ -508,18 +516,17 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 
 			}
 		}
-		event = <-watch.ResultChan()
+		newBuild, event = filterEvents(t, ignoreBuilds, buildWatch)
 		if e, a := watchapi.Modified, event.Type; e != a {
 			t.Fatalf("expected watch event type %s, got %s", e, a)
 		}
-		newBuild = event.Object.(*buildapi.Build)
 		// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
 		if newBuild.Spec.Output.To.Name != "image1:outputtag" {
 			t.Fatalf("unexpected build output: %#v %#v", newBuild.Spec.Output.To, newBuild.Spec.Output)
 		}
 
 		// wait for build config to be updated
-		<-watch2.ResultChan()
+		<-buildConfigWatch.ResultChan()
 		updatedConfig, err := projectAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
 		if err != nil {
 			t.Fatalf("Couldn't get BuildConfig: %v", err)
@@ -528,5 +535,23 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 		if updatedConfig.Spec.Triggers[tc.triggerIndex].ImageChange.LastTriggeredImageID != "registry:5000/openshift/"+tc.name+":"+tc.tag {
 			t.Fatalf("Expected imageID equal to pull spec, got %#v", updatedConfig.Spec.Triggers[0].ImageChange)
 		}
+
+		ignoreBuilds[newBuild.Name] = struct{}{}
+
 	}
+}
+
+func filterEvents(t *testing.T, ignoreBuilds map[string]struct{}, buildWatch watchapi.Interface) (newBuild *buildapi.Build, event watchapi.Event) {
+	for {
+		event = <-buildWatch.ResultChan()
+		var ok bool
+		newBuild, ok = event.Object.(*buildapi.Build)
+		if !ok {
+			t.Errorf("unexpected event type (not a Build): %v", event.Object)
+		}
+		if _, exists := ignoreBuilds[newBuild.Name]; !exists {
+			break
+		}
+	}
+	return
 }
